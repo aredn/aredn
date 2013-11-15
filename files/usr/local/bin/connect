@@ -1,0 +1,140 @@
+#!/usr/bin/perl -w
+
+$seq = 0;
+
+sub tempfile
+{
+  my $file;
+  do
+  {
+    $file = sprintf "/tmp/perlexec%d", ++$seq;
+  }
+  while(-e $file);
+  return $file
+}
+
+sub execute
+{
+  my $file = tempfile();
+  open(EX, "> $file") or die;
+  print EX "@_";
+  close(EX);
+  my $rc = system "sh $file";
+  unlink $file;
+  return $rc;
+}
+            
+sub branch
+{
+  my $file = "/tmp/perlexec";
+  open(EX, "> $file") or die;
+  print EX "@_\n";
+  close(EX);
+  exec "sh $file";
+}
+            
+$| = 1;
+$ssid = shift;
+$iface = "wl0";
+
+if(defined $ssid and $ssid eq "-h")
+{
+  print "usage: connect [ssid]\n";
+  print "if no ssid is provided you will be given a choice of available AP's\n";
+  exit;
+}
+
+# do a site survey if ssid not given
+
+if(not defined $ssid)
+{
+  print "scanning...";
+  unlink "/tmp/wscan";
+  execute "wscan -i $iface -a -b -o -n 5 > /dev/null";
+  print "\n\n";
+  
+  execute "cd /tmp; mv wscan wscan.tmp; sort -rn wscan.tmp > wscan; rm wscan.tmp";
+  open(FILE, "/tmp/wscan") or die "wscan failed\n";
+  while(defined ($line = <FILE>))
+  {
+    next if $line =~ /^\s*$/;
+    push @list, $line;
+  }
+  close(FILE);
+  
+  die "no open access points found\n" if not @list;
+  
+  print "    Sig Rel Ch E              SSID                     MAC      Vendor\n";
+  print "    --- --- -- - -------------------------------- ------------- ------\n";
+  for($i = 0; $i < @list; ++$i)
+  {
+    printf "%2d: %s", $i + 1, $list[$i];
+  }
+  print "\n";
+  
+  while(1)
+  {
+    print "which access point [1] ? ";
+    $ans = <STDIN>;
+    die "connect aborted\n" if not defined $ans;
+    chomp $ans;
+    $ans = "1" if $ans eq "";
+    next if $ans !~ /^\d+$/;
+    next if $ans < 1 or $ans > @list;
+    last;
+  }
+  
+  $ssid = substr $list[$ans - 1], 13, 32;
+  $ssid =~ s/\s+$//;
+}
+
+# associate
+
+print "associating with $ssid ";
+
+for($i = $done = 0; $i < 30 and not $done; ++$i)
+{
+  print ".";
+  system "iwconfig $iface mode managed";
+  execute "iwconfig $iface essid '$ssid'";
+  sleep 1;
+  execute "iwconfig $iface | grep -q 'ESSID:\"$ssid\"'";
+  sleep 1;
+  execute "iwconfig $iface | grep -q 'Not-Associated'";
+  $done = 1 if $?;
+}
+
+print "\n";
+die "association failed\n" if not $done;
+
+# get a dhcp lease
+
+print "requesting a dhcp lease\n";
+execute "kill `cat /var/run/wl0.pid` 2>/dev/null" if -e "/var/run/wl0.pid";
+
+$pid = fork;
+
+if(!$pid)
+{
+  branch "udhcpc -t 0 -i $iface -b -p /var/run/wl0.pid -R 2>/dev/null";
+}
+
+# check for an address
+
+for($i = $done = 0; $i < 60 and not $done; ++$i)
+{
+  sleep 1;
+  execute "ifconfig $iface | grep -q 'inet addr'";
+  $done = 1 if not $?;
+}
+
+if(not $done)
+{
+  execute "kill `cat /var/run/wl0.pid` 2>/dev/null" if -e "/var/run/wl0.pid";
+  die "dhcp failed\n";
+}
+
+sleep 2;
+print "connection successful\n";
+exit 0;
+

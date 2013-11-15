@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+
+unless(defined ($pw = shift))
+{
+  print STDERR "\nusage: setpasswd <password>\n";
+  print STDERR "this sets both the system and website paswords\n\n";
+  exit 1;
+}
+
+$pw2 = $pw;
+$pw2 =~ s/'/'\\''/g;
+system "{ echo '$pw2'; sleep 1; echo '$pw2'; } | passwd > /dev/null\n";
+
+@web = `cat /etc/httpd.conf`;
+open(FILE, ">/etc/httpd.conf") or die;
+foreach(@web)
+{
+    s/^(.*:root:)(.*)$/$1$pw/;
+    print FILE $_;
+}
+close(FILE);
+
+print STDERR "passwords changed.\n";

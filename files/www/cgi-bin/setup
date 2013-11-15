@@ -1,0 +1,726 @@
+#!/usr/bin/perl
+
+$debug = 0;
+
+use perlfunc;
+
+#
+# load the config parms
+#
+
+read_postdata();
+
+($config = $parms{config}) or 
+($config = nvram_get("config") and -d "/etc/config.$config") or 
+($config = "mesh");
+
+# convert the %parms into scalars for convenience
+if($parms{button_default})
+{
+    load_cfg("/etc/config.$config/_setup.default");
+    foreach(keys %cfg)
+    {
+	eval (sprintf "\$$_ = \"%s\"", quotemeta $cfg{$_});
+    }
+}
+else
+{
+    foreach(keys %parms)
+    {
+	next unless /^\w+$/;
+	$parms{$_} =~ s/^\s+//;
+	$parms{$_} =~ s/\s+$//;
+	eval (sprintf "\$$_ = \"%s\"", quotemeta $parms{$_});
+    }
+
+    if($button_reset or $config ne $oldconfig)
+    {
+	load_cfg("/etc/config.$config/_setup");
+	foreach(keys %cfg)
+	{
+	    eval (sprintf "\$$_ = \"%s\"", quotemeta $cfg{$_});
+	}
+    }
+}
+
+if($parms{button_reset} or $parms{button_default} or (not $nodetac and not keys %parms))
+{
+    $nodetac = nvram_get("node");
+    $tactical = nvram_get("tactical");
+    $nodetac .= " / $tactical" if $tactical;
+}
+else
+{
+    $nodetac = $parms{nodetac};
+}
+
+# make sure unchecked checkboxes are accounted for
+foreach(qw(lan_dhcp olsrd_bridge olsrd_gw wifi_hidden))
+{
+    $parms{$_} = 0 unless $parms{$_};
+}
+
+# lan is always static
+$lan_proto = "static";
+
+# enforce direct mode settings
+# (formerly known as dmz mode)
+$dmz_mode = 0 unless $config eq "mesh";
+$dmz_mode = 2 if $dmz_mode != 0 and $dmz_mode < 2;
+$dmz_mode = 4 if $dmz_mode > 4;
+
+if($dmz_mode)
+{
+    $ipshift = (ip2decimal($wifi_ip) << $dmz_mode) & 0xffffff;
+    $dmz_lan_ip = add_ip_address("1" . decimal2ip($ipshift), 1);
+    $dmz_lan_mask = decimal2ip(0xffffffff << $dmz_mode);
+    ($octet) = $dmz_lan_ip =~ /\d+\.\d+\.\d+\.(\d+)/;
+    $dmz_dhcp_start = $octet + 1;
+    $dmz_dhcp_end = $dmz_dhcp_start + (1 << $dmz_mode) - 4;
+    $parms{dmz_lan_ip}     = $dmz_lan_ip;
+    $parms{dmz_lan_mask}   = $dmz_lan_mask;
+    $parms{dmz_dhcp_start} = $dmz_dhcp_start;
+    $parms{dmz_dhcp_end}   = $dmz_dhcp_end;
+}
+
+# derive values which are not explicitly defined
+$parms{dhcp_limit} = $dhcp_limit = $dhcp_end - $dhcp_start;
+$parms{dmz_dhcp_limit} = $dmz_dhcp_limit = $dmz_dhcp_end - $dmz_dhcp_start;
+
+#
+# get the active wifi settings on a fresh page load
+#
+
+unless($parms{reload})
+{
+    ($wifi_txpower) = `iwconfig wl0 2>/dev/null` =~ /Tx-Power:(\d+)/;
+    chomp ($wifi_txant = `wlc txant 2>/dev/null`);
+    chomp ($wifi_rxant = `wlc rxant 2>/dev/null`);
+    chomp ($slottime   = `wlc slottime 2>/dev/null`);
+
+    if   ($slottime eq "") { $wifi_distance = 0 }
+    elsif($slottime == -1) { $wifi_distance = 0 }
+    elsif($slottime < 11)  { $wifi_distance = 1 }
+    else                   { $wifi_distance = 150*($slottime - 10) }
+}
+
+# sanitize the active settings
+%valid_ant = ( 0 => 1, 1 => 1, 3 => 1 );
+$wifi_txpower = 19 if not defined $wifi_txpower or $wifi_txpower > 19;
+$wifi_txpower = 1 if $wifi_txpower < 1;
+$wifi_rxant = 3 if not defined $wifi_rxant or not exists $valid_ant{$wifi_rxant};
+$wifi_txant = 3 if not defined $wifi_txant or not exists $valid_ant{$wifi_txant};
+$wifi_distance = 0 unless defined $wifi_distance;
+$wifi_distance = 0 if $wifi_distance =~ /\D/;
+
+# normalize the distance
+if($wifi_distance) { $slottime = 10 + int($wifi_distance/150) }
+else               { $slottime = -1 }
+
+if   ($slottime == -1) { $wifi_distance = 0 }
+elsif($slottime < 11)  { $wifi_distance = 1 }
+else                   { $wifi_distance = 150*($slottime - 10) }
+
+# stuff the sanitized data back into the parms hash
+# so they get saved correctly
+$parms{wifi_distance} = $wifi_distance;
+$parms{wifi_txpower} = $wifi_txpower;
+$parms{wifi_txant} = $wifi_txant;
+$parms{wifi_rxant} = $wifi_rxant;
+
+#
+# apply the wifi settings
+#
+
+if($parms{button_apply} or $parms{button_save})
+{
+    $cmd  = "iwconfig wl0 txpower $wifi_txpower >/dev/null 2>&1;";
+    $cmd .= "wlc rxant $wifi_rxant >/dev/null 2>&1;";
+    $cmd .= "wlc txant $wifi_txant >/dev/null 2>&1;";
+    $cmd .= "wlc slottime $slottime >/dev/null 2>&1;";
+    system $cmd;
+}
+
+
+# validate and save configuration
+
+@errors = ();
+
+if($parms{button_save})
+{
+    if($wifi_proto eq "static")
+    {
+	if(not validate_netmask($wifi_mask))
+	{
+	    push @errors, "invalid WiFi netmask";
+	}
+	elsif(not validate_ip_netmask($wifi_ip, $wifi_mask))
+	{
+	    push @errors, "invalid WiFi IP address";
+	}
+    }
+	      
+    push (@errors, "invalid WiFi SSID") unless length $wifi_ssid <= 32;    
+    push (@errors, "invalid WiFi channel") if $wifi_channel < 1 or $wifi_channel > 11;
+    push (@errors, "invalid WiFi distance") if $wifi_distance < 0 or $wifi_distance =~ /\D/;
+
+    if($lan_proto eq "static")
+    {
+	if(not validate_netmask($lan_mask))
+	{
+	    push @errors, "invalid LAN netmask";
+	}
+	elsif($lan_mask !~ /^255\.255\.255\./)
+	{
+	    push @errors, "LAN netmask must begin with 255.255.255";
+	}
+	elsif(not validate_ip_netmask($lan_ip, $lan_mask))
+	{
+	    push @errors, "invalid LAN IP address";
+	}
+	else
+	{
+	    if($lan_dhcp)
+	    {
+		my $start_addr = change_ip_address($lan_ip, $dhcp_start);
+		my $end_addr   = change_ip_address($lan_ip, $dhcp_end);
+
+		unless(validate_ip_netmask($start_addr, $lan_mask) and
+		       validate_same_subnet($start_addr, $lan_ip, $lan_mask))
+		{
+		    push @errors, "invalid DHCP start address";
+		}
+
+		unless(validate_ip_netmask($end_addr, $lan_mask) and
+		       validate_same_subnet($end_addr, $lan_ip, $lan_mask))
+		{
+		    push @errors, "invalid DHCP end address";
+		}
+
+		if($dhcp_start > $dhcp_end)
+		{
+		    push @errors, "invalid DHCP start/end addresses";
+		}
+	    }
+
+	    if($lan_gw and not
+	       (validate_ip_netmask($lan_gw, $lan_mask) and 
+		validate_same_subnet($lan_ip, $lan_gw, $lan_mask)))
+	    {
+		push @errors, "invalid LAN gateway";
+	    }
+	}
+    }
+
+    if($wan_proto eq "static")
+    {
+	if(not validate_netmask($wan_mask))
+	{
+	    push @errors, "invalid WAN netmask";
+	}
+	elsif(not validate_ip_netmask($wan_ip, $wan_mask))
+	{
+	    push @errors, "invalid WAN IP address";
+	}
+	else
+	{
+	    unless (validate_ip_netmask($wan_gw, $wan_mask) and 
+		    validate_same_subnet($wan_ip, $wan_gw, $wan_mask))
+	    {
+		push @errors, "invalid WAN gateway";
+	    }
+	}
+    }
+	      
+    push (@errors, "invalid WAN DNS 1") unless validate_ip($wan_dns1);
+    push (@errors, "invalid WAN DNS 2") if $wan_dns2 ne "" and not validate_ip($wan_dns2);
+
+
+    if($passwd1 or $passwd2)
+    {
+	push (@errors, "passwords do not match") if $passwd1 ne $passwd2;
+	push (@errors, "passwords cannot contain '#'") if $passwd1 =~ /#/;
+	push (@errors, "password must be changed") if $passwd1 eq "hsmm";
+    }
+    elsif(-f "/etc/config/unconfigured")
+    {
+	push @errors, "password must be changed during initial configuration";
+    }
+	      
+    if($aprs_lat or $aprs_lon)
+    {
+	push (@errors, "invalid latitude") unless validate_latitude($aprs_lat);
+	push (@errors, "invalid longitude") unless validate_longitude($aprs_lon);
+    }
+
+    if($nodetac =~ /\//)
+    {
+	$nodetac =~ /^\s*([\w\-]+)\s*\/\s*([\w\-]+)\s*$/;
+	$node = $1;
+	$tactical = $2;
+	push(@errors, "invalid node/tactical name") if not $2;
+    }
+    else
+    {
+	$node = $nodetac;
+	$tactical = "";
+	push(@errors, "you must set the node name") if $node eq "";
+    }
+
+    if($node and ($node =~ /[^\w\-]/ or $node =~ /_/))
+    {
+	push(@errors, "invalid node name");
+    }
+
+    if($tactical =~ /[^\w\-]/ or $tactical =~ /_/)
+    {
+	push(@errors, "invalid tactical name");
+    }
+
+    if($debug == 3) # don't save the config, just validate it
+    {
+	push (@errors, "OK") unless @errors;
+    }
+
+    unless(@errors)
+    {
+	$parms{node} = $node;
+	$parms{tactical} = $tactical;
+	system "touch /tmp/unconfigured" if -f "/etc/config/unconfigured";
+	$rc = save_setup("/etc/config.$config/_setup");
+	if(-s "/tmp/web/save/node-setup.out")
+	{
+	    push @errors, `cat /tmp/web/save/node-setup.out`;
+	}
+	elsif(not $rc)
+	{
+	    push @errors, "error saving setup";
+	}
+	reboot_page("/cgi-bin/status") if -f "/tmp/unconfigured" and not @errors;
+    }
+}
+
+system "rm -rf /tmp/web/save";
+reboot_page("/cgi-bin/status") if $parms{button_reboot};
+
+
+#
+# generate the page
+#
+
+http_header() unless $debug == 2;
+html_header(nvram_get("node") . " setup", 1);
+print "<body><center>\n";
+print "<form method=post action=/cgi-bin/setup enctype='multipart/form-data'>\n" unless $debug == 2;
+print "<form method=post action=test>\n" if $debug == 2;
+
+print "<table width=790>\n";
+print "<tr><td>\n";
+navbar("setup");
+print "</td></tr>\n";
+
+#
+# control buttons
+#
+
+print "<tr><td align=center>
+<a href='/help.html#setup' target='_blank'>Help</a>
+&nbsp;&nbsp;&nbsp;
+<input type=submit name=button_save value='Save Changes' title='Store these settings'>&nbsp;
+<input type=submit name=button_reset value='Reset Values' title='Revert to the last saved settings'>&nbsp;
+<input type=submit name=button_default value='Default Values' title='Set all values to their default'>&nbsp;
+<input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>
+</td></tr>
+<tr><td>&nbsp;</td></tr>\n";
+
+# messages
+
+if(@errors)
+{
+    print "<tr><th>Configuration NOT saved!</th></tr>\n";
+    print "<tr><td align=center><table>\n";
+    print "<tr><td><ul style='padding-left:0'>\n";
+    foreach(@errors) { print "<li>$_</li>\n" }
+    print "</ul></td></tr></table>\n";
+    print "</td></tr>\n";
+}
+elsif($parms{button_save})
+{
+    print "<tr><td align=center>";
+    print "<b>Configuration saved.</b><br><br>\n";
+    print "</td></tr>\n";
+}
+
+if(not @errors and -f "/tmp/reboot-required")
+{
+    print "<tr><td align=center><h3>Reboot is required for changes to take effect</h3></td></tr>";
+}
+
+#
+# node name and type, password
+#
+
+print "<tr><td align=center>\n";
+print "<table cellpadding=5 border=0>
+
+<tr>
+<td>Node Name</td>
+<td><input type=text name=nodetac value='$nodetac' tabindex=1></td>
+<td align=right>Password</td>
+<td><input type=password name=passwd1 value='$passwd1' size=8 tabindex=2></td>";
+
+if(0)#$config eq "mesh")
+{
+    print "<td>&nbsp;</td>";
+    print "<td align=right>Latitude</td>";
+    print "<td><input type=text size=8 name=aprs_lat value='$aprs_lat' tabindex=4></td>\n";
+}
+
+print "
+</tr>
+<tr>
+<td>Node Type</td>
+<td><select name=config onChange='form.submit()' tabindex=6>\n";
+selopt("Mesh Node", "mesh", $config);
+selopt("Mesh Access Point", "mesh_ap", $config);
+selopt("Standard Access Point", "ap", $config);
+selopt("Wireless Client", "client", $config);
+selopt("Wired Router", "router", $config);
+#selopt("User", "user", $config, "disabled");
+$oldconfig = $config;
+print "</select></td>
+<td>Verify Password</td>
+<td><input type=password name=passwd2 value='$passwd2' size=8 tabindex=3></td>";
+
+if(0)#$config eq "mesh")
+{
+    print "<td>&nbsp;</td>";
+    print "<td align=right>Longitude</td>";
+    print "<td><input type=text size=8 name=aprs_lon value='$aprs_lon' tabindex=5></td>\n";
+}
+
+print "
+</tr>
+</table>
+
+</td></tr><tr><td>
+<br>
+
+<table cellpadding=5 border=1 width=100%>
+<tr><td valign=top width=33%>\n";
+
+#
+# WiFi settings
+#
+
+print "<table width=100%>
+<tr><th colspan=2>WiFi</th></tr>
+<tr><td>Protocol</td>
+<td>";
+
+#if($config ne "user" and $config ne "client")
+if($config ne "user")
+{
+    push @hidden, "<input type=hidden name=wifi_proto value='$wifi_proto'>";
+    print "<select name=wifi_proto disabled>\n";
+}
+else
+{
+    print "<select name=wifi_proto onChange='form.submit()'>\n";
+}
+
+$dis = "";
+$dis = "disabled" if $config eq "client";
+selopt("Static", "static", $wifi_proto);
+selopt("DHCP", "dhcp", $wifi_proto);
+selopt("Bridged", "bridged", $wifi_proto, $dis);
+selopt("disabled", "disabled", $wifi_proto, $dis);
+print "</select></td>\n</tr>\n";
+if($wifi_proto eq "static")
+{
+    print "<tr><td><nobr>IP Address</nobr></td>\n";
+    print "<td><input type=text size=15 name=wifi_ip value='$wifi_ip'></td></tr>\n";
+    print "<tr><td>Netmask</td>\n";
+    print "<td><input type=text size=15 name=wifi_mask value='$wifi_mask'></td></tr>\n";
+}
+else
+{
+    push @hidden, "<input type=hidden name=wifi_ip value='$wifi_ip'>";
+    push @hidden, "<input type=hidden name=wifi_mask value='$wifi_mask'>";
+}
+if($wifi_proto ne "disabled")
+{
+    print "<tr><td>SSID</td>\n";
+    print "<td><input type=text size=15 name=wifi_ssid value='$wifi_ssid'></td></tr>\n";
+
+    if($wifi_mode eq "ap")
+    {
+	print "<tr><td>Hidden</td>";
+	print "<td><input type=checkbox name=wifi_hidden value=1";
+	print " checked" if $wifi_hidden;
+	print "></td></tr>\n";
+    }
+
+    print "<tr><td>Mode</td>\n";
+
+    if($config ne "user")
+    {
+	push @hidden, "<input type=hidden name=wifi_mode value='$wifi_mode'>";
+	print "<td><select name=wifi_mode disabled>\n";
+    } else {
+	print "<td><select name=wifi_mode>\n";
+    }
+
+    selopt("Access Point", "ap", $wifi_mode);
+    selopt("Client", "sta", $wifi_mode);
+    selopt("Ad-Hoc", "adhoc", $wifi_mode);
+    print "</select></td></tr>\n";
+
+    if($wifi_mode ne "sta")
+    {
+	print "<tr><td>Channel</td>\n";
+	print "<td><select name=wifi_channel>\n";
+	for($i = 1; $i <= 11; ++$i) { selopt($i, $i, $wifi_channel) }
+	print "</select></td></tr>\n";
+    }
+    else
+    {
+	push @hidden, "<input type=hidden name=wifi_channel value='$wifi_channel'>";
+    }
+
+    print "<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>\n";
+
+    print "<tr><td><nobr>Rx Antenna</nobr></td>\n";
+    print "<td><select name=wifi_rxant>\n";
+    selopt("Diversity", 3, $wifi_rxant);
+    selopt("Left", 1, $wifi_rxant);
+    selopt("Right", 0, $wifi_rxant);
+    print "</select></td></tr>\n";
+
+    print "<tr><td><nobr>Tx Antenna</nobr></td>\n";
+    print "<td><select name=wifi_txant>\n";
+    selopt("Diversity", 3, $wifi_txant);
+    selopt("Left", 1, $wifi_txant);
+    selopt("Right", 0, $wifi_txant);
+    print "</select></td></tr>\n";
+
+    print "<tr><td><nobr>Tx Power</nobr></td>\n";
+    print "<td><select name=wifi_txpower>\n";
+    for($i = 19; $i >= 1; --$i) { selopt("$i dBm", $i, $wifi_txpower) }
+    print "</select></td></tr>\n";
+
+    print "<tr><td>Distance</td>\n";
+    print "<td><input type=text size=8 name=wifi_distance value='$wifi_distance' title='Distance in meters to the farthest neighbor; 0=automatic'></td></tr>\n";
+
+    print "<tr><td></td><td><input type=submit name=button_apply value=Apply title='Immediately use these active settings'></td></tr>\n";
+}
+else
+{
+    push @hidden, "<input type=hidden name=wifi_ssid value='$wifi_ssid'>";
+    push @hidden, "<input type=hidden name=wifi_mode value='$wifi_mode'>";
+    push @hidden, "<input type=hidden name=wifi_channel value='$wifi_channel'>";
+}
+print "</table></td>\n";
+
+
+#
+# LAN settings
+#
+
+print "<td valign=top width=33%><table width=100%>
+<tr><th colspan=2>LAN</th></tr>
+<tr>
+<td>LAN Mode</td>
+<td><select name=dmz_mode onChange='form.submit()'";
+print " disabled" unless $config eq "mesh";
+print ">\n";
+selopt("NAT", 0, $dmz_mode);
+selopt("1 host Direct", 2, $dmz_mode);
+selopt("5 host Direct", 3, $dmz_mode);
+selopt("13 host Direct", 4, $dmz_mode);
+print "</select></td>\n</tr>\n";
+push @hidden, "<input type=hidden name=lan_proto value='static'>";
+
+if($dmz_mode)
+{
+    print "<tr><td><nobr>IP Address</nobr></td>";
+    #print "<td><input type=text size=15 name=dmz_lan_ip value='$dmz_lan_ip' disabled></td></tr>\n";
+    print "<td>$dmz_lan_ip</td></tr>\n";
+    push @hidden, "<input type=hidden name=dmz_lan_ip value='$dmz_lan_ip'>";
+    
+    print "<tr><td>Netmask</td>";
+    #print "<td><input type=text size=15 name=dmz_lan_mask value='$dmz_lan_mask' disabled></td></tr>\n";
+    print "<td>$dmz_lan_mask</td></tr>\n";
+    push @hidden, "<input type=hidden name=dmz_lan_mask value='$dmz_lan_mask'>";
+    
+    print "<tr><td><nobr>DHCP Server</nobr></td>";
+    print "<td><input type=checkbox name=lan_dhcp value=1";
+    print " checked" if $lan_dhcp;
+    print "></td></tr>\n";
+
+    print "<tr><td><nobr>DHCP Start</nobr></td>";
+    #print "<td><input type=text size=4 name=dmz_dhcp_start value='$dmz_dhcp_start' disabled></td></tr>\n";
+    print "<td>$dmz_dhcp_start</td></tr>\n";
+    push @hidden, "<input type=hidden name=dmz_dhcp_start value='$dmz_dhcp_start'>";
+
+    print "<tr><td><nobr>DHCP End</nobr></td>";
+    #print "<td><input type=text size=4 name=dmz_dhcp_end value='$dmz_dhcp_end' disabled></td></tr>\n";
+    print "<td>$dmz_dhcp_end</td></tr>\n";
+    push @hidden, "<input type=hidden name=dmz_dhcp_end value='$dmz_dhcp_end'>";
+
+    push @hidden, "<input type=hidden name=dmz_dhcp_limit value='$dmz_dhcp_limit'>";
+
+    push @hidden, "<input type=hidden name=lan_ip     value='$lan_ip'>";
+    push @hidden, "<input type=hidden name=lan_mask   value='$lan_mask'>";
+    push @hidden, "<input type=hidden name=dhcp_start value='$dhcp_start'>";
+    push @hidden, "<input type=hidden name=dhcp_end   value='$dhcp_end'>";
+}
+else
+{
+    print "<tr><td><nobr>IP Address</nobr></td>";
+    print "<td><input type=text size=15 name=lan_ip value='$lan_ip'></td></tr>\n";
+    
+    print "<tr><td>Netmask</td>";
+    print "<td><input type=text size=15 name=lan_mask value='$lan_mask'></td></tr>\n";
+    
+    if($wan_proto eq "disabled" and $wifi_proto ne "dhcp")
+    {
+	print "<tr><td>Gateway</td>";
+	print "<td><input type=text size=15 name=lan_gw value='$lan_gw' title='leave blank if not needed'></td></tr>\n";	
+    }
+
+    print "<tr><td><nobr>DHCP Server</nobr></td>";
+    print "<td><input type=checkbox name=lan_dhcp value=1";
+    if($config eq "mesh_ap")
+    {
+	print " disabled";
+	push @hidden, "<input type=hidden name=lan_dhcp value='$lan_dhcp'>";
+    }
+    print " checked" if $lan_dhcp;
+    print "></td></tr>\n";
+
+    print "<tr><td><nobr>DHCP Start</nobr></td>";
+    print "<td><input type=text size=4 name=dhcp_start value='$dhcp_start'";
+    if($config eq "mesh_ap")
+    {
+	print " disabled";
+	push @hidden, "<input type=hidden name=dhcp_start value='$dhcp_start'>";
+    }
+    print "></td></tr>\n";
+
+    print "<tr><td><nobr>DHCP End</nobr></td>";
+    print "<td><input type=text size=4 name=dhcp_end value='$dhcp_end'";
+    if($config eq "mesh_ap")
+    {
+	print " disabled";
+	push @hidden, "<input type=hidden name=dhcp_end value='$dhcp_end'>";
+    }
+    print "></td></tr>\n";
+
+    push @hidden, "<input type=hidden name=dhcp_limit value='$dhcp_limit'>";
+
+    push @hidden, "<input type=hidden name=dmz_lan_ip     value='$dmz_lan_ip'>";
+    push @hidden, "<input type=hidden name=dmz_lan_mask   value='$dmz_lan_mask'>";
+    push @hidden, "<input type=hidden name=dmz_dhcp_start value='$dmz_dhcp_start'>";
+    push @hidden, "<input type=hidden name=dmz_dhcp_end   value='$dmz_dhcp_end'>";
+}
+
+if($config eq "mesh" and 0) # disable for now
+{
+    print "<tr><td colspan=2><hr></td></tr>\n";
+    print "<tr><td><nobr><i>Mesh Bridge</i></nobr></td>\n";
+    print "<td><input type=checkbox name=olsrd_bridge value=1";
+    print " checked" if $olsrd_bridge;
+    print "></td></tr>\n";
+}
+
+print "</table></td>\n";
+
+
+#
+# WAN settings
+#
+
+print "<td valign=top width=33%><table width=100%>
+<tr><th colspan=2>WAN</th></tr>
+<tr>
+<td width=50%>Protocol</td>\n";
+
+if($config ne "client" and $config ne "mesh_ap")
+{
+    print "<td><select name=wan_proto onChange='form.submit()'>\n";
+}
+else
+{
+    push @hidden, "<input type=hidden name=wan_proto value='$wan_proto'>";
+    print "<td><select name=wan_proto disabled>\n";
+}
+
+selopt("Static", "static", $wan_proto);
+selopt("DHCP", "dhcp", $wan_proto);
+selopt("disabled", "disabled", $wan_proto);
+print "</select></td>\n</tr>\n";
+
+if($wan_proto eq "static")
+{
+    print "<tr><td><nobr>IP Address</nobr></td>\n";
+    print "<td><input type=text size=15 name=wan_ip value='$wan_ip'></td></tr>\n";
+    print "<tr><td>Netmask</td>\n";
+    print "<td><input type=text size=15 name=wan_mask value='$wan_mask'></td></tr>\n";
+    print "<tr><td>Gateway</td>\n";
+    print "<td><input type=text size=15 name=wan_gw value='$wan_gw'></td></tr>\n";
+}
+else
+{
+    push @hidden, "<input type=hidden name=wan_ip value='$wan_ip'>";
+    push @hidden, "<input type=hidden name=wan_mask value='$wan_mask'>";
+    push @hidden, "<input type=hidden name=wan_gw value='$wan_gw'>";
+}
+
+print "<tr><td><nobr>DNS 1</nobr></td>\n";
+print "<td><input type=text size=15 name=wan_dns1 value='$wan_dns1'></td></tr>\n";
+print "<tr><td><nobr>DNS 2</nobr></td>\n";
+print "<td><input type=text size=15 name=wan_dns2 value='$wan_dns2'></td></tr>\n";
+
+if($config eq "mesh")
+{
+    print "<tr><td colspan=2><hr></td></tr>\n";
+    print "<tr><td><nobr>Mesh Gateway</nobr></td>\n";
+    print "<td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to all other nodes'";
+    print " checked" if $olsrd_gw;
+    print "></td></tr>\n";
+}
+
+print "</table>
+
+</td></tr>
+</table><br>
+
+</td></tr>\n";
+
+print "</table>\n";
+
+push @hidden, "<input type=hidden name=oldconfig value='$oldconfig'>";
+push @hidden, "<input type=hidden name=reload value=1>";
+foreach(@hidden) { print "$_\n" }
+
+print "</form></center>\n";
+
+show_debug_info();
+
+if($debug)
+{
+    print "<br><b>config</b><br>\n";
+    foreach(sort keys %cfg)
+    {
+	$tmp = $cfg{$_};
+	$tmp =~ s/ /\(space\)/g;
+	if($cfg{$_} eq "") { print "$_ = (null)<br>\n" }
+	else               { print "$_ = $tmp<br>\n" }
+    }
+}
+
+show_parse_errors();
+
+print "</body>\n";
+print "</html>\n";

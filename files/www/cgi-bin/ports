@@ -1,0 +1,900 @@
+#!/usr/bin/perl
+
+$debug = 0;
+
+use perlfunc;
+
+$config = nvram_get("config");
+$node = nvram_get("node");
+$node = "NOCALL" if $node eq "";
+read_postdata();
+
+if($config eq "" or -e "/tmp/reboot-required")
+{
+    http_header();
+    html_header("$node setup", 1);
+    print "<body><center><table width=790><tr><td>\n";
+    navbar("ports");
+    print "</td></tr><tr><td align=center><br><b>";
+    if($config eq "")
+    {
+	print "This page is not available until the configuration has been set.";
+    }
+    else
+    {
+	print "The configuration has been changed.<br>This page will not be available until the node is rebooted.\n";
+    }
+    print "</b></td></tr>\n";
+    print "</table></center></body></html>\n";
+    exit;
+}
+
+# check for dmz mode
+if(-e "/etc/config/dmz-mode") { chomp ($dmz_mode = `cat /etc/config/dmz-mode`) }
+else                          { $dmz_mode = 0 }
+
+# get the network details of the lan interface for dhcp calculations
+
+if(system "ifconfig br-lan >/dev/null 2>&1")
+{
+    ($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network("eth0.0");
+}
+else
+{
+    ($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network("br-lan");
+}
+
+$lannet_d = ip2decimal($lannet);
+
+
+$tmpdir = "/tmp/web/ports";
+system "rm -rf $tmpdir" unless $parms{reload};
+system "mkdir -p $tmpdir";
+
+$portfile  = "/etc/config.$config/_setup.ports";
+$dhcpfile  = "/etc/config.$config/_setup.dhcp";
+$servfile  = "/etc/config.$config/_setup.services";
+if($config eq "mesh")
+{
+    my $suffix = $dmz_mode ? ".dmz" : ".nat";
+    $portfile .= $suffix;
+    $dhcpfile .= $suffix;
+    $servfile .= $suffix;
+}
+
+# if a reset or a first time page load
+# read the data from the config files
+if($parms{button_reset} or not $parms{reload})
+{
+    $i = 0;
+    foreach(`cat $portfile 2>/dev/null`)
+    {
+	next if /^\s*#/;
+	next if /^\s*$/;
+	chomp;
+
+	# set parameters
+	if(/(\S+)\s+=\s+(\S+)/)	{ $parms{$1} = $2; next; }
+
+	# set port forwarding rules
+	@parts = split /[:]/, $_;
+	next unless scalar(@parts) == 6;
+	++$i;
+
+	#foreach $var (qw(intf type out ip in enable adv link proto suffix name))
+	foreach $var (qw(intf type out ip in enable))
+	{
+	    $parms{"port${i}_$var"} = shift @parts;
+	}
+    }
+    $parms{port_num} = $i;
+
+    # set dhcp reservations
+    # ip addresses are stored as offsets from the lan network address
+
+    $i = 0;
+    foreach(`cat $dhcpfile 2>/dev/null`)
+    {
+	next if /^\s*#/;
+	next if /^\s*$/;
+	chomp;
+	@parts = split /\s+/, $_;
+	next unless scalar(@parts) == 3;
+	++$i;
+	$parms{"dhcp${i}_host"} = $parts[2];
+	$parms{"dhcp${i}_ip"}   = add_ip_address($lannet, $parts[1]);
+	$parms{"dhcp${i}_mac"}  = $parts[0];
+    }
+    $parms{dhcp_num} = $i;
+
+    # services
+
+    $i = 0;
+    foreach(`cat $servfile 2>/dev/null`)
+    {
+	next if /^\s*#/;
+	next if /^\s*$/;
+	chomp;
+	@parts = split /\|/, $_;
+	$parts[5] = "" unless $parts[5];
+	next unless scalar(@parts) == 6;
+	++$i;
+	foreach $var (qw(name link proto host port suffix))
+	{
+	    $parms{"serv${i}_$var"} = shift @parts;
+	}
+    }
+    $parms{serv_num} = $i;
+
+    # sanitize the "add" values
+    $parms{port_add_intf} = $dmz_mode ? "wan" : "wifi";
+    $parms{port_add_type} = "tcp";
+    $parms{dmz_ip} = "" unless defined $parms{dmz_ip};
+
+    foreach $var (qw(port_add_out port_add_ip port_add_in dhcp_add_host dhcp_add_ip dhcp_add_mac serv_add_name serv_add_proto serv_add_host serv_add_port serv_add_suffix))
+    {
+	$parms{$var} = "";
+    }
+}
+
+# get the dhcp range
+# assume that the lan setup is the only one that exists
+foreach(`cat /etc/config/dhcp`)
+{
+    $dhcp_start = $1 if /option start\s+(\d+)/;
+    $dhcp_limit = $1 if /option limit\s+(\d+)/;
+}
+$dhcp_end = $dhcp_start + $dhcp_limit;
+
+
+#
+# load and validate the ports
+#
+
+for($i = 1, @list = (); $i <= $parms{port_num}; ++$i) { push @list, $i }
+push @list, "_add";
+$port_num = 0;
+open(FILE, ">$tmpdir/ports");
+
+foreach $val (@list)
+{
+    # load strings
+    foreach $var (qw(intf type out ip in))
+    {
+	$varname = "port${val}_$var";
+	$parms{$varname} = "" unless $parms{$varname};
+	$parms{$varname} =~ s/^\s+//;
+	$parms{$varname} =~ s/\s+$//;
+	eval sprintf("\$%s = \$parms{%s}", $var, $varname);
+    }
+
+    # load bools
+    foreach $var (qw(enable))
+    {
+	$varname = "port${val}_$var";
+	$parms{$varname} = 0 unless $parms{$varname};
+	eval sprintf("\$%s = \$parms{%s}", $var, $varname);
+    }
+
+    $enable = 1 if $val eq "_add";
+
+    if($val eq "_add") { next unless ($out or $ip or $in) and ($parms{port_add} or $parms{button_save}) }
+    else               { next if $parms{"port${val}_del"} }
+
+    if($val eq "_add" and $parms{button_save})
+    {
+	push(@port_err, "$val this rule must be added or cleared out before saving changes");
+	next;
+    }
+
+    if($out =~ /-/) # this is a port range
+    {
+	if(validate_port_range($out))
+	{
+	    $out =~ s/\s+//;
+	    ($in) = $out =~ /^(\d+)/; # force inside to match outside
+	}
+	else
+	{
+	    push(@port_err, "$val '$out' is not a valid port range");
+	}
+    }
+    else
+    {
+	if($out eq "") { push @port_err, "$val an outside port is required" }
+	else           { push(@port_err, "$val '$out' is not a valid port") unless validate_port($out) }
+    }
+
+    if($ip eq "")               { push @port_err, "$val an address must be selected" }
+    elsif(not validate_ip($ip)) { push @port_err, "$val '$ip' is not a valid address" }
+
+    if($in eq "") { push @port_err, "$val a LAN port is required" }
+    else          { push(@port_err, "$val '$in' is not a valid port") unless validate_port($in) }
+    next if $val eq "_add" and @port_err and $port_err[-1] =~ /^_add /;
+
+    # commit the data for this rule
+    ++$port_num;
+    $usedports{$out} = 1;
+    $type = "both" unless $type eq "tcp" or $type eq "udp";
+    print FILE "$intf:$type:$out:$ip:$in:$enable\n";
+
+    foreach $var (qw(intf type out ip in enable))
+    {
+	eval sprintf("\$parms{port%d_%s} = \$%s", $port_num, $var, $var);
+    }
+
+    if($val eq "_add")
+    {
+	$parms{port_add_intf} = "wifi";
+	$parms{port_add_out} = "";
+	$parms{port_add_ip} = "";
+	$parms{port_add_in} = "";
+    }
+}
+
+if($parms{dmz_ip})
+{
+    print FILE "dmz_ip = $parms{dmz_ip}\n";
+    push(@dmz_err, "'$parms{dmz_ip}' is not a valid address") unless validate_ip($parms{dmz_ip});
+}
+
+close(FILE);
+$parms{port_num} = $port_num;
+
+
+#
+# load and validate the dhcp reservations
+#
+
+for($i = 1, @list = (); $i <= $parms{dhcp_num}; ++$i) { push @list, $i }
+push @list, "_add";
+$dhcp_num = 0;
+
+foreach $val (@list)
+{
+    $host = $parms{"dhcp${val}_host"};
+    $ip   = $parms{"dhcp${val}_ip"};
+    $mac  = $parms{"dhcp${val}_mac"};
+
+    if($val eq "_add")
+    {
+	next unless ($host or $ip or $mac) and ($parms{dhcp_add} or $parms{button_save});
+    }
+    else
+    {
+	next if $parms{"dhcp${val}_del"};
+    }
+
+    if($val eq "_add" and $parms{button_save})
+    {
+	push @dhcp_err, "$val this reservation must be added or cleared out before saving changes";
+	next;
+    }
+
+    if(validate_hostname($host))
+    {
+	push(@dhcp_err, "$val hostname '$host' is already in use") if $hosts{$host};
+    }
+    else
+    {
+	if($host) { push @dhcp_err, "$val '$host' is not a valid hostname" }
+	else      { push @dhcp_err, "$val a hostname is required" }
+    }
+
+    if(validate_ip($ip))
+    {
+	if($addrs{$ip})
+	{
+	    push(@dhcp_err, "$val $ip is already in use");
+	}
+	elsif($ip eq $lanip or
+	   not validate_same_subnet($ip, $lanip, $lanmask) or
+	   not validate_ip_netmask($ip, $lanmask))
+	{
+	    push @dhcp_err, "$val '$ip' is not a valid LAN address";
+	}
+    }
+    else
+    {
+	if($ip) { push @dhcp_err, "$val '$ip' is not a valid address" }
+	else    { push @dhcp_err, "$val an IP Address must be selected" }
+    }
+
+    if(validate_mac($mac))
+    {
+	push(@dhcp_err, "$val MAC $mac is already in use") if $macs{$mac};
+    }
+    else
+    {
+	if($mac) { push @dhcp_err, "$val '$mac' is not a valid mac address" }
+	else     { push @dhcp_err, "$val a MAC Address is required" }
+    }
+
+    next if $val eq "_add" and @dhcp_err and $dhcp_err[-1] =~ /^$val /;
+    
+    # commit the data for this reservation
+    ++$dhcp_num;
+    #print FILE "$mac $ip $host\n";
+    $parms{"dhcp${dhcp_num}_host"} = $host;
+    $parms{"dhcp${dhcp_num}_ip"}   = $ip;
+    $parms{"dhcp${dhcp_num}_mac"}  = $mac;
+
+    $hosts{$host} = 1;
+    $addrs{$ip} = 1;
+    $macs{$mac} = 1;
+    
+    if($val eq "_add")
+    {
+	$parms{dhcp_add_host} = "";
+	$parms{dhcp_add_ip}   = "";
+	$parms{dhcp_add_mac}  = "";
+    }
+}
+
+# add existing leases
+foreach $lease (keys %parms)
+{
+    #$hosts{$parms{$lease}} = 1 if $lease =~ /^lease\d+_host$/;
+    next unless ($n) = $lease =~ /^lease(\d+)_add$/;
+    next unless $parms{$lease};
+
+    # eliminate duplicate mac addresses
+    $found = 0;
+    foreach(keys %parms)
+    {
+	next unless /dhcp\d+_mac/;
+	$found = 1 if $parms{$_} eq $parms{"lease${n}_mac"};
+    }
+    next if $found;
+
+    ++$dhcp_num;
+    $host = $parms{"lease${n}_host"};
+    $ip   = $parms{"lease${n}_ip"};
+    $mac  = $parms{"lease${n}_mac"};
+    $parms{"dhcp${dhcp_num}_host"} = $host;
+    $parms{"dhcp${dhcp_num}_ip"}   = $ip;
+    $parms{"dhcp${dhcp_num}_mac"}  = $mac;
+    push(@dhcp_err, "$dhcp_num hostname '$host' is already in use") if $hosts{$host};
+    push(@dhcp_err, "$dhcp_num $ip is already in use")              if $addrs{$ip};
+    push(@dhcp_err, "$dhcp_num MAC $mac is already in use")         if $macs{$mac};
+    last;
+}
+
+$parms{dhcp_num} = $dhcp_num;
+$dhcphosts{$lanip} = "localnode";
+
+# replace "blank" dhcp hostnames and save the dhcp info into the tmpdir
+open(FILE, ">$tmpdir/dhcp");
+for($i = $nn = 1; $i <= $parms{dhcp_num}; $i++)
+{
+    if($parms{"dhcp${i}_host"} eq "*")
+    {
+	while(exists $hosts{"noname$nn"}) { $nn++ }
+	$parms{"dhcp${i}_host"} = "noname$nn";
+	$hosts{"noname$nn"} = 1;
+    }
+    printf FILE "%s %d %s\n",
+           $parms{"dhcp${i}_mac"},
+           ip2decimal($parms{"dhcp${i}_ip"}) - $lannet_d,
+           $parms{"dhcp${i}_host"};
+
+    # save it in a lookup table
+    $dhcphosts{$parms{"dhcp${i}_ip"}} = $parms{"dhcp${i}_host"} unless $dhcphosts{$parms{"dhcp${i}_ip"}};
+}
+close(FILE);
+
+
+#
+# load and validate the services
+#
+
+for($i = 1, @list = (); $i <= $parms{serv_num}; ++$i) { push @list, $i }
+push @list, "_add";
+$serv_num = 0;
+$hosts{""} = 1;
+$hosts{$node} = 1;
+$usedports{""} = 1;
+open(FILE, ">$tmpdir/services");
+
+foreach $val (@list)
+{
+    foreach $var (qw(name proto host port suffix))
+    {
+	$varname = "serv${val}_$var";
+	$parms{$varname} = "" unless $parms{$varname};
+	$parms{$varname} =~ s/^\s+//;
+	$parms{$varname} =~ s/\s+$//;
+	eval sprintf("\$%s = \$parms{%s}", $var, $varname);
+    }
+
+    $host = $node unless $dmz_mode;
+
+    # remove services that have had their host or port deleted
+    #next if $val ne "_add" and not ($dmz_mode ? $hosts{$host} : $usedports{$port});
+    next if $val ne "_add" and not ($dmz_mode ? $hosts{$host} : 1 );
+ 
+    $link = $parms{"serv${val}_link"};
+    $link = 0 unless $link;
+
+    if($val eq "_add")
+    {
+	next unless ($name or $proto or $port or $suffix) and ($parms{serv_add} or $parms{button_save})
+    }
+    else
+    {
+	next if $parms{"serv${val}_del"} or not ($name or $proto or $port or $suffix);
+    }
+
+    if($val eq "_add" and $parms{button_save})
+    {
+	push @serv_err, "$val this service must be added or cleared out before saving changes";
+	next;
+    }
+
+    if($name eq "")
+    {
+	push @serv_err, "$val a name is required";
+    }
+    else
+    {
+	push(@serv_err, "$val '$name' is not a valid service name") unless validate_service_name($name);
+	push(@serv_err, "$val the name '$name' is already in use") if $servicenames{$name};
+    }
+
+    if($link)
+    {
+	$parms{"serv${val}_proto"} = $proto = "http" unless $proto;
+	#$port = 80 if $proto eq "http" and not $port;
+	push(@serv_err, "$val '$proto' is not a valid service protocol") unless validate_service_protocol($proto);
+	if($port eq "") { push @serv_err, "$val a port number is required" }
+	else            { push(@serv_err, "$val '$port' is not a valid port") unless validate_port($port) }
+	push(@serv_err, "$val '$suffix' is not a valid service suffix") unless validate_service_suffix($suffix);
+    }
+    elsif($val eq "_add")
+    {
+	$proto = $port = $suffix = "";
+    }
+
+    next if $val eq "_add" and @serv_err and $serv_err[-1] =~ /^_add /;
+    
+    # commit the data for this service
+    ++$serv_num;
+    $servicenames{$name} = 1;
+    print FILE "$name|$link|$proto|$host|$port|$suffix\n";
+
+    foreach $var (qw(name link proto host port suffix))
+    {
+	eval sprintf("\$parms{serv%d_%s} = \$%s", $serv_num, $var, $var);
+    }
+
+    if($val eq "_add")
+    {
+	foreach(qw(name link proto host port suffix)) { $parms{"serv_add_$_"} = "" }
+    }
+}
+
+close(FILE);
+$parms{serv_num} = $serv_num;
+
+
+#
+# save configuration
+#
+
+if($parms{button_save} and not (@port_err or @dhcp_err or @dmz_err or @serv_err))
+{
+    system "cp -f $tmpdir/ports $portfile";
+    system "cp -f $tmpdir/dhcp $dhcpfile";
+    system "cp -f $tmpdir/services $servfile";
+    push(@errors, "problem with configuration")  if system "/usr/local/bin/node-setup -a -p $config";
+
+    unless($debug == 3)
+    {
+	push(@errors, "problem with dnsmasq")    if system "/etc/init.d/dnsmasq reload";
+	push(@errors, "problem with port setup") if system "/etc/init.d/firewall reload";
+	if($config eq "mesh")
+	{
+	    push(@errors, "problem with olsr setup") if system "/etc/init.d/olsrd restart >/dev/null 2>&1";
+	}
+    }
+}
+
+
+#
+# generate the page
+#
+
+http_header() unless $debug == 2;
+html_header("$node setup", 1);
+print "<body><center>\n";
+print "<form method=post action=/cgi-bin/ports enctype='multipart/form-data'>\n" unless $debug == 2;
+print "<form method=post action=test>\n" if $debug == 2;
+
+print "<table width=790>\n";
+print "<tr><td>\n";
+navbar("ports");
+print "</td></tr>\n";
+
+#
+# control buttons
+#
+
+print "<tr><td align=center>
+<a href='/help.html#ports' target='_blank'>Help</a>
+&nbsp;&nbsp;&nbsp;
+<input type=submit name=button_save value='Save Changes' title='Save and use these settings now (takes about 20 seconds)'>&nbsp;
+<input type=submit name=button_reset value='Reset Values' title='Revert to the last saved settings'>&nbsp;
+<input type=submit name=button_refresh value='Refresh' title='Refresh this page'>&nbsp\n";
+print "<tr><td>&nbsp;</td></tr>\n";
+push @hidden, "<input type=hidden name=reload value=1></td></tr>";
+
+#
+# messages
+#
+
+if($parms{button_save})
+{
+    if(@port_err or @dhcp_err or @dmz_err or @serv_err)
+    {
+	print "<tr><td align=center><b>Configuration NOT saved!</b></td></tr>\n";
+    }
+    elsif(@errors)
+    {
+	print "<tr><td align=center><b>Configuration saved, however:<br>";
+	foreach(@errors) { print "$_<br>" }
+	print "</b></td></tr>\n";
+    }
+    else
+    {
+	print "<tr><td align=center><b>Configuration saved and is now active.</b></td></tr>\n";
+    }
+
+    print "<tr><td>&nbsp;</td></tr>\n";
+}
+
+#
+# everything else
+#
+
+if($dmz_mode)
+{
+    print "<tr><td align=center><table width=100%>\n";
+    print "<tr><td width=1 align=center valign=top>\n";
+    &print_reservations();
+    print "</td>\n";
+
+    if($config eq "mesh")
+    {
+	print "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td align=center valign=top>\n";
+	&print_services();
+	print "</td>\n";
+    }
+
+    print "</tr></table></td></tr>\n";
+    print "<tr><td>&nbsp;</td></tr>\n";
+    print "<tr><td><hr></td></tr>\n";
+    print "<tr><td align=center>\n";
+    &print_forwarding();
+    print "</td></tr>\n";
+}
+else
+{
+    print "<tr><td align=center><table width=100%>\n";
+    print "<tr><td width=1 align=center valign=top>\n";
+    &print_forwarding();
+    print "</td>\n";
+
+    if($config eq "mesh")
+    {
+	print "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td align=center valign=top>\n";
+	&print_services();
+	print "</td>\n";
+    }
+
+    print "</tr></table></td></tr>\n";
+    print "<tr><td>&nbsp;</td></tr>\n";
+    print "<tr><td><hr></td></tr>\n";
+    print "<tr><td align=center>\n";
+    &print_reservations();
+    print "</td></tr>\n";
+}
+
+print "</table>\n";
+
+push @hidden, "<input type=hidden name=port_num value=$parms{port_num}>";
+push @hidden, "<input type=hidden name=dhcp_num value=$parms{dhcp_num}>";
+push @hidden, "<input type=hidden name=serv_num value=$parms{serv_num}>";
+foreach(@hidden) { print "$_\n" }
+
+print "</form></center>\n";
+show_debug_info();
+print "</body></html>\n";
+exit;
+
+
+#
+# page subsections
+#
+
+sub print_forwarding
+{
+    print "<table cellpadding=0 cellspacing=0><tr><th colspan=7>Port Forwarding</th></tr>\n";
+    print "<tr><td>&nbsp;</td><td align=center>Interface</td><td align=center>Type</td>";
+    print "<td align=center>Outside<br>Port</td><td align=center>LAN IP</td>";
+    print "<td align=center width=1>LAN<br>Port</td><td>&nbsp;</td></tr>\n";
+
+    for($i = 1, @list = (); $i <= $parms{port_num}; ++$i) { push @list, $i }
+    push @list, "_add";
+
+    foreach $val (@list)
+    {
+	foreach $var (qw(intf type out ip in enable adv link proto suffix name))
+	{
+	    eval sprintf("\$%s = \$parms{port%s_%s}", $var, $val, $var);
+	}
+
+	print "<tr><td colspan=7 height=10></td></tr>\n" if $val eq "_add" and scalar(@list) > 1;
+
+	# enable checkbox
+	if(0)#$val ne "_add")
+	{
+	    print "<tr><td", $dmz_mode ? ">" : " rowspan=2>";
+	    print "<nobr>enable<input type=checkbox name=port${val}_enable value=1 ";
+	    if($enable) { print "title='deactivate this rule but keep the settings' checked" }
+	    else        { print "title='activate this rule'" }
+	    print ">&nbsp;&nbsp;</td>";
+	}
+	else
+	{
+	    print "<tr><td>&nbsp;</td>";
+	    push @hidden, "<input type=hidden name=port${val}_enable value=1>";
+	}
+
+	# port forwarding settings
+	print "<td align=center valign=top><select name=port${val}_intf title='forward inbound packets from this interface'>\n";
+	if($config eq "mesh" and not $dmz_mode)
+	{
+	    selopt("WiFi", "wifi", $intf);
+	    selopt("WAN",  "wan",  $intf);
+	    selopt("Both", "both", $intf);
+	}
+	elsif($config eq "client")
+	{
+	    selopt("WiFi", "wifi", $intf);
+	}
+	else
+	{
+	    selopt("WAN",  "wan",  $intf);
+	}
+	print "</select></td>";
+
+	print "<td align=center valign=top><select name=port${val}_type>\n";
+	selopt("TCP", "tcp", $type);
+	selopt("UDP", "udp", $type);
+	selopt("Both", "both", $type);
+	print "</select></td>";
+
+	print "<td align=center valign=top><input type=text name=port${val}_out value='$out' size=8></td>\n";
+
+	print "<td align=center valign=top><select name=port${val}_ip>\n";
+	print "<option value=''>- IP Address -</option>\n" if $val eq "_add";
+	for($i = 1; $i < (1 << (32 - $lancidr)) - 1; $i++)
+	{
+	    $selip = add_ip_address($lannet, $i);
+	    $ipname = $dhcphosts{$selip};
+	    $ipname = $selip unless $ipname;
+	    #next if $selip eq $lanip;
+	    selopt($ipname, $selip, $ip);
+	}
+	print "</select></td>\n";
+
+	print "<td align=left valign=top><input type=text name=port${val}_in value='$in' size=4></td>\n";
+	print "<td><nobr>&nbsp;<input type=submit name=";
+
+	if($val eq "_add") { print "port_add value=Add title='Add this as a port forwarding rule'" }
+	else               { print "port${val}_del value=Del title='Remove this rule'" }
+
+	print "></nobr></td></tr>\n";
+
+	# display any errors
+	while(@port_err and $port_err[0] =~ /^$val /)
+	{
+	    $err = shift @port_err;
+	    $err =~ s/^\S+ //;
+	    print "<tr><th colspan=7>$err</th></tr>\n"; 
+	}
+
+	print "<tr><td colspan=7 height=5></td></tr>\n";
+    }
+
+    # dmz server for nat mode
+    unless($dmz_mode)
+    {
+	print "<tr><td colspan=7 height=10></td></tr>\n";
+	print "<tr><td colspan=4 align=right>DMZ Server &nbsp; </td>";
+	print "<td colspan=3><select name=dmz_ip onChange='form.submit()' ";
+	print "title='Send all other inbound traffic to this host'>\n";
+	print "<option value=''>None</option>\n";
+	for($i = 1; $i < (1 << (32 - $lancidr)) - 1; $i++)
+	{
+	    $selip = add_ip_address($lannet, $i);
+	    next if $selip eq $lanip;
+	    $ipname = $dhcphosts{$selip};
+	    $ipname = $selip unless $ipname;
+	    selopt($ipname, $selip, $parms{dmz_ip});
+	}
+	print "</select></td>\n";
+
+	foreach(@dmz_err) { print "<tr><th colspan=8>$_</th></tr>\n" }
+    }
+
+    print "</table>\n";
+}
+
+
+sub print_reservations
+{
+    print "<table cellpadding=0 cellspacing=0><tr><th colspan=4>DHCP Address Reservations</th></tr>\n";
+    print "<tr><td colspan=4 height=5></td></tr>\n";
+    print "<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td><td></td></tr>\n";
+    print "<tr><td colspan=4 height=5></td></tr>\n";
+    
+    for($i = 1, @list = (); $i <= $parms{dhcp_num}; ++$i) { push @list, $i }
+    push @list, "_add";
+
+    foreach $val (@list)
+    {
+
+	$host = $parms{"dhcp${val}_host"};
+	$ip   = $parms{"dhcp${val}_ip"};
+	$mac  = lc $parms{"dhcp${val}_mac"};
+
+	print "<tr><td colspan=4 height=10></td></tr>\n" if $val eq "_add" and scalar(@list) > 1;
+	print "<tr><td><input type=text name=dhcp${val}_host value='$host' size=10></td>\n";
+ 
+	print "<td align=center><select name=dhcp${val}_ip>\n";
+	print "<option value=''>- IP Address -</option>\n" if $val eq "_add";
+	for($i = $dhcp_start; $i <= $dhcp_end; $i++)
+	{
+	    $selip = add_ip_address($lannet, $i - ($lannet_d & 0xff));
+	    next if $selip eq $lanip;
+	    $ipname = $dhcphosts{$selip};
+	    $ipname = $selip if $selip eq $ip or not $ipname;
+	    selopt($ipname, $selip, $ip);
+	}
+	print "</select></td>\n";
+
+	print "<td><input type=text name=dhcp${val}_mac value='$mac' size=16></td>\n";
+	print "<td><nobr>&nbsp;<input type=submit name=";
+
+	if($val eq "_add") { print "dhcp_add       value=Add title='Add this as a DHCP reservation'" }
+	else               { print "dhcp${val}_del value=Del title='Remove this reservation'" }
+
+	print "></nobr></td></tr>\n";
+
+	# display any errors
+	while(@dhcp_err and $dhcp_err[0] =~ /^$val /)
+	{
+	    $err = shift @dhcp_err;
+	    $err =~ s/^\S+ //;
+	    print "<tr><th colspan=4>$err</th></tr>\n"; 
+	}
+
+	print "<tr><td height=5></td></tr>\n";
+    }
+
+    print "<tr><td>&nbsp;</td></tr>\n";
+    print "<tr><th colspan=4>Current DHCP Leases</th></tr>\n<tr>";
+    $i = 0;
+    foreach(`cat /tmp/dhcp.leases 2>/dev/null`)
+    {
+	++$i;
+	($junk, $mac, $ip, $host) = split /\s+/, $_;
+	print "<tr><td height=5></td></tr>\n";
+	print "<tr><td align=center>$host</td><td align=center><small>$ip</small></td>";
+	print "<td align=center><small>$mac</small></td><td><nobr>&nbsp;";
+	print "<input type=submit name=lease${i}_add  value=Add ";
+	print "title='Use these values as an address reservation'></nobr></td></tr>\n";
+	push @hidden, "<input type=hidden name=lease${i}_host value=$host>";
+	push @hidden, "<input type=hidden name=lease${i}_ip   value=$ip>";
+	push @hidden, "<input type=hidden name=lease${i}_mac  value=$mac>";
+    }
+
+    print "<tr><td align=center colspan=4>there are no active leases</td></tr>\n" unless $i;
+    print "</table>\n";
+}
+
+
+sub print_services
+{
+    print "<table cellpadding=0 cellspacing=0><tr><th colspan=4>Advertised Services</th></tr>\n";
+
+    unless($dmz_mode or $parms{port_num} or $parms{dmz_ip})
+    {
+	if($dmz_mode) { print "<tr><td>&nbsp;</td></tr><tr><td height=10></td></tr>\n" }
+	else          { print "<tr><td>&nbsp<br><br>", "</td></tr>\n" }
+	print "<tr><td colspan=4 align=center>none</td></tr>\n";
+	print "</table>\n";
+	return;
+    }
+
+    print "<tr><td height=5></td></tr>\n" if $dmz_mode;
+    print "<tr><td>Name</td><td>Link</td><td>URL</td><td>", $dmz_mode ? "" : "<br><br>", "</td></tr>\n";
+    print "<tr><td height=5></td></tr>\n" if $dmz_mode;
+
+    for($i = 1, @list = (); $i <= $parms{serv_num}; ++$i) { push @list, $i }
+    push @list, "_add";
+
+    foreach $val (@list)
+    {
+	foreach $var (qw(name link proto host port suffix))
+	{
+	    eval sprintf("\$%s = \$parms{serv%s_%s}", $var, $val, $var);
+	}
+
+	unless($dmz_mode) { $parms{"serv${val}_host"} = $host = $node }
+	#unless($link) { $proto = $port = $suffix = "" }
+
+	print "<tr><td colspan=4 height=10></td></tr>\n" if $val eq "_add" and scalar(@list) > 1;
+	print "<tr>";
+	print "<td><input type=text size=6 name=serv${val}_name value='$name' title='what to call this service'></td>";
+
+	print "<td><nobr><input type=checkbox name=serv${val}_link value=1";
+	print " onChange='form.submit()'" unless $val eq "_add";
+	print " checked" if $link;
+	print " title='create a clickable link for this service'>";
+	print "<input type=text size=2 name=serv${val}_proto value='$proto' title='URL Protocol'";
+	print " disabled" unless $val eq "_add" or $link;
+	print "></nobr></td>";
+
+	if($dmz_mode)
+	{
+	    print "<td><nobr><b>:</b>//<select name=serv${val}_host";
+	    print " disabled" unless $val eq "_add" or $link;
+	    print ">\n";
+	    selopt($node, $node, $host);
+	    for($i = 1; $i <= $parms{dhcp_num}; $i++)
+	    {
+		selopt($parms{"dhcp${i}_host"}, $parms{"dhcp${i}_host"}, $host);
+	    }
+	    print "</select>\n";
+	}
+	else
+	{
+	    print "<td><nobr><b>:</b>//<small>$host</small>";
+	}
+
+	print "<b>:</b><input type=text size=2 name=serv${val}_port value='$port' title='port number'";
+	print " disabled" unless $val eq "_add" or $link;
+	print "> / <input type=text size=6 name=serv${val}_suffix value='$suffix' ";
+	print "title='leave blank unless the URL needs a more specific path'";
+	print " disabled" unless $val eq "_add" or $link;
+	print "></nobr></td>";
+
+	print "<td><nobr>&nbsp;<input type=submit name=";
+	if($val eq "_add") { print "serv_add       value=Add title='Add this as a service'" }
+	else               { print "serv${val}_del value=Del title='Remove this service'" }
+	print "></nobr></td></tr>\n";
+
+	# display any errors
+	while(@serv_err and $serv_err[0] =~ /^$val /)
+	{
+	    $err = shift @serv_err;
+	    $err =~ s/^\S+ //;
+	    print "<tr><th colspan=4>$err</th></tr>\n";
+	}
+
+	unless($link or $val eq "_add")
+	{
+	    push @hidden, "<input type=hidden name=serv${val}_proto  value='$proto'>";
+	    push @hidden, "<input type=hidden name=serv${val}_host   value='$host'>";
+	    push @hidden, "<input type=hidden name=serv${val}_port   value='$port'>";
+	    push @hidden, "<input type=hidden name=serv${val}_suffix value='$suffix'>";
+	}
+
+	print "<tr><td colspan=4 height=4></td></tr>\n";
+    }
+    
+    print "</table>\n";
+}
+

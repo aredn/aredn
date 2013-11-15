@@ -1,0 +1,595 @@
+#!/usr/bin/perl
+
+use perlfunc;
+
+sub firmware_list_gen
+{
+    @fw_images = ();
+    chomp($fw_version = `cat /etc/mesh-release`);
+    foreach(`cat /tmp/web/software.list 2>/dev/null`)
+    {
+	my($md5, $fw, $tag) = /^(\S+) (\S+) (.*)/;
+	next unless $tag;
+	next if $tag eq "none";
+	next unless ($tag eq "all") or ($tag eq "dev" and $parms{dev}) or ($fw_version =~ /$tag/);
+	push @fw_images, $fw;
+	$fw_md5{$fw} = $md5;
+    }
+}
+
+
+$debug = 0;
+$| = 1;
+read_postdata();
+read_query_string();
+$node = nvram_get("node");
+$tmpdir = "/tmp/web/admin";
+system "mkdir -p $tmpdir";
+
+# make developer mode stick
+system "touch /tmp/developer_mode" if $parms{dev};
+$parms{dev} = 1 if -e "/tmp/developer_mode";
+
+# set the wget command options
+$wget = "wget -U 'node: $node'";
+
+#
+# handle firmware updates
+#
+
+$fw_install = 0;
+$patch_install = 0;
+@fw_output = ();
+@fw_images = ();
+%fw_md5 = ();
+
+@serverpaths = (
+    "http://broadband-hamnet.org/download/wrt54g",
+    "http://ad5oo.ham-radio-op.net/download/wrt54g"
+);
+
+# refresh fw
+if($parms{button_refresh_fw})
+{
+    if(get_default_gw() ne "none")
+    {
+	push @fw_output, "Downloading firmware list...\n";
+	unlink "/tmp/web/software.list";
+	$ok = 0;
+	foreach $serverpath (@serverpaths)
+	{
+	    system "$wget -O /tmp/web/software.list $serverpath/software.list >/dev/null 2>>$tmpdir/wget.err";
+	    unless($?) { $ok = 1; last }
+	}
+	if($ok) { push @fw_output, "Done.\n" }
+	else	{ push @fw_output, `cat $tmpdir/wget.err` }
+	unlink "$tmpdir/wget.err";
+    }
+    else
+    {
+	push @fw_output, "Error: no route to the Internet\n";
+	unlink "/tmp/web/software.list";
+    }
+}
+
+# generate data structures
+# and set $fw_version
+firmware_list_gen();
+
+
+# upload fw
+if($parms{button_ul_fw} and -f "/tmp/web/upload/file")
+{
+    system "mv -f /tmp/web/upload/file $tmpdir/firmware";
+
+    if($parms{firmfile} =~ /\.trx$/) # full firmware
+    {
+	$fw_install = 1;
+
+	# check firmware header
+	my $header = `hexdump -C -n 8 $tmpdir/firmware`;
+	my ($b0, $b1, $b2, $b3) = $header =~ /^00000000  48 44 52 30 (\w+) (\w+) (\w+) (\w+)/;
+	
+	if(not defined $b0)
+	{
+	    push @fw_output, "Firmware CANNOT be updated\n";
+	    push @fw_output, "firmware file is not valid\n";
+	    $fw_install = 0;
+	}
+	else
+	{
+	    my $size = hex($b0) + (hex($b1) << 8) + (hex($b2) << 16) + (hex($b3) << 24);
+	    # I would use 'stat' here but it seems not to work in microperl
+	    my @parts = split /\s+/, `ls -l $tmpdir/firmware`;
+	    if($size ne $parts[4])
+	    {
+		push @fw_output, "Firmware CANNOT be updated\n";
+		push @fw_output, "firmware file size is not valid\n";
+		$fw_install = 0;
+	    }
+	}
+    }
+    elsif($parms{firmfile} =~ /^patch\S+\.tgz$/) # firmware patch
+    {
+	$patch_install = 1;
+    }
+    else
+    {
+	push @fw_output, "Firmware CANNOT be updated\n";
+	push @fw_output, "the uploaded file is not recognized\n";
+    }
+}
+
+# download fw
+if($parms{button_dl_fw} and $parms{dl_fw} ne "default")
+{
+    if(get_default_gw() ne "none")
+    {
+	unlink "$tmpdir/firmware";
+	$ok = 0;
+	foreach $serverpath (@serverpaths)
+	{
+	    system "$wget -O $tmpdir/firmware $serverpath/$parms{dl_fw} >/dev/null 2>>$tmpdir/wget.err";
+	    unless($?) { $ok = 1; last }
+	}
+
+	if($parms{dl_fw} =~ /\.trx$/) # full firmware
+	{
+	    $fw_install = 1;
+	    unless($ok)
+	    {
+		push @fw_output, "Downloading firmware image...\n";
+		push @fw_output, `cat $tmpdir/wget.err`;
+	    }
+	    unlink "$tmpdir/wget.err";
+
+	    # check md5sum
+	    $fw = $parms{dl_fw};
+	    chdir $tmpdir;
+	    if(system "echo '$fw_md5{$fw}  firmware' | md5sum -cs")
+	    {
+		push @fw_output, "Firmware CANNOT be updated\n";
+		push @fw_output, "firmware file is not valid\n";
+		$fw_install = 0;
+	    }
+	}
+	elsif($parms{dl_fw} =~ /^patch\S+\.tgz$/) # firmware patch
+	{
+	    $patch_install = 1;
+	    unless($ok)
+	    {
+		push @fw_output, "Downloading patch file...\n";
+		push @fw_output, `cat $tmpdir/wget.err`;
+	    }
+	    unlink "$tmpdir/wget.err";
+
+	    # check md5sum
+	    $fw = $parms{dl_fw};
+	    chdir $tmpdir;
+	    if(system "echo '$fw_md5{$fw}  firmware' | md5sum -cs")
+	    {
+		push @fw_output, "Firmware CANNOT be updated\n";
+		push @fw_output, "patch file is not valid\n";
+		$patch_install = 0;
+	    }
+	}
+	else
+	{
+	    push @fw_output, "Firmware CANNOT be updated\n";
+	    push @fw_output, "the downloaded file is not recognized\n";
+	}
+    }
+    else
+    {
+	push @fw_output, "Error: no route to the Internet\n";
+	unlink "/tmp/web/software.list";
+    }
+}
+
+# install fw
+if($fw_install and -f "$tmpdir/firmware")
+{
+    my $junk;
+    http_header();
+    html_header("FIRMWARE UPDATE IN PROGRESS", 1);
+    print "<body><center>\n";
+    print "<h2>The firmware is being updated.</h2>\n";
+    print "<h1>DO NOT REMOVE POWER UNTIL UPDATE IS FINISHED</h1>\n";
+    print "</center><br>\n";
+    print "Writing firmware<br><br>\n";
+
+    unless($debug)
+    {
+	#system "nvram unset config; nvram commit >/dev/null 2>&1";
+	nvram_set("config", "");
+	open(FILE, "/sbin/mtd write $tmpdir/firmware linux 2>&1 |") or die;
+	while(read FILE, $junk, 7) { print "|" }
+    }
+
+    print "
+<center><h2>The node is rebooting</h2>
+<h3>If you are connected to the LAN of this node you may need to acquire a new<br>
+DHCP lease and reset any name service caches you may be using.</h3>
+<h3>Wait for the Power LED to start blinking, then stop blinking.<br>
+When the DMZ LED turns off you can get your new DHCP lease and reconnect with<br>
+<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a></h3>
+</center></body></html>
+";
+
+    system "/sbin/reboot" unless $debug;
+    exit;
+}
+
+# install patch
+if($patch_install and -f "$tmpdir/firmware")
+{
+    @fw_output = ();
+
+    for($fail = 1; ; )
+    {
+	# check available space
+	chomp ($size = `gunzip -c $tmpdir/firmware | wc -c`);
+	$size = int(($size + 1023) / 1024);
+
+	if(get_free_space("/tmp") - $size < 100)
+	{
+	    push @fw_output, "Firmware CANNOT be patched\n";
+	    push @fw_output, "insufficient /tmp space\n";
+	    push @fw_output, "try again after a reboot\n";
+	    last;
+	}
+	elsif(get_free_space("/jffs") - $size < 100)
+	{
+	    push @fw_output, "Firmware CANNOT be patched\n";
+	    push @fw_output, "insufficient flash space\n";
+	    push @fw_output, "a full firmware install is required\n";
+	    last;
+	}
+
+	# make it so
+	unlink "$tmpdir/patch.err";
+	unlink "$tmpdir/patch.out";
+	last if system "mkdir -p $tmpdir/patch 2>>$tmpdir/patch.err";
+	last if not chdir "$tmpdir/patch";
+	last if system "tar xzf $tmpdir/firmware 2>>$tmpdir/patch.err";
+
+	unless(-f "files.tar")
+	{
+	    push @fw_output, "Firmware CANNOT be updated\n";
+	    push @fw_output, "patch file is not valid\n";
+	    last;
+	}
+
+	last if -x "pre-install" and system "./pre-install >>$tmpdir/patch.out 2>>$tmpdir/patch.err";
+	last if system "tar xvf files.tar -C / >>$tmpdir/patch.out 2>>$tmpdir/patch.err";
+	last if -x "post-install" and system "./post-install >>$tmpdir/patch.out 2>>$tmpdir/patch.err";
+	reboot_page("/cgi-bin/status") if -f "reboot";
+	firmware_list_gen(); # mesh-release has changed so regenerate the firmware list
+	$fail = 0;
+	last;
+    }
+
+    if($fail)
+    {
+	unless(@fw_output)
+	{
+	    push @fw_output, "Firmware patch failed.  This is very bad.\n";
+	    push @fw_output, "You should probably reinstall the full firmware.\n";
+	    push @fw_output, `cat $tmpdir/patch.err 2>/dev/null`;
+	}
+    }
+    else
+    {
+	push @fw_output, "Installing patch...\n";
+	push(@fw_output, `cat $tmpdir/patch.out`) if $parms{dev};
+	push @fw_output, "Done.\n";
+    }
+}
+
+
+#
+# handle package actions
+#
+
+@pkg_output = ();
+
+# load permanent package list
+foreach(`cat /etc/permpkg 2>/dev/null`)
+{
+    next if /^#/;
+    chomp;
+    $permpkg{$_} = 1;
+}
+
+# upload package
+if($parms{button_ul_pkg} and -f "/tmp/web/upload/file")
+{
+    system "mv -f /tmp/web/upload/file /tmp/web/upload/newpkg.ipk";
+    push @pkg_output, `yes | ipkg -force-overwrite install /tmp/web/upload/newpkg.ipk 2>&1`;
+    system "rm -rf /tmp/ipkg-*";
+} 
+
+# download package
+if($parms{button_dl_pkg} and $parms{dl_pkg} ne "default")
+{
+    if(get_default_gw() ne "none")
+    {
+	push @pkg_output, `yes | ipkg -force-overwrite install $parms{dl_pkg} 2>&1`;
+    }
+    else
+    {
+	push @pkg_output, "Error: no route to the Internet\n";
+    }
+} 
+
+# refresh package list
+if($parms{button_refresh_pkg})
+{
+    if(get_default_gw() ne "none")
+    {
+	@pkg_output = `ipkg update 2>&1`;
+	system "ipkg list | cut -f1,3 -d' ' | gzip -c > /etc/ipkg.list.gz";
+    }
+    else
+    {
+	push @pkg_output, "Error: no route to the Internet\n";
+    }
+} 
+
+# remove package
+if($parms{button_rm_pkg} and $parms{rm_pkg} ne "default" and not $permpkg{$parms{rm_pkg}})
+{
+    @pkg_output = `ipkg remove $parms{rm_pkg} 2>&1`;
+}
+
+# generate data structures
+
+@pkgs = ();
+%pkgver = ();
+foreach(`ipkg list_installed | cut -f1,3 -d' '`)
+{
+    ($pkg, $ver) = split /\s/, $_;
+    next unless $ver;
+    push @pkgs, $pkg;
+    $pkgver{$pkg} = $ver;
+}
+
+@dl_pkgs = ();
+%dlpkgver = ();
+foreach(`zcat /etc/ipkg.list.gz 2>/dev/null`)
+{
+    ($pkg, $ver) = split /\s/, $_;
+    next unless $ver;
+    next if $pkgver{$pkg} and $pkgver{$pkg} eq $ver;
+    push @dl_pkgs, $pkg;
+    $dlpkgver{$pkg} = $ver;
+}
+
+#
+# handle ssh key actions
+#
+
+@key_output = ();
+$keyfile = "/etc/dropbear/authorized_keys";
+
+# upload key
+if($parms{button_ul_key} and -f "/tmp/web/upload/file")
+{
+    $count = `wc -l $keyfile 2>/dev/null`;
+    system "grep ^ssh- /tmp/web/upload/file >> $keyfile";
+    if($count eq `wc -l $keyfile`)
+    {
+	push @key_output, "Error: file does not appear to be an ssh key file\n";
+	push @key_output, "Authorized keys not changed.\n";
+    }
+    else
+    {
+	push @key_output, "Key installed.\n";
+    }
+} 
+
+# remove key
+if($parms{button_rm_key} and $parms{rm_key} ne "default" and -f $keyfile)
+{
+    $count = `wc -l $keyfile`;
+    system "grep -v '$parms{rm_key}' $keyfile > $tmpdir/keys";
+    system "mv -f $tmpdir/keys $keyfile";
+    if($count eq `wc -l $keyfile`)
+    {
+	push @key_output, "Error: authorized keys were not changed.\n";
+    }
+    else
+    {
+	push @key_output, "Key $parms{rm_key} removed.\n";
+    }
+}
+
+# generate data structures
+@keys = ();
+open(FILE, ">$tmpdir/newkeys");
+foreach(`cat $keyfile 2>/dev/null`)
+{
+    ($type, $key, $who, $extra) = split /\s+/, $_;
+    next if $extra;
+    next unless $who =~ /.\@./;
+    next unless $type =~ /^ssh-/;
+    push @keys, $who;
+    print FILE "$type $key $who\n";
+}
+close(FILE);
+
+# sanitize the key file
+if(-f $keyfile and system "diff $keyfile $tmpdir/newkeys >/dev/null 2>&1")
+{
+    system "mv -f $tmpdir/newkeys $keyfile";
+    push @key_output, "Info: key file sanitized.\n";
+}
+
+
+# clean up
+system "rm -rf /tmp/web/upload $tmpdir" unless $debug;
+
+
+#
+# generate the page
+#
+
+http_header();
+html_header("$node administration", 1);
+print "<body><center>\n";
+print "<form method=post action=admin enctype='multipart/form-data'>\n";
+print "<table width=790>\n";
+print "<tr><td>\n";
+navbar("admin");
+print "</td></tr>\n";
+
+print "<tr><td align=center><a href='/help.html#admin' target='_blank'>Help</a></td></tr>\n";
+print "<tr><td align=center>\n";
+print "<table cellspacing=10>\n";
+
+#
+# firmware
+#
+
+print "<tr><td align=center>\n";
+print "<table cellspacing=10>\n";
+print "<tr><th colspan=3>Firmware Update</th></tr>\n";
+
+if(@fw_output)
+{
+    print "<tr><td colspan=3 align=center><table><tr><td><b><pre>\n";
+    print word_wrap(80, @fw_output);
+    print "</pre></b></td></tr></table></td></tr>\n";
+}
+
+print "<tr><td align=center colspan=3>current version: $fw_version</td></tr>\n";
+
+print "<tr>\n";
+print "<td>Upload Firmware</td>\n";
+print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive'></td>\n";
+print "<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'></td>\n";
+print "</tr>\n";
+
+print "<tr>\n";
+print "<td>Download Firmware</td>\n";
+print "<td><select name=dl_fw style='font-family:monospace'>\n";
+selopt_pre("- Select Firmware -", "default", "default");
+foreach(@fw_images)
+{
+    selopt_pre($_, $_, "default");
+}
+print "</select>\n";
+print "<input type=submit name=button_refresh_fw value=Refresh title='download the list of available firmware versions'>\n";
+print "<td align=center><input type=submit name=button_dl_fw value=Download title='install the firmware'></td>\n";
+print "</tr>\n";
+
+print "</table></td></tr>\n";
+print "<tr><td colspan=3><hr></td></tr>\n";
+
+#
+# packages
+#
+
+print "<tr><td align=center>\n";
+print "<table cellspacing=10>\n";
+print "<tr><th colspan=3>Package Management</th></tr>\n";
+
+if(@pkg_output)
+{
+    # ipkg can produce duplicate first lines, remove them here
+    while(defined $pkg_output[1] and $pkg_output[0] eq $pkg_output[1])
+    {
+	shift @pkg_output;
+    }
+
+    print "<tr><td colspan=3 align=center><table><tr><td><b><pre>\n";
+    print word_wrap(80, @pkg_output);
+    print "</pre></b></td></tr></table></td></tr>\n";
+}
+
+print "<tr>\n";
+print "<td>Upload Package</td>\n";
+print "<td><input type=file name=ul_pkg title='choose the .ipk file to install from your hard drive'> </td>\n";
+print "<td align=center><input type=submit name=button_ul_pkg value=Upload title='install the package'></td>\n";
+print "</tr>\n";
+
+print "<tr>\n";
+print "<td>Download Package</td>\n";
+print "<td><select name=dl_pkg style='font-family:monospace'>\n";
+selopt_pre("- Select Package -", "default", "default");
+foreach $pkg (@dl_pkgs)
+{
+    selopt_pre("$pkg $dlpkgver{$pkg}", $pkg, "default");
+}
+print "</select>\n";
+print "<input type=submit name=button_refresh_pkg value=Refresh title='download the list of available packages (warning: this takes a lot of space)'>\n";
+print "<td align=center><input type=submit name=button_dl_pkg value=Download title='install the package'></td>\n";
+print "</tr>\n";
+
+print "<tr>\n";
+print "<td>Remove Package</td>\n";
+print "<td><select name=rm_pkg style='font-family:monospace'>\n";
+selopt_pre("- Select Package -", "default", "default");
+foreach $pkg (@pkgs)
+{
+    $opt = $permpkg{$pkg} ? "disabled" : "";
+    selopt_pre("$pkg $pkgver{$pkg}", $pkg, "default", $opt);
+}
+print "</select></td>\n";
+print "<td align=center><input type=submit name=button_rm_pkg value=Remove title='remove the selected package'></td>\n";
+print "</tr>\n";
+
+print "</table></td></tr>\n";
+
+print "<tr><td colspan=3><hr></td></tr>\n";
+
+#
+# ssh keys
+#
+
+print "<tr><td align=center>\n";
+print "<table cellspacing=10>\n";
+print "<tr><th colspan=3>Authorized SSH Keys</th></tr>\n";
+
+if(@key_output)
+{
+    print "<tr><td colspan=3 align=center><table><tr><td><b><pre>\n";
+    print word_wrap(80, @key_output);
+    print "</pre></b></td></tr></table></td></tr>\n";
+}
+
+print "<tr>\n";
+print "<td>Upload Key</td>\n";
+print "<td><input type=file name=sshkey title='choose the id_rsa.pub file to install from your hard drive'></td>\n";
+print "<td align=center><input type=submit name=button_ul_key value=Upload title='install the key'></td>\n";
+print "</tr>\n";
+
+print "<tr>\n";
+print "<td>Remove Key</td>\n";
+print "<td><select name=rm_key style='font-family:monospace'>\n";
+selopt_pre("- Select Key -", "default", "default");
+foreach(@keys)
+{
+    selopt_pre($_, $_, "default");
+}
+print "</select>\n";
+print "<td align=center><input type=submit name=button_rm_key value=Remove title='remove the selected key'></td>\n";
+print "</tr>\n";
+
+print "</table></td></tr>\n";
+
+print "<tr><td colspan=3><hr></td></tr>\n";
+print "</table>\n";
+
+print "</td></tr>\n";
+print "</table>\n";
+
+print "<input type=hidden name=dev value=1>\n" if $parms{dev};
+print "</form>\n";
+print "</center>\n";
+
+show_debug_info();
+show_parse_errors();
+
+print "</body>\n";
+print "</html>\n";

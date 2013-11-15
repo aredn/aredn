@@ -1,0 +1,64 @@
+#!/usr/bin/perl -w
+
+# determine the router model and version by looking at nvram variables
+
+# data
+
+@var_names = qw(boardtype boardflags boot_ver bootnv_ver);
+
+%table = (
+"WRT54G v1"    => "bcm94710dev -      v1.0 -",
+"WRT54G v1.1"  => "bcm94710dev -      v1.5 -",
+"WRT54G v2"    => "0x0101      0x0188 -    -",
+"WRT54G v2.2"  => "0x0708      0x0118 v3.4 2",
+"WRT54G v3"    => "0x0708      0x0118 v3.4 4",
+"WRT54G v4"    => "0x0467      0x2558 v3.6 -",
+"WRT54GL v1.1" => "0x0467      0x2558 v3.7 -",
+"WRT54GS v1"   => "0x0101      0x0388 v3.1 -",
+"WRT54GS v2"   => "0x0708      0x0318 v3.4 -",
+"WRT54GS v4"   => "0x0467      0x2758 v3.6 -"
+);
+
+
+# read nvram vars
+
+foreach $var (@var_names)
+{
+    $values{$var} = `nvram get $var`;
+    $values{$var} = "" unless defined $values{$var};
+    chomp $values{$var};
+    $values{$var} =~ s/\s//g; # remove spaces
+}
+
+# compare nvram vars
+
+foreach $model (keys %table)
+{
+    @vars = split /\s+/, $table{$model};
+    $match = 1;
+
+    for($i = 0; $i < scalar(@var_names); $i++)
+    {
+	next if $vars[$i] eq "-";
+	$match = 0 if $vars[$i] ne $values{$var_names[$i]};
+    }
+
+    push(@list, $model) if $match;
+}
+
+# print the result
+
+if(scalar(@list) > 1)
+{
+    print "unknown ", join(" or ", @list), "\n";
+    #foreach $var (@var_names) { print "$var=$values{$var}\n" }
+}
+elsif(scalar(@list) == 1)
+{
+    print "$list[0]\n";
+}
+else
+{
+    print "unknown\n";
+    #foreach $var (@var_names) { print "$var=$values{$var}\n" }
+}

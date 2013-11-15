@@ -1,0 +1,231 @@
+#!/usr/bin/perl
+
+$debug = 0;
+
+use perlfunc;
+
+# collect some variables
+$node = nvram_get("node");
+$node = "NOCALL" if $node eq "";
+$tactical = nvram_get("tactical");
+$config = nvram_get("config");
+$config = "not set" if $config eq "" or not -d "/etc/config.$config";
+
+read_postdata();
+
+# set up the day/night style sheet
+system "mkdir -p /tmp/web; cp -f /www/day.css /tmp/web/style.css" unless -f "/tmp/web/style.css";
+
+if($parms{night})         { system "touch /tmp/.night; cp -f /www/night.css /tmp/web/style.css" }
+elsif(not $parms{reload}) { $parms{night} = 1 if -f "/tmp/.night" }
+else                      { system "rm -f /tmp/.night; cp -f /www/day.css /tmp/web/style.css" }
+
+#system "rm -rf /tmp/web";
+
+# generate the page
+http_header();
+html_header("Broadband-Hamnet Node $node", 1);
+print "<body><form method=post action=/cgi-bin/status enctype='multipart/form-data'>\n";
+print "<center>\n";
+
+# page header
+print "<h1><big>$node";
+print " / $tactical" if $tactical;
+print "</big></h1>";
+print "<hr>\n";
+
+# nav buttons
+print "<nobr>\n";
+
+#print qq(<button type=button onClick='window.open("/help.html", "_blank")' title='Open a help window'>Help</button>\n);
+print "<a href='/help.html' target='_blank'>Help</a>\n";
+
+print "&nbsp;&nbsp;&nbsp;";
+print "<input type=submit name=refresh value=Refresh title='Refresh this page'>\n";
+
+if($config eq "mesh")
+{
+    print "&nbsp;&nbsp;&nbsp;";
+    print "<button type=button onClick='window.location=\"mesh\"' title='See what is on the mesh'>Mesh Status</button>\n";
+    print "&nbsp;&nbsp;&nbsp;";
+    print "<button type=button onClick='window.location=\"http://$node:1978/\"' title='See the OLSR routing details'";
+    #print " disabled" unless -f "/var/run/hosts_olsr";
+    print ">OLSR Status</button>\n";
+}
+
+if($config eq "mesh" or $config eq "client")
+{
+    print "&nbsp;&nbsp;&nbsp;";
+    print "<button type=button onClick='window.location=\"scan\"' title='See what wireless networks are nearby'>WiFi Scan</button>\n";
+}
+
+print "&nbsp;&nbsp;&nbsp;";
+print "<button type=button onClick='window.location=\"setup\"' title='Configure this node'>Setup</button>\n";
+
+print "&nbsp;&nbsp;&nbsp;";
+print "<input type=checkbox name=night value=night onClick='form.submit()' ";
+if($parms{night}) { print "title='Switch to bright colors' checked" }
+else              { print "title='Switch to dark colors'" }
+print ">Night Mode</nobr>\n";
+print "<input type=hidden name=reload value=reload>\n";
+
+
+if($config eq "not set")
+{
+    print "<b><br><br>This node is not yet configured.<br>";
+    print "Go to the setup page and set your node name and password.<br>\n";
+    print "Click Save Changes, <u>even if you didn't make any changes</u>, then the node will reboot.</b>\n";
+}
+
+# status display
+
+@col1 = @col2 = ();
+$hide_local = 0;
+$browser_ip = "";
+
+# left column - network interface info
+
+if(system "ifconfig br-lan >/dev/null 2>&1") # lan not bridged
+{
+    # show the wifi address
+    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("wl0");
+    $cidr = "/ $cidr" if $cidr;
+    $str  = "<th align=right><nobr>WiFi address</nobr></th><td>$ip <small>$cidr</small><br>";
+    $str .= "<small><nobr>" . get_ip6_addr("wl0") . "</nobr></small></td>";
+    push @col1, $str;
+
+    # find out if the browser is on this node's lan
+    # if not, hide the local network details
+    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("eth0.0");
+    if($ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/)
+    {
+	$browser_ip = $1;
+	$hide_local = 1 unless validate_same_subnet($browser_ip, $ip, $mask);
+    }
+
+    if($ip =~ /^10\./ or not $hide_local)
+    {
+	$cidr = "/ $cidr" if $cidr;
+	$str  = "<th align=right><nobr>LAN address</nobr></th><td>$ip <small>$cidr</small><br>";
+	$str .= "<small><nobr>" . get_ip6_addr("eth0.0") . "</nobr></small></td>";
+	push @col1, $str;
+    }
+}
+else # lan is bridged
+{
+    # show the wifi/lan bridge address unless the browser is on a different network
+    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("br-lan");
+    if($ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/)
+    {
+	$browser_ip = $1;
+	$hide_local = 1 unless validate_same_subnet($browser_ip, $ip, $mask);
+    }
+
+    unless($hide_local)
+    {
+	$cidr = "/ $cidr" if $cidr;
+	$str  = "<th align=right><nobr>WiFi/LAN address</nobr></th><td>$ip <small>$cidr</small><br>";
+	$str .= "<small><nobr>" . get_ip6_addr("br-lan") . "</nobr></small></td>";
+	push @col1, $str;
+    }
+}
+
+if(not $hide_local and not system "ifconfig eth0.1 >/dev/null 2>&1")
+{
+    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("eth0.1");
+    $cidr = "/ $cidr" if $cidr;
+    $cidr = "" unless $cidr;
+    $str  = "<th align=right><nobr>WAN address</nobr></th><td>$ip <small>$cidr</small><br>";
+    $str .= "<small><nobr>" . get_ip6_addr("eth0.1") . "</nobr></small></td>";
+    push @col1, $str;
+}
+
+$ip = get_default_gw();
+
+if($ip =~ /^10\./ or not $hide_local)
+{
+    $str  = "<th align=right><nobr>default gateway</nobr></th><td>$ip";
+    $str .= "<br><nobr>" .  mesh_ip2hostname($ip) . "</nobr>" if $ip =~ /^10\./;
+    push @col1, $str . "</td>";
+}
+
+if($browser_ip)
+{
+    $str  = "<th align=right><nobr>your address</nobr></th><td>$browser_ip";
+    $str .= "<br><nobr>" .  mesh_ip2hostname($browser_ip) . "</nobr>";# if $ip =~ /^10\./;
+    push @col1, $str . "</td>";
+}
+
+if(-f "/tmp/olsrd.log")
+{
+    chomp($lines = `wc -l /tmp/olsrd.log | awk '{print \$1}'`);
+    chomp($start = `tail -n1 /tmp/olsrd.log | awk '{print \$1}'`);
+    chomp($uptime = `cat /proc/uptime | cut -f1 -d.`);
+    $uptime -= $start;
+    $up_d = int($uptime/86400);
+    $uptime -= $up_d*86400;
+    $up_h = int($uptime/3600);
+    $uptime -= $up_h*3600;
+    $up_m = int($uptime/60);
+    $up_s = $uptime - $up_m*60;
+    $str  = "<th align=right><nobr>OLSR restarts</nobr><br>runtime</th>";
+    $str .= sprintf "<td>%d<br><nobr>%d - %02d:%02d:%02d</nobr></td></tr>",
+                    $lines, $up_d, $up_h, $up_m, $up_s;
+    push @col1, "<td> </td><td> </td>";
+    push @col1, $str;
+}
+
+
+# right column - system info
+
+if($config eq "mesh" or $config eq "client")
+{
+    $str = "<th align=right valign=middle><nobr>Signal/Noise/Ratio</nobr></th><td valign=middle><nobr>";
+    ($s, $n) = get_wifi_signal("wl0");
+    if($s eq "N/A") { $str .= "N/A" }
+    else            { $str .= sprintf "<big><b>%d / %d / %d dB</b></big>", $s, $n, $s - $n }
+    $str .= "&nbsp;&nbsp;&nbsp;";
+    $str .= "<button type=button onClick='window.location=\"signal?start=1\"' title='Display continuous signal strength'>Auto</button>\n";
+    $str .= "</nobr></td>";
+    push @col2, $str;
+}
+
+push @col2, "<th align=right><nobr>firmware version</nobr><br>configuration</th><td><nobr>" . `cat /etc/mesh-release` . "</nobr><br>$config</td>";
+push @col2, "<th align=right>system time</th><td>" . `date +'%a %b %e %Y<br>%T %Z'` . "</td>";
+
+$uptime = `uptime`;
+$uptime =~ s/^ ..:..:.. up //;
+($uptime, $load) = $uptime =~ /(.*), load average: (.*)/;
+push @col2, "<th align=right>uptime<br>load average</th><td>$uptime<br>$load</td>";
+
+$str  = "<th align=right>free space</th><td><nobr>flash = ";
+$space = get_free_space("/jffs");
+$str .= $space < 100 ? "<blink><b>$space KB</b></blink>" : "$space KB";
+$str .= "</nobr><br><nobr>/tmp = ";
+$space = get_free_space("/tmp");
+$str .= $space < 3000 ? "<blink><b>$space KB</b></blink>" : "$space KB";
+$str .= "</nobr><br><nobr>memory = ";
+$space = get_free_mem();
+$str .= $space < 500 ? "<blink><b>$space KB</b></blink>" : "$space KB";
+$str .= "</nobr></td>";
+
+push @col2, $str;
+
+# now print the tables
+
+print "<br><br><table>\n";
+print "<tr><td valign=top><table cellpadding=4>\n";
+foreach(@col1) { print "<tr>$_</tr>\n" }
+print "</table></td><td valign=top><table cellpadding=4>\n";
+foreach(@col2) { print "<tr>$_</tr>\n" }
+print "</table></td></tr></table>\n";
+
+# end
+print "</center>\n";
+print "</form>\n";
+
+show_debug_info();
+show_parse_errors();
+
+print "</body>\n";
+print "</html>\n";

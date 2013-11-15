@@ -1,0 +1,14 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+START=50
+
+start() {
+	include /lib/network
+	scan_interfaces
+        config_get ifname wan hostname
+	[ -d /www ] && httpd -p 8080 -h /www -r ${hostname:-OpenWrt}
+}
+
+stop() {
+	killall httpd
+}

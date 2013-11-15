@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# this script displays the iptables commands that the firewall config file
+# generates without running them
+
+LAN_IP=`ifconfig eth0.0 | grep "inet addr" | cut -f2 -d: | cut -f1 -d' '`
+LAN_MASK=`ifconfig eth0.0 | grep " Mask:" | cut -f4 -d:`
+eval `ipcalc.sh $LAN_IP $LAN_MASK`
+awk -f /usr/lib/common.awk \
+    -f /usr/lib/firewall.awk \
+    LAN_NET=$NETWORK/$PREFIX \
+    /etc/config/firewall

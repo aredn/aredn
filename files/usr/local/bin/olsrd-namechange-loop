@@ -1,0 +1,14 @@
+#!/bin/sh
+
+while true; do
+
+  N=0
+  while [ ! -f /tmp/namechange -a $N -lt 60 ]; do
+    sleep 5
+    N=$(($N + 5))
+  done
+
+  rm -f /tmp/namechange
+  /usr/local/bin/olsrd-namechange
+
+done

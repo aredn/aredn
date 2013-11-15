@@ -1,0 +1,65 @@
+#!/usr/bin/perl -w -I/www/cgi-bin
+
+# this script generates the olsrd config file
+# static part comes from /etc/config/olsrd.conf
+# dynamic part depends on the node configuration
+
+use perlfunc;
+
+@names = @hosts = @services = ();
+
+# canonical names for this node
+# (they show up in reverse order, make the "official" name last)
+push @names, $name if ($name = nvram_get("tactical"));
+push @names, $name if ($name = nvram_get("node"));
+
+unless(-f "/etc/config/olsrd.conf")
+{
+    print STDERR "Error: config file /etc/config/olsrd.conf not found\n";
+    exit 1;
+}
+
+# load the base file
+@file = `cat /etc/config/olsrd.conf`;
+
+# load the dhcp reservations when in dmz mode
+if(-f "/etc/config/dmz-mode")
+{
+    #($lanip, $lanmask, $lanbcast, $lannet) = get_ip4_network("eth0.0");
+    foreach(`cat /etc/ethers`)
+    {
+	next unless ($ip) = /[0-9a-f:]+\s+([\d\.]+)/i;
+	next unless $host = ip2hostname($ip);
+	push @hosts, qq("$ip" "$host");
+    }
+}
+
+# load the services
+foreach(`cat /etc/config/services 2>/dev/null`)
+{
+    next unless /^\w+:\/\/[\w\-\.]+:\d+(\/[^\|]*)?\|(tcp|udp)\|\w/;
+    chomp;
+    push @services, $_;
+}
+
+
+# add the nameservice plugin
+push @file, qq(\nLoadPlugin "olsrd_nameservice.so.0.3"\n);
+push @file, qq({\n);
+push @file, qq(    PlParam "sighup-pid-file" "/var/run/dnsmasq.pid"\n);
+push @file, qq(    PlParam "interval" "30"\n);
+push @file, qq(    PlParam "timeout" "300"\n);
+push @file, qq(    PlParam "name-change-script" "touch /tmp/namechange"\n);
+#push @file, qq(    PlParam "lat" "1"\n);
+#push @file, qq(    PlParam "lon" "2"\n);
+#push @file, qq(    PlParam "laton-file" "/var/run/latlon.js"\n);
+#push @file, qq(    PlParam "laton-infile" "/tmp/latlon.txt"\n);
+foreach(@names)    { push @file, qq(    PlParam "name" "$_"\n) }
+foreach(@hosts)    { push @file, qq(    PlParam $_\n) }
+foreach(@services) { push @file, qq(    PlParam "service" "$_"\n) }
+push @file, qq(}\n);
+
+# write the file
+open(FILE, ">/tmp/olsrd.conf") or die;
+print FILE @file;
+close(FILE);

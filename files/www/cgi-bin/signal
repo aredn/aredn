@@ -1,0 +1,204 @@
+#!/usr/bin/perl
+
+$debug = 0;
+
+use perlfunc;
+
+# collect some variables
+$node = nvram_get("node");
+$node = "NOCALL" unless $node;
+
+read_query_string();
+
+system "mkdir -p /tmp/web";
+system "rm -f /tmp/web/siglevel" if $parms{start};
+
+# get the current levels
+
+($s, $n) = get_wifi_signal("wl0");
+if($s eq "N/A") { $s = $n = "---" }
+
+# load the previous levels
+
+if(open(FILE, "/tmp/web/siglevel"))
+{
+    chomp($count = <FILE>);
+    chomp($last_start = <FILE>);
+    chomp($lineS = <FILE>);
+    chomp($lineN = <FILE>);
+    chomp($lineR = <FILE>);
+    close(FILE);
+    @listS = split / /, $lineS;
+    @listN = split / /, $lineN;
+    @listR = split / /, $lineR;
+    push @listS, $s;
+    push @listN, $n;
+    
+    if($count == 20)
+    {
+	shift @listS;
+	shift @listN;
+	shift @listR;
+    }
+    else
+    {
+	++$count;
+    }
+}
+else
+{
+    $count = 1;
+    @listS = ($s);
+    @listN = ($n);
+    $last_start = 0;
+}
+
+# gather statistics
+
+$good = 0;
+$minS = $minN = $minR = 1000;
+$avgS = $avgN = 0;
+$maxS = $maxN = $maxR = -1000;
+
+for($i = 0; $i < $count; $i++)
+{
+    $s = $listS[$i];
+    next if $s eq "---";
+    ++$good;
+    $n = $listN[$i];
+    $r = $s - $n;
+    
+    $minS = $s if $s < $minS;
+    $minN = $n if $n < $minN;
+    $minR = $r if $r < $minR;
+    
+    $maxS = $s if $s > $maxS;
+    $maxN = $n if $n > $maxN;
+    $maxR = $r if $r > $maxR;
+    
+    $avgS += $s;
+    $avgN += $n;
+}
+
+if($good)
+{
+    $s = $listS[-1];
+    $n = $listN[-1];
+    $r = ($s eq "---") ? "---" : $s - $n;
+    $avgS = int($avgS / $good);
+    $avgN = int($avgN / $good);
+    $avgR = $avgS - $avgN;
+    push @listR, $avgR;
+
+    # make the graph
+
+    if($s eq "---" or ($r >= $last_start and $r <= $last_start + 30))
+    {
+	$start = $last_start;
+    }
+    else
+    {
+	$start = 10*int(($maxR + 9)/10) - 30;
+	while($r < $start) { $start -= 10 }
+        $start = 0 if $start < 0;
+    }
+
+    for($i = $count - 1; $i >= 0; $i--)
+    {
+	$str = " " x 30;
+
+	if($listS[$i] ne "---")
+	{
+	    $r2 = $listS[$i] - $listN[$i] - $start;
+
+	    if($r2 > 30)
+	    {
+		$r2 = 29;
+		substr($str, 30, 1) = ">";
+	    }
+
+	    substr($str, 0, $r2 + 1) = "*" x ($r2 + 1) if $r2 >= 0;
+	    substr($str, 0, 1) = "<" if $r2 < 0;
+
+	    if($listR[$i] >= $start and $listR[$i] <= $start + 30)
+	    {
+		substr($str, $listR[$i] - $start, 1) = "|";
+	    }
+	}
+
+	push @graph, "   $str\n";
+    }
+
+    substr($graph[0], 0, 2) = ">>";
+}
+else
+{
+    $s = $n = $r = "---";
+    $maxS = $maxN = $maxR = "---";
+    $avgS = $avgN = $avgR = "---";
+    $minS = $minN = $minR = "---";
+    push @listR, "---";
+    $start = 0;
+}
+
+# store the level history
+
+open(FILE, ">/tmp/web/siglevel");
+print FILE "$count\n$start\n@listS\n@listN\n@listR\n";
+close(FILE);
+
+    
+# generate the page
+
+http_header();
+html_header("$node signal strength", 0);
+print "<meta http-equiv='refresh' content='2;url=/cgi-bin/signal'>\n";
+print "</head>\n";
+print "<body><form method=post action=/cgi-bin/status enctype='multipart/form-data'>\n";
+print "<center>\n";
+
+print "<h1>$node signal strength</h1><hr>\n";
+
+print "<table cellpadding=5><tr>\n";
+print "<td align=center><button type=button onClick='window.location=\"status\"' title='Return to the status page'>Quit</button></td>\n";
+print "<td><font size=6><b>Signal</b></font></td><td>&nbsp;</td>\n";
+print "<td><font size=6><b>Noise</b></font></td><td>&nbsp;</td>\n";
+print "<td><font size=6><b>Ratio</b></font></td><td>&nbsp;</td>\n";
+
+# SNR meter
+print "<td rowspan=5 valign=top><b><pre>";
+printf "%4d%10d%10d%10d\n", $start, $start + 10, $start + 20, $start + 30;
+print "   | . . . . | . . . . | . . . . |\n";
+print @graph;
+print "</pre></b></td>";
+
+print "</tr><tr>\n";
+print "<td align=center><font size=6>now</font></td>\n";
+print "<td align=center><font size=7><b>$s</b></font></td><td>&nbsp;</td>\n";
+print "<td align=center><font size=7><b>$n</b></font></td><td>&nbsp;</td>\n";
+print "<td align=center><font size=7><b>$r</b></font></td><td>&nbsp;</td>\n";
+
+
+print "</tr><tr>\n";
+print "<td align=center><font size=6>average</font></td>\n";
+print "<td align=center><font size=7><b>$avgS</b></font></td><td>&nbsp;</td>\n";
+print "<td align=center><font size=7><b>$avgN</b></font></td><td>&nbsp;</td>\n";
+print "<td align=center><font size=7><b>$avgR</b></font></td><td>&nbsp;</td>\n";
+print "<tr><td align=center><font size=5><nobr>n = $good/$count</nobr></font></td>\n";
+print "<td align=center><font size=5><nobr>max: $maxS</nobr><br><nobr>min: $minS</nobr></font></td>";
+print "<td>&nbsp;</td>";
+print "<td align=center><font size=5><nobr>max: $maxN</nobr><br><nobr>min: $minN</nobr></font></td>";
+print "<td>&nbsp;</td>";
+print "<td align=center><font size=5><nobr>max: $maxR</nobr><br><nobr>min: $minR</nobr></font></td>\n";
+print "<td>&nbsp;</td>";
+print "</tr><tr><td height=150 colspan=7>&nbsp;</td>";
+print "</tr></table>\n";
+
+print "</center>\n";
+print "</form>\n";
+
+show_debug_info();
+show_parse_errors();
+
+print "</body>\n";
+print "</html>\n";

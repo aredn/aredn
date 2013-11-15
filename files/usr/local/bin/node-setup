@@ -1,0 +1,434 @@
+#!/usr/bin/perl -w -I/www/cgi-bin
+
+use perlfunc;
+
+$| = 1;
+$auto = 0;
+$do_basic = 1;
+
+sub usage
+{
+    die "
+usage: node-setup [-a] [-p] <configname>
+   -a: automatic mode - don't ask any questions
+   -p: only process port forwarding and dhcp settings\n\n"
+}
+
+##########################
+# main program starts here
+
+# validate args
+while(defined $ARGV[0] and $ARGV[0] =~ /^-/)
+{
+    $arg = shift;
+    if   ($arg eq "-a") { $auto = 1 }
+    elsif($arg eq "-p") { $do_basic = 0 }
+    else                { usage() }
+}
+
+$config = shift;
+usage() unless defined $config;
+
+die "'$config' is not a valid configuration\n" unless -f "/etc/config.$config/_setup";
+
+#chomp ($node = `nvram get node`);
+#chomp ($mac2 = `nvram get mac2`);
+#chomp ($tactical = `nvram get tactical`);
+
+$node = nvram_get("node");
+$tactical = nvram_get("tactical");
+$mac2 = mac2ip(get_mac("wl0"), 0);
+
+unless($auto)
+{
+    print "\ncurrent node name is '$node'\n";
+    print "type a new name or just <enter> to keep the current name\n\n";
+
+    do
+    {
+	print "enter node name: ";
+	$node2 = <STDIN>;
+	die "node-setup aborted\n" if not defined $node2;
+	chomp $node2;
+    }
+    while($node2 =~ /[^\w\-]/ or $node2 =~ /_/);
+
+    print "\ncurrent tactical name is ";
+    if($tactical) { print "'$tactical'\n" }
+    else          { print "not set\n" }
+
+    print "type a new name, <enter> to keep the current name,\n";
+    print "or @ to remove the tactical name\n\n";
+
+    do
+    {
+	print "enter tactical name: ";
+	$tac2 = <STDIN>;
+	die "node-setup aborted\n" if not defined $tac2;
+	chomp $tac2;
+    }
+    while($tac2 ne "@" and ($tac2 =~ /[^\w\-]/ or $tac2 =~ /_/));
+
+    $node = $node2 if $node2;
+    $tactical = $tac2 if $tac2;
+    $tactical = "" if $tac2 eq "@";
+}
+
+#
+# load and verify the selected configuration
+#
+
+foreach $line (`cat /etc/config.$config/_setup`)
+{
+    next if $line =~ /^\s*#/;
+    next if $line =~ /^\s*$/;
+    $line =~ s/<NODE>/$node/;
+    $line =~ s/<MAC2>/$mac2/;
+    $line =~ /^(\w+)\s*=\s*(.*)$/;
+    $cfg{$1} = $2;
+}
+
+die "configuration load failed\n" unless keys %cfg;
+
+
+# delete some config lines if necessary
+if($cfg{wan_proto} eq "dhcp")
+{
+    $deleteme{wan_ip} = 1;
+    $deleteme{wan_gw} = 1;
+    $deleteme{wan_mask} = 1;
+}
+
+$deleteme{lan_gw} = 1 if $cfg{dmz_mode} or $cfg{wan_proto} ne "disabled";
+
+
+# lan_dhcp sense is inverted in the dhcp config file
+# and it is a checkbox so it may not be defined - this fixes that
+if($cfg{lan_dhcp}) { $cfg{lan_dhcp} = 0 }
+else               { $cfg{lan_dhcp} = 1 }
+
+# verify that we have all the variables we need
+chdir "/etc/config.$config" or die;
+foreach(`grep "^[^#].*<" *`)
+{
+    ($file, $parm) = /^(\S+):.*<(\w+)>/;
+    if($parm eq uc $parm) # nvram variable
+    {
+	$lcparm = lc $parm;
+	die "parameter '$parm' in file '$file' does not exist\n" unless `nvram get $lcparm` ne "\n";
+    }
+    elsif(not $deleteme{$parm})
+    {
+	die "parameter '$parm' in file '$file' does not exist\n" unless exists $cfg{$parm};
+    }
+}
+
+# switch to dmz values if needed
+if($cfg{dmz_mode})
+{
+    foreach(qw(lan_ip lan_mask dhcp_start dhcp_end dhcp_limit))
+    {
+	$cfg{$_} = $cfg{"dmz_$_"};
+    }
+}
+
+# select ports and dhcp files based on mode
+$portfile  = "/etc/config.$config/_setup.ports";
+$dhcpfile  = "/etc/config.$config/_setup.dhcp";
+$portfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat") if $config eq "mesh";
+$dhcpfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat") if $config eq "mesh";
+
+
+# basic configuration
+
+if($do_basic)
+{
+    # setup the staging area
+
+    system "rm -rf /tmp/new_config; mkdir /tmp/new_config";
+
+    # copy and process the new configuration
+
+    chdir "/etc/config.$config" or die;
+
+    foreach $file (glob "*")
+    {
+	chomp $file;
+	next if $file =~ /^_setup/;
+
+	open(IN, $file) or die;
+	open(OUT, "> /tmp/new_config/$file") or die;
+
+	while(defined ($line = <IN>))
+	{
+	    if($line =~ /^include\s+(\S+)/)
+	    {
+		foreach $inc (`cat $1`)
+		{
+		    print OUT $inc;
+		}
+
+		next;
+	    }
+
+	    $line =~ s/<NODE>/$node/;
+	    $line =~ s/<MAC2>/$mac2/;
+	    $delparm = 0;
+
+	    while(($parm) = $line =~ /^[^\#].*<(\S+)>/)
+	    {
+		if($deleteme{$parm})
+		{
+		    $delparm = 1;
+		    last;
+		}
+		$line =~ s/<$parm>/$cfg{$parm}/;
+	    }
+
+	    print OUT $line unless $delparm;
+	}
+
+	close(OUT);
+	close(IN);
+    }
+
+    # make it official
+
+    system "rm -f /etc/config/*";
+    system "mv /tmp/new_config/* /etc/config";
+    unlink "/tmp/new_config";
+
+    #system "nvram set config=$config";
+    #system "nvram set node=$node";
+    #system "nvram set tactical=$tactical";
+    #system "nvram commit";
+
+    #nvram_set("config", $config);
+    #nvram_set("node", $node);
+    #nvram_set("tactical", $tactical);
+
+    open(FILE, ">/tmp/nvram") or die;
+    print FILE "config=$config\n";
+    print FILE "node=$node\n";
+    print FILE "tactical=$tactical\n";
+    close(FILE);
+    system "if ! diff -q /tmp/nvram /etc/nvram; then mv -f /tmp/nvram /etc/nvram; fi";
+}
+
+
+#
+# generate the system files
+#
+
+open(HOSTS, ">/etc/hosts") or die;
+print HOSTS "# automatically generated file - do not edit\n";
+print HOSTS "# use /etc/hosts.user for custom entries\n";
+print HOSTS "127.0.0.1\tlocalhost\n";
+print HOSTS "$cfg{lan_ip}\tlocalnode ";
+print HOSTS "\n$cfg{wifi_ip}\t" if $cfg{wifi_ip};
+print HOSTS "$node $tactical\n";
+print HOSTS add_ip_address($cfg{lan_ip}, 1), "\tlocalap\n" unless $cfg{dmz_mode};
+
+open(ETHER, ">/etc/ethers") or die;
+print ETHER "# automatically generated file - do not edit\n";
+print ETHER "# use /etc/ethers.user for custom entries\n";
+
+$netaddr = ip2decimal($cfg{lan_ip}) & ip2decimal($cfg{lan_mask});
+
+foreach(`cat $dhcpfile`)
+{
+    next if /^\s*#/;
+    next if /^\s*$/;
+    ($mac, $ip, $host) = split /\s+/, $_;
+    $ip = decimal2ip($netaddr + $ip);
+
+    # filter out addresses that are illegal for the lan subnet
+    next unless validate_same_subnet($ip, $cfg{lan_ip}, $cfg{lan_mask});
+    next unless validate_ip_netmask($ip, $cfg{lan_mask});
+
+    printf ETHER "$mac\t$ip\n";
+    printf HOSTS "$ip\t$host\n";
+}
+
+print HOSTS "\n";
+close(HOSTS);
+close(ETHER);
+system "cat /etc/hosts.user >> /etc/hosts" if -e "/etc/hosts.user";
+system "cat /etc/ethers.user >> /etc/ethers" if -e "/etc/ethers.user";
+
+unless($do_basic)
+{
+    system "cp -f /etc/config.$config/firewall /etc/config";
+    system "cp -f /etc/config.$config/firewall.user /etc/config";
+}
+
+open(FILE, ">>/etc/config/firewall") or die;
+
+foreach(`cat $portfile`)
+{
+    next if /^\s*#/;
+    next if /^\s*$/;
+    chomp;
+
+    # set dmz server
+    if(/dmz_ip = (\S+)/ and not $cfg{dmz_mode})
+    {
+	print FILE "forward:wifi:proto=tcp dest=$cfg{wifi_ip}:$1\n";
+	print FILE "forward:wifi:proto=udp dest=$cfg{wifi_ip}:$1\n";
+	next;
+    }
+
+    # set port forwarding rule
+    ($intf, $type, $oport, $host, $iport, $enable) = split /[:]/, $_;
+    next unless $enable;
+
+    if($cfg{dmz_mode})
+    {
+	next if $intf eq "wifi";
+	$intf = "wan" if $intf eq "both";
+    }
+
+    $match = "dport=$oport";
+
+    if   ($type eq "tcp") { $match .= " proto=tcp" }
+    elsif($type eq "udp") { $match .= " proto=udp" }
+
+    # set the inside port unless the rule uses an outside port range
+    $host = "$host:$iport" unless $oport =~ /-/;
+
+    if($intf eq "both")
+    {
+	print FILE "forward:wifi:$match dest=$cfg{wifi_ip}:$host\n";
+	print FILE "forward:wan:$match:$host\n";
+    }
+    elsif($intf eq "wifi")
+    {
+	print FILE "forward:wifi:$match dest=$cfg{wifi_ip}:$host\n";
+    }
+    elsif($intf eq "wan")
+    {
+	print FILE "forward:wan:$match:$host\n";
+    }
+    else
+    {
+        print STDERR "ERROR: unknown interface '$intf'\n";
+	close(FILE);
+	exit 1;
+    }
+}
+
+close(FILE);
+
+
+# generate the services file
+
+if($config eq "mesh")
+{
+    $servfile = "/etc/config.$config/_setup.services." . ($cfg{dmz_mode} ? "dmz" : "nat");
+    open(SERV, ">/etc/config/services") or die;
+    foreach(`cat $servfile 2>/dev/null`)
+    {
+	next if /^\s*#/;
+	next if /^\s*$/;
+	chomp;
+	($name, $link, $proto, $host, $port, $suffix) = split /\|/, $_;
+	$proto = "http" unless $proto;
+	$port = 0 unless $link;
+	$suffix = "" unless $suffix;
+	next unless defined $name and $name ne "" and defined $host and $host ne "";
+	printf SERV "%s://%s:%s/%s|%s|%s\n", $proto, $host, $port, $suffix, "tcp", $name;
+    }
+    close(SERV);
+}
+
+
+# generate the local config script
+
+open(FILE, ">/etc/config/local") or die;
+print FILE "#!/bin/sh\n";
+unless($cfg{wifi_proto} eq "disabled")
+{
+    $cfg{wifi_txpower} = 19 if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > 19;
+    $cfg{wifi_txpower} = 1  if $cfg{wifi_txpower} < 1;
+    print FILE "/usr/sbin/iwconfig wl0 txpower $cfg{wifi_txpower}\n";
+    if(defined $cfg{aprs_lat} and defined $cfg{aprs_lon})
+    {
+	printf FILE "echo %s,%s > /tmp/latlon.txt\n", $cfg{aprs_lat}, $cfg{aprs_lon};
+    }
+    if($config eq "mesh")
+    {
+	print FILE "/usr/local/bin/olsrd-watchdog &\n";
+	print FILE "/usr/local/bin/olsrd-namechange-loop &\n";
+    }
+}
+close(FILE);
+system "chmod +x /etc/config/local";
+
+
+# generate olsrd.conf
+
+if(-f "/etc/config.$config/olsrd.conf")
+{
+    open(IN, "/etc/config.$config/olsrd.conf") or die;
+    open(OUT, ">/etc/config/olsrd.conf") or die;
+
+    while(defined ($line = <IN>))
+    {
+	if($line =~ /<olsrd_bridge>/)
+	{
+	    if($cfg{olsrd_bridge}) { $line =~ s/<olsrd_bridge>/"wl0" "eth0.0"/ }
+	    else                   { $line =~ s/<olsrd_bridge>/"wl0"/ }
+	}
+        elsif(($parm) = $line =~ /^[^\#].*<(\S+)>/)
+        {
+             $line =~ s/<$parm>/$cfg{$parm}/;
+        }
+	print OUT $line;
+    }
+
+    if($cfg{dmz_mode})
+    {
+	print OUT "Hna4\n";
+	print OUT "{\n";
+	@parts = split /[.]/, $cfg{dmz_lan_ip};
+	--$parts[3]; # assume network = lan_ip - 1
+	print OUT "  ", join(".", @parts), " 255.255.255.", ((0xff << $cfg{dmz_mode}) & 0xff), "\n";
+	print OUT "}\n\n";
+    }
+
+    if($cfg{olsrd_gw})
+    {
+	print OUT "LoadPlugin \"olsrd_dyn_gw.so.0.5\"\n";
+	print OUT "{\n";
+	print OUT "    PlParam \"Interval\" \"60\"\n";
+	print OUT "    PlParam \"Ping\" \"71.42.236.91\" # hsmm-mesh.org\n";
+	print OUT "    PlParam \"Ping\" \"71.42.236.90\" # hsmm-mesh.org\n";
+	print OUT "    PlParam \"Ping\" \"8.8.8.8\"      # google dns\n";
+	print OUT "    PlParam \"Ping\" \"8.8.4.4\"      # google dns\n";
+	print OUT "}\n";
+    }
+
+    close(OUT);
+    close(IN);
+}
+
+# indicate whether lan is running in dmz mode
+system "echo $cfg{dmz_mode} > /etc/config/dmz-mode" if $cfg{dmz_mode};
+
+
+# finish up
+
+unless($auto)
+{
+    print "configuration complete.\n";
+    print "you should now reboot the router.\n";
+
+    if($config eq "client")
+    {
+	print "\nCurrent ssid setting in /etc/config/wireless:\n";
+	system "grep ssid /etc/config/wireless";
+	print "\n";
+    }
+}
+
+exit 0;

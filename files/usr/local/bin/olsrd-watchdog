@@ -1,0 +1,25 @@
+#!/usr/bin/perl
+
+# wait for the watchdog file to appear
+while(not -e "/tmp/olsrd.watchdog") { sleep 15 }
+  
+$stamp = 0;
+
+while(1)
+{
+  $last_stamp = $stamp;
+  $stamp = time;
+  chomp ($olsr = `cat /tmp/olsrd.watchdog`);
+  $olsr = 0 unless $olsr;
+
+  # avoid false restarts due to changes in system time
+  if($stamp - $last_stamp < 20 and $stamp - $olsr > 20)
+  {
+    ($uptime) = `cat /proc/uptime` =~ /^(\d+)/;
+    $date = `date`;
+    system qq(echo -n "$uptime $date" >> /tmp/olsrd.log);
+    system "/etc/init.d/olsrd restart";
+  }
+
+  sleep 15;
+}

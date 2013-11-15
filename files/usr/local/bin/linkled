@@ -1,0 +1,12 @@
+#!/bin/sh
+
+{
+  while true; do
+    sleep 5;
+    if echo /neighbors | nc 127.0.0.1 2006 2>/dev/null | grep -q YES; then
+      echo 1 > /proc/diag/led/ses_orange
+    else
+      echo 0 > /proc/diag/led/ses_orange
+    fi
+  done;
+} &

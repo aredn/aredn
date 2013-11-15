@@ -1,0 +1,19 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+
+START=99
+boot() {
+  
+  # extract kamikaze generated vlan config
+  [ -f /etc/vlan ] || head -n5 /etc/config/network > /etc/vlan
+  
+  # setup nvram variables
+  # now just a remnant of what was /usr/local/bin/nvram-setup
+  if [ "`nvram get boot_wait`" != "on" ]; then
+    nvram set boot_wait=on
+    nvram commit
+  fi
+
+  # run mode specific setup
+  [ -x /etc/config/local ] && /etc/config/local
+}

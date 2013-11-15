@@ -1,0 +1,343 @@
+#!/usr/bin/perl -w
+
+sub usage
+{
+  print "usage: wscan [-1abnor] [-i iface]\n";
+  print "       -1   run once and quit\n";
+  print "       -a   average mode\n";
+  print "       -b   batch mode\n";
+  print "       -n   <num> number of times to scan\n";
+  print "       -o   show only open access points\n";
+  print "       -r   raw mode\n";
+  print "       -w   produce html output\n";
+  exit;
+}
+
+          
+%vendors =
+(
+  "000D72" => "2Wire",
+  "001288" => "2Wire",
+  "001495" => "2Wire",
+  "00183F" => "2Wire",
+  "0019E4" => "2Wire",
+  "001AC4" => "2Wire",
+  "001B5B" => "2Wire",
+  "001EC7" => "2Wire",
+  "001FB3" => "2Wire",
+  "00217C" => "2Wire",
+  "0022A4" => "2Wire",
+  "002351" => "2Wire",
+  "002456" => "2Wire",
+  "00253C" => "2Wire",
+  "002650" => "2Wire",
+  "00D09E" => "2Wire",
+  "34EF44" => "2Wire",
+  "B0E754" => "2Wire",
+  "001D5A" => "2Wire",
+  "001CB3" => "Apple",
+  "001EC2" => "Apple",
+  "001F5B" => "Apple",
+  "001FF3" => "Apple",
+  "0021E9" => "Apple",
+  "002241" => "Apple",
+  "002312" => "Apple",
+  "002332" => "Apple",
+  "00236C" => "Apple",
+  "0023DF" => "Apple",
+  "002436" => "Apple",
+  "002500" => "Apple",
+  "00254B" => "Apple",
+  "0025BC" => "Apple",
+  "002608" => "Apple",
+  "00264A" => "Apple",
+  "0026B0" => "Apple",
+  "0026BB" => "Apple",
+  "041E64" => "Apple",
+  "34159E" => "Apple",
+  "40D32D" => "Apple",
+  "58B035" => "Apple",
+  "60FB42" => "Apple",
+  "64B9E8" => "Apple",
+  "7C6D62" => "Apple",
+  "90840D" => "Apple",
+  "D49A20" => "Apple",
+  "F81EDF" => "Apple",
+  "000393" => "Apple",
+  "000502" => "Apple",
+  "000A27" => "Apple",
+  "000A95" => "Apple",
+  "000D93" => "Apple",
+  "001124" => "Apple",
+  "0016CB" => "Apple",
+  "0017F2" => "Apple",
+  "003065" => "Apple",
+  "0050E4" => "Apple",
+  "00A040" => "Apple",
+  "001E52" => "Apple",
+  "001451" => "Apple",
+  "0019E3" => "Apple",
+  "001B63" => "Apple",
+  "001D4F" => "Apple",
+  "080007" => "Apple",
+  "0010FA" => "Apple",
+  "0030BD" => "Belkin",
+  "001150" => "Belkin",
+  "00173F" => "Belkin",
+  "002275" => "Belkin",
+  "944452" => "Belkin",
+  "001CDF" => "Belkin",
+  "0050BA" => "D-Link",
+  "000D88" => "D-Link",
+  "000F3D" => "D-Link",
+  "001195" => "D-Link",
+  "001346" => "D-Link",
+  "0015E9" => "D-Link",
+  "00179A" => "D-Link",
+  "00195B" => "D-Link",
+  "001B11" => "D-Link",
+  "001CF0" => "D-Link",
+  "001E58" => "D-Link",
+  "002191" => "D-Link",
+  "0022B0" => "D-Link",
+  "002401" => "D-Link",
+  "00265A" => "D-Link",
+  "1CAFF7" => "D-Link",
+  "1CBDB9" => "D-Link",
+  "00055D" => "D-Link",
+  "0080C8" => "D-Link",
+  "0016F0" => "Dell",
+  "00188B" => "Dell",
+  "00065B" => "Dell",
+  "000874" => "Dell",
+  "00B0D0" => "Dell",
+  "00C04F" => "Dell",
+  "000BDB" => "Dell",
+  "00123F" => "Dell",
+  "0015C5" => "Dell",
+  "001AA0" => "Dell",
+  "001C23" => "Dell",
+  "001D09" => "Dell",
+  "001EC9" => "Dell",
+  "002170" => "Dell",
+  "00219B" => "Dell",
+  "002219" => "Dell",
+  "0026B9" => "Dell",
+  "B8AC6F" => "Dell",
+  "001143" => "Dell",
+  "001372" => "Dell",
+  "001422" => "Dell",
+  "0019B9" => "Dell",
+  "001E4F" => "Dell",
+  "0023AE" => "Dell",
+  "0024E8" => "Dell",
+  "002564" => "Dell",
+  "A4BADB" => "Dell",
+  "00045A" => "Linksys",
+  "000625" => "Linksys",
+  "000E08" => "Cisco-Linksys",
+  "000C41" => "Cisco-Linksys",
+  "000F66" => "Cisco-Linksys",
+  "001217" => "Cisco-Linksys",
+  "001310" => "Cisco-Linksys",
+  "0016B6" => "Cisco-Linksys",
+  "001A70" => "Cisco-Linksys",
+  "001C10" => "Cisco-Linksys",
+  "001D7E" => "Cisco-Linksys",
+  "001EE5" => "Cisco-Linksys",
+  "002129" => "Cisco-Linksys",
+  "00226B" => "Cisco-Linksys",
+  "002369" => "Cisco-Linksys",
+  "00259C" => "Cisco-Linksys",
+  "687F74" => "Cisco-Linksys",
+  "0014BF" => "Cisco-Linksys",
+  "001839" => "Cisco-Linksys",
+  "0018F8" => "Cisco-Linksys",
+  "00095B" => "Netgear",
+  "0024B2" => "Netgear",
+  "0026F2" => "Netgear",
+  "30469A" => "Netgear",
+  "C03F0E" => "Netgear",
+  "000FB5" => "Netgear",
+  "00146C" => "Netgear",
+  "00184D" => "Netgear",
+  "001B2F" => "Netgear",
+  "001E2A" => "Netgear",
+  "001F33" => "Netgear",
+  "00223F" => "Netgear",
+  "000E3B" => "Hawking",
+  "00A0C5" => "Zyxel",
+  "004001" => "Zyxel",
+  "001349" => "Zyxel",
+  "0019CB" => "Zyxel",
+  "0023F8" => "Zyxel",
+  "404A03" => "Zyxel",
+  "002722" => "Ubiquiti",
+  "00156D" => "Ubiquiti",
+);
+
+
+sub pushAP
+{
+  my($signal, $chan, $key, $ssid, $mac, $mode) = @_;
+
+  return if $mode eq "";
+  return if $openap and ($key ne "off" or $mode ne "Master");
+
+  if($ssid eq "")   { $ssid = "(hidden)" }
+
+  if($key eq "off") { $key = " " }
+  else              { $key = "*" }
+
+  $mac =~ /^(\w\w):(\w\w):(\w\w):(\w\w):(\w\w):(\w\w)/;
+  $mac1 = $1 . $2 . $3;
+  $mac2 = $4 . $5 . $6;
+  $mac  = $mac1 . $mac2;
+  if(exists $vendors{$mac1}) { $vendor = $vendors{$mac1} }
+  else                       { $vendor = "" }
+
+  $vendor = "Ad-Hoc" if $mode eq "Ad-Hoc";
+
+  if($avg)
+  {
+    $avgs{"$mac total"} += $signal;
+    $avgs{"$mac num"} += 1;
+    $aphash{$mac} = sprintf "%2d %s %-32s %s:%s %s\n",
+      $chan, $key, $ssid, $mac1, $mac2, $vendor;
+  }
+  elsif($web)
+  {
+    push @list, sprintf "%03d|%d|%s|%s|%s:%s|%s",
+      $signal, $chan, $key, $ssid, $mac1, $mac2, $vendor;
+  }
+  else
+  {
+    push @list, sprintf "%3d %2d %s %-32s %s:%s %s\n",
+      $signal, $chan, $key, $ssid, $mac1, $mac2, $vendor;
+  }
+}
+
+###################################################
+
+$avg = 0;       # average mode
+$batch = 0;     # batch mode
+$loops = 0;     # number of times to run 0=inf
+$raw = 0;       # raw mode
+$openap = 0;    # show open ap's
+$iface = "wl0"; # wireless interface
+
+$iters = 0;     # number of iterations
+%avgs = ();     # average statistics
+%aphash = ();   # list of ap's for avg mode
+
+while(defined ($arg = shift))
+{
+  if   ($arg eq "-h") { usage() }
+  elsif($arg eq "-1") { $loops = 1 }
+  elsif($arg eq "-a") { $avg = 1 }
+  elsif($arg eq "-b") { $batch = 1 }
+  elsif($arg eq "-o") { $openap = 1 }
+  elsif($arg eq "-r") { $raw = 1 }
+  elsif($arg eq "-i") { $iface = shift }
+  elsif($arg eq "-n") { $loops = shift }
+  elsif($arg eq "-w") { $web = 1 }
+  else { die "bad arg $arg\n" } 
+}
+
+die "bad interface" if not defined $iface;
+
+if($raw)
+{
+  system("/usr/sbin/iwlist $iface scan");
+  exit;
+}
+
+while(1)
+{
+  open(FILE, "/usr/sbin/iwlist $iface scan 2>&1 |") or die "iwlist failed";
+  $mode = "";
+  @list = ();
+  ++$iters;
+
+  while($line = <FILE>)
+  {
+    if($line =~ /\s+Cell \d+ - Address: (\S+)/)
+    {
+      pushAP($signal, $chan, $key, $ssid, $mac, $mode);
+      $mac = $1;
+      $mode = "";
+    }
+
+    if($line =~ /\bESSID:"(.*)"/)          { $ssid = $1 }
+    if($line =~ /\bMode:(\S+)/)            { $mode = $1 }
+    if($line =~ /\bChannel:(\d+)/)         { $chan = $1 }
+    if($line =~ /\bSignal level:([\d-]+)/) { $signal = $1 }
+    if($line =~ /\bEncryption key:(\w+)/)  { $key = $1 }
+  }
+
+  close(FILE);
+  pushAP($signal, $chan, $key, $ssid, $mac, $mode);
+  sleep 1 if not scalar @list and $loops != 1;
+
+  if(not $batch)
+  {
+    if($avg)
+    {
+      system "clear";
+      printf "Sig Rel Ch E              SSID                     MAC      Vendor  %6d\n", $iters;
+      print "--- --- -- - -------------------------------- ------------- ------\n";
+    }
+    elsif($web)
+    {
+	print "<table border=1 cellpadding=5>\n";
+	print "<tr><th>Sig</th><th>Chan</th><th>Enc</th><th>SSID</th><th>MAC</th><th>Vendor</th></tr>\n";
+    }
+    else
+    {
+      system "clear";
+      printf "Sig Ch E              SSID                     MAC      Vendor  %6d\n", $iters;
+      print "--- -- - -------------------------------- ------------- ------\n";
+    }
+  }
+
+  if($avg)
+  {
+    open(FILE, "| sort -nr");
+    foreach $mac (keys %aphash)
+    {
+      printf FILE "%3d %3d %s",
+        ($avgs{"$mac total"} - $avgs{"$mac num"} + 1)/$avgs{"$mac num"},
+        100*$avgs{"$mac num"}/$iters,
+        $aphash{$mac};
+    }
+    close(FILE);
+    print "\n";
+  }
+  elsif($web)
+  {
+      foreach $line (sort @list)
+      {
+	  print "<tr>";
+	  my $i = 0;
+	  foreach $val (split /\|/, $line)
+	  {
+	      $val = "&nbsp;" unless $val =~ /\S/;
+	      if($i++ == 3) { print "<td>$val</td>" }
+	      else          { print "<td align=center>$val</td>" }
+	  }
+	  print "<td>&nbsp;</td>" if $i < 6;
+	  print "</tr>\n";
+      }
+      print "</table>\n";
+      exit;
+  }
+  else
+  {
+    open(FILE, "| sort -nr");
+    print FILE @list;
+    close(FILE);
+    print "\n";
+  }
+
+  last if --$loops == 0;
+}

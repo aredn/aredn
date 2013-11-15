@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+
+use perlfunc;
+
+http_header();
+html_header("$node system information", 1);
+print "<body><pre>\n";
+
+print " node: ", nvram_get("node"), "\n";
+print "model: ", `/usr/local/bin/get_model`, "\n";
+
+foreach(`ifconfig -a`)
+{
+    next unless /^(\S+) .*HWaddr (\S+)/;
+    printf "%-6s %s\n", $1, $2;
+}
+
+print "\n/proc/cpuinfo\n";
+system "cat /proc/cpuinfo";
+
+print "\nnvram\n";
+system "nvram show 2>&1 | grep -v dropbear_..._host_key | grep -v filter_services | sort";
+
+print "</pre>\n";
+print "</body>\n";
+print "</html>\n";
