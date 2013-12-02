@@ -224,7 +224,7 @@ $batch = 0;     # batch mode
 $loops = 0;     # number of times to run 0=inf
 $raw = 0;       # raw mode
 $openap = 0;    # show open ap's
-$iface = "wl0"; # wireless interface
+$iface = "wlan0"; # wireless interface
 
 $iters = 0;     # number of iterations
 %avgs = ();     # average statistics
@@ -271,7 +271,7 @@ while(1)
     if($line =~ /\bESSID:"(.*)"/)          { $ssid = $1 }
     if($line =~ /\bMode:(\S+)/)            { $mode = $1 }
     if($line =~ /\bChannel:(\d+)/)         { $chan = $1 }
-    if($line =~ /\bSignal level:([\d-]+)/) { $signal = $1 }
+    if($line =~ /\bSignal level=([\d-]+)/) { $signal = $1 }
     if($line =~ /\bEncryption key:(\w+)/)  { $key = $1 }
   }
 

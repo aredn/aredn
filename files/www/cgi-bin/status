@@ -2,6 +2,7 @@
 
 $debug = 0;
 
+BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 # collect some variables
@@ -88,15 +89,15 @@ $browser_ip = "";
 if(system "ifconfig br-lan >/dev/null 2>&1") # lan not bridged
 {
     # show the wifi address
-    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("wl0");
+    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("wlan0");
     $cidr = "/ $cidr" if $cidr;
     $str  = "<th align=right><nobr>WiFi address</nobr></th><td>$ip <small>$cidr</small><br>";
-    $str .= "<small><nobr>" . get_ip6_addr("wl0") . "</nobr></small></td>";
+    $str .= "<small><nobr>" . get_ip6_addr("wlan0") . "</nobr></small></td>";
     push @col1, $str;
 
     # find out if the browser is on this node's lan
     # if not, hide the local network details
-    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("eth0.0");
+    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("eth0");
     if($ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/)
     {
 	$browser_ip = $1;
@@ -107,7 +108,7 @@ if(system "ifconfig br-lan >/dev/null 2>&1") # lan not bridged
     {
 	$cidr = "/ $cidr" if $cidr;
 	$str  = "<th align=right><nobr>LAN address</nobr></th><td>$ip <small>$cidr</small><br>";
-	$str .= "<small><nobr>" . get_ip6_addr("eth0.0") . "</nobr></small></td>";
+	$str .= "<small><nobr>" . get_ip6_addr("eth0") . "</nobr></small></td>";
 	push @col1, $str;
     }
 }
@@ -181,7 +182,7 @@ if(-f "/tmp/olsrd.log")
 if($config eq "mesh" or $config eq "client")
 {
     $str = "<th align=right valign=middle><nobr>Signal/Noise/Ratio</nobr></th><td valign=middle><nobr>";
-    ($s, $n) = get_wifi_signal("wl0");
+    ($s, $n) = get_wifi_signal("wlan0");
     if($s eq "N/A") { $str .= "N/A" }
     else            { $str .= sprintf "<big><b>%d / %d / %d dB</b></big>", $s, $n, $s - $n }
     $str .= "&nbsp;&nbsp;&nbsp;";
@@ -199,7 +200,7 @@ $uptime =~ s/^ ..:..:.. up //;
 push @col2, "<th align=right>uptime<br>load average</th><td>$uptime<br>$load</td>";
 
 $str  = "<th align=right>free space</th><td><nobr>flash = ";
-$space = get_free_space("/jffs");
+$space = get_free_space("/overlay");
 $str .= $space < 100 ? "<blink><b>$space KB</b></blink>" : "$space KB";
 $str .= "</nobr><br><nobr>/tmp = ";
 $space = get_free_space("/tmp");

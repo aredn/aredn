@@ -37,7 +37,7 @@ die "'$config' is not a valid configuration\n" unless -f "/etc/config.$config/_s
 
 $node = nvram_get("node");
 $tactical = nvram_get("tactical");
-$mac2 = mac2ip(get_mac("wl0"), 0);
+$mac2 = mac2ip(get_mac("wlan0"), 0);
 
 unless($auto)
 {
@@ -115,7 +115,7 @@ foreach(`grep "^[^#].*<" *`)
     if($parm eq uc $parm) # nvram variable
     {
 	$lcparm = lc $parm;
-	die "parameter '$parm' in file '$file' does not exist\n" unless `nvram get $lcparm` ne "\n";
+	die "parameter '$parm' in file '$file' does not exist\n" unless nvram_get($lcparm) ne "";
     }
     elsif(not $deleteme{$parm})
     {
@@ -155,6 +155,8 @@ if($do_basic)
     {
 	chomp $file;
 	next if $file =~ /^_setup/;
+	next if $file =~ /^firewall.user/;
+	next if $file =~ /^olsrd/;
 
 	open(IN, $file) or die;
 	open(OUT, "> /tmp/new_config/$file") or die;
@@ -203,16 +205,10 @@ if($do_basic)
     #system "nvram set tactical=$tactical";
     #system "nvram commit";
 
-    #nvram_set("config", $config);
-    #nvram_set("node", $node);
-    #nvram_set("tactical", $tactical);
+    nvram_set("config", $config);
+    nvram_set("node", $node);
+    nvram_set("tactical", $tactical);
 
-    open(FILE, ">/tmp/nvram") or die;
-    print FILE "config=$config\n";
-    print FILE "node=$node\n";
-    print FILE "tactical=$tactical\n";
-    close(FILE);
-    system "if ! diff -q /tmp/nvram /etc/nvram; then mv -f /tmp/nvram /etc/nvram; fi";
 }
 
 
@@ -259,10 +255,25 @@ system "cat /etc/ethers.user >> /etc/ethers" if -e "/etc/ethers.user";
 unless($do_basic)
 {
     system "cp -f /etc/config.$config/firewall /etc/config";
-    system "cp -f /etc/config.$config/firewall.user /etc/config";
+    system "cp -f /etc/config.$config/firewall.user /etc/";
 }
 
 open(FILE, ">>/etc/config/firewall") or die;
+
+if($cfg{dmz_mode}) {
+    print FILE "\nconfig forwarding\n";
+    print FILE "        option src              wifi\n";
+    print FILE "        option dest             lan\n";
+
+    system "uci set firewall.\@zone\[2\].masq=0";
+    system "uci commit";
+}
+
+if ($cfg{olsrd_gw}) {
+    print FILE "\nconfig forwarding\n";
+    print FILE "        option src              wifi\n";
+    print FILE "        option dest             wan\n";
+}
 
 foreach(`cat $portfile`)
 {
@@ -273,8 +284,8 @@ foreach(`cat $portfile`)
     # set dmz server
     if(/dmz_ip = (\S+)/ and not $cfg{dmz_mode})
     {
-	print FILE "forward:wifi:proto=tcp dest=$cfg{wifi_ip}:$1\n";
-	print FILE "forward:wifi:proto=udp dest=$cfg{wifi_ip}:$1\n";
+	print FILE "\nconfig redirect\n\toption src              wifi\n\toption proto            tcp\n\toption src_dip            $cfg{wifi_ip}\n\toption dest_ip          $1\n\n";
+	print FILE "config redirect\n\toption src              wifi\n\toption proto            udp\n\toption src_dip            $cfg{wifi_ip}\n\toption dest_ip          $1\n\n";
 	next;
     }
 
@@ -284,36 +295,38 @@ foreach(`cat $portfile`)
 
     if($cfg{dmz_mode})
     {
-	next if $intf eq "wifi";
-	$intf = "wan" if $intf eq "both";
+        next if $intf eq "wifi";
+        $intf = "wan" if $intf eq "both";
     }
 
-    $match = "dport=$oport";
+    $match = "option src_dport              $oport\n";
 
-    if   ($type eq "tcp") { $match .= " proto=tcp" }
-    elsif($type eq "udp") { $match .= " proto=udp" }
+    if   ($type eq "tcp") { $match .= "option proto              tcp\n" }
+    elsif($type eq "udp") { $match .= "option proto              udp\n" }
 
+    # uci the host and than
     # set the inside port unless the rule uses an outside port range
-    $host = "$host:$iport" unless $oport =~ /-/;
+    $host = "option dest_ip              $host\n";
+    $host .="\toption dest_port              $iport\n" unless $oport =~ /-/;
 
     if($intf eq "both")
     {
-	print FILE "forward:wifi:$match dest=$cfg{wifi_ip}:$host\n";
-	print FILE "forward:wan:$match:$host\n";
+	print FILE "\nconfig redirect\n\toption src              wifi\n\t$match\toption src_dip          $cfg{wifi_ip}\n\t$host\n";
+	print FILE "config redirect\n\toption src              wan\n\t$match\t$host\n";
     }
     elsif($intf eq "wifi")
     {
-	print FILE "forward:wifi:$match dest=$cfg{wifi_ip}:$host\n";
+	print FILE "config redirect\n\toption src              wifi\n\t$match\toption src_dip          $cfg{wifi_ip}\n\t$host\n";
     }
     elsif($intf eq "wan")
     {
-	print FILE "forward:wan:$match:$host\n";
+	print FILE "config redirect\n\toption src              wan\n\t$match\t$host\n";
     }
     else
     {
         print STDERR "ERROR: unknown interface '$intf'\n";
-	close(FILE);
-	exit 1;
+        close(FILE);
+        exit 1;
     }
 }
 
@@ -344,13 +357,16 @@ if($config eq "mesh")
 
 # generate the local config script
 
-open(FILE, ">/etc/config/local") or die;
+open(FILE, ">/etc/local/services") or die;
 print FILE "#!/bin/sh\n";
 unless($cfg{wifi_proto} eq "disabled")
 {
-    $cfg{wifi_txpower} = 19 if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > 19;
+    $cfg{wifi_txpower} = wifi_maxpower() if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > wifi_maxpower();
     $cfg{wifi_txpower} = 1  if $cfg{wifi_txpower} < 1;
-    print FILE "/usr/sbin/iwconfig wl0 txpower $cfg{wifi_txpower}\n";
+    if(wifi_useschains()){
+        print FILE "/usr/local/bin/wifi-onbootchains\n";
+    }
+    print FILE "/usr/sbin/iwconfig wlan0 txpower $cfg{wifi_txpower}\n";
     if(defined $cfg{aprs_lat} and defined $cfg{aprs_lon})
     {
 	printf FILE "echo %s,%s > /tmp/latlon.txt\n", $cfg{aprs_lat}, $cfg{aprs_lon};
@@ -362,22 +378,22 @@ unless($cfg{wifi_proto} eq "disabled")
     }
 }
 close(FILE);
-system "chmod +x /etc/config/local";
+system "chmod +x /etc/local/services";
 
 
 # generate olsrd.conf
 
-if(-f "/etc/config.$config/olsrd.conf")
+if(-f "/etc/config.$config/olsrd")
 {
-    open(IN, "/etc/config.$config/olsrd.conf") or die;
-    open(OUT, ">/etc/config/olsrd.conf") or die;
+    open(IN, "/etc/config.$config/olsrd") or die;
+    open(OUT, ">/etc/config/olsrd") or die;
 
     while(defined ($line = <IN>))
     {
 	if($line =~ /<olsrd_bridge>/)
 	{
-	    if($cfg{olsrd_bridge}) { $line =~ s/<olsrd_bridge>/"wl0" "eth0.0"/ }
-	    else                   { $line =~ s/<olsrd_bridge>/"wl0"/ }
+	    if($cfg{olsrd_bridge}) { $line =~ s/<olsrd_bridge>/"wifi" "lan"/ }
+	    else                   { $line =~ s/<olsrd_bridge>/"lan"/ }
 	}
         elsif(($parm) = $line =~ /^[^\#].*<(\S+)>/)
         {
@@ -388,24 +404,27 @@ if(-f "/etc/config.$config/olsrd.conf")
 
     if($cfg{dmz_mode})
     {
-	print OUT "Hna4\n";
-	print OUT "{\n";
+	print OUT "\n";
+	print OUT "config Hna4\n";
 	@parts = split /[.]/, $cfg{dmz_lan_ip};
 	--$parts[3]; # assume network = lan_ip - 1
-	print OUT "  ", join(".", @parts), " 255.255.255.", ((0xff << $cfg{dmz_mode}) & 0xff), "\n";
-	print OUT "}\n\n";
+	print OUT "\toption netaddr           ", join(".", @parts),"\n";
+	print OUT "\toption netmask           255.255.255.", ((0xff << $cfg{dmz_mode}) & 0xff), "\n";
+	print OUT "\n\n";
     }
 
     if($cfg{olsrd_gw})
     {
-	print OUT "LoadPlugin \"olsrd_dyn_gw.so.0.5\"\n";
-	print OUT "{\n";
-	print OUT "    PlParam \"Interval\" \"60\"\n";
-	print OUT "    PlParam \"Ping\" \"71.42.236.91\" # hsmm-mesh.org\n";
-	print OUT "    PlParam \"Ping\" \"71.42.236.90\" # hsmm-mesh.org\n";
-	print OUT "    PlParam \"Ping\" \"8.8.8.8\"      # google dns\n";
-	print OUT "    PlParam \"Ping\" \"8.8.4.4\"      # google dns\n";
-	print OUT "}\n";
+
+
+	print OUT "config LoadPlugin\n";
+	print OUT "	option library 'olsrd_dyn_gw.so.0.5'\n";
+	print OUT "	option Interval '60'\n";
+	print OUT "	list Ping '71.42.236.91'\n"; # hsmm-mesh.org\n";
+	print OUT "	list Ping '71.42.236.90'\n"; # hsmm-mesh.org\n";
+	print OUT "	list Ping '8.8.8.8'\n";      # google dns\n";
+	print OUT "	list Ping '8.8.4.4'\n";      # google dns\n";
+	print OUT "\n\n";
     }
 
     close(OUT);
@@ -414,6 +433,19 @@ if(-f "/etc/config.$config/olsrd.conf")
 
 # indicate whether lan is running in dmz mode
 system "echo $cfg{dmz_mode} > /etc/config/dmz-mode" if $cfg{dmz_mode};
+
+# Set chains/antenna config elements as they are no longer in the template files
+
+if(wifi_useschains()){
+    $cmd .= "uci set wireless.\@wifi-device[0].rxchain=$cfg{wifi_rxant} >/dev/null 2>&1;";
+    $cmd .= "uci set wireless.\@wifi-device[0].txchain=$cfg{wifi_txant} >/dev/null 2>&1;";
+} else {
+    $cmd .= "uci set wireless.\@wifi-device[0].rxantenna=$cfg{wifi_rxant} >/dev/null 2>&1;";
+    $cmd .= "uci set wireless.\@wifi-device[0].txantenna=$cfg{wifi_txant} >/dev/null 2>&1;";
+}
+$cmd .= "uci -q commit;";
+system $cmd;
+
 
 
 # finish up

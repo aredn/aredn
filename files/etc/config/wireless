@@ -1,15 +1,13 @@
-config wifi-device  wl0
-	option type     broadcom
-	option channel  1
-	option rxant    3
-	option txant    3
+config wifi-device  radio0
+        option type     mac80211
+        option phy      phy0
+        option channel  1
         option distance 0
 
 config wifi-iface
-	option device   wl0
-	option network	lan
-	option mode     ap
-	option ssid     "MeshNode"
-	option hidden   0
-	option encryption none
-
+        option device   radio0
+        option network  lan
+        option mode     ap
+        option ssid     "MeshNode"
+        option hidden   0
+        option encryption none

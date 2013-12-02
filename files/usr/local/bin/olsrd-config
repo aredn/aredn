@@ -13,15 +13,6 @@ use perlfunc;
 push @names, $name if ($name = nvram_get("tactical"));
 push @names, $name if ($name = nvram_get("node"));
 
-unless(-f "/etc/config/olsrd.conf")
-{
-    print STDERR "Error: config file /etc/config/olsrd.conf not found\n";
-    exit 1;
-}
-
-# load the base file
-@file = `cat /etc/config/olsrd.conf`;
-
 # load the dhcp reservations when in dmz mode
 if(-f "/etc/config/dmz-mode")
 {
@@ -60,6 +51,4 @@ foreach(@services) { push @file, qq(    PlParam "service" "$_"\n) }
 push @file, qq(}\n);
 
 # write the file
-open(FILE, ">/tmp/olsrd.conf") or die;
-print FILE @file;
-close(FILE);
+print @file;

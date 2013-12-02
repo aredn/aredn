@@ -35,7 +35,7 @@ sub branch
             
 $| = 1;
 $ssid = shift;
-$iface = "wl0";
+$iface = "wlan0";
 
 if(defined $ssid and $ssid eq "-h")
 {
@@ -110,13 +110,13 @@ die "association failed\n" if not $done;
 # get a dhcp lease
 
 print "requesting a dhcp lease\n";
-execute "kill `cat /var/run/wl0.pid` 2>/dev/null" if -e "/var/run/wl0.pid";
+execute "kill `cat /var/run/dhcp-wlan0.pid` 2>/dev/null" if -e "/var/run/dhcp-wlan0.pid";
 
 $pid = fork;
 
 if(!$pid)
 {
-  branch "udhcpc -t 0 -i $iface -b -p /var/run/wl0.pid -R 2>/dev/null";
+  branch "udhcpc -t 0 -i $iface -b -p /var/run/dhcp-wlan0.pid -R 2>/dev/null";
 }
 
 # check for an address
@@ -130,7 +130,7 @@ for($i = $done = 0; $i < 60 and not $done; ++$i)
 
 if(not $done)
 {
-  execute "kill `cat /var/run/wl0.pid` 2>/dev/null" if -e "/var/run/wl0.pid";
+  execute "kill `cat /var/run/dhcp-wlan0.pid` 2>/dev/null" if -e "/var/run/dhcp-wlan0.pid";
   die "dhcp failed\n";
 }
 

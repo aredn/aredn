@@ -5,15 +5,13 @@ START=99
 boot() {
   
   # extract kamikaze generated vlan config
-  [ -f /etc/vlan ] || head -n5 /etc/config/network > /etc/vlan
+  #CMLARA Not needed on BULLETM's  maybe needed on other devices
+  #[ -f /etc/vlan ] || head -n5 /etc/config/network > /etc/vlan
   
   # setup nvram variables
-  # now just a remnant of what was /usr/local/bin/nvram-setup
-  if [ "`nvram get boot_wait`" != "on" ]; then
-    nvram set boot_wait=on
-    nvram commit
-  fi
+  [ -x /usr/local/bin/nvram-setup ] &&  /usr/local/bin/nvram-setup
 
   # run mode specific setup
   [ -x /etc/config/local ] && /etc/config/local
+  [ -x /etc/local/services ] && /etc/local/services
 }

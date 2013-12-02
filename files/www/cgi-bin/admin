@@ -1,12 +1,13 @@
 #!/usr/bin/perl
 
+BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 sub firmware_list_gen
 {
     @fw_images = ();
     chomp($fw_version = `cat /etc/mesh-release`);
-    foreach(`cat /tmp/web/software.list 2>/dev/null`)
+    foreach(`cat /tmp/web/firmware.list 2>/dev/null`)
     {
 	my($md5, $fw, $tag) = /^(\S+) (\S+) (.*)/;
 	next unless $tag;
@@ -44,8 +45,7 @@ $patch_install = 0;
 %fw_md5 = ();
 
 @serverpaths = (
-    "http://broadband-hamnet.org/download/wrt54g",
-    "http://ad5oo.ham-radio-op.net/download/wrt54g"
+    "http://www.cmlara.com/sdwg-mesh/ar71xx"
 );
 
 # refresh fw
@@ -54,11 +54,13 @@ if($parms{button_refresh_fw})
     if(get_default_gw() ne "none")
     {
 	push @fw_output, "Downloading firmware list...\n";
-	unlink "/tmp/web/software.list";
+	unlink "/tmp/web/firmware.list";
 	$ok = 0;
+        $hardwaretype = `/usr/local/bin/get_hardwaretype`;
+        chomp($hardwaretype);
 	foreach $serverpath (@serverpaths)
 	{
-	    system "$wget -O /tmp/web/software.list $serverpath/software.list >/dev/null 2>>$tmpdir/wget.err";
+	    system "$wget -O /tmp/web/firmware.list $serverpath/firmware.$hardwaretype.list >/dev/null 2>>$tmpdir/wget.err";
 	    unless($?) { $ok = 1; last }
 	}
 	if($ok) { push @fw_output, "Done.\n" }
@@ -68,7 +70,7 @@ if($parms{button_refresh_fw})
     else
     {
 	push @fw_output, "Error: no route to the Internet\n";
-	unlink "/tmp/web/software.list";
+	unlink "/tmp/web/firmware.list";
     }
 }
 
@@ -82,31 +84,17 @@ if($parms{button_ul_fw} and -f "/tmp/web/upload/file")
 {
     system "mv -f /tmp/web/upload/file $tmpdir/firmware";
 
-    if($parms{firmfile} =~ /\.trx$/) # full firmware
+    if($parms{firmfile} =~ /sysupgrade\.bin$/) # full firmware
     {
 	$fw_install = 1;
 
 	# check firmware header
-	my $header = `hexdump -C -n 8 $tmpdir/firmware`;
-	my ($b0, $b1, $b2, $b3) = $header =~ /^00000000  48 44 52 30 (\w+) (\w+) (\w+) (\w+)/;
 	
-	if(not defined $b0)
+	if(system "/usr/local/bin/firmwarecheck.sh $tmpdir/firmware")
 	{
 	    push @fw_output, "Firmware CANNOT be updated\n";
 	    push @fw_output, "firmware file is not valid\n";
 	    $fw_install = 0;
-	}
-	else
-	{
-	    my $size = hex($b0) + (hex($b1) << 8) + (hex($b2) << 16) + (hex($b3) << 24);
-	    # I would use 'stat' here but it seems not to work in microperl
-	    my @parts = split /\s+/, `ls -l $tmpdir/firmware`;
-	    if($size ne $parts[4])
-	    {
-		push @fw_output, "Firmware CANNOT be updated\n";
-		push @fw_output, "firmware file size is not valid\n";
-		$fw_install = 0;
-	    }
 	}
     }
     elsif($parms{firmfile} =~ /^patch\S+\.tgz$/) # firmware patch
@@ -133,7 +121,7 @@ if($parms{button_dl_fw} and $parms{dl_fw} ne "default")
 	    unless($?) { $ok = 1; last }
 	}
 
-	if($parms{dl_fw} =~ /\.trx$/) # full firmware
+	if($parms{dl_fw} =~ /sysupgrade\.bin$/) # full firmware
 	{
 	    $fw_install = 1;
 	    unless($ok)
@@ -182,11 +170,12 @@ if($parms{button_dl_fw} and $parms{dl_fw} ne "default")
     else
     {
 	push @fw_output, "Error: no route to the Internet\n";
-	unlink "/tmp/web/software.list";
+	unlink "/tmp/web/firmware.list";
     }
 }
 
-# install fw
+# install fw -- Force overwrite using MTD device
+# Needs a "not $overwrite_firmware" clause once we get sysupgrade working
 if($fw_install and -f "$tmpdir/firmware")
 {
     my $junk;
@@ -202,7 +191,7 @@ if($fw_install and -f "$tmpdir/firmware")
     {
 	#system "nvram unset config; nvram commit >/dev/null 2>&1";
 	nvram_set("config", "");
-	open(FILE, "/sbin/mtd write $tmpdir/firmware linux 2>&1 |") or die;
+	open(FILE, "/sbin/mtd write $tmpdir/firmware firmware 2>&1 |") or die;
 	while(read FILE, $junk, 7) { print "|" }
     }
 
@@ -219,6 +208,33 @@ When the DMZ LED turns off you can get your new DHCP lease and reconnect with<br
     system "/sbin/reboot" unless $debug;
     exit;
 }
+
+# CMLARA: Prepwork for using sysupgrade --- it has some issues with the page not returning that need to be worked on
+# install fw -- use sysupgrade
+
+#if($fw_install and -f "$tmpdir/firmware" and not $overwrite_firmware )
+#{
+#    my $junk;
+#    http_header();
+#    html_header("FIRMWARE UPDATE IN PROGRESS", 1);
+#    print "<body><center>\n";
+#    print "<h2>The firmware is being updated.</h2><br><br>\n";
+#    print "<h1>DO NOT REMOVE POWER UNTIL UPDATE IS FINISHED</h1><br><br>\n";
+#    print "<h3>Wait for the Power LED to start blinking, then stop blinking.<br>\n";
+#    print "When the DMZ LED turns off you can reconnect your browser to the mesh node.</h3>\n";
+#    print "</center><br>\n";
+#    print "Writing firmware<br><br>\n";
+#    unless($debug)
+#    {
+#        open(FILE, "/sbin/sysupgrade -q $tmpdir/firmware 2>&1 |") or die;
+#        while(read FILE, $junk, 7) { print "|" }
+#        print "<br><br>REBOOTING<br><br>\n";
+#        print "<a href='http://localnode:8080/cgi-bin/status'>Click here</a> when the blinking stops and the DMZ LED turns off</body></html>\n";
+#        system "/sbin/reboot";
+#    }
+#    exit;
+#}
+
 
 # install patch
 if($patch_install and -f "$tmpdir/firmware")
@@ -238,7 +254,7 @@ if($patch_install and -f "$tmpdir/firmware")
 	    push @fw_output, "try again after a reboot\n";
 	    last;
 	}
-	elsif(get_free_space("/jffs") - $size < 100)
+	elsif(get_free_space("/overlay") - $size < 100)
 	{
 	    push @fw_output, "Firmware CANNOT be patched\n";
 	    push @fw_output, "insufficient flash space\n";
@@ -305,8 +321,8 @@ foreach(`cat /etc/permpkg 2>/dev/null`)
 if($parms{button_ul_pkg} and -f "/tmp/web/upload/file")
 {
     system "mv -f /tmp/web/upload/file /tmp/web/upload/newpkg.ipk";
-    push @pkg_output, `yes | ipkg -force-overwrite install /tmp/web/upload/newpkg.ipk 2>&1`;
-    system "rm -rf /tmp/ipkg-*";
+    push @pkg_output, `yes | opkg -force-overwrite install /tmp/web/upload/newpkg.ipk 2>&1`;
+    system "rm -rf /tmp/opkg-*";
 } 
 
 # download package
@@ -314,7 +330,7 @@ if($parms{button_dl_pkg} and $parms{dl_pkg} ne "default")
 {
     if(get_default_gw() ne "none")
     {
-	push @pkg_output, `yes | ipkg -force-overwrite install $parms{dl_pkg} 2>&1`;
+	push @pkg_output, `yes | opkg -force-overwrite install $parms{dl_pkg} 2>&1`;
     }
     else
     {
@@ -327,8 +343,8 @@ if($parms{button_refresh_pkg})
 {
     if(get_default_gw() ne "none")
     {
-	@pkg_output = `ipkg update 2>&1`;
-	system "ipkg list | cut -f1,3 -d' ' | gzip -c > /etc/ipkg.list.gz";
+	@pkg_output = `opkg update 2>&1`;
+	system "opkg list | cut -f1,3 -d' ' | gzip -c > /etc/opkg.list.gz";
     }
     else
     {
@@ -339,14 +355,14 @@ if($parms{button_refresh_pkg})
 # remove package
 if($parms{button_rm_pkg} and $parms{rm_pkg} ne "default" and not $permpkg{$parms{rm_pkg}})
 {
-    @pkg_output = `ipkg remove $parms{rm_pkg} 2>&1`;
+    @pkg_output = `opkg remove $parms{rm_pkg} 2>&1`;
 }
 
 # generate data structures
 
 @pkgs = ();
 %pkgver = ();
-foreach(`ipkg list_installed | cut -f1,3 -d' '`)
+foreach(`opkg list_installed | cut -f1,3 -d' '`)
 {
     ($pkg, $ver) = split /\s/, $_;
     next unless $ver;
@@ -356,7 +372,7 @@ foreach(`ipkg list_installed | cut -f1,3 -d' '`)
 
 @dl_pkgs = ();
 %dlpkgver = ();
-foreach(`zcat /etc/ipkg.list.gz 2>/dev/null`)
+foreach(`zcat /etc/opkg.list.gz 2>/dev/null`)
 {
     ($pkg, $ver) = split /\s/, $_;
     next unless $ver;
@@ -496,7 +512,7 @@ print "<tr><th colspan=3>Package Management</th></tr>\n";
 
 if(@pkg_output)
 {
-    # ipkg can produce duplicate first lines, remove them here
+    # opkg can produce duplicate first lines, remove them here
     while(defined $pkg_output[1] and $pkg_output[0] eq $pkg_output[1])
     {
 	shift @pkg_output;

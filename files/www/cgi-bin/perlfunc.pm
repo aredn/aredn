@@ -6,7 +6,8 @@ sub http_header
 {
     # THIS MUST BE ONE LINE!
     # otherwise an intermittent busybox bug will incorrectly "fix" the generated output
-    print "HTTP/1.0 200 OK\r\nContent-type: text/html\r\n";
+#    print "HTTP/1.0 200 OK\r\n";  # Not needed under Uhttpd
+    print "Content-type: text/html\r\n";
 
     print "Cache-Control: no-store\r\n";
     print "\r\n";
@@ -250,7 +251,7 @@ sub reboot_page
     # is the browser coming from the lan?
     if(system "ifconfig br-lan >/dev/null 2>&1")
     {
-	($lanip, $lanmask, $junk, $lannet) = &get_ip4_network("eth0.0");
+	($lanip, $lanmask, $junk, $lannet) = &get_ip4_network("eth0");
     }
     else
     {
@@ -357,37 +358,27 @@ sub nvram_set_old
     return system "nvram set $var='$val'";
 }
 
+# Replace the /etc/nvram file used by 1.0.0 Linksys
+# with the backfire uci command due to an observed race condition
+# 
+# read an nvram variable
 sub nvram_get
 {
-    my($var) = @_;
-    my $val = `grep ^$var= /etc/nvram | cut -f2- -d=`;
-    chomp $val;
-    $val =~ s/^\s+//;
-    $val =~ s/\s+$//;
-    return $val;
+    my ($var) = @_;
+    return "ERROR" if not defined $var;
+    chomp($var = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.$var`);
+    return $var;
 }
 
+# set an nvram variable
 sub nvram_set
 {
-    my($var, $val) = @_;
-    my %data;
-
-    # read the old nvram
-    open(FILE, "/etc/nvram") or return;
-    while(<FILE>)
-    {
-	/^([^=]+)=(.*)/;
-	$data{$1} = $2;
-    }
-    close(FILE);
-    return if $val eq $data{$var};
-
-    # write the new nvram
-    $data{$var} = $val;
-    open(FILE, ">/etc/nvram") or die;
-    foreach(sort keys %data) { printf FILE "%s=%s\n", $_, $data{$_} }
-    close(FILE);
+    my ($var, $val) = @_;
+    return "ERROR" if not defined $val;
+    system "uci -c /etc/local/uci/ set hsmmmesh.settings.$var='$val'";
+    system "uci -c /etc/local/uci/ commit";
 }
+
 
 # return the ipv4 network parameters of the given interface or "none"
 sub get_ip4_network
@@ -500,7 +491,7 @@ sub load_cfg
 {
     #my $mac2 = nvram_get("mac2");
     my $node = nvram_get("node");
-    my $mac2 = mac2ip(get_mac("wl0"), 0);
+    my $mac2 = mac2ip(get_mac("wlan0"), 0);
     open(FILE, $_[0]) or return 0;
     while(defined ($line = <FILE>))
     {
@@ -553,38 +544,34 @@ sub save_setup
 
 sub get_wifi_signal
 {
+    # CMLARA:
     # this would be easy if /proc/net/wireless updated automatically, but it doesn't.
-    # iwconfig gets the signal strength info from /proc/net/wireless
-    # the hack is to re-set the ssid which recalculates the signal strength
-
-    my $iface = shift;
-    my ($line, $ssid);
-
-    open(FILE, "/etc/config/wireless") or return ("N/A", "N/A");
-    while(defined ($line = <FILE>))
+    # the hack is to re-scan
+    # also iwlist doesnt correctly limit to single ssid
+    # and we have to call from 2 programs now instead of 1
+    my ($ssid) = (`uci -q get wireless.\@wifi-iface[0].ssid`);
+    chomp $ssid;
+    my ($SignalLevel) = "N/A";
+    my ($NoiseFloor) = "N/A";
+    foreach(`iwlist $_[0] scanning essid "$ssid" |grep -A 5 -B 5 "$ssid"`)
     {
-	next unless ($ssid) = $line =~ /^\s+option ssid\s+(.*)$/;
-	last;
-    }
-    close(FILE);
-
-    if(defined $ssid)
-    {
-	chomp $ssid;
-	return ("N/A", "N/A") if $ssid eq "";
-    }
-    else
-    {
-	return ("N/A", "N/A");
+        next unless /Signal level=([\d\-]+) dBm/;
+        $SignalLevel=$1;
     }
 
-    system "iwconfig $iface essid $ssid 2>/dev/null";
-    foreach(`iwconfig $iface`)
+    foreach(`iw dev $_[0] survey dump|grep -A 1 \"\\[in use\\]\"`)
     {
-	next unless /Signal level:([\d\-]+) dBm  Noise level:([\d\-]+) dBm/;
-	return ($1, $2);
+        next unless /([\d\-]+) dBm/;
+        $NoiseFloor=$1;
     }
-    return ("N/A", "N/A");
+
+    if ( $SignalLevel == "N/A" || $NoiseFloor == "N/A" )
+    {
+        return ("N/A","N/A");
+    }
+    else {
+    return ($SignalLevel, $NoiseFloor);
+    }
 }
 
 sub get_free_space
@@ -876,4 +863,93 @@ sub validate_longitude
     return 1;
 }
 
+
+# Return maximum dbm value for tx power 
+sub wifi_maxpower
+{
+    $boardtype = `/usr/local/bin/get_hardwaretype`;
+    chomp($boardtype);
+    if ($boardtype eq "bullet-m"){
+        return 27;
+    }
+    elsif ($boardtype eq "rocket-m") {
+        #Rocket-m is 28dbm but has a 10db offchip amp.
+        return 18;
+    }
+    else
+    {
+        #When in doubt lets return 27 for safety.
+        return 27;
+    }
+
+}
+
+
+sub wifi_validant
+{
+    #CMLARA -- Basic mapping of antennas to models,  we really don't know all the models yet
+    # so we will just put the ones we know here first
+    $boardtype = `/usr/local/bin/get_hardwaretype`;
+    chomp($boardtype);
+    if ($boardtype eq "bullet-m"){
+        %antennas = ( 1  => "N-Connector" );
+    } 
+    elsif ($boardtype eq "rocket-m") {
+        %antennas = ( 1  => "Chain0", 2  => "Chain1", 3 => "Diversity" );
+    }
+    else 
+    {
+        %antennas = ( 0  => "Left", 1  => "Right", 2 => "Diversity" );
+    }
+
+    return %antennas;
+}
+
+sub wifi_defaultant
+{
+    $boardtype = `/usr/local/bin/get_hardwaretype`;
+    chomp($boardtype);
+    if ($boardtype eq "bullet-m"){
+        return 1;
+    } 
+    elsif ($boardtype eq "rocket-m"){
+        return 3;
+    }
+    else
+    {
+        #Most likely to catch all models.  Some have 3 and start at 1, some start at 0, others have 1 at 1, etc
+        return 1;
+    }
+}
+
+sub wifi_useschains
+{
+    $boardtype = `/usr/local/bin/get_hardwaretype`;
+    chomp($boardtype);
+    if ($boardtype eq "rocket-m"){
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+#Some systems have power offsets in them because of a secondary amplifier
+#Because of this the chipset may report one power level but the amplifier
+#has increased it to a higher level.
+sub wifi_txpoweroffset
+{
+    $boardtype = `/usr/local/bin/get_hardwaretype`;
+    chomp($boardtype);
+    if ($boardtype eq "rocket-m"){
+        return 10;
+    }
+    else
+    {
+        return 0;
+    }
+
+}
+#weird uhttpd/busybox error requires a 1 at the end of this file
 1

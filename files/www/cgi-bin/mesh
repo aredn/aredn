@@ -2,6 +2,7 @@
 
 $debug = 0;
 
+BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 # collect some variables
@@ -10,7 +11,7 @@ $node = "NOCALL" if $node eq "";
 $tactical = nvram_get("tactical");
 $config = nvram_get("config");
 $config = "not set" if $config eq "" or not -d "/etc/config.$config";
-($my_ip) = get_ip4_network("wl0");
+($my_ip) = get_ip4_network("wlan0");
 
 read_postdata();
 

@@ -1,0 +1,19 @@
+#!/usr/bin/perl -w -I/www/cgi-bin
+
+use perlfunc;
+
+if (wifi_useschains()){
+
+    $wifi_rxant = `uci -q get wireless.\@wifi-device[0].rxchain`;
+    $wifi_txant = `uci -q get wireless.\@wifi-device[0].txchain`;
+    chomp($wifi_rxant);
+    chomp($wifi_txant);
+
+    if ( $wifi_rxant ne "" ) {
+        `echo $wifi_rxant > /sys/kernel/debug/ieee80211/phy0/ath9k/rx_chainmask`;
+    }
+
+    if ( $wifi_txant ne "" ) {
+        `echo $wifi_txant > /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask`;
+    }
+}

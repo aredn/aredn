@@ -2,6 +2,7 @@
 
 $debug = 0;
 
+BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 # collect some variables
@@ -15,7 +16,7 @@ system "rm -f /tmp/web/siglevel" if $parms{start};
 
 # get the current levels
 
-($s, $n) = get_wifi_signal("wl0");
+($s, $n) = get_wifi_signal("wlan0");
 if($s eq "N/A") { $s = $n = "---" }
 
 # load the previous levels

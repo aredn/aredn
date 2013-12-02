@@ -2,6 +2,7 @@
 
 $debug = 0;
 
+BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 #
@@ -93,33 +94,31 @@ $parms{dmz_dhcp_limit} = $dmz_dhcp_limit = $dmz_dhcp_end - $dmz_dhcp_start;
 
 unless($parms{reload})
 {
-    ($wifi_txpower) = `iwconfig wl0 2>/dev/null` =~ /Tx-Power:(\d+)/;
-    chomp ($wifi_txant = `wlc txant 2>/dev/null`);
-    chomp ($wifi_rxant = `wlc rxant 2>/dev/null`);
-    chomp ($slottime   = `wlc slottime 2>/dev/null`);
-
-    if   ($slottime eq "") { $wifi_distance = 0 }
-    elsif($slottime == -1) { $wifi_distance = 0 }
-    elsif($slottime < 11)  { $wifi_distance = 1 }
-    else                   { $wifi_distance = 150*($slottime - 10) }
+    ($wifi_txpower) = `iwconfig wlan0 2>/dev/null` =~ /Tx-Power=(\d+)/;
+    if (wifi_useschains()){
+        $wifi_txant = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask`;
+        $wifi_rxant = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/rx_chainmask`;
+        $wifi_txant = hex($wifi_txant);
+        $wifi_rxant = hex($wifi_rxant); 
+    }
+    else {
+        foreach ( `iw phy phy0 info` ) {
+            next unless /Configured Antennas: TX 0x([\d]+) RX 0x([\d]+)/;
+            $wifi_txant = $1;
+            $wifi_rxant = $2;
+        }
+    }
+    $slottime   = "";
 }
 
 # sanitize the active settings
-%valid_ant = ( 0 => 1, 1 => 1, 3 => 1 );
-$wifi_txpower = 19 if not defined $wifi_txpower or $wifi_txpower > 19;
+%valid_ant = wifi_validant();
+$wifi_txpower = wifi_maxpower() if not defined $wifi_txpower or $wifi_txpower > wifi_maxpower();
 $wifi_txpower = 1 if $wifi_txpower < 1;
-$wifi_rxant = 3 if not defined $wifi_rxant or not exists $valid_ant{$wifi_rxant};
-$wifi_txant = 3 if not defined $wifi_txant or not exists $valid_ant{$wifi_txant};
+$wifi_rxant = wifi_defaultant() if not defined $wifi_rxant or not exists $valid_ant{$wifi_rxant};
+$wifi_txant = wifi_defaultant() if not defined $wifi_txant or not exists $valid_ant{$wifi_txant};
 $wifi_distance = 0 unless defined $wifi_distance;
 $wifi_distance = 0 if $wifi_distance =~ /\D/;
-
-# normalize the distance
-if($wifi_distance) { $slottime = 10 + int($wifi_distance/150) }
-else               { $slottime = -1 }
-
-if   ($slottime == -1) { $wifi_distance = 0 }
-elsif($slottime < 11)  { $wifi_distance = 1 }
-else                   { $wifi_distance = 150*($slottime - 10) }
 
 # stuff the sanitized data back into the parms hash
 # so they get saved correctly
@@ -134,10 +133,21 @@ $parms{wifi_rxant} = $wifi_rxant;
 
 if($parms{button_apply} or $parms{button_save})
 {
-    $cmd  = "iwconfig wl0 txpower $wifi_txpower >/dev/null 2>&1;";
-    $cmd .= "wlc rxant $wifi_rxant >/dev/null 2>&1;";
-    $cmd .= "wlc txant $wifi_txant >/dev/null 2>&1;";
-    $cmd .= "wlc slottime $slottime >/dev/null 2>&1;";
+    $cmd  = "iwconfig wlan0 txpower $wifi_txpower >/dev/null 2>&1;";
+    $cmd .= "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
+    if(wifi_useschains()){
+        $cmd .= "uci set wireless.\@wifi-device[0].rxchain=$wifi_rxant >/dev/null 2>&1;";
+        $cmd .= "uci set wireless.\@wifi-device[0].txchain=$wifi_txant >/dev/null 2>&1;";
+        $cmd .= "echo $wifi_rxant > /sys/kernel/debug/ieee80211/phy0/ath9k/rx_chainmask;";
+        $cmd .= "echo $wifi_txant > /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask;";
+    } else {
+        $cmd .= "iw phy phy0 set antenna $wifi_txantenna $wifi_rxantenna >/dev/null 2>&1;";
+        $cmd .= "uci set wireless.\@wifi-device[0].rxantenna $wifi_rxant >/dev/null 2>&1;";
+        $cmd .= "uci set wireless.\@wifi-device[0].txantenna $wifi_txant >/dev/null 2>&1;";
+    }
+    $cmd .= "uci set wireless.\@wifi-device[0].distance $wifi_distance >/dev/null 2>&1;";
+    $cmd .= "uci commit >/dev/null 2>&1;";
+
     system $cmd;
 }
 
@@ -492,21 +502,23 @@ if($wifi_proto ne "disabled")
 
     print "<tr><td><nobr>Rx Antenna</nobr></td>\n";
     print "<td><select name=wifi_rxant>\n";
-    selopt("Diversity", 3, $wifi_rxant);
-    selopt("Left", 1, $wifi_rxant);
-    selopt("Right", 0, $wifi_rxant);
+    %validants = wifi_validant();                            
+    while (($value, $name) = each (%validants)){             
+    selopt($name, $value, $wifi_rxant);                      
+    }
     print "</select></td></tr>\n";
 
     print "<tr><td><nobr>Tx Antenna</nobr></td>\n";
     print "<td><select name=wifi_txant>\n";
-    selopt("Diversity", 3, $wifi_txant);
-    selopt("Left", 1, $wifi_txant);
-    selopt("Right", 0, $wifi_txant);
+    %validants = wifi_validant();                            
+    while (($value, $name) = each (%validants)){             
+    selopt($name, $value, $wifi_txant);                      
+    }
     print "</select></td></tr>\n";
 
     print "<tr><td><nobr>Tx Power</nobr></td>\n";
     print "<td><select name=wifi_txpower>\n";
-    for($i = 19; $i >= 1; --$i) { selopt("$i dBm", $i, $wifi_txpower) }
+    for($i = wifi_maxpower(); $i >= 1; --$i) { selopt($i+wifi_txpoweroffset()." dBm", $i, $wifi_txpower) }
     print "</select></td></tr>\n";
 
     print "<tr><td>Distance</td>\n";

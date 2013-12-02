@@ -1,0 +1,68 @@
+#!/usr/bin/perl -w
+
+# do the initial setup of the essential nvram variables
+# node - node name
+# mac2 - last 3 bytes of wifi mac address in the form ddd.ddd.ddd
+# wifi_mac - full mac address of wireless card in the form hh:hh:hh:hh:hh:hh
+#
+# intended to run every boot but it should only actually do anything
+# on the first boot
+
+sub fail
+{
+    open(ERR, ">>/tmp/nvram_errors");
+    print ERR "@_\n";
+    close(ERR);
+    die "@_\n";
+}
+
+$commit = 0;
+
+# Added new wifimac parm, the radio0 wont startup without it, use pci device location
+# may need to find a better way to allow for wider hardware support
+chomp ($wifi_mac = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.wifimac`);
+
+if($wifi_mac eq "")
+{
+  open(FILE, "/sys/devices/pci0000:00/0000:00:00.0/ieee80211/phy0/macaddress") or fail("ERROR: wireless mac not available");
+  while(<FILE>)
+  {
+    next unless /(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w)/;
+    $wifi_mac = $1;
+    last;
+  }
+  close(FILE);
+  fail("ERROR: wireless mac not found") if $wifi_mac eq "";
+  system "uci -c /etc/local/uci/ set hsmmmesh.settings.wifimac=$wifi_mac";
+  $commit = 1;
+}
+
+
+chomp ($mac2 = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.mac2`);
+
+if($mac2 eq "")
+{
+  open(FILE, "/sys/devices/pci0000:00/0000:00:00.0/ieee80211/phy0/macaddress") or fail("ERROR: wireless mac not available");
+  while(<FILE>)
+  {
+    next unless /\w\w:\w\w:\w\w:(\w\w):(\w\w):(\w\w)/;
+    $mac2 = join ".", hex $1, hex $2, hex $3;
+    last;
+  }
+  close(FILE);
+  fail("ERROR: wireless mac not found") if $mac2 eq "";
+  system "uci -c /etc/local/uci/ set hsmmmesh.settings.mac2=$mac2";
+  $commit = 1;
+}
+
+chomp ($node = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.node`);
+
+if($node eq "")
+{
+    $mac2 =~ s/\./-/g;
+    $node = "NOCALL-$mac2";
+    system "uci -c /etc/local/uci/ set hsmmmesh.settings.node=NOCALL-$mac2";
+    $commit = 1;
+}
+
+system "uci -c /etc/local/uci/ commit" if $commit;

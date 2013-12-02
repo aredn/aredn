@@ -2,6 +2,7 @@
 
 $debug = 0;
 
+BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 $config = nvram_get("config");
@@ -37,7 +38,7 @@ else                          { $dmz_mode = 0 }
 
 if(system "ifconfig br-lan >/dev/null 2>&1")
 {
-    ($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network("eth0.0");
+    ($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network("eth0");
 }
 else
 {
@@ -490,8 +491,8 @@ if($parms{button_save} and not (@port_err or @dhcp_err or @dmz_err or @serv_err)
 
     unless($debug == 3)
     {
-	push(@errors, "problem with dnsmasq")    if system "/etc/init.d/dnsmasq reload";
-	push(@errors, "problem with port setup") if system "/etc/init.d/firewall reload";
+	push(@errors, "problem with dnsmasq")    if system "/etc/init.d/dnsmasq reload >/dev/null 2>&1";
+	push(@errors, "problem with port setup") if system "/etc/init.d/firewall reload >/dev/null 2>&1";
 	if($config eq "mesh")
 	{
 	    push(@errors, "problem with olsr setup") if system "/etc/init.d/olsrd restart >/dev/null 2>&1";
