@@ -870,7 +870,8 @@ sub wifi_maxpower
     $boardtype = `/usr/local/bin/get_hardwaretype`;
     chomp($boardtype);
     if ($boardtype eq "bullet-m"){
-        return 27;
+        #bullet-m has a 12db offchip amp.
+        return 16;
     }
     elsif ($boardtype eq "rocket-m") {
         #Rocket-m is 28dbm but has a 10db offchip amp.
@@ -942,7 +943,10 @@ sub wifi_txpoweroffset
 {
     $boardtype = `/usr/local/bin/get_hardwaretype`;
     chomp($boardtype);
-    if ($boardtype eq "rocket-m"){
+    if ($boardtype eq "bullet-m"){
+        return 12;
+    }
+    elsif ($boardtype eq "rocket--m"){
         return 10;
     }
     else
