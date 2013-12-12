@@ -15,6 +15,7 @@ if($config eq "" or -e "/tmp/reboot-required")
     http_header();
     html_header("$node setup", 1);
     print "<body><center><table width=790><tr><td>\n";
+    alert_banner();
     navbar("ports");
     print "</td></tr><tr><td align=center><br><b>";
     if($config eq "")
@@ -508,6 +509,7 @@ if($parms{button_save} and not (@port_err or @dhcp_err or @dmz_err or @serv_err)
 http_header() unless $debug == 2;
 html_header("$node setup", 1);
 print "<body><center>\n";
+alert_banner();
 print "<form method=post action=/cgi-bin/ports enctype='multipart/form-data'>\n" unless $debug == 2;
 print "<form method=post action=test>\n" if $debug == 2;
 

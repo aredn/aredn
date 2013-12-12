@@ -955,5 +955,50 @@ sub wifi_txpoweroffset
     }
 
 }
+
+sub hardware_boardid
+{
+    my $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
+    chomp($boardid);
+    return $boardid;
+}
+
+sub is_hardware_supported
+{
+    my $boardid = hardware_boardid();
+    # model['boardid']= 1(supported) 0(unsupported} -1 untested
+    %model = (
+        '0x168c' => -1, # NanoBridge M3
+        '0xc2a2' => 0,  # Bullet 2 HP
+        '0xe1b2' => 0,  # Rocket M2
+        '0xe202' => 1,  # Bullet M2
+    );
+
+    if (exists $model{$boardid})
+    {
+        return $model{$boardid};
+    }
+    else
+    {
+        return -1;
+    }
+ 
+}
+
+
+sub alert_banner
+{
+    # Device compatibility alert
+    if ( is_hardware_supported() != 1  ){
+        if (is_hardware_supported() == 0 ){
+            print "<div style=\"padding:5px;background-color:#FF4719;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNSUPPORTED DEVICE !!!!</a></div>\n";
+        }
+        else {
+            print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>\n";
+        }
+    }
+}
+
+
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1
