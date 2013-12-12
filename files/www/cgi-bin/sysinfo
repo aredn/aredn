@@ -10,6 +10,18 @@ print "<body><pre>\n";
 print " node: ", nvram_get("node"), "\n";
 print "model: ", `/usr/local/bin/get_model`, "\n";
 
+if ( is_hardware_supported() !=1  ){
+    print "<font color=\"red\">!!!! UNSUPPORTED DEVICE !!!!</font>\n";
+    print "boardid: " , hardware_boardid() , "\n";
+    if ( is_hardware_supported == 0 ) {
+        print "<font color=\"red\">Device HAS BEEN TESTED AS UNSUPPORTED</font>\n";
+    }
+    else {
+        print "<font color=\"red\">Device has not been tested. Please file a ticket with your experiences.</font>\n";
+    }
+    print "\n";
+}
+
 foreach(`ifconfig -a`)
 {
     next unless /^(\S+) .*HWaddr (\S+)/;
