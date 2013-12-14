@@ -864,59 +864,95 @@ sub validate_longitude
 }
 
 
+
+# Get boardid 
+sub hardware_boardid
+{
+    my $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
+    chomp($boardid);
+    return $boardid;
+}
+
+
+#  Return a hashref with device details
+sub hardware_info
+{
+    %model = (
+        '0x168c' => {
+            'name'            => 'NannoBridge M3',
+            'comment'         => 'Not Tested',
+            'supported'       => '-1',
+         },
+        '0xc2a2' => {
+            'name'            => 'Bullet 2 HP',
+            'comment'         => 'Not enough Ram or flash',
+            'supported'       => '-1',
+        },
+        '0xe1b2' => {
+            'name'            => 'Rocket M2',
+            'comment'         => '',
+            'supported'       => '1',
+            'maxpower'        => '18',
+            'pwroffset'       => '10',
+            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
+            'defaultant'      => 3,
+            'usechains'       => 1,
+         },
+        '0xe202' => {
+            'name'            => 'Bullet M2',
+            'comment'         => '',
+            'supported'       => '1',
+            'maxpower'        => '16',
+            'pwroffset'       => '12',
+            'antennas'        => { 1 => 'N Connector' },
+            'defaultant'      => 1,
+            'usechains'       => 0,
+         },
+    );
+
+    $boardid = hardware_boardid();
+
+    if ( exists $model{ $boardid } ){
+        return $model{$boardid};
+    } else
+    {
+        return { 'name' => 'Unknown Hardware', => 'comment' => "We do not have this hardware in our database", supported => '-1',} ;
+    }
+}
+
+
 # Return maximum dbm value for tx power 
 sub wifi_maxpower
 {
-    $boardtype = `/usr/local/bin/get_hardwaretype`;
-    chomp($boardtype);
-    if ($boardtype eq "bullet-m"){
-        #bullet-m has a 12db offchip amp.
-        return 16;
-    }
-    elsif ($boardtype eq "rocket-m") {
-        #Rocket-m is 28dbm but has a 10db offchip amp.
-        return 18;
-    }
-    else
+    $boardinfo = hardware_info();
+    if ( exists $boardinfo->{'maxpower'} ) {
+        return $boardinfo->{'maxpower'};
+    } else
     {
         #When in doubt lets return 27 for safety.
         return 27;
     }
-
 }
 
 
 sub wifi_validant
 {
-    #CMLARA -- Basic mapping of antennas to models,  we really don't know all the models yet
-    # so we will just put the ones we know here first
-    $boardtype = `/usr/local/bin/get_hardwaretype`;
-    chomp($boardtype);
-    if ($boardtype eq "bullet-m"){
-        %antennas = ( 1  => "N-Connector" );
-    } 
-    elsif ($boardtype eq "rocket-m") {
-        %antennas = ( 1  => "Chain0", 2  => "Chain1", 3 => "Diversity" );
-    }
-    else 
+    $boardinfo = hardware_info();
+    if ( exists $boardinfo->{'antennas'} ) {
+        return  $boardinfo->{'antennas'};
+    } else
     {
-        %antennas = ( 0  => "Left", 1  => "Right", 2 => "Diversity" );
+        return { 0  => "Left", 1  => "Right", 2 => "Diversity" };
     }
-
-    return %antennas;
 }
 
 sub wifi_defaultant
 {
-    $boardtype = `/usr/local/bin/get_hardwaretype`;
-    chomp($boardtype);
-    if ($boardtype eq "bullet-m"){
-        return 1;
-    } 
-    elsif ($boardtype eq "rocket-m"){
-        return 3;
-    }
-    else
+
+    $boardinfo = hardware_info();
+    if ( exists $boardinfo->{'defaultant'} ) {
+        return $boardinfo->{'defaultant'};
+    } else
     {
         #Most likely to catch all models.  Some have 3 and start at 1, some start at 0, others have 1 at 1, etc
         return 1;
@@ -925,12 +961,11 @@ sub wifi_defaultant
 
 sub wifi_useschains
 {
-    $boardtype = `/usr/local/bin/get_hardwaretype`;
-    chomp($boardtype);
-    if ($boardtype eq "rocket-m"){
-        return 1;
-    }
-    else
+
+    $boardinfo = hardware_info();
+    if ( exists $boardinfo->{'usechains'} ) {
+        return $boardinfo->{'usechains'};
+    } else
     {
         return 0;
     }
@@ -941,48 +976,21 @@ sub wifi_useschains
 #has increased it to a higher level.
 sub wifi_txpoweroffset
 {
-    $boardtype = `/usr/local/bin/get_hardwaretype`;
-    chomp($boardtype);
-    if ($boardtype eq "bullet-m"){
-        return 12;
-    }
-    elsif ($boardtype eq "rocket--m"){
-        return 10;
-    }
-    else
+
+    $boardinfo = hardware_info();
+    if ( exists $boardinfo->{'pwroffset'} ) {
+        return $boardinfo->{'pwroffset'};
+    } else
     {
         return 0;
     }
 
 }
 
-sub hardware_boardid
-{
-    my $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
-    chomp($boardid);
-    return $boardid;
-}
-
 sub is_hardware_supported
 {
-    my $boardid = hardware_boardid();
-    # model['boardid']= 1(supported) 0(unsupported} -1 untested
-    %model = (
-        '0x168c' => -1, # NanoBridge M3
-        '0xc2a2' => 0,  # Bullet 2 HP
-        '0xe1b2' => 0,  # Rocket M2
-        '0xe202' => 1,  # Bullet M2
-    );
-
-    if (exists $model{$boardid})
-    {
-        return $model{$boardid};
-    }
-    else
-    {
-        return -1;
-    }
- 
+    $boardinfo = hardware_info();
+    return $boardinfo->{'supported'};
 }
 
 
