@@ -888,6 +888,16 @@ sub hardware_info
             'comment'         => 'Not enough Ram or flash',
             'supported'       => '-1',
         },
+        '0xe0a2' => {
+            'name'            => 'NanoStation Loco M2',
+            'comment'         => 'IN TESTING: To be promoted when confirmed working. Chains require verification',
+            'supported'       => '-1',
+            'maxpower'        => '21',
+            'pwroffset'       => '2',
+            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
+            'defaultant'      => 1,
+            'usechains'       => 0,
+         },
         '0xe1b2' => {
             'name'            => 'Rocket M2',
             'comment'         => '',
