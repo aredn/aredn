@@ -918,6 +918,16 @@ sub hardware_info
             'defaultant'      => 1,
             'usechains'       => 0,
          },
+        '0xe252' => {
+            'name'            => 'airGrid M2 HP',
+            'comment'         => '',
+            'supported'       => '-1',
+            'maxpower'        => '19',
+            'pwroffset'       => '9',
+            'antennas'        => { 1 => 'airGrid' },
+            'defaultant'      => 1,
+            'usechains'       => 0,
+         },
     );
 
     $boardid = hardware_boardid();
