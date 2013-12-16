@@ -909,7 +909,7 @@ sub hardware_info
             'usechains'       => 1,
          },
         '0xe202' => {
-            'name'            => 'Bullet M2',
+            'name'            => 'Bullet M2 HP',
             'comment'         => '',
             'supported'       => '1',
             'maxpower'        => '16',
