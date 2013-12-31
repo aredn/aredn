@@ -435,7 +435,7 @@ sub ip2hostname
     return "" if $ip eq "none";
     foreach(`nslookup $ip`)
     {
-	next unless ($host) = /Address: $ip (\S+)/;
+	next unless ($host) = /Address 1: $ip (\S+)/;
 	return $host;
     }
     return "";
