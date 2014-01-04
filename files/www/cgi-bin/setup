@@ -133,8 +133,7 @@ $parms{wifi_rxant} = $wifi_rxant;
 
 if($parms{button_apply} or $parms{button_save})
 {
-    $cmd  = "iwconfig wlan0 txpower $wifi_txpower >/dev/null 2>&1;";
-    $cmd .= "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
+    $cmd  = "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
     if(wifi_useschains()){
         $cmd .= "uci set wireless.\@wifi-device[0].rxchain=$wifi_rxant >/dev/null 2>&1;";
         $cmd .= "uci set wireless.\@wifi-device[0].txchain=$wifi_txant >/dev/null 2>&1;";
@@ -145,6 +144,7 @@ if($parms{button_apply} or $parms{button_save})
         $cmd .= "uci set wireless.\@wifi-device[0].rxantenna $wifi_rxant >/dev/null 2>&1;";
         $cmd .= "uci set wireless.\@wifi-device[0].txantenna $wifi_txant >/dev/null 2>&1;";
     }
+    $cmd .= "iwconfig wlan0 txpower $wifi_txpower >/dev/null 2>&1;";
     $cmd .= "uci set wireless.\@wifi-device[0].distance $wifi_distance >/dev/null 2>&1;";
     $cmd .= "uci commit >/dev/null 2>&1;";
 
