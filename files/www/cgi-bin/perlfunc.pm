@@ -878,11 +878,6 @@ sub hardware_boardid
 sub hardware_info
 {
     %model = (
-        '0x168c' => {
-            'name'            => 'NannoBridge M3',
-            'comment'         => 'Not Tested',
-            'supported'       => '-1',
-         },
         '0xc2a2' => {
             'name'            => 'Bullet 2 HP',
             'comment'         => 'Not enough Ram or flash',
@@ -917,6 +912,16 @@ sub hardware_info
             'antennas'        => { 1 => 'N Connector' },
             'defaultant'      => 1,
             'usechains'       => 0,
+         },
+        '0xe243' => {
+            'name'            => 'NannoBridge M3',
+            'comment'         => 'Not Tested',
+            'supported'       => '-1',
+            'maxpower'        => '22',
+            'pwroffset'       => '3',
+            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
+            'defaultant'      => 3,
+            'usechains'       => 1,
          },
         '0xe252' => {
             'name'            => 'airGrid M2 HP',
