@@ -891,7 +891,7 @@ sub hardware_info
             'pwroffset'       => '10',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
             'defaultant'      => 1,
-            'usechains'       => 0,
+            'usechains'       => 1,
          },
         '0xe0a2' => {
             'name'            => 'NanoStation Loco M2',
