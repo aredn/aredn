@@ -890,7 +890,7 @@ sub hardware_info
             'maxpower'        => '18',
             'pwroffset'       => '10',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 1,
+            'defaultant'      => 3,
             'usechains'       => 1,
          },
         '0xe0a2' => {
@@ -900,8 +900,8 @@ sub hardware_info
             'maxpower'        => '21',
             'pwroffset'       => '2',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 1,
-            'usechains'       => 0,
+            'defaultant'      => 3,
+            'usechains'       => 1,
          },
         '0xe1b2' => {
             'name'            => 'Rocket M2',
@@ -1002,7 +1002,7 @@ sub wifi_useschains
         return $boardinfo->{'usechains'};
     } else
     {
-        return 0;
+        return 1;
     }
 }
 
