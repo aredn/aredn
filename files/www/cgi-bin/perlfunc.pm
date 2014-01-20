@@ -898,7 +898,7 @@ sub hardware_info
             'comment'         => 'IN TESTING: To be promoted when confirmed working. Chains require verification',
             'supported'       => '-1',
             'maxpower'        => '21',
-            'pwroffset'       => '2',
+            'pwroffset'       => '5',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
             'defaultant'      => 3,
             'usechains'       => 1,
