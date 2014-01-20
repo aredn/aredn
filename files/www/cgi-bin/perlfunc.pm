@@ -897,7 +897,7 @@ sub hardware_info
             'name'            => 'NanoStation Loco M2',
             'comment'         => '',
             'supported'       => '1',
-            'maxpower'        => '21',
+            'maxpower'        => '18',
             'pwroffset'       => '5',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
             'defaultant'      => 3,
