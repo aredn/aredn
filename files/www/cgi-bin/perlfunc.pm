@@ -885,8 +885,8 @@ sub hardware_info
         },
         '0xe012' => {
             'name'            => 'NanoStation M2',
-            'comment'         => 'IN TESTING: To be promoted when confirmed working.',
-            'supported'       => '-1',
+            'comment'         => '',
+            'supported'       => '1',
             'maxpower'        => '18',
             'pwroffset'       => '10',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
@@ -895,8 +895,8 @@ sub hardware_info
          },
         '0xe0a2' => {
             'name'            => 'NanoStation Loco M2',
-            'comment'         => 'IN TESTING: To be promoted when confirmed working. Chains require verification',
-            'supported'       => '-1',
+            'comment'         => '',
+            'supported'       => '1',
             'maxpower'        => '21',
             'pwroffset'       => '5',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
@@ -936,7 +936,7 @@ sub hardware_info
         '0xe252' => {
             'name'            => 'airGrid M2 HP',
             'comment'         => '',
-            'supported'       => '-1',
+            'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '9',
             'antennas'        => { 1 => 'airGrid' },
