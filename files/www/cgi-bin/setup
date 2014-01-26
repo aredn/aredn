@@ -135,19 +135,14 @@ if($parms{button_apply} or $parms{button_save})
 {
     $cmd  = "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
     if(wifi_useschains()){
-        $cmd .= "uci set wireless.\@wifi-device[0].rxchain=$wifi_rxant >/dev/null 2>&1;";
-        $cmd .= "uci set wireless.\@wifi-device[0].txchain=$wifi_txant >/dev/null 2>&1;";
         $cmd .= "echo $wifi_rxant > /sys/kernel/debug/ieee80211/phy0/ath9k/rx_chainmask;";
         $cmd .= "echo $wifi_txant > /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask;";
     } else {
+        $cmd .= "ifconfig wlan0 down >/dev/null 2>&1;";
         $cmd .= "iw phy phy0 set antenna $wifi_txantenna $wifi_rxantenna >/dev/null 2>&1;";
-        $cmd .= "uci set wireless.\@wifi-device[0].rxantenna $wifi_rxant >/dev/null 2>&1;";
-        $cmd .= "uci set wireless.\@wifi-device[0].txantenna $wifi_txant >/dev/null 2>&1;";
+        $cmd .= "ifconfig wlan0 up >/dev/null 2>&1;";
     }
     $cmd .= "iwconfig wlan0 txpower $wifi_txpower >/dev/null 2>&1;";
-    $cmd .= "uci set wireless.\@wifi-device[0].distance $wifi_distance >/dev/null 2>&1;";
-    $cmd .= "uci commit >/dev/null 2>&1;";
-
     system $cmd;
 }
 
