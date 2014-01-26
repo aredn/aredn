@@ -344,7 +344,7 @@ if($parms{button_refresh_pkg})
     if(get_default_gw() ne "none")
     {
 	@pkg_output = `opkg update 2>&1`;
-	system "opkg list | cut -f1,3 -d' ' | gzip -c > /etc/opkg.list.gz";
+	system "opkg list | grep -v '^ ' | cut -f1,3 -d' ' | gzip -c > /etc/opkg.list.gz";
     }
     else
     {
