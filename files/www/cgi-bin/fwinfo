@@ -1,0 +1,15 @@
+#!/usr/bin/perl
+
+print "Content-type:text\r\n\r\n";
+
+$ispermitencblock = `opkg list-installed blockknownencryption|wc -l`;
+chomp($ispermitencblock);
+
+if ($ispermitencblock){
+    print "Encrypted Traffic: Blocked\n";
+} else {
+    print "Encrypted Traffic: Allowed\n";
+}
+
+print "Active firewall rules:\n";
+system ("/usr/sbin/iptables -L");
