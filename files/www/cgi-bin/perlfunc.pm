@@ -1036,6 +1036,9 @@ sub alert_banner
         if (is_hardware_supported() == 0 ){
             print "<div style=\"padding:5px;background-color:#FF4719;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNSUPPORTED DEVICE !!!!</a></div>\n";
         }
+        elsif ( is_hardware_supported() == -2 ){
+            print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\"> !!!! THIS DEVICE IS STILL BEING TESTED !!!!</a></div>\n";
+        }
         else {
             print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>\n";
         }
