@@ -4,6 +4,7 @@ $debug = 0;
 
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
+use channelmaps;
 
 #
 # load the config parms
@@ -165,8 +166,13 @@ if($parms{button_save})
 	}
     }
 	      
-    push (@errors, "invalid WiFi SSID") unless length $wifi_ssid <= 32;    
-    push (@errors, "invalid WiFi channel") if $wifi_channel < 1 or $wifi_channel > 11;
+    push (@errors, "invalid WiFi SSID") unless length $wifi_ssid <= 32;
+
+    if ( is_channel_valid($wifi_channel) != 1 )
+    {
+        push (@errors, "invalid WiFi channel")
+    }
+
     push (@errors, "invalid WiFi distance") if $wifi_distance < 0 or $wifi_distance =~ /\D/;
 
     if($lan_proto eq "static")
@@ -486,8 +492,12 @@ if($wifi_proto ne "disabled")
     {
 	print "<tr><td>Channel</td>\n";
 	print "<td><select name=wifi_channel>\n";
-	for($i = 1; $i <= 11; ++$i) { selopt($i, $i, $wifi_channel) }
-	print "</select></td></tr>\n";
+        my $rfchannels=rf_channels_list();
+        foreach  $channelnumber (sort {$a <=> $b} keys %{$rfchannels} )
+    	{
+            selopt($rfchannels->{$channelnumber}, $channelnumber, $wifi_channel);
+	}
+        print "</select></td></tr>\n";
     }
     else
     {
