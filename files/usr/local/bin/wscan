@@ -263,7 +263,7 @@ while(1)
   {
     if($line =~ /\s+Cell \d+ - Address: (\S+)/)
     {
-      pushAP($signal, $chan, $key, $ssid, $mac, $mode);
+      if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $mac, $mode) }
       $mac = $1;
       $mode = "";
     }
@@ -273,10 +273,11 @@ while(1)
     if($line =~ /\bChannel:(\d+)/)         { $chan = $1 }
     if($line =~ /\bSignal level=([\d-]+)/) { $signal = $1 }
     if($line =~ /\bEncryption key:(\w+)/)  { $key = $1 }
+    if($line =~ /\bExtra: Last beacon: (\d+)ms/) { $lastseen = $1 }
   }
 
   close(FILE);
-  pushAP($signal, $chan, $key, $ssid, $mac, $mode);
+  if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $mac, $mode) }
   sleep 1 if not scalar @list and $loops != 1;
 
   if(not $batch)

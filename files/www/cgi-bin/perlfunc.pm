@@ -553,10 +553,10 @@ sub get_wifi_signal
     chomp $ssid;
     my ($SignalLevel) = "N/A";
     my ($NoiseFloor) = "N/A";
-    foreach(`iwlist $_[0] scanning essid "$ssid" |grep -A 5 -B 5 "$ssid"`)
-    {
-        next unless /Signal level=([\d\-]+) dBm/;
-        $SignalLevel=$1;
+    foreach(`iwlist $_[0] scanning essid "$ssid" |tr '\n' ' '|sed 's/Cell \\([0-9]\\{2,\\}\\) - Address:/\\nCell \\1 - Address:/g'|grep -i "$ssid"`)
+    {                                                 
+        next unless /.*Signal level=([\d\-]+) dBm.* Extra: Last beacon: ([\d]+)ms/;
+        if ( $2 < 10000 ) {$SignalLevel=$1;}                                                               
     }
 
     foreach(`iw dev $_[0] survey dump|grep -A 1 \"\\[in use\\]\"`)
