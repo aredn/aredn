@@ -820,8 +820,9 @@ sub validate_port_range
 sub validate_service_name
 {
     my($name) = @_;
-    #return 0 if $name eq "";
-    return 0 if $name =~ /[:'|]/;
+    return 0 if $name eq "";
+    return 0 if $name =~ /[:'"|]/;
+    return 0 unless $name =~ /[^|[:cntrl:]]+$/;
     return 1;
 }
 
@@ -829,15 +830,18 @@ sub validate_service_protocol
 {
     my($proto) = @_;
     return 0 if $proto eq "";
-    return 0 unless $proto =~ /^\w+$/;
+    return 0 if $name =~ /[:'"|]/;
+    return 0 unless $proto =~ /^[[:alnum:]]+$/;
     return 1;
 }
 
 sub validate_service_suffix
 {
     my($suffix) = @_;
-    # currently only protects against parsing errors in the config files and html
-    return 0 if $suffix =~ /[:']/;
+    # protects against parsing errors in the config files and html
+    return 0 if $suffix =~ /[:'"|]/;
+    # checks if string meets critera specified by nameservice module
+    return 0 unless $suffix =~ /^[[:alnum:]\/?._=#-]*$/;
     return 1;
 }
 
