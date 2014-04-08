@@ -17,21 +17,24 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
   echo "Deleting specific routing rules that may exist."
 
   if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] ; then
-    ip rule del pref 20000 iif $DEVICE lookup 30
-    ip rule del pref 20001 iif $DEVICE lookup 31
-    ip rule del pref 20098 iif $DEVICE lookup main
+    ip rule del pref 20010 iif $DEVICE lookup 29
+    ip rule del pref 20020 iif $DEVICE lookup 30
+    ip rule del pref 20080 iif $DEVICE lookup 31
+    ip rule del pref 20090 iif $DEVICE lookup main
     ip rule del pref 20099 iif $DEVICE unreachable 
   fi
 
   if [ "$INTERFACE" == "lan" ] ; then
-    ip rule del pref 30000 iif $DEVICE lookup 30
-    ip rule del pref 30098 iif $DEVICE lookup 31
+    ip rule del pref 30010 iif $DEVICE lookup 29
+    ip rule del pref 30020 iif $DEVICE lookup 30
+    ip rule del pref 30090 iif $DEVICE lookup 31
     ip rule del pref 30099 iif $DEVICE lookup main
   fi
 
   if [ "$INTERFACE" == "loopback" ] ; then
-    ip rule del pref 30200 lookup 30
-    ip rule del pref 30201 lookup main
+    ip rule del pref 30210 lookup 29
+    ip rule del pref 30220 lookup 30
+    ip rule del pref 30290 lookup main
     ip rule del pref 30299 lookup 31
   fi
 
@@ -48,26 +51,41 @@ is_olsrgw=`cat /etc/config.mesh/_setup|grep -i olsrd_gw|cut -d ' ' -f 3`
   echo "Setting routing rules."
 
   if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ]; then
-    ip rule add pref 20000 iif $DEVICE lookup 30
-    ip rule add pref 20001 iif $DEVICE lookup 31
+    if [ -z /etc/config/dmz-mode ] ; then 
+      ip rule add pref 20010 iif $DEVICE lookup 29
+    fi
+    ip rule add pref 20020 iif $DEVICE lookup 30
+    ip rule add pref 20080 iif $DEVICE lookup 31
     if [ $is_olsrgw -eq 1 ] ; then
-      ip rule add pref 20098 iif $DEVICE lookup main
+      ip rule add pref 20090 iif $DEVICE lookup main
     fi
     ip rule add pref 20099 iif $DEVICE unreachable
 
   fi
 
-  # Makes sure the lan interface is allowed to hit the mesh(30), meshgw(31), and local routes (main)  Local ethernet is trusted to use additonal rules.
+  # Makes sure the lan interface is allowed to hit the local interfaces(29)  mesh(30), meshgw(31), and local routes (main)  Local ethernet is trusted to use additonal rules.
   if [ "$INTERFACE" == "lan" ] ; then
-    ip rule add pref 30000 iif $DEVICE lookup 30
-    ip rule add pref 30098 iif $DEVICE lookup 31
+    ip rule add pref 30010 iif $DEVICE lookup 29
+    ip rule add pref 30020 iif $DEVICE lookup 30
+    ip rule add pref 30090 iif $DEVICE lookup 31
     ip rule add pref 30099 iif $DEVICE lookup main
+
+    # Lets go ahead and set the route to the local network here since we only need to be able to route to it after the interface comes up.
+    lan_ipaddr=`uci -q get network.lan.ipaddr`
+    lan_netmask=`uci -q get network.lan.netmask`
+    lan_ifname=`uci -q get network.lan.ifname`
+    if [ "$lan_ifname" != "" ] && [ "$lan_ipaddr" != "" ] && [ "$lan_netmask" != "" ] ; then
+      lan_networkip=`ipcalc.sh $lan_ipaddr $lan_netmask|grep NETWORK|cut -d'=' -f2`
+      ip route add $lan_networkip/$lan_netmask table 29 dev $lan_ifname
+    fi
+
   fi
 
   # Handles setting up rules for local resolution of routes. MeshGW should be last for localhost otherwise ping test of olsrd will break
   if [ "$INTERFACE" == "loopback" ] ; then
-    ip rule add pref 30200 lookup 30
-    ip rule add pref 30201 lookup main
+    ip rule add pref 30210 lookup 29
+    ip rule add pref 30220 lookup 30
+    ip rule add pref 30290 lookup main
     ip rule add pref 30299 lookup 31
   fi
 
