@@ -38,6 +38,7 @@ die "'$config' is not a valid configuration\n" unless -f "/etc/config.$config/_s
 $node = nvram_get("node");
 $tactical = nvram_get("tactical");
 $mac2 = mac2ip(get_mac("wlan0"), 0);
+$dtdmac = mac2ip(get_mac("eth0"), 0);
 
 unless($auto)
 {
@@ -84,6 +85,7 @@ foreach $line (`cat /etc/config.$config/_setup`)
     next if $line =~ /^\s*$/;
     $line =~ s/<NODE>/$node/;
     $line =~ s/<MAC2>/$mac2/;
+    $line =~ s/<DTDMAC>/$dtdmac/;
     $line =~ /^(\w+)\s*=\s*(.*)$/;
     $cfg{$1} = $2;
 }
@@ -175,6 +177,7 @@ if($do_basic)
 
 	    $line =~ s/<NODE>/$node/;
 	    $line =~ s/<MAC2>/$mac2/;
+            $line =~ s/<DTDMAC>/$dtdmac/;
 	    $delparm = 0;
 
 	    while(($parm) = $line =~ /^[^\#].*<(\S+)>/)
@@ -265,14 +268,28 @@ if($cfg{dmz_mode}) {
     print FILE "\nconfig forwarding\n";
     print FILE "        option src              wifi\n";
     print FILE "        option dest             lan\n";
+    print FILE "\n";
+    print FILE "\nconfig forwarding\n";
+    print FILE "        option src              dtdlink\n";
+    print FILE "        option dest             lan\n";
 
     system "uci set firewall.\@zone\[2\].masq=0";
     system "uci commit";
+} else  {
+    print FILE "\n";
+    print FILE "config 'include'\n";
+    print FILE "        option 'path' '/etc/firewall.dtdlink'\n";
+    print FILE "        option 'reload' '1'\n";
 }
+   
 
 if ($cfg{olsrd_gw}) {
     print FILE "\nconfig forwarding\n";
     print FILE "        option src              wifi\n";
+    print FILE "        option dest             wan\n";
+    print FILE "\n";
+    print FILE "\nconfig forwarding\n";
+    print FILE "        option src              dtdlink\n";
     print FILE "        option dest             wan\n";
 }
 

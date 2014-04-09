@@ -1,0 +1,8 @@
+# This script is run when the node is in NAT mode to 
+# setup NAT only from eth0 interface on dtdlink interface
+# allowing all other traffic to transport as is.
+
+
+iptables -t nat -A zone_lan_prerouting -j MARK --set-xmark 0xe/0xffffffff
+iptables -t nat -A zone_dtdlink_nat -m mark --mark 0xe -j MASQUERADE 
+

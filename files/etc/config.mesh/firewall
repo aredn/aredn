@@ -31,6 +31,13 @@ config zone
         option masq             1
         option mtu_fix          1
 
+config zone
+        option name             dtdlink
+        option network          'dtdlink'
+        option input            REJECT
+        option output           ACCEPT
+        option forward          REJECT
+        option mtu_fix          1
 
 config forwarding
         option src              lan
@@ -44,11 +51,30 @@ config forwarding
         option src              wifi
         option dest             wifi
 
+config forwarding
+        option src              lan
+        option dest             dtdlink
+
+config forwarding
+        option src              wifi
+        option dest             dtdlink
+
+config forwarding
+        option src              dtdlink
+        option dest             wifi
 
 # Allow IPv4 ping
 config rule
         option name             Allow-Ping
         option src              wifi
+        option proto            icmp
+        option icmp_type        echo-request
+        option family           ipv4
+        option target           ACCEPT
+
+config rule
+        option name             Allow-Ping
+        option src              dtdlink
         option proto            icmp
         option icmp_type        echo-request
         option family           ipv4
@@ -100,3 +126,33 @@ config rule
        option proto    tcp
        option target   ACCEPT
 
+config rule
+       option src              dtdlink
+       option dest_port        2222
+       option proto    tcp
+       option target   ACCEPT
+
+config rule
+       option src              dtdlink
+       option dest_port        8080
+       option proto    tcp
+       option target   ACCEPT
+
+config rule
+       option src              dtdlink
+       option dest_port        698
+       option proto    udp
+       option target   ACCEPT
+
+config rule
+       option src              dtdlink
+       option dest_port        1978
+       option proto    tcp
+       option target   ACCEPT
+
+
+config rule
+       option src              dtdlink
+       option dest_port        23
+       option proto    tcp
+       option target   ACCEPT

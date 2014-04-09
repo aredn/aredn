@@ -492,6 +492,7 @@ sub load_cfg
     #my $mac2 = nvram_get("mac2");
     my $node = nvram_get("node");
     my $mac2 = mac2ip(get_mac("wlan0"), 0);
+    my $dtdmac = mac2ip(get_mac("eth0"), 0);
     open(FILE, $_[0]) or return 0;
     while(defined ($line = <FILE>))
     {
@@ -499,6 +500,7 @@ sub load_cfg
 	next if $line =~ /^\s*$/;
 	$line =~ s/<NODE>/$node/;
 	$line =~ s/<MAC2>/$mac2/;
+        $line =~ s/<DTDMAC>/$dtdmac/;
 	$line =~ /^(\w+)\s*=\s*(.*)$/;
 	$cfg{$1} = $2;
     }

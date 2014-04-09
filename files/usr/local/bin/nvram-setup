@@ -65,4 +65,22 @@ if($node eq "")
     $commit = 1;
 }
 
+chomp ($dtdmac = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.dtdmac`);                                         
+
+if($dtdmac eq "")                                                                                                   
+{                                                                                                                   
+                                                                                                                    
+  open(FILE, "/sbin/ifconfig eth0 |") or fail("ERROR: eth0 mac not available");                                     
+  while(<FILE>)                                                                                                     
+  {                                                                                                                 
+    next unless /\w\w:\w\w:\w\w:(\w\w):(\w\w):(\w\w)/;                                                              
+    $dtdmac = join ".", hex $1, hex $2, hex $3;                                                                     
+    last;                                                                                                           
+  }                                                                                                                 
+  close(FILE);                                                                                                      
+  system "uci -c /etc/local/uci/ set hsmmmesh.settings.dtdmac=$dtdmac";                                             
+  $commit = 1;                                                                                                      
+}         
+
+
 system "uci -c /etc/local/uci/ commit" if $commit;
