@@ -1034,6 +1034,17 @@ sub hardware_info
             'defaultant'      => 1,
             'usechains'       => 0,
          },
+        '0xe2d5' => {
+            'name'            => 'Bullet M5 Titanium',
+            'comment'         => 'Bullet M5 TI in testing',
+            'supported'       => '-2',
+            'maxpower'        => '19',
+            'pwroffset'       => '6',
+            'antennas'        => { 1 => 'N Connector' },
+            'defaultant'      => 1,
+            'usechains'       => 0,
+            'rfband'          => '5800ubntus',
+         },
         '0xe302' => {
             'name'            => 'PicoStation M2',
             'comment'         => 'PicoStation M2 in testing',
