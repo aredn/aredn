@@ -128,7 +128,10 @@ sub rf_channels_list
         foreach (`iwlist wlan0 channel` )
         {
             next unless /([0-9]+) : ([0-9]+.[0-9]+)/;
-            $channels->{$1}  = "$2 GHZ" ;
+            my $channelnum = $1;                                                
+            my $channelfreq = $2;                                               
+            $channelnum =~s/^0+//g;                                             
+            $channels->{$channelnum}  = "$channelfreq GHZ" ;
         }
         return $channels;
     }

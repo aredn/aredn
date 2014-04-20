@@ -898,6 +898,7 @@ sub hardware_info
             'antennas'        => { 1 => 'Antenna' },
             'defaultant'      => 1,
             'usechains'       => 0,
+            'rfband'          => '2400',
          },
         '0xc3a2' => {
             'name'            => 'PicoStation2 HP',
@@ -908,6 +909,7 @@ sub hardware_info
             'antennas'        => { 1 => 'Antenna' },
             'defaultant'      => 1,
             'usechains'       => 0,
+            'rfband'          => '2400',
          },
         '0xe012' => {
             'name'            => 'NanoStation M2',
@@ -918,6 +920,7 @@ sub hardware_info
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
             'defaultant'      => 3,
             'usechains'       => 1,
+            'rfband'          => '2400',
          },
         '0xe0a2' => {
             'name'            => 'NanoStation Loco M2',
@@ -928,6 +931,7 @@ sub hardware_info
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
             'defaultant'      => 3,
             'usechains'       => 1,
+            'rfband'          => '2400',
          },
         '0xe1b2' => {
             'name'            => 'Rocket M2',
@@ -938,6 +942,7 @@ sub hardware_info
             'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
             'defaultant'      => 3,
             'usechains'       => 1,
+            'rfband'          => '2400',
          },
         '0xe1b5' => {
             'name'            => 'Rocket M5',
@@ -959,6 +964,7 @@ sub hardware_info
             'antennas'        => { 1 => 'N Connector' },
             'defaultant'      => 1,
             'usechains'       => 0,
+            'rfband'          => '2400',
          },
         '0xe205' => {
             'name'            => 'Bullet M5',
@@ -991,6 +997,7 @@ sub hardware_info
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
             'defaultant'      => 3,
             'usechains'       => 1,
+            'rfband'          => '2400',
          },
         '0xe242' => {
             'name'            => 'airGrid M2 HP',
@@ -1001,6 +1008,7 @@ sub hardware_info
             'antennas'        => { 1 => 'airGrid' },
             'defaultant'      => 1,
             'usechains'       => 0,
+            'rfband'          => '2400',
          },
         '0xe243' => {
             'name'            => 'NannoBridge M3',
@@ -1011,6 +1019,7 @@ sub hardware_info
             'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
             'defaultant'      => 3,
             'usechains'       => 1,
+            'rfband'          => '2400',
          },
         '0xe252' => {
             'name'            => 'airGrid M2 HP',
@@ -1021,6 +1030,7 @@ sub hardware_info
             'antennas'        => { 1 => 'airGrid' },
             'defaultant'      => 1,
             'usechains'       => 0,
+            'rfband'          => '2400',
          },
         '0xe255' => {
             'name'            => 'airGrid M5 HP',
@@ -1053,6 +1063,7 @@ sub hardware_info
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
             'defaultant'      => 3,
             'usechains'       => 1,
+            'rfband'          => '2400',
          },
         '0xe2d2' => {
             'name'            => 'Bullet M2 Titanium HP',
@@ -1063,6 +1074,7 @@ sub hardware_info
             'antennas'        => { 1 => 'N Connector' },
             'defaultant'      => 1,
             'usechains'       => 0,
+            'rfband'          => '2400',
          },
         '0xe2d5' => {
             'name'            => 'Bullet M5 Titanium',
@@ -1084,6 +1096,7 @@ sub hardware_info
             'antennas'        => { 1 => 'Antenna' },
             'defaultant'      => 1,
             'usechains'       => 0,
+            'rfband'          => '2400',
          },
         '0xe4e5' => {
             'name'            => 'NannoBeam M5 International',
