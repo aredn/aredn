@@ -95,6 +95,7 @@ $parms{dmz_dhcp_limit} = $dmz_dhcp_limit = $dmz_dhcp_end - $dmz_dhcp_start;
 unless($parms{reload})
 {
     ($wifi_txpower) = `iwinfo wlan0 info 2>/dev/null` =~ /Tx-Power: (\d+)/;
+    $wifi_txpower -= wifi_txpoweroffset();
     if (wifi_useschains()){
         $wifi_txant = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask`;
         $wifi_rxant = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/rx_chainmask`;
@@ -552,7 +553,8 @@ if($wifi_proto ne "disabled")
 
     print "<tr><td><nobr>Tx Power</nobr></td>\n";
     print "<td><select name=wifi_txpower>\n";
-    for($i = wifi_maxpower(); $i >= 1; --$i) { selopt($i+wifi_txpoweroffset()." dBm", $i, $wifi_txpower) }
+    my $txpoweroffset = wifi_txpoweroffset();
+    for($i = wifi_maxpower(); $i >= 1; --$i) { selopt($i+$txpoweroffset ." dBm", $i, $wifi_txpower) }
     print "</select></td></tr>\n";
 
     print "<tr><td>Distance</td>\n";
