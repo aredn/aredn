@@ -1189,9 +1189,9 @@ sub wifi_useschains
 #has increased it to a higher level.
 sub wifi_txpoweroffset
 {
-    my $myiwoffset=`iwinfo wlan0 info 2>/dev/null` =~ /TX power offset: (\d+)/;
-    if ( $myiwoffset ) {
-        return $myiwoffset;
+    my $doesiwoffset=`iwinfo wlan0 info 2>/dev/null` =~ /TX power offset: (\d+)/;
+    if ( $doesiwoffset ) {
+        return $1;
     } else
     {
         $boardinfo = hardware_info();
