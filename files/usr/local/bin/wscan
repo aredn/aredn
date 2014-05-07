@@ -186,8 +186,8 @@ sub pushAP
 
   if($ssid eq "")   { $ssid = "(hidden)" }
 
-  if($key eq "off") { $key = " " }
-  else              { $key = "*" }
+  if($key eq "none") { $key = " " }
+  else               { $key = "*" }
 
   $mac =~ /^(\w\w):(\w\w):(\w\w):(\w\w):(\w\w):(\w\w)/;
   $mac1 = $1 . $2 . $3;
@@ -248,36 +248,35 @@ die "bad interface" if not defined $iface;
 
 if($raw)
 {
-  system("/usr/sbin/iwlist $iface scan");
+  system("/usr/bin/iwinfo $iface scan");
   exit;
 }
 
 while(1)
 {
-  open(FILE, "/usr/sbin/iwlist $iface scan 2>&1 |") or die "iwlist failed";
+  open(FILE, "/usr/bin/iwinfo $iface scan 2>&1 |") or die "iwinfo failed";
   $mode = "";
   @list = ();
   ++$iters;
 
   while($line = <FILE>)
   {
-    if($line =~ /\s+Cell \d+ - Address: (\S+)/)
+    if($line =~ /Cell \d+ - Address: (\S+)/)
     {
-      if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $mac, $mode) }
+      pushAP($signal, $chan, $key, $ssid, $mac, $mode);
       $mac = $1;
       $mode = "";
     }
 
-    if($line =~ /\bESSID:"(.*)"/)          { $ssid = $1 }
-    if($line =~ /\bMode:(\S+)/)            { $mode = $1 }
-    if($line =~ /\bChannel:(\d+)/)         { $chan = $1 }
-    if($line =~ /\bSignal level=([\d-]+)/) { $signal = $1 }
-    if($line =~ /\bEncryption key:(\w+)/)  { $key = $1 }
-    if($line =~ /\bExtra: Last beacon: (\d+)ms/) { $lastseen = $1 }
+    if($line =~ /\bESSID: "(.*)"/)          { $ssid = $1 }
+    if($line =~ /\bMode: (\S+)/)            { $mode = $1 }
+    if($line =~ /\bChannel: (\d+)/)         { $chan = $1 }
+    if($line =~ /\bSignal: ([\d-]+)/) { $signal = $1 }
+    if($line =~ /\bEncryption: (\w+)/)  { $key = $1 }
   }
 
   close(FILE);
-  if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $mac, $mode) }
+  pushAP($signal, $chan, $key, $ssid, $mac, $mode);
   sleep 1 if not scalar @list and $loops != 1;
 
   if(not $batch)

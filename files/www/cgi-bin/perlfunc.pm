@@ -1,4 +1,4 @@
-#############################
+##########################
 # html functions
 
 # emit the http server response
@@ -83,13 +83,13 @@ sub read_query_string
 
 
 # c-style fgets for read_postdata
+
 $stdinbuffer = "";
 
 sub fgets
 {
     my($size) = @_;
     my $line = "";
-
     while(1)
     {
 	unless(length $stdinbuffer)
@@ -118,14 +118,14 @@ sub fgets
 # (from STDIN in method=post form)
 sub read_postdata
 {
+    if ( $ENV{REQUEST_METHOD} != "POST" || !$ENV{CONTENT_LENGTH}){ return; };
     my ($line, $parm, $file, $handle, $tmp);
     my $state = "boundary";
     my ($boundary) = $ENV{CONTENT_TYPE} =~ /boundary=(\S+)/ if $ENV{CONTENT_TYPE};
     my $parsedebug = 0;
     push(@parse_errors, "[$boundary]") if $parsedebug;
-
     while(length ($line = fgets(1000)))
-    {
+        {
 	$line =~ s/[\r\n]+$//; # chomp doesn't strip \r!
 	#print "[$state] $line<br>\n";
 
@@ -546,25 +546,15 @@ sub save_setup
 
 sub get_wifi_signal
 {
-    # CMLARA:
-    # this would be easy if /proc/net/wireless updated automatically, but it doesn't.
-    # the hack is to re-scan
-    # also iwlist doesnt correctly limit to single ssid
-    # and we have to call from 2 programs now instead of 1
-    my ($ssid) = (`uci -q get wireless.\@wifi-iface[0].ssid`);
-    chomp $ssid;
+    my $wifiintf = `uci -q get network.wifi.ifname`;
+    chomp $wifiintf;
     my ($SignalLevel) = "N/A";
     my ($NoiseFloor) = "N/A";
-    foreach(`iwlist $_[0] scanning essid "$ssid" |tr '\n' ' '|sed 's/Cell \\([0-9]\\{2,\\}\\) - Address:/\\nCell \\1 - Address:/g'|grep -i "$ssid"`)
+    foreach(`iwinfo $wifiintf info`)
     {                                                 
-        next unless /.*Signal level=([\d\-]+) dBm.* Extra: Last beacon: ([\d]+)ms/;
-        if ( $2 < 10000 ) {$SignalLevel=$1;}                                                               
-    }
-
-    foreach(`iw dev $_[0] survey dump|grep -A 1 \"\\[in use\\]\"`)
-    {
-        next unless /([\d\-]+) dBm/;
-        $NoiseFloor=$1;
+        next unless /.*Signal: ([\d\-]+) dBm.*Noise: ([\d\-]+) dBm/;
+        $SignalLevel=$1;
+        $NoiseFloor=$2;
     }
 
     if ( $SignalLevel == "N/A" || $NoiseFloor == "N/A" )
@@ -592,9 +582,9 @@ sub get_free_mem
 {
     foreach(`free`)
     {
-	next unless /^\s+Mem[:]/;
+	next unless /^Mem[:]/;
 	my @tmp = split /\s+/, $_;
-	return $tmp[4] + $tmp[6];
+	return $tmp[3] + $tmp[5];
     }
     return "N/A";
 }
@@ -1199,13 +1189,18 @@ sub wifi_useschains
 #has increased it to a higher level.
 sub wifi_txpoweroffset
 {
-
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'pwroffset'} ) {
-        return $boardinfo->{'pwroffset'};
+    my $doesiwoffset=`iwinfo wlan0 info 2>/dev/null` =~ /TX power offset: (\d+)/;
+    if ( $doesiwoffset ) {
+        return $1;
     } else
     {
-        return 0;
+        $boardinfo = hardware_info();
+        if ( exists $boardinfo->{'pwroffset'} ) {
+            return $boardinfo->{'pwroffset'};
+        } else
+        {
+            return 0;
+        } 
     }
 
 }
