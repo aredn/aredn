@@ -227,6 +227,7 @@ print HOSTS "127.0.0.1\tlocalhost\n";
 print HOSTS "$cfg{lan_ip}\tlocalnode ";
 print HOSTS "\n$cfg{wifi_ip}\t" if $cfg{wifi_ip};
 print HOSTS "$node $tactical\n";
+print HOSTS "$cfg{dtdlink_ip}\tdtdlink.$node.local.mesh dtdlink.$node" if $cfg{dtdlink_ip};
 print HOSTS add_ip_address($cfg{lan_ip}, 1), "\tlocalap\n" unless $cfg{dmz_mode};
 
 open(ETHER, ">/etc/ethers") or die;
