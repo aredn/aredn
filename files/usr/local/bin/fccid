@@ -6,4 +6,4 @@
 N=`ifconfig wlan0 | grep "inet addr" | cut -f4 -d. | cut -c1-3`
 sleep $N
 
-netmsg 10.255.255.255 "ID: `uname -n`"
+echo "ID: `uname -n`" | socat - udp4:10.255.255.255:4919,broadcast,so-bindtodevice=wlan0
