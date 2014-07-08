@@ -321,7 +321,7 @@ foreach(`cat /etc/permpkg 2>/dev/null`)
 if($parms{button_ul_pkg} and -f "/tmp/web/upload/file")
 {
     system "mv -f /tmp/web/upload/file /tmp/web/upload/newpkg.ipk";
-    push @pkg_output, `yes | opkg -force-overwrite install /tmp/web/upload/newpkg.ipk 2>&1`;
+    push @pkg_output, `opkg -force-overwrite install /tmp/web/upload/newpkg.ipk 2>&1`;
     system "rm -rf /tmp/opkg-*";
 } 
 
@@ -330,7 +330,7 @@ if($parms{button_dl_pkg} and $parms{dl_pkg} ne "default")
 {
     if(get_default_gw() ne "none")
     {
-	push @pkg_output, `yes | opkg -force-overwrite install $parms{dl_pkg} 2>&1`;
+	push @pkg_output, `opkg -force-overwrite install $parms{dl_pkg} 2>&1`;
     }
     else
     {

@@ -73,7 +73,7 @@ foreach(`cat /etc/hosts`)
     next unless /^10[.]/;
     chomp;
     ($ip, $name, $tactical) = split /\s+/, $_;
-    next if $name =~ /^(localhost|localnode|localap)$/;
+    next if $name =~ /^(localhost|localnode|localap|dtdlink\..*)$/;
     if($ip eq $my_ip)
     {
 	$tactical = "" unless $tactical;
@@ -94,10 +94,18 @@ foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
     ($ip, $name, $junk, $originator, $mid, $midnum) = split /\s+/, $_;
     next unless $originator;
     next if $originator eq "myself";
+    if ( $name =~ /^dtdlink\..*$/ )
+    {
+        $hosts{$ip}{name} = $name;
+        next;
+    }
 
     if(defined $mid and $midnum =~ /^\#(\d+)/)
     {
-	$hosts{$ip}{name} = $name;
+        if ( !exists $hosts{$ip}{name} )
+        {
+            $hosts{$ip}{name} = $name;
+        }
 	$hosts{$ip}{hide} = 1;
 	$hosts{$originator}{mid} = $1;
     }

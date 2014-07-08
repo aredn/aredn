@@ -1,4 +1,4 @@
-#############################
+##########################
 # html functions
 
 # emit the http server response
@@ -83,13 +83,13 @@ sub read_query_string
 
 
 # c-style fgets for read_postdata
+
 $stdinbuffer = "";
 
 sub fgets
 {
     my($size) = @_;
     my $line = "";
-
     while(1)
     {
 	unless(length $stdinbuffer)
@@ -118,14 +118,14 @@ sub fgets
 # (from STDIN in method=post form)
 sub read_postdata
 {
+    if ( $ENV{REQUEST_METHOD} != "POST" || !$ENV{CONTENT_LENGTH}){ return; };
     my ($line, $parm, $file, $handle, $tmp);
     my $state = "boundary";
     my ($boundary) = $ENV{CONTENT_TYPE} =~ /boundary=(\S+)/ if $ENV{CONTENT_TYPE};
     my $parsedebug = 0;
     push(@parse_errors, "[$boundary]") if $parsedebug;
-
     while(length ($line = fgets(1000)))
-    {
+        {
 	$line =~ s/[\r\n]+$//; # chomp doesn't strip \r!
 	#print "[$state] $line<br>\n";
 
@@ -546,25 +546,15 @@ sub save_setup
 
 sub get_wifi_signal
 {
-    # CMLARA:
-    # this would be easy if /proc/net/wireless updated automatically, but it doesn't.
-    # the hack is to re-scan
-    # also iwlist doesnt correctly limit to single ssid
-    # and we have to call from 2 programs now instead of 1
-    my ($ssid) = (`uci -q get wireless.\@wifi-iface[0].ssid`);
-    chomp $ssid;
+    my $wifiintf = `uci -q get network.wifi.ifname`;
+    chomp $wifiintf;
     my ($SignalLevel) = "N/A";
     my ($NoiseFloor) = "N/A";
-    foreach(`iwlist $_[0] scanning essid "$ssid" |tr '\n' ' '|sed 's/Cell \\([0-9]\\{2,\\}\\) - Address:/\\nCell \\1 - Address:/g'|grep -i "$ssid"`)
+    foreach(`iwinfo $wifiintf info`)
     {                                                 
-        next unless /.*Signal level=([\d\-]+) dBm.* Extra: Last beacon: ([\d]+)ms/;
-        if ( $2 < 10000 ) {$SignalLevel=$1;}                                                               
-    }
-
-    foreach(`iw dev $_[0] survey dump|grep -A 1 \"\\[in use\\]\"`)
-    {
-        next unless /([\d\-]+) dBm/;
-        $NoiseFloor=$1;
+        next unless /.*Signal: ([\d\-]+) dBm.*Noise: ([\d\-]+) dBm/;
+        $SignalLevel=$1;
+        $NoiseFloor=$2;
     }
 
     if ( $SignalLevel == "N/A" || $NoiseFloor == "N/A" )
@@ -592,9 +582,9 @@ sub get_free_mem
 {
     foreach(`free`)
     {
-	next unless /^\s+Mem[:]/;
+	next unless /^Mem[:]/;
 	my @tmp = split /\s+/, $_;
-	return $tmp[4] + $tmp[6];
+	return $tmp[3] + $tmp[5];
     }
     return "N/A";
 }
@@ -946,8 +936,8 @@ sub hardware_info
          },
         '0xe1b5' => {
             'name'            => 'Rocket M5',
-            'comment'         => 'Rocket M5 in testing',
-            'supported'       => '-2',
+            'comment'         => 'Rocket M5',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
             'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
@@ -968,8 +958,8 @@ sub hardware_info
          },
         '0xe205' => {
             'name'            => 'Bullet M5',
-            'comment'         => 'Bullet M5 In testing.',
-            'supported'       => '-2',
+            'comment'         => 'Bullet M5',
+            'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '6',
             'antennas'        => { 1 => 'N Connector' },
@@ -979,8 +969,8 @@ sub hardware_info
          },
         '0xe215' => {
             'name'            => 'airGrid M5',
-            'comment'         => 'airGrid M5 in testing',
-            'supported'       => '-2',
+            'comment'         => 'airGrid M5',
+            'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '1',
             'antennas'        => { 1 => 'airGrid' },
@@ -990,8 +980,8 @@ sub hardware_info
          },
         '0xe232' => {
             'name'            => 'NannoBridge M2',
-            'comment'         => 'NanoBridge M2 in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoBridge M2',
+            'supported'       => '1',
             'maxpower'        => '21',
             'pwroffset'       => '2',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
@@ -1001,8 +991,8 @@ sub hardware_info
          },
         '0xe242' => {
             'name'            => 'airGrid M2 HP',
-            'comment'         => 'airGrid M2 HP in testing',
-            'supported'       => '-2',
+            'comment'         => 'airGrid M2 HP',
+            'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '9',
             'antennas'        => { 1 => 'airGrid' },
@@ -1013,7 +1003,7 @@ sub hardware_info
         '0xe243' => {
             'name'            => 'NannoBridge M3',
             'comment'         => 'Not Tested',
-            'supported'       => '-1',
+            'supported'       => '-2',
             'maxpower'        => '22',
             'pwroffset'       => '3',
             'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
@@ -1034,8 +1024,8 @@ sub hardware_info
          },
         '0xe255' => {
             'name'            => 'airGrid M5 HP',
-            'comment'         => 'airGrid M5 HP in testing',
-            'supported'       => '-2',
+            'comment'         => 'airGrid M5',
+            'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '6',
             'antennas'        => { 1 => 'airGrid' },
@@ -1045,8 +1035,8 @@ sub hardware_info
          },
         '0xe2b5' => {
             'name'            => 'NannoBridge M5',
-            'comment'         => 'NanoBridge M5 in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoBridge M5',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
@@ -1056,8 +1046,8 @@ sub hardware_info
          },
         '0xe2c2' => {
             'name'            => 'NannoBeam M2 International',
-            'comment'         => 'NanoBeam M2 International in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoBeam M2 International -- XW board unsupported at this time',
+            'supported'       => '-1',
             'maxpower'        => '18',
             'pwroffset'       => '10',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
@@ -1067,8 +1057,8 @@ sub hardware_info
          },
         '0xe2d2' => {
             'name'            => 'Bullet M2 Titanium HP',
-            'comment'         => 'Bullet M2 TI in testing',
-            'supported'       => '-2',
+            'comment'         => 'Bullet M2 Titanium',
+            'supported'       => '1',
             'maxpower'        => '16',
             'pwroffset'       => '12',
             'antennas'        => { 1 => 'N Connector' },
@@ -1078,8 +1068,8 @@ sub hardware_info
          },
         '0xe2d5' => {
             'name'            => 'Bullet M5 Titanium',
-            'comment'         => 'Bullet M5 TI in testing',
-            'supported'       => '-2',
+            'comment'         => 'Bullet M5 Titanium',
+            'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '6',
             'antennas'        => { 1 => 'N Connector' },
@@ -1089,8 +1079,8 @@ sub hardware_info
          },
         '0xe302' => {
             'name'            => 'PicoStation M2',
-            'comment'         => 'PicoStation M2 in testing',
-            'supported'       => '-2',
+            'comment'         => 'PicoStation M2',
+            'supported'       => '1',
             'maxpower'        => '16',
             'pwroffset'       => '12',
             'antennas'        => { 1 => 'Antenna' },
@@ -1100,8 +1090,8 @@ sub hardware_info
          },
         '0xe4e5' => {
             'name'            => 'NannoBeam M5 International',
-            'comment'         => 'NanoBeam M5 International in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoBeam M5 International XW series unsuported at this time',
+            'supported'       => '-1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
@@ -1111,8 +1101,8 @@ sub hardware_info
          },
         '0xe805' => {
             'name'            => 'NanoStation M5',
-            'comment'         => 'NanoStation M5 in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoStation M5',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
@@ -1122,8 +1112,8 @@ sub hardware_info
          }, 
        '0xe8a5' => {
             'name'            => 'NanoStation Loco M5',
-            'comment'         => 'NanoStation Loco M5 in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoStation Loco M5',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
             'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
@@ -1199,13 +1189,18 @@ sub wifi_useschains
 #has increased it to a higher level.
 sub wifi_txpoweroffset
 {
-
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'pwroffset'} ) {
-        return $boardinfo->{'pwroffset'};
+    my $doesiwoffset=`iwinfo wlan0 info 2>/dev/null` =~ /TX power offset: (\d+)/;
+    if ( $doesiwoffset ) {
+        return $1;
     } else
     {
-        return 0;
+        $boardinfo = hardware_info();
+        if ( exists $boardinfo->{'pwroffset'} ) {
+            return $boardinfo->{'pwroffset'};
+        } else
+        {
+            return 0;
+        } 
     }
 
 }

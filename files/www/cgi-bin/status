@@ -1,10 +1,8 @@
-#!/usr/bin/perl
+#!/usr/bin/perl 
 
 $debug = 0;
-
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
-
 # collect some variables
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
@@ -212,7 +210,7 @@ push @col2, "<th align=right>system time</th><td>" . `date +'%a %b %e %Y<br>%T %
 
 $uptime = `uptime`;
 $uptime =~ s/^ ..:..:.. up //;
-($uptime, $load) = $uptime =~ /(.*), load average: (.*)/;
+($uptime, $load) = $uptime =~ /(.*),  load average: (.*)/;
 push @col2, "<th align=right>uptime<br>load average</th><td>$uptime<br>$load</td>";
 
 $str  = "<th align=right>free space</th><td><nobr>flash = ";
