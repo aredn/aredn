@@ -417,12 +417,22 @@ sub get_ip6_addr
 sub get_default_gw
 {
     my $gw = "none";
-    foreach(`route -n`)
-    {
-	next unless /^0\.0\.0\.0\s+([\d\.]+)/;
-	$gw = $1;
-	last;
-    }
+
+    # Table 31 is populated by OLSR
+    foreach(`/usr/sbin/ip route list table 31`)
+    {                                          
+        next unless /^default\svia\s([\d\.]+)/;
+        $gw = $1;
+        last;               
+    }                                                                           
+
+    # However a node with a wired default gw will route via that instead
+    foreach(`/usr/sbin/ip route list table 254`)
+    {                                          
+        next unless /^default\svia\s([\d\.]+)/;
+        $gw = $1;
+        last;               
+    }                                                                           
     return $gw;
 }
 
