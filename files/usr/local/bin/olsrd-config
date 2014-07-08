@@ -25,6 +25,14 @@ if(-f "/etc/config/dmz-mode")
     }
 }
 
+# Add a name for the dtdlink interface.
+if ($name = nvram_get("node"))
+{
+    my ($dtdip,$dtdmask,$dtdbcast,$dtdnet);
+    ($dtdip, $dtdmask, $dtdbcast, $dtdnet) = get_ip4_network("eth0.2");
+    push @hosts, qq("$dtdip" "dtdlink.$name.local.mesh");
+}             
+
 # load the services
 foreach(`cat /etc/config/services 2>/dev/null`)
 {
