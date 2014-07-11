@@ -1,0 +1,18 @@
+# This script is run when the node is in NAT mode to 
+# setup addtional firewall rules needed for nat.
+# allowing all other traffic to transport as is.
+
+dtdlinkip=`uci -q get network.dtdlink.ipaddr`
+wifiip=`uci -q get network.wifi.ipaddr`
+
+ip rule del pref 20010 fwmark 0x15 lookup 29  > /dev/null 2>&1
+ip rule add pref 20010 fwmark 0x15 lookup 29
+
+#tag traffic for use later in iprule's
+iptables -t mangle -I PREROUTING -d $wifiip/32 -j MARK --set-xmark 0x15/0xffffffff
+iptables -t mangle -I PREROUTING -d $dtdlinkip/32 -j MARK --set-xmark 0x15/0xffffffff
+
+# Mark and masq local traffic going out the dtdlink interface.
+iptables -t nat -A zone_lan_prerouting -j MARK --set-xmark 0xe/0xffffffff
+iptables -t nat -A zone_dtdlink_nat -m mark --mark 0xe -j MASQUERADE 
+
