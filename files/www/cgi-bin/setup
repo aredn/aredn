@@ -179,6 +179,12 @@ if($parms{button_save})
         push (@errors, "invalid WiFi channel")
     }
 
+    if ( !is_wifi_chanbw_valid($wifi_chanbw,$wifi_ssid) )
+    {
+        push (@errors, "Invalid WiFi channel width");
+        $wifi_chanbw = 20;
+    }
+
     push (@errors, "invalid WiFi distance") if $wifi_distance < 0 or $wifi_distance =~ /\D/;
 
     $wifi_country_validated=0;
@@ -521,6 +527,15 @@ if($wifi_proto ne "disabled")
     else
     {
 	push @hidden, "<input type=hidden name=wifi_channel value='$wifi_channel'>";
+    }
+
+    {
+        print "<tr><td>Channel Width</td>\n";
+        print "<td><select name=wifi_chanbw>\n";
+        selopt("20 MHz","20",$wifi_chanbw);
+        selopt("10 MHz","10",$wifi_chanbw);
+        selopt("5 MHz","5",$wifi_chanbw);
+        print "</select></td></tr>\n";
     }
 
     if ($config ne "mesh")
