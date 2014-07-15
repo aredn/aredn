@@ -139,6 +139,25 @@ sub rf_channels_list
     }
 }
 
+sub is_wifi_chanbw_valid
+{
+    my ($wifi_chanbw,$wifi_ssid) = @_;
+    my $boardinfo=hardware_info();
+    if ( ( exists($boardinfo->{'rfband'}) ) && ( $boardinfo->{'rfband'} == "2400" ) && ( $wifi_chanbw != 20 ) )
+    {
+        if ( (( length $wifi_ssid >= 33 ) || ( length $wifi_ssid == 0 )) || ( $wifi_ssid =~ /BroadBandHamnet-v.*/i ))
+        {
+            # 2.4ghz and default ssid not 20mhz wide -- Invalid chan_bw
+            return 0;
+        } else {
+            # chan_bw valid
+            return 1;
+        }
+    }
+    # Not 2.4ghz or device is unknown, trust the user submission.
+    return 1;
+}
+
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1
 
