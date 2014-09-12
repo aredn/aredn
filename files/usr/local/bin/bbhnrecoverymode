@@ -1,0 +1,15 @@
+#!/bin/sh
+
+DHCPLANSECTION=`uci show dhcp|grep interface=lan|sed "s/dhcp.\@dhcp\[\(.*\)\].interface=lan/\1/"`
+
+logger "Reseting password to factory default"
+/usr/local/bin/setpasswd hsmm
+
+logger "Enable DHCP on lan interface"
+uci set dhcp.@dhcp\[$DHCPLANSECTION\].ignore=0
+uci -q commit
+
+logger "Restart dnsmasq"
+/etc/init.d/dnsmasq restart
+
+
