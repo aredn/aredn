@@ -171,8 +171,13 @@ if($parms{button_save})
 	    push @errors, "invalid WiFi IP address";
 	}
     }
-	      
-    push (@errors, "invalid WiFi SSID") unless length $wifi_ssid <= 32;
+
+    if ($config eq "mesh"){	      
+        push (@errors, "invalid WiFi SSID") unless length $wifi_ssid <= 27;
+    } else 
+    {
+        push (@errors, "invalid WiFi SSID") unless length $wifi_ssid <= 32;
+    }
 
     if ( is_channel_valid($wifi_channel) != 1 )
     {
@@ -488,7 +493,14 @@ else
 if($wifi_proto ne "disabled")
 {
     print "<tr><td>SSID</td>\n";
-    print "<td><input type=text size=15 name=wifi_ssid value='$wifi_ssid'></td></tr>\n";
+    print "<td><input type=text size=15 name=wifi_ssid value='$wifi_ssid'>";
+    if ($config eq "mesh")
+    {
+        print "-$wifi_chanbw-v2</td></tr>\n";
+    } else
+    {
+        print "</td></tr>\n";
+    }
 
     if($wifi_mode eq "ap")
     {
