@@ -1,0 +1,17 @@
+#!/bin/sh
+
+DHCPLANSECTION=`uci show dhcp|grep interface=lan|sed "s/dhcp.\@dhcp\[\(.*\)\].interface=lan/\1/"`
+
+logger "BBHN Recovery: Reseting password to BBHN default"
+/usr/local/bin/setpasswd hsmm
+
+if [ "$DHCPLANSECTION" != "" ]
+  then
+    logger "BBHN Recovery: Enable DHCP on lan interface"
+    uci set dhcp.@dhcp\[$DHCPLANSECTION\].ignore=0
+    uci -q commit
+
+    logger "BBHN Recovery: Restart dnsmasq"
+    /etc/init.d/dnsmasq restart
+fi
+
