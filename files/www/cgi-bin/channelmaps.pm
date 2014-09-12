@@ -151,7 +151,7 @@ sub is_wifi_chanbw_valid
     my $boardinfo=hardware_info();
     if ( ( exists($boardinfo->{'rfband'}) ) && ( $boardinfo->{'rfband'} == "2400" ) && ( $wifi_chanbw != 20 ) )
     {
-        if ( (( length $wifi_ssid >= 33 ) || ( length $wifi_ssid == 0 )) || ( $wifi_ssid =~ /BroadBandHamnet-v.*/i ))
+        if ( (( length $wifi_ssid >= 33 ) || ( length $wifi_ssid == 0 )) || ( $wifi_ssid =~ /BroadBandHamnet/i ))
         {
             # 2.4ghz and default ssid not 20mhz wide -- Invalid chan_bw
             return 0;
