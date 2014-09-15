@@ -5,6 +5,9 @@ DHCPLANSECTION=`uci show dhcp|grep interface=lan|sed "s/dhcp.\@dhcp\[\(.*\)\].in
 logger "BBHN Recovery: Reseting password to BBHN default"
 /usr/local/bin/setpasswd hsmm
 
+logger "BBHN Recovery: Restarting uhttpd" 
+/etc/init.d/uhttpd restart
+
 if [ "$DHCPLANSECTION" != "" ]
   then
     logger "BBHN Recovery: Enable DHCP on lan interface"
