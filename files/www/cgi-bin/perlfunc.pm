@@ -968,8 +968,8 @@ sub hardware_info
          },
         '0xe1b9' => {
             'name'            => 'Rocket M9',
-            'comment'         => 'Rocket M9 in testing',
-            'supported'       => '-2',
+            'comment'         => 'Rocket M9',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '6',
             'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
