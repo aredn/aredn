@@ -174,8 +174,9 @@ if($parms{button_dl_fw} and $parms{dl_fw} ne "default")
     }
 }
 
-# install fw -- Force overwrite using MTD device
-# Needs a "not $overwrite_firmware" clause once we get sysupgrade working
+
+# install fw
+
 if($fw_install and -f "$tmpdir/firmware")
 {
     my $junk;
@@ -185,55 +186,43 @@ if($fw_install and -f "$tmpdir/firmware")
     print "<h2>The firmware is being updated.</h2>\n";
     print "<h1>DO NOT REMOVE POWER UNTIL UPDATE IS FINISHED</h1>\n";
     print "</center><br>\n";
-    print "Writing firmware<br><br>\n";
-
     unless($debug)
     {
-	#system "nvram unset config; nvram commit >/dev/null 2>&1";
-	nvram_set("config", "");
-	open(FILE, "/sbin/mtd write $tmpdir/firmware firmware 2>&1 |") or die;
-	while(read FILE, $junk, 7) { print "|" }
-    }
-
-    print "
-<center><h2>The node is rebooting</h2>
+        if ( $parms{checkbox_keep_settings} )
+        {
+            nvram_set("nodeupgraded","1");
+            print "
+<center><h2>Firmware will be written in the background.</h2>
 <h3>If you are connected to the LAN of this node you may need to acquire a new<br>
 DHCP lease and reset any name service caches you may be using.</h3>
-<h3>Wait for the Power LED to start blinking, then stop blinking.<br>
-When the DMZ LED turns off you can get your new DHCP lease and reconnect with<br>
+<h3>The node will reboot twice while the configuration is applied<br>
+Wait for the Status 4 LED to start blinking, then stop blinking twice.<br>
+When the Status 4 LED is solid on you can get your new DHCP lease and reconnect with<br>
 <a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a></h3>
 </center></body></html>
 ";
+            open(FILE, "/sbin/sysupgrade -q $tmpdir/firmware 2>&1 |") or die;
+        } 
+        else 
+        {
+            print "Writing firmware<br><br>\n";
+            open(FILE, "/sbin/mtd write $tmpdir/firmware firmware 2>&1 |") or die;
+            while(read FILE, $junk, 7) { print "|" }
+            print "
+<center><h2>The node is rebooting</h2>
+<h3>If you are connected to the LAN of this node you may need to acquire a new<br>
+DHCP lease and reset any name service caches you may be using.</h3>
+<h3>Wait for the Status 4 LED to start blinking, then stop blinking.<br>
+When the Status 4 LED is solid on you can get your new DHCP lease and reconnect with<br>
+<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a></h3>
+</center></body></html>
+";
+         system "/sbin/reboot" unless $debug;
 
-    system "/sbin/reboot" unless $debug;
+        }
+    }
     exit;
 }
-
-# CMLARA: Prepwork for using sysupgrade --- it has some issues with the page not returning that need to be worked on
-# install fw -- use sysupgrade
-
-#if($fw_install and -f "$tmpdir/firmware" and not $overwrite_firmware )
-#{
-#    my $junk;
-#    http_header();
-#    html_header("FIRMWARE UPDATE IN PROGRESS", 1);
-#    print "<body><center>\n";
-#    print "<h2>The firmware is being updated.</h2><br><br>\n";
-#    print "<h1>DO NOT REMOVE POWER UNTIL UPDATE IS FINISHED</h1><br><br>\n";
-#    print "<h3>Wait for the Power LED to start blinking, then stop blinking.<br>\n";
-#    print "When the DMZ LED turns off you can reconnect your browser to the mesh node.</h3>\n";
-#    print "</center><br>\n";
-#    print "Writing firmware<br><br>\n";
-#    unless($debug)
-#    {
-#        open(FILE, "/sbin/sysupgrade -q $tmpdir/firmware 2>&1 |") or die;
-#        while(read FILE, $junk, 7) { print "|" }
-#        print "<br><br>REBOOTING<br><br>\n";
-#        print "<a href='http://localnode:8080/cgi-bin/status'>Click here</a> when the blinking stops and the DMZ LED turns off</body></html>\n";
-#        system "/sbin/reboot";
-#    }
-#    exit;
-#}
 
 
 # install patch
@@ -498,6 +487,7 @@ foreach(@fw_images)
 print "</select>\n";
 print "<input type=submit name=button_refresh_fw value=Refresh title='download the list of available firmware versions'>\n";
 print "<td align=center><input type=submit name=button_dl_fw value=Download title='install the firmware'></td>\n";
+print "<td align=right><input type=checkbox name=checkbox_keep_settings>Keep Settings</td>\n";
 print "</tr>\n";
 
 print "</table></td></tr>\n";
