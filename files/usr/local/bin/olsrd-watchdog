@@ -3,17 +3,21 @@
 # wait for the watchdog file to appear
 while(not -e "/tmp/olsrd.watchdog") { sleep 15 }
   
-$stamp = 0;
+$failcount = 0;
+$last_olsrstamp = 0;
+
 
 while(1)
 {
-  $last_stamp = $stamp;
-  $stamp = time;
   chomp ($olsr = `cat /tmp/olsrd.watchdog`);
-  $olsr = 0 unless $olsr;
 
-  # avoid false restarts due to changes in system time
-  if($stamp - $last_stamp < 20 and $stamp - $olsr > 20)
+  if ( $olsr && $olsr ne $last_olsrstamp ){
+    $failcount = 0;
+  } else {
+    $failcount += 1;
+  }
+    
+  if( $failcount >= 3 )
   {
     ($uptime) = `cat /proc/uptime` =~ /^(\d+)/;
     $date = `date`;
@@ -21,5 +25,7 @@ while(1)
     system "/etc/init.d/olsrd restart";
   }
 
-  sleep 15;
+  $last_olsrstamp = $olsr;
+
+  sleep 10;
 }
