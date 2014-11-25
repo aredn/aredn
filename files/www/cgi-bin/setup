@@ -85,8 +85,8 @@ if($dmz_mode)
 }
 
 # derive values which are not explicitly defined
-$parms{dhcp_limit} = $dhcp_limit = $dhcp_end - $dhcp_start;
-$parms{dmz_dhcp_limit} = $dmz_dhcp_limit = $dmz_dhcp_end - $dmz_dhcp_start;
+$parms{dhcp_limit} = $dhcp_limit = $dhcp_end - $dhcp_start + 1;
+$parms{dmz_dhcp_limit} = $dmz_dhcp_limit = $dmz_dhcp_end - $dmz_dhcp_start + 1;
 
 #
 # get the active wifi settings on a fresh page load
@@ -171,12 +171,23 @@ if($parms{button_save})
 	    push @errors, "invalid WiFi IP address";
 	}
     }
-	      
-    push (@errors, "invalid WiFi SSID") unless length $wifi_ssid <= 32;
+
+    if ($config eq "mesh"){	      
+        push (@errors, "invalid WiFi SSID") unless length $wifi_ssid <= 27;
+    } else 
+    {
+        push (@errors, "invalid WiFi SSID") unless length $wifi_ssid <= 32;
+    }
 
     if ( is_channel_valid($wifi_channel) != 1 )
     {
         push (@errors, "invalid WiFi channel")
+    }
+
+    if ( !is_wifi_chanbw_valid($wifi_chanbw,$wifi_ssid) )
+    {
+        push (@errors, "Invalid WiFi channel width");
+        $wifi_chanbw = 20;
     }
 
     push (@errors, "invalid WiFi distance") if $wifi_distance < 0 or $wifi_distance =~ /\D/;
@@ -482,7 +493,14 @@ else
 if($wifi_proto ne "disabled")
 {
     print "<tr><td>SSID</td>\n";
-    print "<td><input type=text size=15 name=wifi_ssid value='$wifi_ssid'></td></tr>\n";
+    print "<td><input type=text size=15 name=wifi_ssid value='$wifi_ssid'>";
+    if ($config eq "mesh")
+    {
+        print "-$wifi_chanbw-v3</td></tr>\n";
+    } else
+    {
+        print "</td></tr>\n";
+    }
 
     if($wifi_mode eq "ap")
     {
@@ -521,6 +539,15 @@ if($wifi_proto ne "disabled")
     else
     {
 	push @hidden, "<input type=hidden name=wifi_channel value='$wifi_channel'>";
+    }
+
+    {
+        print "<tr><td>Channel Width</td>\n";
+        print "<td><select name=wifi_chanbw>\n";
+        selopt("20 MHz","20",$wifi_chanbw);
+        selopt("10 MHz","10",$wifi_chanbw);
+        selopt("5 MHz","5",$wifi_chanbw);
+        print "</select></td></tr>\n";
     }
 
     if ($config ne "mesh")

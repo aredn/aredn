@@ -8,6 +8,12 @@ use perlfunc;
 sub rf_channel_map
 {
     %channellist = (
+        '900' => {
+            4  => "(907)",
+            5  => "(912)",
+            6  => "(917)",
+            7  => "(922)",
+        },
         '2400' => {
             1  => "1 (2412)",
             2  => "2 (2417)",
@@ -137,6 +143,25 @@ sub rf_channels_list
         }
         return $channels;
     }
+}
+
+sub is_wifi_chanbw_valid
+{
+    my ($wifi_chanbw,$wifi_ssid) = @_;
+    my $boardinfo=hardware_info();
+    if ( ( exists($boardinfo->{'rfband'}) ) && ( $boardinfo->{'rfband'} == "2400" ) && ( $wifi_chanbw != 20 ) )
+    {
+        if ( (( length $wifi_ssid >= 33 ) || ( length $wifi_ssid == 0 )) || ( $wifi_ssid =~ /BroadBandHamnet/i ))
+        {
+            # 2.4ghz and default ssid not 20mhz wide -- Invalid chan_bw
+            return 0;
+        } else {
+            # chan_bw valid
+            return 1;
+        }
+    }
+    # Not 2.4ghz or device is unknown, trust the user submission.
+    return 1;
 }
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
