@@ -999,6 +999,17 @@ sub hardware_info
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
          },
+        '0xe212' => {
+            'name'            => 'airGrid M2',
+            'comment'         => 'airGrid M2 -- Reported as an hp',
+            'supported'       => '-2',
+            'maxpower'        => '18',
+            'pwroffset'       => '10',
+            'antennas'        => { 1 => 'airGrid' },
+            'defaultant'      => 1,
+            'usechains'       => 0,
+            'rfband'          => '2400',
+         },
         '0xe215' => {
             'name'            => 'airGrid M5',
             'comment'         => 'airGrid M5',
