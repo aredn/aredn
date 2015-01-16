@@ -1,31 +1,28 @@
-#!/usr/bin/perl
+#!/bin/sh
 
-# wait for the watchdog file to appear
-while(not -e "/tmp/olsrd.watchdog") { sleep 15 }
-  
-$failcount = 0;
-$last_olsrstamp = 0;
+# wait for the watchdog file to appear before starting
+while [ ! -f "/tmp/olsrd.watchdog" ]
+do
+  sleep 15
+done
 
 
-while(1)
-{
-  chomp ($olsr = `cat /tmp/olsrd.watchdog`);
+while true
+do
 
-  if ( $olsr && $olsr ne $last_olsrstamp ){
-    $failcount = 0;
-  } else {
-    $failcount += 1;
-  }
-    
-  if( $failcount >= 3 )
-  {
-    ($uptime) = `cat /proc/uptime` =~ /^(\d+)/;
-    $date = `date`;
-    system qq(echo -n "$uptime $date" >> /tmp/olsrd.log);
-    system "/etc/init.d/olsrd restart";
-  }
+  if [ -f "/tmp/olsrd.watchdog" ]
+  then
+    rm -f "/tmp/olsrd.watchdog"
+  else
+    uptime=`cat /proc/uptime | cut -d' ' -f1`
+    date=`date`
+    echo "$uptime $date" >> /tmp/olsrd.log
+    /etc/init.d/olsrd restart
+  fi
 
-  $last_olsrstamp = $olsr;
+  # With interval of 5 seconds this gives ~3 chances
+  # for a file write before next loop.
+  sleep 15
 
-  sleep 10;
-}
+done
+
