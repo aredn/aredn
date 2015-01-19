@@ -27,7 +27,7 @@ AUSTINBUILD=false
 while getopts "v:a:d:f" flag; do
 case "$flag" in
     v) REQVERSION=$OPTARG;;
-    a) AUSTINBUILD=TRUE;;
+    a) AUSTINBUILD=true;;
     d) DESTINATION=$OPTARG;;
     f) FILESDIR=$OPTARG;;
 esac
@@ -47,7 +47,7 @@ fi
 
 
 # If not an Austin build we can set the version and go direct, otherwise we need to do some prepwork on the files.
-if [ ! $AUSTINBUILD ]
+if ! $AUSTINBUILD 
 then
   VERSION=$REQVERSION
 else 
