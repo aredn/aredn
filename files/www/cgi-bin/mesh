@@ -127,16 +127,23 @@ foreach(`cat /var/run/services_olsr 2>/dev/null`)
     chomp;
     ($url, $junk, $name) = split /\|/, $_;
     next unless defined $name;
-    ($host, $port) = $url =~ /^\w+:\/\/([\w\-\.]+):(\d+)/;
+    ($protocol, $host, $port, $path) = $url =~ /^(\w+):\/\/([\w\-\.]+):(\d+)\/(.*)/;
+    next unless defined $path;
     ($name, $originator) = split /\#/, $name;
     $name =~ s/\s+$//;
+
+    if ( $host !~ /\./ )
+    {
+      $host="${host}.local.mesh";
+    }
+
     #$host = $originator eq " my own service" ? $node : $hosts{$originator}{name};
 
     # attempt to work around olsr never forgetting defunct services
     # assume that the first entry in the file by this name is the most recent, ignore the rest
     next if $services{$host}{$name};
 
-    $services{$host}{$name} = $port ? "<a href='$url'>$name</a>" : $name;
+    $services{$host}{$name} = $port ? "<a href='${protocol}://${host}:${port}/${path}'>$name</a>" : $name;
 }
 
 # load the node history
@@ -220,7 +227,7 @@ if(keys %localhosts)
 
     foreach $ip (keys %localhosts)
     {
-	$host = $localhosts{$ip}{name};
+	$host = $localhosts{$ip}{name} . ".local.mesh";
 	$tactical = $localhosts{$ip}{tactical} ? " / " . $localhosts{$ip}{tactical} : "";
 	$rows{$host} = sprintf "<tr><td valign=top><nobr>%s</nobr></td><td colspan=3>&nbsp;</td><td>\n", $host . $tactical;
 	foreach(sort keys %{$services{$host}})
@@ -264,6 +271,11 @@ foreach $ip (keys %hosts)
     $host = $hosts{$ip}{name};
     $tactical = $hosts{$ip}{tactical} ? " / " . $hosts{$ip}{tactical} : "";
     $etx = "unknown";
+
+    if ( $host !~ /\./ ) 
+    {
+      $host="${host}.local.mesh";
+    }
 
     if($routes{$ip}) # get the etx directly
     {
@@ -332,7 +344,14 @@ if(keys %links)
     {
 	$host = $hosts{$ip}{name} ? $hosts{$ip}{name} : $ip;
 	$tactical = $hosts{$ip}{tactical} ? " / " . $hosts{$ip}{tactical} : "";
+
+        if ( $host !~ /\./ )
+        {
+          $host="${host}.local.mesh";
+        }
+
 	$rows{$host} = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $host . $tactical;
+
 	if($midnum = $hosts{$ip}{mid}) # show mid interfaces
 	{
 	    $midnum = ($midnum > 1) ? "*$midnum" : "";
