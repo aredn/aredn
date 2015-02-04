@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright 2014 Conrad Lara
+
 . /etc/functions.sh
 
 include /lib/upgrade/

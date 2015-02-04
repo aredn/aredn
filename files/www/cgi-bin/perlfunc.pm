@@ -1,3 +1,25 @@
+=for commnet
+
+  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Copyright (C) 2015 Conrad Lara
+   See Contributors file for additional contributors
+
+  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+=cut
+
 ##########################
 # html functions
 
@@ -998,6 +1020,17 @@ sub hardware_info
             'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
+         },
+        '0xe212' => {
+            'name'            => 'airGrid M2',
+            'comment'         => 'airGrid M2 -- Reported as an hp',
+            'supported'       => '-2',
+            'maxpower'        => '28',
+            'pwroffset'       => '0',
+            'antennas'        => { 1 => 'airGrid' },
+            'defaultant'      => 1,
+            'usechains'       => 0,
+            'rfband'          => '2400',
          },
         '0xe215' => {
             'name'            => 'airGrid M5',
