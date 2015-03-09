@@ -1,6 +1,6 @@
 =for commnet
 
-  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
@@ -15,6 +15,21 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
 
 =cut
 
@@ -166,20 +181,7 @@ sub rf_channels_list
 
 sub is_wifi_chanbw_valid
 {
-    my ($wifi_chanbw,$wifi_ssid) = @_;
-    my $boardinfo=hardware_info();
-    if ( ( exists($boardinfo->{'rfband'}) ) && ( $boardinfo->{'rfband'} == "2400" ) && ( $wifi_chanbw != 20 ) )
-    {
-        if ( (( length $wifi_ssid >= 33 ) || ( length $wifi_ssid == 0 )) || ( $wifi_ssid =~ /BroadBandHamnet/i ))
-        {
-            # 2.4ghz and default ssid not 20mhz wide -- Invalid chan_bw
-            return 0;
-        } else {
-            # chan_bw valid
-            return 1;
-        }
-    }
-    # Not 2.4ghz or device is unknown, trust the user submission.
+    # chan_bw valid
     return 1;
 }
 

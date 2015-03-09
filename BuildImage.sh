@@ -1,6 +1,6 @@
 #!/bin/bash
 <<'LICENSE'
-  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
@@ -18,16 +18,14 @@
 
 LICENSE
 
-#This is a build script for use with the OpenWRT Image Builder to create the final images as used by BBHN 
+#This is a build script for use with the OpenWRT Image Builder to create the final images as used by AREDN 
 
 # Initialize variables
 FILESDIR="files"
-AUSTINBUILD=false
 
 while getopts "v:a:d:f" flag; do
 case "$flag" in
     v) REQVERSION=$OPTARG;;
-    a) AUSTINBUILD=true;;
     d) DESTINATION=$OPTARG;;
     f) FILESDIR=$OPTARG;;
 esac
@@ -44,20 +42,6 @@ if [ ! $DESTINATION ]
   echo "A destination folder must be provided with the -d flag"
   exit 1
 fi
-
-
-# If not an Austin build we can set the version and go direct, otherwise we need to do some prepwork on the files.
-if ! $AUSTINBUILD 
-then
-  VERSION=$REQVERSION
-else 
-  VERSION=$REQVERSION-Austin
-  # Change repository URL's to reflect the Austin server
-  sed -i 's/http:\/\/downloads.bbhndev.org\/firmware\/ubnt/http:\/\/broadband-hamnet.org\/download\/firmware\/ubnt/g' $FILESDIR/www/cgi-bin/admin
-  sed -i 's/http:\/\/downloads.bbhndev.org/http:\/\/www.broadband-hamnet.org\/download/g' $FILESDIR/etc/opkg.conf
-
-fi
-
 
 mkdir -p $DESTINATION;
 
