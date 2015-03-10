@@ -238,8 +238,11 @@ DHCP lease and reset any name service caches you may be using.</h3>
 <h3>Wait for the Power LED to start blinking, then stop blinking.<br>
 When the DMZ LED turns off you can get your new DHCP lease and reconnect with<br>
 <a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a></h3>
-</center></body></html>
+</center>
 ";
+
+    page_footer();
+    print "</body></html>";
 
     system "/sbin/reboot" unless $debug;
     exit;
@@ -644,5 +647,6 @@ print "</center>\n";
 show_debug_info();
 show_parse_errors();
 
+page_footer();
 print "</body>\n";
 print "</html>\n";

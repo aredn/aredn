@@ -222,13 +222,17 @@ print "<button type=button onClick='window.location=\"status\"' title='Return to
 if($config ne "mesh")
 {
     print "<br><br><b>This page is available only when the router is acting as a Mesh Node.</b>\n";
-    print "</center></form></body></html>\n";
+    print "</center></form>";
+    page_footer();
+    print "</body></html>\n";
     exit;
 }
 elsif($txtinfo_err)
 {
     print "<br><br><b>Whoops! OLSR is not running, try again later.</b>\n";
-    print "</center></form></body></html>\n";
+    print "</center></form>";
+    page_footer();
+    print "</body></html>\n";
     exit;
 }
 
@@ -237,7 +241,9 @@ print "</nobr><br><br>\n";
 unless(keys %localhosts or keys %links)
 {
     print "No other nodes are available.\n";
-    print "</center></form></body></html\n";
+    print "</center></form>";
+    page_footer();
+    print "</body></html\n";
     exit;
 }
 
@@ -477,6 +483,7 @@ if($debug)
 show_debug_info();
 show_parse_errors();
 
+page_footer();
 print "</body>\n";
 print "</html>\n";
 

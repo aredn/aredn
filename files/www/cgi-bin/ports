@@ -63,7 +63,9 @@ if($config eq "" or -e "/tmp/reboot-required")
 	print "The configuration has been changed.<br>This page will not be available until the node is rebooted.\n";
     }
     print "</b></td></tr>\n";
-    print "</table></center></body></html>\n";
+    print "</table></center>";
+    page_footer();
+    print "</body></html>\n";
     exit;
 }
 
@@ -647,6 +649,7 @@ foreach(@hidden) { print "$_\n" }
 
 print "</form></center>\n";
 show_debug_info();
+page_footer();
 print "</body></html>\n";
 exit;
 
