@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 =for commnet
 
-  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
@@ -18,6 +18,21 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
 
 =cut
 
@@ -48,7 +63,9 @@ if($config eq "" or -e "/tmp/reboot-required")
 	print "The configuration has been changed.<br>This page will not be available until the node is rebooted.\n";
     }
     print "</b></td></tr>\n";
-    print "</table></center></body></html>\n";
+    print "</table></center>";
+    page_footer();
+    print "</body></html>\n";
     exit;
 }
 
@@ -632,6 +649,7 @@ foreach(@hidden) { print "$_\n" }
 
 print "</form></center>\n";
 show_debug_info();
+page_footer();
 print "</body></html>\n";
 exit;
 
