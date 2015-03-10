@@ -16,6 +16,21 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
 LICENSE
 
 #This is a build script for use with the OpenWRT Image Builder to create the final images as used by AREDN 
@@ -37,6 +52,8 @@ if [ ! $REQVERSION ]
   exit 1
 fi
 
+VERSION=$REQVERSION
+
 if [ ! $DESTINATION ]
   then
   echo "A destination folder must be provided with the -d flag"
@@ -47,4 +64,4 @@ mkdir -p $DESTINATION;
 
 echo $VERSION > files/etc/mesh-release
 fakeroot make image PLATFORM="UBNT" PACKAGES="bridge busybox dnsmasq dropbear iptables kmod-ipt-nathelper kmod-usb-core kmod-usb-uhci kmod-usb2 libgcc mtd ppp ppp-mod-pppoe uhttpd olsrd perl olsrd-mod-arprefresh olsrd-mod-dyn-gw olsrd-mod-httpinfo olsrd-mod-nameservice olsrd-mod-txtinfo olsrd-mod-dot-draw olsrd-mod-watchdog olsrd-mod-secure perlbase-essential perlbase-xsloader perlbase-file perlbase-perlio libpcap tcpdump-mini ntpclient xinetd kmod-ipv6 ip6tables kmod-ip6tables libip6tc ip iptables-mod-ipopt iwinfo libiwinfo socat" FILES="$FILESDIR" BIN_DIR="$DESTINATION/$VERSION"
-rename "s/openwrt/bbhn-$VERSION/g" /$DESTINATION/$VERSION/*
+rename "s/openwrt/AREDN-$VERSION/g" /$DESTINATION/$VERSION/*
