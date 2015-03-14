@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 =for commnet
 
-  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
@@ -18,6 +18,21 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution 
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
 
 =cut
 
@@ -66,7 +81,7 @@ $patch_install = 0;
 %fw_md5 = ();
 
 @serverpaths = (
-    "http://downloads.bbhndev.org/firmware/ubnt"
+    "http://downloads.aredn.org/firmware/ubnt"
 );
 
 # refresh fw
@@ -236,13 +251,14 @@ DHCP lease and reset any name service caches you may be using.</h3>
 <h3>Wait for the Status 4 LED to start blinking, then stop blinking.<br>
 When the Status 4 LED is solid on you can get your new DHCP lease and reconnect with<br>
 <a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a></h3>
-</center></body></html>
+</center>
 ";
+         page_footer();
+         print "</body></html>";
          system "/sbin/reboot" unless $debug;
-
+         exit;
         }
     }
-    exit;
 }
 
 
@@ -619,5 +635,6 @@ print "</center>\n";
 show_debug_info();
 show_parse_errors();
 
+page_footer();
 print "</body>\n";
 print "</html>\n";

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 =for commnet
 
-  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
@@ -18,6 +18,21 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
 
 =cut
 
@@ -215,13 +230,17 @@ print "<button type=button onClick='window.location=\"status\"' title='Return to
 if($config ne "mesh")
 {
     print "<br><br><b>This page is available only when the router is acting as a Mesh Node.</b>\n";
-    print "</center></form></body></html>\n";
+    print "</center></form>";
+    page_footer();
+    print "</body></html>\n";
     exit;
 }
 elsif($txtinfo_err)
 {
     print "<br><br><b>Whoops! OLSR is not running, try again later.</b>\n";
-    print "</center></form></body></html>\n";
+    print "</center></form>";
+    page_footer();
+    print "</body></html>\n";
     exit;
 }
 
@@ -230,7 +249,9 @@ print "</nobr><br><br>\n";
 unless(keys %localhosts or keys %links)
 {
     print "No other nodes are available.\n";
-    print "</center></form></body></html\n";
+    print "</center></form>";
+    page_footer();
+    print "</body></html\n";
     exit;
 }
 
@@ -482,6 +503,7 @@ if($debug)
 show_debug_info();
 show_parse_errors();
 
+page_footer();
 print "</body>\n";
 print "</html>\n";
 

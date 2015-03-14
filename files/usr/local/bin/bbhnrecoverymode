@@ -1,6 +1,6 @@
 #!/bin/sh
 <<'LICENSE'
-  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
@@ -20,19 +20,19 @@ LICENSE
 
 DHCPLANSECTION=`uci show dhcp|grep interface=lan|sed "s/dhcp.\@dhcp\[\(.*\)\].interface=lan/\1/"`
 
-logger "BBHN Recovery: Reseting password to BBHN default"
+logger "AREDN(TM) Recovery: Reseting root password to: hsmm"
 /usr/local/bin/setpasswd hsmm
 
-logger "BBHN Recovery: Restarting uhttpd" 
+logger "AREDN(TM) Recovery: Restarting uhttpd" 
 /etc/init.d/uhttpd restart
 
 if [ "$DHCPLANSECTION" != "" ]
   then
-    logger "BBHN Recovery: Enable DHCP on lan interface"
+    logger "AREDN(TM) Recovery: Enable DHCP on lan interface"
     uci set dhcp.@dhcp\[$DHCPLANSECTION\].ignore=0
     uci -q commit
 
-    logger "BBHN Recovery: Restart dnsmasq"
+    logger "AREDN(TM) Recovery: Restart dnsmasq"
     /etc/init.d/dnsmasq restart
 fi
 

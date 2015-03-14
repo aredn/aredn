@@ -1,6 +1,6 @@
 =for commnet
 
-  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
@@ -17,6 +17,21 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
 
 =cut
 
@@ -1288,8 +1303,14 @@ sub is_hardware_supported
 }
 
 
+# Needs to be renamed from alert_banner
 sub alert_banner
 {
+    print "<div class=\"TopBanner\">";
+
+    #AREDN Banner
+    print "<div class=\"LogoDiv\"><img src=\"/AREDN.png\" class=\"AREDNLogo\"></img></div>";
+
     # Device compatibility alert
     if ( is_hardware_supported() != 1  ){
         if (is_hardware_supported() == 0 ){
@@ -1302,8 +1323,21 @@ sub alert_banner
             print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>\n";
         }
     }
+
+    #TopBanner
+    print "</div>";
 }
 
+sub page_footer
+{
+    print "<div class=\"Page_Footer\">";
+    print "<hr>";
+
+    print "<p class=\"PartOfAREDN\">Part of the AREDN&trade; Project. For more details please <a href=\"/about.html\" target=\"_blank\">see here</a></p>";
+
+    # Page_Footer
+    print "</div>"
+}
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1

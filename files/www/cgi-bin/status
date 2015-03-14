@@ -1,7 +1,7 @@
 #!/usr/bin/perl 
 =for commnet
 
-  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
@@ -18,6 +18,21 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
 
 =cut
 
@@ -44,7 +59,7 @@ else                      { system "rm -f /tmp/.night; cp -f /www/day.css /tmp/w
 
 # generate the page
 http_header();
-html_header("Broadband-Hamnet Node $node", 1);
+html_header("AREDN&trade; Node $node", 1);
 print "<body><form method=post action=/cgi-bin/status enctype='multipart/form-data'>\n";
 print "<center>\n";
 
@@ -100,13 +115,13 @@ if($config eq "not set")
     print "<br><br>\n";
     print "<div style=\"max-width: 540px\; text-align: left\">\n";
     print "<p>This device can be configured to either permit or prohibit known encrypted traffic on its RF link. It is up to the user to decide which is appropriate based on how it will be used and the license under which it will be operated. These rules vary by country, frequency, and intended use. You are encouraged to read and understand these rules before going further.</p>";
-    print "<p>This device is pre-configured with no restrictions as to the type of data being passed and is currently compatible with the Linksys WRT54G-series BBHN firmware.</p>\n"; 
+    print "<p>This device is pre-configured with no restrictions as to the type of data being passed.</p>\n"; 
     print "<p>Follow these steps if <span style=\"text-decoration: underline\">you wish to prohibit</span>  known encrypted traffic on the RF link. These instructions will disappear, so copy them for your reference:</p>";
     print "<p><ol>\n";
     print "<li>Setup your node name and password as instructed at the top of this page</li>";
     print "<li>After you Save Changes allow your node to reboot</li>";
     print "<li>Return to the Node Status page and navigate to Setup &gt Administration</li>";
-    print "<li>Obtain the blockknownencryption package from the BBHN website OR refresh the Package list (node must be connected to the internet)</li>";
+    print "<li>Obtain the blockknownencryption package from the AREDN&trade; website OR refresh the Package list (node must be connected to the internet)</li>";
     print "<li>Install the blockknownencryption package by uploading it or choosing it from the package drop-down list</li>";
     print "<li>Wait until the package installs and then reboot your node</li>";
     print "</ol></p>\n";
@@ -263,5 +278,6 @@ print "</form>\n";
 show_debug_info();
 show_parse_errors();
 
+page_footer();
 print "</body>\n";
 print "</html>\n";
