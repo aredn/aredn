@@ -1,6 +1,6 @@
 #!/bin/bash
 <<'LICENSE'
-  Part of BBHN Mesh -- Used for creating Amateur Radio friendly mesh networks
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
@@ -16,18 +16,31 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
 LICENSE
 
-#This is a build script for use with the OpenWRT Image Builder to create the final images as used by BBHN 
+#This is a build script for use with the OpenWRT Image Builder to create the final images as used by AREDN 
 
 # Initialize variables
 FILESDIR="files"
-AUSTINBUILD=false
 
 while getopts "v:a:d:f" flag; do
 case "$flag" in
     v) REQVERSION=$OPTARG;;
-    a) AUSTINBUILD=true;;
     d) DESTINATION=$OPTARG;;
     f) FILESDIR=$OPTARG;;
 esac
@@ -39,28 +52,16 @@ if [ ! $REQVERSION ]
   exit 1
 fi
 
+VERSION=$REQVERSION
+
 if [ ! $DESTINATION ]
   then
   echo "A destination folder must be provided with the -d flag"
   exit 1
 fi
 
-
-# If not an Austin build we can set the version and go direct, otherwise we need to do some prepwork on the files.
-if ! $AUSTINBUILD 
-then
-  VERSION=$REQVERSION
-else 
-  VERSION=$REQVERSION-Austin
-  # Change repository URL's to reflect the Austin server
-  sed -i 's/http:\/\/downloads.bbhndev.org\/firmware\/ubnt/http:\/\/broadband-hamnet.org\/download\/firmware\/ubnt/g' $FILESDIR/www/cgi-bin/admin
-  sed -i 's/http:\/\/downloads.bbhndev.org/http:\/\/www.broadband-hamnet.org\/download/g' $FILESDIR/etc/opkg.conf
-
-fi
-
-
 mkdir -p $DESTINATION;
 
 echo $VERSION > files/etc/mesh-release
 fakeroot make image PLATFORM="UBNT" PACKAGES="bridge busybox dnsmasq dropbear iptables kmod-ipt-nathelper kmod-usb-core kmod-usb-uhci kmod-usb2 libgcc mtd ppp ppp-mod-pppoe uhttpd olsrd perl olsrd-mod-arprefresh olsrd-mod-dyn-gw olsrd-mod-httpinfo olsrd-mod-nameservice olsrd-mod-txtinfo olsrd-mod-dot-draw olsrd-mod-watchdog olsrd-mod-secure perlbase-essential perlbase-xsloader perlbase-file perlbase-perlio libpcap tcpdump-mini ntpclient xinetd kmod-ipv6 ip6tables kmod-ip6tables libip6tc ip iptables-mod-ipopt iwinfo libiwinfo socat" FILES="$FILESDIR" BIN_DIR="$DESTINATION/$VERSION"
-rename "s/openwrt/bbhn-$VERSION/g" /$DESTINATION/$VERSION/*
+rename "s/openwrt/AREDN-$VERSION/g" /$DESTINATION/$VERSION/*
