@@ -58,6 +58,15 @@ foreach $config ("ap","client","mesh","mesh_ap","router")
         }
     }
 
+    # Specific settings for variables that are not in the default config but are added by the system
+    foreach $variable( 'dmz_dhcp_end', 'dmz_dhcp_limit', 'dmz_dhcp_start', 'dmz_lan_ip', 'dmz_lan_mask', 'wifi_rxant', 'wifi_txant' )
+    {
+        if ( $cfg{$variable} )
+        {
+            print TMPCONFFILE "$variable = $cfg{$variable}\n";
+        }
+    }
+
     close (TMPCONFFILE);
 
     system ("mv /tmp/.${config}_setup /etc/config.$config/_setup");
