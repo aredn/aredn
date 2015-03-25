@@ -105,7 +105,10 @@ chomp ($dtdmac = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.dtdmac`);
 
 if($dtdmac eq "")                                                                                                   
 {                                                                                                                   
-                                                                                                                    
+  # We should always have an eth0 interface on all nodes.
+  # Not porting get_interface into this file at this time
+  # as on a firstboot where nvram-setup runs the interfaces
+  # should not be changed yet.                                                                                                                  
   open(FILE, "/sbin/ifconfig eth0 |") or fail("ERROR: eth0 mac not available");                                     
   while(<FILE>)                                                                                                     
   {                                                                                                                 

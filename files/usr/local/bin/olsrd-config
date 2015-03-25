@@ -65,7 +65,7 @@ if(-f "/etc/config/dmz-mode")
 if ($name = nvram_get("node"))
 {
     my ($dtdip,$dtdmask,$dtdbcast,$dtdnet);
-    ($dtdip, $dtdmask, $dtdbcast, $dtdnet) = get_ip4_network("eth0.2");
+    ($dtdip, $dtdmask, $dtdbcast, $dtdnet) = get_ip4_network(get_interface("dtdlink"));
     push @hosts, qq("$dtdip" "dtdlink.$name.local.mesh");
 }             
 
