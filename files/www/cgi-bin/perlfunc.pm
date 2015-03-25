@@ -286,14 +286,7 @@ sub reboot_page
     $link = "/cgi-bin/status" unless $link;
 
     # is the browser coming from the lan?
-    if(system "ifconfig br-lan >/dev/null 2>&1")
-    {
-	($lanip, $lanmask, $junk, $lannet) = &get_ip4_network("eth0");
-    }
-    else
-    {
-	($lanip, $lanmask, $junk, $lannet) = &get_ip4_network("br-lan");
-    }
+    ($lanip, $lanmask, $junk, $lannet) = &get_ip4_network(get_interface("lan"));
     my($browser) = $ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/;
     my $fromlan = validate_same_subnet($browser, $lanip, $lanmask);
     $junk = ""; # dummy to avoid warning
@@ -538,8 +531,8 @@ sub load_cfg
 {
     #my $mac2 = nvram_get("mac2");
     my $node = nvram_get("node");
-    my $mac2 = mac2ip(get_mac("wlan0"), 0);
-    my $dtdmac = mac2ip(get_mac("eth0"), 0);
+    my $mac2 = mac2ip(get_mac(get_interface("wifi")), 0);
+    my $dtdmac = mac2ip(get_mac(get_interface("lan")), 0);
     open(FILE, $_[0]) or return 0;
     while(defined ($line = <FILE>))
     {
@@ -1280,7 +1273,8 @@ sub wifi_useschains
 #has increased it to a higher level.
 sub wifi_txpoweroffset
 {
-    my $doesiwoffset=`iwinfo wlan0 info 2>/dev/null` =~ /TX power offset: (\d+)/;
+    my $wlanintf = get_interface("wifi");
+    my $doesiwoffset=`iwinfo $wlanintf info 2>/dev/null` =~ /TX power offset: (\d+)/;
     if ( $doesiwoffset ) {
         return $1;
     } else
@@ -1338,6 +1332,34 @@ sub page_footer
     # Page_Footer
     print "</div>"
 }
+
+
+sub get_interface
+{
+    my ($intfname) = @_;
+    my $intfname = `uci -q get network.$intfname.ifname`;
+    chomp $intfname;
+
+    if ($intfname) {
+        return $intfname;
+    } else {
+        # Capture rules incase uci file is not in sync.
+        if ( $intfname eq "lan" ) 
+        {
+            return "eth0";
+        } elsif ( $intfname eq "wan" ){
+            return "eth0.1";
+        } elsif ( $intfname eq "wifi" ){
+            return "wlan0";
+        } elsif ( $intfname eq "dtdlink" ){
+            return "eth0.1";
+        } else {
+            # we have a problem
+            die("Unknown interface in call to get_interface");
+        }
+    }
+}
+
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1

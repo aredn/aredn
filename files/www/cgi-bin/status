@@ -136,59 +136,41 @@ $browser_ip = "";
 
 # left column - network interface info
 
-if(system "ifconfig br-lan >/dev/null 2>&1") # lan not bridged
+# show the wifi address
+($ip, $mask, $bcast, $net, $cidr) = get_ip4_network(get_interface("wifi"));
+$cidr = "/ $cidr" if $cidr;
+$str  = "<th align=right><nobr>WiFi address</nobr></th><td>$ip <small>$cidr</small><br>";
+$str .= "<small><nobr>" . get_ip6_addr(get_interface("wifi")) . "</nobr></small></td>";
+push @col1, $str;
+
+# find out if the browser is on this node's lan
+# if not, hide the local network details
+($ip, $mask, $bcast, $net, $cidr) = get_ip4_network(get_interface("lan"));
+if($ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/)
 {
-    # show the wifi address
-    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("wlan0");
-    $cidr = "/ $cidr" if $cidr;
-    $str  = "<th align=right><nobr>WiFi address</nobr></th><td>$ip <small>$cidr</small><br>";
-    $str .= "<small><nobr>" . get_ip6_addr("wlan0") . "</nobr></small></td>";
-    push @col1, $str;
-
-    # find out if the browser is on this node's lan
-    # if not, hide the local network details
-    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("eth0");
-    if($ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/)
-    {
-	$browser_ip = $1;
-	$hide_local = 1 unless validate_same_subnet($browser_ip, $ip, $mask);
-    }
-
-    if($ip =~ /^10\./ or not $hide_local)
-    {
-	$cidr = "/ $cidr" if $cidr;
-	$str  = "<th align=right><nobr>LAN address</nobr></th><td>$ip <small>$cidr</small><br>";
-	$str .= "<small><nobr>" . get_ip6_addr("eth0") . "</nobr></small></td>";
-	push @col1, $str;
-    }
-}
-else # lan is bridged
-{
-    # show the wifi/lan bridge address unless the browser is on a different network
-    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("br-lan");
-    if($ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/)
-    {
-	$browser_ip = $1;
-	$hide_local = 1 unless validate_same_subnet($browser_ip, $ip, $mask);
-    }
-
-    unless($hide_local)
-    {
-	$cidr = "/ $cidr" if $cidr;
-	$str  = "<th align=right><nobr>WiFi/LAN address</nobr></th><td>$ip <small>$cidr</small><br>";
-	$str .= "<small><nobr>" . get_ip6_addr("br-lan") . "</nobr></small></td>";
-	push @col1, $str;
-    }
+    $browser_ip = $1;
+    $hide_local = 1 unless validate_same_subnet($browser_ip, $ip, $mask);
 }
 
-if(not $hide_local and not system "ifconfig eth0.1 >/dev/null 2>&1")
+if($ip =~ /^10\./ or not $hide_local)
 {
-    ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("eth0.1");
     $cidr = "/ $cidr" if $cidr;
-    $cidr = "" unless $cidr;
-    $str  = "<th align=right><nobr>WAN address</nobr></th><td>$ip <small>$cidr</small><br>";
-    $str .= "<small><nobr>" . get_ip6_addr("eth0.1") . "</nobr></small></td>";
+    $str  = "<th align=right><nobr>LAN address</nobr></th><td>$ip <small>$cidr</small><br>";
+    $str .= "<small><nobr>" . get_ip6_addr(get_interface("lan")) . "</nobr></small></td>";
     push @col1, $str;
+}
+
+{
+    my $wanintf = get_interface("wan");
+    if(not $hide_local and not system "ifconfig $wanintf >/dev/null 2>&1")
+    {
+        ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("$wanintf");
+        $cidr = "/ $cidr" if $cidr;
+        $cidr = "" unless $cidr;
+        $str  = "<th align=right><nobr>WAN address</nobr></th><td>$ip <small>$cidr</small><br>";
+        $str .= "<small><nobr>" . get_ip6_addr("$wanintf") . "</nobr></small></td>";
+        push @col1, $str;
+    }
 }
 
 $ip = get_default_gw();
@@ -232,7 +214,7 @@ if(-f "/tmp/olsrd.log")
 if($config eq "mesh" or $config eq "client")
 {
     $str = "<th align=right valign=middle><nobr>Signal/Noise/Ratio</nobr></th><td valign=middle><nobr>";
-    ($s, $n) = get_wifi_signal("wlan0");
+    ($s, $n) = get_wifi_signal(get_interface("wifi"));
     if($s eq "N/A") { $str .= "N/A" }
     else            { $str .= sprintf "<big><b>%d / %d / %d dB</b></big>", $s, $n, $s - $n }
     $str .= "&nbsp;&nbsp;&nbsp;";

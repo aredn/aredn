@@ -75,14 +75,7 @@ else                          { $dmz_mode = 0 }
 
 # get the network details of the lan interface for dhcp calculations
 
-if(system "ifconfig br-lan >/dev/null 2>&1")
-{
-    ($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network("eth0");
-}
-else
-{
-    ($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network("br-lan");
-}
+($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network(get_interface("lan"));
 
 $lannet_d = ip2decimal($lannet);
 
