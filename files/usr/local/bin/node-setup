@@ -1,3 +1,4 @@
+
 #!/usr/bin/perl -w -I/www/cgi-bin
 =for commnet
 
@@ -125,6 +126,11 @@ foreach $line (`cat /etc/config.$config/_setup`)
     $line =~ /^(\w+)\s*=\s*(.*)$/;
     $cfg{$1} = $2;
 }
+
+$cfg{"lan_intf"} = get_interface("lan");
+$cfg{"wifi_intf"} = get_interface("wifi");
+$cfg{"wan_intf"} = get_interface("wan");
+$cfg{"dtdlink_intf"} = get_interface("dtdlink");
 
 die "configuration load failed\n" unless keys %cfg;
 
