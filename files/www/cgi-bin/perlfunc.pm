@@ -1336,22 +1336,22 @@ sub page_footer
 
 sub get_interface
 {
-    my ($intfname) = @_;
-    my $intfname = `uci -q get network.$intfname.ifname`;
+    my ($intf) = @_;
+    my $intfname = `uci -q get network.$intf.ifname`;
     chomp $intfname;
 
     if ($intfname) {
         return $intfname;
     } else {
         # Capture rules incase uci file is not in sync.
-        if ( $intfname eq "lan" ) 
+        if ( $intf eq "lan" ) 
         {
             return "eth0";
-        } elsif ( $intfname eq "wan" ){
+        } elsif ( $intf eq "wan" ){
             return "eth0.1";
-        } elsif ( $intfname eq "wifi" ){
+        } elsif ( $intf eq "wifi" ){
             return "wlan0";
-        } elsif ( $intfname eq "dtdlink" ){
+        } elsif ( $intf eq "dtdlink" ){
             return "eth0.1";
         } else {
             # we have a problem
