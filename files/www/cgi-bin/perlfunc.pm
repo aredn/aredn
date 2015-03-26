@@ -1352,7 +1352,7 @@ sub get_interface
         } elsif ( $intf eq "wifi" ){
             return "wlan0";
         } elsif ( $intf eq "dtdlink" ){
-            return "eth0.1";
+            return "eth0.2";
         } else {
             # we have a problem
             die("Unknown interface in call to get_interface");
