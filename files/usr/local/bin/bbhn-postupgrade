@@ -13,8 +13,8 @@ if ( ! $needsrun  ){
 #Prep some variables
 $node = nvram_get("node");
 $tactical = nvram_get("tactical");
-$mac2 = mac2ip(get_mac("wlan0"), 0);
-$dtdmac = mac2ip(get_mac("eth0"), 0);
+$mac2 = mac2ip(get_mac(get_interface("wifi")), 0);
+$dtdmac = mac2ip(get_mac(get_interface("lan")), 0);
 
 
 foreach $config ("ap","client","mesh","mesh_ap","router")

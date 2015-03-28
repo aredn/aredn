@@ -139,7 +139,8 @@ sub is_channel_valid
     # We don't have the device band in the data file so lets fall back to checking manually
     else {
         my $channelok=0;
-        foreach (`iwinfo wlan0 freqlist`)
+        my $wifiintf = get_interface("wifi");
+        foreach (`iwinfo $wifiintf freqlist`)
         {
             next unless /Channel $channel/;
             next if /\[restricted\]/;
@@ -166,7 +167,8 @@ sub rf_channels_list
     else
     {          
         my  %channels = ();
-        foreach (`iwinfo wlan0 freqlist` )
+        my $wifiintf = get_interface("wifi");
+        foreach (`iwinfo $wifiintf freqlist` )
         {
             next unless /([0-9]+.[0-9]+) GHz \(Channel ([0-9]+)\)/;
             next if /\[restricted\]/;
