@@ -71,10 +71,12 @@ sub navbar
     my($current) = @_;
     $current = "" unless $current;
 
-    my @pages = qw(status setup ports admin);
+    my @pages = qw(status setup ports vpn vpnc admin);
     my %titles = (status => "Node Status",
 		  setup  => "Basic Setup",
 		  ports  => "Port Forwarding,<br>DHCP, and Services",
+          vpn    => "Tunnel<br>Server",
+          vpnc   => "Tunnel<br>Client",
 		  admin  => "Administration");
     
     my($active_bg, $active_fg);
