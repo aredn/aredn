@@ -1007,6 +1007,17 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '900',
          },
+        '0xe1c3' => {
+            'name'            => 'Rocket M3',
+            'comment'         => 'In Testing',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '3',
+            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
+            'defaultant'      => 3,
+            'usechains'       => 1,
+            'rfband'          => '3400',
+         },
         '0xe202' => {
             'name'            => 'Bullet M2 HP',
             'comment'         => '',
