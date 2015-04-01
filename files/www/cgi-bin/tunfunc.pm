@@ -160,9 +160,9 @@ sub vpn_setup_required()
         print "</b></td></tr>\n";
     }
     print "<tr><td align=center><br><b>";
-    print "VPN software needs to be installed.<br/>";
+    print "Tunnel software needs to be installed.<br/>";
     print "<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>\n";
-    print "<input type=submit name=button_install value='Click to install' />";
+    print "<input type=submit name=button_install value='Click to install' class='btn_tun_install' />";
     print "</form>";
     print "</b></td></tr>\n";
     print "</table></center></body></html>\n";
