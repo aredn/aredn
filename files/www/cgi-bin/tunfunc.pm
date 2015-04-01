@@ -139,7 +139,7 @@ sub open_5525_on_wan() {
     system "uci set firewall.@rule[-1].dest_port='5525'";
     system "uci set firewall.@rule[-1].proto='tcp'";
     system "uci set firewall.@rule[-1].target='ACCEPT'";
-    system "uci commit firewall" ;`
+    system "uci commit firewall";
 }
 
 
