@@ -1104,7 +1104,7 @@ sub hardware_info
             'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
             'defaultant'      => 3,
             'usechains'       => 1,
-            'rfband'          => '2400',
+            'rfband'          => '3400',
          },
         '0xe252' => {
             'name'            => 'airGrid M2 HP',
