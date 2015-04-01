@@ -142,7 +142,62 @@ sub open_5525_on_wan() {
     system "uci commit firewall";
 }
 
+sub vpn_setup_required()
+{
+    http_header();
+    html_header("$node setup", 1);
+    print "<body><center><table width=790>";
+    print "<tr><td>\n";
+    navbar("vpn");
+    print "</td></tr>";
+    ################# 
+    # messages
+    #################
+    if(@cli_err)
+    {
+        print "<tr><td align=center><b>ERROR:<br>";
+        foreach(@cli_err) { print "$_<br>" }
+        print "</b></td></tr>\n";
+    }
+    print "<tr><td align=center><br><b>";
+    print "VPN software needs to be installed.<br/>";
+    print "<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>\n";
+    print "<input type=submit name=button_install value='Click to install' />";
+    print "</form>";
+    print "</b></td></tr>\n";
+    print "</table></center></body></html>\n";
+    exit;
+}
 
+
+#################################
+# Install VTUN Components/config
+#################################
+sub install_vtun()
+{   
+    &install_vtun();
+
+    # check free disk space - get real values
+    $freespace=&check_freespace();
+
+    if($freespace < 600)
+    {
+        push @cli_err, "Insuffient free disk space!";
+    }
+    else
+    {
+        # Update/Install VTUN
+        system "opkg update";
+        system "opkg install kmod-tun zlib libopenssl liblzo vtun > /tmp/tunnel_install.log";
+        
+        # add network interfaces
+        &add_network_interfaces();
+        
+        # Reboot required
+        system "touch /tmp/reboot-required";
+    }
+
+}
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1

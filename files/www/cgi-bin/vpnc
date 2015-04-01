@@ -25,12 +25,18 @@ read_postdata();
 #################
 # page checks
 #################
+if($parms{button_reboot})
+{
+    system "/sbin/reboot";
+} 
+
 &reboot_required() if($config eq "" or -e "/tmp/reboot-required");
 &vpn_setup_required() unless(-e "/usr/sbin/vtund" );
  
 #################
 # If RESET or FIRST TIME, load servers from file into parms
 #################
+
 if($parms{button_reset} or not $parms{reload})
 {
     # load connections from UCI
@@ -397,44 +403,6 @@ sub get_connection_info()
         }
     }
     $parms{conn_num} = $connection_count;
-}
-
-
-
-# VPN software is not installed
-sub vpn_setup_required()
-{
-    http_header();
-    html_header("$node setup", 1);
-    print "<body><center><table width=790><tr><td>\n";
-    navbar("vpn");
-    print "</td></tr><tr><td align=center><br><b>";
-    print "VPN software needs to be installed.";
-    #print "<input type=button name=install_vpn>";
-    print "</b></td></tr>\n";
-    print "</table></center></body></html>\n";
-    exit;
-}
-
-# A reboot is required
-sub reboot_required()
-{
-    http_header();
-    html_header("$node setup", 1);
-    print "<body><center><table width=790><tr><td>\n";
-    navbar("vpn");
-    print "</td></tr><tr><td align=center><br><b>";
-    if($config eq "")
-    {
-    print "This page is not available until the configuration has been set.";
-    }
-    else
-    {
-    print "The configuration has been changed.<br>This page will not be available until the node is rebooted.\n";
-    }
-    print "</b></td></tr>\n";
-    print "</table></center></body></html>\n";
-    exit;
 }
 
 sub DEBUGEXIT()

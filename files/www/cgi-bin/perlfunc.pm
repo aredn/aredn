@@ -1362,6 +1362,28 @@ sub get_interface
     }
 }
 
+sub reboot_required()
+{
+    http_header();
+    html_header("$node setup", 1);
+    print "<body><center><table width=790><tr><td>\n";
+    navbar("vpn");
+    print "</td></tr><tr><td align=center><br>";
+    if($config eq "")
+    {
+    print "<b>This page is not available until the configuration has been set.</b>";
+    }
+    else
+    {
+        print "<b>The configuration has been changed.<br>This page will not be available until the node is rebooted.\n</b>";
+        print "<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>\n";
+        print "<input type=submit name=button_reboot value='Click to REBOOT' />";
+        print "</form>";
+    }
+    print "</td></tr>\n";
+    print "</table></center></body></html>\n";
+    exit;
+}
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1

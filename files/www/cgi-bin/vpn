@@ -29,7 +29,7 @@ if($parms{button_reboot})
 
 if($parms{button_install})
 {
-    &install_vtun();
+    &install_vtun_server();
 } 
 
 &reboot_required() if($config eq "" or -e "/tmp/reboot-required");
@@ -483,82 +483,15 @@ sub get_client_info()
     $parms{client_num} = $i;
 }
 
-sub vpn_setup_required()
-{
-    http_header();
-    html_header("$node setup", 1);
-    print "<body><center><table width=790>";
-    print "<tr><td>\n";
-    navbar("vpn");
-    print "</td></tr>";
-    ################# 
-    # messages
-    #################
-    if(@cli_err)
-    {
-        print "<tr><td align=center><b>ERROR:<br>";
-        foreach(@cli_err) { print "$_<br>" }
-        print "</b></td></tr>\n";
-    }
-    print "<tr><td align=center><br><b>";
-    print "VPN software needs to be installed.<br/>";
-    print "<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>\n";
-    print "<input type=submit name=button_install value='Click to install' />";
-    print "</form>";
-    print "</b></td></tr>\n";
-    print "</table></center></body></html>\n";
-    exit;
-}
-
-sub reboot_required()
-{
-    http_header();
-    html_header("$node setup", 1);
-    print "<body><center><table width=790><tr><td>\n";
-    navbar("vpn");
-    print "</td></tr><tr><td align=center><br>";
-    if($config eq "")
-    {
-    print "<b>This page is not available until the configuration has been set.</b>";
-    }
-    else
-    {
-        print "<b>The configuration has been changed.<br>This page will not be available until the node is rebooted.\n</b>";
-        print "<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>\n";
-        print "<input type=submit name=button_reboot value='Click to REBOOT' />";
-        print "</form>";
-    }
-    print "</td></tr>\n";
-    print "</table></center></body></html>\n";
-    exit;
-}
-
 #################################
 # Install VTUN Server Components/config
 #################################
-sub install_vtun()
+sub install_vtun_server()
 {   
-    # check free disk space - get real values
-    $freespace=&check_freespace();
+    &install_vtun();
 
-    if($freespace < 600)
-    {
-        push @cli_err, "Insuffient free disk space!";
-    }
-    else
-    {
-        # Update/Install VTUN
-        system "opkg update";
-        system "opkg install kmod-tun zlib libopenssl liblzo vtun > /tmp/tunnel_install.log";
-        
-        # Prep firewall
-        &open_5525_on_wan();
-
-        # add network interfaces
-        &add_network_interfaces();
-
-        # Reboot required
-        system "touch /tmp/reboot-required";
+    # Prep firewall for server
+    &open_5525_on_wan();
     }
 }
 
