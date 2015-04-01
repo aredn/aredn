@@ -1,0 +1,449 @@
+#!/usr/bin/perl
+$debug = 1;
+BEGIN {push @INC, '/www/cgi-bin'};
+use perlfunc;
+use ucifunc;
+use tunfunc;
+
+$VPNVER="1.0";
+$config = nvram_get("config");
+$node = nvram_get("node");
+$node = "NOCALL" if $node eq "";
+$unode = uc $node;   # UPPER CASE NODENAME
+#$vpnconnfile = "/etc/vtun.connections";
+#$tmpdir = "/tmp/web/vpn";
+#$tmpvtundconf = "${tmpdir}/vtund.conf.tmp";
+#$tmpvtundservice = "${tmpdir}/vtund.service.tmp";  # contains connection rows
+#$tmpvtund = "${tmpdir}/vtund.tmp";
+#$tmpconnfile = "${tmpdir}/vpnconnections";
+
+&get_model();
+
+read_postdata();
+@active_tun=&get_active_tun();
+
+#################
+# page checks
+#################
+&reboot_required() if($config eq "" or -e "/tmp/reboot-required");
+&vpn_setup_required() unless(-e "/usr/sbin/vtund" );
+ 
+#################
+# If RESET or FIRST TIME, load servers from file into parms
+#################
+if($parms{button_reset} or not $parms{reload})
+{
+    # load connections from UCI
+    &get_connection_info();
+    
+    # initialize the "add" entries to clear them
+    foreach $var (qw(conn_add_enabled conn_add_host conn_add_passwd conn_add_netip))
+    {
+        $parms{$var} = "";
+        $parms{$var} = "0" if($var eq 'conn_add_enabled');
+    }
+}
+else 
+{
+    #&DEBUGEXIT($parms{client1_enable});
+}
+
+
+#################
+# load connections from FORM and validate
+#################
+for($i =1 , @list = (); $i <= $parms{conn_num}; ++$i) { push @list, $i }
+push @list, "_add";
+$conn_num = 0;
+
+foreach $val (@list)
+{
+    foreach $var (qw(enabled host passwd netip))
+    {
+        $varname = "conn${val}_$var";
+        $parms{$varname} = "0" if($val eq "enabled" and $parms{$varname} eq "");
+        $parms{$varname} = "" unless $parms{$varname};
+        $parms{$varname} =~ s/^\s+//;
+        $parms{$varname} =~ s/\s+$//;
+        if($val ne "_add")
+        {
+            if($parms{$varname} eq "" and ($var eq "enabled"))
+            {
+                $parms{$varname} = "0"; 
+            }
+        }
+        eval sprintf("\$%s = \$parms{%s}", $var, $varname);
+    }
+
+
+    # Validate ADDed values    
+    if($val eq "_add")  { next unless ($enabled or $host or $passwd or $netip) and ($parms{conn_add} or $parms{button_save}) }
+    else                { next if $parms{"conn${val}_del"} }
+
+    if($val eq "_add" and $parm{button_save})
+    {
+        push @conn_err, "$val this connection must be added or cleared out before saving changes";
+        next;
+    }
+
+    push @conn_err, "A connection server is required" if($host eq "");
+    push @conn_err, "A connection password is required" if($passwd eq "");
+
+    next if $val eq "_add" and @cli_err and $cli_err[-1] =~ /^$val /;
+
+    # Commit the data for this connection
+    ++$conn_num;
+
+    $parms{"conn${conn_num}_enabled"} = $enabled;
+    $parms{"conn${conn_num}_host"} = $host;
+    $parms{"conn${conn_num}_passwd"} = $passwd;
+    $parms{"conn${conn_num}_netip"} = $netip;
+
+    # Clear out the ADD values
+    if($val eq "_add")
+    {
+        foreach $var (qw(enabled host passwd netip))
+            {
+                $parms{"conn_add_${var}"} = "";
+            }   
+    }
+}
+
+#################
+# SAVE the clients the UCI vtun file
+#################
+$parms{conn_num} = $conn_num;
+
+if($parms{button_save} and not (@conn_err or @serv_err))
+{
+    # ADD/SET all server type entries
+    for($i=1; $i<=$conn_num; $i++)
+    {
+        foreach $var (qw(enabled host passwd netip)) 
+        {
+            eval sprintf("\$val = \$parms{conn%s_%s}",$i,$var);
+            $idx=$i*(-1);
+            push(@errors,"Problem adding server entry into config file") if &uci_set_indexed_option("vtun","server",$idx,$var,$val);
+        }
+        # TODO: calculate clientip and serverip
+        #
+        # TODO: uci_set_indexed_option("vtun","server",-1,"clientip",$clientip);
+        # TODO: uci_set_indexed_option("vtun","server",-1,"clientip",$serverip);
+        # TODO: uci_set_indexed_option("vtun","server",-1,"node",$nodename)
+    }
+
+    push(@errors,"Problem committing server entry into config file") if system "uci commit vtun > /dev/null 2>&1";
+
+    # COPY /etc/config/vtun to /etc/config.mesh/vtun (to workaround node-setup script issues)
+    system "cp /etc/config/vtun /etc/config.mesh/vtun";
+
+    # STOP vtun clients
+    system "/etc/init.d/vtund stop > /dev/null 2>&1";
+    
+    # START VTUND  /etc/init.d/vtund start
+    unless($debug == 3)
+    {
+        push(@errors,"Problem starting vtund") if system "/etc/init.d/vtund start > /dev/null 2>&1";
+    }
+}
+
+
+######################################################################################
+# generate the page
+######################################################################################
+http_header() unless $debug == 2;
+html_header("$node setup", 1);
+
+print "<body><center>\n";
+print "<form method=post action=/cgi-bin/vpnc enctype='multipart/form-data'>\n" unless $debug == 2;
+print "<form method=post action=test>\n" if $debug == 2;
+print "<table width=790>\n";
+
+#################
+# Navigation bar
+#################
+print "<tr><td>\n";
+navbar("vpnc");
+print "</td></tr>\n";
+
+#################
+# control buttons
+#################
+print "<tr><td align=center>";
+print "<a href='/help.html#vpn' target='_blank'>Help</a>";
+print "&nbsp;&nbsp;&nbsp;\n";
+print "<input type=submit name=button_save value='Save Changes' title='Save and use these settings now (takes about 20 seconds)'>&nbsp;\n";
+print "<input type=submit name=button_reset value='Reset Values' title='Revert to the last saved settings'>&nbsp;\n";
+print "<input type=submit name=button_refresh value='Refresh' title='Refresh this page'>&nbsp;\n";
+print "<tr><td>&nbsp;</td></tr>\n";
+push @hidden, "<input type=hidden name=reload value=1></td></tr>";
+
+#################
+# messages
+#################
+if(@cli_err)
+{
+    print "<tr><td align=center><b>ERROR:<br>";
+    foreach(@conn_err) { print "$_<br>" }
+    print "</b></td></tr>\n";
+}
+
+if($parms{button_save})
+{
+    if(@cli_err)
+    {
+	print "<tr><td align=center><b>Configuration NOT saved!</b></td></tr>\n";
+    }
+    elsif(@errors)
+    {
+	print "<tr><td align=center><b>Configuration saved, however:<br>";
+	foreach(@errors) { print "$_<br>" }
+	print "</b></td></tr>\n";
+    }
+    else
+    {
+	print "<tr><td align=center><b>Configuration saved and is now active.</b></td></tr>\n";
+    }
+
+    print "<tr><td>&nbsp;</td></tr>\n";
+}
+
+#################
+# everything else
+#################
+if($config eq "mesh")
+{
+    print "<tr><td align=center valign=top>\n";
+    &print_vpn_connections();
+    print "</td></tr>\n";
+    
+    print "<tr><td><hr></td></tr>\n";
+}
+print "</table>\n";
+print "<p style='font-size:8px'>VPN v${VPNVER}</p>";
+push @hidden, "<input type=hidden name=conn_num value=$parms{conn_num}>";
+
+#################
+# add hidden form fields
+#################
+foreach(@hidden) { print "$_\n" }
+
+#################
+# close the form
+#################
+print "</form></center>\n";
+show_debug_info();
+
+#################
+# close the html
+#################
+print "</body></html>\n";
+exit;
+
+
+##################
+# page subsections
+##################
+
+
+######################################################
+# List the connections to be made from this client
+######################################################
+sub print_vpn_connections()
+{
+    print "<table id=connection_section cellpadding=0 cellspacing=0>";
+    print "<tr><th colspan=6>Connect this node to the following servers:</th></tr>";
+    print "<tr><th colspan=6><hr></th></tr>\n";
+    print "<tr><th>Enabled?</th><th>Server</th><th>Pwd</th><th>Network</th><th>Active&nbsp;</th><th>Action</th></tr>\n";
+
+    for($i = 1, @list = (); $i <= $parms{conn_num}; ++$i) { push @list, $i };
+
+    push @list, "_add" unless($parms{conn_num} > 9);
+
+    $cnum=0;
+    foreach $val (@list)
+    {
+        foreach $var (qw(enabled host passwd netip))
+        {
+            eval sprintf("\$%s = \$parms{conn%s_%s}", $var, $val, $var);
+        }
+
+        print "<tr><td height=10></td></tr>\n" if $val eq "_add" and scalar(@list) > 1;
+        print "<tr>";
+        print "<td>";
+
+        # Required to be first, so, if the checkbox is cleared, a value will still POST
+        print "<input type='hidden' name='conn${val}_enabled' value='0'>" unless($val eq "_add");
+        print "<input type='checkbox' name='conn${val}_enabled' value='1'";
+        print " onChange='form.submit()'" unless $val eq "_add";
+        print " checked='checked'" if $enabled;
+        #print " disabled" unless $val eq "_add";
+        print " title='enable this connection'></td>";
+ 
+        print "<td><input type=text size=25 name=conn${val}_host value='$host'";
+        print " onChange='form.submit()'" unless $val eq "_add";
+        # print " disabled" unless $val eq "_add";
+        print " title='connection name'></td>";
+
+        print "<td>&nbsp;&nbsp;<input type=text size=20 name=conn${val}_passwd value='$passwd' ";
+        print " onChange='form.submit()'" unless $val eq "_add";
+        print " title='connection password'";
+        #print " disabled" unless $val eq "_add";
+        print "></td>";
+
+        print "<td>&nbsp;&nbsp;<input type=text size=14 name=conn${val}_netip value='$netip'";
+        print " onChange='form.submit()'" unless $val eq "_add";
+        # print " disabled" unless $val eq "_add";
+        print " title='connection network'></td>";
+
+        #if($val eq "_add") { print @netw[3]+(($net) * 4); }
+        #else { print @netw[3]+($net * 4); }
+        
+        #print @netw[3]+($net * 4) unless $val eq "_add";
+        print "</td>";
+        print "<td>&nbsp;";
+        #print "<img src='/dot.png'/>" if(@active_tun[$cnum]);  
+        print "<img src='/dot.png'/>" if((&is_tunnel_active($netip, @active_tun)) && ($val ne "_add"));
+        print "</td>";
+        print "<td>&nbsp;";    
+
+        print "<input type=submit name=";
+        if($val eq "_add")  { print "conn_add value=Add title='Add this connection'" }
+        else                { print "conn${val}_del value=Del title='Delete this connection'" }
+        print "></td></tr>\n";
+
+        # display any errors
+        while(@conn_err and $conn_err[0] =~ /^$val /)
+        {
+            $err = shift @conn_err;
+            $err =~ s/^\S+ //;
+            print "<tr><th colspan=4>$err</th></tr>\n";
+        }
+
+        #push @hidden, "<input type='hidden' name='client${val}_enable' value='0'>" unless($val eq "_add");
+        
+        print "<tr><td colspan=6 height=4></td></tr>\n";
+        $cnum++;
+    }
+    print "</table>\n";
+}
+
+
+#################################
+# generate the UCI file
+#################################
+sub build_uci()
+{
+    
+    # loop over each connection
+    #$cnum=0;
+    foreach(`cat $vpnconnfile 2>/dev/null`)
+    {
+        next if /^\s*#/;   ## ignore lines that start with '#'
+        next if /^\s*$/;   ## ignore lines that start with '$'
+        chomp;
+
+        @parts = split /\|/, $_;
+        
+        next unless scalar(@parts) == 4;
+
+        $enable = @parts[0];
+        $server = @parts[1];
+        $pass = @parts[2];
+        $net = @parts[3];
+
+        @netw=split /\./, $net;
+
+        unless($enable)
+        {
+            # $cnum++;    ## to make sure the tun and ip addresses remain constant
+            next;
+        }
+        $clientname=sprintf("%s-%d-%d-%d-%d",$unode,@netw[0],@netw[1],@netw[2],@netw[3]);
+        $net3=@netw[2];
+        #$net4=@netw[3]+($cnum*4);
+        $net4=@netw[3];
+        $netnet=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],$net3,$net4);
+        $netcli=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],$net3,$net4+1);
+        $netserv=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],$net3,$net4+2);
+
+        # uci set vtun.@server[-1].host
+        # uci set vtun.@server[-1].node
+        # uci set vtun.@server[-1].passwd
+        # uci set vtun.@server[-1].netip
+        # uci commit vtun
+
+        $cnum++;
+    }    
+}
+
+#################################
+# load info from UCI
+#################################
+sub get_connection_info()
+{    
+    my $x;
+    
+    # how many connections
+    my $connection_count=&uci_get_type_count("vtun","server");
+    
+    for (my $i=1; $i<=$connection_count; $i++) {
+
+        foreach $var (qw(enabled host passwd netip))
+        {
+            $x=&uci_get_indexed_item("vtun","server",$i-1,$var);
+            $parms{"conn${i}_${var}"}=$x;
+            #eval sprintf("\$%s = \$parms{conn%s_%s}", $var, $val, $var);
+        }
+    }
+    $parms{conn_num} = $connection_count;
+}
+
+
+
+# VPN software is not installed
+sub vpn_setup_required()
+{
+    http_header();
+    html_header("$node setup", 1);
+    print "<body><center><table width=790><tr><td>\n";
+    navbar("vpn");
+    print "</td></tr><tr><td align=center><br><b>";
+    print "VPN software needs to be installed.";
+    #print "<input type=button name=install_vpn>";
+    print "</b></td></tr>\n";
+    print "</table></center></body></html>\n";
+    exit;
+}
+
+# A reboot is required
+sub reboot_required()
+{
+    http_header();
+    html_header("$node setup", 1);
+    print "<body><center><table width=790><tr><td>\n";
+    navbar("vpn");
+    print "</td></tr><tr><td align=center><br><b>";
+    if($config eq "")
+    {
+    print "This page is not available until the configuration has been set.";
+    }
+    else
+    {
+    print "The configuration has been changed.<br>This page will not be available until the node is rebooted.\n";
+    }
+    print "</b></td></tr>\n";
+    print "</table></center></body></html>\n";
+    exit;
+}
+
+sub DEBUGEXIT()
+{
+    my ($text) = @_;
+    http_header();
+    html_header("$node setup", 1);
+    print "DEBUG[";
+    print $text;
+    print "]</body>";
+    exit;
+}

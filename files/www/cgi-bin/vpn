@@ -1,0 +1,575 @@
+#!/usr/bin/perl
+$debug = 0;
+BEGIN {push @INC, '/www/cgi-bin'};
+use perlfunc;
+use ucifunc;
+use tunfunc;
+
+$VPNVER="1.0";
+$config = nvram_get("config");
+$node = nvram_get("node");
+$node = "NOCALL" if $node eq "";
+$unode = uc $node;   # UPPER CASE NODENAME
+$vpncfile = "/etc/vpnclients";
+$tmpdir = "/tmp/web/vpn";
+$tmpvtundsconf = "${tmpdir}/vtundsrv.conf.tmp";
+$tmpconnfile = "${tmpdir}/vpnclients";
+$tsfile = "/etc/tunnel.server";
+$tmptsfile = "${tmpdir}/tunnel.server.tmp";
+
+read_postdata();
+
+#################
+# page checks
+#################
+if($parms{button_reboot})
+{
+    system "/sbin/reboot";
+} 
+
+if($parms{button_install})
+{
+    &install_vtun();
+} 
+
+&reboot_required() if($config eq "" or -e "/tmp/reboot-required");
+&vpn_setup_required() unless(-e "/usr/sbin/vtund" );
+&get_model();
+&get_active_tun();
+
+#################
+# If RESET or FIRST TIME, load clients/servers from file into parms  --- CHANGE not needed?
+#################
+system "rm -rf $tmpdir" unless $parms{reload};
+system "mkdir -p $tmpdir" unless $parms{reload};
+
+# if RESET, delete the tunnel.server network number file  --- CHANGE UCI
+if($parms{button_reset})
+{
+    system "rm -rf $tsfile";
+}
+
+#################
+# get vtun network address
+#################
+@netw = ();
+@netw = &get_server_network_address();
+#&DEBUGEXIT(@netw[2]); 
+
+#################
+# If RESET or FIRST TIME, load clients/servers from file into parms
+#################
+if($parms{button_reset} or not $parms{reload})
+{
+    # load clients from CONFIG FILE
+    &get_client_info();
+
+    $parms{server_net1}=@netw[2];
+    $parms{server_net2}=@netw[3];
+    
+    # initialize the "add" entries to clear them
+    foreach $var (qw(client_add_enable client_add_name client_add_pass))
+    {
+        $parms{$var} = "";
+        $parms{$var} = "0" if($var eq 'client_add_enable');
+    }
+}
+else 
+{
+    #&DEBUGEXIT($parms{client1_enable});
+}
+
+
+#################
+# load clients from FORM and validate
+#################
+for($i =1 , @list = (); $i <= $parms{client_num}; ++$i) { push @list, $i }
+push @list, "_add";
+$client_num = 0;
+
+foreach $val (@list)
+{
+    foreach $var (qw(enable name pass))
+    {
+        $varname = "client${val}_$var";
+        $parms{$varname} = "0" if($val eq "enable" and $parms{$varname} eq "");
+        $parms{$varname} = "" unless $parms{$varname};
+        $parms{$varname} =~ s/^\s+//;
+        $parms{$varname} =~ s/\s+$//;
+        if($val ne "_add")
+        {
+            if($parms{$varname} eq "" and ($var eq "enable"))
+            {
+                $parms{$varname} = "0"; 
+            }
+        }
+        eval sprintf("\$%s = \$parms{%s}", $var, $varname);
+    }
+
+
+    # Validate ADDed values    
+    if($val eq "_add")
+    {
+        # skip any null values on add or save
+        next unless ($enable or $name or $pass) and ($parms{client_add} or $parms{button_save});
+    }   # no delete capabilities as net renumbering is not allowed
+
+
+    if($val eq "_add" and $parm{button_save})
+    {
+        push @cli_err, "$val this client must be added or cleared out before saving changes";
+        next;
+    }
+
+    push @cli_err, "A client name is required" if($name eq "");
+    push @cli_err, "A client password is required" if($pass eq "");
+
+    next if $val eq "_add" and @cli_err and $cli_err[-1] =~ /^$val /;
+
+    # Commit the data for this client
+    ++$client_num;
+
+    $parms{"client${client_num}_enable"} = $enable;
+    $parms{"client${client_num}_name"} = uc $name;
+    $parms{"client${client_num}_pass"} = $pass;
+
+    # Clear out the ADD values
+    if($val eq "_add")
+    {
+        foreach $var (qw(net enable name pass))
+            {
+                $parms{"client_add_${var}"} = "";
+            }   
+    }
+}
+
+#################
+# SAVE the clients into the TMP file --- CHANGE TO UCI
+#################
+system "rm -f $tmpconnfile";
+open(FILE, ">$tmpconnfile");
+for($i = 1; $i <= $client_num; $i++)
+{
+    printf FILE "%d|%s|%s\n",
+        $parms{"client${i}_enable"},
+        $parms{"client${i}_name"},
+        $parms{"client${i}_pass"}
+}
+close(FILE);
+
+#################
+# SAVE the server network numbers into the TMP file --- CHANGE UCI
+#################
+#if(($parms{server_net1} ~~ [0..252]) and ($parms{server_net2} ~~ [0..252]))
+#{
+    system "rm -f $tmptsfile";
+    open(FILE, ">$tmptsfile");
+    printf FILE "%d.%d.%d.%d",172,31,$parms{server_net1},$parms{server_net2};
+    close(FILE);
+    $netw[2]=$parms{server_net1};
+    $netw[3]=$parms{server_net2};
+#}
+#else
+#{
+#    push @cli_err, "The server net values must be between 0-254!";
+#    $parms{server_net1}=$netw[2];
+#    $parms{server_net2}=$netw[3];
+#}
+
+
+$parms{client_num} = $client_num;
+
+
+#################
+# save configuration  --- CHANGE UCI
+#################
+if($parms{button_save} and not (@cli_err or @serv_err))
+{
+    # save the tunnel.server ip address to file
+    system "cp -f $tmptsfile $tsfile";
+    system "cp -f $tmpconnfile $vpncfile";
+    #&generate_vtundsrv_conf();
+
+    # uci commit vtundsrv
+    # ./vtundsrv stop
+    # ./vtundsrv start
+
+    # RESTART VTUNDSRV  /etc/init.d/vtundsrv restart
+    unless($debug == 3)
+    {
+        push(@errors,"problem with vtundsrv") if system "/etc/init.d/vtundsrv restart > /dev/null 2>&1";
+    }
+}
+
+
+######################################################################################
+# generate the page
+######################################################################################
+http_header() unless $debug == 2;
+html_header("$node setup", 1);
+
+print "<body><center>\n";
+print "<form method=post action=/cgi-bin/vpn enctype='multipart/form-data'>\n" unless $debug == 2;
+print "<form method=post action=test>\n" if $debug == 2;
+print "<table width=790>\n";
+
+#################
+# Navigation bar
+#################
+print "<tr><td>\n";
+navbar("vpn");
+print "</td></tr>\n";
+
+#################
+# control buttons
+#################
+print "<tr><td align=center>";
+print "<a href='/help.html#vpn' target='_blank'>Help</a>";
+print "&nbsp;&nbsp;&nbsp;\n";
+print "<input type=submit name=button_save value='Save Changes' title='Save and use these settings now (takes about 20 seconds)'>&nbsp;\n";
+print "<input type=submit name=button_reset value='Reset Values' title='Revert to the last saved settings'>&nbsp;\n";
+print "<input type=submit name=button_refresh value='Refresh' title='Refresh this page'>&nbsp;\n";
+print "<tr><td>&nbsp;</td></tr>\n";
+push @hidden, "<input type=hidden name=reload value=1></td></tr>";
+
+#################
+# messages
+#################
+if(@cli_err)
+{
+    print "<tr><td align=center><b>ERROR:<br>";
+    foreach(@cli_err) { print "$_<br>" }
+    print "</b></td></tr>\n";
+}
+
+if($parms{button_save})
+{
+    if(@cli_err)
+    {
+	print "<tr><td align=center><b>Configuration NOT saved!</b></td></tr>\n";
+    }
+    elsif(@errors)
+    {
+	print "<tr><td align=center><b>Configuration saved, however:<br>";
+	foreach(@errors) { print "$_<br>" }
+	print "</b></td></tr>\n";
+    }
+    else
+    {
+	print "<tr><td align=center><b>Configuration saved and is now active.</b></td></tr>\n";
+    }
+
+    print "<tr><td>&nbsp;</td></tr>\n";
+}
+
+#################
+# everything else
+#################
+if($config eq "mesh")
+{
+    #print "<tr><th>** THIS PAGE IS NON-FUNCTIONAL AT THE MOMENT **</th></tr>\n";
+    #print "<tr><td align=center valign=top>\n";
+
+    #print "</td></tr>\n";
+    #print "<tr><td><hr></td></tr>\n";
+   
+    print "<tr><td align=center valign=top>\n";
+    &print_vpn_clients();
+    print "</td></tr>\n";
+    
+    print "<tr><td><hr></td></tr>\n";
+}
+print "</table>\n";
+print "<p style='font-size:8px'>VPN v${VPNVER}</p>";
+push @hidden, "<input type=hidden name=client_num value=$parms{client_num}>";
+
+#################
+# add hidden form fields
+#################
+foreach(@hidden) { print "$_\n" }
+
+#################
+# close the form
+#################
+print "</form></center>\n";
+show_debug_info();
+
+#################
+# close the html
+#################
+print "</body></html>\n";
+exit;
+
+
+##################
+# page subsections
+##################
+
+######################################################
+# List the clients allowed to connect to this server #
+######################################################
+sub print_vpn_clients()
+{
+    print "<table id=client_section cellpadding=0 cellspacing=0>";
+    
+    #print "<tr><td colspan=5 align=center valign=top>Virtual Tunnel Server Enabled? <input type=checkbox name=server_enabled checked /></td></tr>";
+    print "<br /><tr><td colspan=6 align=center valign=top>Virtual Tunnel Server Network: ";   
+    printf("%d.%d.",@netw[0],@netw[1]);
+    print "<input type='text' name='server_net1' size='3' maxlen='3' value='@netw[2]' onChange='form.submit()' >";
+    print ".";
+    print "<input type='text' name='server_net2' size='3' maxlen='3' value='@netw[3]' onChange='form.submit()'>";
+    print " (must be between 0 and 254)</td></tr>";
+    print "<tr><th colspan=6><hr></th></tr>\n";
+    print "<tr><th colspan=6>Allow the following clients to connect to this server:</th></tr>\n";
+    print "<tr><th>Enabled?</th><th>Client</th><th>Pwd</th><th>Net</th><th>Active&nbsp;</td><th>Action</th></tr>\n";
+    
+    for($i = 1, @list = (); $i <= $parms{client_num}; ++$i) { push @list, $i };
+
+    push @list, "_add" unless($parms{client_num} > 9);
+
+    $cnum=0;
+    foreach $val (@list)
+    {
+        foreach $var (qw(enable name pass))
+        {
+            eval sprintf("\$%s = \$parms{client%s_%s}", $var, $val, $var);
+        }
+
+        print "<tr><td height=10></td></tr>\n" if $val eq "_add" and scalar(@list) > 1;
+        print "<tr>";
+        print "<td>";
+
+        # Required to be first, so, if the checkbox is cleared, a value will still POST
+        print "<input type='hidden' name='client${val}_enable' value='0'>" unless($val eq "_add");
+        print "<input type='checkbox' name='client${val}_enable' value='1'";
+        print " onChange='form.submit()'" unless $val eq "_add";
+        print " checked='checked'" if $enable;
+		#print " disabled" unless $val eq "_add";
+        print " title='enable this client'></td>";
+ 
+        print "<td><input type=text size=25 name=client${val}_name value='$name'";
+		print " onChange='form.submit()'" unless $val eq "_add";
+        # print " disabled" unless $val eq "_add";
+		print " title='client name'></td>";
+
+        print "<td>&nbsp;&nbsp;<input type=text size=20 name=client${val}_pass value='$pass' ";
+        print " onChange='form.submit()'" unless $val eq "_add";
+        print " title='client password'";
+        #print " disabled" unless $val eq "_add";
+        print "></td>";
+
+        # handle rollover of netw[3]
+        if(@netw[3]+($cnum * 4) > 252) {
+            @netw[2]++;
+            $netw[3] = 0;
+            $net=0;
+            $cnum=0;
+        } else {
+            $net=$cnum;
+        }
+        
+        if($val eq "_add") { $lastnet=@netw[3]+(($net) * 4); }
+        else { $lastnet=@netw[3]+($net * 4); }
+        $fullnet=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],@netw[2],$lastnet);
+        
+        print "<td>&nbsp;$fullnet</td>";       
+        print "<td>&nbsp;";
+        #print "<img src='/dot.png'/>" if(@active_tun[$cnum]);  
+        print "<img src='/dot.png'/>" if((&is_tunnel_active($name)) && ($val ne "_add"));
+        print "</td>";
+        print "<td><input type=submit name=client_add value=Add title='Add this client'>" if($val eq "_add");
+        print "</td>";
+
+        print "<td><a href='mailto:?subject=BBHN%20VPN%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$pass%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20<your%20server%20dns%20name>'>Email</a></td>" unless($val eq "_add");
+        print "</tr>\n";
+
+        # display any errors
+        while(@cli_err and $cli_err[0] =~ /^$val /)
+        {
+            $err = shift @cli_err;
+            $err =~ s/^\S+ //;
+            print "<tr><th colspan=4>$err</th></tr>\n";
+        }
+
+        #push @hidden, "<input type='hidden' name='client${val}_enable' value='0'>" unless($val eq "_add");
+        
+        print "<tr><td colspan=4 height=4></td></tr>\n";
+		$cnum++;
+    }
+    print "</table>\n";
+}
+
+
+
+#################################
+# generate the vtundsrv server file --- CHANGE FOR UCI
+#################################
+sub generate_vtundsrv_conf()
+{
+    # Start with the header
+    open MYFILE, ">${tmpvtundsconf }";
+    print MYFILE &vtundsrv_conf_head;    
+
+    # loop over $vpncfile
+    $cnum=0;
+    foreach(`cat $vpncfile 2>/dev/null`)
+    {
+        next if /^\s*#/;   ## ignore lines that start with '#'
+        next if /^\s*$/;   ## ignore lines that start with '$'
+        chomp;
+
+        @parts = split /\|/, $_;
+        
+        next unless scalar(@parts) == 3;
+
+        $enable = @parts[0];
+        $name = @parts[1];
+        $pass = @parts[2];
+
+        unless($enable)
+        {
+            $cnum++;    ## to make sure the tun and ip addresses remain constant
+            next;
+        }
+        
+        $net3=@netw[2];
+        $net4=@netw[3]+($cnum*4);
+        $netnet=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],$net3,$net4);
+        $netcli=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],$net3,$net4+1);
+        $netserv=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],$net3,$net4+2);
+        $clientname=sprintf("%s-%d-%d-%d-%d",$name,@netw[0],@netw[1],$net3,$net4);
+        
+        $tmpConnectionString=&vtundsrv_conf_client;
+        $tmpConnectionString =~ s/%CLIENTNAME%/$clientname/g;
+        $tmpConnectionString =~ s/%CLIENTPASS%/$pass/g;
+        $tmpConnectionString =~ s/%CLIENTNUMBER%/$cnum/g;
+        $tmpConnectionString =~ s/%NETNET%/$netnet/g;
+        $tmpConnectionString =~ s/%NETCLIENT%/$netcli/g;
+        $tmpConnectionString =~ s/%NETSERVER%/$netserv/g;
+        if($model eq "UBNT") { $tmpConnectionString =~ s/encrypt..yes/encrypt oldblowfish128ecb/g; }
+     
+        print MYFILE $tmpConnectionString;
+        $cnum++;
+    }
+    close MYFILE;
+
+    # backup the original file
+    system "cp -f /etc/vtundsrv.conf /etc/vtundsrv.conf.bak> /dev/null 2>&1";
+    system "cp -f $tmpvtundsconf /etc/vtundsrv.conf> /dev/null 2>&1";    
+}
+
+#################################
+# load client info from config file - CHANGE FOR UCI
+#################################
+sub get_client_info()
+{
+    $i=0;
+    foreach(`cat $vpncfile 2>/dev/null`)
+    {
+        next if /^\s*#/;   ## ignore lines that start with '#'
+        next if /^\s*$/;   ## ignore lines that start with '$'
+        chomp;
+
+        @parts = split /\|/, $_;
+        next unless scalar(@parts) == 3;
+        ++$i;
+
+        foreach $var (qw(enable name pass))
+        {
+            $parms{"client${i}_$var"} = shift @parts;
+            $parms{"client${i}_$var"} = "0" if($parms{"client${i}_$var"} eq "");
+        }
+    }
+    $parms{client_num} = $i;
+}
+
+sub vpn_setup_required()
+{
+    http_header();
+    html_header("$node setup", 1);
+    print "<body><center><table width=790>";
+    print "<tr><td>\n";
+    navbar("vpn");
+    print "</td></tr>";
+    ################# 
+    # messages
+    #################
+    if(@cli_err)
+    {
+        print "<tr><td align=center><b>ERROR:<br>";
+        foreach(@cli_err) { print "$_<br>" }
+        print "</b></td></tr>\n";
+    }
+    print "<tr><td align=center><br><b>";
+    print "VPN software needs to be installed.<br/>";
+    print "<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>\n";
+    print "<input type=submit name=button_install value='Click to install' />";
+    print "</form>";
+    print "</b></td></tr>\n";
+    print "</table></center></body></html>\n";
+    exit;
+}
+
+sub reboot_required()
+{
+    http_header();
+    html_header("$node setup", 1);
+    print "<body><center><table width=790><tr><td>\n";
+    navbar("vpn");
+    print "</td></tr><tr><td align=center><br>";
+    if($config eq "")
+    {
+    print "<b>This page is not available until the configuration has been set.</b>";
+    }
+    else
+    {
+        print "<b>The configuration has been changed.<br>This page will not be available until the node is rebooted.\n</b>";
+        print "<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>\n";
+        print "<input type=submit name=button_reboot value='Click to REBOOT' />";
+        print "</form>";
+    }
+    print "</td></tr>\n";
+    print "</table></center></body></html>\n";
+    exit;
+}
+
+#################################
+# Install VTUN Server Components/config
+#################################
+sub install_vtun()
+{   
+    # check free disk space - get real values
+    $freespace=&check_freespace();
+
+    if($freespace < 600)
+    {
+        push @cli_err, "Insuffient free disk space!";
+    }
+    else
+    {
+        # Update/Install VTUN
+        system "opkg update";
+        system "opkg install kmod-tun zlib libopenssl liblzo vtun > /tmp/tunnel_install.log";
+        
+        # Prep firewall
+        &open_5525_on_wan();
+
+        # add network interfaces
+        &add_network_interfaces();
+
+        # Reboot required
+        system "touch /tmp/reboot-required";
+    }
+}
+
+
+sub DEBUGEXIT()
+{
+    my ($text) = @_;
+    http_header();
+    html_header("$node setup", 1);
+    print "DEBUG-";
+    print $text;
+    print "</body>";
+    exit;
+}
