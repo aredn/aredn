@@ -1,11 +1,12 @@
 #!/usr/bin/perl -w
 =for commnet
-
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
   Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+
+  2015-04-01 AE6XE update to display neighbor nodes
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -285,15 +286,20 @@ die "bad interface" if not defined $iface;
 if($raw)
 {
   system("/usr/bin/iwinfo $iface scan");
+  system("/usr/sbin/iw $iface station dump");
   exit;
 }
+
+$bbchan = 1;
 
 while(1)
 {
   open(FILE, "/usr/bin/iwinfo $iface scan 2>&1 |") or die "iwinfo failed";
   $mode = "";
+  $ssid = "";
+  $signal = 0;
+  $chan = 99;
   @list = ();
-  ++$iters;
 
   while($line = <FILE>)
   {
@@ -301,7 +307,7 @@ while(1)
     {
       pushAP($signal, $chan, $key, $ssid, $mac, $mode);
       $mac = $1;
-      $mode = "";
+      if($ssid =~ /Broadband/) { $bbchan = $chan }
     }
 
     if($line =~ /\bESSID: "(.*)"/)          { $ssid = $1 }
@@ -313,26 +319,61 @@ while(1)
   }
 
   close(FILE);
+  
+  if($ssid =~ /Broadband/) { $bbchan = $chan }
   pushAP($signal, $chan, $key, $ssid, $mac, $mode);
   sleep 1 if not scalar @list and $loops != 1;
-
+  
+  $mode = "";                                                             
+  $signal = 0;
+  $key = "none";
+  $chan = 1;
+  ++$iters;                                                               
+ 
+  open(FILE, "/usr/sbin/iw $iface station dump 2>&1 |") or die "/usr/sbin/iw failed";
+  
+  while($line = <FILE>)                                                   
+  {                                                                       
+    if($line =~ /Station (\S+) \(on $iface\)/)                              
+    {                                                                     
+      pushAP($signal, $bbchan, $key, $ssid, $mac, $mode);                   
+      $mac = $1;                                                          
+      $ip = `grep $mac /proc/net/arp`;                                         
+      $ip =~ s/[ \t].*$// ;
+      chomp($ip);
+      $ssid = $ip;
+      $mac = uc $mac;
+      if( $ip ne "") 
+      {
+          foreach(`nslookup $ip`){ next unless ($ssid) = /Address 1: $ip (\S+)\.local\.mesh/ }
+      }
+      $mode = 'Ad-Hoc';
+    }                                                                     
+    
+    if($line =~ /signal avg:[ \t]+([-\d]+)/)  {  $signal = $1 }                    
+  }                                                                       
+  
+  close(FILE);                                                   
+  pushAP($signal, $bbchan, $key, $ssid, $mac, $mode);              
+  sleep 1 if not scalar @list and $loops != 1;  
+  
   if(not $batch)
   {
     if($avg)
     {
       system "clear";
-      printf "Sig Rel Ch E              SSID                     MAC      Vendor  %6d\n", $iters;
+      printf "Sig Rel Ch E          SSID or Hostname            MAC      Vendor  %6d\n", $iters;
       print "--- --- -- - -------------------------------- ------------- ------\n";
     }
     elsif($web)
     {
 	print "<table border=1 cellpadding=5>\n";
-	print "<tr><th>Sig</th><th>Chan</th><th>Enc</th><th>SSID</th><th>MAC</th><th>Vendor</th></tr>\n";
+	print "<tr><th>Sig</th><th>Chan</th><th>Enc</th><th>SSID or Hostname</th><th>MAC</th><th>Vendor</th></tr>\n";
     }
     else
     {
-      system "clear";
-      printf "Sig Ch E              SSID                     MAC      Vendor  %6d\n", $iters;
+      #system "clear";
+      printf "Sig Ch E         SSID or Hostname             MAC      Vendor  %6d\n", $iters;
       print "--- -- - -------------------------------- ------------- ------\n";
     }
   }
