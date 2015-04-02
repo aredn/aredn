@@ -175,8 +175,6 @@ sub vpn_setup_required()
 #################################
 sub install_vtun()
 {   
-    &install_vtun();
-
     # check free disk space - get real values
     $freespace=&check_freespace();
 
@@ -191,7 +189,7 @@ sub install_vtun()
         system "opkg install kmod-tun zlib libopenssl liblzo vtun > /tmp/tunnel_install.log";
         
         # add network interfaces
-        &add_network_interfaces();
+        add_network_interfaces();
         
         # Reboot required
         system "touch /tmp/reboot-required";

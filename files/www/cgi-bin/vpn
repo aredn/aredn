@@ -32,10 +32,10 @@ if($parms{button_install})
     &install_vtun_server();
 } 
 
-&reboot_required() if($config eq "" or -e "/tmp/reboot-required");
-&vpn_setup_required() unless(-e "/usr/sbin/vtund" );
-&get_model();
-&get_active_tun();
+reboot_required() if($config eq "" or -e "/tmp/reboot-required");
+vpn_setup_required() unless(-e "/usr/sbin/vtund" );
+get_model();
+get_active_tun();
 
 #################
 # If RESET or FIRST TIME, load clients/servers from file into parms  --- CHANGE not needed?
@@ -53,7 +53,7 @@ if($parms{button_reset})
 # get vtun network address
 #################
 @netw = ();
-@netw = &get_server_network_address();
+@netw = get_server_network_address();
 #&DEBUGEXIT(@netw[2]); 
 
 #################
@@ -488,10 +488,10 @@ sub get_client_info()
 #################################
 sub install_vtun_server()
 {   
-    &install_vtun();
+    install_vtun();
 
     # Prep firewall for server
-    &open_5525_on_wan();
+    open_5525_on_wan();
 }
 
 
