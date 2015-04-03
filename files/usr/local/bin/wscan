@@ -307,7 +307,7 @@ while(1)
     {
       pushAP($signal, $chan, $key, $ssid, $mac, $mode);
       $mac = $1;
-      if($ssid =~ /Broadband/) { $bbchan = $chan }
+      if($ssid =~ /-(5|10|20)-v[3456]$/) { $bbchan = $chan }
     }
 
     if($line =~ /\bESSID: "(.*)"/)          { $ssid = $1 }
@@ -320,7 +320,7 @@ while(1)
 
   close(FILE);
   
-  if($ssid =~ /Broadband/) { $bbchan = $chan }
+  if($ssid =~ /-(5|10|20)-v[3456]$/) { $bbchan = $chan }
   pushAP($signal, $chan, $key, $ssid, $mac, $mode);
   sleep 1 if not scalar @list and $loops != 1;
   
