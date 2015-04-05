@@ -61,7 +61,7 @@ sub html_header
     print "<meta http-equiv='expires' content='0'>\n";
     print "<meta http-equiv='cache-control' content='no-cache'>\n";
     print "<meta http-equiv='pragma' content='no-cache'>\n";
-    print "<link rel=StyleSheet href='/", (-f "/tmp/.night") ? "night" : "day", ".css' type='text/css'>\n";
+    print "<link id='stylesheet_css' rel=StyleSheet href='/style.css' type='text/css'>\n";
     print "</head>\n" if $close;
 }
 
@@ -1360,6 +1360,18 @@ sub get_interface
     }
 }
 
+sub css_options
+{
+    print "<option value=\"/style.css\">Select a theme</option>";
+    my @cssfiles = `ls /www/*.css`;
+    foreach $css (@cssfiles)
+    {
+        chomp($css);
+        $css =~ m#^(.*?)([^/]*)(\.css)$#;
+        ($dir,$file)  = ($1,$2);
+        print "<option value=\"/$file.css\">$file</option>" unless $file eq "style";
+    }
+}
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1

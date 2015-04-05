@@ -48,14 +48,9 @@ $config = "not set" if $config eq "" or not -d "/etc/config.$config";
 
 read_postdata();
 
-# set up the day/night style sheet
-system "mkdir -p /tmp/web; cp -f /www/day.css /tmp/web/style.css" unless -f "/tmp/web/style.css";
-
-if($parms{night})         { system "touch /tmp/.night; cp -f /www/night.css /tmp/web/style.css" }
-elsif(not $parms{reload}) { $parms{night} = 1 if -f "/tmp/.night" }
-else                      { system "rm -f /tmp/.night; cp -f /www/day.css /tmp/web/style.css" }
-
-#system "rm -rf /tmp/web";
+# set up the style sheet
+system "cp -f /www/aredn.css /www/style.css" unless -f "/www/style.css";
+if($parms{css})         { system "cp -f /www/$parms{css} /www/style.css" }
 
 # generate the page
 http_header();
@@ -100,10 +95,11 @@ print "&nbsp;&nbsp;&nbsp;";
 print "<button type=button onClick='window.location=\"setup\"' title='Configure this node'>Setup</button>\n";
 
 print "&nbsp;&nbsp;&nbsp;";
-print "<input type=checkbox name=night value=night onClick='form.submit()' ";
-if($parms{night}) { print "title='Switch to bright colors' checked" }
-else              { print "title='Switch to dark colors'" }
-print ">Night Mode</nobr>\n";
+
+print "<select name=\"css\" size=\"1\" onChange=\"form.submit()\" >";
+css_options();
+print "</select>";
+
 print "<input type=hidden name=reload value=reload>\n";
 
 
