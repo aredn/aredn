@@ -45,6 +45,31 @@ boot() {
 
   fi
 
+
+# Store the unique information about the card, such as its path, mac, and phy
+# so it can be used later.
+  if [ ! -f /etc/aredn_include/radio0path ]
+  then
+    mkdir -p /etc/aredn_include
+    touch /etc/aredn_include/radio0path
+    local radio0path=`uci -q get wireless.radio0.path`
+    local radio0phy=`uci -q get wireless.radio0.phy`
+    local radio0mac=`uci -q get wireless.radio0.macaddr`
+    if [ "$radio0path"  != "" ]
+    then
+      echo "	option path	'$radio0path'" >> /etc/aredn_include/radio0path
+    fi
+    if [ "$radio0phy"  != "" ]
+    then
+      echo "    option phy     '$radio0phy'" >> /etc/aredn_include/radio0path
+    fi
+    if [ "$radio0mac"  != "" ]
+    then
+      echo "    option macaddr	'$radio0mac'" >> /etc/aredn_include/radio0path
+    fi
+
+  fi 
+
   # setup nvram variables
   [ -x /usr/local/bin/nvram-setup ] &&  /usr/local/bin/nvram-setup
 
