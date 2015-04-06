@@ -14,6 +14,22 @@ boot() {
     touch /etc/aredn_include/swconfig
     i=0
     while true; do
+      uci -q get network.\@switch\[$i\] > /dev/null
+      local status=$?
+      if [ $status == 1 ]
+      then
+        break
+      fi
+      echo "config switch" >> /etc/aredn_include/swconfig
+      echo "    option name '`uci -q get network.\@switch\[$i\].name`'" >> /etc/aredn_include/swconfig
+      echo "    option reset '`uci -q get network.\@switch\[$i\].reset`'" >> /etc/aredn_include/swconfig
+      echo "    option enable_vlan '`uci -q get network.\@switch\[$i\].enable_vlan`'" >> /etc/aredn_include/swconfig
+      echo "" >> /etc/aredn_include/swconfig
+      let i++
+    done
+
+    i=0
+    while true; do
       uci -q get network.\@switch_vlan\[$i\] > /dev/null
       local status=$?
       if [ $status == 1 ]
