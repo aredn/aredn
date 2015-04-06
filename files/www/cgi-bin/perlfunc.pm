@@ -61,6 +61,7 @@ sub html_header
     print "<meta http-equiv='expires' content='0'>\n";
     print "<meta http-equiv='cache-control' content='no-cache'>\n";
     print "<meta http-equiv='pragma' content='no-cache'>\n";
+    # Prevent browser caching of the css file
     my $rnum=`date +%s`;
     chomp($rnum);
     print "<link id='stylesheet_css' rel=StyleSheet href='/style.css?", $rnum, "' type='text/css'>\n";

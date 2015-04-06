@@ -49,11 +49,14 @@ $config = "not set" if $config eq "" or not -d "/etc/config.$config";
 read_postdata();
 
 # set up the style sheet
-system "rm -rf /www/style.css" if -f "/www/style.css";  # cleanup any actual file named style.css
-system "ln -s /www/aredn.css /www/style.css" unless -l "/www/style.css";
+mkdir "/tmp/web" unless -d "/tmp/web"; # make sure /tmp/web exists
+# DO IN BUILD-  unlink "/www/style.css" if -f "/www/style.css";  # cleanup any actual file named style.css in /www
+# DO IN BUILD-  symlink "/tmp/web/style.css","/www/style.css" unless -l "/www/style.css"; # fixed for web page
+symlink "/www/aredn.css","/tmp/web/style.css" unless -l "/tmp/web/style.css"; # default to aredn.css
 
-if($parms{css}) {
-  system "ln -fs /www/$parms{css} /www/style.css" if -f "/www/$parms{css}"; 
+if($parms{css} and -f "/www/$parms{css}" and $parms{css} =~ /\.css$/i) {
+  unlink "/tmp/web/style.css";
+  symlink "/www/$parms{css}","/tmp/web/style.css";
 }
 
 # generate the page
