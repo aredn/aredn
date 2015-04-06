@@ -904,8 +904,16 @@ sub validate_longitude
 # Get boardid 
 sub hardware_boardid
 {
-    my $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
-    chomp($boardid);
+    my $boarid="";
+    # Ubiquiti hardware
+    if ( -f '/sys/devices/pci0000:00/0000:00:00.0/subsystem_device' ) {
+      $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
+      chomp($boardid);
+    } else {
+    # Can't use the subsystem_device so instead use the model
+      $boardid = `/usr/local/bin/get_model`;
+      chomp($boardid);
+    }
     return $boardid;
 }
 
