@@ -29,13 +29,17 @@ if($parms{button_reboot})
 
 if($parms{button_install})
 {
-    &install_vtun_server();
+    install_vtun(1);  # 1=server w/firewall rules to open 5525
 } 
 
 reboot_required() if($config eq "" or -e "/tmp/reboot-required");
 vpn_setup_required() unless(-e "/usr/sbin/vtund" );
-get_model();
 get_active_tun();
+##### TUNNEL MAINLINE PROGRESS UP TO HERE #####
+##### TUNNEL MAINLINE PROGRESS UP TO HERE #####
+##### TUNNEL MAINLINE PROGRESS UP TO HERE #####
+##### TUNNEL MAINLINE PROGRESS UP TO HERE #####
+
 
 #################
 # If RESET or FIRST TIME, load clients/servers from file into parms  --- CHANGE not needed?
@@ -312,8 +316,7 @@ sub print_vpn_clients()
 {
     print "<table id=client_section cellpadding=0 cellspacing=0>";
     
-    #print "<tr><td colspan=5 align=center valign=top>Virtual Tunnel Server Enabled? <input type=checkbox name=server_enabled checked /></td></tr>";
-    print "<br /><tr><td colspan=6 align=center valign=top>Virtual Tunnel Server Network: ";   
+    print "<br /><tr><td colspan=6 align=center valign=top>Tunnel Server Network: ";   
     printf("%d.%d.",@netw[0],@netw[1]);
     print "<input type='text' name='server_net1' size='3' maxlen='3' value='@netw[2]' onChange='form.submit()' >";
     print ".";
@@ -482,18 +485,6 @@ sub get_client_info()
     }
     $parms{client_num} = $i;
 }
-
-#################################
-# Install VTUN Server Components/config
-#################################
-sub install_vtun_server()
-{   
-    install_vtun();
-
-    # Prep firewall for server
-    open_5525_on_wan();
-}
-
 
 sub DEBUGEXIT()
 {

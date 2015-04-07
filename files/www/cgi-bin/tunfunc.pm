@@ -59,15 +59,15 @@ sub is_tunnel_active()
 }
 
 # Get hardware model/type
-sub get_model()
-{
-    $model_full=`/usr/local/bin/get_model`;
-    if($model_full=~ m/ubiquiti.*/i) {
-        $model="UBNT";
-    } else {
-        $model="LS";
-    }
-}
+#sub get_model()
+#{
+#   $model_full=`/usr/local/bin/get_model`;
+#    if($model_full=~ m/ubiquiti.*/i) {
+#        $model="UBNT";
+#    } else {
+#        $model="LS";
+#    }
+#}
 
 ##########################
 # Add OLSRD interfaces - called when adding a new client connection
@@ -134,12 +134,12 @@ sub check_freespace()
 # Config firewall to allow port 5525 on WAN interface
 ##########################
 sub open_5525_on_wan() {
-    system "uci add firewall rule";
-    system "uci set firewall.@rule[-1].src='wan'";
-    system "uci set firewall.@rule[-1].dest_port='5525'";
-    system "uci set firewall.@rule[-1].proto='tcp'";
-    system "uci set firewall.@rule[-1].target='ACCEPT'";
-    system "uci commit firewall";
+    system "uci add firewall rule >/dev/null 2>&1";
+    system "uci set firewall.\@rule[-1].src='wan' >/dev/null 2>&1";
+    system "uci set firewall.\@rule[-1].dest_port='5525' >/dev/null 2>&1";
+    system "uci set firewall.\@rule[-1].proto='tcp' >/dev/null 2>&1";
+    system "uci set firewall.\@rule[-1].target='ACCEPT' >/dev/null 2>&1";
+    system "uci commit firewall >/dev/null 2>&1";
 }
 
 sub vpn_setup_required()
@@ -173,28 +173,74 @@ sub vpn_setup_required()
 #################################
 # Install VTUN Components/config
 #################################
-sub install_vtun()
+sub install_vtun
 {   
+    my ($is_server) = @_;
+
     # check free disk space - get real values
     $freespace=&check_freespace();
+    #&DEBUGEXIT("is_server=$is_server\nfreespace=$freespace\n");
 
     if($freespace < 600)
     {
         push @cli_err, "Insuffient free disk space!";
-    }
-    else
-    {
-        # Update/Install VTUN
-        system "opkg update";
-        system "opkg install kmod-tun zlib libopenssl liblzo vtun > /tmp/tunnel_install.log";
-        
-        # add network interfaces
-        add_network_interfaces();
-        
-        # Reboot required
-        system "touch /tmp/reboot-required";
-    }
+        # redirect back to admin page
+    } else {
 
+        # Update/Install VTUN
+        system "opkg update >/dev/null 2>&1";
+        # &DEBUGEXIT("opkg update RC=$?\n");
+        if ($? eq 0) 
+        {
+            system "opkg install kmod-tun zlib libopenssl liblzo vtun >/dev/null 2>&1";
+            if ($? eq 0) 
+            {
+                # add network interfaces
+                add_network_interfaces();
+
+                open_5525_on_wan() if ($is_server);
+
+                http_header();
+                html_header("TUNNEL INSTALLATION IN PROGRESS", 0);
+                #print "<meta http-equiv='refresh' content='150;URL=http://$node.local.mesh:8080'>";
+                print "</head>\n";
+                print "<body><center>\n";
+                print "<h2>Installing tunnel software...</h2>\n";
+                print "<h1>DO NOT REMOVE POWER UNTIL THE INSTALLATION IS FINISHED</h1>\n";
+                print "</center><br>\n";
+                unless($debug)
+                { 
+                    print "
+                        <center><h2>The node is rebooting</h2>
+                        <h3>Wait for the Status 4 LED to start blinking, then stop blinking.<br>
+                        When the Status 4 LED is solid on you can reconnect with<br>
+                        <a href='http://$node.local.mesh:8080/'>http://$node.local.mesh:8080/</a><br>
+                        </h3>
+                        </center>
+                        ";
+                     page_footer();
+                     print "</body></html>";
+                     system "/sbin/reboot" unless $debug;
+                     exit;
+                }
+            } else {
+                push @cli_err,"Package installation failed!";
+            }
+        } else {
+            push @cli_err,"Package update failed!";
+        }
+    }
+}
+
+sub DEBUGEXIT()
+{
+    my ($text) = @_;
+    http_header();
+    html_header("$node setup", 1);
+    print "DEBUG-";
+    print $text;
+    print "</body>";
+    exit;
 }
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
