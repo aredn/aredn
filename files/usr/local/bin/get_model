@@ -1,7 +1,11 @@
 #!/bin/sh
 #CMLARA:  Temporary shell script for ar71xx platform models
-# Just resport what is on the /proc/cpuinfo field --- this will work for most ar71xx devices
-# This doesn't work for  linksys however since they have multiple devices
-#Eventually we will want to to clean this up to a diffrent method
+# Return the model of the device
 
-echo `awk 'BEGIN{FS="[ \t]+:[ \t]"} /machine/ {print $2}' /proc/cpuinfo`;
+if [ ! -f /tmp/sysinfo/model ]; then
+  . /lib/functions.sh
+  . /lib/ar71xx.sh
+  ar71xx_board_detect
+fi
+
+cat /tmp/sysinfo/model
