@@ -906,8 +906,16 @@ sub validate_longitude
 # Get boardid 
 sub hardware_boardid
 {
-    my $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
-    chomp($boardid);
+    my $boarid="";
+    # Ubiquiti hardware
+    if ( -f '/sys/devices/pci0000:00/0000:00:00.0/subsystem_device' ) {
+      $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
+      chomp($boardid);
+    } else {
+    # Can't use the subsystem_device so instead use the model
+      $boardid = `/usr/local/bin/get_model`;
+      chomp($boardid);
+    }
     return $boardid;
 }
 
@@ -916,6 +924,17 @@ sub hardware_boardid
 sub hardware_info
 {
     %model = (
+        'TP-Link CPE510 v1.0' => {
+            'name'            => 'TP-Link CPE510 v1.0',
+            'comment'         => '',
+            'supported'       => '-2',
+            'maxpower'        => '27',
+            'pwroffset'       => '0',
+            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
+            'defaultant'      => 3,
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xc2a2' => {
             'name'            => 'Bullet 2 HP',
             'comment'         => 'Not enough Ram or flash',
