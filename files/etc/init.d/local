@@ -87,6 +87,33 @@ boot() {
 
   fi 
 
+
+  # Save system NET  LED settings
+  if [ ! -f /etc/aredn_include/system_netled]
+  then
+    mkdir -p /etc/aredn_include
+    touch /etc/aredn_include/system_netled
+    i=0
+    while true; do
+      uci -q get system.led_lan$i > /dev/null
+      local status=$?
+      if [ $status == 1 ]
+      then
+        break
+      fi
+      echo "config led 'led_lan$i'" >> /etc/aredn_include/system_netled
+      echo "	option name '`uci -q get system.led_lan$i.name`'" >> /etc/aredn_include/system_netled
+      echo "	option sysfs '`uci -q get system.led_lan$i.sysfs`'" >> /etc/aredn_include/system_netled
+      echo "	option trigger '`uci -q get system.led_lan$i.trigger`'" >> /etc/aredn_include/system_netled
+      echo "	option port_mask '`uci -q get system.led_lan$i.name`'" >> /etc/aredn_include/system_netled
+      echo "" >> /etc/aredn_include/system_netled
+      let i++
+    done
+
+  fi
+
+
+
   # setup nvram variables
   [ -x /usr/local/bin/nvram-setup ] &&  /usr/local/bin/nvram-setup
 
