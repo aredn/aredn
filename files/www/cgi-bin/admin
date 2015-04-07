@@ -217,7 +217,9 @@ if($fw_install and -f "$tmpdir/firmware")
 {
     my $junk;
     http_header();
-    html_header("FIRMWARE UPDATE IN PROGRESS", 1);
+    html_header("FIRMWARE UPDATE IN PROGRESS", 0);
+    print "<meta http-equiv='refresh' content='150;URL=http://$node.local.mesh:8080'>";
+    print "</head>\n";
     print "<body><center>\n";
     print "<h2>The firmware is being updated.</h2>\n";
     print "<h1>DO NOT REMOVE POWER UNTIL UPDATE IS FINISHED</h1>\n";
@@ -234,7 +236,8 @@ DHCP lease and reset any name service caches you may be using.</h3>
 <h3>The node will reboot twice while the configuration is applied<br>
 Wait for the Status 4 LED to start blinking, then stop blinking twice.<br>
 When the Status 4 LED is solid on you can get your new DHCP lease and reconnect with<br>
-<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a></h3>
+<a href='http://$node.local.mesh:8080/'>http://$node.local.mesh:8080/</a><br>
+(This page will automatically reload in 150 seconds)</h3>
 </center></body></html>
 ";
             open(FILE, "/sbin/sysupgrade -q $tmpdir/firmware 2>&1 |") or die;
@@ -250,7 +253,8 @@ When the Status 4 LED is solid on you can get your new DHCP lease and reconnect 
 DHCP lease and reset any name service caches you may be using.</h3>
 <h3>Wait for the Status 4 LED to start blinking, then stop blinking.<br>
 When the Status 4 LED is solid on you can get your new DHCP lease and reconnect with<br>
-<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a></h3>
+<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>
+(This page will automatically reload in 150 seconds)</h3>
 </center>
 ";
          page_footer();

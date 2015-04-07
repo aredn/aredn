@@ -61,7 +61,10 @@ sub html_header
     print "<meta http-equiv='expires' content='0'>\n";
     print "<meta http-equiv='cache-control' content='no-cache'>\n";
     print "<meta http-equiv='pragma' content='no-cache'>\n";
-    print "<link rel=StyleSheet href='/", (-f "/tmp/.night") ? "night" : "day", ".css' type='text/css'>\n";
+    # Prevent browser caching of the css file
+    my $rnum=`date +%s`;
+    chomp($rnum);
+    print "<link id='stylesheet_css' rel=StyleSheet href='/style.css?", $rnum, "' type='text/css'>\n";
     print "</head>\n" if $close;
 }
 
@@ -79,9 +82,9 @@ sub navbar
           vpnc   => "Tunnel<br>Client",
 		  admin  => "Administration");
     
-    my($active_bg, $active_fg);
-    if(-f "/tmp/.night") { $active_bg = "red";   $active_fg = "black" }
-    else                 { $active_bg = "black"; $active_fg = "white" }
+    #my($active_bg, $active_fg);
+    #if(-f "/tmp/.night") { $active_bg = "red";   $active_fg = "black" }
+    #else                 { $active_bg = "black"; $active_fg = "white" }
 
     print "<hr><table cellpadding=5 border=0 width=100%><tr>\n";
 
@@ -906,8 +909,16 @@ sub validate_longitude
 # Get boardid 
 sub hardware_boardid
 {
-    my $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
-    chomp($boardid);
+    my $boarid="";
+    # Ubiquiti hardware
+    if ( -f '/sys/devices/pci0000:00/0000:00:00.0/subsystem_device' ) {
+      $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
+      chomp($boardid);
+    } else {
+    # Can't use the subsystem_device so instead use the model
+      $boardid = `/usr/local/bin/get_model`;
+      chomp($boardid);
+    }
     return $boardid;
 }
 
@@ -916,6 +927,17 @@ sub hardware_boardid
 sub hardware_info
 {
     %model = (
+        'TP-Link CPE510 v1.0' => {
+            'name'            => 'TP-Link CPE510 v1.0',
+            'comment'         => '',
+            'supported'       => '-2',
+            'maxpower'        => '27',
+            'pwroffset'       => '0',
+            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
+            'defaultant'      => 3,
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xc2a2' => {
             'name'            => 'Bullet 2 HP',
             'comment'         => 'Not enough Ram or flash',
@@ -1383,6 +1405,18 @@ sub reboot_required()
     print "</td></tr>\n";
     print "</table></center></body></html>\n";
     exit;
+}
+sub css_options
+{
+    print "<option value=\"style.css\">Select a theme</option>";
+    my @cssfiles = `ls /www/*.css`;
+    foreach $css (@cssfiles)
+    {
+        chomp($css);
+        $css =~ m#^(.*?)([^/]*)(\.css)$#;
+        ($dir,$file)  = ($1,$2);
+        print "<option value=\"$file.css\">$file</option>" unless $file eq "style";
+    }
 }
 
 #weird uhttpd/busybox error requires a 1 at the end of this file

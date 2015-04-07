@@ -48,19 +48,19 @@ $config = "not set" if $config eq "" or not -d "/etc/config.$config";
 
 read_postdata();
 
-# set up the day/night style sheet
-system "mkdir -p /tmp/web; cp -f /www/day.css /tmp/web/style.css" unless -f "/tmp/web/style.css";
+# set up the style sheet
+mkdir "/tmp/web" unless -d "/tmp/web"; # make sure /tmp/web exists
+symlink "/www/aredn.css","/tmp/web/style.css" unless -l "/tmp/web/style.css"; # default to aredn.css
 
-if($parms{night})         { system "touch /tmp/.night; cp -f /www/night.css /tmp/web/style.css" }
-elsif(not $parms{reload}) { $parms{night} = 1 if -f "/tmp/.night" }
-else                      { system "rm -f /tmp/.night; cp -f /www/day.css /tmp/web/style.css" }
-
-#system "rm -rf /tmp/web";
+if($parms{css} and -f "/www/$parms{css}" and $parms{css} =~ /\.css$/i) {
+  unlink "/tmp/web/style.css";
+  symlink "/www/$parms{css}","/tmp/web/style.css";
+}
 
 # generate the page
 http_header();
 html_header("AREDN&trade; Node $node", 1);
-print "<body><form method=post action=/cgi-bin/status enctype='multipart/form-data'>\n";
+print "<body><form method='post' action='/cgi-bin/status' enctype='multipart/form-data'>\n";
 print "<center>\n";
 
 alert_banner();
@@ -100,10 +100,11 @@ print "&nbsp;&nbsp;&nbsp;";
 print "<button type=button onClick='window.location=\"setup\"' title='Configure this node'>Setup</button>\n";
 
 print "&nbsp;&nbsp;&nbsp;";
-print "<input type=checkbox name=night value=night onClick='form.submit()' ";
-if($parms{night}) { print "title='Switch to bright colors' checked" }
-else              { print "title='Switch to dark colors'" }
-print ">Night Mode</nobr>\n";
+
+print "<select name=\"css\" size=\"1\" onChange=\"form.submit()\" >";
+css_options();
+print "</select>";
+
 print "<input type=hidden name=reload value=reload>\n";
 
 
