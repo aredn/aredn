@@ -1218,6 +1218,17 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          }, 
+        'Ubiquiti Nanostation M XW' => {
+            'name'            => 'NanoStation M5 XW',
+            'comment'         => 'NanoStation M5 XW  0xe855 (In Testing)',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Di$
+            'defaultant'      => 3,
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
        '0xe8a5' => {
             'name'            => 'NanoStation Loco M5',
             'comment'         => 'NanoStation Loco M5',
