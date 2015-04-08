@@ -1221,7 +1221,7 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '22',
             'pwroffset'       => '5',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Di$
+            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
             'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
