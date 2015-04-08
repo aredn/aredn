@@ -4,7 +4,7 @@
 START=82
 STOP=83
 
-SERVER_CONF=/var/etc/vtundsrv.conf
+SERVER_CONF=/tmp/vtun/vtundsrv.conf
 # Starting tun interface is tun50
 TUNNUM=50
 MAXTUNNUM=59
@@ -98,6 +98,7 @@ start() {
 	config_load vtun
 	
 	# Remove the current config files
+	mkdir -p /tmp/vtun
 	rm -f $SERVER_CONF
 	
 	config_foreach network_config network

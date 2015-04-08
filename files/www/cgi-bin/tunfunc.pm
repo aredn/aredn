@@ -175,12 +175,8 @@ sub vpn_setup_required()
 #################################
 sub install_vtun
 {   
-    my ($is_server) = @_;
-
     # check free disk space - get real values
     $freespace=&check_freespace();
-    #&DEBUGEXIT("is_server=$is_server\nfreespace=$freespace\n");
-
     if($freespace < 600)
     {
         push @cli_err, "Insuffient free disk space!";
@@ -189,7 +185,6 @@ sub install_vtun
 
         # Update/Install VTUN
         system "opkg update >/dev/null 2>&1";
-        # &DEBUGEXIT("opkg update RC=$?\n");
         if ($? eq 0) 
         {
             system "opkg install kmod-tun zlib libopenssl liblzo vtun >/dev/null 2>&1";
@@ -198,11 +193,15 @@ sub install_vtun
                 # add network interfaces
                 add_network_interfaces();
 
-                open_5525_on_wan() if ($is_server);
+                # allow port 5525 for server connections
+                open_5525_on_wan();
+
+                # enable init.d scripts
+                system("chmod +x /etc/init.d/vtundsrv");
+                system("chmod +x /etc/init.d/vtund");
 
                 http_header();
                 html_header("TUNNEL INSTALLATION IN PROGRESS", 0);
-                #print "<meta http-equiv='refresh' content='150;URL=http://$node.local.mesh:8080'>";
                 print "</head>\n";
                 print "<body><center>\n";
                 print "<h2>Installing tunnel software...</h2>\n";
