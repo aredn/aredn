@@ -385,26 +385,23 @@ sub build_uci()
 }
 
 #################################
-# load info from UCI
+# load server connection info from UCI
 #################################
 sub get_connection_info()
-{    
-    my $x;
-    
-    # how many connections
-    my $connection_count=&uci_get_type_count("vtun","server");
-    
-    for (my $i=1; $i<=$connection_count; $i++) {
-
+{
+    my @connections=&uci_get_all_by_sectiontype("vtun","server");
+    foreach $c (0..@connections-1)
+    {
         foreach $var (qw(enabled host passwd netip))
         {
-            $x=&uci_get_indexed_item("vtun","server",$i-1,$var);
-            $parms{"conn${i}_${var}"}=$x;
-            #eval sprintf("\$%s = \$parms{conn%s_%s}", $var, $val, $var);
+            $parms{"conn${c}_$var"} = @connections[$c]->{$var};
+            $parms{"conn${c}_$var"} = "0" if($parms{"conn${c}_$var"} eq "");
         }
     }
-    $parms{conn_num} = $connection_count;
+
+    $parms{conn_num} = scalar(@connections);
 }
+
 
 sub DEBUGEXIT()
 {
