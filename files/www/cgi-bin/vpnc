@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-$debug = 1;
+$debug = 0;
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 use ucifunc;
@@ -17,8 +17,6 @@ $unode = uc $node;   # UPPER CASE NODENAME
 #$tmpvtund = "${tmpdir}/vtund.tmp";
 #$tmpconnfile = "${tmpdir}/vpnconnections";
 
-&get_model();
-
 read_postdata();
 @active_tun=&get_active_tun();
 
@@ -30,11 +28,16 @@ if($parms{button_reboot})
     system "/sbin/reboot";
 } 
 
-&reboot_required() if($config eq "" or -e "/tmp/reboot-required");
-&vpn_setup_required() unless(-e "/usr/sbin/vtund" );
+if($parms{button_install})
+{
+    install_vtun();
+} 
+
+reboot_required() if($config eq "" or -e "/tmp/reboot-required");
+vpn_setup_required() unless(-e "/usr/sbin/vtund" );
  
 #################
-# If RESET or FIRST TIME, load servers from file into parms
+# If RESET or FIRST TIME, load servers into parms
 #################
 
 if($parms{button_reset} or not $parms{reload})
@@ -49,11 +52,6 @@ if($parms{button_reset} or not $parms{reload})
         $parms{$var} = "0" if($var eq 'conn_add_enabled');
     }
 }
-else 
-{
-    #&DEBUGEXIT($parms{client1_enable});
-}
-
 
 #################
 # load connections from FORM and validate
@@ -85,6 +83,9 @@ foreach $val (@list)
     # Validate ADDed values    
     if($val eq "_add")  { next unless ($enabled or $host or $passwd or $netip) and ($parms{conn_add} or $parms{button_save}) }
     else                { next if $parms{"conn${val}_del"} }
+
+    # Validate password is vtun compliant
+    # TODO
 
     if($val eq "_add" and $parm{button_save})
     {

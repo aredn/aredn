@@ -1,12 +1,12 @@
 #################################
-# get base network from config - CHANGE FOR UCI
+# get base network from config
 #################################
 sub get_server_network_address()
 {
-    my @list =();
-    my $server_net=`uci get vtun.@network[0].start`;
-
-    if($server_net ne "")
+    my @list;
+    my $uciresult;
+    my ($rc,$server_net)=&uci_get_indexed_option("vtun","network","0","start");
+    if($rc eq 0 and $server_net ne "")
     {
         # to facilitate overrides (ie. moving the server to a new node)
         # read the file into $mac
@@ -22,11 +22,11 @@ sub get_server_network_address()
         push @list, hex @MACS[5];
         # strip off the high bits
         push @list, ((hex @MACS[4]) << 2) & 255; 
-
         $server_net=sprintf("%d.%d.%d.%d",@list[0],@list[1],@list[2],@list[3]);
-        system "uci add vtun network";
-        system "uci set vtun.@network[0].start='${server_net}'";
-        system "uci commit vtun";
+
+        ($rc,$uciresult)=&uci_add_section_type("vtun","network");
+        ($rc,$uciresult)=&uci_set_indexed_option("vtun","network","0","start",$server_net);
+        $rc=&uci_commit("vtun");
     }
     return @list;
 }
@@ -57,17 +57,6 @@ sub is_tunnel_active()
     }
     return $match; # the return value of the do block   
 }
-
-# Get hardware model/type
-#sub get_model()
-#{
-#   $model_full=`/usr/local/bin/get_model`;
-#    if($model_full=~ m/ubiquiti.*/i) {
-#        $model="UBNT";
-#    } else {
-#        $model="LS";
-#    }
-#}
 
 ##########################
 # Add OLSRD interfaces - called when adding a new client connection
@@ -199,6 +188,9 @@ sub install_vtun
                 # enable init.d scripts
                 system("chmod +x /etc/init.d/vtundsrv");
                 system("chmod +x /etc/init.d/vtund");
+
+                # create UCI config file
+                system("touch /etc/config/vtun");
 
                 http_header();
                 html_header("TUNNEL INSTALLATION IN PROGRESS", 0);
