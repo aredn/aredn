@@ -24,7 +24,7 @@ sub get_server_network_address()
         push @list, ((hex @MACS[4]) << 2) & 255; 
         $server_net=sprintf("%d.%d.%d.%d",@list[0],@list[1],@list[2],@list[3]);
 
-        ($rc,$uciresult)=&uci_add_section_type("vtun","network");
+        #($rc,$uciresult)=&uci_add_sectiontype("vtun","network");
         ($rc,$uciresult)=&uci_set_indexed_option("vtun","network","0","start",$server_net);
         $rc=&uci_commit("vtun");
     }

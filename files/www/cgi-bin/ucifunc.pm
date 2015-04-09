@@ -68,10 +68,10 @@ sub uci_add_sectiontype()
     return ($rc,$res);
 }
 
-sub uci_delete_sectiontype()
+sub uci_delete_option()
 {
-    my ($config,$stype)=@_;
-    my $cmd=sprintf('uci delete %s.%s',$config,$stype);
+    my ($config,$stype,$index,$option)=@_;
+    my $cmd=sprintf('uci delete %s.@%s[%s].%s',$config,$stype,$index,$option);
     my $res=`$cmd`;
     my $rc=$?;
     chomp($res);

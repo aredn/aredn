@@ -42,8 +42,8 @@ get_active_tun();
 if($parms{button_reset})
 {
     ($rc,$res)=&uci_revert("vtun");
-    # ($rc,$res)=&uci_delete_sectiontype("vtun","network");
-    # $rc=&uci_commit("vtun");
+    ($rc,$res)=&uci_delete_option("vtun","network",0,"start");
+    $rc=&uci_commit("vtun");
 }
 
 #################
@@ -57,6 +57,9 @@ if($parms{button_reset})
 #################
 if($parms{button_reset} or not $parms{reload})
 {
+    # revert to previous state on initial load
+    ($rc,$res)=&uci_revert("vtun");
+
     # load clients from UCI
     &get_client_info();
 
@@ -146,6 +149,8 @@ $rc=save_clients();
 #################
 # SAVE the server network numbers into the UCI
 #################
+$netw[2]=$parms{server_net1};
+$netw[3]=$parms{server_net2};
 $rc=save_network();
 
 #################
@@ -170,9 +175,8 @@ if($parms{button_save} and not (@cli_err or @serv_err))
 ######################################################################################
 http_header() unless $debug == 2;
 html_header("$node setup", 1);
-
 print "<body><center>\n";
-print "<form method=post action=/cgi-bin/vpn enctype='multipart/form-data'>\n" unless $debug == 2;
+print "<form id=vpn method=post action=/cgi-bin/vpn enctype='multipart/form-data'>\n" unless $debug == 2;
 print "<form method=post action=test>\n" if $debug == 2;
 print "<table width=790>\n";
 
@@ -331,12 +335,13 @@ sub print_vpn_clients()
         $fullnet=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],@netw[2],$lastnet);
         
         print "<td>&nbsp;$fullnet</td>";       
-        print "<td>&nbsp;"; 
-        print "<img class='tun_client_active_img' src='/dot.png'/>" if((&is_tunnel_active($name)) && ($val ne "_add"));
+        print "<td align=center>&nbsp;"; 
+        print "<img class='tun_client_active_img' src='/plug-connect.png'/>" if (&is_tunnel_active($name) && ($val ne "_add"));
+        print "<img class='tun_client_inactive_img' src='/plug-disconnect.png'/>" if ($val ne "_add");
         print "</td>";
         print "<td><input type=submit name=client_add value=Add title='Add this client'>" if($val eq "_add");
         print "</td>";
-        print "<td class='tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$pass%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20<your%20server%20dns%20name>'>Email</a></td>" unless($val eq "_add");
+        print "<td class='tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$pass%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20<your%20server%20dns%20name>'><img class='tun_client_mailto_img' src='/email.png'/></a></td>" unless($val eq "_add");
         print "</tr>\n";
 
         # display any errors
