@@ -136,60 +136,31 @@ foreach $val (@list)
     }
 }
 
-#################
-# SAVE the clients into the TMP file --- CHANGE TO UCI
-#################
-system "rm -f $tmpconnfile";
-open(FILE, ">$tmpconnfile");
-for($i = 1; $i <= $client_num; $i++)
-{
-    printf FILE "%d|%s|%s\n",
-        $parms{"client${i}_enable"},
-        $parms{"client${i}_name"},
-        $parms{"client${i}_pass"}
-}
-close(FILE);
-
-#################
-# SAVE the server network numbers into the TMP file --- CHANGE UCI
-#################
-#if(($parms{server_net1} ~~ [0..252]) and ($parms{server_net2} ~~ [0..252]))
-#{
-    system "rm -f $tmptsfile";
-    open(FILE, ">$tmptsfile");
-    printf FILE "%d.%d.%d.%d",172,31,$parms{server_net1},$parms{server_net2};
-    close(FILE);
-    $netw[2]=$parms{server_net1};
-    $netw[3]=$parms{server_net2};
-#}
-#else
-#{
-#    push @cli_err, "The server net values must be between 0-254!";
-#    $parms{server_net1}=$netw[2];
-#    $parms{server_net2}=$netw[3];
-#}
-
-
 $parms{client_num} = $client_num;
 
+#################
+# SAVE the clients
+#################
+$rc=save_clients();
 
 #################
-# save configuration  --- CHANGE UCI
+# SAVE the server network numbers into the UCI
+#################
+$rc=save_network();
+
+#################
+# save configuration (commit)
 #################
 if($parms{button_save} and not (@cli_err or @serv_err))
 {
-    # save the tunnel.server ip address to file
-    #system "cp -f $tmptsfile $tsfile";
-    #system "cp -f $tmpconnfile $vpncfile";
-    push(@errors,"Problem committing UCI vtun") if &uci_commit("vtun");
-    
-    # RESTART VTUNDSRV  /etc/init.d/vtundsrv restart
-    # ./vtundsrv stop
-    # ./vtundsrv start
-
+    if (&uci_commit("vtun"))
+    {
+        push(@errors,"Problem committing UCI vtun");
+        system("cp -f /etc/config/vtun /etc/config.mesh");
+    }
     unless($debug == 3)
     {
-        push(@errors,"problem with vtundsrv") if system "/etc/init.d/vtundsrv restart > /dev/null 2>&1";
+        push(@errors,"Problem restaring vtundsrv") if system "/etc/init.d/vtundsrv restart > /dev/null 2>&1";
     }
 }
 
@@ -295,7 +266,7 @@ exit;
 ######################################################
 sub print_vpn_clients()
 {
-    print "<table class=tun_client_table cellpadding=0 cellspacing=0>";
+    print "<table cellpadding=0 cellspacing=0>";
     
     print "<br /><tr class=tun_network_row><td colspan=6 align=center valign=top>Tunnel Server Network: ";   
     printf("%d.%d.",@netw[0],@netw[1]);
@@ -303,7 +274,11 @@ sub print_vpn_clients()
     print ".";
     print "<input type='text' name='server_net2' size='3' maxlen='3' value='@netw[3]' onChange='form.submit()'>";
     print " (must be between 0 and 254)</td></tr>";
-    print "<tr><th colspan=6><hr></th></tr>\n";
+    print "</table>";
+    print "<hr />";
+    print "<table class=tun_client_table cellpadding=0 cellspacing=0>";
+    print "<tr><th colspan=6 align=center valign=top>&nbsp;</th></tr>\n";
+    print "<tr class=tun_client_row>";
     print "<tr><th colspan=6>Allow the following clients to connect to this server:</th></tr>\n";
     print "<tr><th>Enabled?</th><th>Client</th><th>Pwd</th><th>Net</th><th>Active&nbsp;</td><th>Action</th></tr>\n";
     
@@ -396,6 +371,30 @@ sub get_client_info()
     }
 
     $parms{client_num} = scalar(@clients);
+}
+
+#################################
+# save clients from form to UCI
+#################################
+sub save_clients()
+{
+    for ($i=0; $i < $parms{"client_num"}; $i++) {
+        foreach $var (qw(enabled name passwd))
+        {
+            $rc=&uci_set_indexed_option("vtun","client",$i,$var,$parms{"client${i}_$var"});
+            push(@errors,"Problem saving UCI vtun client #$i") if $rc;
+        }       
+    }
+}
+
+#################################
+# save network info to UCI
+#################################
+sub save_network()
+{
+    my $net=sprintf("%d.%d.%d.%d",172,31,$parms{server_net1},$parms{server_net2});
+    #push @cli_err, "The server net values must be between 0-254!";
+    push @errors, "Problem saving the server network values!" if (&uci_set_indexed_option("vtun","network",0,"start",$net));
 }
 
 sub DEBUGEXIT()

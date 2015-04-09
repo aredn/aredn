@@ -83,8 +83,8 @@ sub uci_set_indexed_option()
     my $cmd=sprintf('uci set %s.@%s[%s].%s=%s',$config,$stype,$index,$option,$val);
     my $res=`$cmd`;
     my $rc=$?;
-    chomp($res);
-    return ($rc,$res);
+    #chomp($res);
+    return $rc;
 }
 
 sub uci_delete_indexed_type()
@@ -103,7 +103,7 @@ sub uci_commit()
     my $cmd=sprintf('uci commit %s',$config);
     my $res=`$cmd`;
     my $rc=$?;
-    return ($rc);
+    return $rc;
 }
 
 sub uci_revert()
