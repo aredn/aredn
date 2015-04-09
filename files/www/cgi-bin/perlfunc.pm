@@ -90,7 +90,7 @@ sub navbar
 
     foreach $page (@pages)
     {
-	print "<td align=center width=25%";
+	print "<td align=center width=15%";
 	print " class=navbar_select" if $page eq $current;
 	print "><a href='$page'>", $titles{$page}, "</a></td>\n";
     }
