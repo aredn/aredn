@@ -1,4 +1,38 @@
 #!/usr/bin/perl
+=for comment
+
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (c) 2015 Darryl Quinn
+  See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+=cut
 $debug = 0;
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
@@ -10,12 +44,6 @@ $config = nvram_get("config");
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 $unode = uc $node;   # UPPER CASE NODENAME
-#$vpncfile = "/etc/vpnclients";
-#$tmpdir = "/tmp/web/vpn";
-#$tmpvtundsconf = "${tmpdir}/vtundsrv.conf.tmp";
-#$tmpconnfile = "${tmpdir}/vpnclients";
-#$tsfile = "/etc/tunnel.server";
-#$tmptsfile = "${tmpdir}/tunnel.server.tmp";
 
 read_postdata();
 
@@ -33,7 +61,8 @@ if($parms{button_install})
 } 
 
 reboot_required() if($config eq "" or -e "/tmp/reboot-required");
-vpn_setup_required() unless(-e "/usr/sbin/vtund" );
+&vpn_setup_required("vpn") unless(-e "/usr/sbin/vtund" );
+
 get_active_tun();
 
 #################
@@ -144,16 +173,16 @@ foreach $val (@list)
 $parms{client_num} = $client_num;
 
 #################
-# SAVE the clients
-#################
-$rc=save_clients();
-
-#################
 # SAVE the server network numbers into the UCI
 #################
 $netw[2]=$parms{server_net1};
 $netw[3]=$parms{server_net2};
 $rc=save_network();
+
+#################
+# SAVE the clients
+#################
+$rc=save_clients();
 
 #################
 # save configuration (commit)
@@ -216,10 +245,10 @@ if($parms{button_save})
     if(@cli_err)
     {
 	print "<tr><td align=center><b>Configuration NOT saved!</b></td></tr>\n";
-    }
-    elsif(@errors)
-    {
-	print "<tr><td align=center><b>Configuration saved, however:<br>";
+    #}
+    #elsif(@errors)
+    #{
+	#print "<tr><td align=center><b>Configuration saved, however:<br>";
 	foreach(@errors) { print "$_<br>" }
 	print "</b></td></tr>\n";
     }
@@ -227,7 +256,6 @@ if($parms{button_save})
     {
 	print "<tr><td align=center><b>Configuration saved and is now active.</b></td></tr>\n";
     }
-
     print "<tr><td>&nbsp;</td></tr>\n";
 }
 
@@ -368,6 +396,7 @@ sub print_vpn_clients()
 sub get_client_info()
 {
     my @clients=&uci_get_all_by_sectiontype("vtun","client");
+
     foreach $c (0..@clients-1)
     {
         foreach $var (qw(enabled name passwd))
@@ -389,7 +418,7 @@ sub save_clients()
         foreach $var (qw(enabled name passwd))
         {
             $rc=&uci_set_indexed_option("vtun","client",$i,$var,$parms{"client${i}_$var"});
-            push(@errors,"Problem saving UCI vtun client (#$i)") if $rc;
+            push(@cli_err,"Problem saving UCI vtun client (#$i)") if $rc;
         }       
     }
 }
@@ -400,8 +429,7 @@ sub save_clients()
 sub save_network()
 {
     my $net=sprintf("%d.%d.%d.%d",172,31,$parms{server_net1},$parms{server_net2});
-    #push @cli_err, "The server net values must be between 0-254!";
-    push @errors, "Problem saving the server network values!" if (&uci_set_indexed_option("vtun","network",0,"start",$net));
+    push @cli_err, "Problem saving the server network values!" if (&uci_set_indexed_option("vtun","network",0,"start",$net));
 }
 
 sub DEBUGEXIT()
