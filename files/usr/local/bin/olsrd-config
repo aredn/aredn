@@ -42,6 +42,19 @@
 
 use perlfunc;
 
+#Check what config file we are building for
+if ( !$ARGV[0] ) {
+    $UCI_CONF_FILE="olsrd";
+} else {
+    $UCI_CONF_FILE=$ARGV[0];
+}
+
+if ( $UCI_CONF_FILE eq "olsrd6" ) {
+    # We only generate entries for IPv4 at moment"
+    exit 0;
+}
+
+
 @names = @hosts = @services = ();
 
 # canonical names for this node
