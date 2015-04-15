@@ -99,8 +99,10 @@ sub uci_get_all_by_sectiontype()
 sub uci_add_sectiontype()
 {
     my ($config,$stype)=@_;
+    system `touch /etc/config/$config` if (! -f "/etc/config/$config");
     my $cmd=sprintf('uci add %s %s',$config,$stype);
     my $res=`$cmd`;
+
     my $rc=$?;
     return ($rc);
 }
@@ -117,6 +119,7 @@ sub uci_delete_option()
 sub uci_set_indexed_option()
 {
     my ($config,$stype,$index,$option,$val)=@_;
+    system `touch /etc/config/$config` if (! -f "/etc/config/$config");
     if (&uci_get_sectiontype_count($config,$stype) eq 0) {
         my $rc=&uci_add_sectiontype($config,$stype);
         # abort if error

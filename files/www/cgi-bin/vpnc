@@ -44,15 +44,8 @@ $config = nvram_get("config");
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 $unode = uc $node;   # UPPER CASE NODENAME
-#$vpnconnfile = "/etc/vtun.connections";
-#$tmpdir = "/tmp/web/vpn";
-#$tmpvtundconf = "${tmpdir}/vtund.conf.tmp";
-#$tmpvtundservice = "${tmpdir}/vtund.service.tmp";  # contains connection rows
-#$tmpvtund = "${tmpdir}/vtund.tmp";
-#$tmpconnfile = "${tmpdir}/vpnconnections";
 
 read_postdata();
-@active_tun=&get_active_tun();
 
 #################
 # page checks
@@ -69,28 +62,43 @@ if($parms{button_install})
 
 reboot_required() if($config eq "" or -e "/tmp/reboot-required");
 &vpn_setup_required("vpnc") unless(-e "/usr/sbin/vtund" );
- 
+
+@active_tun=&get_active_tun();
+
+#################
+# If RESET, revert the UCI file
+#################
+if($parms{button_reset})
+{
+    ($rc,$res)=&uci_revert("vtun");
+    $rc=&uci_commit("vtun");
+}
+
 #################
 # If RESET or FIRST TIME, load servers into parms
 #################
-
-if($parms{button_reset} or not $parms{reload})
+if($parms{button_reset} or not $parms{reload}) 
 {
-    # load connections from UCI
+ # revert to previous state on initial load
+    ($rc,$res)=&uci_revert("vtun");
+
+    # load servers from UCI
     &get_connection_info();
     
     # initialize the "add" entries to clear them
-    foreach $var (qw(conn_add_enabled conn_add_host conn_add_passwd conn_add_netip))
+    foreach $var (qw(enabled host passwd netip))
     {
-        $parms{$var} = "";
-        $parms{$var} = "0" if($var eq 'conn_add_enabled');
+        $varname = "conn${val}_$var";
+        $parms{$varname} = "";
+        $parms{$varname} = "" if($var eq 'enabled');
+
     }
 }
 
 #################
 # load connections from FORM and validate
 #################
-for($i =1 , @list = (); $i <= $parms{conn_num}; ++$i) { push @list, $i }
+for($i =0 , @list = (); $i < $parms{conn_num}; $i++) { push @list, $i }
 push @list, "_add";
 $conn_num = 0;
 
@@ -127,18 +135,21 @@ foreach $val (@list)
         next;
     }
 
+    # password MUST be alphanumeric (no special chars)
+    push @conn_err, "The password cannot contain non-alphanumeric characters (#$conn_num)" if ($passwd =~ m/[^a-zA-Z0-9@]/);
     push @conn_err, "A connection server is required" if($host eq "");
     push @conn_err, "A connection password is required" if($passwd eq "");
+    push @conn_err, "A connection network IP is required" if($netip eq "");
 
-    next if $val eq "_add" and @cli_err and $cli_err[-1] =~ /^$val /;
-
-    # Commit the data for this connection
-    ++$conn_num;
+    next if $val eq "_add" and @conn_err and $conn_err[-1] =~ /^$val /;
 
     $parms{"conn${conn_num}_enabled"} = $enabled;
     $parms{"conn${conn_num}_host"} = $host;
     $parms{"conn${conn_num}_passwd"} = $passwd;
     $parms{"conn${conn_num}_netip"} = $netip;
+
+    # Commit the data for this connection
+    $conn_num++;
 
     # Clear out the ADD values
     if($val eq "_add")
@@ -150,41 +161,26 @@ foreach $val (@list)
     }
 }
 
-#################
-# SAVE the clients the UCI vtun file
-#################
 $parms{conn_num} = $conn_num;
 
+#################
+# SAVE the connections
+#################
+$rc=save_connections();
+
+#################
+# SAVE the connections the UCI vtun file
+#################
 if($parms{button_save} and not (@conn_err or @serv_err))
 {
-    # ADD/SET all server type entries
-    for($i=1; $i<=$conn_num; $i++)
+   if (&uci_commit("vtun"))
     {
-        foreach $var (qw(enabled host passwd netip)) 
-        {
-            eval sprintf("\$val = \$parms{conn%s_%s}",$i,$var);
-            $idx=$i*(-1);
-            push(@errors,"Problem adding server entry into config file") if &uci_set_indexed_option("vtun","server",$idx,$var,$val);
-        }
-        # TODO: calculate clientip and serverip
-        #
-        # TODO: uci_set_indexed_option("vtun","server",-1,"clientip",$clientip);
-        # TODO: uci_set_indexed_option("vtun","server",-1,"clientip",$serverip);
-        # TODO: uci_set_indexed_option("vtun","server",-1,"node",$nodename)
+        push(@errors,"Problem committing UCI vtun");
+        system("cp -f /etc/config/vtun /etc/config.mesh");
     }
-
-    push(@errors,"Problem committing server entry into config file") if system "uci commit vtun > /dev/null 2>&1";
-
-    # COPY /etc/config/vtun to /etc/config.mesh/vtun (to workaround node-setup script issues)
-    system "cp /etc/config/vtun /etc/config.mesh/vtun";
-
-    # STOP vtun clients
-    system "/etc/init.d/vtund stop > /dev/null 2>&1";
-    
-    # START VTUND  /etc/init.d/vtund start
     unless($debug == 3)
     {
-        push(@errors,"Problem starting vtund") if system "/etc/init.d/vtund start > /dev/null 2>&1";
+        push(@errors,"Problem restaring vtund") if system "/etc/init.d/vtund restart > /dev/null 2>&1";
     }
 }
 
@@ -225,7 +221,7 @@ push @hidden, "<input type=hidden name=reload value=1></td></tr>";
 if(@cli_err)
 {
     print "<tr><td align=center><b>ERROR:<br>";
-    foreach(@conn_err) { print "$_<br>" }
+    foreach(@cli_err) { print "$_<br>" }
     print "</b></td></tr>\n";
 }
 
@@ -297,7 +293,7 @@ sub print_vpn_connections()
     print "<tr><th colspan=6><hr></th></tr>\n";
     print "<tr><th>Enabled?</th><th>Server</th><th>Pwd</th><th>Network</th><th>Active&nbsp;</th><th>Action</th></tr>\n";
 
-    for($i = 1, @list = (); $i <= $parms{conn_num}; ++$i) { push @list, $i };
+    for($i = 0, @list = (); $i < $parms{conn_num}; $i++) { push @list, $i };
 
     push @list, "_add" unless($parms{conn_num} > 9);
 
@@ -337,14 +333,10 @@ sub print_vpn_connections()
         # print " disabled" unless $val eq "_add";
         print " title='connection network'></td>";
 
-        #if($val eq "_add") { print @netw[3]+(($net) * 4); }
-        #else { print @netw[3]+($net * 4); }
-        
-        #print @netw[3]+($net * 4) unless $val eq "_add";
         print "</td>";
         print "<td>&nbsp;";
-        #print "<img src='/dot.png'/>" if(@active_tun[$cnum]);  
-        print "<img src='/dot.png'/>" if((&is_tunnel_active($netip, @active_tun)) && ($val ne "_add"));
+        print "<img class='tun_client_active_img' src='/plug-connect.png'/>" if (&is_tunnel_active($netip,@active_tun) && ($val ne "_add"));
+        print "<img class='tun_client_inactive_img' src='/plug-disconnect.png'/>" if ($val ne "_add");
         print "</td>";
         print "<td>&nbsp;";    
 
@@ -371,54 +363,6 @@ sub print_vpn_connections()
 
 
 #################################
-# generate the UCI file
-#################################
-sub build_uci()
-{
-    
-    # loop over each connection
-    #$cnum=0;
-    foreach(`cat $vpnconnfile 2>/dev/null`)
-    {
-        next if /^\s*#/;   ## ignore lines that start with '#'
-        next if /^\s*$/;   ## ignore lines that start with '$'
-        chomp;
-
-        @parts = split /\|/, $_;
-        
-        next unless scalar(@parts) == 4;
-
-        $enable = @parts[0];
-        $server = @parts[1];
-        $pass = @parts[2];
-        $net = @parts[3];
-
-        @netw=split /\./, $net;
-
-        unless($enable)
-        {
-            # $cnum++;    ## to make sure the tun and ip addresses remain constant
-            next;
-        }
-        $clientname=sprintf("%s-%d-%d-%d-%d",$unode,@netw[0],@netw[1],@netw[2],@netw[3]);
-        $net3=@netw[2];
-        #$net4=@netw[3]+($cnum*4);
-        $net4=@netw[3];
-        $netnet=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],$net3,$net4);
-        $netcli=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],$net3,$net4+1);
-        $netserv=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],$net3,$net4+2);
-
-        # uci set vtun.@server[-1].host
-        # uci set vtun.@server[-1].node
-        # uci set vtun.@server[-1].passwd
-        # uci set vtun.@server[-1].netip
-        # uci commit vtun
-
-        $cnum++;
-    }    
-}
-
-#################################
 # load server connection info from UCI
 #################################
 sub get_connection_info()
@@ -436,6 +380,38 @@ sub get_connection_info()
     $parms{conn_num} = scalar(@connections);
 }
 
+#################################
+# save server connections from form to UCI
+#################################
+sub save_connections()
+{
+    for ($i=0; $i < $parms{"conn_num"}; $i++) {
+        
+        my $net = $parms{"conn${i}_netip"};
+    
+        # generate the clientip and serverip
+        my ($clientip, $serverip) = &generate_ips($net);
+
+        # generate the VTUN NODE name based on the node name and netip
+        $net=~ s/\./\-/g;
+        my $vtun_node_name="$node-$net";
+
+        $rc=&uci_set_indexed_option("vtun","server",$i,"clientip",$clientip);
+        push(@cli_err,"Problem saving UCI vtun connection client IP (#$i)") if $rc;
+
+        $rc=&uci_set_indexed_option("vtun","server",$i,"serverip",$serverip);
+        push(@cli_err,"Problem saving UCI vtun connection server IP (#$i)") if $rc;
+        
+        $rc=&uci_set_indexed_option("vtun","server",$i,"node",$vtun_node_name);
+        push(@cli_err,"Problem saving UCI vtun connection name (#$i)") if $rc;
+
+        foreach $var (qw(enabled host passwd netip))
+        {
+            $rc=&uci_set_indexed_option("vtun","server",$i,$var,$parms{"conn${i}_$var"});
+            push(@cli_err,"Problem saving UCI vtun connection (#$i)") if $rc;
+        }
+    }
+}
 
 sub DEBUGEXIT()
 {

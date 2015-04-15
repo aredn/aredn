@@ -4,7 +4,7 @@
 START=84
 STOP=85
 
-CLIENT_CONF=/etc/vtund.conf
+CLIENT_CONF=/tmp/vtun/vtund.conf
 
 # Starting tun interface is tun50
 TUNNUM=60
@@ -89,7 +89,7 @@ to_server_config() {
 start_clients() {
 	local cfg="$1"
 	local new_file="$2"	
-	local enabled host pwd net node netip clientip serverip
+	local enabled host passwd net node netip clientip serverip
 	config_get_bool enabled "$cfg" enabled
 
 	if [ $enabled -eq 1 ]
@@ -101,7 +101,8 @@ start_clients() {
 }
 
 apply_uci_config() {
-	sh -c '. /lib/functions.sh; include /lib/config; uci_apply_defaults'
+	# sh -c '. /lib/functions.sh; include /lib/config; uci_apply_defaults'
+	sh -c '. /lib/functions.sh; include /lib/config'
 }
 
 start() {

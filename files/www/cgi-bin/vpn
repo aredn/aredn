@@ -63,7 +63,7 @@ if($parms{button_install})
 reboot_required() if($config eq "" or -e "/tmp/reboot-required");
 &vpn_setup_required("vpn") unless(-e "/usr/sbin/vtund" );
 
-get_active_tun();
+@active_tun=&get_active_tun();
 
 #################
 # If RESET, revert the UCI file
@@ -366,7 +366,7 @@ sub print_vpn_clients()
         
         print "<td>&nbsp;$fullnet</td>";       
         print "<td align=center>&nbsp;"; 
-        print "<img class='tun_client_active_img' src='/plug-connect.png'/>" if (&is_tunnel_active($name) && ($val ne "_add"));
+        print "<img class='tun_client_active_img' src='/plug-connect.png'/>" if (&is_tunnel_active($name,@active_tun) && ($val ne "_add"));
         print "<img class='tun_client_inactive_img' src='/plug-disconnect.png'/>" if ($val ne "_add");
         print "</td>";
         print "<td><input type=submit name=client_add value=Add title='Add this client'>" if($val eq "_add");
@@ -415,6 +415,24 @@ sub get_client_info()
 sub save_clients()
 {
     for ($i=0; $i < $parms{"client_num"}; $i++) {
+        my $net = $parms{"client${i}_netip"};
+    
+#        # generate the clientip and serverip
+#        my ($clientip, $serverip) = &generate_ips($net);
+
+#        # generate the VTUN NODE name based on the node name and netip
+#        $net=~ s/\./\-/g;
+#        my $vtun_node_name="$node-$net";
+
+#        $rc=&uci_set_indexed_option("vtun","client",$i,"clientip",$clientip);
+#        push(@cli_err,"Problem saving UCI vtun client client IP (#$i)") if $rc;
+
+#        $rc=&uci_set_indexed_option("vtun","client",$i,"serverip",$serverip);
+#        push(@cli_err,"Problem saving UCI vtun client server IP (#$i)") if $rc;
+        
+#        $rc=&uci_set_indexed_option("vtun","client",$i,"node",$vtun_node_name);
+#        push(@cli_err,"Problem saving UCI vtun client name (#$i)") if $rc;
+
         foreach $var (qw(enabled name passwd))
         {
             $rc=&uci_set_indexed_option("vtun","client",$i,$var,$parms{"client${i}_$var"});

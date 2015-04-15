@@ -227,6 +227,9 @@ sub install_vtun
 
                 # create UCI config file
                 system("touch /etc/config/vtun");
+                # create options section
+                $rc=&uci_add_sectiontype("vtun","options");
+                $rc=&uci_commit();
 
                 http_header();
                 html_header("TUNNEL INSTALLATION IN PROGRESS", 0);
@@ -258,6 +261,24 @@ sub install_vtun
         }
     }
 }
+
+sub generate_ips()
+{
+    my ($netip) = @_;
+    my $serverip = &addrtoint($netip);
+    $serverip++;
+    $serverip++;
+    $serverip=inttoaddr($serverip);
+    
+    my $clientip = &addrtoint($netip);
+    $clientip++;
+    $clientip=inttoaddr($clientip);
+    
+    return ($clientip, $serverip);
+}
+
+sub addrtoint { return( unpack( "N", pack( "C4", split( /[.]/,$_[0]))))};
+sub inttoaddr { return( join( ".", unpack( "C4", pack( "N", $_[0]))))};
 
 sub DEBUGEXIT()
 {
