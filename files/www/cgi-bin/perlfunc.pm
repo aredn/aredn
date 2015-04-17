@@ -61,6 +61,7 @@ sub html_header
     print "<meta http-equiv='expires' content='0'>\n";
     print "<meta http-equiv='cache-control' content='no-cache'>\n";
     print "<meta http-equiv='pragma' content='no-cache'>\n";
+    # Prevent browser caching of the css file
     my $rnum=`date +%s`;
     chomp($rnum);
     print "<link id='stylesheet_css' rel=StyleSheet href='/style.css?", $rnum, "' type='text/css'>\n";
@@ -79,9 +80,9 @@ sub navbar
 		  ports  => "Port Forwarding,<br>DHCP, and Services",
 		  admin  => "Administration");
     
-    my($active_bg, $active_fg);
-    if(-f "/tmp/.night") { $active_bg = "red";   $active_fg = "black" }
-    else                 { $active_bg = "black"; $active_fg = "white" }
+    #my($active_bg, $active_fg);
+    #if(-f "/tmp/.night") { $active_bg = "red";   $active_fg = "black" }
+    #else                 { $active_bg = "black"; $active_fg = "white" }
 
     print "<hr><table cellpadding=5 border=0 width=100%><tr>\n";
 
