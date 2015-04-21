@@ -49,12 +49,12 @@ options_config() {
 allowed_client_config() {
 	local cfg="$1"
 	local new_file="$2"
-	local enabled name pwd netip clientip serverip persist compress keepalive proto
+	local enabled node pwd netip clientip serverip persist compress keepalive proto
 
 	if [ $TUNNUM -lt $MAXTUNNUM ]
 	then
 		config_get_bool enabled "$cfg" enabled
-		config_get name "$cfg" name
+		config_get node "$cfg" node
 		config_get passwd "$cfg" passwd
 		config_get netip "$cfg" netip
 		config_get clientip "$cfg" clientip
@@ -64,11 +64,11 @@ allowed_client_config() {
 		config_get keepalive "$cfg" keepalive "yes"
 		config_get proto "$cfg" proto "tcp"
 
-		cname=`echo $name`-`echo $netip | tr "." "-"`
+		#cname=`echo $node`-`echo $netip | tr "." "-"`
 
 		if [ $enabled -eq 1 ]
 		then
-			echo "$cname {" >> $new_file
+			echo "$node {" >> $new_file
 			echo " passwd $passwd;" >> $new_file
 			echo " type tun;" >> $new_file
 			echo " proto $proto;" >> $new_file
@@ -124,7 +124,7 @@ start() {
 
 stop() {
 	# find the vtund SERVER process... --- FIX THIS
-	for x in `ps -w|grep -F 'vtund[s]:'|grep -v grep|tr -s ' '|cut -d' ' -f1`
+	for x in `ps -w|grep -F 'vtund[s]:'|grep -v grep|awk '{print $1}'`
 	do
 		s=`echo $s $x`
 	done

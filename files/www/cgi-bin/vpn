@@ -113,7 +113,7 @@ $client_num = 0;
 
 foreach $val (@list)
 {
-    foreach $var (qw(enabled name passwd))
+    foreach $var (qw(enabled name passwd netip))
     {
         $varname = "client${val}_$var";
         $parms{$varname} = "0" if($val eq "enabled" and $parms{$varname} eq "");
@@ -156,6 +156,7 @@ foreach $val (@list)
     $parms{"client${client_num}_enabled"} = $enabled;
     $parms{"client${client_num}_name"} = uc $name;
     $parms{"client${client_num}_passwd"} = $passwd;
+    $parms{"client${client_num}_netip"} = $netip;
 
     # Commit the data for this client
     $client_num++;
@@ -163,7 +164,7 @@ foreach $val (@list)
     # Clear out the ADD values
     if($val eq "_add")
     {
-        foreach $var (qw(net enabled name passwd))
+        foreach $var (qw(net enabled name passwd netip))
             {
                 $parms{"client_add_${var}"} = "";
             }   
@@ -363,8 +364,8 @@ sub print_vpn_clients()
         if($val eq "_add") { $lastnet=@netw[3]+(($net) * 4); }
         else { $lastnet=@netw[3]+($net * 4); }
         $fullnet=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],@netw[2],$lastnet);
-        
-        print "<td>&nbsp;$fullnet</td>";       
+        print "<td>&nbsp;$fullnet";
+        print "<input type=hidden name=client${val}_netip value='$fullnet'/></td>";       
         print "<td align=center>&nbsp;"; 
         print "<img class='tun_client_active_img' src='/plug-connect.png'/>" if (&is_tunnel_active($name,@active_tun) && ($val ne "_add"));
         print "<img class='tun_client_inactive_img' src='/plug-disconnect.png'/>" if ($val ne "_add");
@@ -399,7 +400,7 @@ sub get_client_info()
 
     foreach $c (0..@clients-1)
     {
-        foreach $var (qw(enabled name passwd))
+        foreach $var (qw(enabled name passwd netip))
         {
             $parms{"client${c}_$var"} = @clients[$c]->{$var};
             $parms{"client${c}_$var"} = "0" if($parms{"client${c}_$var"} eq "");
@@ -417,27 +418,40 @@ sub save_clients()
     for ($i=0; $i < $parms{"client_num"}; $i++) {
         my $net = $parms{"client${i}_netip"};
     
-#        # generate the clientip and serverip
-#        my ($clientip, $serverip) = &generate_ips($net);
+        # generate the clientip and serverip
+        my ($clientip, $serverip) = &generate_ips($net);
 
-#        # generate the VTUN NODE name based on the node name and netip
-#        $net=~ s/\./\-/g;
-#        my $vtun_node_name="$node-$net";
+        $rc=&uci_set_indexed_option("vtun","client",$i,"netip",$net);
+        push(@cli_err,"Problem saving UCI vtun client net IP (#$i)") if $rc;
 
-#        $rc=&uci_set_indexed_option("vtun","client",$i,"clientip",$clientip);
-#        push(@cli_err,"Problem saving UCI vtun client client IP (#$i)") if $rc;
+        $rc=&uci_set_indexed_option("vtun","client",$i,"enabled",$parms{"client${i}_enabled"});
+        push(@cli_err,"Problem saving UCI vtun client (#$i)") if $rc;
 
-#        $rc=&uci_set_indexed_option("vtun","client",$i,"serverip",$serverip);
-#        push(@cli_err,"Problem saving UCI vtun client server IP (#$i)") if $rc;
+        $rc=&uci_set_indexed_option("vtun","client",$i,"name",$parms{"client${i}_name"});
+        push(@cli_err,"Problem saving UCI vtun client (#$i)") if $rc;
+
+        $rc=&uci_set_indexed_option("vtun","client",$i,"passwd",$parms{"client${i}_passwd"});
+        push(@cli_err,"Problem saving UCI vtun client (#$i)") if $rc;
+
+        # generate the VTUN NODE name based on the node name and netip
+        $net=~ s/\./\-/g;
+        my $vtun_node_name=$parms{"client${i}_name"} . "-" . $net;
+        $rc=&uci_set_indexed_option("vtun","client",$i,"clientip",$clientip);
+        push(@cli_err,"Problem saving UCI vtun client client IP (#$i)") if $rc;
+
+        $rc=&uci_set_indexed_option("vtun","client",$i,"serverip",$serverip);
+        push(@cli_err,"Problem saving UCI vtun client server IP (#$i)") if $rc;
         
-#        $rc=&uci_set_indexed_option("vtun","client",$i,"node",$vtun_node_name);
-#        push(@cli_err,"Problem saving UCI vtun client name (#$i)") if $rc;
+        
 
-        foreach $var (qw(enabled name passwd))
-        {
-            $rc=&uci_set_indexed_option("vtun","client",$i,$var,$parms{"client${i}_$var"});
-            push(@cli_err,"Problem saving UCI vtun client (#$i)") if $rc;
-        }       
+        $rc=&uci_set_indexed_option("vtun","client",$i,"node",$vtun_node_name);
+        push(@cli_err,"Problem saving UCI vtun client name (#$i)") if $rc;
+
+        #foreach $var (qw(enabled name passwd))
+        #{
+        #    $rc=&uci_set_indexed_option("vtun","client",$i,$var,$parms{"client${i}_$var"});
+        #    push(@cli_err,"Problem saving UCI vtun client (#$i)") if $rc;
+        #}       
     }
 }
 

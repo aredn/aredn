@@ -129,11 +129,10 @@ stop() {
 	if [[ -x "/usr/sbin/vtund" ]]
 	then
 		# find all the vtund CLIENT processess...
-		#for x in `ps -w|grep -F 'vtund[c]:'|grep -v grep|tr -s ' '|cut -d' ' -f2`
-		#do
-		#	s=`echo $s $x`
-		#done
-		#kill $s
-		killall vtund
+		for x in `ps -w|grep -F 'vtund[c]:'|grep -v grep|awk '{print $1}'`
+		do
+			s=`echo $s $x`
+		done
+		kill $s
 	fi
 }
