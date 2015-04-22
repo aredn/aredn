@@ -925,6 +925,17 @@ sub hardware_boardid
 sub hardware_info
 {
     %model = (
+        'TP-Link CPE210 v1.0' => {
+            'name'            => 'TP-Link CPE210 v1.0',
+            'comment'         => '',
+            'supported'       => '-2',
+            'maxpower'        => '27',
+            'pwroffset'       => '0',
+            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
+            'defaultant'      => 3,
+            'usechains'       => 1,
+            'rfband'          => '2400',
+         },
         'TP-Link CPE510 v1.0' => {
             'name'            => 'TP-Link CPE510 v1.0',
             'comment'         => '',
