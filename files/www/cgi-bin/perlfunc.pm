@@ -927,6 +927,17 @@ sub hardware_boardid
 sub hardware_info
 {
     %model = (
+        'TP-Link CPE210 v1.0' => {
+            'name'            => 'TP-Link CPE210 v1.0',
+            'comment'         => '',
+            'supported'       => '-2',
+            'maxpower'        => '27',
+            'pwroffset'       => '0',
+            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
+            'defaultant'      => 3,
+            'usechains'       => 1,
+            'rfband'          => '2400',
+         },
         'TP-Link CPE510 v1.0' => {
             'name'            => 'TP-Link CPE510 v1.0',
             'comment'         => '',
@@ -1031,6 +1042,17 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '900',
          },
+        '0xe1c3' => {
+            'name'            => 'Rocket M3',
+            'comment'         => 'In Testing',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '3',
+            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
+            'defaultant'      => 3,
+            'usechains'       => 1,
+            'rfband'          => '3400',
+         },
         '0xe202' => {
             'name'            => 'Bullet M2 HP',
             'comment'         => '',
@@ -1117,7 +1139,7 @@ sub hardware_info
             'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
             'defaultant'      => 3,
             'usechains'       => 1,
-            'rfband'          => '2400',
+            'rfband'          => '3400',
          },
         '0xe252' => {
             'name'            => 'airGrid M2 HP',
