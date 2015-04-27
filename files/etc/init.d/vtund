@@ -112,6 +112,16 @@ start() {
 		apply_uci_config
 		config_load vtun
 		
+		#if options section doesn't exist, add it
+		echo "testing for options..."
+		j=`uci get vtun.@options[0]`
+		if [ $? -ne 0 ] 
+			then
+			j=`uci add vtun options`
+			j='uci commit vtun'
+			config_load vtun
+		fi
+		
 		# Remove the current vtun config file
 		rm -f $CLIENT_CONF
 
