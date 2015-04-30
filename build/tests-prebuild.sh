@@ -33,8 +33,7 @@
 
 LICENSE
 
-PWD=$(pwd)
-SCRIPTBASE=$(dirname "$(readlink -f "$0")")
+export SCRIPTBASE=$(dirname "$(readlink -f "$0")")
 
 if [ "$1" != "" ]
 then
@@ -43,17 +42,19 @@ else
   AREDNFILESBASE="$PWD/files"
 fi
 
-
 if [ ! -d "$AREDNFILESBASE" ]
 then
   echo "ERROR: $AREDNFILESBASE doesn't exist"
   exit 1;
 fi
 
+export AREDNFILESBASE
+
+
 for file in $SCRIPTBASE/tests/prebuild/*
 do
   if [ -x "$file" ]; then
-    $file "$AREDNFILESBASE"
+    $file
   fi
 done
 

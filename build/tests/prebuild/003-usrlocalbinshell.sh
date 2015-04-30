@@ -33,16 +33,8 @@
 
 LICENSE
 
-SCRIPTBASE=$(dirname "$(readlink -f "$0")")
-. "$SCRIPTBASE/../../sh2ju.sh"
+. "$SCRIPTBASE/sh2ju.sh"
 
-AREDNFILESBASE=$1
-
-if [ ! -d "$AREDNFILESBASE" ]
-then
-  echo "ERROR: Please provide the files base path"
-  exit 1;
-fi
 
 # Make sure shellchheck is installed and in path.
 juLog -name="usrlocalbinshell_shellcheckexists" which shellcheck

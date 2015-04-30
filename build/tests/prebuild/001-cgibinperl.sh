@@ -33,18 +33,7 @@
 
 LICENSE
 
-SCRIPTBASE=$(dirname "$(readlink -f "$0")")
-. "$SCRIPTBASE/../../sh2ju.sh"
-
-AREDNFILESBASE=$1
-
-if [ ! -d "$AREDNFILESBASE" ]
-then
-  echo "ERROR: Please provide the files base path"
-  exit 1;
-fi
-
-
+. "$SCRIPTBASE/sh2ju.sh"
 
 for file in "$AREDNFILESBASE"/www/cgi-bin/*
 do
