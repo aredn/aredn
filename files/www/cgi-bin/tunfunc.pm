@@ -94,31 +94,23 @@ sub is_tunnel_active()
 }
 
 ##########################
-# Add OLSRD interfaces - called when adding a new client connection
+# Add OLSRD interfaces
 ##########################
-sub add_olsrd_interface() {
-    my ($tunnum) = @_;
-    # uci add_list olsrd.interface=vpn${tunnumber} 
-    # uci commit vtundsrv
+sub add_olsrd_interfaces() {
+    my ($tunstart,$tuncount) = @_;
+    
+    &uci_add_named_section("olsrd","tunnelserver","Interface");
 
-#config Interface 
-#        list interface 'vpn50 vpn51 vpn52 vpn53 vpn54 vpn55 vpn56 vpn57 vpn58 vpn59'
-#        option Ip4Broadcast 255.255.255.255
+    &uci_set_named_option("olsrd","tunnelserver","Ip4Broadcast","255.255.255.255");
+    
+    # delete all interfaces first
+    &uci_delete_named_option("olsrd","tunnelserver","interfaces");
+    
+    for (my $i=$tunstart, $i<$tuncount, $i++) {
+        &uci_add_list_named_option("olsrd","tunnelserver","interfaces","tun${i}");
+    }
 
-}
-
-
-##########################
-# Delete OLSRD interfaces - called when deleting a new client connection
-##########################
-sub del_olsrd_interface() {
-    my ($tunnum) = @_;
-    # uci delete_list olsrd.interface.vpn${tunnumber} 
-    # uci commit vtundsrv
-
-#config Interface 
-#        list interface 'vpn50 vpn51 vpn52 vpn53 vpn54 vpn55 vpn56 vpn57 vpn58 vpn59'
-#        option Ip4Broadcast 255.255.255.255
+    &uci_commit("olsrd");
 }
 
 ##########################
@@ -128,21 +120,11 @@ sub add_network_interfaces() {
 
     for (my $tunnum=50; $tunnum<=69; $tunnum++)
     {
-        system "uci set network.tun${tunnum}=interface";
-        system "uci set network.tun${tunnum}.ifname='tun${tunnum}'";
-        system "uci set network.tun${tunnum}.proto='none'";
+        &uci_add_named_section("network","tun${tunnum}","interface");
+        &uci_set_named_option("network","tun${tunnum}","ifname","tun${tunnum}");
+        &uci_set_named_option("network","tun${tunnum}","proto","none");
     }
-    system "uci commit network";
-}
-
-##########################
-# Delete OLSRD interfaces - called when deleting a new client connection
-##########################
-sub del_olsrd_interface() {
-    my ($tunnum) = @_;
-    # uci delete_list olsrd.interface.vpn${tunnumber} 
-    # uci commit vtundsrv
-    # 
+    &uci_commit("network");
 }
 
 #################################
@@ -156,7 +138,7 @@ sub check_freespace()
 }
 
 ##########################
-# Config firewall to allow port 5525 on WAN interface
+# Config firewall to allow port 5525 on WAN interface - USE UCIFUNC LIB CALLS***********
 ##########################
 sub open_5525_on_wan() {
     system "uci add firewall rule >/dev/null 2>&1";

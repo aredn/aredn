@@ -116,6 +116,41 @@ sub uci_delete_option()
     chomp($res);
     return ($rc,$res);
 }
+
+sub uci_add_list_named_option()
+{
+    my ($config,$sname,$option,$val)=@_;
+    my $cmd=sprintf('uci add_list %s.%s.%s=\'%s\'',$config,$sname,$option,$val);
+    my $rc=$?;
+    return ($rc);
+}
+
+sub uci_delete_named_option()
+{
+    my ($config,$sname,$option)=@_;
+    my $cmd=sprintf('uci delete %s.%s.%s',$config,$sname,$option);
+    my $rc=$?;
+    return ($rc);
+}
+
+sub uci_add_named_section()
+{
+    my ($config,$sname,$stype)=@_;
+    my $cmd=sprintf('uci set %s.%s=%s',$config,$sname,$stype);
+    #uci set olsrd.tunnelserver=Interface
+    my $rc=$?;
+    return ($rc);
+}
+
+sub uci_set_named_option()
+{
+    my ($config,$sname,$option,$val)=@_;
+    my $cmd=sprintf('uci set %s.%s.%s=%s',$config,$sname,$option,$val);
+    #uci set olsrd.tunnelserver.Ip4Broadcast=255.255.255.255
+    my $rc=$?;
+    return ($rc);
+}
+
 sub uci_set_indexed_option()
 {
     my ($config,$stype,$index,$option,$val)=@_;
