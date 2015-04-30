@@ -125,11 +125,12 @@ sub del_olsrd_interface() {
 # Add network interfaces tun50 thru tun69 - called on install
 ##########################
 sub add_network_interfaces() {
-    for ($tunnum = 50; $tunnum <= 69; $tunnum++)
+
+    for (my $tunnum=50; $tunnum<=69; $tunnum++)
     {
-        system "uci set network.vpn${tunnum}=interface";
-        system "uci set network.vpn${tunnum}.ifname='tun${tunnum}";
-        system "uci set network.vpn${tunnum}.proto='none'";
+        system "uci set network.tun${tunnum}=interface";
+        system "uci set network.tun${tunnum}.ifname='tun${tunnum}'";
+        system "uci set network.tun${tunnum}.proto='none'";
     }
     system "uci commit network";
 }
