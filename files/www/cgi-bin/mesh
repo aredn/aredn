@@ -118,6 +118,10 @@ foreach(`cat /etc/hosts`)
     }
     else
     {
+	if ( $name !~ /\./ )
+        {
+          $name="${name}.local.mesh";
+        }
 	push @{$localhosts{$my_ip}{hosts}}, $name;
     }
 }
@@ -153,6 +157,10 @@ foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
     }
     else
     {
+	if ( $name !~ /\./ )
+        {
+          $name="${name}.local.mesh";
+        }
 	push @{$hosts{$originator}{hosts}}, $name;
     }
 }
