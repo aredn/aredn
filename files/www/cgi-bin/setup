@@ -682,6 +682,15 @@ if($dmz_mode)
     print "<tr><td><nobr>DHCP End</nobr></td>";
     #print "<td><input type=text size=4 name=dmz_dhcp_end value='$dmz_dhcp_end' disabled></td></tr>\n";
     print "<td>$dmz_dhcp_end</td></tr>\n";
+
+    print "<tr><td colspan=2><hr></hr></td></tr>";
+    print "<tr><th colspan=2>Advanced</th></tr>";
+
+    print "<tr><td>Disable<br>Default Route</td>";
+    print "<td><input type=checkbox name=lan_dhcp_noroute value=1";
+    print " checked" if $lan_dhcp_noroute;
+    print "></td></tr>\n";
+
     push @hidden, "<input type=hidden name=dmz_dhcp_end value='$dmz_dhcp_end'>";
 
     push @hidden, "<input type=hidden name=dmz_dhcp_limit value='$dmz_dhcp_limit'>";
