@@ -503,12 +503,17 @@ if(wifi_useschains()){
     $cmd .= "uci set wireless.\@wifi-device[0].rxantenna=$cfg{wifi_rxant} >/dev/null 2>&1;";
     $cmd .= "uci set wireless.\@wifi-device[0].txantenna=$cfg{wifi_txant} >/dev/null 2>&1;";
 }
+
+# Setup node lan dhcp
+if ( $cfg{lan_dhcp_noroute} ) {
+    $cmd .= "uci add_list dhcp.\@dhcp[0].dhcp_option=3 >/dev/null 2>&1;"
+}
+
+# finish up
+
 $cmd .= "uci -q commit;";
 system $cmd;
 
-
-
-# finish up
 
 unless($auto)
 {
