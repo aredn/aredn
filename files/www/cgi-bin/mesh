@@ -72,8 +72,9 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
 
     if($table eq "Links")
     {
-	($junk, $ip, $junk, $lq) = split /\s+/, $_;
-	$links{$ip} = $lq;
+	($junk, $ip, $junk, $lq, $nlq) = split /\s+/, $_;
+	$links{$ip}{lq} = $lq;
+	$links{$ip}{nlq} = $nlq;
     }
     elsif($table eq "Neighbors")
     {
@@ -384,8 +385,8 @@ print "</table></td><td width=20>&nbsp;</td><td valign=top><table>\n";
 
 # show current neighbors
 
-print "<tr><th align=left><nobr>Current Neighbors</nobr></th><th>&nbsp;&nbsp;</th><th>LQ</th><th>&nbsp;&nbsp;</th><th align=left>Services</th></tr>\n";
-print "<tr><td colspan=5><hr></td></tr>\n";
+print "<tr><th align=left><nobr>Current Neighbors</nobr></th><th>&nbsp;&nbsp;</th><th>LQ</th><th>NLQ</th><th>&nbsp;&nbsp;</th><th align=left>Services</th></tr>\n";
+print "<tr><td colspan=6><hr></td></tr>\n";
 
 if(keys %links)
 {
@@ -409,7 +410,7 @@ if(keys %links)
 	    $rows{$host} .= " &nbsp; <small>(mid$midnum)</small>";
 	}
 
-	$rows{$host} .= sprintf "</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td></td><td>\n", 100*$links{$ip};
+	$rows{$host} .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq});
 	foreach(sort keys %{$services{$host}}) { $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n" }
 	$rows{$host} .= "</td></tr>\n";
 
@@ -434,7 +435,7 @@ else
 
 print "<tr><td>&nbsp;</td></tr>\n";
 print "<tr><th colspan=4 align=left><nobr>Previous Neighbors</nobr></th><th align=left>When</th></tr>\n";
-print "<tr><td colspan=5><hr></td></tr>\n";
+print "<tr><td colspan=6><hr></td></tr>\n";
 %rows = ();
 ($uptime) = `cat /proc/uptime` =~ /^(\d+)/;
 
