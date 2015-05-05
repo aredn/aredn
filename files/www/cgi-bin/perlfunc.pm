@@ -914,7 +914,7 @@ sub hardware_boardid
       chomp($boardid);
     } else {
     # Can't use the subsystem_device so instead use the model
-      $boardid = `/usr/local/bin/get_model`;
+      $boardid = `/usr/local/bin/get_boardid`;
       chomp($boardid);
     }
     return $boardid;
