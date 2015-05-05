@@ -1238,6 +1238,17 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          }, 
+        '0xe825' => {
+            'name'            => 'NanoBeam M5 19',
+            'comment'         => 'NanoBeam M5 19 in testing',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '4',
+            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
+            'defaultant'      => 3,
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         'Ubiquiti Nanostation M XW' => {
             'name'            => 'NanoStation M5 XW',
             'comment'         => 'NanoStation M5 XW  0xe855 (In Testing)',
