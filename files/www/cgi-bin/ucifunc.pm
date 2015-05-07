@@ -33,7 +33,8 @@
 
 =cut
 
-### UCI Helpers START ###
+### UCI Helpers --GET-- --GET-- --GET-- --GET-- --GET-- --GET-- --GET-- --GET-- --GET-- --GET-- --GET-- ###
+
 sub uci_get_sectiontype_count()
 {
     my ($config, $stype)=@_;
@@ -64,8 +65,90 @@ sub uci_get_indexed_sectiontype()
     return ($rc, @res);
 }
 
+# Returns an array of section names 
+sub uci_get_names_by_sectiontype()
+{
+    my ($config,$stype)=@_;
+    my @names=();
+
+    my $cmd=sprintf('uci show %s|egrep vtun\..*=%s',$config,$stype);
+    my @lines=`$cmd`;
+
+    if (scalar @lines) {
+        foreach $l (0..@lines-1) {
+                @parts=();
+                chomp(@lines[$l]);
+                @parts = @lines[$l] =~ /^$config\.(.*)\=$stype/g;1;
+                
+                if (scalar(@parts) eq 1) {
+                    push(@names,@parts[0]);
+                } 
+        }
+    }
+    return @names;
+}
+
+# Returns all lines of config for a named section
+sub uci_get_named_section()
+{
+    my ($config,$sname)=@_;
+    my $cmd=sprintf('uci show %s.%s',$config,$sname);
+    my @lines=`$cmd`;
+    my %section;
+
+    if (scalar @lines) {
+        foreach (@lines)
+        {
+                $l=$_;
+                chomp($l);
+                # @parts=();
+                @parts = $l =~ /^$config\.$sname\.(.*)\=(.*)/g;1;
+                
+                if (scalar(@parts) eq 2) {
+                    $section->{@parts[0]} = @parts[1];
+                } 
+        }
+    }
+    return $section;
+}
+
+## is this function still needed
+sub uci_get_all_named_by_sectiontype()
+{
+    my ($config,$stype)=@_;
+    my @sections=();
+
+    my $cmd=sprintf('uci show %s|grep \=%s',$config,$config,$stype);
+    my @lines=`$cmd`;
+    
+    ## DLQ - need to get the names by stype
+    ## then get each one to iterate over
+
+    if (scalar @lines) {
+        my $lastindex=0;
+        my $sect={};
+        my @parts=();
+        foreach $l (0..@lines-1) {
+            @parts=();
+            chomp(@lines[$l]);
+            @parts = @lines[$l] =~ /^$config\.(.*)\.\=$stype/g;1;
+            if (scalar(@parts) eq 1) {
+                if (@parts[0] ne $lastindex) {
+                    push @sections, $sect;
+                    $sect={};
+                    $lastindex=@parts[0];
+                }
+                $sect->{@parts[1]} = @parts[2];
+                next;
+            }        
+        }
+        push (@sections, $sect);
+    } 
+    return (@sections);
+}
+
 # RETURNS an array of hashes
-sub uci_get_all_by_sectiontype()
+sub uci_get_all_indexed_by_sectiontype()
 {
     my ($config,$stype)=@_;
     my @sections=();
@@ -96,16 +179,39 @@ sub uci_get_all_by_sectiontype()
     return (@sections);
 }
 
+
+### UCI Helpers --ADD-- ###
+
 sub uci_add_sectiontype()
 {
     my ($config,$stype)=@_;
     system `touch /etc/config/$config` if (! -f "/etc/config/$config");
     my $cmd=sprintf('uci add %s %s',$config,$stype);
     my $res=`$cmd`;
-
     my $rc=$?;
-    return ($rc);
+    return $rc;
 }
+
+sub uci_add_list_named_option()
+{
+    my ($config,$sname,$option,$val)=@_;
+    my $cmd=sprintf('uci add_list %s.%s.%s=\'%s\'',$config,$sname,$option,$val);
+    my $res=`$cmd`;
+    my $rc=$?;
+    return $rc;
+}
+
+sub uci_add_named_section()
+{
+    my ($config,$sname,$stype)=@_;
+    my $cmd=sprintf('uci set %s.%s=%s',$config,$sname,$stype);
+    #uci set olsrd.tunnelserver=Interface
+    my $res=`$cmd`;
+    my $rc=$?;
+    return $rc;
+}
+
+### UCI Helpers --DELETE-- ###
 
 sub uci_delete_option()
 {
@@ -117,38 +223,36 @@ sub uci_delete_option()
     return ($rc,$res);
 }
 
-sub uci_add_list_named_option()
-{
-    my ($config,$sname,$option,$val)=@_;
-    my $cmd=sprintf('uci add_list %s.%s.%s=\'%s\'',$config,$sname,$option,$val);
-    my $rc=$?;
-    return ($rc);
-}
-
 sub uci_delete_named_option()
 {
     my ($config,$sname,$option)=@_;
     my $cmd=sprintf('uci delete %s.%s.%s',$config,$sname,$option);
+    my $res=`$cmd`;
     my $rc=$?;
-    return ($rc);
+    return $rc;
 }
 
-sub uci_add_named_section()
+sub uci_delete_indexed_type()
 {
-    my ($config,$sname,$stype)=@_;
-    my $cmd=sprintf('uci set %s.%s=%s',$config,$sname,$stype);
-    #uci set olsrd.tunnelserver=Interface
+    my ($config,$stype,$index)=@_;
+    my $cmd=sprintf('uci delete %s.@%s[%s]',$config,$stype,$index);
+    my $res=`$cmd`;
     my $rc=$?;
-    return ($rc);
+    chomp($res);
+    return ($rc,$res);
 }
+
+
+### UCI Helpers --SET-- ###
 
 sub uci_set_named_option()
 {
     my ($config,$sname,$option,$val)=@_;
     my $cmd=sprintf('uci set %s.%s.%s=%s',$config,$sname,$option,$val);
     #uci set olsrd.tunnelserver.Ip4Broadcast=255.255.255.255
+    my $res=`$cmd`;
     my $rc=$?;
-    return ($rc);
+    return $rc;
 }
 
 sub uci_set_indexed_option()
@@ -167,15 +271,8 @@ sub uci_set_indexed_option()
     return $rc;
 }
 
-sub uci_delete_indexed_type()
-{
-    my ($config,$stype,$index)=@_;
-    my $cmd=sprintf('uci delete %s.@%s[%s]',$config,$stype,$index);
-    my $res=`$cmd`;
-    my $rc=$?;
-    chomp($res);
-    return ($rc,$res);
-}
+
+### UCI Helpers --OTHER-- ###
 
 sub uci_commit()
 {

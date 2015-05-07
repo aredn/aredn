@@ -44,6 +44,7 @@ $config = nvram_get("config");
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 $unode = uc $node;   # UPPER CASE NODENAME
+$tun_client_start_num=60;
 
 read_postdata();
 
@@ -370,14 +371,18 @@ sub print_vpn_connections()
 #################################
 sub get_connection_info()
 {
-    my @connections=&uci_get_all_by_sectiontype("vtun","server");
-    foreach $c (0..@connections-1)
+    my @connections=&uci_get_names_by_sectiontype("vtun","server");
+    my $c=0;
+    foreach (@connections)
     {
+        my $myconn={};
+        $myconn=&uci_get_named_section("vtun",$_);
         foreach $var (qw(enabled host passwd netip))
         {
-            $parms{"conn${c}_$var"} = @connections[$c]->{$var};
+            $parms{"conn${c}_$var"} = $myconn->{$var};
             $parms{"conn${c}_$var"} = "0" if($parms{"conn${c}_$var"} eq "");
         }
+        $c++;
     }
 
     $parms{conn_num} = scalar(@connections);
@@ -388,10 +393,13 @@ sub get_connection_info()
 #################################
 sub save_connections()
 {
+    my $enabled_count=0;
     for ($i=0; $i < $parms{"conn_num"}; $i++) {
         
         my $net = $parms{"conn${i}_netip"};
     
+        $rc=&uci_add_named_section("vtun","server_$i","server");
+
         # generate the clientip and serverip
         my ($clientip, $serverip) = &generate_ips($net);
 
@@ -399,21 +407,25 @@ sub save_connections()
         $net=~ s/\./\-/g;
         my $vtun_node_name="$node-$net";
 
-        $rc=&uci_set_indexed_option("vtun","server",$i,"clientip",$clientip);
+        $rc=&uci_set_named_option("vtun","server_$i","clientip",$clientip);
         push(@cli_err,"Problem saving UCI vtun connection client IP (#$i)") if $rc;
 
-        $rc=&uci_set_indexed_option("vtun","server",$i,"serverip",$serverip);
+        $rc=&uci_set_named_option("vtun","server_$i","serverip",$serverip);
         push(@cli_err,"Problem saving UCI vtun connection server IP (#$i)") if $rc;
         
-        $rc=&uci_set_indexed_option("vtun","server",$i,"node",$vtun_node_name);
+        $rc=&uci_set_named_option("vtun","server_$i","node",$vtun_node_name);
         push(@cli_err,"Problem saving UCI vtun connection name (#$i)") if $rc;
 
         foreach $var (qw(enabled host passwd netip))
         {
-            $rc=&uci_set_indexed_option("vtun","server",$i,$var,$parms{"conn${i}_$var"});
+            $rc=&uci_set_named_option("vtun","server_$i",$var,$parms{"conn${i}_$var"});
             push(@cli_err,"Problem saving UCI vtun connection (#$i)") if $rc;
         }
+        $enabled_count++ if $parms{"conn${i}_enabled"}; 
     }
+
+    # add enabled interfaces to OLSRD
+    &add_olsrd_interfaces("tunnelclient",$tun_client_start_num,$enabled_count) if($enabled_count > 0);
 }
 
 sub DEBUGEXIT()

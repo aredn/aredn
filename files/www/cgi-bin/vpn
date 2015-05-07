@@ -44,6 +44,7 @@ $config = nvram_get("config");
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 $unode = uc $node;   # UPPER CASE NODENAME
+$tun_server_start_num=50;
 
 read_postdata();
 
@@ -72,6 +73,7 @@ if($parms{button_reset})
 {
     ($rc,$res)=&uci_revert("vtun");
     ($rc,$res)=&uci_delete_option("vtun","network",0,"start");
+    ($rc,$res)=&uci_delete_option("vtun","network",0,"dns");
     $rc=&uci_commit("vtun");
 }
 
@@ -80,6 +82,7 @@ if($parms{button_reset})
 #################
 @netw = ();
 @netw = get_server_network_address();
+$dns = get_server_dns();
 
 #################
 # If RESET or FIRST TIME, load clients/servers from file into parms
@@ -94,6 +97,8 @@ if($parms{button_reset} or not $parms{reload})
 
     $parms{server_net1}=@netw[2];
     $parms{server_net2}=@netw[3];
+
+    $parms{dns}=$dns;
     
     # initialize the "add" entries to clear them
     foreach $var (qw(client_add_enabled client_add_name client_add_passwd))
@@ -174,10 +179,11 @@ foreach $val (@list)
 $parms{client_num} = $client_num;
 
 #################
-# SAVE the server network numbers into the UCI
+# SAVE the server network numbers and dns into the UCI
 #################
 $netw[2]=$parms{server_net1};
 $netw[3]=$parms{server_net2};
+$dns=$parms{dns};
 $rc=save_network();
 
 #################
@@ -300,7 +306,7 @@ exit;
 ##################
 
 ######################################################
-# List the clients allowed to connect to this server # - CHANGE TO UCI
+# List the clients allowed to connect to this server
 ######################################################
 sub print_vpn_clients()
 {
@@ -311,7 +317,11 @@ sub print_vpn_clients()
     print "<input type='text' name='server_net1' size='3' maxlen='3' value='@netw[2]' onChange='form.submit()' >";
     print ".";
     print "<input type='text' name='server_net2' size='3' maxlen='3' value='@netw[3]' onChange='form.submit()'>";
-    print " (must be between 0 and 254)</td></tr>";
+    print " (must be between 0 and 254)";
+
+    print "<br /><hr>Tunnel Server DNS Name: ";   
+    print "<input type='text' name='dns' size='30' value='$dns' onChange='form.submit()' ></td></tr>";
+
     print "</table>";
     print "<hr />";
     print "<table class=tun_client_table cellpadding=0 cellspacing=0>";
@@ -375,7 +385,7 @@ sub print_vpn_clients()
         print "</td>";
         print "<td><input type=submit name=client_add value=Add title='Add this client'>" if($val eq "_add");
         print "</td>";
-        print "<td class='tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$passwd%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20<your%20server%20dns%20name>'><img class='tun_client_mailto_img' src='/email.png'/></a></td>" unless($val eq "_add");
+        print "<td class='tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$passwd%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20$dns'><img class='tun_client_mailto_img' src='/email.png'/></a></td>" unless($val eq "_add");
         print "</tr>\n";
 
         # display any errors
@@ -399,15 +409,18 @@ sub print_vpn_clients()
 #################################
 sub get_client_info()
 {
-    my @clients=&uci_get_all_by_sectiontype("vtun","client");
-
-    foreach $c (0..@clients-1)
+    my @clients=&uci_get_names_by_sectiontype("vtun","client");
+    my $c=0;
+    foreach (@clients)
     {
+        my $myclient={};
+        $myclient=&uci_get_named_section("vtun",$_);
         foreach $var (qw(enabled name passwd netip))
         {
-            $parms{"client${c}_$var"} = @clients[$c]->{$var};
+            $parms{"client${c}_$var"} = $myclient->{$var};
             $parms{"client${c}_$var"} = "0" if($parms{"client${c}_$var"} eq "");
         }
+        $c++;
     }
 
     $parms{client_num} = scalar(@clients);
@@ -422,40 +435,41 @@ sub save_clients()
 
     for ($i=0; $i < $parms{"client_num"}; $i++) {
         my $net = $parms{"client${i}_netip"};
-    
+
+        $rc=&uci_add_named_section("vtun","client_$i","client");
+        
         # generate the clientip and serverip
         my ($clientip, $serverip) = &generate_ips($net);
 
-        $rc=&uci_set_indexed_option("vtun","client",$i,"netip",$net);
-        push(@cli_err,"Problem saving UCI vtun client net IP (#$i)") if $rc;
+        $rc=&uci_set_named_option("vtun","client_$i","netip",$net);
+        push(@cli_err,"Problem saving UCI vtun client net IP (#$i): $rc") if $rc;
 
-        $rc=&uci_set_indexed_option("vtun","client",$i,"enabled",$parms{"client${i}_enabled"});
-        push(@cli_err,"Problem saving UCI vtun client (#$i)") if $rc;
+        $rc=&uci_set_named_option("vtun","client_$i","enabled",$parms{"client${i}_enabled"});
+        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
 
-        $rc=&uci_set_indexed_option("vtun","client",$i,"name",$parms{"client${i}_name"});
-        push(@cli_err,"Problem saving UCI vtun client (#$i)") if $rc;
+        $rc=&uci_set_named_option("vtun","client_$i","name",$parms{"client${i}_name"});
+        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
 
-        $rc=&uci_set_indexed_option("vtun","client",$i,"passwd",$parms{"client${i}_passwd"});
-        push(@cli_err,"Problem saving UCI vtun client (#$i)") if $rc;
+        $rc=&uci_set_named_option("vtun","client_$i","passwd",$parms{"client${i}_passwd"});
+        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
 
         # generate the VTUN NODE name based on the node name and netip
         $net=~ s/\./\-/g;
         my $vtun_node_name=$parms{"client${i}_name"} . "-" . $net;
-        $rc=&uci_set_indexed_option("vtun","client",$i,"clientip",$clientip);
-        push(@cli_err,"Problem saving UCI vtun client client IP (#$i)") if $rc;
+        $rc=&uci_set_named_option("vtun","client_$i","clientip",$clientip);
+        push(@cli_err,"Problem saving UCI vtun client client IP (#$i): $rc") if $rc;
 
-        $rc=&uci_set_indexed_option("vtun","client",$i,"serverip",$serverip);
-        push(@cli_err,"Problem saving UCI vtun client server IP (#$i)") if $rc;
+        $rc=&uci_set_named_option("vtun","client_$i","serverip",$serverip);
+        push(@cli_err,"Problem saving UCI vtun client server IP (#$i): $rc") if $rc;
         
-
-        $rc=&uci_set_indexed_option("vtun","client",$i,"node",$vtun_node_name);
-        push(@cli_err,"Problem saving UCI vtun client name (#$i)") if $rc;
+        $rc=&uci_set_named_option("vtun","client_$i","node",$vtun_node_name);
+        push(@cli_err,"Problem saving UCI vtun client name (#$i): $rc") if $rc;
 
         $enabled_count++ if $parms{"client${i}_enabled"};    
     }
 
     # add enabled interfaces to OLSRD
-    &add_olsrd_interfaces(50,$enabled_count) if($enabled_count);
+    &add_olsrd_interfaces("tunnelserver",$tun_server_start_num,$enabled_count) if($enabled_count > 0);
 }
 
 #################################
@@ -465,6 +479,8 @@ sub save_network()
 {
     my $net=sprintf("%d.%d.%d.%d",172,31,$parms{server_net1},$parms{server_net2});
     push @cli_err, "Problem saving the server network values!" if (&uci_set_indexed_option("vtun","network",0,"start",$net));
+    push @cli_err, "Problem saving the server DNS name!" if (&uci_set_indexed_option("vtun","network",0,"dns",$dns));
+       
 }
 
 sub DEBUGEXIT()

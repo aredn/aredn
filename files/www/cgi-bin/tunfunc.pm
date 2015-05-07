@@ -33,6 +33,14 @@
 
 =cut
 
+sub get_server_dns()
+{
+    my @list;
+    my $uciresult;
+    my ($rc,$dns)=&uci_get_indexed_option("vtun","network","0","dns");
+    return $dns;
+}
+
 #################################
 # get base network from config
 #################################
@@ -97,19 +105,22 @@ sub is_tunnel_active()
 # Add OLSRD interfaces
 ##########################
 sub add_olsrd_interfaces() {
-    my ($tunstart,$tuncount) = @_;
-    
-    &uci_add_named_section("olsrd","tunnelserver","Interface");
+    my ($sname,$tunstart,$tuncount) = @_;
+    my $tuns;
 
-    &uci_set_named_option("olsrd","tunnelserver","Ip4Broadcast","255.255.255.255");
+    &uci_add_named_section("olsrd",$sname,"Interface");
+    &uci_set_named_option("olsrd",$sname,"Ip4Broadcast","255.255.255.255");
     
     # delete all interfaces first
-    &uci_delete_named_option("olsrd","tunnelserver","interfaces");
-    
-    for (my $i=$tunstart, $i<$tuncount, $i++) {
-        &uci_add_list_named_option("olsrd","tunnelserver","interfaces","tun${i}");
+    &uci_delete_named_option("olsrd",$sname,"interfaces");
+ 
+    for my $i (0..$tuncount-1) {
+        $tuns=$tuns . " " if $i;
+        $tuns=$tuns . "tun" . $tunstart;
+        $tunstart++;
     }
-
+    
+    &uci_add_list_named_option("olsrd",$sname,"interfaces","$tuns");
     &uci_commit("olsrd");
 }
 
