@@ -102,7 +102,7 @@ sub is_tunnel_active()
 }
 
 ##########################
-# Add OLSRD interfaces
+# Add OLSRD interfaces - NOT NEEDED
 ##########################
 sub add_olsrd_interfaces() {
     my ($sname,$tunstart,$tuncount) = @_;

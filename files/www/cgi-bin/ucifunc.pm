@@ -77,11 +77,11 @@ sub uci_get_names_by_sectiontype()
     if (scalar @lines) {
         foreach $l (0..@lines-1) {
                 @parts=();
-                chomp(@lines[$l]);
-                @parts = @lines[$l] =~ /^$config\.(.*)\=$stype/g;1;
+                chomp($lines[$l]);
+                @parts = $lines[$l] =~ /^$config\.(.*)\=$stype/g;1;
                 
                 if (scalar(@parts) eq 1) {
-                    push(@names,@parts[0]);
+                    push(@names,$parts[0]);
                 } 
         }
     }
@@ -105,47 +105,13 @@ sub uci_get_named_section()
                 @parts = $l =~ /^$config\.$sname\.(.*)\=(.*)/g;1;
                 
                 if (scalar(@parts) eq 2) {
-                    $section->{@parts[0]} = @parts[1];
+                    $section->{$parts[0]} = $parts[1];
                 } 
         }
     }
     return $section;
 }
 
-## is this function still needed
-sub uci_get_all_named_by_sectiontype()
-{
-    my ($config,$stype)=@_;
-    my @sections=();
-
-    my $cmd=sprintf('uci show %s|grep \=%s',$config,$config,$stype);
-    my @lines=`$cmd`;
-    
-    ## DLQ - need to get the names by stype
-    ## then get each one to iterate over
-
-    if (scalar @lines) {
-        my $lastindex=0;
-        my $sect={};
-        my @parts=();
-        foreach $l (0..@lines-1) {
-            @parts=();
-            chomp(@lines[$l]);
-            @parts = @lines[$l] =~ /^$config\.(.*)\.\=$stype/g;1;
-            if (scalar(@parts) eq 1) {
-                if (@parts[0] ne $lastindex) {
-                    push @sections, $sect;
-                    $sect={};
-                    $lastindex=@parts[0];
-                }
-                $sect->{@parts[1]} = @parts[2];
-                next;
-            }        
-        }
-        push (@sections, $sect);
-    } 
-    return (@sections);
-}
 
 # RETURNS an array of hashes
 sub uci_get_all_indexed_by_sectiontype()
@@ -162,15 +128,15 @@ sub uci_get_all_indexed_by_sectiontype()
         my @parts=();
         foreach $l (0..@lines-1) {
             @parts=();
-            chomp(@lines[$l]);
-            @parts = @lines[$l] =~ /^$config\.\@$stype\[(.*)\]\.(.*)\=(.*)/g;1;
+            chomp($lines[$l]);
+            @parts = $lines[$l] =~ /^$config\.\@$stype\[(.*)\]\.(.*)\=(.*)/g;1;
             if (scalar(@parts) eq 3) {
-                if (@parts[0] ne $lastindex) {
+                if ($parts[0] ne $lastindex) {
                     push @sections, $sect;
                     $sect={};
-                    $lastindex=@parts[0];
+                    $lastindex=$parts[0];
                 }
-                $sect->{@parts[1]} = @parts[2];
+                $sect->{$parts[1]} = $parts[2];
                 next;
             }        
         }

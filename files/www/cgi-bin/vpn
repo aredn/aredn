@@ -204,7 +204,6 @@ if($parms{button_save} and not (@cli_err or @serv_err))
     unless($debug == 3)
     {
         # Regenerate olsrd files and restart olsrd
-        push(@errors,"Problem calling olsrd-config") if system "/usr/local/bin/olsrd-config > /dev/null 2>&1";
         push(@errors,"Problem restarting olsrd") if system "/etc/init.d/olsrd restart > /dev/null 2>&1";
         push(@errors,"Problem restaring vtundsrv") if system "/etc/init.d/vtundsrv restart > /dev/null 2>&1";
     }
@@ -467,9 +466,6 @@ sub save_clients()
 
         $enabled_count++ if $parms{"client${i}_enabled"};    
     }
-
-    # add enabled interfaces to OLSRD
-    &add_olsrd_interfaces("tunnelserver",$tun_server_start_num,$enabled_count) if($enabled_count > 0);
 }
 
 #################################
