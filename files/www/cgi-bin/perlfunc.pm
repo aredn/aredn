@@ -74,10 +74,12 @@ sub navbar
     my($current) = @_;
     $current = "" unless $current;
 
-    my @pages = qw(status setup ports admin);
+    my @pages = qw(status setup ports vpn vpnc admin);
     my %titles = (status => "Node Status",
 		  setup  => "Basic Setup",
 		  ports  => "Port Forwarding,<br>DHCP, and Services",
+          vpn    => "Tunnel<br>Server",
+          vpnc   => "Tunnel<br>Client",
 		  admin  => "Administration");
     
     #my($active_bg, $active_fg);
@@ -88,7 +90,7 @@ sub navbar
 
     foreach $page (@pages)
     {
-	print "<td align=center width=25%";
+	print "<td align=center width=15%";
 	print " class=navbar_select" if $page eq $current;
 	print "><a href='$page'>", $titles{$page}, "</a></td>\n";
     }
@@ -1426,6 +1428,28 @@ sub get_interface
     }
 }
 
+sub reboot_required()
+{
+    http_header();
+    html_header("$node setup", 1);
+    print "<body><center><table width=790><tr><td>\n";
+    navbar("vpn");
+    print "</td></tr><tr><td align=center><br>";
+    if($config eq "")
+    {
+    print "<b>This page is not available until the configuration has been set.</b>";
+    }
+    else
+    {
+        print "<b>The configuration has been changed.<br>This page will not be available until the node is rebooted.\n</b>";
+        print "<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>\n";
+        print "<input type=submit name=button_reboot value='Click to REBOOT' />";
+        print "</form>";
+    }
+    print "</td></tr>\n";
+    print "</table></center></body></html>\n";
+    exit;
+}
 sub css_options
 {
     print "<option value=\"style.css\">Select a theme</option>";

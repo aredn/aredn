@@ -1,0 +1,22 @@
+#!/bin/sh
+# Handles setting up rules for tunnel interfaces               
+if [[ -x "/usr/bin/vtund" ]]
+then
+  ISVPN=false
+  case "$INTERFACE" in
+  	vpn*)
+  	ISVPN=true;
+  	;;
+  esac
+
+  if [ "$ISVPN" = true ]; then                            
+    INTF=tun${INTERFACE:3}         
+    if [ $ACTION = "ifup" ] ; then                                        
+       /usr/local/bin/vtun_up $INTF up                                     
+       # echo "$INTF up" >> /tmp/vtundscript.log                         
+    elif [ $ACTION = "ifdown" ] ; then             
+       /usr/local/bin/vtun_up $INTF down        
+       # echo "$INTF down" >> /tmp/vtundscript.log            
+    fi                           
+  fi 
+fi

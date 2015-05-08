@@ -41,6 +41,7 @@
 # dynamic part depends on the node configuration
 
 use perlfunc;
+use ucifunc;
 
 #Check what config file we are building for
 if ( !$ARGV[0] ) {
@@ -55,7 +56,7 @@ if ( $UCI_CONF_FILE eq "olsrd6" ) {
 }
 
 
-@names = @hosts = @services = ();
+@names = @hosts = @services = @tunnels = ();
 
 # canonical names for this node
 # (they show up in reverse order, make the "official" name last)
@@ -90,6 +91,36 @@ foreach(`cat /etc/config/services 2>/dev/null`)
     push @services, $_;
 }
 
+# load the tunnels
+my @tunnelnames = @section = ();
+
+$tunnum=50;
+push(@tunnelnames, &uci_get_names_by_sectiontype("vtun","client"));
+foreach (@tunnelnames)
+{
+  $section=&uci_get_named_section("vtun",$_);
+  if ($section->{enabled} eq 1)
+  {
+    push(@tunnels,"tun${tunnum}");
+    $tunnum++;
+  }
+}
+
+$tunnum=60;
+@tunnelnames=&uci_get_names_by_sectiontype("vtun","server");
+foreach (@tunnelnames)
+{
+  $section=&uci_get_named_section("vtun",$_);
+  if ($section->{enabled} eq 1)
+  {
+    push(@tunnels,"tun${tunnum}");
+    $tunnum++;
+  }
+}
+
+
+
+
 
 # add the nameservice plugin
 push @file, qq(\nLoadPlugin "olsrd_nameservice.so.0.3"\n);
@@ -106,6 +137,14 @@ foreach(@names)    { push @file, qq(    PlParam "name" "$_"\n) }
 foreach(@hosts)    { push @file, qq(    PlParam $_\n) }
 foreach(@services) { push @file, qq(    PlParam "service" "$_"\n) }
 push @file, qq(}\n);
+
+# add the ACTIVE tunnel interfaces
+push @file, qq(\nInterface );
+foreach(@tunnels) { push @file, qq("$_" ) }
+push @file, qq(\n{\n);
+push @file, qq(     Ip4Broadcast 255.255.255.255\n);
+push @file, qq(}\n);
+
 
 # write the file
 print @file;
