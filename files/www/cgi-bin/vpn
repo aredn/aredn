@@ -44,7 +44,7 @@ $config = nvram_get("config");
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 $unode = uc $node;   # UPPER CASE NODENAME
-$tun_server_start_num=50;
+#$tun_server_start_num=50;
 
 read_postdata();
 
@@ -95,8 +95,8 @@ if($parms{button_reset} or not $parms{reload})
     # load clients from UCI
     &get_client_info();
 
-    $parms{server_net1}=@netw[2];
-    $parms{server_net2}=@netw[3];
+    $parms{server_net1}=$netw[2];
+    $parms{server_net2}=$netw[3];
 
     $parms{dns}=$dns;
     
@@ -312,10 +312,10 @@ sub print_vpn_clients()
     print "<table cellpadding=0 cellspacing=0>";
     
     print "<br /><tr class=tun_network_row><td colspan=6 align=center valign=top>Tunnel Server Network: ";   
-    printf("%d.%d.",@netw[0],@netw[1]);
-    print "<input type='text' name='server_net1' size='3' maxlen='3' value='@netw[2]' onChange='form.submit()' >";
+    printf("%d.%d.",$netw[0],$netw[1]);
+    print "<input type='text' name='server_net1' size='3' maxlen='3' value='$netw[2]' onChange='form.submit()' >";
     print ".";
-    print "<input type='text' name='server_net2' size='3' maxlen='3' value='@netw[3]' onChange='form.submit()'>";
+    print "<input type='text' name='server_net2' size='3' maxlen='3' value='$netw[3]' onChange='form.submit()'>";
     print " (must be between 0 and 254)";
 
     print "<br /><hr>Tunnel Server DNS Name: ";   
@@ -364,8 +364,8 @@ sub print_vpn_clients()
         print "></td>";
 
         # handle rollover of netw[3]
-        if(@netw[3]+($cnum * 4) > 252) {
-            @netw[2]++;
+        if($netw[3]+($cnum * 4) > 252) {
+            $netw[2]++;
             $netw[3] = 0;
             $net=0;
             $cnum=0;
@@ -373,9 +373,9 @@ sub print_vpn_clients()
             $net=$cnum;
         }
         
-        if($val eq "_add") { $lastnet=@netw[3]+(($net) * 4); }
-        else { $lastnet=@netw[3]+($net * 4); }
-        $fullnet=sprintf("%d.%d.%d.%d",@netw[0],@netw[1],@netw[2],$lastnet);
+        if($val eq "_add") { $lastnet=$netw[3]+(($net) * 4); }
+        else { $lastnet=$netw[3]+($net * 4); }
+        $fullnet=sprintf("%d.%d.%d.%d",$netw[0],$netw[1],$netw[2],$lastnet);
         print "<td>&nbsp;$fullnet";
         print "<input type=hidden name=client${val}_netip value='$fullnet'/></td>";       
         print "<td align=center>&nbsp;"; 
