@@ -62,10 +62,10 @@ sub get_server_network_address()
         @MACS=split(/:/, $mac);
         push @list, "172";
         push @list, "31";
-        push @list, hex @MACS[5];
+        push @list, hex $MACS[5];
         # strip off the high bits
-        push @list, ((hex @MACS[4]) << 2) & 255; 
-        $server_net=sprintf("%d.%d.%d.%d",@list[0],@list[1],@list[2],@list[3]);
+        push @list, ((hex $MACS[4]) << 2) & 255; 
+        $server_net=sprintf("%d.%d.%d.%d",$list[0],$list[1],$list[2],$list[3]);
 
         #($rc,$uciresult)=&uci_add_sectiontype("vtun","network");
         ($rc,$uciresult)=&uci_set_indexed_option("vtun","network","0","start",$server_net);
@@ -80,8 +80,8 @@ sub get_active_tun()
     foreach(`ps -w|grep vtun|grep ' tun '`)
     {
         @parts = $_ =~ /.*\:.*-(172-31-.*)\stun\stun.*/g;1;
-        @parts[0] =~ s/\-/\./g;
-        push(@active_tun,@parts[0]);    
+        $parts[0] =~ s/\-/\./g;
+        push(@active_tun,$parts[0]);    
     }
     return @active_tun;
 }
@@ -273,17 +273,6 @@ sub generate_ips()
 
 sub addrtoint { return( unpack( "N", pack( "C4", split( /[.]/,$_[0]))))};
 sub inttoaddr { return( join( ".", unpack( "C4", pack( "N", $_[0]))))};
-
-sub DEBUGEXIT()
-{
-    my ($text) = @_;
-    http_header();
-    html_header("$node setup", 1);
-    print "DEBUG-";
-    print $text;
-    print "</body>";
-    exit;
-}
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1
