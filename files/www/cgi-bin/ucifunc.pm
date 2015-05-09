@@ -260,17 +260,6 @@ sub uci_revert()
 }
 
 ### UCI Helpers END ###
-sub DEBUGEXIT()
-{
-    my ($text) = @_;
-    http_header();
-    html_header("$node setup", 1);
-    print "DEBUG-";
-    print $text;
-    print "</body>";
-    exit;
-}
-
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1
