@@ -33,7 +33,12 @@
 
 LICENSE
 
-export SCRIPTBASE=$(dirname "$(readlink -f "$0")")
+if [[ $OSTYPE == darwin* ]] 
+then
+    export SCRIPTBASE=$(dirname $0)
+else
+    export SCRIPTBASE=$(dirname "$(readlink -f "$0")")
+fi
 
 if [ "$1" != "" ]
 then
