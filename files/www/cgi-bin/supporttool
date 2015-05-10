@@ -1,0 +1,127 @@
+#!/usr/bin/perl
+=for commnet
+
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2015 Conrad Lara
+   See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+=cut
+
+BEGIN {push @INC, '/www/cgi-bin'};
+use perlfunc;
+
+
+@files = ( "/etc/config/",
+           "/etc/config.ap/",
+           "/etc/config.client/",
+           "/etc/config.mesh/",
+           "/etc/config.mesh_ap/",
+           "/etc/config.router/",
+           "/etc/local/",
+           "/etc/mesh-release",
+           "/tmp/etc/",
+           "/var/run/hosts_olsr",
+            );
+
+@cmds = ( "cat /proc/cpuinfo",
+          "df -k",
+          "ifconfig",
+          "iptables -t filter -S",
+          "iptables -t nat -S",
+          "iptables -t mangle -S",
+          "ip route list",
+          "ip route list table 29",
+          "ip route list table 30",
+          "ip route list table 31",
+          "ip route list table main",
+          "ip route list table default",
+          "ip rule list",
+          "iwinfo",
+          "iwinfo wlan0 assoclist",
+          "iw phy phy0 info",
+          "logread",
+          "md5sum /www/cgi-bin/*",
+          "opkg list-installed",
+          "ps -w",
+          "telnet localhost 2006",
+          "/usr/local/bin/get_hardwaretype",
+          "/usr/local/bin/get_boardid",
+          "/usr/local/bin/get_model",
+         );
+
+$FREE_SPACE_TMP=get_free_space("/tmp");
+
+if ($FREE_SPACE_TMP eq "N/A" || $FREE_SPACE_TMP <= 2*1024) {
+   exit 1;
+}
+
+system ("rm", "-r", "-f", "/tmp/sd");
+
+foreach $path (@files) { 
+
+  if ( $path =~ /^\/(.*\/).*\/$/ ) {
+    my $rpath = $1;
+    system("mkdir", "-p", "/tmp/sd/$rpath");
+    system("cp","-r","-p","$path","/tmp/sd/$rpath");
+  } else {
+    $path =~ /^(.*\/).*/;
+    my $sourcepath = $1;
+    system("mkdir", "-p", "/tmp/sd/$sourcepath");
+    system("cp","-r","-p","$path","/tmp/sd/$path");
+  }
+
+}
+
+
+system("touch","/tmp/sd/data.txt");
+open (my $CMDS_OUT, '>', '/tmp/sd/data.txt') or die "Could not open dump file";
+foreach $cmd (@cmds) {
+  print $CMDS_OUT "========== $cmd ==========\n";
+  open(my $CMD_PIPE, "-|", $cmd ) or next;
+  while (<$CMD_PIPE>) {
+        print { $CMDS_OUT } $_;
+  } 
+}
+
+close ($CMDS_OUT);
+
+system("tar", "-zcf", "/tmp/supportdata.tgz", "-C", "/tmp/sd", "./");
+
+open(my $SDFH, '<', "/tmp/supportdata.tgz") or exit(1);
+binmode $SDFH;
+
+print "Content-type: application/x-gzip\r\n";
+print "Content-Disposition: attachment; filename=supportdata.tgz\r\n";
+print "\r\n";
+
+print while <$SDFH>;
+undef ($SDFH);
+
+unlink("/tmp/supportdata.tgz");
