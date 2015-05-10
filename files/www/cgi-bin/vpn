@@ -43,8 +43,6 @@ $VPNVER="1.0";
 $config = nvram_get("config");
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
-$unode = uc $node;   # UPPER CASE NODENAME
-#$tun_server_start_num=50;
 
 read_postdata();
 
@@ -194,7 +192,7 @@ $rc=save_clients();
 #################
 # save configuration (commit)
 #################
-if($parms{button_save} and not (@cli_err or @serv_err))
+if($parms{button_save} and not @cli_err)
 {
     if (&uci_commit("vtun"))
     {
