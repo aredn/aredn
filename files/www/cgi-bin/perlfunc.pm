@@ -1452,7 +1452,7 @@ sub reboot_required()
 }
 sub css_options
 {
-    print "<option value=\"style.css\">Select a theme</option>";
+    print "<option>Select a theme</option>";
     my @cssfiles = `ls /www/*.css`;
     foreach $css (@cssfiles)
     {
