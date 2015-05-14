@@ -261,6 +261,43 @@ sub is_wifi_chanbw_valid
     return 1;
 }
 
+
+sub rf_default_channel
+{
+
+    my %default_rf = (
+        '900' => {
+            chanbw  => "5",
+            channel => "5",
+        },
+        '2400' => {
+            chanbw  => "20",
+            channel => "1",
+        },
+        '3400' => {
+            chanbw  => "5",
+            channel => "84",
+        },
+        '5800ubntus' => {
+            chanbw  => "5",
+            channel => "149",
+        },
+    );
+
+    $boardinfo=hardware_info();
+    #We know about the band so lets use it
+    if ( exists($boardinfo->{'rfband'}))
+    {
+        return $default_rf{$boardinfo->{'rfband'}};
+    }
+    else {
+        # Somewhat "expensive" in that it duplicates calls made above, but rare to be used. 
+        my $channels = rf_channels_list(); 
+        foreach $channelnumber (sort {$a <=> $b} keys %{$channels}) {
+            return { chanbw => "5", channel => $channelnumber };
+        }
+    }
+} 
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1
 
