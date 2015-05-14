@@ -48,10 +48,6 @@ $config = "not set" if $config eq "" or not -d "/etc/config.$config";
 
 read_postdata();
 
-# set up the style sheet
-mkdir "/tmp/web" unless -d "/tmp/web"; # make sure /tmp/web exists
-symlink "/www/aredn.css","/tmp/web/style.css" unless -l "/tmp/web/style.css"; # default to aredn.css
-
 if($parms{css} and -f "/www/$parms{css}" and $parms{css} =~ /\.css$/i) {
   unlink "/tmp/web/style.css";
   symlink "/www/$parms{css}","/tmp/web/style.css";

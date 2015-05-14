@@ -61,6 +61,11 @@ sub html_header
     print "<meta http-equiv='expires' content='0'>\n";
     print "<meta http-equiv='cache-control' content='no-cache'>\n";
     print "<meta http-equiv='pragma' content='no-cache'>\n";
+
+    # set up the style sheet
+    mkdir "/tmp/web" unless -d "/tmp/web"; # make sure /tmp/web exists
+    symlink "/www/aredn.css","/tmp/web/style.css" unless -l "/tmp/web/style.css"; # default to aredn.css
+
     # Prevent browser caching of the css file
     my $rnum=`date +%s`;
     chomp($rnum);
