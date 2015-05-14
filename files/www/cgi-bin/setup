@@ -530,6 +530,14 @@ else
 }
 if($wifi_proto ne "disabled")
 {
+
+    # Reset wifi channel/bandwidth to default
+    if ( -f "/etc/config/unconfigured" || $parms{button_reset} ) {
+        my $defaultwifi = rf_default_channel();
+        $wifi_channel = $defaultwifi->{'channel'};
+        $wifi_chanbw = $defaultwifi->{'chanbw'};
+    }
+
     print "<tr><td>SSID</td>\n";
     print "<td><input type=text size=15 name=wifi_ssid value='$wifi_ssid'>";
     if ($config eq "mesh")
