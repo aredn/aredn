@@ -60,6 +60,7 @@ fi
 if [ -z "$(uci -q get wireless.radio0.path)" ]
 then
   mkdir -p /etc/aredn_include
+  rm -f /etc/config/wireless
   wifi detect|grep "option path"|head -n 1 > /etc/aredn_include/radio0path
   wifi detect > /etc/config/wireless
 else
