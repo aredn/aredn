@@ -1003,6 +1003,17 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '2400',
          },
+        '0xe035' => {
+            'name'            => 'NanoStation M3',
+            'comment'         => 'NanoStation M3 in testing',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '3',
+            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
+            'defaultant'      => 3,
+            'usechains'       => 1,
+            'rfband'          => '3400',
+         },
         '0xe0a2' => {
             'name'            => 'NanoStation Loco M2',
             'comment'         => '',
