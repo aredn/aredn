@@ -215,10 +215,6 @@ sub install_vtun
                 # allow port 5525 for server connections
                 open_5525_on_wan();
 
-                # enable init.d scripts
-                system("chmod +x /etc/init.d/vtundsrv");
-                system("chmod +x /etc/init.d/vtund");
-
                 # create UCI config file
                 system("touch /etc/config/vtun");
                 # create options section
