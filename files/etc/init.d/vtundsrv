@@ -97,36 +97,48 @@ apply_uci_config() {
 }
 
 start() {
-	apply_uci_config
-	config_load vtun
 
-	#if options section doesn't exist, add it
-	echo "testing for options..."
-	j=`uci get vtun.@options[0]`
-	if [ $? -ne 0 ] 
-		then
-		j=`uci add vtun options`
-		j='uci commit vtun'
+	configmode=$(uci -q -c /etc/local/uci/ get hsmmmesh.settings.config)
+	if [ -x "/usr/sbin/vtund" -a "$configmode" = "mesh" ]
+        then
+
+		apply_uci_config
 		config_load vtun
+
+		#if options section doesn't exist, add it
+		echo "testing for options..."
+		j=`uci get vtun.@options[0]`
+		if [ $? -ne 0 ] 
+			then
+			j=`uci add vtun options`
+			j='uci commit vtun'
+			config_load vtun
+		fi
+
+		# Remove the current config files
+		mkdir -p /tmp/vtun
+		rm -f $SERVER_CONF
+
+		config_foreach network_config network
+		config_foreach options_config options "$SERVER_CONF"
+		config_foreach allowed_client_config client "$SERVER_CONF"
+
+		# START SERVER LISTENER
+		/usr/sbin/vtund -s -f $SERVER_CONF
 	fi
-	
-	# Remove the current config files
-	mkdir -p /tmp/vtun
-	rm -f $SERVER_CONF
-	
-	config_foreach network_config network
-	config_foreach options_config options "$SERVER_CONF"
-	config_foreach allowed_client_config client "$SERVER_CONF"
-	
-	# START SERVER LISTENER
-	/usr/sbin/vtund -s -f $SERVER_CONF
 }
 
 stop() {
-	# find the vtund SERVER process... --- FIX THIS
-	for x in `ps -w|grep -F 'vtund[s]:'|grep -v grep|awk '{print $1}'`
-	do
-		s=`echo $s $x`
-	done
-	kill $s
+
+        # only if vtun is installed
+        if [ -x "/usr/sbin/vtund" ]
+        then
+
+		# find the vtund SERVER process... --- FIX THIS
+		for x in `ps -w|grep -F 'vtund[s]:'|grep -v grep|awk '{print $1}'`
+		do
+			s=`echo $s $x`
+		done
+		kill $s
+	fi
 }
