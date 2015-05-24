@@ -41,16 +41,14 @@ if [ $rules_exist -eq 0 -a "$action" = "up" ] ; then
         iptables -A zone_vpn -p tcp -m tcp --dport 1978 -j ACCEPT
         iptables -A zone_vpn -p tcp -m tcp --dport 23 -j ACCEPT
         iptables -I zone_dtdlink_forward 1 -j zone_vpn_ACCEPT
-        if [ ! $is_olsrgw -eq 1 ] ; then
-            iptables -I zone_dtdlink_forward 1 -j zone_wan_REJECT
-        fi
         iptables -I zone_lan_forward 1 -j zone_vpn_ACCEPT
         iptables -I zone_wifi_forward 1 -j zone_vpn_ACCEPT
-        if [ ! $is_olsrgw -eq 1 ] ; then
-            iptables -I zone_wifi_forward 1 -j zone_wan_REJECT
-        fi
         iptables -I zone_vpn_forward 1 -j zone_vpn_ACCEPT
-        iptables -I zone_vpn_forward -j zone_wan_REJECT
+	if [ $is_olsrgw -eq 1 ] ; then
+        	iptables -I zone_vpn_forward -j zone_wan_ACCEPT
+	else
+        	iptables -I zone_vpn_forward -j zone_wan_REJECT
+	fi
         iptables -A zone_vpn -j input_vpn
         iptables -A zone_vpn -j zone_vpn_ACCEPT
         iptables -A zone_vpn_ACCEPT -o tun+ -j ACCEPT
@@ -79,13 +77,15 @@ if [ $inf_count -eq 0 -a "$action" = "down" ] ; then
         iptables -D zone_vpn_ACCEPT -o tun+ -j ACCEPT
         iptables -D zone_vpn -j zone_vpn_ACCEPT
         iptables -D zone_vpn -j input_vpn
-        iptables -D zone_vpn_forward -j zone_wan_REJECT
         iptables -D zone_vpn_forward -j zone_vpn_ACCEPT
+	if [ ! $is_olsrgw -eq 1 ] ; then
+        	iptables -D zone_vpn_forward -j zone_wan_ACCEPT
+	else
+        	iptables -D zone_vpn_forward -j zone_wan_REJECT
+	fi
         iptables -D zone_wifi_forward -j zone_vpn_ACCEPT
-        iptables -D zone_wifi_forward -j zone_wan_REJECT
         iptables -D zone_lan_forward -j zone_vpn_ACCEPT
         iptables -D zone_dtdlink_forward -j zone_vpn_ACCEPT
-        iptables -D zone_dtdlink_forward -j zone_wan_REJECT
         iptables -D zone_vpn -p tcp -m tcp --dport 23 -j ACCEPT
         iptables -D zone_vpn -p tcp -m tcp --dport 1978 -j ACCEPT
         iptables -D zone_vpn -p udp -m udp --dport 698 -j ACCEPT
@@ -111,17 +111,12 @@ if [ "$action" = "up" ] ; then
       	        ip rule add pref 20010 iif $interface lookup 29 # local interfaces
       	    fi
             ip rule add pref 20020 iif $interface lookup 30 # mesh
-            # ensure routing to internet is the local interface on this
-            # node and not forwarded to another gateway on the local mesh
-            # firewall rules above will always REJECT wan access comming across the tunnel
-            ip rule add pref 20090 iif $interface lookup main # local routes including wan
             ip rule add pref 20099 iif $interface unreachable
         fi
 else
     # Remove route policies for tunnel interface
     ip rule del pref 20010 iif $interface lookup 29
     ip rule del pref 20020 iif $interface lookup 30
-    ip rule del pref 20090 iif $interface lookup main
     ip rule del pref 20099 iif $interface unreachable
 fi
 
