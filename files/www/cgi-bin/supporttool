@@ -50,6 +50,13 @@ use perlfunc;
            "/var/run/hosts_olsr",
             );
 
+@sensitive = ( "/etc/config/vtun",
+               "/etc/config.mesh/vtun",
+               "/etc/httpd.conf",
+             );
+
+
+
 @cmds = ( "cat /proc/cpuinfo",
           "df -k",
           "dmesg",
@@ -99,6 +106,15 @@ foreach $path (@files) {
   }
 
 }
+
+#Remove sensitive files
+foreach $path (@sensitive) {
+  if ( $path =~ /^\/(.*)/ ) {
+    my $sourcepath = $1;
+    system("rm", "-r", "-f", "/tmp/sd/$sourcepath");
+  }
+}
+
 
 
 system("touch","/tmp/sd/data.txt");
