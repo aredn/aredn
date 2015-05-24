@@ -131,11 +131,16 @@ close ($CMDS_OUT);
 
 system("tar", "-zcf", "/tmp/supportdata.tgz", "-C", "/tmp/sd", "./");
 
+$nodename=`uname -n`;
+chomp($nodename);
+$tstamp=`date +%Y%m%d%H%M`;
+chomp($tstamp);
+
 open(my $SDFH, '<', "/tmp/supportdata.tgz") or exit(1);
 binmode $SDFH;
 
 print "Content-type: application/x-gzip\r\n";
-print "Content-Disposition: attachment; filename=supportdata.tgz\r\n";
+print "Content-Disposition: attachment; filename=supportdata-$nodename-$tstamp.tgz\r\n";
 print "\r\n";
 
 print while <$SDFH>;
