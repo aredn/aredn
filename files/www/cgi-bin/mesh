@@ -84,6 +84,9 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
     }
     elsif($table eq "HNA")
     {
+	($iproute, $ip) = split /\s+/, $_;
+	($net, $cidr) = split /\//, $iproute;
+	if ( $net eq "0.0.0.0" ) {  $wangateway{$ip} = 1; }
     }
     elsif($table eq "MID")
     {
@@ -276,7 +279,12 @@ if(keys %localhosts)
     {
 	$host = $localhosts{$ip}{name};
 	$tactical = $localhosts{$ip}{tactical} ? " / " . $localhosts{$ip}{tactical} : "";
-	$rows{$host} = sprintf "<tr><td valign=top><nobr>%s</nobr></td><td colspan=3>&nbsp;</td><td>\n", $host . $tactical;
+	$rows{$host} = sprintf "<tr><td valign=top><nobr>%s</nobr>", $host . $tactical;
+
+        if ( $wangateway{$ip} ) { $rows{$host} .= " &nbsp; <small>(wan)</small>"; }
+
+	$rows{$host} .= "</td><td colspan=3>&nbsp;</td><td>\n" ;
+
 	foreach(sort keys %{$services{$host}})
 	{
 	    $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n";
@@ -338,6 +346,8 @@ foreach $ip (keys %hosts)
 	if ( $midcount{$ip} ) { $midcount{$ip} -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
     }
     if ( $midcount{$ip} )  {  $nodeiface = $nodeiface ?  "dtd," . "tun*$midcount{$ip}" : "tun*$midcount{$ip}" ;  }
+    if ( $wangateway{$ip} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" : "wan" ; }
+
     if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
  
     $rows{$host} .= sprintf "</nobr></td><td></td><td align=right valign=top>%s</td><td></td><td>\n", $etx;
@@ -390,14 +400,16 @@ if(keys %links)
 
 	$rows{$host} = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $host . $tactical;
 
+	undef $nodeiface;
 	if ( $ipmain ne $ip ) # indicate if dtd or tunnel interface to neighbor
 	{
-	    if    ( $hosts{$ip}{name} =~ /^dtdlink\..*$/ ){ $linktype="dtd" ; }
-	    elsif ( $hosts{$ip}{name} =~ /^mid\d+\..*$/ ) { $linktype="tun" ; }
-            else        				  { $linktype="?"   ; }
-
-	    $rows{$host} .= " &nbsp; <small>($linktype)</small>";
+	    if    ( $hosts{$ip}{name} =~ /^dtdlink\..*$/ ){ $nodeiface="dtd" ; }
+	    elsif ( $hosts{$ip}{name} =~ /^mid\d+\..*$/ ) { $nodeiface="tun" ; }
+            else        				  { $nodeiface="?"   ; }
 	}
+
+	if ( $wangateway{$ip} or $wangateway{$ipalias{$ip}} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" :  "wan" ; }
+        if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
 
         $rows{$host} .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq});
 	
@@ -485,16 +497,13 @@ if($debug)
     }
 
     print "\nhosts\n";
-    #foreach $ip (sort keys %hosts)
-    foreach $ip (sort { $hosts{$a}{etx} <=> $hosts{$b}{etx} } keys %hosts)
+    foreach $ip (sort keys %hosts)
     {
 	$hosts{$ip}{name} = "" unless $hosts{$ip}{name};
 	printf "%s %s", $ip, $hosts{$ip}{name};
 	printf "/%s", $hosts{$ip}{tactical} if $hosts{$ip}{tactical};
 	foreach(@{$hosts{$ip}{hosts}}) { print ":$_" }
 	printf(" %d", $hosts{$ip}{mid}) if $hosts{$ip}{mid};
-	print "\n";
-	print "ETX=$hosts{$ip}{etx}\n";
     }    
 
     print "\nlinks\n";
