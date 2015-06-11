@@ -154,12 +154,13 @@ sub check_freespace()
 ##########################
 sub open_5525_on_wan() {
     my $rc;
-    $rc=&uci_add_sectiontype("firewall","rule");
-    $rc=&uci_set_indexed_option("firewall","rule","-1","src","wan");
-    $rc=&uci_set_indexed_option("firewall","rule","-1","dest_port","5525");
-    $rc=&uci_set_indexed_option("firewall","rule","-1","proto","tcp");
-    $rc=&uci_set_indexed_option("firewall","rule","-1","target","ACCEPT");
-    $rc=&uci_commit("firewall");
+    $rc=&uci_add_sectiontype("firewall.tun","rule");
+    $rc=&uci_set_indexed_option("firewall.tun","rule","-1","src","wan");
+    $rc=&uci_set_indexed_option("firewall.tun","rule","-1","dest_port","5525");
+    $rc=&uci_set_indexed_option("firewall.tun","rule","-1","proto","tcp");
+    $rc=&uci_set_indexed_option("firewall.tun","rule","-1","target","ACCEPT");
+    $rc=&uci_commit("firewall.tun");
+    $rc=&uci_clone("firewall.tun");
 }
 
 sub vpn_setup_required()
