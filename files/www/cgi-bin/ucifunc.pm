@@ -259,6 +259,16 @@ sub uci_revert()
     return ($rc,$res);
 }
 
+sub uci_clone()
+{
+    my ($config)=@_;
+    # TODO: add protection of overwriting specific templated files in /etc/config.mesh
+    my $cmd=sprintf('cp /etc/config/%s /etc/config.mesh',$config);
+    my $res=`$cmd`;
+    my $rc=$?;
+    return $rc;
+}
+
 ### UCI Helpers END ###
 
 #weird uhttpd/busybox error requires a 1 at the end of this file

@@ -131,11 +131,12 @@ sub add_network_interfaces() {
 
     for (my $tunnum=50; $tunnum<=69; $tunnum++)
     {
-        &uci_add_named_section("network","tun${tunnum}","interface");
-        &uci_set_named_option("network","tun${tunnum}","ifname","tun${tunnum}");
-        &uci_set_named_option("network","tun${tunnum}","proto","none");
+        &uci_add_named_section("network.tun","tun${tunnum}","interface");
+        &uci_set_named_option("network.tun","tun${tunnum}","ifname","tun${tunnum}");
+        &uci_set_named_option("network.tun","tun${tunnum}","proto","none");
     }
-    &uci_commit("network");
+    &uci_commit("network.tun");
+    &uci_clone("network.tun");
 }
 
 #################################
@@ -149,15 +150,16 @@ sub check_freespace()
 }
 
 ##########################
-# Config firewall to allow port 5525 on WAN interface - USE UCIFUNC LIB CALLS***********
+# Config firewall to allow port 5525 on WAN interface
 ##########################
 sub open_5525_on_wan() {
-    system "uci add firewall rule >/dev/null 2>&1";
-    system "uci set firewall.\@rule[-1].src='wan' >/dev/null 2>&1";
-    system "uci set firewall.\@rule[-1].dest_port='5525' >/dev/null 2>&1";
-    system "uci set firewall.\@rule[-1].proto='tcp' >/dev/null 2>&1";
-    system "uci set firewall.\@rule[-1].target='ACCEPT' >/dev/null 2>&1";
-    system "uci commit firewall >/dev/null 2>&1";
+    my $rc;
+    $rc=&uci_add_sectiontype("firewall","rule");
+    $rc=&uci_set_indexed_option("firewall","rule","-1","src","wan");
+    $rc=&uci_set_indexed_option("firewall","rule","-1","dest_port","5525");
+    $rc=&uci_set_indexed_option("firewall","rule","-1","proto","tcp");
+    $rc=&uci_set_indexed_option("firewall","rule","-1","target","ACCEPT");
+    $rc=&uci_commit("firewall");
 }
 
 sub vpn_setup_required()

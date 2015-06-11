@@ -176,7 +176,7 @@ if($parms{button_save} and not @conn_err)
     {
         push(@errors,"Problem committing UCI vtun");
     }
-    system("cp -f /etc/config/vtun /etc/config.mesh");
+    &uci_clone("vtun");
     unless($debug == 3)
     {
         # Regenerate olsrd files and restart olsrd
