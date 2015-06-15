@@ -400,7 +400,9 @@ if(keys %links)
 	$tactical = $hosts{$ipmain}{tactical} ? " / " . $hosts{$ipmain}{tactical} : "";
         if ( $rows{$host} ) { $host .= " " ; } # avoid collision 2 links to same host {rf, dtd}
 
-	$rows{$host} = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $host . $tactical;
+	$no_space_host=$host;
+	$no_space_host =~ s/\s+$//;
+	$rows{$host} = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $no_space_host, $no_space_host . $tactical;
 
 	undef $nodeiface;
 	if ( $ipmain ne $ip ) # indicate if dtd or tunnel interface to neighbor
