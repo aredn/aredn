@@ -170,6 +170,7 @@ sub uci_add_list_named_option()
 sub uci_add_named_section()
 {
     my ($config,$sname,$stype)=@_;
+    system `touch /etc/config/$config` if (! -f "/etc/config/$config");
     my $cmd=sprintf('uci set %s.%s=%s',$config,$sname,$stype);
     #uci set olsrd.tunnelserver=Interface
     my $res=`$cmd`;
@@ -221,6 +222,7 @@ sub uci_set_named_option()
     return $rc;
 }
 
+## issue with multiple sections added!
 sub uci_set_indexed_option()
 {
     my ($config,$stype,$index,$option,$val)=@_;

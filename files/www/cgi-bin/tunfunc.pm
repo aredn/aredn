@@ -131,12 +131,15 @@ sub add_network_interfaces() {
 
     for (my $tunnum=50; $tunnum<=69; $tunnum++)
     {
-        &uci_add_named_section("network.tun","tun${tunnum}","interface");
-        &uci_set_named_option("network.tun","tun${tunnum}","ifname","tun${tunnum}");
-        &uci_set_named_option("network.tun","tun${tunnum}","proto","none");
+        &uci_add_named_section("network_tun","tun${tunnum}","interface");
+        &uci_set_named_option("network_tun","tun${tunnum}","ifname","tun${tunnum}");
+        &uci_set_named_option("network_tun","tun${tunnum}","proto","none");
     }
-    &uci_commit("network.tun");
-    &uci_clone("network.tun");
+    &uci_commit("network_tun");
+    &uci_clone("network_tun");
+    # required to support node_setup script
+    system "cat /etc/config.mesh/network_tun >> /etc/config.mesh/network";
+    system "cat /etc/config.mesh/network_tun >> /etc/config/network";
 }
 
 #################################
@@ -153,14 +156,26 @@ sub check_freespace()
 # Config firewall to allow port 5525 on WAN interface
 ##########################
 sub open_5525_on_wan() {
-    my $rc;
-    $rc=&uci_add_sectiontype("firewall.tun","rule");
-    $rc=&uci_set_indexed_option("firewall.tun","rule","-1","src","wan");
-    $rc=&uci_set_indexed_option("firewall.tun","rule","-1","dest_port","5525");
-    $rc=&uci_set_indexed_option("firewall.tun","rule","-1","proto","tcp");
-    $rc=&uci_set_indexed_option("firewall.tun","rule","-1","target","ACCEPT");
-    $rc=&uci_commit("firewall.tun");
-    $rc=&uci_clone("firewall.tun");
+    #my $rc;
+    #$rc=&uci_add_sectiontype("firewall_tun","rule");
+    #$rc=&uci_set_indexed_option("firewall_tun","rule","0","src","wan");
+    #$rc=&uci_set_indexed_option("firewall_tun","rule","0","dest_port","5525");
+    #$rc=&uci_set_indexed_option("firewall_tun","rule","0","proto","tcp");
+    #$rc=&uci_set_indexed_option("firewall_tun","rule","0","target","ACCEPT");
+    #$rc=&uci_commit("firewall_tun");
+    #$rc=&uci_clone("firewall_tun");
+
+    my $filename = '/etc/config/firewall_tun';
+    open(my $fh, '>', $filename) or die "Could not open file '$filename' $!";
+    print $fh "\nconfig rule\n";
+    print $fh "  option src 'wan'\n";
+    print $fh "  option dest_port '5525'\n";
+    print $fh "  option proto 'tcp'\n";
+    print $fh "  option target 'ACCEPT'\n";
+    close $fh;
+    system "cp /etc/config/firewall_tun /etc/config.mesh";
+    system "cat /etc/config.mesh/firewall_tun >> /etc/config.mesh/firewall";
+    system "cat /etc/config.mesh/firewall_tun >> /etc/config/firewall";
 }
 
 sub vpn_setup_required()

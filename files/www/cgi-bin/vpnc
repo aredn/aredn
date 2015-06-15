@@ -62,8 +62,6 @@ if($parms{button_install})
 reboot_required() if($config eq "" or -e "/tmp/reboot-required");
 &vpn_setup_required("vpnc") unless(-e "/usr/sbin/vtund" );
 
-@active_tun=&get_active_tun();
-
 #################
 # If RESET, revert the UCI file
 #################
@@ -182,9 +180,11 @@ if($parms{button_save} and not @conn_err)
         # Regenerate olsrd files and restart olsrd
         push(@errors,"Problem restarting olsrd") if system "/etc/init.d/olsrd restart > /dev/null 2>&1";
         push(@errors,"Problem restaring vtund") if system "/etc/init.d/vtund restart > /dev/null 2>&1";
+        sleep 5;
     }
 }
 
+@active_tun=&get_active_tun();
 
 ######################################################################################
 # generate the page
@@ -341,9 +341,9 @@ sub print_vpn_connections()
         print "</td>";
         print "<td>&nbsp;";
         if (&is_tunnel_active($netip,@active_tun) && ($val ne "_add")) {
-            print "<img class='tun_client_active_img' src='/connected.png'/>";
+            print "<img class='tun_client_active_img' src='/connected.png' title='Connected' />";
         } else {
-            print "<img class='tun_client_inactive_img' src='/disconnected.png'/>" if ($val ne "_add");
+            print "<img class='tun_client_inactive_img' src='/disconnected.png' title='Not connected' />" if ($val ne "_add");
         }
         print "</td>";
         print "<td>&nbsp;";    
