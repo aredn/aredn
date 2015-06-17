@@ -409,7 +409,7 @@ sub save_connections()
 
         # generate the VTUN NODE name based on the node name and netip
         $net=~ s/\./\-/g;
-        my $vtun_node_name="$node-$net";
+        my $vtun_node_name=uc "$node-$net";
 
         $rc=&uci_set_named_option("vtun","server_$i","clientip",$clientip);
         push(@cli_err,"Problem saving UCI vtun connection client IP (#$i)") if $rc;
