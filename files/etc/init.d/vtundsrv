@@ -15,7 +15,6 @@ network_config() {
 	# generate the default net
 	def_net='172.31.1.1'
 	config_get start "$cfg" start $def_net
-	echo "NETWORK: $start" >> /tmp/vtuntest.log
 }
 
 options_config() {
@@ -106,7 +105,6 @@ start() {
 		config_load vtun
 
 		#if options section doesn't exist, add it
-		echo "testing for options..."
 		j=`uci get vtun.@options[0]`
 		if [ $? -ne 0 ] 
 			then
