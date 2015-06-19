@@ -938,8 +938,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '27',
             'pwroffset'       => '0',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
          },
@@ -949,8 +947,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '27',
             'pwroffset'       => '0',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
@@ -965,8 +961,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '16',
             'pwroffset'       => '4',
-            'antennas'        => { 1 => 'Antenna' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -976,8 +970,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '19',
             'pwroffset'       => '10',
-            'antennas'        => { 1 => 'Antenna' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -987,8 +979,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '900',
          },
@@ -998,8 +988,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '18',
             'pwroffset'       => '10',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
          },
@@ -1009,8 +997,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '22',
             'pwroffset'       => '3',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '3400',
          },
@@ -1020,8 +1006,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '18',
             'pwroffset'       => '5',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
          },
@@ -1031,8 +1015,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '18',
             'pwroffset'       => '10',
-            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
          },
@@ -1042,8 +1024,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
-            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
@@ -1053,8 +1033,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '900',
          },
@@ -1064,8 +1042,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '22',
             'pwroffset'       => '3',
-            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '3400',
          },
@@ -1075,8 +1051,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '16',
             'pwroffset'       => '12',
-            'antennas'        => { 1 => 'N Connector' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1086,8 +1060,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => 'N Connector' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
          },
@@ -1097,8 +1069,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '28',
             'pwroffset'       => '0',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1108,8 +1078,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '1',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
          },
@@ -1119,8 +1087,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '21',
             'pwroffset'       => '2',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
          },
@@ -1130,8 +1096,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '900',
          },
@@ -1141,8 +1105,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '9',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1152,8 +1114,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '22',
             'pwroffset'       => '3',
-            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '3400',
          },
@@ -1163,8 +1123,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '9',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1174,8 +1132,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
          },
@@ -1185,8 +1141,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
@@ -1196,8 +1150,6 @@ sub hardware_info
             'supported'       => '-1',
             'maxpower'        => '18',
             'pwroffset'       => '10',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
          },
@@ -1207,8 +1159,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '16',
             'pwroffset'       => '12',
-            'antennas'        => { 1 => 'N Connector' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1218,8 +1168,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => 'N Connector' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
          },
@@ -1229,8 +1177,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '16',
             'pwroffset'       => '12',
-            'antennas'        => { 1 => 'Antenna' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1240,8 +1186,6 @@ sub hardware_info
             'supported'       => '-1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5500',
          },
@@ -1251,8 +1195,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          }, 
@@ -1262,8 +1204,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '22',
             'pwroffset'       => '4',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
@@ -1273,8 +1213,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '22',
             'pwroffset'       => '5',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
@@ -1284,8 +1222,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
@@ -1312,43 +1248,6 @@ sub wifi_maxpower
     {
         #When in doubt lets return 27 for safety.
         return 27;
-    }
-}
-
-
-sub wifi_validant
-{
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'antennas'} ) {
-        return  $boardinfo->{'antennas'};
-    } else
-    {
-        return { 0  => "Left", 1  => "Right", 2 => "Diversity" };
-    }
-}
-
-sub wifi_defaultant
-{
-
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'defaultant'} ) {
-        return $boardinfo->{'defaultant'};
-    } else
-    {
-        #Most likely to catch all models.  Some have 3 and start at 1, some start at 0, others have 1 at 1, etc
-        return 1;
-    }
-}
-
-sub wifi_useschains
-{
-
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'usechains'} ) {
-        return $boardinfo->{'usechains'};
-    } else
-    {
-        return 1;
     }
 }
 
