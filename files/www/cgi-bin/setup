@@ -140,11 +140,8 @@ unless($parms{reload})
 }
 
 # sanitize the active settings
-$valid_ant = wifi_validant();
 $wifi_txpower = wifi_maxpower() if not defined $wifi_txpower or $wifi_txpower > wifi_maxpower();
 $wifi_txpower = 1 if $wifi_txpower < 1;
-$wifi_rxant = wifi_defaultant() if not defined $wifi_rxant or not exists $valid_ant->{$wifi_rxant};
-$wifi_txant = wifi_defaultant() if not defined $wifi_txant or not exists $valid_ant->{$wifi_txant};
 $wifi_distance = 0 unless defined $wifi_distance;
 $wifi_distance = 0 if $wifi_distance =~ /\D/;
 

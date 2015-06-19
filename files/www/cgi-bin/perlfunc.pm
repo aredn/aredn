@@ -1315,43 +1315,6 @@ sub wifi_maxpower
     }
 }
 
-
-sub wifi_validant
-{
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'antennas'} ) {
-        return  $boardinfo->{'antennas'};
-    } else
-    {
-        return { 0  => "Left", 1  => "Right", 2 => "Diversity" };
-    }
-}
-
-sub wifi_defaultant
-{
-
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'defaultant'} ) {
-        return $boardinfo->{'defaultant'};
-    } else
-    {
-        #Most likely to catch all models.  Some have 3 and start at 1, some start at 0, others have 1 at 1, etc
-        return 1;
-    }
-}
-
-sub wifi_useschains
-{
-
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'usechains'} ) {
-        return $boardinfo->{'usechains'};
-    } else
-    {
-        return 1;
-    }
-}
-
 #Some systems have power offsets in them because of a secondary amplifier
 #Because of this the chipset may report one power level but the amplifier
 #has increased it to a higher level.
