@@ -136,19 +136,6 @@ unless($parms{reload})
     if ( $doesiwoffset ) {
         $wifi_txpower -= $1;
     }
-    if (wifi_useschains()){
-        $wifi_txant = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask`;
-        $wifi_rxant = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/rx_chainmask`;
-        $wifi_txant = hex($wifi_txant);
-        $wifi_rxant = hex($wifi_rxant); 
-    }
-    else {
-        foreach ( `iw phy phy0 info` ) {
-            next unless /Configured Antennas: TX 0x([\d]+) RX 0x([\d]+)/;
-            $wifi_txant = $1;
-            $wifi_rxant = $2;
-        }
-    }
     $slottime   = "";
 }
 
@@ -176,16 +163,6 @@ if($parms{button_apply} or $parms{button_save})
 {
     my $wifiintf = get_interface("wifi");
     $cmd = "";
-    if(wifi_useschains()){
-        $cmd .= "echo $wifi_rxant > /sys/kernel/debug/ieee80211/phy0/ath9k/rx_chainmask;";
-        $cmd .= "echo $wifi_txant > /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask;";
-    } else {
-        $cmd .= "ifdown wifi >/dev/null 2>&1;";
-        $cmd .= "ifdown wifi_mon >/dev/null 2>&1;";
-        $cmd .= "iw phy phy0 set antenna $wifi_txantenna $wifi_rxantenna >/dev/null 2>&1;";
-        $cmd .= "ifup wifi >/dev/null 2>&1;";
-        $cmd .= "ifup wifi_mon >/dev/null 2>&1;";
-    }
     $cmd .= "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
     $cmd .= "iw dev $wifiintf set txpower fixed ${wifi_txpower}00 >/dev/null 2>&1;";
     system $cmd;
@@ -623,20 +600,7 @@ if($wifi_proto ne "disabled")
 
     print "<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>\n";
 
-    print "<tr><td><nobr>Rx Antenna</nobr></td>\n";
-    print "<td><select name=wifi_rxant>\n";
-    $validants = wifi_validant();                            
-    while (($value, $name) = each (%{$validants})){             
-    selopt($name, $value, $wifi_rxant);                      
-    }
-    print "</select></td></tr>\n";
-
-    print "<tr><td><nobr>Tx Antenna</nobr></td>\n";
-    print "<td><select name=wifi_txant>\n";
-    while (($value, $name) = each (%{$validants})){             
-    selopt($name, $value, $wifi_txant);                      
-    }
-    print "</select></td></tr>\n";
+    print "<tr><td>Antenna selection is now automatic"
 
     print "<tr><td><nobr>Tx Power</nobr></td>\n";
     print "<td><select name=wifi_txpower>\n";
