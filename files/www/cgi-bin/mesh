@@ -346,6 +346,7 @@ foreach $ip (keys %hosts)
 	$nodeiface = "dtd"; 
 	if ( $midcount{$ip} ) { $midcount{$ip} -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
     }
+    if ( $hosts{$ip}{tactical} ) { $midcount{$ip} -= 1; } # extra mid entry if tactical name defined
     if ( $midcount{$ip} )  {  $nodeiface = $nodeiface ?  "dtd," . "tun*$midcount{$ip}" : "tun*$midcount{$ip}" ;  }
     if ( $wangateway{$ip} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" : "wan" ; }
 
