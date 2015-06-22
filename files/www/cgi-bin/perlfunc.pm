@@ -973,6 +973,15 @@ sub hardware_info
             'usechains'       => 0,
             'rfband'          => '2400',
          },
+       '0xe005' => {
+            'name'            => 'NanoStation M5',
+            'comment'         => 'NanoStation M5',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xe009' => {
             'name'            => 'NanoStation Loco M9',
             'comment'         => 'NanoStation Loco M9',
