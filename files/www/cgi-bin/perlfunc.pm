@@ -600,11 +600,18 @@ sub get_wifi_signal
     chomp $wifiintf;
     my ($SignalLevel) = "N/A";
     my ($NoiseFloor) = "N/A";
-    foreach(`iwinfo $wifiintf info`)
-    {                                                 
-        next unless /.*Signal: ([\d\-]+) dBm.*Noise: ([\d\-]+) dBm/;
-        $SignalLevel=$1;
-        $NoiseFloor=$2;
+    foreach(`iw dev $wifiintf station dump`)
+    {
+        next unless /.+signal:\s+([-]?[\d]+)/;
+        if ( $SignalLevel <= "$1" || $SignalLevel == "N/A" )
+        {
+            $SignalLevel=$1;
+        }
+    }
+    foreach(`iw dev $wifiintf survey dump|grep -A 1 \"\\[in use\\]\"`)
+    {
+        next unless /([\d\-]+) dBm/;
+        $NoiseFloor=$1;
     }
 
     if ( $SignalLevel == "N/A" || $NoiseFloor == "N/A" )
