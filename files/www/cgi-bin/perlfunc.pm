@@ -608,10 +608,21 @@ sub get_wifi_signal
             $SignalLevel=$1;
         }
     }
+
     foreach(`iw dev $wifiintf survey dump|grep -A 1 \"\\[in use\\]\"`)
     {
         next unless /([\d\-]+) dBm/;
         $NoiseFloor=$1;
+    }
+
+    if ( $SignalLevel == "N/A" )
+    {
+        open( my $SignalFH , "<" , "/sys/kernel/debug/ieee80211/phy0/ath9k/dump_nfcal") or return ("N/A","N/A");
+        while (<$SignalFH>) {
+            next unless /Channel Noise Floor : ([-]?[0-9]+)/;
+            $SignalLevel=$1;
+        }
+        close($SignalFH);
     }
 
     if ( $SignalLevel == "N/A" || $NoiseFloor == "N/A" )
