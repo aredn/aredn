@@ -323,8 +323,8 @@ sub reboot_page
 	print "<h1>$node is rebooting</h1><br>\n";
 	print "<h3>The LAN subnet has changed. You will need to acquire a new DHCP lease<br>";
 	print "and reset any name service caches you may be using.</h3><br>\n";
-	print "<h3>Wait for the Power LED to start blinking, then stop blinking.<br>\n";
-	print "When the DMZ LED turns off you can get your new DHCP lease and reconnect with<br>\n";
+	print "<h3>Wait for the Status 4 LED to start blinking, then stop blinking.<br>\n";
+	print "When the Status 4 LED remains solid on you can get your new DHCP lease and reconnect with<br>\n";
 	print "<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>\n";
 	print "<a href='http://$node.local.mesh:8080/'>http://$node.local.mesh:8080/</a></h3>\n";
     }
