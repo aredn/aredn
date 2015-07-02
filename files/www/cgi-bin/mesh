@@ -116,7 +116,7 @@ foreach(`cat /etc/hosts`)
     chomp;
     ($ip, $name, $tactical) = split /\s+/, $_;
     next if $name =~ /^(localhost|localnode|localap|dtdlink\..*)$/;
-    if ( $name !~ /\.local\.mesh$/ ) { $name="${name}.local.mesh"; }
+    if ( $name !~ /\./ ) { $name="${name}.local.mesh"; }
     if($ip eq $my_ip)
     {
 	$tactical = "" unless $tactical;
@@ -135,7 +135,7 @@ foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
     next unless $originator;
     next if $originator eq "myself";
    
-    if ( $name !~ /\.local\.mesh$/ ) { $name="${name}.local.mesh"; }
+    if (( $name !~ /\./ ) || ( $name =~ /^mid\.[^\.]*$/ )) { $name="${name}.local.mesh"; }
     
     if ( $ip eq $originator )
     {
@@ -180,8 +180,6 @@ foreach(`cat /var/run/services_olsr 2>/dev/null`)
     $name =~ s/\s+$//;
 
     if ( $host !~ /\./ ) { $host="${host}.local.mesh"; }
-
-    #$host = $originator eq " my own service" ? $node : $hosts{$originator}{name};
 
     # attempt to work around olsr never forgetting defunct services
     # assume that the first entry in the file by this name is the most recent, ignore the rest
