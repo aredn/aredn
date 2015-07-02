@@ -96,7 +96,7 @@ if [ ! -f /etc/aredn_include/ethmacfixup ]
 then
   mkdir -p /etc/aredn_include
   touch /etc/aredn_include/ethmacfixup
-  local lanintf="eth0"
+  local lanintf=`uci -q get 'network.lan.ifname'`
   local wifiintf="wlan0"
   local lanmac=`ifconfig $lanintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
   local wifimac=`ifconfig $wifiintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
@@ -114,9 +114,25 @@ then
        wifimacdigitplusone=`printf "%02X\n" $((0x$wifimacdigit + 1))`
        newmac=`echo "$wifimac:$wifimacdigitplusone" | awk 'BEGIN { FS = ":" } ;{print $1":"$2":"$3":"$7":"$5":"$6}'`
      fi
-     echo -e "\toption\tmacaddr\t$newmac" > /etc/aredn_include/ethmacfixup
-     uci -q set "network.lan.macaddr=$newmac"
+     case $lanintf in
+     *.*)
+       echo "" > /etc/aredn_include/ethmacfixup
+       echo "config interface 'setethmac'" >> /etc/aredn_include/ethmacfixup
+       echo -e "\toption\tifname\t'eth0'" >> /etc/aredn_include/ethmacfixup
+       echo -e "\toption\tproto\t'none'" >> /etc/aredn_include/ethmacfixup
+       echo -e "\toption\tmacaddr\t$newmac" >> /etc/aredn_include/ethmacfixup
+       uci set "network.setethmac=interface"
+       uci set "network.setethmac.ifname=eth0"
+       uci set "network.setethmac.proto=none"
+       uci set "network.setethmac.macaddr=$newmac"
+       ;;
+     *)
+       uci -q set "network.lan.macaddr=$newmac"
+       echo -e "\toption\tmacaddr\t$newmac" > /etc/aredn_include/ethmacfixup
+       ;;
+     esac
      uci commit
+     /etc/init.d/network reload
      /etc/init.d/network restart
   fi
 fi
