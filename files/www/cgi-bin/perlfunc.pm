@@ -615,14 +615,14 @@ sub get_wifi_signal
         $NoiseFloor=$1;
     }
 
-    if ( $SignalLevel == "N/A" )
+    if ( $NoiseFloor == "N/A" )
     {
-        open( my $SignalFH , "<" , "/sys/kernel/debug/ieee80211/phy0/ath9k/dump_nfcal") or return ("N/A","N/A");
-        while (<$SignalFH>) {
+        open( my $NoiseFH , "<" , "/sys/kernel/debug/ieee80211/phy0/ath9k/dump_nfcal") or return ("N/A","N/A");
+        while (<$NoiseFH>) {
             next unless /Channel Noise Floor : ([-]?[0-9]+)/;
-            $SignalLevel=$1;
+            $NoiseFloor=$1;
         }
-        close($SignalFH);
+        close($NoiseFH);
     }
 
     if ( $SignalLevel == "N/A" || $NoiseFloor == "N/A" )
