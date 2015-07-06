@@ -106,14 +106,14 @@ apply_uci_config() {
 }
 
 start() {
-	# only if vtun is installed
-	if [[ -x "/usr/sbin/vtund" ]]
+	# only if vtun is installed and ind mesh mode
+        configmode=$(uci -q -c /etc/local/uci/ get hsmmmesh.settings.config)
+	if [ -x "/usr/sbin/vtund" -a "$configmode" = "mesh" ]
 	then
 		apply_uci_config
 		config_load vtun
 		
 		#if options section doesn't exist, add it
-		echo "testing for options..."
 		j=`uci get vtun.@options[0]`
 		if [ $? -ne 0 ] 
 			then

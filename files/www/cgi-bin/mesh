@@ -42,7 +42,8 @@ BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 # collect some variables
-$node = nvram_get("node");
+$
+node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 $tactical = nvram_get("tactical");
 $config = nvram_get("config");
@@ -84,9 +85,14 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
     }
     elsif($table eq "HNA")
     {
+	($iproute, $ip) = split /\s+/, $_;
+	($net, $cidr) = split /\//, $iproute;
+	if ( $net eq "0.0.0.0" ) {  $wangateway{$ip} = 1; }
     }
     elsif($table eq "MID")
     {
+	($ip, $junk) = split /\s+/, $_;
+	foreach $aip ( split /;/, $junk ) { $ipalias{$aip} = $ip }
     }
     elsif($table eq "Routes")
     {
@@ -111,20 +117,14 @@ foreach(`cat /etc/hosts`)
     chomp;
     ($ip, $name, $tactical) = split /\s+/, $_;
     next if $name =~ /^(localhost|localnode|localap|dtdlink\..*)$/;
+    if ( $name !~ /\./ ) { $name="${name}.local.mesh"; }
     if($ip eq $my_ip)
     {
 	$tactical = "" unless $tactical;
 	$localhosts{$ip}{tactical} = $tactical;
 	$localhosts{$ip}{name} = $name;
     }
-    else
-    {
-	if ( $name !~ /\./ )
-        {
-          $name="${name}.local.mesh";
-        }
-	push @{$localhosts{$my_ip}{hosts}}, $name;
-    }
+    else { push @{$localhosts{$my_ip}{hosts}}, $name; }
 }
 
 # load the olsr hosts file
@@ -135,35 +135,37 @@ foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
     ($ip, $name, $junk, $originator, $mid, $midnum) = split /\s+/, $_;
     next unless $originator;
     next if $originator eq "myself";
-    if ( $name =~ /^dtdlink\..*$/ )
+   
+    if (( $name !~ /\./ ) || ( $name =~ /^mid\.[^\.]*$/ )) { $name="${name}.local.mesh"; }
+    
+    if ( $ip eq $originator )
     {
-        $hosts{$ip}{name} = $name;
-        $hosts{$ip}{hide} = 1;
-        next;
+        if($hosts{$ip}{name}) { $hosts{$ip}{tactical} = $name }       
+        else                  
+	    { 
+		$hosts{$ip}{name} = $name; 
+		if ( $routes{$ip} ) {  $hosts{$ip}{etx} = $routes{$ip}{etx} ; }
+		else { $hosts{$ip}{etx} = "99.000"; }
+	    } 
     }
-
-    if(defined $mid and $midnum =~ /^\#(\d+)/)
-    {
-        if ( !exists $hosts{$ip}{name} )
-        {
+    elsif ( $name =~ /^dtdlink\..*$/ )  
+        { 
             $hosts{$ip}{name} = $name;
+	    if ( $routes{$ip} ) {  $hosts{$ip}{etx} = $routes{$ip}{etx} ; }
+	    else { $hosts{$ip}{etx} = "99.000"; }
+	    $dtd{$originator} = 1 ; 
         }
-	$hosts{$ip}{hide} = 1;
-	$hosts{$originator}{mid} = $1;
-    }
-    elsif($ip eq $originator)
-    {
-	if($hosts{$ip}{name}) { $hosts{$ip}{tactical} = $name }
-	else                  { $hosts{$ip}{name} = $name }
-    }
-    else
-    {
-	if ( $name !~ /\./ )
-        {
-          $name="${name}.local.mesh";
-        }
-	push @{$hosts{$originator}{hosts}}, $name;
-    }
+        elsif ( $name =~ /^mid\d+\..*$/  ) 
+            { 
+	        $midcount{$originator} = $midcount{$originator} ? $midcount{$originator}+1: 1  ; 
+                if (! $hosts{$ip}{name} )
+		{
+		    if ( $routes{$ip} ) {  $hosts{$ip}{etx} = $routes{$ip}{etx} ; }
+	    	    else { $hosts{$ip}{etx} = "99.000"; }
+		    $hosts{$ip}{name} = $name;
+		}
+            }
+            else  { push @{$hosts{$originator}{hosts}}, $name; }
 }
 
 # load the olsr services file
@@ -178,12 +180,7 @@ foreach(`cat /var/run/services_olsr 2>/dev/null`)
     ($name, $originator) = split /\#/, $name;
     $name =~ s/\s+$//;
 
-    if ( $host !~ /\./ )
-    {
-      $host="${host}.local.mesh";
-    }
-
-    #$host = $originator eq " my own service" ? $node : $hosts{$originator}{name};
+    if ( $host !~ /\./ ) { $host="${host}.local.mesh"; }
 
     # attempt to work around olsr never forgetting defunct services
     # assume that the first entry in the file by this name is the most recent, ignore the rest
@@ -279,9 +276,15 @@ if(keys %localhosts)
 
     foreach $ip (keys %localhosts)
     {
-	$host = $localhosts{$ip}{name} . ".local.mesh";
+	$host = $localhosts{$ip}{name};
 	$tactical = $localhosts{$ip}{tactical} ? " / " . $localhosts{$ip}{tactical} : "";
-	$rows{$host} = sprintf "<tr><td valign=top><nobr>%s</nobr></td><td colspan=3>&nbsp;</td><td>\n", $host . $tactical;
+	$rows{$host} = sprintf "<tr><td valign=top><nobr>%s</nobr>", $host . $tactical;
+
+        if ( $wangateway{$ip} ) { $nodeiface =  "wan" ; }
+	if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
+
+	$rows{$host} .= "</td><td colspan=3>&nbsp;</td><td>\n" ;
+
 	foreach(sort keys %{$services{$host}})
 	{
 	    $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n";
@@ -316,40 +319,38 @@ print "<tr><th align=left><nobr>Remote Nodes</nobr></th><th>&nbsp;&nbsp;</th><th
 print "<tr><td colspan=5><hr></td></tr>\n";
 
 %rows = ();
+%sortrows = ();
 foreach $ip (keys %hosts)
 {
     next if $links{$ip};
-    next if exists $hosts{$ip}{hide};
+    next if $ipalias{$ip};
+
+    $isNeig=0;
+    foreach $aip (keys %ipalias) 
+	{ 
+	    if ($ipalias{$aip} eq $ip )  { if ($links{$aip} ) { $isNeig=1; last;}  }
+	}
+    next if $isNeig;
+
     $host = $hosts{$ip}{name};
     $tactical = $hosts{$ip}{tactical} ? " / " . $hosts{$ip}{tactical} : "";
-    $etx = "unknown";
+    $etx = sprintf "%.2f", $hosts{$ip}{etx};
+    next if ($etx > 50 );
 
-    if ( $host !~ /\./ ) 
-    {
-      $host="${host}.local.mesh";
-    }
-
-    if($routes{$ip}) # get the etx directly
-    {
-	$etx = sprintf "%.2f", $routes{$ip}{etx};
-    }
-    else # find the subnet it belongs to
-    {
-	foreach $net (keys %routes)
-	{
-	    next unless (ip2decimal($ip) & $routes{$net}{mask}) == $routes{$net}{value};
-	    $etx = sprintf "%.2f", $routes{$net}{etx};
-	    last;
-	}
-    }
-
-    next if $etx eq "unknown";
     $rows{$host}  = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $host . $tactical;
-    if($midnum = $hosts{$ip}{mid}) # show mid interfaces
-    {
-	$midnum = ($midnum > 1) ? "*$midnum" : "";
-	$rows{$host} .= " &nbsp; <small>(mid$midnum)</small>";
-    }
+
+    undef $nodeiface;
+    #if ( $dtd{$ip} )      
+    #{ 
+	#$nodeiface = "dtd"; 
+	#if ( $midcount{$ip} ) { $midcount{$ip} -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
+    #}
+    #if ( $hosts{$ip}{tactical} ) { $midcount{$ip} -= 1; } # extra mid entry if tactical name defined
+    #if ( $midcount{$ip} )  {  $nodeiface = $nodeiface ?  "dtd," . "tun*$midcount{$ip}" : "tun*$midcount{$ip}" ;  }
+    if ( $wangateway{$ip} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" : "wan" ; }
+
+    if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
+ 
     $rows{$host} .= sprintf "</nobr></td><td></td><td align=right valign=top>%s</td><td></td><td>\n", $etx;
     foreach(sort keys %{$services{$host}})
     {
@@ -368,11 +369,12 @@ foreach $ip (keys %hosts)
 	}
 	$rows{$host} .= "</td></tr>\n";
     }
+    $sortrows{$ip}=$host;
 }
 
 if(keys %rows)
 {
-    foreach(sort keys %rows) { print $rows{$_} }
+    foreach(sort { $hosts{$a}{etx} <=> $hosts{$b}{etx} } keys %sortrows) { print $rows{$sortrows{$_}} }
 }
 else
 {
@@ -381,7 +383,6 @@ else
 
 
 print "</table></td><td width=20>&nbsp;</td><td valign=top><table>\n";
-
 
 # show current neighbors
 
@@ -394,32 +395,42 @@ if(keys %links)
 
     foreach $ip (keys %links)
     {
-	$host = $hosts{$ip}{name} ? $hosts{$ip}{name} : $ip;
-	$tactical = $hosts{$ip}{tactical} ? " / " . $hosts{$ip}{tactical} : "";
+	$ipmain = exists $ipalias{$ip} ? $ipalias{$ip} : $ip ;
+	$host = $hosts{$ipmain}{name} ? $hosts{$ipmain}{name} : $ipmain;
+	$tactical = $hosts{$ipmain}{tactical} ? " / " . $hosts{$ipmain}{tactical} : "";
+        if ( $rows{$host} ) { $host .= " " ; } # avoid collision 2 links to same host {rf, dtd}
 
-        if ( $host !~ /\./ )
-        {
-          $host="${host}.local.mesh";
-        }
+	$no_space_host=$host;
+	$no_space_host =~ s/\s+$//;
+	$rows{$host} = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $no_space_host, $no_space_host . $tactical;
 
-	$rows{$host} = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $host . $tactical;
-
-	if($midnum = $hosts{$ip}{mid}) # show mid interfaces
+	undef $nodeiface;
+	if ( $ipmain ne $ip ) # indicate if dtd or tunnel interface to neighbor
 	{
-	    $midnum = ($midnum > 1) ? "*$midnum" : "";
-	    $rows{$host} .= " &nbsp; <small>(mid$midnum)</small>";
+	    if    ( $hosts{$ip}{name} =~ /^dtdlink\..*$/ ){ $nodeiface="dtd" ; }
+	    #elsif ( $hosts{$ip}{name} =~ /^mid\d+\..*$/ ) { $nodeiface="tun" ; }
+            #else        				  { $nodeiface="?"   ; }
 	}
 
-	$rows{$host} .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq});
-	foreach(sort keys %{$services{$host}}) { $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n" }
-	$rows{$host} .= "</td></tr>\n";
+	if ( $wangateway{$ip} or $wangateway{$ipmain} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" :  "wan" ; }
+        if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
 
-	# add advertised dmz hosts
-	foreach $dmzhost (@{$hosts{$ip}{hosts}})
-	{
-	    $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$dmzhost</nobr></td><td colspan=3></td><td>\n";
-	    foreach(sort keys %{$services{$dmzhost}}) { $rows{$host} .= $services{$dmzhost}{$_} . "<br>\n" }
+        $rows{$host} .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq});
+	
+	if ( ! exists $neighservices{$host} )
+	    {
+	    foreach(sort keys %{$services{$host}}) { $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n" }
+	    
 	    $rows{$host} .= "</td></tr>\n";
+
+	    # add advertised dmz hosts
+	    foreach $dmzhost (@{$hosts{$ipmain}{hosts}})
+	    {
+	        $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$dmzhost</nobr></td><td colspan=3></td><td>\n";
+	        foreach(sort keys %{$services{$dmzhost}}) { $rows{$host} .= $services{$dmzhost}{$_} . "<br>\n" }
+	        $rows{$host} .= "</td></tr>\n";
+	    }
+	    $neighservices{$host}=1;
 	}
     }
 
@@ -442,8 +453,11 @@ print "<tr><td colspan=6><hr></td></tr>\n";
 foreach $ip (keys %history)
 {
     next if $links{$ip};
+    next if $links{$ipalias{$ip}};
     $age = sprintf "%010d", $uptime - $history{$ip}{age};
     $host = $history{$ip}{host} ? $history{$ip}{host} : $ip;
+    $host =~ s/^mid\d+\.// ;
+    $host =~ s/^dtdlink\.// ;
     $rows{$age} .= sprintf "<tr><td colspan=4><nobr>%s</nobr>", $host;
     foreach(@{$hosts{$ip}{hosts}}) { $rows{$age} .= "<br><nobr><img src='/dot.png'>$_</nobr>" }
     $rows{$age} .= "</td><td valign=top><nobr>";
@@ -497,7 +511,6 @@ if($debug)
 	printf "/%s", $hosts{$ip}{tactical} if $hosts{$ip}{tactical};
 	foreach(@{$hosts{$ip}{hosts}}) { print ":$_" }
 	printf(" %d", $hosts{$ip}{mid}) if $hosts{$ip}{mid};
-	print "\n";
     }    
 
     print "\nlinks\n";

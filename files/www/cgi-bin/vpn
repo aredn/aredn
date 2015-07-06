@@ -62,8 +62,6 @@ if($parms{button_install})
 reboot_required() if($config eq "" or -e "/tmp/reboot-required");
 &vpn_setup_required("vpn") unless(-e "/usr/sbin/vtund" );
 
-@active_tun=&get_active_tun();
-
 #################
 # If RESET, revert the UCI file
 #################
@@ -197,16 +195,19 @@ if($parms{button_save} and not @cli_err)
     if (&uci_commit("vtun"))
     {
         push(@errors,"Problem committing UCI vtun");
-        system("cp -f /etc/config/vtun /etc/config.mesh");
     }
+    &uci_clone("vtun");
     unless($debug == 3)
     {
         # Regenerate olsrd files and restart olsrd
         push(@errors,"Problem restarting olsrd") if system "/etc/init.d/olsrd restart > /dev/null 2>&1";
         push(@errors,"Problem restaring vtundsrv") if system "/etc/init.d/vtundsrv restart > /dev/null 2>&1";
+        # delay to allow clients to connect and have an accurate "cloud" status
+        sleep 5;
     }
 }
 
+@active_tun=&get_active_tun();
 
 ######################################################################################
 # generate the page
@@ -214,6 +215,9 @@ if($parms{button_save} and not @cli_err)
 http_header() unless $debug == 2;
 html_header("$node setup", 1);
 print "<body><center>\n";
+
+alert_banner();
+
 print "<form id=vpn method=post action=/cgi-bin/vpn enctype='multipart/form-data'>\n" unless $debug == 2;
 print "<form method=post action=test>\n" if $debug == 2;
 print "<table width=790>\n";
@@ -378,12 +382,15 @@ sub print_vpn_clients()
         print "<td>&nbsp;$fullnet";
         print "<input type=hidden name=client${val}_netip value='$fullnet'/></td>";       
         print "<td align=center>&nbsp;"; 
-        print "<img class='tun_client_active_img' src='/connected.png'/>" if (&is_tunnel_active($name,@active_tun) && ($val ne "_add"));
-        print "<img class='tun_client_inactive_img' src='/disconnected.png'/>" if ($val ne "_add");
+        if (&is_tunnel_active($fullnet,@active_tun) && ($val ne "_add")) {
+            print "<img class='tun_client_active_img' src='/connected.png' title='Connected' />";
+        } else {
+            print "<img class='tun_client_inactive_img' src='/disconnected.png' title='Not connected' />";
+        }
         print "</td>";
         print "<td><input type=submit name=client_add value=Add title='Add this client'>" if($val eq "_add");
         print "</td>";
-        print "<td class='tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$passwd%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20$dns'><img class='tun_client_mailto_img' src='/email.png'/></a></td>" unless($val eq "_add");
+        print "<td class='tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$passwd%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20$dns'><img class='tun_client_mailto_img' src='/email.png' title='Email details' /></a></td>" unless($val eq "_add");
         print "</tr>\n";
 
         # display any errors

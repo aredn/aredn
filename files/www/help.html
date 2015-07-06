@@ -277,10 +277,12 @@ In the <strong>WiFi</strong> box there are settings shown as being
 Active Settings. These settings can be changed without rebooting the node by
 clicking the <strong>Apply</strong> button, but unless they are saved they
 will revert to the previously saved values after a reboot.<br> <br>
-The <strong>Rx Antenna</strong> and <strong>Tx Antenna</strong> settings are
-named to match either the printed name on the antenna connector or in the
-case of units that have a built in antenna the names are for units mounted
-in its normal orientation.
+The <strong>Rx Antenna</strong> and <strong>Tx Antenna</strong> settings have
+been removed from current builds. The hardware handles antenna selection
+automatically in the backend without need for configuration. 
+<br>
+As always a dummy load on unused RF ports is recommended to keep out physical
+contaminants and to avoid EMI/RFI interference.
 </p>
 <p>
 The <strong>Distance</strong> setting adjusts the packet retry timer
@@ -342,14 +344,16 @@ covered here.
 </p>
 <p>
 The other option in the WAN box is the <strong>Mesh Gateway</strong>.
+This is an advanced configuration option.<br>
 When a node has internet access from either the WAN or LAN, that access is
 available to the node itself and to any computer connected to the LAN port.
-When the Mesh Gateway is enabled, this node will advertise to the mesh that it
-has internet access and will act as a gateway and provide internet access to
-the rest of the mesh.  By default it is disabled, so consider carefully your
+When the Mesh Gateway is enabled this node will gate(route) traffic from the 
+mesh onto this network and the internet.
+
+By default it is disabled, so consider carefully your
 intentions for enabling it. AREDN&trade; is an FCC Part 97 amateur radio
 computer network, so be sure that any internet traffic that will be sent over
-radio will comply with Part 97 rules.  If you just want local wireless
+radio needs to comply with Part 97 rules.  If you just want local wireless
 internet access, consider using a standard Part 15 compliant access point
 instead of the Mesh Gateway function.
 </p>
@@ -695,7 +699,7 @@ How to use failsafe mode:
 <li>use a static IP address of 192.168.1.2 and netmask 255.255.255.0<br>
 (default gateway and DNS are not necessary)</li>
 <li>apply power to the node</li>
-<li>just after the DMZ LED illuminates, hold the reset button until DMZ starts blinking</li>
+<li>just after the Status 4 LED illuminates, hold the reset button until DMZ starts blinking</li>
 <li>at a command prompt run "<b>telnet 192.168.1.1</b>"</li>
 <li>you should now have a prompt that looks like "root@(none)$"</li>
 <ul><li>if not, you are not in safe mode and something went wrong along the way, so stop here and start over</li></ul>

@@ -316,7 +316,6 @@ if($cfg{dmz_mode}) {
     print FILE "        option dest             lan\n";
 
     system "uci set firewall.\@zone\[2\].masq=0";
-    system "uci commit";
 } else  {
     print FILE "\n";
     print FILE "config 'include'\n";
@@ -423,9 +422,6 @@ unless($cfg{wifi_proto} eq "disabled")
 {
     $cfg{wifi_txpower} = wifi_maxpower() if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > wifi_maxpower();
     $cfg{wifi_txpower} = 1  if $cfg{wifi_txpower} < 1;
-    if(wifi_useschains()){
-        print FILE "/usr/local/bin/wifi-onbootchains\n";
-    }
     print FILE "/usr/sbin/iw dev wlan0 set txpower fixed $cfg{wifi_txpower}00\n";
     if(defined $cfg{aprs_lat} and defined $cfg{aprs_lon})
     {
@@ -493,16 +489,6 @@ if(-f "/etc/config.$config/olsrd")
 
 # indicate whether lan is running in dmz mode
 system "echo $cfg{dmz_mode} > /etc/config/dmz-mode" if $cfg{dmz_mode};
-
-# Set chains/antenna config elements as they are no longer in the template files
-
-if(wifi_useschains()){
-    $cmd .= "uci set wireless.\@wifi-device[0].rxchain=$cfg{wifi_rxant} >/dev/null 2>&1;";
-    $cmd .= "uci set wireless.\@wifi-device[0].txchain=$cfg{wifi_txant} >/dev/null 2>&1;";
-} else {
-    $cmd .= "uci set wireless.\@wifi-device[0].rxantenna=$cfg{wifi_rxant} >/dev/null 2>&1;";
-    $cmd .= "uci set wireless.\@wifi-device[0].txantenna=$cfg{wifi_txant} >/dev/null 2>&1;";
-}
 
 # Setup node lan dhcp
 if ( $cfg{lan_dhcp_noroute} ) {
