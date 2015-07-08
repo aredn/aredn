@@ -101,9 +101,7 @@ foreach (@tunnelnames)
   $section=&uci_get_named_section("vtun",$_);
   if ($section->{enabled} eq 1)
   {
-    my $sip=$section->{serverip};
     push(@tunnels,"tun${tunnum}");
-    push @hosts, qq("$sip" "tun${tunnum}.$name.local.mesh");
     $tunnum++;
   }
 }
@@ -115,12 +113,14 @@ foreach (@tunnelnames)
   $section=&uci_get_named_section("vtun",$_);
   if ($section->{enabled} eq 1)
   {
-    my $cip=$section->{clientip};
     push(@tunnels,"tun${tunnum}");
-    push @hosts, qq("$cip" "tun${tunnum}.$name.local.mesh");
     $tunnum++;
   }
 }
+
+
+
+
 
 # add the nameservice plugin
 push @file, qq(\nLoadPlugin "olsrd_nameservice.so.0.3"\n);
@@ -144,6 +144,7 @@ foreach(@tunnels) { push @file, qq("$_" ) }
 push @file, qq(\n{\n);
 push @file, qq(     Ip4Broadcast 255.255.255.255\n);
 push @file, qq(}\n);
+
 
 # write the file
 print @file;
