@@ -228,6 +228,33 @@ if($fw_install and -f "$tmpdir/firmware")
     {
         if ( $parms{checkbox_keep_settings} )
         {
+            open (my $SYSUPGRADECONF, "/etc/arednsysupgrade.conf") or die "Failed to open arednsysupgrade.conf";
+            open (my $TMPSYSUPGRADECONF, '>', "/tmp/sysupgradefilelist") or die "Failed to open TMPSYSUPGRADECONF";
+            while (<$SYSUPGRADECONF>){
+                chomp;
+                next if /^\#/ ;
+                if ( -e "$_" ) {
+                    print $TMPSYSUPGRADECONF "$_\n";
+                }
+            }
+            close $SYSUPGRADECONF;
+            close $TMPSYSUPGRADECONF;
+            
+            system("tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist");
+            if ($? == 1) {
+                print "
+<center><h2>ERROR: Could not backup filesystem.</h2>
+<h3>An error occured trying to backup the file system
+</center>
+";
+            page_footer();
+            print "</body></html>";
+            exit 1;
+            }
+
+            system("rm -f /tmp/sysupgradefilelist");
+
+
             nvram_set("nodeupgraded","1");
             print "
 <center><h2>Firmware will be written in the background.</h2>
@@ -240,7 +267,7 @@ When the Status 4 LED is solid on you can get your new DHCP lease and reconnect 
 (This page will automatically reload in 2&frac12; minutes)</h3>
 </center></body></html>
 ";
-            open(FILE, "/sbin/sysupgrade -q $tmpdir/firmware 2>&1 |") or die;
+            open(FILE, "/sbin/sysupgrade -f /tmp/arednsysupgradebackup.tgz -q $tmpdir/firmware 2>&1 |") or die;
         } 
         else 
         {
