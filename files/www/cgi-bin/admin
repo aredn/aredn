@@ -239,6 +239,7 @@ if($fw_install and -f "$tmpdir/firmware")
             }
             close $SYSUPGRADECONF;
             close $TMPSYSUPGRADECONF;
+            nvram_set("nodeupgraded","1");
             
             system("tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist");
             if ($? == 1) {
@@ -249,13 +250,12 @@ if($fw_install and -f "$tmpdir/firmware")
 ";
             page_footer();
             print "</body></html>";
+            nvram_set("nodeupgraded","0");
             exit 1;
             }
 
             system("rm -f /tmp/sysupgradefilelist");
 
-
-            nvram_set("nodeupgraded","1");
             print "
 <center><h2>Firmware will be written in the background.</h2>
 <h3>If you are connected to the LAN of this node you may need to acquire a new<br>
