@@ -55,11 +55,11 @@ sub pushAP
   my($signal, $chan, $key, $ssid, $mac, $mode) = @_;
 
   return if $mode eq "";
-  return if $openap and ($key ne "off" or $mode ne "Master");
+  return if $openap and ($key ne "" or $mode ne "ESS");
 
   if($ssid eq "")   { $ssid = "(hidden)" }
 
-  if($key eq "none") { $key = " " }
+  if($key eq "")     { $key = " " }
   else               { $key = "*" }
 
   $mac =~ /^(\w\w):(\w\w):(\w\w):(\w\w):(\w\w):(\w\w)/;
@@ -69,9 +69,10 @@ sub pushAP
 
   if    ($ssid =~ /AREDN-(5|10|20)-v[3456]$/)                        {$typenet = "AREDN" }
   elsif ($ssid =~ /BroadbandHamnet-(5|10|20)-v[3456]$/)              {$typenet = "BroadbandHamnet"  }  
-  elsif ($mode eq "Master")                                          {$typenet = "AP"    }
+  elsif ($mode eq "ESS")                                             {$typenet = "AP"    }
   elsif ($mode eq "Managed")                                         {$typenet = "Client"}
-  elsif ($mode eq "Ad-Hoc" and $ssid =~ /(.*)-(5|10|20)-v[3456]$/ )  {$typenet = $1      }
+  elsif ($mode eq "IBSS" and $ssid =~ /(.*)-(5|10|20)-v[3456]$/ )    {$typenet = $1      }
+  elsif ($mode eq "IBSS")                                            {$typenet = "Ad-Hoc"}
   else  {$typenet = $mode}
 
   if($avg)
@@ -124,8 +125,8 @@ die "bad interface" if not defined $iface;
 
 if($raw)
 {
-  system("/usr/bin/iwinfo $iface scan");
-  system("/usr/sbin/iw $iface station dump");
+  system("/usr/bin/iw dev $iface wlan0 scan");
+  system("/usr/sbin/iw dev $iface station dump");
   exit;
 }
 
@@ -137,27 +138,34 @@ while(1)
   $myssid =~ /(.*)-(5|10|20)-v[3456]/;
   $mymode = $1;
 
-  open(FILE, "/usr/bin/iwinfo $iface scan 2>&1 |") or die "iwinfo failed";
+  open(FILE, "/usr/sbin/iw dev $iface scan 2>&1 |") or die "iw scan failed";
   $mode = "";
   $ssid = "";
   $signal = 0;
-  $chan = 99;
+  $chan = 0;
   @list = ();
 
   while($line = <FILE>)
   {
-    if($line =~ /Cell \d+ - Address: (\S+)/ )
+    if($line =~ /BSS\s+(([[:xdigit:]]{2}:){5}[[:xdigit:]]{2})/ )
     {
       if ($ssid ne $myssid) { pushAP($signal, $chan, $key, $ssid, $mac, $mode)}
       $mac = $1;
+
+      $mode = "";
+      $ssid = "";
+      $signal = 0;
+      $chan = 0;
+      $key = "";
+
     }
 
-    if($line =~ /\bESSID: "(.*)"/)          { $ssid = $1 }
-    if($line =~ /\bESSID: unknown/)         { $ssid = "unknown" } 
-    if($line =~ /\bMode: (\S+)/)            { $mode = $1 }
-    if($line =~ /\bChannel: (\d+)/)         { $chan = $1 }
-    if($line =~ /\bSignal: ([\d-]+)/)       { $signal = $1 }
-    if($line =~ /\bEncryption: (\w+)/)      { $key = $1 }
+    if($line =~ /\bSSID: (.*)/)                 { $ssid = $1 }
+    if($line =~ /\bSSID: unknown/)              { $ssid = "unknown" } 
+    if($line =~ /\bcapability: (ESS|IBSS)/)	{ $mode = $1 } ## WORK ME STILL CMLARA
+    if($line =~ /\bchannel (\d+)/)              { $chan = $1 }
+    if($line =~ /\bsignal: ([\d-]+)/)           { $signal = $1 }
+    if($line =~ /\bGroup cipher:(.+)/)          { $key = $1 }
   }
 
   close(FILE);
