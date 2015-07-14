@@ -42,7 +42,7 @@ read_query_string();
 
 
 my %info;
-$info{"json_version"}="1.0";
+$info{"api_version"}="1.0";
 
 # ============ GENERATE INFO HASH =========
 $node=nvram_get("node");
@@ -71,9 +71,9 @@ $info{"firmware_version"}=$fwver;
 # ------- Tunnel Installed
 if (-e "/usr/sbin/vtund")
 {
-  $tunnel_installed="YES";
+  $tunnel_installed="true";
 } else {
-  $tunnel_installed="NO";
+  $tunnel_installed="false";
 }
 $info{"tunnel_installed"}=$tunnel_installed;
 
@@ -97,6 +97,11 @@ $info{"lat"}=$lat;
 $lon=`tail -1 /etc/latlon 2>/dev/null`;
 chomp($lon);
 $info{"lon"}=$lon;
+
+# ------- GRID SQUARE
+$grid=`head -1 /etc/gridsquare 2>/dev/null`;
+chomp($grid);
+$info{"grid_square"}=$grid;
 
 
 # ----------- GENERATE THE JSON ------------
