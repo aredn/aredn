@@ -52,45 +52,38 @@ sub usage
 
 sub pushAP
 {
-  my($signal, $chan, $key, $ssid, $mac, $mode) = @_;
+  my($signal, $chan, $key, $ssid, $host, $mac, $mode) = @_;
 
-  return if $mode eq "";
+  return if $mac eq "";
   return if $openap and ($key ne "" or $mode ne "ESS");
 
   if($ssid eq "")   { $ssid = "(hidden)" }
+  if($chan eq "")   { $chan = "?" }
 
   if($key eq "")     { $key = " " }
   else               { $key = "*" }
 
-  $mac =~ /^(\w\w):(\w\w):(\w\w):(\w\w):(\w\w):(\w\w)/;
-  $mac1 = $1 . $2 . $3;
-  $mac2 = $4 . $5 . $6;
-  $mac  = $mac1 . $mac2;
-
-  if    ($ssid =~ /AREDN-(5|10|20)-v[3456]$/)                        {$typenet = "AREDN" }
-  elsif ($ssid =~ /BroadbandHamnet-(5|10|20)-v[3456]$/)              {$typenet = "BroadbandHamnet"  }  
-  elsif ($mode eq "ESS")                                             {$typenet = "AP"    }
-  elsif ($mode eq "Managed")                                         {$typenet = "Client"}
-  elsif ($mode eq "IBSS" and $ssid =~ /(.*)-(5|10|20)-v[3456]$/ )    {$typenet = $1      }
-  elsif ($mode eq "IBSS")                                            {$typenet = "Ad-Hoc"}
-  else  {$typenet = $mode}
+  if    ($mode eq "ESS")       {$typenet = "AP"    }
+  elsif ($mode eq "Managed")   {$typenet = "AP Client"}
+  elsif ($mode eq "IBSS")      {$typenet = "Foreign Ad-Hoc Network"}
+  else  		       {$typenet = $mode}
 
   if($avg)
   {
     $avgs{"$mac total"} += $signal;
     $avgs{"$mac num"} += 1;
-    $aphash{$mac} = sprintf "%2d %s %-32s %s:%s %s\n",
-      $chan, $key, $ssid, $mac1, $mac2, $typenet;
+    $aphash{$mac} = sprintf "% 3d %s %-32s\t%s\t%s\t%s\n",
+      $chan, $key, $ssid, $host, $mac, $typenet;
   }
   elsif($web)
   {
-    push @list, sprintf "%03d|%d|%s|%s|%s:%s|%s",
-      $signal, $chan, $key, $ssid, $mac1, $mac2, $typenet;
+    push @list, sprintf "% 3d|%d|%s|%s|%s|%s|%s",
+      $signal, $chan, $key, $ssid, $host, $mac, $typenet;
   }
   else
   {
-    push @list, sprintf "%3d %2d %s %-32s %s:%s %s\n",
-      $signal, $chan, $key, $ssid, $mac1, $mac2, $typenet;
+    push @list, sprintf "% 3d %2d %s %-32s\t%s\t%s\t%s\n",
+      $signal, $chan, $key, $ssid, $host, $mac, $typenet;
   }
 }
 
@@ -135,49 +128,52 @@ while(1)
   $line = `grep ssid /etc/config/wireless | tail -1`;
   $line   =~ /['"](.*-(5|10|20)-v[3456])/;
   $myssid = $1;
-  $myssid =~ /(.*)-(5|10|20)-v[3456]/;
-  $mymode = $1;
+  $mychan = `iw dev $iface info | grep channel | cut -d\\  -f2`;
 
   open(FILE, "/usr/sbin/iw dev $iface scan 2>&1 |") or die "iw scan failed";
-  $mode = "";
-  $ssid = "";
-  $signal = 0;
-  $chan = 0;
+  $mac = "";
+  $host = "N/A";
   @list = ();
 
   while($line = <FILE>)
   {
-    if($line =~ /BSS\s+(([[:xdigit:]]{2}:){5}[[:xdigit:]]{2})/ )
+    if($line =~ /BSS\s+(([[:xdigit:]]{2}:){5}[[:xdigit:]]{2})/)
     {
-      if ($ssid ne $myssid) { pushAP($signal, $chan, $key, $ssid, $mac, $mode)}
-      $mac = $1;
+      pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode);
+      $mac = uc $1;
 
       $mode = "";
       $ssid = "";
       $signal = 0;
-      $chan = 0;
+      $chan = "";
       $key = "";
 
     }
 
+    if($line =~ /BSS(\s+)([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}.*joined/) 
+    { 
+	$mode = "My Ad-Hoc Network"; 
+	$chan = $mychan;
+    }
     if($line =~ /\bSSID: (.*)/)                 { $ssid = $1 }
     if($line =~ /\bSSID: unknown/)              { $ssid = "unknown" } 
-    if($line =~ /\bcapability: (ESS|IBSS)/)	{ $mode = $1 } ## WORK ME STILL CMLARA
-    if($line =~ /\bchannel (\d+)/)              { $chan = $1 }
+    if($line =~ /\bcapability: (ESS|IBSS)/ and $mode eq "")	
+						{ $mode = $1 } 
+    if($line =~ /\bchannel ([\d-]+)/)           { $chan = $1 }
     if($line =~ /\bsignal: ([\d-]+)/)           { $signal = $1 }
     if($line =~ /\bGroup cipher:(.+)/)          { $key = $1 }
   }
 
   close(FILE);
   
-  if ($ssid ne $myssid) {pushAP($signal, $chan, $key, $ssid, $mac, $mode)}
+  pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode);
   sleep 1 if not scalar @list and $loops != 1;
   
-  $mode = "";                                                             
+  $mac = "";
+  $mode = "Connected Ad-Hoc Station";                                                             
   $signal = 0;
-  $key = "none";
+  $key = "";
   ++$iters;                                                               
-  $bbchan = `iw $iface info | grep channel | cut -d\\  -f2`;
 
   open(FILE, "/usr/sbin/iw $iface station dump 2>&1 |") or die "/usr/sbin/iw failed";
   
@@ -185,7 +181,7 @@ while(1)
   {                                                                       
     if($line =~ /Station (\S+) \(on $iface\)/)                              
     {                                                                     
-      pushAP($signal, $bbchan, $key, $ssid, $mac, $mode);                   
+      pushAP($signal, $mychan, $key, $myssid, $host, $mac, $mode);                   
       $mac = $1;                                                          
       $ip = `grep $mac /proc/net/arp`;                                         
       $mac = uc $mac;
@@ -193,22 +189,21 @@ while(1)
       {
          $ip =~ s/[ \t].*$// ;
          chomp($ip);
-         $ssid = $ip;
+         $host = $ip;
          if( $ip ne "") 
          {
-             foreach(`nslookup $ip`){ next unless ($ssid) = /Address 1: $ip (\S+)\.local\.mesh/ }
-	     if ( $ssid eq "" ) { $ssid = $ip }
+             foreach(`nslookup $ip`){ next unless ($host) = /Address 1: $ip (\S+)/ }
+	     if ( $host eq "" ) { $host = $ip }
          }
       }
-      else { $ssid = "????" }
-      $mode=$mymode;
+      else { $host = "????" }
     }                                                                     
     
     if($line =~ /signal avg:[ \t]+([-\d]+)/)  {  $signal = $1 }                    
   }                                                                       
   
   close(FILE);                                                   
-  pushAP($signal, $bbchan, $key, $ssid, $mac, $mode);              
+  pushAP($signal, $mychan, $key, $myssid, $host, $mac, $mode);              
   sleep 1 if not scalar @list and $loops != 1;  
   
   if(not $batch)
@@ -216,19 +211,19 @@ while(1)
     if($avg)
     {
       system "clear";
-      printf "Sig Rel Ch E          SSID or Hostname            MAC      Mode  %6d\n", $iters;
-      print "--- --- -- - -------------------------------- ------------- ------\n";
+      printf "Sig Rel Ch E          SSID                   Hostname              MAC/BSSID       802.11 Mode  %6d\n", $iters;
+      print "--- --- -- - -------------------------------- ----------------- ------------- -----------\n";
     }
     elsif($web)
     {
 	print "<table border=1 cellpadding=5>\n";
-	print "<tr><th>Sig</th><th>Chan</th><th>Enc</th><th>SSID or Hostname</th><th>MAC</th><th>Mode</th></tr>\n";
+	print "<tr><th>Sig</th><th>Chan</th><th>Enc</th><th>SSID</th><th>Hostname</th><th>MAC/BSSID</th><th>802.11 Mode</th></tr>\n";
     }
     else
     {
       #system "clear";
-      printf "Sig Ch E         SSID or Hostname             MAC      Mode  %6d\n", $iters;
-      print "--- -- - -------------------------------- ------------- ------\n";
+      printf "Sig Ch E         SSID                    Hostname                    MAC/BSSID      802.11 Mode  %6d\n", $iters;
+      print "--- -- - -------------------------------- --------------------- ------------- ------------\n";
     }
   }
 
@@ -259,7 +254,7 @@ while(1)
 	      if($i++ == 3) { print "<td>$val</td>" }
 	      else          { print "<td align=center>$val</td>" }
 	  }
-	  print "<td>&nbsp;</td>" if $i < 6;
+	  print "<td>&nbsp;</td>" if $i < 7;
 	  print "</tr>\n";
       }
       print "</table>\n";
