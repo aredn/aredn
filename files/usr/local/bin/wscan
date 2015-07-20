@@ -183,7 +183,7 @@ while(1)
     {                                                                     
       pushAP($signal, $mychan, $key, $myssid, $host, $mac, $mode);                   
       $mac = $1;                                                          
-      $ip = `grep $mac /proc/net/arp`;                                         
+      $ip = `grep $mac /proc/net/arp | egrep "^10.*\$" | tail -1`;
       $mac = uc $mac;
       if ( $ip ne "" ) 
       {
