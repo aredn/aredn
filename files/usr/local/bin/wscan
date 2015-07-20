@@ -50,12 +50,48 @@ sub usage
   exit;
 }
 
+sub freq_to_chan
+{
+  my ($freq) = @_;
+
+  if ($freq < 256 )
+  {
+    return $freq;
+  }
+  elsif ($freq == 2484)
+  {
+    return "14";
+  }
+  elsif ($freq == 2407)
+  {
+    return 0;
+  }
+  elsif ($freq < 2484)
+  {
+    return ($freq-2407)/5;
+  }
+  elsif ($freq < 5000)
+  {
+    return ($freq-4000)/5;
+  }
+  elsif ($freq < 6000)
+  {
+    return ($freq-5000)/5;
+  }
+  else
+  {
+    return $freq;
+  }
+}
+
 sub pushAP
 {
-  my($signal, $chan, $key, $ssid, $host, $mac, $mode) = @_;
+  my($signal, $freq, $key, $ssid, $host, $mac, $mode) = @_;
 
   return if $mac eq "";
   return if $openap and ($key ne "" or $mode ne "ESS");
+
+  $chan=freq_to_chan($freq);
 
   if($ssid eq "")   { $ssid = "(hidden)" }
   if($chan eq "")   { $chan = "?" }
@@ -159,7 +195,7 @@ while(1)
     if($line =~ /\bSSID: unknown/)              { $ssid = "unknown" } 
     if($line =~ /\bcapability: (ESS|IBSS)/ and $mode eq "")	
 						{ $mode = $1 } 
-    if($line =~ /\bchannel ([\d-]+)/)           { $chan = $1 }
+    if($line =~ /\bfreq: (\d+)/)                { $chan = $1 }
     if($line =~ /\bsignal: ([\d-]+)/)           { $signal = $1 }
     if($line =~ /\bGroup cipher:(.+)/)          { $key = $1 }
   }
