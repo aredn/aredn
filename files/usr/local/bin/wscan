@@ -175,7 +175,7 @@ while(1)
   {
     if($line =~ /BSS\s+(([[:xdigit:]]{2}:){5}[[:xdigit:]]{2})/)
     {
-      pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode);
+      if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode) }
       $mac = uc $1;
 
       $mode = "";
@@ -183,6 +183,7 @@ while(1)
       $signal = 0;
       $chan = "";
       $key = "";
+      $lastseen = 0;
 
     }
 
@@ -198,11 +199,12 @@ while(1)
     if($line =~ /\bfreq: (\d+)/)                { $chan = $1 }
     if($line =~ /\bsignal: ([\d-]+)/)           { $signal = $1 }
     if($line =~ /\bGroup cipher:(.+)/)          { $key = $1 }
+    if($line =~ /\blast seen: (\d+)/)           { $lastseen = $1 }
   }
 
   close(FILE);
   
-  pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode);
+  if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode) }
   sleep 1 if not scalar @list and $loops != 1;
   
   $mac = "";
