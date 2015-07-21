@@ -420,7 +420,7 @@ open(FILE, ">/etc/local/services") or die;
 print FILE "#!/bin/sh\n";
 unless($cfg{wifi_proto} eq "disabled")
 {
-    $cfg{wifi_txpower} = wifi_maxpower() if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > wifi_maxpower();
+    $cfg{wifi_txpower} = wifi_maxpower($cfg{wifi_channel}) if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > wifi_maxpower($cfg{wifi_channel});
     $cfg{wifi_txpower} = 1  if $cfg{wifi_txpower} < 1;
     print FILE "/usr/sbin/iw dev wlan0 set txpower fixed $cfg{wifi_txpower}00\n";
     if(defined $cfg{aprs_lat} and defined $cfg{aprs_lon})

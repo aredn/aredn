@@ -958,6 +958,7 @@ sub hardware_info
             'pwroffset'       => '0',
             'usechains'       => 1,
             'rfband'          => '2400',
+            'chanpower'       => { 1 => '22', 14 => '23' },
          },
         'TP-Link CPE510 v1.0' => {
             'name'            => 'TP-Link CPE510 v1.0',
@@ -967,6 +968,7 @@ sub hardware_info
             'pwroffset'       => '0',
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
+            'chanpower'       => { 48 => '10', 149 => '17', 184 => '23' },
          },
         '0xc2a2' => {
             'name'            => 'Bullet 2 HP',
@@ -1268,8 +1270,22 @@ sub hardware_info
 # Return maximum dbm value for tx power 
 sub wifi_maxpower
 {
+    my ($wifichannel) = @_;
+
     $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'maxpower'} ) {
+
+    if ( exists $boardinfo->{'chanpower'} ) {
+        my $chanpower=$boardinfo->{'chanpower'};
+        foreach ( sort {$a<=>$b} keys %{$chanpower} )
+        {
+            if ( $wifichannel <= $_ )
+            {
+                return $chanpower->{$_};
+            }
+        }
+        # We should never get here
+        return 27;
+    } elsif ( exists $boardinfo->{'maxpower'} ) {
         return $boardinfo->{'maxpower'};
     } else
     {
