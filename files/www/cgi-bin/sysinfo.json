@@ -84,6 +84,11 @@ $myssid = $1;
 $myssid =~ /(.*)-(5|10|20)-v[3456]/;
 $info{"ssid"}=$myssid;
 
+# ------- Wifi Bandwidth
+$line = `uci get wireless.radio0.chanbw`;
+chomp($line);
+$info{"chanbw"}=$line;
+
 # ------- ACTIVE TUNNELS
 $active_tunnel_count=`ifconfig|grep tun|wc -l`;
 chomp($active_tunnel_count);
