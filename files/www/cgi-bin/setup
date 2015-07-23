@@ -140,7 +140,7 @@ unless($parms{reload})
 }
 
 # sanitize the active settings
-$wifi_txpower = wifi_maxpower() if not defined $wifi_txpower or $wifi_txpower > wifi_maxpower();
+$wifi_txpower = wifi_maxpower($wifi_channel) if not defined $wifi_txpower or $wifi_txpower > wifi_maxpower($wifi_channel);
 $wifi_txpower = 1 if $wifi_txpower < 1;
 $wifi_distance = 0 unless defined $wifi_distance;
 $wifi_distance = 0 if $wifi_distance =~ /\D/;
@@ -600,8 +600,8 @@ if($wifi_proto ne "disabled")
     print "<tr><td><nobr>Tx Power</nobr></td>\n";
     print "<td><select name=wifi_txpower>\n";
     my $txpoweroffset = wifi_txpoweroffset();
-    for($i = wifi_maxpower(); $i >= 1; --$i) { selopt($i+$txpoweroffset ." dBm", $i, $wifi_txpower) }
-    print "</select></td></tr>\n";
+    for($i = wifi_maxpower($wifi_channel); $i >= 1; --$i) { selopt($i+$txpoweroffset ." dBm", $i, $wifi_txpower) }
+    print "</select>&nbsp;&nbsp;<a href=\"/help.html\#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>\n";
 
     print "<tr><td>Distance</td>\n";
     print "<td><input type=text size=8 name=wifi_distance value='$wifi_distance' title='Distance in meters to the farthest neighbor'>&nbsp;meters</td></tr>\n";
