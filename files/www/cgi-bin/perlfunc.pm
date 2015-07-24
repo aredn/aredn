@@ -1038,6 +1038,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '2400',
          },
+        '0xe105' => {
+            'name'            => 'Rocket M5',
+            'comment'         => 'Rocket M5 with USB',
+            'supported'       => '1',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xe1b2' => {
             'name'            => 'Rocket M2',
             'comment'         => '',
