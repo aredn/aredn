@@ -3,10 +3,11 @@ BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;                                                                   
                                                         
 my $filename = '/tmp/snrlog';                          
-my $MAXLINES=48960;  # 17bytes * 60mins * 24 hours * 2 days   
+# my $MAXLINES=48960;  # 17bytes * 60mins * 24 hours * 2 days 
+my $MAXLINES=132480;  # 23bytes * 60mins * 24 hours * 4 days   
 
 ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);          
-$d = sprintf ("%02d:%02d:%02d", $hour, $min, $sec);                             
+$d = sprintf ("%02d/%02d %02d:%02d:%02d",$mon, $mday,$hour, $min, $sec);                             
 ($s, $n) = get_wifi_signal(get_interface("wifi"));                              
 $s = $n if $s eq "N/A";
                                       
