@@ -1,0 +1,24 @@
+#!/usr/bin/perl                                                                 
+BEGIN {push @INC, '/www/cgi-bin'};                                              
+use perlfunc;                                                                   
+                                                        
+my $filename = '/tmp/snrlog';                          
+my $MAXLINES=48960;  # 17bytes * 60mins * 24 hours * 2 days   
+
+($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);          
+$d = sprintf ("%02d:%02d:%02d", $hour, $min, $sec);                             
+($s, $n) = get_wifi_signal(get_interface("wifi"));                              
+$s = $n if $s eq "N/A";
+                                      
+open(my $fh, '>>', $filename) or die "Could not open file '$filename' $!";    
+print $fh "$d,$s,$n\n";                                                         
+close $fh;                                                                      
+                                                                                
+$lcount=`wc -l < $filename`;                                                    
+chomp($lcount);                                                                 
+                                                                                
+if($lcount>$MAXLINES)                                                           
+{                                                                               
+        $rc=`tail -n$MAXLINES $filename > $filename.tmp`;                    
+        $rc=`mv $filename.tmp $filename`;                                    
+}   

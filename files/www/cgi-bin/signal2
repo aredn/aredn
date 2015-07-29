@@ -1,0 +1,177 @@
+#!/usr/bin/perl
+=for commnet
+
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2015 Darryl Quinn
+   See Contributors file for additional contributors
+
+  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+=cut
+
+$debug = 0;
+
+BEGIN {push @INC, '/www/cgi-bin'};
+use perlfunc;
+
+read_query_string();
+
+# collect some variables
+$node = nvram_get("node");
+$node = "NOCALL" unless $node;
+
+if($parms{"realtime"} )
+{
+  $dmode="Realtime";
+} else {
+  $dmode="Archived";
+}
+
+http_header();
+html_header("$node $dmode signal strength", 0);
+
+$header = <<EOF;
+  <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/canvasjs/1.7.0/jquery.canvasjs.min.js"></script>
+  <script type="text/javascript">
+    // Read a page's GET URL variables and return them as an associative array.
+    function getUrlVars()
+    {
+        var vars = [], hash;
+        var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+        for(var i = 0; i < hashes.length; i++)
+        {
+            hash = hashes[i].split('=');
+            vars.push(hash[0]);
+            vars[hash[0]] = hash[1];
+        }
+        return vars;
+    }
+
+    \$(document).ready(function () {
+      var dps0=[];
+      var dps1=[];
+      var MAXPOINTS=10;
+      var chart = new CanvasJS.Chart("chartContainer", {
+        backgroundColor: "#E7E7E7",
+        title: {
+          text: "$dmode Signal to Noise"
+        },
+        legend: {
+          horizontalAlign: "right", // left, center ,right 
+          verticalAlign: "center",  // top, center, bottom
+        },
+        axisX: { 
+           title: "Time",
+           labelAngle: -45,
+        },
+        axisY: {
+          title: "dB",
+          interlacedColor: "#F0F8FF",
+        },
+        data: [{
+          type: "spline",
+          showInLegend: true, 
+          legendText: "Signal",
+          toolTipContent: "Signal: {y}db @ {label}",
+          dataPoints: dps0,
+        },
+        {
+          type: "line",
+          showInLegend: true, 
+          legendText: "Noise",
+          toolTipContent: "Noise: {y}db @ {label}",
+          dataPoints: dps1,
+        }]
+      });
+
+      var updateArchiveChart = function () {
+        \$.getJSON("/cgi-bin/signal2.json", function (result) {
+          dps0 = result[0];
+          dps1 = result[1];
+          # chart.options.data[0].dataPoints = result[0];
+          # chart.options.data[1].dataPoints = result[1];
+          //if (chart.options.data[0].dataPoints.length > MAXPOINTS)
+          //{
+          // chart.options.data[0].dataPoints.shift();
+          //  chart.options.data[1].dataPoints.shift();  
+          //}
+          chart.render();
+        });
+      };  
+
+      var updateRealtimeChart = function () {
+        \$.getJSON("/cgi-bin/signal2.json?realtime=1", function (result) {
+          chart.options.data[0].dataPoints=result[0];
+          chart.options.data[1].dataPoints=result[1];
+          chart.render();
+        });
+      };  
+
+      var dmode = getUrlVars()["realtime"];
+
+      if(dmode) {
+        updateRealtimeChart();
+        setInterval(function(){updateRealtimeChart()}, 2000);
+      } else {
+        updateArchiveChart();
+        setInterval(function() {updateArchiveChart()}, 60000);
+      }
+    });
+  </script>
+  </head>
+EOF
+
+$page = <<EOF;
+<body>
+  <center>
+    <div class="TopBanner">
+      <div class="LogoDiv"><img src="/AREDN.png" class="AREDNLogo"></img></div>
+    </div>
+    <h1><big>$node</big></h1><hr>
+    <nobr>
+    <div id="chartContainer" style="width: 800px; height: 380px;"></div>
+  </center>
+EOF
+
+print $header;
+print $page;
+show_debug_info();
+print "</body></html>";
+
+sub DEBUGEXIT()
+{
+    my ($text) = @_;
+    http_header();
+    html_header("$node setup", 1);
+    print "DEBUG-";
+    print $text;
+    print "</body>";
+    exit;
+}
