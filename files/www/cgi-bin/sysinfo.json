@@ -84,6 +84,11 @@ $myssid = $1;
 $myssid =~ /(.*)-(5|10|20)-v[3456]/;
 $info{"ssid"}=$myssid;
 
+# ------- Wifi Channel Number
+$mychan = `uci get wireless.radio0.channel`;
+chomp($mychan);
+$info{"channel"}=$mychan;
+
 # ------- Wifi Bandwidth
 $line = `uci get wireless.radio0.chanbw`;
 chomp($line);
