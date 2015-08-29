@@ -72,7 +72,15 @@ sub freq_to_chan
   }
   elsif ($freq < 5000)
   {
-    return ($freq-4000)/5;
+    return $freq ; # stay in freq, no ch #s
+  }
+  elsif ($freq < 5380) #  these are 5Ghz channels 75 and below
+  {
+    return ($freq-5000)/5 ;
+  }
+  elsif ($freq < 5500) # ch 76 to 99 can only be 3Ghz freq, no part 15 here 
+  {
+    return ($freq-2000); # return 3ghz freq (5ghz boards with -2Ghz transverter)
   }
   elsif ($freq < 6000)
   {
@@ -99,27 +107,22 @@ sub pushAP
   if($key eq "")     { $key = " " }
   else               { $key = "*" }
 
-  if    ($mode eq "ESS")       {$typenet = "AP"    }
-  elsif ($mode eq "Managed")   {$typenet = "AP Client"}
-  elsif ($mode eq "IBSS")      {$typenet = "Foreign Ad-Hoc Network"}
-  else  		       {$typenet = $mode}
-
   if($avg)
   {
     $avgs{"$mac total"} += $signal;
     $avgs{"$mac num"} += 1;
     $aphash{$mac} = sprintf "% 3d %s %-32s\t%s\t%s\t%s\n",
-      $chan, $key, $ssid, $host, $mac, $typenet;
+      $chan, $key, $ssid, $host, $mac, $mode;
   }
   elsif($web)
   {
     push @list, sprintf "% 3d|%d|%s|%s|%s|%s|%s",
-      $signal, $chan, $key, $ssid, $host, $mac, $typenet;
+      $signal, $chan, $key, $ssid, $host, $mac, $mode;
   }
   else
   {
     push @list, sprintf "% 3d %2d %s %-32s\t%s\t%s\t%s\n",
-      $signal, $chan, $key, $ssid, $host, $mac, $typenet;
+      $signal, $chan, $key, $ssid, $host, $mac, $mode;
   }
 }
 
@@ -165,7 +168,11 @@ while(1)
   $line   =~ /['"](.*-(5|10|20)-v[3456])/;
   $myssid = $1;
   $mychan = `iw dev $iface info | grep channel | cut -d\\  -f2`;
-
+  if ($mychan >= 76 and $mychan <= 99)
+    {
+    $mychan = ($mychan*5+3000); # ch 76 - 99 are 3ghz since no part 15 usage (5ghz board with -2ghz transverter)
+    }
+  
   open(FILE, "/usr/sbin/iw dev $iface scan 2>&1 |") or die "iw scan failed";
   $mac = "";
   $host = "N/A";
@@ -175,7 +182,7 @@ while(1)
   {
     if($line =~ /BSS\s+(([[:xdigit:]]{2}:){5}[[:xdigit:]]{2})/)
     {
-      if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode) }
+      pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode) ;
       $mac = uc $1;
 
       $mode = "";
@@ -194,8 +201,10 @@ while(1)
     }
     if($line =~ /\bSSID: (.*)/)                 { $ssid = $1 }
     if($line =~ /\bSSID: unknown/)              { $ssid = "unknown" } 
-    if($line =~ /\bcapability: (ESS|IBSS)/ and $mode eq "")	
-						{ $mode = $1 } 
+    if($line =~ /\bcapability: (ESS|PBCC|ChannelAgility|SpectrumMgmt)/)	        
+						{ $mode = "AP" } 
+    if($line =~ /\bcapability: (IBSS)/ and $mode eq "")	
+						{ $mode = "Foreign Ad-Hoc Network" } 
     if($line =~ /\bfreq: (\d+)/)                { $chan = $1 }
     if($line =~ /\bsignal: ([\d-]+)/)           { $signal = $1 }
     if($line =~ /\bGroup cipher:(.+)/)          { $key = $1 }
@@ -204,7 +213,7 @@ while(1)
 
   close(FILE);
   
-  if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode) }
+  pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode) ;
   sleep 1 if not scalar @list and $loops != 1;
   
   $mac = "";
