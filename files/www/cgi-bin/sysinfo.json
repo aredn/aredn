@@ -87,7 +87,12 @@ $info{"ssid"}=$myssid;
 # ------- Wifi Channel Number
 $mychan = `uci get wireless.radio0.channel`;
 chomp($mychan);
-$info{"channel"}=$mychan;
+# 3GHZ channel -> Freq conversion
+if ($mychan >= 76 and $mychan <= 99) {
+  $info{"channel"}=($mychan * 5) + 3000;
+} else {
+  $info{"channel"}=$mychan;
+}
 
 # ------- Wifi Bandwidth
 $line = `uci get wireless.radio0.chanbw`;
