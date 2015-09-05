@@ -97,7 +97,7 @@ sub pushAP
   my($signal, $freq, $key, $ssid, $host, $mac, $mode) = @_;
 
   return if $mac eq "";
-  return if $openap and ($key ne "" or $mode ne "ESS");
+  return if $openap and ($key ne "");
 
   $chan=freq_to_chan($freq);
 
@@ -186,7 +186,7 @@ while(1)
       if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode) }
       $mac = uc $1;
 
-      $mode = "";
+      $mode = "AP";
       $ssid = "";
       $signal = 0;
       $chan = "";
@@ -202,9 +202,7 @@ while(1)
     }
     if($line =~ /\bSSID: (.*)/)                 { $ssid = $1 }
     if($line =~ /\bSSID: unknown/)              { $ssid = "unknown" } 
-    if($line =~ /\bcapability: (ESS|PBCC|ChannelAgility|SpectrumMgmt)/)	        
-						{ $mode = "AP" } 
-    if($line =~ /\bcapability: (IBSS)/ and $mode eq "")	
+    if($line =~ /\bcapability: (IBSS)/ and $mode eq "AP")	
 						{ $mode = "Foreign Ad-Hoc Network" } 
     if($line =~ /\bfreq: (\d+)/)                { $chan = $1 }
     if($line =~ /\bsignal: ([\d-]+)/)           { $signal = $1 }
