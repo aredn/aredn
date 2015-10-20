@@ -133,7 +133,7 @@ foreach $val (@list)
     }
 
     # password MUST be alphanumeric (no special chars)
-    push @conn_err, "The password cannot contain non-alphanumeric characters (#$conn_num)" if ($passwd =~ m/[^a-zA-Z0-9@]/);
+    push @conn_err, "The password cannot contain non-alphanumeric characters (#$conn_num)" if ($passwd =~ m/[^a-zA-Z0-9@\-]/);
     push @conn_err, "A connection server is required" if($host eq "");
     push @conn_err, "A connection password is required" if($passwd eq "");
     push @conn_err, "A connection network IP is required" if($netip eq "");
@@ -222,16 +222,16 @@ push @hidden, "<input type=hidden name=reload value=1></td></tr>";
 #################
 # messages
 #################
-if(@cli_err)
+if(@conn_err)
 {
     print "<tr><td align=center><b>ERROR:<br>";
-    foreach(@cli_err) { print "$_<br>" }
+    foreach(@conn_err) { print "$_<br>" }
     print "</b></td></tr>\n";
 }
 
 if($parms{button_save})
 {
-    if(@cli_err)
+    if(@conn_err)
     {
 	print "<tr><td align=center><b>Configuration NOT saved!</b></td></tr>\n";
     }
@@ -412,18 +412,18 @@ sub save_connections()
         my $vtun_node_name=uc "$node-$net";
 
         $rc=&uci_set_named_option("vtun","server_$i","clientip",$clientip);
-        push(@cli_err,"Problem saving UCI vtun connection client IP (#$i)") if $rc;
+        push(@conn_err,"Problem saving UCI vtun connection client IP (#$i)") if $rc;
 
         $rc=&uci_set_named_option("vtun","server_$i","serverip",$serverip);
-        push(@cli_err,"Problem saving UCI vtun connection server IP (#$i)") if $rc;
+        push(@conn_err,"Problem saving UCI vtun connection server IP (#$i)") if $rc;
         
         $rc=&uci_set_named_option("vtun","server_$i","node",$vtun_node_name);
-        push(@cli_err,"Problem saving UCI vtun connection name (#$i)") if $rc;
+        push(@conn_err,"Problem saving UCI vtun connection name (#$i)") if $rc;
 
         foreach $var (qw(enabled host passwd netip))
         {
             $rc=&uci_set_named_option("vtun","server_$i",$var,$parms{"conn${i}_$var"});
-            push(@cli_err,"Problem saving UCI vtun connection (#$i)") if $rc;
+            push(@conn_err,"Problem saving UCI vtun connection (#$i)") if $rc;
         }
         $enabled_count++ if $parms{"conn${i}_enabled"}; 
     }
