@@ -293,7 +293,7 @@ undef $/;
 $^I = "";
 while (<>) 
 {
-  substr($_, 0, $MAXSIZE - length) = "";
+  substr($_, 0, length() - $MAXSIZE) = "";
   s/.*\n//;
   print;
 }
