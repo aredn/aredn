@@ -48,7 +48,7 @@ foreach $config ("ap","client","mesh","mesh_ap","router")
 
     foreach $variable( sort keys %defaultcfg )
     {
-        if ( $cfg{$variable} )
+        if ( defined $cfg{$variable} )
         {
             print TMPCONFFILE "$variable = $cfg{$variable}\n";
         }
@@ -61,7 +61,7 @@ foreach $config ("ap","client","mesh","mesh_ap","router")
     # Specific settings for variables that are not in the default config but are added by the system
     foreach $variable( 'dmz_dhcp_end', 'dmz_dhcp_limit', 'dmz_dhcp_start', 'dmz_lan_ip', 'dmz_lan_mask', 'wifi_rxant', 'wifi_txant' )
     {
-        if ( $cfg{$variable} )
+        if ( defined $cfg{$variable} )
         {
             print TMPCONFFILE "$variable = $cfg{$variable}\n";
         }
