@@ -71,12 +71,14 @@ provided through those nodes.
  provides which gives you detailed information about the current state of the
  OLSR routing software.<br><br></li>
 
-<li><strong>WiFi Scan</strong> provides a list of the WiFi networks that the
-node can see. It cannot show you which other nodes are visible, that is what the
-Mesh Status and OLSR Status pages are for.  There is an automatic scan mode but it
-is recommended that it not be used continuously because the mesh performance
-will suffer due to the node spending much of its time on other channels
-looking for other networks.<br><br></li>
+<li><strong>WiFi Scan</strong> displays a list of other 802.11 signals that the
+node can see and only of the same bandwidth.   The 802.11 signals include
+Access Points (AP), neighbor nodes (connected ad-hoc stations), and other mesh networks 
+(foriegn ad-hoc networks). The AREDN mesh is created on top of an 802.11 'ad-hoc' network.  
+Consequently when multiple ad-hoc networks are visiable to each other (different SSID or 
+channel), the 'network' is displayed and not individual nodes (stations).  There is also an 
+automatic scan mode. It is not recommend to run a wifi scan continously because this will degrade mesh 
+performance. A wifi scan transmits queries on all channels to discover other devices.<br><br></li>
 
 <li><strong>Setup</strong> takes you to the setup pages of the web
 interface. You will need to supply a username and password to access those
@@ -283,6 +285,14 @@ automatically in the backend without need for configuration.
 <br>
 As always a dummy load on unused RF ports is recommended to keep out physical
 contaminants and to avoid EMI/RFI interference.
+</p>
+<p>
+<a name="power"></a>The <strong>Power</strong> setting controls the max power
+the unit may output. The node may decrease its power output as it enters higher
+speed data rates to maintain a linear spectrum. Some devices may have max power
+levels that change based on what channel/frequency the hardware is operating on,
+in this case the max level will change when you save the settings and will be
+capped at the max level supported by the hardware for that frequency.
 </p>
 <p>
 The <strong>Distance</strong> setting adjusts the packet retry timer

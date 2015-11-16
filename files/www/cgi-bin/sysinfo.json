@@ -84,6 +84,21 @@ $myssid = $1;
 $myssid =~ /(.*)-(5|10|20)-v[3456]/;
 $info{"ssid"}=$myssid;
 
+# ------- Wifi Channel Number
+$mychan = `uci get wireless.radio0.channel`;
+chomp($mychan);
+# 3GHZ channel -> Freq conversion
+if ($mychan >= 76 and $mychan <= 99) {
+  $info{"channel"}=($mychan * 5) + 3000;
+} else {
+  $info{"channel"}=$mychan;
+}
+
+# ------- Wifi Bandwidth
+$line = `uci get wireless.radio0.chanbw`;
+chomp($line);
+$info{"chanbw"}=$line;
+
 # ------- ACTIVE TUNNELS
 $active_tunnel_count=`ifconfig|grep tun|wc -l`;
 chomp($active_tunnel_count);

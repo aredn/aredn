@@ -954,19 +954,21 @@ sub hardware_info
             'name'            => 'TP-Link CPE210 v1.0',
             'comment'         => '',
             'supported'       => '-2',
-            'maxpower'        => '27',
+            'maxpower'        => '23',
             'pwroffset'       => '0',
             'usechains'       => 1,
             'rfband'          => '2400',
+            'chanpower'       => { 1 => '22', 14 => '23' },
          },
         'TP-Link CPE510 v1.0' => {
             'name'            => 'TP-Link CPE510 v1.0',
             'comment'         => '',
             'supported'       => '-2',
-            'maxpower'        => '27',
+            'maxpower'        => '23',
             'pwroffset'       => '0',
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
+            'chanpower'       => { 48 => '10', 149 => '17', 184 => '23' },
          },
         '0xc2a2' => {
             'name'            => 'Bullet 2 HP',
@@ -1035,6 +1037,15 @@ sub hardware_info
             'pwroffset'       => '5',
             'usechains'       => 1,
             'rfband'          => '2400',
+         },
+        '0xe105' => {
+            'name'            => 'Rocket M5',
+            'comment'         => 'Rocket M5 with USB',
+            'supported'       => '1',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
          },
         '0xe1b2' => {
             'name'            => 'Rocket M2',
@@ -1268,8 +1279,22 @@ sub hardware_info
 # Return maximum dbm value for tx power 
 sub wifi_maxpower
 {
+    my ($wifichannel) = @_;
+
     $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'maxpower'} ) {
+
+    if ( exists $boardinfo->{'chanpower'} ) {
+        my $chanpower=$boardinfo->{'chanpower'};
+        foreach ( sort {$a<=>$b} keys %{$chanpower} )
+        {
+            if ( $wifichannel <= $_ )
+            {
+                return $chanpower->{$_};
+            }
+        }
+        # We should never get here
+        return 27;
+    } elsif ( exists $boardinfo->{'maxpower'} ) {
         return $boardinfo->{'maxpower'};
     } else
     {
