@@ -443,8 +443,11 @@ foreach(`zcat /etc/opkg.list.gz 2>/dev/null`)
 #
 if($parms{button_location})
 {
-    system "echo '$parms{gridsquare}' > /etc/gridsquare" if $parms{gridsquare};
-    push @loc_output, "Gridsquare updated.\n";
+    if($parms{gridsquare})
+    {
+        system "echo '$parms{gridsquare}' > /etc/gridsquare" if $parms{gridsquare};
+        push @loc_output, "Gridsquare updated.\n";
+    }
     if($parms{latitude} and $parms{longitude})
     {
         system "echo '$parms{latitude}' > /etc/latlon";
