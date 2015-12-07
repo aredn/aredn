@@ -439,6 +439,38 @@ foreach(`zcat /etc/opkg.list.gz 2>/dev/null`)
 }
 
 #
+# update location info
+#
+if($parms{button_location})
+{
+    system "echo '$parms{gridsquare}' > /etc/gridsquare" if $parms{gridsquare};
+    push @loc_output, "Gridsquare updated.\n";
+    if($parms{latitude} and $parms{longitude})
+    {
+        system "echo '$parms{latitude}' > /etc/latlon";
+        system "echo '$parms{longitude}' >> /etc/latlon";
+        push @loc_output, "Lat/Lon updated.\n";
+    }
+}
+
+#
+# retrieve location data
+#
+if(-f "/etc/latlon")
+{
+    $lat = `head -1 /etc/latlon`;
+    chomp($lat);   
+    $lon = `tail -1 /etc/latlon`;
+    chomp($lon);       
+}
+
+if(-f "/etc/gridsquare")
+{
+    $gridsquare = `cat /etc/gridsquare`;
+    chomp($gridsquare);      
+}
+
+#
 # handle ssh key actions
 #
 
@@ -660,10 +692,32 @@ print "<tr><td colspan=3 align=center><a href=/cgi-bin/supporttool>Download Supp
 
 print "<tr><td colspan=3><hr></td></tr>\n";
 
-print "</table>\n";
+print "<table><tr><th colspan=3>Location Data</th></tr>\n";
+print "<tr>\n";
+print "<td align=center>Latitude</td>";
+print "<td align=center>Longitude</td>";
+print "<td align=center>Grid Square</td>";
+print "</tr>\n";
+print "<tr>\n";
+print "<td><input type=text name=latitude value='$lat' title='Latitude value (in decimal) (ie. 30.312354)'></td>\n";
+print "<td><input type=text name=longitude value='$lon' title='Longitude value (in decimal) (ie. -95.334454)'></td>\n";
+print "<td><input type=text name=gridsquare value='$gridsquare' title='Gridsquare value (ie. AB12cd)'></td>\n";
+print "</tr>\n";
+print "<tr><td colspan=3 align=center>";
+print "<input type=submit name=button_location value='Update Location' title='Update Location Information'>&nbsp;";
+print "</td></tr>\n";
 
+if(@loc_output)
+{
+    print "<tr><td colspan=3 align=center><table><tr><td><b><pre>\n";
+    print word_wrap(80, @loc_output);
+    print "</pre></b></td></tr></table></td></tr>\n";
+}
+
+print "</table>\n";
 print "</td></tr>\n";
 print "</table>\n";
+#print "<tr><td colspan=3><hr></td></tr>\n";
 
 print "<input type=hidden name=dev value=1>\n" if $parms{dev};
 print "</form>\n";
