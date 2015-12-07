@@ -447,12 +447,19 @@ if($parms{button_location})
     {
         system "echo '$parms{gridsquare}' > /etc/gridsquare" if $parms{gridsquare};
         push @loc_output, "Gridsquare updated.\n";
+    } else {
+       system "rm -f /etc/gridsquare"; 
+       push @loc_output, "Gridsquare purged.\n";
     }
+
     if($parms{latitude} and $parms{longitude})
     {
         system "echo '$parms{latitude}' > /etc/latlon";
         system "echo '$parms{longitude}' >> /etc/latlon";
         push @loc_output, "Lat/Lon updated.\n";
+    } else {
+       system "rm -f /etc/latlon"; 
+       push @loc_output, "Lat/Lon purged.\n";
     }
 }
 
