@@ -517,8 +517,12 @@ if(-f "/etc/gridsquare")
 
 if($parms{button_updatemap})
 {
-    system "wget -q -O- http://localnode:8080/cgi-bin/sysinfo.json|curl -H 'Accept: application/json' -X PUT -T - http://52.90.125.187:8080/sysinfo";
-    push @loc_output, "AREDN online map updated";
+    system("wget -q -O- http://localnode:8080/cgi-bin/sysinfo.json|curl -H 'Accept: application/json' -X PUT -T - http://52.90.125.187:8080/sysinfo");
+    if($? == 0) {
+        push @loc_output, "AREDN online map updated";
+    } else {
+        push @loc_output, "ERROR: Cannot update online map. Please ensure this node has access to the internet.";
+    }
 }
 #
 # handle ssh key actions
