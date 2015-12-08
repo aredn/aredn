@@ -84,6 +84,8 @@ $patch_install = 0;
     "http://downloads.aredn.org/firmware/ubnt"
 );
 
+#$mapserverurl="http://52.23.166.98:8080/sysinfo";
+
 # refresh fw
 if($parms{button_refresh_fw})
 {
@@ -445,21 +447,42 @@ if($parms{button_location})
 {
     if($parms{gridsquare})
     {
-        system "echo '$parms{gridsquare}' > /etc/gridsquare" if $parms{gridsquare};
-        push @loc_output, "Gridsquare updated.\n";
+        # validate values
+        if($parms{gridsquare} =~ /[A-Z][A-Z]\d\d[a-z][a-z]/)
+        {
+            # delete/define file
+            unlink("/etc/gridsquare") if(-f "/etc/gridsquare");
+            $rcgood=open(my $gs, ">", "/etc/gridsquare");
+            push @loc_output, "Cannot open gridsquare file" unless $rcgood;
+            print $gs "$parms{gridsquare}\n";
+            close($gs);
+            push @loc_output, "Gridsquare updated.\n";
+        } else {
+            push @loc_output, "ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)\n";
+        }
     } else {
-       system "rm -f /etc/gridsquare"; 
+       unlink("/etc/gridsquare") if(-f "/etc/gridsquare"); 
        push @loc_output, "Gridsquare purged.\n";
     }
 
     if($parms{latitude} and $parms{longitude})
     {
-        system "echo '$parms{latitude}' > /etc/latlon";
-        system "echo '$parms{longitude}' >> /etc/latlon";
-        push @loc_output, "Lat/Lon updated.\n";
+        # validate values
+        if($parms{latitude} =~ /^([-+]?\d{1,2}([.]\d+)?)/ and $parms{longitude} =~ /^([-+]?\d{1,3}([.]\d+)?)/) {
+            # delete/define file
+            unlink("/etc/latlon") if(-f "/etc/latlon");          
+            $rcgood=open(my $ll, ">", "/etc/latlon");
+            push @loc_output, "Cannot open lat/lon file" unless $rcgood;
+            print $ll "$parms{latitude}\n";
+            print $ll "$parms{longitude}\n";
+            close($ll);
+            push @loc_output, "Lat/lon updated.\n";
+        } else {
+            push @loc_output, "ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154)\n";
+        }
     } else {
-       system "rm -f /etc/latlon"; 
-       push @loc_output, "Lat/Lon purged.\n";
+       unlink("/etc/latlon") if(-f "/etc/latlon"); 
+       push @loc_output, "Lat/lon purged.\n";
     }
 }
 
@@ -468,18 +491,35 @@ if($parms{button_location})
 #
 if(-f "/etc/latlon")
 {
-    $lat = `head -1 /etc/latlon`;
-    chomp($lat);   
-    $lon = `tail -1 /etc/latlon`;
-    chomp($lon);       
+    $rcgood=open(FILE, "/etc/latlon");
+    push @loc_output, "ERROR: reading lat/lon data\n" unless $rcgood;
+    while(<FILE>){
+        chomp;
+        push @lines,$_;
+    }
+    close(FILE);
+    $lat=$lines[0];
+    $lon=$lines[1];
 }
 
+@lines=();
 if(-f "/etc/gridsquare")
 {
-    $gridsquare = `cat /etc/gridsquare`;
-    chomp($gridsquare);      
+    $rcgood=open(FILE, "/etc/gridsquare");
+    push @loc_output, "ERROR: reading gridsquare data\n" unless $rcgood;
+    while(<FILE>){
+        chomp;
+        push @lines,$_;
+    }
+    close(FILE);
+    $gridsquare=$lines[0];
 }
 
+if($parms{button_updatemap})
+{
+    system "wget -q -O- http://localnode:8080/cgi-bin/sysinfo.json|curl -H 'Accept: application/json' -X PUT -T - http://52.90.125.187:8080/sysinfo";
+    push @loc_output, "AREDN online map updated";
+}
 #
 # handle ssh key actions
 #
@@ -702,6 +742,7 @@ print "<tr><td colspan=3 align=center><a href=/cgi-bin/supporttool>Download Supp
 
 print "<tr><td colspan=3><hr></td></tr>\n";
 
+# LOCATION DATA
 print "<table><tr><th colspan=3>Location Data</th></tr>\n";
 print "<tr>\n";
 print "<td align=center>Latitude</td>";
@@ -715,6 +756,17 @@ print "<td><input type=text name=gridsquare maxlength=6 size=6 value='$gridsquar
 print "</tr>\n";
 print "<tr><td colspan=3 align=center>";
 print "<input type=submit name=button_location value='Update Location' title='Update Location Information'>&nbsp;";
+if (-f "/usr/bin/curl")
+{
+    $rc=`ping -c2 8.8.8.8`;
+    if($? eq 0)
+    {
+        $mapbuttonvisible="";
+    } else {
+        $mapbuttonvisible=" disabled ";
+    }
+}
+print "<input type=submit name=button_updatemap value='Update Map' title='Update Online Map' $mapbuttonvisible>&nbsp;";
 print "</td></tr>\n";
 
 if(@loc_output)
