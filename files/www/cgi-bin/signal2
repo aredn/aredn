@@ -79,6 +79,7 @@ $header = <<EOF;
     \$(document).ready(function () {
       var MAXPOINTS=10;
       var chart = new CanvasJS.Chart("chartContainer", {
+        zoomEnabled: true,
         backgroundColor: "#E7E7E7",
         title: {
           text: "$dmode Signal to Noise"
@@ -114,7 +115,7 @@ $header = <<EOF;
       }); // --- chart
 
       var updateArchiveChart = function () {
-        \$.getJSON("/cgi-bin/signal2.json", function (result) {
+        \$.getJSON("/cgi-bin/signal2.json?device=$parms{device}", function (result) {
           chart.options.data[0].dataPoints = result[0];
           chart.options.data[1].dataPoints = result[1];
           chart.render();
@@ -122,11 +123,7 @@ $header = <<EOF;
       };  
 
       var updateRealtimeChart = function () {
-        \$.getJSON("/cgi-bin/signal2.json?realtime=1", function (result) {
-          //if (dps[0].length > MAXPOINTS) {
-          //  dps[0].shift();
-          //  dps[1].shift();
-          //}
+        \$.getJSON("/cgi-bin/signal2.json?realtime=1&device=$parms{device}", function (result) {
           dps[0].push(result[0][0]);
           dps[1].push(result[1][0]);
           chart.render();
@@ -156,6 +153,42 @@ $page = <<EOF;
     </div>
     <h1><big>$node</big></h1><hr>
     <nobr>
+    <div id="deviceSelector">
+    <form name="deviceSelector" method="GET" action="/cgi-bin/signal2">
+    Selected Device:&nbsp;<select name="device" onChange="this.form.submit();">
+EOF
+
+# get a list of files from /tmp/snrlog
+my @files = `ls -1A /tmp/snrlog`;
+$parms{device}="" if(!/$parms{device}/ ~~ @files);
+
+# default to "Strongest Signal"
+if($parms{device}) {
+  $page = $page . "<option value='strongest'>Strongest Signal</option>";
+} else {
+  $page = $page . "<option selected value='strongest'>Strongest Signal</option>";
+}
+
+# iterate over each file
+foreach $logfile (@files)
+{
+  chomp($logfile);
+  next if($logfile eq 'strongest');
+  my ($dmac, $dname) = $logfile =~ /^(.*?)\-(.*)/;
+  $dname=$logfile if($dname eq '');
+  if($parms{device} eq $logfile) {
+    $page = $page . "<option selected value='$logfile'>$dname</option>";
+  } else {
+    $page = $page . "<option value='$logfile'>$dname</option>";
+  }
+}
+
+$page = $page . "</select>";
+$page = $page . "<input type='hidden' name='realtime' value='1'></input>" if($parms{realtime} eq "1");
+
+$page = $page . <<EOF;    
+    </form>
+    </div>
     <div id="chartContainer" style="width: 800px; height: 380px;"></div>
     <button onclick="window.location.href='/cgi-bin/signal2'">Archive</button><button onclick="window.location.href='/cgi-bin/signal2?realtime=1'">Realtime</button><button onclick="window.location.href='/cgi-bin/status'">Quit</button>
   </center>

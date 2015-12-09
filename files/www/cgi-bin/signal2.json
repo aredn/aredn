@@ -42,24 +42,32 @@ use perlfunc;
 read_query_string();
 
 my $debug = 0;
-my $filename="/tmp/snrlog";
+my $dirname="/tmp/snrlog";
 my @values;
 my $counter=0;
 my $sjson;
 my $njson;
 
-system("touch $filename") unless (-f $filename);
+system("mkdir $dirname") unless (-d $dirname);
 
 if($parms{"realtime"}) {
   # ==== REALTIME DATA =====
   ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);          
-  $d = sprintf ("%02d:%02d:%02d", $hour, $min, $sec);                             
-  ($s, $n) = get_wifi_signal(get_interface("wifi"));                              
+  $d = sprintf ("%02d:%02d:%02d", $hour, $min, $sec);
+
+  #if($parms{device} eq '') {
+    ($s, $n) = get_wifi_signal(get_interface("wifi"));                              
+  #}
+
   $sjson= sprintf("{\"label\":\"%s\",\"y\":%s}",$d,$s);
   $njson= sprintf("{\"label\":\"%s\",\"y\":%s}",$d,$n);
 } else {
   # ==== ARCHIVE DATA =====
   # --- Load the snr data into an array
+  if($parms{device} == '') { $parms{device}="strongest"; }
+
+  $filename=$dirname . "/" . $parms{device};
+
   open my $fh, '<', $filename or die "Could not open file '$filename' $!";
   chomp(my @lines = <$fh>);
   close $fh;
