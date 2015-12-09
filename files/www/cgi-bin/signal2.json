@@ -118,12 +118,9 @@ sub get_realtime_signal()
   my ($var) = @_;
     return ("-1","-1") if not defined $var;
     if (-d "/sys/kernel/debug/ieee80211/phy0/netdev:wlan0/stations/$var") {
-      $test="GOOD DIR";
       chomp($s = `cat /sys/kernel/debug/ieee80211/phy0/netdev:wlan0/stations/$var/last_signal`);
     } else {
-      $test="BAD DIR";
-      #return ("-2","-2");
-      return ($var, $test); 
+      return ("-2","-2");
     }
     ($junk, $n) = get_wifi_signal(get_interface("wifi")); 
     return ($s, $n);

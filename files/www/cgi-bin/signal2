@@ -177,15 +177,14 @@ foreach $logfile (@files)
   my ($dmac, $dname) = $logfile =~ /^(.*?)\-(.*)/;
   $dname=$logfile if($dname eq '');
   if($parms{device} eq $logfile) {
-    $page = $page . "<option selected value='$logfile'>$dname</option>";
+    $page = $page . "<option selected value='$logfile'>$dname</option>\n";
   } else {
-    $page = $page . "<option value='$logfile'>$dname</option>";
+    $page = $page . "<option value='$logfile'>$dname</option>\n";
   }
 }
 
-$page = $page . "</select>";
-$page = $page . "<input type='hidden' name='realtime' value='1'></input>" if($parms{realtime} eq "1");
-
+$page = $page . "</select>\n";
+$page = $page . "<input type='hidden' name='realtime' value='1'></input>\n" if($parms{realtime} eq "1");
 $page = $page . <<EOF;    
     </form>
     </div>
