@@ -448,7 +448,7 @@ if($parms{button_location})
     if($parms{gridsquare})
     {
         # validate values
-        if($parms{gridsquare} =~ /[A-Z][A-Z]\d\d[a-z][a-z]/)
+        if($parms{gridsquare} =~ /^[A-Z][A-Z]\d\d[a-z][a-z]$/)
         {
             # delete/define file
             unlink("/etc/gridsquare") if(-f "/etc/gridsquare");
@@ -468,7 +468,7 @@ if($parms{button_location})
     if($parms{latitude} and $parms{longitude})
     {
         # validate values
-        if($parms{latitude} =~ /^([-+]?\d{1,2}([.]\d+)?)/ and $parms{longitude} =~ /^([-+]?\d{1,3}([.]\d+)?)/) {
+        if($parms{latitude} =~ /^([-+]?\d{1,2}([.]\d+)?)$/ and $parms{longitude} =~ /^([-+]?\d{1,3}([.]\d+)?)$/) {
             # delete/define file
             unlink("/etc/latlon") if(-f "/etc/latlon");          
             $rcgood=open(my $ll, ">", "/etc/latlon");
@@ -749,13 +749,13 @@ print "<tr><td colspan=3><hr></td></tr>\n";
 # LOCATION DATA
 print "<table><tr><th colspan=3>Location Data</th></tr>\n";
 print "<tr>\n";
-print "<td align=center>Latitude</td>";
-print "<td align=center>Longitude</td>";
-print "<td align=center>Grid Square</td>";
+print "<td align=left>Latitude</td>";
+print "<td align=left>Longitude</td>";
+print "<td align=left>Grid Square</td>";
 print "</tr>\n";
 print "<tr>\n";
-print "<td><input type=text name=latitude value='$lat' title='Latitude value (in decimal) (ie. 30.312354)'></td>\n";
-print "<td><input type=text name=longitude value='$lon' title='Longitude value (in decimal) (ie. -95.334454)'></td>\n";
+print "<td><input type=text name=latitude size=10 value='$lat' title='Latitude value (in decimal) (ie. 30.312354)'></td>\n";
+print "<td><input type=text name=longitude size=10 value='$lon' title='Longitude value (in decimal) (ie. -95.334454)'></td>\n";
 print "<td><input type=text name=gridsquare maxlength=6 size=6 value='$gridsquare' title='Gridsquare value (ie. AB12cd)'></td>\n";
 print "</tr>\n";
 print "<tr><td colspan=3 align=center>";
