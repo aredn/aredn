@@ -1,25 +1,75 @@
-#!/usr/bin/perl                                                                 
-BEGIN {push @INC, '/www/cgi-bin'};                                              
-use perlfunc;                                                                   
-                                                        
-my $filename = '/tmp/snrlog/strongest'; 
-my $MAXLINES=2880;  # 2days worth 
+#!/usr/bin/perl
+=for commnet
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2015 Joe Ayers  ae6xe@arrl.net and Darryl Quinn K5DLQ
+  See Contributors file for additional contributors
 
-($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);          
-$d = sprintf ("%02d/%02d %02d:%02d:%02d",$mon, $mday,$hour, $min, $sec);                             
-($s, $n) = get_wifi_signal(get_interface("wifi"));                              
-$s = 0 if $s eq "N/A";
-$n = 0 if $n eq "N/A";
-                                      
-open(my $fh, '>>', $filename) or die "Could not open file '$filename' $!";    
-print $fh "$d,$s,$n\n";                                                         
-close $fh;                                                                      
-                                                                                
-$lcount=`wc -l < $filename`;                                                    
-chomp($lcount);                                                                 
-                                                                                
-if($lcount>$MAXLINES)                                                           
-{                                                                               
-        $rc=`tail -n$MAXLINES $filename > $filename.tmp`;                    
-        $rc=`mv $filename.tmp $filename`;                                    
-}   
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+  See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+=cut
+
+$MAXLINES=2880; # 2 days worth
+$tmpdir="/tmp/snrlog";
+$sigdir="/sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations";
+
+$nf = `iw wlan0 survey dump | grep -A 1 'in use' | tail -1`;
+$nf =~ s/^[^-\d]*([-\d]+).*$/$1/;
+chomp $nf;
+if (! -e $tmpdir ) { system("mkdir $tmpdir > /dev/null"); }
+
+($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
+$d = sprintf ("%02d/%02d %02d:%02d:%02d",$mon, $mday,$hour, $min, $sec);
+
+foreach $sigmac ( `ls $sigdir` ) 
+{
+  chomp $sigmac;
+  chomp ($ip = `cat /proc/net/arp | grep $sigmac | cut -f1 -d\" "`);
+  $hname="";
+  foreach(`nslookup $ip`)                                             
+  {                                                              
+    next unless ($hname) = /Address 1: $ip (\S+)/;   
+    $hname =~ s/\..*$// ;
+    break;
+  }   
+  
+  $sigdat = "$sigmac-$hname";
+  chomp ($siglevel = `cat $sigdir/$sigmac/last_signal`) ;
+  if ($siglevel < -100 or $siglevel >= 0 ) { next; }
+
+  open(my $fh, '>>', "$tmpdir/$sigdat") or die "Could not open file '$tmpdir/$sigdat' $!";
+  print $fh "$d,$siglevel,$nf\n";
+  close $fh;
+
+  chomp ($lcount=`wc -l < $tmpdir/$sigdat`);
+
+  if($lcount>$MAXLINES+10)
+  {
+    $rc=`tail -n$MAXLINES $tmpdir/$sigdat > $tmpdir/$sigdat.tmp`;
+    $rc=`mv $tmpdir/$sigdat.tmp $tmpdir/$sigdat`;
+  }
+}
