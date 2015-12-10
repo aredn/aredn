@@ -953,7 +953,7 @@ sub hardware_info
         'TP-Link CPE210 v1.0' => {
             'name'            => 'TP-Link CPE210 v1.0',
             'comment'         => '',
-            'supported'       => '-2',
+            'supported'       => '1',
             'maxpower'        => '23',
             'pwroffset'       => '0',
             'usechains'       => 1,
@@ -963,7 +963,7 @@ sub hardware_info
         'TP-Link CPE510 v1.0' => {
             'name'            => 'TP-Link CPE510 v1.0',
             'comment'         => '',
-            'supported'       => '-2',
+            'supported'       => '1',
             'maxpower'        => '23',
             'pwroffset'       => '0',
             'usechains'       => 1,
@@ -996,7 +996,7 @@ sub hardware_info
        '0xe005' => {
             'name'            => 'NanoStation M5',
             'comment'         => 'NanoStation M5',
-            'supported'       => '-2',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
             'usechains'       => 1,
@@ -1022,8 +1022,8 @@ sub hardware_info
          },
         '0xe035' => {
             'name'            => 'NanoStation M3',
-            'comment'         => 'NanoStation M3 in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoStation M3',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '3',
             'usechains'       => 1,
@@ -1076,8 +1076,8 @@ sub hardware_info
          },
         '0xe1c3' => {
             'name'            => 'Rocket M3',
-            'comment'         => 'In Testing',
-            'supported'       => '-2',
+            'comment'         => 'Rocket M3',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '3',
             'usechains'       => 1,
@@ -1149,7 +1149,7 @@ sub hardware_info
         '0xe243' => {
             'name'            => 'NannoBridge M3',
             'comment'         => 'Not Tested',
-            'supported'       => '-2',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '3',
             'usechains'       => 1,
@@ -1247,8 +1247,8 @@ sub hardware_info
          },
         'Ubiquiti Nanostation M XW' => {
             'name'            => 'NanoStation M5 XW',
-            'comment'         => 'NanoStation M5 XW  0xe855 (In Testing)',
-            'supported'       => '-2',
+            'comment'         => 'NanoStation M5 XW',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
             'usechains'       => 1,
