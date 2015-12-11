@@ -1120,7 +1120,7 @@ sub hardware_info
             'rfband'          => '5800ubntus',
          },
         '0xe232' => {
-            'name'            => 'NannoBridge M2',
+            'name'            => 'NanoBridge M2',
             'comment'         => 'NanoBridge M2',
             'supported'       => '1',
             'maxpower'        => '21',
@@ -1129,7 +1129,7 @@ sub hardware_info
             'rfband'          => '2400',
          },
         '0xe239' => {
-            'name'            => 'NannoBridge M9',
+            'name'            => 'NanoBridge M9',
             'comment'         => 'NanoBridge M9',
             'supported'       => '1',
             'maxpower'        => '22',
@@ -1147,7 +1147,7 @@ sub hardware_info
             'rfband'          => '2400',
          },
         '0xe243' => {
-            'name'            => 'NannoBridge M3',
+            'name'            => 'NanoBridge M3',
             'comment'         => 'Not Tested',
             'supported'       => '1',
             'maxpower'        => '22',
@@ -1174,7 +1174,7 @@ sub hardware_info
             'rfband'          => '5800ubntus',
          },
         '0xe2b5' => {
-            'name'            => 'NannoBridge M5',
+            'name'            => 'NanoBridge M5',
             'comment'         => 'NanoBridge M5',
             'supported'       => '1',
             'maxpower'        => '22',
@@ -1183,7 +1183,7 @@ sub hardware_info
             'rfband'          => '5800ubntus',
          },
         '0xe2c2' => {
-            'name'            => 'NannoBeam M2 International',
+            'name'            => 'NanoBeam M2 International',
             'comment'         => 'NanoBeam M2 International -- XW board unsupported at this time',
             'supported'       => '-1',
             'maxpower'        => '18',
@@ -1219,7 +1219,7 @@ sub hardware_info
             'rfband'          => '2400',
          },
         '0xe4e5' => {
-            'name'            => 'NannoBeam M5 International',
+            'name'            => 'NanoBeam M5 International',
             'comment'         => 'NanoBeam M5 International XW series unsuported at this time',
             'supported'       => '-1',
             'maxpower'        => '22',
