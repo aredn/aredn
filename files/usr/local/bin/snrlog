@@ -40,24 +40,66 @@ $sigdir="/sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations";
 $nf = `iw wlan0 survey dump | grep -A 1 'in use' | tail -1`;
 $nf =~ s/^[^-\d]*([-\d]+).*$/$1/;
 chomp $nf;
+
 if (! -e $tmpdir ) { system("mkdir $tmpdir > /dev/null"); }
 
 ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
 $d = sprintf ("%02d/%02d %02d:%02d:%02d",$mon+1, $mday,$hour, $min, $sec);
 
-foreach $sigmac ( `ls $sigdir` ) 
+foreach $sigmac ( `ls $sigdir` )
 {
   chomp $sigmac;
+  $filename = `ls $tmpdir/$sigmac*` ;
+  $filename =~ /^.*\/([^-]*)-(.*)$/;
+  $isFile = $1;
+  $hnamef = $2;
+
   chomp ($ip = `cat /proc/net/arp | grep $sigmac | cut -f1 -d\" "`);
   $hname="";
-  foreach(`nslookup $ip`)                                             
-  {                                                              
-    next unless ($hname) = /Address 1: $ip (\S+)/;   
+  foreach(`nslookup $ip`)
+  {
+    next unless ($hname) = /Address 1: $ip (\S+)/;
     $hname =~ s/\..*$// ;
     break;
-  }   
-  
-  $sigdat = "$sigmac-$hname";
+  }
+
+  if (($hnamef and $hnamef eq $hname ) or ($hname and ! $isFile ))
+  {
+    $sigdat = "$sigmac-$hname";
+  }
+  elsif ( $hnamef eq $ip and $hname )
+    {
+      system("mv $tmpdir/$sigmac-$ip $tmpdir/$sigmac-$hname > /dev/null");
+      $sigdat = "$sigmac-$hname";
+    }
+    elsif ($hname and ! $hnamef and $isFile )
+      {
+        system("mv $tmpdir/$sigmac- $tmpdir/$sigmac-$hname > /dev/null");
+        $sigdat = "$sigmac-$hname";
+      }
+      elsif (( $hnamef eq $ip) or ( $ip and ! $isFile ))
+        {
+         $sigdat = "$sigmac-$ip";
+        }
+        elsif ( $isFile and ! $hnamef and $ip )
+          {
+            system("mv $tmpdir/$sigmac- $tmpdir/$sigmac-$ip > /dev/null");
+            $sigdat = "$sigmac-$ip";
+          }
+          elsif ($hnamef and ! $hname )
+          {
+            $sigdat = "$sigmac-$hnamef";
+          }
+          elsif ( $hnamef and $hname and $hnamef ne $hname )
+            {
+              system("mv $tmpdir/$sigmac-$hnamef $tmpdir/$sigmac-$hname > /dev/null");
+              $sigdat = "$sigmac-$hname";
+            }
+            else
+              {
+                $sigdat = "$sigmac-";
+              }
+
   chomp ($siglevel = `cat $sigdir/$sigmac/last_signal`) ;
   if ($siglevel < -100 or $siglevel >= 0 ) { next; }
 
