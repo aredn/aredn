@@ -1164,6 +1164,15 @@ sub hardware_info
             'usechains'       => 0,
             'rfband'          => '2400',
          },
+        '0xe245' => {
+            'name'            => 'airGrid M5 HP',
+            'comment'         => 'airGrid M5',
+            'supported'       => '1',
+            'maxpower'        => '19',
+            'pwroffset'       => '6',
+            'usechains'       => 0,
+            'rfband'          => '5800ubntus',
+         },
         '0xe255' => {
             'name'            => 'airGrid M5 HP',
             'comment'         => 'airGrid M5',
