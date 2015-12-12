@@ -127,20 +127,20 @@ foreach $ik (keys %info)
 }
 
 ############## INTERFACES
-print "\"interfaces\":{";
+print "\"interfaces\":[";
 $mystr="";
 foreach(`ifconfig -a`)
 {
    next unless /^(\S+) .*HWaddr (\S+)/;
-   $mystr .= sprintf "\"%s\":{", $1;
+   $mystr .= sprintf "{\"name\":\"%s\",", $1;
    ($ip, $mask, $bcast, $net, $cidr) = &get_my_ip($1);
    $mystr .= sprintf "\"ip\":\"%s\",",$ip;
-   $mystr .= sprintf "\"mac\":\"%s\"",$2;
-   $mystr .= sprintf "},";
+   $mystr .= sprintf "\"mac\":\"%s\"}",$2;
+   $mystr .= sprintf ",";
 }
 chop($mystr);
 print $mystr;
-print "}";
+print "]";
 ############## INTERFACES
 
 if($parms{"hosts"} )
@@ -158,7 +158,7 @@ if($parms{"hosts"} )
            }
        }
 
-       print ",\"hosts\":{";
+       print ",\"hosts\":[";
        $mystr="";
        foreach(`cat /var/run/hosts_olsr`)
        {
@@ -166,13 +166,13 @@ if($parms{"hosts"} )
            next unless /^(\d+\.\d+\.\d+\.\d+)\s*(\S+)/;
            if ( not $services{$2} and $line !~ /dtdlink|mid1\./  ) {
            #if ( not $services{$2} and $line !~ /dtdlink/  ) {
-               $mystr .= sprintf "\"%s\":\"%s\",",$2,$1;
+               $mystr .= sprintf "{\"name\":\"%s\",\"ip\":\"%s\"},",$2,$1;
            }
        }
 
        chop($mystr);
        print $mystr;
-       print "}";
+       print "]";
        ############## HOSTS
 }
 
