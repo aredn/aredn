@@ -156,7 +156,7 @@ for (keys %rssi)
   {
     $hit = 0 ;
     $sdH3 = int(3 * $rssiHist{$_}{"sdH"} + .5);
-    # is the RSSI attenuated and 3 standard deviations away?   Test is only 1 chain has dropped, not both.
+    # is the RSSI attenuated and 3 standard deviations away?   
     if   (abs ($rssiHist{$_}{"aveH"} - $rssi{$_}{"Hrssi"})  > $sdH3) { $hit += 1; }
     if ( $antnum )
     {
@@ -164,7 +164,7 @@ for (keys %rssi)
       if (abs ( $rssiHist{$_}{"aveV"} - $rssi{$_}{"Vrssi"})  >  $sdV3) { $hit += 1; }
     }
 
-    if ($rssiHist{$_}{"num"} > 9 and $ofdm_level <= 2 and $hit == 1)
+    if ($rssiHist{$_}{"num"} > 9 and $ofdm_level <= 2 and $hit > 0)
     { # Overly Attenuated Chain Suspected
       $datestring = localtime();
       if ($antnum)
