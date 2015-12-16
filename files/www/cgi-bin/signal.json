@@ -67,10 +67,9 @@ if($parms{"realtime"}) {
 } else {
   # ==== ARCHIVE DATA =====
   # --- Load the snr data into an array
-  if($parms{device} == '') { $parms{device}="strongest"; }
+  if($parms{device} eq '') { $parms{device}="strongest"; }
 
   $filename=$dirname . "/" . $parms{device};
-
   open my $fh, '<', $filename or die "Could not open file '$filename' $!";
   chomp(my @lines = <$fh>);
   close $fh;

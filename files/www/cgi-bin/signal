@@ -40,6 +40,7 @@ $debug = 0;
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
+chomp ($tzone=`date +%Z`);
 read_query_string();
 
 # collect some variables
@@ -89,7 +90,7 @@ $header = <<EOF;
           verticalAlign: "center",  // top, center, bottom
         },
         axisX: { 
-           title: "Time (in UTC)",
+           title: "Time (in $tzone)",
            labelFontSize: 10,
            labelAngle: -45,
         },
@@ -99,16 +100,16 @@ $header = <<EOF;
         },
         data: [
           {
-            type: "spline",
+            type: "stepLine",
             showInLegend: true, 
             legendText: "Signal",
-            toolTipContent: "Signal: {y}db @ {label}",
+            toolTipContent: "Signal: {y}dBm @ {label}",
             dataPoints: dps[0]
           },{
             type: "line",
             showInLegend: true, 
             legendText: "Noise",
-            toolTipContent: "Noise: {y}db @ {label}",
+            toolTipContent: "Noise: {y}dBm @ {label}",
             dataPoints: dps[1]
           }
         ],
