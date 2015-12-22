@@ -73,8 +73,8 @@ die "'$config' is not a valid configuration\n" unless -f "/etc/config.$config/_s
 
 $node = nvram_get("node");
 $tactical = nvram_get("tactical");
-$mac2 = mac2ip(get_mac("wlan0"), 0);
-$dtdmac = mac2ip(get_mac("eth0"), 0);
+$mac2 = mac2ip(get_mac(get_interface("wifi")), 0);
+$dtdmac = mac2ip(get_mac(get_interface("lan")), 0);
 
 unless($auto)
 {
@@ -125,6 +125,11 @@ foreach $line (`cat /etc/config.$config/_setup`)
     $line =~ /^(\w+)\s*=\s*(.*)$/;
     $cfg{$1} = $2;
 }
+
+$cfg{"lan_intf"} = get_interface("lan");
+$cfg{"wifi_intf"} = get_interface("wifi");
+$cfg{"wan_intf"} = get_interface("wan");
+$cfg{"dtdlink_intf"} = get_interface("dtdlink");
 
 die "configuration load failed\n" unless keys %cfg;
 
@@ -311,7 +316,6 @@ if($cfg{dmz_mode}) {
     print FILE "        option dest             lan\n";
 
     system "uci set firewall.\@zone\[2\].masq=0";
-    system "uci commit";
 } else  {
     print FILE "\n";
     print FILE "config 'include'\n";
@@ -416,11 +420,8 @@ open(FILE, ">/etc/local/services") or die;
 print FILE "#!/bin/sh\n";
 unless($cfg{wifi_proto} eq "disabled")
 {
-    $cfg{wifi_txpower} = wifi_maxpower() if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > wifi_maxpower();
+    $cfg{wifi_txpower} = wifi_maxpower($cfg{wifi_channel}) if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > wifi_maxpower($cfg{wifi_channel});
     $cfg{wifi_txpower} = 1  if $cfg{wifi_txpower} < 1;
-    if(wifi_useschains()){
-        print FILE "/usr/local/bin/wifi-onbootchains\n";
-    }
     print FILE "/usr/sbin/iw dev wlan0 set txpower fixed $cfg{wifi_txpower}00\n";
     if(defined $cfg{aprs_lat} and defined $cfg{aprs_lon})
     {
@@ -489,21 +490,16 @@ if(-f "/etc/config.$config/olsrd")
 # indicate whether lan is running in dmz mode
 system "echo $cfg{dmz_mode} > /etc/config/dmz-mode" if $cfg{dmz_mode};
 
-# Set chains/antenna config elements as they are no longer in the template files
-
-if(wifi_useschains()){
-    $cmd .= "uci set wireless.\@wifi-device[0].rxchain=$cfg{wifi_rxant} >/dev/null 2>&1;";
-    $cmd .= "uci set wireless.\@wifi-device[0].txchain=$cfg{wifi_txant} >/dev/null 2>&1;";
-} else {
-    $cmd .= "uci set wireless.\@wifi-device[0].rxantenna=$cfg{wifi_rxant} >/dev/null 2>&1;";
-    $cmd .= "uci set wireless.\@wifi-device[0].txantenna=$cfg{wifi_txant} >/dev/null 2>&1;";
+# Setup node lan dhcp
+if ( $cfg{lan_dhcp_noroute} ) {
+    $cmd .= "uci add_list dhcp.\@dhcp[0].dhcp_option=3 >/dev/null 2>&1;"
 }
+
+# finish up
+
 $cmd .= "uci -q commit;";
 system $cmd;
 
-
-
-# finish up
 
 unless($auto)
 {

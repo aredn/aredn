@@ -41,8 +41,22 @@
 # dynamic part depends on the node configuration
 
 use perlfunc;
+use ucifunc;
 
-@names = @hosts = @services = ();
+#Check what config file we are building for
+if ( !$ARGV[0] ) {
+    $UCI_CONF_FILE="olsrd";
+} else {
+    $UCI_CONF_FILE=$ARGV[0];
+}
+
+if ( $UCI_CONF_FILE eq "olsrd6" ) {
+    # We only generate entries for IPv4 at moment"
+    exit 0;
+}
+
+
+@names = @hosts = @services = @tunnels = ();
 
 # canonical names for this node
 # (they show up in reverse order, make the "official" name last)
@@ -65,7 +79,7 @@ if(-f "/etc/config/dmz-mode")
 if ($name = nvram_get("node"))
 {
     my ($dtdip,$dtdmask,$dtdbcast,$dtdnet);
-    ($dtdip, $dtdmask, $dtdbcast, $dtdnet) = get_ip4_network("eth0.2");
+    ($dtdip, $dtdmask, $dtdbcast, $dtdnet) = get_ip4_network(get_interface("dtdlink"));
     push @hosts, qq("$dtdip" "dtdlink.$name.local.mesh");
 }             
 
@@ -76,6 +90,36 @@ foreach(`cat /etc/config/services 2>/dev/null`)
     chomp;
     push @services, $_;
 }
+
+# load the tunnels
+my @tunnelnames = @section = ();
+
+$tunnum=50;
+push(@tunnelnames, &uci_get_names_by_sectiontype("vtun","client"));
+foreach (@tunnelnames)
+{
+  $section=&uci_get_named_section("vtun",$_);
+  if ($section->{enabled} eq 1)
+  {
+    push(@tunnels,"tun${tunnum}");
+    $tunnum++;
+  }
+}
+
+$tunnum=60;
+@tunnelnames=&uci_get_names_by_sectiontype("vtun","server");
+foreach (@tunnelnames)
+{
+  $section=&uci_get_named_section("vtun",$_);
+  if ($section->{enabled} eq 1)
+  {
+    push(@tunnels,"tun${tunnum}");
+    $tunnum++;
+  }
+}
+
+
+
 
 
 # add the nameservice plugin
@@ -93,6 +137,14 @@ foreach(@names)    { push @file, qq(    PlParam "name" "$_"\n) }
 foreach(@hosts)    { push @file, qq(    PlParam $_\n) }
 foreach(@services) { push @file, qq(    PlParam "service" "$_"\n) }
 push @file, qq(}\n);
+
+# add the ACTIVE tunnel interfaces
+push @file, qq(\nInterface );
+foreach(@tunnels) { push @file, qq("$_" ) }
+push @file, qq(\n{\n);
+push @file, qq(     Ip4Broadcast 255.255.255.255\n);
+push @file, qq(}\n);
+
 
 # write the file
 print @file;

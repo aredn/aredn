@@ -61,7 +61,15 @@ sub html_header
     print "<meta http-equiv='expires' content='0'>\n";
     print "<meta http-equiv='cache-control' content='no-cache'>\n";
     print "<meta http-equiv='pragma' content='no-cache'>\n";
-    print "<link rel=StyleSheet href='/", (-f "/tmp/.night") ? "night" : "day", ".css' type='text/css'>\n";
+
+    # set up the style sheet
+    mkdir "/tmp/web" unless -d "/tmp/web"; # make sure /tmp/web exists
+    symlink "/www/aredn.css","/tmp/web/style.css" unless -l "/tmp/web/style.css"; # default to aredn.css
+
+    # Prevent browser caching of the css file
+    my $rnum=`date +%s`;
+    chomp($rnum);
+    print "<link id='stylesheet_css' rel=StyleSheet href='/style.css?", $rnum, "' type='text/css'>\n";
     print "</head>\n" if $close;
 }
 
@@ -71,21 +79,23 @@ sub navbar
     my($current) = @_;
     $current = "" unless $current;
 
-    my @pages = qw(status setup ports admin);
+    my @pages = qw(status setup ports vpn vpnc admin);
     my %titles = (status => "Node Status",
 		  setup  => "Basic Setup",
 		  ports  => "Port Forwarding,<br>DHCP, and Services",
+          vpn    => "Tunnel<br>Server",
+          vpnc   => "Tunnel<br>Client",
 		  admin  => "Administration");
     
-    my($active_bg, $active_fg);
-    if(-f "/tmp/.night") { $active_bg = "red";   $active_fg = "black" }
-    else                 { $active_bg = "black"; $active_fg = "white" }
+    #my($active_bg, $active_fg);
+    #if(-f "/tmp/.night") { $active_bg = "red";   $active_fg = "black" }
+    #else                 { $active_bg = "black"; $active_fg = "white" }
 
     print "<hr><table cellpadding=5 border=0 width=100%><tr>\n";
 
     foreach $page (@pages)
     {
-	print "<td align=center width=25%";
+	print "<td align=center width=15%";
 	print " class=navbar_select" if $page eq $current;
 	print "><a href='$page'>", $titles{$page}, "</a></td>\n";
     }
@@ -286,14 +296,7 @@ sub reboot_page
     $link = "/cgi-bin/status" unless $link;
 
     # is the browser coming from the lan?
-    if(system "ifconfig br-lan >/dev/null 2>&1")
-    {
-	($lanip, $lanmask, $junk, $lannet) = &get_ip4_network("eth0");
-    }
-    else
-    {
-	($lanip, $lanmask, $junk, $lannet) = &get_ip4_network("br-lan");
-    }
+    ($lanip, $lanmask, $junk, $lannet) = &get_ip4_network(get_interface("lan"));
     my($browser) = $ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/;
     my $fromlan = validate_same_subnet($browser, $lanip, $lanmask);
     $junk = ""; # dummy to avoid warning
@@ -320,8 +323,8 @@ sub reboot_page
 	print "<h1>$node is rebooting</h1><br>\n";
 	print "<h3>The LAN subnet has changed. You will need to acquire a new DHCP lease<br>";
 	print "and reset any name service caches you may be using.</h3><br>\n";
-	print "<h3>Wait for the Power LED to start blinking, then stop blinking.<br>\n";
-	print "When the DMZ LED turns off you can get your new DHCP lease and reconnect with<br>\n";
+	print "<h3>Wait for the Status 4 LED to start blinking, then stop blinking.<br>\n";
+	print "When the Status 4 LED remains solid on you can get your new DHCP lease and reconnect with<br>\n";
 	print "<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>\n";
 	print "<a href='http://$node.local.mesh:8080/'>http://$node.local.mesh:8080/</a></h3>\n";
     }
@@ -538,8 +541,8 @@ sub load_cfg
 {
     #my $mac2 = nvram_get("mac2");
     my $node = nvram_get("node");
-    my $mac2 = mac2ip(get_mac("wlan0"), 0);
-    my $dtdmac = mac2ip(get_mac("eth0"), 0);
+    my $mac2 = mac2ip(get_mac(get_interface("wifi")), 0);
+    my $dtdmac = mac2ip(get_mac(get_interface("lan")), 0);
     open(FILE, $_[0]) or return 0;
     while(defined ($line = <FILE>))
     {
@@ -597,11 +600,29 @@ sub get_wifi_signal
     chomp $wifiintf;
     my ($SignalLevel) = "N/A";
     my ($NoiseFloor) = "N/A";
-    foreach(`iwinfo $wifiintf info`)
-    {                                                 
-        next unless /.*Signal: ([\d\-]+) dBm.*Noise: ([\d\-]+) dBm/;
-        $SignalLevel=$1;
-        $NoiseFloor=$2;
+    foreach(`iw dev $wifiintf station dump`)
+    {
+        next unless /.+signal:\s+([-]?[\d]+)/;
+        if ( $SignalLevel <= "$1" || $SignalLevel == "N/A" )
+        {
+            $SignalLevel=$1;
+        }
+    }
+
+    foreach(`iw dev $wifiintf survey dump|grep -A 1 \"\\[in use\\]\"`)
+    {
+        next unless /([\d\-]+) dBm/;
+        $NoiseFloor=$1;
+    }
+
+    if ( $NoiseFloor == "N/A" )
+    {
+        open( my $NoiseFH , "<" , "/sys/kernel/debug/ieee80211/phy0/ath9k/dump_nfcal") or return ("N/A","N/A");
+        while (<$NoiseFH>) {
+            next unless /Channel Noise Floor : ([-]?[0-9]+)/;
+            $NoiseFloor=$1;
+        }
+        close($NoiseFH);
     }
 
     if ( $SignalLevel == "N/A" || $NoiseFloor == "N/A" )
@@ -911,8 +932,16 @@ sub validate_longitude
 # Get boardid 
 sub hardware_boardid
 {
-    my $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
-    chomp($boardid);
+    my $boarid="";
+    # Ubiquiti hardware
+    if ( -f '/sys/devices/pci0000:00/0000:00:00.0/subsystem_device' ) {
+      $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
+      chomp($boardid);
+    } else {
+    # Can't use the subsystem_device so instead use the model
+      $boardid = `/usr/local/bin/get_boardid`;
+      chomp($boardid);
+    }
     return $boardid;
 }
 
@@ -921,6 +950,26 @@ sub hardware_boardid
 sub hardware_info
 {
     %model = (
+        'TP-Link CPE210 v1.0' => {
+            'name'            => 'TP-Link CPE210 v1.0',
+            'comment'         => '',
+            'supported'       => '1',
+            'maxpower'        => '23',
+            'pwroffset'       => '0',
+            'usechains'       => 1,
+            'rfband'          => '2400',
+            'chanpower'       => { 1 => '22', 14 => '23' },
+         },
+        'TP-Link CPE510 v1.0' => {
+            'name'            => 'TP-Link CPE510 v1.0',
+            'comment'         => '',
+            'supported'       => '1',
+            'maxpower'        => '23',
+            'pwroffset'       => '0',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+            'chanpower'       => { 48 => '10', 149 => '17', 184 => '23' },
+         },
         '0xc2a2' => {
             'name'            => 'Bullet 2 HP',
             'comment'         => 'Not enough Ram or flash',
@@ -932,8 +981,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '16',
             'pwroffset'       => '4',
-            'antennas'        => { 1 => 'Antenna' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -943,10 +990,17 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '19',
             'pwroffset'       => '10',
-            'antennas'        => { 1 => 'Antenna' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
+         },
+       '0xe005' => {
+            'name'            => 'NanoStation M5',
+            'comment'         => 'NanoStation M5',
+            'supported'       => '1',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
          },
         '0xe009' => {
             'name'            => 'NanoStation Loco M9',
@@ -954,8 +1008,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '900',
          },
@@ -965,10 +1017,17 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '18',
             'pwroffset'       => '10',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
+         },
+        '0xe035' => {
+            'name'            => 'NanoStation M3',
+            'comment'         => 'NanoStation M3',
+            'supported'       => '1',
+            'maxpower'        => '22',
+            'pwroffset'       => '3',
+            'usechains'       => 1,
+            'rfband'          => '3400',
          },
         '0xe0a2' => {
             'name'            => 'NanoStation Loco M2',
@@ -976,10 +1035,17 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '18',
             'pwroffset'       => '5',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
+         },
+        '0xe105' => {
+            'name'            => 'Rocket M5',
+            'comment'         => 'Rocket M5 with USB',
+            'supported'       => '1',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
          },
         '0xe1b2' => {
             'name'            => 'Rocket M2',
@@ -987,8 +1053,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '18',
             'pwroffset'       => '10',
-            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
          },
@@ -998,8 +1062,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
-            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
@@ -1009,10 +1071,17 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '900',
+         },
+        '0xe1c3' => {
+            'name'            => 'Rocket M3',
+            'comment'         => 'Rocket M3',
+            'supported'       => '1',
+            'maxpower'        => '22',
+            'pwroffset'       => '3',
+            'usechains'       => 1,
+            'rfband'          => '3400',
          },
         '0xe202' => {
             'name'            => 'Bullet M2 HP',
@@ -1020,8 +1089,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '16',
             'pwroffset'       => '12',
-            'antennas'        => { 1 => 'N Connector' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1031,8 +1098,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => 'N Connector' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
          },
@@ -1042,8 +1107,6 @@ sub hardware_info
             'supported'       => '-2',
             'maxpower'        => '28',
             'pwroffset'       => '0',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1053,30 +1116,24 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '1',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
          },
         '0xe232' => {
-            'name'            => 'NannoBridge M2',
+            'name'            => 'NanoBridge M2',
             'comment'         => 'NanoBridge M2',
             'supported'       => '1',
             'maxpower'        => '21',
             'pwroffset'       => '2',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
          },
         '0xe239' => {
-            'name'            => 'NannoBridge M9',
+            'name'            => 'NanoBridge M9',
             'comment'         => 'NanoBridge M9',
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '900',
          },
@@ -1086,21 +1143,17 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '9',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
         '0xe243' => {
-            'name'            => 'NannoBridge M3',
+            'name'            => 'NanoBridge M3',
             'comment'         => 'Not Tested',
-            'supported'       => '-2',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '3',
-            'antennas'        => { 1 => "Chain0", 2 => "Chain1", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
-            'rfband'          => '2400',
+            'rfband'          => '3400',
          },
         '0xe252' => {
             'name'            => 'airGrid M2 HP',
@@ -1108,10 +1161,17 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '9',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
+         },
+        '0xe245' => {
+            'name'            => 'airGrid M5 HP',
+            'comment'         => 'airGrid M5',
+            'supported'       => '1',
+            'maxpower'        => '19',
+            'pwroffset'       => '6',
+            'usechains'       => 0,
+            'rfband'          => '5800ubntus',
          },
         '0xe255' => {
             'name'            => 'airGrid M5 HP',
@@ -1119,30 +1179,24 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => 'airGrid' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
          },
         '0xe2b5' => {
-            'name'            => 'NannoBridge M5',
+            'name'            => 'NanoBridge M5',
             'comment'         => 'NanoBridge M5',
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
         '0xe2c2' => {
-            'name'            => 'NannoBeam M2 International',
+            'name'            => 'NanoBeam M2 International',
             'comment'         => 'NanoBeam M2 International -- XW board unsupported at this time',
             'supported'       => '-1',
             'maxpower'        => '18',
             'pwroffset'       => '10',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '2400',
          },
@@ -1152,8 +1206,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '16',
             'pwroffset'       => '12',
-            'antennas'        => { 1 => 'N Connector' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1163,8 +1215,6 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '6',
-            'antennas'        => { 1 => 'N Connector' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '5800ubntus',
          },
@@ -1174,19 +1224,15 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '16',
             'pwroffset'       => '12',
-            'antennas'        => { 1 => 'Antenna' },
-            'defaultant'      => 1,
             'usechains'       => 0,
             'rfband'          => '2400',
          },
         '0xe4e5' => {
-            'name'            => 'NannoBeam M5 International',
+            'name'            => 'NanoBeam M5 International',
             'comment'         => 'NanoBeam M5 International XW series unsuported at this time',
             'supported'       => '-1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity"},
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5500',
          },
@@ -1196,19 +1242,33 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          }, 
+        '0xe825' => {
+            'name'            => 'NanoBeam M5 19',
+            'comment'         => 'NanoBeam M5 19 in testing',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '4',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
+        'Ubiquiti Nanostation M XW' => {
+            'name'            => 'NanoStation M5 XW',
+            'comment'         => 'NanoStation M5 XW',
+            'supported'       => '1',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
        '0xe8a5' => {
             'name'            => 'NanoStation Loco M5',
             'comment'         => 'NanoStation Loco M5',
             'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
-            'antennas'        => { 1 => "Horizontal", 2 => "Vertical", 3 => "Diversity" },
-            'defaultant'      => 3,
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
@@ -1228,8 +1288,22 @@ sub hardware_info
 # Return maximum dbm value for tx power 
 sub wifi_maxpower
 {
+    my ($wifichannel) = @_;
+
     $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'maxpower'} ) {
+
+    if ( exists $boardinfo->{'chanpower'} ) {
+        my $chanpower=$boardinfo->{'chanpower'};
+        foreach ( sort {$a<=>$b} keys %{$chanpower} )
+        {
+            if ( $wifichannel <= $_ )
+            {
+                return $chanpower->{$_};
+            }
+        }
+        # We should never get here
+        return 27;
+    } elsif ( exists $boardinfo->{'maxpower'} ) {
         return $boardinfo->{'maxpower'};
     } else
     {
@@ -1238,49 +1312,13 @@ sub wifi_maxpower
     }
 }
 
-
-sub wifi_validant
-{
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'antennas'} ) {
-        return  $boardinfo->{'antennas'};
-    } else
-    {
-        return { 0  => "Left", 1  => "Right", 2 => "Diversity" };
-    }
-}
-
-sub wifi_defaultant
-{
-
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'defaultant'} ) {
-        return $boardinfo->{'defaultant'};
-    } else
-    {
-        #Most likely to catch all models.  Some have 3 and start at 1, some start at 0, others have 1 at 1, etc
-        return 1;
-    }
-}
-
-sub wifi_useschains
-{
-
-    $boardinfo = hardware_info();
-    if ( exists $boardinfo->{'usechains'} ) {
-        return $boardinfo->{'usechains'};
-    } else
-    {
-        return 1;
-    }
-}
-
 #Some systems have power offsets in them because of a secondary amplifier
 #Because of this the chipset may report one power level but the amplifier
 #has increased it to a higher level.
 sub wifi_txpoweroffset
 {
-    my $doesiwoffset=`iwinfo wlan0 info 2>/dev/null` =~ /TX power offset: (\d+)/;
+    my $wlanintf = get_interface("wifi");
+    my $doesiwoffset=`iwinfo $wlanintf info 2>/dev/null` =~ /TX power offset: (\d+)/;
     if ( $doesiwoffset ) {
         return $1;
     } else
@@ -1337,6 +1375,68 @@ sub page_footer
 
     # Page_Footer
     print "</div>"
+}
+
+
+sub get_interface
+{
+    my ($intf) = @_;
+    my $intfname = `uci -q get network.$intf.ifname`;
+    chomp $intfname;
+
+    if ($intfname) {
+        return $intfname;
+    } else {
+        # Capture rules incase uci file is not in sync.
+        if ( $intf eq "lan" ) 
+        {
+            return "eth0";
+        } elsif ( $intf eq "wan" ){
+            return "eth0.1";
+        } elsif ( $intf eq "wifi" ){
+            return "wlan0";
+        } elsif ( $intf eq "dtdlink" ){
+            return "eth0.2";
+        } else {
+            # we have a problem
+            die("Unknown interface in call to get_interface");
+        }
+    }
+}
+
+sub reboot_required()
+{
+    http_header();
+    html_header("$node setup", 1);
+    print "<body><center><table width=790><tr><td>\n";
+    navbar("vpn");
+    print "</td></tr><tr><td align=center><br>";
+    if($config eq "")
+    {
+    print "<b>This page is not available until the configuration has been set.</b>";
+    }
+    else
+    {
+        print "<b>The configuration has been changed.<br>This page will not be available until the node is rebooted.\n</b>";
+        print "<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>\n";
+        print "<input type=submit name=button_reboot value='Click to REBOOT' />";
+        print "</form>";
+    }
+    print "</td></tr>\n";
+    print "</table></center></body></html>\n";
+    exit;
+}
+sub css_options
+{
+    print "<option>Select a theme</option>";
+    my @cssfiles = `ls /www/*.css`;
+    foreach $css (@cssfiles)
+    {
+        chomp($css);
+        $css =~ m#^(.*?)([^/]*)(\.css)$#;
+        ($dir,$file)  = ($1,$2);
+        print "<option value=\"$file.css\">$file</option>" unless $file eq "style";
+    }
 }
 
 #weird uhttpd/busybox error requires a 1 at the end of this file

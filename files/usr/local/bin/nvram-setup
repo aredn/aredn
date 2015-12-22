@@ -54,13 +54,17 @@ sub fail
 
 $commit = 0;
 
-# Added new wifimac parm, the radio0 wont startup without it, use pci device location
-# may need to find a better way to allow for wider hardware support
+# Added new wifimac parm, the radio0 wont startup without it, use the path location in wifi config
+# Actually it just needs some path to get to the radio.
+
+# Using radio0.path as it seems to always be set as method to get to the card.
+chomp ($wifi_path = `uci -q get wireless.radio0.path`);
+
 chomp ($wifi_mac = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.wifimac`);
 
 if($wifi_mac eq "")
 {
-  open(FILE, "/sys/devices/pci0000:00/0000:00:00.0/ieee80211/phy0/macaddress") or fail("ERROR: wireless mac not available");
+  open(FILE, "/sys/devices/$wifi_path/ieee80211/phy0/macaddress") or fail("ERROR: wireless mac not available");
   while(<FILE>)
   {
     next unless /(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w)/;
@@ -78,7 +82,7 @@ chomp ($mac2 = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.mac2`);
 
 if($mac2 eq "")
 {
-  open(FILE, "/sys/devices/pci0000:00/0000:00:00.0/ieee80211/phy0/macaddress") or fail("ERROR: wireless mac not available");
+  open(FILE, "/sys/devices/$wifi_path/ieee80211/phy0/macaddress") or fail("ERROR: wireless mac not available");
   while(<FILE>)
   {
     next unless /\w\w:\w\w:\w\w:(\w\w):(\w\w):(\w\w)/;
@@ -105,7 +109,10 @@ chomp ($dtdmac = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.dtdmac`);
 
 if($dtdmac eq "")                                                                                                   
 {                                                                                                                   
-                                                                                                                    
+  # We should always have an eth0 interface on all nodes.
+  # Not porting get_interface into this file at this time
+  # as on a firstboot where nvram-setup runs the interfaces
+  # should not be changed yet.                                                                                                                  
   open(FILE, "/sbin/ifconfig eth0 |") or fail("ERROR: eth0 mac not available");                                     
   while(<FILE>)                                                                                                     
   {                                                                                                                 

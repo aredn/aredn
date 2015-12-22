@@ -1,0 +1,142 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006-2011 OpenWrt.org
+
+START=82
+STOP=83
+
+SERVER_CONF=/tmp/vtun/vtundsrv.conf
+# Starting tun interface is tun50
+TUNNUM=50
+MAXTUNNUM=59
+
+network_config() {
+	local cfg="$1"
+	local start def_net 
+	# generate the default net
+	def_net='172.31.1.1'
+	config_get start "$cfg" start $def_net
+}
+
+options_config() {
+	local cfg="$1"
+	local new_file="$2"
+	local port timeout syslog ppp ifconfig route firewall ip
+
+	config_get port "$cfg" port "5525"
+	config_get timeout "$cfg" timeout "60"	
+	config_get syslog "$cfg" syslog "daemon"
+	config_get ppp "$cfg" ppp "/usr/sbin/pppd"            
+	config_get ifconfig "$cfg" ifconfig "/sbin/ifconfig"
+	config_get route "$cfg" route "/sbin/route"
+	config_get firewall "$cfg" firewall "/usr/sbin/iptables"
+	config_get ip "$cfg" ip "/sbin/ip"
+	
+	echo "options {" >> $new_file
+	echo " port $port;" >> $new_file
+	echo " timeout $timeout;" >> $new_file
+	echo " syslog $syslog;" >> $new_file
+	echo " ppp $ppp;" >> $new_file
+	echo " ifconfig $ifconfig;" >> $new_file
+	echo " route $route;" >> $new_file
+	echo " firewall $firewall;" >> $new_file
+	echo " ip $ip;" >> $new_file
+	echo "}" >> $new_file
+	echo " " >> $new_file
+}
+
+# ALLOW THESE CLIENTS TO CONNECT TO THIS SERVER vtundsrv.conf
+allowed_client_config() {
+	local cfg="$1"
+	local new_file="$2"
+	local enabled node pwd netip clientip serverip persist compress keepalive proto
+
+	if [ $TUNNUM -lt $MAXTUNNUM ]
+	then
+		config_get_bool enabled "$cfg" enabled
+		config_get node "$cfg" node
+		config_get passwd "$cfg" passwd
+		config_get netip "$cfg" netip
+		config_get clientip "$cfg" clientip
+		config_get serverip "$cfg" serverip
+		config_get persist "$cfg" persist "yes"
+		config_get compress "$cfg" compress "lzo:9"
+		config_get keepalive "$cfg" keepalive "yes"
+		config_get proto "$cfg" proto "tcp"
+
+		#cname=`echo $node`-`echo $netip | tr "." "-"`
+
+		if [ $enabled -eq 1 ]
+		then
+			echo "$node {" >> $new_file
+			echo " passwd $passwd;" >> $new_file
+			echo " type tun;" >> $new_file
+			echo " proto $proto;" >> $new_file
+			echo " device tun${TUNNUM};" >> $new_file
+			echo " persist $persist;" >> $new_file
+			echo " compress $compress;" >> $new_file
+			echo " keepalive $keepalive;" >> $new_file
+			echo " up {" >> $new_file
+			echo -e "  ifconfig \"%% ${serverip} netmask 255.255.255.252 pointopoint ${clientip} mtu 1450\";" >> $new_file
+			echo -e "  route \"add -net ${netip}/30 gw ${clientip}\";" >> $new_file
+			echo " };" >> $new_file
+			echo " down {" >> $new_file
+			echo " };" >> $new_file
+			echo "}" >> $new_file
+			echo " " >> $new_file
+			TUNNUM=$(( TUNNUM + 1 ))
+		fi
+	else
+		echo "## TOO MANY TUNNEL CONNECTIONS (${TUNNUM}) ##" >> $new_file
+	fi
+}
+
+apply_uci_config() {
+	#sh -c '. /lib/functions.sh; include /lib/config; uci_apply_defaults'
+	sh -c '. /lib/functions.sh; include /lib/config'
+}
+
+start() {
+
+	configmode=$(uci -q -c /etc/local/uci/ get hsmmmesh.settings.config)
+	if [ -x "/usr/sbin/vtund" -a "$configmode" = "mesh" ]
+        then
+
+		apply_uci_config
+		config_load vtun
+
+		#if options section doesn't exist, add it
+		j=`uci get vtun.@options[0]`
+		if [ $? -ne 0 ] 
+			then
+			j=`uci add vtun options`
+			j='uci commit vtun'
+			config_load vtun
+		fi
+
+		# Remove the current config files
+		mkdir -p /tmp/vtun
+		rm -f $SERVER_CONF
+
+		config_foreach network_config network
+		config_foreach options_config options "$SERVER_CONF"
+		config_foreach allowed_client_config client "$SERVER_CONF"
+
+		# START SERVER LISTENER
+		/usr/sbin/vtund -s -f $SERVER_CONF
+	fi
+}
+
+stop() {
+
+        # only if vtun is installed
+        if [ -x "/usr/sbin/vtund" ]
+        then
+
+		# find the vtund SERVER process... --- FIX THIS
+		for x in `ps -w|grep -F 'vtund[s]:'|grep -v grep|awk '{print $1}'`
+		do
+			s=`echo $s $x`
+		done
+		kill $s
+	fi
+}

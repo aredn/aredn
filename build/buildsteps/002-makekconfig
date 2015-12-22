@@ -4,8 +4,6 @@
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
-  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
-
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation version 3 of the License.
@@ -35,14 +33,13 @@
 
 LICENSE
 
+. "$SCRIPTBASE/sh2ju.sh"
 
-# this script displays the iptables commands that the firewall config file
-# generates without running them
+rm "$BUILDROOTBASE/.config" 2> /dev/null
 
-LAN_IP=`ifconfig eth0.0 | grep "inet addr" | cut -f2 -d: | cut -f1 -d' '`
-LAN_MASK=`ifconfig eth0.0 | grep " Mask:" | cut -f4 -d:`
-eval `ipcalc.sh $LAN_IP $LAN_MASK`
-awk -f /usr/lib/common.awk \
-    -f /usr/lib/firewall.awk \
-    LAN_NET=$NETWORK/$PREFIX \
-    /etc/config/firewall
+touch "$BUILDROOTBASE/.config"
+
+for file in "$SCRIPTBASE"/buildsteps/kconfig/*
+do
+  $file >> "$BUILDROOTBASE/.config"
+done

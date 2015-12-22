@@ -83,7 +83,6 @@ config rule
 config include
         option path /etc/firewall.user
 
-
 config rule
        option src              wan
        option dest_port        2222
@@ -155,4 +154,17 @@ config rule
        option src              dtdlink
        option dest_port        23
        option proto    tcp
+       option target   ACCEPT
+
+#SNMPD
+config rule
+       option src              wifi
+       option dest_port        161
+       option proto    udp
+       option target   ACCEPT
+
+config rule
+       option src              dtdlink
+       option dest_port        161
+       option proto    udp
        option target   ACCEPT

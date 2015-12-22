@@ -1,0 +1,24 @@
+#!/bin/sh
+#CMLARA:  Temporary shell script for ar71xx platform models
+# Return the model of the device
+
+if [ ! -f /tmp/sysinfo/boardid ]; then
+  . /lib/functions.sh
+  . /lib/ar71xx.sh
+  ar71xx_board_detect
+
+  case $AR71XX_MODEL in
+    loco-m-xw)
+      BOARDID=$(dd if=/dev/mtd7 bs=1 skip=12 count=2 2>/dev/null | hexdump -v -n 4 -e '1/1 "%02x"')
+      BOARDID="0x${BOARDID}"
+      ;;
+    *)
+      BOARDID=$AR71XX_MODEL
+      ;;
+  esac
+
+echo "$BOARDID" > /tmp/sysinfo/boardid
+
+fi
+
+cat /tmp/sysinfo/boardid

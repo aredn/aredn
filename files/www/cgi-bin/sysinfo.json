@@ -1,0 +1,206 @@
+#!/usr/bin/perl
+=for comment
+
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2015 Darryl Quinn
+  See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+=cut
+
+BEGIN {push @INC, '/www/cgi-bin'};
+use perlfunc;
+
+read_query_string();
+&json_header();
+
+
+my %info;
+$info{"api_version"}="1.0";
+
+# ============ GENERATE INFO HASH =========
+$node=nvram_get("node");
+chomp($node);
+$info{"node"}=$node;
+
+$model=`/usr/local/bin/get_model`;
+chomp($model);
+$info{"model"}=$model;
+
+$info{"board_id"}=&hardware_boardid();
+
+# ------- Firmware Manufacturer
+if (-e "/www/AREDN.png")
+{
+  $fw_mfg="AREDN";
+} else {
+  $fw_mfg = "Other";
+}
+$info{"firmware_mfg"}=$fw_mfg;
+
+$fwver=`cat /etc/mesh-release`;
+chomp($fwver);
+$info{"firmware_version"}=$fwver;
+
+# ------- Tunnel Installed
+if (-e "/usr/sbin/vtund")
+{
+  $tunnel_installed="true";
+} else {
+  $tunnel_installed="false";
+}
+$info{"tunnel_installed"}=$tunnel_installed;
+
+# ------- SSID
+$line = `grep ssid /etc/config/wireless | tail -1`;
+$line   =~ /['"](.*-(5|10|20)-v[3456])/;
+$myssid = $1;
+$myssid =~ /(.*)-(5|10|20)-v[3456]/;
+$info{"ssid"}=$myssid;
+
+# ------- Wifi Channel Number
+$mychan = `uci get wireless.radio0.channel`;
+chomp($mychan);
+# 3GHZ channel -> Freq conversion
+if ($mychan >= 76 and $mychan <= 99) {
+  $info{"channel"}=($mychan * 5) + 3000;
+} else {
+  $info{"channel"}=$mychan;
+}
+
+# ------- Wifi Bandwidth
+$line = `uci get wireless.radio0.chanbw`;
+chomp($line);
+$info{"chanbw"}=$line;
+
+# ------- ACTIVE TUNNELS
+$active_tunnel_count=`ifconfig|grep tun|wc -l`;
+chomp($active_tunnel_count);
+$info{"active_tunnel_count"}=$active_tunnel_count;
+
+# ------- LAT/LON
+$lat=`head -1 /etc/latlon 2>/dev/null`;
+chomp($lat);
+$info{"lat"}=$lat;
+
+$lon=`tail -1 /etc/latlon 2>/dev/null`;
+chomp($lon);
+$info{"lon"}=$lon;
+
+# ------- GRID SQUARE
+$grid=`head -1 /etc/gridsquare 2>/dev/null`;
+chomp($grid);
+$info{"grid_square"}=$grid;
+
+
+# ----------- GENERATE THE JSON ------------
+print "{";
+foreach $ik (keys %info)
+{
+  print "\"$ik\":\"",$info{$ik},"\",";
+}
+
+############## INTERFACES
+print "\"interfaces\":[";
+$mystr="";
+foreach(`ifconfig -a`)
+{
+   next unless /^(\S+) .*HWaddr (\S+)/;
+   $mystr .= sprintf "{\"name\":\"%s\",", $1;
+   ($ip, $mask, $bcast, $net, $cidr) = &get_my_ip($1);
+   $mystr .= sprintf "\"ip\":\"%s\",",$ip;
+   $mystr .= sprintf "\"mac\":\"%s\"}",$2;
+   $mystr .= sprintf ",";
+}
+chop($mystr);
+print $mystr;
+print "]";
+############## INTERFACES
+
+if($parms{"hosts"} )
+{
+       # Get a list of services, so we can remove them from the host list
+       foreach(`cat /var/run/services_olsr`)
+       {
+           $line = $_;
+           if ($line =~ /http:\/\/(.*):([0-9]*)\/.*$/ )
+           {
+               if ( $2 > 0 ) # don't filter nodes with a gateway attached
+               {
+                   $services{$1} = 1;
+               }
+           }
+       }
+
+       print ",\"hosts\":[";
+       $mystr="";
+       foreach(`cat /var/run/hosts_olsr`)
+       {
+           $line = $_;
+           next unless /^(\d+\.\d+\.\d+\.\d+)\s*(\S+)/;
+           if ( not $services{$2} and $line !~ /dtdlink|mid1\./  ) {
+           #if ( not $services{$2} and $line !~ /dtdlink/  ) {
+               $mystr .= sprintf "{\"name\":\"%s\",\"ip\":\"%s\"},",$2,$1;
+           }
+       }
+
+       chop($mystr);
+       print $mystr;
+       print "]";
+       ############## HOSTS
+}
+
+print "}"; # ROOT
+
+##############################
+
+
+
+sub json_header
+{
+   # THIS MUST BE ONE LINE!
+   # otherwise an intermittent busybox bug will incorrectly "fix" the generated output
+   #    print "HTTP/1.0 200 OK\r\n";  # Not needed under Uhttpd
+   print "Content-type: application/json\r\n";
+   print "Cache-Control: no-store\r\n";
+   print "\r\n";
+}
+
+sub get_my_ip
+{
+   my($ip);
+   foreach(`ifconfig $_[0]`)
+   {
+       next unless /inet addr:([\d\.]+)/;
+       $ip = $1;
+       last;
+   }
+   return ("none") unless defined $ip;
+   return $ip;
+}

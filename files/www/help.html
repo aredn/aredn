@@ -71,12 +71,14 @@ provided through those nodes.
  provides which gives you detailed information about the current state of the
  OLSR routing software.<br><br></li>
 
-<li><strong>WiFi Scan</strong> provides a list of the WiFi networks that the
-node can see. It cannot show you which other nodes are visible, that is what the
-Mesh Status and OLSR Status pages are for.  There is an automatic scan mode but it
-is recommended that it not be used continuously because the mesh performance
-will suffer due to the node spending much of its time on other channels
-looking for other networks.<br><br></li>
+<li><strong>WiFi Scan</strong> displays a list of other 802.11 signals that the
+node can see and only of the same bandwidth.   The 802.11 signals include
+Access Points (AP), neighbor nodes (connected ad-hoc stations), and other mesh networks 
+(foriegn ad-hoc networks). The AREDN mesh is created on top of an 802.11 'ad-hoc' network.  
+Consequently when multiple ad-hoc networks are visiable to each other (different SSID or 
+channel), the 'network' is displayed and not individual nodes (stations).  There is also an 
+automatic scan mode. It is not recommend to run a wifi scan continously because this will degrade mesh 
+performance. A wifi scan transmits queries on all channels to discover other devices.<br><br></li>
 
 <li><strong>Setup</strong> takes you to the setup pages of the web
 interface. You will need to supply a username and password to access those
@@ -85,9 +87,7 @@ the Basic Setup page. If the node has not yet been configured, the password is
 "hsmm". Note that the password given to log in to the setup pages is encrypted
 in transit, so this is safe to do over a wireless connection.<br><br></li>
 
-<li><strong>Night Mode</strong> switches the normal black on white color
-scheme to red on black. Black on white was chosen because it provides the best
-screen visibility on a laptop exposed to direct sunlight. Red on black is much
+<li><strong>Select Theme</strong> switches display themes/styles. Black on white was chosen because it provides the best screen visibility on a laptop exposed to direct sunlight. Red on black is much
 better suited for night time use as it helps preserve night vision.</li>
 </ul>
 
@@ -279,10 +279,20 @@ In the <strong>WiFi</strong> box there are settings shown as being
 Active Settings. These settings can be changed without rebooting the node by
 clicking the <strong>Apply</strong> button, but unless they are saved they
 will revert to the previously saved values after a reboot.<br> <br>
-The <strong>Rx Antenna</strong> and <strong>Tx Antenna</strong> settings are
-named to match either the printed name on the antenna connector or in the
-case of units that have a built in antenna the names are for units mounted
-in its normal orientation.
+The <strong>Rx Antenna</strong> and <strong>Tx Antenna</strong> settings have
+been removed from current builds. The hardware handles antenna selection
+automatically in the backend without need for configuration. 
+<br>
+As always a dummy load on unused RF ports is recommended to keep out physical
+contaminants and to avoid EMI/RFI interference.
+</p>
+<p>
+<a name="power"></a>The <strong>Power</strong> setting controls the max power
+the unit may output. The node may decrease its power output as it enters higher
+speed data rates to maintain a linear spectrum. Some devices may have max power
+levels that change based on what channel/frequency the hardware is operating on,
+in this case the max level will change when you save the settings and will be
+capped at the max level supported by the hardware for that frequency.
 </p>
 <p>
 The <strong>Distance</strong> setting adjusts the packet retry timer
@@ -298,6 +308,18 @@ of 150 that produces the same effect.
 The <strong>LAN</strong> box allows you to set the LAN IP Address
 of the node and the address range of the DHCP server, and these should be
 self explanatory.  The <b>LAN Mode</b> is described in the next section.
+
+<br><br>
+The <strong>Disable Default Route</strong> checkbox will cause the node to not 
+advertise that it should be chosen as the default route. This means that
+computers plugged into the node will not try and route to the internet or
+other networks via the mesh node and will only try and use the mesh node for
+the 10.0.0.0/8 and 172.16.0.0/12 "mesh" network ranges. You will not be able
+to access the internet, even if your node has internet available on its wan 
+port with this setting checked. This also applies to internet available over
+the mesh. Use this only if you know what a default route is and you need to
+be connected to two networks at once such as wired to the mesh, and WiFi to
+a local served agency network.
 
 <!--
 , but the <strong>Mesh Bridge</strong> function will be described
@@ -332,14 +354,16 @@ covered here.
 </p>
 <p>
 The other option in the WAN box is the <strong>Mesh Gateway</strong>.
+This is an advanced configuration option.<br>
 When a node has internet access from either the WAN or LAN, that access is
 available to the node itself and to any computer connected to the LAN port.
-When the Mesh Gateway is enabled, this node will advertise to the mesh that it
-has internet access and will act as a gateway and provide internet access to
-the rest of the mesh.  By default it is disabled, so consider carefully your
+When the Mesh Gateway is enabled this node will gate(route) traffic from the 
+mesh onto this network and the internet.
+
+By default it is disabled, so consider carefully your
 intentions for enabling it. AREDN&trade; is an FCC Part 97 amateur radio
 computer network, so be sure that any internet traffic that will be sent over
-radio will comply with Part 97 rules.  If you just want local wireless
+radio needs to comply with Part 97 rules.  If you just want local wireless
 internet access, consider using a standard Part 15 compliant access point
 instead of the Mesh Gateway function.
 </p>
@@ -685,7 +709,7 @@ How to use failsafe mode:
 <li>use a static IP address of 192.168.1.2 and netmask 255.255.255.0<br>
 (default gateway and DNS are not necessary)</li>
 <li>apply power to the node</li>
-<li>just after the DMZ LED illuminates, hold the reset button until DMZ starts blinking</li>
+<li>just after the Status 4 LED illuminates, hold the reset button until DMZ starts blinking</li>
 <li>at a command prompt run "<b>telnet 192.168.1.1</b>"</li>
 <li>you should now have a prompt that looks like "root@(none)$"</li>
 <ul><li>if not, you are not in safe mode and something went wrong along the way, so stop here and start over</li></ul>

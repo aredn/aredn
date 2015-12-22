@@ -49,6 +49,8 @@ sub rf_channel_map
             7  => "(922)",
         },
         '2400' => {
+            -2 => "-2 (2397)",
+            -1 => "-1 (2402)",
             1  => "1 (2412)",
             2  => "2 (2417)",
             3  => "3 (2422)",
@@ -60,6 +62,32 @@ sub rf_channel_map
             9  => "9 (2452)",
             10 => "10 (2457)",
             11 => "11 (2462)",
+        },
+        '3400' => {
+             76 => "(3380)",
+             77 => "(3385)",
+             78 => "(3390)",
+             79 => "(3395)",
+             80 => "(3400)",
+             81 => "(3405)",
+             82 => "(3410)",
+             83 => "(3415)",
+             84 => "(3420)",
+             85 => "(3425)",
+             86 => "(3430)",
+             87 => "(3435)",
+             88 => "(3440)",
+             89 => "(3445)",
+             90 => "(3450)",
+             91 => "(3455)",
+             92 => "(3460)",
+             93 => "(3465)",
+             94 => "(3470)",
+             95 => "(3475)",
+             96 => "(3480)",
+             97 => "(3485)",
+             98 => "(3490)",
+             99 => "(3495)",
         },
         '5500' => {
              37 => "36 (5190)",
@@ -88,14 +116,59 @@ sub rf_channel_map
             165 => "165 (5825)",
          },
         # 5800 UBNT US Band
-        # Limiting to US speced channels until the hardware can be tested
-        # lower into the spectrum.
         '5800ubntus' => {
+            133 => "133 (5665)",
+            134 => "134 (5670)",
+            135 => "135 (5675)",
+            136 => "136 (5680)",
+            137 => "137 (5685)",
+            138 => "138 (5690)",
+            139 => "139 (5695)",
+            140 => "140 (5700)",
+            141 => "141 (5705)",
+            142 => "142 (5710)",
+            143 => "143 (5715)",
+            144 => "144 (5720)",
+            145 => "145 (5725)",
+            146 => "146 (5730)",
+            147 => "147 (5735)",
+            148 => "148 (5740)",
             149 => "149 (5745)",
+            150 => "150 (5750)",
+            151 => "151 (5755)",
+            152 => "152 (5760)",
             153 => "153 (5765)",
+            154 => "154 (5770)",
+            155 => "155 (5775)",
+            156 => "156 (5780)",
             157 => "157 (5785)",
+            158 => "158 (5790)",
+            159 => "159 (5795)",
+            160 => "160 (5800)",
             161 => "161 (5805)",
+            162 => "162 (5810)",
+            163 => "163 (5815)",
+            164 => "164 (5820)",
             165 => "165 (5825)",
+            166 => "166 (5830)",
+            167 => "167 (5835)",
+            168 => "168 (5840)",
+            169 => "169 (5845)",
+            170 => "170 (5850)",
+            171 => "171 (5855)",
+            172 => "172 (5860)",
+            173 => "173 (5865)",
+            174 => "174 (5870)",
+            175 => "175 (5875)",
+            176 => "176 (5880)",
+            177 => "177 (5885)",
+            178 => "178 (5890)",
+            179 => "179 (5895)",
+            180 => "180 (5900)",
+            181 => "181 (5905)",
+            182 => "182 (5910)",
+            183 => "183 (5915)",
+            184 => "184 (5920)",
          },
     );
 
@@ -139,7 +212,8 @@ sub is_channel_valid
     # We don't have the device band in the data file so lets fall back to checking manually
     else {
         my $channelok=0;
-        foreach (`iwinfo wlan0 freqlist`)
+        my $wifiintf = get_interface("wifi");
+        foreach (`iwinfo $wifiintf freqlist`)
         {
             next unless /Channel $channel/;
             next if /\[restricted\]/;
@@ -166,7 +240,8 @@ sub rf_channels_list
     else
     {          
         my  %channels = ();
-        foreach (`iwinfo wlan0 freqlist` )
+        my $wifiintf = get_interface("wifi");
+        foreach (`iwinfo $wifiintf freqlist` )
         {
             next unless /([0-9]+.[0-9]+) GHz \(Channel ([0-9]+)\)/;
             next if /\[restricted\]/;
@@ -185,6 +260,43 @@ sub is_wifi_chanbw_valid
     return 1;
 }
 
+
+sub rf_default_channel
+{
+
+    my %default_rf = (
+        '900' => {
+            chanbw  => "5",
+            channel => "5",
+        },
+        '2400' => {
+            chanbw  => "20",
+            channel => "1",
+        },
+        '3400' => {
+            chanbw  => "5",
+            channel => "84",
+        },
+        '5800ubntus' => {
+            chanbw  => "5",
+            channel => "149",
+        },
+    );
+
+    $boardinfo=hardware_info();
+    #We know about the band so lets use it
+    if ( exists($boardinfo->{'rfband'}))
+    {
+        return $default_rf{$boardinfo->{'rfband'}};
+    }
+    else {
+        # Somewhat "expensive" in that it duplicates calls made above, but rare to be used. 
+        my $channels = rf_channels_list(); 
+        foreach $channelnumber (sort {$a <=> $b} keys %{$channels}) {
+            return { chanbw => "5", channel => $channelnumber };
+        }
+    }
+} 
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1
 

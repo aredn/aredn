@@ -130,33 +130,18 @@ $parms{dmz_dhcp_limit} = $dmz_dhcp_limit = $dmz_dhcp_end - $dmz_dhcp_start + 1;
 
 unless($parms{reload})
 {
-    ($wifi_txpower) = `iwinfo wlan0 info 2>/dev/null` =~ /Tx-Power: (\d+)/;
-    (my $doesiwoffset) = `iwinfo wlan0 info 2>/dev/null` =~ /TX power offset: (\d+)/;
+    my $wifiintf = get_interface("wifi");
+    ($wifi_txpower) = `iwinfo $wifiintf info 2>/dev/null` =~ /Tx-Power: (\d+)/;
+    (my $doesiwoffset) = `iwinfo $wifiintf info 2>/dev/null` =~ /TX power offset: (\d+)/;
     if ( $doesiwoffset ) {
         $wifi_txpower -= $1;
-    }
-    if (wifi_useschains()){
-        $wifi_txant = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask`;
-        $wifi_rxant = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/rx_chainmask`;
-        $wifi_txant = hex($wifi_txant);
-        $wifi_rxant = hex($wifi_rxant); 
-    }
-    else {
-        foreach ( `iw phy phy0 info` ) {
-            next unless /Configured Antennas: TX 0x([\d]+) RX 0x([\d]+)/;
-            $wifi_txant = $1;
-            $wifi_rxant = $2;
-        }
     }
     $slottime   = "";
 }
 
 # sanitize the active settings
-$valid_ant = wifi_validant();
-$wifi_txpower = wifi_maxpower() if not defined $wifi_txpower or $wifi_txpower > wifi_maxpower();
+$wifi_txpower = wifi_maxpower($wifi_channel) if not defined $wifi_txpower or $wifi_txpower > wifi_maxpower($wifi_channel);
 $wifi_txpower = 1 if $wifi_txpower < 1;
-$wifi_rxant = wifi_defaultant() if not defined $wifi_rxant or not exists $valid_ant->{$wifi_rxant};
-$wifi_txant = wifi_defaultant() if not defined $wifi_txant or not exists $valid_ant->{$wifi_txant};
 $wifi_distance = 0 unless defined $wifi_distance;
 $wifi_distance = 0 if $wifi_distance =~ /\D/;
 
@@ -164,8 +149,6 @@ $wifi_distance = 0 if $wifi_distance =~ /\D/;
 # so they get saved correctly
 $parms{wifi_distance} = $wifi_distance;
 $parms{wifi_txpower} = $wifi_txpower;
-$parms{wifi_txant} = $wifi_txant;
-$parms{wifi_rxant} = $wifi_rxant;
 
 #
 # apply the wifi settings
@@ -173,19 +156,10 @@ $parms{wifi_rxant} = $wifi_rxant;
 
 if($parms{button_apply} or $parms{button_save})
 {
+    my $wifiintf = get_interface("wifi");
     $cmd = "";
-    if(wifi_useschains()){
-        $cmd .= "echo $wifi_rxant > /sys/kernel/debug/ieee80211/phy0/ath9k/rx_chainmask;";
-        $cmd .= "echo $wifi_txant > /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask;";
-    } else {
-        $cmd .= "ifdown wifi >/dev/null 2>&1;";
-        $cmd .= "ifdown wifi_mon >/dev/null 2>&1;";
-        $cmd .= "iw phy phy0 set antenna $wifi_txantenna $wifi_rxantenna >/dev/null 2>&1;";
-        $cmd .= "ifup wifi >/dev/null 2>&1;";
-        $cmd .= "ifup wifi_mon >/dev/null 2>&1;";
-    }
     $cmd .= "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
-    $cmd .= "iw dev wlan0 set txpower fixed ${wifi_txpower}00 >/dev/null 2>&1;";
+    $cmd .= "iw dev $wifiintf set txpower fixed ${wifi_txpower}00 >/dev/null 2>&1;";
     system $cmd;
 }
 
@@ -481,7 +455,18 @@ print "
 </tr>
 </table>
 
-</td></tr><tr><td>
+</td></tr>";
+
+if($config ne "mesh")
+{
+    print "<tr><td align=center>";
+    print "<b>This node type will be removed in a future release -- See release notes</b>";
+    print "</td></tr>";
+}
+
+
+print "
+<tr><td>
 <br>
 
 <table cellpadding=5 border=1 width=100%>
@@ -528,6 +513,14 @@ else
 }
 if($wifi_proto ne "disabled")
 {
+
+    # Reset wifi channel/bandwidth to default
+    if ( -f "/etc/config/unconfigured" || $parms{button_reset} ) {
+        my $defaultwifi = rf_default_channel();
+        $wifi_channel = $defaultwifi->{'channel'};
+        $wifi_chanbw = $defaultwifi->{'chanbw'};
+    }
+
     print "<tr><td>SSID</td>\n";
     print "<td><input type=text size=15 name=wifi_ssid value='$wifi_ssid'>";
     if ($config eq "mesh")
@@ -602,29 +595,16 @@ if($wifi_proto ne "disabled")
 
     print "<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>\n";
 
-    print "<tr><td><nobr>Rx Antenna</nobr></td>\n";
-    print "<td><select name=wifi_rxant>\n";
-    $validants = wifi_validant();                            
-    while (($value, $name) = each (%{$validants})){             
-    selopt($name, $value, $wifi_rxant);                      
-    }
-    print "</select></td></tr>\n";
-
-    print "<tr><td><nobr>Tx Antenna</nobr></td>\n";
-    print "<td><select name=wifi_txant>\n";
-    while (($value, $name) = each (%{$validants})){             
-    selopt($name, $value, $wifi_txant);                      
-    }
-    print "</select></td></tr>\n";
+    print "<tr><td colspan=2><br>Antenna selection is now automatic<br><br></td></tr>";
 
     print "<tr><td><nobr>Tx Power</nobr></td>\n";
     print "<td><select name=wifi_txpower>\n";
     my $txpoweroffset = wifi_txpoweroffset();
-    for($i = wifi_maxpower(); $i >= 1; --$i) { selopt($i+$txpoweroffset ." dBm", $i, $wifi_txpower) }
-    print "</select></td></tr>\n";
+    for($i = wifi_maxpower($wifi_channel); $i >= 1; --$i) { selopt($i+$txpoweroffset ." dBm", $i, $wifi_txpower) }
+    print "</select>&nbsp;&nbsp;<a href=\"/help.html\#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>\n";
 
     print "<tr><td>Distance</td>\n";
-    print "<td><input type=text size=8 name=wifi_distance value='$wifi_distance' title='Distance in meters to the farthest neighbor; 0=automatic'></td></tr>\n";
+    print "<td><input type=text size=8 name=wifi_distance value='$wifi_distance' title='Distance in meters to the farthest neighbor'>&nbsp;meters</td></tr>\n";
 
     print "<tr><td></td><td><input type=submit name=button_apply value=Apply title='Immediately use these active settings'></td></tr>\n";
 }
@@ -633,6 +613,8 @@ else
     push @hidden, "<input type=hidden name=wifi_ssid value='$wifi_ssid'>";
     push @hidden, "<input type=hidden name=wifi_mode value='$wifi_mode'>";
     push @hidden, "<input type=hidden name=wifi_channel value='$wifi_channel'>";
+    push @hidden, "<input type=hidden name=wifi_chanbw value='20'>";
+    push @hidden, "<input type=hidden name=wifi_country value='US'>";
 }
 print "</table></td>\n";
 
@@ -680,6 +662,15 @@ if($dmz_mode)
     print "<tr><td><nobr>DHCP End</nobr></td>";
     #print "<td><input type=text size=4 name=dmz_dhcp_end value='$dmz_dhcp_end' disabled></td></tr>\n";
     print "<td>$dmz_dhcp_end</td></tr>\n";
+
+    print "<tr><td colspan=2><hr></hr></td></tr>";
+    print "<tr><th colspan=2>Advanced</th></tr>";
+
+    print "<tr><td>Disable<br>Default Route</td>";
+    print "<td><input type=checkbox name=lan_dhcp_noroute value=1";
+    print " checked" if $lan_dhcp_noroute;
+    print "></td></tr>\n";
+
     push @hidden, "<input type=hidden name=dmz_dhcp_end value='$dmz_dhcp_end'>";
 
     push @hidden, "<input type=hidden name=dmz_dhcp_limit value='$dmz_dhcp_limit'>";
@@ -799,6 +790,7 @@ print "<td><input type=text size=15 name=wan_dns2 value='$wan_dns2'></td></tr>\n
 if($config eq "mesh")
 {
     print "<tr><td colspan=2><hr></td></tr>\n";
+    print "<tr><th colspan=2>Advanced</th></tr>";
     print "<tr><td><nobr>Mesh Gateway</nobr></td>\n";
     print "<td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to all other nodes'";
     print " checked" if $olsrd_gw;

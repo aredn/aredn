@@ -40,6 +40,7 @@ $debug = 0;
 
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
+use ucifunc;
 
 $config = nvram_get("config");
 $node = nvram_get("node");
@@ -75,14 +76,7 @@ else                          { $dmz_mode = 0 }
 
 # get the network details of the lan interface for dhcp calculations
 
-if(system "ifconfig br-lan >/dev/null 2>&1")
-{
-    ($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network("eth0");
-}
-else
-{
-    ($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network("br-lan");
-}
+($lanip, $lanmask, $junk, $lannet, $lancidr) = get_ip4_network(get_interface("lan"));
 
 $lannet_d = ip2decimal($lannet);
 
@@ -179,11 +173,8 @@ if($parms{button_reset} or not $parms{reload})
 
 # get the dhcp range
 # assume that the lan setup is the only one that exists
-foreach(`cat /etc/config/dhcp`)
-{
-    $dhcp_start = $1 if /option start\s+(\d+)/;
-    $dhcp_limit = $1 if /option limit\s+(\d+)/;
-}
+($rc, $dhcp_start) = &uci_get_indexed_option("dhcp","dhcp","0","start");
+($rc, $dhcp_limit) = &uci_get_indexed_option("dhcp","dhcp","0","limit");
 $dhcp_end = $dhcp_start + $dhcp_limit - 1;
 
 

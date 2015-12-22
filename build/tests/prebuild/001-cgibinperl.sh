@@ -4,8 +4,6 @@
   Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
-  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
-
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation version 3 of the License.
@@ -35,26 +33,9 @@
 
 LICENSE
 
+. "$SCRIPTBASE/sh2ju.sh"
 
-N=`ls /tmp/*.trx 2>/dev/null | wc -l`
-
-if [ $N == 0 ]; then
-  echo "no image to flash"
-  exit 1
-fi
-
-if [ $N -gt 1 ]; then
-  echo "more than one image found"
-  exit 1
-fi
-
-mtd write /tmp/*.trx firmware
-
-if [ $? != 0 ]; then
-  echo "ERROR: flash write failed!"
-  exit
-fi
-
-echo "flash written successfully - rebooting"
-reboot
-
+for file in "$AREDNFILESBASE"/www/cgi-bin/*
+do
+  juLog -name="perlscript_$(basename "$file")" "perl -I $AREDNFILESBASE/www/cgi-bin -cw $file"
+done
