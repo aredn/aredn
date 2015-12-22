@@ -953,7 +953,7 @@ sub hardware_info
         'TP-Link CPE210 v1.0' => {
             'name'            => 'TP-Link CPE210 v1.0',
             'comment'         => '',
-            'supported'       => '-2',
+            'supported'       => '1',
             'maxpower'        => '23',
             'pwroffset'       => '0',
             'usechains'       => 1,
@@ -963,7 +963,7 @@ sub hardware_info
         'TP-Link CPE510 v1.0' => {
             'name'            => 'TP-Link CPE510 v1.0',
             'comment'         => '',
-            'supported'       => '-2',
+            'supported'       => '1',
             'maxpower'        => '23',
             'pwroffset'       => '0',
             'usechains'       => 1,
@@ -996,7 +996,7 @@ sub hardware_info
        '0xe005' => {
             'name'            => 'NanoStation M5',
             'comment'         => 'NanoStation M5',
-            'supported'       => '-2',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
             'usechains'       => 1,
@@ -1022,8 +1022,8 @@ sub hardware_info
          },
         '0xe035' => {
             'name'            => 'NanoStation M3',
-            'comment'         => 'NanoStation M3 in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoStation M3',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '3',
             'usechains'       => 1,
@@ -1076,8 +1076,8 @@ sub hardware_info
          },
         '0xe1c3' => {
             'name'            => 'Rocket M3',
-            'comment'         => 'In Testing',
-            'supported'       => '-2',
+            'comment'         => 'Rocket M3',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '3',
             'usechains'       => 1,
@@ -1120,7 +1120,7 @@ sub hardware_info
             'rfband'          => '5800ubntus',
          },
         '0xe232' => {
-            'name'            => 'NannoBridge M2',
+            'name'            => 'NanoBridge M2',
             'comment'         => 'NanoBridge M2',
             'supported'       => '1',
             'maxpower'        => '21',
@@ -1129,7 +1129,7 @@ sub hardware_info
             'rfband'          => '2400',
          },
         '0xe239' => {
-            'name'            => 'NannoBridge M9',
+            'name'            => 'NanoBridge M9',
             'comment'         => 'NanoBridge M9',
             'supported'       => '1',
             'maxpower'        => '22',
@@ -1147,9 +1147,9 @@ sub hardware_info
             'rfband'          => '2400',
          },
         '0xe243' => {
-            'name'            => 'NannoBridge M3',
+            'name'            => 'NanoBridge M3',
             'comment'         => 'Not Tested',
-            'supported'       => '-2',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '3',
             'usechains'       => 1,
@@ -1164,6 +1164,15 @@ sub hardware_info
             'usechains'       => 0,
             'rfband'          => '2400',
          },
+        '0xe245' => {
+            'name'            => 'airGrid M5 HP',
+            'comment'         => 'airGrid M5',
+            'supported'       => '1',
+            'maxpower'        => '19',
+            'pwroffset'       => '6',
+            'usechains'       => 0,
+            'rfband'          => '5800ubntus',
+         },
         '0xe255' => {
             'name'            => 'airGrid M5 HP',
             'comment'         => 'airGrid M5',
@@ -1174,7 +1183,7 @@ sub hardware_info
             'rfband'          => '5800ubntus',
          },
         '0xe2b5' => {
-            'name'            => 'NannoBridge M5',
+            'name'            => 'NanoBridge M5',
             'comment'         => 'NanoBridge M5',
             'supported'       => '1',
             'maxpower'        => '22',
@@ -1183,7 +1192,7 @@ sub hardware_info
             'rfband'          => '5800ubntus',
          },
         '0xe2c2' => {
-            'name'            => 'NannoBeam M2 International',
+            'name'            => 'NanoBeam M2 International',
             'comment'         => 'NanoBeam M2 International -- XW board unsupported at this time',
             'supported'       => '-1',
             'maxpower'        => '18',
@@ -1219,7 +1228,7 @@ sub hardware_info
             'rfband'          => '2400',
          },
         '0xe4e5' => {
-            'name'            => 'NannoBeam M5 International',
+            'name'            => 'NanoBeam M5 International',
             'comment'         => 'NanoBeam M5 International XW series unsuported at this time',
             'supported'       => '-1',
             'maxpower'        => '22',
@@ -1247,8 +1256,8 @@ sub hardware_info
          },
         'Ubiquiti Nanostation M XW' => {
             'name'            => 'NanoStation M5 XW',
-            'comment'         => 'NanoStation M5 XW  0xe855 (In Testing)',
-            'supported'       => '-2',
+            'comment'         => 'NanoStation M5 XW',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '5',
             'usechains'       => 1,

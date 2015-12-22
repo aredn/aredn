@@ -1,9 +1,40 @@
 #!/usr/bin/perl
-#
-# GPL V2 or greater
-# work around Atheros ANI overly attenuating recieve chain with tendency to become stuck
-# Joe Ayers AE6XE ae6xe@arrl.net 2015-10-29
+=for commnet
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2015 Joe Ayers  ae6xe@arrl.net
+  See Contributors file for additional contributors
 
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+  See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+=cut
+
+# Joe Ayers AE6XE ae6xe@arrl.net 2015-12-08
+# work around Atheros ANI overly attenuating recieve chain with tendency to become stuck
 # A receive chain may go deaf at noise prone sites and some neighbors may drop out.
 # The wireless driver poorly tunes and treats these neighbors as noise in error.
 # This is a workaround until root cause driver updates occur.
@@ -11,7 +42,7 @@
 $now=`cat /proc/uptime | cut -f1 -d" "`;
 chomp $now;
 
-exit 0 unless $now > 120;
+exit 0 unless $now > 119;
 
 $iface = "wlan0" ; # wireless interface
 $datfile = "/tmp/rssi.dat";
@@ -58,6 +89,17 @@ sub getRSSI
   }
 }
 
+sub getChannelScan
+{
+  $chnum = `uci get wireless.radio0.channel`;
+  $chnum += 1;
+  if ($chnum == 8 or $chnum == 12 or $chnum == 100 or $chnum == 185) { $chnum -= 2; }
+  if ($chnum == 0) { $chnum = 1; }
+  $freq = `iw list | grep "\\\[$chnum\\\]" | head -1`;
+  $freq =~ /([\d]+)[ \t]+MHz[ \t]+/;
+  $freq = $1;
+}
+
 $antnum=`iw list | grep "Configured Antennas: TX" | cut -f6 -d" "`;
 chomp $antnum;
 if ($antnum eq "0x1")
@@ -98,6 +140,14 @@ $ofdm_level = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/ani | grep "OFDM LEVEL
 $now=`cat /proc/uptime | cut -f1 -d" "`;
 chomp $now;
 
+if ($now < 750 and $now > 119 )
+{
+  # avoid node going deaf while trying to obtain 'normal' statistics of neighbor strength
+  # in first few minutes after boot
+  getChannelScan();
+  system("/usr/sbin/iw $iface scan freq $freq passive > /dev/null");
+}
+
 getRSSI() ;
 
 for (keys %rssi)
@@ -106,15 +156,15 @@ for (keys %rssi)
   {
     $hit = 0 ;
     $sdH3 = int(3 * $rssiHist{$_}{"sdH"} + .5);
-    # is the RSSI attenuated and 3 standard deviations away?   Test is only 1 chain has dropped, not both.
-    if   ($rssiHist{$_}{"aveH"} - $rssi{$_}{"Hrssi"}  > $sdH3) { $hit += 1; }
+    # is the RSSI attenuated and 3 standard deviations away?   
+    if   (abs ($rssiHist{$_}{"aveH"} - $rssi{$_}{"Hrssi"})  > $sdH3) { $hit += 1; }
     if ( $antnum )
     {
       $sdV3 = int(3 * $rssiHist{$_}{"sdV"} + .5);
-      if ($rssiHist{$_}{"aveV"} - $rssi{$_}{"Vrssi"}  >  $sdV3) { $hit += 1; }
+      if (abs ( $rssiHist{$_}{"aveV"} - $rssi{$_}{"Vrssi"})  >  $sdV3) { $hit += 1; }
     }
 
-    if ($rssiHist{$_}{"num"} > 9 and $ofdm_level <= 2 and $hit == 1)
+    if ($rssiHist{$_}{"num"} > 9 and $ofdm_level <= 2 and $hit > 0)
     { # Overly Attenuated Chain Suspected
       $datestring = localtime();
       if ($antnum)
@@ -164,7 +214,7 @@ for (keys %rssi)
     $rssiHist{$_}{"aveH"} = $aveH;
     $rssiHist{$_}{"sdH"} =  $sdH;
     $rssiHist{$_}{"last"} = $now;
-    if ($rssiHist{$_}{"num"} < 60 ) 
+    if ($rssiHist{$_}{"num"} < 60 )
     {
       # keep statistics to 60 sample (minute) moving window
       $rssiHist{$_}{"num"} += 1;
@@ -191,13 +241,7 @@ for (keys %rssi)
 
 if ($amac or not $neighborCount)
 {
-  $chnum = `uci get wireless.radio0.channel`;
-  $chnum += 1;
-  if ($chnum == 8 or $chnum == 12 or $chnum == 100 or $chnum == 185) { $chnum -= 2; }
-  if ($chnum == 0) { $chnum = 1; }
-  $freq = `iw list | grep "\\\[$chnum\\\]" | head -1`;
-  $freq =~ /([\d]+)[ \t]+MHz[ \t]+/;
-  $freq = $1;
+  getChannelScan();
 
   if ($amac)
   {
@@ -223,7 +267,7 @@ if ($amac or not $neighborCount)
     $falpos = 0;
     if ($antnum)
     {
-      if  (abs ( $beforeH - $rssi{$amac}{"Hrssi"} ) <= 2 and 
+      if  (abs ( $beforeH - $rssi{$amac}{"Hrssi"} ) <= 2 and
            abs ( $beforeV - $rssi{$amac}{"Vrssi"} ) <= 2 ) { $falpos = 1; }
     }
     elsif (abs ( $beforeH - $rssi{$amac}{"Hrssi"} ) <= 2 ) { $falpos = 1; }
@@ -231,7 +275,7 @@ if ($amac or not $neighborCount)
     if ( $falpos )
     {
       # if a false-positive (within 2dB change after a reset), then add data point to statistics
-      $aveH = (($rssiHist{$amac}{"aveH"}*$rssiHist{$amac}{"num"})+ $beforeH ) 
+      $aveH = (($rssiHist{$amac}{"aveH"}*$rssiHist{$amac}{"num"})+ $beforeH )
                                                 / ($rssiHist{$amac}{"num"} + 1 );
       $sdH = sqrt((($rssiHist{$amac}{"num"}-1)*($rssiHist{$amac}{"sdH"}**2) +
                  (($beforeH-$aveH)*($beforeH-$rssiHist{$amac}{"aveH"})))
@@ -240,10 +284,10 @@ if ($amac or not $neighborCount)
       chomp $sdH;
       $rssiHist{$amac}{"aveH"} = $aveH;
       $rssiHist{$amac}{"sdH"} =  $sdH;
-  
+
       if ($antnum)
       {
-        $aveV = (($rssiHist{$amac}{"aveV"}*$rssiHist{$amac}{"num"})+ $beforeV ) / 
+        $aveV = (($rssiHist{$amac}{"aveV"}*$rssiHist{$amac}{"num"})+ $beforeV ) /
                                                     ($rssiHist{$amac}{"num"} + 1 );
         $sdV = sqrt((($rssiHist{$amac}{"num"}-1)*($rssiHist{$amac}{"sdV"}**2) +
                              (($beforeV-$aveV)*($beforeV-$rssiHist{$amac}{"aveV"}))) /
@@ -254,13 +298,13 @@ if ($amac or not $neighborCount)
         $rssiHist{$amac}{"sdV"} =  $sdV;
       }
 
-      if ($rssiHist{$amac}{"num"} < 60 ) 
+      if ($rssiHist{$amac}{"num"} < 60 )
       {
         # keep statistics to 60 sample (minute) moving window
         $rssiHist{$amac}{"num"} += 1;
       }
       $rssiHist{$amac}{"last"} = $now + 5 ;
-  
+
       $datestring = localtime();
       print $lfh "$datestring: $amac Possible valid data point, adding to statistics.\n";
     }
@@ -291,7 +335,7 @@ exit 0 unless -s $logfile > $MAXSIZE + 1024;
 @ARGV = $logfile;
 undef $/;
 $^I = "";
-while (<>) 
+while (<>)
 {
   substr($_, 0, length() - $MAXSIZE) = "";
   s/.*\n//;
