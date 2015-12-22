@@ -42,13 +42,17 @@ BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 # collect some variables
-$
-node = nvram_get("node");
+$node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 $tactical = nvram_get("tactical");
 $config = nvram_get("config");
 $config = "not set" if $config eq "" or not -d "/etc/config.$config";
 ($my_ip) = get_ip4_network(get_interface("wifi"));
+
+chomp ($chanbw = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/chanbw`);
+if    ($chanbw eq "0x00000005") {$chanbw = 4;}
+elsif ($chanbw eq "0x0000000a") {$chanbw = 2;}
+  else   			{$chanbw = 1;}
 
 read_postdata();
 
@@ -76,6 +80,36 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
 	($junk, $ip, $junk, $lq, $nlq) = split /\s+/, $_;
 	$links{$ip}{lq} = $lq;
 	$links{$ip}{nlq} = $nlq;
+
+	$mac = `grep $ip /proc/net/arp | head -1`;
+	$mac =~ s/^.*(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w).*$/$1/;
+	chomp $mac;
+
+        if (! $mac or ! -e "/sys/kernel/debug/ieee80211/phy0/netdev:wlan0/stations/$mac" ) 
+	{
+		$links{$ip}{mbps} = "";
+	}
+        else
+        {
+		#802.11n
+		$mbps = `egrep 'HT(4|2)0\\\/\(L|S\)GI[ \t]+(A|T)' /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
+		if ($mbps) { $mbps =~ s/HT(4|2)0\/(L|S)GI[[ \tTtPABCD]+MCS\d+[ \t]*([\d\.]+).*$/$3/ ; }
+		else 
+		{
+			#802.11a/g
+			$mbps = `egrep \"^A\" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
+			if ($mbps) { $mbps =~ s/^A[ \tBCDP]+[\d\.]+[ \t]+([\d\.]+).*$/$1/ ; }
+			else 
+			{
+				#802.11b
+				$mbps = `egrep \"CCK\/LP[ \t]*T\" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
+				if ($mbps) { $mbps =~ s/CCK\/LP[ \tTtP]+[\d\.]+M[ \t]*([\d\.]+).*$/$1/ ; }
+				else { $mbps = "0"; }
+			}
+		}
+		$mbps /= $chanbw;
+		$links{$ip}{mbps} = sprintf "%.1f",$mbps; 
+	}
     }
     elsif($table eq "Neighbors")
     {
@@ -386,8 +420,8 @@ print "</table></td><td width=20>&nbsp;</td><td valign=top><table>\n";
 
 # show current neighbors
 
-print "<tr><th align=left><nobr>Current Neighbors</nobr></th><th>&nbsp;&nbsp;</th><th>LQ</th><th>NLQ</th><th>&nbsp;&nbsp;</th><th align=left>Services</th></tr>\n";
-print "<tr><td colspan=6><hr></td></tr>\n";
+print "<tr><th align=left><nobr>Current Neighbors</nobr></th><th>&nbsp;&nbsp;</th><th>LQ</th><th>NLQ</th><th>TxMbps</th><th>&nbsp;&nbsp;</th><th align=left>Services</th></tr>\n";
+print "<tr><td colspan=7><hr></td></tr>\n";
 
 if(keys %links)
 {
@@ -415,7 +449,7 @@ if(keys %links)
 	if ( $wangateway{$ip} or $wangateway{$ipmain} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" :  "wan" ; }
         if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
 
-        $rows{$host} .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq});
+        $rows{$host} .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%s</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq},$links{$ip}{mbps});
 	
 	if ( ! exists $neighservices{$host} )
 	    {
@@ -426,7 +460,7 @@ if(keys %links)
 	    # add advertised dmz hosts
 	    foreach $dmzhost (@{$hosts{$ipmain}{hosts}})
 	    {
-	        $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$dmzhost</nobr></td><td colspan=3></td><td>\n";
+	        $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$dmzhost</nobr></td><td colspan=5></td><td>\n";
 	        foreach(sort keys %{$services{$dmzhost}}) { $rows{$host} .= $services{$dmzhost}{$_} . "<br>\n" }
 	        $rows{$host} .= "</td></tr>\n";
 	    }
@@ -445,8 +479,8 @@ else
 # show previous neighbors
 
 print "<tr><td>&nbsp;</td></tr>\n";
-print "<tr><th colspan=4 align=left><nobr>Previous Neighbors</nobr></th><th align=left>When</th></tr>\n";
-print "<tr><td colspan=6><hr></td></tr>\n";
+print "<tr><th colspan=6 align=left><nobr>Previous Neighbors</nobr></th><th align=left>When</th></tr>\n";
+print "<tr><td colspan=7><hr></td></tr>\n";
 %rows = ();
 ($uptime) = `cat /proc/uptime` =~ /^(\d+)/;
 
@@ -458,7 +492,7 @@ foreach $ip (keys %history)
     $host = $history{$ip}{host} ? $history{$ip}{host} : $ip;
     $host =~ s/^mid\d+\.// ;
     $host =~ s/^dtdlink\.// ;
-    $rows{$age} .= sprintf "<tr><td colspan=4><nobr>%s</nobr>", $host;
+    $rows{$age} .= sprintf "<tr><td colspan=6><nobr>%s</nobr>", $host;
     foreach(@{$hosts{$ip}{hosts}}) { $rows{$age} .= "<br><nobr><img src='/dot.png'>$_</nobr>" }
     $rows{$age} .= "</td><td valign=top><nobr>";
     if($age < 3600)
