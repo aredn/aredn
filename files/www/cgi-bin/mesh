@@ -81,34 +81,38 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
 	$links{$ip}{lq} = $lq;
 	$links{$ip}{nlq} = $nlq;
 
-	$mac = `grep $ip /proc/net/arp | head -1`;
+	$mac = `grep $ip /proc/net/arp | grep wlan0 | grep -v "00:00:00:00:00:00" | head -1`;
 	$mac =~ s/^.*(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w).*$/$1/;
 	chomp $mac;
 
         if (! $mac or ! -e "/sys/kernel/debug/ieee80211/phy0/netdev:wlan0/stations/$mac" ) 
 	{
-		$links{$ip}{mbps} = "";
+		$mbps = "";
 	}
         else
         {
 		#802.11n
 		$mbps = `egrep 'HT(4|2)0\\\/\(L|S\)GI[ \t]+(A|T)' /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
-		if ($mbps) { $mbps =~ s/HT(4|2)0\/(L|S)GI[[ \tTtPABCD]+MCS\d+[ \t]*([\d\.]+).*$/$3/ ; }
+		if ($mbps) { $mbps =~ s/HT(4|2)0\/(L|S)GI[[ \tTtPABCD]+MCS[0-9]+[ \t]*([0-9\.]+).*$/$3/ ; }
 		else 
 		{
 			#802.11a/g
-			$mbps = `egrep \"^A\" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
-			if ($mbps) { $mbps =~ s/^A[ \tBCDP]+[\d\.]+[ \t]+([\d\.]+).*$/$1/ ; }
+			$mbps = `egrep \"^A[BCDP \t]+[0-9\.]+\" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
+			if ($mbps) { $mbps =~ s/^A[ \tBCDP]+[0-9\.]+[ \t]+([0-9\.]+).*$/$1/ ; }
 			else 
 			{
 				#802.11b
 				$mbps = `egrep \"CCK\/LP[ \t]*T\" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
-				if ($mbps) { $mbps =~ s/CCK\/LP[ \tTtP]+[\d\.]+M[ \t]*([\d\.]+).*$/$1/ ; }
-				else { $mbps = "0"; }
+				if ($mbps) { $mbps =~ s/CCK\/LP[ \tTtP]+[0-9\.]+M[ \t]*([0-9\.]+).*$/$1/ ; }
+				else { $mbps = ""; }
 			}
 		}
-		$mbps /= $chanbw;
-		$links{$ip}{mbps} = sprintf "%.1f",$mbps; 
+		if ( ! $mbps eq "" )
+                {
+			$mbps /= $chanbw;
+			$links{$ip}{mbps} = sprintf "%.1f",$mbps; 
+		}
+		else {  $links{$ip}{mbps} = ""; }
 	}
     }
     elsif($table eq "Neighbors")

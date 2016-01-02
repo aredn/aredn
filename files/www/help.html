@@ -138,6 +138,77 @@ temporary files. Memory is the amount of RAM available for running processes.
 </p>
 
 <br><br><hr>
+<a name=setup><h2>Mesh Status</h2></a>
+<p>
+The Mesh Status page lists AREDN Mesh Nodes, link quality information, and the services advertised on the Mesh.  There are 3 sections:
+</p>
+
+<ul>
+<li><strong>Local Host</strong> is the AREDN Mesh Node showing status and the advertised Services assocated with this Node.<br><br></li>
+
+<li><strong>Current Neighbors</strong> is a list of direct Neighbor Mesh Nodes (1 hop).  This may be via RF, DTDLink (a cat5 cable), or a Tunnel (over Internet connection).  Quality of the link is shown (described below) and advertised Services hosted on the Node or attached to the LAN of the Node are listed.<br><br></li>
+
+<li><strong>Remote Nodes</strong> is a list of indirect Mesh Nodes (2 or more hops).  Advertised Services hosted on the Node or attached to the LAN of the Node are listed. Remote Nodes are sorted by ETX, referred to as "link cost".</li>
+</ul>
+
+<p>
+<br>
+<strong>LQ</strong>
+</p>
+
+<p>
+Link Quality (LQ) is the % of packets received from the Neighbor in the OLSR mesh routing protocol from the perspective of the Local Host.  OLSR packets are exchanging routing, advertised services, and other information and include a sequence number with each packet to determine missing packets to characterize the quality of the link.
+</p>
+
+<p>
+<br>
+<strong>NLQ</strong>
+</p>
+
+<p>
+Neighbor Link Quality (NLQ) is the % of packets the Neighbor received from the perspective of the Local Host in the OLSR mesh routing protocol.  The NLQ is the LQ from the Neighbor's perspective.
+</p>
+
+<p>
+<br>
+<strong>ETX</strong>
+</p>
+
+<p>
+Expected Transmissions (ETX) is a Bernoulli statistic of how many packets must be transmitted to successfully receive the round trip acknowledgement between Neighbor nodes and is calculated with this formula:  ETX = 1/(LQ*NLQ).   Between multiple hop nodes, this is calculated by adding up the ETX for each single hop.   "1" is a perfect RF link between Neighbors.   A DtDLink is fixed at ETX="0.1" for packets over a cat5 cable.  OLSR on a Mesh Node selects the Neighbor to send traffic to based on the lowest cost ETX path towards the final destination Node.
+</p>
+<p>
+ETX should be interpreted with care.  From a quality perspective, the ETX for Remote Nodes is not an end-to-end metric in the same way as adjacent neighbors.  For example, 2 nodes that are 5 hops apart with zero packet loss between them is characterized with an ETX=5.  A single hop with ETX=5 (LQ and NLQ is ~45%) will stream poor quality video, if usable at all, given the packet loss.  A 5 hop route between nodes with ETX=5 will deliver smooth streaming quality video. 
+</p>
+
+<p>
+<br>
+<strong>TxMbps</strong>
+</p>
+
+<p>
+Transmitted Mbps (TxMbps) is the measured transmitted throughput, at the packet level, after accounting for packet loss.  The 802.11 driver bases the selection, to each Neighbor, of modulation scheme and number of antennas (multiple polarized spatial streams of data) on the combination that achieves the highest throughput.  If no traffic is being sent to this Neighbor, then the value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>  
+</p>
+
+<p>
+<br>
+<strong>(wan)</strong>
+</p>
+
+<p>
+"(wan)" next to a Mesh Node indicates the node is an Advertised Gateway.  Typically this is to the internet, but may also be an isolated network.
+</p>
+
+<p>
+<br>
+<strong>(dtd)</strong>
+</p>
+
+<p>
+"(dtd)" next to a Mesh Node indicates the path to a Neighbor is a cat5 cable. The Neighbor may be listed twice if both an RF and DtDLink path exists.  The DtDLink path is always assigned an ETX of "0.1".   
+</p>
+
+<br><br><hr>
 <a name=setup><h2>Basic Setup</h2></a>
 <p>
 This is where the basic networking settings are made for the node.  Because of
