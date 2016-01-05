@@ -62,19 +62,29 @@ if (! -e $tmpdir ) { system("mkdir $tmpdir > /dev/null"); }
 $d = sprintf ("%02d/%02d %02d:%02d:%02d",$mon+1, $mday,$hour, $min, $sec);
 chomp ($now=`cat /proc/uptime | cut -f1 -d" "`);
 
-foreach $sigmac ( `ls $sigdir` )
+foreach $sigmac ( glob "$sigdir/*" )
 {
+  $sigmac =~ s/^.*\///;
   chomp $sigmac;
-  $isFile   = "";
-  $hnamef   = "";
-  $ipsig    = "";
-  $macfname = "";
-  $macfname = `ls $tmpdir/$sigmac*` ;
-  $macfname =~ /^.*\/([^-]*)-(.*)$/;
-  $isFile   = $1;
-  $hnamef   = $2;
 
-  chomp ($ipsig = `cat /proc/net/arp | grep $sigmac | cut -f1 -d\" "`);
+  @maclist = glob "$tmpdir/$sigmac*";
+  if (@maclist) { $macfname = $maclist[-1]; }
+  else { $macfname = ""; }
+
+  if ($macfname) 
+  { 
+    $macfname =~ /^.*\/([^-]*)-(.*)$/ ; 
+    $isFile=$1;
+    $hnamef=$2;
+  }
+  else
+  {
+    $macfname = "";
+    $isFile = "";
+    $hnamef = "";
+  }
+  $ipsig    = "";
+  chomp ($ipsig = `cat /proc/net/arp | grep $sigmac | grep 'wlan0' | cut -f1 -d\" "`);
   $hname="";
   foreach(`nslookup $ipsig`)
   {
@@ -83,7 +93,7 @@ foreach $sigmac ( `ls $sigdir` )
     break;
   }
 
-  if (($hnamef and $hnamef eq $hname ) or ($hname and ! $isFile ))
+  if (($hnamef and $hnamef eq $hname ) or ($hname and $isFile eq "" ))
   {
     $sigdat = "$sigmac-$hname";
   }

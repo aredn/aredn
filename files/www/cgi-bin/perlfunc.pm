@@ -1227,6 +1227,15 @@ sub hardware_info
             'usechains'       => 0,
             'rfband'          => '2400',
          },
+        '0xe4b2' => {
+            'name'            => 'AirRouter HP',
+            'comment'         => 'AirRouter HP in testing',
+            'supported'       => '-2',
+            'maxpower'        => '19',
+            'pwroffset'       => '9',
+            'usechains'       => 0,
+            'rfband'          => '2400',
+         },
         '0xe4e5' => {
             'name'            => 'NanoBeam M5 International',
             'comment'         => 'NanoBeam M5 International XW series unsuported at this time',
