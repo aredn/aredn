@@ -40,6 +40,7 @@ if [ $rules_exist -eq 0 -a "$action" = "up" ] ; then
         iptables -A zone_vpn -p udp -m udp --dport 698 -j ACCEPT
         iptables -A zone_vpn -p tcp -m tcp --dport 1978 -j ACCEPT
         iptables -A zone_vpn -p tcp -m tcp --dport 23 -j ACCEPT
+        iptables -A zone_vpn -p tcp -m tcp --dport 9090 -j ACCEPT
         iptables -I zone_dtdlink_forward 1 -j zone_vpn_ACCEPT
         iptables -I zone_lan_forward 1 -j zone_vpn_ACCEPT
         iptables -I zone_wifi_forward 1 -j zone_vpn_ACCEPT
@@ -91,6 +92,7 @@ if [ $inf_count -eq 0 -a "$action" = "down" ] ; then
         iptables -D zone_vpn -p udp -m udp --dport 698 -j ACCEPT
         iptables -D zone_vpn -p tcp -m tcp --dport 8080 -j ACCEPT
         iptables -D zone_vpn -p tcp -m tcp --dport 2222 -j ACCEPT
+        iptables -D zone_vpn -p tcp -m tcp --dport 9090 -j ACCEPT
         iptables -D zone_vpn -p icmp -m icmp --icmp-type 8 -j ACCEPT
         iptables -D delegate_output -j zone_vpn_ACCEPT
         iptables -D delegate_input -i tun+ -j zone_vpn
