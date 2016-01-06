@@ -1448,5 +1448,14 @@ sub css_options
     }
 }
 
+sub is_online()
+{
+    # test for web connectivity
+    my $pingOk=0;
+    my $rc=system("ping -c2 -W1 8.8.8.8 > /dev/null 2>&1");
+    $pingOk=1 if($rc==0);
+    return $pingOk;
+}
+
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1

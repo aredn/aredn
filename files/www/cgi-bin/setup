@@ -45,6 +45,13 @@ use channelmaps;
 # load the config parms
 #
 
+# test for web connectivity (for maps)
+my $pingOk=0;
+my $rc=system("ping -c2 -W1 8.8.8.8 > /dev/null 2>&1");
+$pingOk=1 if($rc==0);
+@output = ();
+@errors = ();
+
 read_postdata();
 
 ($config = $parms{config}) or 
@@ -150,7 +157,6 @@ $wifi_distance = 0 if $wifi_distance =~ /\D/;
 $parms{wifi_distance} = $wifi_distance;
 $parms{wifi_txpower} = $wifi_txpower;
 
-@errors = ();
 
 #
 # apply the wifi settings
@@ -158,17 +164,88 @@ $parms{wifi_txpower} = $wifi_txpower;
 
 if($parms{button_apply} or $parms{button_save})
 {
-    if($wifi_distance < 1 or $wifi_distance =~ /\D/)
+    my $wifiintf = get_interface("wifi");
+    $cmd = "";
+    $cmd .= "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
+    $cmd .= "iw dev $wifiintf set txpower fixed ${wifi_txpower}00 >/dev/null 2>&1;";
+    system $cmd;
+}
+
+
+if($parms{button_updatelocation})
+{
+    # Process gridsquare -----------------------------------
+    if($parms{gridsquare})
     {
-        push (@errors, "invalid distance value");
+        # validate values
+        if($parms{gridsquare} =~ /^[A-Z][A-Z]\d\d[a-z][a-z]$/)
+        {
+            # delete/define file
+            unlink("/etc/gridsquare") if(-f "/etc/gridsquare");
+            my $rcgood=open(my $gs, ">", "/etc/gridsquare");
+            push @errors, "Cannot open gridsquare file" unless $rcgood;
+            print $gs "$parms{gridsquare}\n";
+            close($gs);
+            push @output, "Gridsquare updated.\n";
+        } else {
+            push @errors, "ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)\n";
+        }
     } else {
-        my $wifiintf = get_interface("wifi");
-        $cmd = "";
-        $cmd .= "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
-        $cmd .= "iw dev $wifiintf set txpower fixed ${wifi_txpower}00 >/dev/null 2>&1;";
-        system $cmd;
+       unlink("/etc/gridsquare") if(-f "/etc/gridsquare"); 
+       push @output, "Gridsquare purged.\n";
+    }
+
+    # Process LAT/LNG ---------------------------------------------
+    if($parms{latitude} and $parms{longitude})
+    {
+        # validate values
+        if($parms{latitude} =~ /^([-+]?\d{1,2}([.]\d+)?)$/ and $parms{longitude} =~ /^([-+]?\d{1,3}([.]\d+)?)$/) {
+            # delete/define file
+            unlink("/etc/latlon") if(-f "/etc/latlon");          
+            $rcgood=open(my $ll, ">", "/etc/latlon");
+            push @errors, "Cannot open lat/lon file" unless $rcgood;
+            print $ll "$parms{latitude}\n";
+            print $ll "$parms{longitude}\n";
+            close($ll);
+            push @output, "Lat/lon updated.\n";
+        } else {
+            push @errors, "ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154)\n";
+        }
+    } else {
+       unlink("/etc/latlon") if(-f "/etc/latlon"); 
+       push @output, "Lat/lon purged.\n";
     }
 }
+
+#
+# retrieve location data
+#
+if(-f "/etc/latlon")
+{
+    $rcgood=open(FILE, "/etc/latlon");
+    push @errors, "ERROR: reading lat/lon data\n" unless $rcgood;
+    while(<FILE>){
+        chomp;
+        push @lines,$_;
+    }
+    close(FILE);
+    $lat=$lines[0];
+    $lon=$lines[1];
+}
+
+@lines=();
+if(-f "/etc/gridsquare")
+{
+    $rcgood=open(FILE, "/etc/gridsquare");
+    push @errors, "ERROR: reading gridsquare data\n" unless $rcgood;
+    while(<FILE>){
+        chomp;
+        push @lines,$_;
+    }
+    close(FILE);
+    $gridsquare=$lines[0];
+}
+
 
 # validate and save configuration
 if($parms{button_save})
@@ -203,7 +280,7 @@ if($parms{button_save})
         $wifi_chanbw = 20;
     }
 
-    
+    push (@errors, "invalid WiFi distance") if $wifi_distance < 0 or $wifi_distance =~ /\D/;
 
     $wifi_country_validated=0;
     foreach my $testcountry (split(',',"00,HX,AD,AE,AL,AM,AN,AR,AT,AU,AW,AZ,BA,BB,BD,BE,BG,BH,BL,BN,BO,BR,BY,BZ,CA,CH,CL,CN,CO,CR,CY,CZ,DE,DK,DO,DZ,EC,EE,EG,ES,FI,FR,GE,GB,GD,GR,GL,GT,GU,HN,HK,HR,HT,HU,ID,IE,IL,IN,IS,IR,IT,JM,JP,JO,KE,KH,KP,KR,KW,KZ,LB,LI,LK,LT,LU,LV,MC,MA,MO,MK,MT,MY,MX,NL,NO,NP,NZ,OM,PA,PE,PG,PH,PK,PL,PT,PR,QA,RO,RS,RU,RW,SA,SE,SG,SI,SK,SV,SY,TW,TH,TT,TN,TR,UA,US,UY,UZ,VE,VN,YE,ZA,ZW")) {
@@ -300,13 +377,7 @@ if($parms{button_save})
     {
 	push @errors, "password must be changed during initial configuration";
     }
-	      
-    if($aprs_lat or $aprs_lon)
-    {
-	push (@errors, "invalid latitude") unless validate_latitude($aprs_lat);
-	push (@errors, "invalid longitude") unless validate_longitude($aprs_lon);
-    }
-
+	
     if($nodetac =~ /\//)
     {
 	$nodetac =~ /^\s*([\w\-]+)\s*\/\s*([\w\-]+)\s*$/;
@@ -363,11 +434,15 @@ reboot_page("/cgi-bin/status") if $parms{button_reboot};
 #
 
 http_header() unless $debug == 2;
-html_header(nvram_get("node") . " setup", 1);
+html_header(nvram_get("node") . " setup", 0);
+print "<link rel='stylesheet' href='http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css' />\n" if($pingOk);
+print "<script src='http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js'></script>\n" if($pingOk);
+print "</head>";
 print "<body><center>\n";
 
 print "
 <script>
+
 function updDist(x) {
     var u = document.getElementById('distance_unit_text').innerHTML;
     var xc= calcDistance(x,u);
@@ -376,7 +451,7 @@ function updDist(x) {
     document.getElementsByName('wifi_distance_disp')[0].value = x;
     dist_hidden.value = xc;  
     // if default, then ALERT!
-    if(dist_hidden.value==0) {
+    if(dist_hidden.value==100000) {
         distBox.className = 'dist-alert';
     } else {
         distBox.className = 'dist-norm';
@@ -398,9 +473,28 @@ function calcDistance(x, u) {
     }
     dv=Math.round(dv);
     return dv;
-}
-</script>
-";
+}";
+
+print "
+function toggleMap(toggleButton) {
+    var mapdiv=document.getElementById('map');
+    if(toggleButton.value=='hide') {
+        // HIDE IT
+        mapdiv.style.display='none';
+        toggleButton.value='show';
+        toggleButton.innerHTML='Show Map';
+    } else {
+        // SHOW IT
+        mapdiv.style.display='block';
+        toggleButton.value='hide';
+        toggleButton.innerHTML='Hide Map';
+    }
+    // force the map to redraw
+    map.invalidateSize();
+    return false;
+}" if(pingOk);
+
+print "</script>";
 
 alert_banner();
 print "<form method=post action=/cgi-bin/setup enctype='multipart/form-data'>\n" unless $debug == 2;
@@ -426,6 +520,15 @@ print "<tr><td align=center>
 <tr><td>&nbsp;</td></tr>\n";
 
 # messages
+if(@output)
+{
+    # print "<tr><th>Configuration NOT saved!</th></tr>\n";
+    print "<tr><td align=center><table>\n";
+    print "<tr><td><ul style='padding-left:0'>\n";
+    foreach(@output) { print "<li>$_</li>\n" }
+    print "</ul></td></tr></table>\n";
+    print "</td></tr>\n";
+}
 
 if(@errors)
 {
@@ -484,12 +587,15 @@ print "</select></td>
 <td>Verify Password</td>
 <td><input type=password name=passwd2 value='$passwd2' size=8 tabindex=3></td>";
 
-if(0)#$config eq "mesh")
-{
-    print "<td>&nbsp;</td>";
-    print "<td align=right>Longitude</td>";
-    print "<td><input type=text size=8 name=aprs_lon value='$aprs_lon' tabindex=5></td>\n";
-}
+print "<tr><td colspan='4'><hr /></td></tr>";
+print "<tr><td align=left>Latitude</td><td><input type=text name=latitude size=10 value='$lat' title='Latitude value (in decimal) (ie. 30.312354)' /></td>";
+print "<td align='right' colspan='2'>";
+print "<button type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;" if($pingOk);
+print "<input type=submit name='button_updatelocation' value='Apply Location Settings' title='Immediately use these location settings'>";
+print "</td>\n";
+print "<tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='$lon' title='Longitude value (in decimal) (ie. -95.334454)' /></td>";
+print "<td align=right>Grid Square</td><td align='right'><input type=text name=gridsquare maxlength=6 size=6 value='$gridsquare' title='Gridsquare value (ie. AB12cd)' /></td>\n";
+
 
 print "
 </tr>
@@ -505,12 +611,9 @@ if($config ne "mesh")
 }
 
 
-print "
-<tr><td>
-<br>
-
-<table cellpadding=5 border=1 width=100%>
-<tr><td valign=top width=33%>\n";
+print "<tr><td><br>";
+print "<div id='map' style='height: 200px; display: none;'></div><br />" if($pingOk);
+print "<table cellpadding=5 border=1 width=100%><tr><td valign=top width=33%>\n";
 
 #
 # WiFi settings
@@ -643,7 +746,7 @@ if($wifi_proto ne "disabled")
     for($i = wifi_maxpower($wifi_channel); $i >= 1; --$i) { selopt($i+$txpoweroffset ." dBm", $i, $wifi_txpower) }
     print "</select>&nbsp;&nbsp;<a href=\"/help.html\#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>\n";
 
-    print "<tr id='dist' class='dist-norm'><td>Distance to<br />FARTHEST Neighbor</td>\n";
+    print "<tr id='dist' class='dist-norm'><td>Distance to<br />FARTHEST Node</td>\n";
     $wifi_distance_disp=int($wifi_distance/1000);
 
     print "<td><input readonly type=text size=8 name='wifi_distance_disp' value='$wifi_distance_disp' title='Distance to the farthest neighbor'>&nbsp;<span id='distance_unit_text'>kilometers</span><br />";
@@ -879,5 +982,51 @@ if($debug)
 show_parse_errors();
 
 page_footer();
+
+if($pingOk) 
+{
+    print <<EOF;
+    <script>
+    var map = L.map('map').setView([0.0, 0.0], 1);
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiazVkbHEiLCJhIjoiY2lqMnlieTM4MDAyNXUwa3A2eHMxdXE3MiJ9.BRFvx4q2vi70z5Uu2zRYQw', {
+                maxZoom: 18,
+                attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+                    '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                    'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+                id: 'mapbox.streets'
+        }).addTo(map);
+
+    var marker;
+
+    function onMapClick(e) {
+        marker= new L.marker(e.latlng,{draggable: true});
+        map.addLayer(marker);
+        document.getElementsByName('latitude')[0].value=e.latlng.lat.toFixed(6).toString();
+        document.getElementsByName('longitude')[0].value=e.latlng.lng.toFixed(6).toString();
+        map.off('click', onMapClick);
+        marker.on('drag', onMarkerDrag);
+    }
+EOF
+
+    if($lat and $lon)
+    {
+        print "marker= new L.marker([$lat,$lon],{draggable: true});";
+        print "map.addLayer(marker);";
+        print "map.setView([$lat,$lon],13);";
+        print "marker.on('drag', onMarkerDrag);";
+    } else {
+        print "map.on('click', onMapClick);";
+    }
+
+    print <<EOF;
+    function onMarkerDrag(e) {
+        var m = e.target;
+        var p = m.getLatLng();
+        document.getElementsByName('latitude')[0].value=p.lat.toFixed(6).toString();
+        document.getElementsByName('longitude')[0].value=p.lng.toFixed(6).toString(); 
+    }
+    </script>
+EOF
+}
 print "</body>\n";
 print "</html>\n";
