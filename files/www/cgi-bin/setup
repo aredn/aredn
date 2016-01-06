@@ -746,8 +746,6 @@ if($wifi_proto ne "disabled")
 
     print "<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>\n";
 
-    print "<tr><td colspan=2><br>Antenna selection is now automatic<br><br></td></tr>";
-
     print "<tr><td><nobr>Tx Power</nobr></td>\n";
     print "<td><select name=wifi_txpower>\n";
     my $txpoweroffset = wifi_txpoweroffset();
@@ -757,7 +755,7 @@ if($wifi_proto ne "disabled")
     print "<tr id='dist' class='dist-norm'><td>Distance to<br />FARTHEST Neighbor</td>\n";
     $wifi_distance_disp=int($wifi_distance/1000);
 
-    print "<td><input readonly type=text size=8 name='wifi_distance_disp' value='$wifi_distance_disp' title='Distance to the farthest neighbor'>&nbsp;<span id='distance_unit_text'>kilometers</span><br />";
+    print "<td><input readonly type=text size=4 name='wifi_distance_disp' value='$wifi_distance_disp' title='Distance to the farthest neighbor'>&nbsp;<span id='distance_unit_text'>kilometers</span><br />";
     
     print "<input id='distance_slider' type='range' min='0' max='150' step='1' value='$wifi_distance_disp' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />";
     print "<input type='radio' name='distance_unit' value='miles' onchange='updDistUnit(this.value)'>Miles&nbsp;";

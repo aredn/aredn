@@ -1450,11 +1450,12 @@ sub css_options
 
 sub is_online()
 {
-    # test for web connectivity
-    my $pingOk=0;
-    my $rc=system("ping -c2 -W1 8.8.8.8 > /dev/null 2>&1");
-    $pingOk=1 if($rc==0);
-    return $pingOk;
+    my $online=0;
+    if(get_default_gw() ne "none") 
+    {
+        $online=1;    
+    }
+    return $online;
 }
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
