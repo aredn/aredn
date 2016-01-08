@@ -566,7 +566,7 @@ sub save_setup
     open(FILE, ">$_[0]") or return 0;
     foreach(sort keys %parms)
     {
-	next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|dtdlink)_/;
+	next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|dtdlink|ntp|time)_/;
 	print FILE "$_ = $parms{$_}\n";
     }
     close(FILE);
@@ -1455,6 +1455,34 @@ sub is_online()
     my $rc=system("ping -c2 -W1 8.8.8.8 > /dev/null 2>&1");
     $pingOk=1 if($rc==0);
     return $pingOk;
+}
+
+sub tz_names_hash {
+    my %hash;
+
+    open(FH, "< /etc/zoneinfo");
+    while(<FH>) {
+        chomp($_);
+        ($name, $string) = split(/\t/, $_);
+        $hash{$name} = $string;
+    }
+    close(FH);
+
+    return \%hash;
+}
+
+sub tz_names_array {
+    my @array;
+
+    open(FH, "< /etc/zoneinfo");
+    while(<FH>) {
+        chomp($_);
+        ($name, $string) = split(/\t/, $_);
+        push(@array, $name);
+    }
+    close(FH);
+
+    return \@array;
 }
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
