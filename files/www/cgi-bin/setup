@@ -46,9 +46,8 @@ use channelmaps;
 #
 
 # test for web connectivity (for maps)
-my $pingOk=0;
-my $rc=system("ping -c2 -W1 8.8.8.8 > /dev/null 2>&1");
-$pingOk=1 if($rc==0);
+$pingOk=is_online();
+
 @output = ();
 @errors = ();
 
@@ -167,11 +166,17 @@ $parms{wifi_txpower} = $wifi_txpower;
 
 if($parms{button_apply} or $parms{button_save})
 {
-    my $wifiintf = get_interface("wifi");
-    $cmd = "";
-    $cmd .= "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
-    $cmd .= "iw dev $wifiintf set txpower fixed ${wifi_txpower}00 >/dev/null 2>&1;";
-    system $cmd;
+    if($wifi_distance < 1 or $wifi_distance =~ /\D/)
+    {
+        push (@errors, "invalid distance value");
+    } else {
+        my $wifiintf = get_interface("wifi");
+        $cmd = "";
+        $cmd .= "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
+        $cmd .= "iw dev $wifiintf set txpower fixed ${wifi_txpower}00 >/dev/null 2>&1;";
+        system $cmd;
+    }
+
 }
 
 
@@ -286,8 +291,6 @@ if($parms{button_save})
         push (@errors, "Invalid WiFi channel width");
         $wifi_chanbw = 20;
     }
-
-    push (@errors, "invalid WiFi distance") if $wifi_distance < 0 or $wifi_distance =~ /\D/;
 
     $wifi_country_validated=0;
     foreach my $testcountry (split(',',"00,HX,AD,AE,AL,AM,AN,AR,AT,AU,AW,AZ,BA,BB,BD,BE,BG,BH,BL,BN,BO,BR,BY,BZ,CA,CH,CL,CN,CO,CR,CY,CZ,DE,DK,DO,DZ,EC,EE,EG,ES,FI,FR,GE,GB,GD,GR,GL,GT,GU,HN,HK,HR,HT,HU,ID,IE,IL,IN,IS,IR,IT,JM,JP,JO,KE,KH,KP,KR,KW,KZ,LB,LI,LK,LT,LU,LV,MC,MA,MO,MK,MT,MY,MX,NL,NO,NP,NZ,OM,PA,PE,PG,PH,PK,PL,PT,PR,QA,RO,RS,RU,RW,SA,SE,SG,SI,SK,SV,SY,TW,TH,TT,TN,TR,UA,US,UY,UZ,VE,VN,YE,ZA,ZW")) {
@@ -463,7 +466,7 @@ function updDist(x) {
     document.getElementsByName('wifi_distance_disp')[0].value = x;
     dist_hidden.value = xc;  
     // if default, then ALERT!
-    if(dist_hidden.value==100000) {
+    if(dist_hidden.value==0) {
         distBox.className = 'dist-alert';
     } else {
         distBox.className = 'dist-norm';
@@ -602,7 +605,12 @@ print "</select></td>
 print "<tr><td colspan='4'><hr /></td></tr>";
 print "<tr><td align=left>Latitude</td><td><input type=text name=latitude size=10 value='$lat' title='Latitude value (in decimal) (ie. 30.312354)' /></td>";
 print "<td align='right' colspan='2'>";
-print "<button type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;" if($pingOk);
+if($pingOk)
+{
+    print "<button type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;";
+} else {
+    print "<button disabled type='button' title='The map is only available if this node has internet access'>Show Map</button>&nbsp;";
+}
 print "<input type=submit name='button_updatelocation' value='Apply Location Settings' title='Immediately use these location settings'>";
 print "</td>\n";
 print "<tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='$lon' title='Longitude value (in decimal) (ie. -95.334454)' /></td>";
@@ -640,7 +648,7 @@ print "<table cellpadding=5 border=1 width=100%><tr><td valign=top width=33%>\n"
 # WiFi settings
 #
 
-print "<table width=100%>
+print "<table width=100% style='border-collapse: collapse;'>
 <tr><th colspan=2>WiFi</th></tr>
 <tr><td>Protocol</td>
 <td>";
@@ -767,10 +775,10 @@ if($wifi_proto ne "disabled")
     for($i = wifi_maxpower($wifi_channel); $i >= 1; --$i) { selopt($i+$txpoweroffset ." dBm", $i, $wifi_txpower) }
     print "</select>&nbsp;&nbsp;<a href=\"/help.html\#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>\n";
 
-    print "<tr id='dist' class='dist-norm'><td>Distance to<br />FARTHEST Node</td>\n";
+    print "<tr id='dist' class='dist-norm'><td>Distance to<br />FARTHEST Neighbor</td>\n";
     $wifi_distance_disp=int($wifi_distance/1000);
 
-    print "<td><input readonly type=text size=8 name='wifi_distance_disp' value='$wifi_distance_disp' title='Distance to the farthest neighbor'>&nbsp;<span id='distance_unit_text'>kilometers</span><br />";
+    print "<td><input readonly type=text size=4 name='wifi_distance_disp' value='$wifi_distance_disp' title='Distance to the farthest neighbor'>&nbsp;<span id='distance_unit_text'>kilometers</span><br />";
     
     print "<input id='distance_slider' type='range' min='0' max='150' step='1' value='$wifi_distance_disp' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />";
     print "<input type='radio' name='distance_unit' value='miles' onchange='updDistUnit(this.value)'>Miles&nbsp;";
