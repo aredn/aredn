@@ -851,8 +851,17 @@ sub validate_hostname
     $host =~ s/^\s+//;
     $host =~ s/\s+$//;
     return 0 if $host =~ /_/;
-    return 1 if $host =~ /^[\w\-]+$/;
+    return 1 if $host =~ /^[\w\-\.]+$/;
     return 0;
+}
+
+# validate_fqdn from http://stackoverflow.com/questions/106179/regular-expression-to-match-dns-hostname-or-ip-address
+
+sub validate_fqdn {
+   my $testval = shift(@_);                                
+   ( $testval =~ m/^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]+)\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/ )
+   ? return 1
+   : return 0;
 }
 
 sub validate_port
