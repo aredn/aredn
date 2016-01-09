@@ -6,105 +6,11 @@
 
 interface=$1
 action=$2
-is_olsrgw=`cat /etc/config.mesh/_setup|grep -i olsrd_gw|cut -d ' ' -f 3`
 configmode=`uci -q -c /etc/local/uci/ get hsmmmesh.settings.config`
-inf_count=`ifconfig | egrep "^tun[0-9]" | wc -l`
 echo "Firewall rules for $interface $action"
 
 # Do nothing if node is not in mesh mode
 if [ "$configmode" != "mesh" ] ; then exit 0; fi
-
-# Test for pre-existing firewall rules which use a wildcard and only need setup 1 time for multiple tunnel connections
-if ( `iptables -L forwarding_vpn | egrep "^Chain forwarding_vpn \(.+ references\)" > /dev/null` ) then
-	rules_exist=1
-else
-	rules_exist=0
-fi
-
-# Do nothing on firewall if tunnels already (or still) exist--set up once for first and remove on last down
-if [ $rules_exist -eq 0 -a "$action" = "up" ] ; then
-	echo "Adding vtun firewall rules..."
-        iptables -N forwarding_vpn
-        iptables -N input_vpn
-        iptables -N zone_vpn
-        iptables -N zone_vpn_ACCEPT
-        iptables -N zone_vpn_DROP
-        iptables -N zone_vpn_REJECT
-        iptables -N zone_vpn_forward
-        iptables -I delegate_forward 3 -i tun+ -j zone_vpn_forward
-        iptables -I delegate_input 3 -i tun+ -j zone_vpn
-        iptables -I delegate_output 3 -j zone_vpn_ACCEPT
-        iptables -A zone_vpn -p icmp -m icmp --icmp-type 8 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 2222 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 8080 -j ACCEPT
-        iptables -A zone_vpn -p udp -m udp --dport 698 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 1978 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 23 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 9090 -j ACCEPT
-        iptables -I zone_dtdlink_forward 1 -j zone_vpn_ACCEPT
-        iptables -I zone_lan_forward 1 -j zone_vpn_ACCEPT
-        iptables -I zone_wifi_forward 1 -j zone_vpn_ACCEPT
-        iptables -I zone_vpn_forward 1 -j zone_vpn_ACCEPT
-	if [ $is_olsrgw -eq 1 ] ; then
-        	iptables -I zone_vpn_forward -j zone_wan_ACCEPT
-	else
-        	iptables -I zone_vpn_forward -j zone_wan_REJECT
-	fi
-        iptables -A zone_vpn -j input_vpn
-        iptables -A zone_vpn -j zone_vpn_ACCEPT
-        iptables -A zone_vpn_ACCEPT -o tun+ -j ACCEPT
-        iptables -A zone_vpn_ACCEPT -i tun+ -j ACCEPT
-        iptables -A zone_vpn_DROP -o tun+ -j DROP
-        iptables -A zone_vpn_DROP -i tun+ -j DROP
-        iptables -A zone_vpn_REJECT -o tun+ -j reject
-        iptables -A zone_vpn_REJECT -i tun+ -j reject
-        iptables -A zone_vpn_forward -j zone_dtdlink_ACCEPT
-        iptables -A zone_vpn_forward -j zone_lan_ACCEPT
-        iptables -A zone_vpn_forward -j zone_wifi_ACCEPT
-        iptables -A zone_vpn_forward -j forwarding_vpn
-fi
-
-if [ $inf_count -eq 0 -a "$action" = "down" ] ; then
-	echo "Removing vtun firewall rules..."
-        iptables -D zone_vpn_forward -j forwarding_vpn
-        iptables -D zone_vpn_forward -j zone_wifi_ACCEPT
-        iptables -D zone_vpn_forward -j zone_lan_ACCEPT
-        iptables -D zone_vpn_forward -j zone_dtdlink_ACCEPT
-        iptables -D zone_vpn_REJECT -i tun+ -j reject
-        iptables -D zone_vpn_REJECT -o tun+ -j reject
-        iptables -D zone_vpn_DROP -i tun+ -j DROP
-        iptables -D zone_vpn_DROP -o tun+ -j DROP
-        iptables -D zone_vpn_ACCEPT -i tun+ -j ACCEPT
-        iptables -D zone_vpn_ACCEPT -o tun+ -j ACCEPT
-        iptables -D zone_vpn -j zone_vpn_ACCEPT
-        iptables -D zone_vpn -j input_vpn
-        iptables -D zone_vpn_forward -j zone_vpn_ACCEPT
-	if [ ! $is_olsrgw -eq 1 ] ; then
-        	iptables -D zone_vpn_forward -j zone_wan_ACCEPT
-	else
-        	iptables -D zone_vpn_forward -j zone_wan_REJECT
-	fi
-        iptables -D zone_wifi_forward -j zone_vpn_ACCEPT
-        iptables -D zone_lan_forward -j zone_vpn_ACCEPT
-        iptables -D zone_dtdlink_forward -j zone_vpn_ACCEPT
-        iptables -D zone_vpn -p tcp -m tcp --dport 23 -j ACCEPT
-        iptables -D zone_vpn -p tcp -m tcp --dport 1978 -j ACCEPT
-        iptables -D zone_vpn -p udp -m udp --dport 698 -j ACCEPT
-        iptables -D zone_vpn -p tcp -m tcp --dport 8080 -j ACCEPT
-        iptables -D zone_vpn -p tcp -m tcp --dport 2222 -j ACCEPT
-        iptables -D zone_vpn -p tcp -m tcp --dport 9090 -j ACCEPT
-        iptables -D zone_vpn -p icmp -m icmp --icmp-type 8 -j ACCEPT
-        iptables -D delegate_output -j zone_vpn_ACCEPT
-        iptables -D delegate_input -i tun+ -j zone_vpn
-        iptables -D delegate_forward -i tun+ -j zone_vpn_forward
-        iptables -X zone_vpn_REJECT
-        iptables -X zone_vpn_DROP
-        iptables -X zone_vpn_ACCEPT
-        iptables -X zone_vpn
-        iptables -X zone_vpn_forward
-        iptables -X input_vpn
-        iptables -X forwarding_vpn
-fi
 
 if [ "$action" = "up" ] ; then
 	# Adding route policies for tunnel interface
