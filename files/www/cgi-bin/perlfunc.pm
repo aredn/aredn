@@ -851,7 +851,7 @@ sub validate_hostname
     $host =~ s/^\s+//;
     $host =~ s/\s+$//;
     return 0 if $host =~ /_/;
-    return 1 if $host =~ /^[\w\-\.]+$/;
+    return 1 if $host =~ /^[\w\-]+$/;
     return 0;
 }
 
