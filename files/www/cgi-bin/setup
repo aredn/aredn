@@ -57,6 +57,9 @@ read_postdata();
 ($config = nvram_get("config") and -d "/etc/config.$config") or 
 ($config = "mesh");
 
+my $tz_db_strings = tz_names_hash();
+my $tz_db_names = tz_names_array();
+
 # convert the %parms into scalars for convenience
 if($parms{button_default})
 {
@@ -255,6 +258,10 @@ if(-f "/etc/gridsquare")
 # validate and save configuration
 if($parms{button_save})
 {
+    # lookup the tz string for the selected time_zone
+    $time_zone = $$tz_db_strings{$time_zone_name};
+    $parms{time_zone} = $time_zone;
+
     if($wifi_proto eq "static")
     {
 	if(not validate_netmask($wifi_mask))
@@ -403,6 +410,11 @@ if($parms{button_save})
     if($tactical =~ /[^\w\-]/ or $tactical =~ /_/)
     {
 	push(@errors, "invalid tactical name");
+    }
+
+    if($ntp_server eq '' || validate_fqdn($ntp_server) == 0)
+    {
+    push(@errors, "invalid ntp server");
     }
 
     if($debug == 3) # don't save the config, just validate it
@@ -590,21 +602,6 @@ print "</select></td>
 <td>Verify Password</td>
 <td><input type=password name=passwd2 value='$passwd2' size=8 tabindex=3></td>";
 
-print "<tr><td colspan='4'><hr /></td></tr>";
-print "<tr><td align=left>Latitude</td><td><input type=text name=latitude size=10 value='$lat' title='Latitude value (in decimal) (ie. 30.312354)' /></td>";
-print "<td align='right' colspan='2'>";
-if($pingOk)
-{
-    print "<button type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;";
-} else {
-    print "<button disabled type='button' title='The map is only available if this node has internet access'>Show Map</button>&nbsp;";
-}
-print "<input type=submit name='button_updatelocation' value='Apply Location Settings' title='Immediately use these location settings'>";
-print "</td>\n";
-print "<tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='$lon' title='Longitude value (in decimal) (ie. -95.334454)' /></td>";
-print "<td align=right>Grid Square</td><td align='right'><input type=text name=gridsquare maxlength=6 size=6 value='$gridsquare' title='Gridsquare value (ie. AB12cd)' /></td>\n";
-
-
 print "
 </tr>
 </table>
@@ -620,7 +617,6 @@ if($config ne "mesh")
 
 
 print "<tr><td><br>";
-print "<div id='map' style='height: 200px; display: none;'></div><br />" if($pingOk);
 print "<table cellpadding=5 border=1 width=100%><tr><td valign=top width=33%>\n";
 
 #
@@ -776,8 +772,8 @@ else
     push @hidden, "<input type=hidden name=wifi_chanbw value='20'>";
     push @hidden, "<input type=hidden name=wifi_country value='US'>";
 }
-print "</table></td>\n";
 
+print "</table></td>\n";
 
 #
 # LAN settings
@@ -963,6 +959,42 @@ print "</table>
 </table><br>
 
 </td></tr>\n";
+
+#
+# Optional Settings
+#
+
+print "<tr><td align=center>\n";
+print "<table cellpadding=5 border=0><tr><th colspan=4>Optional Settings</th></tr>";
+
+print "<tr><td align=left>Latitude</td><td><input type=text name=latitude size=10 value='$lat' title='Latitude value (in decimal) (ie. 30.312354)' /></td>";
+print "<td align='right' colspan='2'>";
+if($pingOk)
+{
+    print "<button type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;";
+} else {
+    print "<button disabled type='button' title='The map is only available if this node has internet access'>Show Map</button>&nbsp;";
+}
+print "<input type=submit name='button_updatelocation' value='Apply Location Settings' title='Immediately use these location settings'>";
+print "</td>\n";
+print "<tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='$lon' title='Longitude value (in decimal) (ie. -95.334454)' /></td>";
+print "<td align=left>Grid Square</td><td align='left'><input type=text name=gridsquare maxlength=6 size=6 value='$gridsquare' title='Gridsquare value (ie. AB12cd)' /></td></tr>\n";
+
+print "<tr>
+<td>Timezone</td>
+<td><select name=time_zone_name tabindex=10>\n";
+
+foreach my $tz (@$tz_db_names) {
+    selopt($tz, $tz, $time_zone_name);
+}
+
+print "</select></td><td align=left>NTP Server</td><td><input type=text name=ntp_server size=20 value='$ntp_server'></td>";
+
+print "</table></td></tr>";
+
+print "<tr><td colspan=4>";
+print "<div id='map' style='height: 200px; display: none;'></div><br />" if($pingOk);
+print "</td></tr>";
 
 print "</table>\n";
 

@@ -566,7 +566,7 @@ sub save_setup
     open(FILE, ">$_[0]") or return 0;
     foreach(sort keys %parms)
     {
-	next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|dtdlink)_/;
+	next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|dtdlink|ntp|time)_/;
 	print FILE "$_ = $parms{$_}\n";
     }
     close(FILE);
@@ -853,6 +853,15 @@ sub validate_hostname
     return 0 if $host =~ /_/;
     return 1 if $host =~ /^[\w\-]+$/;
     return 0;
+}
+
+# validate_fqdn from http://stackoverflow.com/questions/106179/regular-expression-to-match-dns-hostname-or-ip-address
+
+sub validate_fqdn {
+   my $testval = shift(@_);                                
+   ( $testval =~ m/^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]+)\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/ )
+   ? return 1
+   : return 0;
 }
 
 sub validate_port
@@ -1456,6 +1465,34 @@ sub is_online()
         $online=1;    
     }
     return $online;
+}
+
+sub tz_names_hash {
+    my %hash;
+
+    open(FH, "< /etc/zoneinfo");
+    while(<FH>) {
+        chomp($_);
+        ($name, $string) = split(/\t/, $_);
+        $hash{$name} = $string;
+    }
+    close(FH);
+
+    return \%hash;
+}
+
+sub tz_names_array {
+    my @array;
+
+    open(FH, "< /etc/zoneinfo");
+    while(<FH>) {
+        chomp($_);
+        ($name, $string) = split(/\t/, $_);
+        push(@array, $name);
+    }
+    close(FH);
+
+    return \@array;
 }
 
 #weird uhttpd/busybox error requires a 1 at the end of this file
