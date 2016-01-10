@@ -1,7 +1,7 @@
 #!/bin/sh
 <<'LICENSE'
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Joe Ayers  ae6xe@arrl.net
+  Copyright (C) 2015 Conrad Lara
    See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
@@ -32,37 +32,36 @@
   version.
 
 LICENSE
-# This script assumes a pre-existing OpenWRT-UCI netfilter table structure 
-# $1 = tun0 | tun1 | ... | tun9
-# $2 = up | down
 
-interface=$1
-action=$2
-configmode=`uci -q -c /etc/local/uci/ get hsmmmesh.settings.config`
-echo "Firewall rules for $interface $action"
 
-# Do nothing if node is not in mesh mode
-if [ "$configmode" != "mesh" ] ; then exit 0; fi
+### Lets export some variables to help other scripts we call later.
 
-if [ "$action" = "up" ] ; then
-	# Adding route policies for tunnel interface
-	# identical to hotplug for dtdlink
-	if ( ! `ip rule list | egrep "^20020:.*$interface.*30" > /dev/null`) then
-	    if [ -e /etc/config/dmz-mode ] ; then
-      	        ip rule add pref 20010 iif $interface lookup 29 # local interfaces
-      	    fi
-            ip rule add pref 20020 iif $interface lookup 30 # mesh
-	    ip rule add pref 20080 iif $interface lookup 31 # gateway
-	    ip rule add pref 20090 iif $interface lookup main 
-            ip rule add pref 20099 iif $interface unreachable
-        fi
+#Are we in NAT mode
+if [ -f "/etc/config/dmz-mode" ]
+then
+  export MESHFW_NATLAN=0
 else
-    # Remove route policies for tunnel interface
-    ip rule del pref 20010 iif $interface lookup 29
-    ip rule del pref 20020 iif $interface lookup 30
-    ip rule del pref 20080 iff $interface lookup 31
-    ip rule del pref 20090 iff $interface lookup main
-    ip rule del pref 20099 iif $interface unreachable
+  export MESHFW_NATLAN=1
 fi
 
-exit 0;
+#Is this node a meshgw
+export MESHFW_MESHGW
+MESHFW_MESHGW=$(grep -i olsrd_gw /etc/config.mesh/_setup|cut -d ' ' -f 3)
+
+# Are tunnels 'enabled'
+if [ -x "/usr/sbin/vtund" ]
+then
+  export MESHFW_TUNNELS_ENABLED=1
+else
+  export MESHFW_TUNNELS_ENABLED=0
+fi
+
+# Lets execute each include file
+
+for file in /etc/local/mesh-firewall/*
+do
+  if ( [ -x "$file" ] && [ -f "$file" ] ); then
+    echo "mesh-firewall: Executing $file"
+    $file
+  fi
+done
