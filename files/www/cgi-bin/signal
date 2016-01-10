@@ -165,22 +165,21 @@ EOF
 my @files = `ls -1A /tmp/snrlog`;
 $parms{device}="" if(!/$parms{device}/ ~~ @files);
 
-# default to "Strongest Signal"
-if($parms{device}) {
-  $page = $page . "<option value='strongest'>Strongest Signal</option>";
-} else {
+# default to "Strongest Signal" for Realtime
+if(! $parms{device} and $parms{realtime}) {
   $page = $page . "<option selected value='strongest'>Strongest Signal</option>";
-}
+} 
 
+$firstSel=1;
 # iterate over each file
 foreach $logfile (@files)
 {
   chomp($logfile);
-  next if($logfile eq 'strongest');
   my ($dmac, $dname) = $logfile =~ /^(.*?)\-(.*)/;
-  $dname=$logfile if($dname eq '');
-  if($parms{device} eq $logfile) {
+  $dname=$dmac if($dname eq '');
+  if($parms{device} eq $logfile or (!$parms{realtime} and $firstSel)) {
     $page = $page . "<option selected value='$logfile'>$dname</option>\n";
+    $firstSel=0;
   } else {
     $page = $page . "<option value='$logfile'>$dname</option>\n";
   }
