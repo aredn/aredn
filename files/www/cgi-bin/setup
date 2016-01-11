@@ -60,6 +60,29 @@ read_postdata();
 my $tz_db_strings = tz_names_hash();
 my $tz_db_names = tz_names_array();
 
+
+if($parms{button_uploaddata})
+{
+    my $si=`curl 'http://localnode:8080/cgi-bin/sysinfo.json?hosts=1' 2>/dev/null`;
+    # strip closing }\n from si
+    chomp($si);
+    chop($si);
+
+    # get olsrd topo information
+    my $topo=`curl 'http://localnode:9090/topology' 2>/dev/null`;
+    chomp($topo);
+    # add topo subdoc and close root doc
+    my $newsi= sprintf "%s,\"olsr\": %s}",$si, $topo;
+    
+    # PUT it to the server
+    my $upcurl=`curl -H 'Accept: application/json' -X PUT -d '$newsi' http://data.aredn.org/sysinfo`;
+    if($? == 0) {
+        push @output, "AREDN online map updated";
+    } else {
+        push @errors, "ERROR: Cannot update online map. Please ensure this node has access to the internet.";
+    }
+}
+
 # convert the %parms into scalars for convenience
 if($parms{button_default})
 {
@@ -966,12 +989,13 @@ print "</table>
 
 print "<tr><td align=center>\n";
 print "<table cellpadding=5 border=0><tr><th colspan=4>Optional Settings</th></tr>";
-
+print "<tr><td colspan=4><hr /></td></tr>";
 print "<tr><td align=left>Latitude</td><td><input type=text name=latitude size=10 value='$lat' title='Latitude value (in decimal) (ie. 30.312354)' /></td>";
 print "<td align='right' colspan='2'>";
 if($pingOk)
 {
     print "<button type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;";
+    print "<input type='submit' name='button_uploaddata' value='Upload data to AREDN Servers' />&nbsp;";
 } else {
     print "<button disabled type='button' title='The map is only available if this node has internet access'>Show Map</button>&nbsp;";
 }
@@ -979,7 +1003,8 @@ print "<input type=submit name='button_updatelocation' value='Apply Location Set
 print "</td>\n";
 print "<tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='$lon' title='Longitude value (in decimal) (ie. -95.334454)' /></td>";
 print "<td align=left>Grid Square</td><td align='left'><input type=text name=gridsquare maxlength=6 size=6 value='$gridsquare' title='Gridsquare value (ie. AB12cd)' /></td></tr>\n";
-
+print "<tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr>" if($pingOk);
+print "<tr><td colspan=4><hr /></td></tr>";
 print "<tr>
 <td>Timezone</td>
 <td><select name=time_zone_name tabindex=10>\n";
@@ -992,9 +1017,7 @@ print "</select></td><td align=left>NTP Server</td><td><input type=text name=ntp
 
 print "</table></td></tr>";
 
-print "<tr><td colspan=4>";
-print "<div id='map' style='height: 200px; display: none;'></div><br />" if($pingOk);
-print "</td></tr>";
+
 
 print "</table>\n";
 
@@ -1032,7 +1055,7 @@ if($pingOk)
                 maxZoom: 18,
                 attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
                     '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-                    'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+                    'Imagery &copy;<a href="http://mapbox.com">Mapbox</a>',
                 id: 'mapbox.streets'
         }).addTo(map);
 
@@ -1070,3 +1093,15 @@ EOF
 }
 print "</body>\n";
 print "</html>\n";
+
+sub DEBUGEXIT()
+{
+    my ($text) = @_;
+    http_header();
+    html_header("$node setup", 1);
+    print "DEBUG-";
+    print $text;
+    print "</body>";
+    exit;
+}
+
