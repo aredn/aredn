@@ -1047,6 +1047,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '2400',
          },
+       '0xe0a5' => {
+            'name'            => 'NanoStation Loco M5',
+            'comment'         => 'NanoStation Loco M5 in testing',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '1',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xe105' => {
             'name'            => 'Rocket M5',
             'comment'         => 'Rocket M5 with USB',
