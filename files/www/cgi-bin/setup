@@ -481,6 +481,26 @@ print "<body><center>\n";
 print "
 <script>
 
+function findLocation() {
+    navigator.geolocation.getCurrentPosition(foundLocation, noLocation);
+}
+
+function foundLocation(position)
+{
+    var jlat = position.coords.latitude;
+    var jlon = position.coords.longitude;
+    var latlng = L.latLng(jlat, jlon);
+    marker.setLatLng(latlng);
+    map.setView(latlng,13);
+
+    document.getElementsByName('latitude')[0].value=jlat.toFixed(6).toString();
+    document.getElementsByName('longitude')[0].value=jlon.toFixed(6).toString();
+}
+
+function noLocation()
+{
+    alert('Could not find location.  Try pinning it on the map.');
+}
 function updDist(x) {
     var u = document.getElementById('distance_unit_text').innerHTML;
     var xc= calcDistance(x,u);
@@ -503,13 +523,13 @@ function updDistUnit(u) {
 }
 
 function calcDistance(x, u) {
-    var dv=0;
+    var dv=0.0;
     if(u=='kilometers') {
         dv=x*1000;
     } else {
         dv=x/0.00062137;
     }
-    dv=Math.round(dv);
+    dv=Math.ceil(dv);
     return dv;
 }";
 
@@ -992,6 +1012,9 @@ print "<table cellpadding=5 border=0><tr><th colspan=4>Optional Settings</th></t
 print "<tr><td colspan=4><hr /></td></tr>";
 print "<tr><td align=left>Latitude</td><td><input type=text name=latitude size=10 value='$lat' title='Latitude value (in decimal) (ie. 30.312354)' /></td>";
 print "<td align='right' colspan='2'>";
+
+print "<button type='button' id='findlocation' value='findloc' onClick='findLocation();'>Find Me!</button>&nbsp;";
+
 if($pingOk)
 {
     print "<button type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;";
@@ -1093,15 +1116,4 @@ EOF
 }
 print "</body>\n";
 print "</html>\n";
-
-sub DEBUGEXIT()
-{
-    my ($text) = @_;
-    http_header();
-    html_header("$node setup", 1);
-    print "DEBUG-";
-    print $text;
-    print "</body>";
-    exit;
-}
 
