@@ -1033,7 +1033,9 @@ print "<tr>
 <td><select name=time_zone_name tabindex=10>\n";
 
 foreach my $tz (@$tz_db_names) {
-    selopt($tz, $tz, $time_zone_name);
+    $name = $tz;
+    $name =~ s/\_/ /g;
+    selopt($name, $tz, $time_zone_name);
 }
 
 print "</select></td><td align=left>NTP Server</td><td><input type=text name=ntp_server size=20 value='$ntp_server'></td>";
