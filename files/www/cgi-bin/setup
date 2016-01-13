@@ -489,12 +489,16 @@ function foundLocation(position)
 {
     var jlat = position.coords.latitude;
     var jlon = position.coords.longitude;
-    var latlng = L.latLng(jlat, jlon);
-    marker.setLatLng(latlng);
-    map.setView(latlng,13);
-
+    // update the fields
     document.getElementsByName('latitude')[0].value=jlat.toFixed(6).toString();
     document.getElementsByName('longitude')[0].value=jlon.toFixed(6).toString();
+
+    // try to update the map if Javascript libs have been loaded
+    if (typeof L != 'undefined') {
+        var latlng = L.latLng(jlat, jlon);
+        marker.setLatLng(latlng);
+        map.setView(latlng,13);
+    }
 }
 
 function noLocation()
@@ -1021,6 +1025,7 @@ if($pingOk)
     print "<input type='submit' name='button_uploaddata' value='Upload data to AREDN Servers' />&nbsp;";
 } else {
     print "&nbsp;<button disabled type='button' title='The map is only available if this node has internet access'>Show Map</button>&nbsp;";
+    print "<button disabled type='button' title='Only available if this node has internet access'>Upload data to AREDN Servers</button>&nbsp;";
 }
 
 print "</td>\n";
