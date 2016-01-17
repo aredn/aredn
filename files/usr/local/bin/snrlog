@@ -55,6 +55,7 @@ if ( -e $lastdat )
 $nf = `iw wlan0 survey dump | grep -A 1 'in use' | tail -1`;
 $nf =~ s/^[^-\d]*([-\d]+).*$/$1/;
 chomp $nf;
+if ($nf < -95 or $nf > -50 ) { $nf = "-95"; }
 
 if (! -e $tmpdir ) { system("mkdir $tmpdir > /dev/null"); }
 
