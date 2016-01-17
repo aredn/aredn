@@ -38,7 +38,7 @@ if [ "$MESHFW_TUNNELS_ENABLED" != "1" ]; then
 fi
 
 # Test for pre-existing firewall rules which use a wildcard and only need setup 1 time for multiple tunnel connections
-if ( $(iptables -L forwarding_vpn | egrep "^Chain forwarding_vpn \(.+ references\)" > /dev/null) ) then
+if ( $(iptables -L forwarding_vpn 2>/dev/null | egrep "^Chain forwarding_vpn \(.+ references\)" > /dev/null) ) then
 	rules_exist=1
 else
 	rules_exist=0
