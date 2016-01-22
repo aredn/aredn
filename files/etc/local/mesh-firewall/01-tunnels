@@ -63,13 +63,14 @@ if [ $rules_exist -eq 0  ] ; then
         iptables -A zone_vpn_input -p tcp -m tcp --dport 1978 -j ACCEPT
         iptables -A zone_vpn_input -p tcp -m tcp --dport 23 -j ACCEPT
         iptables -A zone_vpn_input -p tcp -m tcp --dport 9090 -j ACCEPT
+        iptables -A zone_vpn_input -p udp -m udp --dport 161 -j ACCEPT
+        iptables -A zone_vpn_input -j zone_vpn_REJECT
         iptables -I zone_vpn_forward 1 -j zone_vpn_ACCEPT
 	if [ "$MESHFW_MESHGW" -eq 1 ] ; then
         	iptables -I zone_vpn_forward -j zone_wan_dest_ACCEPT
 	else
         	iptables -I zone_vpn_forward -j zone_wan_dest_REJECT
 	fi
-        iptables -A zone_vpn_input -j zone_vpn_ACCEPT
         iptables -A zone_vpn_ACCEPT -o tun+ -j ACCEPT
         iptables -A zone_vpn_ACCEPT -i tun+ -j ACCEPT
         iptables -A zone_vpn_DROP -o tun+ -j DROP
