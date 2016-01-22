@@ -18,7 +18,17 @@
 
 LICENSE
 
-LINK1LED=`readlink -f /sys/class/leds/*link1`
+BOARD_TYPE=$(/usr/local/bin/get_hardwaretype)
+
+case "$BOARD_TYPE" in
+	airrouter)
+		LINK1LED=$(readlink -f /sys/class/leds/ubnt\:green\:globe)
+		;;
+	*)
+		LINK1LED=$(readlink -f /sys/class/leds/*link1)
+		;;
+esac
+
 
 {
   while true; do
