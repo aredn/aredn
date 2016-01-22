@@ -56,6 +56,7 @@ http_header();
 html_header("$node $dmode signal strength", 0);
 
 $header = <<EOF;
+  <link href="/loading.css" rel="stylesheet">
   <script src="/js/jquery-2.1.4.min.js"></script>
   <script src="/js/jquery.canvasjs.min.js"></script>
   <script type="text/javascript">
@@ -74,6 +75,17 @@ $header = <<EOF;
         }
         return vars;
     }
+
+    function hide_spinner() {
+      \$('#content-loading-spinner').dequeue();
+      \$('#content-loading-spinner').hide();
+      \$('#content-overlay').dequeue();
+      \$('#content-overlay').hide();
+    }
+
+    \$(document).ajaxComplete(function() {
+      hide_spinner();
+    });
 
     \$(document).ready(function () {
       var MAXPOINTS=10;
@@ -148,6 +160,15 @@ EOF
 
 $page = <<EOF;
 <body>
+  <div class="overlay" id="content-overlay"></div>
+  <div id="content-loading-spinner-wrapper">
+    <div id="content-loading-spinner">
+        <div class="spinner"></div>
+        <div class="loading-text">
+            Loading . . .
+        </div>
+    </div>
+  </div>
   <center>
     <div class="TopBanner">
       <div class="LogoDiv"><img src="/AREDN.png" class="AREDNLogo"></img></div>
