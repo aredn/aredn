@@ -182,7 +182,6 @@ $wifi_distance = 0 if $wifi_distance =~ /\D/;
 $parms{wifi_distance} = $wifi_distance;
 $parms{wifi_txpower} = $wifi_txpower;
 
-
 #
 # apply the wifi settings
 #
@@ -201,7 +200,6 @@ if($parms{button_apply} or $parms{button_save})
     }
 
 }
-
 
 if($parms{button_updatelocation})
 {
@@ -506,35 +504,34 @@ function noLocation()
     alert('Could not find location.  Try pinning it on the map.');
 }
 function updDist(x) {
-    var u = document.getElementById('distance_unit_text').innerHTML;
-    var xc= calcDistance(x,u);
+    var dvs= calcDistance(x);
+    var xcm=dvs['miles'];
+    var xc=dvs['meters'];
+    var xck=dvs['kilometers'];
+    
     var distBox = document.getElementById('dist');
-    var dist_hidden=document.getElementsByName('wifi_distance')[0];
-    document.getElementsByName('wifi_distance_disp')[0].value = x;
-    dist_hidden.value = xc;  
+    var dist_meters=document.getElementsByName('wifi_distance')[0];
+    document.getElementsByName('wifi_distance_disp_miles')[0].value = xcm;
+    document.getElementsByName('wifi_distance_disp_km')[0].value = xck;
+    document.getElementsByName('wifi_distance_disp_meters')[0].value = xc;
+    dist_meters.value = xc;  
+    
     // if default, then ALERT!
-    if(dist_hidden.value==0) {
+    if(dist_meters.value==0) {
         distBox.className = 'dist-alert';
     } else {
         distBox.className = 'dist-norm';
     }
 }
 
-function updDistUnit(u) {
-    document.getElementById('distance_unit_text').innerHTML = u;
-    var x=document.getElementsByName('wifi_distance_disp')[0].value;
-    updDist(x,u);
-}
 
-function calcDistance(x, u) {
-    var dv=0.0;
-    if(u=='kilometers') {
-        dv=x*1000;
-    } else {
-        dv=x/0.00062137;
-    }
-    dv=Math.ceil(dv);
-    return dv;
+function calcDistance(x) {
+    // x is in KILOMETERS
+    var dvs = new Object();
+    dvs['miles']=(x*0.621371192).toFixed(2);
+    dvs['meters']=Math.ceil(x*1000);
+    dvs['kilometers']=x;
+    return dvs;
 }";
 
 print "
@@ -798,14 +795,17 @@ if($wifi_proto ne "disabled")
     print "</select>&nbsp;&nbsp;<a href=\"/help.html\#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>\n";
 
     print "<tr id='dist' class='dist-norm'><td>Distance to<br />FARTHEST Neighbor</td>\n";
-    $wifi_distance_disp=int($wifi_distance/1000);
-
-    print "<td><input readonly type=text size=4 name='wifi_distance_disp' value='$wifi_distance_disp' title='Distance to the farthest neighbor'>&nbsp;<span id='distance_unit_text'>kilometers</span><br />";
     
-    print "<input id='distance_slider' type='range' min='0' max='150' step='1' value='$wifi_distance_disp' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />";
-    print "<input type='radio' name='distance_unit' value='miles' onchange='updDistUnit(this.value)'>Miles&nbsp;";
-    print "<input type='radio' name='distance_unit' value='kilometers' checked onchange='updDistUnit(this.value)'>Kilometers<br />";
-    print "<input type='hidden' size='6' readonly name='wifi_distance' value='$wifi_distance' />";
+    $wifi_distance=int($wifi_distance);  # in meters
+    $wifi_distance_disp_km=int($wifi_distance/1000);
+    $wifi_distance_disp_miles=sprintf("%.2f",$wifi_distance_disp_km*.621371192);
+
+    print "<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='$wifi_distance_disp_miles' title='Distance to the farthest neighbor'>&nbsp;miles<br />";
+    print "<input disabled size=6 type=text size=4 name='wifi_distance_disp_km' value='$wifi_distance_disp_km' title='Distance to the farthest neighbor'>&nbsp;kilometers<br />";
+    print "<input disabled size=6 type=text size=4 name='wifi_distance_disp_meters' value='$wifi_distance' title='Distance to the farthest neighbor'>&nbsp;meters<br />";
+    
+    print "<input id='distance_slider' type='range' min='0' max='150' step='1' value='$wifi_distance_disp_km' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />";
+    print "<input type='hidden' size='6' name='wifi_distance' value='$wifi_distance' />";
     print "</td></tr>\n";
 
 
@@ -1131,4 +1131,3 @@ EOF
 }
 print "</body>\n";
 print "</html>\n";
-
