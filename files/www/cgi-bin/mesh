@@ -41,6 +41,44 @@ $debug = 0;
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
+%rateL = (
+	'MCS0' => '6.5',
+	'MCS1' => '13',
+	'MCS2' => '19.5',
+	'MCS3' => '26',
+	'MCS4' => '39',
+	'MCS5' => '52',
+	'MCS6' => '58.5',
+	'MCS7' => '65',
+	'MCS8' => '13',
+	'MCS9' => '26',
+	'MCS10' => '39',
+	'MCS11' => '52',
+	'MCS12' => '78',
+	'MCS13' => '104',
+	'MCS14' => '117',
+	'MCS15' => '130',
+);
+
+%rateS = (
+	'MCS0' => '7.2',
+	'MCS1' => '14.4',
+	'MCS2' => '21.7',
+	'MCS3' => '28.9',
+	'MCS4' => '43.3',
+	'MCS5' => '57.8',
+	'MCS6' => '65',
+	'MCS7' => '72.2',
+	'MCS8' => '14.4',
+	'MCS9' => '28.9',
+	'MCS10' => '43.3',
+	'MCS11' => '57.8',
+	'MCS12' => '86.7',
+	'MCS13' => '115.6',
+	'MCS14' => '130',
+	'MCS15' => '144.4',
+);
+
 # collect some variables
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
@@ -93,18 +131,30 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
         {
 		#802.11n
 		$mbps = `egrep 'HT(4|2)0\\\/\(L|S\)GI[ \t]+(A|T)' /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
-		if ($mbps) { $mbps =~ s/HT(4|2)0\/(L|S)GI[[ \tTtPABCD]+MCS[0-9]+[ \t]*([0-9\.]+).*$/$3/ ; }
+		if ($mbps) 
+		{ 
+			$mbps =~ /HT[42]0\/([LS]GI)[ \tTtPABCD]+(MCS[0-9]+)[ \t]*[0-9\.]+[ \t]*([0-9\.]+).*$/ ; 
+			$mbps =  $1 eq "LGI" ?  $rateL{$2}*$3/100 : $rateS{$2}*$3/100 ; 
+		}
 		else 
 		{
 			#802.11a/g
 			$mbps = `egrep \"^A[BCDP \t]+[0-9\.]+\" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
-			if ($mbps) { $mbps =~ s/^A[ \tBCDP]+[0-9\.]+[ \t]+([0-9\.]+).*$/$1/ ; }
+			if ($mbps) 
+			{ 
+				$mbps =~ /^A[ \tBCDP]+([0-9\.]+)[ \t]+[0-9\.]+[ \t]+([0-9\.]+).*$/; 
+				$mbps = $1*$2/100;
+			}
 			else 
 			{
 				#802.11b
 				$mbps = `egrep \"CCK\/LP[ \t]*T\" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
-				if ($mbps) { $mbps =~ s/CCK\/LP[ \tTtP]+[0-9\.]+M[ \t]*([0-9\.]+).*$/$1/ ; }
-				else { $mbps = ""; }
+				if ($mbps) 
+				{ 
+					$mbps =~ /CCK\/LP[ \tTtP]+([0-9\.]+)M[ \t]*[0-9\.]+[ \t]*([0-9\.]+).*$/ ;
+					$mbps = $1*$2/100; 
+				}
+				else { $mbps = "0"; }
 			}
 		}
 		if ( ! $mbps eq "" )
@@ -112,7 +162,7 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
 			$mbps /= $chanbw;
 			$links{$ip}{mbps} = sprintf "%.1f",$mbps; 
 		}
-		else {  $links{$ip}{mbps} = ""; }
+		else {  $links{$ip}{mbps} = "0.0"; }
 	}
     }
     elsif($table eq "Neighbors")
