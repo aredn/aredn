@@ -1245,6 +1245,15 @@ sub hardware_info
             'usechains'       => 0,
             'rfband'          => '2400',
          },
+        '0xe4a2' => {
+            'name'            => 'AirRouter',
+            'comment'         => 'AirRouter in testing',
+            'supported'       => '-2',
+            'maxpower'        => '19',
+            'pwroffset'       => '1',
+            'usechains'       => 0,
+            'rfband'          => '2400',
+         },
         '0xe4b2' => {
             'name'            => 'AirRouter HP',
             'comment'         => 'AirRouter HP in testing',
