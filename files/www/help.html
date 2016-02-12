@@ -187,7 +187,7 @@ ETX should be interpreted with care.  From a quality perspective, the ETX for Re
 </p>
 
 <p>
-Transmitted Mbps (TxMbps) is the measured transmitted throughput, at the packet level, after accounting for packet loss.  The 802.11 driver bases the selection, to each Neighbor, of modulation scheme and number of antennas (multiple polarized spatial streams of data) on the combination that achieves the highest throughput.  If no traffic is being sent to this Neighbor, then the value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>  
+Transmitted Mbps (TxMbps) is calculated with the formula (TxMbps = rate * EWMA) where rate is the 802.11 data rate in use by the transmitter and EWMA is the Exponetially Weighted Moving Average or the current time weighted chance that a packet at this rate will reach the remote station.  If no traffic is being routed to the Neigbor, this value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>  
 </p>
 
 <p>
