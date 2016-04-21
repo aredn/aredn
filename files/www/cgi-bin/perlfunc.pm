@@ -1051,8 +1051,8 @@ sub hardware_info
          },
        '0xe0a5' => {
             'name'            => 'NanoStation Loco M5',
-            'comment'         => 'NanoStation Loco M5 in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoStation Loco M5',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
             'usechains'       => 1,
@@ -1249,8 +1249,8 @@ sub hardware_info
          },
         '0xe4a2' => {
             'name'            => 'AirRouter',
-            'comment'         => 'AirRouter in testing',
-            'supported'       => '-2',
+            'comment'         => 'AirRouter',
+            'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '1',
             'usechains'       => 0,
@@ -1258,8 +1258,8 @@ sub hardware_info
          },
         '0xe4b2' => {
             'name'            => 'AirRouter HP',
-            'comment'         => 'AirRouter HP in testing',
-            'supported'       => '-2',
+            'comment'         => 'AirRouter HP',
+            'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '9',
             'usechains'       => 0,
