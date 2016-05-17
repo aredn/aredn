@@ -152,32 +152,6 @@ sub check_freespace()
     return $fs; 
 }
 
-##########################
-# Config firewall to allow port 5525 on WAN interface
-##########################
-sub open_5525_on_wan() {
-    #my $rc;
-    #$rc=&uci_add_sectiontype("firewall_tun","rule");
-    #$rc=&uci_set_indexed_option("firewall_tun","rule","0","src","wan");
-    #$rc=&uci_set_indexed_option("firewall_tun","rule","0","dest_port","5525");
-    #$rc=&uci_set_indexed_option("firewall_tun","rule","0","proto","tcp");
-    #$rc=&uci_set_indexed_option("firewall_tun","rule","0","target","ACCEPT");
-    #$rc=&uci_commit("firewall_tun");
-    #$rc=&uci_clone("firewall_tun");
-
-    my $filename = '/etc/config/firewall_tun';
-    open(my $fh, '>', $filename) or die "Could not open file '$filename' $!";
-    print $fh "\nconfig rule\n";
-    print $fh "  option src 'wan'\n";
-    print $fh "  option dest_port '5525'\n";
-    print $fh "  option proto 'tcp'\n";
-    print $fh "  option target 'ACCEPT'\n";
-    close $fh;
-    system "cp /etc/config/firewall_tun /etc/config.mesh";
-    system "cat /etc/config.mesh/firewall_tun >> /etc/config.mesh/firewall";
-    system "cat /etc/config.mesh/firewall_tun >> /etc/config/firewall";
-}
-
 sub vpn_setup_required()
 {
     my ($navpage) = @_;
@@ -229,9 +203,6 @@ sub install_vtun
             {
                 # add network interfaces
                 add_network_interfaces();
-
-                # allow port 5525 for server connections
-                open_5525_on_wan();
 
                 # create UCI config file
                 system("touch /etc/config/vtun");

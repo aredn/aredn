@@ -1,10 +1,8 @@
 #!/bin/sh
 <<'LICENSE'
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
+  Copyright (C) 2015 Conrad Lara and Joe Ayers
    See Contributors file for additional contributors
-
-  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,7 +38,7 @@ if [ "$MESHFW_TUNNELS_ENABLED" != "1" ]; then
 fi
 
 # Test for pre-existing firewall rules which use a wildcard and only need setup 1 time for multiple tunnel connections
-if ( $(iptables -L forwarding_vpn | egrep "^Chain forwarding_vpn \(.+ references\)" > /dev/null) ) then
+if ( $(iptables -L forwarding_vpn 2>/dev/null | egrep "^Chain forwarding_vpn \(.+ references\)" > /dev/null) ) then
 	rules_exist=1
 else
 	rules_exist=0
@@ -50,41 +48,46 @@ fi
 if [ $rules_exist -eq 0  ] ; then
 	echo "Adding vtun firewall rules..."
         iptables -N forwarding_vpn
-        iptables -N input_vpn
-        iptables -N zone_vpn
+        iptables -N zone_vpn_input
         iptables -N zone_vpn_ACCEPT
         iptables -N zone_vpn_DROP
         iptables -N zone_vpn_REJECT
         iptables -N zone_vpn_forward
         iptables -I delegate_forward 3 -i tun+ -j zone_vpn_forward
-        iptables -I delegate_input 3 -i tun+ -j zone_vpn
+        iptables -I delegate_input 5 -i tun+ -j zone_vpn_input
         iptables -I delegate_output 3 -j zone_vpn_ACCEPT
-        iptables -A zone_vpn -p icmp -m icmp --icmp-type 8 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 2222 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 8080 -j ACCEPT
-        iptables -A zone_vpn -p udp -m udp --dport 698 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 1978 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 23 -j ACCEPT
-        iptables -A zone_vpn -p tcp -m tcp --dport 9090 -j ACCEPT
-        iptables -I zone_dtdlink_forward 1 -j zone_vpn_ACCEPT
-        iptables -I zone_lan_forward 1 -j zone_vpn_ACCEPT
-        iptables -I zone_wifi_forward 1 -j zone_vpn_ACCEPT
+        iptables -A zone_vpn_input -p icmp -m icmp --icmp-type 8 -j ACCEPT
+        iptables -A zone_vpn_input -p tcp -m tcp --dport 2222 -j ACCEPT
+        iptables -A zone_vpn_input -p tcp -m tcp --dport 8080 -j ACCEPT
+        iptables -A zone_vpn_input -p udp -m udp --dport 698 -j ACCEPT
+        iptables -A zone_vpn_input -p tcp -m tcp --dport 1978 -j ACCEPT
+        iptables -A zone_vpn_input -p tcp -m tcp --dport 23 -j ACCEPT
+        iptables -A zone_vpn_input -p tcp -m tcp --dport 9090 -j ACCEPT
+        iptables -A zone_vpn_input -p udp -m udp --dport 161 -j ACCEPT
+        iptables -A zone_vpn_input -j zone_vpn_REJECT
         iptables -I zone_vpn_forward 1 -j zone_vpn_ACCEPT
 	if [ "$MESHFW_MESHGW" -eq 1 ] ; then
-        	iptables -I zone_vpn_forward -j zone_wan_ACCEPT
+        	iptables -I zone_vpn_forward -j zone_wan_dest_ACCEPT
 	else
-        	iptables -I zone_vpn_forward -j zone_wan_REJECT
+        	iptables -I zone_vpn_forward -j zone_wan_dest_REJECT
 	fi
-        iptables -A zone_vpn -j input_vpn
-        iptables -A zone_vpn -j zone_vpn_ACCEPT
         iptables -A zone_vpn_ACCEPT -o tun+ -j ACCEPT
         iptables -A zone_vpn_ACCEPT -i tun+ -j ACCEPT
         iptables -A zone_vpn_DROP -o tun+ -j DROP
         iptables -A zone_vpn_DROP -i tun+ -j DROP
         iptables -A zone_vpn_REJECT -o tun+ -j reject
         iptables -A zone_vpn_REJECT -i tun+ -j reject
-        iptables -A zone_vpn_forward -j zone_dtdlink_ACCEPT
-        iptables -A zone_vpn_forward -j zone_lan_ACCEPT
-        iptables -A zone_vpn_forward -j zone_wifi_ACCEPT
+        iptables -A zone_vpn_forward -j zone_dtdlink_dest_ACCEPT
+        iptables -A zone_vpn_forward -j zone_lan_dest_ACCEPT
+        iptables -A zone_vpn_forward -j zone_wifi_dest_ACCEPT
         iptables -A zone_vpn_forward -j forwarding_vpn
 fi
+
+
+# Rules that modify core tables and as such always need to be executed as they are flushed on reload/restart
+iptables -I delegate_forward 3 -i tun+ -j zone_vpn_forward
+iptables -I delegate_input 5 -i tun+ -j zone_vpn_input
+iptables -I delegate_output 3 -j zone_vpn_ACCEPT
+iptables -I zone_dtdlink_forward 1 -j zone_vpn_ACCEPT
+iptables -I zone_lan_forward 1 -j zone_vpn_ACCEPT
+iptables -I zone_wifi_forward 1 -j zone_vpn_ACCEPT

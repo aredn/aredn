@@ -492,7 +492,12 @@ system "echo $cfg{dmz_mode} > /etc/config/dmz-mode" if $cfg{dmz_mode};
 
 # Setup node lan dhcp
 if ( $cfg{lan_dhcp_noroute} ) {
-    $cmd .= "uci add_list dhcp.\@dhcp[0].dhcp_option=3 >/dev/null 2>&1;"
+    $cmd .= "uci add_list dhcp.\@dhcp[0].dhcp_option='121,10.0.0.0/8,$cfg{lan_ip},172.16.0.0/12,$cfg{lan_ip}' >/dev/null 2>&1;";
+    $cmd .= "uci add_list dhcp.\@dhcp[0].dhcp_option='249,10.0.0.0/8,$cfg{lan_ip},172.16.0.0/12,$cfg{lan_ip}' >/dev/null 2>&1;";
+    $cmd .= "uci add_list dhcp.\@dhcp[0].dhcp_option=3 >/dev/null 2>&1;";
+} else {
+    $cmd .= "uci add_list dhcp.\@dhcp[0].dhcp_option='121,10.0.0.0/8,$cfg{lan_ip},172.16.0.0/12,$cfg{lan_ip},0.0.0.0/0,$cfg{lan_ip}' >/dev/null 2>&1;";
+    $cmd .= "uci add_list dhcp.\@dhcp[0].dhcp_option='249,10.0.0.0/8,$cfg{lan_ip},172.16.0.0/12,$cfg{lan_ip},0.0.0.0/0,$cfg{lan_ip}' >/dev/null 2>&1;";
 }
 
 # finish up

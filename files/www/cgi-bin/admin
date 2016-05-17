@@ -124,8 +124,11 @@ if($parms{button_ul_fw} and -f "/tmp/web/upload/file")
     {
 	$fw_install = 1;
 
-	# check firmware header
+    # drop the page cache to take pressure of tmps when checking the firmware
+    `echo 3 > /proc/sys/vm/drop_caches`;
 	
+    # check firmware header
+
 	if(system "/usr/local/bin/firmwarecheck.sh $tmpdir/firmware")
 	{
 	    push @fw_output, "Firmware CANNOT be updated\n";
@@ -228,6 +231,10 @@ if($fw_install and -f "$tmpdir/firmware")
     {
         if ( $parms{checkbox_keep_settings} )
         {
+            # drop the page cache to take pressure of tmps for the upgrade process
+            `echo 3 > /proc/sys/vm/drop_caches`;        
+            `/usr/local/bin/upgrade_kill_prep`;
+
             open (my $SYSUPGRADECONF, "/etc/arednsysupgrade.conf") or die "Failed to open arednsysupgrade.conf";
             open (my $TMPSYSUPGRADECONF, '>', "/tmp/sysupgradefilelist") or die "Failed to open TMPSYSUPGRADECONF";
             while (<$SYSUPGRADECONF>){
@@ -245,12 +252,13 @@ if($fw_install and -f "$tmpdir/firmware")
             if ($? == 1) {
                 print "
 <center><h2>ERROR: Could not backup filesystem.</h2>
-<h3>An error occured trying to backup the file system
+<h3>An error occured trying to backup the file system. Node will now reboot.
 </center>
 ";
             page_footer();
             print "</body></html>";
             nvram_set("nodeupgraded","0");
+            system "/sbin/reboot";
             exit 1;
             }
 
@@ -267,7 +275,12 @@ When the Status 4 LED is solid on you can get your new DHCP lease and reconnect 
 (This page will automatically reload in 2&frac12; minutes)</h3>
 </center></body></html>
 ";
-            open(FILE, "/sbin/sysupgrade -f /tmp/arednsysupgradebackup.tgz -q $tmpdir/firmware 2>&1 |") or die;
+            
+            #open(FILE, "/sbin/sysupgrade -f /tmp/arednsysupgradebackup.tgz -q $tmpdir/firmware 2>&1 |") or die;
+            # Fork this into the background so uhttpd can finish and send the rest of the page to the client
+            `/usr/local/bin/spawn_sysupgrade $tmpdir/firmware 2>&1 &`;
+            `sleep 2 && killall uhttpd &`;            
+            exit;
         } 
         else 
         {

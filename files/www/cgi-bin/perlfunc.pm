@@ -210,6 +210,8 @@ sub read_postdata
 	    $line = fgets(10);
 	    push(@parse_errors, "not blank: '$line'") unless $line eq "\r\n";
 	    $tmp = "";
+        # drop the page cache to take pressure of tmps when uploading file
+        `echo 3 > /proc/sys/vm/drop_caches`;
 	    system "mkdir -p /tmp/web/upload";
 	    open($handle, ">/tmp/web/upload/file");
 	    while(1)
@@ -1049,8 +1051,8 @@ sub hardware_info
          },
        '0xe0a5' => {
             'name'            => 'NanoStation Loco M5',
-            'comment'         => 'NanoStation Loco M5 in testing',
-            'supported'       => '-2',
+            'comment'         => 'NanoStation Loco M5',
+            'supported'       => '1',
             'maxpower'        => '22',
             'pwroffset'       => '1',
             'usechains'       => 1,
@@ -1245,10 +1247,19 @@ sub hardware_info
             'usechains'       => 0,
             'rfband'          => '2400',
          },
+        '0xe4a2' => {
+            'name'            => 'AirRouter',
+            'comment'         => 'AirRouter',
+            'supported'       => '1',
+            'maxpower'        => '19',
+            'pwroffset'       => '1',
+            'usechains'       => 0,
+            'rfband'          => '2400',
+         },
         '0xe4b2' => {
             'name'            => 'AirRouter HP',
-            'comment'         => 'AirRouter HP in testing',
-            'supported'       => '-2',
+            'comment'         => 'AirRouter HP',
+            'supported'       => '1',
             'maxpower'        => '19',
             'pwroffset'       => '9',
             'usechains'       => 0,

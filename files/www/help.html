@@ -11,6 +11,7 @@
 Table of Contents:
 <ul>
 <li><a href='#status'>Status Page</a></li>
+<li><a href='#meshstatus'>Mesh Status Page</a></li>
 <li>Setup</li>
 <ul>
 <li><a href='#setup'>Basic Setup</a></li>
@@ -138,7 +139,7 @@ temporary files. Memory is the amount of RAM available for running processes.
 </p>
 
 <br><br><hr>
-<a name=setup><h2>Mesh Status</h2></a>
+<a name=meshstatus><h2>Mesh Status</h2></a>
 <p>
 The Mesh Status page lists AREDN Mesh Nodes, link quality information, and the services advertised on the Mesh.  There are 3 sections:
 </p>
@@ -187,7 +188,7 @@ ETX should be interpreted with care.  From a quality perspective, the ETX for Re
 </p>
 
 <p>
-Transmitted Mbps (TxMbps) is the measured transmitted throughput, at the packet level, after accounting for packet loss.  The 802.11 driver bases the selection, to each Neighbor, of modulation scheme and number of antennas (multiple polarized spatial streams of data) on the combination that achieves the highest throughput.  If no traffic is being sent to this Neighbor, then the value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>  
+Transmitted Mbps (TxMbps) is calculated with the formula (TxMbps = rate * EWMA) where rate is the 802.11 data rate in use by the transmitter and EWMA is the Exponetially Weighted Moving Average or the current time weighted chance that a packet at this rate will reach the remote station.  If no traffic is being routed to the Neigbor, this value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>  
 </p>
 
 <p>
@@ -482,6 +483,22 @@ same way that most routers use an internet connection, and all services
 provided by computers on the LAN can only be accessed through port forwarding
 rules.  A single DMZ server can be set up to accept all incoming traffic that
 is not already handled by other rules or by the node itself.
+</p>
+<hr width=500>
+<a name='optionalsettings'><h4>Optional Settings</h4>
+<p>
+If you choose, you can specify your latitude, longitude, and gridsquare for location purposes.  The lat/lon values should be in decimal format (ex. 30.444522 and -95.111234).
+<ul>
+<li>The <strong>Find Me!</strong> button to use your location aware browser to populate the values.  This works very well if you are viewing this page from a mobile device with a built-in GPS.</li>
+<li>Use the <strong>Apply Location Settings</strong> button to persist the lat/lon and gridsquare values.  A "Save Changes" button click is not required for these settings.</li>
+<li>If you have an active internet connection available, the "Show Map" and "Upload Data to AREDN Servers" buttons will become active.</li>
+<li>The <strong>Show Map</strong> button will display a map that allows you to click on the position where your node is located, or, to drag an existing marker to a different location on the map.  Both of these activities will automatically update the lat/lon fields on the page.</li>
+<li>The <strong>Upload Data to AREDN Servers</strong> button will send your node information (no highly sensitive data such as passwords are sent) to an AREDN server on the internet. By submitting this information you hereby allow AREDN to publish your node location on a public mapping service and utilize the information for other such reasons as AREDN determines to be useful, including but not limited to statistical analysis.  If you wish to remove your node location from the public mapping service, simply clear/erase your lat/lon values, "Apply Location Settings", and then "Upload Data to AREDN Servers".</li>
+</ul>
+To see a sample of the information that will be sent to the AREDN server, click <a href='http://localnode.local.mesh:8080/cgi-bin/sysinfo.json?hosts=1'>HERE</a> and <a href='http://localnode.local.mesh:9090/topology'>HERE</a>.  (You can replace "localnode" with your ACTUAL node name to see the data from that node.)<br />
+</p>
+<p>
+You may set the timezone where the node is located as well as setting the NTP server that the node will connect to.  A "Save Changes" button click IS required for timezone and NTS server settings, as well as a subsequent reboot.
 </p>
 
 <hr width=500>
