@@ -2,10 +2,8 @@
 =for commnet
 
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
+  Copyright (C) 2015 Darryl Quinn
    See Contributors file for additional contributors
-
-  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,7 +31,6 @@
   Modified versions must be modified to attribute to the original source
   and be marked in reasonable ways as differentiate it from the original
   version.
-
 =cut
 
 $debug = 0;
@@ -41,204 +38,195 @@ $debug = 0;
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
+chomp ($tzone=`date +%Z`);
+read_query_string();
+
 # collect some variables
 $node = nvram_get("node");
 $node = "NOCALL" unless $node;
 
-read_query_string();
-
-system "mkdir -p /tmp/web";
-system "rm -f /tmp/web/siglevel" if $parms{start};
-
-# get the current levels
-
-($s, $n) = get_wifi_signal(get_interface("wifi"));
-if($s eq "N/A") { $s = $n = "---" }
-
-# load the previous levels
-
-if(open(FILE, "/tmp/web/siglevel"))
+if($parms{"realtime"} )
 {
-    chomp($count = <FILE>);
-    chomp($last_start = <FILE>);
-    chomp($lineS = <FILE>);
-    chomp($lineN = <FILE>);
-    chomp($lineR = <FILE>);
-    close(FILE);
-    @listS = split / /, $lineS;
-    @listN = split / /, $lineN;
-    @listR = split / /, $lineR;
-    push @listS, $s;
-    push @listN, $n;
-    
-    if($count == 20)
-    {
-	shift @listS;
-	shift @listN;
-	shift @listR;
-    }
-    else
-    {
-	++$count;
-    }
+  $dmode="Realtime";
+} else {
+  $dmode="Archived";
 }
-else
-{
-    $count = 1;
-    @listS = ($s);
-    @listN = ($n);
-    $last_start = 0;
-}
-
-# gather statistics
-
-$good = 0;
-$minS = $minN = $minR = 1000;
-$avgS = $avgN = 0;
-$maxS = $maxN = $maxR = -1000;
-
-for($i = 0; $i < $count; $i++)
-{
-    $s = $listS[$i];
-    next if $s eq "---";
-    ++$good;
-    $n = $listN[$i];
-    $r = $s - $n;
-    
-    $minS = $s if $s < $minS;
-    $minN = $n if $n < $minN;
-    $minR = $r if $r < $minR;
-    
-    $maxS = $s if $s > $maxS;
-    $maxN = $n if $n > $maxN;
-    $maxR = $r if $r > $maxR;
-    
-    $avgS += $s;
-    $avgN += $n;
-}
-
-if($good)
-{
-    $s = $listS[-1];
-    $n = $listN[-1];
-    $r = ($s eq "---") ? "---" : $s - $n;
-    $avgS = int($avgS / $good);
-    $avgN = int($avgN / $good);
-    $avgR = $avgS - $avgN;
-    push @listR, $avgR;
-
-    # make the graph
-
-    if($s eq "---" or ($r >= $last_start and $r <= $last_start + 30))
-    {
-	$start = $last_start;
-    }
-    else
-    {
-	$start = 10*int(($maxR + 9)/10) - 30;
-	while($r < $start) { $start -= 10 }
-        $start = 0 if $start < 0;
-    }
-
-    for($i = $count - 1; $i >= 0; $i--)
-    {
-	$str = " " x 30;
-
-	if($listS[$i] ne "---")
-	{
-	    $r2 = $listS[$i] - $listN[$i] - $start;
-
-	    if($r2 > 30)
-	    {
-		$r2 = 29;
-		substr($str, 30, 1) = ">";
-	    }
-
-	    substr($str, 0, $r2 + 1) = "*" x ($r2 + 1) if $r2 >= 0;
-	    substr($str, 0, 1) = "<" if $r2 < 0;
-
-	    if($listR[$i] >= $start and $listR[$i] <= $start + 30)
-	    {
-		substr($str, $listR[$i] - $start, 1) = "|";
-	    }
-	}
-
-	push @graph, "   $str\n";
-    }
-
-    substr($graph[0], 0, 2) = ">>";
-}
-else
-{
-    $s = $n = $r = "---";
-    $maxS = $maxN = $maxR = "---";
-    $avgS = $avgN = $avgR = "---";
-    $minS = $minN = $minR = "---";
-    push @listR, "---";
-    $start = 0;
-}
-
-# store the level history
-
-open(FILE, ">/tmp/web/siglevel");
-print FILE "$count\n$start\n@listS\n@listN\n@listR\n";
-close(FILE);
-
-    
-# generate the page
 
 http_header();
-html_header("$node signal strength", 0);
-print "<meta http-equiv='refresh' content='2;url=/cgi-bin/signal'>\n";
-print "</head>\n";
-print "<body><form method=post action=/cgi-bin/status enctype='multipart/form-data'>\n";
-print "<center>\n";
+html_header("$node $dmode signal strength", 0);
 
-alert_banner();
+$header = <<EOF;
+  <link href="/loading.css" rel="stylesheet">
+  <script src="/js/jquery-2.1.4.min.js"></script>
+  <script src="/js/jquery.canvasjs.min.js"></script>
+  <script type="text/javascript">
+    var dps=[[{"label":"Init","y":-95}],[{"label":"Init","y":-95}]];
+      
+    // Read a page's GET URL variables and return them as an associative array.
+    function getUrlVars()
+    {
+        var vars = [], hash;
+        var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+        for(var i = 0; i < hashes.length; i++)
+        {
+            hash = hashes[i].split('=');
+            vars.push(hash[0]);
+            vars[hash[0]] = hash[1];
+        }
+        return vars;
+    }
 
-print "<h1>$node signal strength</h1><hr>\n";
+    function hide_spinner() {
+      \$('#content-loading-spinner').dequeue();
+      \$('#content-loading-spinner').hide();
+      \$('#content-overlay').dequeue();
+      \$('#content-overlay').hide();
+    }
 
-print "<table cellpadding=5><tr>\n";
-print "<td align=center><button type=button onClick='window.location=\"status\"' title='Return to the status page'>Quit</button></td>\n";
-print "<td><font size=6><b>Signal</b></font></td><td>&nbsp;</td>\n";
-print "<td><font size=6><b>Noise</b></font></td><td>&nbsp;</td>\n";
-print "<td><font size=6><b>Ratio</b></font></td><td>&nbsp;</td>\n";
+    \$(document).ajaxComplete(function() {
+      hide_spinner();
+    });
 
-# SNR meter
-print "<td rowspan=5 valign=top><b><pre>";
-printf "%4d%10d%10d%10d\n", $start, $start + 10, $start + 20, $start + 30;
-print "   | . . . . | . . . . | . . . . |\n";
-print @graph;
-print "</pre></b></td>";
+    \$(document).ready(function () {
+      var MAXPOINTS=10;
+      var chart = new CanvasJS.Chart("chartContainer", {
+        zoomEnabled: true,
+        backgroundColor: "#E7E7E7",
+        title: {
+          text: "$dmode Signal to Noise"
+        },
+        legend: {
+          horizontalAlign: "right", // left, center ,right 
+          verticalAlign: "center",  // top, center, bottom
+        },
+        axisX: { 
+           title: "Time (in $tzone)",
+           labelFontSize: 10,
+           labelAngle: -45,
+        },
+        axisY: {
+          title: "dBm",
+          interlacedColor: "#F0F8FF",
+        },
+        data: [
+          {
+            type: "spline",
+            showInLegend: true, 
+            legendText: "Signal",
+            toolTipContent: "Signal: {y}dBm @ {label}",
+            dataPoints: dps[0]
+          },{
+            type: "line",
+            showInLegend: true, 
+            legendText: "Noise",
+            toolTipContent: "Noise: {y}dBm @ {label}",
+            dataPoints: dps[1]
+          }
+        ],
+      }); // --- chart
 
-print "</tr><tr>\n";
-print "<td align=center><font size=6>now</font></td>\n";
-print "<td align=center><font size=7><b>$s</b></font></td><td>&nbsp;</td>\n";
-print "<td align=center><font size=7><b>$n</b></font></td><td>&nbsp;</td>\n";
-print "<td align=center><font size=7><b>$r</b></font></td><td>&nbsp;</td>\n";
+      var updateArchiveChart = function () {
+        \$.getJSON("/cgi-bin/signal.json?device=$parms{device}", function (result) {
+          chart.options.data[0].dataPoints = result[0];
+          chart.options.data[1].dataPoints = result[1];
+          chart.render();
+        });
+      };  
 
+      var updateRealtimeChart = function () {
+        \$.getJSON("/cgi-bin/signal.json?realtime=1&device=$parms{device}", function (result) {
+          dps[0].push(result[0][0]);
+          dps[1].push(result[1][0]);
+          chart.render();
+        });
+      };  
 
-print "</tr><tr>\n";
-print "<td align=center><font size=6>average</font></td>\n";
-print "<td align=center><font size=7><b>$avgS</b></font></td><td>&nbsp;</td>\n";
-print "<td align=center><font size=7><b>$avgN</b></font></td><td>&nbsp;</td>\n";
-print "<td align=center><font size=7><b>$avgR</b></font></td><td>&nbsp;</td>\n";
-print "<tr><td align=center><font size=5><nobr>n = $good/$count</nobr></font></td>\n";
-print "<td align=center><font size=5><nobr>max: $maxS</nobr><br><nobr>min: $minS</nobr></font></td>";
-print "<td>&nbsp;</td>";
-print "<td align=center><font size=5><nobr>max: $maxN</nobr><br><nobr>min: $minN</nobr></font></td>";
-print "<td>&nbsp;</td>";
-print "<td align=center><font size=5><nobr>max: $maxR</nobr><br><nobr>min: $minR</nobr></font></td>\n";
-print "<td>&nbsp;</td>";
-print "</tr><tr><td height=150 colspan=7>&nbsp;</td>";
-print "</tr></table>\n";
+      var dmode = getUrlVars()["realtime"];
 
-print "</center>\n";
-print "</form>\n";
+      if(dmode) {
+        updateRealtimeChart();
+        setInterval(function() {updateRealtimeChart()}, 1000);
+      } else {
+        updateArchiveChart();
+        setInterval(function() {updateArchiveChart()}, 60000);
+      }
+      chart.render();
+    }); // --- document.ready
+  </script>
+  </head>
+EOF
 
+$page = <<EOF;
+<body>
+  <div class="overlay" id="content-overlay"></div>
+  <div id="content-loading-spinner-wrapper">
+    <div id="content-loading-spinner">
+        <div class="spinner"></div>
+        <div class="loading-text">
+            Loading . . .
+        </div>
+    </div>
+  </div>
+  <center>
+    <div class="TopBanner">
+      <div class="LogoDiv"><img src="/AREDN.png" class="AREDNLogo"></img></div>
+    </div>
+    <h1><big>$node</big></h1><hr>
+    <nobr>
+    <button onclick="window.location.href='/cgi-bin/signal'">Archive</button>
+    <button onclick="window.location.href='/cgi-bin/signal?realtime=1'">Realtime</button>
+    <button onclick="window.location.href='/cgi-bin/status'">Quit</button>
+    <br />
+    <div id="deviceSelector">
+    <form name="deviceSelector" method="GET" action="/cgi-bin/signal">
+    Selected Device:&nbsp;<select name="device" onChange="this.form.submit();">
+EOF
+
+# get a list of files from /tmp/snrlog
+my @files = `ls -1A /tmp/snrlog`;
+$parms{device}="" if(!/$parms{device}/ ~~ @files);
+
+# default to "Strongest Signal" for Realtime
+if(! $parms{device} and $parms{realtime}) {
+  $page = $page . "<option selected value='strongest'>Strongest Signal</option>";
+} 
+
+$firstSel=1;
+# iterate over each file
+foreach $logfile (@files)
+{
+  chomp($logfile);
+  my ($dmac, $dname) = $logfile =~ /^(.*?)\-(.*)/;
+  $dname=$dmac if($dname eq '');
+  if($parms{device} eq $logfile or (!$parms{realtime} and $firstSel)) {
+    $page = $page . "<option selected value='$logfile'>$dname</option>\n";
+    $firstSel=0;
+  } else {
+    $page = $page . "<option value='$logfile'>$dname</option>\n";
+  }
+}
+
+$page = $page . "</select>\n";
+$page = $page . "<input type='hidden' name='realtime' value='1'></input>\n" if($parms{realtime} eq "1");
+$page = $page . <<EOF;    
+    </form>
+    </div>
+    <div id="chartContainer" style="width: 800px; height: 380px;"></div>
+  </center>
+EOF
+
+print $header;
+print $page;
 show_debug_info();
-show_parse_errors();
+print "</body></html>";
 
-page_footer();
-print "</body>\n";
-print "</html>\n";
+sub DEBUGEXIT()
+{
+    my ($text) = @_;
+    http_header();
+    html_header("$node setup", 1);
+    print "DEBUG-";
+    print $text;
+    print "</body>";
+    exit;
+}

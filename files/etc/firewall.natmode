@@ -14,5 +14,5 @@ iptables -t mangle -I PREROUTING -d $dtdlinkip/32 -j MARK --set-xmark 0x15/0xfff
 
 # Mark and masq local traffic going out the dtdlink interface.
 iptables -t nat -A zone_lan_prerouting -j MARK --set-xmark 0xe/0xffffffff
-iptables -t nat -A zone_dtdlink_nat -m mark --mark 0xe -j MASQUERADE 
+iptables -t nat -A zone_dtdlink_postrouting -m mark --mark 0xe -j MASQUERADE 
 

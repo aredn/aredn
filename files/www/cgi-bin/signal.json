@@ -1,0 +1,126 @@
+#!/usr/bin/perl
+=for commnet
+
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2015 Conrad Lara
+   See Contributors file for additional contributors
+
+  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material conained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+=cut
+
+BEGIN {push @INC, '/www/cgi-bin'};
+use perlfunc;
+
+read_query_string();
+
+my $debug = 0;
+my $dirname="/tmp/snrlog";
+my @values;
+my $counter=0;
+my $sjson;
+my $njson;
+
+system("mkdir $dirname") unless (-d $dirname);
+
+if($parms{"realtime"}) {
+  # ==== REALTIME DATA =====
+  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);          
+  $d = sprintf ("%02d:%02d:%02d", $hour, $min, $sec);
+
+  if($parms{device} eq '' or $parms{device} eq 'strongest') {
+    ($s, $n) = get_wifi_signal(get_interface("wifi"));                              
+  } else {
+    my ($dmac, $dname) = $parms{device} =~ /^(.*?)\-(.*)/;
+    ($s, $n) = get_realtime_signal($dmac);
+  }
+
+  $sjson= sprintf("{\"label\":\"%s\",\"y\":%s}",$d,$s);
+  $njson= sprintf("{\"label\":\"%s\",\"y\":%s}",$d,$n);
+} else {
+  # ==== ARCHIVE DATA =====
+  # --- Load the snr data into an array
+  if($parms{device} eq '') { chomp ($parms{device}=`ls -1A $dirname | head -1`); }
+
+  $filename=$dirname . "/" . $parms{device};
+  open my $fh, '<', $filename or die "Could not open file '$filename' $!";
+  chomp(my @lines = <$fh>);
+  close $fh;
+
+  # --- iterate over each line and build the json strings
+  foreach my $line (@lines) {
+    @values = split(',', $line);
+    chomp($values[0]);
+    chomp($values[1]);
+    chomp($values[2]);
+    #print "{\"label\":\"$values[0]\",\"y\":\"$values[1]\",\"n\":\"$values[2]\"},";
+    $sjson= join("", $sjson, sprintf("{\"label\":\"%s\",\"y\":%s}",$values[0],$values[1]));
+    $njson= join("", $njson, sprintf("{\"label\":\"%s\",\"y\":%s}",$values[0],$values[2]));
+
+    # --- properly terminate json
+    if(++$counter != scalar(@lines)) {
+      $sjson=join("", $sjson, ",");
+      $njson=join("", $njson, ",");
+    }
+  }
+}
+
+&json_header();
+
+print "[[";
+print $sjson;
+print "],[";
+print $njson;
+print "]]";
+
+
+sub json_header
+{
+   # THIS MUST BE ONE LINE!
+   # otherwise an intermittent busybox bug will incorrectly "fix" the generated output
+   #    print "HTTP/1.0 200 OK\r\n";  # Not needed under Uhttpd
+   print "Content-type: application/json\r\n";
+   print "Cache-Control: no-store\r\n";
+   print "\r\n";
+}
+
+sub get_realtime_signal()
+{
+  my $s, $n;
+  my ($var) = @_;
+    return ("-1","-1") if not defined $var;
+    if (-d "/sys/kernel/debug/ieee80211/phy0/netdev:wlan0/stations/$var") {
+      chomp($s = `cat /sys/kernel/debug/ieee80211/phy0/netdev:wlan0/stations/$var/last_signal`);
+    } else {
+      return ("-95","-95");
+    }
+    ($junk, $n) = get_wifi_signal(get_interface("wifi")); 
+    return ($s, $n);
+}

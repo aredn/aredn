@@ -210,6 +210,8 @@ sub read_postdata
 	    $line = fgets(10);
 	    push(@parse_errors, "not blank: '$line'") unless $line eq "\r\n";
 	    $tmp = "";
+        # drop the page cache to take pressure of tmps when uploading file
+        `echo 3 > /proc/sys/vm/drop_caches`;
 	    system "mkdir -p /tmp/web/upload";
 	    open($handle, ">/tmp/web/upload/file");
 	    while(1)
@@ -566,7 +568,7 @@ sub save_setup
     open(FILE, ">$_[0]") or return 0;
     foreach(sort keys %parms)
     {
-	next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|dtdlink)_/;
+	next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|dtdlink|ntp|time)_/;
 	print FILE "$_ = $parms{$_}\n";
     }
     close(FILE);
@@ -855,6 +857,15 @@ sub validate_hostname
     return 0;
 }
 
+# validate_fqdn from http://stackoverflow.com/questions/106179/regular-expression-to-match-dns-hostname-or-ip-address
+
+sub validate_fqdn {
+   my $testval = shift(@_);                                
+   ( $testval =~ m/^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]+)\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/ )
+   ? return 1
+   : return 0;
+}
+
 sub validate_port
 {
     my($port) = @_;
@@ -1037,6 +1048,15 @@ sub hardware_info
             'pwroffset'       => '5',
             'usechains'       => 1,
             'rfband'          => '2400',
+         },
+       '0xe0a5' => {
+            'name'            => 'NanoStation Loco M5',
+            'comment'         => 'NanoStation Loco M5',
+            'supported'       => '1',
+            'maxpower'        => '22',
+            'pwroffset'       => '1',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
          },
         '0xe105' => {
             'name'            => 'Rocket M5',
@@ -1224,6 +1244,24 @@ sub hardware_info
             'supported'       => '1',
             'maxpower'        => '16',
             'pwroffset'       => '12',
+            'usechains'       => 0,
+            'rfband'          => '2400',
+         },
+        '0xe4a2' => {
+            'name'            => 'AirRouter',
+            'comment'         => 'AirRouter',
+            'supported'       => '1',
+            'maxpower'        => '19',
+            'pwroffset'       => '1',
+            'usechains'       => 0,
+            'rfband'          => '2400',
+         },
+        '0xe4b2' => {
+            'name'            => 'AirRouter HP',
+            'comment'         => 'AirRouter HP',
+            'supported'       => '1',
+            'maxpower'        => '19',
+            'pwroffset'       => '9',
             'usechains'       => 0,
             'rfband'          => '2400',
          },
@@ -1437,6 +1475,44 @@ sub css_options
         ($dir,$file)  = ($1,$2);
         print "<option value=\"$file.css\">$file</option>" unless $file eq "style";
     }
+}
+
+sub is_online()
+{
+    my $online=0;
+    if(get_default_gw() ne "none") 
+    {
+        $online=1;    
+    }
+    return $online;
+}
+
+sub tz_names_hash {
+    my %hash;
+
+    open(FH, "< /etc/zoneinfo");
+    while(<FH>) {
+        chomp($_);
+        ($name, $string) = split(/\t/, $_);
+        $hash{$name} = $string;
+    }
+    close(FH);
+
+    return \%hash;
+}
+
+sub tz_names_array {
+    my @array;
+
+    open(FH, "< /etc/zoneinfo");
+    while(<FH>) {
+        chomp($_);
+        ($name, $string) = split(/\t/, $_);
+        push(@array, $name);
+    }
+    close(FH);
+
+    return \@array;
 }
 
 #weird uhttpd/busybox error requires a 1 at the end of this file

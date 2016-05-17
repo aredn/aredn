@@ -1,0 +1,174 @@
+#!/usr/bin/perl
+=for commnet
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2015 Joe Ayers  ae6xe@arrl.net and Darryl Quinn K5DLQ
+  See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+  See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+=cut
+
+#delay just after rssi_monitor has a chance to run noise floor calibration
+sleep 5;
+
+$MAXLINES=2880; # 2 days worth
+$tmpdir="/tmp/snrlog";
+$lastdat="/tmp/snr.dat";
+$sigdir="/sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations";
+
+if ( -e $lastdat )
+{
+  open(FILE, "<$lastdat") or die "Unable to read \"$lastdat\"";
+  while($line = <FILE>)
+  {
+    ($mac,$last) = split /\|/, $line;
+    chomp ($lasttime{$mac} = $last);
+  }
+  close FILE ;
+}
+
+$nf = `iw wlan0 survey dump | grep -A 1 'in use' | tail -1`;
+$nf =~ s/^[^-\d]*([-\d]+).*$/$1/;
+chomp $nf;
+if ($nf < -95 or $nf > -50 ) { $nf = "-95"; }
+
+if (! -e $tmpdir ) { system("mkdir $tmpdir > /dev/null"); }
+
+($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
+$d = sprintf ("%02d/%02d %02d:%02d:%02d",$mon+1, $mday,$hour, $min, $sec);
+chomp ($now=`cat /proc/uptime | cut -f1 -d" "`);
+
+foreach $sigmac ( glob "$sigdir/*" )
+{
+  $sigmac =~ s/^.*\///;
+  chomp $sigmac;
+
+  @maclist = glob "$tmpdir/$sigmac*";
+  if (@maclist) { $macfname = $maclist[-1]; }
+  else { $macfname = ""; }
+
+  if ($macfname) 
+  { 
+    $macfname =~ /^.*\/([^-]*)-(.*)$/ ; 
+    $isFile=$1;
+    $hnamef=$2;
+  }
+  else
+  {
+    $macfname = "";
+    $isFile = "";
+    $hnamef = "";
+  }
+  $ipsig    = "";
+  chomp ($ipsig = `cat /proc/net/arp | grep $sigmac | grep 'wlan0' | cut -f1 -d\" "`);
+  $hname="";
+  foreach(`nslookup $ipsig`)
+  {
+    next unless ($hname) = /Address 1: $ipsig (\S+)/;
+    $hname =~ s/\..*$// ;
+    break;
+  }
+
+  if (($hnamef and $hnamef eq $hname ) or ($hname and $isFile eq "" ))
+  {
+    $sigdat = "$sigmac-$hname";
+  }
+  elsif ( $hnamef eq $ipsig and $hname )
+    {
+      system("mv $tmpdir/$sigmac-$ipsig $tmpdir/$sigmac-$hname > /dev/null");
+      $sigdat = "$sigmac-$hname";
+    }
+    elsif ($hname and ! $hnamef and $isFile )
+      {
+        system("mv $tmpdir/$sigmac- $tmpdir/$sigmac-$hname > /dev/null");
+        $sigdat = "$sigmac-$hname";
+      }
+      elsif (( $hnamef eq $ipsig) or ( $ipsig and ! $isFile ))
+        {
+         $sigdat = "$sigmac-$ipsig";
+        }
+        elsif ( $isFile and ! $hnamef and $ipsig )
+          {
+            system("mv $tmpdir/$sigmac- $tmpdir/$sigmac-$ipsig > /dev/null");
+            $sigdat = "$sigmac-$ipsig";
+          }
+          elsif ($hnamef and ! $hname )
+          {
+            $sigdat = "$sigmac-$hnamef";
+          }
+          elsif ( $hnamef and $hname and $hnamef ne $hname )
+            {
+              system("mv $tmpdir/$sigmac-$hnamef $tmpdir/$sigmac-$hname > /dev/null");
+              $sigdat = "$sigmac-$hname";
+            }
+            else
+              {
+                $sigdat = "$sigmac-";
+              }
+
+  chomp ($siglevel = `cat $sigdir/$sigmac/last_signal`) ;
+  if ($siglevel < -95 or $siglevel >= 0 ) { $siglevel = "-95"; }
+
+  open(my $fh, '>>', "$tmpdir/$sigdat") or die "Could not open file '$tmpdir/$sigdat' $!";
+  print $fh "$d,$siglevel,$nf\n";
+  close $fh;
+
+  chomp ($lcount=`wc -l < $tmpdir/$sigdat`);
+
+  if($lcount>$MAXLINES+10)
+  {
+    $rc=`tail -n$MAXLINES $tmpdir/$sigdat > $tmpdir/$sigdat.tmp`;
+    $rc=`mv $tmpdir/$sigdat.tmp $tmpdir/$sigdat`;
+  }
+  $neighbor{$sigmac}="1";
+  $lasttime{$sigmac}=$now;
+}
+
+# process neigbors that are no longer connected
+foreach $sigmac (`ls $tmpdir`)
+{
+  chomp $sigmac ;
+  $sigf = $sigmac;
+  $sigmac =~ s/-.*$//;
+
+  if ( $now - $lasttime{$sigmac} > 25000 )
+  {
+    unlink "$tmpdir/$sigf" ;
+    delete $lasttime{$sigmac};
+  }
+  elsif ( ! $neighbor{$sigmac} )
+    {
+      open(my $fh, '>>', "$tmpdir/$sigf") or die "Could not open file '$tmpdir/$sigf' $!";
+      print $fh "$d,-95,-95\n";
+      close $fh;
+    }
+}
+
+open($fh, ">$lastdat") or die "Unable to create \"$lastdat\" $!";
+for (keys %lasttime) { print $fh "$_|$lasttime{$_}\n"; }
+close $fh;

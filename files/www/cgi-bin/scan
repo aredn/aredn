@@ -57,6 +57,15 @@ system "mv /tmp/web/wscan.next /tmp/web/wscan" unless $parms{stop};
 http_header();
 html_header("$node WiFi scan", 0);
 print "<meta http-equiv='refresh' content='5;url=/cgi-bin/scan'>\n" if -f "/tmp/web/autoscan";
+print "<script src=\"/sorttable.js\"></script>";
+print "<style>                                                   
+table.sortable thead {                                          
+    background-color:#eee;                                     
+    color:#666666;                            
+    font-weight: bold;
+    cursor: default;                                               
+}                                                                      
+</style>";
 print "</head>\n";
 print "<body><form method=post action=/cgi-bin/scan enctype='multipart/form-data'>\n";
 print "<center>\n";
