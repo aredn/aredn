@@ -33,7 +33,7 @@
 
 LICENSE
 
-if [[ $OSTYPE == darwin* ]] 
+if [ "${OSTYPE#*darwin}" != "$OSTYPE" ]
 then
     export SCRIPTBASE=$(dirname $0)
 else
