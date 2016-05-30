@@ -16,7 +16,7 @@ cat feeds.conf.default >> feeds.conf
 SHORT_COMMIT=$(echo "$GIT_COMMIT" | awk  '{ string=substr($0, 1, 8); print string; }' )
 SHORT_BRANCH=$(echo "$GIT_BRANCH" | awk 'match($0,"/"){print substr($0,RSTART+1)}')
 
-if ( -z "$BUILD_SET_VERSION" ); then
+if [ ! -z "$BUILD_SET_VERSION" ]; then
   echo "$BUILD_SET_VERSION" > "$BUILDROOTBASE/files/etc/mesh-release"
 else
   echo "${SHORT_BRANCH}-${BUILD_NUMBER}-${SHORT_COMMIT}" > "$BUILDROOTBASE/files/etc/mesh-release"
