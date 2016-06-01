@@ -26,7 +26,7 @@ rm -Rf staging_dir/*
 SHORT_COMMIT=$(echo "$GIT_COMMIT" | awk  '{ string=substr($0, 1, 8); print string; }' )
 SHORT_BRANCH=$(echo "$GIT_BRANCH" | awk 'match($0,"/"){print substr($0,RSTART+1)}')
 
-if ( -z "$BUILD_SET_VERSION" ); then
+if [ ! -z "$BUILD_SET_VERSION" ]; then
   MYBUILDNAME="$BUILD_SET_VERSION"
 else
   MYBUILDNAME="${SHORT_BRANCH}-${BUILD_NUMBER}-${SHORT_COMMIT}"
