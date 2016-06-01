@@ -1148,6 +1148,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '2400',
          },
+        '0xe235' => {
+            'name'            => 'NanoBridge M5',
+            'comment'         => 'NanoBridge M5 in testing',
+            'supported'       => '1',
+            'maxpower'        => '22',
+            'pwroffset'       => '1',
+            'usechains'       => 1,
+            'rfband'          => '2400',
+         },
         '0xe239' => {
             'name'            => 'NanoBridge M9',
             'comment'         => 'NanoBridge M9',
