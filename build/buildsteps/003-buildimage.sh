@@ -31,5 +31,5 @@ if [ ! -z "$BUILD_SET_VERSION" ]; then
 else
   MYBUILDNAME="${SHORT_BRANCH}-${BUILD_NUMBER}-${SHORT_COMMIT}"
 fi
-rename "s/openwrt-ar71xx-generic/AREDN-$MYBUILDNAME/g" bin/ar71xx/*
+rename "s/openwrt.*ar71xx-generic/AREDN-$MYBUILDNAME/g" bin/ar71xx/*
 
