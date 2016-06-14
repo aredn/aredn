@@ -145,27 +145,13 @@ print "]";
 
 if($parms{"hosts"} )
 {
-       # Get a list of services, so we can remove them from the host list
-       foreach(`cat /var/run/services_olsr`)
-       {
-           $line = $_;
-           if ($line =~ /http:\/\/(.*):([0-9]*)\/.*$/ )
-           {
-               if ( $2 > 0 ) # don't filter nodes with a gateway attached
-               {
-                   $services{$1} = 1;
-               }
-           }
-       }
-
        print ",\"hosts\":[";
        $mystr="";
        foreach(`cat /var/run/hosts_olsr`)
        {
            $line = $_;
            next unless /^(\d+\.\d+\.\d+\.\d+)\s*(\S+)/;
-           if ( not $services{$2} and $line !~ /dtdlink|mid1\./  ) {
-           #if ( not $services{$2} and $line !~ /dtdlink/  ) {
+           if ($line !~ /dtdlink|mid[0-9]+\./  ) {
                $mystr .= sprintf "{\"name\":\"%s\",\"ip\":\"%s\"},",$2,$1;
            }
        }
