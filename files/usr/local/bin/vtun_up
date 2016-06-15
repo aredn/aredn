@@ -38,7 +38,7 @@ LICENSE
 
 interface=$1
 action=$2
-configmode=`uci -q -c /etc/local/uci/ get hsmmmesh.settings.config`
+configmode=$(uci -q -c /etc/local/uci/ get hsmmmesh.settings.config)
 echo "Firewall rules for $interface $action"
 
 # Do nothing if node is not in mesh mode
@@ -47,22 +47,22 @@ if [ "$configmode" != "mesh" ] ; then exit 0; fi
 if [ "$action" = "up" ] ; then
 	# Adding route policies for tunnel interface
 	# identical to hotplug for dtdlink
-	if ( ! `ip rule list | egrep "^20020:.*$interface.*30" > /dev/null`) then
+	if ( ! ip rule list | egrep "^20020:.*$interface.*30" > /dev/null ) then
 	    if [ -e /etc/config/dmz-mode ] ; then
-      	        ip rule add pref 20010 iif $interface lookup 29 # local interfaces
+      	        ip rule add pref 20010 iif "$interface" lookup 29 # local interfaces
       	    fi
-            ip rule add pref 20020 iif $interface lookup 30 # mesh
-	    ip rule add pref 20080 iif $interface lookup 31 # gateway
-	    ip rule add pref 20090 iif $interface lookup main 
-            ip rule add pref 20099 iif $interface unreachable
+            ip rule add pref 20020 iif "$interface" lookup 30 # mesh
+	    ip rule add pref 20080 iif "$interface" lookup 31 # gateway
+	    ip rule add pref 20090 iif "$interface" lookup main 
+            ip rule add pref 20099 iif "$interface" unreachable
         fi
 else
     # Remove route policies for tunnel interface
-    ip rule del pref 20010 iif $interface lookup 29
-    ip rule del pref 20020 iif $interface lookup 30
-    ip rule del pref 20080 iif $interface lookup 31
-    ip rule del pref 20090 iif $interface lookup main
-    ip rule del pref 20099 iif $interface unreachable
+    ip rule del pref 20010 iif "$interface" lookup 29
+    ip rule del pref 20020 iif "$interface" lookup 30
+    ip rule del pref 20080 iif "$interface" lookup 31
+    ip rule del pref 20090 iif "$interface" lookup main
+    ip rule del pref 20099 iif "$interface" unreachable
 fi
 
 exit 0;
