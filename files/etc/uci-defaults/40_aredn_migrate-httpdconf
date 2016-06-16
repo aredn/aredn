@@ -1,20 +1,10 @@
 #!/bin/sh
 
-IFS="
-"
-
-addedpaths="/cgi-bin/vpn
-/cgi-bin/vpnc
-/cgi-bin/supporttool
-"
-
-currentpwd=$(grep "/cgi-bin/setup" /etc/httpd.conf |cut -d ':' -f 3)
-
-for protectedpath in $addedpaths
-do
-    if grep -q "$protectedpath" "/etc/httpd.conf"; then
-        continue
-    fi
-    echo "$protectedpath:root:$currentpwd" >> /etc/httpd.conf
-done
-
+cat > /etc/httpd.conf <<'EOF'
+/cgi-bin/setup:root:$p$root
+/cgi-bin/ports:root:$p$root
+/cgi-bin/admin:root:$p$root
+/cgi-bin/vpn:root:$p$root
+/cgi-bin/vpnc:root:$p$root
+/cgi-bin/supporttool:root:$p$root
+EOF
