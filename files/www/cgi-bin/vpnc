@@ -72,6 +72,23 @@ if($parms{button_reset})
 }
 
 #################
+# HANDLE connection deletes
+#################
+for($i = 0; $i < 10; $i++)
+{
+    $varname="conn${i}_del";
+    if($parms{$varname})
+    {
+        &uci_delete_named_section("vtun","server_${i}");
+        for($x = $i+1; $x < 10; $x++)
+        {
+            $y=$x-1;
+            &uci_rename_named_section("vtun","server_$x","server_${y}");
+        }
+    }
+}
+
+#################
 # If RESET or FIRST TIME, load servers into parms
 #################
 if($parms{button_reset} or not $parms{reload}) 

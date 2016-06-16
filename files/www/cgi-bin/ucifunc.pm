@@ -178,6 +178,27 @@ sub uci_add_named_section()
     return $rc;
 }
 
+sub uci_rename_named_section()
+{
+    my ($config,$sname,$snewname)=@_;
+    my $cmd=sprintf('uci rename %s.%s=%s',$config,$sname,$snewname);
+    #uci rename vtun.server_2=server_1
+    my $res=`$cmd`;
+    my $rc=$?;
+    return $rc;
+}
+
+sub uci_delete_named_section()
+{
+    my ($config,$sname,$stype)=@_;
+    system `touch /etc/config/$config` if (! -f "/etc/config/$config");
+    my $cmd=sprintf('uci delete "%s.%s"',$config,$sname);
+    #uci delete vtun.server_9
+    my $res=`$cmd`;
+    my $rc=$?;
+    return $rc;
+}
+
 ### UCI Helpers --DELETE-- ###
 
 sub uci_delete_option()
