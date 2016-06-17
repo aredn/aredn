@@ -18,7 +18,7 @@
 
 LICENSE
 
-DHCPLANSECTION=`uci show dhcp|grep interface=lan|sed "s/dhcp.\@dhcp\[\(.*\)\].interface=lan/\1/"`
+DHCPLANSECTION=$(uci show dhcp|grep interface=lan|sed "s/dhcp.\@dhcp\[\(.*\)\].interface=lan/\1/")
 
 logger "AREDN(TM) Recovery: Reseting root password to: hsmm"
 /usr/local/bin/setpasswd hsmm
@@ -29,7 +29,7 @@ logger "AREDN(TM) Recovery: Restarting uhttpd"
 if [ "$DHCPLANSECTION" != "" ]
   then
     logger "AREDN(TM) Recovery: Enable DHCP on lan interface"
-    uci set dhcp.@dhcp\[$DHCPLANSECTION\].ignore=0
+    uci set "dhcp.@dhcp\[$DHCPLANSECTION\].ignore=0"
     uci -q commit
 
     logger "AREDN(TM) Recovery: Restart dnsmasq"
