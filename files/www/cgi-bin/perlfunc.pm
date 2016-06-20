@@ -1319,6 +1319,24 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
+        'Ubiquiti Loco M XW' => {
+            'name'            => 'NanoStation Loco M5 XW',
+            'comment'         => 'NanoStation Loco M5 XW 0xe845 (in testing)',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '1',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
+        'Ubiquiti Rocket M XW' => {
+            'name'            => 'Rocket M5 XW',
+            'comment'         => 'Rocket M5 XW 0xe6b5 (in testing)',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
     );
 
     $boardid = hardware_boardid();
