@@ -1103,6 +1103,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '3400',
          },
+        '0xe1c5' => {
+            'name'            => 'Rocket M5 GPS',
+            'comment'         => 'Rocket M5 with GPS',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xe202' => {
             'name'            => 'Bullet M2 HP',
             'comment'         => '',
