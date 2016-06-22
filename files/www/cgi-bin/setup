@@ -41,6 +41,7 @@ $debug = 0;
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 use channelmaps;
+use ucifunc;
 #
 # load the config parms
 #
@@ -464,6 +465,12 @@ if($parms{button_save})
 system "rm -rf /tmp/web/save";
 reboot_page("/cgi-bin/status") if $parms{button_reboot};
 
+#
+# Retreive map url, css, and js locations
+#
+my ($rc, $maptiles)=&uci_get_indexed_option("system","map",0,"maptiles");
+my ($rc, $leafletcss)=&uci_get_indexed_option("system","map",0,"leafletcss");
+my ($rc, $leafletjs)=&uci_get_indexed_option("system","map",0,"leafletjs");
 
 #
 # generate the page
@@ -471,8 +478,8 @@ reboot_page("/cgi-bin/status") if $parms{button_reboot};
 
 http_header() unless $debug == 2;
 html_header(nvram_get("node") . " setup", 0);
-print "<link rel='stylesheet' href='http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css' />\n" if($pingOk);
-print "<script src='http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js'></script>\n" if($pingOk);
+print "<link rel='stylesheet' href='${leafletcss}' />\n";
+print "<script src='${leafletjs}'></script>\n";
 print "</head>";
 print "<body><center>\n";
 
@@ -551,7 +558,7 @@ function toggleMap(toggleButton) {
     // force the map to redraw
     map.invalidateSize();
     return false;
-}" if(pingOk);
+}";
 
 print "</script>";
 
@@ -1027,19 +1034,18 @@ print "<td align='right' colspan='2'>";
 
 print "<button type='button' id='findlocation' value='findloc' onClick='findLocation();'>Find Me!</button>&nbsp;";
 print "<input type=submit name='button_updatelocation' value='Apply Location Settings' title='Immediately use these location settings'>";
+print "&nbsp;<button type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;";
 if($pingOk)
 {
-    print "&nbsp;<button type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;";
     print "<input type='submit' name='button_uploaddata' value='Upload data to AREDN Servers' />&nbsp;";
 } else {
-    print "&nbsp;<button disabled type='button' title='The map is only available if this node has internet access'>Show Map</button>&nbsp;";
     print "<button disabled type='button' title='Only available if this node has internet access'>Upload data to AREDN Servers</button>&nbsp;";
 }
 
 print "</td>\n";
 print "<tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='$lon' title='Longitude value (in decimal) (ie. -95.334454)' /></td>";
 print "<td align=left>Grid Square</td><td align='left'><input type=text name=gridsquare maxlength=6 size=6 value='$gridsquare' title='Gridsquare value (ie. AB12cd)' /></td></tr>\n";
-print "<tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr>" if($pingOk);
+print "<tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr>";
 print "<tr><td colspan=4><hr /></td></tr>";
 print "<tr>
 <td>Timezone</td>
@@ -1084,34 +1090,36 @@ show_parse_errors();
 
 page_footer();
 
-if($pingOk) 
-{
-    print <<EOF;
-    <script>
-    var map = L.map('map').setView([0.0, 0.0], 1);
-    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiazVkbHEiLCJhIjoiY2lqMnlieTM4MDAyNXUwa3A2eHMxdXE3MiJ9.BRFvx4q2vi70z5Uu2zRYQw', {
-                maxZoom: 18,
-                attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-                    '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-                    'Imagery &copy;<a href="http://mapbox.com">Mapbox</a>',
-                id: 'mapbox.streets'
-        }).addTo(map);
+print <<EOF;
+<script>
+var map = L.map('map').setView([0.0, 0.0], 1);
+var dotIcon = L.icon({iconUrl: '/dot.png'});
+EOF
+print "L.tileLayer('$maptiles',";
+print <<EOF;
+    {
+            maxZoom: 18,
+            attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+                '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                'Imagery &copy;<a href="http://mapbox.com">Mapbox</a>',
+            id: 'mapbox.streets'
+    }).addTo(map);
 
-    var marker;
+var marker;
 
-    function onMapClick(e) {
-        marker= new L.marker(e.latlng,{draggable: true});
-        map.addLayer(marker);
-        document.getElementsByName('latitude')[0].value=e.latlng.lat.toFixed(6).toString();
-        document.getElementsByName('longitude')[0].value=e.latlng.lng.toFixed(6).toString();
-        map.off('click', onMapClick);
-        marker.on('drag', onMarkerDrag);
-    }
+function onMapClick(e) {
+    marker= new L.marker(e.latlng,{draggable: true, icon: dotIcon});
+    map.addLayer(marker);
+    document.getElementsByName('latitude')[0].value=e.latlng.lat.toFixed(6).toString();
+    document.getElementsByName('longitude')[0].value=e.latlng.lng.toFixed(6).toString();
+    map.off('click', onMapClick);
+    marker.on('drag', onMarkerDrag);
+}
 EOF
 
     if($lat and $lon)
     {
-        print "marker= new L.marker([$lat,$lon],{draggable: true});";
+        print "marker= new L.marker([$lat,$lon],{draggable: true, icon: dotIcon});";
         print "map.addLayer(marker);";
         print "map.setView([$lat,$lon],13);";
         print "marker.on('drag', onMarkerDrag);";
@@ -1128,6 +1136,6 @@ EOF
     }
     </script>
 EOF
-}
+#}
 print "</body>\n";
 print "</html>\n";
