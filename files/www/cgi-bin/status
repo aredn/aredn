@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 =for commnet
 
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
@@ -44,7 +44,7 @@ $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 $tactical = nvram_get("tactical");
 $config = nvram_get("config");
-$config = "not set" if $config eq "" or not -d "/etc/config.$config";
+$config = "not set" if $config eq "" or not -d "/etc/config.mesh";
 
 read_postdata();
 
@@ -84,10 +84,6 @@ if($config eq "mesh")
     print "<button type=button onClick='window.location=\"http://${node}.local.mesh:1978/\"' title='See the OLSR routing details'";
     #print " disabled" unless -f "/var/run/hosts_olsr";
     print ">OLSR Status</button>\n";
-}
-
-if($config eq "mesh" or $config eq "client")
-{
     print "&nbsp;&nbsp;&nbsp;";
     print "<button type=button onClick='window.location=\"scan\"' title='See what wireless networks are nearby'>WiFi Scan</button>\n";
 }
@@ -114,7 +110,7 @@ if($config eq "not set")
     print "<br><br>\n";
     print "<div style=\"max-width: 540px\; text-align: left\">\n";
     print "<p>This device can be configured to either permit or prohibit known encrypted traffic on its RF link. It is up to the user to decide which is appropriate based on how it will be used and the license under which it will be operated. These rules vary by country, frequency, and intended use. You are encouraged to read and understand these rules before going further.</p>";
-    print "<p>This device is pre-configured with no restrictions as to the type of data being passed.</p>\n"; 
+    print "<p>This device is pre-configured with no restrictions as to the type of data being passed.</p>\n";
     print "<p>Follow these steps if <span style=\"text-decoration: underline\">you wish to prohibit</span>  known encrypted traffic on the RF link. These instructions will disappear, so copy them for your reference:</p>";
     print "<p><ol>\n";
     print "<li>Setup your node name and password as instructed at the top of this page</li>";
@@ -124,7 +120,7 @@ if($config eq "not set")
     print "<li>Install the blockknownencryption package by uploading it or choosing it from the package drop-down list</li>";
     print "<li>Wait until the package installs and then reboot your node</li>";
     print "</ol></p>\n";
-    print "</div>";     
+    print "</div>";
 }
 
 # status display
@@ -210,7 +206,7 @@ if(-f "/tmp/olsrd.log")
 
 # right column - system info
 
-if($config eq "mesh" or $config eq "client")
+if($config eq "mesh")
 {
     $str = "<th align=right valign=middle><nobr>Signal/Noise/Ratio</nobr></th><td valign=middle><nobr>";
     ($s, $n) = get_wifi_signal(get_interface("wifi"));

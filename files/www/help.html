@@ -74,11 +74,11 @@ provided through those nodes.
 
 <li><strong>WiFi Scan</strong> displays a list of other 802.11 signals that the
 node can see and only of the same bandwidth.   The 802.11 signals include
-Access Points (AP), neighbor nodes (connected ad-hoc stations), and other mesh networks 
-(foriegn ad-hoc networks). The AREDN mesh is created on top of an 802.11 'ad-hoc' network.  
-Consequently when multiple ad-hoc networks are visiable to each other (different SSID or 
-channel), the 'network' is displayed and not individual nodes (stations).  There is also an 
-automatic scan mode. It is not recommend to run a wifi scan continously because this will degrade mesh 
+Access Points (AP), neighbor nodes (connected ad-hoc stations), and other mesh networks
+(foriegn ad-hoc networks). The AREDN mesh is created on top of an 802.11 'ad-hoc' network.
+Consequently when multiple ad-hoc networks are visiable to each other (different SSID or
+channel), the 'network' is displayed and not individual nodes (stations).  There is also an
+automatic scan mode. It is not recommend to run a wifi scan continously because this will degrade mesh
 performance. A wifi scan transmits queries on all channels to discover other devices.<br><br></li>
 
 <li><strong>Setup</strong> takes you to the setup pages of the web
@@ -99,7 +99,7 @@ name (if known) of the device accessing this page.
 </p>
 <p>
 The right column contains the signal strength reading and other attributes of
-your node.  The <b>Signal/Noise/Ratio</b> is a reading of the WiFi signal
+your node.  The <b>Signal/Noise/Ratio</b> is a reading of the strongest neighbor Mesh RF signal
 strength in dBm, and it is available only when the node is in a Mesh or Client
 configuration.  The <strong>Auto</strong> button will take you to an
 automatically refreshing display of the current signal strength and an average
@@ -145,7 +145,7 @@ The Mesh Status page lists AREDN Mesh Nodes, link quality information, and the s
 </p>
 
 <ul>
-<li><strong>Local Host</strong> is the AREDN Mesh Node showing status and the advertised Services assocated with this Node.<br><br></li>
+<li><strong>Local Host</strong> is the AREDN Mesh Node showing status and the advertised Services associated with this Node.<br><br></li>
 
 <li><strong>Current Neighbors</strong> is a list of direct Neighbor Mesh Nodes (1 hop).  This may be via RF, DTDLink (a cat5 cable), or a Tunnel (over Internet connection).  Quality of the link is shown (described below) and advertised Services hosted on the Node or attached to the LAN of the Node are listed.<br><br></li>
 
@@ -179,7 +179,7 @@ Neighbor Link Quality (NLQ) is the % of packets the Neighbor received from the p
 Expected Transmissions (ETX) is a Bernoulli statistic of how many packets must be transmitted to successfully receive the round trip acknowledgement between Neighbor nodes and is calculated with this formula:  ETX = 1/(LQ*NLQ).   Between multiple hop nodes, this is calculated by adding up the ETX for each single hop.   "1" is a perfect RF link between Neighbors.   A DtDLink is fixed at ETX="0.1" for packets over a cat5 cable.  OLSR on a Mesh Node selects the Neighbor to send traffic to based on the lowest cost ETX path towards the final destination Node.
 </p>
 <p>
-ETX should be interpreted with care.  From a quality perspective, the ETX for Remote Nodes is not an end-to-end metric in the same way as adjacent neighbors.  For example, 2 nodes that are 5 hops apart with zero packet loss between them is characterized with an ETX=5.  A single hop with ETX=5 (LQ and NLQ is ~45%) will stream poor quality video, if usable at all, given the packet loss.  A 5 hop route between nodes with ETX=5 will deliver smooth streaming quality video. 
+ETX should be interpreted with care.  From a quality perspective, the ETX for Remote Nodes is not an end-to-end metric in the same way as adjacent neighbors.  For example, 2 nodes that are 5 hops apart with zero packet loss between them is characterized with an ETX=5.  A single hop with ETX=5 (LQ and NLQ is ~45%) will stream poor quality video, if usable at all, given the packet loss.  A 5 hop route between nodes with ETX=5 will deliver smooth streaming quality video.
 </p>
 
 <p>
@@ -188,7 +188,7 @@ ETX should be interpreted with care.  From a quality perspective, the ETX for Re
 </p>
 
 <p>
-Transmitted Mbps (TxMbps) is calculated with the formula (TxMbps = rate * EWMA) where rate is the 802.11 data rate in use by the transmitter and EWMA is the Exponetially Weighted Moving Average or the current time weighted chance that a packet at this rate will reach the remote station.  If no traffic is being routed to the Neigbor, this value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>  
+Transmitted Mbps (TxMbps) is calculated with the formula (TxMbps = rate * EWMA) where rate is the 802.11 data rate in use by the transmitter and EWMA is the Exponetially Weighted Moving Average or the current time weighted chance that a packet at this rate will reach the remote station.  If no traffic is being routed to the Neigbor, this value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>
 </p>
 
 <p>
@@ -206,7 +206,7 @@ Transmitted Mbps (TxMbps) is calculated with the formula (TxMbps = rate * EWMA) 
 </p>
 
 <p>
-"(dtd)" next to a Mesh Node indicates the path to a Neighbor is a cat5 cable. The Neighbor may be listed twice if both an RF and DtDLink path exists.  The DtDLink path is always assigned an ETX of "0.1".   
+"(dtd)" next to a Mesh Node indicates the path to a Neighbor is a cat5 cable. The Neighbor may be listed twice if both an RF and DtDLink path exists.  The DtDLink path is always assigned an ETX of "0.1".
 </p>
 
 <br><br><hr>
@@ -245,7 +245,7 @@ until Save Changes is clicked.<br><br></li>
 <strong>Node Name</strong> sets the hostname for the node. Hostnames can
 contain up to 63 letters, numbers, and dashes, but cannot begin or end with a
 dash.  Underscores, spaces, or any other characters are not allowed.
-Hostnames are not case sensitive, but the case will be preserved. 
+Hostnames are not case sensitive, but the case will be preserved.
 </p>
 <p>
 As ham radio operators there are other requirements we must follow,
@@ -269,69 +269,6 @@ accessible through DNS like the main node names are.
 To set a tactical name, put a slash after the the node name then give
 the tactical name.  For example, "ad5oo-1/shelter5".
 </p>
-<p><br>
-<strong>Node Type</strong> sets the operational mode of the device as follows:
-<ul>
-
-<li><strong>Mesh Node</strong><br>
-
-This is the main mode of the router, and the reason this firmware is running
-in the first place.  The WiFi interfaces of multiple nodes form a mesh
-network, the LAN interfaces provide access to that mesh to other devices, and
-the WAN interface provides outbound network access, typically to the internet.
-<br><br></li>
-
-<li><strong>Mesh Access Point</strong><br>
-
-In this mode the device is pre-configured to act as an access point providing
-standard wireless access to the LAN side of another mesh node.  This is to be
-used on a second router whose LAN port is connected with the LAN port of a
-mesh node. It is a simple mode but there are special considerations,
-especially when you want to get out of this mode.  See the section at the end
-called <a href='#meshap'>Mesh Access Point considerations</a> for details.
-<br><br></li>
-
-<li><strong>Standard Access Point</strong><br>
-
-In this mode the device acts like any other standard access point, although
-with fewer configuration options.  It is provided mainly as a convenience if
-you need a basic access point.  If you need a full featured access point,
-consider using either a stock router or one running conventional access point
-firmware.
-<br><br></li>
-
-<li><strong>Wireless Client</strong><br>
-
-This mode allows you to connect a wired network interface to a wireless
-network.  The WiFi interface acts as a client to a separate access point, and
-the LAN provides access to the wired device.  This mode does not provide a
-wireless bridge, instead it uses NAT and is routed.
-<br><br></li>
-
-<li><strong>Wired Router</strong><br>
-
-In this mode the WiFi is disabled and the LAN and WAN ports have their usual
-roles.  This is "just a router" with no wireless functions.
-<br><br></li>
-
-</ul>
-</p>
-<p>
-<strong>Node Type</strong> sets the operational mode of the node. For
-our purposes it will be set to Mesh Node, but if needed it can also be set to
-one of the other modes, to be described at a later time.
-</p>
-<p>
-The one mode I will mention is called Mesh Access Point. It is a
-configuration meant to be used to give standard wireless access to the LAN
-port of a mesh node. This is to be used on a second router whose LAN port is
-connected with the LAN port of a mesh node. When running a router in this mode
-it does not use OLSR and as a result its hostname is not available to the
-mesh.  It can be accessed from the LAN by its IP address which by default is
-172.27.0.2.  Like the name "localnode", an automatically generated name exists
-called "localap" which is set to the localnode address plus one, but only when
-the node is operating in the default NAT mode.
-</p>
 <p>
 <strong>Password</strong> is where you set the administration password
 for the node. It needs to be entered again in the Retype Password box to help
@@ -342,18 +279,15 @@ encrypted in transit, so this is best done from a direct wired connection to
 the node.
 </p>
 <p>
-The <strong>WiFi</strong>, <strong>LAN</strong>,
+The <strong>Mesh RF</strong>, <strong>LAN</strong>,
 and <strong>WAN</strong> boxes are where the details of each of these network
 interfaces are set.
 </p>
 <p>
-In the <strong>WiFi</strong> box there are settings shown as being
+In the <strong>Mesh RF</strong> box there are settings shown as being
 Active Settings. These settings can be changed without rebooting the node by
 clicking the <strong>Apply</strong> button, but unless they are saved they
-will revert to the previously saved values after a reboot.<br> <br>
-The <strong>Rx Antenna</strong> and <strong>Tx Antenna</strong> settings have
-been removed from current builds. The hardware handles antenna selection
-automatically in the backend without need for configuration. 
+will revert to the previously saved values after a reboot.<br>
 <br>
 As always a dummy load on unused RF ports is recommended to keep out physical
 contaminants and to avoid EMI/RFI interference.
@@ -382,30 +316,16 @@ of the node and the address range of the DHCP server, and these should be
 self explanatory.  The <b>LAN Mode</b> is described in the next section.
 
 <br><br>
-The <strong>Disable Default Route</strong> checkbox will cause the node to not 
+The <strong>Disable Default Route</strong> checkbox will cause the node to not
 advertise that it should be chosen as the default route. This means that
 computers plugged into the node will not try and route to the internet or
 other networks via the mesh node and will only try and use the mesh node for
 the 10.0.0.0/8 and 172.16.0.0/12 "mesh" network ranges. You will not be able
-to access the internet, even if your node has internet available on its wan 
+to access the internet, even if your node has internet available on its wan
 port with this setting checked. This also applies to internet available over
 the mesh. Use this only if you know what a default route is and you need to
 be connected to two networks at once such as wired to the mesh, and WiFi to
 a local served agency network.
-
-<!--
-, but the <strong>Mesh Bridge</strong> function will be described
-here.  Given that AREDN&trade; is not restricted to the standard channels of the
-2.4GHz ISM band, it is possible that two nodes can be in range but not be able
-to communicate because they are using different radio parameters or are on an
-entirely different band.  The Mesh Bridge function allows them to communicate.
-
-<br><br>
-<u>The use of this function requires central coordination.  This is a
-specialized and rarely needed function.  Improper use will cause network
-problems for everyone.  Please contact us at aredn.org to receive a set of
-customized network parameters if you have a need to bridge your meshes.</u>
--->
 </p>
 <p>
 The <strong>WAN</strong> box contains the settings used to
@@ -429,7 +349,7 @@ The other option in the WAN box is the <strong>Mesh Gateway</strong>.
 This is an advanced configuration option.<br>
 When a node has internet access from either the WAN or LAN, that access is
 available to the node itself and to any computer connected to the LAN port.
-When the Mesh Gateway is enabled this node will gate(route) traffic from the 
+When the Mesh Gateway is enabled this node will gate(route) traffic from the
 mesh onto this network and the internet.
 
 By default it is disabled, so consider carefully your
@@ -459,7 +379,7 @@ access with static IP addresses should already be comfortable with this mode.
 Like commercial ISP access, you cannot decide for yourself what the network
 parameters are.  You have to use the parameters which are given to you.  But
 unlike most commercial ISP access there is a DHCP server available on the mesh
-node to configure the hosts that are attached to the LAN. 
+node to configure the hosts that are attached to the LAN.
 </p>
 <p>
 The only configurable option available in Direct mode is the size of the LAN subnet
@@ -472,13 +392,13 @@ available from a mesh node.
 It is important to not use a subnet larger than is necessary because the
 chances of an IP address conflict on the mesh increase with the size of the
 subnet.  The LAN subnet parameters are automatically generated and depend on
-the IP address of the WiFi interface.  If a conflict does occur it can be
-fixed by changing the WiFi IP address.
+the IP address of the Mesh RF interface.  If a conflict does occur it can be
+fixed by changing the Mesh RF IP address.
 </p>
 <p>
 The other LAN Mode is NAT, which stands for Network Address Translation.  In
 this mode the LAN is isolated from the mesh and all outgoing traffic has its
-source address modified to be the WiFi address of the mesh node.  This is the
+source address modified to be the Mesh RF IP address of the mesh node.  This is the
 same way that most routers use an internet connection, and all services
 provided by computers on the LAN can only be accessed through port forwarding
 rules.  A single DMZ server can be set up to accept all incoming traffic that
@@ -499,42 +419,6 @@ To see a sample of the information that will be sent to the AREDN server, click 
 </p>
 <p>
 You may set the timezone where the node is located as well as setting the NTP server that the node will connect to.  A "Save Changes" button click IS required for timezone and NTS server settings, as well as a subsequent reboot.
-</p>
-
-<hr width=500>
-<a name='meshap'><h4>Mesh Access Point considerations</h4>
-<p>
-
-When a device is configured in Mesh Access Point mode it is essentially
-'transparent'.  You are going <u>through</u> the device to reach a mesh node,
-and there is no need to get <u>to</u> the device unless you wish to change its
-configuration. When the time comes to reconfigure a device in this mode be
-aware that it is not running its own DHCP server because that is the job of
-the mesh node it is connected to.  You will need some other way to configure
-your computer's network interface.  There are two ways to do this:
-
-<ol>
-<li>Manual configuration<br> Connect only your computer to the LAN port.  Set
-your IP address to 172.27.0.100 and your netmask to 255.255.255.0.  No other
-settings are needed.<br><br>
-</li>
-<li>
-Automatic configuration<br> You will need another mesh node that is using NAT
-mode on its LAN, and using the default LAN IP address of 172.27.0.1.  Both of
-these are required, otherwise this method will not work.  Connect
-both your computer and the LAN of the Mesh Access Point to the LAN of the mesh
-node.
-</ol>
-
-In this mode the default IP address on the LAN port is 172.27.0.2.  After one
-of the above steps you should be able to send your browser
-to <a href='http://172.27.0.2:8080/'>http://172.27.0.2:8080/</a>.  If you used
-automatic configuration you should also be able to go
-to <a href='http://localap:8080/'>http://localap:8080/</a>.  Like the name
-"localnode", an automatically generated name exists called "localap" which is
-set to the localnode address plus one, but only when the node LAN mode is set
-to NAT.  If you changed the default IP address of a Mesh Access Point you will
-have to modify these instructions accordingly.
 </p>
 
 <br><br><hr>
@@ -561,7 +445,7 @@ intended.</li>
 </ul>
 <p><br> The way this page works depends on whether the LAN is operating in NAT
 mode or Direct mode.  First we will cover NAT mode, where hosts on the LAN are
-insulated by a firewall and NAT from both the WiFi and WAN interfaces. This
+insulated by a firewall and NAT from both the Mesh RF and WAN interfaces. This
 makes them inaccessible from either of these interfaces unless Port Forwarding
 is set up. Here are some common ports:
 </p>
@@ -581,7 +465,7 @@ is set up. Here are some common ports:
 </ul>
 <p>
 So then what is port forwarding? Port forwarding is taking an inbound
-connection to a port from the WiFi or WAN interface and forwarding it to an IP
+connection to a port from the Mesh RF or WAN interface and forwarding it to an IP
 address on the LAN. The port number need not be the same. If you have hosts on
 the LAN that provide services you want to make available to the mesh all it
 takes is a Port Forwarding rule to make that happen.
@@ -605,13 +489,12 @@ running its own firewall to prevent unauthorized access.
 <br><br> On the LAN of a mesh node called ad5oo-mobile is an IP camera that is
 running its own web server. The address of that camera is 172.27.0.240. I want
 to make that camera available to everyone on the mesh so I set up a port
-forwarding rule on the WiFi interface whose outside port is 8100, IP address
+forwarding rule on the Mesh RF interface whose outside port is 8100, IP address
 is 172.27.0.240, and inside port is 80. This takes all connections to port
 8100 on ad5oo-mobile and redirects them to port 80 on 172.27.0.240. In a web
 browser on a computer connected to a different node you would go to
 http://ad5oo-mobile:8100 and would be connected to the IP camera.
 </p>
-<br>
 <p>
 Note that port forwarding to an FTP server, which uses both ports 20 and 21,
 can be done with a single rule using port 21 if the ftp client is capable of
@@ -717,7 +600,7 @@ size will be translated into the new subnet address space.
 </p>
 <br><br><hr>
 <a name=admin><h2>Administration</h2></a>
-<p> 
+<p>
 <strong>Firmware Update</strong> is how new firmware is installed on the node.
 If you have a firmware image on your computer, click
 the <strong>Browse</strong> button and select the firmware file to upload.
@@ -882,10 +765,10 @@ Now power cycle the router. If the above messages continue and the router
 continues to boot, it missed the window. This is not unusual. Power cycle the
 router again and repeat the process until you see messages like this:
 <pre>
-sent DATA 
-received ACK 
-sent DATA 
-received ACK 
+sent DATA
+received ACK
+sent DATA
+received ACK
 </pre>
 After that the flash write begins, then the router will reboot.
 </p>

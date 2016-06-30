@@ -65,7 +65,7 @@ while(defined $ARGV[0] and $ARGV[0] =~ /^-/)
 $config = shift;
 usage() unless defined $config;
 
-die "'$config' is not a valid configuration\n" unless -f "/etc/config.$config/_setup";
+die "'$config' is not a valid configuration\n" unless ($config eq "mesh" and -f "/etc/config.mesh/_setup");
 
 #chomp ($node = `nvram get node`);
 #chomp ($mac2 = `nvram get mac2`);
@@ -115,7 +115,7 @@ unless($auto)
 # load and verify the selected configuration
 #
 
-foreach $line (`cat /etc/config.$config/_setup`)
+foreach $line (`cat /etc/config.mesh/_setup`)
 {
     next if $line =~ /^\s*#/;
     next if $line =~ /^\s*$/;
@@ -151,7 +151,7 @@ if($cfg{lan_dhcp}) { $cfg{lan_dhcp} = 0 }
 else               { $cfg{lan_dhcp} = 1 }
 
 # verify that we have all the variables we need
-chdir "/etc/config.$config" or die;
+chdir "/etc/config.mesh" or die;
 foreach(`grep "^[^#].*<" *`)
 {
     ($file, $parm) = /^(\S+):.*<(\w+)>/;
@@ -176,10 +176,10 @@ if($cfg{dmz_mode})
 }
 
 # select ports and dhcp files based on mode
-$portfile  = "/etc/config.$config/_setup.ports";
-$dhcpfile  = "/etc/config.$config/_setup.dhcp";
-$portfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat") if $config eq "mesh";
-$dhcpfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat") if $config eq "mesh";
+$portfile  = "/etc/config.mesh/_setup.ports";
+$dhcpfile  = "/etc/config.mesh/_setup.dhcp";
+$portfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat");
+$dhcpfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat");
 
 
 # basic configuration
@@ -192,7 +192,7 @@ if($do_basic)
 
     # copy and process the new configuration
 
-    chdir "/etc/config.$config" or die;
+    chdir "/etc/config.mesh" or die;
 
     foreach $file (glob "*")
     {
@@ -243,14 +243,14 @@ if($do_basic)
     system "rm -f /etc/config/*";
     system "mv /tmp/new_config/* /etc/config";
     unlink "/tmp/new_config";
-    system "cp -f /etc/config.$config/firewall.user /etc/";
+    system "cp -f /etc/config.mesh/firewall.user /etc/";
 
-    #system "nvram set config=$config";
+    #system "nvram set config=mesh";
     #system "nvram set node=$node";
     #system "nvram set tactical=$tactical";
     #system "nvram commit";
 
-    nvram_set("config", $config);
+    nvram_set("config", "mesh");
     nvram_set("node", $node);
     nvram_set("tactical", $tactical);
 
@@ -300,8 +300,8 @@ system "cat /etc/ethers.user >> /etc/ethers" if -e "/etc/ethers.user";
 
 unless($do_basic)
 {
-    system "cp -f /etc/config.$config/firewall /etc/config";
-    system "cp -f /etc/config.$config/firewall.user /etc/";
+    system "cp -f /etc/config.mesh/firewall /etc/config";
+    system "cp -f /etc/config.mesh/firewall.user /etc/";
 }
 
 open(FILE, ">>/etc/config/firewall") or die;
@@ -322,7 +322,7 @@ if($cfg{dmz_mode}) {
     print FILE "        option 'path' '/etc/firewall.natmode'\n";
     print FILE "        option 'reload' '1'\n";
 }
-   
+
 
 if ($cfg{olsrd_gw}) {
     print FILE "\nconfig forwarding\n";
@@ -394,25 +394,21 @@ close(FILE);
 
 # generate the services file
 
-if($config eq "mesh")
+$servfile = "/etc/config.mesh/_setup.services." . ($cfg{dmz_mode} ? "dmz" : "nat");
+open(SERV, ">/etc/config/services") or die;
+foreach(`cat $servfile 2>/dev/null`)
 {
-    $servfile = "/etc/config.$config/_setup.services." . ($cfg{dmz_mode} ? "dmz" : "nat");
-    open(SERV, ">/etc/config/services") or die;
-    foreach(`cat $servfile 2>/dev/null`)
-    {
-	next if /^\s*#/;
-	next if /^\s*$/;
-	chomp;
-	($name, $link, $proto, $host, $port, $suffix) = split /\|/, $_;
-	$proto = "http" unless $proto;
-	$port = 0 unless $link;
-	$suffix = "" unless $suffix;
-	next unless defined $name and $name ne "" and defined $host and $host ne "";
-	printf SERV "%s://%s:%s/%s|%s|%s\n", $proto, $host, $port, $suffix, "tcp", $name;
-    }
-    close(SERV);
+    next if /^\s*#/;
+    next if /^\s*$/;
+    chomp;
+    ($name, $link, $proto, $host, $port, $suffix) = split /\|/, $_;
+    $proto = "http" unless $proto;
+    $port = 0 unless $link;
+    $suffix = "" unless $suffix;
+    next unless defined $name and $name ne "" and defined $host and $host ne "";
+    printf SERV "%s://%s:%s/%s|%s|%s\n", $proto, $host, $port, $suffix, "tcp", $name;
 }
-
+close(SERV);
 
 # generate the local config script
 
@@ -427,11 +423,8 @@ unless($cfg{wifi_proto} eq "disabled")
     {
 	printf FILE "echo %s,%s > /tmp/latlon.txt\n", $cfg{aprs_lat}, $cfg{aprs_lon};
     }
-    if($config eq "mesh")
-    {
-	print FILE "/usr/local/bin/olsrd-watchdog &\n";
-	print FILE "/usr/local/bin/olsrd-namechange-loop &\n";
-    }
+    print FILE "/usr/local/bin/olsrd-watchdog &\n";
+    print FILE "/usr/local/bin/olsrd-namechange-loop &\n";
 }
 close(FILE);
 system "chmod +x /etc/local/services";
@@ -439,9 +432,9 @@ system "chmod +x /etc/local/services";
 
 # generate olsrd.conf
 
-if(-f "/etc/config.$config/olsrd")
+if(-f "/etc/config.mesh/olsrd")
 {
-    open(IN, "/etc/config.$config/olsrd") or die;
+    open(IN, "/etc/config.mesh/olsrd") or die;
     open(OUT, ">/etc/config/olsrd") or die;
 
     while(defined ($line = <IN>))
@@ -510,13 +503,6 @@ unless($auto)
 {
     print "configuration complete.\n";
     print "you should now reboot the router.\n";
-
-    if($config eq "client")
-    {
-	print "\nCurrent ssid setting in /etc/config/wireless:\n";
-	system "grep ssid /etc/config/wireless";
-	print "\n";
-    }
 }
 
 exit 0;
