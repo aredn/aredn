@@ -42,8 +42,12 @@ BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 %rateL = (
-	'MCS0' => '6.5',
-	'MCS1' => '13',
+	'1.0M' => '1',   # CCP LP
+	'2.0M' => '2',   # CCP LP
+	'5.5M' => '5.5', # CCP LP
+	'MCS0' => '6.5', # HT20 LGI
+	'11.0M'=> '11',  # CCP LP
+	'MCS1' => '13',  # HT20 LGI...
 	'MCS2' => '19.5',
 	'MCS3' => '26',
 	'MCS4' => '39',
@@ -129,33 +133,24 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
 	}
         else
         {
-		#802.11n
-		$mbps = `egrep 'HT(4|2)0\\\/\(L|S\)GI[ \t]+(A|T)' /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
+		#802.11b/n
+		$mbps = `egrep '^([^,]*,){3}A' /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats_csv`;
 		if ($mbps)
 		{
-			$mbps =~ /HT[42]0\/([LS]GI)[ \tTtPABCD]+(MCS[0-9]+)[ \t]*[0-9\.]+[ \t]*([0-9\.]+).*$/ ;
-			$mbps =  $1 eq "LGI" ?  $rateL{$2}*$3/100 : $rateS{$2}*$3/100 ;
+			($gi, $dummy, $rate, $dummy, $ewma) = $mbps =~ /^[^,]*,([^,]*),([^,]*,){2}([^,]*),([^,]*,){4}([^,]*).*$/ ;
+			$rate =~ s/[ \t]//g;
+			$mbps =  $gi eq "SGI" ?  $rateS{$rate}*$ewma/100 : $rateL{$rate}*$ewma/100 ;
 		}
 		else
 		{
-			#802.11a/g
-			$mbps = `egrep \"^A[BCDP \t]+[0-9\.]+\" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
+			#802.11a/b/g
+			$mbps = `egrep \"^A" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats_csv`;
 			if ($mbps)
 			{
-				$mbps =~ /^A[ \tBCDP]+([0-9\.]+)[ \t]+[0-9\.]+[ \t]+([0-9\.]+).*$/;
-				$mbps = $1*$2/100;
+				$mbps =~ /^[^,]*,([^,]*),([^,]*,){4}([^,]*).*$/;
+				$mbps = $1*$3/100;
 			}
-			else
-			{
-				#802.11b
-				$mbps = `egrep \"CCK\/LP[ \t]*T\" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats`;
-				if ($mbps)
-				{
-					$mbps =~ /CCK\/LP[ \tTtP]+([0-9\.]+)M[ \t]*[0-9\.]+[ \t]*([0-9\.]+).*$/ ;
-					$mbps = $1*$2/100;
-				}
-				else { $mbps = "0"; }
-			}
+			else { $mbps = "0"; }
 		}
 		if ( ! $mbps eq "" )
                 {
@@ -496,7 +491,7 @@ if(keys %links)
         if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
 
         $rows{$host} .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%s</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq},$links{$ip}{mbps});
-	
+
 	if ( ! exists $neighservices{$host} )
 	    {
 	    foreach(sort keys %{$services{$host}}) { $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n" }
