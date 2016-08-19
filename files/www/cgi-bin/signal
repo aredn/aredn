@@ -61,7 +61,7 @@ $header = <<EOF;
   <script src="/js/jquery.canvasjs.min.js"></script>
   <script type="text/javascript">
     var dps=[[{"label":"Init","y":-95}],[{"label":"Init","y":-95}]];
-      
+
     // Read a page's GET URL variables and return them as an associative array.
     function getUrlVars()
     {
@@ -101,9 +101,9 @@ $header = <<EOF;
           horizontalAlign: "right", // left, center ,right 
           verticalAlign: "center",  // top, center, bottom
         },
-        axisX: { 
+        axisX: {
            title: "Time (in $tzone)",
-           labelFontSize: 10,
+           labelFontSize: 12,
            labelAngle: -45,
         },
         axisY: {
@@ -113,13 +113,13 @@ $header = <<EOF;
         data: [
           {
             type: "spline",
-            showInLegend: true, 
+            showInLegend: true,
             legendText: "Signal",
             toolTipContent: "Signal: {y}dBm @ {label}",
             dataPoints: dps[0]
           },{
             type: "line",
-            showInLegend: true, 
+            showInLegend: true,
             legendText: "Noise",
             toolTipContent: "Noise: {y}dBm @ {label}",
             dataPoints: dps[1]
@@ -133,7 +133,7 @@ $header = <<EOF;
           chart.options.data[1].dataPoints = result[1];
           chart.render();
         });
-      };  
+      };
 
       var updateRealtimeChart = function () {
         \$.getJSON("/cgi-bin/signal.json?realtime=1&device=$parms{device}", function (result) {
@@ -141,7 +141,7 @@ $header = <<EOF;
           dps[1].push(result[1][0]);
           chart.render();
         });
-      };  
+      };
 
       var dmode = getUrlVars()["realtime"];
 
@@ -191,7 +191,7 @@ $parms{device}="" if(!/$parms{device}/ ~~ @files);
 # default to "Strongest Signal" for Realtime
 if(! $parms{device} and $parms{realtime}) {
   $page = $page . "<option selected value='strongest'>Strongest Signal</option>";
-} 
+}
 
 $firstSel=1;
 # iterate over each file
@@ -210,10 +210,10 @@ foreach $logfile (@files)
 
 $page = $page . "</select>\n";
 $page = $page . "<input type='hidden' name='realtime' value='1'></input>\n" if($parms{realtime} eq "1");
-$page = $page . <<EOF;    
+$page = $page . <<EOF;
     </form>
     </div>
-    <div id="chartContainer" style="width: 800px; height: 380px;"></div>
+    <div id="chartContainer" style="width: 80%; height: 60%;"></div>
   </center>
 EOF
 
