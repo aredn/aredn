@@ -32,6 +32,9 @@
   and be marked in reasonable ways as differentiate it from the original
   version.
 
+  API VERSIONS:
+  1.0 - initial release
+  1.1 - added services
 =cut
 
 BEGIN {push @INC, '/www/cgi-bin'};
@@ -42,7 +45,7 @@ read_query_string();
 
 
 my %info;
-$info{"api_version"}="1.0";
+$info{"api_version"}="1.1";
 
 # ============ GENERATE INFO HASH =========
 $node=nvram_get("node");
@@ -145,22 +148,54 @@ print "]";
 
 if($parms{"hosts"} )
 {
-       print ",\"hosts\":[";
-       $mystr="";
-       foreach(`cat /var/run/hosts_olsr`)
-       {
-           $line = $_;
-           next unless /^(\d+\.\d+\.\d+\.\d+)\s*(\S+)/;
-           if ($line !~ /dtdlink|mid[0-9]+\./  ) {
-               $mystr .= sprintf "{\"name\":\"%s\",\"ip\":\"%s\"},",$2,$1;
-           }
-       }
-
-       chop($mystr);
-       print $mystr;
-       print "]";
-       ############## HOSTS
+  print ",\"hosts\":[";
+  $mystr="";
+  $hostsfile="/var/run/hosts_olsr";
+  if ( -e $hostsfile)
+  {
+    if (open(FILE, "<$hostsfile")) {
+      while($line = <FILE>)
+        {
+          next unless $line =~ /^(\d+\.\d+\.\d+\.\d+)\s*(\S+)/;
+          if ($line !~ /dtdlink|mid[0-9]+\./  ) {
+            $mystr .= sprintf "{\"name\":\"%s\",\"ip\":\"%s\"},",$2,$1;
+          }
+        }
+      close FILE;
+    } else {
+      $mystr=sprintf "{\"error\":\"Could not open: %s\"",$hostsfile;
+    }
+  }
+  chop($mystr);
+  print $mystr;
+  print "]";
+  ############## HOSTS
 }
+
+if($parms{"services"} )
+{
+  print ",\"services\":[";
+  $mystr="";
+  $servicesfile="/var/run/services_olsr";
+  if ( -e $servicesfile )
+  {
+    if (open(FILE, "<$servicesfile")) {
+      while($line = <FILE>)
+      {
+        next unless $line =~ /^(.*)\|(.+)\|(.*)\t+\s+.*/;
+        $mystr .= sprintf "{\"link\":\"%s\",\"protocol\":\"%s\",\"name\":\"%s\"},",$1,$2,$3;
+      }
+      close FILE ;
+    } else {
+      $mystr=sprintf "{\"error\":\"Could not open: %s\"",$servicesfile;
+    }
+  }
+  chop($mystr);
+  print $mystr;
+  print "]";
+  ############## SERVICES
+}
+
 
 print "}"; # ROOT
 
