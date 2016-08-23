@@ -39,7 +39,7 @@ use perlfunc;
 use ucifunc;
 use tunfunc;
 
-$VPNVER="1.0";
+$VPNVER="1.1";
 $config = nvram_get("config");
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
@@ -317,10 +317,9 @@ sub print_vpn_clients()
     
     print "<br /><tr class=tun_network_row><td colspan=6 align=center valign=top>Tunnel Server Network: ";   
     printf("%d.%d.",$netw[0],$netw[1]);
-    print "<input type='text' name='server_net1' size='3' maxlen='3' value='$netw[2]' onChange='form.submit()' >";
+    print "<input type='text' name='server_net1' size='3' maxlen='3' value='$netw[2]' onChange='form.submit()' title='from 0-255' >";
     print ".";
-    print "<input type='text' name='server_net2' size='3' maxlen='3' value='$netw[3]' onChange='form.submit()'>";
-    print " (must be between 0 and 254)";
+    print "<input type='text' name='server_net2' size='3' maxlen='3' value='$netw[3]' onChange='form.submit()' title='from 0-255 in multiples of 4. (ie. 0,4,8,12,16...252)' >";
 
     print "<br /><hr>Tunnel Server DNS Name: ";   
     print "<input type='text' name='dns' size='30' value='$dns' onChange='form.submit()' ></td></tr>";
@@ -467,7 +466,7 @@ sub save_clients()
 
         $rc=&uci_set_named_option("vtun","client_$i","serverip",$serverip);
         push(@cli_err,"Problem saving UCI vtun client server IP (#$i): $rc") if $rc;
-        
+
         $rc=&uci_set_named_option("vtun","client_$i","node",$vtun_node_name);
         push(@cli_err,"Problem saving UCI vtun client name (#$i): $rc") if $rc;
 
@@ -480,10 +479,16 @@ sub save_clients()
 #################################
 sub save_network()
 {
-    my $net=sprintf("%d.%d.%d.%d",172,31,$parms{server_net1},$parms{server_net2});
-    push @cli_err, "Problem saving the server network values!" if (&uci_set_indexed_option("vtun","network",0,"start",$net));
-    push @cli_err, "Problem saving the server DNS name!" if (&uci_set_indexed_option("vtun","network",0,"dns",$dns));
-       
+    push(@cli_err,"The third octet of the network MUST be from 0 to 255") unless (($parms{server_net1}>=0) && ($parms{server_net1}<=255) && ($parms{server_net1} ne ''));
+    push(@cli_err,"The last octet of the network MUST be from 0 to 255") unless (($parms{server_net2}>=0) && ($parms{server_net2}<=255) && ($parms{server_net2} ne ''));
+    push(@cli_err,"The last octet of the network MUST be a multiple of 4 (ie. 0,4,8,12,16,...)") if ($parms{server_net2} % 4);
+    push(@cli_err,"Not a valid DNS name") unless (validate_fqdn($parms{dns}));
+    if (not @cli_err)
+    {
+        my $net=sprintf("%d.%d.%d.%d",172,31,$parms{server_net1},$parms{server_net2});
+        push @cli_err, "Problem saving the server network values!" if (&uci_set_indexed_option("vtun","network",0,"start",$net));
+        push @cli_err, "Problem saving the server DNS name!" if (&uci_set_indexed_option("vtun","network",0,"dns",$dns));
+    }
 }
 
 sub DEBUGEXIT()
