@@ -65,7 +65,7 @@ if($parms{button_uploaddata})
     chop($si);
 
     # get olsrd topo information
-    my $topo=`curl 'http://localnode:9090/topology/links' 2>/dev/null`;
+    my $topo=`curl 'http://localnode:9090/links' 2>/dev/null`;
     chomp($topo);
     # add topo subdoc and close root doc
     my $newsi= sprintf "%s,\"olsr\": %s}",$si, $topo;
