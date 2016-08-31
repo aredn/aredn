@@ -60,7 +60,7 @@ $header = <<EOF;
   <script src="/js/jquery-2.1.4.min.js"></script>
   <script src="/js/jquery.canvasjs.min.js"></script>
   <script type="text/javascript">
-    var dps=[[{"label":"Init","y":-95}],[{"label":"Init","y":-95}]];
+    var dps=[[{"label":"Init","y":[-95,-95]}]];
 
     // Read a page's GET URL variables and return them as an associative array.
     function getUrlVars()
@@ -112,17 +112,11 @@ $header = <<EOF;
         },
         data: [
           {
-            type: "spline",
+            type: "rangeSplineArea",
             showInLegend: true,
             legendText: "Signal",
-            toolTipContent: "Signal: {y}dBm @ {label}",
+            toolTipContent: "At {label}<br />Signal: {y[0]}dBm<br />Noise: {y[1]}dBm<br />SNR: {m}dBm<br /><hr />TX Rate: {tx_rate} Mbps<br />TX MCS: {tx_mcs}<br />RX Rate: {rx_rate} Mbps<br />RX MCS: {rx_mcs}<br />",
             dataPoints: dps[0]
-          },{
-            type: "line",
-            showInLegend: true,
-            legendText: "Noise",
-            toolTipContent: "Noise: {y}dBm @ {label}",
-            dataPoints: dps[1]
           }
         ],
       }); // --- chart
@@ -130,7 +124,7 @@ $header = <<EOF;
       var updateArchiveChart = function () {
         \$.getJSON("/cgi-bin/signal.json?device=$parms{device}", function (result) {
           chart.options.data[0].dataPoints = result[0];
-          chart.options.data[1].dataPoints = result[1];
+          // chart.options.data[1].dataPoints = result[1];
           chart.render();
         });
       };
@@ -138,7 +132,7 @@ $header = <<EOF;
       var updateRealtimeChart = function () {
         \$.getJSON("/cgi-bin/signal.json?realtime=1&device=$parms{device}", function (result) {
           dps[0].push(result[0][0]);
-          dps[1].push(result[1][0]);
+          // dps[1].push(result[1][0]);
           chart.render();
         });
       };

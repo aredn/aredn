@@ -1,11 +1,9 @@
-#!/usr/bin/perl
-=for commnet
+#!/usr/bin/lua
+--[[
 
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
-   See Contributors file for additional contributors
-
-  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+  Copyright (C) 2016 Darryl Quinn
+  See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,100 +26,142 @@
   If importing this code into a new or existing project attribution
   to the AREDN project must be added to the source code.
 
-  You must not misrepresent the origin of the material conained within.
+  You must not misrepresent the origin of the material contained within.
 
   Modified versions must be modified to attribute to the original source
   and be marked in reasonable ways as differentiate it from the original
-  version.
+  version
 
-=cut
+--]]
 
-BEGIN {push @INC, '/www/cgi-bin'};
-use perlfunc;
+require("uci")
+require("aredn.uci")
+require("aredn.utils")
+require("aredn.http")
+require("nixio")
+require("iwinfo")
+local ipc = require("luci.ip")
+local json = require ("luci.jsonc")
 
-read_query_string();
-
-my $debug = 0;
-my $dirname="/tmp/snrlog";
-my @values;
-my $counter=0;
-my $sjson;
-my $njson;
-
-system("mkdir $dirname") unless (-d $dirname);
-
-if($parms{"realtime"}) {
-  # ==== REALTIME DATA =====
-  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);          
-  $d = sprintf ("%02d:%02d:%02d", $hour, $min, $sec);
-
-  if($parms{device} eq '' or $parms{device} eq 'strongest') {
-    ($s, $n) = get_wifi_signal(get_interface("wifi"));                              
-  } else {
-    my ($dmac, $dname) = $parms{device} =~ /^(.*?)\-(.*)/;
-    ($s, $n) = get_realtime_signal($dmac);
-  }
-
-  if($s==0) { $s=$n }
-  $sjson= sprintf("{\"label\":\"%s\",\"y\":%s}",$d,$s);
-  $njson= sprintf("{\"label\":\"%s\",\"y\":%s}",$d,$n);
-} else {
-  # ==== ARCHIVE DATA =====
-  # --- Load the snr data into an array
-  if($parms{device} eq '') { chomp ($parms{device}=`ls -1A $dirname | head -1`); }
-
-  $filename=$dirname . "/" . $parms{device};
-  open my $fh, '<', $filename or die "Could not open file '$filename' $!";
-  chomp(my @lines = <$fh>);
-  close $fh;
-
-  # --- iterate over each line and build the json strings
-  foreach my $line (@lines) {
-    @values = split(',', $line);
-    chomp($values[0]);
-    chomp($values[1]);
-    chomp($values[2]);
-    #print "{\"label\":\"$values[0]\",\"y\":\"$values[1]\",\"n\":\"$values[2]\"},";
-    $sjson= join("", $sjson, sprintf("{\"label\":\"%s\",\"y\":%s}",$values[0],$values[1]));
-    $njson= join("", $njson, sprintf("{\"label\":\"%s\",\"y\":%s}",$values[0],$values[2]));
-
-    # --- properly terminate json
-    if(++$counter != scalar(@lines)) {
-      $sjson=join("", $sjson, ",");
-      $njson=join("", $njson, ",");
-    }
-  }
-}
-
-&json_header();
-
-print "[[";
-print $sjson;
-print "],[";
-print $njson;
-print "]]";
+-- Function extensions
+os.capture = capture
 
 
-sub json_header
-{
-   # THIS MUST BE ONE LINE!
-   # otherwise an intermittent busybox bug will incorrectly "fix" the generated output
-   #    print "HTTP/1.0 200 OK\r\n";  # Not needed under Uhttpd
-   print "Content-type: application/json\r\n";
-   print "Cache-Control: no-store\r\n";
-   print "\r\n";
-}
+-- ==== MAIN =====
+ctx = uci.cursor()
+if not ctx then
+    error("Failed to get uci cursor")
+end
 
-sub get_realtime_signal()
-{
-  my $s, $n;
-  my ($var) = @_;
-    return ("-1","-1") if not defined $var;
-    if (-d "/sys/kernel/debug/ieee80211/phy0/netdev:wlan0/stations/$var") {
-      chomp($s = `cat /sys/kernel/debug/ieee80211/phy0/netdev:wlan0/stations/$var/last_signal`);
-    } else {
-      return ("-95","-95");
-    }
-    ($junk, $n) = get_wifi_signal(get_interface("wifi")); 
-    return ($s, $n);
-}
+local defnoise=-95
+local ol={}
+local dpa={}  -- datapoint table/array
+local dirname="/tmp/snrlog"
+local values={}
+local counter=0
+
+local parms={}
+parms=parsecgi(nixio.getenv("QUERY_STRING") or "")
+
+-- make sure snrlog dir is created
+if dir_exists(dirname) then
+  nixio.fs.mkdir(dirname)
+end
+
+-- get wifi ifname
+local wifiiface=get_ifname("wifi")
+
+if parms.realtime then
+  -- REALTIME
+  local d=os.date("%H:%M:%S")
+  local n   -- noise
+  local m   -- margin
+  local s   -- signal
+  local dp={} -- datapoint
+  local yinfo={}
+
+  if (parms.device=="strongest" or parms.device=="" or (not parms.device)) then
+    -- REALTIME/STRONGEST SIGNAL
+    -- get radio noise floor
+    n=iwinfo["nl80211"].noise(wifiiface)
+    if (n < -101 or n > -50) then
+      n=defnoise
+    end
+    -- get strongest signal
+    s=iwinfo["nl80211"].signal(wifiiface)
+    m=tonumber(n)-tonumber(s)
+    tx_rate="N/A"
+    rx_rate="N/A"
+    tx_mcs="N/A"
+    rx_mcs="N/A"
+    dp.tx_rate=tx_rate
+    dp.rx_rate=rx_rate
+    dp.tx_mcs=tx_mcs
+    dp.rx_mcs=rx_mcs
+  else
+    -- REALTIME/SPECIFIC SIGNAL
+    -- split out device to mac-host
+    local mac,host=string.match(parms.device,"([^-]*)-(.*)")
+    local macinfo=iwinfo["nl80211"].assoclist(wifiiface)[mac:upper()]
+    n=macinfo.noise
+    s=macinfo.signal
+    tx_rate=macinfo.tx_rate/1000
+    rx_rate=macinfo.rx_rate/1000
+    tx_mcs=macinfo.tx_mcs
+    rx_mcs=macinfo.rx_mcs
+    m=tonumber(s)-tonumber(n)
+  end
+  if s~=0 then
+    table.insert(yinfo,tonumber(s))
+    table.insert(yinfo,tonumber(n))
+    dp.label=d
+    dp.y=yinfo
+    dp.m=m
+    dp.tx_rate=tx_rate
+    dp.rx_rate=rx_rate
+    dp.tx_mcs=tx_mcs
+    dp.rx_mcs=rx_mcs
+    table.insert(dpa,dp)
+    table.insert(ol,dpa)
+  end
+else
+  -- ARCHIVE
+  local filename
+  if not parms.device or parms.device=="" then
+    -- get the first file from dirlist
+    for maclist in nixio.fs.glob(dirname.."/".."*") do
+      filename=maclist
+      parms.device=maclist
+      break
+    end
+  else
+    filename=dirname.."/"..parms.device
+  end
+
+  if filename then
+    for line in io.lines(filename) do
+      local yinfo={}
+      local dp={}
+      local dt,s,n=line:match("(.*)%,(.*)%,(.*)")
+      m=tonumber(s)-tonumber(n)
+      table.insert(yinfo,tonumber(s))
+      table.insert(yinfo,tonumber(n))
+      dp.label=dt
+      dp.y=yinfo
+      dp.m=m
+      dp.tx_rate="N/A"
+      dp.rx_rate="N/A"
+      dp.tx_mcs="N/A"
+      dp.rx_mcs="N/A"
+      table.insert(dpa,dp)
+    end
+    table.insert(ol,dpa)
+  end
+end
+
+-- Output the HTTP header for JSON
+json_header()
+
+-- Output the info table as json
+print(json.stringify(ol,false))
+-- END MAIN

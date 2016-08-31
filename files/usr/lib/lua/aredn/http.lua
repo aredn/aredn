@@ -58,7 +58,7 @@ function parsecgi(str)
   local rv = {}
   for pair in str:gmatch"[^&]+" do
     local key, val = pair:match"([^=]*)=(.*)"
-    if key then rv[key] = val end
+    if key then rv[cgidecode(key)] = cgidecode(val) end
   end
   return rv
 end
