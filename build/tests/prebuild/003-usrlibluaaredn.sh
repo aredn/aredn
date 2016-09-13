@@ -1,7 +1,7 @@
 #!/bin/sh
 <<'LICENSE'
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
+  Copyright (C) 2015-2016 Conrad Lara
    See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
@@ -35,7 +35,26 @@ LICENSE
 
 . "$SCRIPTBASE/sh2ju.sh"
 
-for file in "$AREDNFILESBASE"/www/cgi-bin/*
+
+# Make sure luac is installed and in path.
+juLog -name="usrlibluaaredn_luacexists" which luac
+LUACNOTEXISTS=$?
+
+for file in "$AREDNFILESBASE"/usr/lib/lua/aredn/*
 do
-  juLog -name="perlscript_$(basename "$file")" "perl -I $AREDNFILESBASE/www/cgi-bin -cw $file"
+
+  FILE_FIRST_LINE=$(head -n 1 "$file") #Lets only read the first line once for the rest of the loops to use
+
+  #### LUA Scripts ####
+  if echo "$FILE_FIRST_LINE" | grep "/usr/bin/lua" >/dev/null; then
+    if [ "$LUACNOTEXISTS" = "1" ]; then
+      juLog -name="usrlibluaaredn_$(basename "$file")" false # Consider test failed if we don't have luac
+    else
+      juLog -name="usrlibluaaredn_$(basename "$file")" luac -p "$file"
+    fi
+  continue # Next file please
+  fi
+  #### End LUA Scripts ####
+
 done
+
