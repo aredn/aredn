@@ -972,6 +972,16 @@ sub hardware_info
             'rfband'          => '2400',
             'chanpower'       => { 1 => '22', 14 => '23' },
          },
+        'TP-Link CPE210 v1.1' => {
+            'name'            => 'TP-Link CPE210 v1.1',
+            'comment'         => 'Testing support for CPE210 v1.1',
+            'supported'       => '-1',
+            'maxpower'        => '23',
+            'pwroffset'       => '0',
+            'usechains'       => 1,
+            'rfband'          => '2400',
+            'chanpower'       => { 1 => '22', 14 => '23' },
+         },
         'TP-Link CPE510 v1.0' => {
             'name'            => 'TP-Link CPE510 v1.0',
             'comment'         => '',
