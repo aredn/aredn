@@ -1321,7 +1321,7 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
-        'Ubiquiti Nanostation M XW' => {
+        '0xe855' => {
             'name'            => 'NanoStation M5 XW',
             'comment'         => 'NanoStation M5 XW',
             'supported'       => '1',
@@ -1348,7 +1348,7 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
-        'Ubiquiti Rocket M XW' => {
+        '0xe6b5' => {
             'name'            => 'Rocket M5 XW',
             'comment'         => 'Rocket M5 XW 0xe6b5 (in testing)',
             'supported'       => '-2',
