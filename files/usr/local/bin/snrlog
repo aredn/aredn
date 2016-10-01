@@ -1,174 +1,310 @@
-#!/usr/bin/perl
-=for commnet
-  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Joe Ayers  ae6xe@arrl.net and Darryl Quinn K5DLQ
-  See Contributors file for additional contributors
+#!/usr/bin/lua
+--[[
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation version 3 of the License.
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2016 Darryl Quinn
+	See Contributors file for additional contributors
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
 
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-  Additional Terms:
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  Additional use restrictions exist on the AREDN(TM) trademark and logo.
-  See AREDNLicense.txt for more info.
+	Additional Terms:
 
-  Attributions to the AREDN Project must be retained in the source code.
-  If importing this code into a new or existing project attribution
-  to the AREDN project must be added to the source code.
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
 
-  You must not misrepresent the origin of the material contained within.
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
 
-  Modified versions must be modified to attribute to the original source
-  and be marked in reasonable ways as differentiate it from the original
-  version.
+	You must not misrepresent the origin of the material contained within.
 
-=cut
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
 
-#delay just after rssi_monitor has a chance to run noise floor calibration
-sleep 5;
+--]]
 
-$MAXLINES=2880; # 2 days worth
-$tmpdir="/tmp/snrlog";
-$lastdat="/tmp/snr.dat";
-$sigdir="/sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations";
+require("aredn.utils")
+local nxo=require("nixio")
+require("iwinfo")
+require("luci.sys")
+require("uci")
 
-if ( -e $lastdat )
-{
-  open(FILE, "<$lastdat") or die "Unable to read \"$lastdat\"";
-  while($line = <FILE>)
-  {
-    ($mac,$last) = split /\|/, $line;
-    chomp ($lasttime{$mac} = $last);
-  }
-  close FILE ;
-}
+-- setup extensions
+os.capture=capture
+string.print=print_r
 
-$nf = `iw wlan0 survey dump | grep -A 1 'in use' | tail -1`;
-$nf =~ s/^[^-\d]*([-\d]+).*$/$1/;
-chomp $nf;
-if ($nf < -95 or $nf > -50 ) { $nf = "-95"; }
 
-if (! -e $tmpdir ) { system("mkdir $tmpdir > /dev/null"); }
+-- delay just after rssi_monitor has a chance to run noise floor calibration
+sleep(5)
+local MAXLINES=2880 -- 2 days worth
+local AGETIME=25000
+local INACTIVETIMEOUT=10000
+local tmpdir="/tmp/snrlog"
+local lastdat="/tmp/snr.dat"
+local lasttime={}
+local lines={}
+local arpcache={}
+local nscache={}
+local defnoise=-95
+local tmpdirlist={}
+local neighbors={}
+local stations={}
+local wifiiface=""
 
-($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-$d = sprintf ("%02d/%02d %02d:%02d:%02d",$mon+1, $mday,$hour, $min, $sec);
-chomp ($now=`cat /proc/uptime | cut -f1 -d" "`);
 
-foreach $sigmac ( glob "$sigdir/*" )
-{
-  $sigmac =~ s/^.*\///;
-  chomp $sigmac;
+-- Neighbor Class
+Neighbor={}
+Neighbor.__index=Neighbor
+function Neighbor.create(macaddress)
+	local n={}
+	setmetatable(n,Neighbor)
+	n.mac=macaddress:lower()
+	n.hostname=nil
+	n.sigfile=nil
+	n.datafile=nil
+	n.ip=nil
+	n.lastseen=nil
+	n.level=nil
 
-  @maclist = glob "$tmpdir/$sigmac*";
-  if (@maclist) { $macfname = $maclist[-1]; }
-  else { $macfname = ""; }
+	n.ip=n:findIp()
+	n.hostname=n:findHostname()
+	n.signal=n:findSignal()
+	n.noise=n:findNoise()
+	n.lastseen=n:findLastTime()
+	n.datafile=n:generateDataFileName()
+	return n
+end
 
-  if ($macfname) 
-  { 
-    $macfname =~ /^.*\/([^-]*)-(.*)$/ ; 
-    $isFile=$1;
-    $hnamef=$2;
-  }
-  else
-  {
-    $macfname = "";
-    $isFile = "";
-    $hnamef = "";
-  }
-  $ipsig    = "";
-  chomp ($ipsig = `cat /proc/net/arp | grep $sigmac | grep 'wlan0' | cut -f1 -d\" "`);
-  $hname="";
-  foreach(`nslookup $ipsig`)
-  {
-    next unless ($hname) = /Address 1: $ipsig (\S+)/;
-    $hname =~ s/\..*$// ;
-    break;
-  }
+function Neighbor:hasIP()
+	return not (self.ip==nil)
+end
 
-  if (($hnamef and $hnamef eq $hname ) or ($hname and $isFile eq "" ))
-  {
-    $sigdat = "$sigmac-$hname";
-  }
-  elsif ( $hnamef eq $ipsig and $hname )
-    {
-      system("mv $tmpdir/$sigmac-$ipsig $tmpdir/$sigmac-$hname > /dev/null");
-      $sigdat = "$sigmac-$hname";
-    }
-    elsif ($hname and ! $hnamef and $isFile )
-      {
-        system("mv $tmpdir/$sigmac- $tmpdir/$sigmac-$hname > /dev/null");
-        $sigdat = "$sigmac-$hname";
-      }
-      elsif (( $hnamef eq $ipsig) or ( $ipsig and ! $isFile ))
-        {
-         $sigdat = "$sigmac-$ipsig";
-        }
-        elsif ( $isFile and ! $hnamef and $ipsig )
-          {
-            system("mv $tmpdir/$sigmac- $tmpdir/$sigmac-$ipsig > /dev/null");
-            $sigdat = "$sigmac-$ipsig";
-          }
-          elsif ($hnamef and ! $hname )
-          {
-            $sigdat = "$sigmac-$hnamef";
-          }
-          elsif ( $hnamef and $hname and $hnamef ne $hname )
-            {
-              system("mv $tmpdir/$sigmac-$hnamef $tmpdir/$sigmac-$hname > /dev/null");
-              $sigdat = "$sigmac-$hname";
-            }
-            else
-              {
-                $sigdat = "$sigmac-";
-              }
+function Neighbor:hasHostName()
+	return not (self.hostname==nil)
+end
 
-  chomp ($siglevel = `cat $sigdir/$sigmac/last_signal`) ;
-  if ($siglevel < -95 or $siglevel >= 0 ) { $siglevel = "-95"; }
+function Neighbor:getExistingDataFileName()
+	local efn=nil
+	for fn in nxo.fs.glob(tmpdir.."/"..self.mac.."-*") do
+		efn=nxo.fs.basename(fn)
+	end
+	return efn
+end
 
-  open(my $fh, '>>', "$tmpdir/$sigdat") or die "Could not open file '$tmpdir/$sigdat' $!";
-  print $fh "$d,$siglevel,$nf\n";
-  close $fh;
+function Neighbor:generateDataFileName()
+	local tmpfn=nil
+	local efn=self:getExistingDataFileName()
+	if efn~=nil then
+		-- existing file found, improve or use
+		tmpfn=self.mac.."-"
+		m,x=string.match(efn,"^([%x2:]*)%-(.*)")
+		if x==nil or x=="" then	-- "00:11:22:33:44:55-"
+			if self:hasHostName() then
+				tmpfn=tmpfn..self.hostname
+				nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
+			elseif self:hasIP() then
+				tmpfn=tmpfn..self.ip
+				nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
+			end
+		elseif get_ip_type(x)==1 then -- "00:11:22:33:44:55-10.11.22.33"
+			if self:hasHostName() then
+				tmpfn=tmpfn..self.hostname
+				nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
+			else
+				tmpfn=efn
+			end
+		else 	-- "00:11:22:33:44:55-MAYBE-GOOD-HOST"
+			if x==self.hostname then	-- "00:11:22:33:44:55-SAME-HOST"
+				tmpfn=efn
+			else	-- "00:11:22:33:44:55-NEW-HOST-NAME"
+				if self.hostname~=nil then
+					tmpfn=tmpfn..self.hostname
+					nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
+				else
+					tmpfn=efn
+				end
+			end
+		end
+	else
+		-- no prior file, let's generate one
+		tmpfn=self.mac.."-"
+		if self:hasHostName() then
+			tmpfn=tmpfn..self.hostname
+		elseif self:hasIP() then
+			tmpfn=tmpfn..self.ip
+		end
+	end
+	return tmpfn
+end
 
-  chomp ($lcount=`wc -l < $tmpdir/$sigdat`);
+function Neighbor:findLastTime()
+	self.lastseen=lasttime[mac]
+	return self.lastseen
+end
 
-  if($lcount>$MAXLINES+10)
-  {
-    $rc=`tail -n$MAXLINES $tmpdir/$sigdat > $tmpdir/$sigdat.tmp`;
-    $rc=`mv $tmpdir/$sigdat.tmp $tmpdir/$sigdat`;
-  }
-  $neighbor{$sigmac}="1";
-  $lasttime{$sigmac}=$now;
-}
+function Neighbor:findHostname()
+	if self:hasIP() then
+		self.hostname=nslookup(self.ip)
+	end
+	return self.hostname
+end
 
-# process neigbors that are no longer connected
-foreach $sigmac (`ls $tmpdir`)
-{
-  chomp $sigmac ;
-  $sigf = $sigmac;
-  $sigmac =~ s/-.*$//;
+function Neighbor:findIp()
+	-- lookup IP from arpcache
+	local myarp=arpcache[self.mac]
+	if myarp~=nil then
+		self.ip=myarp["IP address"]
+	end
+	return self.ip
+end
 
-  if ( $now - $lasttime{$sigmac} > 25000 )
-  {
-    unlink "$tmpdir/$sigf" ;
-    delete $lasttime{$sigmac};
-  }
-  elsif ( ! $neighbor{$sigmac} )
-    {
-      open(my $fh, '>>', "$tmpdir/$sigf") or die "Could not open file '$tmpdir/$sigf' $!";
-      print $fh "$d,-95,-95\n";
-      close $fh;
-    }
-}
+function Neighbor:findSignal()
+	-- lookup from iwinfo
+	self.signal=stations[self.mac:upper()].signal
+	return self.signal
+end
 
-open($fh, ">$lastdat") or die "Unable to create \"$lastdat\" $!";
-for (keys %lasttime) { print $fh "$_|$lasttime{$_}\n"; }
-close $fh;
+function Neighbor:findNoise()
+	-- lookup from iwinfo
+	self.noise=stations[self.mac:upper()].noise
+	return self.noise
+end
+
+function Neighbor:log()
+	local oktolog=false
+	if self.lastseen ~= nil then
+		if stations[self.mac:upper()].inactive < INACTIVETIMEOUT then
+			oktolog=true
+		end
+	else
+		oktolog=true
+	end
+
+	if self.signal==0 then
+		oktolog=false
+	end
+
+	if oktolog then
+		-- log neighbor data to datafile
+		local f, err=assert(io.open(tmpdir.."/"..self.datafile, "a"),"Cannot open file ("..tmpdir.."/"..self.datafile..") for appending!")
+		if f~=nil then
+			local now=os.date("%m/%d %H:%M:%S",os.time())
+			local outline=string.format("%s,%s,%s\n",now,self.signal,self.noise)
+			f:write(outline)
+			f:close()
+		else
+			print(err)
+		end
+	end
+	return oktolog
+end
+-- Neighbor Class END
+
+-- MAIN() -------------------------------------------------------------------------------------
+-- get wifi interface name
+wifiiface=get_ifname("wifi")
+
+-- load the lasttime table
+if file_exists(lastdat) then
+	local f,err=io.open(lastdat,"r")
+	if f~=nil then
+		for line in f:lines() do
+			mac,last=string.match(line, "(.*)|(.*)")
+			lasttime[mac]=last
+		end
+	end
+	f:close()
+end
+
+-- get radio noise floor
+local nf=iwinfo["nl80211"].noise(wifiiface)
+if (nf < -101 or nf > -50) then
+	nf=defnoise
+end
+
+-- create tmp dir if needed
+if not dir_exists(tmpdir) then
+	nxo.fs.mkdir(tmpdir)
+end
+
+-- get system uptime
+--now=os.time()
+now=luci.sys.uptime()
+
+-- get all stations
+stations=iwinfo["nl80211"].assoclist(wifiiface)
+
+
+-- load up arpcache
+luci.sys.net.arptable(
+	function(a)
+		arpcache[a["HW address"]:lower()]=a
+	end
+)
+
+-- iterate over all the stations
+for mstation in pairs(stations) do
+	local n=Neighbor.create(mstation)
+	table.insert(neighbors,n)
+end
+
+-- get all the existing files in tmpdir
+local tmpdirlist={}
+for maclist in nxo.fs.dir(tmpdir) do
+	maclistbase=nxo.fs.basename(maclist)
+	table.insert(tmpdirlist,maclistbase)
+end
+
+-- neighbors loop START
+for _,n in pairs(neighbors) do
+	-- trim datafile
+	file_trim(tmpdir.."/"..n.datafile,MAXLINES)
+	if n:log()==true then
+		lasttime[n.mac]=now
+	end
+end
+-- neighbors loop END
+
+-- update snr.dat
+local snrdatcache={}
+if not file_exists(lastdat) then
+	-- create file
+	local f,err=assert(io.open(lastdat,"w+"),"Cannot create "..lastdat)
+	f:close()
+end
+for line in io.lines(lastdat) do
+	local mac,lastt=string.match(line,"(.*)|(.*)")
+	if ((now-lastt) < AGETIME) then
+		-- keep it
+		snrdatcache[mac]=lastt
+	else
+		-- find the file and purge it
+		for maclist in nxo.fs.glob(tmpdir.."/"..mac.."*") do
+			nxo.fs.remove(maclist)
+		end
+	end
+end
+
+for _,n in pairs(neighbors) do
+		snrdatcache[n.mac]=now
+end
+
+-- re-write snr.dat file
+local f,err=assert(io.open(lastdat,"w+"),"Cannot overwrite "..lastdat)
+for k,v in pairs(snrdatcache) do
+	f:write(string.format("%s|%s\n",k,v))
+end
+f:close()
+
+-- END MAIN

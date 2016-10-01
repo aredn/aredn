@@ -37,6 +37,11 @@
 
 local nxo = require("nixio")
 local ipc = require("luci.ip")
+local posix = require("posix.unistd")
+
+function sleep(n)  -- seconds
+	posix.sleep(n)
+end
 
 function get_ip_type(ip)
   local R = {ERROR = 0, IPV4 = 1, IPV6 = 2, STRING = 3}
@@ -52,7 +57,7 @@ function get_ip_type(ip)
   end
 
   --[[
-  -- TODO 
+  -- TODO
   -- check for ipv6 format, should be 8 'chunks' of numbers/letters
   -- without trailing chars
   local chunks = {ip:match(("([a-fA-F0-9]*):"):rep(8):gsub(":$","$"))}
@@ -62,7 +67,7 @@ function get_ip_type(ip)
 	end
 	return R.IPV6
   end
- 	--]]
+	--]]
   return R.STRING
 end
 
@@ -107,7 +112,7 @@ function dir_exists(name)
 end
 
 function hardware_boardid()
-	local bid=nil
+	local bid=""
 	local ssdid="/sys/devices/pci0000:00/0000:00:00.0/subsystem_device"
 	if file_exists(ssdid) then
 		local bfile, err=io.open(ssdid,"r")
@@ -150,11 +155,15 @@ function string:splitWhiteSpace()
 end
 
 function nslookup(ip)
-	local hostname
+	local hostname=nil
 	if get_ip_type(ip)==1 then
 		hostname=capture("nslookup '"..ip.."'|grep 'Address 1'|grep -v 'localhost'|cut -d' ' -f4 2>&1")
+		hostname=hostname:chomp()
+		if hostname=="" then
+			hostname=nil
+		end
 	end
-	return hostname:chomp()
+	return hostname
 end
 
 function file_trim(filename, maxl)
