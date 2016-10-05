@@ -1301,7 +1301,7 @@ sub hardware_info
             'maxpower'        => '22',
             'pwroffset'       => '4',
             'usechains'       => 1,
-            'rfband'          => '5500',
+            'rfband'          => '5800ubntus',
          },
         '0xe805' => {
             'name'            => 'NanoStation M5',
