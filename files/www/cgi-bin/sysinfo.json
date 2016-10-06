@@ -1,227 +1,239 @@
-#!/usr/bin/perl
-=for comment
+#!/usr/bin/lua
+--[[
 
-  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Darryl Quinn
-  See Contributors file for additional contributors
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2016 Darryl Quinn
+	See Contributors file for additional contributors
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation version 3 of the License.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
+	GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.	If not, see <http://www.gnu.org/licenses/>.
 
-  Additional Terms:
+	Additional Terms:
 
-  Additional use restrictions exist on the AREDN(TM) trademark and logo.
-    See AREDNLicense.txt for more info.
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
 
-  Attributions to the AREDN Project must be retained in the source code.
-  If importing this code into a new or existing project attribution
-  to the AREDN project must be added to the source code.
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
 
-  You must not misrepresent the origin of the material conained within.
+	You must not misrepresent the origin of the material contained within.
 
-  Modified versions must be modified to attribute to the original source
-  and be marked in reasonable ways as differentiate it from the original
-  version.
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
 
-  API VERSIONS:
-  1.0 - initial release
-  1.1 - added services
-=cut
+--]]
 
-BEGIN {push @INC, '/www/cgi-bin'};
-use perlfunc;
+require("uci")
+require("aredn.uci")
+require("aredn.utils")
+require("aredn.http")
+require("nixio")
+local ipc = require("luci.ip")
+local json = require ("luci.jsonc")
 
-read_query_string();
-&json_header();
-
-
-my %info;
-$info{"api_version"}="1.1";
-
-# ============ GENERATE INFO HASH =========
-$node=nvram_get("node");
-chomp($node);
-$info{"node"}=$node;
-
-$model=`/usr/local/bin/get_model`;
-chomp($model);
-$info{"model"}=$model;
-
-$info{"board_id"}=&hardware_boardid();
-
-# ------- Firmware Manufacturer
-if (-e "/www/AREDN.png")
-{
-  $fw_mfg="AREDN";
-} else {
-  $fw_mfg = "Other";
-}
-$info{"firmware_mfg"}=$fw_mfg;
-
-$fwver=`cat /etc/mesh-release`;
-chomp($fwver);
-$info{"firmware_version"}=$fwver;
-
-# ------- Tunnel Installed
-if (-e "/usr/sbin/vtund")
-{
-  $tunnel_installed="true";
-} else {
-  $tunnel_installed="false";
-}
-$info{"tunnel_installed"}=$tunnel_installed;
-
-# ------- SSID
-$line = `grep ssid /etc/config/wireless | tail -1`;
-$line   =~ /['"](.*-(5|10|20)-v[3456])/;
-$myssid = $1;
-$myssid =~ /(.*)-(5|10|20)-v[3456]/;
-$info{"ssid"}=$myssid;
-
-# ------- Wifi Channel Number
-$mychan = `uci get wireless.radio0.channel`;
-chomp($mychan);
-# 3GHZ channel -> Freq conversion
-if ($mychan >= 76 and $mychan <= 99) {
-  $info{"channel"}=($mychan * 5) + 3000;
-} else {
-  $info{"channel"}=$mychan;
-}
-
-# ------- Wifi Bandwidth
-$line = `uci get wireless.radio0.chanbw`;
-chomp($line);
-$info{"chanbw"}=$line;
-
-# ------- ACTIVE TUNNELS
-$active_tunnel_count=`ifconfig|grep tun|wc -l`;
-chomp($active_tunnel_count);
-$info{"active_tunnel_count"}=$active_tunnel_count;
-
-# ------- LAT/LON
-$lat=`head -1 /etc/latlon 2>/dev/null`;
-chomp($lat);
-$info{"lat"}=$lat;
-
-$lon=`tail -1 /etc/latlon 2>/dev/null`;
-chomp($lon);
-$info{"lon"}=$lon;
-
-# ------- GRID SQUARE
-$grid=`head -1 /etc/gridsquare 2>/dev/null`;
-chomp($grid);
-$info{"grid_square"}=$grid;
+-- Function extensions
+os.capture = capture
 
 
-# ----------- GENERATE THE JSON ------------
-print "{";
-foreach $ik (keys %info)
-{
-  print "\"$ik\":\"",$info{$ik},"\",";
-}
+-- ==== MAIN =====
+ctx = uci.cursor()
+if not ctx then
+		error("Failed to get uci cursor")
+end
 
-############## INTERFACES
-print "\"interfaces\":[";
-$mystr="";
-foreach(`ifconfig -a`)
-{
-   next unless /^(\S+) .*HWaddr (\S+)/;
-   $mystr .= sprintf "{\"name\":\"%s\",", $1;
-   ($ip, $mask, $bcast, $net, $cidr) = &get_my_ip($1);
-   $mystr .= sprintf "\"ip\":\"%s\",",$ip;
-   $mystr .= sprintf "\"mac\":\"%s\"}",$2;
-   $mystr .= sprintf ",";
-}
-chop($mystr);
-print $mystr;
-print "]";
-############## INTERFACES
+info={}
 
-if($parms{"hosts"} )
-{
-  print ",\"hosts\":[";
-  $mystr="";
-  $hostsfile="/var/run/hosts_olsr";
-  if ( -e $hostsfile)
-  {
-    if (open(FILE, "<$hostsfile")) {
-      while($line = <FILE>)
-        {
-          next unless $line =~ /^(\d+\.\d+\.\d+\.\d+)\s*(\S+)/;
-          if ($line !~ /dtdlink|mid[0-9]+\./  ) {
-            $mystr .= sprintf "{\"name\":\"%s\",\"ip\":\"%s\"},",$2,$1;
-          }
-        }
-      close FILE;
-    } else {
-      $mystr=sprintf "{\"error\":\"Could not open: %s\"",$hostsfile;
-    }
-  }
-  chop($mystr);
-  print $mystr;
-  print "]";
-  ############## HOSTS
-}
+-- API version
+info['api_version']="1.1"
 
-if($parms{"services"} )
-{
-  print ",\"services\":[";
-  $mystr="";
-  $servicesfile="/var/run/services_olsr";
-  if ( -e $servicesfile )
-  {
-    if (open(FILE, "<$servicesfile")) {
-      while($line = <FILE>)
-      {
-        next unless $line =~ /^(.*)\|(.+)\|(.*)\t+\s+.*/;
-        $mystr .= sprintf "{\"link\":\"%s\",\"protocol\":\"%s\",\"name\":\"%s\"},",$1,$2,$3;
-      }
-      close FILE ;
-    } else {
-      $mystr=sprintf "{\"error\":\"Could not open: %s\"",$servicesfile;
-    }
-  }
-  chop($mystr);
-  print $mystr;
-  print "]";
-  ############## SERVICES
-}
+-- NODE name
+css=getUciConfType("system", "system")
+info['node']=css[0]['hostname']
+
+-- MODEL
+m=os.capture("/usr/local/bin/get_model")
+info['model']=m:chomp()
+
+-- BOARD ID
+info['board_id']=hardware_boardid()
+
+-- Firmware Manufacturer
+local fw_mfg="AREDN"
+if not file_exists("/www/AREDN.png") then
+	fw_mfg = "Other"
+end
+info['firmware_mfg']=fw_mfg
+
+-- Firmware version
+local relfile=io.open("/etc/mesh-release","r")
+local fv=""
+if relfile~=nil then
+	fv=relfile:read()
+	relfile:close()
+end
+info['firmware_version']=fv:chomp()
+
+-- Tunnel Installed
+local tunnel_installed=false
+if file_exists("/usr/sbin/vtund") then
+	tunnel_installed="true"
+end
+info["tunnel_installed"]=tunnel_installed
+
+-- SSID
+local myssid=""
+wif=getUciConfType("wireless", "wifi-iface")
+for pos, t in pairs(wif) do
+	if wif[pos]['network']=="wifi" then
+		myssid=wif[pos]['ssid']
+	end
+end
+info["ssid"]=myssid
+
+--Wifi Channel Number
+local chan=""
+chan = tonumber(ctx:get("wireless", "radio0", "channel"))
+-- 3GHZ channel -> Freq conversion
+if (chan >= 76 and chan <= 99) then
+	chan=(chan * 5) + 3000
+end
+info["channel"]=tostring(chan)
 
 
-print "}"; # ROOT
+--Wifi Bandwidth
+local chanbw=""
+chanbw = ctx:get("wireless", "radio0", "chanbw")
+info["chanbw"]=chanbw
 
-##############################
+-- ACTIVE TUNNELS
+local atc=""
+atc=os.capture("ifconfig|grep tun|wc -l")
+info["active_tunnel_count"]=atc:chomp()
 
+-- LAT/LON
+local llfname="/etc/latlon"
+local lat=""
+local lon=""
+if file_exists(llfname) then
+	llfile=io.open(llfname,"r")
+	if llfile~=nil then
+		lat=llfile:read()
+		lon=llfile:read()
+		llfile:close()
+	end
+end
+info["lat"]=lat
+info["lon"]=lon
 
+-- GRID SQUARE
+local gsfname="/etc/gridsquare"
+local grid=""
+if file_exists(gsfname) then
+	gsfile=io.open(gsfname,"r")
+	if gsfile~=nil then
+		grid=gsfile:read()
+		gsfile:close()
+	end
+end
+info["grid_square"]=grid
 
-sub json_header
-{
-   # THIS MUST BE ONE LINE!
-   # otherwise an intermittent busybox bug will incorrectly "fix" the generated output
-   #    print "HTTP/1.0 200 OK\r\n";  # Not needed under Uhttpd
-   print "Content-type: application/json\r\n";
-   print "Cache-Control: no-store\r\n";
-   print "\r\n";
-}
+-- INTERFACES
+local tif={}
+local ift=get_interfaces()
 
-sub get_my_ip
-{
-   my($ip);
-   foreach(`ifconfig $_[0]`)
-   {
-       next unless /inet addr:([\d\.]+)/;
-       $ip = $1;
-       last;
-   }
-   return ("none") unless defined $ip;
-   return $ip;
-}
+for pos, i in pairs(ift) do
+	local nim={}
+	local ipv4=""
+	if (i.name ~= "lo" and i.name ~= "wlan0-1") then
+		--table.print(i)
+		nim['name']=i.name
+		ipv4=tostring(i.ipaddrs[1])
+		nim['ip']=ipFromCIDR(ipv4)
+		nim['mac']=i.macaddr
+		table.insert(tif,nim)
+	end
+end
+info["interfaces"]=tif
+
+-- HOSTS
+if string.find(nixio.getenv("QUERY_STRING"):lower(),"hosts=1") then
+	local hosts={}
+	local lines={}
+	local pos, val
+	local hfile=io.open("/var/run/hosts_olsr","r")
+	if hfile~=nil then
+		for line in hfile:lines() do
+			table.insert(lines,line)
+		end
+		hfile:close()
+		for pos,val in pairs(lines) do
+			local host={}
+
+			-- local data,comment = string.match(val,"^([^#;]+)[#;]*(.*)$")
+			local data,comment = string.match(val,"^([^#;]+)[#;]*(.*)$")
+
+			if data then
+				--local ip, name=string.match(data,"^%s*([%x%.%:]+)%s+(%S.*)\t%s*$")
+				local ip, name=string.match(data,"^([%x%.%:]+)%s+(%S.*)\t%s*$")
+				if ip and name then
+					if not string.match(name,"^(dtdlink[.]).*") then
+						if not string.match(name,"^(mid[0-9][.]).*") then
+							host['name']=name
+							host['ip']=ip
+							table.insert(hosts,host)
+						end
+					end
+				end
+			end
+		end
+	else
+		host['error']="Cannot read hosts file"
+		table.insert(hosts,host)
+	end
+	info["hosts"]=hosts
+end
+
+-- SERVICES
+if string.find(nixio.getenv("QUERY_STRING"):lower(),"services=1") then
+	local services={}
+	local lines={}
+	local pos, val
+	local hfile=io.open("/var/run/services_olsr","r")
+	if hfile~=nil then
+		for line in hfile:lines() do
+			table.insert(lines,line)
+		end
+		hfile:close()
+		for pos,val in pairs(lines) do
+			local service={}
+			local link,protocol,name = string.match(val,"^(.*)|(.+)|(.*)\t+%s+.*")
+			if link and protocol and name then
+				service['link']=link
+				service['protocol']=protocol
+				service['name']=name
+				table.insert(services,service)
+			end
+		end
+	else
+		service['error']="Cannot read services file"
+		table.insert(services,service)
+	end
+	info["services"]=services
+end
+
+-- Output the HTTP header for JSON
+json_header()
+
+-- Output the info table as json
+print(json.stringify(info,true))
