@@ -1321,6 +1321,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
+        '0xe835' => {
+            'name'            => 'AirGrid M5 XW',
+            'comment'         => 'AirGrid M5 XW in testing',
+            'supported'       => '-1',
+            'maxpower'        => '19',
+            'pwroffset'       => '6',
+            'usechains'       => 0,
+            'rfband'          => '5800ubntus',
+         },
         '0xe855' => {
             'name'            => 'NanoStation M5 XW',
             'comment'         => 'NanoStation M5 XW',
