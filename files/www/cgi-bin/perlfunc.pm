@@ -1276,6 +1276,15 @@ sub hardware_info
             'usechains'       => 0,
             'rfband'          => '2400',
          },
+       '0xe3e5' => {
+            'name'            => 'PowerBeam M5 XW 300',
+            'comment'         => 'PowerBeam M5 XW 300',
+            'supported'       => '-1',
+            'maxpower'        => '22',
+            'pwroffset'       => '4',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xe4a2' => {
             'name'            => 'AirRouter',
             'comment'         => 'AirRouter',
