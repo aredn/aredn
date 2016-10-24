@@ -1366,6 +1366,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
+         '0xe815' => {
+            'name'            => 'NanoBeam M5 16',
+            'comment'         => 'NanoBeam M5 16',
+            'supported'       => '-1',
+            'maxpower'        => '22',
+            'pwroffset'       => '4',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
     );
 
     $boardid = hardware_boardid();
