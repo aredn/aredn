@@ -117,7 +117,7 @@ sub pushAP
   elsif($web)
   {
     push @list, sprintf "% 3d|%d|%s|%s|%s|%s|%s",
-      $signal, $chan, $key, $ssid, $host, $mac, $mode;
+      $signal, $chan, $key, sprintf("&#x%*vX", '&#x',$ssid), $host, $mac, $mode;
   }
   else
   {
@@ -295,7 +295,9 @@ while(1)
   {
       foreach $line (sort { $b <=> $a } @list)
       {
-	  if ( $line =~ /AREDN/) { print "<tr class=\"wscan-row-node\">"}
+         
+	  # Match "AREDN"
+	  if ( $line =~ /&#x41&#x52&#x45&#x44&#x4E/) { print "<tr class=\"wscan-row-node\">"}
           else { print "<tr>"}
 
 	  my $i = 0;
