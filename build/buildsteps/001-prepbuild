@@ -16,13 +16,13 @@ else
     # locally then lets assume this may not be in the build environment and fall back to some sane defaults.
     if [ -n "$GIT_BRANCH" ] && [ -d "$AREDN_PACKAGES_DIR" ] && [ -n "$(git --git-dir="$AREDN_PACKAGES_DIR/.git" branch --list -r "$GIT_BRANCH")" ]
     then
-        BASE_BRANCH="$GIT_BRANCH"
+        BASE_BRANCH=$(echo "$GIT_BRANCH"|sed 's/.*\///')
     else
         case $GIT_BRANCH in
-            origin/release-*    ) BASE_BRANCH="origin/master";;
-            origin/hotfix-*     ) BASE_BRANCH="origin/master";;
-            origin/master       ) BASE_BRANCH="origin/master";;
-            *                   ) BASE_BRANCH="origin/develop";;
+            origin/release-*    ) BASE_BRANCH="master";;
+            origin/hotfix-*     ) BASE_BRANCH="master";;
+            origin/master       ) BASE_BRANCH="master";;
+            *                   ) BASE_BRANCH="develop";;
         esac
     fi
     echo "src-git arednpackages git://git.aredn.org/aredn_packages;$BASE_BRANCH" > feeds.conf
