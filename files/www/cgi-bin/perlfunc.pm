@@ -1468,7 +1468,7 @@ sub alert_banner
     print "<div class=\"TopBanner\">";
 
     #AREDN Banner
-    print "<div class=\"LogoDiv\"><img src=\"/AREDN.png\" class=\"AREDNLogo\"></img></div>";
+    print "<div class=\"LogoDiv\"><a href=\"http://localnode.local.mesh:8080\" title=\"Go to localnode\"><img src=\"/AREDN.png\" class=\"AREDNLogo\"></img></a></div>";
 
     # Device compatibility alert
     if ( is_hardware_supported() != 1  ){
