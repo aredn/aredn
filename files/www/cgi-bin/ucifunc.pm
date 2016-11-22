@@ -79,10 +79,9 @@ sub uci_get_names_by_sectiontype()
                 @parts=();
                 chomp($lines[$l]);
                 @parts = $lines[$l] =~ /^$config\.(.*)\=$stype/g;1;
-                
                 if (scalar(@parts) eq 1) {
                     push(@names,$parts[0]);
-                } 
+                }
         }
     }
     return @names;
@@ -103,15 +102,14 @@ sub uci_get_named_section()
                 chomp($l);
                 # @parts=();
                 @parts = $l =~ /^$config\.$sname\.(.*)\=(.*)/g;1;
-                
                 if (scalar(@parts) eq 2) {
+                    $parts[1] =~ s/^\'|\'+$//g;
                     $section->{$parts[0]} = $parts[1];
-                } 
+                }
         }
     }
     return $section;
 }
-
 
 # RETURNS an array of hashes
 sub uci_get_all_indexed_by_sectiontype()
@@ -136,6 +134,7 @@ sub uci_get_all_indexed_by_sectiontype()
                     $sect={};
                     $lastindex=$parts[0];
                 }
+                $parts[2] =~ s/^\'|\'+$//g;
                 $sect->{$parts[1]} = $parts[2];
                 next;
             }        
