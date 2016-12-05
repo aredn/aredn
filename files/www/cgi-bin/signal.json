@@ -71,6 +71,9 @@ end
 -- get wifi ifname
 local wifiiface=get_ifname("wifi")
 
+-- get bandwidth
+local bandwidth=get_bandwidth()
+
 if parms.realtime then
   -- REALTIME
   local d=os.date("%H:%M:%S")
@@ -106,7 +109,9 @@ if parms.realtime then
     n=macinfo.noise
     s=macinfo.signal
     tx_rate=macinfo.tx_rate/1000
+    tx_rate=adjust_rate(tx_rate,bandwidth)
     rx_rate=macinfo.rx_rate/1000
+    rx_rate=adjust_rate(rx_rate,bandwidth)
     tx_mcs=macinfo.tx_mcs
     rx_mcs=macinfo.rx_mcs
     m=tonumber(s)-tonumber(n)
@@ -142,17 +147,17 @@ else
     for line in io.lines(filename) do
       local yinfo={}
       local dp={}
-      local dt,s,n=line:match("(.*)%,(.*)%,(.*)")
+      local dt,s,n,tm,tr,rm,rr=line:match("(.*)%,(.*)%,(.*),(.*),(.*),(.*),(.*)")
       m=tonumber(s)-tonumber(n)
       table.insert(yinfo,tonumber(s))
       table.insert(yinfo,tonumber(n))
       dp.label=dt
       dp.y=yinfo
       dp.m=m
-      dp.tx_rate="N/A"
-      dp.rx_rate="N/A"
-      dp.tx_mcs="N/A"
-      dp.rx_mcs="N/A"
+      dp.tx_rate=tr
+      dp.rx_rate=rr
+      dp.tx_mcs=tm
+      dp.rx_mcs=rm
       table.insert(dpa,dp)
     end
     table.insert(ol,dpa)

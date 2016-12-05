@@ -35,10 +35,12 @@
 --]]
 
 require("aredn.utils")
+require("uci")
+require("aredn.uci")
 local nxo=require("nixio")
 require("iwinfo")
 require("luci.sys")
-require("uci")
+
 
 -- setup extensions
 os.capture=capture
@@ -61,6 +63,7 @@ local tmpdirlist={}
 local neighbors={}
 local stations={}
 local wifiiface=""
+local bandwidth=""
 
 
 -- Neighbor Class
@@ -81,6 +84,10 @@ function Neighbor.create(macaddress)
 	n.hostname=n:findHostname()
 	n.signal=n:findSignal()
 	n.noise=n:findNoise()
+	n.tx_mcs=n:findTxMcs()
+	n.tx_rate=n:findTxRate()
+	n.rx_mcs=n:findRxMcs()
+	n.rx_rate=n:findRxRate()
 	n.lastseen=n:findLastTime()
 	n.datafile=n:generateDataFileName()
 	return n
@@ -181,6 +188,28 @@ function Neighbor:findNoise()
 	return self.noise
 end
 
+function Neighbor:findTxMcs()
+	self.tx_mcs=stations[self.mac:upper()].tx_mcs
+	return self.tx_mcs
+end
+
+function Neighbor:findTxRate()
+	local r=(stations[self.mac:upper()].tx_rate)/1000
+	self.tx_rate=adjust_rate(r,bandwidth)
+	return self.tx_rate
+end
+
+function Neighbor:findRxMcs()
+	self.rx_mcs=stations[self.mac:upper()].rx_mcs
+	return self.rx_mcs
+end
+
+function Neighbor:findRxRate()
+	local r=(stations[self.mac:upper()].rx_rate)/1000
+	self.rx_rate=adjust_rate(r,bandwidth)
+	return self.rx_rate
+end
+
 function Neighbor:log()
 	local oktolog=false
 	if self.lastseen ~= nil then
@@ -200,7 +229,7 @@ function Neighbor:log()
 		local f, err=assert(io.open(tmpdir.."/"..self.datafile, "a"),"Cannot open file ("..tmpdir.."/"..self.datafile..") for appending!")
 		if f~=nil then
 			local now=os.date("%m/%d %H:%M:%S",os.time())
-			local outline=string.format("%s,%s,%s\n",now,self.signal,self.noise)
+			local outline=string.format("%s,%s,%s,%s,%s,%s,%s\n",now,self.signal,self.noise,self.tx_mcs,self.tx_rate,self.rx_mcs,self.rx_rate)
 			f:write(outline)
 			f:close()
 		else
@@ -252,6 +281,9 @@ luci.sys.net.arptable(
 		arpcache[a["HW address"]:lower()]=a
 	end
 )
+
+-- get the current bandwidth setting
+bandwidth=get_bandwidth()
 
 -- iterate over all the stations
 for mstation in pairs(stations) do

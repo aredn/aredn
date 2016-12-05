@@ -38,6 +38,28 @@
 local nxo = require("nixio")
 local ipc = require("luci.ip")
 local posix = require("posix.unistd")
+require("uci")
+
+function round2(num, idp)
+  return tonumber(string.format("%." .. (idp or 0) .. "f", num))
+end
+
+function adjust_rate(r,b)
+	local ar=r
+	if b==5 then
+		ar=round2(ar/4,1)
+	elseif b==10 then
+		ar=round2(ar/2,1)
+	end
+	return ar
+end
+
+function get_bandwidth()
+	local curs=uci.cursor()
+	local b
+	b=curs:get("wireless","radio0","chanbw")
+	return tonumber(b)
+end
 
 function sleep(n)  -- seconds
 	posix.sleep(n)
