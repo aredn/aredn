@@ -11,6 +11,7 @@
 Table of Contents:
 <ul>
 <li><a href='#status'>Status Page</a></li>
+<li><a href='#charts'>Charts Page</a></li>
 <li><a href='#meshstatus'>Mesh Status Page</a></li>
 <li>Setup</li>
 <ul>
@@ -140,6 +141,52 @@ temporary files. Memory is the amount of RAM available for running processes.
 </p>
 
 <br><br><hr>
+<a name=charts><h2>Charts Page</h2></a>
+<p>This page shows RF signal information in both a realtime and an archived view.  The default view shows the STRONGEST RF signal in realtime.<br>
+	Below the node name, there will be a few control buttons:<br>
+	<ul>
+		<li><strong>Archive</strong>: takes you to the charts for any archived signal data on this node.</li>
+		<li><strong>Realtime</strong>: takes you to the charts for realtime (current) signal data as seen from this node.</li>
+	    <li><strong>Quit</strong>: takes you back to the node status page at http://nodename:8080/cgi-bin/status</li>
+	</ul>
+</p>
+<p>Below these control buttons, you will see the <strong>"Selected Device"</strong> drop down control.  This control will display each 'heard' mesh node neighbor.<br>
+	Depending on the information known about a given neighbor, the neighbor may be listed as one of the following:
+	<ul>
+		<li>MAC address: 802.11 adhoc beacons received</li>
+		<li>IP address: IP packets received</li>
+		<li>Hostname: OLSR packets communicating hostname received (from any source)</li>
+	</ul>
+	<p>By changing the <strong>"Selected Device"</strong> value, the chart will automatically reload and show that node's information.</p>
+	<p>Hovering over data points within the charts will show additional information for that specific data point, such as:
+		<ul>
+			<li>Time: The time that the data point was taken</li>
+			<li>Signal: the RF signal level</li>
+			<li>Noise: the RF noise floor value</li>
+			<li>SNR: The absolute value of (signal - noise)</li>
+			<li>TX Rate: the data rate (in Mbps) used for transmitting to the selected device</li>
+			<li>TX MCS: the modulation and encoding scheme used for transmitting to the selected device</li>
+			<li>RX Rate: the data rate (in Mbps) used for receiving from the selected device</li>
+			<li>TX MCS: the modulation and encoding scheme used for receiving from the selected device</li>
+		</ul>
+	</p>
+	<p>If no traffic is being routed to the neighbor, the rate and MCS values may be '0' until data is available to measure and determine the optimal settings.</p>
+	<p>An MCS value of zero (0) may also include non-802.11n encoding schemes (ie. 802.11a/b/g)</p>
+	<p>The small box with 3 vertical dots in the upper right of the page, allow you to download the current snapshot of the chart to a file on your local computer.</p>
+	<p>Data shown in the ARCHIVE charts are not stored in permanent memory on the node.  The node will store approximately two (2) days worth of archived data.  After a reboot, this data is cleared.</p>
+</p>
+<p><h3>Chart Zooming</h3>
+	<ul>
+		<li>If you left-click-and-drag your mouse across a region of the chart, the chart will zoom to that specific area.</li>
+		<li>While zoomed, two additional icons will appear in the upper right of the chart:
+			<ul>
+				<li>PAN: allows you to move/pan the zoomed portion of the chart</li>
+				<li>RESET: exits out of the zoom mode</li>
+			</ul>
+		</li>
+	</ul>
+</p>
+<br><br><hr>
 <a name=meshstatus><h2>Mesh Status</h2></a>
 <p>
 The Mesh Status page lists AREDN Mesh Nodes, link quality information, and the services advertised on the Mesh.  There are 3 sections:
@@ -189,7 +236,7 @@ ETX should be interpreted with care.  From a quality perspective, the ETX for Re
 </p>
 
 <p>
-Transmitted Mbps (TxMbps) is calculated with the formula (TxMbps = rate * EWMA) where rate is the 802.11 data rate in use by the transmitter and EWMA is the Exponetially Weighted Moving Average or the current time weighted chance that a packet at this rate will reach the remote station.  If no traffic is being routed to the Neigbor, this value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>
+Transmitted Mbps (TxMbps) is calculated with the formula (TxMbps = rate * EWMA) where rate is the 802.11 data rate in use by the transmitter and EWMA is the Exponetially Weighted Moving Average or the current time weighted chance that a packet at this rate will reach the remote station.  If no traffic is being routed to the Neighbor, this value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>
 </p>
 
 <p>
