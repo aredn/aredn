@@ -110,12 +110,29 @@ $header = <<EOF;
           title: "dBm",
           interlacedColor: "#F0F8FF",
         },
+        toolTip: {
+          contentFormatter: function (e) {
+            var content = " ";
+            content += "At " + e.entries[0].dataPoint.label + "<br />";
+            if (e.entries[0].dataPoint.y[0]!="null") {
+               content += "Signal: " + e.entries[0].dataPoint.y[0] + "dBm<br/>";
+            } else {
+               content += "Signal: N/A<br/>";
+            }
+            content += "Noise: " + e.entries[0].dataPoint.y[1] + "dBm<br/>";
+            content += "SNR: " + e.entries[0].dataPoint.m + "dBm<br/>";
+            content += "TX Rate: " + e.entries[0].dataPoint.tx_rate + "Mbps<br/>";
+            content += "TX MCS: " + e.entries[0].dataPoint.tx_mcs + "<br/>";
+            content += "RX Rate: " + e.entries[0].dataPoint.rx_rate + "Mbps<br/>";
+            content += "RX MCS: " + e.entries[0].dataPoint.rx_mcs + "<br/>";
+            return content;
+          }
+        },
         data: [
           {
             type: "rangeSplineArea",
             showInLegend: true,
             legendText: "Signal",
-            toolTipContent: "At {label}<br />Signal: {y[0]}dBm<br />Noise: {y[1]}dBm<br />SNR: {m}dBm<br /><hr />TX Rate: {tx_rate} Mbps<br />TX MCS: {tx_mcs}<br />RX Rate: {rx_rate} Mbps<br />RX MCS: {rx_mcs}<br />",
             dataPoints: dps[0]
           }
         ],

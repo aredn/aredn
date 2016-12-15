@@ -64,7 +64,7 @@ local neighbors={}
 local stations={}
 local wifiiface=""
 local bandwidth=""
-
+local nulledout={}
 
 -- Neighbor Class
 Neighbor={}
@@ -211,20 +211,30 @@ function Neighbor:findRxRate()
 end
 
 function Neighbor:log()
-	local oktolog=false
+	local oktolog=true
 	if self.lastseen ~= nil then
-		if stations[self.mac:upper()].inactive < INACTIVETIMEOUT then
-			oktolog=true
+		if stations[self.mac:upper()].inactive >= INACTIVETIMEOUT then
+			-- beacons expired
+			self.signal="null"
+			if nulledout[self.mac] == "true" then
+				-- No need to double log inactive null's
+				oktolog=false
+			end
 		end
-	else
-		oktolog=true
 	end
 
 	if self.signal==0 then
 		oktolog=false
+		if nulledout[self.mac] == nil then
+			-- First time we have seen this show up
+			-- but it is at 0 wont be logged but will
+			-- end up in snrcache
+			nulledout[self.mac]="true"
+		end
 	end
 
 	if oktolog then
+		nulledout[self.mac]="false"
 		-- log neighbor data to datafile
 		local f, err=assert(io.open(tmpdir.."/"..self.datafile, "a"),"Cannot open file ("..tmpdir.."/"..self.datafile..") for appending!")
 		if f~=nil then
@@ -232,6 +242,9 @@ function Neighbor:log()
 			local outline=string.format("%s,%s,%s,%s,%s,%s,%s\n",now,self.signal,self.noise,self.tx_mcs,self.tx_rate,self.rx_mcs,self.rx_rate)
 			f:write(outline)
 			f:close()
+			if self.signal == "null" then
+				nulledout[self.mac]="true"
+			end
 		else
 			print(err)
 		end
@@ -249,8 +262,9 @@ if file_exists(lastdat) then
 	local f,err=io.open(lastdat,"r")
 	if f~=nil then
 		for line in f:lines() do
-			mac,last=string.match(line, "(.*)|(.*)")
+			mac,last,nulled=string.match(line, "(.*)|(.*)|(.*)")
 			lasttime[mac]=last
+			nulledout[mac]=nulled
 		end
 	end
 	f:close()
@@ -316,10 +330,43 @@ if not file_exists(lastdat) then
 	f:close()
 end
 for line in io.lines(lastdat) do
-	local mac,lastt=string.match(line,"(.*)|(.*)")
+	local mac,lastt,nulledoutprev=string.match(line,"(.*)|(.*)|(.*)")
 	if ((now-lastt) < AGETIME) then
 		-- keep it
 		snrdatcache[mac]=lastt
+
+		-- check if in neighbors table
+		local foundneighbor=false
+		for _,n in pairs(neighbors) do
+			if n.mac == mac then
+				foundneighbor=true
+			end
+		end
+
+		-- If wasn't previously nulled out and we don't have it in the neigbors table write a null
+		if nulledoutprev[mac] == "false" and foundneigbor == false then
+
+			-- find the log file name
+			for maclist in nxo.fs.glob(tmpdir.."/"..mac.."*") do
+				logdatafile=macclist
+			end
+
+			-- Write a null to the log file
+			local f, err=assert(io.open(logdatafile, "a"),"Cannot open file ("..logdatafile..") for appending!")
+			if f~=nil then
+				local now=os.date("%m/%d %H:%M:%S",os.time())
+				local outline=string.format("%s,%s,%s,%s,%s,%s,%s\n",now,'null',nf,'0','0','0','0')
+				f:write(outline)
+				f:close()
+				nulledout[mac]="true"
+			else
+				-- Don't log the null into SNRLog cause we were not successful
+				-- Though the assert() above should cause this too.
+				nulledout[mac]="false"
+			end
+
+		end
+
 	else
 		-- find the file and purge it
 		for maclist in nxo.fs.glob(tmpdir.."/"..mac.."*") do
@@ -335,7 +382,7 @@ end
 -- re-write snr.dat file
 local f,err=assert(io.open(lastdat,"w+"),"Cannot overwrite "..lastdat)
 for k,v in pairs(snrdatcache) do
-	f:write(string.format("%s|%s\n",k,v))
+	f:write(string.format("%s|%s|%s\n",k,v,nulledout[k]))
 end
 f:close()
 

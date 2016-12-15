@@ -93,6 +93,9 @@ if parms.realtime then
     -- get strongest signal
     s=iwinfo["nl80211"].signal(wifiiface)
     m=tonumber(n)-tonumber(s)
+    if s==0 then
+      s="null"
+    end
     tx_rate="N/A"
     rx_rate="N/A"
     tx_mcs="N/A"
@@ -108,6 +111,9 @@ if parms.realtime then
     local macinfo=iwinfo["nl80211"].assoclist(wifiiface)[mac:upper()]
     n=macinfo.noise
     s=macinfo.signal
+    n=tonumber(n)
+    s=tonumber(s)
+    m=s-n
     tx_rate=macinfo.tx_rate/1000
     tx_rate=adjust_rate(tx_rate,bandwidth)
     rx_rate=macinfo.rx_rate/1000
@@ -116,19 +122,22 @@ if parms.realtime then
     rx_mcs=macinfo.rx_mcs
     m=tonumber(s)-tonumber(n)
   end
-  if s~=0 then
-    table.insert(yinfo,tonumber(s))
-    table.insert(yinfo,tonumber(n))
-    dp.label=d
-    dp.y=yinfo
-    dp.m=m
-    dp.tx_rate=tx_rate
-    dp.rx_rate=rx_rate
-    dp.tx_mcs=tx_mcs
-    dp.rx_mcs=rx_mcs
-    table.insert(dpa,dp)
-    table.insert(ol,dpa)
+
+  if s==0 then
+    s="null"
   end
+
+  table.insert(yinfo,s)
+  table.insert(yinfo,n)
+  dp.label=d
+  dp.y=yinfo
+  dp.m=m
+  dp.tx_rate=tx_rate
+  dp.rx_rate=rx_rate
+  dp.tx_mcs=tx_mcs
+  dp.rx_mcs=rx_mcs
+  table.insert(dpa,dp)
+  table.insert(ol,dpa)
 else
   -- ARCHIVE
   local filename
@@ -148,10 +157,18 @@ else
       local yinfo={}
       local dp={}
       local dt,s,n,tm,tr,rm,rr=line:match("(.*)%,(.*)%,(.*),(.*),(.*),(.*),(.*)")
-      m=tonumber(s)-tonumber(n)
-      table.insert(yinfo,tonumber(s))
-      table.insert(yinfo,tonumber(n))
+      n=tonumber(n)
+
+      if s~="null" then
+        s=tonumber(s)
+        m=s-n
+      else
+        m="N/A"
+      end
+      table.insert(yinfo,s)
+      table.insert(yinfo,n)
       dp.label=dt
+      dp.x=dtseconds
       dp.y=yinfo
       dp.m=m
       dp.tx_rate=tr
