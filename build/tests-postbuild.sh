@@ -33,38 +33,37 @@
 
 LICENSE
 
-SCRIPTBASE=$(dirname "$(readlink -f "$0")")
-export SCRIPTBASE
+if [ "${OSTYPE#*darwin}" != "$OSTYPE" ]
+then
+    SCRIPTBASE=$(dirname "$0")
+    export SCRIPTBASE
+else
+    SCRIPTBASE=$(dirname "$(readlink -f "$0")")
+    export SCRIPTBASE
+fi
 
 if [ "$1" != "" ]
 then
-  BUILDROOTBASE=$1
+  AREDNFILESBASE=$1
 else
-  BUILDROOTBASE="$PWD"
+  AREDNFILESBASE="$PWD/files"
 fi
 
-export BUILDROOTBASE
-
-if [ ! -d "$BUILDROOTBASE" ]
+if [ ! -d "$AREDNFILESBASE" ]
 then
-
-  echo "ERROR: $BUILDROOTBASE doesn't exist"
+  echo "ERROR: $AREDNFILESBASE doesn't exist"
   exit 1;
 fi
 
-# Run pre-tests
-"$SCRIPTBASE"/tests-prebuild.sh "${BUILDROOTBASE}/files"
+export AREDNFILESBASE
 
-for file in $SCRIPTBASE/buildsteps/*
+
+for file in $SCRIPTBASE/tests/postbuild/*
 do
-  if ( [ -x "$file" ] && [ -f "$file" ] ); then
-    echo "BUILDSTEP: $file"
+  if [ -x "$file" ]; then
     $file
   fi
 done
 
-# Run post-build tests
-"$SCRIPTBASE"/tests-postbuild.sh "${BUILDROOTBASE}/files"
-
-
+# Make sure we return clean as to not stop the BuildBot
 exit 0
