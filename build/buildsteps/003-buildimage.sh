@@ -27,5 +27,14 @@ if [ ! -z "$BUILD_SET_VERSION" ]; then
 else
   MYBUILDNAME="${SHORT_BRANCH}-${BUILD_NUMBER}-${SHORT_COMMIT}"
 fi
-rename "s/openwrt-ar71xx-generic/AREDN-$MYBUILDNAME/g" bin/ar71xx/*
+
+# Rename the images
+find bin/ar71xx/ -not -path "*/packages/*"  -type f |  while read FILE
+do
+    NEWNAME=$(echo "$FILE" | sed -r "s/openwrt-.*ar71xx-(generic)|(mikrotik)|(nand)/AREDN-$MYBUILDNAME/g")
+    if [ "$FILE" != "$NEWNAME" ]
+    then
+        mv "$FILE" "$NEWNAME"
+    fi
+done
 
