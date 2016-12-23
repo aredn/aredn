@@ -1,4 +1,4 @@
-=for commnet
+=for comment
 
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2015 Conrad Lara
