@@ -25,7 +25,7 @@
   If importing this code into a new or existing project attribution
   to the AREDN project must be added to the source code.
 
-  You must not misrepresent the origin of the material conained within.
+  You must not misrepresent the origin of the material contained within.
 
   Modified versions must be modified to attribute to the original source
   and be marked in reasonable ways as differentiate it from the original
