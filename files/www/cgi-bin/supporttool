@@ -144,11 +144,26 @@ chomp($tstamp);
 open(my $SDFH, '<', "/tmp/supportdata.tgz") or exit(1);
 binmode $SDFH;
 
-print "Content-type: application/x-gzip\r\n";
-print "Content-Disposition: attachment; filename=supportdata-$nodename-$tstamp.tgz\r\n";
-print "\r\n";
+if (exists $ENV{GATEWAY_INTERFACE}) {
+  print "Content-type: application/x-gzip\r\n";
+  print "Content-Disposition: attachment; filename=supportdata-$nodename-$tstamp.tgz\r\n";
+  print "\r\n";
 
-print while <$SDFH>;
-undef ($SDFH);
+  print while <$SDFH>;
+  undef ($SDFH);
 
-unlink("/tmp/supportdata.tgz");
+  unlink("/tmp/supportdata.tgz");
+
+} else {
+  undef ($SDFH);
+  unlink ("/tmp/supportdata-$nodename-$tstamp.tgz"); # Shouldn't exist but lets be sure
+  system ("mv", "/tmp/supportdata.tgz", "/tmp/supportdata-$nodename-$tstamp.tgz");
+  if ($? != 0) {
+    print "Failed to rename the support data file.\n It may be present at /tmp/supportdata.tgz\n";
+    exit(1);
+  } else {
+    print "File created: /tmp/supportdata-$nodename-$tstamp.tgz\n";
+    print "Please copy this file and remove from the node\n";
+    print "to free up resources.\n"
+  }
+}
