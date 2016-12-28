@@ -136,6 +136,9 @@ close ($CMDS_OUT);
 
 system("tar", "-zcf", "/tmp/supportdata.tgz", "-C", "/tmp/sd", "./");
 
+# Cleanup the temp files
+system ("rm", "-r", "-f", "/tmp/sd");
+
 $nodename=`uname -n`;
 chomp($nodename);
 $tstamp=`date +%Y%m%d%H%M`;
