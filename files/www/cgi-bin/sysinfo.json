@@ -160,7 +160,9 @@ for pos, i in pairs(ift) do
 		nim['name']=i.name
 		ipv4=tostring(i.ipaddrs[1])
 		nim['ip']=ipFromCIDR(ipv4)
-		nim['mac']=i.macaddr:upper()
+		if i.macaddr~=nil then	-- ie. tunXX interfaces have nil for macaddr
+			nim['mac']=i.macaddr:upper()
+		end
 		table.insert(tif,nim)
 	end
 end
