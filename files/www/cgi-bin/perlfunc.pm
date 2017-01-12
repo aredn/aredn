@@ -212,8 +212,8 @@ sub read_postdata
 	    $line = fgets(10);
 	    push(@parse_errors, "not blank: '$line'") unless $line eq "\r\n";
 	    $tmp = "";
-        # drop the page cache to take pressure of tmps when uploading file
-        `echo 3 > /proc/sys/vm/drop_caches`;
+	    # Put us in upgrade mode (purge files, shutdown services)
+	    system("/usr/local/bin/uploadctlservices","upgrade");
 	    system "mkdir -p /tmp/web/upload";
 	    open($handle, ">/tmp/web/upload/file");
 	    while(1)

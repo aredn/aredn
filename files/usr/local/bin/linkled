@@ -30,13 +30,46 @@ case "$BOARD_TYPE" in
 esac
 
 
-{
-  while true; do
-    sleep 5;
-    if echo /neighbors | nc 127.0.0.1 2006 2>/dev/null | grep -q YES; then
-      echo 1 > "$LINK1LED/brightness"
-    else
-      echo 0 > "$LINK1LED/brightness"
-    fi
-  done;
-} &
+firmware_upgrade_mode() {
+	# Put the LED in "upgrade" mode
+	echo timer > "$LINK1LED/trigger"
+	echo 100 > "$LINK1LED/delay_on"
+	echo 100 > "$LINK1LED/delay_off"
+	echo 1 > "$LINK1LED/brightness"
+
+}
+
+
+reset_led() {
+	# Reset the LED to a blank state
+	echo none > "$LINK1LED/trigger"
+	echo 0 > "$LINK1LED/brightness"
+}
+
+
+link_state() {
+	{
+		reset_led
+
+		while true; do
+			sleep 5;
+			if echo /neighbors | nc 127.0.0.1 2006 2>/dev/null | grep -q YES; then
+				echo 1 > "$LINK1LED/brightness"
+			else
+				echo 0 > "$LINK1LED/brightness"
+			fi
+		done;
+	} & # Push into the background
+}
+
+case $1 in
+	"upgrade" )
+		firmware_upgrade_mode
+		;;
+	"restore" )
+		reset_led
+		;;
+	*)
+		link_state
+		;;
+esac

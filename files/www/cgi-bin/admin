@@ -152,6 +152,8 @@ if($parms{button_ul_fw} and -f "/tmp/web/upload/file")
 	    push @fw_output, "Firmware CANNOT be updated\n";
 	    push @fw_output, "firmware file is not valid\n";
 	    $fw_install = 0;
+	    unlink("$tmpdir/firmware");
+	    system("/usr/local/bin/uploadctlservices","restore") and push @fw_output, "Failed to restart all services, please reboot this node.\n";
 	}
     }
     elsif($parms{firmfile} =~ /^patch\S+\.tgz$/) # firmware patch
@@ -162,6 +164,8 @@ if($parms{button_ul_fw} and -f "/tmp/web/upload/file")
     {
 	push @fw_output, "Firmware CANNOT be updated\n";
 	push @fw_output, "the uploaded file is not recognized\n";
+	unlink("$tmpdir/firmware");
+	system("/usr/local/bin/uploadctlservices","restore") and push @fw_output, "Failed to restart all services, please reboot this node.\n";
     }
 }
 
@@ -171,6 +175,7 @@ if($parms{button_dl_fw} and $parms{dl_fw} ne "default")
     if(get_default_gw() ne "none")
     {
 	unlink "$tmpdir/firmware";
+	system("/usr/local/bin/uploadctlservices","upgrade");
 	$ok = 0;
 	foreach $serverpath (@serverpaths)
 	{
@@ -196,6 +201,8 @@ if($parms{button_dl_fw} and $parms{dl_fw} ne "default")
 		push @fw_output, "Firmware CANNOT be updated\n";
 		push @fw_output, "firmware file is not valid\n";
 		$fw_install = 0;
+		unlink("$tmpdir/firmware");
+		system("/usr/local/bin/uploadctlservices","restore") and push @fw_output, "Failed to restart all services, please reboot this node.\n";
 	    }
 	}
 	elsif($parms{dl_fw} =~ /^patch\S+\.tgz$/) # firmware patch
@@ -216,12 +223,16 @@ if($parms{button_dl_fw} and $parms{dl_fw} ne "default")
 		push @fw_output, "Firmware CANNOT be updated\n";
 		push @fw_output, "patch file is not valid\n";
 		$patch_install = 0;
+		unlink("$tmpdir/firmware");
+		system("/usr/local/bin/uploadctlservices","restore") and push @fw_output, "Failed to restart all services, please reboot this node.\n";
 	    }
 	}
 	else
 	{
 	    push @fw_output, "Firmware CANNOT be updated\n";
 	    push @fw_output, "the downloaded file is not recognized\n";
+	    unlink("$tmpdir/firmware");
+	    system("/usr/local/bin/uploadctlservices","restore") and push @fw_output, "Failed to restart all services, please reboot this node.\n";
 	}
     }
     else
@@ -388,6 +399,10 @@ if($patch_install and -f "$tmpdir/firmware")
 	push(@fw_output, `cat $tmpdir/patch.out`) if $parms{dev};
 	push @fw_output, "Done.\n";
     }
+
+    unlink("$tmpdir/firmware");
+    system("/usr/local/bin/uploadctlservices","restore") and push @fw_output, "Failed to restart all services, please reboot this node.\n";
+
 }
 
 
@@ -411,6 +426,8 @@ if($parms{button_ul_pkg} and -f "/tmp/web/upload/file")
     system "mv -f /tmp/web/upload/file /tmp/web/upload/newpkg.ipk";
     push @pkg_output, `opkg -force-overwrite install /tmp/web/upload/newpkg.ipk 2>&1`;
     system "rm -rf /tmp/opkg-*";
+    unlink("/tmp/web/upload/newpkg.ipk");
+    system("/usr/local/bin/uploadctlservices","restore") and push @pkg_output, "Failed to restart all services, please reboot this node.\n";
 } 
 
 # download package
@@ -418,7 +435,9 @@ if($parms{button_dl_pkg} and $parms{dl_pkg} ne "default")
 {
     if(get_default_gw() ne "none")
     {
+	system("/usr/local/bin/uploadctlservices","opkginstall");
 	push @pkg_output, `opkg -force-overwrite install $parms{dl_pkg} 2>&1`;
+	system("/usr/local/bin/uploadctlservices","restore") and push @pkg_output, "Failed to restart all services, please reboot this node.\n";
     }
     else
     {
@@ -490,6 +509,8 @@ if($parms{button_ul_key} and -f "/tmp/web/upload/file")
     {
 	push @key_output, "Key installed.\n";
     }
+    unlink("/tmp/web/upload/file");
+    system("/usr/local/bin/uploadctlservices","restore") and push @key_output, "Failed to restart all services, please reboot this node.\n";
 } 
 
 # remove key
