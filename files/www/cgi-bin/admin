@@ -249,7 +249,7 @@ if($fw_install and -f "$tmpdir/firmware")
             nvram_set("nodeupgraded","1");
             
             system("tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist");
-            if ($? == 1) {
+            if ($? != 0) {
                 print "
 <center><h2>ERROR: Could not backup filesystem.</h2>
 <h3>An error occured trying to backup the file system. Node will now reboot.
