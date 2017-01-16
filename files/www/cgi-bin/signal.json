@@ -59,6 +59,7 @@ local dpa={}  -- datapoint table/array
 local dirname="/tmp/snrlog"
 local values={}
 local counter=0
+local datepattern="(%d+)/(%d+)/(%d+)%s(%d+):(%d+):(%d+)"
 
 local parms={}
 parms=parsecgi(nixio.getenv("QUERY_STRING") or "")
@@ -157,6 +158,10 @@ else
       local yinfo={}
       local dp={}
       local dt,s,n,tm,tr,rm,rr=line:match("(.*)%,(.*)%,(.*),(.*),(.*),(.*),(.*)")
+      local dtm,dtd,dty,dth,dtmin,dts=dt:match(datepattern)
+      local dtseconds=os.time({month=dtm,day=dtd,year=dty,hour=dth,min=dtmin,sec=dts})
+      dtseconds=dtseconds*1000
+      dtseconds=math.floor(dtseconds)
       n=tonumber(n)
 
       if s~="null" then

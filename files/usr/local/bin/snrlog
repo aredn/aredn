@@ -238,7 +238,7 @@ function Neighbor:log()
 		-- log neighbor data to datafile
 		local f, err=assert(io.open(tmpdir.."/"..self.datafile, "a"),"Cannot open file ("..tmpdir.."/"..self.datafile..") for appending!")
 		if f~=nil then
-			local now=os.date("%m/%d %H:%M:%S",os.time())
+			local now=os.date("%m/%d/%Y %H:%M:%S",os.time())
 			local outline=string.format("%s,%s,%s,%s,%s,%s,%s\n",now,self.signal,self.noise,self.tx_mcs,self.tx_rate,self.rx_mcs,self.rx_rate)
 			f:write(outline)
 			f:close()
