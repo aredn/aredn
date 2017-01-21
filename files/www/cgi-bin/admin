@@ -58,6 +58,7 @@ sub firmware_list_gen
 $debug = 0;
 $| = 1;
 read_postdata();
+reboot_page("/cgi-bin/status") if $parms{button_reboot};
 read_query_string();
 $node = nvram_get("node");
 $tmpdir = "/tmp/web/admin";
@@ -530,7 +531,9 @@ print "<tr><td>\n";
 navbar("admin");
 print "</td></tr>\n";
 
-print "<tr><td align=center><a href='/help.html#admin' target='_blank'>Help</a></td></tr>\n";
+print "<tr><td align=center><a href='/help.html#admin' target='_blank'>Help</a>&nbsp;&nbsp;";
+print "<input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>";
+print "</td></tr>\n";
 print "<tr><td align=center>\n";
 print "<table cellspacing=10>\n";
 
