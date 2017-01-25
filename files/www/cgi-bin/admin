@@ -57,7 +57,7 @@ sub firmware_list_gen
 
 $debug = 0;
 $| = 1;
-read_postdata();
+read_postdata({acceptfile => true});
 reboot_page("/cgi-bin/status") if $parms{button_reboot};
 read_query_string();
 $node = nvram_get("node");

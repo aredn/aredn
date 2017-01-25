@@ -166,6 +166,7 @@ sub fgets
 # (from STDIN in method=post form)
 sub read_postdata
 {
+    my ($pdc) = @_;
     if ( $ENV{REQUEST_METHOD} != "POST" || !$ENV{CONTENT_LENGTH}){ return; };
     my ($line, $parm, $file, $handle, $tmp);
     my $state = "boundary";
@@ -188,7 +189,7 @@ sub read_postdata
 	    if(($parm, $file) = $line =~ /^$prefix name="(\w+)"; filename="(.*)"$/)
 	    { # file upload
 		$parms{$parm} = $file;
-		if($file) { $state = "ctype" }
+		if($file && $pdc->{acceptfile}) { $state = "ctype" }
 		else      { $state = "boundary" }
 	    }
 	    elsif(($parm) = $line =~ /^$prefix name="(\w+)"$/)
