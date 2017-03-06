@@ -57,7 +57,24 @@ sub firmware_list_gen
 
 $debug = 0;
 $| = 1;
-read_postdata({acceptfile => true});
+
+$tunnel_active= 0;
+if ( -e "/usr/sbin/vtund" && open(my $tuncfgfd, '/etc/config/vtun')) {
+    while ( my $line = <$tuncfgfd> ) {
+        if ( $line =~ /option enabled '1'/i ) {
+            $tunnel_active = 1;
+            last;
+        }
+    }
+}
+
+
+if ( $tunnel_active ) {
+    read_postdata({acceptfile => false});
+} else {
+    read_postdata({acceptfile => true});
+}
+
 reboot_page("/cgi-bin/status") if $parms{button_reboot};
 read_query_string();
 $node = nvram_get("node");
@@ -557,7 +574,9 @@ print "<tr><td align=center colspan=3>current version: $fw_version</td></tr>\n";
 print "<tr>\n";
 print "<td>Upload Firmware</td>\n";
 print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive'></td>\n";
-print "<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'></td>\n";
+print "<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'";
+if($tunnel_active) { print " disabled"; };
+print "></td>\n";
 print "</tr>\n";
 
 print "<tr>\n";
@@ -601,7 +620,9 @@ if(@pkg_output)
 print "<tr>\n";
 print "<td>Upload Package</td>\n";
 print "<td><input type=file name=ul_pkg title='choose the .ipk file to install from your hard drive'> </td>\n";
-print "<td align=center><input type=submit name=button_ul_pkg value=Upload title='install the package'></td>\n";
+print "<td align=center><input type=submit name=button_ul_pkg value=Upload title='install the package'";
+if($tunnel_active) { print " disabled"; };
+print "></td>\n";
 print "</tr>\n";
 
 print "<tr>\n";
@@ -652,7 +673,9 @@ if(@key_output)
 print "<tr>\n";
 print "<td>Upload Key</td>\n";
 print "<td><input type=file name=sshkey title='choose the id_rsa.pub file to install from your hard drive'></td>\n";
-print "<td align=center><input type=submit name=button_ul_key value=Upload title='install the key'></td>\n";
+print "<td align=center><input type=submit name=button_ul_key value=Upload title='install the key'";
+if($tunnel_active) { print " disabled"; };
+print "></td>\n";
 print "</tr>\n";
 
 print "<tr>\n";
