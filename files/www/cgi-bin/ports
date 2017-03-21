@@ -45,6 +45,8 @@ use ucifunc;
 $config = nvram_get("config");
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
+$tactical = nvram_get("tactical");
+
 read_postdata();
 
 if($config ne "mesh" or -e "/tmp/reboot-required")
@@ -300,7 +302,13 @@ foreach $val (@list)
 
     if(validate_hostname($host))
     {
-	push(@dhcp_err, "$val hostname '$host' is already in use") if $hosts{$host};
+        push(@dhcp_err, "$val hostname '$host' is already in use") if (lc $host eq lc $node || lc $host eq lc $tactical);
+        foreach my $key (keys %hosts) {
+            if ( lc $key eq lc $host ){
+                push(@dhcp_err, "$val hostname '$host' is already in use");
+                last;
+            }
+        }
     }
     else
     {
@@ -381,7 +389,13 @@ foreach $lease (keys %parms)
     $parms{"dhcp${dhcp_num}_host"} = $host;
     $parms{"dhcp${dhcp_num}_ip"}   = $ip;
     $parms{"dhcp${dhcp_num}_mac"}  = $mac;
-    push(@dhcp_err, "$dhcp_num hostname '$host' is already in use") if $hosts{$host};
+    push(@dhcp_err, "$dhcp_num hostname '$host' is already in use") if (lc $host eq lc $node || lc $host eq lc $tactical);
+    foreach my $key (keys %hosts) {
+        if ( lc $key eq lc $host ){
+            push(@dhcp_err, "$dhcp_num hostname '$host' is already in use");
+            last;
+        }
+    }
     push(@dhcp_err, "$dhcp_num $ip is already in use")              if $addrs{$ip};
     push(@dhcp_err, "$dhcp_num MAC $mac is already in use")         if $macs{$mac};
     last;
