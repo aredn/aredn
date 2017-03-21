@@ -184,25 +184,6 @@ if($browser_ip)
     push @col1, $str . "</td>";
 }
 
-if(-f "/tmp/olsrd.log")
-{
-    chomp($lines = `wc -l /tmp/olsrd.log | awk '{print \$1}'`);
-    chomp($start = `tail -n1 /tmp/olsrd.log | awk '{print \$1}'`);
-    chomp($uptime = `cat /proc/uptime | cut -f1 -d.`);
-    $uptime -= $start;
-    $up_d = int($uptime/86400);
-    $uptime -= $up_d*86400;
-    $up_h = int($uptime/3600);
-    $uptime -= $up_h*3600;
-    $up_m = int($uptime/60);
-    $up_s = $uptime - $up_m*60;
-    $str  = "<th align=right><nobr>OLSR restarts</nobr><br>runtime</th>";
-    $str .= sprintf "<td>%d<br><nobr>%d - %02d:%02d:%02d</nobr></td></tr>",
-                    $lines, $up_d, $up_h, $up_m, $up_s;
-    push @col1, "<td> </td><td> </td>";
-    push @col1, $str;
-}
-
 
 # right column - system info
 
