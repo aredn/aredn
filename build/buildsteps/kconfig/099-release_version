@@ -46,3 +46,8 @@ CONFIG_IMAGEOPT=y
 CONFIG_VERSIONOPT=y
 CONFIG_VERSION_NUMBER="$MYBUILDNAME"
 EOF
+
+if [ ! -z "$BUILD_SET_VERSION" ]; then
+  hashedpath=$(echo "$BUILD_SET_VERSION" |awk -F'.' '{print $1"/"$2"/"$0}')
+  echo "CONFIG_VERSION_REPO=\"http://downloads.aredn.org/releases/${hashedpath}/%S/packages\""
+fi
