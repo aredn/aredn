@@ -724,34 +724,24 @@ in the appendix.
 
 <a name='failsafe'><h3>Failsafe Mode</h3></a>
 <p>
-Failsafe Mode is a method of booting a node into a minimal configuration which
-allows you to log in and undo a change that may have broken the node or to
-change a forgotten password without having an authorized ssh key in
-place. Since fixing a node is an advanced topic suitable only for experts,
-here I will just cover how to change a password.
+Failsafe Mode is a method of restoring a node to an
+operational state.
 </p>
 <p>
-How to use failsafe mode:
+Reset Password or DHCP:
+</p>
 
-<ul>
-<li>connect your computer the the LAN port of the node</li>
-<li>use a static IP address of 192.168.1.2 and netmask 255.255.255.0<br>
-(default gateway and DNS are not necessary)</li>
-<li>apply power to the node</li>
-<li>just after the Status 4 LED illuminates, hold the reset button until DMZ starts blinking</li>
-<li>at a command prompt run "<b>telnet 192.168.1.1</b>"</li>
-<li>you should now have a prompt that looks like "root@(none)$"</li>
-<ul><li>if not, you are not in safe mode and something went wrong along the way, so stop here and start over</li></ul>
-<li>type "<b>mount_root</b>"</li>
-<li>type "<b>setpasswd abc</b>"</li>
-<ul><li>replace abc with the password you want to use</li></ul>
-<li>type "<b>exit</b>"</li>
-</ul>
+<p>
+After the node fully boots press and hold the reset
+button for 5 seconds which will cause the unit to enable DHCP
+and reset the root password to 'hsmm'.
+</p>
 
-Now power cycle the node and it should accept your new password.
+<p>
+Full Failsafe:
 </p>
 <p>
-If the device has a reset button you may instead press and hold the reset
+After the node fully boots press and hold the reset
 button for 15 seconds which will cause the unit to behave as if it had
 just been flashed with the AREDN&trade; firmware.
 </p>

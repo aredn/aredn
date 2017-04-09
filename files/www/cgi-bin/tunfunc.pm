@@ -221,8 +221,7 @@ sub install_vtun
                 { 
                     print "
                         <center><h2>The node is rebooting</h2>
-                        <h3>Wait for the Status 4 LED to start blinking, then stop blinking.<br>
-                        When the Status 4 LED is solid on you can reconnect with<br>
+                        <h3>When the node has fully rebooted you can reconnect with<br>
                         <a href='http://$node.local.mesh:8080/'>http://$node.local.mesh:8080/</a><br>
                         </h3>
                         </center>
