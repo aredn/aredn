@@ -20,6 +20,18 @@ uci_type_count() {
 }
 
 ######### UTILITY FUNCTIONS END ###########
+default_config() {
+	local cfg="$1"
+	local new_file="$2"
+	local persist
+
+	config_get persist "$persist" persist "yes"
+
+	echo "default {" >> $new_file
+	echo " persist $persist;" >> $new_file
+	echo "}" >> $new_file
+	echo " " >> $new_file
+}
 
 options_config() {
 	local cfg="$1"
@@ -112,22 +124,32 @@ start() {
 	then
 		apply_uci_config
 		config_load vtun
-		
+
 		#if options section doesn't exist, add it
 		j=`uci get vtun.@options[0]`
-		if [ $? -ne 0 ] 
+		if [ $? -ne 0 ]
 			then
 			j=`uci add vtun options`
 			j='uci commit vtun'
 			config_load vtun
 		fi
-		
+
+		#if default section doesn't exist, add it
+		j=`uci get vtun.@default[0]`
+		if [ $? -ne 0 ]
+			then
+			j=`uci add vtun default`
+			j='uci commit vtun'
+			config_load vtun
+		fi
+
 		# Remove the current vtun config file
 		mkdir -p /tmp/vtun
 		rm -f $CLIENT_CONF
 
 		# config_foreach network_config network
 		config_foreach options_config options "$CLIENT_CONF"
+		config_foreach default_config default "$CLIENT_CONF"
 		config_foreach to_server_config server "$CLIENT_CONF"
 
 		# STARTUP CLIENT TO SERVER CONNECTIONS
