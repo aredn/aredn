@@ -121,7 +121,7 @@ $header = <<EOF;
                content += "Signal: N/A<br/>";
             }
             content += "Noise: " + e.entries[0].dataPoint.y[1] + "dBm<br/>";
-            content += "SNR: " + e.entries[0].dataPoint.m + "dBm<br/>";
+            content += "SNR: " + e.entries[0].dataPoint.m + "dB<br/>";
             content += "TX Rate: " + e.entries[0].dataPoint.tx_rate + "Mbps<br/>";
             content += "TX MCS: " + e.entries[0].dataPoint.tx_mcs + "<br/>";
             content += "RX Rate: " + e.entries[0].dataPoint.rx_rate + "Mbps<br/>";
@@ -144,7 +144,9 @@ $header = <<EOF;
         \$.getJSON("/cgi-bin/signal.json?device=$parms{device}", function (result) {
           chart.options.data[0].dataPoints = result[0];
           // chart.options.data[1].dataPoints = result[1];
-          chart.render();
+          if(result.constructor === Array) {
+            chart.render();
+          };
         });
       };
 
@@ -203,7 +205,7 @@ $parms{device}="" if(!/$parms{device}/ ~~ @files);
 
 # default to "Strongest Signal" for Realtime
 if(! $parms{device} and $parms{realtime}) {
-  $page = $page . "<option selected value='strongest'>Strongest Signal</option>";
+  $page = $page . "<option selected value='strongest'>Average signal for all connected stations</option>";
 }
 
 $firstSel=1;
