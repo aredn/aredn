@@ -219,7 +219,7 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"services=1") then
 		hfile:close()
 		for pos,val in pairs(lines) do
 			local service={}
-			local link,protocol,name = string.match(val,"^(.*)|(.+)|(.*)\t+%s+.*")
+			local link,protocol,name = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#.*")
 			if link and protocol and name then
 				service['link']=link
 				service['protocol']=protocol
