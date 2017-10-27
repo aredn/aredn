@@ -1366,6 +1366,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '2400',
          },
+        '0xe867' => {
+            'name'            => 'NanoStation Loco M2 XW',
+            'comment'         => 'NanoStation Loco M2 XW (in testing)',
+            'supported'       => '-2',
+            'maxpower'        => '21',
+            'pwroffset'       => '2',
+            'usechains'       => 1,
+            'rfband'          => '2400',
+         },
         '0xe885' => {
             'name'            => 'PowerBeam M5 620 XW',
             'comment'         => 'PowerBeam M5 620 XW',
