@@ -1357,6 +1357,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
+        '0xe866' => {
+            'name'            => 'NanoStation M2 XW',
+            'comment'         => 'NanoStation M2 XW (in testing)',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '6',
+            'usechains'       => 1,
+            'rfband'          => '2400',
+         },
         '0xe885' => {
             'name'            => 'PowerBeam M5 620 XW',
             'comment'         => 'PowerBeam M5 620 XW',
