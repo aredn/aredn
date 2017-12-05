@@ -1175,7 +1175,7 @@ sub hardware_info
             'maxpower'        => '22',
             'pwroffset'       => '1',
             'usechains'       => 1,
-            'rfband'          => '2400',
+            'rfband'          => '5800ubntus',
          },
         '0xe239' => {
             'name'            => 'NanoBridge M9',
