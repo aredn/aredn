@@ -1303,6 +1303,15 @@ sub hardware_info
             'usechains'       => 0,
             'rfband'          => '2400',
          },
+        '0xe4d5' => {
+            'name'            => 'Rocket M5 Titanium',
+            'comment'         => 'Rocket M5 Titanium in testing',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '5',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xe4e5' => {
             'name'            => 'PowerBeam M5 400',
             'comment'         => 'NanoBeam/PowerBeam M5 400',
