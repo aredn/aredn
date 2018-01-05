@@ -1330,6 +1330,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
+        '0xe6e5' => {
+            'name'            => 'PowerBeam M5 400-ISO',
+            'comment'         => 'NanoBeam/PowerBeam M5 400-ISO',
+            'supported'       => '-2',
+            'maxpower'        => '22',
+            'pwroffset'       => '4',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xe805' => {
             'name'            => 'NanoStation M5',
             'comment'         => 'NanoStation M5',
