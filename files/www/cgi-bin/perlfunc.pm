@@ -1123,6 +1123,15 @@ sub hardware_info
             'usechains'       => 1,
             'rfband'          => '5800ubntus',
          },
+        '0xe1d2' => {
+            'name'            => 'Rocket M2 Titanum',
+            'comment'         => 'Rocket M2 Titanum',
+            'supported'       => '-2',
+            'maxpower'        => '18',
+            'pwroffset'       => '10',
+            'usechains'       => 1,
+            'rfband'          => '2400',
+         },
         '0xe202' => {
             'name'            => 'Bullet M2 HP',
             'comment'         => '',
