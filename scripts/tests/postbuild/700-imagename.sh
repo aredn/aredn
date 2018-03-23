@@ -1,7 +1,7 @@
 #!/bin/sh
 <<'LICENSE'
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2016 Conrad Lara
+  Copyright (C) 2015-2016 Conrad Lara
    See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
@@ -33,21 +33,44 @@
 
 LICENSE
 
-if [ ! -z "$BUILD_SET_VERSION" ]; then
-  MYBUILDNAME="$BUILD_SET_VERSION"
+
+# Variables that may need adjusting as time goes on
+
+## Values for count of final images
+### This value should be updated as we add/remove device image types
+NUMBEROFIMAGESCOUNT=8
+### Static Files, only when buildroot changes adjust output files types.
+### These are files such as  vmlinux, uimage, etc.
+STATICFILESCOUNT=9
+
+# END Variables that may need adjusting
+
+
+. "$SCRIPTBASE/sh2ju.sh"
+
+
+# Make sure no files named openwrt* in output directory
+# Could mean an image rename problem or that the buildroot
+# was not clean before making images
+if [ "$(find ./openwrt/bin/* -maxdepth 2 -regex '\./openwrt/bin.*[Oo][Pp][Ee][Nn][Ww][Rr][Tt].*' | wc -l)" -eq  "0" ]
+then
+	juLog -name="no_firmware_images_named_openwrt" true
 else
-  SHORT_COMMIT=$(echo "$GIT_COMMIT" | awk  '{ string=substr($0, 1, 8); print string; }' )
-  SHORT_BRANCH=$(echo "$GIT_BRANCH" | awk 'match($0,"/"){print substr($0,RSTART+1)}')
-  MYBUILDNAME="${SHORT_BRANCH}-${BUILD_NUMBER}-${SHORT_COMMIT}"
+	juLog -name="no_firmware_images_named_openwrt" false
 fi
 
-cat << EOF
-CONFIG_IMAGEOPT=y
-CONFIG_VERSIONOPT=y
-CONFIG_VERSION_NUMBER="$MYBUILDNAME"
-EOF
 
-if [ ! -z "$BUILD_SET_VERSION" ]; then
-  hashedpath=$(echo "$BUILD_SET_VERSION" |awk -F'.' '{print $1"/"$2"/"$0}')
-  echo "CONFIG_VERSION_REPO=\"http://downloads.aredn.org/releases/${hashedpath}/%S/packages\""
+
+
+# Check the count of image files  named AREDN-*
+
+## STATICFILESCOUNT + NUMBEROFIMAGESCOUNT * 2 for sysupgrade and factory files
+EXPECTEDFILESCOUNT=$(( STATICFILESCOUNT + NUMBEROFIMAGESCOUNT * 2 ))
+
+if [ "$(find ./openwrt/bin/* -maxdepth 2 -regex ".*AREDN-.*" | wc -l)" -eq  "$EXPECTEDFILESCOUNT" ]
+then
+        juLog -name="AREDN_image_files_exist" true
+else
+        juLog -name="AREDN_image_files_exist" false
 fi
+

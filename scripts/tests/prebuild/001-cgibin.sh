@@ -36,7 +36,7 @@ LICENSE
 . "$SCRIPTBASE/sh2ju.sh"
 
 
-# Make sure shellchheck is installed and in path.
+# Make sure shellcheck is installed and in path.
 juLog -name="cgibin_shellcheckexists" which shellcheck
 SHELLCHECKNOTEXISTS=$?
 
