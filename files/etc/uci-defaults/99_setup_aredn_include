@@ -68,27 +68,90 @@ else
 fi
 
 # Save system NET  LED settings
+# Updated with logic from \bin\config_generate
 if [ ! -f /etc/aredn_include/system_netled ]
 then
   mkdir -p /etc/aredn_include
   touch /etc/aredn_include/system_netled
-  i=0
-  while true; do
-    uci -q get system.led_lan$i > /dev/null
-    status=$?
-    if [ $status == 1 ]
-    then
-      break
-    fi
-    echo "config led 'led_lan$i'" >> /etc/aredn_include/system_netled
-    echo "	option name '`uci -q get system.led_lan$i.name`'" >> /etc/aredn_include/system_netled
-    echo "	option sysfs '`uci -q get system.led_lan$i.sysfs`'" >> /etc/aredn_include/system_netled
-    echo "	option trigger '`uci -q get system.led_lan$i.trigger`'" >> /etc/aredn_include/system_netled
-    echo "	option port_mask '`uci -q get system.led_lan$i.port_mask`'" >> /etc/aredn_include/system_netled
-    echo "" >> /etc/aredn_include/system_netled
-    let i++
-  done
 
+CFG=/etc/board.json
+
+. /usr/share/libubox/jshn.sh
+
+[ -s $CFG ] || /bin/board_detect || exit 1
+
+generate_led() {
+	local key="$1"
+	local cfg="led_$key"
+
+	json_select led
+	json_select "$key"
+	json_get_vars name sysfs type trigger default
+
+
+	case "$type" in
+		gpio)
+			local gpio inverted
+			json_get_vars gpio inverted
+		;;
+
+		netdev)
+			local device mode
+			json_get_vars device mode
+		;;
+
+		usb)
+			local device
+			json_get_vars device
+		;;
+
+		usbport)
+			local ports port
+			json_get_values ports ports
+		;;
+
+		rssi)
+			local iface minq maxq offset factor
+			json_get_vars iface minq maxq offset factor
+		;;
+
+		switch)
+			local port_mask speed_mask
+			json_get_vars port_mask speed_mask
+    			echo "config led 'led_$1'" >> /etc/aredn_include/system_netled
+    			echo "    option name '$name'" >> /etc/aredn_include/system_netled
+    			echo "    option sysfs '$sysfs'" >> /etc/aredn_include/system_netled
+    			echo "    option trigger '$trigger'" >> /etc/aredn_include/system_netled
+    			echo "    option port_mask '$port_mask'" >> /etc/aredn_include/system_netled
+    			echo "" >> /etc/aredn_include/system_netled
+		;;
+
+		portstate)
+			local port_state
+			json_get_vars port_state
+		;;
+
+		timer|oneshot)
+			local delayon delayoff
+			json_get_vars delayon delayoff
+		;;
+	esac
+
+	json_select ..
+	json_select ..
+}
+
+
+json_init
+json_load "$(cat ${CFG})"
+
+
+if [ ! -s /etc/aredn_include/system_netled ]; then
+	touch /etc/aredn_include/system_netled
+
+	json_get_keys keys led
+	for key in $keys; do generate_led $key; done
+fi
 fi
 
 exit 0
