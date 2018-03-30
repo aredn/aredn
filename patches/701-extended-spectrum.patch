@@ -1,0 +1,283 @@
+--- /dev/null
++++ b/package/kernel/mac80211/patches/301-extended-spectrum.patch
+@@ -0,0 +1,169 @@
++--- a/drivers/net/wireless/ath/ath9k/common-init.c
+++++ b/drivers/net/wireless/ath/ath9k/common-init.c
++@@ -37,6 +37,8 @@
++  * we have calibration data for all cards though to make
++  * this static */
++ static const struct ieee80211_channel ath9k_2ghz_chantable[] = {
+++	CHAN2G(2397, 39), /* Channel -2 */
+++	CHAN2G(2402, 38), /* Channel -1 */
++ 	CHAN2G(2412, 0), /* Channel 1 */
++ 	CHAN2G(2417, 1), /* Channel 2 */
++ 	CHAN2G(2422, 2), /* Channel 3 */
++@@ -68,6 +70,33 @@ static const struct ieee80211_channel at
++ 	CHAN5G(5280, 19), /* Channel 56 */
++ 	CHAN5G(5300, 20), /* Channel 60 */
++ 	CHAN5G(5320, 21), /* Channel 64 */
+++	/* _We_ claim this "For the HAMS" */
+++	CHAN5G(5370, 40), /* Channel 74 */
+++	CHAN5G(5375, 41), /* Channel 75 */
+++	CHAN5G(5380, 42), /* Channel 76 */
+++	CHAN5G(5385, 43), /* Channel 77 */
+++	CHAN5G(5390, 44), /* Channel 78 */
+++	CHAN5G(5395, 45), /* Channel 79 */
+++	CHAN5G(5400, 46), /* Channel 80 */
+++	CHAN5G(5405, 47), /* Channel 81 */
+++	CHAN5G(5410, 48), /* Channel 82 */
+++	CHAN5G(5415, 49), /* Channel 83 */
+++	CHAN5G(5420, 50), /* Channel 84 */
+++	CHAN5G(5425, 51), /* Channel 85 */
+++	CHAN5G(5430, 52), /* Channel 86 */
+++	CHAN5G(5435, 53), /* Channel 87 */
+++	CHAN5G(5440, 54), /* Channel 88 */
+++	CHAN5G(5445, 55), /* Channel 89 */
+++	CHAN5G(5450, 56), /* Channel 90 */
+++	CHAN5G(5455, 57), /* Channel 91 */
+++	CHAN5G(5460, 58), /* Channel 92 */
+++	CHAN5G(5465, 59), /* Channel 93 */
+++	CHAN5G(5470, 60), /* Channel 94 */
+++	CHAN5G(5475, 61), /* Channel 95 */
+++	CHAN5G(5480, 62), /* Channel 96 */
+++	CHAN5G(5485, 63), /* Channel 97 */
+++	CHAN5G(5490, 64), /* Channel 98 */
+++	CHAN5G(5495, 65), /* Channel 99 */
++ 	/* _We_ call this "Middle band" */
++ 	CHAN5G(5500, 22), /* Channel 100 */
++ 	CHAN5G(5520, 23), /* Channel 104 */
++@@ -86,6 +115,52 @@ static const struct ieee80211_channel at
++ 	CHAN5G(5785, 35), /* Channel 157 */
++ 	CHAN5G(5805, 36), /* Channel 161 */
++ 	CHAN5G(5825, 37), /* Channel 165 */
+++	/* _We_ claim this "For the HAMS" x2 */
+++	CHAN5G(5665, 66), /* Channel 133 */
+++	CHAN5G(5670, 67), /* Channel 134 */
+++	CHAN5G(5675, 68), /* Channel 135 */
+++	CHAN5G(5685, 69), /* Channel 137 */
+++	CHAN5G(5690, 70), /* Channel 138 */
+++	CHAN5G(5695, 71), /* Channel 139 */
+++	CHAN5G(5705, 72), /* Channel 141 */
+++	CHAN5G(5710, 73), /* Channel 142 */
+++	CHAN5G(5715, 74), /* Channel 143 */
+++	CHAN5G(5720, 75), /* Channel 144 */
+++	CHAN5G(5725, 76), /* Channel 145 */
+++	CHAN5G(5730, 77), /* Channel 146 */
+++	CHAN5G(5735, 78), /* Channel 147 */
+++	CHAN5G(5740, 79), /* Channel 148 */
+++	CHAN5G(5750, 80), /* Channel 150 */
+++	CHAN5G(5755, 81), /* Channel 151 */
+++	CHAN5G(5760, 82), /* Channel 152 */
+++	CHAN5G(5770, 83), /* Channel 154 */
+++	CHAN5G(5775, 84), /* Channel 155 */
+++	CHAN5G(5780, 85), /* Channel 156 */
+++	CHAN5G(5790, 86), /* Channel 158 */
+++	CHAN5G(5795, 87), /* Channel 159 */
+++	CHAN5G(5800, 88), /* Channel 160 */
+++	CHAN5G(5810, 89), /* Channel 162 */
+++	CHAN5G(5815, 90), /* Channel 163 */
+++	CHAN5G(5820, 91), /* Channel 164 */
+++	CHAN5G(5830, 92), /* Channel 166 */
+++	CHAN5G(5835, 93), /* Channel 167 */
+++	CHAN5G(5840, 94), /* Channel 168 */
+++	CHAN5G(5845, 95), /* Channel 169 */
+++	CHAN5G(5850, 96), /* Channel 170 */
+++	CHAN5G(5855, 97), /* Channel 171 */
+++	CHAN5G(5860, 98), /* Channel 172 */
+++	CHAN5G(5865, 99), /* Channel 173 */
+++	CHAN5G(5870, 100), /* Channel 174 */
+++	CHAN5G(5875, 101), /* Channel 175 */
+++	CHAN5G(5880, 102), /* Channel 176 */
+++	CHAN5G(5885, 103), /* Channel 177 */
+++	CHAN5G(5890, 104), /* Channel 178 */
+++	CHAN5G(5895, 105), /* Channel 179 */
+++	CHAN5G(5900, 106), /* Channel 180 */
+++	CHAN5G(5905, 107), /* Channel 181 */
+++	CHAN5G(5910, 108), /* Channel 182 */
+++	CHAN5G(5915, 109), /* Channel 183 */
+++	CHAN5G(5920, 110), /* Channel 184 */
++ };
++ 
++ /* Atheros hardware rate code addition for short premble */
++--- a/drivers/net/wireless/ath/ath9k/hw.h
+++++ b/drivers/net/wireless/ath/ath9k/hw.h
++@@ -71,7 +71,7 @@
++ 
++ #define ATH9K_RSSI_BAD			-128
++ 
++-#define ATH9K_NUM_CHANNELS	38
+++#define ATH9K_NUM_CHANNELS	111
++ 
++ /* Register read/write primitives */
++ #define REG_WRITE(_ah, _reg, _val) \
++--- a/drivers/net/wireless/ath/regd.c
+++++ b/drivers/net/wireless/ath/regd.c
++@@ -33,6 +33,7 @@ static int __ath_regd_init(struct ath_re
++  */
++ 
++ /* Only these channels all allow active scan on all world regulatory domains */
+++#define ATH9K_2GHZ_CHN02_00	REG_RULE(2392-5, 2407+10, 40, 0, 20, 0)
++ #define ATH9K_2GHZ_CH01_11	REG_RULE(2412-10, 2462+10, 40, 0, 20, 0)
++ 
++ /* We enable active scan on these a case by case basis by regulatory domain */
++@@ -46,17 +47,25 @@ static int __ath_regd_init(struct ath_re
++ #define ATH9K_5GHZ_5150_5350	REG_RULE(5150-10, 5240+10, 80, 0, 30, 0),\
++ 				REG_RULE(5260-10, 5350+10, 80, 0, 30,\
++ 					 NL80211_RRF_NO_IR)
+++#define ATH9K_5GHZ_5320_5490    REG_RULE(5320-10, 5490+10, 80, 0, 30,\
+++					 NL80211_RRF_NO_IR)
++ #define ATH9K_5GHZ_5470_5850	REG_RULE(5470-10, 5850+10, 80, 0, 30,\
++ 					 NL80211_RRF_NO_IR)
++ #define ATH9K_5GHZ_5725_5850	REG_RULE(5725-10, 5850+10, 80, 0, 30,\
++ 					 NL80211_RRF_NO_IR)
+++#define ATH9K_5GHZ_5850_5925    REG_RULE(5850-10, 5925+5, 80, 0, 30,\
+++					 NL80211_RRF_NO_IR)
+++
++ 
++-#define ATH9K_2GHZ_ALL		ATH9K_2GHZ_CH01_11, \
+++#define ATH9K_2GHZ_ALL		ATH9K_2GHZ_CHN02_00, \
+++				ATH9K_2GHZ_CH01_11, \
++ 				ATH9K_2GHZ_CH12_13, \
++ 				ATH9K_2GHZ_CH14
++ 
++ #define ATH9K_5GHZ_ALL		ATH9K_5GHZ_5150_5350, \
++-				ATH9K_5GHZ_5470_5850
+++				ATH9K_5GHZ_5320_5490, \
+++				ATH9K_5GHZ_5470_5850, \
+++				ATH9K_5GHZ_5850_5925
++ 
++ /* This one skips what we call "mid band" */
++ #define ATH9K_5GHZ_NO_MIDBAND	ATH9K_5GHZ_5150_5350, \
++--- a/net/wireless/util.c
+++++ b/net/wireless/util.c
++@@ -72,13 +72,18 @@ int ieee80211_channel_to_frequency(int c
++ 		return 0; /* not supported */
++ 	switch (band) {
++ 	case NL80211_BAND_2GHZ:
+++		chan = (int)(char)chan;
++ 		if (chan == 14)
++ 			return 2484;
+++		else if (chan == 255)
+++			return 2402;
+++		else if (chan == 254)
+++			return 2397;
++ 		else if (chan < 14)
++ 			return 2407 + chan * 5;
++ 		break;
++ 	case NL80211_BAND_5GHZ:
++-		if (chan >= 182 && chan <= 196)
+++		if (chan >= 187 && chan <= 196)
++ 			return 4000 + chan * 5;
++ 		else
++ 			return 5000 + chan * 5;
+--- /dev/null
++++ b/package/network/utils/iw/patches/300-extended_spectrum.patch
+@@ -0,0 +1,39 @@
++--- a/scan.c
+++++ b/scan.c
++@@ -247,7 +247,16 @@ static void print_supprates(const uint8_
++ 
++ static void print_ds(const uint8_t type, uint8_t len, const uint8_t *data)
++ {
++-	printf(" channel %d\n", data[0]);
+++	switch (data[0]) {
+++		case 254:
+++			printf(" channel -2\n");
+++			break;
+++		case 255:
+++			printf(" channel -1\n");
+++			break;
+++		default:
+++			printf(" channel %d\n", data[0]);
+++	}
++ }
++ 
++ static const char *country_env_str(char environment)
++--- a/util.c
+++++ b/util.c
++@@ -274,11 +274,15 @@ int ieee80211_channel_to_frequency(int c
++ 	case NL80211_BAND_2GHZ:
++ 		if (chan == 14)
++ 			return 2484;
+++		else if (chan == 255)
+++			return 2402;
+++		else if (chan == 254)
+++			return 2397;
++ 		else if (chan < 14)
++ 			return 2407 + chan * 5;
++ 		break;
++ 	case NL80211_BAND_5GHZ:
++-		if (chan >= 182 && chan <= 196)
+++		if (chan >= 187 && chan <= 196)
++ 			return 4000 + chan * 5;
++ 		else
++ 			return 5000 + chan * 5;
+--- /dev/null
++++ b/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
+@@ -0,0 +1,66 @@
++--- a/iwinfo_cli.c
+++++ b/iwinfo_cli.c
++@@ -48,10 +48,21 @@ static char * format_channel(int ch)
++ {
++ 	static char buf[8];
++ 
++-	if (ch <= 0)
++-		snprintf(buf, sizeof(buf), "unknown");
++-	else
++-		snprintf(buf, sizeof(buf), "%d", ch);
+++
+++	switch (ch) {
+++		case 0:
+++			snprintf(buf, sizeof(buf), "unknown");
+++			break;
+++		case 254:
+++			snprintf(buf, sizeof(buf), "-2");
+++			break;
+++		case 255:
+++			snprintf(buf, sizeof(buf), "-1");
+++			break;
+++       		default:
+++			snprintf(buf, sizeof(buf), "%d", ch);
+++			break;
+++	}
++ 
++ 	return buf;
++ }
++@@ -409,7 +420,7 @@ static char * print_channel(const struct iwinfo_ops *iw, const char *ifname)
++ {
++ 	int ch;
++ 	if (iw->channel(ifname, &ch))
++-		ch = -1;
+++		ch = 0;
++ 
++ 	return format_channel(ch);
++ }
++@@ -644,7 +655,7 @@ static void print_freqlist(const struct iwinfo_ops *iw, const char *ifname)
++ 	}
++ 
++ 	if (iw->channel(ifname, &ch))
++-		ch = -1;
+++		ch = 0;
++ 
++ 	for (i = 0; i < len; i += sizeof(struct iwinfo_freqlist_entry))
++ 	{
++--- a/iwinfo_nl80211.c
+++++ b/iwinfo_nl80211.c
++@@ -402,12 +402,16 @@ static int nl80211_channel2freq(int channel, const char *band)
++ 	{
++ 		if (channel == 14)
++ 			return 2484;
+++		else if (channel == 255)
+++			return 2402;
+++		else if (channel == 254)
+++			return 2397;
++ 		else if (channel < 14)
++ 			return (channel * 5) + 2407;
++ 	}
++ 	else
++ 	{
++-		if (channel >= 182 && channel <= 196)
+++		if (channel >= 187 && channel <= 196)
++ 			return (channel * 5) + 4000;
++ 		else
++ 			return (channel * 5) + 5000;
