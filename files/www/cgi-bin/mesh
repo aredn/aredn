@@ -174,8 +174,8 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
     }
     elsif($table eq "MID")
     {
-	($ip, $junk) = split /\s+/, $_;
-	foreach $aip ( split /;/, $junk ) { $ipalias{$aip} = $ip }
+	($ip, $junk) = $_ =~ /^(\S+)\s+(.*)$/;
+	foreach $aip ( split /\s+/, $junk ) { $ipalias{$aip} = $ip }
     }
     elsif($table eq "Routes")
     {
