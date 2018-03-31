@@ -1,0 +1,109 @@
+--- a/package/base-files/files/lib/preinit/99_10_failsafe_login
++++ b/package/base-files/files/lib/preinit/99_10_failsafe_login
+@@ -3,8 +3,7 @@
+ # Copyright (C) 2010 Vertical Communications
+ 
+ failsafe_netlogin () {
+-	dropbearkey -t rsa -s 1024 -f /tmp/dropbear_failsafe_host_key
+-	dropbear -r /tmp/dropbear_failsafe_host_key <> /dev/null 2>&1
++	telnetd -l /bin/login.sh <> /dev/null 2>&1
+ }
+ 
+ failsafe_shell() {
+--- a/package/utils/busybox/Config-defaults.in
++++ b/package/utils/busybox/Config-defaults.in
+@@ -2376,10 +2376,10 @@ config BUSYBOX_DEFAULT_UDPSVD
+ 	default n
+ config BUSYBOX_DEFAULT_TELNET
+ 	bool
+-	default n
++	default y
+ config BUSYBOX_DEFAULT_FEATURE_TELNET_TTYPE
+ 	bool
+-	default n
++	default y
+ config BUSYBOX_DEFAULT_FEATURE_TELNET_AUTOLOGIN
+ 	bool
+ 	default n
+@@ -2388,10 +2388,10 @@ config BUSYBOX_DEFAULT_FEATURE_TELNET_WI
+ 	default n
+ config BUSYBOX_DEFAULT_TELNETD
+ 	bool
+-	default n
++	default y
+ config BUSYBOX_DEFAULT_FEATURE_TELNETD_STANDALONE
+ 	bool
+-	default n
++	default y
+ config BUSYBOX_DEFAULT_FEATURE_TELNETD_INETD_WAIT
+ 	bool
+ 	default n
+--- a/package/utils/busybox/Makefile
++++ b/package/utils/busybox/Makefile
+@@ -137,6 +137,8 @@
+ ifneq ($(CONFIG_BUSYBOX_$(BUSYBOX_SYM)_CROND),)
+ 	$(INSTALL_BIN) ./files/cron $(1)/etc/init.d/cron
+ endif
++	$(INSTALL_BIN) ./files/telnet $(1)/etc/init.d/telnet
++	$(INSTALL_BIN) ./files/login.sh $(1)/bin/login.sh
+ ifneq ($(CONFIG_BUSYBOX_$(BUSYBOX_SYM)_NTPD),)
+ 	$(INSTALL_BIN) ./files/sysntpd $(1)/etc/init.d/sysntpd
+ 	$(INSTALL_BIN) ./files/ntpd-hotplug $(1)/usr/sbin/ntpd-hotplug
+--- a/package/utils/busybox/files/telnet	1969-12-31 18:00:00.000000000 -0600
++++ b/package/utils/busybox/files/telnet	2018-03-14 21:10:23.668489921 -0500
+@@ -0,0 +1,33 @@
++#!/bin/sh /etc/rc.common
++# Copyright (C) 2006-2011 OpenWrt.org
++
++START=50
++
++USE_PROCD=1
++PROG=/usr/sbin/telnetd
++
++has_root_pwd() {
++	local pwd=$([ -f "$1" ] && cat "$1")
++	      pwd="${pwd#*root:}"
++	      pwd="${pwd%%:*}"
++
++	test -n "${pwd#[\!x]}"
++}
++
++get_root_home() {
++	local homedir=$([ -f "$1" ] && cat "$1")
++	homedir="${homedir#*:*:0:0:*:}"
++
++	echo "${homedir%%:*}"
++}
++
++has_ssh_pubkey() {
++	( /etc/init.d/dropbear enabled 2> /dev/null && grep -qs "^ssh-" /etc/dropbear/authorized_keys ) || \
++	( /etc/init.d/sshd enabled 2> /dev/null && grep -qs "^ssh-" "$(get_root_home /etc/passwd)"/.ssh/authorized_keys )
++}
++
++start_service() {
++		procd_open_instance
++		procd_set_param command "$PROG" -F -l /bin/login.sh
++		procd_close_instance
++}
+--- a/package/utils/busybox/files/login.sh	1969-12-31 18:00:00.000000000 -0600
++++ b/package/utils/busybox/files/login.sh	2018-03-14 22:12:26.192489921 -0500
+@@ -0,0 +1,19 @@
++#!/bin/sh
++# Copyright (C) 2006-2011 OpenWrt.org
++
++if ( ! grep -qs '^root:[!x]\?:' /etc/shadow || \
++     ! grep -qs '^root:[!x]\?:' /etc/passwd ) && \
++   [ -z "$FAILSAFE" ]
++then
++	echo "WARNING: passwords are sent unencrypted."
++	busybox login
++else
++cat << EOF
++ === IMPORTANT ============================
++  Use 'passwd' to set your login password
++  this will enable telnet login with password
++ ------------------------------------------
++EOF
++
++exec /bin/ash --login
++fi
