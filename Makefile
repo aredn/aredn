@@ -62,7 +62,6 @@ openwrt-clean: stamp-clean-openwrt-cleaned .stamp-openwrt-cleaned
 
 openwrt-clean-bin:
 	rm -rf $(OPENWRT_DIR)/bin
-	rm -rf $(TOP_DIR)/firmware/*
 
 # update openwrt and checkout specified commit
 openwrt-update: .stamp-openwrt-updated .stamp-unpatched
@@ -81,6 +80,13 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 .stamp-feeds-updated: $(OPENWRT_DIR)/feeds.conf
 	cd $(OPENWRT_DIR); ./scripts/feeds uninstall -a
 	cd $(OPENWRT_DIR); ./scripts/feeds update -a
+	cd $(OPENWRT_DIR); ./scripts/feeds install liblzma
+	cd $(OPENWRT_DIR); ./scripts/feeds install libssh2
+	cd $(OPENWRT_DIR); ./scripts/feeds install libidn
+	cd $(OPENWRT_DIR); ./scripts/feeds install libopenldap
+	cd $(OPENWRT_DIR); ./scripts/feeds install libgnutls
+	cd $(OPENWRT_DIR); ./scripts/feeds install libpam
+	cd $(OPENWRT_DIR); ./scripts/feeds install libnetsnmp
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages olsrd
 	cd $(OPENWRT_DIR); ./scripts/feeds install perl
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages vtun
@@ -138,8 +144,7 @@ compile: stamp-clean-compiled .stamp-compiled
 	$(TOP_DIR)/scripts/tests-prebuild.sh
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
-	rm -f $(TOP_DIR)/firmware/AREDN*
-	for FILE in $(TOP_DIR)/firmware/openwrt*; do \
+	for FILE in `find $(TOP_DIR)/firmware/targets/ -name "*.bin"`; do \
 	  [ -e "$$FILE" ] || continue; \
 	  NEWNAME="$${FILE/openwrt-/AREDN-}"; \
 	  NEWNAME="$${NEWNAME/ar71xx-generic-/}"; \
@@ -149,7 +154,7 @@ compile: stamp-clean-compiled .stamp-compiled
 	$(TOP_DIR)/scripts/tests-postbuild.sh
 
 $(TOP_DIR)/firmware:
-	ln -sf $(OPENWRT_DIR)/bin/ar71xx $(TOP_DIR)/firmware
+	ln -sf $(OPENWRT_DIR)/bin/ $(TOP_DIR)/firmware
 
 stamp-clean-%:
 	rm -f .stamp-$*

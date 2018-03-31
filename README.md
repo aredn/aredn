@@ -4,7 +4,7 @@ http://www.aredn.org
 
 ## Build Information
 
-The AREDN firmware is based on OpenWrt/LEDE with additional packages and patches.
+The AREDN firmware is based on OpenWrt with additional packages and patches.
 A Makefile automates the entire process to create firmware images.
 
 ### Build Prerequisites
@@ -39,14 +39,14 @@ make
 ```
 
 Building the images may take minutes or hours depending on the machine.
-For more details see [build options](http://wiki.openwrt.org/doc/howto/build#make_options).  
+For more details see [build options](https://openwrt.org/docs/guide-developer/build-system/use-buildsystem).  
 Review the build options in config.mk: `-j <number of cores + 1>`. 
 `V=s` will give more verbose error messages.
 
 An internet connection is required during the build process. A good internet
 connection can improve the build time.
 
-You need approximately 12GB of space for the build.
+You need approximately 10GB of space for the build.
 
 ### Directory Layout
 
@@ -70,12 +70,12 @@ results/     <- code checks and other test results in jUnit xml format
 
 ### Patches with quilt
 
-The patches directory contains quilt patches that are applied on top of the
+The patches directory contains quilt patches applied on top of the
 openwrt git repo defined in config.mk. 
 
 If a patch is not yet included upstream, it can be placed in the `patches` directory with
 the `quilt` tool. Please configure `quilt` as described in 
-[OpenWrt Quilt](https://openwrt.org/docs/guide-developer/use-patches-with-buildsystem?s[]=quilt).  
+[OpenWrt Quilt](https://openwrt.org/docs/guide-developer/build-system/use-patches-with-buildsystem).  
 
 #### Add, modify or delete a patch
 
