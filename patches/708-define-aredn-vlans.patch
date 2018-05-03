@@ -1,0 +1,138 @@
+--- a/package/base-files/files/lib/functions/uci-defaults.sh
++++ b/package/base-files/files/lib/functions/uci-defaults.sh
+@@ -162,7 +162,7 @@
+ 
+ 				if [ ${need_tag:-0} -eq 1 -o ${want_untag:-0} -ne 1 ]; then
+ 					num="${num}t"
+-					device="${device}.${index}"
++					device="${device}.$((index - 1))"
+ 				fi
+ 
+ 				json_select roles
+--- a/package/base-files/files/bin/config_generate
++++ b/package/base-files/files/bin/config_generate
+@@ -151,10 +151,11 @@
+ 				json_get_vars ports
+ 			json_select ..
+ 
++			vlan_num=$((role - 1))
+ 			uci -q batch <<-EOF
+ 				add network switch_vlan
+ 				set network.@switch_vlan[-1].device='$switch'
+-				set network.@switch_vlan[-1].vlan='$role'
++				set network.@switch_vlan[-1].vlan='$vlan_num'
+ 				set network.@switch_vlan[-1].ports='$ports'
+ 			EOF
+ 		done
+--- a/target/linux/ar71xx/base-files/etc/board.d/02_network
++++ b/target/linux/ar71xx/base-files/etc/board.d/02_network
+@@ -13,7 +13,7 @@
+ 	case "$board" in
+ 	airgatewaypro)
+ 		ucidef_add_switch "switch0" \
+-			"0@eth0" "4:lan" "5:wan"
++			"0@eth0" "4:lan" "5t:wan" "5t:dtdlink"
+ 		;;
+ 	airrouter|\
+ 	ap121|\
+@@ -57,9 +57,9 @@
+ 	whr-hp-gn|\
+ 	wzr-hp-ag300h|\
+ 	zbt-we1526)
+-		ucidef_set_interfaces_lan_wan "eth0.1" "eth1"
++		ucidef_set_interface_wan "eth1"
+ 		ucidef_add_switch "switch0" \
+-			"0@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
++			"0@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4t:unused" "4t:dtdlink"
+ 		;;
+ 	alfa-ap120c|\
+ 	all0305|\
+@@ -146,7 +146,8 @@
+ 	wifi-pineapple-nano|\
+ 	wndap360|\
+ 	wp543)
+-		ucidef_set_interface_lan "eth0"
++		ucidef_set_interfaces_lan_wan "eth0" "eth0.1" 
++		ucidef_set_interface_raw "dtdlink" "eth0.2" "static"
+ 		;;
+ 	a40|\
+ 	a60|\
+@@ -173,15 +174,16 @@
+ 	tl-wr810n-v2|\
+ 	wpe72|\
+ 	wrtnode2q)
+-		ucidef_set_interfaces_lan_wan "eth1" "eth0"
++		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface_raw "dtdlink" "eth0.2" "static"
+ 		;;
+ 	rb-750-r2|\
+ 	rb-750p-pbr2|\
+ 	rb-750up-r2|\
+ 	rb-951ui-2nd)
+-		ucidef_set_interfaces_lan_wan "eth1.1" "eth0"
++		ucidef_set_interface_wan "eth0"
+ 		ucidef_add_switch "switch0" \
+-			"0@eth1" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
++			"0@eth1" "1:lan:4" "2:lan:3" "3:lan:2" "4t:unused" "4t:dtdlink"
+ 		;;
+ 	all0258n|\
+ 	all0315n|\
+@@ -191,7 +193,8 @@
+ 	ja76pf2|\
+ 	rocket-m-ti|\
+ 	ubnt-unifi-outdoor)
+-		ucidef_set_interface_lan "eth0 eth1"
++		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface_raw "dtdlink" "eth0.2" "static"
+ 		;;
+ 	wzr-hp-g300nh2)
+ 		ucidef_add_switch "switch0" \
+@@ -207,7 +210,7 @@
+ 	wlr8100|\
+ 	wzr-hp-g450h)
+ 		ucidef_add_switch "switch0" \
+-			"0@eth0" "2:lan" "3:lan" "4:lan" "5:lan" "1:wan"
++			"0@eth0" "2:lan" "3:lan" "4:lan" "1:wan" "5t:dtdlink"
+ 		;;
+ 	ap135-020|\
+ 	ap136-020|\
+@@ -287,7 +290,7 @@
+ 	wbs210|\
+ 	wbs510)
+ 		ucidef_add_switch "switch0" \
+-			"0@eth0" "5:lan" "4:wan"
++			"0@eth0" "5:lan" "4t:wan" "4t:dtdlink"
+ 		;;
+ 	cr3000)
+ 		ucidef_set_interfaces_lan_wan "eth0.1" "eth1"
+@@ -436,7 +439,7 @@
+ 		;;
+ 	nanostation-m-xw)
+ 		ucidef_add_switch "switch0" \
+-			"0@eth0" "5:lan" "1:wan"
++			"0@eth0" "5:lan" "1t:wan" "1t:dtdlink"
+ 		;;
+ 	onion-omega)
+ 		ucidef_set_interface_lan "wlan0"
+@@ -447,9 +450,9 @@
+ 			"0:lan:4" "1:lan:3" "2:lan:2" "3:lan:1" "5@eth1"
+ 		;;
+ 	routerstation-pro)
+-		ucidef_set_interfaces_lan_wan "eth1.1" "eth0"
++		ucidef_set_interface_wan "eth0"
+ 		ucidef_add_switch "switch0" \
+-			"0@eth1" "2:lan:3" "3:lan:2" "4:lan:1"
++			"0@eth1" "2:lan:3" "3:lan:2" "4t:unused" "4t:dtdlink"
+ 		;;
+ 	rb-493g)
+ 		ucidef_set_interfaces_lan_wan "eth0.1 eth1.1" "eth1.2"
+@@ -550,7 +553,8 @@
+ 			"0@eth0" "1:lan:1" "2:lan:2" "3:lan:3" "4:lan:4" "5:wan"
+ 		;;
+ 	*)
+-		ucidef_set_interfaces_lan_wan "eth0" "eth1"
++		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface_raw "dtdlink" "eth0.2" "static"
+ 		;;
+ 	esac
+ }
