@@ -46,6 +46,43 @@ $node = "NOCALL" if $node eq "";
 
 read_postdata();
 
+#################################
+# save server connections from form to UCI
+#################################
+sub save_connections()
+{
+    my $enabled_count=0;
+    for ($i=0; $i < $parms{"conn_num"}; $i++) {
+        
+        my $net = $parms{"conn${i}_netip"};
+    
+        $rc=&uci_add_named_section("vtun","server_$i","server");
+
+        # generate the clientip and serverip
+        my ($clientip, $serverip) = &generate_ips($net);
+
+        # generate the VTUN NODE name based on the node name and netip
+        $net=~ s/\./\-/g;
+        my $vtun_node_name=uc "$node-$net";
+
+        $rc=&uci_set_named_option("vtun","server_$i","clientip",$clientip);
+        push(@conn_err,"Problem saving UCI vtun connection client IP (#$i)") if $rc;
+
+        $rc=&uci_set_named_option("vtun","server_$i","serverip",$serverip);
+        push(@conn_err,"Problem saving UCI vtun connection server IP (#$i)") if $rc;
+        
+        $rc=&uci_set_named_option("vtun","server_$i","node",$vtun_node_name);
+        push(@conn_err,"Problem saving UCI vtun connection name (#$i)") if $rc;
+
+        foreach $var (qw(enabled host passwd netip))
+        {
+            $rc=&uci_set_named_option("vtun","server_$i",$var,$parms{"conn${i}_$var"});
+            push(@conn_err,"Problem saving UCI vtun connection (#$i)") if $rc;
+        }
+        $enabled_count++ if $parms{"conn${i}_enabled"}; 
+    }
+}
+
 #################
 # page checks
 #################
@@ -143,7 +180,7 @@ foreach $val (@list)
     # Validate password is vtun compliant
     # TODO
 
-    if($val eq "_add" and $parm{button_save})
+    if($val eq "_add" and $parms{button_save})
     {
         push @conn_err, "$val this connection must be added or cleared out before saving changes";
         next;
@@ -409,42 +446,6 @@ sub get_connection_info()
     $parms{conn_num} = scalar(@connections);
 }
 
-#################################
-# save server connections from form to UCI
-#################################
-sub save_connections()
-{
-    my $enabled_count=0;
-    for ($i=0; $i < $parms{"conn_num"}; $i++) {
-        
-        my $net = $parms{"conn${i}_netip"};
-    
-        $rc=&uci_add_named_section("vtun","server_$i","server");
-
-        # generate the clientip and serverip
-        my ($clientip, $serverip) = &generate_ips($net);
-
-        # generate the VTUN NODE name based on the node name and netip
-        $net=~ s/\./\-/g;
-        my $vtun_node_name=uc "$node-$net";
-
-        $rc=&uci_set_named_option("vtun","server_$i","clientip",$clientip);
-        push(@conn_err,"Problem saving UCI vtun connection client IP (#$i)") if $rc;
-
-        $rc=&uci_set_named_option("vtun","server_$i","serverip",$serverip);
-        push(@conn_err,"Problem saving UCI vtun connection server IP (#$i)") if $rc;
-        
-        $rc=&uci_set_named_option("vtun","server_$i","node",$vtun_node_name);
-        push(@conn_err,"Problem saving UCI vtun connection name (#$i)") if $rc;
-
-        foreach $var (qw(enabled host passwd netip))
-        {
-            $rc=&uci_set_named_option("vtun","server_$i",$var,$parms{"conn${i}_$var"});
-            push(@conn_err,"Problem saving UCI vtun connection (#$i)") if $rc;
-        }
-        $enabled_count++ if $parms{"conn${i}_enabled"}; 
-    }
-}
 
 sub DEBUGEXIT()
 {

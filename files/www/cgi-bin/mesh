@@ -215,7 +215,7 @@ foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
 {
     next unless /^\d/;
     chomp;
-    ($ip, $name, $junk, $originator, $mid, $midnum) = split /\s+/, $_;
+    ($ip, $name, undef, $originator, undef, undef) = split /\s+/, $_;
     next unless $originator;
     next if $originator eq "myself";
 
@@ -236,7 +236,6 @@ foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
             $hosts{$ip}{name} = $name;
 	    if ( $routes{$ip} ) {  $hosts{$ip}{etx} = $routes{$ip}{etx} ; }
 	    else { $hosts{$ip}{etx} = "99.000"; }
-	    $dtd{$originator} = 1 ;
         }
         elsif ( $name =~ /^mid\d+\..*$/  )
             {

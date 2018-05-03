@@ -45,7 +45,7 @@ exit if system "ps | grep -v grep | grep -q 'olsrd '";
 foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
 {
     next unless /^\d/;
-    ($ip, $name, $junk, $originator, $mid) = split /\s+/, $_;
+    ($ip, $name, undef, $originator, $mid) = split /\s+/, $_;
     next unless $originator;
     next if $originator eq "myself";
     next unless ($ip eq $originator) or (defined $mid and $mid eq "(mid");
@@ -57,7 +57,7 @@ foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
 foreach(`echo /lin | nc 127.0.0.1 2006 2>/dev/null`)
 {
     next unless /^\d/;
-    ($my_ip, $ip) = split /\s+/, $_;
+    (undef, $ip) = split /\s+/, $_;
     $history{$ip}{age} = $uptime;
     $history{$ip}{name} = $hosts{$ip};
 }

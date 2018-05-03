@@ -46,6 +46,66 @@ $node = "NOCALL" if $node eq "";
 
 read_postdata();
 
+#################################
+# save clients from form to UCI
+#################################
+sub save_clients()
+{
+    my $enabled_count=0;
+
+    for ($i=0; $i < $parms{"client_num"}; $i++) {
+        my $net = $parms{"client${i}_netip"};
+
+        $rc=&uci_add_named_section("vtun","client_$i","client");
+        
+        # generate the clientip and serverip
+        my ($clientip, $serverip) = &generate_ips($net);
+
+        $rc=&uci_set_named_option("vtun","client_$i","netip",$net);
+        push(@cli_err,"Problem saving UCI vtun client net IP (#$i): $rc") if $rc;
+
+        $rc=&uci_set_named_option("vtun","client_$i","enabled",$parms{"client${i}_enabled"});
+        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
+
+        $rc=&uci_set_named_option("vtun","client_$i","name",$parms{"client${i}_name"});
+        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
+
+        $rc=&uci_set_named_option("vtun","client_$i","passwd",$parms{"client${i}_passwd"});
+        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
+
+        # generate the VTUN NODE name based on the node name and netip
+        $net=~ s/\./\-/g;
+        my $vtun_node_name=$parms{"client${i}_name"} . "-" . $net;
+        $rc=&uci_set_named_option("vtun","client_$i","clientip",$clientip);
+        push(@cli_err,"Problem saving UCI vtun client client IP (#$i): $rc") if $rc;
+
+        $rc=&uci_set_named_option("vtun","client_$i","serverip",$serverip);
+        push(@cli_err,"Problem saving UCI vtun client server IP (#$i): $rc") if $rc;
+
+        $rc=&uci_set_named_option("vtun","client_$i","node",$vtun_node_name);
+        push(@cli_err,"Problem saving UCI vtun client name (#$i): $rc") if $rc;
+
+        $enabled_count++ if $parms{"client${i}_enabled"};    
+    }
+}
+
+#################################
+# save network info to UCI
+#################################
+sub save_network()
+{
+    push(@cli_err,"The third octet of the network MUST be from 0 to 255") unless (($parms{server_net1}>=0) && ($parms{server_net1}<=255) && ($parms{server_net1} ne ''));
+    push(@cli_err,"The last octet of the network MUST be from 0 to 255") unless (($parms{server_net2}>=0) && ($parms{server_net2}<=255) && ($parms{server_net2} ne ''));
+    push(@cli_err,"The last octet of the network MUST be a multiple of 4 (ie. 0,4,8,12,16,...)") if ($parms{server_net2} % 4);
+    push(@cli_err,"Not a valid DNS name") unless (validate_fqdn($parms{dns}));
+    if (not @cli_err)
+    {
+        my $net=sprintf("%d.%d.%d.%d",172,31,$parms{server_net1},$parms{server_net2});
+        push @cli_err, "Problem saving the server network values!" if (&uci_set_indexed_option("vtun","network",0,"start",$net));
+        push @cli_err, "Problem saving the server DNS name!" if (&uci_set_indexed_option("vtun","network",0,"dns",$dns));
+    }
+}
+
 #################
 # page checks
 #################
@@ -140,7 +200,7 @@ foreach $val (@list)
     }   # no delete capabilities as net renumbering is not allowed
 
 
-    if($val eq "_add" and $parm{button_save})
+    if($val eq "_add" and $parms{button_save})
     {
         push @cli_err, "$val this client must be added or cleared out before saving changes";
         next;
@@ -429,66 +489,6 @@ sub get_client_info()
     }
 
     $parms{client_num} = scalar(@clients);
-}
-
-#################################
-# save clients from form to UCI
-#################################
-sub save_clients()
-{
-    my $enabled_count=0;
-
-    for ($i=0; $i < $parms{"client_num"}; $i++) {
-        my $net = $parms{"client${i}_netip"};
-
-        $rc=&uci_add_named_section("vtun","client_$i","client");
-        
-        # generate the clientip and serverip
-        my ($clientip, $serverip) = &generate_ips($net);
-
-        $rc=&uci_set_named_option("vtun","client_$i","netip",$net);
-        push(@cli_err,"Problem saving UCI vtun client net IP (#$i): $rc") if $rc;
-
-        $rc=&uci_set_named_option("vtun","client_$i","enabled",$parms{"client${i}_enabled"});
-        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
-
-        $rc=&uci_set_named_option("vtun","client_$i","name",$parms{"client${i}_name"});
-        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
-
-        $rc=&uci_set_named_option("vtun","client_$i","passwd",$parms{"client${i}_passwd"});
-        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
-
-        # generate the VTUN NODE name based on the node name and netip
-        $net=~ s/\./\-/g;
-        my $vtun_node_name=$parms{"client${i}_name"} . "-" . $net;
-        $rc=&uci_set_named_option("vtun","client_$i","clientip",$clientip);
-        push(@cli_err,"Problem saving UCI vtun client client IP (#$i): $rc") if $rc;
-
-        $rc=&uci_set_named_option("vtun","client_$i","serverip",$serverip);
-        push(@cli_err,"Problem saving UCI vtun client server IP (#$i): $rc") if $rc;
-
-        $rc=&uci_set_named_option("vtun","client_$i","node",$vtun_node_name);
-        push(@cli_err,"Problem saving UCI vtun client name (#$i): $rc") if $rc;
-
-        $enabled_count++ if $parms{"client${i}_enabled"};    
-    }
-}
-
-#################################
-# save network info to UCI
-#################################
-sub save_network()
-{
-    push(@cli_err,"The third octet of the network MUST be from 0 to 255") unless (($parms{server_net1}>=0) && ($parms{server_net1}<=255) && ($parms{server_net1} ne ''));
-    push(@cli_err,"The last octet of the network MUST be from 0 to 255") unless (($parms{server_net2}>=0) && ($parms{server_net2}<=255) && ($parms{server_net2} ne ''));
-    push(@cli_err,"The last octet of the network MUST be a multiple of 4 (ie. 0,4,8,12,16,...)") if ($parms{server_net2} % 4);
-    push(@cli_err,"Not a valid DNS name") unless (validate_fqdn($parms{dns}));
-    if (not @cli_err)
-    {
-        my $net=sprintf("%d.%d.%d.%d",172,31,$parms{server_net1},$parms{server_net2});
-        push @cli_err, "Problem saving the server network values!" if (&uci_set_indexed_option("vtun","network",0,"start",$net));
-        push @cli_err, "Problem saving the server DNS name!" if (&uci_set_indexed_option("vtun","network",0,"dns",$dns));
-    }
 }
 
 sub DEBUGEXIT()
