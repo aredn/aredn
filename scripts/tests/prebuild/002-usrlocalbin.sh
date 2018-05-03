@@ -71,7 +71,7 @@ do
     if [ "$SHELLCHECKNOTEXISTS" = "1" ]; then
       juLog -name="usrlocalbin_$(basename "$file")" false # Consider test failed if we don't have shellcheck
     else
-      juLog -name="usrlocalbin_$(basename "$file")" shellcheck "$file"
+      juLog -name="usrlocalbin_$(basename "$file")" shellcheck -x "$file"
     fi
   continue # Next file please
   fi
