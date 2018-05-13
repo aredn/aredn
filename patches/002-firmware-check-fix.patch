@@ -1,0 +1,20 @@
+--- a/target/linux/ar71xx/image/generic-ubnt.mk
++++ b/target/linux/ar71xx/image/generic-ubnt.mk
+@@ -4,7 +4,7 @@
+ # routerboard creates partitions out of the ubnt header
+ define Build/mkubntimage
+ 	-$(STAGING_DIR_HOST)/bin/mkfwimage \
+-		-B $(UBNT_BOARD) -v $(UBNT_TYPE).$(UBNT_CHIP).v6.0.0-$(VERSION_DIST)-$(REVISION) \
++		-B $(UBNT_BOARD) -v $(UBNT_TYPE).$(UBNT_CHIP).v6.0.0-31296.170704.204 \
+ 		-k $(IMAGE_KERNEL) \
+ 		-r $@ \
+ 		-o $@
+@@ -17,7 +17,7 @@
+ 	dd if=$@ of=$@.old1 bs=1024k count=1; \
+ 	dd if=$@ of=$@.old2 bs=1024k skip=1; \
+ 	$(STAGING_DIR_HOST)/bin/mkfwimage \
+-		-B $(UBNT_BOARD) -v $(UBNT_TYPE).$(UBNT_CHIP).v6.0.0-$(VERSION_DIST)-$(REVISION) \
++		-B $(UBNT_BOARD) -v $(UBNT_TYPE).$(UBNT_CHIP).v6.0.0-31296.170704.204 \
+ 		-k $@.old1 \
+ 		-r $@.old2 \
+ 		-o $@; \
