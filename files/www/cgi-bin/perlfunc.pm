@@ -992,6 +992,16 @@ sub hardware_info
             'rfband'          => '5800ubntus',
             'chanpower'       => { 48 => '10', 149 => '17', 184 => '23' },
          },
+         'TP-Link CPE510 v1.1' => {
+             'name'            => 'TP-Link CPE510 v1.1',
+             'comment'         => 'Testing support for CPE510 v1.1',
+             'supported'       => '-1',
+             'maxpower'        => '26',
+             'pwroffset'       => '0',
+             'usechains'       => 1,
+             'rfband'          => '5800ubntus',
+             'chanpower'       => { 140 => '17', 184 => '26' },
+	},
         '0xc2a2' => {
             'name'            => 'Bullet 2 HP',
             'comment'         => 'Not enough Ram or flash',
