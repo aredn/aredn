@@ -88,9 +88,17 @@ use perlfunc;
           "/usr/local/bin/get_hardwaretype",
           "/usr/local/bin/get_boardid",
           "/usr/local/bin/get_model",
+          "/usr/local/bin/get_hardware_mfg",
+         );
+
+@cmds_ubnt = (
+          "cat /dev/mtd0|grep 'U-Boot'|head -n1",
          );
 
 $FREE_SPACE_TMP=get_free_space("/tmp");
+
+$mfg = `/usr/local/bin/get_hardware_mfg`;
+chomp($mfg);
 
 if ($FREE_SPACE_TMP eq "N/A" || $FREE_SPACE_TMP <= 2*1024) {
    exit 1;
@@ -131,6 +139,16 @@ foreach $cmd (@cmds) {
   while (<$CMD_PIPE>) {
         print { $CMDS_OUT } $_;
   } 
+}
+
+if ( $mfg eq "Ubiquiti" ) {
+  foreach $cmd (@cmds_ubnt) {
+    print $CMDS_OUT "========== $cmd (UBNT only) ==========\n";
+    open(my $CMD_PIPE, "-|", $cmd ) or next;
+    while (<$CMD_PIPE>) {
+          print { $CMDS_OUT } $_;
+    }
+  }
 }
 
 close ($CMDS_OUT);

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+CFG=/etc/board.json
+
+. /usr/share/libubox/jshn.sh
+
+[ -f $CFG ] || exit 1
+json_init
+json_load "$(cat ${CFG})"
+json_select model
+json_get_vars name
+set -- $name
+echo "$1" > /tmp/sysinfo/hardware_mfg
+cat /tmp/sysinfo/hardware_mfg
