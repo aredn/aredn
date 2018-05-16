@@ -68,7 +68,6 @@ else
 fi
 
 # Save system NET  LED settings
-# Updated with logic from \bin\config_generate
 if [ ! -f /etc/aredn_include/system_netled ]
 then
   mkdir -p /etc/aredn_include
@@ -98,6 +97,13 @@ generate_led() {
 		netdev)
 			local device mode
 			json_get_vars device mode
+    			echo "config led 'led_$1'" >> /etc/aredn_include/system_netled
+    			echo "    option name '$name'" >> /etc/aredn_include/system_netled
+    			echo "    option sysfs '$sysfs'" >> /etc/aredn_include/system_netled
+    			echo "    option trigger 'netdev'" >> /etc/aredn_include/system_netled
+    			echo "    option mode '$mode'" >> /etc/aredn_include/system_netled
+    			echo "    option dev '$device'" >> /etc/aredn_include/system_netled
+    			echo "" >> /etc/aredn_include/system_netled
 		;;
 
 		usb)
@@ -113,6 +119,15 @@ generate_led() {
 		rssi)
 			local iface minq maxq offset factor
 			json_get_vars iface minq maxq offset factor
+    			echo "config led 'led_$1'" >> /etc/aredn_include/system_netled
+    			echo "    option sysfs '$sysfs'" >> /etc/aredn_include/system_netled
+    			echo "    option trigger 'rssi'" >> /etc/aredn_include/system_netled
+    			echo "    option iface 'rssid_$iface'" >> /etc/aredn_include/system_netled
+    			echo "    option minq '$minq'" >> /etc/aredn_include/system_netled
+    			echo "    option maxq '$maxq'" >> /etc/aredn_include/system_netled
+    			echo "    option offset '$offset'" >> /etc/aredn_include/system_netled
+    			echo "    option factor '$factor'" >> /etc/aredn_include/system_netled
+    			echo "" >> /etc/aredn_include/system_netled
 		;;
 
 		switch)

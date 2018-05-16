@@ -38,7 +38,7 @@ LICENSE
 
 ## Values for count of final images
 ### This value should be updated as we add/remove device image types
-NUMBEROFIMAGESCOUNT=11
+NUMBEROFIMAGESCOUNT=12
 ### Static Files, only when buildroot changes adjust output files types.
 ### These are files such as  vmlinux, uimage, etc.
 STATICFILESCOUNT=0
