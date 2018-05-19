@@ -7,6 +7,7 @@ then
 fi
 
 
-/sbin/sysupgrade -d 7 -f /tmp/arednsysupgradebackup.tgz -q "$1" 2>&1
+sleep 7
+/sbin/sysupgrade -f /tmp/arednsysupgradebackup.tgz -q "$1" 2>&1
 
 rc=$?; if [ $rc != 0 ]; then /sbin/reboot; fi
