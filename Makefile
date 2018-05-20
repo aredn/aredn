@@ -5,6 +5,9 @@ include openwrt.mk
 MAINTARGET=$(word 1, $(subst -, ,$(TARGET)))
 SUBTARGET=$(word 2, $(subst -, ,$(TARGET)))
 
+# export for test script use
+export AREDNSUBTARGET=$(SUBTARGET)
+
 GIT_BRANCH=$(shell git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
 
@@ -125,7 +128,7 @@ else
 endif
 
 # openwrt config
-$(OPENWRT_DIR)/.config: .stamp-feeds-updated $(TARGET_CONFIG) .stamp-build_rev
+$(OPENWRT_DIR)/.config: .stamp-feeds-updated $(TARGET_CONFIG) .stamp-build_rev always
 	cat $(TARGET_CONFIG) >$(OPENWRT_DIR)/.config
 	echo "CONFIG_VERSION_NUMBER=\"$(FW_VERSION)\"" >>$(OPENWRT_DIR)/.config
 	echo "$(FW_VERSION)" >$(TOP_DIR)/files/etc/mesh-release
@@ -144,7 +147,8 @@ compile: stamp-clean-compiled .stamp-compiled
 	$(TOP_DIR)/scripts/tests-prebuild.sh
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
-	for FILE in `find $(TOP_DIR)/firmware/targets/ -name "*.bin"`; do \
+	for FILE in `find $(TOP_DIR)/firmware/targets/ -name "*factory.bin" -o -name "*sysupgrade.bin" \
+	  -o -name "*.manifest" -o -name "*-mikrotik-vmlinux-initramfs.elf"`; do \
 	  [ -e "$$FILE" ] || continue; \
 	  NEWNAME="$${FILE/openwrt-/AREDN-}"; \
 	  NEWNAME="$${NEWNAME/ar71xx-generic-/}"; \
@@ -163,7 +167,7 @@ stamp-clean:
 	rm -f .stamp-*
 
 # unpatch needs "patches/" in openwrt
-.stamp-unpatched: 
+.stamp-unpatched:
 # RC = 2 of quilt --> nothing to be done
 	cd $(OPENWRT_DIR); quilt pop -a -f || [ $$? = 2 ] && true
 	rm -rf $(OPENWRT_DIR)/tmp
@@ -173,6 +177,6 @@ stamp-clean:
 clean: stamp-clean .stamp-openwrt-cleaned
 
 
-.PHONY: openwrt-clean openwrt-clean-bin openwrt-update patch feeds-update prepare compile stamp-clean clean
+.PHONY: openwrt-clean openwrt-clean-bin openwrt-update patch feeds-update prepare compile stamp-clean clean always
 .NOTPARALLEL:
 .FORCE:

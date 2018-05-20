@@ -36,38 +36,29 @@ LICENSE
 
 # Variables that may need adjusting as time goes on
 
-## Values for count of final images
-### This value should be updated as we add/remove device image types
-NUMBEROFIMAGESCOUNT=12
-### Static Files, only when buildroot changes adjust output files types.
-### These are files such as  vmlinux, uimage, etc.
-STATICFILESCOUNT=0
+# update to add/remove device image targets
+GENERIC_COUNT=23
+MIKROTIK_COUNT=3
 
 # END Variables that may need adjusting
 
-
 . "$SCRIPTBASE/sh2ju.sh"
 
+# Check the count of image files named AREDN-*
 
-# Make sure no files named openwrt* in output directory
-# Could mean an image rename problem or that the buildroot
-# was not clean before making images
-if [ "$(find ./openwrt/bin/* -maxdepth 4 -regex '\./openwrt/bin.*openwrt.*\.bin' | wc -l)" -eq  "0" ]
-then
-	juLog -name="no_firmware_images_named_openwrt" true
-else
-	juLog -name="no_firmware_images_named_openwrt" false
-fi
-
-
-
-
-# Check the count of image files  named AREDN-*
-
-## STATICFILESCOUNT + NUMBEROFIMAGESCOUNT * 2 for sysupgrade and factory files
-EXPECTEDFILESCOUNT=$(( STATICFILESCOUNT + NUMBEROFIMAGESCOUNT * 2 ))
-
-if [ "$(find ./openwrt/bin/* -maxdepth 4 -regex ".*AREDN-.*\.bin" | wc -l)" -eq  "$EXPECTEDFILESCOUNT" ]
+case $AREDNSUBTARGET in
+	mikrotik)
+		EXPECTEDFILESCOUNT=$MIKROTIK_COUNT
+		;;
+	generic)
+		EXPECTEDFILESCOUNT=$GENERIC_COUNT
+		;;
+	*)
+		EXPECTEDFILESCOUNT=0
+		;;
+esac
+		
+if [ "$(find ./openwrt/bin/* -maxdepth 4 -name "AREDN*" | wc -l)" -eq  "$EXPECTEDFILESCOUNT" ]
 then
         juLog -name="AREDN_image_files_exist" true
 else

@@ -1012,6 +1012,15 @@ sub hardware_info
              'rfband'          => '5800ubntus',
              'chanpower'       => { 140 => '17', 184 => '26' },
 	},
+        'Mikrotik RouterBOARD 912UAG-5HPnD' => {
+            'name'            => 'Mikrotik RouterBOARD 912UAG-5HPnD',
+            'comment'         => 'Mikrotik RouterBOARD 912UAG-5HPnD in Testing',
+            'supported'       => '-1',
+            'maxpower'        => '30',
+            'pwroffset'       => '0',
+            'usechains'       => 1,
+            'rfband'          => '5800ubntus',
+         },
         '0xc2a2' => {
             'name'            => 'Bullet 2 HP',
             'comment'         => 'Not enough Ram or flash',

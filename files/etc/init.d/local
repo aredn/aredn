@@ -4,7 +4,6 @@
 START=99
 boot() {
 
-  # Deal with lan and wifi having same mac address (common on TP-Link)
   if [ ! -f /etc/aredn_include/ethmacfixup ]
   then
     mkdir -p /etc/aredn_include
@@ -13,32 +12,29 @@ boot() {
     local wifiintf="wlan0"
     local lanmac=`ifconfig $lanintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
     local wifimac=`ifconfig $wifiintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
+    local lanmacdigit=`printf "%X" $(((0x${lanmac:15} + 1) % 256))`
+    local lanmacplusone=${lanmac:0:15}$lanmacdigit
 
-    if [ "$lanmac" = "$wifimac" ]
+    # Deal with lan and wifi having same mac address (common on TP-Link)
+    # Deal with lan mac + 1 = wifi mac address (common on Microtik and
+    # breaks OLSR if using derived IP addresses)
+    if [ "$lanmac" = "$wifimac" -o "$lanmacplusone" = "$wifimac" ]
     then
-       local wifimacdigit=`echo $wifimac | awk 'BEGIN { FS = ":" } ;{print $4}'`
-       local newmac="00:00:00:00:00:00"
-       if [ "$wifimacdigit" = "FF" ]
-       then
-         newmac=`echo "$wifimac" | awk 'BEGIN { FS = ":" } ;{print $1":"$2":"$3":00:"$5":"$6}'`
-       else
-         local wifimacdigitplusone
-         wifimacdigitplusone=`printf "%02X\n" $((0x$wifimacdigit + 1))`
-         newmac=`echo "$wifimac:$wifimacdigitplusone" | awk 'BEGIN { FS = ":" } ;{print $1":"$2":"$3":"$7":"$5":"$6}'`
-       fi
-        lanintf=${lanintf%%.*}
-        echo "" > /etc/aredn_include/ethmacfixup
-        echo "config interface 'setethmac'" >> /etc/aredn_include/ethmacfixup
-        echo -e "\toption\tifname\t'$lanintf'" >> /etc/aredn_include/ethmacfixup
-        echo -e "\toption\tproto\t'none'" >> /etc/aredn_include/ethmacfixup
-        echo -e "\toption\tmacaddr\t$newmac" >> /etc/aredn_include/ethmacfixup
-        uci set "network.setethmac=interface"
-        uci set "network.setethmac.ifname=$lanintf"
-        uci set "network.setethmac.proto=none"
-        uci set "network.setethmac.macaddr=$newmac"
- 	uci commit
-       /etc/init.d/network reload
-       /etc/init.d/network restart
+      local wifimacdigit=`printf "%X" $(((0x${wifimac:9:2} + 1) % 256))`
+      local newmac=${wifimac:0:9}${wifimacdigit}${wifimac:11}
+      lanintf=${lanintf%%.*}
+      echo "" > /etc/aredn_include/ethmacfixup
+      echo "config interface 'setethmac'" >> /etc/aredn_include/ethmacfixup
+      echo -e "\toption\tifname\t'$lanintf'" >> /etc/aredn_include/ethmacfixup
+      echo -e "\toption\tproto\t'none'" >> /etc/aredn_include/ethmacfixup
+      echo -e "\toption\tmacaddr\t$newmac" >> /etc/aredn_include/ethmacfixup
+      uci set "network.setethmac=interface"
+      uci set "network.setethmac.ifname=$lanintf"
+      uci set "network.setethmac.proto=none"
+      uci set "network.setethmac.macaddr=$newmac"
+      uci commit
+      /etc/init.d/network reload
+      /etc/init.d/network restart
     fi
   fi
 

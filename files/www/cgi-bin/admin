@@ -258,12 +258,23 @@ if($fw_install and -f "$tmpdir/firmware")
     print "</center><br>\n";
     unless($debug)
     {
-        if ( $parms{checkbox_keep_settings} )
-        {
-            # drop the page cache to take pressure of tmps for the upgrade process
-            `echo 3 > /proc/sys/vm/drop_caches`;        
-            `/usr/local/bin/upgrade_kill_prep`;
+        # drop the page cache to take pressure of tmps for the upgrade process
+        `echo 3 > /proc/sys/vm/drop_caches`;        
+        `/usr/local/bin/upgrade_kill_prep`;
 
+        if ( $parms{checkbox_keep_settings} )
+	{
+            print "
+<center><h2>Firmware will be written in the background.</h2>
+<h3>If your computer is connected to the LAN of this node you may need to acquire<br>
+a new IP address and reset any name service caches you may be using.</h3>
+<h3>The node will reboot twice while the configuration is applied<br>
+When the node has finished booting you should ensure your computer has<br>
+received a new IP address and reconnect with<br>
+<a href='http://$node.local.mesh:8080/'>http://$node.local.mesh:8080/</a><br>
+(This page will automatically reload in 3 minutes)</h3>
+</center></body></html>
+";
             open (my $SYSUPGRADECONF, "/etc/arednsysupgrade.conf") or die "Failed to open arednsysupgrade.conf";
             open (my $TMPSYSUPGRADECONF, '>', "/tmp/sysupgradefilelist") or die "Failed to open TMPSYSUPGRADECONF";
             while (<$SYSUPGRADECONF>){
@@ -284,54 +295,36 @@ if($fw_install and -f "$tmpdir/firmware")
 <h3>An error occured trying to backup the file system. Node will now reboot.
 </center>
 ";
-            page_footer();
-            print "</body></html>";
-            nvram_set("nodeupgraded","0");
-            system "/sbin/reboot";
-            exit 1;
+                page_footer();
+                print "</body></html>";
+                nvram_set("nodeupgraded","0");
+                system "/sbin/reboot";
+                exit 1;
             }
 
             system("rm -f /tmp/sysupgradefilelist");
-
-            print "
-<center><h2>Firmware will be written in the background.</h2>
-<h3>If you are connected to the LAN of this node you may need to acquire a new<br>
-DHCP lease and reset any name service caches you may be using.</h3>
-<h3>The node will reboot twice while the configuration is applied<br>
-When the node has finished booting you can get your new DHCP lease and reconnect with<br>
-<a href='http://$node.local.mesh:8080/'>http://$node.local.mesh:8080/</a><br>
-(This page will automatically reload in 3 minutes)</h3>
-</center></body></html>
-";
-            
-            #open(FILE, "/sbin/sysupgrade -f /tmp/arednsysupgradebackup.tgz -q $tmpdir/firmware 2>&1 |") or die;
-            # Fork this into the background so uhttpd can finish and send the rest of the page to the client
             `/usr/local/bin/spawn_sysupgrade $tmpdir/firmware 2>&1 &`;
-            `sleep 2 && killall uhttpd &`;            
-            exit;
         } 
         else 
         {
-            print "Writing firmware<br><br>\n";
-            open(FILE, "/sbin/mtd write $tmpdir/firmware firmware 2>&1 |") or die;
-            while(read FILE, $junk, 7) { print "|" }
             print "
-<center><h2>The node is rebooting</h2>
-<h3>If you are connected to the LAN of this node you may need to acquire a new<br>
-DHCP lease and reset any name service caches you may be using.</h3>
-<h3> When the node has fully rebooted you can get your new DHCP lease and reconnect with<br>
-<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>
+<center><h2>Firmware will be written in the background.</h2>
+<h3>If your computer is connected to the LAN of this node you may need to acquire<br>
+a new IP address and reset any name service caches you may be using.</h3>
+<h3>The node will reboot after the firmware has been written to flash memory<br>
+When the node has finished booting you should ensure your computer has<br>
+received a new IP address and reconnect with<br>
+<a href='http://localnode.local.mesh:8080/'>http://192.168.1.1:8080/</a><br>
+and continue setup of the node in firstboot state.<br>
 (This page will automatically reload in 3 minutes)</h3>
-</center>
+</center></body></html>
 ";
-         page_footer();
-         print "</body></html>";
-         system "/sbin/reboot" unless $debug;
-         exit;
+            `/sbin/sysupgrade -n $tmpdir/firmware 2>&1 &`;
         }
+        `killall uhttpd &`;            
+        exit;
     }
 }
-
 
 # install patch
 if($patch_install and -f "$tmpdir/firmware")

@@ -35,7 +35,11 @@ To obtain the source and build the firmware locally use:
 git clone https://github.com/aredn/aredn_ar71xx.git
 cd aredn_ar71xx
 vi config.mk # enter your callsign, etc.
-make
+# build default ubnt and tplink images
+make  
+# copy the firmware image files to save elsewhere, will be cleaned next step
+# build mikrotik images
+make SUBTARGET=mikrotik
 ```
 
 Building the images may take minutes or hours depending on the machine.
