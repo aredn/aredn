@@ -7,6 +7,18 @@ http://www.aredn.org
 The AREDN firmware is based on OpenWrt with additional packages and patches.
 A Makefile automates the entire process to create firmware images.
 
+### What to know about the images built with the instructions below
+
+The default git branch builds images with the following:
+
+* includes history from AREDN nightly build 176
+* olsrd upgrade from 0.6.7 to 0.9.6.2
+* ported on top of OpenWrt 18.06 branch
+* added Mikrotik basebox 5
+* added tp-link cp210 v2.0
+* focus has been on 64M RAM devices, 32M devices are currently unstable in this branch
+* compatible with all prior AREDN and BBHN 3.1.0 networks (called version 3)
+
 ### Build Prerequisites
 
 Please take a look at the [OpenWrt documentation](https://openwrt.org/docs/guide-developer/install-buildsystem)
@@ -51,6 +63,23 @@ An internet connection is required during the build process. A good internet
 connection can improve the build time.
 
 You need approximately 10GB of space for the build.
+
+### How to build prior builds of AREDN
+
+Prior AREDN images can be rebuilt.  Insert one of the following after
+the "cd aredn_ar71xx" command above:
+
+AREDN Nightly Build #176
+
+```
+git checkout 91ee867
+```
+
+Return to most current changes
+
+```
+git checkout develop
+```
 
 ### Directory Layout
 
