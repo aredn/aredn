@@ -19,9 +19,42 @@ The default git branch builds images with the following:
 * focus has been on 64M RAM devices, 32M devices are currently unstable in this branch
 * compatible with all prior AREDN and BBHN 3.1.0 networks (called version 3)
 
+### Images built
+
+Device | Image to Use | RAM | Stability
+------ | ------------ | --- | ---------
+AirGrid XM | bullet-m | 32Mb | unstable
+AirGrid XW | loco-m-xw | 32Mb | unstable
+AirRouter  | airrouter | 32Mb | unstable
+AirRouter HP | airrouter | 32Mb | unstable
+Bullet M2/M2Ti/M5/M5Ti | bullet-m | 32Mb | unstable
+Bullet Ti | bullet-m | 32Mb | unstable
+NBE-M2-13/16/19 | loco-m-xw | 32Mb | unstable
+NanoBridge 2G18 | loco-m | 32Mb | unstable
+NanoBridge 5G22/25 | loco-m | 32Mb | unstable
+NanoBridge M9 | loco-m | 32Mb | unstable
+NanoStation Loco M2/M5/M9 XM | loco-m | 32Mb | unstable
+NanoStation Loco M2/M5 XW | loco-m-xw | 64Mb | testing-stable?
+NanoStation  M2/M3/M5 XM | nano-m | 32Mb | unstable
+NanoStation  M2/M5 XW | nano-m-xw | 64Mb | testing-stable?
+PicoStation M2 | bullet-m | 32Mb | unstable
+PBE-M2-400 | loco-m-xw | 64Mb | testing-stable?
+PBE-M5-300 | loco-m-xw | 64Mb | testing-stable?
+PBE-M5-400/400ISO/620 | rocket-m-xw | 64Mb | testing-stable?
+Rocket M9/M2/M3/M5/M5GPS XM | rocket-m | 64Mb | testing-stable?
+Rocket M2/M5 XW | rocket-m-xw | 64Mb | testing-stable?
+Rocket M2 TI | rocket-m-ti? | 64Mb | unknown
+Rocket M5 TI | rocket-m-ti | 64Mb | testing-stable?
+TPLink CPE210 v1.0/v1.1 | cpe210-220-v1 | 64Mb | testing-stable?
+TPLink CPE210 v2.0 | cpe210-v2 | 64Mb | testing-stable?
+TPLink CPE510 v1.0/v1.1 | cpe510-220-v1 | 64Mb | testing-stable?
+TPLink CPE510 v2.0 | cpe510-v2 | 64Mb | testing-stable?
+Mikrotik BaseBox 5 | mikrotik-nand-large | 64Mb | testing-stable?
+
+
 ### Build Prerequisites
 
-Please take a look at the [OpenWrt documentation](https://openwrt.org/docs/guide-developer/install-buildsystem)
+Please take a look at the [OpenWrt documentation](https://openwrt.org/docs/guide-developer/build-system/install-buildsystem)
 for a complete and up to date list of packages for your operating system. 
 
 On Ubuntu/Debian:
