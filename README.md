@@ -1,6 +1,6 @@
 # Amateur Radio Emergency Data Network AREDN(tm) Firmware
 
-http://www.aredn.org
+http://www.arednmesh.org
 
 ## Build Information
 
