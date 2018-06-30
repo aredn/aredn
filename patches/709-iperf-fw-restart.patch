@@ -1,0 +1,46 @@
+--- a/package/network/utils/iperf/Makefile
++++ b/package/network/utils/iperf/Makefile
+@@ -9,7 +9,7 @@
+ 
+ PKG_NAME:=iperf
+ PKG_VERSION:=2.0.10
+-PKG_RELEASE:=1
++PKG_RELEASE:=1AREDN
+ 
+ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+ PKG_HASH:=7fe4348dcca313b74e0aa9c34a8ccd713b84a5615b8578f4aa94cedce9891ef2
+@@ -46,6 +46,18 @@
+ define Package/iperf/install
+ 	$(INSTALL_DIR) $(1)/usr/bin
+ 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/iperf $(1)/usr/bin/iperf
++	$(INSTALL_DIR) $(1)/etc/local/mesh-firewall
++	$(INSTALL_BIN) ./files/iperf.firewall $(1)/etc/local/mesh-firewall/20-iperf2
++endef
++
++define Package/iperf/postinst
++#!/bin/sh
++# check if we are on real system
++if [ -z "$${IPKG_INSTROOT}" ]; then
++        echo "Restarting Firewall"
++        /etc/init.d/firewall restart
++fi
++exit 0
+ endef
+ 
+ $(eval $(call BuildPackage,iperf))
+--- /dev/null
++++ b/package/network/utils/iperf/files/iperf.firewall
+@@ -0,0 +1,13 @@
++#!/bin/sh
++
++
++iptables -I zone_wifi_input -p udp -m udp --dport 5001 -j ACCEPT
++iptables -I zone_wifi_input -p tcp -m tcp --dport 5001 -j ACCEPT
++iptables -I zone_dtdlink_input -p udp -m udp --dport 5001 -j ACCEPT
++iptables -I zone_dtdlink_input -p tcp -m tcp --dport 5001 -j ACCEPT
++
++if [ "$MESHFW_TUNNELS_ENABLED" == "1" ]; then
++	 iptables -I zone_vpn_input -p udp -m udp --dport 5001 -j ACCEPT
++	 iptables -I zone_vpn_input -p tcp -m tcp --dport 5001 -j ACCEPT
++fi
++
