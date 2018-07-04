@@ -25,7 +25,7 @@
   If importing this code into a new or existing project attribution
   to the AREDN project must be added to the source code.
 
-  You must not misrepresent the origin of the material conained within.
+  You must not misrepresent the origin of the material contained within.
 
   Modified versions must be modified to attribute to the original source
   and be marked in reasonable ways as differentiate it from the original
@@ -33,13 +33,37 @@
 
 LICENSE
 
-. "$SCRIPTBASE/sh2ju.sh"
+if [ "${OSTYPE#*darwin}" != "$OSTYPE" ]
+then
+    SCRIPTBASE=$(dirname "$0")
+    export SCRIPTBASE
+else
+    SCRIPTBASE=$(dirname "$(readlink -f "$0")")
+    export SCRIPTBASE
+fi
 
-rm "$BUILDROOTBASE/.config" 2> /dev/null
+if [ "$1" != "" ]
+then
+  AREDNFILESBASE=$1
+else
+  AREDNFILESBASE="$PWD/files"
+fi
 
-touch "$BUILDROOTBASE/.config"
+if [ ! -d "$AREDNFILESBASE" ]
+then
+  echo "ERROR: $AREDNFILESBASE doesn't exist"
+  exit 1;
+fi
 
-for file in "$SCRIPTBASE"/buildsteps/kconfig/*
+export AREDNFILESBASE
+
+
+for file in $SCRIPTBASE/tests/postbuild/*
 do
-  $file >> "$BUILDROOTBASE/.config"
+  if [ -x "$file" ]; then
+    $file
+  fi
 done
+
+# Make sure we return clean as to not stop the BuildBot
+exit 0

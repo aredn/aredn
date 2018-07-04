@@ -1,0 +1,22 @@
+--- a/package/base-files/image-config.in
++++ b/package/base-files/image-config.in
+@@ -170,7 +170,7 @@
+ 	config VERSION_REPO
+ 		string
+ 		prompt "Release repository"
+-		default "http://downloads.aredn.org/snapshots/trunk/%T/packages"
++		default "http://downloads.aredn.org/barrier_breaker/14.07/%S/packages"
+ 		help
+ 			This is the repository address embedded in the image, it defaults
+ 			to the trunk snapshot repo; the url may contain the following placeholders:
+--- a/include/version.mk
++++ b/include/version.mk
+@@ -27,7 +27,7 @@
+ VERSION_NICK:=$(if $(VERSION_NICK),$(VERSION_NICK),$(RELEASE))
+ 
+ VERSION_REPO:=$(call qstrip,$(CONFIG_VERSION_REPO))
+-VERSION_REPO:=$(if $(VERSION_REPO),$(VERSION_REPO),http://downloads.aredn.org/snapshots/trunk/%S/packages)
++VERSION_REPO:=$(if $(VERSION_REPO),$(VERSION_REPO),http://downloads.aredn.org/barrier_breaker/14.07/%S/packages)
+ 
+ VERSION_DIST:=$(call qstrip,$(CONFIG_VERSION_DIST))
+ VERSION_DIST:=$(if $(VERSION_DIST),$(VERSION_DIST),OpenWrt)

@@ -25,7 +25,7 @@
   If importing this code into a new or existing project attribution
   to the AREDN project must be added to the source code.
 
-  You must not misrepresent the origin of the material conained within.
+  You must not misrepresent the origin of the material contained within.
 
   Modified versions must be modified to attribute to the original source
   and be marked in reasonable ways as differentiate it from the original
@@ -33,9 +33,35 @@
 
 LICENSE
 
-# For now lets just return static entries
-cat << EOF
-CONFIG_TARGET_ar71xx=y
-CONFIG_TARGET_ar71xx_Default=y
-CONFIG_ARCH=mips
-EOF
+if [ "${OSTYPE#*darwin}" != "$OSTYPE" ]
+then
+    export SCRIPTBASE=$(dirname $0)
+else
+    export SCRIPTBASE=$(dirname "$(readlink -f "$0")")
+fi
+
+if [ "$1" != "" ]
+then
+  AREDNFILESBASE=$1
+else
+  AREDNFILESBASE="$PWD/files"
+fi
+
+if [ ! -d "$AREDNFILESBASE" ]
+then
+  echo "ERROR: $AREDNFILESBASE doesn't exist"
+  exit 1;
+fi
+
+export AREDNFILESBASE
+
+
+for file in $SCRIPTBASE/tests/prebuild/*
+do
+  if [ -x "$file" ]; then
+    $file
+  fi
+done
+
+# Make sure we return clean as to not stop the BuildBot
+exit 0
