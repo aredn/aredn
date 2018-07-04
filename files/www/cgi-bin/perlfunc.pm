@@ -1012,6 +1012,16 @@ sub hardware_info
              'rfband'          => '5800ubntus',
              'chanpower'       => { 140 => '17', 184 => '26' },
 	},
+         'TP-Link CPE510 v2.0' => {
+             'name'            => 'TP-Link CPE510 v2.0',
+             'comment'         => 'Testing support for CPE510 v2.0',
+             'supported'       => '-1',
+             'maxpower'        => '26',
+             'pwroffset'       => '0',
+             'usechains'       => 1,
+             'rfband'          => '5800ubntus',
+             'chanpower'       => { 140 => '17', 184 => '26' },
+	},
         'Mikrotik RouterBOARD 912UAG-2HPnD' => {
             'name'            => 'Mikrotik RouterBOARD 912UAG-2HPnD',
             'comment'         => 'Mikrotik RouterBOARD 912UAG-2HPnD in Testing',
