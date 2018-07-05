@@ -39,12 +39,17 @@
 $debug = 0;
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
+use ucifunc;
+
 # collect some variables
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 $tactical = nvram_get("tactical");
 $config = nvram_get("config");
 $config = "not set" if $config eq "" or not -d "/etc/config.mesh";
+
+($junk, $wifi_channel) = &uci_get_named_option("wireless", "radio0", "channel");
+($junk, $wifi_chanbw) = &uci_get_named_option("wireless", "radio0", "chanbw");
 
 read_postdata();
 
@@ -179,6 +184,12 @@ if($browser_ip)
     $str .= "<br><nobr>" .  mesh_ip2hostname($browser_ip) . "</nobr>";# if $ip =~ /^10\./;
     push @col1, $str . "</td>";
 }
+
+$str  = "<th align=right><nobr>Channel</nobr></th><td>$wifi_channel";
+push @col1, $str . "</td>";
+
+$str  = "<th align=right><nobr>Bandwidth</nobr></th><td>$wifi_chanbw Mhz";
+push @col1, $str . "</td>";
 
 
 # right column - system info

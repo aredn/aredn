@@ -65,6 +65,16 @@ sub uci_get_indexed_sectiontype()
     return ($rc, @res);
 }
 
+sub uci_get_named_option()
+{
+    my ($config,$sname,$option)=@_;
+    my $cmd=sprintf('uci get %s.%s.%s',$config,$sname,$option);
+    my @res=`$cmd`;
+    my $rc=$?;
+    chomp($res);
+    return ($rc, @res);
+}
+
 # Returns an array of section names 
 sub uci_get_names_by_sectiontype()
 {
