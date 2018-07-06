@@ -51,6 +51,19 @@ TPLink CPE510 v1.0/v1.1 | cpe510-220-v1 | 64Mb | testing-stable?
 TPLink CPE510 v2.0 | cpe510-v2 | 64Mb | testing-stable?
 Mikrotik BaseBox 2/5 | mikrotik-nand-large | 64Mb | testing-stable?
 
+### Building with Docker
+Installing the Docker environment on your windows/linux/mac machine is a pre-requisite. A docker 'container' has been pre-configured with an aredn linux build environment. Alternative instructions are below if you wish to setup your linux install with the compiler pre-requisites necessary to do the build.
+
+To build with docker:
+```
+docker pull arednmesh/builder
+docker run -it --name builder arednmesh/builder
+```
+
+To pull an image (or any other file) out of the docker container:
+```
+docker cp builder:/opt/aredn/aredn_ar71xx/firmware/targets/ar71xx/generic/<image>.bin <local directory>
+```
 
 ### Build Prerequisites
 
