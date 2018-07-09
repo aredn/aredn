@@ -26,10 +26,17 @@ jobs:
           name: Deploy Files
           command: scp -o StrictHostKeyChecking=no ~/${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:~/
       - run:
-          name: Process Files
+          name: Untar Files
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'tar -xjf ~/${ARTIFACTS_FILE} -C ~/'"
+      - run:
+          name: Remove tarball
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'rm ~/${ARTIFACTS_FILE}'"
-          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'rm -rf ~/${NIGHTLY_DIR}'"
-          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mkdir -p ${NIGHTLY_DIR}'"
+      - run:
+          name: Empty nightly dir
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'rm -rf ${NIGHTLY_DIR}'"
+      - run:
+          name: Move targets
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/targets ${NIGHTLY_DIR}'"
+      - run:
+          name: Move packages
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/packages ${NIGHTLY_DIR}'"
