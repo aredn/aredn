@@ -1,0 +1,35 @@
+version: 2
+jobs:
+  build:
+    branches:
+      only:
+        - develop
+    docker:
+      - image: arednmesh/builder
+    steps:
+      - checkout
+      - run:
+          name: Update Config.mk
+          command:  |
+            sed -i 's/NoCall/${CIRCLE_BRANCH}-${CIRCLE_BUILDNUM}/g' ${CONFIG_MK}
+            cat ${CONFIG_MK}
+            set
+      - run:
+          name: Build
+          command: make
+      - run:
+          name: Compress build files
+          command: tar -cjf ${HOME}/${ARTIFACTS_FILE} -C ${ARTIFACTS_DIR} .
+      - run:
+          name: Delete old snapshot files
+          command: echo "delete old files on ${SSH_HOST}:${NIGHTLY_DIR} (rm -rf ${NIGHTLY_DIR}"
+      - run:
+          name: Deploy Files
+          command: scp -o StrictHostKeyChecking=no ${ARTIFACTS_ARCHIVE}/${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:~/
+      - run:
+          name: Process Files
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'tar -xjf ~/${ARTIFACTS_FILE} -C ~/'"
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'rm ~/${ARTIFACTS_FILE}'"
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mkdir -p ${NIGHTLY_DIR}'"
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/targets ${NIGHTLY_DIR}'"
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/packages ${NIGHTLY_DIR}'"
