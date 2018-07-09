@@ -1,6 +1,7 @@
 version: 2
 jobs:
   build:
+    working_directory: /opt/aredn/aredn_ar71xx
     branches:
       only:
         - develop
@@ -25,7 +26,7 @@ jobs:
           command: echo "delete old files on ${SSH_HOST}:${NIGHTLY_DIR} (rm -rf ${NIGHTLY_DIR}"
       - run:
           name: Deploy Files
-          command: scp -o StrictHostKeyChecking=no ${ARTIFACTS_ARCHIVE}/${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:~/
+          command: scp -o StrictHostKeyChecking=no ${HOME}/${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:~/
       - run:
           name: Process Files
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'tar -xjf ~/${ARTIFACTS_FILE} -C ~/'"
