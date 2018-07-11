@@ -50,6 +50,13 @@ $config = "not set" if $config eq "" or not -d "/etc/config.mesh";
 
 ($junk, $wifi_channel) = &uci_get_named_option("wireless", "radio0", "channel");
 ($junk, $wifi_chanbw) = &uci_get_named_option("wireless", "radio0", "chanbw");
+$wifi_ssid = "N/A";
+@wisections = &uci_get_all_indexed_by_sectiontype("wireless", "wifi-iface");
+foreach(@wisections) {
+  if ($_->{network} eq "wifi") {
+    $wifi_ssid = $_->{ssid};
+  }
+}
 
 read_postdata();
 
@@ -184,6 +191,9 @@ if($browser_ip)
     $str .= "<br><nobr>" .  mesh_ip2hostname($browser_ip) . "</nobr>";# if $ip =~ /^10\./;
     push @col1, $str . "</td>";
 }
+
+$str  = "<th align=right><nobr>SSID</nobr></th><td>$wifi_ssid";
+push @col1, $str . "</td>";
 
 $str  = "<th align=right><nobr>Channel</nobr></th><td>$wifi_channel";
 push @col1, $str . "</td>";
