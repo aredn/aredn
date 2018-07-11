@@ -1,0 +1,3964 @@
+--- a/package/base-files/files/etc/rc.local
++++ b/package/base-files/files/etc/rc.local
+@@ -1,4 +1,5 @@
+ # Put your custom commands here that should be executed once
+ # the system init finished. By default this file does nothing.
+ 
++/etc/init.d/dnsmasq start
+ exit 0
+--- a/package/network/services/dnsmasq/Makefile
++++ b/package/network/services/dnsmasq/Makefile
+@@ -1,5 +1,5 @@
+ #
+-# Copyright (C) 2006-2013 OpenWrt.org
++# Copyright (C) 2006-2016 OpenWrt.org
+ #
+ # This is free software, licensed under the GNU General Public License v2.
+ # See /LICENSE for more information.
+@@ -8,20 +8,29 @@
+ include $(TOPDIR)/rules.mk
+ 
+ PKG_NAME:=dnsmasq
+-PKG_VERSION:=2.71
+-PKG_RELEASE:=4
++PKG_VERSION:=2.80test2
++PKG_RELEASE:=3
+ 
+-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+-PKG_SOURCE_URL:=http://thekelleys.org.uk/dnsmasq
+-PKG_MD5SUM:=15a68f7f6cc0119e843f67d2f79598f1
++PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
++PKG_SOURCE_URL:=http://thekelleys.org.uk/dnsmasq/test-releases
++PKG_HASH:=e731666094699afcbad947f89f7f8afbf92e5ddc3c915459d4936159d81116f0
+ 
+-PKG_LICENSE:=GPLv2
++PKG_LICENSE:=GPL-2.0
+ PKG_LICENSE_FILES:=COPYING
++PKG_CPE_ID:=cpe:/a:thekelleys:dnsmasq
+ 
+ PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)
+ 
+ PKG_INSTALL:=1
+ PKG_BUILD_PARALLEL:=1
++PKG_CONFIG_DEPENDS:= CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_dhcp \
++	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_dhcpv6 \
++	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_dnssec \
++	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_auth \
++	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_ipset \
++	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_conntrack \
++	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_noid \
++	CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_broken_rtc
+ 
+ include $(INCLUDE_DIR)/package.mk
+ 
+@@ -30,6 +39,8 @@ define Package/dnsmasq/Default
+   CATEGORY:=Base system
+   TITLE:=DNS and DHCP server
+   URL:=http://www.thekelleys.org.uk/dnsmasq/
++  DEPENDS:=+libubus
++  USERID:=dnsmasq=453:dnsmasq=453
+ endef
+ 
+ define Package/dnsmasq
+@@ -40,14 +51,16 @@ endef
+ define Package/dnsmasq-dhcpv6
+ $(call Package/dnsmasq/Default)
+   TITLE += (with DHCPv6 support)
+-  DEPENDS:=@IPV6 +kmod-ipv6
++  DEPENDS+=@IPV6
+   VARIANT:=dhcpv6
+ endef
+ 
+ define Package/dnsmasq-full
+ $(call Package/dnsmasq/Default)
+-  TITLE += (with DNSSEC, DHCPv6, Auth DNS, IPSET)
+-  DEPENDS:=@IPV6 +kmod-ipv6 +libnettle
++  TITLE += (with DNSSEC, DHCPv6, Auth DNS, IPset, Conntrack, NO_ID enabled by default)
++  DEPENDS+=+PACKAGE_dnsmasq_full_dnssec:libnettle \
++	+PACKAGE_dnsmasq_full_ipset:kmod-ipt-ipset \
++	+PACKAGE_dnsmasq_full_conntrack:libnetfilter-conntrack
+   VARIANT:=full
+ endef
+ 
+@@ -64,7 +77,8 @@ endef
+ define Package/dnsmasq-full/description
+ $(call Package/dnsmasq/description)
+ 
+-This is a variant with DHCPv6, DNSSEC, Authroitative DNS and IPSET support
++This is a fully configurable variant with DHCPv4, DHCPv6, DNSSEC, Authoritative DNS
++and IPset, Conntrack support & NO_ID enabled by default.
+ endef
+ 
+ define Package/dnsmasq/conffiles
+@@ -72,6 +86,36 @@ define Package/dnsmasq/conffiles
+ /etc/dnsmasq.conf
+ endef
+ 
++define Package/dnsmasq-full/config
++	if PACKAGE_dnsmasq-full
++	config PACKAGE_dnsmasq_full_dhcp
++		bool "Build with DHCP support."
++		default y
++	config PACKAGE_dnsmasq_full_dhcpv6
++		bool "Build with DHCPv6 support."
++		depends on IPV6 && PACKAGE_dnsmasq_full_dhcp
++		default y
++	config PACKAGE_dnsmasq_full_dnssec
++		bool "Build with DNSSEC support."
++		default y
++	config PACKAGE_dnsmasq_full_auth
++		bool "Build with the facility to act as an authoritative DNS server."
++		default y
++	config PACKAGE_dnsmasq_full_ipset
++		bool "Build with IPset support."
++		default y
++	config PACKAGE_dnsmasq_full_conntrack
++		bool "Build with Conntrack support."
++		default y
++	config PACKAGE_dnsmasq_full_noid
++		bool "Build with NO_ID. (hide *.bind pseudo domain)"
++		default y
++	config PACKAGE_dnsmasq_full_broken_rtc
++		bool "Build with HAVE_BROKEN_RTC."
++		default n
++	endif
++endef
++
+ Package/dnsmasq-dhcpv6/conffiles = $(Package/dnsmasq/conffiles)
+ Package/dnsmasq-full/conffiles = $(Package/dnsmasq/conffiles)
+ 
+@@ -85,15 +129,22 @@ ifeq ($(BUILD_VARIANT),nodhcpv6)
+ endif
+ 
+ ifeq ($(BUILD_VARIANT),full)
+-	COPTS += -DHAVE_DNSSEC
++	COPTS += $(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_dhcp),,-DNO_DHCP) \
++		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_dhcpv6),,-DNO_DHCP6) \
++		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_dnssec),-DHAVE_DNSSEC) \
++		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_auth),,-DNO_AUTH) \
++		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_ipset),,-DNO_IPSET) \
++		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_conntrack),-DHAVE_CONNTRACK,) \
++		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_noid),-DNO_ID,) \
++		$(if $(CONFIG_PACKAGE_dnsmasq_$(BUILD_VARIANT)_broken_rtc),-DHAVE_BROKEN_RTC)
+ 	COPTS += $(if $(CONFIG_LIBNETTLE_MINI),-DNO_GMP,)
+ else
+-	COPTS += -DNO_AUTH -DNO_IPSET
++	COPTS += -DNO_AUTH -DNO_IPSET -DNO_ID
+ endif
+ 
+ MAKE_FLAGS := \
+ 	$(TARGET_CONFIGURE_OPTS) \
+-	CFLAGS="$(TARGET_CFLAGS)" \
++	CFLAGS="$(TARGET_CFLAGS) $(TARGET_CPPFLAGS)" \
+ 	LDFLAGS="$(TARGET_LDFLAGS)" \
+ 	COPTS="$(COPTS)" \
+ 	PREFIX="/usr"
+@@ -105,17 +156,28 @@ define Package/dnsmasq/install
+ 	$(INSTALL_DATA) ./files/dhcp.conf $(1)/etc/config/dhcp
+ 	$(INSTALL_DATA) ./files/dnsmasq.conf $(1)/etc/dnsmasq.conf
+ 	$(INSTALL_DIR) $(1)/etc/init.d
+-	$(INSTALL_BIN) ./files/dnsmasq.init $(1)/etc/init.d/dnsmasq
+-	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
+-	$(INSTALL_DATA) ./files/dnsmasq.hotplug $(1)/etc/hotplug.d/iface/25-dnsmasq
++	$(INSTALL_BIN) ./files/dnsmasq.init.aredn $(1)/etc/init.d/dnsmasq
++	$(INSTALL_DIR) $(1)/etc/hotplug.d/dhcp
++	$(INSTALL_DIR) $(1)/etc/hotplug.d/neigh
++	$(INSTALL_DIR) $(1)/etc/hotplug.d/ntp
++	$(INSTALL_DIR) $(1)/etc/hotplug.d/tftp
++	$(INSTALL_DATA) ./files/dnsmasqsec.hotplug $(1)/etc/hotplug.d/ntp/25-dnsmasqsec
++	$(INSTALL_DIR) $(1)/usr/share/dnsmasq
++	$(INSTALL_DATA) ./files/rfc6761.conf $(1)/usr/share/dnsmasq/
++	$(INSTALL_DIR) $(1)/usr/lib/dnsmasq
++	$(INSTALL_BIN) ./files/dhcp-script.sh $(1)/usr/lib/dnsmasq/dhcp-script.sh
++	$(INSTALL_DIR) $(1)/usr/share/acl.d
++	$(INSTALL_DATA) ./files/dnsmasq_acl.json $(1)/usr/share/acl.d/
+ endef
+ 
+ Package/dnsmasq-dhcpv6/install = $(Package/dnsmasq/install)
+ 
+ define Package/dnsmasq-full/install
+ $(call Package/dnsmasq/install,$(1))
++ifneq ($(CONFIG_PACKAGE_dnsmasq_full_dnssec),)
+ 	$(INSTALL_DIR) $(1)/usr/share/dnsmasq
+ 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/trust-anchors.conf $(1)/usr/share/dnsmasq
++endif
+ endef
+ 
+ $(eval $(call BuildPackage,dnsmasq))
+--- a/package/network/services/dnsmasq/files/dnsmasq.hotplug
++++ /dev/null
+@@ -1,5 +0,0 @@
+-#!/bin/sh
+-
+-[ "$ACTION" = ifup ] || exit 0
+-
+-/etc/init.d/dnsmasq enabled && /etc/init.d/dnsmasq start
+--- /dev/null
++++ b/package/network/services/dnsmasq/files/dnsmasq.init.aredn
+@@ -0,0 +1,640 @@
++#!/bin/sh /etc/rc.common
++# Copyright (C) 2007-2012 OpenWrt.org
++
++START=60
++
++USE_PROCD=1
++PROG=/usr/sbin/dnsmasq
++
++DNS_SERVERS=""
++DOMAIN=""
++
++ADD_LOCAL_DOMAIN=1
++ADD_LOCAL_HOSTNAME=1
++
++CONFIGFILE="/var/etc/dnsmasq.conf"
++HOSTFILE="/tmp/hosts/dhcp"
++TRUSTANCHORSFILE="/usr/share/dnsmasq/trust-anchors.conf"
++TIMESTAMPFILE="/etc/dnsmasq.time"
++
++xappend() {
++	local value="$1"
++
++	echo "${value#--}" >> $CONFIGFILE
++}
++
++dhcp_calc() {
++	local ip="$1"
++	local res=0
++
++	while [ -n "$ip" ]; do
++		part="${ip%%.*}"
++		res="$(($res * 256))"
++		res="$(($res + $part))"
++		[ "${ip%.*}" != "$ip" ] && ip="${ip#*.}" || ip=
++	done
++	echo "$res"
++}
++
++dhcp_check() {
++	local ifname="$1"
++	local stamp="/var/run/dnsmasq.$ifname.dhcp"
++	local rv=0
++
++	[ -s "$stamp" ] && return $(cat "$stamp")
++
++	udhcpc -n -q -s /bin/true -t 1 -i "$ifname" >&- && rv=1 || rv=0
++
++	[ $rv -eq 1 ] && \
++		logger -t dnsmasq \
++			"found already running DHCP-server on interface '$ifname'" \
++			"refusing to start, use 'option force 1' to override"
++
++	echo $rv > "$stamp"
++	return $rv
++}
++
++log_once() {
++	pidof dnsmasq >/dev/null || \
++		logger -t dnsmasq "$@"
++}
++
++append_bool() {
++	local section="$1"
++	local option="$2"
++	local value="$3"
++	local _loctmp
++	config_get_bool _loctmp "$section" "$option" 0
++	[ $_loctmp -gt 0 ] && xappend "$value"
++}
++
++append_parm() {
++	local section="$1"
++	local option="$2"
++	local switch="$3"
++	local _loctmp
++	config_get _loctmp "$section" "$option"
++	[ -z "$_loctmp" ] && return 0
++	xappend "$switch=$_loctmp"
++}
++
++append_server() {
++	xappend "--server=$1"
++}
++
++append_address() {
++	xappend "--address=$1"
++}
++
++append_ipset() {
++	xappend "--ipset=$1"
++}
++
++append_interface() {
++	local ifname=$(uci_get_state network "$1" ifname "$1")
++	xappend "--interface=$ifname"
++}
++
++append_notinterface() {
++	local ifname=$(uci_get_state network "$1" ifname "$1")
++	xappend "--except-interface=$ifname"
++}
++
++append_addnhosts() {
++	xappend "--addn-hosts=$1"
++}
++
++append_bogusnxdomain() {
++	xappend "--bogus-nxdomain=$1"
++}
++
++append_pxe_service() {
++	xappend "--pxe-service=$1"
++}
++
++dnsmasq() {
++	local cfg="$1"
++	append_bool "$cfg" authoritative "--dhcp-authoritative"
++	append_bool "$cfg" nodaemon "--no-daemon"
++	append_bool "$cfg" domainneeded "--domain-needed"
++	append_bool "$cfg" filterwin2k "--filterwin2k"
++	append_bool "$cfg" nohosts "--no-hosts"
++	append_bool "$cfg" nonegcache "--no-negcache"
++	append_bool "$cfg" strictorder "--strict-order"
++	append_bool "$cfg" logqueries "--log-queries"
++	append_bool "$cfg" noresolv "--no-resolv"
++	append_bool "$cfg" localise_queries "--localise-queries"
++	append_bool "$cfg" readethers "--read-ethers"
++	append_bool "$cfg" dbus "--enable-dbus"
++	append_bool "$cfg" boguspriv "--bogus-priv"
++	append_bool "$cfg" expandhosts "--expand-hosts"
++	append_bool "$cfg" enable_tftp "--enable-tftp"
++	append_bool "$cfg" tftp_no_fail "--tftp-no-fail"
++	append_bool "$cfg" nonwildcard "--bind-interfaces"
++	append_bool "$cfg" fqdn "--dhcp-fqdn"
++	append_bool "$cfg" proxydnssec "--proxy-dnssec"
++	append_bool "$cfg" localservice "--local-service"
++	append_bool "$cfg" quietdhcp "--quiet-dhcp"
++
++	append_parm "$cfg" dhcpscript "--dhcp-script"
++	append_parm "$cfg" cachesize "--cache-size"
++	append_parm "$cfg" dnsforwardmax "--dns-forward-max"
++	append_parm "$cfg" port "--port"
++	append_parm "$cfg" ednspacket_max "--edns-packet-max"
++	append_parm "$cfg" dhcpleasemax "--dhcp-lease-max"
++	append_parm "$cfg" "queryport" "--query-port"
++	append_parm "$cfg" "domain" "--domain"
++	append_parm "$cfg" "local" "--server"
++	config_list_foreach "$cfg" "server" append_server
++	config_list_foreach "$cfg" "address" append_address
++	config_list_foreach "$cfg" "ipset" append_ipset
++	config_list_foreach "$cfg" "interface" append_interface
++	config_list_foreach "$cfg" "notinterface" append_notinterface
++	config_list_foreach "$cfg" "addnhosts" append_addnhosts
++	config_list_foreach "$cfg" "bogusnxdomain" append_bogusnxdomain
++	append_parm "$cfg" "leasefile" "--dhcp-leasefile"
++	append_parm "$cfg" "resolvfile" "--resolv-file"
++	append_parm "$cfg" "serversfile" "--servers-file"
++	append_parm "$cfg" "tftp_root" "--tftp-root"
++	append_parm "$cfg" "dhcp_boot" "--dhcp-boot"
++	append_parm "$cfg" "local_ttl" "--local-ttl"
++	append_parm "$cfg" "pxe_prompt" "--pxe-prompt"
++	config_list_foreach "$cfg" "pxe_service" append_pxe_service
++	config_get DOMAIN "$cfg" domain
++
++	config_get_bool ADD_LOCAL_DOMAIN "$cfg" add_local_domain 1
++	config_get_bool ADD_LOCAL_HOSTNAME "$cfg" add_local_hostname 1
++
++	config_get_bool readethers "$cfg" readethers
++	[ "$readethers" = "1" -a \! -e "/etc/ethers" ] && touch /etc/ethers
++
++	config_get leasefile $cfg leasefile
++	[ -n "$leasefile" -a \! -e "$leasefile" ] && touch "$leasefile"
++	config_get_bool cachelocal "$cfg" cachelocal 1
++
++	config_get hostsfile "$cfg" dhcphostsfile
++	[ -e "$hostsfile" ] && xappend "--dhcp-hostsfile=$hostsfile"
++
++	mkdir -p /tmp/hosts /tmp/dnsmasq.d
++	xappend "--addn-hosts=/tmp/hosts"
++	xappend "--conf-dir=/tmp/dnsmasq.d"
++
++	local rebind
++	config_get_bool rebind "$cfg" rebind_protection 1
++	[ $rebind -gt 0 ] && {
++		log_once \
++			"DNS rebinding protection is active," \
++			"will discard upstream RFC1918 responses!"
++		xappend "--stop-dns-rebind"
++
++		local rebind_localhost
++		config_get_bool rebind_localhost "$cfg" rebind_localhost 0
++		[ $rebind_localhost -gt 0 ] && {
++			log_once "Allowing 127.0.0.0/8 responses"
++			xappend "--rebind-localhost-ok"
++		}
++
++		append_rebind_domain() {
++			log_once "Allowing RFC1918 responses for domain $1"
++			xappend "--rebind-domain-ok=$1"
++		}
++
++		config_list_foreach "$cfg" rebind_domain append_rebind_domain
++	}
++
++	config_get_bool dnssec "$cfg" dnssec 0
++	[ "$dnssec" -gt 0 ] && {
++		xappend "--conf-file=$TRUSTANCHORSFILE"
++		xappend "--dnssec"
++		xappend "--dnssec-timestamp=$TIMESTAMPFILE"
++		append_bool "$cfg" dnsseccheckunsigned "--dnssec-check-unsigned"
++	}
++
++	dhcp_option_add "$cfg" "" 0
++
++	xappend "--dhcp-broadcast=tag:needs-broadcast"
++
++	echo >> $CONFIGFILE
++}
++
++dhcp_subscrid_add() {
++	local cfg="$1"
++
++	config_get networkid "$cfg" networkid
++	[ -n "$networkid" ] || return 0
++
++	config_get subscriberid "$cfg" subscriberid
++	[ -n "$subscriberid" ] || return 0
++
++	xappend "--dhcp-subscrid=$networkid,$subscriberid"
++
++	config_get_bool force "$cfg" force 0
++
++	dhcp_option_add "$cfg" "$networkid" "$force"
++}
++
++dhcp_remoteid_add() {
++	local cfg="$1"
++
++	config_get networkid "$cfg" networkid
++	[ -n "$networkid" ] || return 0
++
++	config_get remoteid "$cfg" remoteid
++	[ -n "$remoteid" ] || return 0
++
++	xappend "--dhcp-remoteid=$networkid,$remoteid"
++
++	config_get_bool force "$cfg" force 0
++
++	dhcp_option_add "$cfg" "$networkid" "$force"
++}
++
++dhcp_circuitid_add() {
++	local cfg="$1"
++
++	config_get networkid "$cfg" networkid
++	[ -n "$networkid" ] || return 0
++
++	config_get circuitid "$cfg" circuitid
++	[ -n "$circuitid" ] || return 0
++
++	xappend "--dhcp-circuitid=$networkid,$circuitid"
++
++	config_get_bool force "$cfg" force 0
++
++	dhcp_option_add "$cfg" "$networkid" "$force"
++}
++
++dhcp_userclass_add() {
++	local cfg="$1"
++
++	config_get networkid "$cfg" networkid
++	[ -n "$networkid" ] || return 0
++
++	config_get userclass "$cfg" userclass
++	[ -n "$userclass" ] || return 0
++
++	xappend "--dhcp-userclass=$networkid,$userclass"
++
++	config_get_bool force "$cfg" force 0
++
++	dhcp_option_add "$cfg" "$networkid" "$force"
++}
++
++dhcp_vendorclass_add() {
++	local cfg="$1"
++
++	config_get networkid "$cfg" networkid
++	[ -n "$networkid" ] || return 0
++
++	config_get vendorclass "$cfg" vendorclass
++	[ -n "$vendorclass" ] || return 0
++
++	xappend "--dhcp-vendorclass=$networkid,$vendorclass"
++
++	config_get_bool force "$cfg" force 0
++
++	dhcp_option_add "$cfg" "$networkid" "$force"
++}
++
++dhcp_host_add() {
++	local cfg="$1"
++
++	config_get_bool force "$cfg" force 0
++
++	config_get networkid "$cfg" networkid
++	[ -n "$networkid" ] && dhcp_option_add "$cfg" "$networkid" "$force"
++
++	config_get name "$cfg" name
++	config_get ip "$cfg" ip
++	[ -n "$ip" -o -n "$name" ] || return 0
++
++	config_get_bool dns "$cfg" dns 0
++	[ "$dns" = "1" -a -n "$ip" -a -n "$name" ] && {
++		echo "$ip $name${DOMAIN:+.$DOMAIN}" >> $HOSTFILE
++	}
++
++	config_get mac "$cfg" mac
++	if [ -n "$mac" ]; then
++		# --dhcp-host=00:20:e0:3b:13:af,192.168.0.199,lap
++		macs=""
++		for m in $mac; do append macs "$m" ","; done
++	else
++		# --dhcp-host=lap,192.168.0.199
++		[ -n "$name" ] || return 0
++		macs="$name"
++		name=""
++	fi
++
++	config_get tag "$cfg" tag
++
++	config_get_bool broadcast "$cfg" broadcast 0
++	[ "$broadcast" = "0" ] && broadcast=
++
++	xappend "--dhcp-host=$macs${networkid:+,net:$networkid}${broadcast:+,set:needs-broadcast}${tag:+,set:$tag}${ip:+,$ip}${name:+,$name}"
++}
++
++dhcp_tag_add() {
++	local cfg="$1"
++
++	tag="$cfg"
++
++	[ -n "$tag" ] || return 0
++
++	config_get_bool force "$cfg" force 0
++	[ "$force" = "0" ] && force=
++
++	config_get option "$cfg" dhcp_option
++	for o in $option; do
++		xappend "--dhcp-option${force:+-force}=tag:$tag,$o"
++	done
++}
++
++dhcp_mac_add() {
++	local cfg="$1"
++
++	config_get networkid "$cfg" networkid
++	[ -n "$networkid" ] || return 0
++
++	config_get mac "$cfg" mac
++	[ -n "$mac" ] || return 0
++
++	xappend "--dhcp-mac=$networkid,$mac"
++
++	dhcp_option_add "$cfg" "$networkid"
++}
++
++dhcp_boot_add() {
++	local cfg="$1"
++
++	config_get networkid "$cfg" networkid
++
++	config_get filename "$cfg" filename
++	[ -n "$filename" ] || return 0
++
++	config_get servername "$cfg" servername
++	config_get serveraddress "$cfg" serveraddress
++
++	[ -n "$serveraddress" -a ! -n "$servername" ] && return 0
++
++	xappend "--dhcp-boot=${networkid:+net:$networkid,}${filename}${servername:+,$servername}${serveraddress:+,$serveraddress}"
++
++	config_get_bool force "$cfg" force 0
++
++	dhcp_option_add "$cfg" "$networkid" "$force"
++}
++
++
++dhcp_add() {
++	local cfg="$1"
++	config_get net "$cfg" interface
++	[ -n "$net" ] || return 0
++
++	config_get dhcpv4 "$cfg" dhcpv4
++	[ "$dhcpv4" != "disabled" ] || return 0
++
++	config_get networkid "$cfg" networkid
++	[ -n "$networkid" ] || networkid="$net"
++
++	network_get_subnet subnet "$net" || return 0
++	network_get_device ifname "$net" || return 0
++	network_get_protocol proto "$net" || return 0
++
++	[ "$cachelocal" = "0" ] && network_get_dnsserver dnsserver "$net" && {
++		DNS_SERVERS="$DNS_SERVERS $dnsserver"
++	}
++
++	append_bool "$cfg" ignore "--no-dhcp-interface=$ifname" && return 0
++
++	# Do not support non-static interfaces for now
++	[ static = "$proto" ] || return 0
++
++	# Override interface netmask with dhcp config if applicable
++	config_get netmask "$cfg" netmask "${subnet##*/}"
++
++	#check for an already active dhcp server on the interface, unless 'force' is set
++	config_get_bool force "$cfg" force 0
++	[ $force -gt 0 ] || dhcp_check "$ifname" || return 0
++
++	config_get start "$cfg" start
++	config_get limit "$cfg" limit
++	config_get leasetime "$cfg" leasetime
++	config_get options "$cfg" options
++	config_get_bool dynamicdhcp "$cfg" dynamicdhcp 1
++
++	leasetime="${leasetime:-12h}"
++	start="$(dhcp_calc "${start:-100}")"
++	limit="${limit:-150}"
++	[ "$limit" -gt 0 ] && limit=$((limit-1))
++	eval "$(ipcalc.sh "${subnet%%/*}" $netmask $start $limit)"
++	if [ "$dynamicdhcp" = "0" ]; then END="static"; fi
++	xappend "--dhcp-range=$networkid,$START,$END,$NETMASK,$leasetime${options:+ $options}"
++
++	dhcp_option_add "$cfg" "$networkid"
++}
++
++dhcp_option_add() {
++	local cfg="$1"
++	local networkid="$2"
++	local force="$3"
++
++	[ "$force" = "0" ] && force=
++
++	config_get dhcp_option "$cfg" dhcp_option
++	for o in $dhcp_option; do
++		xappend "--dhcp-option${force:+-force}=${networkid:+$networkid,}$o"
++	done
++
++}
++
++dhcp_domain_add() {
++	local cfg="$1"
++	local ip name names record
++
++	config_get names "$cfg" name "$2"
++	[ -n "$names" ] || return 0
++
++	config_get ip "$cfg" ip "$3"
++	[ -n "$ip" ] || return 0
++
++	for name in $names; do
++		record="${record:+$record }$name"
++	done
++
++	echo "$ip $record" >> $HOSTFILE
++}
++
++dhcp_srv_add() {
++	local cfg="$1"
++
++	config_get srv "$cfg" srv
++	[ -n "$srv" ] || return 0
++
++	config_get target "$cfg" target
++	[ -n "$target" ] || return 0
++
++	config_get port "$cfg" port
++	[ -n "$port" ] || return 0
++
++	config_get class "$cfg" class
++	config_get weight "$cfg" weight
++
++	local service="$srv,$target,$port${class:+,$class${weight:+,$weight}}"
++
++	xappend "--srv-host=$service"
++}
++
++dhcp_mx_add() {
++	local cfg="$1"
++	local domain relay pref
++
++	config_get domain "$cfg" domain
++	[ -n "$domain" ] || return 0
++
++	config_get relay "$cfg" relay
++	[ -n "$relay" ] || return 0
++
++	config_get pref "$cfg" pref 0
++
++	local service="$domain,$relay,$pref"
++
++	xappend "--mx-host=$service"
++}
++
++dhcp_cname_add() {
++	local cfg="$1"
++	local cname target
++
++	config_get cname "$cfg" cname
++	[ -n "$cname" ] || return 0
++
++	config_get target "$cfg" target
++	[ -n "$target" ] || return 0
++
++	xappend "--cname=${cname},${target}"
++}
++
++dhcp_hostrecord_add() {
++	local cfg="$1"
++	local names addresses record val
++
++	config_get names "$cfg" name "$2"
++	if [ -z "$names" ]; then
++		return 0
++	fi
++
++	config_get addresses "$cfg" ip "$3"
++	if [ -z "$addresses" ]; then
++		return 0
++	fi
++
++	for val in $names $addresses; do
++		record="${record:+$record,}$val"
++	done
++
++	xappend "--host-record=$record"
++}
++
++service_triggers()
++{
++	procd_add_reload_trigger "dhcp"
++}
++
++boot() {
++	# Will be launched through hotplug
++	return 0
++}
++
++start_service() {
++	include /lib/functions
++
++	config_load dhcp
++
++	procd_open_instance
++	procd_set_param command $PROG -C $CONFIGFILE -k -x /var/run/dnsmasq/dnsmasq.pid
++	procd_set_param file $CONFIGFILE
++	procd_set_param respawn
++
++	procd_add_jail dnsmasq ubus log
++	procd_add_jail_mount $CONFIGFILE $TRUSTANCHORSFILE $HOSTFILE /etc/passwd /etc/group /etc/TZ /dev/null /dev/urandom /etc/dnsmasq.conf /tmp/dnsmasq.d /tmp/resolv.conf.auto /etc/hosts /etc/ethers
++	procd_add_jail_mount_rw /var/run/dnsmasq/ /tmp/dhcp.leases $TIMESTAMPFILE
++
++	procd_close_instance
++
++	# before we can call xappend
++	mkdir -p /var/run/dnsmasq/
++	mkdir -p $(dirname $CONFIGFILE)
++	mkdir -p /var/lib/misc
++	touch /tmp/dhcp.leases
++
++	if [ ! -f "$TIMESTAMPFILE" ]; then
++		touch "$TIMESTAMPFILE"
++		chown nobody.nogroup "$TIMESTAMPFILE"
++	fi
++
++	echo "# auto-generated config file from /etc/config/dhcp" > $CONFIGFILE
++	echo "# auto-generated config file from /etc/config/dhcp" > $HOSTFILE
++
++	# if we did this last, we could override auto-generated config
++	[ -f /etc/dnsmasq.conf ] && {
++		xappend "--conf-file=/etc/dnsmasq.conf"
++	}
++
++	args=""
++	config_foreach dnsmasq dnsmasq
++	config_foreach dhcp_host_add host
++	echo >> $CONFIGFILE
++	config_foreach dhcp_boot_add boot
++	config_foreach dhcp_mac_add mac
++	config_foreach dhcp_tag_add tag
++	config_foreach dhcp_vendorclass_add vendorclass
++	config_foreach dhcp_userclass_add userclass
++	config_foreach dhcp_circuitid_add circuitid
++	config_foreach dhcp_remoteid_add remoteid
++	config_foreach dhcp_subscrid_add subscrid
++	config_foreach dhcp_domain_add domain
++	config_foreach dhcp_hostrecord_add hostrecord
++
++	# add own hostname
++	local lanaddr
++	[ $ADD_LOCAL_HOSTNAME -eq 1 ] && network_get_ipaddr lanaddr "lan" && {
++		local hostname="$(uci_get system @system[0] hostname OpenWrt)"
++		dhcp_domain_add "" "$hostname" "$lanaddr"
++	}
++
++	echo >> $CONFIGFILE
++	config_foreach dhcp_srv_add srvhost
++	config_foreach dhcp_mx_add mxhost
++	echo >> $CONFIGFILE
++
++	config_get odhcpd_is_active odhcpd maindhcp
++	if [ "$odhcpd_is_active" != "1" ]; then
++		config_foreach dhcp_add dhcp
++	fi
++
++	echo >> $CONFIGFILE
++	config_foreach dhcp_cname_add cname
++	echo >> $CONFIGFILE
++
++	rm -f /tmp/resolv.conf
++	[ $ADD_LOCAL_DOMAIN -eq 1 ] && [ -n "$DOMAIN" ] && {
++		echo "search $DOMAIN" >> /tmp/resolv.conf
++	}
++	DNS_SERVERS="$DNS_SERVERS 127.0.0.1"
++	for DNS_SERVER in $DNS_SERVERS ; do
++		echo "nameserver $DNS_SERVER" >> /tmp/resolv.conf
++	done
++}
++
++reload_service() {
++	rc_procd start_service "$@"
++	return 0
++}
++
++stop_service() {
++	[ -f /tmp/resolv.conf ] && {
++		rm -f /tmp/resolv.conf
++		ln -s /tmp/resolv.conf.auto /tmp/resolv.conf
++	}
++	rm -f /var/run/dnsmasq.*.dhcp
++}
+--- /dev/null
++++ b/package/network/services/dnsmasq/files/rfc6761.conf
+@@ -0,0 +1,11 @@
++# RFC6761 included configuration file for dnsmasq
++#
++# includes a list of domains that should not be forwarded to Internet name servers
++# to reduce burden on them, asking questions that they won't know the answer to.
++
++server=/bind/
++server=/invalid/
++server=/local/
++server=/localhost/
++server=/onion/
++server=/test/
+--- /dev/null
++++ b/package/network/services/dnsmasq/files/dhcp-script.sh
+@@ -0,0 +1,46 @@
++#!/bin/sh
++
++[ -f "$USER_DHCPSCRIPT" ] && . "$USER_DHCPSCRIPT" "$@"
++
++case "$1" in
++	add)
++		export ACTION="add"
++		export MACADDR="$2"
++		export IPADDR="$3"
++		export HOSTNAME="$4"
++		exec /sbin/hotplug-call dhcp
++	;;
++	del)
++		export ACTION="remove"
++		export MACADDR="$2"
++		export IPADDR="$3"
++		export HOSTNAME="$4"
++		exec /sbin/hotplug-call dhcp
++	;;
++	old)
++		export ACTION="update"
++		export MACADDR="$2"
++		export IPADDR="$3"
++		export HOSTNAME="$4"
++		exec /sbin/hotplug-call dhcp
++	;;
++	arp-add)
++		export ACTION="add"
++		export MACADDR="$2"
++		export IPADDR="$3"
++		exec /sbin/hotplug-call neigh
++	;;
++	arp-del)
++		export ACTION="remove"
++		export MACADDR="$2"
++		export IPADDR="$3"
++		exec /sbin/hotplug-call neigh
++	;;
++	tftp)
++		export ACTION="add"
++		export TFTP_SIZE="$2"
++		export TFTP_ADDR="$3"
++		export TFTP_PATH="$4"
++		exec /sbin/hotplug-call tftp
++	;;
++esac
+--- a/package/network/services/dnsmasq/files/dnsmasq.init
++++ b/package/network/services/dnsmasq/files/dnsmasq.init
+@@ -1,25 +1,49 @@
+ #!/bin/sh /etc/rc.common
+ # Copyright (C) 2007-2012 OpenWrt.org
+ 
+-START=60
++START=19
+ 
+ USE_PROCD=1
+ PROG=/usr/sbin/dnsmasq
+ 
+-DNS_SERVERS=""
+-DOMAIN=""
+-
+ ADD_LOCAL_DOMAIN=1
+ ADD_LOCAL_HOSTNAME=1
++ADD_WAN_FQDN=0
++ADD_LOCAL_FQDN=""
+ 
+-CONFIGFILE="/var/etc/dnsmasq.conf"
+-HOSTFILE="/tmp/hosts/dhcp"
++BASECONFIGFILE="/var/etc/dnsmasq.conf"
++BASEHOSTFILE="/tmp/hosts/dhcp"
+ TRUSTANCHORSFILE="/usr/share/dnsmasq/trust-anchors.conf"
++TIMEVALIDFILE="/var/state/dnsmasqsec"
++BASEDHCPSTAMPFILE="/var/run/dnsmasq"
++RFC6761FILE="/usr/share/dnsmasq/rfc6761.conf"
++DHCPSCRIPT="/usr/lib/dnsmasq/dhcp-script.sh"
++
++DNSMASQ_DHCP_VER=4
+ 
+ xappend() {
+ 	local value="$1"
+ 
+-	echo "${value#--}" >> $CONFIGFILE
++	echo "${value#--}" >> $CONFIGFILE_TMP
++}
++
++hex_to_hostid() {
++	local var="$1"
++	local hex="${2#0x}" # strip optional "0x" prefix
++
++	if [ -n "${hex//[0-9a-fA-F]/}" ]; then
++		# is invalid hex literal
++		return 1
++	fi
++
++	# convert into host id
++	export "$var=$(
++		printf "%0x:%0x" \
++		$(((0x$hex >> 16) % 65536)) \
++		$(( 0x$hex        % 65536))
++		)"
++
++	return 0
+ }
+ 
+ dhcp_calc() {
+@@ -37,11 +61,17 @@ dhcp_calc() {
+ 
+ dhcp_check() {
+ 	local ifname="$1"
+-	local stamp="/var/run/dnsmasq.$ifname.dhcp"
++	local stamp="${BASEDHCPSTAMPFILE_CFG}.${ifname}.dhcp"
+ 	local rv=0
+ 
+ 	[ -s "$stamp" ] && return $(cat "$stamp")
+ 
++	# If there's no carrier yet, skip this interface.
++	# The init script will be called again once the link is up
++	case "$(devstatus "$ifname" | jsonfilter -e @.carrier)" in
++		false) return 1;;
++	esac
++
+ 	udhcpc -n -q -s /bin/true -t 1 -i "$ifname" >&- && rv=1 || rv=0
+ 
+ 	[ $rv -eq 1 ] && \
+@@ -58,12 +88,24 @@ log_once() {
+ 		logger -t dnsmasq "$@"
+ }
+ 
++has_handler() {
++	local file
++
++	for file in /etc/hotplug.d/dhcp/* /etc/hotplug.d/tftp/* /etc/hotplug.d/neigh/*; do
++		[ -f "$file" ] && return 0
++	done
++
++	return 1
++}
++
+ append_bool() {
+ 	local section="$1"
+ 	local option="$2"
+ 	local value="$3"
++	local default="$4"
+ 	local _loctmp
+-	config_get_bool _loctmp "$section" "$option" 0
++	[ -z "$default" ] && default="0"
++	config_get_bool _loctmp "$section" "$option" "$default"
+ 	[ $_loctmp -gt 0 ] && xappend "$value"
+ }
+ 
+@@ -71,8 +113,9 @@ append_parm() {
+ 	local section="$1"
+ 	local option="$2"
+ 	local switch="$3"
++	local default="$4"
+ 	local _loctmp
+-	config_get _loctmp "$section" "$option"
++	config_get _loctmp "$section" "$option" "$default"
+ 	[ -z "$_loctmp" ] && return 0
+ 	xappend "$switch=$_loctmp"
+ }
+@@ -81,17 +124,29 @@ append_server() {
+ 	xappend "--server=$1"
+ }
+ 
++append_rev_server() {
++        xappend "--rev-server=$1"
++}
++
+ append_address() {
+ 	xappend "--address=$1"
+ }
+ 
++append_ipset() {
++	xappend "--ipset=$1"
++}
++
+ append_interface() {
+-	local ifname=$(uci_get_state network "$1" ifname "$1")
++	network_get_device ifname "$1" || ifname="$1"
+ 	xappend "--interface=$ifname"
+ }
+ 
++append_listenaddress() {
++	xappend "--listen-address=$1"
++}
++
+ append_notinterface() {
+-	local ifname=$(uci_get_state network "$1" ifname "$1")
++	network_get_device ifname "$1" || ifname="$1"
+ 	xappend "--except-interface=$ifname"
+ }
+ 
+@@ -103,102 +158,22 @@ append_bogusnxdomain() {
+ 	xappend "--bogus-nxdomain=$1"
+ }
+ 
+-dnsmasq() {
+-	local cfg="$1"
+-	append_bool "$cfg" authoritative "--dhcp-authoritative"
+-	append_bool "$cfg" nodaemon "--no-daemon"
+-	append_bool "$cfg" domainneeded "--domain-needed"
+-	append_bool "$cfg" filterwin2k "--filterwin2k"
+-	append_bool "$cfg" nohosts "--no-hosts"
+-	append_bool "$cfg" nonegcache "--no-negcache"
+-	append_bool "$cfg" strictorder "--strict-order"
+-	append_bool "$cfg" logqueries "--log-queries"
+-	append_bool "$cfg" noresolv "--no-resolv"
+-	append_bool "$cfg" localise_queries "--localise-queries"
+-	append_bool "$cfg" readethers "--read-ethers"
+-	append_bool "$cfg" dbus "--enable-dbus"
+-	append_bool "$cfg" boguspriv "--bogus-priv"
+-	append_bool "$cfg" expandhosts "--expand-hosts"
+-	append_bool "$cfg" enable_tftp "--enable-tftp"
+-	append_bool "$cfg" nonwildcard "--bind-interfaces"
+-	append_bool "$cfg" fqdn "--dhcp-fqdn"
+-	append_bool "$cfg" proxydnssec "--proxy-dnssec"
+-
+-	append_parm "$cfg" dhcpscript "--dhcp-script"
+-	append_parm "$cfg" cachesize "--cache-size"
+-	append_parm "$cfg" dnsforwardmax "--dns-forward-max"
+-	append_parm "$cfg" port "--port"
+-	append_parm "$cfg" ednspacket_max "--edns-packet-max"
+-	append_parm "$cfg" dhcpleasemax "--dhcp-lease-max"
+-	append_parm "$cfg" "queryport" "--query-port"
+-	append_parm "$cfg" "domain" "--domain"
+-	append_parm "$cfg" "local" "--server"
+-	config_list_foreach "$cfg" "server" append_server
+-	config_list_foreach "$cfg" "address" append_address
+-	config_list_foreach "$cfg" "interface" append_interface
+-	config_list_foreach "$cfg" "notinterface" append_notinterface
+-	config_list_foreach "$cfg" "addnhosts" append_addnhosts
+-	config_list_foreach "$cfg" "bogusnxdomain" append_bogusnxdomain
+-	append_parm "$cfg" "leasefile" "--dhcp-leasefile"
+-	append_parm "$cfg" "resolvfile" "--resolv-file"
+-	append_parm "$cfg" "tftp_root" "--tftp-root"
+-	append_parm "$cfg" "dhcp_boot" "--dhcp-boot"
+-	append_parm "$cfg" "local_ttl" "--local-ttl"
+-
+-	config_get DOMAIN "$cfg" domain
+-
+-	config_get_bool ADD_LOCAL_DOMAIN "$cfg" add_local_domain 1
+-	config_get_bool ADD_LOCAL_HOSTNAME "$cfg" add_local_hostname 1
+-
+-	config_get_bool readethers "$cfg" readethers
+-	[ "$readethers" = "1" -a \! -e "/etc/ethers" ] && touch /etc/ethers
+-
+-	config_get leasefile $cfg leasefile
+-	[ -n "$leasefile" -a \! -e "$leasefile" ] && touch "$leasefile"
+-	config_get_bool cachelocal "$cfg" cachelocal 1
+-
+-	config_get hostsfile "$cfg" dhcphostsfile
+-	[ -e "$hostsfile" ] && xappend "--dhcp-hostsfile=$hostsfile"
+-
+-	mkdir -p /tmp/hosts /tmp/dnsmasq.d
+-	xappend "--addn-hosts=/tmp/hosts"
+-	xappend "--conf-dir=/tmp/dnsmasq.d"
+-
+-	local rebind
+-	config_get_bool rebind "$cfg" rebind_protection 1
+-	[ $rebind -gt 0 ] && {
+-		log_once \
+-			"DNS rebinding protection is active," \
+-			"will discard upstream RFC1918 responses!"
+-		xappend "--stop-dns-rebind"
+-
+-		local rebind_localhost
+-		config_get_bool rebind_localhost "$cfg" rebind_localhost 0
+-		[ $rebind_localhost -gt 0 ] && {
+-			log_once "Allowing 127.0.0.0/8 responses"
+-			xappend "--rebind-localhost-ok"
+-		}
+-
+-		append_rebind_domain() {
+-			log_once "Allowing RFC1918 responses for domain $1"
+-			xappend "--rebind-domain-ok=$1"
+-		}
+-
+-		config_list_foreach "$cfg" rebind_domain append_rebind_domain
+-	}
+-
+-	config_get_bool dnssec "$cfg" dnssec 0
+-	[ "$dnssec" -gt 0 ] && {
+-		xappend "--conf-file=$TRUSTANCHORSFILE"
+-		xappend "--dnssec"
+-		append_bool "$cfg" dnsseccheckunsigned "--dnssec-check-unsigned"
+-	}
++append_pxe_service() {
++	xappend "--pxe-service=$1"
++}
+ 
+-	dhcp_option_add "$cfg" "" 0
++append_interface_name() {
++	xappend "--interface-name=$1,$2"
++}
+ 
+-	xappend "--dhcp-broadcast=tag:needs-broadcast"
++filter_dnsmasq() {
++	local cfg="$1" func="$2" match_cfg="$3" found_cfg
+ 
+-	echo >> $CONFIGFILE
++	# use entry when no instance entry set, or if it matches
++	config_get found_cfg "$cfg" "instance"
++	if [ -z "$found_cfg" -o "$found_cfg" = "$match_cfg" ]; then
++		$func $cfg
++	fi
+ }
+ 
+ dhcp_subscrid_add() {
+@@ -234,6 +209,7 @@ dhcp_remoteid_add() {
+ }
+ 
+ dhcp_circuitid_add() {
++	# TODO: DHCPV6 does not have circuitid; catch "option6:"
+ 	local cfg="$1"
+ 
+ 	config_get networkid "$cfg" networkid
+@@ -266,6 +242,7 @@ dhcp_userclass_add() {
+ }
+ 
+ dhcp_vendorclass_add() {
++	# TODO: DHCPV6 vendor class has stricter definitions; catch? fixup?
+ 	local cfg="$1"
+ 
+ 	config_get networkid "$cfg" networkid
+@@ -281,44 +258,143 @@ dhcp_vendorclass_add() {
+ 	dhcp_option_add "$cfg" "$networkid" "$force"
+ }
+ 
++dhcp_match_add() {
++	local cfg="$1"
++
++	config_get networkid "$cfg" networkid
++	[ -n "$networkid" ] || return 0
++
++	config_get match "$cfg" match
++	[ -n "$match" ] || return 0
++
++	xappend "--dhcp-match=$networkid,$match"
++
++	config_get_bool force "$cfg" force 0
++
++	dhcp_option_add "$cfg" "$networkid" "$force"
++}
++
+ dhcp_host_add() {
+ 	local cfg="$1"
++	local hosttag nametime addrs duids macs tags
+ 
+ 	config_get_bool force "$cfg" force 0
+ 
+ 	config_get networkid "$cfg" networkid
+ 	[ -n "$networkid" ] && dhcp_option_add "$cfg" "$networkid" "$force"
+ 
++	config_get_bool enable "$cfg" enable 1
++	[ "$enable" = "0" ] && return 0
++
+ 	config_get name "$cfg" name
+ 	config_get ip "$cfg" ip
+-	[ -n "$ip" -o -n "$name" ] || return 0
++	config_get hostid "$cfg" hostid
++
++	[ -n "$ip" -o -n "$name" -o -n "$hostid" ] || return 0
+ 
+ 	config_get_bool dns "$cfg" dns 0
+ 	[ "$dns" = "1" -a -n "$ip" -a -n "$name" ] && {
+-		echo "$ip $name${DOMAIN:+.$DOMAIN}" >> $HOSTFILE
++		echo "$ip $name${DOMAIN:+.$DOMAIN}" >> $HOSTFILE_TMP
+ 	}
+ 
+ 	config_get mac "$cfg" mac
++	config_get duid "$cfg" duid
++	config_get tag "$cfg" tag
++
+ 	if [ -n "$mac" ]; then
+ 		# --dhcp-host=00:20:e0:3b:13:af,192.168.0.199,lap
+-		macs=""
++		# many MAC are possible to track a laptop ON/OFF dock
+ 		for m in $mac; do append macs "$m" ","; done
+-	else
+-		# --dhcp-host=lap,192.168.0.199
++	fi
++
++	if [ $DNSMASQ_DHCP_VER -eq 6 -a -n "$duid" ]; then
++		# --dhcp-host=id:00:03:00:01:12:00:00:01:02:03,[::beef],lap
++		# one (virtual) machine gets one DUID per RFC3315
++		duids="id:${duid// */}"
++	fi
++
++	if [ -z "$macs" -a -z "$duids" ]; then
++		# --dhcp-host=lap,192.168.0.199,[::beef]
+ 		[ -n "$name" ] || return 0
+ 		macs="$name"
+ 		name=""
+ 	fi
+ 
+-	config_get tag "$cfg" tag
++	if [ -n "$hostid" ]; then
++		hex_to_hostid hostid "$hostid"
++	fi
++
++	if [ -n "$tag" ]; then
++		for t in $tag; do append tags "$t" ",set:"; done
++	fi
+ 
+ 	config_get_bool broadcast "$cfg" broadcast 0
+-	[ "$broadcast" = "0" ] && broadcast=
++	config_get leasetime "$cfg" leasetime
++
++	[ "$broadcast" = "0" ] && broadcast= || broadcast=",set:needs-broadcast"
++
++	hosttag="${networkid:+,set:${networkid}}${tags:+,set:${tags}}$broadcast"
++	nametime="${name:+,$name}${leasetime:+,$leasetime}"
++
++	if [ $DNSMASQ_DHCP_VER -eq 6 ]; then
++		addrs="${ip:+,$ip}${hostid:+,[::$hostid]}"
++		xappend "--dhcp-host=$macs${duids:+,$duids}$hosttag$addrs$nametime"
++	else
++		xappend "--dhcp-host=$macs$hosttag${ip:+,$ip}$nametime"
++	fi
++}
+ 
+-	xappend "--dhcp-host=$macs${networkid:+,net:$networkid}${broadcast:+,set:needs-broadcast}${tag:+,set:$tag}${ip:+,$ip}${name:+,$name}"
++dhcp_this_host_add() {
++	local net="$1"
++	local ifname="$2"
++	local mode="$3"
++	local routerstub routername ifdashname
++	local lanaddr lanaddr6 lanaddrs6 ulaprefix
++
++	if [ "$mode" -gt 0 ] ; then
++		ifdashname="${ifname//./-}"
++		routerstub="$( md5sum /etc/os-release )"
++		routerstub="router-${routerstub// */}"
++		routername="$( uci_get system @system[0] hostname $routerstub )"
++
++		if [ "$mode" -gt 1 ] ; then
++			if [ "$mode" -gt 2 ] ; then
++				if [ "$mode" -gt 3 ] ; then
++					append_interface_name "$ifdashname.$routername.$DOMAIN" "$ifname"
++				fi
++
++				append_interface_name "$routername.$DOMAIN" "$ifname"
++			fi
++
++			# All IP addresses discovered by dnsmasq will be labeled (except fe80::)
++			append_interface_name "$routername" "$ifname"
++
++		else
++			# This uses a static host file entry for only limited addresses.
++			# Use dnsmasq option "--expandhosts" to enable FQDN on host files.
++			ulaprefix="$(uci_get network @globals[0] ula_prefix)"
++			network_get_ipaddr lanaddr "$net"
++			network_get_ipaddrs6 lanaddrs6 "$net"
++
++			if [ -n "$lanaddr" ] ; then
++				dhcp_domain_add "" "$routername" "$lanaddr"
++			fi
++
++			if [ -n "$ulaprefix" -a -n "$lanaddrs6" ] ; then
++				for lanaddr6 in $lanaddrs6 ; do
++					case "$lanaddr6" in
++					"${ulaprefix%%:/*}"*)
++						dhcp_domain_add "" "$routername" "$lanaddr6"
++						;;
++					esac
++				done
++			fi
++		fi
++	fi
+ }
+ 
+ dhcp_tag_add() {
++	# NOTE: dnsmasq has explicit "option6:" prefix for DHCPv6 so no collisions
+ 	local cfg="$1"
+ 
+ 	tag="$cfg"
+@@ -349,6 +425,7 @@ dhcp_mac_add() {
+ }
+ 
+ dhcp_boot_add() {
++	# TODO: BOOTURL is different between DHCPv4 and DHCPv6
+ 	local cfg="$1"
+ 
+ 	config_get networkid "$cfg" networkid
+@@ -357,12 +434,11 @@ dhcp_boot_add() {
+ 	[ -n "$filename" ] || return 0
+ 
+ 	config_get servername "$cfg" servername
+-	[ -n "$servername" ] || return 0
+-
+ 	config_get serveraddress "$cfg" serveraddress
+-	[ -n "$serveraddress" ] || return 0
+ 
+-	xappend "--dhcp-boot=${networkid:+net:$networkid,}$filename,$servername,$serveraddress"
++	[ -n "$serveraddress" -a ! -n "$servername" ] && return 0
++
++	xappend "--dhcp-boot=${networkid:+net:$networkid,}${filename}${servername:+,$servername}${serveraddress:+,$serveraddress}"
+ 
+ 	config_get_bool force "$cfg" force 0
+ 
+@@ -372,24 +448,30 @@ dhcp_boot_add() {
+ 
+ dhcp_add() {
+ 	local cfg="$1"
++	local dhcp6range="::"
++	local nettag
++	local tags
++
+ 	config_get net "$cfg" interface
+ 	[ -n "$net" ] || return 0
+ 
+-	config_get dhcpv4 "$cfg" dhcpv4
+-	[ "$dhcpv4" != "disabled" ] || return 0
+-
+ 	config_get networkid "$cfg" networkid
+ 	[ -n "$networkid" ] || networkid="$net"
+ 
+-	network_get_subnet subnet "$net" || return 0
+ 	network_get_device ifname "$net" || return 0
+-	network_get_protocol proto "$net" || return 0
+ 
+ 	[ "$cachelocal" = "0" ] && network_get_dnsserver dnsserver "$net" && {
+ 		DNS_SERVERS="$DNS_SERVERS $dnsserver"
+ 	}
+ 
+-	append_bool "$cfg" ignore "--no-dhcp-interface=$ifname" && return 0
++	append_bool "$cfg" ignore "--no-dhcp-interface=$ifname" && {
++		# Many ISP do not have useful names for DHCP customers (your WAN).
++		dhcp_this_host_add "$net" "$ifname" "$ADD_WAN_FQDN"
++		return 0
++	}
++
++	network_get_subnet subnet "$net" || return 0
++	network_get_protocol proto "$net" || return 0
+ 
+ 	# Do not support non-static interfaces for now
+ 	[ static = "$proto" ] || return 0
+@@ -401,35 +483,142 @@ dhcp_add() {
+ 	config_get_bool force "$cfg" force 0
+ 	[ $force -gt 0 ] || dhcp_check "$ifname" || return 0
+ 
+-	config_get start "$cfg" start
+-	config_get limit "$cfg" limit
+-	config_get leasetime "$cfg" leasetime
++	config_get start "$cfg" start 100
++	config_get limit "$cfg" limit 150
++	config_get leasetime "$cfg" leasetime 12h
+ 	config_get options "$cfg" options
+ 	config_get_bool dynamicdhcp "$cfg" dynamicdhcp 1
+ 
+-	leasetime="${leasetime:-12h}"
+-	start="$(dhcp_calc "${start:-100}")"
+-	limit="${limit:-150}"
+-	[ "$limit" -gt 0 ] && limit=$((limit-1))
++	config_get dhcpv4 "$cfg" dhcpv4
++	config_get dhcpv6 "$cfg" dhcpv6
++
++	config_get ra "$cfg" ra
++	config_get ra_management "$cfg" ra_management
++	config_get ra_preference "$cfg" ra_preference
++	config_get dns "$cfg" dns
++
++	config_list_foreach "$cfg" "interface_name" append_interface_name "$ifname"
++
++	# Put the router host name on this DHCP served interface address(es)
++	dhcp_this_host_add "$net" "$ifname" "$ADD_LOCAL_FQDN"
++
++	start="$( dhcp_calc "$start" )"
++
++	add_tag() {
++		tags="${tags}tag:$1,"
++	}
++	config_list_foreach "$cfg" tag add_tag
++
++	nettag="${networkid:+set:${networkid},}"
++
++	if [ "$limit" -gt 0 ] ; then
++		limit=$((limit-1))
++	fi
++
+ 	eval "$(ipcalc.sh "${subnet%%/*}" $netmask $start $limit)"
+-	if [ "$dynamicdhcp" = "0" ]; then END="static"; fi
+-	xappend "--dhcp-range=$networkid,$START,$END,$NETMASK,$leasetime${options:+ $options}"
+ 
+-	dhcp_option_add "$cfg" "$networkid"
++	if [ "$dynamicdhcp" = "0" ] ; then
++		END="static"
++		dhcp6range="::,static"
++	else
++		dhcp6range="::1000,::ffff"
++	fi
++
++
++	if [ "$dhcpv4" != "disabled" ] ; then
++		xappend "--dhcp-range=$tags$nettag$START,$END,$NETMASK,$leasetime${options:+ $options}"
++	fi
++
++
++	if [ $DNSMASQ_DHCP_VER -eq 6 -a "$ra" = "server" ] ; then
++		# Note: dnsmasq cannot just be a DHCPv6 server (all-in-1)
++		# and let some other machine(s) send RA pointing to it.
++
++		case $ra_preference in
++		*high*)
++			xappend "--ra-param=$ifname,high,0,7200"
++			;;
++		*low*)
++			xappend "--ra-param=$ifname,low,0,7200"
++			;;
++		*)
++			# Send UNSOLICITED RA at default interval and live for 2 hours.
++			# TODO: convert flexible lease time into route life time (only seconds).
++			xappend "--ra-param=$ifname,0,7200"
++			;;
++		esac
++
++		if [ "$dhcpv6" = "disabled" ] ; then
++			ra_management="3"
++		fi
++
++
++		case $ra_management in
++		0)
++			# SLACC with DCHP for extended options
++			xappend "--dhcp-range=$nettag::,constructor:$ifname,ra-stateless,ra-names"
++			;;
++		2)
++			# DHCP address and RA only for management redirection
++			xappend "--dhcp-range=$nettag$dhcp6range,constructor:$ifname,$leasetime"
++			;;
++		3)
++			# SLAAC only but dnsmasq attempts to link HOSTNAME, DHCPv4 MAC, and SLAAC
++			xappend "--dhcp-range=$nettag::,constructor:$ifname,ra-only,ra-names"
++			;;
++		*)
++			# SLAAC and full DHCP
++			xappend "--dhcp-range=$nettag$dhcp6range,constructor:$ifname,slaac,ra-names,$leasetime"
++			;;
++		esac
++
++		if [ -n "$dns" ]; then
++			dnss=""
++			for d in $dns; do append dnss "[$d]" ","; done
++		else
++			dnss="[::]"
++		fi
++
++		dhcp_option_append "option6:dns-server,$dnss" "$networkid"
++	fi
++
++	dhcp_option_add "$cfg" "$networkid" 0
++	dhcp_option_add "$cfg" "$networkid" 2
++}
++
++dhcp_option_append() {
++	local option="$1"
++	local networkid="$2"
++	local force="$3"
++
++	xappend "--dhcp-option${force:+-force}=${networkid:+$networkid,}$option"
+ }
+ 
+ dhcp_option_add() {
++	# NOTE: dnsmasq has explicit "option6:" prefix for DHCPv6 so no collisions
+ 	local cfg="$1"
+ 	local networkid="$2"
+ 	local force="$3"
++	local opt="dhcp_option"
+ 
+ 	[ "$force" = "0" ] && force=
++	[ "$force" = "2" ] && opt="dhcp_option_force"
+ 
+-	config_get dhcp_option "$cfg" dhcp_option
+-	for o in $dhcp_option; do
+-		xappend "--dhcp-option${force:+-force}=${networkid:+$networkid,}$o"
+-	done
++	local list_len
++	config_get list_len "$cfg" "${opt}_LENGTH"
++
++	if [ -n "$list_len" ]; then
++		config_list_foreach "$cfg" "$opt" dhcp_option_append "$networkid" "$force"
++	else
++		config_get dhcp_option "$cfg" "$opt"
+ 
++		[ -n "$dhcp_option" ] && echo "Warning: the 'option $opt' syntax is deprecated, use 'list $opt'" >&2
++
++		local option
++		for option in $dhcp_option; do
++			dhcp_option_append "$option" "$networkid" "$force"
++		done
++	fi
+ }
+ 
+ dhcp_domain_add() {
+@@ -446,7 +635,7 @@ dhcp_domain_add() {
+ 		record="${record:+$record }$name"
+ 	done
+ 
+-	echo "$ip $record" >> $HOSTFILE
++	echo "$ip $record" >> $HOSTFILE_TMP
+ }
+ 
+ dhcp_srv_add() {
+@@ -520,93 +709,409 @@ dhcp_hostrecord_add() {
+ 	xappend "--host-record=$record"
+ }
+ 
+-service_triggers()
+-{
+-	procd_add_reload_trigger "dhcp"
+-}
++dhcp_relay_add() {
++	local cfg="$1"
++	local local_addr server_addr interface
+ 
+-boot() {
+-	# Will be launched through hotplug
+-	return 0
++	config_get local_addr "$cfg" local_addr
++	[ -n "$local_addr" ] || return 0
++
++	config_get server_addr "$cfg" server_addr
++	[ -n "$server_addr" ] || return 0
++
++	config_get interface "$cfg" interface
++	if [ -z "$interface" ]; then
++		xappend "--dhcp-relay=$local_addr,$server_addr"
++	else
++		network_get_device ifname "$interface" || return
++		xappend "--dhcp-relay=$local_addr,$server_addr,$ifname"
++	fi
+ }
+ 
+-start_service() {
+-	include /lib/functions
++dnsmasq_start()
++{
++	local cfg="$1" disabled resolvfile user_dhcpscript
++
++	config_get_bool disabled "$cfg" disabled 0
++	[ "$disabled" -gt 0 ] && return 0
++
++	# reset list of DOMAINS and DNS servers (for each dnsmasq instance)
++	DNS_SERVERS=""
++	DOMAIN=""
++	CONFIGFILE="${BASECONFIGFILE}.${cfg}"
++	CONFIGFILE_TMP="${CONFIGFILE}.$$"
++	HOSTFILE="${BASEHOSTFILE}.${cfg}"
++	HOSTFILE_TMP="${HOSTFILE}.$$"
++	BASEDHCPSTAMPFILE_CFG="${BASEDHCPSTAMPFILE}.${cfg}"
++
++	# before we can call xappend
++	mkdir -p /var/run/dnsmasq/
++	mkdir -p $(dirname $CONFIGFILE)
++	mkdir -p $(dirname $HOSTFILE)
++	mkdir -p /var/lib/misc
++	chown dnsmasq:dnsmasq /var/run/dnsmasq
++
++	echo "# auto-generated config file from /etc/config/dhcp" > $CONFIGFILE_TMP
++	echo "# auto-generated config file from /etc/config/dhcp" > $HOSTFILE_TMP
++
++	local dnsmasqconffile="/etc/dnsmasq.${cfg}.conf"
++	if [ ! -r "$dnsmasqconffile" ]; then
++		dnsmasqconffile=/etc/dnsmasq.conf
++	fi
++
++	# if we did this last, we could override auto-generated config
++	[ -f "${dnsmasqconffile}" ] && {
++		xappend "--conf-file=${dnsmasqconffile}"
++	}
++
++	$PROG --version | grep -osqE "^Compile time options:.* DHCPv6( |$)" && DHCPv6CAPABLE=1 || DHCPv6CAPABLE=0
++
++
++	if [ -x /usr/sbin/odhcpd -a -x /etc/init.d/odhcpd ] ; then
++		local odhcpd_is_main odhcpd_is_enabled
++		config_get odhcpd_is_main odhcpd maindhcp 0
++		/etc/init.d/odhcpd enabled && odhcpd_is_enabled=1 || odhcpd_is_enabled=0
++
++
++		if [ "$odhcpd_is_enabled" -eq 0 -a "$DHCPv6CAPABLE" -eq 1 ] ; then
++			# DHCP V4 and V6 in DNSMASQ
++			DNSMASQ_DHCP_VER=6
++		elif [ "$odhcpd_is_main" -gt 0 ] ; then
++			# ODHCPD is doing it all
++			DNSMASQ_DHCP_VER=0
++		else
++			# You have ODHCPD but use DNSMASQ for DHCPV4
++			DNSMASQ_DHCP_VER=4
++		fi
++
++	elif [ "$DHCPv6CAPABLE" -eq 1 ] ; then
++		# DHCP V4 and V6 in DNSMASQ
++		DNSMASQ_DHCP_VER=6
++	else
++		DNSMASQ_DHCP_VER=4
++	fi
++
++	# Allow DHCP/DHCPv6 to be handled by ISC DHCPD
++	if [ -x /usr/sbin/dhcpd ] ; then
++		if [ -x /etc/init.d/dhcpd ] ; then
++			/etc/init.d/dhcpd enabled && DNSMASQ_DHCP_VER=0
++		fi
++		if [ -x /etc/init.d/dhcpd6 -a "$DNSMASQ_DHCP_VER" -gt 0 ] ; then
++			/etc/init.d/dhcpd6 enabled && DNSMASQ_DHCP_VER=4
++		fi
++	fi
++
++	append_bool "$cfg" authoritative "--dhcp-authoritative"
++	append_bool "$cfg" nodaemon "--no-daemon"
++	append_bool "$cfg" domainneeded "--domain-needed"
++	append_bool "$cfg" filterwin2k "--filterwin2k"
++	append_bool "$cfg" nohosts "--no-hosts"
++	append_bool "$cfg" nonegcache "--no-negcache"
++	append_bool "$cfg" strictorder "--strict-order"
++	append_bool "$cfg" logqueries "--log-queries=extra"
++	append_bool "$cfg" noresolv "--no-resolv"
++	append_bool "$cfg" localise_queries "--localise-queries"
++	append_bool "$cfg" readethers "--read-ethers"
++	append_bool "$cfg" dbus "--enable-dbus"
++	append_bool "$cfg" expandhosts "--expand-hosts"
++	config_get tftp_root "$cfg" "tftp_root"
++	[ -n "$tftp_root" ] && mkdir -p "$tftp_root" && append_bool "$cfg" enable_tftp "--enable-tftp"
++	append_bool "$cfg" tftp_no_fail "--tftp-no-fail"
++	append_bool "$cfg" nonwildcard "--bind-dynamic" 1
++	append_bool "$cfg" fqdn "--dhcp-fqdn"
++	append_bool "$cfg" proxydnssec "--proxy-dnssec"
++	append_bool "$cfg" localservice "--local-service"
++	append_bool "$cfg" logdhcp "--log-dhcp"
++	append_bool "$cfg" quietdhcp "--quiet-dhcp"
++	append_bool "$cfg" sequential_ip "--dhcp-sequential-ip"
++	append_bool "$cfg" allservers "--all-servers"
++	append_bool "$cfg" noping "--no-ping"
++
++	append_parm "$cfg" logfacility "--log-facility"
++
++	append_parm "$cfg" cachesize "--cache-size"
++	append_parm "$cfg" dnsforwardmax "--dns-forward-max"
++	append_parm "$cfg" port "--port"
++	append_parm "$cfg" ednspacket_max "--edns-packet-max"
++	append_parm "$cfg" dhcpleasemax "--dhcp-lease-max"
++	append_parm "$cfg" "queryport" "--query-port"
++	append_parm "$cfg" "minport" "--min-port"
++	append_parm "$cfg" "maxport" "--max-port"
++	append_parm "$cfg" "domain" "--domain"
++	append_parm "$cfg" "local" "--server"
++	config_list_foreach "$cfg" "listen_address" append_listenaddress
++	config_list_foreach "$cfg" "server" append_server
++	config_list_foreach "$cfg" "rev_server" append_rev_server
++	config_list_foreach "$cfg" "address" append_address
++	config_list_foreach "$cfg" "ipset" append_ipset
++	config_list_foreach "$cfg" "interface" append_interface
++	config_list_foreach "$cfg" "notinterface" append_notinterface
++	config_list_foreach "$cfg" "addnhosts" append_addnhosts
++	config_list_foreach "$cfg" "bogusnxdomain" append_bogusnxdomain
++	append_parm "$cfg" "leasefile" "--dhcp-leasefile" "/tmp/dhcp.leases"
++	append_parm "$cfg" "serversfile" "--servers-file"
++	append_parm "$cfg" "tftp_root" "--tftp-root"
++	append_parm "$cfg" "dhcp_boot" "--dhcp-boot"
++	append_parm "$cfg" "local_ttl" "--local-ttl"
++	append_parm "$cfg" "pxe_prompt" "--pxe-prompt"
++	config_list_foreach "$cfg" "pxe_service" append_pxe_service
++	config_get DOMAIN "$cfg" domain
++
++	config_get_bool ADD_LOCAL_DOMAIN "$cfg" add_local_domain 1
++	config_get_bool ADD_LOCAL_HOSTNAME "$cfg" add_local_hostname 1
++	config_get ADD_LOCAL_FQDN "$cfg" add_local_fqdn ""
++	config_get ADD_WAN_FQDN "$cfg" add_wan_fqdn 0
++
++	if [ -z "$ADD_LOCAL_FQDN" ] ; then
++		# maintain support for previous UCI
++		ADD_LOCAL_FQDN="$ADD_LOCAL_HOSTNAME"
++	fi
++
++	config_get_bool readethers "$cfg" readethers
++	[ "$readethers" = "1" -a \! -e "/etc/ethers" ] && touch /etc/ethers
++
++	config_get user_dhcpscript $cfg dhcpscript
++	if has_handler || [ -n "$user_dhcpscript" ]; then
++		xappend "--dhcp-script=$DHCPSCRIPT"
++	fi
++
++	config_get leasefile $cfg leasefile "/tmp/dhcp.leases"
++	[ -n "$leasefile" -a \! -e "$leasefile" ] && touch "$leasefile"
++	config_get_bool cachelocal "$cfg" cachelocal 1
++
++	config_get_bool noresolv "$cfg" noresolv 0
++	if [ "$noresolv" != "1" ]; then
++		config_get resolvfile "$cfg" resolvfile "/tmp/resolv.conf.auto"
++		# So jail doesn't complain if file missing
++		[ -n "$resolvfile" -a \! -e "$resolvfile" ] && touch "$resolvfile"
++	fi
++
++	[ -n "$resolvfile" ] && xappend "--resolv-file=$resolvfile"
++
++	config_get hostsfile "$cfg" dhcphostsfile
++	[ -e "$hostsfile" ] && xappend "--dhcp-hostsfile=$hostsfile"
++
++	local rebind
++	config_get_bool rebind "$cfg" rebind_protection 1
++	[ $rebind -gt 0 ] && {
++		log_once \
++			"DNS rebinding protection is active," \
++			"will discard upstream RFC1918 responses!"
++		xappend "--stop-dns-rebind"
++
++		local rebind_localhost
++		config_get_bool rebind_localhost "$cfg" rebind_localhost 0
++		[ $rebind_localhost -gt 0 ] && {
++			log_once "Allowing 127.0.0.0/8 responses"
++			xappend "--rebind-localhost-ok"
++		}
++
++		append_rebind_domain() {
++			log_once "Allowing RFC1918 responses for domain $1"
++			xappend "--rebind-domain-ok=$1"
++		}
++
++		config_list_foreach "$cfg" rebind_domain append_rebind_domain
++	}
++
++	config_get_bool dnssec "$cfg" dnssec 0
++	[ "$dnssec" -gt 0 ] && {
++		xappend "--conf-file=$TRUSTANCHORSFILE"
++		xappend "--dnssec"
++		[ -x /etc/init.d/sysntpd ] && {
++			/etc/init.d/sysntpd enabled
++			[ "$?" -ne 0 -o "$(uci_get system.ntp.enabled)" = "1" ] && {
++				[ -f "$TIMEVALIDFILE" ] || xappend "--dnssec-no-timecheck"
++			}
++		}
++		append_bool "$cfg" dnsseccheckunsigned "--dnssec-check-unsigned"
++	}
++
++	config_get addmac "$cfg" addmac 0
++	[ "$addmac" != "0" ] && {
++		[ "$addmac" = "1" ] && addmac=
++		xappend "--add-mac${addmac:+="$addmac"}"
++	}
++
++	dhcp_option_add "$cfg" "" 0
++	dhcp_option_add "$cfg" "" 2
++
++	xappend "--dhcp-broadcast=tag:needs-broadcast"
++
++	xappend "--addn-hosts=$(dirname $HOSTFILE)"
++
++	config_get dnsmasqconfdir "$cfg" confdir "/tmp/dnsmasq.d"
++	xappend "--conf-dir=$dnsmasqconfdir"
++	dnsmasqconfdir="${dnsmasqconfdir%%,*}"
++	[ ! -d "$dnsmasqconfdir" ] && mkdir -p $dnsmasqconfdir
++	xappend "--user=dnsmasq"
++	xappend "--group=dnsmasq"
++	echo >> $CONFIGFILE_TMP
++
++	config_get_bool enable_tftp "$cfg" enable_tftp 0
++	[ "$enable_tftp" -gt 0 ] && {
++		config_get tftp_root "$cfg" tftp_root
++		append EXTRA_MOUNT $tftp_root
++	}
++
++	config_foreach filter_dnsmasq host dhcp_host_add "$cfg"
++	echo >> $CONFIGFILE_TMP
++	config_foreach filter_dnsmasq boot dhcp_boot_add "$cfg"
++	config_foreach filter_dnsmasq mac dhcp_mac_add "$cfg"
++	config_foreach filter_dnsmasq tag dhcp_tag_add "$cfg"
++	config_foreach filter_dnsmasq vendorclass dhcp_vendorclass_add "$cfg"
++	config_foreach filter_dnsmasq userclass dhcp_userclass_add "$cfg"
++	config_foreach filter_dnsmasq circuitid dhcp_circuitid_add "$cfg"
++	config_foreach filter_dnsmasq remoteid dhcp_remoteid_add "$cfg"
++	config_foreach filter_dnsmasq subscrid dhcp_subscrid_add "$cfg"
++	config_foreach filter_dnsmasq match dhcp_match_add "$cfg"
++	config_foreach filter_dnsmasq domain dhcp_domain_add "$cfg"
++	config_foreach filter_dnsmasq hostrecord dhcp_hostrecord_add "$cfg"
++	config_foreach filter_dnsmasq relay dhcp_relay_add "$cfg"
++
++	echo >> $CONFIGFILE_TMP
++	config_foreach filter_dnsmasq srvhost dhcp_srv_add "$cfg"
++	config_foreach filter_dnsmasq mxhost dhcp_mx_add "$cfg"
++	echo >> $CONFIGFILE_TMP
++
++	config_get_bool boguspriv "$cfg" boguspriv 1
++	[ "$boguspriv" -gt 0 ] && {
++		xappend "--bogus-priv"
++		[ -r "$RFC6761FILE" ] && xappend "--conf-file=$RFC6761FILE"
++	}
++
++	if [ "$DNSMASQ_DHCP_VER" -gt 4 ] ; then
++		# Enable RA feature for when/if it is constructed,
++		# and RA is selected per interface pool (RA, DHCP, or both),
++		# but no one (should) want RA broadcast in syslog
++		config_foreach filter_dnsmasq dhcp dhcp_add "$cfg"
++		xappend "--enable-ra"
++		xappend "--quiet-ra"
++		append_bool "$cfg" quietdhcp "--quiet-dhcp6"
++
++	elif [ "$DNSMASQ_DHCP_VER" -gt 0 ] ; then
++		config_foreach filter_dnsmasq dhcp dhcp_add "$cfg"
++	fi
+ 
+-	config_load dhcp
+ 
+-	procd_open_instance
+-	procd_set_param command $PROG -C $CONFIGFILE -k
++	echo >> $CONFIGFILE_TMP
++	config_foreach filter_dnsmasq cname dhcp_cname_add "$cfg"
++	echo >> $CONFIGFILE_TMP
++
++	echo >> $CONFIGFILE_TMP
++	mv -f $CONFIGFILE_TMP $CONFIGFILE
++	mv -f $HOSTFILE_TMP $HOSTFILE
++
++	[ "$resolvfile" = "/tmp/resolv.conf.auto" ] && {
++		rm -f /tmp/resolv.conf
++		[ $ADD_LOCAL_DOMAIN -eq 1 ] && [ -n "$DOMAIN" ] && {
++			echo "search $DOMAIN" >> /tmp/resolv.conf
++		}
++		DNS_SERVERS="$DNS_SERVERS 127.0.0.1"
++		for DNS_SERVER in $DNS_SERVERS ; do
++			echo "nameserver $DNS_SERVER" >> /tmp/resolv.conf
++		done
++	}
++
++	procd_open_instance $cfg
++	procd_set_param command $PROG -C $CONFIGFILE -k -x /var/run/dnsmasq/dnsmasq."${cfg}".pid
+ 	procd_set_param file $CONFIGFILE
++	[ -n "$user_dhcpscript" ] && procd_set_param env USER_DHCPSCRIPT="$user_dhcpscript"
+ 	procd_set_param respawn
++
++	procd_add_jail dnsmasq ubus log
++	procd_add_jail_mount $CONFIGFILE $TRUSTANCHORSFILE $HOSTFILE $RFC6761FILE /etc/passwd /etc/group /etc/TZ /dev/null /dev/urandom $dnsmasqconffile $dnsmasqconfdir $resolvfile $user_dhcpscript /etc/hosts /etc/ethers /sbin/hotplug-call $EXTRA_MOUNT $DHCPSCRIPT
++	procd_add_jail_mount_rw /var/run/dnsmasq/ $leasefile
++
+ 	procd_close_instance
++}
+ 
+-	# before we can call xappend
+-	mkdir -p $(dirname $CONFIGFILE)
++dnsmasq_stop()
++{
++	local cfg="$1" resolvfile
+ 
+-	echo "# auto-generated config file from /etc/config/dhcp" > $CONFIGFILE
+-	echo "# auto-generated config file from /etc/config/dhcp" > $HOSTFILE
++	config_get resolvfile "$cfg" "resolvfile"
+ 
+-	# if we did this last, we could override auto-generated config
+-	[ -f /etc/dnsmasq.conf ] && {
+-		xappend "--conf-file=/etc/dnsmasq.conf"
++	#relink /tmp/resolve.conf only for main instance
++	[ "$resolvfile" = "/tmp/resolv.conf.auto" ] && {
++		[ -f /tmp/resolv.conf ] && {
++			rm -f /tmp/resolv.conf
++			ln -s "$resolvfile" /tmp/resolv.conf
++		}
+ 	}
+ 
+-	args=""
+-	config_foreach dnsmasq dnsmasq
+-	config_foreach dhcp_host_add host
+-	echo >> $CONFIGFILE
+-	config_foreach dhcp_boot_add boot
+-	config_foreach dhcp_mac_add mac
+-	config_foreach dhcp_tag_add tag
+-	config_foreach dhcp_vendorclass_add vendorclass
+-	config_foreach dhcp_userclass_add userclass
+-	config_foreach dhcp_circuitid_add circuitid
+-	config_foreach dhcp_remoteid_add remoteid
+-	config_foreach dhcp_subscrid_add subscrid
+-	config_foreach dhcp_domain_add domain
+-	config_foreach dhcp_hostrecord_add hostrecord
+-
+-	# add own hostname
+-	local lanaddr
+-	[ $ADD_LOCAL_HOSTNAME -eq 1 ] && network_get_ipaddr lanaddr "lan" && {
+-		local hostname="$(uci_get system @system[0] hostname OpenWrt)"
+-		dhcp_domain_add "" "$hostname" "$lanaddr"
+-	}
+-
+-	echo >> $CONFIGFILE
+-	config_foreach dhcp_srv_add srvhost
+-	config_foreach dhcp_mx_add mxhost
+-	echo >> $CONFIGFILE
+-
+-	config_get odhcpd_is_active odhcpd maindhcp
+-	if [ "$odhcpd_is_active" != "1" ]; then
+-		config_foreach dhcp_add dhcp
+-	fi
+-
+-	echo >> $CONFIGFILE
+-	config_foreach dhcp_cname_add cname
+-	echo >> $CONFIGFILE
+-
+-	rm -f /tmp/resolv.conf
+-	[ $ADD_LOCAL_DOMAIN -eq 1 ] && [ -n "$DOMAIN" ] && {
+-		echo "search $DOMAIN" >> /tmp/resolv.conf
+-	}
+-	DNS_SERVERS="$DNS_SERVERS 127.0.0.1"
+-	for DNS_SERVER in $DNS_SERVERS ; do
+-		echo "nameserver $DNS_SERVER" >> /tmp/resolv.conf
+-	done
++	rm -f ${BASEDHCPSTAMPFILE}.${cfg}.*.dhcp
++}
++
++add_interface_trigger()
++{
++	local interface ignore
++
++	config_get interface "$1" interface
++	config_get_bool ignore "$1" ignore 0
++
++	[ -n "$interface" -a $ignore -eq 0 ] && procd_add_interface_trigger "interface.*" "$interface" /etc/init.d/dnsmasq reload
++}
++
++service_triggers()
++{
++	procd_add_reload_trigger "dhcp" "system"
++
++	config_load dhcp
++	config_foreach add_interface_trigger dhcp
++}
++
++start_service() {
++	local instance="$1"
++	local instance_found=0
++
++	. /lib/functions/network.sh
++
++	config_cb() {
++		local type="$1"
++		local name="$2"
++		if [ "$type" = "dnsmasq" ]; then
++			if [ -n "$instance" -a "$instance" = "$name" ]; then
++				instance_found=1
++			fi
++		fi
++	}
++
++	config_load dhcp
++
++	if [ -n "$instance" ]; then
++		[ "$instance_found" -gt 0 ] || return
++		dnsmasq_start "$instance"
++	else
++		config_foreach dnsmasq_start dnsmasq
++	fi
+ }
+ 
+ reload_service() {
+ 	rc_procd start_service "$@"
+-	return 0
++	procd_send_signal dnsmasq "$@"
+ }
+ 
+ stop_service() {
+-	[ -f /tmp/resolv.conf ] && {
+-		rm -f /tmp/resolv.conf
+-		ln -s /tmp/resolv.conf.auto /tmp/resolv.conf
++	local instance="$1"
++	local instance_found=0
++
++	config_cb() {
++		local type="$1"
++		local name="$2"
++		if [ "$type" = "dnsmasq" ]; then
++			if [ -n "$instance" -a "$instance" = "$name" ]; then
++				instance_found=1
++			fi
++		fi
+ 	}
+-	rm -f /var/run/dnsmasq.*.dhcp
++
++	config_load dhcp
++
++	if [ -n "$instance" ]; then
++		[ "$instance_found" -gt 0 ] || return
++		dnsmasq_stop "$instance"
++	else
++		config_foreach dnsmasq_stop dnsmasq
++	fi
+ }
+--- /dev/null
++++ b/package/network/services/dnsmasq/files/dnsmasq_acl.json
+@@ -0,0 +1,4 @@
++{
++	"user": "dnsmasq",
++	"publish": [ "dnsmasq" ]
++}
+--- a/package/network/services/dnsmasq/files/dhcp.conf
++++ b/package/network/services/dnsmasq/files/dhcp.conf
+@@ -15,10 +15,11 @@ config dnsmasq
+ 	option leasefile	'/tmp/dhcp.leases'
+ 	option resolvfile	'/tmp/resolv.conf.auto'
+ 	#list server		'/mycompany.local/1.2.3.4'
+-	#option nonwildcard	1
++	option nonwildcard	1 # bind to & keep track of interfaces
+ 	#list interface		br-lan
+ 	#list notinterface	lo
+ 	#list bogusnxdomain     '64.94.110.11'
++	option localservice	1  # disable to allow DNS requests from non-local subnets
+ 
+ config dhcp lan
+ 	option interface	lan
+--- a/package/network/services/dnsmasq/patches/002-fix-race-on-interface-flaps.patch
++++ /dev/null
+@@ -1,277 +0,0 @@
+-From a0358e5ddbc1ef3dec791f11f95f5dbe56087a5e Mon Sep 17 00:00:00 2001
+-From: Simon Kelley <simon@thekelleys.org.uk>
+-Date: Sat, 7 Jun 2014 13:38:48 +0100
+-Subject: [PATCH] Handle async notification of address changes using the event
+- system.
+-
+----
+- CHANGELOG     |  4 ++++
+- src/bpf.c     |  6 +++---
+- src/dhcp6.c   | 10 ----------
+- src/dnsmasq.c | 13 +++++++++++--
+- src/dnsmasq.h |  6 ++++--
+- src/netlink.c | 39 ++++++++++-----------------------------
+- src/network.c | 11 +++--------
+- 7 files changed, 35 insertions(+), 54 deletions(-)
+-
+---- a/CHANGELOG
+-+++ b/CHANGELOG
+-@@ -15,6 +15,10 @@ version 2.71
+- 	    regression introduced in 2.69. Thanks to James Hunt and
+- 	    the Ubuntu crowd for assistance in fixing this.
+- 
+-+	    Fix race condition which could lock up dnsmasq when an 
+-+	    interface goes down and up rapidly. Thanks to Conrad 
+-+	    Kostecki for helping to chase this down.
+-+	    
+- 
+- version 2.70
+-             Fix crash, introduced in 2.69, on TCP request when dnsmasq
+---- a/src/bpf.c
+-+++ b/src/bpf.c
+-@@ -376,7 +376,7 @@ void route_init(void)
+-     die(_("cannot create PF_ROUTE socket: %s"), NULL, EC_BADNET);
+- }
+- 
+--void route_sock(time_t now)
+-+void route_sock(void)
+- {
+-   struct if_msghdr *msg;
+-   int rc = recv(daemon->routefd, daemon->packet, daemon->packet_buff_sz, 0);
+-@@ -401,7 +401,7 @@ void route_sock(time_t now)
+-    else if (msg->ifm_type == RTM_NEWADDR)
+-      {
+-        del_family = 0;
+--       newaddress(now);
+-+       send_newaddr();
+-      }
+-    else if (msg->ifm_type == RTM_DELADDR)
+-      {
+-@@ -439,7 +439,7 @@ void route_sock(time_t now)
+- 	       of += sizeof(long) - (diff & (sizeof(long) - 1));
+- 	   }
+-        
+--       newaddress(now);
+-+       send_newaddr();
+-      }
+- }
+- 
+---- a/src/dnsmasq.c
+-+++ b/src/dnsmasq.c
+-@@ -917,10 +917,10 @@ int main (int argc, char **argv)
+- 
+- #if defined(HAVE_LINUX_NETWORK)
+-       if (FD_ISSET(daemon->netlinkfd, &rset))
+--	netlink_multicast(now);
+-+	netlink_multicast();
+- #elif defined(HAVE_BSD_NETWORK)
+-       if (FD_ISSET(daemon->routefd, &rset))
+--	route_sock(now);
+-+	route_sock();
+- #endif
+- 
+-       /* Check for changes to resolv files once per second max. */
+-@@ -1037,6 +1037,11 @@ void send_alarm(time_t event, time_t now
+-     }
+- }
+- 
+-+void send_newaddr(void)
+-+{
+-+  send_event(pipewrite, EVENT_NEWADDR, 0, NULL);
+-+}
+-+
+- void send_event(int fd, int event, int data, char *msg)
+- {
+-   struct event_desc ev;
+-@@ -1230,6 +1235,10 @@ static void async_event(int pipe, time_t
+- 	if (daemon->log_file != NULL)
+- 	  log_reopen(daemon->log_file);
+- 	break;
+-+
+-+      case EVENT_NEWADDR:
+-+	newaddress(now);
+-+	break;
+- 	
+-       case EVENT_TERM:
+- 	/* Knock all our children on the head. */
+---- a/src/dnsmasq.h
+-+++ b/src/dnsmasq.h
+-@@ -165,6 +165,7 @@ struct event_desc {
+- #define EVENT_LUA_ERR   19
+- #define EVENT_TFTP_ERR  20
+- #define EVENT_INIT      21
+-+#define EVENT_NEWADDR   22
+- 
+- /* Exit codes. */
+- #define EC_GOOD        0
+-@@ -1289,6 +1290,7 @@ unsigned char *extended_hwaddr(int hwtyp
+- int make_icmp_sock(void);
+- int icmp_ping(struct in_addr addr);
+- #endif
+-+void send_newaddr(void);
+- void send_alarm(time_t event, time_t now);
+- void send_event(int fd, int event, int data, char *msg);
+- void clear_cache_and_reload(time_t now);
+-@@ -1297,7 +1299,7 @@ void poll_resolv(int force, int do_reloa
+- /* netlink.c */
+- #ifdef HAVE_LINUX_NETWORK
+- void netlink_init(void);
+--void netlink_multicast(time_t now);
+-+void netlink_multicast(void);
+- #endif
+- 
+- /* bpf.c */
+-@@ -1306,7 +1308,7 @@ void init_bpf(void);
+- void send_via_bpf(struct dhcp_packet *mess, size_t len,
+- 		  struct in_addr iface_addr, struct ifreq *ifr);
+- void route_init(void);
+--void route_sock(time_t now);
+-+void route_sock(void);
+- #endif
+- 
+- /* bpf.c or netlink.c */
+---- a/src/netlink.c
+-+++ b/src/netlink.c
+-@@ -38,7 +38,7 @@
+- static struct iovec iov;
+- static u32 netlink_pid;
+- 
+--static int nl_async(struct nlmsghdr *h);
+-+static void nl_async(struct nlmsghdr *h);
+- 
+- void netlink_init(void)
+- {
+-@@ -142,7 +142,7 @@ int iface_enumerate(int family, void *pa
+-   struct nlmsghdr *h;
+-   ssize_t len;
+-   static unsigned int seq = 0;
+--  int callback_ok = 1, newaddr = 0;
+-+  int callback_ok = 1;
+- 
+-   struct {
+-     struct nlmsghdr nlh;
+-@@ -191,21 +191,10 @@ int iface_enumerate(int family, void *pa
+- 	if (h->nlmsg_seq != seq || h->nlmsg_pid != netlink_pid || h->nlmsg_type == NLMSG_ERROR)
+- 	  {
+- 	    /* May be multicast arriving async */
+--	    if (nl_async(h))
+--	      {
+--		newaddr = 1; 
+--		enumerate_interfaces(1); /* reset */
+--	      }
+-+	    nl_async(h);
+- 	  }
+- 	else if (h->nlmsg_type == NLMSG_DONE)
+--	  {
+--	    /* handle async new interface address arrivals, these have to be done
+--	       after we complete as we're not re-entrant */
+--	    if (newaddr) 
+--	      newaddress(dnsmasq_time());
+--		
+--	    return callback_ok;
+--	  }
+-+	  return callback_ok;
+- 	else if (h->nlmsg_type == RTM_NEWADDR && family != AF_UNSPEC && family != AF_LOCAL)
+- 	  {
+- 	    struct ifaddrmsg *ifa = NLMSG_DATA(h);  
+-@@ -330,11 +319,11 @@ int iface_enumerate(int family, void *pa
+-     }
+- }
+- 
+--void netlink_multicast(time_t now)
+-+void netlink_multicast(void)
+- {
+-   ssize_t len;
+-   struct nlmsghdr *h;
+--  int flags, newaddr = 0;
+-+  int flags;
+-   
+-   /* don't risk blocking reading netlink messages here. */
+-   if ((flags = fcntl(daemon->netlinkfd, F_GETFL)) == -1 ||
+-@@ -343,24 +332,19 @@ void netlink_multicast(time_t now)
+-   
+-   if ((len = netlink_recv()) != -1)
+-     for (h = (struct nlmsghdr *)iov.iov_base; NLMSG_OK(h, (size_t)len); h = NLMSG_NEXT(h, len))
+--      if (nl_async(h))
+--	newaddr = 1;
+-+      nl_async(h);
+-   
+-   /* restore non-blocking status */
+-   fcntl(daemon->netlinkfd, F_SETFL, flags);
+--  
+--  if (newaddr) 
+--    newaddress(now);
+- }
+- 
+--static int nl_async(struct nlmsghdr *h)
+-+static void nl_async(struct nlmsghdr *h)
+- {
+-   if (h->nlmsg_type == NLMSG_ERROR)
+-     {
+-       struct nlmsgerr *err = NLMSG_DATA(h);
+-       if (err->error != 0)
+- 	my_syslog(LOG_ERR, _("netlink returns error: %s"), strerror(-(err->error)));
+--      return 0;
+-     }
+-   else if (h->nlmsg_pid == 0 && h->nlmsg_type == RTM_NEWROUTE) 
+-     {
+-@@ -385,18 +369,15 @@ static int nl_async(struct nlmsghdr *h)
+- 	      else if (daemon->rfd_save && daemon->rfd_save->refcount != 0)
+- 		fd = daemon->rfd_save->fd;
+- 	      else
+--		return 0;
+-+		return;
+- 	      
+- 	      while(sendto(fd, daemon->packet, daemon->packet_len, 0,
+- 			   &daemon->srv_save->addr.sa, sa_len(&daemon->srv_save->addr)) == -1 && retry_send()); 
+- 	    }
+- 	}
+--      return 0;
+-     }
+-   else if (h->nlmsg_type == RTM_NEWADDR || h->nlmsg_type == RTM_DELADDR) 
+--    return 1; /* clever bind mode - rescan */
+--  
+--  return 0;
+-+    send_newaddr();
+- }
+- #endif
+- 
+---- a/src/network.c
+-+++ b/src/network.c
+-@@ -551,7 +551,7 @@ static int iface_allowed_v4(struct in_ad
+- int enumerate_interfaces(int reset)
+- {
+-   static struct addrlist *spare = NULL;
+--  static int done = 0, active = 0;
+-+  static int done = 0;
+-   struct iface_param param;
+-   int errsave, ret = 1;
+-   struct addrlist *addr, *tmp;
+-@@ -570,14 +570,11 @@ int enumerate_interfaces(int reset)
+-       return 1;
+-     }
+- 
+--  if (done || active)
+-+  if (done)
+-     return 1;
+- 
+-   done = 1;
+- 
+--  /* protect against recusive calls from iface_enumerate(); */
+--  active = 1;
+--
+-   if ((param.fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
+-     return 0;
+-  
+-@@ -677,10 +674,8 @@ int enumerate_interfaces(int reset)
+-     }
+-   
+-   errno = errsave;
+--  
+-   spare = param.spare;
+--  active = 0;
+--  
+-+    
+-   return ret;
+- }
+- 
+--- a/package/network/services/dnsmasq/patches/100-fix-dhcp-no-address-warning.patch
++++ /dev/null
+@@ -1,47 +0,0 @@
+---- a/src/dhcp.c
+-+++ b/src/dhcp.c
+-@@ -146,7 +146,7 @@ void dhcp_packet(time_t now, int pxe_fd)
+-   struct iovec iov;
+-   ssize_t sz; 
+-   int iface_index = 0, unicast_dest = 0, is_inform = 0;
+--  struct in_addr iface_addr;
+-+  struct in_addr iface_addr, *addrp = NULL;
+-   struct iface_param parm;
+- #ifdef HAVE_LINUX_NETWORK
+-   struct arpreq arp_req;
+-@@ -272,11 +272,9 @@ void dhcp_packet(time_t now, int pxe_fd)
+-     {
+-       ifr.ifr_addr.sa_family = AF_INET;
+-       if (ioctl(daemon->dhcpfd, SIOCGIFADDR, &ifr) != -1 )
+--	iface_addr = ((struct sockaddr_in *) &ifr.ifr_addr)->sin_addr;
+--      else
+- 	{
+--	  my_syslog(MS_DHCP | LOG_WARNING, _("DHCP packet received on %s which has no address"), ifr.ifr_name);
+--	  return;
+-+	  addrp = &iface_addr;
+-+	  iface_addr = ((struct sockaddr_in *) &ifr.ifr_addr)->sin_addr;
+- 	}
+-       
+-       for (tmp = daemon->dhcp_except; tmp; tmp = tmp->next)
+-@@ -295,7 +293,7 @@ void dhcp_packet(time_t now, int pxe_fd)
+-       parm.relay_local.s_addr = 0;
+-       parm.ind = iface_index;
+-       
+--      if (!iface_check(AF_INET, (struct all_addr *)&iface_addr, ifr.ifr_name, NULL))
+-+      if (!iface_check(AF_INET, (struct all_addr *)addrp, ifr.ifr_name, NULL))
+- 	{
+- 	  /* If we failed to match the primary address of the interface, see if we've got a --listen-address
+- 	     for a secondary */
+-@@ -315,6 +313,12 @@ void dhcp_packet(time_t now, int pxe_fd)
+- 	  complete_context(match.addr, iface_index, NULL, match.netmask, match.broadcast, &parm);
+- 	}    
+-       
+-+      if (!addrp)
+-+        {
+-+          my_syslog(MS_DHCP | LOG_WARNING, _("DHCP packet received on %s which has no address"), ifr.ifr_name);
+-+          return;
+-+        }
+-+
+-       if (!iface_enumerate(AF_INET, &parm, complete_context))
+- 	return;
+- 
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0001-Be-persistent-with-broken-upstream-DNSSEC-warnings.patch
+@@ -0,0 +1,26 @@
++From f84e674d8aa2316fea8d2145a40fcef0441e3856 Mon Sep 17 00:00:00 2001
++From: Simon Kelley <simon@thekelleys.org.uk>
++Date: Fri, 4 May 2018 16:29:57 +0100
++Subject: [PATCH 01/10] Be persistent with broken-upstream-DNSSEC warnings.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ src/dnssec.c | 7 +------
++ 1 file changed, 1 insertion(+), 6 deletions(-)
++
++--- a/src/dnssec.c
+++++ b/src/dnssec.c
++@@ -876,12 +876,7 @@ int dnssec_validate_ds(time_t now, struc
++   
++   if (rc == STAT_INSECURE)
++     {
++-      static int reported = 0;
++-      if (!reported)
++-	{
++-	  reported = 1;
++-	  my_syslog(LOG_WARNING, _("Insecure DS reply received, do upstream DNS servers support DNSSEC?"));
++-	}
+++      my_syslog(LOG_WARNING, _("Insecure DS reply received, do upstream DNS servers support DNSSEC?"));
++       rc = STAT_BOGUS;
++     }
++   
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0002-Fix-DHCP-broken-ness-when-no-ping-AND-dhcp-sequentia.patch
+@@ -0,0 +1,35 @@
++From 0669ee7a69a004ce34fed41e50aa575f8e04427b Mon Sep 17 00:00:00 2001
++From: Simon Kelley <simon@thekelleys.org.uk>
++Date: Fri, 4 May 2018 16:46:24 +0100
++Subject: [PATCH 02/10] Fix DHCP broken-ness when --no-ping AND
++ --dhcp-sequential-ip are set.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ CHANGELOG  | 3 ++-
++ src/dhcp.c | 2 +-
++ 2 files changed, 3 insertions(+), 2 deletions(-)
++
++--- a/CHANGELOG
+++++ b/CHANGELOG
++@@ -14,7 +14,8 @@ version 2.80
++         when the upstream namesevers do not support DNSSEC, and in this
++         case no DNSSEC validation at all is occuring.
++ 
++-
+++        Fix DHCP broken-ness when --no-ping AND --dhcp-sequential-ip
+++	are set. Thanks to Daniel Miess for help with this.
++ 
++ 
++ version 2.79
++--- a/src/dhcp.c
+++++ b/src/dhcp.c
++@@ -678,7 +678,7 @@ struct ping_result *do_icmp_ping(time_t
++   if ((count >= max) || option_bool(OPT_NO_PING) || loopback)
++     {
++       /* overloaded, or configured not to check, loopback interface, return "not in use" */
++-      dummy.hash = 0;
+++      dummy.hash = hash;
++       return &dummy;
++     }
++   else if (icmp_ping(addr))
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0003-Add-logging-for-DNS-error-returns-from-upstream-and-.patch
+@@ -0,0 +1,184 @@
++From 07ed585c38d8f7c0a18470d2e79cf46ea92ea96a Mon Sep 17 00:00:00 2001
++From: Simon Kelley <simon@thekelleys.org.uk>
++Date: Fri, 4 May 2018 21:52:22 +0100
++Subject: [PATCH 03/10] Add logging for DNS error returns from upstream and
++ local configuration.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ src/cache.c   | 13 +++++++++++++
++ src/dnsmasq.h |  7 ++++++-
++ src/forward.c | 25 +++++++++++++++++++------
++ src/rfc1035.c | 19 ++++++++++++++-----
++ 4 files changed, 52 insertions(+), 12 deletions(-)
++
++--- a/src/cache.c
+++++ b/src/cache.c
++@@ -1598,6 +1598,19 @@ void log_query(unsigned int flags, char
++     {
++       if (flags & F_KEYTAG)
++ 	sprintf(daemon->addrbuff, arg, addr->addr.log.keytag, addr->addr.log.algo, addr->addr.log.digest);
+++      else if (flags & F_RCODE)
+++	{
+++	  unsigned int rcode = addr->addr.rcode.rcode;
+++
+++	   if (rcode == SERVFAIL)
+++	     dest = "SERVFAIL";
+++	   else if (rcode == REFUSED)
+++	     dest = "REFUSED";
+++	   else if (rcode == NOTIMP)
+++	     dest = "not implemented";
+++	   else
+++	     sprintf(daemon->addrbuff, "%u", rcode);
+++	}
++       else
++ 	{
++ #ifdef HAVE_IPV6
++--- a/src/dnsmasq.h
+++++ b/src/dnsmasq.h
++@@ -268,7 +268,11 @@ struct all_addr {
++     /* for log_query */
++     struct {
++       unsigned short keytag, algo, digest;
++-    } log; 
+++    } log;
+++    /* for log_query */
+++    struct {
+++      unsigned int rcode;
+++    } rcode;
++     /* for cache_insert of DNSKEY, DS */
++     struct {
++       unsigned short class, type;
++@@ -459,6 +463,7 @@ struct crec {
++ #define F_IPSET     (1u<<26)
++ #define F_NOEXTRA   (1u<<27)
++ #define F_SERVFAIL  (1u<<28)
+++#define F_RCODE     (1u<<29)
++ 
++ /* Values of uid in crecs with F_CONFIG bit set. */
++ #define SRC_INTERFACE 0
++--- a/src/forward.c
+++++ b/src/forward.c
++@@ -563,6 +563,7 @@ static size_t process_reply(struct dns_h
++   unsigned char *pheader, *sizep;
++   char **sets = 0;
++   int munged = 0, is_sign;
+++  unsigned int rcode = RCODE(header);
++   size_t plen; 
++   
++   (void)ad_reqd;
++@@ -593,6 +594,9 @@ static size_t process_reply(struct dns_h
++   
++   if ((pheader = find_pseudoheader(header, n, &plen, &sizep, &is_sign, NULL)))
++     {
+++      /* Get extended RCODE. */
+++      rcode |= sizep[2] << 4;
+++
++       if (check_subnet && !check_source(header, plen, pheader, query_source))
++ 	{
++ 	  my_syslog(LOG_WARNING, _("discarding DNS reply: subnet option mismatch"));
++@@ -641,11 +645,20 @@ static size_t process_reply(struct dns_h
++   if (!is_sign && !option_bool(OPT_DNSSEC_PROXY))
++      header->hb4 &= ~HB4_AD;
++   
++-  if (OPCODE(header) != QUERY || (RCODE(header) != NOERROR && RCODE(header) != NXDOMAIN))
+++  if (OPCODE(header) != QUERY)
++     return resize_packet(header, n, pheader, plen);
+++
+++  if (rcode != NOERROR && rcode != NXDOMAIN)
+++    {
+++      struct all_addr a;
+++      a.addr.rcode.rcode = rcode;
+++      log_query(F_UPSTREAM | F_RCODE, "error", &a, NULL);
+++      
+++      return resize_packet(header, n, pheader, plen);
+++    }
++   
++   /* Complain loudly if the upstream server is non-recursive. */
++-  if (!(header->hb4 & HB4_RA) && RCODE(header) == NOERROR &&
+++  if (!(header->hb4 & HB4_RA) && rcode == NOERROR &&
++       server && !(server->flags & SERV_WARNED_RECURSIVE))
++     {
++       prettyprint_addr(&server->addr, daemon->namebuff);
++@@ -654,7 +667,7 @@ static size_t process_reply(struct dns_h
++ 	server->flags |= SERV_WARNED_RECURSIVE;
++     }  
++ 
++-  if (daemon->bogus_addr && RCODE(header) != NXDOMAIN &&
+++  if (daemon->bogus_addr && rcode != NXDOMAIN &&
++       check_for_bogus_wildcard(header, n, daemon->namebuff, daemon->bogus_addr, now))
++     {
++       munged = 1;
++@@ -666,7 +679,7 @@ static size_t process_reply(struct dns_h
++     {
++       int doctored = 0;
++       
++-      if (RCODE(header) == NXDOMAIN && 
+++      if (rcode == NXDOMAIN && 
++ 	  extract_request(header, n, daemon->namebuff, NULL) &&
++ 	  check_for_local_domain(daemon->namebuff, now))
++ 	{
++@@ -1090,7 +1103,7 @@ void reply_query(int fd, int family, tim
++ 	      if (status == STAT_BOGUS && extract_request(header, n, daemon->namebuff, NULL))
++ 		domain = daemon->namebuff;
++ 	      
++-	      log_query(F_KEYTAG | F_SECSTAT, domain, NULL, result);
+++	      log_query(F_SECSTAT, domain, NULL, result);
++ 	    }
++ 	  
++ 	  if (status == STAT_SECURE)
++@@ -1948,7 +1961,7 @@ unsigned char *tcp_request(int confd, ti
++ 			  if (status == STAT_BOGUS && extract_request(header, m, daemon->namebuff, NULL))
++ 			    domain = daemon->namebuff;
++ 
++-			  log_query(F_KEYTAG | F_SECSTAT, domain, NULL, result);
+++			  log_query(F_SECSTAT, domain, NULL, result);
++ 			  
++ 			  if (status == STAT_BOGUS)
++ 			    {
++--- a/src/rfc1035.c
+++++ b/src/rfc1035.c
++@@ -926,12 +926,11 @@ unsigned int extract_request(struct dns_
++   return F_QUERY;
++ }
++ 
++-
++ size_t setup_reply(struct dns_header *header, size_t qlen,
++ 		struct all_addr *addrp, unsigned int flags, unsigned long ttl)
++ {
++   unsigned char *p;
++-
+++  
++   if (!(p = skip_questions(header, qlen)))
++     return 0;
++   
++@@ -948,7 +947,12 @@ size_t setup_reply(struct dns_header *he
++   else if (flags == F_NXDOMAIN)
++     SET_RCODE(header, NXDOMAIN);
++   else if (flags == F_SERVFAIL)
++-    SET_RCODE(header, SERVFAIL);
+++    {
+++      struct all_addr a;
+++      a.addr.rcode.rcode = SERVFAIL;
+++      log_query(F_CONFIG | F_RCODE, "error", &a, NULL);
+++      SET_RCODE(header, SERVFAIL);
+++    }
++   else if (flags == F_IPV4)
++     { /* we know the address */
++       SET_RCODE(header, NOERROR);
++@@ -966,8 +970,13 @@ size_t setup_reply(struct dns_header *he
++     }
++ #endif
++   else /* nowhere to forward to */
++-    SET_RCODE(header, REFUSED);
++- 
+++    {
+++      struct all_addr a;
+++      a.addr.rcode.rcode = REFUSED;
+++      log_query(F_CONFIG | F_RCODE, "error", &a, NULL);
+++      SET_RCODE(header, REFUSED);
+++    }
+++  
++   return p - (unsigned char *)header;
++ }
++ 
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0004-Add-packet-dump-debugging-facility.patch
+@@ -0,0 +1,587 @@
++From 6b17335209639a56f214d011eaed4ebcde8dd276 Mon Sep 17 00:00:00 2001
++From: Simon Kelley <simon@thekelleys.org.uk>
++Date: Tue, 8 May 2018 18:32:14 +0100
++Subject: [PATCH 04/10] Add packet-dump debugging facility.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ CHANGELOG      |   6 ++
++ Makefile       |   2 +-
++ bld/Android.mk |   3 +-
++ man/dnsmasq.8  |   7 ++
++ src/config.h   |  16 ++++-
++ src/dnsmasq.c  |  16 ++++-
++ src/dnsmasq.h  |  29 +++++++-
++ src/dump.c     | 210 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++ src/forward.c  |  37 ++++++++--
++ src/option.c   |  14 ++++
++ 10 files changed, 329 insertions(+), 11 deletions(-)
++ create mode 100644 src/dump.c
++
++--- a/CHANGELOG
+++++ b/CHANGELOG
++@@ -17,6 +17,12 @@ version 2.80
++         Fix DHCP broken-ness when --no-ping AND --dhcp-sequential-ip
++ 	are set. Thanks to Daniel Miess for help with this.
++ 
+++	Add a facilty to store DNS packets sent/recieved in a
+++	pcap-format file for later debugging. The file location
+++	is given by the --dumpfile option, and a bitmap controlling
+++	which packets should be dumped is given by the --dumpmask
+++	option.
+++
++ 
++ version 2.79
++ 	Fix parsing of CNAME arguments, which are confused by extra spaces.
++--- a/Makefile
+++++ b/Makefile
++@@ -76,7 +76,7 @@ objs = cache.o rfc1035.o util.o option.o
++        helper.o tftp.o log.o conntrack.o dhcp6.o rfc3315.o \
++        dhcp-common.o outpacket.o radv.o slaac.o auth.o ipset.o \
++        domain.o dnssec.o blockdata.o tables.o loop.o inotify.o \
++-       poll.o rrfilter.o edns0.o arp.o crypto.o
+++       poll.o rrfilter.o edns0.o arp.o crypto.o dump.o
++ 
++ hdrs = dnsmasq.h config.h dhcp-protocol.h dhcp6-protocol.h \
++        dns-protocol.h radv-protocol.h ip6addr.h
++--- a/bld/Android.mk
+++++ b/bld/Android.mk
++@@ -10,7 +10,8 @@ LOCAL_SRC_FILES :=  bpf.c cache.c dbus.c
++ 		    dhcp6.c rfc3315.c dhcp-common.c outpacket.c \
++ 		    radv.c slaac.c auth.c ipset.c domain.c \
++ 	            dnssec.c dnssec-openssl.c blockdata.c tables.c \
++-		    loop.c inotify.c poll.c rrfilter.c edns0.c arp.c crypto.c
+++		    loop.c inotify.c poll.c rrfilter.c edns0.c arp.c \
+++		    crypto.c dump.c
++ 
++ LOCAL_MODULE := dnsmasq
++ 
++--- a/man/dnsmasq.8
+++++ b/man/dnsmasq.8
++@@ -647,6 +647,13 @@ V4 mapped IPv6 addresses, which have a r
++ The address range can be of the form
++ <ip address>,<ip address> or <ip address>/<netmask> in both forms of the option.
++ .TP
+++.B --dumpfile=<path/to/file>
+++Specify the location of a pcap-format file which dnsmasq uses to dump copies of network packets for debugging purposes. If the file exists when dnsmasq starts, it is not deleted; new packets are added to the end.
+++.TP
+++.B --dumpmask=<mask>
+++Specify which types of packets should be added to the dumpfile. The argument should be the OR of the bitmasks for each type of packet to be dumped: it can be specified in hex by preceding the number with 0x in  the normal way. Each time a packet is written to the dumpfile, dnsmasq logs the packet sequence and the mask
+++representing its type. The current types are: 0x0001 - DNS queries from clients 0x0002 DNS replies to clients 0x0004 - DNS queries to upstream 0x0008 - DNS replies from upstream 0x0010 - queries send upstream for DNSSEC validation 0x0020 - replies to queries for DNSSEC validation 0x0040 - replies to client queries which fail DNSSEC validation 0x0080 replies to queries for DNSSEC validation which fail validation.
+++.TP
++ .B --add-mac[=base64|text]
++ Add the MAC address of the requestor to DNS queries which are
++ forwarded upstream. This may be used to DNS filtering by the upstream
++--- a/src/config.h
+++++ b/src/config.h
++@@ -117,6 +117,9 @@ HAVE_AUTH
++ HAVE_DNSSEC
++    include DNSSEC validator.
++ 
+++HAVE_DUMPFILE
+++   include code to dump packets to a libpcap-format file for debugging.
+++
++ HAVE_LOOP
++    include functionality to probe for and remove DNS forwarding loops.
++ 
++@@ -132,6 +135,7 @@ NO_DHCP6
++ NO_SCRIPT
++ NO_LARGEFILE
++ NO_AUTH
+++NO_DUMPFILE
++ NO_INOTIFY
++    these are available to explicitly disable compile time options which would 
++    otherwise be enabled automatically (HAVE_IPV6, >2Gb file sizes) or 
++@@ -164,6 +168,7 @@ RESOLVFILE
++ #define HAVE_AUTH
++ #define HAVE_IPSET 
++ #define HAVE_LOOP
+++#define HAVE_DUMPFILE
++ 
++ /* Build options which require external libraries.
++    
++@@ -363,6 +368,10 @@ HAVE_SOCKADDR_SA_LEN
++ #undef HAVE_LOOP
++ #endif
++ 
+++#ifdef NO_DUMPFILE
+++#undef HAVE_DUMPFILE
+++#endif
+++
++ #if defined (HAVE_LINUX_NETWORK) && !defined(NO_INOTIFY)
++ #define HAVE_INOTIFY
++ #endif
++@@ -451,8 +460,11 @@ static char *compile_opts =
++ #ifndef HAVE_INOTIFY
++ "no-"
++ #endif
++-"inotify";
++-
+++"inotify "
+++#ifndef HAVE_DUMPFILE
+++"no-"
+++#endif
+++"dumpfile";
++ 
++ #endif
++ 
++--- a/src/dnsmasq.c
+++++ b/src/dnsmasq.c
++@@ -366,7 +366,16 @@ int main (int argc, char **argv)
++   else
++     daemon->inotifyfd = -1;
++ #endif
++-       
+++
+++  if (daemon->dump_file)
+++#ifdef HAVE_DUMPFILE
+++    dump_init();
+++  else 
+++    daemon->dumpfd = -1;
+++#else
+++  die(_("Packet dumps not available: set HAVE_DUMP in src/config.h"), NULL, EC_BADCONF);
+++#endif
+++  
++   if (option_bool(OPT_DBUS))
++ #ifdef HAVE_DBUS
++     {
++@@ -1424,6 +1433,11 @@ static void async_event(int pipe, time_t
++ 
++ 	if (daemon->runfile)
++ 	  unlink(daemon->runfile);
+++
+++#ifdef HAVE_DUMPFILE
+++	if (daemon->dumpfd != -1)
+++	  close(daemon->dumpfd);
+++#endif
++ 	
++ 	my_syslog(LOG_INFO, _("exiting on receipt of SIGTERM"));
++ 	flush_log();
++--- a/src/dnsmasq.h
+++++ b/src/dnsmasq.h
++@@ -119,6 +119,9 @@ typedef unsigned long long u64;
++ #include <net/if_arp.h>
++ #include <netinet/in_systm.h>
++ #include <netinet/ip.h>
+++#ifdef HAVE_IPV6
+++#include <netinet/ip6.h>
+++#endif
++ #include <netinet/ip_icmp.h>
++ #include <sys/uio.h>
++ #include <syslog.h>
++@@ -598,6 +601,16 @@ struct hostsfile {
++   unsigned int index; /* matches to cache entries for logging */
++ };
++ 
+++/* packet-dump flags */
+++#define DUMP_QUERY     0x0001
+++#define DUMP_REPLY     0x0002
+++#define DUMP_UP_QUERY  0x0004
+++#define DUMP_UP_REPLY  0x0008
+++#define DUMP_SEC_QUERY 0x0010
+++#define DUMP_SEC_REPLY 0x0020
+++#define DUMP_BOGUS     0x0040
+++#define DUMP_SEC_BOGUS 0x0080
+++
++ 
++ /* DNSSEC status values. */
++ #define STAT_SECURE             1
++@@ -1020,14 +1033,14 @@ extern struct daemon {
++   unsigned int duid_enterprise, duid_config_len;
++   unsigned char *duid_config;
++   char *dbus_name;
+++  char *dump_file;
+++  int dump_mask;
++   unsigned long soa_sn, soa_refresh, soa_retry, soa_expiry;
++ #ifdef OPTION6_PREFIX_CLASS 
++   struct prefix_class *prefix_classes;
++ #endif
++ #ifdef HAVE_DNSSEC
++   struct ds_config *ds;
++-  int dnssec_no_time_check;
++-  int back_to_the_future;
++   char *timestamp_file;
++ #endif
++ 
++@@ -1040,6 +1053,8 @@ extern struct daemon {
++   char *workspacename; /* ditto */
++   char *rr_status; /* flags for individual RRs */
++   int rr_status_sz;
+++  int dnssec_no_time_check;
+++  int back_to_the_future;
++ #endif
++   unsigned int local_answer, queries_forwarded, auth_answer;
++   struct frec *frec_list;
++@@ -1094,6 +1109,10 @@ extern struct daemon {
++   char *addrbuff;
++   char *addrbuff2; /* only allocated when OPT_EXTRALOG */
++ 
+++#ifdef HAVE_DUMPFILE
+++  /* file for packet dumps. */
+++  int dumpfd;
+++#endif
++ } *daemon;
++ 
++ /* cache.c */
++@@ -1588,3 +1607,9 @@ int check_source(struct dns_header *head
++ /* arp.c */
++ int find_mac(union mysockaddr *addr, unsigned char *mac, int lazy, time_t now);
++ int do_arp_script_run(void);
+++
+++/* dump.c */
+++#ifdef HAVE_DUMPFILE
+++void dump_init(void);
+++void dump_packet(int mask, void *packet, size_t len, union mysockaddr *src, union mysockaddr *dst);
+++#endif
++--- /dev/null
+++++ b/src/dump.c
++@@ -0,0 +1,210 @@
+++/* dnsmasq is Copyright (c) 2000-2018 Simon Kelley
+++
+++   This program is free software; you can redistribute it and/or modify
+++   it under the terms of the GNU General Public License as published by
+++   the Free Software Foundation; version 2 dated June, 1991, or
+++   (at your option) version 3 dated 29 June, 2007.
+++ 
+++   This program is distributed in the hope that it will be useful,
+++   but WITHOUT ANY WARRANTY; without even the implied warranty of
+++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+++   GNU General Public License for more details.
+++     
+++   You should have received a copy of the GNU General Public License
+++   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+++*/
+++
+++#include "dnsmasq.h"
+++
+++#ifdef HAVE_DUMPFILE
+++
+++static u32 packet_count;
+++
+++/* https://wiki.wireshark.org/Development/LibpcapFileFormat */
+++struct pcap_hdr_s {
+++        u32 magic_number;   /* magic number */
+++        u16 version_major;  /* major version number */
+++        u16 version_minor;  /* minor version number */
+++        u32 thiszone;       /* GMT to local correction */
+++        u32 sigfigs;        /* accuracy of timestamps */
+++        u32 snaplen;        /* max length of captured packets, in octets */
+++        u32 network;        /* data link type */
+++};
+++
+++struct pcaprec_hdr_s {
+++        u32 ts_sec;         /* timestamp seconds */
+++        u32 ts_usec;        /* timestamp microseconds */
+++        u32 incl_len;       /* number of octets of packet saved in file */
+++        u32 orig_len;       /* actual length of packet */
+++};
+++
+++
+++void dump_init(void)
+++{
+++  struct stat buf;
+++  struct pcap_hdr_s header;
+++  struct pcaprec_hdr_s pcap_header;
+++
+++  packet_count = 0;
+++  
+++  if (stat(daemon->dump_file, &buf) == -1)
+++    {
+++      /* doesn't exist, create and add header */
+++      header.magic_number = 0xa1b2c3d4;
+++      header.version_major = 2;
+++      header.version_minor = 4;
+++      header.thiszone = 0;
+++      header.sigfigs = 0;
+++      header.snaplen = daemon->edns_pktsz + 200; /* slop for IP/UDP headers */
+++      header.network = 101; /* DLT_RAW http://www.tcpdump.org/linktypes.html */
+++
+++      if (errno != ENOENT ||
+++	  (daemon->dumpfd = creat(daemon->dump_file, S_IRUSR | S_IWUSR)) == -1 ||
+++	  !read_write(daemon->dumpfd, (void *)&header, sizeof(header), 0))
+++	die(_("cannot create %s: %s"), daemon->dump_file, EC_FILE);
+++    }
+++  else if ((daemon->dumpfd = open(daemon->dump_file, O_APPEND | O_RDWR)) == -1 ||
+++	   !read_write(daemon->dumpfd, (void *)&header, sizeof(header), 1) ||
+++	   header.magic_number != 0xa1b2c3d4)
+++    die(_("cannot access %s: %s"), daemon->dump_file, EC_FILE);
+++  else
+++    {
+++      /* count existing records */
+++      while (read_write(daemon->dumpfd, (void *)&pcap_header, sizeof(pcap_header), 1))
+++	{
+++	  lseek(daemon->dumpfd, pcap_header.incl_len, SEEK_CUR);
+++	  packet_count++;
+++	}
+++    }
+++}
+++
+++void dump_packet(int mask, void *packet, size_t len, union mysockaddr *src, union mysockaddr *dst)
+++{
+++  struct ip ip;
+++#ifdef HAVE_IPV6
+++  struct ip6_hdr ip6;
+++  int family;
+++#endif
+++  struct udphdr {
+++    u16 uh_sport;               /* source port */
+++    u16 uh_dport;               /* destination port */
+++    u16 uh_ulen;                /* udp length */
+++    u16 uh_sum;                 /* udp checksum */
+++  } udp;
+++  struct pcaprec_hdr_s pcap_header;
+++  struct timeval time;
+++  u32 i, sum;
+++  void *iphdr;
+++  size_t ipsz;
+++  int rc;
+++  
+++  if (daemon->dumpfd == -1 || !(mask & daemon->dump_mask))
+++    return;
+++  
+++  /* So wireshark can Id the packet. */
+++  udp.uh_sport = udp.uh_dport = htons(NAMESERVER_PORT);
+++
+++#ifdef HAVE_IPV6
+++  if (src)
+++    family = src->sa.sa_family;
+++  else
+++    family = dst->sa.sa_family;
+++
+++  if (family == AF_INET6)
+++    {
+++      iphdr = &ip6;
+++      ipsz = sizeof(ip6);
+++      memset(&ip6, 0, sizeof(ip6));
+++      
+++      ip6.ip6_vfc = 6 << 4;
+++      ip6.ip6_plen = htons(sizeof(struct udphdr) + len);
+++      ip6.ip6_nxt = IPPROTO_UDP;
+++      ip6.ip6_hops = 64;
+++
+++      if (src)
+++	{
+++	  memcpy(&ip6.ip6_src, &src->in6.sin6_addr, IN6ADDRSZ);
+++	  udp.uh_sport = src->in6.sin6_port;
+++	}
+++      
+++      if (dst)
+++	{
+++	  memcpy(&ip6.ip6_dst, &dst->in6.sin6_addr, IN6ADDRSZ);
+++	  udp.uh_dport = dst->in6.sin6_port;
+++	}
+++            
+++      /* start UDP checksum */
+++      for (sum = 0, i = 0; i < IN6ADDRSZ; i++)
+++	sum += ((u16 *)&ip6.ip6_src)[i];
+++    }
+++  else
+++#endif
+++    {
+++      iphdr = &ip;
+++      ipsz = sizeof(ip);
+++      memset(&ip, 0, sizeof(ip));
+++      
+++      ip.ip_v = IPVERSION;
+++      ip.ip_hl = sizeof(struct ip) / 4;
+++      ip.ip_len = htons(sizeof(struct ip) + sizeof(struct udphdr) + len); 
+++      ip.ip_ttl = IPDEFTTL;
+++      ip.ip_p = IPPROTO_UDP;
+++      
+++      if (src)
+++	{
+++	  ip.ip_src = src->in.sin_addr;
+++	  udp.uh_sport = src->in.sin_port;
+++	}
+++
+++      if (dst)
+++	{
+++	  ip.ip_dst = dst->in.sin_addr;
+++	  udp.uh_dport = dst->in.sin_port;
+++	}
+++      
+++      ip.ip_sum = 0;
+++      for (sum = 0, i = 0; i < sizeof(struct ip) / 2; i++)
+++	sum += ((u16 *)&ip)[i];
+++      while (sum >> 16)
+++	sum = (sum & 0xffff) + (sum >> 16);  
+++      ip.ip_sum = (sum == 0xffff) ? sum : ~sum;
+++      
+++      /* start UDP checksum */
+++      sum = ip.ip_src.s_addr & 0xffff;
+++      sum += (ip.ip_src.s_addr >> 16) & 0xffff;
+++      sum += ip.ip_dst.s_addr & 0xffff;
+++      sum += (ip.ip_dst.s_addr >> 16) & 0xffff;
+++    }
+++  
+++  if (len & 1)
+++    ((unsigned char *)packet)[len] = 0; /* for checksum, in case length is odd. */
+++
+++  udp.uh_sum = 0;
+++  udp.uh_ulen = htons(sizeof(struct udphdr) + len);
+++  sum += htons(IPPROTO_UDP);
+++  sum += htons(sizeof(struct udphdr) + len);
+++  for (i = 0; i < sizeof(struct udphdr)/2; i++)
+++    sum += ((u16 *)&udp)[i];
+++  for (i = 0; i < (len + 1) / 2; i++)
+++    sum += ((u16 *)packet)[i];
+++  while (sum >> 16)
+++    sum = (sum & 0xffff) + (sum >> 16);
+++  udp.uh_sum = (sum == 0xffff) ? sum : ~sum;
+++
+++  rc = gettimeofday(&time, NULL);
+++  pcap_header.ts_sec = time.tv_sec;
+++  pcap_header.ts_usec = time.tv_usec;
+++  pcap_header.incl_len = pcap_header.orig_len = ipsz + sizeof(udp) + len;
+++  
+++  if (rc == -1 ||
+++      !read_write(daemon->dumpfd, (void *)&pcap_header, sizeof(pcap_header), 0) ||
+++      !read_write(daemon->dumpfd, iphdr, ipsz, 0) ||
+++      !read_write(daemon->dumpfd, (void *)&udp, sizeof(udp), 0) ||
+++      !read_write(daemon->dumpfd, (void *)packet, len, 0))
+++    my_syslog(LOG_ERR, _("failed to write packet dump"));
+++  else
+++    my_syslog(LOG_INFO, _("dumping UDP packet %u mask 0x%04x"), ++packet_count, mask);
+++
+++}
+++
+++#endif
++--- a/src/forward.c
+++++ b/src/forward.c
++@@ -508,6 +508,10 @@ static int forward_query(int udpfd, unio
++ 	    
++ 	      if (errno == 0)
++ 		{
+++#ifdef HAVE_DUMPFILE
+++		  dump_packet(DUMP_UP_QUERY, (void *)header, plen, NULL, &start->addr);
+++#endif
+++		  
++ 		  /* Keep info in case we want to re-send this packet */
++ 		  daemon->srv_save = start;
++ 		  daemon->packet_len = plen;
++@@ -769,7 +773,7 @@ void reply_query(int fd, int family, tim
++ #endif
++   
++   header = (struct dns_header *)daemon->packet;
++-  
+++
++   if (n < (int)sizeof(struct dns_header) || !(header->hb3 & HB3_QR))
++     return;
++   
++@@ -796,6 +800,12 @@ void reply_query(int fd, int family, tim
++   if (!(forward = lookup_frec(ntohs(header->id), hash)))
++     return;
++   
+++#ifdef HAVE_DUMPFILE
+++  dump_packet((forward->flags & (FREC_DNSKEY_QUERY | FREC_DS_QUERY)) ? DUMP_SEC_REPLY : DUMP_UP_REPLY,
+++	      (void *)header, n, &serveraddr, NULL);
+++#endif
+++  
+++  
++   /* log_query gets called indirectly all over the place, so 
++      pass these in global variables - sorry. */
++   daemon->log_display_id = forward->log_id;
++@@ -934,6 +944,11 @@ void reply_query(int fd, int family, tim
++ 		    status = dnssec_validate_reply(now, header, n, daemon->namebuff, daemon->keyname, &forward->class, 
++ 						   !option_bool(OPT_DNSSEC_IGN_NS) && (server->flags & SERV_DO_DNSSEC),
++ 						   NULL, NULL);
+++#ifdef HAVE_DUMPFILE
+++		  if (status == STAT_BOGUS)
+++		    dump_packet((forward->flags & (FREC_DNSKEY_QUERY | FREC_DS_QUERY)) ? DUMP_SEC_BOGUS : DUMP_BOGUS,
+++				header, (size_t)n, &serveraddr, NULL);
+++#endif
++ 		}
++ 	      
++ 	      /* Can't validate, as we're missing key data. Put this
++@@ -1060,6 +1075,11 @@ void reply_query(int fd, int family, tim
++ 				setsockopt(fd, SOL_SOCKET, SO_MARK, &mark, sizeof(unsigned int));
++ 			    }
++ #endif
+++			  
+++#ifdef HAVE_DUMPFILE
+++			  dump_packet(DUMP_SEC_QUERY, (void *)header, (size_t)nn, NULL, &server->addr);
+++#endif
+++			  
++ 			  while (retry_send(sendto(fd, (char *)header, nn, 0, 
++ 						   &server->addr.sa, 
++ 						   sa_len(&server->addr)))); 
++@@ -1114,8 +1134,8 @@ void reply_query(int fd, int family, tim
++ 	      bogusanswer = 1;
++ 	    }
++ 	}
++-#endif     
++-      
+++#endif
+++
++       /* restore CD bit to the value in the query */
++       if (forward->flags & FREC_CHECKING_DISABLED)
++ 	header->hb4 |= HB4_CD;
++@@ -1141,6 +1161,11 @@ void reply_query(int fd, int family, tim
++ 	      nn = resize_packet(header, nn, NULL, 0);
++ 	    }
++ #endif
+++
+++#ifdef HAVE_DUMPFILE
+++	  dump_packet(DUMP_REPLY, daemon->packet, (size_t)nn, NULL, &forward->source);
+++#endif
+++	  
++ 	  send_from(forward->fd, option_bool(OPT_NOWILD) || option_bool (OPT_CLEVERBIND), daemon->packet, nn, 
++ 		    &forward->source, &forward->dest, forward->iface);
++ 	}
++@@ -1394,7 +1419,11 @@ void receive_query(struct listener *list
++      pass these in global variables - sorry. */
++   daemon->log_display_id = ++daemon->log_id;
++   daemon->log_source_addr = &source_addr;
++-  
+++
+++#ifdef HAVE_DUMPFILE
+++  dump_packet(DUMP_QUERY, daemon->packet, (size_t)n, &source_addr, NULL);
+++#endif
+++	  
++   if (extract_request(header, (size_t)n, daemon->namebuff, &type))
++     {
++ #ifdef HAVE_AUTH
++--- a/src/option.c
+++++ b/src/option.c
++@@ -161,6 +161,8 @@ struct myoption {
++ #define LOPT_TFTP_MTU      349
++ #define LOPT_REPLY_DELAY   350
++ #define LOPT_RAPID_COMMIT  351
+++#define LOPT_DUMPFILE      352
+++#define LOPT_DUMPMASK      353
++  
++ #ifdef HAVE_GETOPT_LONG
++ static const struct option opts[] =  
++@@ -327,6 +329,8 @@ static const struct myoption opts[] =
++     { "dhcp-ttl", 1, 0 , LOPT_DHCPTTL },
++     { "dhcp-reply-delay", 1, 0, LOPT_REPLY_DELAY },
++     { "dhcp-rapid-commit", 0, 0, LOPT_RAPID_COMMIT },
+++    { "dumpfile", 1, 0, LOPT_DUMPFILE },
+++    { "dumpmask", 1, 0, LOPT_DUMPMASK },
++     { NULL, 0, 0, 0 }
++   };
++ 
++@@ -500,6 +504,8 @@ static struct {
++   { LOPT_DHCPTTL, ARG_ONE, "<ttl>", gettext_noop("Set TTL in DNS responses with DHCP-derived addresses."), NULL }, 
++   { LOPT_REPLY_DELAY, ARG_ONE, "<integer>", gettext_noop("Delay DHCP replies for at least number of seconds."), NULL },
++   { LOPT_RAPID_COMMIT, OPT_RAPID_COMMIT, NULL, gettext_noop("Enables DHCPv4 Rapid Commit option."), NULL },
+++  { LOPT_DUMPFILE, ARG_ONE, "<path>", gettext_noop("Path to debug packet dump file"), NULL },
+++  { LOPT_DUMPMASK, ARG_ONE, "<hex>", gettext_noop("Mask which packets to dump"), NULL },
++   { 0, 0, NULL, NULL, NULL }
++ }; 
++ 
++@@ -1811,6 +1817,14 @@ static int one_opt(int option, char *arg
++ 	ret_err(_("bad MX target"));
++       break;
++ 
+++    case LOPT_DUMPFILE:  /* --dumpfile */
+++      daemon->dump_file = opt_string_alloc(arg);
+++      break;
+++
+++    case LOPT_DUMPMASK:  /* --dumpmask */
+++      daemon->dump_mask = strtol(arg, NULL, 0);
+++      break;
+++      
++ #ifdef HAVE_DHCP      
++     case 'l':  /* --dhcp-leasefile */
++       daemon->lease_file = opt_string_alloc(arg);
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0005-Retry-query-to-other-servers-on-receipt-of-SERVFAIL-.patch
+@@ -0,0 +1,22 @@
++From 34e26e14c5e0fb2d5f05f67858319c9db2058333 Mon Sep 17 00:00:00 2001
++From: Simon Kelley <simon@thekelleys.org.uk>
++Date: Thu, 10 May 2018 20:54:57 +0100
++Subject: [PATCH 05/10] Retry query to other servers on receipt of SERVFAIL
++ rcode.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ src/forward.c | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++--- a/src/forward.c
+++++ b/src/forward.c
++@@ -817,7 +817,7 @@ void reply_query(int fd, int family, tim
++ 
++   /* Note: if we send extra options in the EDNS0 header, we can't recreate
++      the query from the reply. */
++-  if (RCODE(header) == REFUSED &&
+++  if ((RCODE(header) == REFUSED || RCODE(header) == SERVFAIL) &&
++       forward->forwardall == 0 &&
++       !(forward->flags & FREC_HAS_EXTRADATA))
++     /* for broken servers, attempt to send to another one. */
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0006-Handle-query-retry-on-REFUSED-or-SERVFAIL-for-DNSSEC.patch
+@@ -0,0 +1,87 @@
++From a0088e83640d7d1544127dd668660462e9f78e52 Mon Sep 17 00:00:00 2001
++From: Simon Kelley <simon@thekelleys.org.uk>
++Date: Thu, 10 May 2018 21:43:14 +0100
++Subject: [PATCH 06/10] Handle query retry on REFUSED or SERVFAIL for
++ DNSSEC-generated queries.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ src/forward.c | 46 ++++++++++++++++++++++++++++++++++++++++------
++ 1 file changed, 40 insertions(+), 6 deletions(-)
++
++--- a/src/forward.c
+++++ b/src/forward.c
++@@ -298,9 +298,9 @@ static int forward_query(int udpfd, unio
++ 		fd = forward->rfd4->fd;
++ 	    }
++ 	  
++-	  while (retry_send( sendto(fd, (char *)header, plen, 0,
++-				    &forward->sentto->addr.sa,
++-				    sa_len(&forward->sentto->addr))));
+++	  while (retry_send(sendto(fd, (char *)header, plen, 0,
+++				   &forward->sentto->addr.sa,
+++				   sa_len(&forward->sentto->addr))));
++ 	  
++ 	  return 1;
++ 	}
++@@ -804,8 +804,7 @@ void reply_query(int fd, int family, tim
++   dump_packet((forward->flags & (FREC_DNSKEY_QUERY | FREC_DS_QUERY)) ? DUMP_SEC_REPLY : DUMP_UP_REPLY,
++ 	      (void *)header, n, &serveraddr, NULL);
++ #endif
++-  
++-  
+++
++   /* log_query gets called indirectly all over the place, so 
++      pass these in global variables - sorry. */
++   daemon->log_display_id = forward->log_id;
++@@ -826,6 +825,40 @@ void reply_query(int fd, int family, tim
++       size_t plen;
++       int is_sign;
++ 
+++      /* For DNSSEC originated queries, just retry the query to the same server. */
+++      if (forward->flags & (FREC_DNSKEY_QUERY | FREC_DS_QUERY))
+++	{
+++	  blockdata_retrieve(forward->stash, forward->stash_len, (void *)header);
+++	  plen = forward->stash_len;
+++
+++	  forward->forwardall = 2; /* only retry once */
+++	  
+++	  if (forward->sentto->addr.sa.sa_family == AF_INET) 
+++	    log_query(F_NOEXTRA | F_DNSSEC | F_IPV4, "retry", (struct all_addr *)&forward->sentto->addr.in.sin_addr, "dnssec");
+++#ifdef HAVE_IPV6
+++	  else
+++	    log_query(F_NOEXTRA | F_DNSSEC | F_IPV6, "retry", (struct all_addr *)&forward->sentto->addr.in6.sin6_addr, "dnssec");
+++#endif
+++  
+++	  if (forward->sentto->sfd)
+++	    fd = forward->sentto->sfd->fd;
+++	  else
+++	    {
+++#ifdef HAVE_IPV6
+++	      if (forward->sentto->addr.sa.sa_family == AF_INET6)
+++		fd = forward->rfd6->fd;
+++	      else
+++#endif
+++		fd = forward->rfd4->fd;
+++	    }
+++	  
+++	  while (retry_send(sendto(fd, (char *)header, plen, 0,
+++				   &forward->sentto->addr.sa,
+++				   sa_len(&forward->sentto->addr))));
+++	  
+++	  return;
+++	}
+++	  
++       /* In strict order mode, there must be a server later in the chain
++ 	 left to send to, otherwise without the forwardall mechanism,
++ 	 code further on will cycle around the list forwever if they
++@@ -1017,7 +1050,8 @@ void reply_query(int fd, int family, tim
++ #ifdef HAVE_IPV6
++ 		      new->rfd6 = NULL;
++ #endif
++-		      new->flags &= ~(FREC_DNSKEY_QUERY | FREC_DS_QUERY);
+++		      new->flags &= ~(FREC_DNSKEY_QUERY | FREC_DS_QUERY | FREC_HAS_EXTRADATA);
+++		      new->forwardall = 0;
++ 		      
++ 		      new->dependent = forward; /* to find query awaiting new one. */
++ 		      forward->blocking_query = new; /* for garbage cleaning */
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0007-Retry-SERVFAIL-DNSSEC-queries-to-a-different-server-.patch
+@@ -0,0 +1,100 @@
++From 1f60a18ea1c64beb8b6cffa0650a2bfad95ac352 Mon Sep 17 00:00:00 2001
++From: Simon Kelley <simon@thekelleys.org.uk>
++Date: Fri, 11 May 2018 16:44:16 +0100
++Subject: [PATCH 07/10] Retry SERVFAIL DNSSEC queries to a different server, if
++ possible.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ src/forward.c | 53 ++++++++++++++++++++++++++++++++++++++++++-----------
++ 1 file changed, 42 insertions(+), 11 deletions(-)
++
++--- a/src/forward.c
+++++ b/src/forward.c
++@@ -825,9 +825,12 @@ void reply_query(int fd, int family, tim
++       size_t plen;
++       int is_sign;
++ 
+++#ifdef HAVE_DNSSEC
++       /* For DNSSEC originated queries, just retry the query to the same server. */
++       if (forward->flags & (FREC_DNSKEY_QUERY | FREC_DS_QUERY))
++ 	{
+++	  struct server *start;
+++	  
++ 	  blockdata_retrieve(forward->stash, forward->stash_len, (void *)header);
++ 	  plen = forward->stash_len;
++ 
++@@ -839,26 +842,54 @@ void reply_query(int fd, int family, tim
++ 	  else
++ 	    log_query(F_NOEXTRA | F_DNSSEC | F_IPV6, "retry", (struct all_addr *)&forward->sentto->addr.in6.sin6_addr, "dnssec");
++ #endif
++-  
++-	  if (forward->sentto->sfd)
++-	    fd = forward->sentto->sfd->fd;
+++
+++	  start = forward->sentto;
+++
+++	  /* for non-domain specific servers, see if we can find another to try. */
+++	  if ((forward->sentto->flags & SERV_TYPE) == 0)
+++	    while (1)
+++	      {
+++		if (!(start = start->next))
+++		  start = daemon->servers;
+++		if (start == forward->sentto)
+++		  break;
+++		
+++		if ((start->flags & SERV_TYPE) == 0 &&
+++		    (start->flags & SERV_DO_DNSSEC))
+++		  break;
+++	      }
+++	    
+++	  
+++	  if (start->sfd)
+++	    fd = start->sfd->fd;
++ 	  else
++ 	    {
++ #ifdef HAVE_IPV6
++-	      if (forward->sentto->addr.sa.sa_family == AF_INET6)
++-		fd = forward->rfd6->fd;
+++	      if (start->addr.sa.sa_family == AF_INET6)
+++		{
+++		  /* may have changed family */
+++		  if (!forward->rfd6)
+++		    forward->rfd6 = allocate_rfd(AF_INET6);
+++		  fd = forward->rfd6->fd;
+++		}
++ 	      else
++ #endif
++-		fd = forward->rfd4->fd;
+++		{
+++		  /* may have changed family */
+++		  if (!forward->rfd4)
+++		    forward->rfd4 = allocate_rfd(AF_INET);
+++		  fd = forward->rfd4->fd;
+++		}
++ 	    }
++-	  
+++	
++ 	  while (retry_send(sendto(fd, (char *)header, plen, 0,
++-				   &forward->sentto->addr.sa,
++-				   sa_len(&forward->sentto->addr))));
+++				   &start->addr.sa,
+++				   sa_len(&start->addr))));
++ 	  
++ 	  return;
++ 	}
++-	  
+++#endif
+++      
++       /* In strict order mode, there must be a server later in the chain
++ 	 left to send to, otherwise without the forwardall mechanism,
++ 	 code further on will cycle around the list forwever if they
++@@ -1024,7 +1055,7 @@ void reply_query(int fd, int family, tim
++ 			  while (1)
++ 			    {
++ 			      if (type == (start->flags & (SERV_TYPE | SERV_DO_DNSSEC)) &&
++-				  (type != SERV_HAS_DOMAIN || hostname_isequal(domain, start->domain)) &&
+++				  ((type & SERV_TYPE) != SERV_HAS_DOMAIN || hostname_isequal(domain, start->domain)) &&
++ 				  !(start->flags & (SERV_LITERAL_ADDRESS | SERV_LOOP)))
++ 				{
++ 				  new_server = start;
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0008-Fix-logging-in-previous.patch
+@@ -0,0 +1,41 @@
++From e27825b0ef1e79ab05b1752c8c838cb43ad39d79 Mon Sep 17 00:00:00 2001
++From: Simon Kelley <simon@thekelleys.org.uk>
++Date: Fri, 11 May 2018 17:20:47 +0100
++Subject: [PATCH 08/10] Fix logging in previous.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ src/forward.c | 15 +++++++--------
++ 1 file changed, 7 insertions(+), 8 deletions(-)
++
++--- a/src/forward.c
+++++ b/src/forward.c
++@@ -835,14 +835,6 @@ void reply_query(int fd, int family, tim
++ 	  plen = forward->stash_len;
++ 
++ 	  forward->forwardall = 2; /* only retry once */
++-	  
++-	  if (forward->sentto->addr.sa.sa_family == AF_INET) 
++-	    log_query(F_NOEXTRA | F_DNSSEC | F_IPV4, "retry", (struct all_addr *)&forward->sentto->addr.in.sin_addr, "dnssec");
++-#ifdef HAVE_IPV6
++-	  else
++-	    log_query(F_NOEXTRA | F_DNSSEC | F_IPV6, "retry", (struct all_addr *)&forward->sentto->addr.in6.sin6_addr, "dnssec");
++-#endif
++-
++ 	  start = forward->sentto;
++ 
++ 	  /* for non-domain specific servers, see if we can find another to try. */
++@@ -886,6 +878,13 @@ void reply_query(int fd, int family, tim
++ 				   &start->addr.sa,
++ 				   sa_len(&start->addr))));
++ 	  
+++	  if (start->addr.sa.sa_family == AF_INET) 
+++	    log_query(F_NOEXTRA | F_DNSSEC | F_IPV4, "retry", (struct all_addr *)&start->addr.in.sin_addr, "dnssec");
+++#ifdef HAVE_IPV6
+++	  else
+++	    log_query(F_NOEXTRA | F_DNSSEC | F_IPV6, "retry", (struct all_addr *)&start->addr.in6.sin6_addr, "dnssec");
+++#endif
+++	  
++ 	  return;
++ 	}
++ #endif
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0009-Do-unsolicited-RAs-for-interfaces-which-appear-after.patch
+@@ -0,0 +1,44 @@
++From 0a496f059c1e9d75c33cce4c1211d58422ba4f62 Mon Sep 17 00:00:00 2001
++From: Maarten de Vries <maarten+dnsmasq@m.de-vri.es>
++Date: Fri, 11 May 2018 23:20:58 +0100
++Subject: [PATCH 09/10] Do unsolicited RAs for interfaces which appear after
++ dnsmasq startup.
++
++I noticed that dnsmasq often wasn't sending any unsolicited RAs for me.
++
++This turned out to happen when the interface (a bridge interface) wasn't
++created yet at the time dnsmasq started. When dnsmasq is started after
++the interface is created, it sends RAs as expected. I assume this also
++extends to other types of virtual interfaces that are created after
++dnsmasq starts.
++
++Digging into the source, it seems to be caused by a missing call to
++ra_start_unsolicited for non-template contexts in construct_worker from
++src/dhcp6.c. The attached patch adds that call, but only if the
++interface index or address changed to prevent doing fast RAs for no reason.
++
++I tested it on my own server and it appears to work as expected. When
++the interface is created and configured, dnsmasq does fast RAs for a
++while and then settles into slow RAs.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ src/dhcp6.c | 7 +++++++
++ 1 file changed, 7 insertions(+)
++
++--- a/src/dhcp6.c
+++++ b/src/dhcp6.c
++@@ -647,6 +647,13 @@ static int construct_worker(struct in6_a
++ 	    is_same_net6(local, &template->start6, template->prefix) &&
++ 	    is_same_net6(local, &template->end6, template->prefix))
++ 	  {
+++	    /* First time found, do fast RA. */
+++	    if (template->if_index != if_index || !IN6_ARE_ADDR_EQUAL(&template->local6, local))
+++	      {
+++		ra_start_unsolicited(param->now, template);
+++		param->newone = 1;
+++	      }
+++	    
++ 	    template->if_index = if_index;
++ 	    template->local6 = *local;
++ 	  }
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/0010-Log-warning-on-very-large-cachesize-config-instead-o.patch
+@@ -0,0 +1,38 @@
++From 1f1873aadd092a0fab505dd278a484d887ba0ec3 Mon Sep 17 00:00:00 2001
++From: Simon Kelley <simon@thekelleys.org.uk>
++Date: Fri, 11 May 2018 23:38:23 +0100
++Subject: [PATCH 10/10] Log warning on very large cachesize config, instead of
++ truncating it.
++
++Signed-off-by: Kevin Darbyshire-Bryant <ldir@darbyshire-bryant.me.uk>
++---
++ src/dnsmasq.c | 6 +++++-
++ src/option.c  | 2 --
++ 2 files changed, 5 insertions(+), 3 deletions(-)
++
++--- a/src/dnsmasq.c
+++++ b/src/dnsmasq.c
++@@ -740,7 +740,11 @@ int main (int argc, char **argv)
++   else 
++     {
++       if (daemon->cachesize != 0)
++-	my_syslog(LOG_INFO, _("started, version %s cachesize %d"), VERSION, daemon->cachesize);
+++	{
+++	  my_syslog(LOG_INFO, _("started, version %s cachesize %d"), VERSION, daemon->cachesize);
+++	  if (daemon->cachesize > 10000)
+++	    my_syslog(LOG_WARNING, _("cache size greater than 10000 may cause performance issues, and is unlikely to be useful."));
+++	}
++       else
++ 	my_syslog(LOG_INFO, _("started, version %s cache disabled"), VERSION);
++ 
++--- a/src/option.c
+++++ b/src/option.c
++@@ -2603,8 +2603,6 @@ static int one_opt(int option, char *arg
++ 	    
++ 	    if (size < 0)
++ 	      size = 0;
++-	    else if (size > 10000)
++-	      size = 10000;
++ 	    
++ 	    daemon->cachesize = size;
++ 	  }
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/210-dnssec-improve-timestamp-heuristic.patch
+@@ -0,0 +1,47 @@
++From 79e60e145f8a595bca5a784c00b437216d51de68 Mon Sep 17 00:00:00 2001
++From: Steven Barth <steven@midlink.org>
++Date: Mon, 13 Apr 2015 09:45:20 +0200
++Subject: [PATCH] dnssec: improve timestamp heuristic
++
++Signed-off-by: Steven Barth <steven@midlink.org>
++---
++ src/dnssec.c | 15 +++++++++++----
++ 1 file changed, 11 insertions(+), 4 deletions(-)
++
++--- a/src/dnssec.c
+++++ b/src/dnssec.c
++@@ -143,17 +143,24 @@ static time_t timestamp_time;
++ int setup_timestamp(void)
++ {
++   struct stat statbuf;
+++  time_t now;
+++  time_t base = 1420070400; /* 1-1-2015 */
++   
++   daemon->back_to_the_future = 0;
++   
++   if (!daemon->timestamp_file)
++     return 0;
+++
+++  now = time(NULL);
+++
+++  if (!stat("/proc/self/exe", &statbuf) && difftime(statbuf.st_mtime, base) > 0)
+++    base = statbuf.st_mtime;
++   
++   if (stat(daemon->timestamp_file, &statbuf) != -1)
++     {
++       timestamp_time = statbuf.st_mtime;
++     check_and_exit:
++-      if (difftime(timestamp_time, time(0)) <=  0)
+++      if (difftime(now, base) >= 0 && difftime(timestamp_time, now) <= 0)
++ 	{
++ 	  /* time already OK, update timestamp, and do key checking from the start. */
++ 	  if (utimes(daemon->timestamp_file, NULL) == -1)
++@@ -174,7 +181,7 @@ int setup_timestamp(void)
++ 
++ 	  close(fd);
++ 	  
++-	  timestamp_time = 1420070400; /* 1-1-2015 */
+++	  timestamp_time = base; /* 1-1-2015 */
++ 	  tv[0].tv_sec = tv[1].tv_sec = timestamp_time;
++ 	  tv[0].tv_usec = tv[1].tv_usec = 0;
++ 	  if (utimes(daemon->timestamp_file, tv) == 0)
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/230-fix-poll-h-include-warning-on-musl.patch
+@@ -0,0 +1,18 @@
++dnsmasq: fix warning with poll.h include on musl
++
++Warning is:
++  #warning redirecting incorrect #include <sys/poll.h> to <poll.h>
++
++Signed-off-by: Kevin Darbyshire-Bryant <kevin@darbyshire-bryant.me.uk>
++
++--- a/src/dnsmasq.h
+++++ b/src/dnsmasq.h
++@@ -88,7 +88,7 @@ typedef unsigned long long u64;
++ #if defined(HAVE_SOLARIS_NETWORK)
++ #  include <sys/sockio.h>
++ #endif
++-#include <sys/poll.h>
+++#include <poll.h>
++ #include <sys/wait.h>
++ #include <sys/time.h>
++ #include <sys/un.h>
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/240-ubus.patch
+@@ -0,0 +1,128 @@
++--- a/src/dnsmasq.c
+++++ b/src/dnsmasq.c
++@@ -19,6 +19,8 @@
++ 
++ #include "dnsmasq.h"
++ 
+++#include <libubus.h>
+++
++ struct daemon *daemon;
++ 
++ static volatile pid_t pid = 0;
++@@ -32,6 +34,64 @@ static void fatal_event(struct event_des
++ static int read_event(int fd, struct event_desc *evp, char **msg);
++ static void poll_resolv(int force, int do_reload, time_t now);
++ 
+++static struct ubus_context *ubus;
+++static struct blob_buf b;
+++
+++static struct ubus_object_type ubus_object_type = {
+++	.name = "dnsmasq",
+++};
+++
+++static struct ubus_object ubus_object = {
+++	.name = "dnsmasq",
+++	.type = &ubus_object_type,
+++};
+++
+++void ubus_event_bcast(const char *type, const char *mac, const char *ip, const char *name, const char *interface)
+++{
+++	if (!ubus || !ubus_object.has_subscribers)
+++		return;
+++
+++	blob_buf_init(&b, 0);
+++	if (mac)
+++		blobmsg_add_string(&b, "mac", mac);
+++	if (ip)
+++		blobmsg_add_string(&b, "ip", ip);
+++	if (name)
+++		blobmsg_add_string(&b, "name", name);
+++	if (interface)
+++		blobmsg_add_string(&b, "interface", interface);
+++	ubus_notify(ubus, &ubus_object, type, b.head, -1);
+++}
+++
+++static void set_ubus_listeners(void)
+++{
+++	if (!ubus)
+++		return;
+++
+++	poll_listen(ubus->sock.fd, POLLIN);
+++	poll_listen(ubus->sock.fd, POLLERR);
+++	poll_listen(ubus->sock.fd, POLLHUP);
+++}
+++
+++static void check_ubus_listeners()
+++{
+++	if (!ubus) {
+++		ubus = ubus_connect(NULL);
+++		if (ubus)
+++			ubus_add_object(ubus, &ubus_object);
+++		else
+++			return;
+++	}
+++
+++	if (poll_check(ubus->sock.fd, POLLIN))
+++		ubus_handle_event(ubus);
+++
+++	if (poll_check(ubus->sock.fd, POLLHUP)) {
+++		ubus_free(ubus);
+++		ubus = NULL;
+++	}
+++}
+++
++ int main (int argc, char **argv)
++ {
++   int bind_fallback = 0;
++@@ -944,6 +1004,7 @@ int main (int argc, char **argv)
++       set_dbus_listeners();
++ #endif	
++   
+++      set_ubus_listeners();
++ #ifdef HAVE_DHCP
++       if (daemon->dhcp || daemon->relay4)
++ 	{
++@@ -1074,6 +1135,8 @@ int main (int argc, char **argv)
++       check_dbus_listeners();
++ #endif
++       
+++      check_ubus_listeners();
+++
++       check_dns_listeners(now);
++ 
++ #ifdef HAVE_TFTP
++--- a/Makefile
+++++ b/Makefile
++@@ -85,7 +85,7 @@ all : $(BUILDDIR)
++ 	@cd $(BUILDDIR) && $(MAKE) \
++  top="$(top)" \
++  build_cflags="$(version) $(dbus_cflags) $(idn2_cflags) $(idn_cflags) $(ct_cflags) $(lua_cflags) $(nettle_cflags)" \
++- build_libs="$(dbus_libs) $(idn2_libs) $(idn_libs) $(ct_libs) $(lua_libs) $(sunos_libs) $(nettle_libs) $(gmp_libs)" \
+++ build_libs="$(dbus_libs) $(idn2_libs) $(idn_libs) $(ct_libs) $(lua_libs) $(sunos_libs) $(nettle_libs) $(gmp_libs) -lubox -lubus" \
++  -f $(top)/Makefile dnsmasq 
++ 
++ mostly_clean :
++--- a/src/dnsmasq.h
+++++ b/src/dnsmasq.h
++@@ -1440,6 +1440,8 @@ void emit_dbus_signal(int action, struct
++ #  endif
++ #endif
++ 
+++void ubus_event_bcast(const char *type, const char *mac, const char *ip, const char *name, const char *interface);
+++
++ /* ipset.c */
++ #ifdef HAVE_IPSET
++ void ipset_init(void);
++--- a/src/rfc2131.c
+++++ b/src/rfc2131.c
++@@ -1636,6 +1636,10 @@ static void log_packet(char *type, void
++ 	      daemon->namebuff,
++ 	      string ? string : "",
++ 	      err ? err : "");
+++  if (!strcmp(type, "DHCPACK"))
+++	  ubus_event_bcast("dhcp.ack", daemon->namebuff, addr ? inet_ntoa(a) : NULL, string ? string : NULL, interface);
+++  else if (!strcmp(type, "DHCPRELEASE"))
+++	  ubus_event_bcast("dhcp.release", daemon->namebuff, addr ? inet_ntoa(a) : NULL, string ? string : NULL, interface);
++ }
++ 
++ static void log_options(unsigned char *start, u32 xid)
+--- a/package/network/services/dnsmasq/patches/110-ipset-remove-old-kernel-support.patch
++++ b/package/network/services/dnsmasq/patches/110-ipset-remove-old-kernel-support.patch
+@@ -44,67 +44,22 @@
+        (buffer = safe_malloc(BUFF_SZ)) &&
+        (ipset_sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_NETFILTER)) != -1 &&
+        (bind(ipset_sock, (struct sockaddr *)&snl, sizeof(snl)) != -1))
+-@@ -168,62 +149,16 @@ static int new_add_to_ipset(const char *
+- }
+- 
+- 
+--static int old_add_to_ipset(const char *setname, const struct all_addr *ipaddr, int remove)
+--{
+--  socklen_t size;
+--  struct ip_set_req_adt_get {
+--    unsigned op;
+--    unsigned version;
+--    union {
+--      char name[IPSET_MAXNAMELEN];
+--      uint16_t index;
+--    } set;
+--    char typename[IPSET_MAXNAMELEN];
+--  } req_adt_get;
+--  struct ip_set_req_adt {
+--    unsigned op;
+--    uint16_t index;
+--    uint32_t ip;
+--  } req_adt;
+--  
+--  if (strlen(setname) >= sizeof(req_adt_get.set.name)) 
+--    {
+--      errno = ENAMETOOLONG;
+--      return -1;
+--    }
+--  
+--  req_adt_get.op = 0x10;
+--  req_adt_get.version = 3;
+--  strcpy(req_adt_get.set.name, setname);
+--  size = sizeof(req_adt_get);
+--  if (getsockopt(ipset_sock, SOL_IP, 83, &req_adt_get, &size) < 0)
+--    return -1;
+--  req_adt.op = remove ? 0x102 : 0x101;
+--  req_adt.index = req_adt_get.set.index;
+--  req_adt.ip = ntohl(ipaddr->addr.addr4.s_addr);
+--  if (setsockopt(ipset_sock, SOL_IP, 83, &req_adt, sizeof(req_adt)) < 0)
+--    return -1;
+--  
+--  return 0;
+--}
+--
+--
+--
+- int add_to_ipset(const char *setname, const struct all_addr *ipaddr, int flags, int remove)
+- {
+-   int af = AF_INET;
+- 
+- #ifdef HAVE_IPV6
++@@ -217,17 +198,10 @@ int add_to_ipset(const char *setname, co
+    if (flags & F_IPV6)
+--    {
++     {
+        af = AF_INET6;
+ -      /* old method only supports IPv4 */
+ -      if (old_kernel)
+--	return -1;
+--    }
++-	{
++-	  errno = EAFNOSUPPORT ;
++-	  ret = -1;
++-	}
++     }
+  #endif
+    
+--  return old_kernel ? old_add_to_ipset(setname, ipaddr, remove) : new_add_to_ipset(setname, ipaddr, af, remove);
+-+  return new_add_to_ipset(setname, ipaddr, af, remove);
+- }
++-  if (ret != -1) 
++-    ret = old_kernel ? old_add_to_ipset(setname, ipaddr, remove) : new_add_to_ipset(setname, ipaddr, af, remove);
+++    ret = new_add_to_ipset(setname, ipaddr, af, remove);
+  
+- #endif
++   if (ret == -1)
++      my_syslog(LOG_ERR, _("failed to update ipset %s: %s"), setname, strerror(errno));
+--- a/package/network/services/dnsmasq/patches/001-Build-config-add-DNO_GMP-for-use-with-nettle-mini-gm.patch
++++ /dev/null
+@@ -1,77 +0,0 @@
+-From 063efb330a3f341c2548e2cf1f67f83e49cd6395 Mon Sep 17 00:00:00 2001
+-From: Simon Kelley <simon@thekelleys.org.uk>
+-Date: Tue, 17 Jun 2014 19:49:31 +0100
+-Subject: [PATCH] Build config: add -DNO_GMP for use with nettle/mini-gmp
+-
+----
+- Makefile        | 2 +-
+- bld/pkg-wrapper | 9 +++++++--
+- src/config.h    | 7 +++++++
+- src/dnssec.c    | 3 ++-
+- 4 files changed, 17 insertions(+), 4 deletions(-)
+-
+---- a/Makefile
+-+++ b/Makefile
+-@@ -61,7 +61,7 @@ lua_cflags =    `echo $(COPTS) | $(top)/
+- lua_libs =      `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_LUASCRIPT $(PKG_CONFIG) --libs lua5.1` 
+- nettle_cflags = `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC $(PKG_CONFIG) --cflags nettle hogweed`
+- nettle_libs =   `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC $(PKG_CONFIG) --libs nettle hogweed`
+--gmp_libs =      `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC $(PKG_CONFIG) --copy -lgmp`
+-+gmp_libs =      `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC NO_GMP --copy -lgmp`
+- sunos_libs =    `if uname | grep SunOS >/dev/null 2>&1; then echo -lsocket -lnsl -lposix4; fi`
+- version =     -DVERSION='\"`$(top)/bld/get-version $(top)`\"'
+- 
+---- a/bld/pkg-wrapper
+-+++ b/bld/pkg-wrapper
+-@@ -11,9 +11,14 @@ in=`cat`
+- 
+- if grep "^\#[[:space:]]*define[[:space:]]*$search" config.h >/dev/null 2>&1 || \
+-     echo $in | grep $search >/dev/null 2>&1; then
+--
+-+# Nasty, nasty, in --copy, arg 2 is another config to search for, use with NO_GMP
+-     if [ $op = "--copy" ]; then
+--	pkg="$*"
+-+	if grep "^\#[[:space:]]*define[[:space:]]*$pkg" config.h >/dev/null 2>&1 || \
+-+            echo $in | grep $pkg >/dev/null 2>&1; then
+-+	    pkg=""
+-+	else 
+-+	    pkg="$*"
+-+	fi
+-     elif grep "^\#[[:space:]]*define[[:space:]]*${search}_STATIC" config.h >/dev/null 2>&1 || \
+- 	      echo $in | grep ${search}_STATIC >/dev/null 2>&1; then
+- 	pkg=`$pkg  --static $op $*`
+---- a/src/config.h
+-+++ b/src/config.h
+-@@ -105,6 +105,8 @@ HAVE_AUTH
+-    define this to include the facility to act as an authoritative DNS
+-    server for one or more zones.
+- 
+-+HAVE_DNSSEC
+-+   include DNSSEC validator.
+- 
+- NO_IPV6
+- NO_TFTP
+-@@ -118,6 +120,11 @@ NO_AUTH
+-    which are enabled  by default in the distributed source tree. Building dnsmasq
+-    with something like "make COPTS=-DNO_SCRIPT" will do the trick.
+- 
+-+NO_NETTLE_ECC
+-+   Don't include the ECDSA cypher in DNSSEC validation. Needed for older Nettle versions.
+-+NO_GMP
+-+   Don't use and link against libgmp, Useful if nettle is built with --enable-mini-gmp.
+-+
+- LEASEFILE
+- CONFFILE
+- RESOLVFILE
+---- a/src/dnssec.c
+-+++ b/src/dnssec.c
+-@@ -26,7 +26,8 @@
+- #  include <nettle/ecc-curve.h>
+- #endif
+- #include <nettle/nettle-meta.h>
+--#include <gmp.h>
+-+#include <nettle/bignum.h>
+-+
+- 
+- #define SERIAL_UNDEF  -100
+- #define SERIAL_EQ        0
+--- /dev/null
++++ b/package/network/services/dnsmasq/files/dnsmasqsec.hotplug
+@@ -0,0 +1,14 @@
++#!/bin/sh
++
++. /lib/functions/procd.sh
++
++TIMEVALIDFILE="/var/state/dnsmasqsec"
++
++[ "$ACTION" = stratum ] || exit 0
++
++[ -f "$TIMEVALIDFILE" ] || {
++	echo "ntpd says time is valid" >$TIMEVALIDFILE
++	/etc/init.d/dnsmasq enabled && {
++		procd_send_signal dnsmasq '*' INT
++	}
++}
