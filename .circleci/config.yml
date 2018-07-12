@@ -1,9 +1,9 @@
 version: 2
 jobs:
+  ######################################
+  # Common
+  ######################################
   build:
-    branches:
-      only:
-        - develop
     docker:
       - image: arednmesh/builder
     steps:
@@ -13,24 +13,35 @@ jobs:
           command:  |
             export MY_WORKING_DIRECTORY=`pwd`
             ls -la
-            sed -i "s/NoCall/${CIRCLE_PROJECT_USERNAME}-${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}/g" ${MY_WORKING_DIRECTORY}/config.mk
+            sed -i "s/NoCall/${CIRCLE_BUILD_NUM}/g" ${MY_WORKING_DIRECTORY}/config.mk
             cat ${MY_WORKING_DIRECTORY}/config.mk
             set
       - run:
           name: Build
           command: make
       - run:
+          name: Build
+          command: make SUBTARGET=mikrotik
+      - run:
           name: Compress build files
-          command: tar -cjf ~/${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
+          command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} *
       - run:
           name: Deploy Files
           command: scp -o StrictHostKeyChecking=no ~/${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:~/
+
+  ######################################
+  # Nightly
+  ######################################
+  process_artifacts_nightly:
+    machine:
+      enabled: true
+    steps:
       - run:
           name: Untar Files
-          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'tar -xjf ~/${ARTIFACTS_FILE} -C ~/'"
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'tar -xjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ~/'"
       - run:
           name: Remove tarball
-          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'rm ~/${ARTIFACTS_FILE}'"
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'rm ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE}'"
       - run:
           name: Empty nightly dir
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'rm -rf ${NIGHTLY_DIR}'"
@@ -40,3 +51,60 @@ jobs:
       - run:
           name: Move packages
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/packages ${NIGHTLY_DIR}'"
+
+  changelog_nightly:
+    machine:
+      enabled: true
+    steps:
+      - run:
+          name: Generate changelog.md
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'docker run --rm -v ~/:/usr/local/src/your-app ferrarimarco/github-changelog-generator -u ${CIRCLE_PROJECT_USERNAME} -p ${CIRCLE_PROJECT_REPONAME} -t ${GITHUB_TOKEN}'"
+      - run:
+          name: Move changelog
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/CHANGELOG.md ${NIGHTLY_DIR}'"
+
+  readme_nightly:
+    machine:
+      enabled: true
+    steps:
+      - run:
+          name: Fetch README.md
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'wget https://raw.githubusercontent.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}/README.md'"
+      - run:
+          name: Move README.md
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/CHANGELOG.md ${NIGHTLY_DIR}/changelog.md'"
+
+######################################
+# Workflows
+######################################
+workflows:
+  version: 2
+
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 9 * * *" # 9AM UTC
+          filters:
+            branches:
+              only: develop
+    jobs:
+      - build
+      - process_artifacts_nightly:
+          requires:
+            - build
+          filters:
+            branches:
+              only: develop
+      - readme_nightly:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - develop
+      - changelog_nightly:
+          requires:
+            - build
+          filters:
+            branches:
+              only: develop
