@@ -27,7 +27,7 @@ jobs:
           command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
       - run:
           name: Deploy Files
-          command: scp -o StrictHostKeyChecking=no ~/${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:~/
+          command: scp -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:~/
 
   ######################################
   # Nightly
