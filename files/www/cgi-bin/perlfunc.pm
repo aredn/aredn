@@ -462,20 +462,20 @@ sub get_default_gw
     my $gw = "none";
 
     # Table 31 is populated by OLSR
-    foreach(`/usr/sbin/ip route list table 31`)
-    {                                          
+    foreach(`ip route list table 31`)
+    {
         next unless /^default\svia\s([\d\.]+)/;
         $gw = $1;
-        last;               
-    }                                                                           
+        last;
+    }
 
     # However a node with a wired default gw will route via that instead
-    foreach(`/usr/sbin/ip route list table 254`)
-    {                                          
+    foreach(`ip route list table 254`)
+    {
         next unless /^default\svia\s([\d\.]+)/;
         $gw = $1;
-        last;               
-    }                                                                           
+        last;
+    }
     return $gw;
 }
 
