@@ -251,3 +251,63 @@ function capture(cmd)
 	handle:close()
 	return(result)
 end
+
+--[[
+LuCI - System library
+
+Description:
+Utilities for interaction with the Linux system
+
+FileId:
+$Id: sys.lua 9662 2013-01-30 13:36:20Z soma $
+
+License:
+Copyright 2008 Steven Barth <steven@midlink.org>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]--
+--- Returns the current arp-table entries as two-dimensional table.
+-- @return	Table of table containing the current arp entries.
+--			The following fields are defined for arp entry objects:
+--			{ "IP address", "HW address", "HW type", "Flags", "Mask", "Device" }
+function arptable(callback)
+	local arp, e, r, v
+	if nixio.fs.access("/proc/net/arp") then
+		for e in io.lines("/proc/net/arp") do
+			local r = { }, v
+			for v in e:gmatch("%S+") do
+				r[#r+1] = v
+			end
+
+			if r[1] ~= "IP" then
+				local x = {
+					["IP address"] = r[1],
+					["HW type"]    = r[2],
+					["Flags"]      = r[3],
+					["HW address"] = r[4],
+					["Mask"]       = r[5],
+					["Device"]     = r[6]
+				}
+
+				if callback then
+					callback(x)
+				else
+					arp = arp or { }
+					arp[#arp+1] = x
+				end
+			end
+		end
+	end
+	return arp
+end

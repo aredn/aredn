@@ -189,7 +189,7 @@ function Neighbor:findNoise()
 end
 
 function Neighbor:findTxMcs()
-	self.tx_mcs=stations[self.mac:upper()].tx_mcs
+	self.tx_mcs=stations[self.mac:upper()].tx_mcs or -1
 	return self.tx_mcs
 end
 
@@ -200,7 +200,7 @@ function Neighbor:findTxRate()
 end
 
 function Neighbor:findRxMcs()
-	self.rx_mcs=stations[self.mac:upper()].rx_mcs
+	self.rx_mcs=stations[self.mac:upper()].rx_mcs or -1
 	return self.rx_mcs
 end
 
@@ -290,7 +290,7 @@ stations=iwinfo["nl80211"].assoclist(wifiiface)
 
 
 -- load up arpcache
-luci.sys.net.arptable(
+arptable(
 	function(a)
 		arpcache[a["HW address"]:lower()]=a
 	end
