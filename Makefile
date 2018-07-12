@@ -5,9 +5,6 @@ include openwrt.mk
 MAINTARGET=$(word 1, $(subst -, ,$(TARGET)))
 SUBTARGET=$(word 2, $(subst -, ,$(TARGET)))
 
-# export for test script use
-export AREDNSUBTARGET=$(SUBTARGET)
-
 GIT_BRANCH=$(shell git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
 
@@ -17,14 +14,12 @@ OPENWRT_DIR=$(TOP_DIR)/openwrt
 TARGET_CONFIG=$(TOP_DIR)/configs/common.config $(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET).config
 UMASK=umask 022
 
-# set variables based on private or travis-ci build
-ifeq ($(TRAVIS),true)
-$(info Travis-CI build ...)
-FW_VERSION=$(TRAVIS_BUILD_NUMBER)-$(TRAVIS_COMMIT)
-FW_REPO=$(TRAVIS_BUILD_PACKAGES)
+# set variables based on private or CircleCI build
+ifeq ($(CIRCLECI),true)
+$(info CircleCI build ...)
+FW_VERSION=$(PRIVATE_BUILD_VERSION)-$(GIT_COMMIT)
 else
 FW_VERSION=$(PRIVATE_BUILD_VERSION)-$(GIT_BRANCH)-$(GIT_COMMIT)
-FW_REPO=$(PRIVATE_BUILD_PACKAGES)
 endif
 
 # test for existing $TARGET-config or abort
@@ -51,7 +46,7 @@ $(OPENWRT_DIR): .stamp-openwrt-removed
 
 # clean up openwrt working copy
 openwrt-clean: stamp-clean-openwrt-cleaned .stamp-openwrt-cleaned
-.stamp-openwrt-cleaned: | $(OPENWRT_DIR) openwrt-clean-bin
+.stamp-openwrt-cleaned: | $(OPENWRT_DIR) 
 	cd $(OPENWRT_DIR); \
 	  ./scripts/feeds clean && \
 	  git clean -dff && git fetch && git reset --hard HEAD && \
@@ -62,9 +57,6 @@ openwrt-clean: stamp-clean-openwrt-cleaned .stamp-openwrt-cleaned
 	ln -sf $(TOP_DIR)/patches $(OPENWRT_DIR)/
 	ln -sf $(TOP_DIR)/files   $(OPENWRT_DIR)/
 	touch $@
-
-openwrt-clean-bin:
-	rm -rf $(OPENWRT_DIR)/bin
 
 # update openwrt and checkout specified commit
 openwrt-update: .stamp-openwrt-updated .stamp-unpatched
@@ -132,7 +124,7 @@ $(OPENWRT_DIR)/.config: .stamp-feeds-updated $(TARGET_CONFIG) .stamp-build_rev a
 	cat $(TARGET_CONFIG) >$(OPENWRT_DIR)/.config
 	echo "CONFIG_VERSION_NUMBER=\"$(FW_VERSION)\"" >>$(OPENWRT_DIR)/.config
 	echo "$(FW_VERSION)" >$(TOP_DIR)/files/etc/mesh-release
-	echo "CONFIG_VERSION_REPO=\"$(FW_REPO)\"" >>$(OPENWRT_DIR)/.config
+	echo "CONFIG_VERSION_REPO=\"$(PRIVATE_BUILD_PACKAGES)\"" >>$(OPENWRT_DIR)/.config
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) defconfig
 
@@ -143,16 +135,23 @@ prepare: stamp-clean-prepared .stamp-prepared
 
 # compile
 compile: stamp-clean-compiled .stamp-compiled
-.stamp-compiled: .stamp-prepared .stamp-feeds-updated openwrt-clean-bin | $(TOP_DIR)/firmware
+.stamp-compiled: .stamp-prepared .stamp-feeds-updated | $(TOP_DIR)/firmware
 	$(TOP_DIR)/scripts/tests-prebuild.sh
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
-	for FILE in `find $(TOP_DIR)/firmware/targets/ -name "*factory.bin" -o -name "*sysupgrade.bin" \
-	  -o -name "*.manifest" -o -name "*-mikrotik-vmlinux-initramfs.elf"`; do \
-	  [ -e "$$FILE" ] || continue; \
-	  NEWNAME="$${FILE/openwrt-/AREDN-}"; \
-	  NEWNAME="$${NEWNAME/ar71xx-generic-/}"; \
+	for FILE in `find $(TOP_DIR)/firmware/targets/ -path "*packages" -prune -o \( -type f -a \
+	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin" -o -name "*.manifest" -o \
+	  -name "*-mikrotik-vmlinux-initramfs.elf" -o -name sha256sums -o -name config.seed \) \
+	  -print \)`; do rm $$FILE; \
+	done;
+	for FILE in `find $(TOP_DIR)/firmware/targets/ -type f -a \
+	  \( -name "*ar71xx-generic-*" -o -name "*squashfs-*" \
+	  -o -name "*$(GIT_COMMIT)-?????-*" -o -name "aredn*ar71xx-mikrotik*" \
+	  \) -print`; do \
+	  NEWNAME="$${FILE/ar71xx-generic-/}"; \
 	  NEWNAME="$${NEWNAME/squashfs-/}"; \
+	  NEWNAME="$${NEWNAME/$(GIT_COMMIT)-?????-/$(GIT_COMMIT)-}"; \
+	  NEWNAME="$${NEWNAME/ar71xx-mikrotik-/mikrotik-}"; \
 	  mv "$$FILE" "$$NEWNAME"; \
 	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh
@@ -177,6 +176,6 @@ stamp-clean:
 clean: stamp-clean .stamp-openwrt-cleaned
 
 
-.PHONY: openwrt-clean openwrt-clean-bin openwrt-update patch feeds-update prepare compile stamp-clean clean always
+.PHONY: openwrt-clean openwrt-update patch feeds-update prepare compile stamp-clean clean always
 .NOTPARALLEL:
 .FORCE:

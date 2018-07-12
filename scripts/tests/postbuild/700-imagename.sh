@@ -34,31 +34,11 @@
 LICENSE
 
 
-# Variables that may need adjusting as time goes on
-
-# update to add/remove device image targets
-GENERIC_COUNT=23
-MIKROTIK_COUNT=3
-
-# END Variables that may need adjusting
-
 . "$SCRIPTBASE/sh2ju.sh"
 
 # Check the count of image files named AREDN-*
 
-case $AREDNSUBTARGET in
-	mikrotik)
-		EXPECTEDFILESCOUNT=$MIKROTIK_COUNT
-		;;
-	generic)
-		EXPECTEDFILESCOUNT=$GENERIC_COUNT
-		;;
-	*)
-		EXPECTEDFILESCOUNT=0
-		;;
-esac
-		
-if [ "$(find ./openwrt/bin/* -maxdepth 4 -name "AREDN*" | wc -l)" -eq  "$EXPECTEDFILESCOUNT" ]
+if [ "$(find ./openwrt/bin/* -maxdepth 4 -name "aredn*" | wc -l)" -gt  "2" ]
 then
         juLog -name="AREDN_image_files_exist" true
 else
