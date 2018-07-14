@@ -55,7 +55,7 @@ end
 info={}
 
 -- API version
-info['api_version']="1.1"
+info['api_version']="1.2"
 
 -- NODE name
 css=getUciConfType("system", "system")
@@ -147,6 +147,16 @@ if file_exists(gsfname) then
 	end
 end
 info["grid_square"]=grid
+
+-- UPTIME AND LOADAVGS
+mynix=nixio.sysinfo()
+info['sysinfo']={}
+upsecs=mynix['uptime']
+info['sysinfo']['uptime']=secondsToClock(upsecs)
+info['sysinfo']['loads']=mynix['loads']
+for n,x in ipairs(info['sysinfo']['loads']) do
+	info['sysinfo']['loads'][n]=round2(x,2)
+end
 
 -- INTERFACES
 local tif={}

@@ -209,6 +209,20 @@ function file_trim(filename, maxl)
 	end
 end
 
+-- secondsToClock
+function secondsToClock(seconds)
+	local seconds = tonumber(seconds)
+	if seconds <= 0 then
+		return "00:00:00";
+	else
+		days = string.format("%d", math.floor(seconds/86400));
+		hours = string.format("%d", math.floor(math.mod(seconds, 86400)/3600));
+		mins = string.format("%02d", math.floor(math.mod(seconds,3600)/60));
+		secs = string.format("%02d", math.floor(math.mod(seconds,60)));
+		return days.." days, "..hours..":"..mins..":"..secs
+	end
+end
+
 -- table.print = pretty prints a table
 function print_r(t)
 	local print_r_cache={}
