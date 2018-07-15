@@ -53,9 +53,9 @@ if [ $rules_exist -eq 0  ] ; then
         iptables -N zone_vpn_DROP
         iptables -N zone_vpn_REJECT
         iptables -N zone_vpn_forward
-        iptables -I delegate_forward 3 -i tun+ -j zone_vpn_forward
-        iptables -I delegate_input 5 -i tun+ -j zone_vpn_input
-        iptables -I delegate_output 3 -j zone_vpn_ACCEPT
+        iptables -I FORWARD 3 -i tun+ -j zone_vpn_forward
+        iptables -I INPUT 5 -i tun+ -j zone_vpn_input
+        iptables -I OUTPUT 3 -j zone_vpn_ACCEPT
         iptables -A zone_vpn_input -p icmp -m icmp --icmp-type 8 -j ACCEPT
         iptables -A zone_vpn_input -p tcp -m tcp --dport 2222 -j ACCEPT
         iptables -A zone_vpn_input -p tcp -m tcp --dport 8080 -j ACCEPT
@@ -85,9 +85,9 @@ fi
 
 
 # Rules that modify core tables and as such always need to be executed as they are flushed on reload/restart
-iptables -I delegate_forward 3 -i tun+ -j zone_vpn_forward
-iptables -I delegate_input 5 -i tun+ -j zone_vpn_input
-iptables -I delegate_output 3 -j zone_vpn_ACCEPT
+iptables -I FORWARD 3 -i tun+ -j zone_vpn_forward
+iptables -I INPUT 5 -i tun+ -j zone_vpn_input
+iptables -I OUTPUT 3 -j zone_vpn_ACCEPT
 iptables -I zone_dtdlink_forward 1 -j zone_vpn_ACCEPT
 iptables -I zone_lan_forward 1 -j zone_vpn_ACCEPT
 iptables -I zone_wifi_forward 1 -j zone_vpn_ACCEPT
