@@ -489,7 +489,7 @@ sub ip2hostname
     $reverse_ip=join ".",reverse(split /\./,$ip);
     foreach(`nslookup $ip`)
     {
-	next unless ($host) = /^$reverse_ip\.in-addr\.arpa[ \t]+name[ \t]+=[ \t]+(\S+)/;
+	next unless ($host) = /^$reverse_ip\.in-addr\.arpa[ \t]+name[ \t]+=[ \t]+(\S+)\.local\.mesh/;
 	return $host;
     }
     return "";
