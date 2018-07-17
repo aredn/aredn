@@ -131,7 +131,7 @@ $lan_proto = "static";
 # enforce direct mode settings
 # (formerly known as dmz mode)
 $dmz_mode = 2 if $dmz_mode != 0 and $dmz_mode < 2;
-$dmz_mode = 4 if $dmz_mode > 4;
+$dmz_mode = 5 if $dmz_mode > 5;
 
 if($dmz_mode)
 {
@@ -398,7 +398,7 @@ if($parms{button_save})
     {
 	push @errors, "password must be changed during initial configuration";
     }
-	
+
     if($nodetac =~ /\//)
     {
 	$nodetac =~ /^\s*([\w\-]+)\s*\/\s*([\w\-]+)\s*$/;
@@ -729,6 +729,7 @@ selopt("NAT", 0, $dmz_mode);
 selopt("1 host Direct", 2, $dmz_mode);
 selopt("5 host Direct", 3, $dmz_mode);
 selopt("13 host Direct", 4, $dmz_mode);
+selopt("29 host Direct", 5, $dmz_mode);
 print "</select></td>\n</tr>\n";
 push @hidden, "<input type=hidden name=lan_proto value='static'>";
 
