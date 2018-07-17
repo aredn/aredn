@@ -177,15 +177,19 @@ function string:splitWhiteSpace()
 end
 
 function nslookup(ip)
-	local hostname=nil
-	if get_ip_type(ip)==1 then
-		hostname=capture("nslookup '"..ip.."'|grep 'Address 1'|grep -v 'localhost'|cut -d' ' -f4 2>&1")
-		hostname=hostname:chomp()
-		if hostname=="" then
-			hostname=nil
-		end
-	end
-	return hostname
+        local hostname=nil
+        if get_ip_type(ip)==1 then
+                o1, o2, o3, o4 = ip:match("([^%.]+)%.([^%.]+)%.([^%.]+)%.([^%.]+)")
+                rip = o4.."."..o3.."."..o2.."."..o1
+                nso = capture("nslookup "..ip)
+                hostname = nso:match(rip.."%.in%-addr%.arpa[%s]+name[%s]+=[%s]+(.*)")
+                hostname=hostname:chomp()
+                hostname=hostname:chomp()
+                if hostname=="" then
+                        hostname=nil
+                end
+        end
+        return hostname
 end
 
 function file_trim(filename, maxl)
