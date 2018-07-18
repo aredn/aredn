@@ -55,7 +55,7 @@ end
 info={}
 
 -- API version
-info['api_version']="1.2"
+info['api_version']="1.3"
 
 -- NODE name
 css=getUciConfType("system", "system")
@@ -242,6 +242,33 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"services=1") then
 		table.insert(services,service)
 	end
 	info["services"]=services
+end
+
+-- LOCALLY HOSTED SERVICES ONLY
+if string.find(nixio.getenv("QUERY_STRING"):lower(),"services_local=1") then
+	local filelines={}
+	local lclsrvs={}
+	local lclsrvfile=io.open("/etc/config/services", "r")
+	if lclsrvfile~=nil then
+		for line in lclsrvfile:lines() do
+			table.insert(filelines, line)
+		end
+		lclsrvfile:close()
+		for pos,val in pairs(filelines) do
+			local service={}
+			local link,protocol,name = string.match(val,"^([^|]*)|(.+)|([^\t]*).*")
+			if link and protocol and name then
+				service['name']=name
+				service['protocol']=protocol
+				service['link']=link
+				table.insert(lclsrvs, service)
+			end
+		end
+	else
+		service['error']="Cannot read local services file"
+		table.insert(lclsrvs, service)
+	end
+	info['services_local']=lclsrvs
 end
 
 -- Output the HTTP header for JSON
