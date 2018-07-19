@@ -433,12 +433,24 @@ if($parms{button_save})
 	push (@errors, "OK") unless @errors;
     }
 
+    if($parms{nodedesc})
+    {
+        if($parms{nodedesc} =~ /<.*>|<\/.*>/) {
+            push(@errors, "Node description cannot contain html like tags")
+        }
+        else
+        {
+            $rc = &uci_set_indexed_option("system", "system", "0", "description", "$parms{nodedesc}");
+            push(@errors, "unable to store node description. ($rc | $rc2") if($rc);
+        }
+    }
     unless(@errors)
     {
 	$parms{node} = $node;
 	$parms{tactical} = $tactical;
 	system "touch /tmp/unconfigured" if -f "/etc/config/unconfigured";
 	$rc = save_setup("/etc/config.mesh/_setup");
+    $rc2 = &uci_commit("system");
 	if(-s "/tmp/web/save/node-setup.out")
 	{
 	    push @errors, `cat /tmp/web/save/node-setup.out`;
@@ -454,6 +466,10 @@ if($parms{button_save})
 system "rm -rf /tmp/web/save";
 reboot_page("/cgi-bin/status") if $parms{button_reboot};
 
+#
+# retrieve node description
+#
+$nodedesc = &uci_get_indexed_option("system", "system", 0, "description");
 #
 # Retreive map url, css, and js locations
 #
@@ -629,8 +645,8 @@ if(0)# disable for now
 print "
 </tr>
 <tr>
-<td>&nbsp;</td>
-<td>&nbsp;</td>";
+<td>Node Description (optional)</td>
+<td><input type='text' size='50' name='nodedesc' value='$nodedesc' tabindex='4'</input></td>";
 push @hidden, "<input type=hidden name=config value='mesh'>";
 print "
 <td>Verify Password</td>

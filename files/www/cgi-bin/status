@@ -50,6 +50,7 @@ $config = "not set" if $config eq "" or not -d "/etc/config.mesh";
 
 ($junk, $wifi_channel) = &uci_get_named_option("wireless", "radio0", "channel");
 ($junk, $wifi_chanbw) = &uci_get_named_option("wireless", "radio0", "chanbw");
+($junk, $node_desc) = &uci_get_indexed_option("system", "system", "0", "description");
 $wifi_ssid = "N/A";
 @wisections = &uci_get_all_indexed_by_sectiontype("wireless", "wifi-iface");
 foreach(@wisections) {
@@ -77,6 +78,7 @@ alert_banner();
 print "<h1><big>$node";
 print " / $tactical" if $tactical;
 print "</big></h1>";
+print "[ $node_desc ]" if $node_desc;
 print "<hr>\n";
 
 # nav buttons

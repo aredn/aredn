@@ -38,7 +38,7 @@
 sub uci_get_sectiontype_count()
 {
     my ($config, $stype)=@_;
-    my $cmd=sprintf('uci show %s|egrep vtun\.\@%s.*=%s|wc -l',$config,$stype,$stype);
+    my $cmd=sprintf('uci show %s|egrep %s\.\@%s.*=%s|wc -l',$config,$stype,$stype,$stype);
     my $res=`$cmd`;
     my $rc=$?;
     chomp($res);
@@ -259,13 +259,11 @@ sub uci_set_indexed_option()
     system `touch /etc/config/$config` if (! -f "/etc/config/$config");
     if (&uci_get_sectiontype_count($config,$stype) eq 0) {
         my $rc=&uci_add_sectiontype($config,$stype);
-        # abort if error
         if ($rc) { return $rc};
     }
-    my $cmd=sprintf('uci set %s.@%s[%s].%s=%s',$config,$stype,$index,$option,$val);
+    my $cmd=sprintf('uci set %s.@%s[%s].%s="%s"',$config,$stype,$index,$option,$val);
     my $res=`$cmd`;
     my $rc=$?;
- 
     return $rc;
 }
 
