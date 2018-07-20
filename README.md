@@ -48,7 +48,7 @@ Rocket M5 TI | rocket-m-ti | 64Mb | testing-stable?
 TPLink CPE210 v1.0/v1.1 | cpe210-220-v1 | 64Mb | testing-stable?
 TPLink CPE210 v2.0 | cpe210-v2 | 64Mb | testing-stable?
 TPLink CPE510 v1.0/v1.1 | cpe510-220-v1 | 64Mb | testing-stable?
-TPLink CPE510 v2.0 | cpe510-v2 | 64Mb | testing-stable?
+TPLink CPE510 v2.0 | cpe510-220-v1 | 64Mb | testing-stable?
 Mikrotik BaseBox 2/5 | mikrotik-nand-large | 64Mb | testing-stable?
 
 ### Building with Docker
