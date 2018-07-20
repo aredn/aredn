@@ -70,186 +70,186 @@ local nulledout={}
 Neighbor={}
 Neighbor.__index=Neighbor
 function Neighbor.create(macaddress)
-	local n={}
-	setmetatable(n,Neighbor)
-	n.mac=macaddress:lower()
-	n.hostname=nil
-	n.sigfile=nil
-	n.datafile=nil
-	n.ip=nil
-	n.lastseen=nil
-	n.level=nil
+  local n={}
+  setmetatable(n,Neighbor)
+  n.mac=macaddress:lower()
+  n.hostname=nil
+  n.sigfile=nil
+  n.datafile=nil
+  n.ip=nil
+  n.lastseen=nil
+  n.level=nil
 
-	n.ip=n:findIp()
-	n.hostname=n:findHostname()
-	n.signal=n:findSignal()
-	n.noise=n:findNoise()
-	n.tx_mcs=n:findTxMcs()
-	n.tx_rate=n:findTxRate()
-	n.rx_mcs=n:findRxMcs()
-	n.rx_rate=n:findRxRate()
-	n.lastseen=n:findLastTime()
-	n.datafile=n:generateDataFileName()
-	return n
+  n.ip=n:findIp()
+  n.hostname=n:findHostname()
+  n.signal=n:findSignal()
+  n.noise=n:findNoise()
+  n.tx_mcs=n:findTxMcs()
+  n.tx_rate=n:findTxRate()
+  n.rx_mcs=n:findRxMcs()
+  n.rx_rate=n:findRxRate()
+  n.lastseen=n:findLastTime()
+  n.datafile=n:generateDataFileName()
+  return n
 end
 
 function Neighbor:hasIP()
-	return not (self.ip==nil)
+  return not (self.ip==nil)
 end
 
 function Neighbor:hasHostName()
-	return not (self.hostname==nil)
+  return not (self.hostname==nil)
 end
 
 function Neighbor:getExistingDataFileName()
-	local efn=nil
-	for fn in nxo.fs.glob(tmpdir.."/"..self.mac.."-*") do
-		efn=nxo.fs.basename(fn)
-	end
-	return efn
+  local efn=nil
+  for fn in nxo.fs.glob(tmpdir.."/"..self.mac.."-*") do
+    efn=nxo.fs.basename(fn)
+  end
+  return efn
 end
 
 function Neighbor:generateDataFileName()
-	local tmpfn=nil
-	local efn=self:getExistingDataFileName()
-	if efn~=nil then
-		-- existing file found, improve or use
-		tmpfn=self.mac.."-"
-		m,x=string.match(efn,"^([%x2:]*)%-(.*)")
-		if x==nil or x=="" then	-- "00:11:22:33:44:55-"
-			if self:hasHostName() then
-				tmpfn=tmpfn..self.hostname
-				nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
-			elseif self:hasIP() then
-				tmpfn=tmpfn..self.ip
-				nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
-			end
-		elseif get_ip_type(x)==1 then -- "00:11:22:33:44:55-10.11.22.33"
-			if self:hasHostName() then
-				tmpfn=tmpfn..self.hostname
-				nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
-			else
-				tmpfn=efn
-			end
-		else 	-- "00:11:22:33:44:55-MAYBE-GOOD-HOST"
-			if x==self.hostname then	-- "00:11:22:33:44:55-SAME-HOST"
-				tmpfn=efn
-			else	-- "00:11:22:33:44:55-NEW-HOST-NAME"
-				if self.hostname~=nil then
-					tmpfn=tmpfn..self.hostname
-					nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
-				else
-					tmpfn=efn
-				end
-			end
-		end
-	else
-		-- no prior file, let's generate one
-		tmpfn=self.mac.."-"
-		if self:hasHostName() then
-			tmpfn=tmpfn..self.hostname
-		elseif self:hasIP() then
-			tmpfn=tmpfn..self.ip
-		end
-	end
-	return tmpfn
+  local tmpfn=nil
+  local efn=self:getExistingDataFileName()
+  if efn~=nil then
+    -- existing file found, improve or use
+    tmpfn=self.mac.."-"
+    m,x=string.match(efn,"^([%x2:]*)%-(.*)")
+    if x==nil or x=="" then	-- "00:11:22:33:44:55-"
+      if self:hasHostName() then
+        tmpfn=tmpfn..self.hostname
+        nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
+      elseif self:hasIP() then
+        tmpfn=tmpfn..self.ip
+        nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
+      end
+    elseif get_ip_type(x)==1 then -- "00:11:22:33:44:55-10.11.22.33"
+      if self:hasHostName() then
+        tmpfn=tmpfn..self.hostname
+        nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
+      else
+        tmpfn=efn
+      end
+    else 	-- "00:11:22:33:44:55-MAYBE-GOOD-HOST"
+      if x==self.hostname then	-- "00:11:22:33:44:55-SAME-HOST"
+        tmpfn=efn
+      else	-- "00:11:22:33:44:55-NEW-HOST-NAME"
+        if self.hostname~=nil then
+          tmpfn=tmpfn..self.hostname
+          nxo.fs.rename(tmpdir.."/"..efn,tmpdir.."/"..tmpfn)
+        else
+          tmpfn=efn
+        end
+      end
+    end
+  else
+    -- no prior file, let's generate one
+    tmpfn=self.mac.."-"
+    if self:hasHostName() then
+      tmpfn=tmpfn..self.hostname
+    elseif self:hasIP() then
+      tmpfn=tmpfn..self.ip
+    end
+  end
+  return tmpfn
 end
 
 function Neighbor:findLastTime()
-	self.lastseen=lasttime[mac]
-	return self.lastseen
+  self.lastseen=lasttime[mac]
+  return self.lastseen
 end
 
 function Neighbor:findHostname()
-	if self:hasIP() then
-		self.hostname=nslookup(self.ip)
-	end
-	return self.hostname
+  if self:hasIP() then
+    self.hostname=nslookup(self.ip)
+  end
+  return self.hostname
 end
 
 function Neighbor:findIp()
-	-- lookup IP from arpcache
-	local myarp=arpcache[self.mac]
-	if myarp~=nil then
-		self.ip=myarp["IP address"]
-	end
-	return self.ip
+  -- lookup IP from arpcache
+  local myarp=arpcache[self.mac]
+  if myarp~=nil then
+    self.ip=myarp["IP address"]
+  end
+  return self.ip
 end
 
 function Neighbor:findSignal()
-	-- lookup from iwinfo
-	self.signal=stations[self.mac:upper()].signal
-	return self.signal
+  -- lookup from iwinfo
+  self.signal=stations[self.mac:upper()].signal
+  return self.signal
 end
 
 function Neighbor:findNoise()
-	-- lookup from iwinfo
-	self.noise=stations[self.mac:upper()].noise
-	return self.noise
+  -- lookup from iwinfo
+  self.noise=stations[self.mac:upper()].noise
+  return self.noise
 end
 
 function Neighbor:findTxMcs()
-	self.tx_mcs=stations[self.mac:upper()].tx_mcs or -1
-	return self.tx_mcs
+  self.tx_mcs=stations[self.mac:upper()].tx_mcs or -1
+  return self.tx_mcs
 end
 
 function Neighbor:findTxRate()
-	local r=(stations[self.mac:upper()].tx_rate)/1000
-	self.tx_rate=adjust_rate(r,bandwidth)
-	return self.tx_rate
+  local r=(stations[self.mac:upper()].tx_rate)/1000
+  self.tx_rate=adjust_rate(r,bandwidth)
+  return self.tx_rate
 end
 
 function Neighbor:findRxMcs()
-	self.rx_mcs=stations[self.mac:upper()].rx_mcs or -1
-	return self.rx_mcs
+  self.rx_mcs=stations[self.mac:upper()].rx_mcs or -1
+  return self.rx_mcs
 end
 
 function Neighbor:findRxRate()
-	local r=(stations[self.mac:upper()].rx_rate)/1000
-	self.rx_rate=adjust_rate(r,bandwidth)
-	return self.rx_rate
+  local r=(stations[self.mac:upper()].rx_rate)/1000
+  self.rx_rate=adjust_rate(r,bandwidth)
+  return self.rx_rate
 end
 
 function Neighbor:log()
-	local oktolog=true
-	if self.lastseen ~= nil then
-		if stations[self.mac:upper()].inactive >= INACTIVETIMEOUT then
-			-- beacons expired
-			self.signal="null"
-			if nulledout[self.mac] == "true" then
-				-- No need to double log inactive null's
-				oktolog=false
-			end
-		end
-	end
+  local oktolog=true
+  if self.lastseen ~= nil then
+    if stations[self.mac:upper()].inactive >= INACTIVETIMEOUT then
+      -- beacons expired
+      self.signal="null"
+      if nulledout[self.mac] == "true" then
+        -- No need to double log inactive null's
+        oktolog=false
+      end
+    end
+  end
 
-	if self.signal==0 then
-		oktolog=false
-		if nulledout[self.mac] == nil then
-			-- First time we have seen this show up
-			-- but it is at 0 wont be logged but will
-			-- end up in snrcache
-			nulledout[self.mac]="true"
-		end
-	end
+  if self.signal==0 then
+    oktolog=false
+    if nulledout[self.mac] == nil then
+      -- First time we have seen this show up
+      -- but it is at 0 wont be logged but will
+      -- end up in snrcache
+      nulledout[self.mac]="true"
+    end
+  end
 
-	if oktolog then
-		nulledout[self.mac]="false"
-		-- log neighbor data to datafile
-		local f, err=assert(io.open(tmpdir.."/"..self.datafile, "a"),"Cannot open file ("..tmpdir.."/"..self.datafile..") for appending!")
-		if f~=nil then
-			local now=os.date("%m/%d/%Y %H:%M:%S",os.time())
-			local outline=string.format("%s,%s,%s,%s,%s,%s,%s\n",now,self.signal,self.noise,self.tx_mcs,self.tx_rate,self.rx_mcs,self.rx_rate)
-			f:write(outline)
-			f:close()
-			if self.signal == "null" then
-				nulledout[self.mac]="true"
-			end
-		else
-			print(err)
-		end
-	end
-	return oktolog
+  if oktolog then
+    nulledout[self.mac]="false"
+    -- log neighbor data to datafile
+    local f, err=assert(io.open(tmpdir.."/"..self.datafile, "a"),"Cannot open file ("..tmpdir.."/"..self.datafile..") for appending!")
+    if f~=nil then
+      local now=os.date("%m/%d/%Y %H:%M:%S",os.time())
+      local outline=string.format("%s,%s,%s,%s,%s,%s,%s\n",now,self.signal,self.noise,self.tx_mcs,self.tx_rate,self.rx_mcs,self.rx_rate)
+      f:write(outline)
+      f:close()
+      if self.signal == "null" then
+        nulledout[self.mac]="true"
+      end
+    else
+      print(err)
+    end
+  end
+  return oktolog
 end
 -- Neighbor Class END
 
@@ -259,26 +259,26 @@ wifiiface=get_ifname("wifi")
 
 -- load the lasttime table
 if file_exists(lastdat) then
-	local f,err=io.open(lastdat,"r")
-	if f~=nil then
-		for line in f:lines() do
-			mac,last,nulled=string.match(line, "(.*)|(.*)|(.*)")
-			lasttime[mac]=last
-			nulledout[mac]=nulled
-		end
-	end
-	f:close()
+  local f,err=io.open(lastdat,"r")
+  if f~=nil then
+    for line in f:lines() do
+      mac,last,nulled=string.match(line, "(.*)|(.*)|(.*)")
+      lasttime[mac]=last
+      nulledout[mac]=nulled
+    end
+  end
+  f:close()
 end
 
 -- get radio noise floor
 local nf=iwinfo["nl80211"].noise(wifiiface)
 if (nf < -101 or nf > -50) then
-	nf=defnoise
+  nf=defnoise
 end
 
 -- create tmp dir if needed
 if not dir_exists(tmpdir) then
-	nxo.fs.mkdir(tmpdir)
+  nxo.fs.mkdir(tmpdir)
 end
 
 -- get system uptime
@@ -291,9 +291,9 @@ stations=iwinfo["nl80211"].assoclist(wifiiface)
 
 -- load up arpcache
 arptable(
-	function(a)
-		arpcache[a["HW address"]:lower()]=a
-	end
+function(a)
+  arpcache[a["HW address"]:lower()]=a
+end
 )
 
 -- get the current bandwidth setting
@@ -301,88 +301,88 @@ bandwidth=get_bandwidth()
 
 -- iterate over all the stations
 for mstation in pairs(stations) do
-	local n=Neighbor.create(mstation)
-	table.insert(neighbors,n)
+  local n=Neighbor.create(mstation)
+  table.insert(neighbors,n)
 end
 
 -- get all the existing files in tmpdir
 local tmpdirlist={}
 for maclist in nxo.fs.dir(tmpdir) do
-	maclistbase=nxo.fs.basename(maclist)
-	table.insert(tmpdirlist,maclistbase)
+  maclistbase=nxo.fs.basename(maclist)
+  table.insert(tmpdirlist,maclistbase)
 end
 
 -- neighbors loop START
 for _,n in pairs(neighbors) do
-	-- trim datafile
-	file_trim(tmpdir.."/"..n.datafile,MAXLINES)
-	if n:log()==true then
-		lasttime[n.mac]=now
-	end
+  -- trim datafile
+  file_trim(tmpdir.."/"..n.datafile,MAXLINES)
+  if n:log()==true then
+    lasttime[n.mac]=now
+  end
 end
 -- neighbors loop END
 
 -- update snr.dat
 local snrdatcache={}
 if not file_exists(lastdat) then
-	-- create file
-	local f,err=assert(io.open(lastdat,"w+"),"Cannot create "..lastdat)
-	f:close()
+  -- create file
+  local f,err=assert(io.open(lastdat,"w+"),"Cannot create "..lastdat)
+  f:close()
 end
 for line in io.lines(lastdat) do
-	local mac,lastt,nulledoutprev=string.match(line,"(.*)|(.*)|(.*)")
-	if ((now-lastt) < AGETIME) then
-		-- keep it
-		snrdatcache[mac]=lastt
+  local mac,lastt,nulledoutprev=string.match(line,"(.*)|(.*)|(.*)")
+  if ((now-lastt) < AGETIME) then
+    -- keep it
+    snrdatcache[mac]=lastt
 
-		-- check if in neighbors table
-		local foundneighbor=false
-		for _,n in pairs(neighbors) do
-			if n.mac == mac then
-				foundneighbor=true
-			end
-		end
+    -- check if in neighbors table
+    local foundneighbor=false
+    for _,n in pairs(neighbors) do
+      if n.mac == mac then
+        foundneighbor=true
+      end
+    end
 
-		-- If wasn't previously nulled out and we don't have it in the neigbors table write a null
-		if nulledoutprev[mac] == "false" and foundneigbor == false then
+    -- If wasn't previously nulled out and we don't have it in the neigbors table write a null
+    if nulledoutprev[mac] == "false" and foundneigbor == false then
 
-			-- find the log file name
-			for maclist in nxo.fs.glob(tmpdir.."/"..mac.."*") do
-				logdatafile=macclist
-			end
+      -- find the log file name
+      for maclist in nxo.fs.glob(tmpdir.."/"..mac.."*") do
+        logdatafile=macclist
+      end
 
-			-- Write a null to the log file
-			local f, err=assert(io.open(logdatafile, "a"),"Cannot open file ("..logdatafile..") for appending!")
-			if f~=nil then
-				local now=os.date("%m/%d %H:%M:%S",os.time())
-				local outline=string.format("%s,%s,%s,%s,%s,%s,%s\n",now,'null',nf,'0','0','0','0')
-				f:write(outline)
-				f:close()
-				nulledout[mac]="true"
-			else
-				-- Don't log the null into SNRLog cause we were not successful
-				-- Though the assert() above should cause this too.
-				nulledout[mac]="false"
-			end
+      -- Write a null to the log file
+      local f, err=assert(io.open(logdatafile, "a"),"Cannot open file ("..logdatafile..") for appending!")
+      if f~=nil then
+        local now=os.date("%m/%d %H:%M:%S",os.time())
+        local outline=string.format("%s,%s,%s,%s,%s,%s,%s\n",now,'null',nf,'0','0','0','0')
+        f:write(outline)
+        f:close()
+        nulledout[mac]="true"
+      else
+        -- Don't log the null into SNRLog cause we were not successful
+        -- Though the assert() above should cause this too.
+        nulledout[mac]="false"
+      end
 
-		end
+    end
 
-	else
-		-- find the file and purge it
-		for maclist in nxo.fs.glob(tmpdir.."/"..mac.."*") do
-			nxo.fs.remove(maclist)
-		end
-	end
+  else
+    -- find the file and purge it
+    for maclist in nxo.fs.glob(tmpdir.."/"..mac.."*") do
+      nxo.fs.remove(maclist)
+    end
+  end
 end
 
 for _,n in pairs(neighbors) do
-		snrdatcache[n.mac]=now
+  snrdatcache[n.mac]=now
 end
 
 -- re-write snr.dat file
 local f,err=assert(io.open(lastdat,"w+"),"Cannot overwrite "..lastdat)
 for k,v in pairs(snrdatcache) do
-	f:write(string.format("%s|%s|%s\n",k,v,nulledout[k]))
+  f:write(string.format("%s|%s|%s\n",k,v,nulledout[k]))
 end
 f:close()
 

@@ -46,10 +46,10 @@
 
 sub fail
 {
-    open(ERR, ">>/tmp/nvram_errors");
-    print ERR "@_\n";
-    close(ERR);
-    die "@_\n";
+  open(ERR, ">>/tmp/nvram_errors");
+  print ERR "@_\n";
+  close(ERR);
+  die "@_\n";
 }
 
 $commit = 0;
@@ -99,31 +99,31 @@ chomp ($node = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.node`);
 
 if($node eq "")
 {
-    $mac2 =~ s/\./-/g;
-    $node = "NOCALL-$mac2";
-    system "uci -c /etc/local/uci/ set hsmmmesh.settings.node=NOCALL-$mac2";
-    $commit = 1;
+  $mac2 =~ s/\./-/g;
+  $node = "NOCALL-$mac2";
+  system "uci -c /etc/local/uci/ set hsmmmesh.settings.node=NOCALL-$mac2";
+  $commit = 1;
 }
 
-chomp ($dtdmac = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.dtdmac`);                                         
+chomp ($dtdmac = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.dtdmac`);
 
-if($dtdmac eq "")                                                                                                   
-{                                                                                                                   
+if($dtdmac eq "")
+{
   # We should always have an eth0 interface on all nodes.
   # Not porting get_interface into this file at this time
   # as on a firstboot where nvram-setup runs the interfaces
-  # should not be changed yet.                                                                                                                  
-  open(FILE, "/sbin/ifconfig eth0 |") or fail("ERROR: eth0 mac not available");                                     
-  while(<FILE>)                                                                                                     
-  {                                                                                                                 
-    next unless /\w\w:\w\w:\w\w:(\w\w):(\w\w):(\w\w)/;                                                              
-    $dtdmac = join ".", hex $1, hex $2, hex $3;                                                                     
-    last;                                                                                                           
-  }                                                                                                                 
-  close(FILE);                                                                                                      
-  system "uci -c /etc/local/uci/ set hsmmmesh.settings.dtdmac=$dtdmac";                                             
-  $commit = 1;                                                                                                      
-}         
+  # should not be changed yet.
+  open(FILE, "/sbin/ifconfig eth0 |") or fail("ERROR: eth0 mac not available");
+  while(<FILE>)
+  {
+    next unless /\w\w:\w\w:\w\w:(\w\w):(\w\w):(\w\w)/;
+    $dtdmac = join ".", hex $1, hex $2, hex $3;
+    last;
+  }
+  close(FILE);
+  system "uci -c /etc/local/uci/ set hsmmmesh.settings.dtdmac=$dtdmac";
+  $commit = 1;
+}
 
 
 system "uci -c /etc/local/uci/ commit" if $commit;

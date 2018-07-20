@@ -78,7 +78,7 @@ sub freq_to_chan
   {
     return ($freq-5000)/5 ;
   }
-  elsif ($freq < 5500) # ch 76 to 99 can only be 3Ghz freq, no part 15 here 
+  elsif ($freq < 5500) # ch 76 to 99 can only be 3Ghz freq, no part 15 here
   {
     return ($freq-2000); # return 3ghz freq (5ghz boards with -2Ghz transverter)
   }
@@ -112,17 +112,17 @@ sub pushAP
     $avgs{"$mac total"} += $signal;
     $avgs{"$mac num"} += 1;
     $aphash{$mac} = sprintf "% 3d %s %-32s\t%s\t%s\t%s\n",
-      $chan, $key, $ssid, $host, $mac, $mode;
+    $chan, $key, $ssid, $host, $mac, $mode;
   }
   elsif($web)
   {
     push @list, sprintf "% 3d|%d|%s|%s|%s|%s|%s",
-      $signal, $chan, $key, sprintf("&#x%*vX", '&#x',$ssid), $host, $mac, $mode;
+    $signal, $chan, $key, sprintf("&#x%*vX", '&#x',$ssid), $host, $mac, $mode;
   }
   else
   {
     push @list, sprintf "% 3d %2d %s %-32s\t%s\t%s\t%s\n",
-      $signal, $chan, $key, $ssid, $host, $mac, $mode;
+    $signal, $chan, $key, $ssid, $host, $mac, $mode;
   }
 }
 
@@ -150,7 +150,7 @@ while(defined ($arg = shift))
   elsif($arg eq "-i") { $iface = shift }
   elsif($arg eq "-n") { $loops = shift }
   elsif($arg eq "-w") { $web = 1 }
-  else { die "bad arg $arg\n" } 
+  else { die "bad arg $arg\n" }
 }
 
 die "bad interface" if not defined $iface;
@@ -169,10 +169,10 @@ while(1)
   $myssid = $1;
   $mychan = `iw dev $iface info | grep channel | cut -d\\  -f2`;
   if ($mychan >= 76 and $mychan <= 99)
-    {
+  {
     $mychan = ($mychan*5+3000); # ch 76 - 99 are 3ghz since no part 15 usage (5ghz board with -2ghz transverter)
-    }
-  
+  }
+
   open(FILE, "/usr/sbin/iw dev $iface scan 2>&1 |") or die "iw scan failed";
   $mac = "";
   $host = "N/A";
@@ -195,15 +195,15 @@ while(1)
 
     }
 
-    if($line =~ /BSS(\s+)([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}.*joined/) 
-    { 
-	$mode = "My Ad-Hoc Network"; 
-	$chan = $mychan;
+    if($line =~ /BSS(\s+)([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}.*joined/)
+    {
+      $mode = "My Ad-Hoc Network";
+      $chan = $mychan;
     }
     if($line =~ /\bSSID: (.*)/)                 { $ssid = $1 }
-    if($line =~ /\bSSID: unknown/)              { $ssid = "unknown" } 
-    if($line =~ /\bcapability: (IBSS)/ and $mode eq "AP")	
-						{ $mode = "Foreign Ad-Hoc Network" } 
+    if($line =~ /\bSSID: unknown/)              { $ssid = "unknown" }
+    if($line =~ /\bcapability: (IBSS)/ and $mode eq "AP")
+                                                { $mode = "Foreign Ad-Hoc Network" }
     if($line =~ /\bfreq: (\d+)/)                { $chan = $1 }
     if($line =~ /\bsignal: ([\d-]+)/)           { $signal = $1 }
     if($line =~ /\bGroup cipher:(.+)/)          { $key = $1 }
@@ -211,56 +211,56 @@ while(1)
   }
 
   close(FILE);
-  
+
   if ( $lastseen < 10000 ) { pushAP($signal, $chan, $key, $ssid, $host, $mac, $mode) }
   sleep 1 if not scalar @list and $loops != 1;
-  
+
   $mac = "";
-  $mode = "Connected Ad-Hoc Station";                                                             
+  $mode = "Connected Ad-Hoc Station";
   $signal = 0;
   $key = "";
   $lastseen = 0;
-  ++$iters;                                                               
+  ++$iters;
 
   open(FILE, "/usr/sbin/iw $iface station dump 2>&1 |") or die "/usr/sbin/iw failed";
-  
-  while($line = <FILE>)                                                   
-  {                                                                       
-    if($line =~ /Station (\S+) \(on $iface\)/)                              
-    {                                                                     
+
+  while($line = <FILE>)
+  {
+    if($line =~ /Station (\S+) \(on $iface\)/)
+    {
       if ( $lastseen < 10000 ) { pushAP($signal, $mychan, $key, $myssid, $host, $mac, $mode) }
 
       $lastseen = 0;
-      $mac = $1;                                                          
+      $mac = $1;
       $ip = `grep $mac /proc/net/arp | egrep "^10.*\$" | tail -1`;
       $mac = uc $mac;
-      if ( $ip ne "" ) 
+      if ( $ip ne "" )
       {
-         $ip =~ s/[ \t].*$// ;
-         chomp($ip);
-         $host = $ip;
-         if( $ip ne "") 
-         {
-	     $reverse_ip=join ".",reverse(split /\./,$ip);
-             foreach(`nslookup $ip`)
-	     { 
-		last if ($host) = /^$reverse_ip\.in-addr\.arpa[ \t]+name[ \t]+=[ \t]+(\S+)\.local\.mesh/;
-	     }
-	     if ( $host eq "" ) { $host = $ip }
-         }
+        $ip =~ s/[ \t].*$// ;
+        chomp($ip);
+        $host = $ip;
+        if( $ip ne "")
+        {
+          $reverse_ip=join ".",reverse(split /\./,$ip);
+          foreach(`nslookup $ip`)
+          {
+            last if ($host) = /^$reverse_ip\.in-addr\.arpa[ \t]+name[ \t]+=[ \t]+(\S+)\.local\.mesh/;
+          }
+          if ( $host eq "" ) { $host = $ip }
+        }
       }
       else { $host = "????" }
-    }                                                                     
-    
+    }
+
     if($line =~ /signal avg:[ \t]+([-\d]+)/)  {  $signal = $1 }
-    if($line =~ /inactive time:\t(\d+) ms/)    { $lastseen = $1 }                    
-  }                                                                       
-  
-  close(FILE);                                                   
+    if($line =~ /inactive time:\t(\d+) ms/)    { $lastseen = $1 }
+  }
+
+  close(FILE);
   if ( $lastseen < 10000 ) { pushAP($signal, $mychan, $key, $myssid, $host, $mac, $mode) }
 
-  sleep 1 if not scalar @list and $loops != 1;  
-  
+  sleep 1 if not scalar @list and $loops != 1;
+
   if(not $batch)
   {
     if($avg)
@@ -271,8 +271,8 @@ while(1)
     }
     elsif($web)
     {
-	print "<table class=sortable border=1 cellpadding=5>\n";
-	print "<tr><th>Sig</th><th>Chan</th><th>Enc</th><th>SSID</th><th>Hostname</th><th>MAC/BSSID</th><th>802.11 Mode</th></tr>\n";
+      print "<table class=sortable border=1 cellpadding=5>\n";
+      print "<tr><th>Sig</th><th>Chan</th><th>Enc</th><th>SSID</th><th>Hostname</th><th>MAC/BSSID</th><th>802.11 Mode</th></tr>\n";
     }
     else
     {
@@ -288,34 +288,34 @@ while(1)
     foreach $mac (keys %aphash)
     {
       printf FILE "%3d %3d %s",
-        ($avgs{"$mac total"} - $avgs{"$mac num"} + 1)/$avgs{"$mac num"},
-        100*$avgs{"$mac num"}/$iters,
-        $aphash{$mac};
+      ($avgs{"$mac total"} - $avgs{"$mac num"} + 1)/$avgs{"$mac num"},
+      100*$avgs{"$mac num"}/$iters,
+      $aphash{$mac};
     }
     close(FILE);
     print "\n";
   }
   elsif($web)
   {
-      foreach $line (sort { $b <=> $a } @list)
-      {
-         
-	  # Match "AREDN"
-	  if ( $line =~ /&#x41&#x52&#x45&#x44&#x4E/) { print "<tr class=\"wscan-row-node\">"}
-          else { print "<tr>"}
+    foreach $line (sort { $b <=> $a } @list)
+    {
 
-	  my $i = 0;
-	  foreach $val (split /\|/, $line)
-	  {
-	      $val = "&nbsp;" unless $val =~ /\S/;
-	      if($i++ == 3) { print "<td>$val</td>" }
-	      else          { print "<td align=center>$val</td>" }
-	  }
-	  print "<td>&nbsp;</td>" if $i < 7;
-	  print "</tr>\n";
+      # Match "AREDN"
+      if ( $line =~ /&#x41&#x52&#x45&#x44&#x4E/) { print "<tr class=\"wscan-row-node\">"}
+      else { print "<tr>"}
+
+      my $i = 0;
+      foreach $val (split /\|/, $line)
+      {
+        $val = "&nbsp;" unless $val =~ /\S/;
+        if($i++ == 3) { print "<td>$val</td>" }
+        else          { print "<td align=center>$val</td>" }
       }
-      print "</table>\n";
-      exit;
+      print "<td>&nbsp;</td>" if $i < 7;
+      print "</tr>\n";
+    }
+    print "</table>\n";
+    exit;
   }
   else
   {

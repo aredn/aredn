@@ -53,9 +53,9 @@ open(my $lfh, '>>', $logfile) or die "Could not open file $logfile $!";
 sub getRSSI
 {
   for (keys %rssi)
-    {
-        delete $rssi{$_};
-    }
+  {
+    delete $rssi{$_};
+  }
 
   open(FILE, "/usr/sbin/iw $iface station dump 2>&1 |") or die "/usr/sbin/iw failed $!";
 
@@ -75,16 +75,16 @@ sub getRSSI
     }
     if ($H)
     {
-        if ($H < -95) { $rssi{$mac}{"Hrssi"}=-96 ; }
-        else { $rssi{$mac}{"Hrssi"}=$H ; }
-        undef $H;
-        $neighborCount += 1;
+      if ($H < -95) { $rssi{$mac}{"Hrssi"}=-96 ; }
+      else { $rssi{$mac}{"Hrssi"}=$H ; }
+      undef $H;
+      $neighborCount += 1;
     }
     if ($V)
     {
-        if ($V < -95) { $rssi{$mac}{"Vrssi"}=-96 ; }
-        else { $rssi{$mac}{"Vrssi"}=$V ; }
-        undef $V;
+      if ($V < -95) { $rssi{$mac}{"Vrssi"}=-96 ; }
+      else { $rssi{$mac}{"Vrssi"}=$V ; }
+      undef $V;
     }
   }
 }
@@ -156,7 +156,7 @@ for (keys %rssi)
   {
     $hit = 0 ;
     $sdH3 = int(3 * $rssiHist{$_}{"sdH"} + .5);
-    # is the RSSI attenuated and 3 standard deviations away?   
+    # is the RSSI attenuated and 3 standard deviations away?
     if   (abs ($rssiHist{$_}{"aveH"} - $rssi{$_}{"Hrssi"})  > $sdH3) { $hit += 1; }
     if ( $antnum )
     {
@@ -165,7 +165,8 @@ for (keys %rssi)
     }
 
     if ($rssiHist{$_}{"num"} > 9 and $ofdm_level <= 3 and $hit > 0)
-    { # Overly Attenuated Chain Suspected
+    {
+      # Overly Attenuated Chain Suspected
       $datestring = localtime();
       if ($antnum)
       {
@@ -180,7 +181,7 @@ for (keys %rssi)
       # find strongest signal to compare RSSI before/after reset
       if ( $amac )
       {
-	if ($antnum)
+        if ($antnum)
         {
           if ($rssi{$amac}{"Hrssi"} < $rssi{$amac}{"Vrssi"} ) { $strong1 = "Vrssi" ;} else {$strong1 = "Hrssi";  }
           if ($rssi{$_}{"Hrssi"} < $rssi{$_}{"Vrssi"} ) { $strong2 = "Vrssi" ;} else {$strong2 = "Hrssi";  }
@@ -198,7 +199,7 @@ for (keys %rssi)
     # unpdate statistics
     $aveH = (($rssiHist{$_}{"aveH"}*$rssiHist{$_}{"num"})+$rssi{$_}{"Hrssi"}) / ($rssiHist{$_}{"num"} + 1 );
     $sdH = sqrt((($rssiHist{$_}{"num"}-1)*($rssiHist{$_}{"sdH"}**2) +
-               (($rssi{$_}{"Hrssi"}-$aveH)*($rssi{$_}{"Hrssi"}-$rssiHist{$_}{"aveH"})))/$rssiHist{$_}{"num"});
+                (($rssi{$_}{"Hrssi"}-$aveH)*($rssi{$_}{"Hrssi"}-$rssiHist{$_}{"aveH"})))/$rssiHist{$_}{"num"});
     chomp $aveH;
     chomp $sdH;
 
@@ -206,7 +207,7 @@ for (keys %rssi)
     {
       $aveV = (($rssiHist{$_}{"aveV"}*$rssiHist{$_}{"num"})+$rssi{$_}{"Vrssi"}) / ($rssiHist{$_}{"num"} + 1 );
       $sdV = sqrt((($rssiHist{$_}{"num"}-1)*($rssiHist{$_}{"sdV"}**2) +
-               (($rssi{$_}{"Vrssi"}-$aveV)*($rssi{$_}{"Vrssi"}-$rssiHist{$_}{"aveV"})))/$rssiHist{$_}{"num"});
+                  (($rssi{$_}{"Vrssi"}-$aveV)*($rssi{$_}{"Vrssi"}-$rssiHist{$_}{"aveV"})))/$rssiHist{$_}{"num"});
       chomp $aveV;
       chomp $sdV;
     }
@@ -226,7 +227,8 @@ for (keys %rssi)
     }
   }
   else
-  {  # new neigbor or data too old--restart history
+  {
+    # new neigbor or data too old--restart history
     $rssiHist{$_}{"aveH"} = $rssi{$_}{"Hrssi"};
     $rssiHist{$_}{"sdH"} = 0;
     $rssiHist{$_}{"num"} = 1;
@@ -276,10 +278,10 @@ if ($amac or not $neighborCount)
     {
       # if a false-positive (within 2dB change after a reset), then add data point to statistics
       $aveH = (($rssiHist{$amac}{"aveH"}*$rssiHist{$amac}{"num"})+ $beforeH )
-                                                / ($rssiHist{$amac}{"num"} + 1 );
+              / ($rssiHist{$amac}{"num"} + 1 );
       $sdH = sqrt((($rssiHist{$amac}{"num"}-1)*($rssiHist{$amac}{"sdH"}**2) +
-                 (($beforeH-$aveH)*($beforeH-$rssiHist{$amac}{"aveH"})))
-                                           /$rssiHist{$amac}{"num"});
+              (($beforeH-$aveH)*($beforeH-$rssiHist{$amac}{"aveH"})))
+              /$rssiHist{$amac}{"num"});
       chomp $aveH;
       chomp $sdH;
       $rssiHist{$amac}{"aveH"} = $aveH;
@@ -288,10 +290,10 @@ if ($amac or not $neighborCount)
       if ($antnum)
       {
         $aveV = (($rssiHist{$amac}{"aveV"}*$rssiHist{$amac}{"num"})+ $beforeV ) /
-                                                    ($rssiHist{$amac}{"num"} + 1 );
+                 ($rssiHist{$amac}{"num"} + 1 );
         $sdV = sqrt((($rssiHist{$amac}{"num"}-1)*($rssiHist{$amac}{"sdV"}**2) +
-                             (($beforeV-$aveV)*($beforeV-$rssiHist{$amac}{"aveV"}))) /
-                                                        $rssiHist{$amac}{"num"});
+                (($beforeV-$aveV)*($beforeV-$rssiHist{$amac}{"aveV"}))) /
+                $rssiHist{$amac}{"num"});
         chomp $aveV;
         chomp $sdV;
         $rssiHist{$amac}{"aveV"} = $aveV;

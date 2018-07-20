@@ -45,14 +45,14 @@ use ucifunc;
 
 #Check what config file we are building for
 if ( !$ARGV[0] ) {
-    $UCI_CONF_FILE="olsrd";
+  $UCI_CONF_FILE="olsrd";
 } else {
-    $UCI_CONF_FILE=$ARGV[0];
+  $UCI_CONF_FILE=$ARGV[0];
 }
 
 if ( $UCI_CONF_FILE eq "olsrd6" ) {
-    # We only generate entries for IPv4 at moment"
-    exit 0;
+  # We only generate entries for IPv4 at moment"
+  exit 0;
 }
 
 
@@ -66,29 +66,29 @@ push @names, $name if ($name = nvram_get("node"));
 # load the dhcp reservations when in dmz mode
 if(-f "/etc/config/dmz-mode")
 {
-    #($lanip, $lanmask, $lanbcast, $lannet) = get_ip4_network("eth0.0");
-    foreach(`cat /etc/ethers`)
-    {
-	next unless ($ip) = /[0-9a-f:]+\s+([\d\.]+)/i;
-	next unless $host = ip2hostname($ip);
-	push @hosts, qq("$ip" "$host");
-    }
+  #($lanip, $lanmask, $lanbcast, $lannet) = get_ip4_network("eth0.0");
+  foreach(`cat /etc/ethers`)
+  {
+    next unless ($ip) = /[0-9a-f:]+\s+([\d\.]+)/i;
+    next unless $host = ip2hostname($ip);
+    push @hosts, qq("$ip" "$host");
+  }
 }
 
 # Add a name for the dtdlink interface.
 if ($name = nvram_get("node"))
 {
-    my ($dtdip,$dtdmask,$dtdbcast,$dtdnet);
-    ($dtdip, $dtdmask, $dtdbcast, $dtdnet) = get_ip4_network(get_interface("dtdlink"));
-    push @hosts, qq("$dtdip" "dtdlink.$name.local.mesh");
-}             
+  my ($dtdip,$dtdmask,$dtdbcast,$dtdnet);
+  ($dtdip, $dtdmask, $dtdbcast, $dtdnet) = get_ip4_network(get_interface("dtdlink"));
+  push @hosts, qq("$dtdip" "dtdlink.$name.local.mesh");
+}
 
 # load the services
 foreach(`cat /etc/config/services 2>/dev/null`)
 {
-    next unless /^\w+:\/\/[\w\-\.]+:\d+(\/[^\|]*)?\|(tcp|udp)\|\w/;
-    chomp;
-    push @services, $_;
+  next unless /^\w+:\/\/[\w\-\.]+:\d+(\/[^\|]*)?\|(tcp|udp)\|\w/;
+  chomp;
+  push @services, $_;
 }
 
 # load the tunnels
