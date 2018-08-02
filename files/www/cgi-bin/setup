@@ -433,17 +433,13 @@ if($parms{button_save})
 	push (@errors, "OK") unless @errors;
     }
 
-    if($parms{nodedesc})
+    if($description_node)
     {
-        if($parms{nodedesc} =~ /<.*>|<\/.*>/) {
+        if($description_node =~ /<.*>|<\/.*>/) {
             push(@errors, "Node description cannot contain html like tags")
         }
-        else
-        {
-            $rc = &uci_set_indexed_option("system", "system", "0", "description", "$parms{nodedesc}");
-            push(@errors, "unable to store node description. ($rc | $rc2") if($rc);
-        }
     }
+
     unless(@errors)
     {
 	$parms{node} = $node;
@@ -469,7 +465,7 @@ reboot_page("/cgi-bin/status") if $parms{button_reboot};
 #
 # retrieve node description
 #
-$nodedesc = &uci_get_indexed_option("system", "system", 0, "description");
+$desc = &uci_get_indexed_option("system", "system", 0, "description");
 #
 # Retreive map url, css, and js locations
 #
@@ -646,7 +642,7 @@ print "
 </tr>
 <tr>
 <td>Node Description (optional)</td>
-<td><input type='text' size='50' name='nodedesc' value=\"$nodedesc\" tabindex='4'</input></td>";
+<td><input type='text' size='50' name='description_node' value=\"$description_node\" tabindex='4'</input></td>";
 push @hidden, "<input type=hidden name=config value='mesh'>";
 print "
 <td>Verify Password</td>
