@@ -13,9 +13,9 @@ The default git branch builds images with the following:
 
 * includes history from AREDN nightly build 176
 * olsrd upgrade from 0.6.7 to 0.9.6.2
-* ported on top of OpenWrt 18.06 branch
-* added Mikrotik basebox 5
-* added tp-link cp210 v2.0
+* fixed to OpenWrt v18.06.0
+* added Mikrotik basebox 2 and 5
+* added tp-link cp210 v2.0, v3.0, and cpe510 v2.0
 * focus has been on 64M RAM devices, 32M devices are currently unstable in this branch
 * compatible with all prior AREDN and BBHN 3.1.0 networks (called version 3)
 
@@ -34,21 +34,22 @@ NanoBridge 2G18 | loco-m | 32Mb | unstable
 NanoBridge 5G22/25 | loco-m | 32Mb | unstable
 NanoBridge M9 | loco-m | 32Mb | unstable
 NanoStation Loco M2/M5/M9 XM | loco-m | 32Mb | unstable
-NanoStation Loco M2/M5 XW | loco-m-xw | 64Mb | testing-stable?
+NanoStation Loco M2/M5 XW | loco-m-xw | 64Mb | stable
+NanoStation Loco M2/M5 XW with test date after ~Nov 2017 | rocket-m-xw | 64Mb | stable
 NanoStation  M2/M3/M5 XM | nano-m | 32Mb | unstable
-NanoStation  M2/M5 XW | nano-m-xw | 64Mb | testing-stable?
+NanoStation  M2/M5 XW | nano-m-xw | 64Mb | stable
 PicoStation M2 | bullet-m | 32Mb | unstable
-PBE-M2-400 | loco-m-xw | 64Mb | testing-stable?
-PBE-M5-300 | loco-m-xw | 64Mb | testing-stable?
-PBE-M5-400/400ISO/620 | rocket-m-xw | 64Mb | testing-stable?
-Rocket M9/M2/M3/M5/M5GPS XM | rocket-m | 64Mb | testing-stable?
-Rocket M2/M5 XW | rocket-m-xw | 64Mb | testing-stable?
+PBE-M2-400 | loco-m-xw | 64Mb | stable
+PBE-M5-300 | loco-m-xw | 64Mb | stable
+PBE-M5-400/400ISO/620 | rocket-m-xw | 64Mb | stable
+Rocket M9/M2/M3/M5/M5GPS XM | rocket-m | 64Mb | stable
+Rocket M2/M5 XW | rocket-m-xw | 64Mb | stable
 Rocket M2 TI | rocket-m-ti? | 64Mb | unknown
-Rocket M5 TI | rocket-m-ti | 64Mb | testing-stable?
-TPLink CPE210 v1.0/v1.1 | cpe210-220-v1 | 64Mb | testing-stable?
-TPLink CPE210 v2.0/v3.0 | cpe210-v2 | 64Mb | testing-stable?
-TPLink CPE510 v1.0/v1.1/v2.0 | cpe510-220-v1 | 64Mb | testing-stable?
-Mikrotik BaseBox 2/5 | mikrotik-nand-large | 64Mb | testing-stable?
+Rocket M5 TI | rocket-m-ti | 64Mb | stable
+TPLink CPE210 v1.0/v1.1 | cpe210-220-v1 | 64Mb | stable
+TPLink CPE210 v2.0/v3.0 | cpe210-v2 | 64Mb | stable
+TPLink CPE510 v1.0/v1.1/v2.0 | cpe510-220-v1 | 64Mb | stable
+Mikrotik BaseBox 2/5 | mikrotik-nand-large | 64Mb | stable
 
 ### Building with Docker
 Installing the Docker environment on your windows/linux/mac machine is a pre-requisite. A docker 'container' has been pre-configured with an aredn linux build environment. Alternative instructions are below if you wish to setup your linux install with the compiler pre-requisites necessary to do the build.
