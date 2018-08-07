@@ -27,8 +27,7 @@ jobs:
       - run:
           name: Deploy Files
           command: scp -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:~/
-
-  needs_to_be_built:
+  check2build:
     machine:
       enabled: true
     steps:
@@ -102,9 +101,10 @@ workflows:
             branches:
               only: develop
     jobs:
+      - check2build
       - build:
           requires:
-            - needs_to_be_built
+            - check2build
       - save_build_info:
           requires:
             - build
