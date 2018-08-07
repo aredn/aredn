@@ -13,6 +13,7 @@ jobs:
           command:  |
             export MY_WORKING_DIRECTORY=`pwd`
             sed -i "s/NoCall/${CIRCLE_BUILD_NUM}/g" ${MY_WORKING_DIRECTORY}/config.mk
+            sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j${DASH_J_VALUE}/g" ${MY_WORKING_DIRECTORY}/config.mk
             cat ${MY_WORKING_DIRECTORY}/config.mk
       - run:
           name: Build
