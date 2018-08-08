@@ -75,6 +75,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 .stamp-feeds-updated: $(OPENWRT_DIR)/feeds.conf
 	cd $(OPENWRT_DIR); ./scripts/feeds uninstall -a
 	cd $(OPENWRT_DIR); ./scripts/feeds update -a
+	cd $(OPENWRT_DIR); ./scripts/feeds install libidn2
 	cd $(OPENWRT_DIR); ./scripts/feeds install liblzma
 	cd $(OPENWRT_DIR); ./scripts/feeds install libssh2
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn
@@ -105,7 +106,7 @@ pre-patch: stamp-clean-pre-patch .stamp-pre-patch
 
 # patch openwrt working copy
 patch: stamp-clean-patched .stamp-patched
-.stamp-patched: .stamp-pre-patch  .stamp-unpatched
+.stamp-patched: .stamp-pre-patch  .stamp-unpatched .stamp-feeds-updated
 	cd $(OPENWRT_DIR); quilt push -a || [ $$? = 2 ] && true
 	rm -rf $(OPENWRT_DIR)/tmp
 	touch $@
