@@ -14,13 +14,7 @@ OPENWRT_DIR=$(TOP_DIR)/openwrt
 TARGET_CONFIG=$(TOP_DIR)/configs/common.config $(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET).config
 UMASK=umask 022
 
-# set variables based on private or travis-ci build
-ifeq ($(TRAVIS),true)
-$(info Travis-CI build ...)
-FW_VERSION=$(TRAVIS_BUILD_NUMBER)-$(TRAVIS_COMMIT)
-else
-FW_VERSION=$(PRIVATE_BUILD_VERSION)-$(GIT_COMMIT)
-endif
+FW_VERSION=$(PRIVATE_BUILD_VERSION)
 
 # test for existing $TARGET-config or abort
 ifeq ($(wildcard $(TOP_DIR)/configs/$(TARGET).config),)
@@ -130,11 +124,13 @@ compile: stamp-clean-compiled .stamp-compiled
 	rm -f $(TOP_DIR)/firmware/AREDN*
 	for FILE in $(TOP_DIR)/firmware/openwrt*; do \
 	  [ -e "$$FILE" ] || continue; \
-	  NEWNAME="$${FILE/openwrt-/AREDN-}"; \
+	  NEWNAME="$${FILE/openwrt-/AREDN-$(FW_VERSION)-}"; \
 	  NEWNAME="$${NEWNAME/ar71xx-generic-/}"; \
 	  NEWNAME="$${NEWNAME/squashfs-/}"; \
 	  mv "$$FILE" "$$NEWNAME"; \
 	done;
+	rm -f $(TOP_DIR)/firmware/AREDN-$(FW_VERSION)-[!cu]*;
+	rm -f $(TOP_DIR)/firmware/AREDN-$(FW_VERSION)-{ca,ubd,ubnt-air-,ubnt-ls-,ubnt-u,uI,ubnt-rs,ubnt-loco-x}*; 
 	$(TOP_DIR)/scripts/tests-postbuild.sh
 
 $(TOP_DIR)/firmware:
