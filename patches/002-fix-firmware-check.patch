@@ -1,0 +1,20 @@
+--- a/target/linux/ar71xx/image/Makefile
++++ b/target/linux/ar71xx/image/Makefile
+@@ -588,7 +588,7 @@
+ 		dd if=$(call sysupname,$(1),$(2)) of=$(KDIR_TMP)/$(2)-mtdpart-kernel.bin bs=1024k count=1; \
+ 		dd if=$(call sysupname,$(1),$(2)) of=$(KDIR_TMP)/$(2)-mtdpart-rootfs.bin bs=1024k skip=1; \
+ 		$(STAGING_DIR_HOST)/bin/mkfwimage \
+-			-B $(4) -v $(5).$(6).v6.0.0-OpenWrt-$(REVISION) \
++			-B $(4) -v $(5).$(6).v6.0.0-31296.170704.204 \
+ 			-k $(KDIR_TMP)/$(2)-mtdpart-kernel.bin \
+ 			-r $(KDIR_TMP)/$(2)-mtdpart-rootfs.bin \
+ 			-o $(call factoryname,$(1),$(2)); \
+@@ -608,7 +608,7 @@
+ define Image/Build/UBNT
+ 	dd if=$(KDIR_TMP)/vmlinux-$(2).bin.lzma of=$(KDIR_TMP)/vmlinux-$(2).lzma bs=64k conv=sync
+ 	-$(STAGING_DIR_HOST)/bin/mkfwimage \
+-		-B $(4) -v $(5).$(6).OpenWrt.$(REVISION) \
++		-B $(4) -v $(5).$(6).v6.0.0-31296.170704.204 \
+ 		-k $(KDIR_TMP)/vmlinux-$(2).lzma \
+ 		-r $(BIN_DIR)/$(IMG_PREFIX)-root.$(1) \
+ 		-o $(call factoryname,$(1),$(2))
