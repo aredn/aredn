@@ -1,0 +1,129 @@
+version: 2
+jobs:
+  ######################################
+  # Common
+  ######################################
+  build:
+    docker:
+      - image: arednmesh/builder
+    steps:
+      - checkout
+      - run:
+          name: Update Config.mk
+          command:  |
+            export MY_WORKING_DIRECTORY=`pwd`
+            sed -i "s/NoCall/${CIRCLE_BUILD_NUM}/g" ${MY_WORKING_DIRECTORY}/config.mk
+            sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j${DASH_J_VALUE}/g" ${MY_WORKING_DIRECTORY}/config.mk
+            cat ${MY_WORKING_DIRECTORY}/config.mk
+      - run:
+          name: Build
+          command: make
+      - run:
+          name: Build
+          command: make SUBTARGET=mikrotik
+      - run:
+          name: Compress build files
+          command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
+      - run:
+          name: Deploy Files
+          command: scp -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:~/
+  check2build:
+    machine:
+      enabled: true
+    steps:
+      - run:
+          name: Retrieve last build info and check
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c ' ~/needs2build.sh ${CIRCLE_PROJECT_USERNAME} ${CIRCLE_PROJECT_REPONAME} ${CIRCLE_BRANCH} ${CIRCLE_SHA1}'"
+  save_build_info:
+      machine:
+        enabled: true
+      steps:
+        - run:
+            name: Save last build info
+            command: ssh ${SSH_USER}@${SSH_HOST} "sh -c ' echo ${CIRCLE_SHA1} > ~/build_info/${CIRCLE_PROJECT_USERNAME}_${CIRCLE_PROJECT_REPONAME}_${CIRCLE_BRANCH}'"
+
+  ######################################
+  # Nightly
+  ######################################
+  process_artifacts_nightly:
+    machine:
+      enabled: true
+    steps:
+      - run:
+          name: Untar Files
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'tar -xjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ~/'"
+      - run:
+          name: Empty nightly dir
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'rm -rf ${NIGHTLY_DIR}'"
+      - run:
+          name: Create nightly dir
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mkdir -p ${NIGHTLY_DIR}'"
+      - run:
+          name: Move targets
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/targets ${NIGHTLY_DIR}'"
+      - run:
+          name: Move packages
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/packages ${NIGHTLY_DIR}'"
+
+  changelog_nightly:
+    machine:
+      enabled: true
+    steps:
+      - run:
+          name: Generate changelog.md
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'docker run --rm -v ~/:/usr/local/src/your-app ferrarimarco/github-changelog-generator -u ${CIRCLE_PROJECT_USERNAME} -p ${CIRCLE_PROJECT_REPONAME} -t ${GITHUB_TOKEN}'"
+      - run:
+          name: Move changelog
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/CHANGELOG.md ${NIGHTLY_DIR}'"
+
+  readme_nightly:
+    machine:
+      enabled: true
+    steps:
+      - run:
+          name: Fetch README.md
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'wget https://raw.githubusercontent.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}/README.md'"
+      - run:
+          name: Move README.md
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/README.md ${NIGHTLY_DIR}/readme.md'"
+
+######################################
+# Workflows
+######################################
+workflows:
+  version: 2
+
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 9 * * *" # 9AM UTC
+          filters:
+            branches:
+              only: develop
+    jobs:
+      - check2build
+      - build:
+          requires:
+            - check2build
+      - save_build_info:
+          requires:
+            - build
+      - process_artifacts_nightly:
+          requires:
+            - build
+          filters:
+            branches:
+              only: develop
+      - readme_nightly:
+          requires:
+            - process_artifacts_nightly
+          filters:
+            branches:
+              only:
+                - develop
+      - changelog_nightly:
+          requires:
+            - process_artifacts_nightly
+          filters:
+            branches:
+              only: develop
