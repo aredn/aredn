@@ -2,14 +2,14 @@
 
 http://www.arednmesh.org
 
-## Build Information for 3.16.1.1
+## Build Information for 3.16.2.0
 
 The AREDN firmware is based on OpenWrt with additional packages and patches.
 A Makefile automates the entire process to create firmware images.
 
 ### Images built
 
-There are many images built, however only the following are usable and tested:
+The following images are built:
 
 Device | Image to Use | RAM | Stability
 ------ | ------------ | --- | ---------
@@ -18,7 +18,6 @@ AirRouter  | airrouter | 32Mb | stable
 AirRouter HP | airrouter | 32Mb | stable
 Bullet M2/M5 | bullet-m | 32Mb | stable
 Bullet Ti | bullet-m | 32Mb | stable
-NBE-M2-13/16/19 | loco-m-xw | 32Mb | stable
 NanoBridge 2G18 | loco-m | 32Mb | stable
 NanoBridge 5G22/25 | loco-m | 32Mb | stable
 NanoBridge M9 | loco-m | 32Mb | stable
@@ -57,7 +56,7 @@ To obtain the source and build the firmware locally use:
 ```bash
 git clone https://github.com/aredn/aredn_ar71xx.git
 cd aredn_ar71xx
-git checkout 3.16.1.1-make
+git checkout 3.16.2.0
 make
 ```
 
