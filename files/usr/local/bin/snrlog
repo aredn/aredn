@@ -87,12 +87,11 @@ foreach $sigmac ( glob "$sigdir/*" )
   $ipsig    = "";
   chomp ($ipsig = `cat /proc/net/arp | grep $sigmac | grep 'wlan0' | cut -f1 -d\" "`);
   $hname="";
+  $reverse_ip=join ".",reverse(split /\./,$ipsig);
   foreach(`nslookup $ipsig`)
-  {
-    next unless ($hname) = /Address 1: $ipsig (\S+)/;
-    $hname =~ s/\..*$// ;
-    break;
-  }
+    { 
+      last if ($hname) = /^$reverse_ip\.in-addr\.arpa[ \t]+name[ \t]+=[ \t]+(\S+)\.local\.mesh/;
+    }
 
   if (($hnamef and $hnamef eq $hname ) or ($hname and $isFile eq "" ))
   {
