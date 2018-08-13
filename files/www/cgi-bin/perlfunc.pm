@@ -486,10 +486,9 @@ sub ip2hostname
     my $host;
     return "" unless $ip;
     return "" if $ip eq "none";
-    $reverse_ip=join ".",reverse(split /\./,$ip);
     foreach(`nslookup $ip`)
     {
-	next unless ($host) = /^$reverse_ip\.in-addr\.arpa[ \t]+name[ \t]+=[ \t]+(\S+)/;
+	next unless ($host) = /Address 1: $ip (\S+)/;
 	return $host;
     }
     return "";

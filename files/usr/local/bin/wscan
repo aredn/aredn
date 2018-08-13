@@ -241,11 +241,7 @@ while(1)
          $host = $ip;
          if( $ip ne "") 
          {
-	     $reverse_ip=join ".",reverse(split /\./,$ip);
-	     foreach(`nslookup $ip`)
-	     { 
-		last if ($host) = /^$reverse_ip\.in-addr\.arpa[ \t]+name[ \t]+=[ \t]+(\S+)\.local\.mesh/;
-	     }
+             foreach(`nslookup $ip`){ next unless ($host) = /Address 1: $ip (\S+)/ }
 	     if ( $host eq "" ) { $host = $ip }
          }
       }
