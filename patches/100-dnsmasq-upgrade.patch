@@ -195,7 +195,7 @@
 -/etc/init.d/dnsmasq enabled && /etc/init.d/dnsmasq start
 --- /dev/null
 +++ b/package/network/services/dnsmasq/files/dnsmasq.init.aredn
-@@ -0,0 +1,640 @@
+@@ -0,0 +1,641 @@
 +#!/bin/sh /etc/rc.common
 +# Copyright (C) 2007-2012 OpenWrt.org
 +
@@ -749,7 +749,7 @@
 +	config_load dhcp
 +
 +	procd_open_instance
-+	procd_set_param command $PROG -C $CONFIGFILE -k -x /var/run/dnsmasq/dnsmasq.pid
++	procd_set_param command $PROG -C $CONFIGFILE -k -x /var/run/dnsmasq.pid
 +	procd_set_param file $CONFIGFILE
 +	procd_set_param respawn
 +
@@ -762,6 +762,7 @@
 +	# before we can call xappend
 +	mkdir -p /var/run/dnsmasq/
 +	mkdir -p $(dirname $CONFIGFILE)
++	mkdir -p /tmp/hosts
 +	mkdir -p /var/lib/misc
 +	touch /tmp/dhcp.leases
 +
