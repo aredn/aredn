@@ -1500,6 +1500,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
     },
+    '0xe1a5' => {
+      'name'            => 'PowerBridge M5',
+      'comment'         => 'PowerBridge M5 (in testing)',
+      'supported'       => '-2',
+      'maxpower'        => '22',
+      'pwroffset'       => '5',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+    },
   );
 
   $boardid = hardware_boardid();
