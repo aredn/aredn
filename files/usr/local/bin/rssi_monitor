@@ -57,34 +57,39 @@ sub getRSSI
     delete $rssi{$_};
   }
 
-  open(FILE, "/usr/sbin/iw $iface station dump 2>&1 |") or die "/usr/sbin/iw failed $!";
+  chomp ($stationCount = `ls -1 /sys/kernel/debug/ieee80211/phy0/netdev:${iface}/stations | wc -l`); 
 
-  $neighborCount = 0;
-  while($line = <FILE>)
+  if ($stationCount >= 1) 
   {
-    if($line =~ /Station (\S+) \(on $iface\)/) { $mac = $1;}
-    if($antnum and $line =~ /signal:[ \t]+[-\d]+[ \t]*\[([-\d]+),[ \t]*([-\d]+)/)
-    {
-      $H = $1;
-      $V = $2;
-    }
+    open(FILE, "/usr/sbin/iw $iface station dump 2>&1 |") or die "/usr/sbin/iw failed $!";
 
-    if ((not $antnum) and $line =~ /signal:[ \t]+[-\d]+[ \t]*\[([-\d]+)\]/)
+    $neighborCount = 0;
+    while($line = <FILE>)
     {
-      $H = $1;
-    }
-    if ($H)
-    {
-      if ($H < -95) { $rssi{$mac}{"Hrssi"}=-96 ; }
-      else { $rssi{$mac}{"Hrssi"}=$H ; }
-      undef $H;
-      $neighborCount += 1;
-    }
-    if ($V)
-    {
-      if ($V < -95) { $rssi{$mac}{"Vrssi"}=-96 ; }
-      else { $rssi{$mac}{"Vrssi"}=$V ; }
-      undef $V;
+      if($line =~ /Station (\S+) \(on $iface\)/) { $mac = $1;}
+      if($antnum and $line =~ /signal:[ \t]+[-\d]+[ \t]*\[([-\d]+),[ \t]*([-\d]+)/)
+      {
+        $H = $1;
+        $V = $2;
+      }
+
+      if ((not $antnum) and $line =~ /signal:[ \t]+[-\d]+[ \t]*\[([-\d]+)\]/)
+      {
+        $H = $1;
+      }
+      if ($H)
+      {
+        if ($H < -95) { $rssi{$mac}{"Hrssi"}=-96 ; }
+        else { $rssi{$mac}{"Hrssi"}=$H ; }
+        undef $H;
+        $neighborCount += 1;
+      }
+      if ($V)
+      {
+        if ($V < -95) { $rssi{$mac}{"Vrssi"}=-96 ; }
+        else { $rssi{$mac}{"Vrssi"}=$V ; }
+        undef $V;
+      }
     }
   }
 }
@@ -95,14 +100,13 @@ sub getChannelScan
   $chnum += 1;
   if ($chnum == 8 or $chnum == 12 or $chnum == 100 or $chnum == 185) { $chnum -= 2; }
   if ($chnum == 0) { $chnum = 1; }
-  $freq = `iw list | grep "\\\[$chnum\\\]" | head -1`;
-  $freq =~ /([\d]+)[ \t]+MHz[ \t]+/;
+  $freq = `iwinfo $iface freqlist | grep "Channel $chnum" | head -1 | sed -e "s/\\.//"`;
+  $freq =~ /([\d]+)[ \t]+GHz/; 
   $freq = $1;
 }
 
-$antnum=`iw list | grep "Configured Antennas: TX" | cut -f6 -d" "`;
-chomp $antnum;
-if ($antnum eq "0x1")
+$antnum=`cat /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask`;
+if ($antnum == "1")
 {
   $antnum=0;
 }
@@ -241,75 +245,69 @@ for (keys %rssi)
   }
 }
 
-if ($amac or not $neighborCount)
+if ($amac)
 {
   getChannelScan();
 
-  if ($amac)
-  {
-    $datestring = localtime();
-    if ($antnum) {print $lfh "$datestring: before $amac [ $rssi{$amac}{'Hrssi'}, $rssi{$amac}{'Vrssi'} ]\n";}
-    else         {print $lfh "$datestring: before $amac [ $rssi{$amac}{'Hrssi'}]\n";}
-  }
+  $datestring = localtime();
+  if ($antnum) {print $lfh "$datestring: before $amac [ $rssi{$amac}{'Hrssi'}, $rssi{$amac}{'Vrssi'} ]\n";}
+  else         {print $lfh "$datestring: before $amac [ $rssi{$amac}{'Hrssi'}]\n";}
 
   system("/usr/sbin/iw $iface scan freq $freq passive > /dev/null");
 
-  if ($amac)
+  sleep 5;
+
+  $beforeH = $rssi{$amac}{"Hrssi"};
+  if ($antnum) { $beforeV = $rssi{$amac}{"Vrssi"}; }
+
+  getRSSI() ;
+  $datestring = localtime();
+  if ($antnum) {print $lfh "$datestring: after  $amac [ $rssi{$amac}{'Hrssi'}, $rssi{$amac}{'Vrssi'} ]\n";}
+  else         {print $lfh "$datestring: after  $amac [ $rssi{$amac}{'Hrssi'}]\n";}
+
+  $falpos = 0;
+  if ($antnum)
   {
-    sleep 5;
+    if  (abs ( $beforeH - $rssi{$amac}{"Hrssi"} ) <= 2 and
+         abs ( $beforeV - $rssi{$amac}{"Vrssi"} ) <= 2 ) { $falpos = 1; }
+  }
+  elsif (abs ( $beforeH - $rssi{$amac}{"Hrssi"} ) <= 2 ) { $falpos = 1; }
 
-    $beforeH = $rssi{$amac}{"Hrssi"};
-    if ($antnum) { $beforeV = $rssi{$amac}{"Vrssi"}; }
+  if ( $falpos )
+  {
+    # if a false-positive (within 2dB change after a reset), then add data point to statistics
+    $aveH = (($rssiHist{$amac}{"aveH"}*$rssiHist{$amac}{"num"})+ $beforeH )
+            / ($rssiHist{$amac}{"num"} + 1 );
+    $sdH = sqrt((($rssiHist{$amac}{"num"}-1)*($rssiHist{$amac}{"sdH"}**2) +
+            (($beforeH-$aveH)*($beforeH-$rssiHist{$amac}{"aveH"})))
+            /$rssiHist{$amac}{"num"});
+    chomp $aveH;
+    chomp $sdH;
+    $rssiHist{$amac}{"aveH"} = $aveH;
+    $rssiHist{$amac}{"sdH"} =  $sdH;
 
-    getRSSI() ;
-    $datestring = localtime();
-    if ($antnum) {print $lfh "$datestring: after  $amac [ $rssi{$amac}{'Hrssi'}, $rssi{$amac}{'Vrssi'} ]\n";}
-    else         {print $lfh "$datestring: after  $amac [ $rssi{$amac}{'Hrssi'}]\n";}
-
-    $falpos = 0;
     if ($antnum)
     {
-      if  (abs ( $beforeH - $rssi{$amac}{"Hrssi"} ) <= 2 and
-           abs ( $beforeV - $rssi{$amac}{"Vrssi"} ) <= 2 ) { $falpos = 1; }
+      $aveV = (($rssiHist{$amac}{"aveV"}*$rssiHist{$amac}{"num"})+ $beforeV ) /
+               ($rssiHist{$amac}{"num"} + 1 );
+      $sdV = sqrt((($rssiHist{$amac}{"num"}-1)*($rssiHist{$amac}{"sdV"}**2) +
+              (($beforeV-$aveV)*($beforeV-$rssiHist{$amac}{"aveV"}))) /
+              $rssiHist{$amac}{"num"});
+      chomp $aveV;
+      chomp $sdV;
+      $rssiHist{$amac}{"aveV"} = $aveV;
+      $rssiHist{$amac}{"sdV"} =  $sdV;
     }
-    elsif (abs ( $beforeH - $rssi{$amac}{"Hrssi"} ) <= 2 ) { $falpos = 1; }
 
-    if ( $falpos )
+    if ($rssiHist{$amac}{"num"} < 60 )
     {
-      # if a false-positive (within 2dB change after a reset), then add data point to statistics
-      $aveH = (($rssiHist{$amac}{"aveH"}*$rssiHist{$amac}{"num"})+ $beforeH )
-              / ($rssiHist{$amac}{"num"} + 1 );
-      $sdH = sqrt((($rssiHist{$amac}{"num"}-1)*($rssiHist{$amac}{"sdH"}**2) +
-              (($beforeH-$aveH)*($beforeH-$rssiHist{$amac}{"aveH"})))
-              /$rssiHist{$amac}{"num"});
-      chomp $aveH;
-      chomp $sdH;
-      $rssiHist{$amac}{"aveH"} = $aveH;
-      $rssiHist{$amac}{"sdH"} =  $sdH;
-
-      if ($antnum)
-      {
-        $aveV = (($rssiHist{$amac}{"aveV"}*$rssiHist{$amac}{"num"})+ $beforeV ) /
-                 ($rssiHist{$amac}{"num"} + 1 );
-        $sdV = sqrt((($rssiHist{$amac}{"num"}-1)*($rssiHist{$amac}{"sdV"}**2) +
-                (($beforeV-$aveV)*($beforeV-$rssiHist{$amac}{"aveV"}))) /
-                $rssiHist{$amac}{"num"});
-        chomp $aveV;
-        chomp $sdV;
-        $rssiHist{$amac}{"aveV"} = $aveV;
-        $rssiHist{$amac}{"sdV"} =  $sdV;
-      }
-
-      if ($rssiHist{$amac}{"num"} < 60 )
-      {
-        # keep statistics to 60 sample (minute) moving window
-        $rssiHist{$amac}{"num"} += 1;
-      }
-      $rssiHist{$amac}{"last"} = $now + 5 ;
-
-      $datestring = localtime();
-      print $lfh "$datestring: $amac Possible valid data point, adding to statistics.\n";
+      # keep statistics to 60 sample (minute) moving window
+      $rssiHist{$amac}{"num"} += 1;
     }
+    $rssiHist{$amac}{"last"} = $now + 5 ;
+
+    $datestring = localtime();
+    print $lfh "$datestring: $amac Possible valid data point, adding to statistics.\n";
   }
 }
 

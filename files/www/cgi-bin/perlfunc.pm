@@ -607,29 +607,29 @@ sub get_wifi_signal
   chomp $wifiintf;
   my ($SignalLevel) = "N/A";
   my ($NoiseFloor) = "N/A";
-  foreach(`iw dev $wifiintf station dump`)
+  foreach(`iwinfo $wifiintf assoclient`)
   {
-    next unless /.+signal:\s+([-]?[\d]+)/;
+    next unless /.+[A-F0-9]{2}:[A-F0-9]{2}:[A-F0-9]{2}\s+([-]?[\d]+)/;
     if ( $SignalLevel <= "$1" || $SignalLevel == "N/A" )
     {
       $SignalLevel=$1;
     }
   }
 
-  foreach(`iw dev $wifiintf survey dump|grep -A 1 \"\\[in use\\]\"`)
-  {
-    next unless /([\d\-]+) dBm/;
+  open( my $NoiseFH , "<" , "/sys/kernel/debug/ieee80211/phy0/ath9k/dump_nfcal") or return ("N/A","N/A");
+  while (<$NoiseFH>) {
+    next unless /Channel Noise Floor : ([-]?[0-9]+)/;
     $NoiseFloor=$1;
   }
+  close($NoiseFH);
 
   if ( $NoiseFloor == "N/A" )
   {
-    open( my $NoiseFH , "<" , "/sys/kernel/debug/ieee80211/phy0/ath9k/dump_nfcal") or return ("N/A","N/A");
-    while (<$NoiseFH>) {
-      next unless /Channel Noise Floor : ([-]?[0-9]+)/;
+    foreach(`iwinfo $wifiintf info | grep Signal`)
+    {
+      next unless /([\d\-]+) dBm/;
       $NoiseFloor=$1;
     }
-    close($NoiseFH);
   }
 
   if ( $SignalLevel == "N/A" || $NoiseFloor == "N/A" )
