@@ -98,7 +98,7 @@ $header = <<EOF;
           text: "$dmode Signal to Noise"
         },
         legend: {
-          horizontalAlign: "right", // left, center ,right 
+          horizontalAlign: "right", // left, center ,right
           verticalAlign: "center",  // top, center, bottom
         },
         axisX: {
@@ -153,8 +153,9 @@ $header = <<EOF;
       var updateRealtimeChart = function () {
         \$.getJSON("/cgi-bin/signal.json?realtime=1&device=$parms{device}", function (result) {
           dps[0].push(result[0][0]);
-          // dps[1].push(result[1][0]);
           chart.render();
+          var snr = (result[0][0].y[1] * -1) - (result[0][0].y[0] * -1);
+          \$('#snr').html(snr);
         });
       };
 
@@ -227,6 +228,11 @@ $page = $page . "</select>\n";
 $page = $page . "<input type='hidden' name='realtime' value='1'></input>\n" if($parms{realtime} eq "1");
 $page = $page . <<EOF;
     </form>
+    </div>
+    <div id="snrValues">
+    <h2>
+      SNR: <span id="snr">0</span>dBm
+    </h2>
     </div>
     <div id="chartContainer" style="width: 80%; height: 60%;"></div>
   </center>
