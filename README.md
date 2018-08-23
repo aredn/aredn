@@ -16,32 +16,33 @@ The default git branch builds images with the following:
 * fixed to OpenWrt v18.06.0
 * added Mikrotik basebox 2 and 5
 * added tp-link cp210 v2.0, v3.0, and cpe510 v2.0
-* focus has been on 64M RAM devices, 32M devices are currently unstable in this branch
+* both 64Mb and 32Mb devices are stable 
 * compatible with all prior AREDN and BBHN 3.1.0 networks (called version 3)
 
 ### Images built
 
 Device | Image to Use | RAM | Stability
 ------ | ------------ | --- | ---------
-AirGrid XM | bullet-m | 32Mb | unstable
-AirGrid XW | loco-m-xw | 32Mb | unstable
-AirRouter  | airrouter | 32Mb | unstable
-AirRouter HP | airrouter | 32Mb | unstable
-Bullet M2/M2Ti/M5/M5Ti | bullet-m | 32Mb | unstable
-Bullet Ti | bullet-m | 32Mb | unstable
-NBE-M2-13/16/19 | loco-m-xw | 32Mb | unstable
-NanoBridge 2G18 | loco-m | 32Mb | unstable
-NanoBridge 5G22/25 | loco-m | 32Mb | unstable
-NanoBridge M9 | loco-m | 32Mb | unstable
-NanoStation Loco M2/M5/M9 XM | loco-m | 32Mb | unstable
+AirGrid XM | bullet-m | 32Mb | stable
+AirGrid XW | loco-m-xw | 32Mb | stable
+AirRouter  | airrouter | 32Mb | stable
+AirRouter HP | airrouter | 32Mb | stable
+Bullet M2/M2Ti/M5/M5Ti | bullet-m | 32Mb | stable
+Bullet Ti | bullet-m | 32Mb | stable
+NBE-M2-13/16/19 | loco-m-xw | 32Mb | stable
+NanoBridge 2G18 | loco-m | 32Mb | stable
+NanoBridge 5G22/25 | loco-m | 32Mb | stable
+NanoBridge M9 | loco-m | 32Mb | stable
+NanoStation Loco M2/M5/M9 XM | loco-m | 32Mb | stable
 NanoStation Loco M2/M5 XW | loco-m-xw | 64Mb | stable
-NanoStation Loco M2/M5 XW with test date after ~Nov 2017 | rocket-m-xw | 64Mb | stable
-NanoStation  M2/M3/M5 XM | nano-m | 32Mb | unstable
+NanoStation Loco M5 XW with test date after ~Nov 2017 | rocket-m-xw | 64Mb | stable
+NanoStation  M2/M3/M5 XM | nano-m | 32Mb | stable
 NanoStation  M2/M5 XW | nano-m-xw | 64Mb | stable
-PicoStation M2 | bullet-m | 32Mb | unstable
+PicoStation M2 | bullet-m | 32Mb | stable
 PBE-M2-400 | loco-m-xw | 64Mb | stable
 PBE-M5-300 | loco-m-xw | 64Mb | stable
 PBE-M5-400/400ISO/620 | rocket-m-xw | 64Mb | stable
+PowerBridge | nano-m  | 64Mb | stable
 Rocket M9/M2/M3/M5/M5GPS XM | rocket-m | 64Mb | stable
 Rocket M2/M5 XW | rocket-m-xw | 64Mb | stable
 Rocket M2 TI | rocket-m-ti? | 64Mb | unknown
