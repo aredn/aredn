@@ -1,5 +1,7 @@
---- a/package/network/utils/iperf3/Makefile
-+++ b/package/network/utils/iperf3/Makefile
+Index: openwrt/package/network/utils/iperf3/Makefile
+===================================================================
+--- openwrt.orig/package/network/utils/iperf3/Makefile
++++ openwrt/package/network/utils/iperf3/Makefile
 @@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
  
  PKG_NAME:=iperf
@@ -28,8 +30,10 @@
  endef
  
  define Package/iperf3-ssl/install
+Index: openwrt/package/network/utils/iperf3/files/iperf.firewall
+===================================================================
 --- /dev/null
-+++ b/package/network/utils/iperf3/files/iperf.firewall
++++ openwrt/package/network/utils/iperf3/files/iperf.firewall
 @@ -0,0 +1,9 @@
 +#!/bin/sh
 +iptables -I zone_wifi_input -p udp -m udp --dport 5201 -j ACCEPT

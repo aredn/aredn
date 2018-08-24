@@ -19,11 +19,11 @@ Signed-off-by: Daniel Golle <daniel@makrotopia.org>
  4 files changed, 81 insertions(+), 11 deletions(-)
  create mode 100644 target/linux/generic/pending-4.9/180-net-phy-at803x-add-support-for-AT8032.patch
 
-diff --git a/target/linux/ar71xx/patches-4.9/902-at803x-add-reset-gpio-pdata.patch b/target/linux/ar71xx/patches-4.9/902-at803x-add-reset-gpio-pdata.patch
-index fb6f85cdfd1..cb3ed89e985 100644
---- a/target/linux/ar71xx/patches-4.9/902-at803x-add-reset-gpio-pdata.patch
-+++ b/target/linux/ar71xx/patches-4.9/902-at803x-add-reset-gpio-pdata.patch
-@@ -16,7 +16,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
+Index: openwrt/target/linux/ar71xx/patches-4.9/902-at803x-add-reset-gpio-pdata.patch
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/patches-4.9/902-at803x-add-reset-gpio-pdata.patch
++++ openwrt/target/linux/ar71xx/patches-4.9/902-at803x-add-reset-gpio-pdata.patch
+@@ -16,7 +16,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.na
   #endif /* _PHY_AT803X_PDATA_H */
  --- a/drivers/net/phy/at803x.c
  +++ b/drivers/net/phy/at803x.c
@@ -32,7 +32,7 @@ index fb6f85cdfd1..cb3ed89e985 100644
   
   static int at803x_probe(struct phy_device *phydev)
   {
-@@ -24,8 +24,8 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
+@@ -24,8 +24,8 @@ Signed-off-by: Felix Fietkau <nbd@nbd.na
   	struct device *dev = &phydev->mdio.dev;
   	struct at803x_priv *priv;
   	struct gpio_desc *gpiod_reset;
@@ -43,7 +43,7 @@ index fb6f85cdfd1..cb3ed89e985 100644
   		goto does_not_require_reset_workaround;
   
  +	pdata = dev_get_platdata(dev);
-@@ -37,7 +37,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
+@@ -37,7 +37,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.na
   	gpiod_reset = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_LOW);
   	if (IS_ERR(gpiod_reset))
   		return PTR_ERR(gpiod_reset);
@@ -52,11 +52,10 @@ index fb6f85cdfd1..cb3ed89e985 100644
   	 * cannot recover from by software.
   	 */
   	if (phydev->state == PHY_NOLINK) {
-diff --git a/target/linux/generic/pending-4.9/180-net-phy-at803x-add-support-for-AT8032.patch b/target/linux/generic/pending-4.9/180-net-phy-at803x-add-support-for-AT8032.patch
-new file mode 100644
-index 00000000000..f2d5df503f8
+Index: openwrt/target/linux/generic/pending-4.9/180-net-phy-at803x-add-support-for-AT8032.patch
+===================================================================
 --- /dev/null
-+++ b/target/linux/generic/pending-4.9/180-net-phy-at803x-add-support-for-AT8032.patch
++++ openwrt/target/linux/generic/pending-4.9/180-net-phy-at803x-add-support-for-AT8032.patch
 @@ -0,0 +1,70 @@
 +From: Felix Fietkau <nbd@nbd.name>
 +Subject: net: phy: at803x: add support for AT8032
@@ -128,11 +127,11 @@ index 00000000000..f2d5df503f8
 + 	{ ATH8035_PHY_ID, 0xffffffef },
 + 	{ }
 + };
-diff --git a/target/linux/generic/pending-4.9/734-net-phy-at803x-allow-to-configure-via-pdata.patch b/target/linux/generic/pending-4.9/734-net-phy-at803x-allow-to-configure-via-pdata.patch
-index 8bd9ce3bf77..69b21be9513 100644
---- a/target/linux/generic/pending-4.9/734-net-phy-at803x-allow-to-configure-via-pdata.patch
-+++ b/target/linux/generic/pending-4.9/734-net-phy-at803x-allow-to-configure-via-pdata.patch
-@@ -40,7 +40,7 @@ Signed-off-by: Gabor Juhos <juhosg@openwrt.org>
+Index: openwrt/target/linux/generic/pending-4.9/734-net-phy-at803x-allow-to-configure-via-pdata.patch
+===================================================================
+--- openwrt.orig/target/linux/generic/pending-4.9/734-net-phy-at803x-allow-to-configure-via-pdata.patch
++++ openwrt/target/linux/generic/pending-4.9/734-net-phy-at803x-allow-to-configure-via-pdata.patch
+@@ -40,7 +40,7 @@ Signed-off-by: Gabor Juhos <juhosg@openw
   #define AT803X_DEBUG_ADDR			0x1D
   #define AT803X_DEBUG_DATA			0x1E
   
@@ -141,7 +140,7 @@ index 8bd9ce3bf77..69b21be9513 100644
   struct at803x_priv {
   	bool phy_reset:1;
   	struct gpio_desc *gpiod_reset;
-@@ -48,7 +48,7 @@ Signed-off-by: Gabor Juhos <juhosg@openwrt.org>
+@@ -48,7 +48,7 @@ Signed-off-by: Gabor Juhos <juhosg@openw
   };
   
   struct at803x_context {
@@ -150,7 +149,7 @@ index 8bd9ce3bf77..69b21be9513 100644
   	return 0;
   }
   
-@@ -65,7 +65,7 @@ Signed-off-by: Gabor Juhos <juhosg@openwrt.org>
+@@ -65,7 +65,7 @@ Signed-off-by: Gabor Juhos <juhosg@openw
   	int ret;
   
   	ret = genphy_config_init(phydev);
@@ -159,7 +158,7 @@ index 8bd9ce3bf77..69b21be9513 100644
   			return ret;
   	}
   
-@@ -92,7 +92,7 @@ Signed-off-by: Gabor Juhos <juhosg@openwrt.org>
+@@ -92,7 +92,7 @@ Signed-off-by: Gabor Juhos <juhosg@openw
   	return 0;
   }
   
@@ -168,7 +167,7 @@ index 8bd9ce3bf77..69b21be9513 100644
   static void at803x_link_change_notify(struct phy_device *phydev)
   {
   	struct at803x_priv *priv = phydev->priv;
-@@ -100,8 +100,8 @@ Signed-off-by: Gabor Juhos <juhosg@openwrt.org>
+@@ -100,8 +100,8 @@ Signed-off-by: Gabor Juhos <juhosg@openw
  +	pdata = dev_get_platdata(&phydev->mdio.dev);
   
   	/*
@@ -179,11 +178,11 @@ index 8bd9ce3bf77..69b21be9513 100644
   	} else {
   		priv->phy_reset = false;
   	}
-diff --git a/target/linux/generic/pending-4.9/735-net-phy-at803x-fix-at8033-sgmii-mode.patch b/target/linux/generic/pending-4.9/735-net-phy-at803x-fix-at8033-sgmii-mode.patch
-index 1f689850bd7..485567cd768 100644
---- a/target/linux/generic/pending-4.9/735-net-phy-at803x-fix-at8033-sgmii-mode.patch
-+++ b/target/linux/generic/pending-4.9/735-net-phy-at803x-fix-at8033-sgmii-mode.patch
-@@ -24,7 +24,7 @@ Signed-off-by: Roman Yeryomin <roman@advem.lv>
+Index: openwrt/target/linux/generic/pending-4.9/735-net-phy-at803x-fix-at8033-sgmii-mode.patch
+===================================================================
+--- openwrt.orig/target/linux/generic/pending-4.9/735-net-phy-at803x-fix-at8033-sgmii-mode.patch
++++ openwrt/target/linux/generic/pending-4.9/735-net-phy-at803x-fix-at8033-sgmii-mode.patch
+@@ -24,7 +24,7 @@ Signed-off-by: Roman Yeryomin <roman@adv
   #define AT803X_MODE_CFG_MASK			0x0F
   #define AT803X_MODE_CFG_SGMII			0x01
   

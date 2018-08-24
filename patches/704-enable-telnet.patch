@@ -1,5 +1,7 @@
---- a/package/base-files/files/lib/preinit/99_10_failsafe_login
-+++ b/package/base-files/files/lib/preinit/99_10_failsafe_login
+Index: openwrt/package/base-files/files/lib/preinit/99_10_failsafe_login
+===================================================================
+--- openwrt.orig/package/base-files/files/lib/preinit/99_10_failsafe_login
++++ openwrt/package/base-files/files/lib/preinit/99_10_failsafe_login
 @@ -3,8 +3,7 @@
  # Copyright (C) 2010 Vertical Communications
  
@@ -10,9 +12,11 @@
  }
  
  failsafe_shell() {
---- a/package/utils/busybox/Config-defaults.in
-+++ b/package/utils/busybox/Config-defaults.in
-@@ -2376,10 +2376,10 @@ config BUSYBOX_DEFAULT_UDPSVD
+Index: openwrt/package/utils/busybox/Config-defaults.in
+===================================================================
+--- openwrt.orig/package/utils/busybox/Config-defaults.in
++++ openwrt/package/utils/busybox/Config-defaults.in
+@@ -2400,10 +2400,10 @@ config BUSYBOX_DEFAULT_UDPSVD
  	default n
  config BUSYBOX_DEFAULT_TELNET
  	bool
@@ -25,7 +29,7 @@
  config BUSYBOX_DEFAULT_FEATURE_TELNET_AUTOLOGIN
  	bool
  	default n
-@@ -2388,10 +2388,10 @@ config BUSYBOX_DEFAULT_FEATURE_TELNET_WI
+@@ -2412,10 +2412,10 @@ config BUSYBOX_DEFAULT_FEATURE_TELNET_WI
  	default n
  config BUSYBOX_DEFAULT_TELNETD
  	bool
@@ -38,9 +42,11 @@
  config BUSYBOX_DEFAULT_FEATURE_TELNETD_INETD_WAIT
  	bool
  	default n
---- a/package/utils/busybox/Makefile
-+++ b/package/utils/busybox/Makefile
-@@ -137,6 +137,8 @@
+Index: openwrt/package/utils/busybox/Makefile
+===================================================================
+--- openwrt.orig/package/utils/busybox/Makefile
++++ openwrt/package/utils/busybox/Makefile
+@@ -108,6 +108,8 @@ define Package/busybox/install
  ifneq ($(CONFIG_BUSYBOX_$(BUSYBOX_SYM)_CROND),)
  	$(INSTALL_BIN) ./files/cron $(1)/etc/init.d/cron
  endif
@@ -49,8 +55,10 @@
  ifneq ($(CONFIG_BUSYBOX_$(BUSYBOX_SYM)_NTPD),)
  	$(INSTALL_BIN) ./files/sysntpd $(1)/etc/init.d/sysntpd
  	$(INSTALL_BIN) ./files/ntpd-hotplug $(1)/usr/sbin/ntpd-hotplug
---- a/package/utils/busybox/files/telnet	1969-12-31 18:00:00.000000000 -0600
-+++ b/package/utils/busybox/files/telnet	2018-03-14 21:10:23.668489921 -0500
+Index: openwrt/package/utils/busybox/files/telnet
+===================================================================
+--- /dev/null
++++ openwrt/package/utils/busybox/files/telnet
 @@ -0,0 +1,33 @@
 +#!/bin/sh /etc/rc.common
 +# Copyright (C) 2006-2011 OpenWrt.org
@@ -85,8 +93,10 @@
 +		procd_set_param command "$PROG" -F -l /bin/login.sh
 +		procd_close_instance
 +}
---- a/package/utils/busybox/files/login.sh	1969-12-31 18:00:00.000000000 -0600
-+++ b/package/utils/busybox/files/login.sh	2018-03-14 22:12:26.192489921 -0500
+Index: openwrt/package/utils/busybox/files/login.sh
+===================================================================
+--- /dev/null
++++ openwrt/package/utils/busybox/files/login.sh
 @@ -0,0 +1,19 @@
 +#!/bin/sh
 +# Copyright (C) 2006-2011 OpenWrt.org
