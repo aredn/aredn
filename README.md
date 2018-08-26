@@ -30,10 +30,10 @@ AirRouter HP | airrouter | 32Mb | stable
 Bullet M2/M2Ti/M5/M5Ti | bullet-m | 32Mb | stable
 Bullet Ti | bullet-m | 32Mb | stable
 NBE-M2-13/16/19 | loco-m-xw | 32Mb | stable
-NanoBridge 2G18 | loco-m | 32Mb | stable
-NanoBridge 5G22/25 | loco-m | 32Mb | stable
-NanoBridge M9 | loco-m | 32Mb | stable
-NanoStation Loco M2/M5/M9 XM | loco-m | 32Mb | stable
+NanoBridge 2G18 | bullet-m | 32Mb | stable
+NanoBridge 5G22/25 | bullet-m | 32Mb | stable
+NanoBridge M9 | bullet-m | 32Mb | stable
+NanoStation Loco M2/M5/M9 XM | bullet-m | 32Mb | stable
 NanoStation Loco M2/M5 XW | loco-m-xw | 64Mb | stable
 NanoStation Loco M5 XW with test date after ~Nov 2017 | rocket-m-xw | 64Mb | stable
 NanoStation  M2/M3/M5 XM | nano-m | 32Mb | stable
