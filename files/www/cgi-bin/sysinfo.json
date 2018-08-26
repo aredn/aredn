@@ -55,7 +55,7 @@ end
 info={}
 
 -- API version
-info['api_version']="1.3"
+info['api_version']="1.4"
 
 -- NODE name
 css=getUciConfType("system", "system")
@@ -64,6 +64,9 @@ info['node']=css[0]['hostname']
 -- MODEL
 m=os.capture("/usr/local/bin/get_model")
 info['model']=m:chomp()
+
+-- DESCRIPTION
+info['description']=css[0]['description']
 
 -- BOARD ID
 info['board_id']=hardware_boardid()

@@ -433,13 +433,6 @@ if($parms{button_save})
 	push (@errors, "OK") unless @errors;
     }
 
-    if($description_node)
-    {
-        if($description_node =~ /<.*>|<\/.*>/) {
-            push(@errors, "Node description cannot contain html like tags")
-        }
-    }
-
     unless(@errors)
     {
 	$parms{node} = $node;
@@ -564,7 +557,7 @@ function toggleMap(toggleButton) {
 print "</script>";
 
 alert_banner();
-print "<form method=post action=/cgi-bin/setup enctype='multipart/form-data'>\n" unless $debug == 2;
+print "<form onSubmit='doSubmit();' name='mainForm' method=post action=/cgi-bin/setup enctype='multipart/form-data'>\n" unless $debug == 2;
 print "<form method=post action=test>\n" if $debug == 2;
 
 print "<table width=790>\n";
@@ -642,7 +635,7 @@ print "
 </tr>
 <tr>
 <td>Node Description (optional)</td>
-<td><input type='text' size='50' name='description_node' value=\"$description_node\" tabindex='4'</input></td>";
+<td><textarea rows='2' cols='60' wrap='soft' maxlength='210' id='node_description_entry' name='description_node' tabindex='4'>$description_node</textarea></td>";
 push @hidden, "<input type=hidden name=config value='mesh'>";
 print "
 <td>Verify Password</td>
@@ -965,6 +958,14 @@ page_footer();
 
 print <<EOF;
 <script>
+
+function doSubmit() {
+        var desc_text = document.mainForm.description_node.value;
+        var singleLine = desc_text.replace(new RegExp( "\\n", "g" ), " ");
+        document.mainForm.description_node.value = singleLine;
+        return true;
+}
+
 var map = L.map('map').setView([0.0, 0.0], 1);
 var dotIcon = L.icon({iconUrl: '/dot.png'});
 EOF

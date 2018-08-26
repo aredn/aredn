@@ -199,6 +199,12 @@ sub read_postdata
         $line = fgets(10);
         push(@parse_errors, "not blank: '$line'") unless $line eq "\r\n";
         $line = fgets(1000);
+        if($parm =~ 'description_node') {
+            $line = substr($line, 0, 210);
+            $line =~ s/'/&apos;/g;
+            $line =~ s/</&lt;/g;
+            $line =~ s/>/&gt;/g;
+        }
         $line =~ s/[\r\n]+$//;
         $parms{$parm} = $line;
         $state = "boundary";
