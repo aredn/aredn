@@ -13,7 +13,7 @@ The default git branch builds images with the following:
 
 * includes history from AREDN nightly build 176
 * olsrd upgrade from 0.6.7 to 0.9.6.2
-* fixed to OpenWrt v18.06.0
+* fixed to OpenWrt v18.06.1
 * added Mikrotik basebox 2 and 5
 * added tp-link cp210 v2.0, v3.0, and cpe510 v2.0
 * both 64Mb and 32Mb devices are stable 
