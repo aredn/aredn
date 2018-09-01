@@ -2,5 +2,5 @@
 OPENWRT_SRC=https://github.com/aredn/arednbase
 
 # what branch, tag or commit in this repo?
-OPENWRT_COMMIT=hotfix-3.16.1.2
+OPENWRT_COMMIT=3.16.1.1
 
