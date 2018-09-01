@@ -9,16 +9,18 @@ boot() {
     mkdir -p /etc/aredn_include
     touch /etc/aredn_include/ethmacfixup
     local lanintf=`uci -q get 'network.lan.ifname'`
-    local wifiintf="wlan0"
+    local wifiintf=`uci -q get 'network.wifi.ifname'`
     local lanmac=`ifconfig $lanintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
     local wifimac=`ifconfig $wifiintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
-    local lanmacdigit=`printf "%X" $(((0x${lanmac:15} + 1) % 256))`
-    local lanmacplusone=${lanmac:0:15}$lanmacdigit
+
+    local intlanmac=${lanmac//:/}
+    local intwanmac=${wifimac//:/}
+    local macdelta=$((0x$intwanmac - 0x$intlanmac))
 
     # Deal with lan and wifi having same mac address (common on TP-Link)
-    # Deal with lan mac + 1 = wifi mac address (common on Microtik and
+    # Deal with lan mac + ~10 = wifi mac address (common on Microtik and
     # breaks OLSR if using derived IP addresses)
-    if [ "$lanmac" = "$wifimac" -o "$lanmacplusone" = "$wifimac" ]
+    if [ $macdelta -le 10 ]
     then
       local wifimacdigit=`printf "%X" $(((0x${wifimac:9:2} + 1) % 256))`
       local newmac=${wifimac:0:9}${wifimacdigit}${wifimac:11}

@@ -67,10 +67,6 @@ usage() unless defined $config;
 
 die "'$config' is not a valid configuration\n" unless ($config eq "mesh" and -f "/etc/config.mesh/_setup");
 
-#chomp ($node = `nvram get node`);
-#chomp ($mac2 = `nvram get mac2`);
-#chomp ($tactical = `nvram get tactical`);
-
 $node = nvram_get("node");
 $tactical = nvram_get("tactical");
 $mac2 = mac2ip(get_mac(get_interface("wifi")), 0);
@@ -127,12 +123,18 @@ foreach $line (`cat /etc/config.mesh/_setup`)
 }
 
 $cfg{"lan_intf"} = get_interface("lan");
-$cfg{"wifi_intf"} = get_interface("wifi");
+if ( ! $cfg{"wifi_intf"} )
+{
+  $cfg{"wifi_intf"} = get_interface("wifi");
+}
 $cfg{"wan_intf"} = get_interface("wan");
 $cfg{"dtdlink_intf"} = get_interface("dtdlink");
 
-die "configuration load failed\n" unless keys %cfg;
+$cfg{"wifi_intf"} =~ /wlan(\d+)/;
+$radio = ( defined $1 )? "radio$1" : "radio0";
+$cfg{"radio"}=$radio;
 
+die "configuration load failed\n" unless keys %cfg;
 
 # delete some config lines if necessary
 if($cfg{wan_proto} eq "dhcp")
@@ -208,7 +210,10 @@ if($do_basic)
     {
       if($line =~ /^include\s+(\S+)/)
       {
-        foreach $inc (`cat $1`)
+	${incs} = $1;
+        ${incs} =~ s/<radio>/$radio/g;
+	
+        foreach $inc (`cat ${incs}`)
         {
           print OUT $inc;
         }
@@ -219,6 +224,7 @@ if($do_basic)
       $line =~ s/<NODE>/$node/;
       $line =~ s/<MAC2>/$mac2/;
       $line =~ s/<DTDMAC>/$dtdmac/;
+      $line =~ s/<radio>/$radio/;
       $delparm = 0;
 
       while(($parm) = $line =~ /^[^\#].*<(\S+)>/)
@@ -244,11 +250,6 @@ if($do_basic)
   system "mv /tmp/new_config/* /etc/config";
   unlink "/tmp/new_config";
   system "cp -f /etc/config.mesh/firewall.user /etc/";
-
-  #system "nvram set config=mesh";
-  #system "nvram set node=$node";
-  #system "nvram set tactical=$tactical";
-  #system "nvram commit";
 
   nvram_set("config", "mesh");
   nvram_set("node", $node);
@@ -418,7 +419,7 @@ unless($cfg{wifi_proto} eq "disabled")
 {
   $cfg{wifi_txpower} = wifi_maxpower($cfg{wifi_channel}) if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > wifi_maxpower($cfg{wifi_channel});
   $cfg{wifi_txpower} = 1  if $cfg{wifi_txpower} < 1;
-  print FILE "/usr/sbin/iw dev wlan0 set txpower fixed $cfg{wifi_txpower}00\n";
+  print FILE "/usr/sbin/iw dev $cfg{wifi_intf} set txpower fixed $cfg{wifi_txpower}00\n";
   if(defined $cfg{aprs_lat} and defined $cfg{aprs_lon})
   {
     printf FILE "echo %s,%s > /tmp/latlon.txt\n", $cfg{aprs_lat}, $cfg{aprs_lon};

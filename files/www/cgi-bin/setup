@@ -56,6 +56,8 @@ read_postdata();
 
 my $tz_db_strings = tz_names_hash();
 my $tz_db_names = tz_names_array();
+$wifiintf = get_interface("wifi");
+$phy = get_wlan2phy("$wifiintf");
 
 if($parms{button_uploaddata})
 {
@@ -157,7 +159,6 @@ $parms{dmz_dhcp_limit} = $dmz_dhcp_limit = $dmz_dhcp_end - $dmz_dhcp_start + 1;
 
 unless($parms{reload})
 {
-    my $wifiintf = get_interface("wifi");
     ($wifi_txpower) = `iwinfo $wifiintf info 2>/dev/null` =~ /Tx-Power: (\d+)/;
     (my $doesiwoffset) = `iwinfo $wifiintf info 2>/dev/null` =~ /TX power offset: (\d+)/;
     if ( $doesiwoffset ) {
@@ -186,9 +187,8 @@ if($parms{button_apply} or $parms{button_save})
     {
         push (@errors, "invalid distance value");
     } else {
-        my $wifiintf = get_interface("wifi");
         $cmd = "";
-        $cmd .= "iw phy phy0 set distance $wifi_distance >/dev/null 2>&1;";
+        $cmd .= "iw phy ${phy} set distance $wifi_distance >/dev/null 2>&1;";
         $cmd .= "iw dev $wifiintf set txpower fixed ${wifi_txpower}00 >/dev/null 2>&1;";
         system $cmd;
     }

@@ -52,19 +52,31 @@ sub fail
   die "@_\n";
 }
 
+sub get_wlan2phy
+{
+  my ($wlan) = $1;
+  my ($phy) = "";
+  return "phy0" unless $wlan;
+  foreach(`iwinfo  $wlan info`)
+  {
+    next unless /^.*PHY name:\s*([a-z0-4]+)/;
+    $phy = $1;
+  }
+  return $phy;
+}
+
 $commit = 0;
+$wifiif = `uci -q get network.wifi.ifname`;
+$phy = get_wlan2phy("$wifiif");
 
-# Added new wifimac parm, the radio0 wont startup without it, use the path location in wifi config
+# Added new wifimac parm, the radio* wont startup without it, use the path location in wifi config
 # Actually it just needs some path to get to the radio.
-
-# Using radio0.path as it seems to always be set as method to get to the card.
-chomp ($wifi_path = `uci -q get wireless.radio0.path`);
 
 chomp ($wifi_mac = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.wifimac`);
 
 if($wifi_mac eq "")
 {
-  open(FILE, "/sys/devices/$wifi_path/ieee80211/phy0/macaddress") or fail("ERROR: wireless mac not available");
+  open(FILE, "/sys/class/ieee80211/${phy}/macaddress") or fail("ERROR: wireless mac not available");
   while(<FILE>)
   {
     next unless /(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w)/;
@@ -82,7 +94,7 @@ chomp ($mac2 = `uci -c /etc/local/uci/ -q get hsmmmesh.settings.mac2`);
 
 if($mac2 eq "")
 {
-  open(FILE, "/sys/devices/$wifi_path/ieee80211/phy0/macaddress") or fail("ERROR: wireless mac not available");
+  open(FILE, "/sys/class/ieee80211/${phy}/macaddress") or fail("ERROR: wireless mac not available");
   while(<FILE>)
   {
     next unless /\w\w:\w\w:\w\w:(\w\w):(\w\w):(\w\w)/;

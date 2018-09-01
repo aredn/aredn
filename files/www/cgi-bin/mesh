@@ -90,8 +90,11 @@ $tactical = nvram_get("tactical");
 $config = nvram_get("config");
 $config = "not set" if $config eq "" or not -d "/etc/config.mesh";
 ($my_ip) = get_ip4_network(get_interface("wifi"));
+${wifiif} = `uci -q get 'network.wifi.ifname'`;
+chomp ${wifiif};
+$phy = get_wlan2phy("${wifiif}");
 
-chomp ($chanbw = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/chanbw`);
+chomp ($chanbw = `cat /sys/kernel/debug/ieee80211/${phy}/ath9k/chanbw`);
 if    ($chanbw eq "0x00000005") {$chanbw = 4;}
 elsif ($chanbw eq "0x0000000a") {$chanbw = 2;}
   else   			{$chanbw = 1;}
@@ -140,18 +143,18 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
 	$links{$ip}{lq} = $lq;
 	$links{$ip}{nlq} = $nlq;
 
-	$mac = `grep $ip /proc/net/arp | grep wlan0 | grep -v "00:00:00:00:00:00" | head -1`;
+	$mac = `grep $ip /proc/net/arp | grep ${wifiif} | grep -v "00:00:00:00:00:00" | head -1`;
 	$mac =~ s/^.*(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w).*$/$1/;
 	chomp $mac;
 
-        if (! $mac or ! -e "/sys/kernel/debug/ieee80211/phy0/netdev:wlan0/stations/$mac" )
+        if (! $mac or ! -e "/sys/kernel/debug/ieee80211/${phy}/netdev:${wifiif}/stations/$mac" )
 	{
 		$mbps = "";
 	}
         else
         {
 		#802.11b/n
-		$mbps = `egrep '^([^,]*,){3}A' /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats_csv`;
+		$mbps = `egrep '^([^,]*,){3}A' /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
 		if ($mbps)
 		{
 			($gi, $dummy, $rate, $dummy, $ewma) = $mbps =~ /^[^,]*,([^,]*),([^,]*,){2}([^,]*),([^,]*,){4}([^,]*).*$/ ;
@@ -161,7 +164,7 @@ foreach(`echo /all | nc 127.0.0.1 2006 2>$tmperr`)
 		else
 		{
 			#802.11a/b/g
-			$mbps = `egrep \"^A" /sys/kernel/debug/ieee80211/phy0/netdev\:wlan0/stations/$mac/rc_stats_csv`;
+			$mbps = `egrep \"^A" /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
 			if ($mbps)
 			{
 				$mbps =~ /^[^,]*,([^,]*),([^,]*,){4}([^,]*).*$/;

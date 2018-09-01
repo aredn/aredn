@@ -36,6 +36,8 @@
 
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
+chomp (${wifiif}=`uci -q get 'network.wifi.ifname'`);
+$phy=get_wlan2phy("${wifiif");
 
 
 @files = ( "/etc/config/",
@@ -75,11 +77,11 @@ use perlfunc;
           "ip route list table default",
           "ip rule list",
           "iwinfo",
-          "iwinfo wlan0 assoclist",
-          "iw phy phy0 info",
-          "iw dev wlan0 info",
-          "iw dev wlan0 scan",
-          "iw dev wlan0 station dump",
+          "iwinfo ${wifiif} assoclist",
+          "iw phy ${phy} info",
+          "iw dev ${wifiif} info",
+          "iw dev ${wifiif} scan",
+          "iw dev ${wifiif} station dump",
           "logread",
           "md5sum /www/cgi-bin/*",
           "echo /all | nc 127.0.0.1 2006",

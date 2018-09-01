@@ -44,7 +44,14 @@ chomp $now;
 
 exit 0 unless $now > 119;
 
-$iface = "wlan0" ; # wireless interface
+chomp ($iface=`uci -q get 'network.wifi.ifname'`); # wireless interface
+foreach(`iwinfo $iface info`)
+{ 
+  next unless /^.*PHY name:\s*([a-z0-4]+)/;
+  $phy = $1;
+}
+$phy = "phy0" unless $phy;
+
 $datfile = "/tmp/rssi.dat";
 $logfile = "/tmp/rssi.log";
 
@@ -57,7 +64,7 @@ sub getRSSI
     delete $rssi{$_};
   }
 
-  chomp ($stationCount = `ls -1 /sys/kernel/debug/ieee80211/phy0/netdev:${iface}/stations | wc -l`); 
+  chomp ($stationCount = `ls -1 /sys/kernel/debug/ieee80211/${phy}/netdev:${iface}/stations | wc -l`); 
 
   if ($stationCount >= 1) 
   {
@@ -96,7 +103,9 @@ sub getRSSI
 
 sub getChannelScan
 {
-  $chnum = `uci get wireless.radio0.channel`;
+  $iface =~ /wlan(\d+)/;
+  $radio = "radio$1";
+  $chnum = `uci get wireless.$radio.channel`;
   $chnum += 1;
   if ($chnum == 8 or $chnum == 12 or $chnum == 100 or $chnum == 185) { $chnum -= 2; }
   if ($chnum == 0) { $chnum = 1; }
@@ -105,7 +114,7 @@ sub getChannelScan
   $freq = $1;
 }
 
-$antnum=`cat /sys/kernel/debug/ieee80211/phy0/ath9k/tx_chainmask`;
+$antnum=`cat /sys/kernel/debug/ieee80211/${phy}/ath9k/tx_chainmask`;
 if ($antnum == "1")
 {
   $antnum=0;
@@ -140,7 +149,7 @@ if ( -e $datfile )
   close FILE ;
 }
 
-$ofdm_level = `cat /sys/kernel/debug/ieee80211/phy0/ath9k/ani | grep "OFDM LEVEL" | cut -f2 -d: `;
+$ofdm_level = `cat /sys/kernel/debug/ieee80211/${phy}/ath9k/ani | grep "OFDM LEVEL" | cut -f2 -d: `;
 $now=`cat /proc/uptime | cut -f1 -d" "`;
 chomp $now;
 

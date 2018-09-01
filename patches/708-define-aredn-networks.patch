@@ -32,43 +32,56 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
 ===================================================================
 --- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/02_network
 +++ openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
-@@ -13,7 +13,7 @@ ar71xx_setup_interfaces()
+@@ -12,8 +12,9 @@ ar71xx_setup_interfaces()
+ 
  	case "$board" in
  	airgatewaypro)
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
  		ucidef_add_switch "switch0" \
 -			"0@eth0" "4:lan" "5:wan"
 +			"0@eth0" "4:lan" "5t:wan" "5t:dtdlink"
  		;;
  	airrouter|\
  	ap121|\
-@@ -57,9 +57,9 @@ ar71xx_setup_interfaces()
+@@ -57,9 +58,10 @@ ar71xx_setup_interfaces()
  	whr-hp-gn|\
  	wzr-hp-ag300h|\
  	zbt-we1526)
 -		ucidef_set_interfaces_lan_wan "eth0.1" "eth1"
 +		ucidef_set_interface_wan "eth1"
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
  		ucidef_add_switch "switch0" \
 -			"0@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
 +			"0@eth0" "4:lan:1" "3:lan:2" "2:lan:3" "1t:unused" "1t:dtdlink"
  		;;
  	alfa-ap120c|\
  	all0305|\
-@@ -150,7 +150,8 @@ ar71xx_setup_interfaces()
+@@ -150,7 +152,9 @@ ar71xx_setup_interfaces()
  	wifi-pineapple-nano|\
  	wndap360|\
  	wp543)
 -		ucidef_set_interface_lan "eth0"
-+		ucidef_set_interfaces_lan_wan "eth0" "eth0.1" 
++		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
 +		ucidef_set_interface_raw "dtdlink" "eth0.2" "static"
  		;;
  	a40|\
  	a60|\
-@@ -177,15 +178,16 @@ ar71xx_setup_interfaces()
+@@ -169,7 +173,6 @@ ar71xx_setup_interfaces()
+ 	pb42|\
+ 	pb44|\
+ 	rb-951ui-2hnd|\
+-	rb-952ui-5ac2nd|\
+ 	routerstation|\
+ 	tl-wr710n|\
+ 	tl-wr720n-v3|\
+@@ -177,15 +180,25 @@ ar71xx_setup_interfaces()
  	tl-wr810n-v2|\
  	wpe72|\
  	wrtnode2q)
 -		ucidef_set_interfaces_lan_wan "eth1" "eth0"
 +		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
 +		ucidef_set_interface_raw "dtdlink" "eth0.2" "static"
  		;;
  	rb-750-r2|\
@@ -77,66 +90,87 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  	rb-951ui-2nd)
 -		ucidef_set_interfaces_lan_wan "eth1.1" "eth0"
 +		ucidef_set_interface_wan "eth0"
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
  		ucidef_add_switch "switch0" \
 -			"0@eth1" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
 +			"0@eth1" "1:lan:4" "2:lan:3" "3:lan:2" "4t:unused" "4t:dtdlink"
++		;;
++	rb-952ui-5ac2nd)
++		ucidef_set_interface_wan "eth0"
++		ucidef_set_interface_raw "wifi" "wlan1" "static"
++		ucidef_set_interface_raw "wifiap" "wlan0" "dhcp"
++		ucidef_add_switch "switch0" \
++		"0@eth1" "4:lan:1" "3:lan:2" "2:lan:3" "1t:unused" "1t:dtdlink"
  		;;
  	all0258n|\
  	all0315n|\
-@@ -195,7 +197,8 @@ ar71xx_setup_interfaces()
+@@ -195,7 +208,9 @@ ar71xx_setup_interfaces()
  	ja76pf2|\
  	rocket-m-ti|\
  	ubnt-unifi-outdoor)
 -		ucidef_set_interface_lan "eth0 eth1"
 +		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
 +		ucidef_set_interface_raw "dtdlink" "eth0.2" "static"
  		;;
  	wzr-hp-g300nh2)
  		ucidef_add_switch "switch0" \
-@@ -211,7 +214,7 @@ ar71xx_setup_interfaces()
+@@ -210,8 +225,9 @@ ar71xx_setup_interfaces()
+ 	rb-962uigs-5hact2hnt|\
  	wlr8100|\
  	wzr-hp-g450h)
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
  		ucidef_add_switch "switch0" \
 -			"0@eth0" "2:lan" "3:lan" "4:lan" "5:lan" "1:wan"
 +			"0@eth0" "2:lan" "3:lan" "4:lan" "1:wan" "5t:dtdlink"
  		;;
  	ap135-020|\
  	ap136-020|\
-@@ -292,7 +295,7 @@ ar71xx_setup_interfaces()
+@@ -291,11 +307,13 @@ ar71xx_setup_interfaces()
+ 	cpe510|\
  	wbs210|\
  	wbs510)
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
  		ucidef_add_switch "switch0" \
 -			"0@eth0" "5:lan" "4:wan"
 +			"0@eth0" "5:lan" "4t:wan" "4t:dtdlink"
  		;;
  	cr3000)
  		ucidef_set_interfaces_lan_wan "eth0.1" "eth1"
-@@ -449,7 +452,7 @@ ar71xx_setup_interfaces()
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
+ 		ucidef_add_switch "switch0" \
+ 			"0@eth0" "1:lan:1" "2:lan:4" "3:lan:3" "4:lan:2"
+ 		;;
+@@ -448,8 +466,9 @@ ar71xx_setup_interfaces()
+ 			"0@eth0" "1:lan" "5:wan" "6@eth1"
  		;;
  	nanostation-m-xw)
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
  		ucidef_add_switch "switch0" \
 -			"0@eth0" "5:lan" "1:wan"
 +			"0@eth0" "5:lan" "1t:wan" "1t:dtdlink"
  		;;
  	onion-omega)
  		ucidef_set_interface_lan "wlan0"
-@@ -460,9 +463,9 @@ ar71xx_setup_interfaces()
+@@ -460,9 +479,10 @@ ar71xx_setup_interfaces()
  			"0:lan:4" "1:lan:3" "2:lan:2" "3:lan:1" "5@eth1"
  		;;
  	routerstation-pro)
 -		ucidef_set_interfaces_lan_wan "eth1.1" "eth0"
 +		ucidef_set_interface_wan "eth0"
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
  		ucidef_add_switch "switch0" \
 -			"0@eth1" "2:lan:3" "3:lan:2" "4:lan:1"
 +			"0@eth1" "2:lan:3" "3:lan:2" "4t:unused" "4t:dtdlink"
  		;;
  	rb-493g)
  		ucidef_set_interfaces_lan_wan "eth0.1 eth1.1" "eth1.2"
-@@ -564,7 +567,8 @@ ar71xx_setup_interfaces()
+@@ -564,7 +584,9 @@ ar71xx_setup_interfaces()
  			"0@eth0" "1:lan:1" "2:lan:2" "3:lan:3" "4:lan:4" "5:wan"
  		;;
  	*)
 -		ucidef_set_interfaces_lan_wan "eth0" "eth1"
++		ucidef_set_interface_raw "wifi" "wlan0" "static"
 +		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
 +		ucidef_set_interface_raw "dtdlink" "eth0.2" "static"
  		;;

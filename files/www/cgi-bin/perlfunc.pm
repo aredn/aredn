@@ -549,6 +549,19 @@ sub get_mac
   return $mac;
 }
 
+sub get_wlan2phy
+{
+  my ($wlan) = $1;
+  my ($phy) = "";
+  return "phy0" unless $wlan;
+  foreach(`iwinfo  $wlan info`)
+  {
+    next unless /^.*PHY name:\s*([a-z0-4]+)/;
+    $phy = $1;
+  }
+  return $phy;
+}
+
 # load the setup file
 sub load_cfg
 {
@@ -611,6 +624,7 @@ sub get_wifi_signal
 {
   my $wifiintf = `uci -q get network.wifi.ifname`;
   chomp $wifiintf;
+  my $phy = get_wlan2phy("$wifiintf");
   my ($SignalLevel) = "N/A";
   my ($NoiseFloor) = "N/A";
   foreach(`iwinfo $wifiintf assoclient`)
@@ -622,18 +636,11 @@ sub get_wifi_signal
     }
   }
 
-  open( my $NoiseFH , "<" , "/sys/kernel/debug/ieee80211/phy0/ath9k/dump_nfcal") or return ("N/A","N/A");
-  while (<$NoiseFH>) {
-    next unless /Channel Noise Floor : ([-]?[0-9]+)/;
-    $NoiseFloor=$1;
-  }
-  close($NoiseFH);
-
   if ( $NoiseFloor == "N/A" )
   {
     foreach(`iwinfo $wifiintf info | grep Signal`)
     {
-      next unless /([\d\-]+) dBm/;
+      next unless /([\d\-]+) dBm\w*$/;
       $NoiseFloor=$1;
     }
   }
@@ -954,12 +961,13 @@ sub validate_longitude
 # Get boardid
 sub hardware_boardid
 {
-  my $boarid="";
+  my $boardid="";
   # Ubiquiti hardware
   if ( -f '/sys/devices/pci0000:00/0000:00:00.0/subsystem_device' ) {
     $boardid = `cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device`;
     chomp($boardid);
-  } else {
+  } 
+  if ( $boardid eq "0x0000" || $boardid eq "" ) {
     # Can't use the subsystem_device so instead use the model
     $boardid = `/usr/local/bin/get_boardid`;
     chomp($boardid);
@@ -1041,6 +1049,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
       'chanpower'       => { 140 => '17', 184 => '26' },
+    },
+    'MikroTik RouterBOARD 952Ui-5ac2nD' => {
+      'name'            => 'MikroTik RouterBOARD 952Ui-5ac2nD',
+      'comment'         => 'MikroTik RouterBOARD 952Ui-5ac2nD in Testing',
+      'supported'       => '-1',
+      'maxpower'        => '22',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '2400',
     },
     'Mikrotik RouterBOARD 912UAG-2HPnD' => {
       'name'            => 'Mikrotik RouterBOARD 912UAG-2HPnD',

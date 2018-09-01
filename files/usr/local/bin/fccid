@@ -37,8 +37,11 @@ LICENSE
 
 [ -f /etc/config/run-fccid ] || exit
 
+wifiif=$(uci -q get 'network.wifi.ifname')
+chomp $wifiif;
+
 # stagger the beacons between nodes
-N=$(ifconfig wlan0 | grep "inet addr" | cut -f4 -d. | cut -c1-3)
+N=$(ifconfig $wifiif | grep "inet addr" | cut -f4 -d. | cut -c1-3)
 sleep "$N"
 
-echo "ID: $(uname -n)" | socat - udp4:10.255.255.255:4919,broadcast,so-bindtodevice=wlan0
+echo "ID: $(uname -n)" | socat - udp4:10.255.255.255:4919,broadcast,so-bindtodevice=$wifiif

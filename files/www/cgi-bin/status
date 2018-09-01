@@ -47,9 +47,12 @@ $node = "NOCALL" if $node eq "";
 $tactical = nvram_get("tactical");
 $config = nvram_get("config");
 $config = "not set" if $config eq "" or not -d "/etc/config.mesh";
+$wifi_iface = get_interface("wifi");
+$wifi_iface =~ /wlan(\d+)/;
+$radio = ( defined $1 )? "radio$1" : "radio0";
 
-($junk, $wifi_channel) = &uci_get_named_option("wireless", "radio0", "channel");
-($junk, $wifi_chanbw) = &uci_get_named_option("wireless", "radio0", "chanbw");
+($junk, $wifi_channel) = &uci_get_named_option("wireless", "$radio", "channel");
+($junk, $wifi_chanbw) = &uci_get_named_option("wireless", "$radio", "chanbw");
 ($junk, $node_desc) = &uci_get_indexed_option("system", "system", "0", "description");
 $wifi_ssid = "N/A";
 @wisections = &uci_get_all_indexed_by_sectiontype("wireless", "wifi-iface");
@@ -158,10 +161,10 @@ $browser_ip = "";
 # left column - network interface info
 
 # show the wifi address
-($ip, $mask, $bcast, $net, $cidr) = get_ip4_network(get_interface("wifi"));
+($ip, $mask, $bcast, $net, $cidr) = get_ip4_network($wifi_iface);
 $cidr = "/ $cidr" if $cidr;
 $str  = "<th align=right><nobr>WiFi address</nobr></th><td>$ip <small>$cidr</small><br>";
-$str .= "<small><nobr>" . get_ip6_addr(get_interface("wifi")) . "</nobr></small></td>";
+$str .= "<small><nobr>" . get_ip6_addr($wifi_iface) . "</nobr></small></td>";
 push @col1, $str;
 
 # find out if the browser is on this node's lan
@@ -225,7 +228,7 @@ push @col1, $str . "</td>";
 if($config eq "mesh")
 {
     $str = "<th align=right valign=middle><nobr>Signal/Noise/Ratio</nobr></th><td valign=middle><nobr>";
-    ($s, $n) = get_wifi_signal(get_interface("wifi"));
+    ($s, $n) = get_wifi_signal($wifi_iface);
     if($s eq "N/A") { $str .= "N/A" }
     else            { $str .= sprintf "<big><b>%d / %d / %d dB</b></big>", $s, $n, $s - $n }
     $str .= "&nbsp;&nbsp;&nbsp;";

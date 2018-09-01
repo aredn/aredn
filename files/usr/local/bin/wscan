@@ -133,11 +133,22 @@ $batch = 0;     # batch mode
 $loops = 0;     # number of times to run 0=inf
 $raw = 0;       # raw mode
 $openap = 0;    # show open ap's
-$iface = "wlan0"; # wireless interface
+$iface = `uci -q get 'network.wifi.ifname'`; # wireless interface
+chomp $iface;
 
 $iters = 0;     # number of iterations
 %avgs = ();     # average statistics
 %aphash = ();   # list of ap's for avg mode
+
+$mychan = `iwinfo $iface info | grep -i channel`;
+$mychan =~ /Channel:\s+(-*\d+)/;
+$mychan = ( ! defined $1 || ! int($1) || ! ($1 >= -2 && $1 <= 185) ) ? 0 : $1;
+
+# ch 76 - 99 are 3ghz since no part 15 usage (5ghz board with -2ghz transverter)
+if ($mychan >= 76 and $mychan <= 99)
+{
+  $mychan = ($mychan*5+3000);
+}
 
 while(defined ($arg = shift))
 {
@@ -157,23 +168,18 @@ die "bad interface" if not defined $iface;
 
 if($raw)
 {
-  system("/usr/bin/iw dev $iface scan");
-  system("/usr/sbin/iw dev $iface station dump");
+  system("iw dev $iface scan");
+  system("iw dev $iface station dump");
   exit;
 }
 
 while(1)
 {
-  $line = `grep ssid /etc/config/wireless | tail -1`;
+  $line = `egrep "['\\"].*-(5|10|20)-v[3456]" /etc/config/wireless | head -1`;
   $line   =~ /['"](.*-(5|10|20)-v[3456])/;
   $myssid = $1;
-  $mychan = `iw dev $iface info | grep channel | cut -d\\  -f2`;
-  if ($mychan >= 76 and $mychan <= 99)
-  {
-    $mychan = ($mychan*5+3000); # ch 76 - 99 are 3ghz since no part 15 usage (5ghz board with -2ghz transverter)
-  }
 
-  open(FILE, "/usr/sbin/iw dev $iface scan 2>&1 |") or die "iw scan failed";
+  open(FILE, "iw dev $iface scan 2>&1 |") or die "iw scan failed";
   $mac = "";
   $host = "N/A";
   $lastseen = 0;
@@ -222,7 +228,7 @@ while(1)
   $lastseen = 0;
   ++$iters;
 
-  open(FILE, "/usr/sbin/iw $iface station dump 2>&1 |") or die "/usr/sbin/iw failed";
+  open(FILE, "iw dev $iface station dump 2>&1 |") or die "iw failed";
 
   while($line = <FILE>)
   {

@@ -51,6 +51,7 @@ TPLink CPE210 v1.0/v1.1 | cpe210-220-v1 | 64Mb | stable
 TPLink CPE210 v2.0/v3.0 | cpe210-v2 | 64Mb | stable
 TPLink CPE510 v1.0/v1.1/v2.0 | cpe510-220-v1 | 64Mb | stable
 Mikrotik BaseBox 2/5 | mikrotik-nand-large | 64Mb | stable
+Mikrotik hAP lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
 
 ### Building with Docker
 Installing the Docker environment on your windows/linux/mac machine is a pre-requisite. A docker 'container' has been pre-configured with an aredn linux build environment. Alternative instructions are below if you wish to setup your linux install with the compiler pre-requisites necessary to do the build.
