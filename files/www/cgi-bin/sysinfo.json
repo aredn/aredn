@@ -104,9 +104,18 @@ for pos, t in pairs(wif) do
 end
 info["ssid"]=myssid
 
+--Determine radio device for mesh
+local radio=""
+local wifiinterfaces=getUciConfType("wireless","wifi-iface")
+for pos,i in pairs(wifiinterfaces) do
+	if wifiinterfaces[pos]['mode']=="adhoc" then
+		radio=wifiinterfaces[pos]['device']
+	end
+end 
+
 --Wifi Channel Number
 local chan=""
-chan = tonumber(ctx:get("wireless", "radio0", "channel"))
+chan = tonumber(ctx:get("wireless", radio, "channel"))
 -- 3GHZ channel -> Freq conversion
 if (chan >= 76 and chan <= 99) then
 	chan=(chan * 5) + 3000
@@ -116,7 +125,7 @@ info["channel"]=tostring(chan)
 
 --Wifi Bandwidth
 local chanbw=""
-chanbw = ctx:get("wireless", "radio0", "chanbw")
+chanbw = ctx:get("wireless", radio, "chanbw")
 info["chanbw"]=chanbw
 
 -- ACTIVE TUNNELS
