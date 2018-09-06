@@ -551,8 +551,8 @@ sub get_mac
 
 sub get_wlan2phy
 {
-  my ($wlan) = $1;
-  my ($phy) = "";
+  my $wlan = shift;
+  my $phy = "";
   return "phy0" unless $wlan;
   foreach(`iwinfo  $wlan info`)
   {
