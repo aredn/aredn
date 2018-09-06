@@ -15,6 +15,7 @@ The default git branch builds images with the following:
 * olsrd upgrade from 0.6.7 to 0.9.6.2
 * fixed to OpenWrt v18.06.1
 * added Mikrotik basebox 2 and 5
+* added Mikrotik hAP lite 952Ui-5ac2nD
 * added tp-link cp210 v2.0, v3.0, and cpe510 v2.0
 * both 64Mb and 32Mb devices are stable 
 * compatible with all prior AREDN and BBHN 3.1.0 networks (called version 3)
@@ -97,8 +98,7 @@ cd aredn_ar71xx
 vi config.mk # enter your callsign, etc.
 # build default ubnt and tplink images
 make  
-# copy the firmware image files to save elsewhere, will be cleaned next step
-# build mikrotik images
+# build and add mikrotik images to firmware dir
 make SUBTARGET=mikrotik
 ```
 
@@ -116,6 +116,12 @@ You need approximately 10GB of space for the build.
 
 Prior AREDN images can be rebuilt.  Insert one of the following after
 the "cd aredn_ar71xx" command above:
+
+AREDN release 3.16.2.0
+
+```
+git checkout 3.16.2.0
+```
 
 AREDN release 3.16.1.1
 
