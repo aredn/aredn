@@ -254,6 +254,7 @@ foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
     elsif ( $name =~ /^dtdlink\..*$/ )
         {
             $hosts{$ip}{name} = $name;
+	    $dtd{$originator} = 1;
 	    if ( $routes{$ip} ) {  $hosts{$ip}{etx} = $routes{$ip}{etx} ; }
 	    else { $hosts{$ip}{etx} = "99.000"; }
         }
@@ -438,13 +439,12 @@ foreach $ip (keys %hosts)
     $rows{$host}  = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $host . $tactical;
 
     undef $nodeiface;
-    #if ( $dtd{$ip} )
-    #{
-	#$nodeiface = "dtd";
-	#if ( $midcount{$ip} ) { $midcount{$ip} -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
-    #}
-    #if ( $hosts{$ip}{tactical} ) { $midcount{$ip} -= 1; } # extra mid entry if tactical name defined
-    #if ( $midcount{$ip} )  {  $nodeiface = $nodeiface ?  "dtd," . "tun*$midcount{$ip}" : "tun*$midcount{$ip}" ;  }
+    if ( $dtd{$ip} )
+    {
+	if ( $midcount{$ip} ) { $midcount{$ip} -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
+    }
+    if ( $hosts{$ip}{tactical} ) { $midcount{$ip} -= 1; } # extra mid entry if tactical name defined
+    if ( $midcount{$ip} )  {  $nodeiface = "tun*$midcount{$ip}" ;  }
     if ( $wangateway{$ip} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" : "wan" ; }
 
     if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
@@ -506,8 +506,8 @@ if(keys %links)
 	if ( $ipmain ne $ip ) # indicate if dtd or tunnel interface to neighbor
 	{
 	    if    ( $hosts{$ip}{name} =~ /^dtdlink\..*$/ ){ $nodeiface="dtd" ; }
-	    #elsif ( $hosts{$ip}{name} =~ /^mid\d+\..*$/ ) { $nodeiface="tun" ; }
-            #else        				  { $nodeiface="?" ; }
+	    elsif ( $hosts{$ip}{name} =~ /^mid\d+\..*$/ ) { $nodeiface="tun" ; }
+            else        				  { $nodeiface="?" ; }
 	}
 
 	if ( $wangateway{$ip} or $wangateway{$ipmain} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" :  "wan" ; }
