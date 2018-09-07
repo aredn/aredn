@@ -52,6 +52,10 @@ $wifi_iface =~ /wlan(\d+)/;
 $radio = ( defined $1 )? "radio$1" : "radio0";
 
 ($junk, $wifi_channel) = &uci_get_named_option("wireless", "$radio", "channel");
+if ($wifi_channel >= 76 and $wifi_channel <= 99)
+{
+  $wifi_channel = ($wifi_channel*5+3000);
+}
 ($junk, $wifi_chanbw) = &uci_get_named_option("wireless", "$radio", "chanbw");
 ($junk, $node_desc) = &uci_get_indexed_option("system", "system", "0", "description");
 $wifi_ssid = "N/A";
