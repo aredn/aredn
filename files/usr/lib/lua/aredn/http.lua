@@ -43,6 +43,7 @@ end
 function json_header()
    print("Content-type: application/json\r")
    print("Cache-Control: no-store\r")
+   print("Access-Control-Allow-Origin: *\r")
    print("\n")
 end
 

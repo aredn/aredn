@@ -42,3 +42,8 @@ function getUciConfType(conf,type)
    curs:foreach(conf,type,function(s) ifce[s[".index"]]=s end)
    return ifce
 end
+
+function getUciConfSectionOption(conf,sect,option)
+   local curs=uci.cursor()
+   return curs:get(conf,sect,option)
+end

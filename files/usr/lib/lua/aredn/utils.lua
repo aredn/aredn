@@ -54,11 +54,26 @@ function adjust_rate(r,b)
 	return ar
 end
 
-function get_bandwidth()
-	local curs=uci.cursor()
-	local b
-	b=curs:get("wireless","radio0","chanbw")
-	return tonumber(b)
+function string:split(delim)
+	local t = {}
+	local function helper(line) table.insert(t, line) return "" end
+		helper((self:gsub("(.-)"..delim, helper)))
+	return t
+end
+
+function parseQueryString(qs)
+	local qsa={}
+	if qs ~=nil then
+		for i,j in pairs(qs:split("&")) do
+			z=j:split("=")
+			qsa[z[1]]=z[2]
+		end
+	end
+	return qsa
+end
+
+function setContains(set, key)
+    return set[key] ~= nil
 end
 
 function sleep(n)  -- seconds

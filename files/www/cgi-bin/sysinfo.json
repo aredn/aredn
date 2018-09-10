@@ -37,6 +37,7 @@
 require("uci")
 require("aredn.uci")
 require("aredn.utils")
+require("aredn.info")
 require("aredn.http")
 require("nixio")
 local ipc = require("luci.ip")
@@ -55,110 +56,61 @@ end
 info={}
 
 -- API version
-info['api_version']="1.4"
+info['api_version']="1.5"
 
+info['node_details']={}
 -- NODE name
 css=getUciConfType("system", "system")
-info['node']=css[0]['hostname']
+info['node_details']['node']=css[0]['hostname']
 
 -- MODEL
-m=os.capture("/usr/local/bin/get_model")
-info['model']=m:chomp()
+info['node_details']['model']=getModel()
 
 -- DESCRIPTION
-info['description']=css[0]['description']
+info['node_details']['description']=getNodeDescription()
 
 -- BOARD ID
-info['board_id']=hardware_boardid()
+info['node_details']['board_id']=hardware_boardid()
 
 -- Firmware Manufacturer
 local fw_mfg="AREDN"
 if not file_exists("/www/AREDN.png") then
 	fw_mfg = "Other"
 end
-info['firmware_mfg']=fw_mfg
+info['node_details']['firmware_mfg']=fw_mfg
 
 -- Firmware version
-local relfile=io.open("/etc/mesh-release","r")
-local fv=""
-if relfile~=nil then
-	fv=relfile:read()
-	relfile:close()
-end
-info['firmware_version']=fv:chomp()
+info['node_details']['firmware_version']=getFirmwareVersion()
 
+-- Mesh RF info
+info["meshrf"]={}
+info["meshrf"]["ssid"]=getSSID()
+local radio=getMeshRadioDevice()
+info["meshrf"]["channel"]=getChannel(radio)
+info["meshrf"]['chanbw']=getChannelBW(radio)
+
+-- Tunnel info
+info['tunnels']={}
 -- Tunnel Installed
 local tunnel_installed=false
 if file_exists("/usr/sbin/vtund") then
 	tunnel_installed="true"
 end
-info["tunnel_installed"]=tunnel_installed
-
--- SSID
-local myssid=""
-wif=getUciConfType("wireless", "wifi-iface")
-for pos, t in pairs(wif) do
-	if wif[pos]['network']=="wifi" then
-		myssid=wif[pos]['ssid']
-	end
-end
-info["ssid"]=myssid
-
---Determine radio device for mesh
-local radio=""
-local wifiinterfaces=getUciConfType("wireless","wifi-iface")
-for pos,i in pairs(wifiinterfaces) do
-	if wifiinterfaces[pos]['mode']=="adhoc" then
-		radio=wifiinterfaces[pos]['device']
-	end
-end 
-
---Wifi Channel Number
-local chan=""
-chan = tonumber(ctx:get("wireless", radio, "channel"))
--- 3GHZ channel -> Freq conversion
-if (chan >= 76 and chan <= 99) then
-	chan=(chan * 5) + 3000
-end
-info["channel"]=tostring(chan)
-
-
---Wifi Bandwidth
-local chanbw=""
-chanbw = ctx:get("wireless", radio, "chanbw")
-info["chanbw"]=chanbw
-
+info['tunnels']["tunnel_installed"]=tunnel_installed
 -- ACTIVE TUNNELS
 local atc=""
 atc=os.capture("ifconfig|grep tun|wc -l")
-info["active_tunnel_count"]=atc:chomp()
+info['tunnels']["active_tunnel_count"]=atc:chomp()
 
+-- Location info
+info['location']={}
 -- LAT/LON
-local llfname="/etc/latlon"
-local lat=""
-local lon=""
-if file_exists(llfname) then
-	llfile=io.open(llfname,"r")
-	if llfile~=nil then
-		lat=llfile:read()
-		lon=llfile:read()
-		llfile:close()
-	end
-end
-info["lat"]=lat
-info["lon"]=lon
+local lat, lon = getLatLon() 
+info['location']["lat"]=lat
+info['location']["lon"]=lon
 
 -- GRID SQUARE
-local gsfname="/etc/gridsquare"
-local grid=""
-if file_exists(gsfname) then
-	gsfile=io.open(gsfname,"r")
-	if gsfile~=nil then
-		grid=gsfile:read()
-		gsfile:close()
-	end
-end
-info["grid_square"]=grid
+info['location']["grid_square"]=getGridSquare()
 
 -- UPTIME AND LOADAVGS
 mynix=nixio.sysinfo()
