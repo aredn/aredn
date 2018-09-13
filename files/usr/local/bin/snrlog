@@ -49,7 +49,6 @@ string.print=print_r
 
 
 -- delay just after rssi_monitor has a chance to run noise floor calibration
-sleep(5)
 local MAXLINES=2880 -- 2 days worth
 local AGETIME=43200
 local INACTIVETIMEOUT=10000
@@ -66,6 +65,8 @@ local stations={}
 local wifiiface=""
 local bandwidth=""
 local nulledout={}
+local pidfile="/tmp/snrlog.pid"
+local rssifile="/tmp/rssi_monitor.pid"
 
 -- Neighbor Class
 Neighbor={}
@@ -255,6 +256,35 @@ end
 -- Neighbor Class END
 
 -- MAIN() -------------------------------------------------------------------------------------
+-- check to make sure a prior instance is not still running
+local f = io.open(pidfile,"r")
+if (f) then
+  local oldpid = f:read("*number")
+  f:close()
+  if (oldpid ~= nill and dir_exists("/proc/" .. oldpid)) then
+    return
+  end
+end
+
+--- create pid file to communicate I'm running
+f, err=assert(io.open(pidfile, "w"),"Cannot open file (pidfile) to write!")
+if (f) then
+  local mypid = posix.unistd.getpid()
+  f:write(mypid)
+  f:close()
+end
+
+--- Do not run if prior period rssi_monitor is still running
+local f = io.open(rssifile,"r")
+if (f) then
+  local oldpid = f:read("*number")
+  f:close()
+  if (oldpid ~= nill and dir_exists("/proc/" .. oldpid)) then
+    os.remove(pidfile)
+    return
+  end
+end
+
 -- get wifi interface name
 wifiiface=get_ifname("wifi")
 
@@ -387,5 +417,7 @@ for k,v in pairs(snrdatcache) do
   f:write(string.format("%s|%s|%s\n",k,v,nulledout[k]))
 end
 f:close()
+
+os.remove(pidfile)
 
 -- END MAIN

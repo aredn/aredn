@@ -1,5 +1,5 @@
 #!/bin/sh
-<<'LICENSE'
+true <<'LICENSE'
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2018 Joe Ayers AE6XE
   See Contributors file for additional contributors
@@ -36,36 +36,43 @@ LICENSE
 # Look for hung 'iw' zombie processes prone to hang 
 # when available memory is low. 
 
-# wait for rssi_monitor and snrlog to run
-sleep 10
+zombiepid="/tmp/clean_zombie.pid"
 
-for pid in `ps 2>/dev/null | egrep "^\s*\d+\s+root\s+\d+\s+Z\s+\[iw\]"| sed -e "s/^\s*//"| cut -f1 -d\ `
+[ -e $zombiepid ] && [ -d "/proc/$(cat $zombiepid)" ] && exit
+
+echo "$$" > $zombiepid
+
+# wait for rssi_monitor and snrlog to run
+sleep 20;
+
+for pid in $(ps | grep -E "^\s*\d+\s+root\s+\d+\s+Z\s+\[iw\]"| sed -e "s/^\s*//"| cut -f1 -d\ )
 do
 
   # found an "iw" zombie
-  sleep 10 # give time in case process is naturally closing and needs more time
-  if [ -d /proc/$pid ] ; then
+  sleep 10 # in case process is naturally closing and needs more time
+  if [ -d "/proc/$pid" ] ; then
     date >> /tmp/zombie.log
-    ps | egrep "^\s*${pid}" | grep -v grep | tail -1 >> /tmp/zombie.log
-    ppid=`cat /proc/$pid/status | grep -i ppid | cut -f2`
-    if [ -d /proc/$ppid ] ; then
-      ps | egrep "\s*${ppid}" | grep -v grep | tail -1 >> /tmp/zombie.log
-      if ( ! `grep crond /proc/$ppid/status 2>&1 > /dev/null` ) then
-        if [ $ppid -gt 1 ] ; then 
+    ps | grep -E "^\s*${pid}\s+" | grep -v grep | tail -1 >> /tmp/zombie.log
+    ppid="$(grep -i ppid < /proc/$pid/status | cut -f2)"
+    if [ -d "/proc/$ppid" ] ; then
+      ps | grep -E "^\s*${ppid}\s+" | grep -v grep | tail -1 >> /tmp/zombie.log
+      grep crond /proc/$ppid/status 2>&1 > /dev/null
+      if [ $? -ne 0 -a "$ppid" -gt 1 ];  then
 
-          # kill the zombie's parent process to free up resources
-          kill -9 $ppid 2>&1 >> /tmp/zombie.log
-          echo "Killed $ppid" >> /tmp/zombie.log
-          if [ `wc -l /tmp/zombie.log | cut -f1 -d\ ` -gt 100 ] ; then
+        # kill the zombie's parent process to free up resources
+        kill -9 "$ppid" 2>&1 >> /tmp/zombie.log
+        echo "Killed $ppid" >> /tmp/zombie.log
+        if [ "$(wc -l /tmp/zombie.log | cut -f1 -d\ )" -gt 300 ] ; then
 
-            # keep file size in check
-            cp /tmp/zombie.log /tmp/zombie.tmp
-            tail -80 /tmp/zombie.tmp > /tmp/zombie.log
-            rm -f /tmp/zombie.tmp
-          fi
+          # keep file size in check
+          cp /tmp/zombie.log /tmp/zombie.tmp
+          tail -275 /tmp/zombie.tmp > /tmp/zombie.log
+          rm -f /tmp/zombie.tmp
         fi
       fi
     fi
     echo "" >> /tmp/zombie.log
   fi
 done
+
+rm $zombiepid

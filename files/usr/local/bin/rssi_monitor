@@ -41,8 +41,39 @@
 
 $now=`cat /proc/uptime | cut -f1 -d" "`;
 chomp $now;
-
 exit 0 unless $now > 119;
+
+sleep 3; # wait for snrlog to see that we are not running
+
+$rssipid="/tmp/rssi_monitor.pid";
+if ( -f "$rssipid" )
+{
+    chomp (${rssipidvalue}=`cat $rssipid`);
+    exit 0 if ( ${rssipidvalue} > 0  and -d "/proc/${rssipidvalue}" );
+}
+
+open(my $mypid, '>', $rssipid) or die("Could not open $rssipid. $!");
+print $mypid $$;
+close $mypid;
+
+$snrlogpid="/tmp/snrlog.pid";
+if ( -f "$snrlogpid" )
+{
+    chomp (${snrlogpidvalue}=`cat $snrlogpid`);
+    $waitcount=0;
+    while ( ${snrlogpidvalue} > 0 and -d "/proc/${snrlogpidvalue}" and $waitcount < 4)
+    {
+        sleep 5;
+	$waitcount+=1;
+    }
+    if ( $waitcount = 4 ) # skip this turn if snrlog still running
+    {
+        unlink $rssipid;
+        exit 0;
+    }
+}
+
+sleep 7;
 
 chomp ($iface=`uci -q get 'network.wifi.ifname'`); # wireless interface
 foreach(`iwinfo $iface info`)
@@ -337,6 +368,7 @@ for (keys %rssiHist)
 }
 
 close $dfh;
+unlink $rssipid;
 
 # when logfile gets 1k over $MAXSIZE, then chop down
 $MAXSIZE = 2**14;
