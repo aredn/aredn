@@ -37,7 +37,7 @@
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 chomp (${wifiif}=`uci -q get 'network.wifi.ifname'`);
-$phy=get_wlan2phy("${wifiif");
+$phy=get_wlan2phy("${wifiif}");
 
 
 @files = ( "/etc/config/",
@@ -52,6 +52,7 @@ $phy=get_wlan2phy("${wifiif");
            "/var/run/hosts_olsr",
            "/tmp/rssi.dat",
            "/tmp/rssi.log",
+           "/tmp/zombie.log",
             );
 
 @sensitive = ( "/etc/config/vtun",
