@@ -168,7 +168,7 @@ $browser_ip = "";
 ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network($wifi_iface);
 $cidr = "/ $cidr" if $cidr;
 $str  = "<th align=right><nobr>WiFi address</nobr></th><td>$ip <small>$cidr</small><br>";
-$str .= "<small><nobr>" . get_ip6_addr($wifi_iface) . "</nobr></small></td>";
+# $str .= "<small><nobr>" . get_ip6_addr($wifi_iface) . "</nobr></small></td>";
 push @col1, $str;
 
 # find out if the browser is on this node's lan
@@ -184,7 +184,7 @@ if($ip =~ /^10\./ or not $hide_local)
 {
     $cidr = "/ $cidr" if $cidr;
     $str  = "<th align=right><nobr>LAN address</nobr></th><td>$ip <small>$cidr</small><br>";
-    $str .= "<small><nobr>" . get_ip6_addr(get_interface("lan")) . "</nobr></small></td>";
+    # $str .= "<small><nobr>" . get_ip6_addr(get_interface("lan")) . "</nobr></small></td>";
     push @col1, $str;
 }
 
@@ -196,7 +196,7 @@ if($ip =~ /^10\./ or not $hide_local)
         $cidr = "/ $cidr" if $cidr;
         $cidr = "" unless $cidr;
         $str  = "<th align=right><nobr>WAN address</nobr></th><td>$ip <small>$cidr</small><br>";
-        $str .= "<small><nobr>" . get_ip6_addr("$wanintf") . "</nobr></small></td>";
+        # $str .= "<small><nobr>" . get_ip6_addr("$wanintf") . "</nobr></small></td>";
         push @col1, $str;
     }
 }
