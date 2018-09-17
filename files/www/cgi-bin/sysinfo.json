@@ -58,11 +58,12 @@ info={}
 -- API version
 info['api_version']="1.5"
 
-info['node_details']={}
+
 -- NODE name
 css=getUciConfType("system", "system")
-info['node_details']['node']=css[0]['hostname']
+info['node']=css[0]['hostname']
 
+info['node_details']={}
 -- MODEL
 info['node_details']['model']=getModel()
 
@@ -103,14 +104,13 @@ atc=os.capture("ifconfig|grep tun|wc -l")
 info['tunnels']["active_tunnel_count"]=atc:chomp()
 
 -- Location info
-info['location']={}
 -- LAT/LON
 local lat, lon = getLatLon() 
-info['location']["lat"]=lat
-info['location']["lon"]=lon
+info['lat']=lat
+info['lon']=lon
 
 -- GRID SQUARE
-info['location']["grid_square"]=getGridSquare()
+info["grid_square"]=getGridSquare()
 
 -- UPTIME AND LOADAVGS
 mynix=nixio.sysinfo()
