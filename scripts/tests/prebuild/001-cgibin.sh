@@ -71,7 +71,7 @@ do
     if [ "$SHELLCHECKNOTEXISTS" = "1" ]; then
       juLog -name="cgibin_$(basename "$file")" false # Consider test failed if we don't have shellcheck
     else
-      juLog -name="cgibin_$(basename "$file")" shellcheck "$file"
+      juLog -name="cgibin_$(basename "$file")" shellcheck -e SC2069,SC2009 "$file"
     fi
   continue # Next file please
   fi

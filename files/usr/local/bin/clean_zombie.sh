@@ -53,10 +53,10 @@ do
   if [ -d "/proc/$pid" ] ; then
     date >> /tmp/zombie.log
     ps | grep -E "^\s*${pid}\s+" | grep -v grep | tail -1 >> /tmp/zombie.log
-    ppid="$(grep -i ppid < /proc/$pid/status | cut -f2)"
+    ppid="$(grep -i ppid < /proc/"$pid"/status | cut -f2)"
     if [ -d "/proc/$ppid" ] ; then
       ps | grep -E "^\s*${ppid}\s+" | grep -v grep | tail -1 >> /tmp/zombie.log
-      grep crond /proc/$ppid/status 2>&1 > /dev/null
+      grep crond /proc/"$ppid"/status 2>&1 > /dev/null
       if [ $? -ne 0 -a "$ppid" -gt 1 ];  then
 
         # kill the zombie's parent process to free up resources

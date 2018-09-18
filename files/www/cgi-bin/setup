@@ -307,7 +307,7 @@ if($parms{button_save})
     foreach my $testcountry (split(',',"00,HX,AD,AE,AL,AM,AN,AR,AT,AU,AW,AZ,BA,BB,BD,BE,BG,BH,BL,BN,BO,BR,BY,BZ,CA,CH,CL,CN,CO,CR,CY,CZ,DE,DK,DO,DZ,EC,EE,EG,ES,FI,FR,GE,GB,GD,GR,GL,GT,GU,HN,HK,HR,HT,HU,ID,IE,IL,IN,IS,IR,IT,JM,JP,JO,KE,KH,KP,KR,KW,KZ,LB,LI,LK,LT,LU,LV,MC,MA,MO,MK,MT,MY,MX,NL,NO,NP,NZ,OM,PA,PE,PG,PH,PK,PL,PT,PR,QA,RO,RS,RU,RW,SA,SE,SG,SI,SK,SV,SY,TW,TH,TT,TN,TR,UA,US,UY,UZ,VE,VN,YE,ZA,ZW")) {
         if ( $testcountry eq $wifi_country ) {
             $wifi_country_validated=1;
-            break;
+            last;
         }
     }
     if ( $wifi_country_validated ne 1 ) {
@@ -462,9 +462,10 @@ $desc = &uci_get_indexed_option("system", "system", 0, "description");
 #
 # Retreive map url, css, and js locations
 #
-my ($rc, $maptiles)=&uci_get_indexed_option("system","map",0,"maptiles");
-my ($rc, $leafletcss)=&uci_get_indexed_option("system","map",0,"leafletcss");
-my ($rc, $leafletjs)=&uci_get_indexed_option("system","map",0,"leafletjs");
+my ($rc, $maptiles, $leafletcss, $leafletjs);
+($rc, $maptiles)=&uci_get_indexed_option("system","map",0,"maptiles");
+($rc, $leafletcss)=&uci_get_indexed_option("system","map",0,"leafletcss");
+($rc, $leafletjs)=&uci_get_indexed_option("system","map",0,"leafletjs");
 
 #
 # generate the page
