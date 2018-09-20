@@ -152,7 +152,7 @@ compile: stamp-clean-compiled .stamp-compiled
 	  NEWNAME="$${FILE/ar71xx-generic-/}"; \
 	  NEWNAME="$${NEWNAME/squashfs-/}"; \
 	  NEWNAME="$${NEWNAME/$(GIT_COMMIT)-?????-/$(GIT_COMMIT)-}"; \
-	  NEWNAME="$${NEWNAME/ar71xx-mikrotik-/mikrotik-}"; \
+	  NEWNAME="$${NEWNAME/ar71xx-mikrotik/mikrotik}"; \
 	  mv "$$FILE" "$$NEWNAME"; \
 	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh
