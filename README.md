@@ -2,23 +2,43 @@
 
 http://www.arednmesh.org
 
-## Build Information
-
-The AREDN firmware is based on OpenWrt with additional packages and patches.
-A Makefile automates the entire process to create firmware images.
+## Usage Information
 
 ### What to know about the images built with the instructions below
 
-The default git branch builds images with the following:
+This is the 3.18.9.0 release build. (Protocol 3 compatible, Sept 2018, major release.)
 
-* includes history from AREDN nightly build 176
+Major enhancements from prior 3.16.2.0 release:
+
 * olsrd upgrade from 0.6.7 to 0.9.6.2
-* fixed to OpenWrt v18.06.1
+* OpenWrt upgrade from 14.07 (July 2014) to 18.06.1 (Aug 2018)
 * added Mikrotik basebox 2 and 5
 * added Mikrotik hAP lite 952Ui-5ac2nD
-* added tp-link cp210 v2.0, v3.0, and cpe510 v2.0
-* both 64Mb and 32Mb devices are stable 
+* added tp-link cp210 v1.1, v2.0, v3.0, and cpe510 v2.0
+* added numerous Ubiquiti "XW" devices
 * compatible with all prior AREDN and BBHN 3.1.0 networks (called version 3)
+* major linux kernel upgrade from 3.10.49 (July 2014) to 4.9.120 (Aug 2018)
+
+Known issues in this release:
+
+* Best practice: before firmware upgrade reboot to ensure sufficient RAM is available
+* 32MB RAM devices have limited free RAM, installation of additional packages not recommended
+* 32MB RAM devices with active tunnels may sustain high load with slow response
+* Mikrotik hAP lite model is not yet functional on 5Ghz, is only configured for mesh RF on 2GHz
+* Uniquiti PowerBeam devices with 1GB ports may frequently drop links over
+    longer cat5 lengths. See work around at https://github.com/aredn/aredn_ar71xx/issues/165 
+
+The following devices have a peculiar cat5 configuration due to a limitation in the Ethernet driver.
+The 'Main" port is used for LAN devices only.  The "Secondary" port is WAN and DtDLink usage
+only. Depending on deployed usage, 2 cat5 cables may be needed.
+
+* Ubiquiti Nanostation M5 XW
+* Ubiquiti Nanostation M2 XW
+* TP-Link CPE210 v1.0 and v1.1
+* TP-Link CPE510 v1.0 and v1.1
+
+Latest Mikrotik installation options are found at:
+https://www.arednmesh.org/content/installation-instructions-mikrotik-devices
 
 ### Images built
 
@@ -53,6 +73,15 @@ TPLink CPE210 v2.0/v3.0 | cpe210-v2 | 64Mb | stable
 TPLink CPE510 v1.0/v1.1/v2.0 | cpe510-220-v1 | 64Mb | stable
 Mikrotik BaseBox 2/5 | mikrotik-nand-large | 64Mb | stable
 Mikrotik hAP lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
+
+## Submitting Bug Reports
+
+Please submit all issues to http://github.com/aredn/aredn_ar71xx/issues
+
+## Developer Only Information
+
+The AREDN firmware is based on OpenWrt with additional packages and patches.
+A Makefile automates the entire process to create firmware images.
 
 ### Building with Docker
 Installing the Docker environment on your windows/linux/mac machine is a pre-requisite. A docker 'container' has been pre-configured with an aredn linux build environment. Alternative instructions are below if you wish to setup your linux install with the compiler pre-requisites necessary to do the build.
@@ -95,6 +124,7 @@ To obtain the source and build the firmware locally use:
 ```bash
 git clone https://github.com/aredn/aredn_ar71xx.git
 cd aredn_ar71xx
+git checkout 3.18.9.0
 vi config.mk # enter your callsign, etc.
 # build default ubnt and tplink images
 make  
@@ -114,7 +144,7 @@ You need approximately 10GB of space for the build.
 
 ### How to build prior builds of AREDN
 
-Prior AREDN images can be rebuilt.  Insert one of the following after
+Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn_ar71xx" command above:
 
 AREDN release 3.16.2.0
@@ -197,8 +227,5 @@ The highlevel steps to submit to this repository https://github.com/aredn/aredn_
 2) git commit a change into your fork, e.g. http://github.com/ae6xe/aredn_ar71xx
 3) create a pull request for http://github.com/aredn/aredn_ar71xx to consider your change
 
-## Submitting Bug Reports
-
-Please submit all issues to http://github.com/aredn/aredn_ar71xx/issues
 
 
