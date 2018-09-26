@@ -25,7 +25,7 @@ Known issues in this release:
 * 32MB RAM devices have limited free RAM, installation of additional packages not recommended
 * 32MB RAM devices with active tunnels may sustain high load with slow response
 * Mikrotik hAP lite model is not yet functional on 5Ghz, is only configured for mesh RF on 2GHz
-* Uniquiti PowerBeam devices with 1GB ports may frequently drop links over
+* Ubiquiti PowerBeam devices with 1GB ports may frequently drop links over
     longer cat5 lengths. See work around at https://github.com/aredn/aredn_ar71xx/issues/165 
 
 The following devices have a peculiar cat5 configuration due to a limitation in the Ethernet driver.
@@ -50,19 +50,20 @@ AirRouter  | airrouter | 32Mb | stable
 AirRouter HP | airrouter | 32Mb | stable
 Bullet M2/M2Ti/M5/M5Ti | bullet-m | 32Mb | stable
 Bullet Ti | bullet-m | 32Mb | stable
-NBE-M2-13/16/19 | loco-m-xw | 32Mb | stable
+NanoBeam-M2-13/16/19 | loco-m-xw | 32Mb | stable
 NanoBridge 2G18 | bullet-m | 32Mb | stable
 NanoBridge 5G22/25 | bullet-m | 32Mb | stable
 NanoBridge M9 | bullet-m | 32Mb | stable
 NanoStation Loco M2/M5/M9 XM | bullet-m | 32Mb | stable
-NanoStation Loco M2/M5 XW | loco-m-xw | 64Mb | stable
-NanoStation Loco M5 XW with test date after ~Nov 2017 | rocket-m-xw | 64Mb | stable
+NanoStation Loco M2 XW | loco-m-xw | 64Mb | stable
+NanoStation Loco M5 XW with test date before ~Nov 2017| loco-m-xw | 64Mb | stable
+NanoStation Loco M5 XW with test date on or after ~Nov 2017 | rocket-m-xw | 64Mb | stable
 NanoStation  M2/M3/M5 XM | nano-m | 32Mb | stable
 NanoStation  M2/M5 XW | nano-m-xw | 64Mb | stable
 PicoStation M2 | bullet-m | 32Mb | stable
-PBE-M2-400 | loco-m-xw | 64Mb | stable
-PBE-M5-300 | loco-m-xw | 64Mb | stable
-PBE-M5-400/400ISO/620 | rocket-m-xw | 64Mb | stable
+PowerBeam-M2-400 | loco-m-xw | 64Mb | stable
+PowerBeam-M5-300 | loco-m-xw | 64Mb | stable
+PowerBeam-M5-400/400ISO/620 | rocket-m-xw | 64Mb | stable
 PowerBridge | nano-m  | 64Mb | stable
 Rocket M9/M2/M3/M5/M5GPS XM | rocket-m | 64Mb | stable
 Rocket M2/M5 XW | rocket-m-xw | 64Mb | stable
@@ -70,7 +71,7 @@ Rocket M2 TI | rocket-m-ti? | 64Mb | unknown
 Rocket M5 TI | rocket-m-ti | 64Mb | stable
 TPLink CPE210 v1.0/v1.1 | cpe210-220-v1 | 64Mb | stable
 TPLink CPE210 v2.0/v3.0 | cpe210-v2 | 64Mb | stable
-TPLink CPE510 v1.0/v1.1/v2.0 | cpe510-220-v1 | 64Mb | stable
+TPLink CPE510 v1.0/v1.1/v2.0 | cpe510-520-v1 | 64Mb | stable
 Mikrotik BaseBox 2/5 | mikrotik-nand-large | 64Mb | stable
 Mikrotik hAP lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
 
@@ -221,7 +222,7 @@ quilt refresh                 # creates/updates the patch file
 
 ## Submitting new features and patches to AREDN
 
-The highlevel steps to submit to this repository https://github.com/aredn/aredn_ar71xx are:
+The high level steps to submit to this repository https://github.com/aredn/aredn_ar71xx are:
 
 1) create a github account and 'fork' this repo
 2) git commit a change into your fork, e.g. http://github.com/ae6xe/aredn_ar71xx
