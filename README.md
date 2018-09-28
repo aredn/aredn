@@ -6,27 +6,28 @@ http://www.arednmesh.org
 
 ### What to know about the images built with the instructions below
 
-This is the 3.18.9.0 release build. (Protocol 3 compatible, Sept 2018, major release.)
+This is the active 'develop' branch with latest AREDN code.
+At anytime a new change may be broken or break prior capabilities.
 
-Major enhancements from prior 3.16.2.0 release:
+The Amateur Radio community is encouraged to participate in loading the
+images produced from a "nightly build" and run the AREDN firmware in a
+variety of environments.  Given new features may not yet be documented,
+participants should already have a basic knowledge of Linux and Networking to
+understand and provide useful feedback to the Developer submitting the
+code.
 
-* olsrd upgrade from 0.6.7 to 0.9.6.2
-* OpenWrt upgrade from 14.07 (July 2014) to 18.06.1 (Aug 2018)
-* added Mikrotik basebox 2 and 5
-* added Mikrotik hAP lite 952Ui-5ac2nD
-* added tp-link cp210 v1.1, v2.0, v3.0, and cpe510 v2.0
-* added numerous Ubiquiti "XW" devices
-* compatible with all prior AREDN and BBHN 3.1.0 networks (called version 3)
-* major linux kernel upgrade from 3.10.49 (July 2014) to 4.9.120 (Aug 2018)
+The goal of participation is to obtain confidence that new
+features and the overall mesh node is stable.   The more participation,
+the earlier an issue is found, the faster an enhancement will be
+turned into a release.
 
-Known issues in this release:
+Here is a summary of significant features added since 3.18.9.0 
+was releaed:
 
-* Best practice: before firmware upgrade reboot to ensure sufficient RAM is available
-* 32MB RAM devices have limited free RAM, installation of additional packages not recommended
-* 32MB RAM devices with active tunnels may sustain high load with slow response
-* Mikrotik hAP lite model is not yet functional on 5Ghz, is only configured for mesh RF on 2GHz
-* Ubiquiti PowerBeam devices with 1GB ports may frequently drop links over
-    longer cat5 lengths. See work around at https://github.com/aredn/aredn_ar71xx/issues/165 
+* Locked to Openwrt 18.06.1
+
+Please refer to https://gihub.com/aredn/aredn_ar71xx/issues
+for a list of outstanding defects.
 
 The following devices have a peculiar cat5 configuration due to a limitation in the Ethernet driver.
 The 'Main" port is used for LAN devices only.  The "Secondary" port is WAN and DtDLink usage
@@ -147,6 +148,12 @@ You need approximately 10GB of space for the build.
 
 Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn_ar71xx" command above:
+
+AREDN release 3.18.9.0
+
+```
+git checkout 3.18.9.0
+```
 
 AREDN release 3.16.2.0
 
