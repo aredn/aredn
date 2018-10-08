@@ -22,7 +22,7 @@ the earlier an issue is found, the faster an enhancement will be
 turned into a release.
 
 Here is a summary of significant features added since 3.18.9.0 
-was releaed:
+was released:
 
 * Locked to Openwrt 18.06.1
 
