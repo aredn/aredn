@@ -102,6 +102,42 @@ $patch_install = 0;
     "http://downloads.arednmesh.org/firmware/ubnt"
 );
 
+$hardwaretype = `/usr/local/bin/get_hardwaretype`;
+chomp($hardwaretype);
+
+# handle TPLink and Mikrotik exception conditions
+$mfg=`/usr/local/bin/get_hardware_mfg`;
+chomp($mfg);
+$mfgprefix="";
+if($mfg=~ /Ubiquiti/i)
+{
+    $mfgprefix="ubnt"; 
+} elsif($mfg=~ /Mikrotik/i) {
+    $mfgprefix="mikrotik";
+} elsif($mfg=~ /TP-Link/i) {
+    $mfgprefix="cpe";
+}
+
+if($hardwaretype eq "nanostation-m")
+{
+    $hardwaretypev="nano-m";
+} elsif($hardwaretype eq "rb-952ui-5ac2nd") {
+    $hardwaretypev= "rb-nor-flash-16M-ac" ;    # hAP AC Lite
+} elsif($hardwaretype =~ /rb-912uag-[25]hpnd/i ) {
+    $hardwaretypev= "nand-large" ;    # Basebox 2/5
+} elsif($mfgprefix eq "cpe" ) {
+    $hwmodel = `/usr/local/bin/get_model`;
+    chomp($hwmodel);
+    if($hwmodel =~ /CPE210 v1\.[01]/i)
+    {
+        $hardwaretypev= "210-220-v1" ;      # v1.0/v1.1
+    } elsif($hwmodel =~ /CPE210 v[23]\.0/i) {
+        $hardwaretypev= "210-v2" ;          # v2.0/v3.0
+    } elsif($hwmodel =~ /CPE510/i) {
+        $hardwaretypev= "510-520-v1" ;      # CPE510 V1.0/v1.1/v2.0
+    } 
+}
+
 # refresh fw
 if($parms{button_refresh_fw})
 {
@@ -110,8 +146,6 @@ if($parms{button_refresh_fw})
 	push @fw_output, "Downloading firmware list...\n";
 	unlink "/tmp/web/firmware.list";
 	$ok = 0;
-        $hardwaretype = `/usr/local/bin/get_hardwaretype`;
-        chomp($hardwaretype);
 	foreach $serverpath (@serverpaths)
 	{
 	    system "$wget -O /tmp/web/firmware.list $serverpath/firmware.$hardwaretype.list >/dev/null 2>>$tmpdir/wget.err";
@@ -551,7 +585,36 @@ system "rm -rf /tmp/web/upload $tmpdir" unless $debug;
 #
 
 http_header();
-html_header("$node administration", 1);
+html_header("$node administration", 0);
+print <<EOF;
+    <script>
+    function validateFirmwareFilename(elem){
+        var hwmfg = "$mfgprefix";
+        var hwtype = "$hardwaretypev";
+        var searchstring = "";
+        var efn = "";
+        if(hwmfg != "cpe"){
+            searchstring= ".*-" + hwtype + "-sysupgrade.bin$\";
+            efn = "aredn-$fw_version-$mfgprefix-$hardwaretypev-sysupgrade.bin";
+        } else {
+            searchstring= ".*cpe" + hwtype + "-sysupgrade.bin$\";
+            efn = "aredn-$fw_version-$mfgprefix$hardwaretypev-sysupgrade.bin";
+        }
+        var re = new RegExp(searchstring,"g");   
+        if(elem.value.match(re)){
+            return true;
+        }else{
+            if (confirm('This filename is NOT appropriate for this device!\\n\\nThis device expects a file such as: ' + efn + ' \\n\\n\\nClick OK to continue if you are CERTAIN that the file is correct.')) {
+                return true;
+            } else {
+                elem.value="";
+                return false;
+            }
+        }
+    }
+    </script>
+EOF
+print "</head>";
 print "<body><center>\n";
 alert_banner();
 print "<form method=post action=admin enctype='multipart/form-data'>\n";
@@ -583,9 +646,11 @@ if(@fw_output)
 
 print "<tr><td align=center colspan=3>current version: $fw_version</td></tr>\n";
 
+print "<tr><td align=center colspan=3>hardware type: $mfgprefix ($hardwaretype)</td></tr>\n";
+
 print "<tr>\n";
 print "<td>Upload Firmware</td>\n";
-print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive'></td>\n";
+print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin' onchange='validateFirmwareFilename(this)'></td>\n";
 print "<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'";
 if($tunnel_active) { print " disabled"; };
 print "></td>\n";
@@ -594,10 +659,10 @@ print "</tr>\n";
 print "<tr>\n";
 print "<td>Download Firmware</td>\n";
 print "<td><select name=dl_fw style='font-family:monospace'>\n";
-selopt_pre("- Select Firmware -", "default", "default");
+selopt("- Select Firmware -", "default", "default");
 foreach(@fw_images)
 {
-    selopt_pre($_, $_, "default");
+    selopt($_, $_, "default");
 }
 print "</select>\n";
 print "<input type=submit name=button_refresh_fw value=Refresh title='download the list of available firmware versions'>\n";
@@ -640,10 +705,10 @@ print "</tr>\n";
 print "<tr>\n";
 print "<td>Download Package</td>\n";
 print "<td><select name=dl_pkg style='font-family:monospace'>\n";
-selopt_pre("- Select Package -", "default", "default");
+selopt("- Select Package -", "default", "default");
 foreach $pkg (@dl_pkgs)
 {
-    selopt_pre("$pkg $dlpkgver{$pkg}", $pkg, "default");
+    selopt("$pkg $dlpkgver{$pkg}", $pkg, "default");
 }
 print "</select>\n";
 print "<input type=submit name=button_refresh_pkg value=Refresh title='download the list of available packages (warning: this takes a lot of space)'>\n";
@@ -653,11 +718,11 @@ print "</tr>\n";
 print "<tr>\n";
 print "<td>Remove Package</td>\n";
 print "<td><select name=rm_pkg style='font-family:monospace'>\n";
-selopt_pre("- Select Package -", "default", "default");
+selopt("- Select Package -", "default", "default");
 foreach $pkg (@pkgs)
 {
     $opt = $permpkg{$pkg} ? "disabled" : "";
-    selopt_pre("$pkg $pkgver{$pkg}", $pkg, "default", $opt);
+    selopt("$pkg $pkgver{$pkg}", $pkg, "default", $opt);
 }
 print "</select></td>\n";
 print "<td align=center><input type=submit name=button_rm_pkg value=Remove title='remove the selected package'></td>\n";
@@ -693,10 +758,10 @@ print "</tr>\n";
 print "<tr>\n";
 print "<td>Remove Key</td>\n";
 print "<td><select name=rm_key style='font-family:monospace'>\n";
-selopt_pre("- Select Key -", "default", "default");
+selopt("- Select Key -", "default", "default");
 foreach(@keys)
 {
-    selopt_pre($_, $_, "default");
+    selopt($_, $_, "default");
 }
 print "</select>\n";
 print "<td align=center><input type=submit name=button_rm_key value=Remove title='remove the selected key'></td>\n";
