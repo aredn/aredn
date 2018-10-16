@@ -1704,7 +1704,11 @@ sub is_online()
   my $online=0;
   if(get_default_gw() ne "none")
   {
-    $online=1;
+    system("ping -W1 -c1 8.8.8.8 &>/dev/null"); # google DNS
+    if($? eq 0)
+    {
+      $online=1;
+    } 
   }
   return $online;
 }
