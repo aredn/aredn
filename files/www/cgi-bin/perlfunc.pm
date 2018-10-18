@@ -306,6 +306,7 @@ sub reboot_page
   my ($link) = @_;
   my($lanip, $lanmask, $junk, $lannet);
   my $node = nvram_get("node");
+  $node = "Node" if $node eq "";
   $link = "/cgi-bin/status" unless $link;
 
   # is the browser coming from the lan?
@@ -348,8 +349,8 @@ sub reboot_page
     print "<h1>$node is rebooting</h1><br>\n";
     print "<h3>Your browser should return to this node in 60 seconds.</br><br>\n";
     print "If something goes astray you can try to connect with<br><br>";
-    print "<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>\n";
-    print "<a href='http://$node.local.mesh:8080/'>http://$node.local.mesh:8080/</a></h3>\n";
+    print "<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>\n";
+    print "or<br><a href='http://$node.local.mesh:8080/'>http://$node.local.mesh:8080/</a></h3>\n" if $node ne "Node";
   }
 
   print "</center></body></html>";

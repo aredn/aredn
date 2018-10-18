@@ -453,6 +453,13 @@ if($parms{button_save})
 }
 
 system "rm -rf /tmp/web/save";
+
+if($parms{button_firstboot})
+{
+    system "firstboot -y";
+    reboot_page("/cgi-bin/status");
+}
+
 reboot_page("/cgi-bin/status") if $parms{button_reboot};
 
 #
@@ -577,6 +584,7 @@ print "<tr><td align=center>
 <input type=submit name=button_reset value='Reset Values' title='Revert to the last saved settings'>&nbsp;
 <input type=submit name=button_default value='Default Values' title='Set all values to their default'>&nbsp;
 <input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>
+<input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'>
 </td></tr>
 <tr><td>&nbsp;</td></tr>\n";
 
