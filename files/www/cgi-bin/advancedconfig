@@ -1,0 +1,219 @@
+#!/usr/bin/perl
+=for comment
+
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2018 - Darryl Quinn
+   See Contributors file for additional contributors
+
+  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution 
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+=cut
+
+BEGIN {push @INC, '/www/cgi-bin'};
+use perlfunc;
+
+$debug = 0;
+$| = 1;
+
+# ---------------------------------------- ADVANCED CONFIG ALLOWED UCI VALUES ------------------
+@setting = ();
+push @setting, {
+  key => "aredn.\@map[0].maptiles", 
+  type => "string", 
+  desc => "Specifies the URL of the location to access map tiles", 
+  default => "http://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiazVkbHEiLCJhIjoiY2lqMnlieTM4MDAyNXUwa3A2eHMxdXE3MiJ9.BRFvx4q2vi70z5Uu2zRYQw"
+};
+push @setting, {
+  key => "aredn.\@map[0].leafletcss", 
+  type => "string", 
+  desc => "Specifies the URL of the leaflet.css file", 
+  default => "http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css"
+};
+push @setting, {
+  key => "aredn.\@map[0].leafletjs", 
+  type => "string", 
+  desc => "Specifies the URL of the leaflet.js file", 
+  default => "http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js" 
+};
+push @setting, {
+  key => "aredn.\@downloads[0].firmwarepath", 
+  type => "string", 
+  desc => "Specifies the URL of the location from which firmware files will be downloaded.", 
+  default => "http://downloads.arednmesh.org/firmware/ubnt", 
+  #precallback => "testpre()",
+  #postcallback => "testpost()"
+};
+# ----------------------------------------
+
+# ----- CALLBACKS ----------
+#sub testpre()
+#{
+#    push @msg, "TESTPRE callback executed";
+#}
+#sub testpost()
+#{
+#    push @msg, "TESTPOST callback executed";
+#}
+# ----- CALLBACKS ----------
+
+if($parms{button_firstboot})
+{
+    system "firstboot -y";
+    reboot_page("/cgi-bin/status");
+}
+
+reboot_page("/cgi-bin/status") if $parms{button_reboot};
+read_postdata({acceptfile => false});
+$node = nvram_get("node");
+
+# make developer mode stick
+system "touch /tmp/developer_mode" if $parms{dev};
+$parms{dev} = 1 if -e "/tmp/developer_mode";
+
+#
+# process POSTED data
+#
+$scount = scalar @setting;
+for($i=0;$i<$scount;$i++)
+{
+  if($parms{eval "button_save_" . $i})
+  {
+    $newvalfield=eval "newval_" . $i;
+    $newval=$parms{$newvalfield};
+    $newval=~ s/^\s+|\s+$//;
+    $newval="1" if($setting[$i]->{'type'} eq "boolean") and $newval;
+    $key=$setting[$i]->{'key'};
+    @x=split(/\./, $setting[$i]->{'key'});
+    $cfgfile=$x[0];
+
+    # run precallbacks
+    eval $setting[$i]->{'precallback'} if($setting[$i]->{'precallback'});
+
+    # set "live" settings
+    system("uci set '$key=$newval'");
+    system("uci commit '$cfgfile'");
+    
+    # set AREDN config settings (used after a "Save Settings" on the Setup page)
+    system("uci -S -c /etc/config.mesh set '$key=$newval'");
+    system("uci -S -c /etc/config.mesh commit '$cfgfile'");
+    
+    push @msg, "Changed $key";
+
+    # run postcallbacks
+    eval $setting[$i]->{'postcallback'} if($setting[$i]->{'postcallback'});
+
+    last;
+  }
+}
+
+#
+# generate the page
+#
+
+http_header();
+html_header("$node Advanced Configuration", 1);
+
+print "<body><center>\n";
+alert_banner();
+print "<div style=\"padding:5px;background-color:#FF0000;border:1px solid #ccc;width:600px;\">Changing these advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></a></div>\n";
+print "<form method=post action=advancedconfig enctype='multipart/form-data'>\n";
+print "<table width=790>\n";
+print "<tr><td>\n";
+navbar("advancedconfig");
+print "</td></tr>\n";
+
+print "<tr><td align=center><a href='/help.html#advancedconfig' target='_blank'>Help</a>&nbsp;&nbsp;";
+print "<input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>";
+print "&nbsp;&nbsp;<input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'>";
+print "</td></tr>\n";
+
+if(@msg)
+{
+  foreach(@msg)
+  {
+    print "<tr><td align='center'><strong>$_</strong></td></tr>\n";
+  }
+}
+
+print "<tr><td align=center>\n";
+print "<table border=1>\n";
+print <<EOF;
+    <thead>
+      <tr>
+        <th>Help<br><small>(hover)</small></th>
+        <th>Config Setting</th>
+        <th>Current/New Value</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+EOF
+
+$scount = 0;
+foreach(@setting)
+{
+  $sconfig = $_->{'key'};
+  $sval = `uci get '$sconfig'`;
+  print <<EOF;
+      <tr>
+          <td align="center"><span title="$setting[$scount]->{'desc'}"><img src="/qmark.png" /></span></td>
+          <td>$sconfig</td>
+          <td>
+EOF
+  print "$sval" if($setting[$scount]->{'type'} eq "string");
+  print "ON" if($setting[$scount]->{'type'} eq "boolean" and $sval);
+  print "OFF" if($setting[$scount]->{'type'} eq "boolean" and !$sval);
+
+  print "<br />";
+
+  print "<input type='text' id='field_$scount' name='newval_$scount' size='65'>" if($setting[$scount]->{'type'} eq "string");
+  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1' >" if($setting[$scount]->{'type'} eq "boolean");
+
+  print <<EOF;
+          </td>
+          <td align="center"><input type="submit" name="button_save_$scount" value="Save Setting" /><br><br>
+          <input value="Set to Default" type="button" onclick="document.getElementById('field_$scount').value='$setting[$scount]->{'default'}';"></td>
+      </tr>
+EOF
+  $scount++;  
+}
+
+print "</table>\n";
+print "</td></tr>\n";
+print "</table>\n";
+
+print "</form>\n";
+print "</center>\n";
+
+show_debug_info();
+show_parse_errors();
+
+page_footer();
+print "</body>\n";
+print "</html>\n";

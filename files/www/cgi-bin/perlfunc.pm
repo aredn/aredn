@@ -80,13 +80,14 @@ sub navbar
   my($current) = @_;
   $current = "" unless $current;
 
-  my @pages = qw(status setup ports vpn vpnc admin);
+  my @pages = qw(status setup ports vpn vpnc admin advancedconfig);
   my %titles = (status => "Node Status",
                 setup  => "Basic Setup",
                 ports  => "Port Forwarding,<br>DHCP, and Services",
                 vpn    => "Tunnel<br>Server",
                 vpnc   => "Tunnel<br>Client",
-                admin  => "Administration");
+                admin  => "Administration",
+                advancedconfig  => "Advanced<br>Configuration");
 
   #my($active_bg, $active_fg);
   #if(-f "/tmp/.night") { $active_bg = "red";   $active_fg = "black" }

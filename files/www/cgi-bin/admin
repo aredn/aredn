@@ -98,9 +98,10 @@ $patch_install = 0;
 @fw_images = ();
 %fw_md5 = ();
 
-@serverpaths = (
-    "http://downloads.arednmesh.org/firmware/ubnt"
-);
+@serverpaths = ();
+$uciserverpath=`uci get aredn.\@downloads[0].firmwarepath`;
+chomp($uciserverpath);
+push @serverpaths, $uciserverpath;
 
 $hardwaretype = `/usr/local/bin/get_hardwaretype`;
 chomp($hardwaretype);
@@ -145,7 +146,7 @@ if($parms{button_refresh_fw})
 {
     if(get_default_gw() ne "none")
     {
-	push @fw_output, "Downloading firmware list...\n";
+	push @fw_output, "Downloading firmware list from $uciserverpath...\n";
 	unlink "/tmp/web/firmware.list";
 	$ok = 0;
 	foreach $serverpath (@serverpaths)

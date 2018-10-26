@@ -454,12 +454,6 @@ if($parms{button_save})
 
 system "rm -rf /tmp/web/save";
 
-if($parms{button_firstboot})
-{
-    system "firstboot -y";
-    reboot_page("/cgi-bin/status");
-}
-
 reboot_page("/cgi-bin/status") if $parms{button_reboot};
 
 #
@@ -470,9 +464,9 @@ $desc = &uci_get_indexed_option("system", "system", 0, "description");
 # Retreive map url, css, and js locations
 #
 my ($rc, $maptiles, $leafletcss, $leafletjs);
-($rc, $maptiles)=&uci_get_indexed_option("system","map",0,"maptiles");
-($rc, $leafletcss)=&uci_get_indexed_option("system","map",0,"leafletcss");
-($rc, $leafletjs)=&uci_get_indexed_option("system","map",0,"leafletjs");
+($rc, $maptiles)=&uci_get_indexed_option("aredn","map",0,"maptiles");
+($rc, $leafletcss)=&uci_get_indexed_option("aredn","map",0,"leafletcss");
+($rc, $leafletjs)=&uci_get_indexed_option("aredn","map",0,"leafletjs");
 
 #
 # generate the page
@@ -584,7 +578,6 @@ print "<tr><td align=center>
 <input type=submit name=button_reset value='Reset Values' title='Revert to the last saved settings'>&nbsp;
 <input type=submit name=button_default value='Default Values' title='Set all values to their default'>&nbsp;
 <input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>
-<input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'>
 </td></tr>
 <tr><td>&nbsp;</td></tr>\n";
 
