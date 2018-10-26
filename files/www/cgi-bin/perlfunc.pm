@@ -1345,6 +1345,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '2400',
     },
+    '0xe2c4' => {
+      'name'            => 'Bullet M2 XW',
+      'comment'         => 'Testing Bullet M2 XW',
+      'supported'       => '-1',
+      'maxpower'        => '19',
+      'pwroffset'       => '6',
+      'usechains'       => 0,
+      'rfband'          => '2400',
+    },
     '0xe2d2' => {
       'name'            => 'Bullet M2 Titanium HP',
       'comment'         => '',

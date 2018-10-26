@@ -51,6 +51,7 @@ AirRouter  | airrouter | 32Mb | stable
 AirRouter HP | airrouter | 32Mb | stable
 Bullet M2/M2Ti/M5/M5Ti | bullet-m | 32Mb | stable
 Bullet Ti | bullet-m | 32Mb | stable
+Bullet M2 XW | rocket-m-xw | 64Mb | stable
 NanoBeam-M2-13/16/19 | loco-m-xw | 32Mb | stable
 NanoBridge 2G18 | bullet-m | 32Mb | stable
 NanoBridge 5G22/25 | bullet-m | 32Mb | stable
