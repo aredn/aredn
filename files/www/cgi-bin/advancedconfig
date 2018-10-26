@@ -169,7 +169,7 @@ print <<EOF;
       <tr>
         <th>Help<br><small>(hover)</small></th>
         <th>Config Setting</th>
-        <th>Current/New Value</th>
+        <th>Value</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -186,14 +186,12 @@ foreach(@setting)
           <td>$sconfig</td>
           <td>
 EOF
-  print "$sval" if($setting[$scount]->{'type'} eq "string");
-  print "ON" if($setting[$scount]->{'type'} eq "boolean" and $sval);
-  print "OFF" if($setting[$scount]->{'type'} eq "boolean" and !$sval);
-
-  print "<br />";
-
-  print "<input type='text' id='field_$scount' name='newval_$scount' size='65'>" if($setting[$scount]->{'type'} eq "string");
-  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1' >" if($setting[$scount]->{'type'} eq "boolean");
+  
+  print "<input type='text' id='field_$scount' name='newval_$scount' size='65' value='$sval'>" if($setting[$scount]->{'type'} eq "string");
+  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked >" if($setting[$scount]->{'type'} eq "boolean" and $sval );
+  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1'>" if($setting[$scount]->{'type'} eq "boolean" and !$sval );
+  print "&nbsp;ON" if($setting[$scount]->{'type'} eq "boolean" and $sval);
+  print "&nbsp;OFF" if($setting[$scount]->{'type'} eq "boolean" and !$sval);
 
   print <<EOF;
           </td>
