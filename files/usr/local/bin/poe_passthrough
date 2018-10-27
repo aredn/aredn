@@ -40,16 +40,15 @@ if [ -z "$newval" ]; then
   exit 2
 fi
 
-export pinnum=`cat /etc/board.json|jsonfilter -e '@.gpioswitch.poe_passthrough.pin'`
+export pinnum=$(jsonfilter -e '@.gpioswitch.poe_passthrough.pin' < /etc/board.json)
 if [ -z "$pinnum" ]; then
   echo "There are NO PoE Passthrough ports defined for this device"
   exit 1
 else
-	export pin=$(echo "gpio${pinnum}")
-	if [ ! -d /sys/class/gpio/$pin ]; then
-	        echo ${pinnum} > /sys/class/gpio/export
+	export pin="gpio${pinnum}"
+	if [ ! -d "/sys/class/gpio/$pin" ]; then
+	        echo "${pinnum}" > /sys/class/gpio/export
 	fi
-	echo out > /sys/class/gpio/${pin}/direction
 	echo ${newval} > /sys/class/gpio/${pin}/value
   exit 0
 fi

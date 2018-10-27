@@ -81,7 +81,7 @@ push @setting, {
 # ----- CONDITIONS ----------
 sub hasPOE()
 {
-  $pin=`cat /etc/board.json|jsonfilter -e '@.gpioswitch.usb_power_switch.pin'`;
+  $pin=`cat /etc/board.json|jsonfilter -e '@.gpioswitch.poe_passthrough.pin'`;
   chomp($pin);
   return $pin ? return 1 : return 0;
 }
