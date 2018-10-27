@@ -284,10 +284,28 @@ foreach $val (@list)
     $host = $parms{"dhcp${val}_host"};
     $ip   = $parms{"dhcp${val}_ip"};
     $mac  = $parms{"dhcp${val}_mac"};
-
+    $foundHost = 0;
     if($val eq "_add")
     {
-	next unless ($host or $ip or $mac) and ($parms{dhcp_add} or $parms{button_save});
+	if($host) {
+		#my $foundHost = 0;
+		my $olsrFile = 0;
+        	$olsrFile = 1 if -f "/var/run/hosts_olsr";
+        	if($olsrFile) {
+			open(my $hostFile, "<", "/var/run/hosts_olsr");
+			while(<$hostFile>) {
+            			if($_ =~ /\s$host\s/i) {
+					$foundHost = 1;
+              				last;
+            			}
+          		}
+         		close($hostFile);
+         		push(@dhcp_err, "$val <font color='red'>Warning!</font> '$host' is already in use!<br>" .
+         		"Please choose another hostname.<br>" .
+            		"Prefixing the hostname with your callsign will help prevent duplicates on the network.") if $foundHost == 1;
+        	}
+	}
+	next unless ($host or $ip or $mac or $foundHost) and ($parms{dhcp_add} or $parms{button_save});
     }
     else
     {
@@ -302,13 +320,15 @@ foreach $val (@list)
 
     if(validate_hostname($host))
     {
-        push(@dhcp_err, "$val hostname '$host' is already in use") if (lc $host eq lc $node || lc $host eq lc $tactical);
-        foreach my $key (keys %hosts) {
-            if ( lc $key eq lc $host ){
-                push(@dhcp_err, "$val hostname '$host' is already in use");
-                last;
-            }
-        }
+	if(! $foundHost) {
+		push(@dhcp_err, "$val hostname '$host' is already in use") if (lc $host eq lc $node || lc $host eq lc $tactical);
+        	foreach my $key (keys %hosts) {
+           		if ( lc $key eq lc $host ){
+               			push(@dhcp_err, "$val hostname '$host' is already in use");
+               			last;
+           		}
+        	}
+	}
     }
     else
     {
