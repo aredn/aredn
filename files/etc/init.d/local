@@ -49,4 +49,11 @@ boot() {
   # run mode specific setup
   [ -x /etc/config/local ] && /etc/config/local
   [ -x /etc/local/services ] && /etc/local/services
+
+  # set POE passthrough if available
+  local poevalue=$(uci get aredn.@poe[0].passthrough)
+  if [ -z $poevalue]; then
+    poevalue=0
+  fi
+  /usr/local/bin/poe_passthrough ${poevalue}
 }

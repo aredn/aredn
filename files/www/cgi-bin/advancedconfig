@@ -66,21 +66,34 @@ push @setting, {
   key => "aredn.\@downloads[0].firmwarepath", 
   type => "string", 
   desc => "Specifies the URL of the location from which firmware files will be downloaded.", 
-  default => "http://downloads.arednmesh.org/firmware/ubnt", 
-  #precallback => "testpre()",
-  #postcallback => "testpost()"
+  default => "http://downloads.arednmesh.org/firmware/ubnt"
+};
+push @setting, {
+  key => "aredn.\@poe[0].passthrough", 
+  type => "boolean", 
+  desc => "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports.", 
+  default => "0",
+  condition => "hasPOE()",
+  postcallback => "setPOEOutput()"
 };
 # ----------------------------------------
 
+# ----- CONDITIONS ----------
+sub hasPOE()
+{
+  $pin=`cat /etc/board.json|jsonfilter -e '@.gpioswitch.usb_power_switch.pin'`;
+  chomp($pin);
+  return $pin ? return 1 : return 0;
+}
+# ----- CONDITIONS ----------
+
+
 # ----- CALLBACKS ----------
-#sub testpre()
-#{
-#    push @msg, "TESTPRE callback executed";
-#}
-#sub testpost()
-#{
-#    push @msg, "TESTPOST callback executed";
-#}
+sub setPOEOutput()
+{
+  $newval="0" if(!$newval);
+  system("/usr/local/bin/poe_passthrough",$newval);
+}
 # ----- CALLBACKS ----------
 
 if($parms{button_firstboot})
@@ -178,6 +191,11 @@ EOF
 $scount = 0;
 foreach(@setting)
 {
+  # check to see if setting is conditional
+  if($setting[$scount]->{'condition'})
+  {
+    next if !eval $setting[$scount]->{'condition'};
+  }
   $sconfig = $_->{'key'};
   $sval = `uci get '$sconfig'`;
   print <<EOF;
