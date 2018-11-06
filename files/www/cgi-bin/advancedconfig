@@ -73,8 +73,16 @@ push @setting, {
   type => "boolean", 
   desc => "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports.", 
   default => "0",
-  condition => "hasPOE()",
+  condition => "hasPOE()"
   postcallback => "setPOEOutput()"
+};
+push @setting, {
+  key => "aredn.\@usb[0].passthrough", 
+  type => "boolean", 
+  desc => "Specifies whether the USB port should be on or off.  (Not all devices have USB powered ports.", 
+  default => "1", 
+  postcallback => "setUSBOutput()"
+  condition => "hasUSB()",
 };
 # ----------------------------------------
 
@@ -82,6 +90,13 @@ push @setting, {
 sub hasPOE()
 {
   $pin=`cat /etc/board.json|jsonfilter -e '@.gpioswitch.poe_passthrough.pin'`;
+  chomp($pin);
+  return $pin ? return 1 : return 0;
+}
+
+sub hasUSB()
+{
+  $pin=`cat /etc/board.json|jsonfilter -e '@.gpioswitch.usb_power_switch.pin'`;
   chomp($pin);
   return $pin ? return 1 : return 0;
 }
@@ -93,6 +108,12 @@ sub setPOEOutput()
 {
   $newval="0" if(!$newval);
   system("/usr/local/bin/poe_passthrough",$newval);
+}
+
+sub setUSBOutput()
+{
+  $newval="0" if(!$newval);
+  system("/usr/local/bin/usb_passthrough",$newval);
 }
 # ----- CALLBACKS ----------
 
