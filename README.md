@@ -26,7 +26,7 @@ was released:
 
 * Locked to Openwrt 18.06.1
 
-Please refer to https://gihub.com/aredn/aredn_ar71xx/issues
+Please refer to https://github.com/aredn/aredn_ar71xx/issues
 for a list of outstanding defects.
 
 The following devices have a peculiar cat5 configuration due to a limitation in the Ethernet driver.
@@ -130,7 +130,6 @@ To obtain the source and build the firmware locally use:
 ```bash
 git clone https://github.com/aredn/aredn_ar71xx.git
 cd aredn_ar71xx
-git checkout 3.18.9.0
 vi config.mk # enter your callsign, etc.
 # build default ubnt and tplink images
 make  
