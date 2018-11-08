@@ -1480,6 +1480,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
     },
+    '0xe865' => {
+      'name'            => 'LiteBeam M5',
+      'comment'         => 'Testing LiteBeam M5',
+      'supported'       => '-1',
+      'maxpower'        => '19',
+      'pwroffset'       => '6',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+    },
     '0xe866' => {
       'name'            => 'NanoStation M2 XW',
       'comment'         => '',
