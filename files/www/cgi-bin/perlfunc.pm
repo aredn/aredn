@@ -1079,6 +1079,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
     },
+    'MikroTik RouterBOARD LHG 5nD' => {
+      'name'            => 'MikroTik RouterBOARD LHG 5nD',
+      'comment'         => 'MikroTik RouterBOARD LHG 5nD Testing',
+      'supported'       => '-1',
+      'maxpower'        => '25',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+    },
     '0xc2a2' => {
       'name'            => 'Bullet 2 HP',
       'comment'         => 'Not enough Ram or flash',

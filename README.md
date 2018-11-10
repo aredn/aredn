@@ -79,6 +79,7 @@ TPLink CPE510 v1.0/v1.1 | cpe510-520-v1 | 64Mb | stable
 TPLink CPE510 v2.0 | cpe510-v2 | 64Mb | stable
 Mikrotik BaseBox 2/5 | mikrotik-nand-large | 64Mb | stable
 Mikrotik hAP lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
+Mikrotik RBLHG-5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 
 ## Submitting Bug Reports
 
