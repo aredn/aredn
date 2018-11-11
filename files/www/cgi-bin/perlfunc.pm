@@ -1495,7 +1495,7 @@ sub hardware_info
       'supported'       => '-1',
       'maxpower'        => '19',
       'pwroffset'       => '6',
-      'usechains'       => 1,
+      'usechains'       => 0,
       'rfband'          => '5800ubntus',
     },
     '0xe866' => {
