@@ -53,7 +53,7 @@ Bullet M2/M2Ti/M5/M5Ti | bullet-m | 32Mb | stable
 Bullet Ti | bullet-m | 32Mb | stable
 Bullet M2 XW | rocket-m-xw | 64Mb | stable
 LiteBeam M5 | lbe-m5 | 64Mb | stable
-NanoBeam-M2-13/16/19 | loco-m-xw | 32Mb | stable
+NanoBeam M2-13/M5-16/M5-19 | loco-m-xw | 32Mb | stable
 NanoBridge 2G18 | bullet-m | 32Mb | stable
 NanoBridge 5G22/25 | bullet-m | 32Mb | stable
 NanoBridge M9 | bullet-m | 32Mb | stable
@@ -77,8 +77,8 @@ TPLink CPE210 v2.0 | cpe210-v2 | 64Mb | stable
 TPLink CPE210 v3.0 | cpe210-v3 | 64Mb | stable
 TPLink CPE510 v1.0/v1.1 | cpe510-520-v1 | 64Mb | stable
 TPLink CPE510 v2.0 | cpe510-v2 | 64Mb | stable
-Mikrotik BaseBox 2/5 | mikrotik-nand-large | 64Mb | stable
-Mikrotik hAP lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
+Mikrotik Basebox RB912UAG-5HPnD/2HPnD | mikrotik-nand-large | 64Mb | stable
+Mikrotik hAP ac lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
 Mikrotik RBLHG-5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 
 ## Submitting Bug Reports
