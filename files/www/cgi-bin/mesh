@@ -120,7 +120,7 @@ if(-f "/etc/latlon") {
 }
 $olsrTotal = `/sbin/ip route list table 30 | wc -l`; #num hosts olsr is keeping track of
 $olsrNodes = `/sbin/ip route list table 30 | egrep "/" | wc -l`; #num *nodes* on the network (minus other hosts)
-$node_desc = `/sbin/uci get system.\@system[0].description`; #pull the node description from uci
+$node_desc = `/sbin/uci -q get system.\@system[0].description`; #pull the node description from uci
 
 # parse the txtinfo output
 
