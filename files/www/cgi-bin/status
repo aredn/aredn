@@ -57,7 +57,7 @@ if ($wifi_channel >= 76 and $wifi_channel <= 99)
   $wifi_channel = ($wifi_channel*5+3000);
 }
 ($junk, $wifi_chanbw) = &uci_get_named_option("wireless", "$radio", "chanbw");
-($junk, $node_desc) = &uci_get_indexed_option("system", "system", "0", "description");
+$node_desc = `/sbin/uci -q get system.\@system[0].description`; #pull the node description from uci
 $wifi_ssid = "N/A";
 @wisections = &uci_get_all_indexed_by_sectiontype("wireless", "wifi-iface");
 foreach(@wisections) {
