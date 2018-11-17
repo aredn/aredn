@@ -51,9 +51,26 @@ boot() {
   [ -x /etc/local/services ] && /etc/local/services
 
   # set POE passthrough if available
-  local poevalue=$(uci get aredn.@poe[0].passthrough)
-  if [ -z $poevalue]; then
-    poevalue=0
+  local poevalue=$(uci -q get aredn.@poe[0].passthrough)
+  if [ -z "$poevalue" ]; then
+    local dpval=$(jsonfilter -e '@.gpioswitch.poe_passthrough.default' < /etc/board.json)
+    if [ ! -z "$dpval" ]; then
+      uci -q add aredn poe
+      uci -q set aredn.@poe[0].passthrough="$dpval"
+      uci -q commit aredn
+      poevalue=$dpval
+    fi
   fi
-  /usr/local/bin/poe_passthrough ${poevalue}
+  /usr/local/bin/poe_passthrough "${poevalue}"
+
+  # set USB passthrough if available
+  local usbvalue=$(uci -q get aredn.@usb[0].passthrough)
+  if [ -z "$usbvalue" ]; then
+    local duval=$(jsonfilter -e '@.gpioswitch.usb_power_switch.default' < /etc/board.json)
+    uci -q add aredn usb
+    uci -q set aredn.@usb[0].passthrough="$duval"
+    uci -q commit aredn
+    usbvalue=$duval
+  fi
+  /usr/local/bin/poe_passthrough "${usbvalue}"
 }
