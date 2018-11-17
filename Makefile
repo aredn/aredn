@@ -52,7 +52,7 @@ openwrt-clean: stamp-clean-openwrt-cleaned .stamp-openwrt-cleaned
 	  git clean -dff && git fetch && git reset --hard HEAD && \
 	  rm -rf .config feeds.conf build_dir/target-* logs/
 	rm -rf $(TOP_DIR)/results
-	rm -f $(TOP_DIR)/.pc
+	rm -rf $(TOP_DIR)/.pc
 	rm -f .stamp-unpatched
 	ln -sf $(TOP_DIR)/patches $(OPENWRT_DIR)/
 	ln -sf $(TOP_DIR)/files   $(OPENWRT_DIR)/
