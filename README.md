@@ -2,6 +2,24 @@
 
 http://www.arednmesh.org
 
+## About AREDN
+
+AREDN wireless networks are deployed by licensed Amateur Radio
+operators typically in frequencies reserved adjacent
+to and outside, in the US FCC part 15, unlicensed allocations.
+The firmware created below enables the effective use of valuable and dedicated
+frequencies for communication services to government and other
+entities in times of disaster or other emergencies. 
+
+Amateur Radio frequencies are relatively clean of noise from the commercial
+allocations and ensure usability for Amateur Radio Operators.  This firmware
+enables 802.11n wireless networks to be created and expanded with minimal 
+to no pre-planning or IT expertise.  A user can deploy a 'node' anywhere
+to connect in and extend an AREDN network.  Device hardware options exist to
+provide sector coverage, build point-to-point links, and enable end users
+to connect in.  High speed link rates are routinely achieved over long 
+distances, e.g. 60Mbps+ on 10MHz channels over 80km links. 
+
 ## Usage Information
 
 ### What to know about the images built with the instructions below
@@ -28,18 +46,6 @@ was released:
 
 Please refer to https://github.com/aredn/aredn_ar71xx/issues
 for a list of outstanding defects.
-
-The following devices have a peculiar cat5 configuration due to a limitation in the Ethernet driver.
-The 'Main" port is used for LAN devices only.  The "Secondary" port is WAN and DtDLink usage
-only. Depending on deployed usage, 2 cat5 cables may be needed.
-
-* Ubiquiti Nanostation M5 XW
-* Ubiquiti Nanostation M2 XW
-* TP-Link CPE210 v1.0 and v1.1
-* TP-Link CPE510 v1.0 and v1.1
-
-Latest Mikrotik installation options are found at:
-https://www.arednmesh.org/content/installation-instructions-mikrotik-devices
 
 ### Images built
 
@@ -81,6 +87,33 @@ Mikrotik Basebox RB912UAG-5HPnD/2HPnD | mikrotik-nand-large | 64Mb | stable
 Mikrotik hAP ac lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
 Mikrotik RBLHG-5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLHG-5HPnD-XL | mikrotik-rb-nor-flash-16M | 64Mb | stable
+
+Latest Mikrotik installation options are found at: https://www.arednmesh.org/content/installation-instructions-mikrotik-devices
+
+### Ethernet Port usage
+
+The standard Ethernet port of an AREDN device uses the following vlan tags.  An 802.1Q
+switch is necessary to utilize the vlan tagged networks:
+
+untagged:  LAN devices - laptop, ipcam, voip phone, etc.
+vlan 1:  WAN - gateway to connect AREDN network to home network and/or internet
+vlan 2:  DtDLink (device to device) - AREDN network routing between nodes, typically cross band
+
+The following devices have a peculiar port configuration due to a limitation in the Ethernet driver.
+The 'Main" port is used for LAN devices only.  The "Secondary" port is WAN and DtDLink usage
+only. Depending on deployed usage, 2 cat5 cables may be needed.
+
+* TP-Link CPE210 v1.0 and v1.1
+* TP-Link CPE510 v1.0 and v1.1
+
+The following devices have enhanced Ethernet port usage.  A single cat5 to the device
+could be plugged into ether the 'main' or 'secondary' port with standard port functionality.
+However, if both ports are used, a LAN device on one port is unable to communicate with a LAN
+device on the other port.  If another mesh node is connected to the secondary port, Then 
+the LAN DHCP should be turned off on that node to avoid IP address failures.
+
+* NanoStation M5 XW
+* NanoStation M2 XW
 
 ## Submitting Bug Reports
 
