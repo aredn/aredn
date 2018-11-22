@@ -108,9 +108,9 @@ only. Depending on deployed usage, 2 cat5 cables may be needed.
 
 The following devices have enhanced Ethernet port usage.  A single cat5 to the device
 could be plugged into ether the 'main' or 'secondary' port with standard port functionality.
-However, if both ports are used, a LAN device on one port is unable to communicate with a LAN
-device on the other port.  If another mesh node is connected to the secondary port, Then 
-the LAN DHCP should be turned off on that node to avoid IP address failures.
+Both ports can be used interchangeably and simultaneously with LAN devices on both ports
+at the same time. POE PassThough can be turned on in Advanced Settings to power ipCams or
+other mesh nodes.
 
 * NanoStation M5 XW
 * NanoStation M2 XW
