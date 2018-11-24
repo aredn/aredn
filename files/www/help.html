@@ -1,0 +1,866 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>AREDN&trade; Node Help</title>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='pragma' content='no-cache'>
+<link rel=StyleSheet href='/style.css' type='text/css'>
+</head>
+<body>
+Table of Contents:
+<ul>
+<li><a href='#status'>Status Page</a></li>
+<li><a href='#charts'>Charts Page</a></li>
+<li><a href='#meshstatus'>Mesh Status Page</a></li>
+<li>Setup</li>
+<ul>
+<li><a href='#setup'>Basic Setup</a></li>
+<li><a href='#lanmode'>LAN Mode</a></li>
+<li><a href='#ports'>Port Forwarding, DHCP, and Services</a></li>
+<li><a href='#admin'>Administration</a></li>
+<li><a href='#advancedconfig'>Advanced Configuration</a></li>
+</ul>
+<li><a href='#appendix'>Appendix</a></li>
+<ul><li><a href='#failsafe'>Failsafe Mode</a></li></ul>
+<ul><li><a href='#tftp'>Installing firmware with tftp</a></li></ul>
+</ul>
+
+<hr>
+
+Please take note:
+<ul>
+<li>Clicking the AREDN logo will redirect to http://localnode.local.mesh<br><br></li>
+<li>Javascript and page redirection must be enabled in your browser for the
+web interface to work.<br><br></li>
+<li>Some operations can take several seconds, or even longer, to
+  complete. There is currently no feedback while the node is working on your
+  request. Be patient and wait for the web interface to respond before trying
+  to click other buttons.<br><br></li>
+<li>Avoid the use of your browser's back, forward, and reload buttons. Every
+  page has navigation controls to take you where you want to go.<br><br></li>
+<li>The various pages of the web interface are intended to be used by only one
+  person at a time. This is especially important on the setup pages where
+  using them from multiple browsers or multiple computers at the same time
+  will almost certainly cause problems.  Viewing different pages at the same
+  time should not cause any conflicts.</li>
+</ul>
+
+
+
+
+<hr>
+<a name=status><h2>Status Page</h2></a>
+<p>
+This is the first page you will see when
+accessing <b>http://localnode/</b> or <b>http://your-node-name/</b>.
+The top bar displays the node name and also a tactical name if one has been
+assigned. For more about tactical names see the <a href='#setup'>Basic Setup</a>
+section.
+</p>
+<p>
+Below the name bar there will be a few control buttons. Some of these
+buttons may not be available depending on the current configuration:
+</p>
+
+<ul>
+<li><strong>Refresh</strong> will update the page with current data.<br><br></li>
+
+<li><strong>Mesh Status</strong> takes you to a page which shows what
+Neighbor nodes and Remote nodes are visible as well as what services are being
+provided through those nodes.
+<br><br></li>
+
+<li><strong>OLSR Status</strong> takes you to the web pages that OLSR itself
+ provides which gives you detailed information about the current state of the
+ OLSR routing software.<br><br></li>
+
+<li><strong>WiFi Scan</strong> displays a list of other 802.11 signals that the
+node can see and only of the same bandwidth.   The 802.11 signals include
+Access Points (AP), neighbor nodes (connected ad-hoc stations), and other mesh networks
+(foreign ad-hoc networks). The AREDN mesh is created on top of an 802.11 'ad-hoc' network.
+Consequently when multiple ad-hoc networks are visible to each other (different SSID or
+channel), the 'network' is displayed and not individual nodes (stations).  There is also an
+automatic scan mode. It is not recommend to run a wifi scan continuously because this will degrade mesh
+performance. A wifi scan transmits queries on all channels to discover other devices.<br><br></li>
+
+<li><strong>Setup</strong> takes you to the setup pages of the web
+interface. You will need to supply a username and password to access those
+pages. The username is always "root", and the password is the one you set on
+the Basic Setup page. If the node has not yet been configured, the password is
+"hsmm". Note that the password given to log in to the setup pages is NOT encrypted
+in transit.<br><br></li>
+
+<li><strong>Select Theme</strong> switches display themes/styles. Black on white was chosen because it provides the best screen visibility on a laptop exposed to direct sunlight. Red on black is much
+better suited for night time use as it helps preserve night vision.</li>
+</ul>
+
+<p>
+<br>The left column contains the details of the network interfaces used on
+this node, the default gateway if one is available, and the IP address and
+name (if known) of the device accessing this page.
+</p>
+<p>
+The right column contains the signal strength reading and other attributes of
+your node.  The <b>Signal/Noise/Ratio</b> is a reading of the strongest neighbor Mesh RF signal
+strength (in dBm) from all connected stations, and it is available only when the node is in a Mesh or Client
+configuration.  The <strong>Auto</strong> button will take you to an
+automatically refreshing display of the current signal strength and an average
+of the last 20 readings. This is provided as an aid to assist in antenna
+aiming. It is of no use until another node is visible, so it is best used a a
+fine-tuning tool.  Also, this reading is of little use if your node can
+directly see more than one other node.  In this case you should temporarily
+change the wireless SSID of the two nodes you are aiming antennas for so that
+the other visible nodes will be excluded from this reading.  Just remember to
+change the SSID back when you are finished.  Note that the
+use of the <b>Auto</b> feature will negatively impact the mesh performance of
+the node it is running on so it is best used for short periods of time while
+aiming an antenna. For the best results it should be accessed from the LAN
+side of your local node.  Running this page on a remote node will be less
+responsive due to the mesh performance degradation.
+</p>
+<p>
+The <b>system time</b> is kept in UTC and begins at midnight on Jan
+1, 2000. There is no internal battery or real time clock so the time will
+reset every time the node is booted.  If an internet connection becomes
+available the internal NTP (network time protocol) client will connect with an
+internet time server and the time will be kept in sync with atomic time for as
+long as the internet connection is available.
+</p>
+<p>
+The <b>uptime</b> shows how long the node has been running since its last
+boot, and the <b>load average</b> is the average number of processes that have
+been running for the last 1, 5, and 15 minutes. The load average will
+typically be less than 1 for each time slot.
+</p>
+<p>
+<b>Free space</b> tells you how much space is available on local storage
+devices. Flash is the internal non-volatile storage where the operating
+system, configuration files, and software packages are kept. /tmp is a
+filesystem in RAM that stores the current state information and various
+temporary files. Memory is the amount of RAM available for running processes.
+</p>
+
+<br><br><hr>
+<a name=charts><h2>Charts Page</h2></a>
+<p>This page shows RF signal information in both a realtime and an archived view.  The default view shows the Average signal of all connected stations in realtime.<br>
+	Below the node name, there will be a few control buttons:<br>
+	<ul>
+		<li><strong>Archive</strong>: takes you to the charts for any archived signal data on this node.</li>
+		<li><strong>Realtime</strong>: takes you to the charts for realtime (current) signal data as seen from this node.</li>
+	    <li><strong>Quit</strong>: takes you back to the node status page at http://nodename/cgi-bin/status</li>
+	</ul>
+</p>
+<p>Below these control buttons, you will see the <strong>"Selected Device"</strong> drop down control.  This control will display each 'heard' mesh node neighbor.<br>
+	Depending on the information known about a given neighbor, the neighbor may be listed as one of the following:
+	<ul>
+		<li>MAC address: 802.11 adhoc beacons received</li>
+		<li>IP address: IP packets received</li>
+		<li>Hostname: OLSR packets communicating hostname received (from any source)</li>
+	</ul>
+	<p>By changing the <strong>"Selected Device"</strong> value, the chart will automatically reload and show that node's information.</p>
+	<p>Hovering over data points within the charts will show additional information for that specific data point, such as:
+		<ul>
+			<li>Time: The time that the data point was taken</li>
+			<li>Signal: the RF signal level</li>
+			<li>Noise: the RF noise floor value</li>
+			<li>SNR: The absolute value of (signal - noise)</li>
+			<li>TX Rate: the data rate (in Mbps) used for transmitting to the selected device</li>
+			<li>TX MCS: the modulation and encoding scheme used for transmitting to the selected device</li>
+			<li>RX Rate: the data rate (in Mbps) used for receiving from the selected device</li>
+			<li>TX MCS: the modulation and encoding scheme used for receiving from the selected device</li>
+		</ul>
+	</p>
+	<p>If no traffic is being routed to the neighbor, the rate and MCS values may be '0' until data is available to measure and determine the optimal settings.</p>
+	<p>An MCS value of zero (0) may also include non-802.11n encoding schemes (ie. 802.11a/b/g)</p>
+	<p>The small box with 3 vertical dots in the upper right of the page, allow you to download the current snapshot of the chart to a file on your local computer.</p>
+	<p>Data shown in the ARCHIVE charts are not stored in permanent memory on the node.  The node will store approximately two (2) days worth of archived data.  After a reboot, this data is cleared.</p>
+</p>
+<p><h3>Chart Zooming</h3>
+	<ul>
+		<li>If you left-click-and-drag your mouse across a region of the chart, the chart will zoom to that specific area.</li>
+		<li>While zoomed, two additional icons will appear in the upper right of the chart:
+			<ul>
+				<li>PAN: allows you to move/pan the zoomed portion of the chart</li>
+				<li>RESET: exits out of the zoom mode</li>
+			</ul>
+		</li>
+	</ul>
+</p>
+<br><br><hr>
+<a name=meshstatus><h2>Mesh Status</h2></a>
+<p>
+The Mesh Status page lists AREDN Mesh Nodes, link quality information, and the services advertised on the Mesh.  There are 3 sections:
+</p>
+
+<ul>
+<li><strong>Local Host</strong> is the AREDN Mesh Node showing status and the advertised Services associated with this Node.<br><br></li>
+
+<li><strong>Current Neighbors</strong> is a list of direct Neighbor Mesh Nodes (1 hop).  This may be via RF, DTDLink (a cat5 cable), or a Tunnel (over Internet connection).  Quality of the link is shown (described below) and advertised Services hosted on the Node or attached to the LAN of the Node are listed.<br><br></li>
+
+<li><strong>Remote Nodes</strong> is a list of indirect Mesh Nodes (2 or more hops).  Advertised Services hosted on the Node or attached to the LAN of the Node are listed. Remote Nodes are sorted by ETX, referred to as "link cost".</li>
+</ul>
+
+<p>
+<br>
+<strong>LQ</strong>
+</p>
+
+<p>
+Link Quality (LQ) is the % of packets received from the Neighbor in the OLSR mesh routing protocol from the perspective of the Local Host.  OLSR packets are exchanging routing, advertised services, and other information and include a sequence number with each packet to determine missing packets to characterize the quality of the link.
+</p>
+
+<p>
+<br>
+<strong>NLQ</strong>
+</p>
+
+<p>
+Neighbor Link Quality (NLQ) is the % of packets the Neighbor received from the perspective of the Local Host in the OLSR mesh routing protocol.  The NLQ is the LQ from the Neighbor's perspective.
+</p>
+
+<p>
+<br>
+<strong>ETX</strong>
+</p>
+
+<p>
+Expected Transmissions (ETX) is a Bernoulli statistic of how many packets must be transmitted to successfully receive the round trip acknowledgement between Neighbor nodes and is calculated with this formula:  ETX = 1/(LQ*NLQ).   Between multiple hop nodes, this is calculated by adding up the ETX for each single hop.   "1" is a perfect RF link between Neighbors.   A DtDLink is fixed at ETX="0.1" for packets over a cat5 cable.  OLSR on a Mesh Node selects the Neighbor to send traffic to based on the lowest cost ETX path towards the final destination Node.
+</p>
+<p>
+ETX should be interpreted with care.  From a quality perspective, the ETX for Remote Nodes is not an end-to-end metric in the same way as adjacent neighbors.  For example, 2 nodes that are 5 hops apart with zero packet loss between them is characterized with an ETX=5.  A single hop with ETX=5 (LQ and NLQ is ~45%) will stream poor quality video, if usable at all, given the packet loss.  A 5 hop route between nodes with ETX=5 will deliver smooth streaming quality video.
+</p>
+
+<p>
+<br>
+<strong>TxMbps</strong>
+</p>
+
+<p>
+Transmitted Mbps (TxMbps) is calculated with the formula (TxMbps = rate * EWMA) where rate is the 802.11 data rate in use by the transmitter and EWMA is the Exponentially Weighted Moving Average or the current time weighted chance that a packet at this rate will reach the remote station.  If no traffic is being routed to the Neighbor, this value may be '0' until data is available to measure and determine the optimal settings.  For further details: <a href='http://wireless.wiki.kernel.org/en/developers/documentation/mac80211/ratecontrol/minstrel'>Rate Control Algorithm</a>
+</p>
+
+<p>
+<br>
+<strong>(wan)</strong>
+</p>
+
+<p>
+"(wan)" next to a Mesh Node indicates the node is an Advertised Gateway.  Typically this is to the internet, but may also be an isolated network.
+</p>
+
+<p>
+<br>
+<strong>(dtd)</strong>
+</p>
+
+<p>
+"(dtd)" next to a Mesh Node in the "Current Neighbors" column indicates the path to a Neighbor is a cat5 cable. The Neighbor may be listed twice if both an RF and DtDLink path exists.  The DtDLink path is always assigned an ETX of "0.1".   All "Remote Nodes" have a DtDLink interface, consequently "(dtd)" is not show for Remote Nodes.
+</p>
+
+<p>
+<br>
+<strong>(tun*?)</strong>
+</p>
+
+<p>
+"(tun)" next to a Mesh Node in the "Current Neighbors" column indicates the path to the Neighbor is over an Internet tunnel.  "(tun*?)" next to a mesh node in the "Remote Nodes" column indicates the node has tunnel links over the internet to connect mesh islands together. "?" is a number indicating the count of tunnel connections the node has.
+</p>
+
+<br><br><hr>
+<a name=setup><h2>Basic Setup</h2></a>
+<p>
+This is where the basic networking settings are made for the node.  Because of
+the way AREDN&trade; is designed you generally will not need to change any of the
+settings on this page other than the node name/type and password.
+<u>Do not change any of the network settings unless you fully understand how
+the mesh works and why the default is not suitable for your application.</u>
+One reason AREDN&trade; exists is to eliminate, as much as possible, the need to
+manually configure the network.
+</p>
+<p>
+The buttons on this page work as follows:
+</p>
+<ul>
+<li><strong>Save Changes</strong> will check the validity of all the
+entered information and save it to flash memory if no errors are found. A
+reboot is required to make most changes on this page take effect, and should
+  be done as soon as possible to avoid configuration mismatch problems.<br><br></li>
+
+<li><strong>Reset Values</strong> will reload the current settings from
+flash memory and undo any changes that have been made.<br><br></li>
+
+<li><strong>Default Values</strong> will set all values to their default
+values except the Node Name and Password. These default values are not saved
+until Save Changes is clicked.<br><br></li>
+
+<li><strong>Reboot</strong> will immediately reboot the node.</li>
+</ul>
+
+<p>
+<br>
+<strong>Node Name</strong> sets the hostname for the node. Hostnames can
+contain up to 63 letters, numbers, and dashes, but cannot begin or end with a
+dash.  Underscores, spaces, or any other characters are not allowed.
+Hostnames are not case sensitive, but the case will be preserved.
+</p>
+<p>
+As ham radio operators there are other requirements we must follow,
+namely identification of all transmitting stations. This hostname is beaconed
+automatically by the node every five minutes, so the hostname must contain
+your callsign. Recommended hostnames follow the (callsign)-(name) format, such
+as ad5oo-mobile or ad5oo-1. This is similar to the MYCALL setting you would
+give a packet TNC, but without the 0-15 restriction for the name part.
+</p>
+<p>
+It is here that you can also set a tactical name for your node. A tactical
+name is just another name that your node is known by. If you are familiar with
+DNS records, this serves a purpose similar to a CNAME record.  This is helpful
+in an emergency deployment situation where if for example several Red Cross
+shelters are being linked. In addition to the normal hostname you can give
+each node a tactical name such as shelter1, shelter2, shelter-north,
+etc. Tactical names have the same restrictions as hostnames, and are
+accessible through DNS like the main node names are.
+</p>
+<p>
+To set a tactical name, put a slash after the the node name then give
+the tactical name.  For example, "ad5oo-1/shelter5".
+</p>
+<p>
+<strong>Password</strong> is where you set the administration password
+for the node. It needs to be entered again in the Retype Password box to help
+ensure its accuracy. It is not necessary to enter a password unless you want
+to change its value, and the first time the node is configured it is required
+that you change the password. Note that these passwords entries are NOT
+encrypted in transit, so this is best done from a direct wired connection to
+the node.
+</p>
+<p>
+<strong>Node Description</strong> is not required to be filled in.
+This is where you can add some additional info about the node.<br>
+ie: "This device is maintained by (callsign) Please contact email@address for more info!"<br>
+<em>This is completely optional</em>. There are no character restrictions in the field.<br>
+The maximum length allowed is 210 characters.<br>
+HTML tags simply will not work.<br>The description displayed on the main status page is
+automatically word-wrapped at about 70 characters or so, and shouldn't split a word in the middle.
+</p>
+<p>
+The <strong>Mesh RF</strong>, <strong>LAN</strong>,
+and <strong>WAN</strong> boxes are where the details of each of these network
+interfaces are set.
+</p>
+<p>
+In the <strong>Mesh RF</strong> box there are settings shown as being
+Active Settings. These settings can be changed without rebooting the node by
+clicking the <strong>Apply</strong> button, but unless they are saved they
+will revert to the previously saved values after a reboot.<br>
+<br>
+As always a dummy load on unused RF ports is recommended to keep out physical
+contaminants and to avoid EMI/RFI interference.
+</p>
+<p>
+<a name="power"></a>The <strong>Power</strong> setting controls the max power
+the unit may output. The node may decrease its power output as it enters higher
+speed data rates to maintain a linear spectrum. Some devices may have max power
+levels that change based on what channel/frequency the hardware is operating on,
+in this case the max level will change when you save the settings and will be
+capped at the max level supported by the hardware for that frequency.
+</p>
+<p>
+The <strong>Distance</strong> setting adjusts the packet retry timer
+to account for stations that are very far away, presumably about 300 meters or
+more. The value should be set to the distance in meters to the farthest node
+that you expect to communicate with. Change the distance value by moving the slider. Distance values will be in multiples of 1000 meters (approximately 0.62 miles). A value of zero is not allowed.
+</p>
+<p>
+The <strong>LAN</strong> box allows you to set the LAN IP Address
+of the node and the address range of the DHCP server, and these should be
+self explanatory.  The <b>LAN Mode</b> is described in the next section.
+
+<br><br>
+The <strong>Disable Default Route</strong> checkbox will cause the node to not
+advertise that it should be chosen as the default route. This means that
+computers plugged into the node will not try and route to the internet or
+other networks via the mesh node and will only try and use the mesh node for
+the 10.0.0.0/8 and 172.16.0.0/12 "mesh" network ranges. You will not be able
+to access the internet, even if your node has internet available on its wan
+port with this setting checked. This also applies to internet available over
+the mesh. Use this only if you know what a default route is and you need to
+be connected to two networks at once such as wired to the mesh, and WiFi to
+a local served agency network.
+</p>
+<p>
+The <strong>WAN</strong> box contains the settings used to
+connect with an upstream network, usually an internet connection.  The DNS
+servers are set by default to the Google DNS servers and should not be changed
+under normal circumstances.  More and more ISP's are adopting the "helpful"
+but <u>broken</u> behavior of taking you to an ISP generated web page if you
+incorrectly type in a URL or if the host you are trying to reach no longer
+exists.  The proper behavior is for your browser to be able to detect these
+error conditions and report them accordingly.  Google follows the rules and
+allows for the proper operation of the network.
+</p>
+<p>
+When the WAN protocol is set to disabled you have the option of using a
+default gateway on the LAN.  Integrating an existing LAN with a mesh node LAN
+is an expert level undertaking and there are far too many considerations to be
+covered here.
+</p>
+<p>
+The other option in the WAN box is the <strong>Mesh Gateway</strong>.
+This is an advanced configuration option.<br>
+When a node has internet access from either the WAN or LAN, that access is
+available to the node itself and to any computer connected to the LAN port.
+When the Mesh Gateway is enabled this node will gate(route) traffic from the
+mesh onto this network and the internet.
+
+By default it is disabled, so consider carefully your
+intentions for enabling it. AREDN&trade; is an FCC Part 97 amateur radio
+computer network, so be sure that any internet traffic that will be sent over
+radio needs to comply with Part 97 rules.  If you just want local wireless
+internet access, consider using a standard Part 15 compliant access point
+instead of the Mesh Gateway function.
+</p>
+<p>
+<br>
+<a name=lanmode><b>LAN Mode</b></a>
+</p>
+<p>
+The default mode is called <b>5 Host Direct</b> mode and in this mode every host
+on the LAN has direct access to and from the mesh.  The LAN shares the same
+address space as the mesh.  Port forwarding is not needed because NAT is not
+used, and there is no firewall in between the LAN and the mesh.  This mode was
+created because some services do not work well (or at all) through NAT, and to
+reduce the amount of manual configuration needed to provide services to the
+mesh.
+</p>
+<p>
+The mesh address space is automatically managed, so in Direct mode the LAN is not
+user configurable.  Those of you familiar with setting up commercial ISP
+access with static IP addresses should already be comfortable with this mode.
+Like commercial ISP access, you cannot decide for yourself what the network
+parameters are.  You have to use the parameters which are given to you.  But
+unlike most commercial ISP access there is a DHCP server available on the mesh
+node to configure the hosts that are attached to the LAN.
+</p>
+<p>
+The only configurable option available in Direct mode is the size of the LAN subnet
+which can accommodate either 1, 5, or 13 LAN hosts. The one host subnet
+can be useful for either a single server or a commercial grade router using
+its own NAT which is capable of more advanced routing functions than those
+available from a mesh node.
+</p>
+<p>
+It is important to not use a subnet larger than is necessary because the
+chances of an IP address conflict on the mesh increase with the size of the
+subnet.  The LAN subnet parameters are automatically generated and depend on
+the IP address of the Mesh RF interface.  If a conflict does occur it can be
+fixed by changing the Mesh RF IP address.
+</p>
+<p>
+The other LAN Mode is NAT, which stands for Network Address Translation.  In
+this mode the LAN is isolated from the mesh and all outgoing traffic has its
+source address modified to be the Mesh RF IP address of the mesh node.  This is the
+same way that most routers use an internet connection, and all services
+provided by computers on the LAN can only be accessed through port forwarding
+rules.  A single DMZ server can be set up to accept all incoming traffic that
+is not already handled by other rules or by the node itself.
+</p>
+<hr width=500>
+<a name='optionalsettings'><h4>Optional Settings</h4>
+<p>
+If you choose, you can specify your latitude, longitude, and gridsquare for location purposes.  The lat/lon values should be in decimal format (ex. 30.444522 and -95.111234).
+<ul>
+<li>The <strong>Find Me!</strong> button to use your location aware browser to populate the values.  This works very well if you are viewing this page from a mobile device with a built-in GPS.</li>
+<li>Use the <strong>Apply Location Settings</strong> button to persist the lat/lon and gridsquare values.  A "Save Changes" button click is not required for these settings.</li>
+<li>If you have an active internet connection available, the "Show Map" and "Upload Data to AREDN Servers" buttons will become active.</li>
+<li>The <strong>Show Map</strong> button will display a map that allows you to click on the position where your node is located, or, to drag an existing marker to a different location on the map.  Both of these activities will automatically update the lat/lon fields on the page.</li>
+<li>The <strong>Upload Data to AREDN Servers</strong> button will send your node information (no highly sensitive data such as passwords are sent) to an AREDN server on the internet. By submitting this information you hereby allow AREDN to publish your node location on a public mapping service and utilize the information for other such reasons as AREDN determines to be useful, including but not limited to statistical analysis.  If you wish to remove your node location from the public mapping service, simply clear/erase your lat/lon values, "Apply Location Settings", and then "Upload Data to AREDN Servers".</li>
+</ul>
+To see a sample of the information that will be sent to the AREDN server, click <a href='http://localnode.local.mesh/cgi-bin/sysinfo.json?hosts=1'>HERE</a> and <a href='http://localnode.local.mesh:9090/topology'>HERE</a>.  (You can replace "localnode" with your ACTUAL node name to see the data from that node.)<br />
+</p>
+<p>
+You may set the timezone where the node is located as well as setting the NTP server that the node will connect to.  A "Save Changes" button click IS required for timezone and NTS server settings, as well as a subsequent reboot.
+</p>
+
+<br><br><hr>
+<a name='ports'><h2>Port Forwarding, DHCP, and Services</h2></a>
+<p>
+The buttons on this page works as follows:
+</p>
+<ul>
+<li><strong>Save Changes</strong> will do a basic validation of the entered
+data save it to flash memory if no errors are found. The settings take effect
+in about 20 seconds and a reboot is NOT required. Note that the checks
+performed are not comprehensive and it is possible to use settings that at
+best will not work and at worst will break the node's configuration.
+<br><br></li>
+<li><strong>Reset Values</strong> will reload the current settings from
+flash memory and undo any changes that have been made.
+<br><br></li>
+<li><strong>Refresh</strong> will reload the page and it is useful for two things.
+It will update the list of DHCP leases for any new hosts that have been
+configured on the LAN, and it will also validate the settings entered on the
+page and incorporate changed settings that may affect other settings.  You
+should do this before saving the changes to make sure everything is set up as
+intended.</li>
+</ul>
+<p><br> The way this page works depends on whether the LAN is operating in NAT
+mode or Direct mode.  First we will cover NAT mode, where hosts on the LAN are
+insulated by a firewall and NAT from both the Mesh RF and WAN interfaces. This
+makes them inaccessible from either of these interfaces unless Port Forwarding
+is set up. Here are some common ports:
+</p>
+<ul>
+<li>20 ftp-data </li>
+<li>21 ftp - file transfer protocol </li>
+<li>22 ssh - secure shell </li>
+<li>23 telnet </li>
+<li>25 smtp - simple mail transport protocol </li>
+<li>53 dns - domain name service </li>
+<li>80 http - hypertext transport protocol </li>
+<li>123 ntp - network time protocol </li>
+<li>698 olsr - optimized link state routing </li>
+<li>1978 olsr http - olsr's web interface </li>
+<li>2222 node ssh server</li>
+<li>8080 node web server (old port)</li>
+<li>80 node web server</li>
+</ul>
+<p>
+So then what is port forwarding? Port forwarding is taking an inbound
+connection to a port from the Mesh RF or WAN interface and forwarding it to an IP
+address on the LAN. The port number need not be the same. If you have hosts on
+the LAN that provide services you want to make available to the mesh all it
+takes is a Port Forwarding rule to make that happen.
+</p>
+<p>
+If you want to forward a range of ports, the <strong>Outside Port</strong>
+will accept a range in the form "2000-3000".  Use a hyphen to separate the low
+and high values.  When doing this, set the <strong>Inside Port</strong> to the
+low value of the port range.  When forwarding a port range the outside and
+inside ports must be the same, moving them will not work.
+</p>
+<p>
+If you want to forward every port that is not already in use to a
+single computer on the LAN, choose that computer's IP Address from
+the <strong>DMZ Server</strong> selector.  There can be only one DMZ Server.  Be
+aware that this bypasses the firewall in the node, so this computer should be
+running its own firewall to prevent unauthorized access.
+</p>
+<p>
+<i>Example</i>:
+<br><br> On the LAN of a mesh node called ad5oo-mobile is an IP camera that is
+running its own web server. The address of that camera is 172.27.0.240. I want
+to make that camera available to everyone on the mesh so I set up a port
+forwarding rule on the Mesh RF interface whose outside port is 8100, IP address
+is 172.27.0.240, and inside port is 80. This takes all connections to port
+8100 on ad5oo-mobile and redirects them to port 80 on 172.27.0.240. In a web
+browser on a computer connected to a different node you would go to
+http://ad5oo-mobile:8100 and would be connected to the IP camera.
+</p>
+<p>
+Note that port forwarding to an FTP server, which uses both ports 20 and 21,
+can be done with a single rule using port 21 if the ftp client is capable of
+using passive ftp mode.  Web browsers are able to do this and handle ftp
+downloads quite nicely.
+</p>
+<p>
+<br>
+<strong>Advertised Services</strong>
+</p>
+<p>
+When you want to let others know about services you are providing, the
+Advertised Services will appear on the Mesh Status page of all other nodes on
+the mesh. All advertised services need a name, and no services can be
+advertised until at least one port forwarding rule or a DMZ server has been
+defined.
+</p>
+<p>
+If the service is one that is accessible through a web browser, such as a web
+or ftp server, you can make the name appear as a clickable link by checking
+the Link box.  All links need two parameters: a protocol and a port number.
+Web servers use the http protocol and ftp servers use the ftp protocol.  Other
+servers may use other protocols.  The port number should be the one used as
+the Outside Port in the forwarding rule through which the service can be
+accessed.  In the last field you can enter an optional link suffix to give the
+link a more specific path if needed, such as the name of a specific page on a
+web server, or a directory or file on an ftp server.
+</p>
+<p>
+<br>
+<strong>DHCP Reservations</strong>
+</p>
+<p>
+If you are providing services to the mesh from hosts on the LAN you will want
+to either override or make permanent the automatically assigned IP address for
+that host. The DHCP Reservations section is where you do that. In order for
+port forwarding to work, the IP address must match that of the host being
+forwarded to. If it is currently attached and has been set up by DHCP it will
+be listed under <b>Current DHCP Leases</b>. If you click the <b>Add</b> button
+next to the lease it will be added to the DHCP Reservations list. You can
+leave the information as it is or edit it to suit your needs. You can also
+enter your own information into the blank slots under DHCP Reservations and
+click <strong>Add</strong> to create your own entry.
+</p>
+<p>
+For each of the sections on this page, simply entering information into the
+fields next to the <b>Add</b> buttons is not enough.  The settings are not
+entered until the <b>Add</b> button is clicked.  Before saving changes the Add
+fields must be either added or cleared.
+</p>
+<p>
+<br>
+<b>Direct Mode Operation</b>
+</p>
+<p>
+When the LAN is operating in Direct mode both this page and the mesh work a
+little differently. Since in Direct mode the LAN hosts are accessed directly
+from the mesh and no port forwarding is involved, the advertised services are
+based upon which LAN hosts exist, and this is determined by the DHCP Address
+Reservations that are defined.  After the DHCP Reservations have been made,
+services can be advertised in the same way as before with the additional
+requirement of selecting the name of the host that is providing the service.
+</p>
+<p>
+Another difference in Direct mode is that the hostnames used in DHCP
+Reservations are also advertised to the mesh and therefore <u>must be
+unique</u> on the mesh. So, "webserver" would be perfectly suitable for a
+service name, but a very poor choice for a hostname because there can be only
+one host with this name on the entire mesh.  Just as you used your callsign in
+the hostname for the node, it would also be a good idea to use it in DHCP
+Reservation hostnames.  Therefore, <nobr>"ad5oo-webserver"</nobr> is a good
+choice of hostname as it is unique and only the callsign holder needs to keep
+track of the hostnames he has assigned himself.
+</p>
+<p>
+The hostnames being discussed here are those that are defined in the DHCP
+Reservations and available to the mesh, not those that the LAN hosts call
+themselves.  While it can be convenient for them to be the same, there is no
+reason that they must be.  For example, the
+name <nobr>"ad5oo-webserver"</nobr> used above can be the name on the mesh for
+a host that calls itself "skywalker".  But be aware that if this host is in
+fact a webserver, the webserver configuration should use the
+name <nobr>"ad5oo-webserver"</nobr> because the name "skywalker" will not be
+known on the mesh and any pages the webserver generates itself such as error
+pages may use the "skywalker" name.
+</p>
+<p>
+There are two considerations to keep in mind regarding the size of the subnet
+chosen for the LAN.  First, when using a one host subnet, the DHCP Reservation
+used for that single host will prevent any other host from receiving a DHCP
+lease.  So if for some reason the original host is not connected to the LAN
+and you need to get back in to the node to reconfigure it, the easiest way is
+to access it from a different node on the mesh.
+</p>
+<p>
+Second, if the node is already in Direct mode and you intend to reduce the
+size of the LAN subnet, you should first remove the DHCP Reservations that
+will fall outside of the address range of the smaller subnet.  Note that the
+automatically assigned network address will change if the subnet size is
+changed, and that internally the DHCP Reservations are stored as offsets from
+the network address, so address reservations which fall within the new subnet
+size will be translated into the new subnet address space.
+</p>
+<br><br><hr>
+<a name=admin><h2>Administration</h2></a>
+<p>
+<strong>Note:</strong></br>Files can not be uploaded to a node while a tunnel
+server or client connection is enabled. To upload any file (firmware, package
+or ssh key) you must ensure all tunnel servers and clients are disabled.</br>
+Upload buttons will be disabled until tunnels are disabled.
+</p>
+
+<p>
+<strong>Firmware Update</strong> is how new firmware is installed on the node.
+If you have a firmware image on your computer, click
+the <strong>Browse</strong> button and select the firmware file to upload.
+Click <strong>Upload</strong> and the file will be uploaded and installed. If
+the node has internet access (either from the WAN port or from the mesh) you
+can use the <strong>Download Firmware</strong> option.
+Click <strong>Refresh</strong> to get the list of available images.  Select
+the image to download, click <strong>Download</strong>, and wait for the
+firmware to download and be installed.
+</p>
+<p>
+A new feature in the 0.4.0 firmware is the ability to install firmware
+patches.  This means that updated files can be installed directly on the node
+without having to replace the entire firmware.  Except in cases where the
+patch contains updated configuration files, patches can be installed while
+preserving the existing node configuration.  However, certain patches will
+require that the node be rebooted to take effect, and this will happen
+automatically when it is needed.
+</p>
+<p>
+<strong>Package Management</strong> allows you to install and remove
+software packages on the node.  <strong>Upload Package</strong> allows you to
+install a package file from your computer.  <strong>Download Package</strong>
+allows you do retrieve a package over the internet from the AREDN&trade; website.
+Clicking <strong>Refresh</strong> will populate the list of packages available
+for download, but don't do this frivolously. The package information database
+gets stored locally and will use about 100KB of space in flash memory. The
+average user will probably never have to use this function.
+</p>
+
+<p>
+NOTE: When uploading any file (Firmware, Patch, or Package) a node operating
+as a tunnel client or server will shutdown the tunnels before accepting the
+file for upload. If your connection path to the node being updated requires
+you to connect via a tunnel on the node the upload will not succeed.
+</P>
+<p>
+The <strong>Remove Package</strong> list shows all packages on the
+node.  Selecting a package and clicking <strong>Remove</strong> will remove
+the package. You will only be able to remove packages that you have
+installed. All installed packages are shown but the set that comes
+pre-installed is necessary for proper operation of the node and they cannot be
+deleted.
+</p>
+<p>
+<strong>Authorized SSH Keys</strong> are useful for both developers
+and anyone managing a "fleet" of nodes. It allows connecting to a node via ssh
+without having to know the password. For developers, it also allows you to
+easily scp an updated file to the node without having to reinstall the
+firmware.
+</p>
+<p>
+To generate a key on a Linux system, issue the command
+"<strong>ssh-keygen -t rsa</strong>" and hit enter at all the prompts to
+accept the defaults.  It creates a file
+called <strong>~/.ssh/id_rsa.pub</strong>, which is the file you upload to
+install the key on the node. If you want to remove a key just select it and
+click the <strong>Remove</strong> button.
+</p>
+<p>
+For fleet managers, having an authorized key installed is the best way gain
+access to a node for which you do not know the password. If you want to set
+the password to "abc", simply ssh to the node and run "<strong>setpasswd
+abc</strong>", then reboot.  If you don't have an authorized key installed,
+the only way in is to use <a href='#failsafe'>Failsafe Mode</a> as described
+in the appendix.
+</p>
+<br><br><hr>
+<a name=advancedconfig><h2>Advanced Configuration</h2></a>
+<p>
+<strong>Note:</strong></br>Changing these advanced settings can be harmful to the stability, security, and performance of this node and the entire mesh network. You should only continue if you are sure what you are doing.
+</p>
+<p>
+Refer the the help icon (hover over it) for each setting on the page.
+</p>
+
+<hr><a name='appendix'><h2>Appendix</h2></a><hr>
+
+<a name='failsafe'><h3>Failsafe Mode</h3></a>
+<p>
+Failsafe Mode is a method of restoring a node to an
+operational state.
+</p>
+<p>
+Reset Password or DHCP:
+</p>
+
+<p>
+After the node fully boots press and hold the reset
+button for 5 seconds which will cause the unit to enable DHCP
+and reset the root password to 'hsmm'.
+</p>
+
+<p>
+Full Failsafe:
+</p>
+<p>
+After the node fully boots press and hold the reset
+button for 15 seconds which will cause the unit to behave as if it had
+just been flashed with the AREDN&trade; firmware.
+</p>
+<p>
+You would need to go through the node settings again just as if it was
+the first time installing the AREDN&trade; firmware on the node.
+</p>
+
+<br><hr width=500><br>
+<a name='tftp'><h3>Installing firmware with tftp</h3></a>
+<p>
+Your router is a brick.  It does not come up normally and you are not able to
+log in by any method.  All is not lost, read on to see how to use the built in
+failsafe method of installing firmware.  If this method does not work, you
+will have to resort to a JTAG install.  Good luck with that.  See
+www.openwrt.org for information on the JTAG method.
+</p>
+<p>
+The CFE (Common Firmware Environment - the bootloader) has the ability to
+receive a firmware image using tftp (the trivial file transfer protocol) and
+write it to flash. When the nvram variable boot_wait is set to on, (as it will
+be after the mesh firmware is installed at least once) there is a three second
+window where it listens for tftp packets. If it hears them, it will load the
+firmware into ram, write it to flash, then reboot. If the CFE detects some
+problem with the firmware already on the flash (such as an interrupted flash
+write) and is unable to boot, it should wait indefinitely for a tftp
+transfer. At this point I'm not sure what the CFE behavior is when boot_wait
+is set to off. I believe it still listens for tftp packets, but the window of
+opportunity is one second or less.
+</p>
+<p>
+Here is a Linux script you can use to send tftp attempts to 192.168.1.1 once
+every second for an hour or until the upload succeeds. It sets the tftp trace
+mode so that you can see every attempt and also see when the transfer has
+happened and whether or not it succeeded.
+
+<pre>
+#!/bin/sh
+
+if [ -z "$1" ]; then
+  echo "usage: $0 &lt;image file&gt;"
+  exit 1
+fi
+
+file=$1
+cd `dirname $file`
+
+tftp 192.168.1.1 << END
+bin
+rexmt 1
+trace on
+timeout 3600
+put `basename $file` code.bin
+END
+</pre>
+<p>
+To reflash a device with this script, you will need to have your computer's
+ethernet port connected to the LAN port on the router, with the IP address
+statically set to 192.168.1.2, netmask 255.255.255.0. Run the script with the
+image name as an argument. The .trx file will not work here, you need the .bin
+file specific to your model of router.
+</p>
+<p>
+Once per second you will see messages like this:
+</p>
+<pre>sent WRQ</pre>
+<p>
+Now power cycle the router. If the above messages continue and the router
+continues to boot, it missed the window. This is not unusual. Power cycle the
+router again and repeat the process until you see messages like this:
+<pre>
+sent DATA
+received ACK
+sent DATA
+received ACK
+</pre>
+After that the flash write begins, then the router will reboot.
+</p>
+<p>
+During this process one thing that may get in the way is network management
+software that many modern operating systems use to automatically control your
+ethernet port. It becomes a problem when power cycling the router causes the
+network manager to enable and disable the ethernet port because it sees the
+connection disappearing and reappearing.
+</p>
+<p>
+One way around this is to disable the network manager and take manual control
+of your network interfaces if you are able to do that. Otherwise it can be
+avoided by using another ethernet switch which both your computer and the
+router receiving the firmware are connected to. You should be able to use the
+LAN switch on the back of another mesh node if a separate switch is not
+available.
+</p>
+</body>
+</html>
