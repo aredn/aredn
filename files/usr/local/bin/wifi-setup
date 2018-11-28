@@ -1,0 +1,160 @@
+#!/bin/sh
+<<'LICENSE'
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2018 Joe Ayers  ae6xe@arrl.net
+   See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+LICENSE
+
+# This script reads the AREDN related wireless config options and generates
+# a wireless UCI config file
+
+# $1 is directory to create the wireless config
+
+dropdir=${1-/etc/config}
+
+# get aredn wifi related parameters
+configfile=/etc/config.mesh/_setup
+while read -r line; do
+  if [ -n "$line" -a -z "${line##wifi*}" ]; then
+    eval ${line%% =*}="\"${line##*= }"\" 
+  fi
+done < $configfile
+
+# get mesh RF dev master setting in /etc/config/network
+
+meshif="$(uci -q get network.wifi.ifname)"
+meshphy="phy${meshif#wlan}"
+
+rm -f "${dropdir}/wireless" 
+touch "${dropdir}/wireless"
+
+ifacenum=0
+
+# find each phy and configure in wirelss config 
+for _dev in /sys/class/ieee80211/*; do
+  [ -e "$_dev" ] || continue
+
+  dev="${_dev##*/}"
+  radio="radio${dev#phy}"
+
+  if [ -x /usr/bin/readlink -a -h "/sys/class/ieee80211/${dev}" ]; then
+    devpath="$(readlink -n -f /sys/class/ieee80211/${dev})"
+  else
+    devpath=""
+  fi
+  if [ -n "${devpath}" ]; then
+    devpath="${devpath##/sys/devices/}"
+    devpath="${devpath%%/ieee802*}"
+    case "${devpath}" in
+      platform*/pci*) devpath="${devpath##platform/}";;
+    esac
+    dev_id="set wireless.${radio}.path=${devpath}"
+  else
+    dev_id="set wireless.${radio}.macaddr=$(cat /sys/class/ieee80211/${dev}/macaddress)"
+  fi
+
+  if [ $wifi2_enable -eq 1 ]; then
+    wifi2_disabled="0"
+  else
+    wifi2_disabled="1"
+  fi
+
+  is_mesh_rf=0
+  hwmode="11g"
+  htmode="HT20"
+
+  iw phy "${dev}" info | grep -q '5180 MHz' && {
+    hwmode="11a"
+  }
+
+  if [ "${dev}" = "${meshphy}" ]; then
+    # mesh RF adhoc configuration
+    is_mesh_rf=1
+    disabled="0"
+    channel="${wifi_channel}"
+    chanbw="${wifi_chanbw}"
+    country="HX"
+    distance="${wifi_distance}"
+    ssid="${wifi_ssid}-${chanbw}-v3"
+    mode="adhoc"
+    encryption="none"
+    key=""
+    network="wifi"
+  else
+    # mesh AP bridged with lan
+    disabled="${wifi2_disabled}"
+    channel="${wifi2_channel}"
+    chanbw=""
+    country=""
+    distance=""
+    ssid="${wifi2_ssid}"
+    mode="ap"
+    encryption="${wifi2_encryption}"
+    key="${wifi2_key}"
+    network="lan"
+  fi
+
+  uci -c ${dropdir} -q batch > /dev/null <<-EOF
+    set wireless.${radio}=wifi-device
+    set wireless.${radio}.type=mac80211
+    set wireless.${radio}.disabled=${disabled}
+    set wireless.${radio}.channel=${channel}
+    set wireless.${radio}.chanbw=${chanbw}
+    set wireless.${radio}.country=${country}
+    set wireless.${radio}.distance=${distance}
+    set wireless.${radio}.hwmode=${hwmode}
+    set wireless.${radio}.htmode=${htmode}
+    ${dev_id}
+    add wireless wifi-iface
+    set wireless.@wifi-iface[${ifacenum}].device=${radio}         
+    set wireless.@wifi-iface[${ifacenum}].network=${network}      
+    set wireless.@wifi-iface[${ifacenum}].mode=${mode}            
+    set wireless.@wifi-iface[${ifacenum}].ssid=${ssid}               
+    set wireless.@wifi-iface[${ifacenum}].encryption=${encryption}       
+    set wireless.@wifi-iface[${ifacenum}].key=${key}
+EOF
+  uci -c ${dropdir} -q commit wireless
+
+  if [ ${is_mesh_rf} -eq 1 ]; then
+    # add monitor interface on mesh rf
+    ifacenum=$((ifacenum + 1))
+    uci -c ${dropdir} -q batch > /dev/null <<-EOF
+      add wireless wifi-iface
+      set wireless.@wifi-iface[${ifacenum}].device=${radio}
+      set wireless.@wifi-iface[${ifacenum}].network=wifi_mon
+      set wireless.@wifi-iface[${ifacenum}].mode=monitor
+EOF
+    uci -q -c ${dropdir} commit wireless
+  fi
+
+  ifacenum=$((ifacenum + 1))
+
+done

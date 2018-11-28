@@ -376,19 +376,17 @@ that you expect to communicate with. Change the distance value by moving the sli
 The <strong>LAN</strong> box allows you to set the LAN IP Address
 of the node and the address range of the DHCP server, and these should be
 self explanatory.  The <b>LAN Mode</b> is described in the next section.
-
-<br><br>
-The <strong>Disable Default Route</strong> checkbox will cause the node to not
-advertise that it should be chosen as the default route. This means that
-computers plugged into the node will not try and route to the internet or
-other networks via the mesh node and will only try and use the mesh node for
-the 10.0.0.0/8 and 172.16.0.0/12 "mesh" network ranges. You will not be able
-to access the internet, even if your node has internet available on its wan
-port with this setting checked. This also applies to internet available over
-the mesh. Use this only if you know what a default route is and you need to
-be connected to two networks at once such as wired to the mesh, and WiFi to
-a local served agency network.
 </p>
+
+<p>
+The <strong>LAN Access Point</strong> section will appear on the hAP ac
+lite device. Configure similiar to a typical home access point. DFS channels
+are currently not selectable. Access Points must detect Doppler Radar signals
+and dynamically move to a clear channel for part 15 compliance.  This capability
+and channels may be added in a future image.  Clients connecting to the LAN Access
+Point share the IP Address range with clients attached though the physical Ethernet
+ports.</p>
+
 <p>
 The <strong>WAN</strong> box contains the settings used to
 connect with an upstream network, usually an internet connection.  The DNS
@@ -407,11 +405,10 @@ is an expert level undertaking and there are far too many considerations to be
 covered here.
 </p>
 <p>
-The other option in the WAN box is the <strong>Mesh Gateway</strong>.
-This is an advanced configuration option.<br>
-When a node has internet access from either the WAN or LAN, that access is
-available to the node itself and to any computer connected to the LAN port.
-When the Mesh Gateway is enabled this node will gate(route) traffic from the
+The <strong>Allow others to use my WAN</strong> is an Advanced WAN option.
+<br> When a node has internet access from either the WAN or LAN, that access is
+available to the node itself and to any computer connected to the LAN network.
+When this option  is enabled this node will gate(route) traffic from the
 mesh onto this network and the internet.
 
 By default it is disabled, so consider carefully your
@@ -420,6 +417,18 @@ computer network, so be sure that any internet traffic that will be sent over
 radio needs to comply with Part 97 rules.  If you just want local wireless
 internet access, consider using a standard Part 15 compliant access point
 instead of the Mesh Gateway function.
+
+<br><br>
+The <strong>Prevent LAN devices from accessing WAN</strong> checkbox will
+cause the node to not advertise to LAN devices that it should be chosen
+as the default route. This means that computers on the LAN of this node
+will not try and route to the internet or other networks via the mesh node
+and will only try and use the mesh node for the 10.0.0.0/8 and 172.16.0.0/12
+"mesh" network ranges. You will not be able to access the internet, even
+if your node has internet available on its WAN port with this setting checked.
+This also applies to internet available over the mesh. Use this only if you
+know what a default route is and you need to be connected to two networks at
+once such as wired to the mesh, and WiFi to a local served agency network.
 </p>
 <p>
 <br>
@@ -445,7 +454,7 @@ node to configure the hosts that are attached to the LAN.
 </p>
 <p>
 The only configurable option available in Direct mode is the size of the LAN subnet
-which can accommodate either 1, 5, or 13 LAN hosts. The one host subnet
+which can accommodate either 1, 5, 13, or 29 LAN hosts. The one host subnet
 can be useful for either a single server or a commercial grade router using
 its own NAT which is capable of more advanced routing functions than those
 available from a mesh node.

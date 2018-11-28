@@ -55,18 +55,6 @@ then
 
 fi
 
-
-# Obtain and store the path to the wireless cards so it can be used latter
-radiopath=$(uci -q get wireless.radio0.path)
-[ -z "$radiopath" ] && (rm -f /etc/config/wireless;
-                      wifi detect > /etc/config/wireless;
-                      $radiopath=$(uci -q get wireless.radio0.path))
-[ -n "$radiopath" ] && (mkdir -p /etc/aredn_include;
-  echo "	option path	'$radiopath'" > /etc/aredn_include/radio0path)
-
-radiopath=$(uci -q get wireless.radio1.path)
-[ -n "$radiopath" ] && ( echo "	option path	'$radiopath'" > /etc/aredn_include/radio1path)
-
 # Save system NET  LED settings
 if [ ! -f /etc/aredn_include/system_netled ]
 then

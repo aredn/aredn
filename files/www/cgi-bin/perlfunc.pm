@@ -594,7 +594,7 @@ sub save_setup
   open(FILE, ">$_[0]") or return 0;
   foreach(sort keys %parms)
   {
-    next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|dtdlink|ntp|time|description)_/;
+    next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|wifi2|dtdlink|ntp|time|description)_/;
     print FILE "$_ = $parms{$_}\n";
   }
   close(FILE);
@@ -1679,13 +1679,19 @@ sub page_footer
 sub get_interface
 {
   my ($intf) = @_;
-  my $intfname = `uci -q get network.$intf.ifname`;
+  my $bridge = `uci -q get network.$intf.type`;
+  chomp $bridge;
+  if ( "$bridge" eq "bridge" ) {
+    $intfname = "br-${intf}";
+  } else {
+      $intfname = `uci -q get network.$intf.ifname | cut -f1`;
+  }
   chomp $intfname;
 
   if ($intfname) {
     return $intfname;
   } else {
-    # Capture rules incase uci file is not in sync.
+    # guess at most common interface options
     if ( $intf eq "lan" )
     {
       return "eth0";

@@ -49,6 +49,7 @@ was released:
 * Locked to Openwrt 18.06.1
 * Added RBLHG-5nD, RBLHG-5HPnD-XL, LBE-M5
 * Standardized NS M2/M5 XW Ethernet port functionality
+* Enabled 5GHz LAN Access Point on hAP ac lite
 
 Please refer to https://github.com/aredn/aredn_ar71xx/issues
 for a list of outstanding defects.

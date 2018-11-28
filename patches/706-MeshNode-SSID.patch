@@ -2,7 +2,20 @@ Index: openwrt/package/kernel/mac80211/files/lib/wifi/mac80211.sh
 ===================================================================
 --- openwrt.orig/package/kernel/mac80211/files/lib/wifi/mac80211.sh
 +++ openwrt/package/kernel/mac80211/files/lib/wifi/mac80211.sh
-@@ -113,13 +113,12 @@ detect_mac80211() {
+@@ -106,6 +106,12 @@ detect_mac80211() {
+ 			dev_id="set wireless.radio${devidx}.macaddr=$(cat /sys/class/ieee80211/${dev}/macaddress)"
+ 		fi
+ 
++		if [ "${mode_band}" = "a" ]; then
++			arednssid="MeshNode5G"
++		else
++			arednssid="MeshNode2G"
++		fi
++
+ 		uci -q batch <<-EOF
+ 			set wireless.radio${devidx}=wifi-device
+ 			set wireless.radio${devidx}.type=mac80211
+@@ -113,13 +119,12 @@ detect_mac80211() {
  			set wireless.radio${devidx}.hwmode=11${mode_band}
  			${dev_id}
  			${ht_capab}
@@ -13,7 +26,7 @@ Index: openwrt/package/kernel/mac80211/files/lib/wifi/mac80211.sh
  			set wireless.default_radio${devidx}.network=lan
  			set wireless.default_radio${devidx}.mode=ap
 -			set wireless.default_radio${devidx}.ssid=OpenWrt
-+			set wireless.default_radio${devidx}.ssid=MeshNode
++			set wireless.default_radio${devidx}.ssid=${arednssid}
  			set wireless.default_radio${devidx}.encryption=none
  EOF
  		uci -q commit wireless

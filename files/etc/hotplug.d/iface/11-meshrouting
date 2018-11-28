@@ -1,6 +1,6 @@
 #!/bin/sh
 
-configmode=`uci -q -c /etc/local/uci/ get hsmmmesh.settings.config`
+configmode=$(uci -q -c /etc/local/uci/ get hsmmmesh.settings.config)
 
 if [ "$configmode" != "mesh" ] ; then exit 0; fi
 
@@ -42,8 +42,7 @@ fi
 
 if [ "$ACTION" = "ifup" ] ; then
 
-is_olsrgw=`cat /etc/config.mesh/_setup|grep -i olsrd_gw|cut -d ' ' -f 3`
-
+  is_olsrgw=$(cat /etc/config.mesh/_setup|grep -i olsrd_gw|cut -d ' ' -f 3)
 
   # Set routes for wifi or device to device linking
   # unreachable rule is needed  to ensure packets do not traverse a rule later that considers routing to another network.
@@ -71,11 +70,16 @@ is_olsrgw=`cat /etc/config.mesh/_setup|grep -i olsrd_gw|cut -d ' ' -f 3`
     ip rule add pref 30099 iif $DEVICE lookup 31
 
     # Lets go ahead and set the route to the local network here since we only need to be able to route to it after the interface comes up.
-    lan_ipaddr=`uci -q get network.lan.ipaddr`
-    lan_netmask=`uci -q get network.lan.netmask`
-    lan_ifname=`uci -q get network.lan.ifname`
+    lan_ipaddr=$(uci -q get network.lan.ipaddr)
+    lan_netmask=$(uci -q get network.lan.netmask)
+    bridge=$(uci -q get network.lan.type)
+    if [ $bridge = "bridge" ] ; then
+        lan_ifname="br-lan"
+    else
+	lan_ifname=$(uci -q get network.lan.ifname | cut -f1)
+    fi
     if [ "$lan_ifname" != "" ] && [ "$lan_ipaddr" != "" ] && [ "$lan_netmask" != "" ] ; then
-      lan_networkip=`ipcalc.sh $lan_ipaddr $lan_netmask|grep NETWORK|cut -d'=' -f2`
+      lan_networkip=$(ipcalc.sh $lan_ipaddr $lan_netmask|grep NETWORK|cut -d'=' -f2)
       ip route add $lan_networkip/$lan_netmask table 29 dev $lan_ifname
     fi
 

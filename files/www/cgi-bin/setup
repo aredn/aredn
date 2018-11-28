@@ -58,6 +58,10 @@ my $tz_db_strings = tz_names_hash();
 my $tz_db_names = tz_names_array();
 $wifiintf = get_interface("wifi");
 $phy = get_wlan2phy("$wifiintf");
+chomp ($phycount = `ls -1d /sys/class/ieee80211/* | wc -l`);
+
+my @ctwo=(1,2,3,4,5,6,7,8,9,10,11);
+my @cfive=(36,40,44,48,149,153,157,161,165);
 
 if($parms{button_uploaddata})
 {
@@ -122,7 +126,7 @@ else
 }
 
 # make sure unchecked checkboxes are accounted for
-foreach(qw(lan_dhcp olsrd_bridge olsrd_gw wifi_hidden))
+foreach(qw(lan_dhcp olsrd_bridge olsrd_gw wifi2_enable lan_dhcp_noroute))
 {
     $parms{$_} = 0 unless $parms{$_};
 }
@@ -150,8 +154,8 @@ if($dmz_mode)
 }
 
 # derive values which are not explicitly defined
-$parms{dhcp_limit} = $dhcp_limit = $dhcp_end - $dhcp_start + 1;
-$parms{dmz_dhcp_limit} = $dmz_dhcp_limit = $dmz_dhcp_end - $dmz_dhcp_start + 1;
+$parms{dhcp_limit} = $dhcp_end - $dhcp_start + 1;
+$parms{dmz_dhcp_limit} = $dmz_dhcp_end - $dmz_dhcp_start + 1;
 
 #
 # get the active wifi settings on a fresh page load
@@ -290,7 +294,7 @@ if($parms{button_save})
 	push @errors, "invalid Mesh IP address";
     }
 
-    push (@errors, "invalid Mesh RF SSID") unless length $wifi_ssid <= 27;
+    push (@errors, "invalid Mesh RF SSID") unless length $wifi_ssid <= 32;
 
     if ( is_channel_valid($wifi_channel) != 1 )
     {
@@ -428,6 +432,16 @@ if($parms{button_save})
     push(@errors, "invalid ntp server");
     }
 
+    if( length( $wifi2_ssid ) > 32 )
+    {
+	push (@errors, "LAN Access Point SSID must be 32 or less characters ");
+    }
+
+    if( "$wifi2_encryption" != "none" and (length( $wifi2_key ) < 8 or length($wifi2_key) > 64) )
+    {
+	push (@errors, "LAN Access Point Password must be at least 8 charaters, up to 64");
+    }
+
     if($debug == 3) # don't save the config, just validate it
     {
 	push (@errors, "OK") unless @errors;
@@ -439,7 +453,7 @@ if($parms{button_save})
 	$parms{tactical} = $tactical;
 	system "touch /tmp/unconfigured" if -f "/etc/config/unconfigured";
 	$rc = save_setup("/etc/config.mesh/_setup");
-    $rc2 = &uci_commit("system");
+	$rc2 = &uci_commit("system");
 	if(-s "/tmp/web/save/node-setup.out")
 	{
 	    push @errors, `cat /tmp/web/save/node-setup.out`;
@@ -766,22 +780,11 @@ if($dmz_mode)
     #print "<td><input type=text size=4 name=dmz_dhcp_end value='$dmz_dhcp_end' disabled></td></tr>\n";
     print "<td>$dmz_dhcp_end</td></tr>\n";
 
-    print "<tr><td colspan=2><hr></hr></td></tr>";
-    print "<tr><th colspan=2>Advanced</th></tr>";
-
-    print "<tr><td>Disable<br>Default Route</td>";
-    print "<td><input type=checkbox name=lan_dhcp_noroute value=1";
-    print " checked" if $lan_dhcp_noroute;
-    print "></td></tr>\n";
-
-    push @hidden, "<input type=hidden name=dmz_dhcp_end value='$dmz_dhcp_end'>";
-
-    push @hidden, "<input type=hidden name=dmz_dhcp_limit value='$dmz_dhcp_limit'>";
-
     push @hidden, "<input type=hidden name=lan_ip     value='$lan_ip'>";
     push @hidden, "<input type=hidden name=lan_mask   value='$lan_mask'>";
     push @hidden, "<input type=hidden name=dhcp_start value='$dhcp_start'>";
     push @hidden, "<input type=hidden name=dhcp_end   value='$dhcp_end'>";
+    push @hidden, "<input type=hidden name=lan_gw     value='$lan_gw'>";
 }
 else
 {
@@ -796,7 +799,10 @@ else
 	print "<tr><td>Gateway</td>";
 	print "<td><input type=text size=15 name=lan_gw value='$lan_gw' title='leave blank if not needed'></td></tr>\n";
     }
-
+    else
+    {
+	push @hidden, "<input type=hidden name=lan_gw     value='$lan_gw'>";
+    }
     print "<tr><td><nobr>DHCP Server</nobr></td>";
     print "<td><input type=checkbox name=lan_dhcp value=1";
     print " checked" if $lan_dhcp;
@@ -810,20 +816,57 @@ else
     print "<td><input type=text size=4 name=dhcp_end value='$dhcp_end'";
     print "></td></tr>\n";
 
-    print "<tr><td colspan=2><hr></hr></td></tr>";
-    print "<tr><th colspan=2>Advanced</th></tr>";
-
-    print "<tr><td>Disable<br>Default Route</td>";
-    print "<td><input type=checkbox name=lan_dhcp_noroute value=1";
-    print " checked" if $lan_dhcp_noroute;
-    print "></td></tr>\n";
-
-    push @hidden, "<input type=hidden name=dhcp_limit value='$dhcp_limit'>";
-
     push @hidden, "<input type=hidden name=dmz_lan_ip     value='$dmz_lan_ip'>";
     push @hidden, "<input type=hidden name=dmz_lan_mask   value='$dmz_lan_mask'>";
     push @hidden, "<input type=hidden name=dmz_dhcp_start value='$dmz_dhcp_start'>";
     push @hidden, "<input type=hidden name=dmz_dhcp_end   value='$dmz_dhcp_end'>";
+
+}
+
+print "<tr><td colspan=2><hr></hr></td></tr>";
+
+if ( $phycount > 1 ) {
+
+    # determine AP's band
+    if ( "$phy" eq "phy0" ) { $APphy="phy1"; }
+    else { $APphy="phy0"; }
+    $rc3 = system("iw phy ${APphy} info | grep -q '5180 MHz > /dev/null");
+    undef @chan;
+    if ( $rc3 ) {
+	@chan=@cfive;
+    }
+    else {
+	@chan=@ctwo;
+    }
+
+    print "<tr><th colspan=2>LAN Access Point</th></tr>";
+    print "<tr><td>Enable</td>";
+    print "<td><input type=checkbox name=wifi2_enable value=1";
+    print " checked" if $wifi2_enable;
+    print "></td></tr>\n";
+
+    print "<tr><td>SSID</td>\n";
+    print "<td><input type=text size=15 name=wifi2_ssid value='$wifi2_ssid'></td></tr>\n";
+
+    print "<tr><td>Channel</td>\n";
+    print "<td><select name=wifi2_channel>\n";
+    for  my $i (0 .. $#chan )
+    {
+	selopt($chan[$i], $chan[$i], $wifi2_channel);
+    }
+
+    print "</select></td></tr>\n";
+
+    print "<tr><td>Encryption</td>\n";
+    print "<td><select name=wifi2_encryption>\n";
+    selopt("none", "none", $wifi2_encryption);
+    selopt("WPA2 PSK", "psk2", $wifi2_encryption);
+    selopt("WPA PSK", "psk", $wifi2_encryption);
+    selopt("WEP" , "wep", $wifi2_encryption);
+    print "</select></td></tr>\n";
+    print "<tr><td>Password</td>\n";
+    print "<td><input type=text size=15 name=wifi2_key value='$wifi2_key'>";
+    print "</td></tr>\n";
 }
 
 if(0) # disable for now
@@ -875,15 +918,20 @@ print "<tr><td><nobr>DNS 2</nobr></td>\n";
 print "<td><input type=text size=15 name=wan_dns2 value='$wan_dns2'></td></tr>\n";
 
 print "<tr><td colspan=2><hr></td></tr>\n";
-print "<tr><th colspan=2>Advanced</th></tr>";
-if ( ($dmz_mode ne '0') && ($wan_proto ne "disabled") ) {
-    print "<tr><td><nobr>Mesh Gateway</nobr></td>\n";
-    print "<td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to all other nodes'";
+print "<tr><th colspan=2>Advanced WAN Access</th></tr>";
+if ( $wan_proto ne "disabled" ) {
+    print "<tr><td><nobr>Allow others to<br>use my WAN</td>\n";
+    print "<td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'";
     print " checked" if $olsrd_gw;
     print "></td></tr>\n";
 } else {
     push @hidden, "<input type=hidden name=olsrd_gw value='0'>";
 }
+print "<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td>\n";
+print "<td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'";
+print " checked" if ($lan_dhcp_noroute);
+print "></td></tr>\n";
+
 print "</table>
 
 </td></tr>
