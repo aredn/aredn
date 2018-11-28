@@ -45,10 +45,13 @@ if [ -z "$pinnum" ]; then
   echo "There are NO PoE Passthrough ports defined for this device"
   exit 1
 else
-	export pin="gpio${pinnum}"
-	if [ ! -d "/sys/class/gpio/$pin" ]; then
-	        echo "${pinnum}" > /sys/class/gpio/export
-	fi
-	echo ${newval} > /sys/class/gpio/${pin}/value
+  export pin="gpio${pinnum}"
+  if [ ! -d "/sys/class/gpio/${pin}" ]; then
+    echo "${pinnum}" > /sys/class/gpio/export
+  fi
+  if [ -e "/sys/class/gpio/${pin}/direction" ]; then
+    echo "out" > /sys/class/gpio/${pin}/direction
+  fi
+  echo "${newval}" > /sys/class/gpio/${pin}/value
   exit 0
 fi
