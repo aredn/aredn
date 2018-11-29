@@ -659,8 +659,12 @@ print "<tr>\n";
 print "<td>Upload Firmware</td>\n";
 print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin' onchange='validateFirmwareFilename(this)'></td>\n";
 print "<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'";
-if($tunnel_active) { print " disabled"; };
-print "></td>\n";
+if($tunnel_active) { 
+    print " disabled><br><small>Disabled: Tunnels enabled</small>";
+} else {
+    print ">";
+}
+print "</td>\n";
 print "</tr>\n";
 
 print "<tr>\n";
@@ -705,8 +709,12 @@ print "<tr>\n";
 print "<td>Upload Package</td>\n";
 print "<td><input type=file name=ul_pkg title='choose the .ipk file to install from your hard drive'> </td>\n";
 print "<td align=center><input type=submit name=button_ul_pkg value=Upload title='install the package'";
-if($tunnel_active) { print " disabled"; };
-print "></td>\n";
+if($tunnel_active) { 
+    print " disabled><br><small>Disabled: Tunnels enabled</small>";
+} else {
+    print ">";
+}
+print "</td>\n";
 print "</tr>\n";
 
 print "<tr>\n";
