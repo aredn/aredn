@@ -111,6 +111,8 @@ else
 	{
 	    eval (sprintf "\$$_ = \"%s\"", quotemeta $cfg{$_});
 	}
+	$wifi2_key =~ s/([a-f0-9][a-f0-9])/chr(hex($1))/eg;
+	$wifi2_ssid =~ s/([a-f0-9][a-f0-9])/chr(hex($1))/eg;
     }
 }
 
@@ -437,9 +439,13 @@ if($parms{button_save})
 	push (@errors, "LAN Access Point SSID must be 32 or less characters ");
     }
 
-    if( "$wifi2_encryption" != "none" and (length( $wifi2_key ) < 8 or length($wifi2_key) > 64) )
+    if( "$wifi2_enable" eq "1" and (length( $wifi2_key ) < 8 or length($wifi2_key) > 64) )
     {
 	push (@errors, "LAN Access Point Password must be at least 8 charaters, up to 64");
+    }
+    if( "$wifi2_enable" eq "1" and ( $wifi2_key =~ /\'/ or $wifi2_ssid =~ /\'/ ))
+    {
+	push (@errors, "The password and ssid may not contain a single quote character.");
     }
 
     if($debug == 3) # don't save the config, just validate it
@@ -452,6 +458,8 @@ if($parms{button_save})
 	$parms{node} = $node;
 	$parms{tactical} = $tactical;
 	system "touch /tmp/unconfigured" if -f "/etc/config/unconfigured";
+	$parms{wifi2_key} =~ s/(.)/sprintf("%x",ord($1))/eg;
+	$parms{wifi2_ssid} =~ s/(.)/sprintf("%x",ord($1))/eg;
 	$rc = save_setup("/etc/config.mesh/_setup");
 	$rc2 = &uci_commit("system");
 	if(-s "/tmp/web/save/node-setup.out")
@@ -859,13 +867,11 @@ if ( $phycount > 1 ) {
 
     print "<tr><td>Encryption</td>\n";
     print "<td><select name=wifi2_encryption>\n";
-    selopt("none", "none", $wifi2_encryption);
     selopt("WPA2 PSK", "psk2", $wifi2_encryption);
     selopt("WPA PSK", "psk", $wifi2_encryption);
-    selopt("WEP" , "wep", $wifi2_encryption);
     print "</select></td></tr>\n";
     print "<tr><td>Password</td>\n";
-    print "<td><input type=text size=15 name=wifi2_key value='$wifi2_key'>";
+    print "<td><input type=password size=15 name=wifi2_key value='$wifi2_key'>";
     print "</td></tr>\n";
 }
 

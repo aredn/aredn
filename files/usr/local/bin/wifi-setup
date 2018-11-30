@@ -115,10 +115,14 @@ for _dev in /sys/class/ieee80211/*; do
     chanbw=""
     country=""
     distance=""
-    ssid="${wifi2_ssid}"
+    ssid=$(echo "${wifi2_ssid}" | sed -e 's/\(..\)/\\x\1/g')
+    ssid=$(echo -e "${ssid}")
+    ssid=${ssid//\"/\\\"}
     mode="ap"
     encryption="${wifi2_encryption}"
-    key="${wifi2_key}"
+    key=$(echo "${wifi2_key}" | sed -e 's/\(..\)/\\x\1/g')
+    key=$(echo -e "${key}")
+    key=${key//\"/\\\"}
     network="lan"
   fi
 
@@ -137,9 +141,9 @@ for _dev in /sys/class/ieee80211/*; do
     set wireless.@wifi-iface[${ifacenum}].device=${radio}         
     set wireless.@wifi-iface[${ifacenum}].network=${network}      
     set wireless.@wifi-iface[${ifacenum}].mode=${mode}            
-    set wireless.@wifi-iface[${ifacenum}].ssid=${ssid}               
+    set wireless.@wifi-iface[${ifacenum}].ssid="${ssid}"               
     set wireless.@wifi-iface[${ifacenum}].encryption=${encryption}       
-    set wireless.@wifi-iface[${ifacenum}].key=${key}
+    set wireless.@wifi-iface[${ifacenum}].key="${key}"
 EOF
   uci -c ${dropdir} -q commit wireless
 
