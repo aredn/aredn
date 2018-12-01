@@ -1052,6 +1052,16 @@ sub hardware_info
       'rfband'          => '5800ubntus',
       'chanpower'       => { 140 => '17', 184 => '26' },
     },
+    'TP-Link CPE610 v1.0' => {
+      'name'            => 'TP-Link CPE610 v1.0',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '30',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+      'chanpower'       => { 133 => '15', 141 => '26', 143 => '25' , 149 => '15' , 165 => '14', 166 => '25' },
+    },
     'MikroTik RouterBOARD 952Ui-5ac2nD' => {
       'name'            => 'MikroTik RouterBOARD 952Ui-5ac2nD',
       'comment'         => '',
