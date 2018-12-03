@@ -148,4 +148,10 @@ if [ ! -s /etc/aredn_include/system_netled ]; then
 fi
 fi
 
+hwtype="$('/usr/local/bin/get_hardwaretype')"
+touch /etc/aredn_include/nanostation-xm
+if [ ! -f /etc/aredn_include/nanostation-m -a "$hwtype" = "nanostation-m" ]; then
+	echo "	option	type	'bridge'" > /etc/aredn_include/nanostation-xm
+fi
+
 exit 0

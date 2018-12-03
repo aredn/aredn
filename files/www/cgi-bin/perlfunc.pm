@@ -1708,6 +1708,33 @@ sub get_interface
   }
 }
 
+sub get_bridge_interfaces
+{
+  my ($intf) = @_;
+  my $bridge = `uci -q get network.$intf.type`;
+  my $intfname = `uci -q get network.$intf.ifname`;
+  chomp $intfname;
+
+  if ($intfname) {
+    return $intfname;
+  } else {
+    # guess at most common interface options
+    if ( $intf eq "lan" )
+    {
+      return "eth0";
+    } elsif ( $intf eq "wan" ){
+      return "eth0.1";
+    } elsif ( $intf eq "wifi" ){
+      return "wlan0";
+    } elsif ( $intf eq "dtdlink" ){
+      return "eth0.2";
+    } else {
+      # we have a problem
+      die("Unknown interface in call to get_interface");
+    }
+  }
+}
+
 sub reboot_required()
 {
   http_header();

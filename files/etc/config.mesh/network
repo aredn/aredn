@@ -18,8 +18,9 @@ config interface lan
 include /etc/aredn_include/ethmacfixup
 
 #### WAN configuration
-config interface	wan
+config interface wan
 	option ifname	"<wan_intf>"
+include /etc/aredn_include/nanostation-xm
 	option proto	<wan_proto>
 	option ipaddr	<wan_ip>
 	option netmask	<wan_mask>
@@ -36,6 +37,7 @@ config interface wifi
 #### device to device configuration
 config interface dtdlink
         option ifname   "<dtdlink_intf>"
+include /etc/aredn_include/nanostation-xm
         option proto    static
         option ipaddr   <dtdlink_ip>
         option netmask  255.0.0.0

@@ -8,8 +8,9 @@ boot() {
   then
     mkdir -p /etc/aredn_include
     touch /etc/aredn_include/ethmacfixup
-    local lanintf=`uci -q get 'network.lan.ifname'`
-    local wifiintf=`uci -q get 'network.wifi.ifname'`
+    local lanintf="$(uci -q get 'network.lan.ifname')"
+    lanintf=${lanintf%% *}
+    local wifiintf="$(uci -q get 'network.wifi.ifname')"
     local lanmac=`ifconfig $lanintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
     local wifimac=`ifconfig $wifiintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
 
