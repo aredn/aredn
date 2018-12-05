@@ -88,6 +88,7 @@ Rocket M5 TI | rocket-m-ti | 64Mb | stable
 TPLink CPE210 v1.0/v1.1 | cpe210-220-v1 | 64Mb | stable
 TPLink CPE210 v2.0 | cpe210-v2 | 64Mb | stable
 TPLink CPE210 v3.0 | cpe210-v3 | 64Mb | stable
+TPLink CPE220 v3.0 | cpe220-v3 | 64Mb | stable
 TPLink CPE510 v1.0/v1.1 | cpe510-520-v1 | 64Mb | stable
 TPLink CPE510 v2.0 | cpe510-v2 | 64Mb | stable
 TPLink CPE610 v1.0 | cpe610-v1 | 64Mb | stable
