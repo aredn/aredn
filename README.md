@@ -91,6 +91,7 @@ TPLink CPE210 v3.0 | cpe210-v3 | 64Mb | stable
 TPLink CPE220 v3.0 | cpe220-v3 | 64Mb | stable
 TPLink CPE510 v1.0/v1.1 | cpe510-520-v1 | 64Mb | stable
 TPLink CPE510 v2.0 | cpe510-v2 | 64Mb | stable
+TPLink CPE510 v3.0 | cpe510-v3 | 64Mb | stable
 TPLink CPE610 v1.0 | cpe610-v1 | 64Mb | stable
 Mikrotik Basebox RB912UAG-5HPnD/2HPnD | mikrotik-nand-large | 64Mb | stable
 Mikrotik hAP ac lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
