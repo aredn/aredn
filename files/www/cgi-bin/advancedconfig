@@ -143,7 +143,17 @@ for($i=0;$i<$scount;$i++)
     $newvalfield=eval "newval_" . $i;
     $newval=$parms{$newvalfield};
     $newval=~ s/^\s+|\s+$//;
-    $newval="1" if($setting[$i]->{'type'} eq "boolean") and $newval;
+    if ($setting[$i]->{'type'} eq "boolean") 
+    {
+	if ($newval)
+	{
+	    $newval="1";
+	}
+	else
+	{
+	    $newval="0";
+	}
+    }
     $key=$setting[$i]->{'key'};
     @x=split(/\./, $setting[$i]->{'key'});
     $cfgfile=$x[0];
@@ -219,7 +229,7 @@ foreach(@setting)
     next if !eval $setting[$scount]->{'condition'};
   }
   $sconfig = $_->{'key'};
-  $sval = `uci get '$sconfig'`;
+  $sval = `uci -q get '$sconfig'`;
   print <<EOF;
       <tr>
           <td align="center"><span title="$setting[$scount]->{'desc'}"><img src="/qmark.png" /></span></td>
@@ -228,10 +238,10 @@ foreach(@setting)
 EOF
   
   print "<input type='text' id='field_$scount' name='newval_$scount' size='65' value='$sval'>" if($setting[$scount]->{'type'} eq "string");
-  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked >" if($setting[$scount]->{'type'} eq "boolean" and $sval );
-  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1'>" if($setting[$scount]->{'type'} eq "boolean" and !$sval );
-  print "&nbsp;ON" if($setting[$scount]->{'type'} eq "boolean" and $sval);
-  print "&nbsp;OFF" if($setting[$scount]->{'type'} eq "boolean" and !$sval);
+  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked >" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
+  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1'>" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );
+  print "&nbsp;ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
+  print "&nbsp;OFF" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0);
 
   print <<EOF;
           </td>
