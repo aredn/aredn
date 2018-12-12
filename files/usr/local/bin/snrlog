@@ -256,6 +256,14 @@ end
 -- Neighbor Class END
 
 -- MAIN() -------------------------------------------------------------------------------------
+-- get wifi interface name
+wifiiface=get_ifname("wifi")
+
+-- if Mesh RF is turned off do nothing
+if ( wifiiface == string.match(wifiiface,'eth.*')) then
+  return
+end
+
 -- check to make sure a prior instance is not still running
 local f = io.open(pidfile,"r")
 if (f) then
@@ -284,9 +292,6 @@ if (f) then
     return
   end
 end
-
--- get wifi interface name
-wifiiface=get_ifname("wifi")
 
 -- load the lasttime table
 if file_exists(lastdat) then

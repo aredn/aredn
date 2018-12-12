@@ -124,15 +124,23 @@ foreach $line (`cat /etc/config.mesh/_setup`)
 }
 
 chomp ($lanintf=`jsonfilter -e '@.network.lan.ifname' < /etc/board.json`);
-$cfg{"lan_intf"} = "$lanintf";
-if ( ! $cfg{"wifi_intf"} )
-{
-  $cfg{"wifi_intf"} = get_interface("wifi");
-}
-$cfg{"wan_intf"} = get_bridge_interfaces("wan");
-$cfg{"dtdlink_intf"} = get_bridge_interfaces("dtdlink");
+$cfg{lan_intf} = "$lanintf";
 
-$cfg{"wifi_intf"} =~ /wlan(\d+)/;
+$cfg{wan_intf} = get_bridge_interfaces("wan");
+$cfg{dtdlink_intf} = get_bridge_interfaces("dtdlink");
+
+if ( $cfg{wifi_enable} == 1 )
+{
+  $cfg{wifi_intf} = `jsonfilter -e '@.network.wifi.ifname' < /etc/board.json | cut -f1`;
+  $cfg{wifi_intf} =~ /wlan(\d+)/;
+  chomp $cfg{wifi_intf};
+}
+else
+{
+  $wifi_sudo_intf = "$lanintf";
+  $wifi_sudo_intf =~ s/^([^\. \t]+).*$/$1/;
+  $cfg{wifi_intf} = $wifi_sudo_intf . ".3975";
+}
 
 die "configuration load failed\n" unless keys %cfg;
 
@@ -417,7 +425,10 @@ unless($cfg{wifi_proto} eq "disabled")
 {
   $cfg{wifi_txpower} = wifi_maxpower($cfg{wifi_channel}) if not defined $cfg{wifi_txpower} or $cfg{wifi_txpower} > wifi_maxpower($cfg{wifi_channel});
   $cfg{wifi_txpower} = 1  if $cfg{wifi_txpower} < 1;
-  print FILE "/usr/sbin/iw dev $cfg{wifi_intf} set txpower fixed $cfg{wifi_txpower}00\n";
+  if ( $cfg{wifi_enable} == 1 )
+  {
+    print FILE "/usr/sbin/iw dev $cfg{wifi_intf} set txpower fixed $cfg{wifi_txpower}00\n";
+  }
   if(defined $cfg{aprs_lat} and defined $cfg{aprs_lon})
   {
     printf FILE "echo %s,%s > /tmp/latlon.txt\n", $cfg{aprs_lat}, $cfg{aprs_lon};
@@ -467,8 +478,6 @@ if(-f "/etc/config.mesh/olsrd")
     print OUT "config LoadPlugin\n";
     print OUT "	option library 'olsrd_dyn_gw.so.0.5'\n";
     print OUT "	option Interval '60'\n";
-    print OUT "	list Ping '71.42.236.91'\n"; # hsmm-mesh.org\n";
-    print OUT "	list Ping '71.42.236.90'\n"; # hsmm-mesh.org\n";
     print OUT "	list Ping '8.8.8.8'\n";      # google dns\n";
     print OUT "	list Ping '8.8.4.4'\n";      # google dns\n";
     print OUT "\n\n";

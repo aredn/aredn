@@ -36,6 +36,12 @@ LICENSE
 # Look for hung 'iw' zombie processes prone to hang 
 # when available memory is low. 
 
+# if Mesh RF is disabled, then nothing to do
+iface=$(uci -q get 'network.wifi.ifname')                              
+if [ "$iface" = "${iface##wlan*}" ]; then
+  exit             
+fi
+
 zombiepid="/tmp/clean_zombie.pid"
 
 [ -e $zombiepid ] && [ -d "/proc/$(cat $zombiepid)" ] && exit

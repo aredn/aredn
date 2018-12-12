@@ -39,6 +39,11 @@
 # The wireless driver poorly tunes and treats these neighbors as noise in error.
 # This is a workaround until root cause driver updates occur.
 
+chomp ($iface=`uci -q get 'network.wifi.ifname'`); # wireless interface
+$wifi_disable = ( $iface =~ /eth.*$/ )? 1 : 0;
+exit 0 if $wifi_disable;
+
+
 $now=`cat /proc/uptime | cut -f1 -d" "`;
 chomp $now;
 exit 0 unless $now > 119;
@@ -75,7 +80,6 @@ if ( -f "$snrlogpid" )
 
 sleep 7;
 
-chomp ($iface=`uci -q get 'network.wifi.ifname'`); # wireless interface
 foreach(`iwinfo $iface info`)
 { 
   next unless /^.*PHY name:\s*([a-z0-4]+)/;

@@ -50,21 +50,27 @@ $config = "not set" if $config eq "" or not -d "/etc/config.mesh";
 $wifi_iface = get_interface("wifi");
 $wifi_iface =~ /wlan(\d+)/;
 $radio = ( defined $1 )? "radio$1" : "radio0";
+$wifi_disable = ( $wifi_iface =~ /eth.*$/ )? 1 : 0;
 
-($junk, $wifi_channel) = &uci_get_named_option("wireless", "$radio", "channel");
-if ($wifi_channel >= 76 and $wifi_channel <= 99)
+if ( ! $wifi_disable )
 {
-  $wifi_channel = ($wifi_channel*5+3000);
-}
-($junk, $wifi_chanbw) = &uci_get_named_option("wireless", "$radio", "chanbw");
-$node_desc = `/sbin/uci -q get system.\@system[0].description`; #pull the node description from uci
-$wifi_ssid = "N/A";
-@wisections = &uci_get_all_indexed_by_sectiontype("wireless", "wifi-iface");
-foreach(@wisections) {
-  if ($_->{network} eq "wifi") {
-    $wifi_ssid = $_->{ssid};
+  ($junk, $wifi_channel) = &uci_get_named_option("wireless", "$radio", "channel");
+  if ($wifi_channel >= 76 and $wifi_channel <= 99)
+  {
+    $wifi_channel = ($wifi_channel*5+3000);
+  }
+  ($junk, $wifi_chanbw) = &uci_get_named_option("wireless", "$radio", "chanbw");
+
+  $wifi_ssid = "N/A";
+  @wisections = &uci_get_all_indexed_by_sectiontype("wireless", "wifi-iface");
+  foreach(@wisections) {
+    if ($_->{network} eq "wifi") {
+      $wifi_ssid = $_->{ssid};
+    }
   }
 }
+
+$node_desc = `/sbin/uci -q get system.\@system[0].description`; #pull the node description from uci
 #get location info if available
 $lat_lon = "<strong>Location Not Available</strong>";
 if(-f "/etc/latlon") {
@@ -117,8 +123,11 @@ if($config eq "mesh")
 {
     print "&nbsp;&nbsp;&nbsp;";
     print "<button type=button onClick='window.location=\"mesh\"' title='See what is on the mesh'>Mesh Status</button>\n";
-    print "&nbsp;&nbsp;&nbsp;";
-    print "<button type=button onClick='window.location=\"scan\"' title='See what wireless networks are nearby'>WiFi Scan</button>\n";
+    if ( ! $wifi_disable )                                                  
+    {   
+	print "&nbsp;&nbsp;&nbsp;";
+	print "<button type=button onClick='window.location=\"scan\"' title='See what wireless networks are nearby'>WiFi Scan</button>\n";
+    }
 }
 
 print "&nbsp;&nbsp;&nbsp;";
@@ -164,10 +173,18 @@ $browser_ip = "";
 
 # left column - network interface info
 
-# show the wifi address
+# show the Primary/Wifi address
 ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network($wifi_iface);
 $cidr = "/ $cidr" if $cidr;
-$str  = "<th align=right><nobr>WiFi address</nobr></th><td>$ip <small>$cidr</small><br>";
+if (! $wifi_disable )
+{
+ $str  = "<th align=right><nobr>Wifi address</nobr></th><td>$ip <small>$cidr</small><br>";
+}
+else
+{
+ $str  = "<th align=right><nobr>Primary address</nobr></th><td>$ip <small>$cidr</small><br>";
+}
+
 # $str .= "<small><nobr>" . get_ip6_addr($wifi_iface) . "</nobr></small></td>";
 push @col1, $str;
 
@@ -217,19 +234,21 @@ if($browser_ip)
     push @col1, $str . "</td>";
 }
 
-$str  = "<th align=right><nobr>SSID</nobr></th><td>$wifi_ssid";
-push @col1, $str . "</td>";
+if ( ! $wifi_disable )
+{
+  $str  = "<th align=right><nobr>SSID</nobr></th><td>$wifi_ssid";
+  push @col1, $str . "</td>";
 
-$str  = "<th align=right><nobr>Channel</nobr></th><td>$wifi_channel";
-push @col1, $str . "</td>";
+  $str  = "<th align=right><nobr>Channel</nobr></th><td>$wifi_channel";
+  push @col1, $str . "</td>";
 
-$str  = "<th align=right><nobr>Bandwidth</nobr></th><td>$wifi_chanbw Mhz";
-push @col1, $str . "</td>";
-
+  $str  = "<th align=right><nobr>Bandwidth</nobr></th><td>$wifi_chanbw Mhz";
+  push @col1, $str . "</td>";
+}
 
 # right column - system info
 
-if($config eq "mesh")
+if($config eq "mesh" and ! $wifi_disable )
 {
     $str = "<th align=right valign=middle><nobr>Signal/Noise/Ratio</nobr></th><td valign=middle><nobr>";
     ($s, $n) = get_wifi_signal($wifi_iface);
