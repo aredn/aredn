@@ -118,13 +118,14 @@ sub setUSBOutput()
 }
 # ----- CALLBACKS ----------
 
+read_postdata({acceptfile => false});
+
 if($parms{button_firstboot})
 {
     system "firstboot -y";
     reboot_page("/cgi-bin/status");
 }
 
-read_postdata({acceptfile => false});
 reboot_page("/cgi-bin/status") if $parms{button_reboot};
 $node = nvram_get("node");
 
