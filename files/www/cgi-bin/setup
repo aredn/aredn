@@ -448,6 +448,20 @@ if($parms{button_save})
 	push (@errors, "The password and ssid may not contain a single quote character.");
     }
 
+    if ( $wifi2_channel < 30 and "$wifi2_hwmode" eq "11a" )
+    {
+        push (@errors, "Changed to 5GHz Mesh LAN AP, please review channel selection");
+    }
+    if ( $wifi2_channel > 30 and "$wifi2_hwmode" eq "11g" )
+    {
+        push (@errors, "Changed to 2GHz Mesh LAN AP, please review channel slection");
+    }
+    if ( $phycount > 1 and $wifi_enable and $wifi2_channel < 36 and $wifi2_enable )
+    {
+	push (@errors, "Mesh RF and LAN Access Point can not both use the same wireless card, review LAN AP settings");
+    }
+	
+
     if($debug == 3) # don't save the config, just validate it
     {
 	push (@errors, "OK") unless @errors;
@@ -677,8 +691,15 @@ print "<table cellpadding=5 border=1 width=100%><tr><td valign=top width=33%>\n"
 # MESH RF settings
 #
 
-print "<table width=100% style='border-collapse: collapse;'>
-<tr><th colspan=2>Mesh RF</th></tr>";
+print "<table width=100% style='border-collapse: collapse;'>";
+if ( $phycount > 1 )
+    {
+	print " <tr><th colspan=2>Mesh RF (2GHz)</th></tr>";
+    }
+    else
+    {
+        print " <tr><th colspan=2>Mesh RF</th></tr>";
+    }
 
 push @hidden, "<input type=hidden name=wifi_proto value='static'>";
 
@@ -855,25 +876,43 @@ else
 
 print "<tr><td colspan=2><hr></hr></td></tr>";
 
-if ( $phycount > 1 or ! $wifi_enable ) {
+$M39model = `/usr/local/bin/get_model | grep -e "M[39]"`;
+if ( $phycount > 1 or ! $wifi_enable and ! $M39model )
+{
 
-    # determine AP's band
-    if ( "$phy" eq "phy0" ) { $APphy="phy1"; }
+    if ( $wifi_enable and "$wifi2_hwmode" eq "11g" )
+    {
+	$wifi2_hwmode = "11a";
+	if ( $wifi2_channel < 36 )
+	{
+	    $wifi2_channel = 36;
+	}
+    }
+
+    # determine AP's wireless phy
+    if ( "$wifi2_hwmode" eq "11g"  and ! $wifi_enable )
+    { $APphy="phy1"; }
     else { $APphy="phy0"; }
+
     $rc3 = system("iw phy ${APphy} info | grep -q '5180 MHz' > /dev/null");
     undef @chan;
-    if ( $rc3 ) {
-	@chan=@ctwo;
-    }
-    else {
-	@chan=@cfive;
-    }
+    if ( $rc3 ) { @chan=@ctwo; } else { @chan=@cfive; }
 
     print "<tr><th colspan=2>LAN Access Point</th></tr>";
     print "<tr><td>Enable</td>";
     print "<td><input type=checkbox name=wifi2_enable value=1";
     print " checked" if $wifi2_enable;
     print "></td></tr>\n";
+
+    if ( $phycount > 1 ) {
+	print "<tr><td>AP band</td>\n";
+	print "<td><select name=wifi2_hwmode>\n";
+	if ( ! $wifi_enable ) {
+	    selopt("2GHz", "11g", $wifi2_hwmode);
+	}
+	selopt("5GHz", "11a", $wifi2_hwmode);
+	print "</select></td></tr>\n";
+    }
 
     print "<tr><td>SSID</td>\n";
     print "<td><input type=text size=15 name=wifi2_ssid value='$wifi2_ssid'></td></tr>\n";
@@ -889,8 +928,8 @@ if ( $phycount > 1 or ! $wifi_enable ) {
 
     print "<tr><td>Encryption</td>\n";
     print "<td><select name=wifi2_encryption>\n";
-    selopt("WPA2 PSK", "psk2", $wifi2_encryption);
-    selopt("WPA PSK", "psk", $wifi2_encryption);
+	selopt("WPA2 PSK", "psk2", $wifi2_encryption);
+	selopt("WPA PSK", "psk", $wifi2_encryption);
     print "</select></td></tr>\n";
     print "<tr><td>Password</td>\n";
     print "<td><input type=password size=15 name=wifi2_key value='$wifi2_key'>";
@@ -903,6 +942,7 @@ else
     push @hidden, "<input type=hidden name=wifi2_key        value='$wifi2_key'>";
     push @hidden, "<input type=hidden name=wifi2_channel    value='$wifi2_channel'>";
     push @hidden, "<input type=hidden name=wifi2_encryption value='$wifi2_encryption'>"; 
+    push @hidden, "<input type=hidden name=wifi2_hwmode     value='$wifi2_hwmode'>"; 
 }
 
 if(0) # disable for now
