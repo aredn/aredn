@@ -52,11 +52,11 @@ done < $configfile
 
 meshif="$(uci -q get network.wifi.ifname)"
 meshphy="phy${meshif#wlan}"
-hwtype="$(/usr/local/bin/get_hardwaretype)"
 
 rm -f "${dropdir}/wireless" 
 touch "${dropdir}/wireless"
 
+ifacecount=$(ls -d /sys/class/ieee80211/* | wc -l)
 ifacenum=0
 
 # find each phy and configure in wirelss config 
@@ -82,12 +82,6 @@ for _dev in /sys/class/ieee80211/*; do
     dev_id="set wireless.${radio}.macaddr=$(cat /sys/class/ieee80211/${dev}/macaddress)"
   fi
 
-  if [ $wifi2_enable -eq 1 ]; then
-    wifi2_disabled="0"
-  else
-    wifi2_disabled="1"
-  fi
-
   is_mesh_rf=0
   hwmode="11g"
   htmode="HT20"
@@ -95,6 +89,12 @@ for _dev in /sys/class/ieee80211/*; do
   iw phy "${dev}" info | grep -q '5180 MHz' && {
     hwmode="11a"
   }
+
+  if [[  $wifi2_enable -eq 1 -a \( $ifacecount -eq 1 -o \( \( $ifacecount -gt 1 \) -a \( "$hwmode" = "$wifi2_hwmode" \) \) \) ]] ; then
+    wifi2_disabled="0"
+  else
+    wifi2_disabled="1"
+  fi
 
   if [ "${dev}" = "${meshphy}" ]; then
     # mesh RF adhoc configuration
@@ -126,40 +126,37 @@ for _dev in /sys/class/ieee80211/*; do
     network="lan"
   fi
 
-  # test for devices with 2 wireless cards -- don't setup 2 APs
-  if [ "$hwtype" != "rb-952ui-5ac2nd" -o "$hwmode" != "11g" -o ${is_mesh_rf} -eq 1 ]; then
-    uci -c ${dropdir} -q batch > /dev/null <<-EOF
-      set wireless.${radio}=wifi-device
-      set wireless.${radio}.type=mac80211
-      set wireless.${radio}.disabled=${disabled}
-      set wireless.${radio}.channel=${channel}
-      set wireless.${radio}.chanbw=${chanbw}
-      set wireless.${radio}.country=${country}
-      set wireless.${radio}.distance=${distance}
-      set wireless.${radio}.hwmode=${hwmode}
-      set wireless.${radio}.htmode=${htmode}
-      ${dev_id}
-      add wireless wifi-iface
-      set wireless.@wifi-iface[${ifacenum}].device=${radio}         
-      set wireless.@wifi-iface[${ifacenum}].network=${network}      
-      set wireless.@wifi-iface[${ifacenum}].mode=${mode}            
-      set wireless.@wifi-iface[${ifacenum}].ssid="${ssid}"               
-      set wireless.@wifi-iface[${ifacenum}].encryption=${encryption}       
-      set wireless.@wifi-iface[${ifacenum}].key="${key}"
+  uci -c ${dropdir} -q batch > /dev/null <<-EOF
+    set wireless.${radio}=wifi-device
+    set wireless.${radio}.type=mac80211
+    set wireless.${radio}.disabled=${disabled}
+    set wireless.${radio}.channel=${channel}
+    set wireless.${radio}.chanbw=${chanbw}
+    set wireless.${radio}.country=${country}
+    set wireless.${radio}.distance=${distance}
+    set wireless.${radio}.hwmode=${hwmode}
+    set wireless.${radio}.htmode=${htmode}
+    ${dev_id}
+    add wireless wifi-iface
+    set wireless.@wifi-iface[${ifacenum}].device=${radio}         
+    set wireless.@wifi-iface[${ifacenum}].network=${network}      
+    set wireless.@wifi-iface[${ifacenum}].mode=${mode}            
+    set wireless.@wifi-iface[${ifacenum}].ssid="${ssid}"               
+    set wireless.@wifi-iface[${ifacenum}].encryption=${encryption}       
+    set wireless.@wifi-iface[${ifacenum}].key="${key}"
 EOF
-    uci -c ${dropdir} -q commit wireless
+  uci -c ${dropdir} -q commit wireless
 
-    if [ ${is_mesh_rf} -eq 1 ]; then
-      # add monitor interface on mesh rf
-      ifacenum=$((ifacenum + 1))
-      uci -c ${dropdir} -q batch > /dev/null <<-EOF
-        add wireless wifi-iface
-        set wireless.@wifi-iface[${ifacenum}].device=${radio}
-        set wireless.@wifi-iface[${ifacenum}].network=wifi_mon
-        set wireless.@wifi-iface[${ifacenum}].mode=monitor
+  if [ ${is_mesh_rf} -eq 1 ]; then
+    # add monitor interface on mesh rf
+    ifacenum=$((ifacenum + 1))
+    uci -c ${dropdir} -q batch > /dev/null <<-EOF
+      add wireless wifi-iface
+      set wireless.@wifi-iface[${ifacenum}].device=${radio}
+      set wireless.@wifi-iface[${ifacenum}].network=wifi_mon
+      set wireless.@wifi-iface[${ifacenum}].mode=monitor
 EOF
-      uci -q -c ${dropdir} commit wireless
-    fi
+    uci -q -c ${dropdir} commit wireless
   fi
  
   ifacenum=$((ifacenum + 1))
