@@ -1092,6 +1092,15 @@ sub hardware_info
       'rfband'          => '5800ubntus',
       'chanpower'       => { 133 => '15', 141 => '26', 143 => '25' , 149 => '15' , 165 => '14', 166 => '25' },
     },
+    'Mikrotik RouterBOARD 911G-5HPnD' => {
+      'name'            => 'Mikrotik RouterBOARD 911G-5HPnD',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '30',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+    },
     'MikroTik RouterBOARD 952Ui-5ac2nD' => {
       'name'            => 'MikroTik RouterBOARD 952Ui-5ac2nD',
       'comment'         => '',

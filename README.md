@@ -99,6 +99,7 @@ Mikrotik hAP ac lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
 Mikrotik RBLHG-5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLHG-5HPnD-XL | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik LDF-5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
+Mikrotik QRT5 RB911G-5HPnD-QRT | mikrotik-nand-large | 64Mb | stable
 
 Latest Mikrotik installation options are found at: https://www.arednmesh.org/content/installation-instructions-mikrotik-devices
 
