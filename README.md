@@ -127,9 +127,6 @@ other mesh nodes.
 
 * NanoStation M5 XW
 * NanoStation M2 XW
-
-The following devices have standard Main ports and non-functional Secondary Ports
-
 * NanoStation M2 XM
 * NanoStation M3 XM
 * NanoStation M5 XM
