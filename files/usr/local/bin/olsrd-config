@@ -94,33 +94,32 @@ foreach(`cat /etc/config/services 2>/dev/null`)
 # load the tunnels
 my @tunnelnames = @section = ();
 
-$tunnum=50;
-push(@tunnelnames, &uci_get_names_by_sectiontype("vtun","client"));
-foreach (@tunnelnames)
+if (-e "/etc/local/mesh-firewall/02-vtund")
 {
-  $section=&uci_get_named_section("vtun",$_);
-  if ($section->{enabled} eq 1)
+  $tunnum=50;
+  push(@tunnelnames, &uci_get_names_by_sectiontype("vtun","client"));
+  foreach (@tunnelnames)
   {
-    push(@tunnels,"tun${tunnum}");
-    $tunnum++;
+    $section=&uci_get_named_section("vtun",$_);
+    if ($section->{enabled} eq 1)
+    {
+      push(@tunnels,"tun${tunnum}");
+      $tunnum++;
+    }
+  }
+
+  $tunnum=60;
+  @tunnelnames=&uci_get_names_by_sectiontype("vtun","server");
+  foreach (@tunnelnames)
+  {
+    $section=&uci_get_named_section("vtun",$_);
+    if ($section->{enabled} eq 1)
+    {
+      push(@tunnels,"tun${tunnum}");
+      $tunnum++;
+    }
   }
 }
-
-$tunnum=60;
-@tunnelnames=&uci_get_names_by_sectiontype("vtun","server");
-foreach (@tunnelnames)
-{
-  $section=&uci_get_named_section("vtun",$_);
-  if ($section->{enabled} eq 1)
-  {
-    push(@tunnels,"tun${tunnum}");
-    $tunnum++;
-  }
-}
-
-
-
-
 
 # add the nameservice plugin
 push @file, qq(\nLoadPlugin "olsrd_nameservice.so.0.4"\n);
@@ -139,12 +138,14 @@ foreach(@services) { push @file, qq(    PlParam "service" "$_"\n) }
 push @file, qq(}\n);
 
 # add the ACTIVE tunnel interfaces
-push @file, qq(\nInterface );
-foreach(@tunnels) { push @file, qq("$_" ) }
-push @file, qq(\n{\n);
-push @file, qq(     Ip4Broadcast 255.255.255.255\n);
-push @file, qq(}\n);
-
+if ( @tunnels )
+{
+  push @file, qq(\nInterface );
+  foreach(@tunnels) { push @file, qq("$_" ) }
+  push @file, qq(\n{\n);
+  push @file, qq(     Ip4Broadcast 255.255.255.255\n);
+  push @file, qq(}\n);
+}
 
 # write the file
 print @file;
