@@ -82,7 +82,8 @@ PowerBeam-M5-300 | loco-m-xw | 64Mb | stable
 PowerBeam-M5-400/400ISO/620 | rocket-m-xw | 64Mb | stable
 PowerBridge | nano-m  | 64Mb | stable
 Rocket M9/M2/M3/M5/M5GPS XM | rocket-m | 64Mb | stable
-Rocket M2/M5 XW | rocket-m-xw | 64Mb | stable
+Rocket M2 XW | loco-m-xw | 64Mb | stable
+Rocket M5 XW | rocket-m-xw | 64Mb | stable
 Rocket M2 TI | rocket-m-ti? | 64Mb | unknown
 Rocket M5 TI | rocket-m-ti | 64Mb | stable
 TPLink CPE210 v1.0/v1.1 | cpe210-220-v1 | 64Mb | stable

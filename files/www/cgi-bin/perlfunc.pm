@@ -1583,6 +1583,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '2400',
     },
+    '0xe868' => {
+      'name'            => 'Rocket M2 XW',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '21',
+      'pwroffset'       => '7',
+      'usechains'       => 1,
+      'rfband'          => '2400',
+    },
     '0xe885' => {
       'name'            => 'PowerBeam M5 620 XW',
       'comment'         => '',
