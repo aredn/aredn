@@ -35,9 +35,8 @@
 --]]
 
 require("uci")
-require("aredn.uci")
 require("aredn.utils")
-require("aredn.info")
+local aredn_info = require("aredn.info")
 require("aredn.http")
 require("nixio")
 local ipc = require("luci.ip")
@@ -56,19 +55,18 @@ end
 info={}
 
 -- API version
-info['api_version']="1.5"
+info['api_version']="1.6"
 
 
 -- NODE name
-css=getUciConfType("system", "system")
-info['node']=css[0]['hostname']
+info['node']=aredn_info.getNodeName()
 
 info['node_details']={}
 -- MODEL
-info['node_details']['model']=getModel()
+info['node_details']['model']=aredn_info.getModel()
 
 -- DESCRIPTION
-info['node_details']['description']=getNodeDescription()
+info['node_details']['description']=aredn_info.getNodeDescription()
 
 -- BOARD ID
 info['node_details']['board_id']=hardware_boardid()
@@ -81,16 +79,16 @@ end
 info['node_details']['firmware_mfg']=fw_mfg
 
 -- Firmware version
-info['node_details']['firmware_version']=getFirmwareVersion()
+info['node_details']['firmware_version']=aredn_info.getFirmwareVersion()
 
 -- Mesh RF info
 info['meshrf']={}
-local radio=getMeshRadioDevice()
+local radio=aredn_info.getMeshRadioDevice()
 if ( radio ~= nill and radio ~= "" ) then
 	info['meshrf']['status']="on"
-	info['meshrf']['ssid']=getSSID()
-	info['meshrf']['channel']=getChannel(radio)
-	info['meshrf']['chanbw']=getChannelBW(radio)
+	info['meshrf']['ssid']=aredn_info.getSSID()
+	info['meshrf']['channel']=aredn_info.getChannel(radio)
+	info['meshrf']['chanbw']=aredn_info.getChannelBW(radio)
 else
 	info['meshrf']['status']="off"
 end
@@ -110,12 +108,12 @@ info['tunnels']['active_tunnel_count']=atc:chomp()
 
 -- Location info
 -- LAT/LON
-local lat, lon = getLatLon() 
+local lat, lon = aredn_info.getLatLon()
 info['lat']=lat
 info['lon']=lon
 
 -- GRID SQUARE
-info['grid_square']=getGridSquare()
+info["grid_square"]=aredn_info.getGridSquare()
 
 -- UPTIME AND LOADAVGS
 mynix=nixio.sysinfo()

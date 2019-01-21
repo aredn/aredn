@@ -35,24 +35,51 @@
 --]]
 
 require("uci")
-require("aredn.uci")
+local aredn_uci = require("aredn.uci")
 require("aredn.utils")
 -- require("aredn.http")
 local lip=require("luci.ip")
 require("nixio")
 require("ubus")
 
-function getNodeName()
-	css=getUciConfType("system", "system")
+-------------------------------------
+-- Public API is attached to table
+-------------------------------------
+local model = {}
+
+-------------------------------------
+-- Returns WAN Address
+-------------------------------------
+local function getWAN()
+	local cubus = ubus.connect()
+	niws=cubus:call("network.interface.wan","status",{})
+	if niws['ipv4-address'] == nil or niws['ipv4-address'][1] == nil then
+		return ""
+	end
+	return niws['ipv4-address'][1]['address']
+end
+
+
+-------------------------------------
+-- Returns name of the node
+-------------------------------------
+function model.getNodeName()
+	css=aredn_uci.getUciConfType("system", "system")
 	return css[0]['hostname']
 end
 
-function getNodeDescription()
-	css=getUciConfType("system", "system")
+-------------------------------------
+-- Returns description of the node
+-------------------------------------
+function model.getNodeDescription()
+	css=aredn_uci.getUciConfType("system", "system")
 	return css[0]['description']
 end
 
-function getLatLon()
+-------------------------------------
+-- Returns array [Latitude, Longitude]
+-------------------------------------
+function model.getLatLon()
 	local llfname="/etc/latlon"
 	local lat=""
 	local lon=""
@@ -67,7 +94,10 @@ function getLatLon()
 	return lat,lon
 end
 
-function getGridSquare()
+-------------------------------------
+-- Returns Grid Square of Node
+-------------------------------------
+function model.getGridSquare()
 	local gsfname="/etc/gridsquare"
 	local grid=""
 	if file_exists(gsfname) then
@@ -80,7 +110,10 @@ function getGridSquare()
 	return grid
 end
 
-function getFirmwareVersion()
+-------------------------------------
+-- Returns Current Firmware Version
+-------------------------------------
+function model.getFirmwareVersion()
 	local relfile=io.open("/etc/mesh-release","r")
 	local fv=""
 	if relfile~=nil then
@@ -90,15 +123,22 @@ function getFirmwareVersion()
 	return fv
 end
 
-function getModel()
+
+-------------------------------------
+-- Retuns Model / Device name
+-------------------------------------
+function model.getModel()
 	m=os.capture("/usr/local/bin/get_model")
 	return m:chomp()
 end
 
-function getSSID()
+-------------------------------------
+-- Returns current SSID
+-------------------------------------
+function model.getSSID()
 	-- SSID
 	local myssid=""
-	local wif=getUciConfType("wireless", "wifi-iface")
+	local wif=aredn_uci.getUciConfType("wireless", "wifi-iface")
 	for pos, t in pairs(wif) do
 		if wif[pos]['network']=="wifi" then
 			myssid=wif[pos]['ssid']
@@ -107,10 +147,14 @@ function getSSID()
 	return myssid
 end
 
-function getMeshRadioDevice()
+
+-------------------------------------
+-- Determine Radio Device for Mesh
+-------------------------------------
+function model.getMeshRadioDevice()
 	--Determine radio device for mesh
 	local radio=""
-	local wifiinterfaces=getUciConfType("wireless","wifi-iface")
+	local wifiinterfaces=aredn_uci.getUciConfType("wireless","wifi-iface")
 	for pos,i in pairs(wifiinterfaces) do
 		if wifiinterfaces[pos]['mode']=="adhoc" then
 			radio=wifiinterfaces[pos]['device']
@@ -119,15 +163,25 @@ function getMeshRadioDevice()
 	return radio
 end
 
-function getBand(radio)
+-------------------------------------
+-- TODO: Return Band
+-------------------------------------
+function model.getBand(radio)
 	return ""
 end
 
-function getFrequency(radio)
+-------------------------------------
+-- TODO: Return Frequency
+-------------------------------------
+function model.getFrequency(radio)
 	return ""
 end
 
-function getChannel(radio)
+-------------------------------------
+-- Return Channel for Radio
+-- @param radio Radio Device.
+-------------------------------------
+function model.getChannel(radio)
 	--Wifi Channel Number
 	local ctx = uci.cursor()
 	if not ctx then
@@ -142,7 +196,12 @@ function getChannel(radio)
 	return tostring(chan)
 end
 
-function getChannelBW(radio)
+
+-------------------------------------
+-- Return Channel BW for Radio
+-- @param radio Radio Device.
+-------------------------------------
+function model.getChannelBW(radio)
 	--Wifi Bandwidth
 	ctx = uci.cursor()
 	if not ctx then
@@ -153,21 +212,42 @@ function getChannelBW(radio)
 	return chanbw
 end
 
-function getUptime()
+-------------------------------------
+-- Current System Uptime
+-------------------------------------
+function model.getUptime()
 	local mynix=nixio.sysinfo()
 	local upsecs=mynix['uptime']
-	return secondsToClock(upsecs)
+	return upsecs
 end
 
-function getDate()
+
+-------------------------------------
+-- System Date Formatted
+-------------------------------------
+function model.getDate()
 	return os.date("%a %b %d %Y")
 end
 
-function getTime()
+-------------------------------------
+-- System Time Formatted
+-------------------------------------
+function model.getTime()
 	return os.date("%H:%M:%S %Z")
 end
 
-function getLoads()
+
+-------------------------------------
+-- Returns current epoch time
+-------------------------------------
+function getEpoch()
+	return os.time()
+end
+
+-------------------------------------
+-- Returns last three average loads
+-------------------------------------
+function model.getLoads()
 	local loads={}
 	local mynix=nixio.sysinfo()
 	loads=mynix['loads']
@@ -177,7 +257,10 @@ function getLoads()
 	return loads
 end
 
-function getFreeMemory()
+-------------------------------------
+-- Returns memory details
+-------------------------------------
+function model.getFreeMemory()
 	local mem={}
 	local mynix=nixio.sysinfo()
 	mem['freeram']=mynix['freeram']/1024
@@ -186,7 +269,10 @@ function getFreeMemory()
 	return mem
 end
 
-function getFSFree()
+-------------------------------------
+-- Returns FS Usage details
+-------------------------------------
+function model.getFSFree()
 	local fsf={}
 	local mynix=nixio.fs.statvfs("/")
 	fsf['rootfree']=mynix['bfree']*4
@@ -196,7 +282,10 @@ function getFSFree()
 	return fsf
 end
 
-function getOLSRInfo()
+-------------------------------------
+-- Returns OLSR info
+-------------------------------------
+function model.getOLSRInfo()
 	local info={}
 	tot=os.capture('/sbin/ip route list table 30|wc -l')
 	info['entries']=tot:chomp()
@@ -205,11 +294,23 @@ function getOLSRInfo()
 	return info
 end
 
-function getInterfaceIPAddress(interface)
-	return getUciConfSectionOption("network",interface,"ipaddr")
+-------------------------------------
+-- Returns Interface IP Address
+-- @param interface name of interface 'wifi' | 'lan' | 'wan'
+-------------------------------------
+function model.getInterfaceIPAddress(interface)
+	-- special case
+	if interface == "wan" then
+		return getWAN()
+	end
+
+	return aredn_uci.getUciConfSectionOption("network",interface,"ipaddr")
 end
 
-function getDefaultGW()
+-------------------------------------
+-- Returns Default Gateway
+-------------------------------------
+function model.getDefaultGW()
 	local gw=""
   	local rt=lip.route("8.8.8.8")
  	if rt ~= "" then
@@ -218,8 +319,6 @@ function getDefaultGW()
 	return gw
 end
 
-function getWAN()
-	local cubus = ubus.connect()
-	niws=cubus:call("network.interface.wan","status",{})
-	return niws['ipv4-address'][1]['address']
-end
+
+
+return model

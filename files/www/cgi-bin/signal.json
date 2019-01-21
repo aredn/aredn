@@ -37,7 +37,7 @@
 require("uci")
 require("aredn.uci")
 require("aredn.utils")
-require("aredn.info")
+local aredn_info = require("aredn.info")
 require("aredn.http")
 require("nixio")
 require("iwinfo")
@@ -74,8 +74,8 @@ end
 local wifiiface=get_ifname("wifi")
 
 -- get bandwidth
-local radio=getMeshRadioDevice()
-local bandwidth=getChannelBW(radio)
+local radio=aredn_info.getMeshRadioDevice()
+local bandwidth=aredn_info.getChannelBW(radio)
 
 if parms.realtime then
   -- REALTIME

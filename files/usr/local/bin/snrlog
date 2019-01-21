@@ -35,7 +35,7 @@
 --]]
 
 require("aredn.utils")
-require("aredn.info")
+local aredn_info=require("aredn.info")
 require("uci")
 require("aredn.uci")
 local nxo=require("nixio")
@@ -333,8 +333,8 @@ end
 )
 
 -- get the current bandwidth setting
-local radio=getMeshRadioDevice()
-bandwidth=getChannelBW(radio)
+local radio=aredn_info.getMeshRadioDevice()
+bandwidth=aredn_info.getChannelBW(radio)
 
 -- iterate over all the stations
 for mstation in pairs(stations) do

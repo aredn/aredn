@@ -36,14 +36,18 @@
 
 require("uci")
 
-function getUciConfType(conf,type)
+local api = {}
+
+function api.getUciConfType(conf,type)
    local curs=uci.cursor()
    local ifce={}
    curs:foreach(conf,type,function(s) ifce[s[".index"]]=s end)
    return ifce
 end
 
-function getUciConfSectionOption(conf,sect,option)
+function api.getUciConfSectionOption(conf,sect,option)
    local curs=uci.cursor()
    return curs:get(conf,sect,option)
 end
+
+return api
