@@ -433,6 +433,7 @@ unless($cfg{wifi_proto} eq "disabled")
   {
     printf FILE "echo %s,%s > /tmp/latlon.txt\n", $cfg{aprs_lat}, $cfg{aprs_lon};
   }
+  print FILE "/usr/local/bin/olsrd-watchdog &\n";
   print FILE "/usr/local/bin/olsrd-namechange-loop &\n";
 }
 close(FILE);
