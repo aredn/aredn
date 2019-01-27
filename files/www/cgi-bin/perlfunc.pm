@@ -1110,6 +1110,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '2400',
     },
+    'MikroTik RouterBOARD RB952Ui-5ac2nD' => {
+      'name'            => 'MikroTik RouterBOARD RB952Ui-5ac2nD',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '22',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '2400',
+    },
     'Mikrotik RouterBOARD 912UAG-2HPnD' => {
       'name'            => 'Mikrotik RouterBOARD 912UAG-2HPnD',
       'comment'         => '',
