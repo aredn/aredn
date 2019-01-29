@@ -155,6 +155,7 @@ $header = <<EOF;
           dps[0].push(result[0][0]);
           chart.render();
           var snr = (result[0][0].y[1] * -1) - (result[0][0].y[0] * -1);
+          toneFreq(snr);
           \$('#snr').html(snr);
         });
       };
@@ -170,6 +171,33 @@ $header = <<EOF;
       }
       chart.render();
     }); // --- document.ready
+
+    var audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+    var oscillator = audioCtx.createOscillator();
+    var gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    oscillator.type = 'sine';
+    gainNode.connect(audioCtx.destination);
+    gainNode.gain.value = 1;
+
+    function toneFreq(snr) {
+      oscillator.frequency.value = snr * 20;  
+    }
+
+    function toneOn() { 
+      oscillator = audioCtx.createOscillator();
+      gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      oscillator.type = 'sine';
+      gainNode.connect(audioCtx.destination);
+      gainNode.gain.value = 1; 
+      oscillator.start();
+    };
+
+    function toneOff() {
+      oscillator.stop();
+    };
+
   </script>
   </head>
 EOF
@@ -229,12 +257,11 @@ $page = $page . "<input type='hidden' name='realtime' value='1'></input>\n" if($
 $page = $page . <<EOF;
     </form>
     </div>
-    <div id="snrValues">
-    <h2>
+    <div id="snrValues" style="float: left;">
 EOF
-$page = $page . "SNR: <span id='snr'>0</span>dB" if($parms{"realtime"} eq "1");
+$page = $page . "<div><h3>SNR: <span id='snr'>0</span>dB</h3></div>" if($parms{"realtime"} eq "1");
+$page = $page . "<div style='float: right;'>Sound: <button onclick='toneOn();'>On</button>&nbsp;<button onclick='toneOff();'>Off</button></div>" if($parms{"realtime"} eq "1");
 $page = $page . <<EOF;
-    </h2>
     </div>
     <div id="chartContainer" style="width: 80%; height: 60%;"></div>
   </center>
