@@ -146,14 +146,14 @@ for($i=0;$i<$scount;$i++)
     $newval=~ s/^\s+|\s+$//;
     if ($setting[$i]->{'type'} eq "boolean") 
     {
-	if ($newval)
-	{
-	    $newval="1";
-	}
-	else
-	{
-	    $newval="0";
-	}
+      if ($newval)
+      {
+          $newval="1";
+      }
+      else
+      {
+          $newval="0";
+      }
     }
     $key=$setting[$i]->{'key'};
     @x=split(/\./, $setting[$i]->{'key'});
@@ -227,7 +227,11 @@ foreach(@setting)
   # check to see if setting is conditional
   if($setting[$scount]->{'condition'})
   {
-    next if !eval $setting[$scount]->{'condition'};
+    if (!eval $setting[$scount]->{'condition'})
+    {
+      $scount++;
+      next;
+    }
   }
   $sconfig = $_->{'key'};
   $sval = `uci -q get '$sconfig'`;
