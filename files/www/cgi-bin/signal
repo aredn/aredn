@@ -192,9 +192,13 @@ $header = <<EOF;
       gainNode.connect(audioCtx.destination);
       gainNode.gain.value = 1; 
       oscillator.start();
+      document.getElementById("toneOff").disabled = false;
+      document.getElementById("toneOn").disabled = true;
     };
 
     function toneOff() {
+      document.getElementById("toneOff").disabled = true;
+      document.getElementById("toneOn").disabled = false;
       oscillator.stop();
     };
 
@@ -260,7 +264,7 @@ $page = $page . <<EOF;
     <div id="snrValues" style="float: left;">
 EOF
 $page = $page . "<div><h3>SNR: <span id='snr'>0</span>dB</h3></div>" if($parms{"realtime"} eq "1");
-$page = $page . "<div style='float: right;'>Sound: <button onclick='toneOn();'>On</button>&nbsp;<button onclick='toneOff();'>Off</button></div>" if($parms{"realtime"} eq "1");
+$page = $page . "<div style='float: right;'>Sound: <button id='toneOn' onclick='toneOn();'>On</button>&nbsp;<button id='toneOff' disabled onclick='toneOff();'>Off</button></div>" if($parms{"realtime"} eq "1");
 $page = $page . <<EOF;
     </div>
     <div id="chartContainer" style="width: 80%; height: 60%;"></div>
