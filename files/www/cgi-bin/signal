@@ -183,6 +183,8 @@ $header = <<EOF;
     function toneFreq(snr) {
       var p = document.getElementById("tonePitch").value;
       oscillator.frequency.value = snr * p;  
+      var v = document.getElementById("toneVol").value;
+      gainNode.gain.value = v;
     }
 
     function toneOn() { 
@@ -191,7 +193,7 @@ $header = <<EOF;
       oscillator.connect(gainNode);
       oscillator.type = 'sine';
       gainNode.connect(audioCtx.destination);
-      gainNode.gain.value = 1; 
+      gainNode.gain.value = .5; 
       oscillator.start();
       document.getElementById("toneOff").disabled = false;
       document.getElementById("toneOn").disabled = true;
@@ -265,7 +267,14 @@ $page = $page . <<EOF;
     <div id="snrValues" style="float: left;">
 EOF
 $page = $page . "<div><h3>SNR: <span id='snr'>0</span>dB</h3></div>" if($parms{"realtime"} eq "1");
-$page = $page . "<div style='float: right;'>Sound: <button id='toneOn' onclick='toneOn();'>On</button>&nbsp;<button id='toneOff' disabled onclick='toneOff();'>Off</button><br /><br />Pitch:&nbsp;<input type='range' id='tonePitch' name='tonePitch' min='5' max='100'></input></div>" if($parms{"realtime"} eq "1");
+if($parms{"realtime"} eq "1") {
+  $page = $page . "<div style='float: right;'>Sound: <button id='toneOn' onclick='toneOn();'>On</button>&nbsp;";
+  $page = $page . "<button id='toneOff' disabled onclick='toneOff();'>Off</button><br /><br />";
+  $page = $page . "Pitch:&nbsp;<input type='range' id='tonePitch' name='tonePitch' min='5' max='100'></input><br /><br />";
+  $page = $page . "Volume:&nbsp;<input type='range' id='toneVol' name='toneVol' min='0' max='10'></input><br /><br />";
+  $page = $page . "</div>";
+}
+
 $page = $page . <<EOF;
     </div>
     <div id="chartContainer" style="width: 80%; height: 60%;"></div>
