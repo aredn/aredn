@@ -1628,6 +1628,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
     },
+    '0xe812' => {
+      'name'            => 'NanoBeam M2 13',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '22',
+      'pwroffset'       => '6',
+      'usechains'       => 1,
+      'rfband'          => '2400',
+    },
     '0xe815' => {
       'name'            => 'NanoBeam M5 16',
       'comment'         => '',
