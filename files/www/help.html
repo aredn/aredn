@@ -371,12 +371,18 @@ The <strong>Distance</strong> setting adjusts the RF retry timer
 to define how long the transmitter will wait for an acknowledgement
 from a Neighbor station. If the distance parameter is too short, then
 the transmitter will send duplicate data packets before the acknowledgement
-has had time to return.  This value is only applicable to nodes that can
+has had time to return. If the distance parameter is too long, then the 
+transmitter will wait extra time before considering the data lost to re-transmit.
+This value is only applicable to nodes that can
 be communicated with directly over RF and not multiple hop nodes on the 
 greater mesh network.  The value should be set to the distance in meters
 to the farthest direct RF node you expect to communicate with. Change
 the distance value by moving the slider. Distance values will be in multiples
-of 1000 meters (approximately 0.62 miles). A value of zero is not allowed.
+of 1000 meters (approximately 0.62 miles).  A value of '0' will cause
+the radio to auto determine the RF retry timer based on measuring the
+actual time it takes acknowledgement packets to be received back.  The
+automatic timer is set using a Exponential Weighted Moving Average (EWMA) method. 
+'auto' is the default setting and in most all situations the optimal setting.
 The best way to test an optimal distance settings is to do an 'iperf' 
 test directly between 2 nodes to measure the performance of this RF 
 channel.   Try different distance settings to peak out the iperf throughput.

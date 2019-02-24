@@ -1,0 +1,54 @@
+Index: openwrt/package/kernel/mac80211/patches/569-dynack-aredn-long-dist-defaults.patch
+===================================================================
+--- /dev/null
++++ openwrt/package/kernel/mac80211/patches/569-dynack-aredn-long-dist-defaults.patch
+@@ -0,0 +1,32 @@
++--- a/drivers/net/wireless/ath/ath9k/dynack.c
+++++ b/drivers/net/wireless/ath/ath9k/dynack.c
++@@ -21,7 +21,8 @@
++ #define COMPUTE_TO		(5 * HZ)
++ #define LATEACK_DELAY		(10 * HZ)
++ #define LATEACK_TO		256
++-#define MAX_DELAY		300
+++/* AREDN max distance set to 150km */
+++#define MAX_DELAY		1054	
++ #define EWMA_LEVEL		96
++ #define EWMA_DIV		128
++ 
++@@ -293,7 +294,8 @@
++ void ath_dynack_node_init(struct ath_hw *ah, struct ath_node *an)
++ {
++ 	/* ackto = slottime + sifs + air delay */
++-	u32 ackto = 9 + 16 + 64;
+++	/* AREDN starting point is 20km */
+++	u32 ackto = 9 + 16 + 171;
++ 	struct ath_dynack *da = &ah->dynack;
++ 
++ 	an->ackto = ackto;
++@@ -328,7 +330,8 @@
++ void ath_dynack_reset(struct ath_hw *ah)
++ {
++ 	/* ackto = slottime + sifs + air delay */
++-	u32 ackto = 9 + 16 + 64;
+++	/* AREDN starting point is 20km */
+++	u32 ackto = 9 + 16 + 171;
++ 	struct ath_dynack *da = &ah->dynack;
++ 
++ 	da->lto = jiffies;
+Index: openwrt/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
+===================================================================
+--- openwrt.orig/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
++++ openwrt/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
+@@ -788,7 +788,11 @@ drv_mac80211_setup() {
+ 
+ 	iw phy "$phy" set antenna $txantenna $rxantenna >/dev/null 2>&1
+ 	iw phy "$phy" set antenna_gain $antenna_gain
+-	iw phy "$phy" set distance "$distance"
++	if [ $distance -eq 0 -a -d /sys/kernel/debug/ieee80211/$phy/ath9k ]; then
++		iw phy "$phy" set distance auto
++	else
++		iw phy "$phy" set distance "$distance"
++	fi
+ 
+ 	[ -n "$frag" ] && iw phy "$phy" set frag "${frag%%.*}"
+ 	[ -n "$rts" ] && iw phy "$phy" set rts "${rts%%.*}"
