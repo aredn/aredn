@@ -176,11 +176,18 @@ zypper install git subversion ncurses-devel zlib-devel gawk unzip \
   libopenssl-devel shellcheck lua51
 ```
 
+On Arch:
+```
+pacman -S base-devel subversion zlib unzip perl-xml-libxml wget \
+  quilt openssl shellcheck lua51 git
+```
+
 ### Building firmware images
 
 To obtain the source and build the firmware locally use:
 
-```bash
+```
+bash
 git clone https://github.com/aredn/aredn_ar71xx.git
 cd aredn_ar71xx
 vi config.mk # enter your callsign, etc.
