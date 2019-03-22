@@ -189,19 +189,12 @@ $parms{wifi_txpower} = $wifi_txpower;
 
 if(($parms{button_apply} or $parms{button_save}) and $wifi_enable )
 {
-    if($wifi_distance < 0 or $wifi_distance =~ /\D/)
+    if($wifi_distance < 1 or $wifi_distance =~ /\D/)
     {
         push (@errors, "invalid distance value");
     } else {
         $cmd = "";
-	if ( $wifi_distance eq "0" )
-	{
-            $cmd .= "iw phy ${phy} set distance auto >/dev/null 2>&1;";
-	}
-	else
-	{
-	    $cmd .= "iw phy ${phy} set distance $wifi_distance >/dev/null 2>&1;";
-	}
+        $cmd .= "iw phy ${phy} set distance $wifi_distance >/dev/null 2>&1;";
         $cmd .= "iw dev $wifiintf set txpower fixed ${wifi_txpower}00 >/dev/null 2>&1;";
         system $cmd;
     }
@@ -562,8 +555,12 @@ function updDist(x) {
     document.getElementsByName('wifi_distance_disp_meters')[0].value = xc;
     dist_meters.value = xc;
 
-    // default of 0 means 'auto', so full range is always dist-norm
-    distBox.className = 'dist-norm';
+    // if default, then ALERT!
+    if(dist_meters.value==0) {
+        distBox.className = 'dist-alert';
+    } else {
+        distBox.className = 'dist-norm';
+    }
 }
 
 
@@ -760,15 +757,15 @@ if ( ${wifi_enable} )
     for($i = wifi_maxpower($wifi_channel); $i >= 1; --$i) { selopt($i+$txpoweroffset ." dBm", $i, $wifi_txpower) }
     print "</select>&nbsp;&nbsp;<a href=\"/help.html\#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>\n";
 
-    print "<tr id='dist' class='dist-norm'><td>Distance to<br/>FARTHEST Neighbor<br/><h3>'0' is auto</h3></td>\n";
+    print "<tr id='dist' class='dist-norm'><td>Distance to<br />FARTHEST Neighbor</td>\n";
 
     $wifi_distance=int($wifi_distance);  # in meters
     $wifi_distance_disp_km=int($wifi_distance/1000);
     $wifi_distance_disp_miles=sprintf("%.2f",$wifi_distance_disp_km*.621371192);
 
-    print "<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='$wifi_distance_disp_miles' title='Distance to the farthest neighbor'>&nbsp;mi<br />";
-    print "<input disabled size=6 type=text size=4 name='wifi_distance_disp_km' value='$wifi_distance_disp_km' title='Distance to the farthest neighbor'>&nbsp;km<br />";
-    print "<input disabled size=6 type=text size=4 name='wifi_distance_disp_meters' value='$wifi_distance' title='Distance to the farthest neighbor'>&nbsp;m<br />";
+    print "<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='$wifi_distance_disp_miles' title='Distance to the farthest neighbor'>&nbsp;miles<br />";
+    print "<input disabled size=6 type=text size=4 name='wifi_distance_disp_km' value='$wifi_distance_disp_km' title='Distance to the farthest neighbor'>&nbsp;kilometers<br />";
+    print "<input disabled size=6 type=text size=4 name='wifi_distance_disp_meters' value='$wifi_distance' title='Distance to the farthest neighbor'>&nbsp;meters<br />";
 
     print "<input id='distance_slider' type='range' min='0' max='150' step='1' value='$wifi_distance_disp_km' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />";
     print "<input type='hidden' size='6' name='wifi_distance' value='$wifi_distance' />";

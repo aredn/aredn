@@ -36,6 +36,11 @@ foreach $line (`cat /etc/config.mesh/_setup`)
   $cfg{$1} = $2;
 }
 
+# if distance is 0, set to 60km to ensure a tower node can be communicated with
+# The 3.19.3.0 release does not have auto distance, but previous nightly builds did
+# remove this statement when auto distance is put back in
+$cfg{wifi_distance} = 60000 if $cfg{wifi_distance} eq '0';
+
 foreach $line (`cat /etc/config.mesh/_setup.default`)
 {
   next if $line =~ /^\s*#/;
