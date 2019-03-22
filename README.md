@@ -28,28 +28,36 @@ license, please refer to http://www.arrl.org/getting-your-technician-license
 
 ### What to know about the images built with the instructions below
 
-This is the active 'develop' branch with latest AREDN code.
-At anytime a new change may be broken or break prior capabilities.
-
-The Amateur Radio community is encouraged to participate in loading the
-images produced from a "nightly build" and run the AREDN firmware in a
-variety of environments.  Given new features may not yet be documented,
-participants should already have a basic knowledge of Linux and Networking to
-understand and provide useful feedback to the Developer submitting the
-code.
-
-The goal of participation is to obtain confidence that new
-features and the overall mesh node is stable.   The more participation,
-the earlier an issue is found, the faster an enhancement will be
-turned into a release.
+This is the 3.19.3.0 release build.
 
 Here is a summary of significant features added since 3.18.9.0 
 was released:
 
 * Locked to Openwrt 18.06.2
-* Added RBLHG-5nD, RBLHG-5HPnD-XL, LBE-M5, LDF-5, and more
+* Added the following new devices:
+    * TP-Link CPE210 v3.0
+    * TP-Link CPE220 v2.0, v3.0
+    * TP-Link CPE510 v2.0, v3.0
+    * TP-Link CPE610 v1.0
+    * TP-Link WBS210 v1
+    * UBNT Bullet M2 XW
+    * UBNT LBE M5
+    * UBNT Rocket M2 XW
+    * UBNT NanoBridge M2 13
+    * Mikrotik RB-911G-5HPnD
+    * Mikrotik RBLHG-5nD, RBLHG-5HPnD-XL
+    * Mikrotik LDF-5
 * Standardized NS M2/M5 XW/XM Ethernet port functionality
 * Enabled 5GHz LAN Access Point on hAP ac lite
+* Sound control on real-time SNR
+* Upload wrong image warning
+* Reset to Firstboot button
+* Added POE passthough config option
+* Added USB power on/off config option
+* Misc Advance config options
+* Added Mesh LAN AP
+* Ability to disable Mesh RF
+* Numerous bug fixes
 
 Please refer to https://github.com/aredn/aredn_ar71xx/issues
 for a list of outstanding defects.
@@ -84,8 +92,10 @@ PowerBridge | nano-m  | 64Mb | stable
 Rocket M9/M2/M3/M5/M5GPS XM | rocket-m | 64Mb | stable
 Rocket M2 XW | loco-m-xw | 64Mb | stable
 Rocket M5 XW | rocket-m-xw | 64Mb | stable
-Rocket M2 TI | rocket-m-ti? | 64Mb | unknown
-Rocket M5 TI | rocket-m-ti | 64Mb | stable
+Rocket M2 Titanium TI | rocket-m-ti | 64Mb | unknown
+Rocket M2 Titanium XW | rocket-m-xw | 64Mb | unknown
+Rocket M5 Titanium TI | rocket-m-ti | 64Mb | stable
+Rocket M5 Titanium XW | rocket-m-xw | 64Mb | stable
 TPLink CPE210 v1.0/v1.1 | cpe210-220-v1 | 64Mb | stable
 TPLink CPE210 v2.0 | cpe210-v2 | 64Mb | stable
 TPLink CPE210 v3.0 | cpe210-v3 | 64Mb | stable
@@ -217,6 +227,12 @@ You need approximately 10GB of space for the build.
 
 Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn_ar71xx" command above:
+
+AREDN release 3.19.3.0
+
+```
+git checkout 3.19.3.0
+```
 
 AREDN release 3.18.9.0
 
