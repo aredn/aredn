@@ -28,36 +28,20 @@ license, please refer to http://www.arrl.org/getting-your-technician-license
 
 ### What to know about the images built with the instructions below
 
-This is the 3.19.3.0 release build.
+This is the active 'develop' branch with latest AREDN code.
+At anytime a new change may be broken or break prior capabilities.
 
-Here is a summary of significant features added since 3.18.9.0 
-was released:
+The Amateur Radio community is encouraged to participate in loading the
+images produced from a "nightly build" and run the AREDN firmware in a
+variety of environments.  Given new features may not yet be documented,
+participants should already have a basic knowledge of Linux and Networking to
+understand and provide useful feedback to the Developer submitting the
+code.
 
-* Locked to Openwrt 18.06.2
-* Added the following new devices:
-    * TP-Link CPE210 v3.0
-    * TP-Link CPE220 v2.0, v3.0
-    * TP-Link CPE510 v2.0, v3.0
-    * TP-Link CPE610 v1.0
-    * TP-Link WBS210 v1
-    * UBNT Bullet M2 XW
-    * UBNT LBE M5
-    * UBNT Rocket M2 XW
-    * UBNT NanoBridge M2 13
-    * Mikrotik RB-911G-5HPnD
-    * Mikrotik RBLHG-5nD, RBLHG-5HPnD-XL
-    * Mikrotik LDF-5
-* Standardized NS M2/M5 XW/XM Ethernet port functionality
-* Enabled 5GHz LAN Access Point on hAP ac lite
-* Sound control on real-time SNR
-* Upload wrong image warning
-* Reset to Firstboot button
-* Added POE passthough config option
-* Added USB power on/off config option
-* Misc Advance config options
-* Added Mesh LAN AP
-* Ability to disable Mesh RF
-* Numerous bug fixes
+The goal of participation is to obtain confidence that new
+features and the overall mesh node is stable.   The more participation,
+the earlier an issue is found, the faster an enhancement will be
+turned into a release.
 
 Please refer to https://github.com/aredn/aredn_ar71xx/issues
 for a list of outstanding defects.
