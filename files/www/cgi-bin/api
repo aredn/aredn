@@ -38,6 +38,7 @@ require("uci")
 require("aredn.uci")
 require("aredn.utils")
 require("aredn.http")
+local aredn_olsr = require("aredn.olsr")
 local aredn_info = require("aredn.info")
 require("nixio")
 local json = require("luci.jsonc")
@@ -61,7 +62,6 @@ function getSysinfo()
 	info['loads']=aredn_info.getLoads()
 	return info
 end
-
 
 function getStatusMeshRF()
 	local info={}
@@ -91,34 +91,6 @@ function getLocationInfo()
 	info['lon']=lon
 	info['gridsquare']=gs
 	return info
-end
-
-function getCurrentNeighbors()
-	local info={}
-	local links=getOLSRLinks()
-	for k,v in pairs(links) do
-		local host
-		local remip=v['remoteIP']
-		local remhost=nslookup(remip)
-		info[remip]={}
-		info[remip]['olsrInterface']=v['olsrInterface']
-		info[remip]['linkType']= getInterfaceType(v['olsrInterface'])
-		info[remip]['linkQuality']=v['linkQuality']*100
-		info[remip]['neighborLinkQuality']=v['neighborLinkQuality']*100
-		host = string.gsub(remhost,"dtdlink%.", "")
-		host = string.gsub(host,"mid%d.", "")
-		info[remip]['hostname']=host
-		-- services
-		info[remip]['services']={}
-		-- get TxMBPS
-		info[remip]['rate']="0"
-	end
-	return info
-end
-
-function getServicesByNode()
-	local nodes=getAllHosts()
-   	return nodes
 end
 
 function getFreeMemory()
@@ -337,7 +309,7 @@ for page, comps in pairs(qsset) do
 			elseif comp=="remotenodes" then
 				info['pages'][page][comp]={}
 			elseif comp=="currentneighbors" then
-				info['pages'][page][comp]=getCurrentNeighbors()
+				info['pages'][page][comp]=aredn_olsr.getCurrentNeighbors()
 			elseif comp=="previousneighbors" then
 				info['pages'][page][comp]={}
 			end

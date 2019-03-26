@@ -2,7 +2,7 @@
 --[[
 
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2016 Darryl Quinn
+  Copyright (C) 2019 Darryl Quinn
   See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
@@ -33,45 +33,55 @@
   version.
 
 --]]
-local h = require("socket.http")
-local json = require("luci.jsonc")
+require("aredn.http")
 
-function fetch_json(url)
-  resp, status_code, headers, status_message=h.request(url)
-  if status_code==200 then
-    local j=json.parse(resp)
-    return j
+-------------------------------------
+-- Public API is attached to table
+-------------------------------------
+local model = {}
+
+function model.getOLSRLinks()
+  local links=fetch_json("http://127.0.0.1:9090/links")
+  return links['links']
+end
+
+function model.getOLSRInterfaceType(iface)
+  local it=""
+  if string.match(iface,"wlan") then
+    it="RF"
+  elseif string.match(iface,"eth") then
+    it="DTD"
+  elseif string.match(iface,"tun") then
+    it="TUN"
   end
+  return it
 end
 
-function http_header()
-   print("Content-type: text/html\r")
-   print("Cache-Control: no-store\r")
-   print("\n")
-end
-
-function json_header()
-   print("Content-type: application/json\r")
-   print("Cache-Control: no-store\r")
-   print("Access-Control-Allow-Origin: *\r")
-   print("\n")
-end
-
--- Written by RiciLake -- START
--- The author places the code into the public domain, renouncing all rights and responsibilities.
--- Replace + with space and %xx with the corresponding character.
-
-local function cgidecode(str)
-  return (str:gsub('+', ' '):gsub("%%(%x%x)", function(xx) return string.char(tonumber(xx, 16)) end))
-end
-
-function parsecgi(str)
-  local rv = {}
-  for pair in str:gmatch"[^&]+" do
-    local key, val = pair:match"([^=]*)=(.*)"
-    if key then rv[cgidecode(key)] = cgidecode(val) end
+function model.getCurrentNeighbors()
+  local info={}
+  local links=model.getOLSRLinks()
+  for k,v in pairs(links) do
+    local host
+    local remip=v['remoteIP']
+    local remhost=nslookup(remip)
+    info[remip]={}
+    info[remip]['olsrInterface']=v['olsrInterface']
+    info[remip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])    -- RF or DTD or TUN
+    info[remip]['linkQuality']=v['linkQuality']
+    info[remip]['neighborLinkQuality']=v['neighborLinkQuality']
+    host = string.gsub(remhost,"dtdlink%.", "")
+    host = string.gsub(host,"mid%d.", "")
+    info[remip]['hostname']=host
+    -- services
+    -- info[remip]['services']={}
+    -- get TxMBPS
+    -- info[remip]['rate']="0"
   end
-  return rv
+  return info
 end
--- Written by RiciLake -- END
 
+function model.getServicesByNode(node)
+    return {}
+end
+
+return model
