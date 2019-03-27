@@ -96,6 +96,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-ip
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-jsonc
 	cd $(OPENWRT_DIR); ./scripts/feeds install luaposix
+	cd $(OPENWRT_DIR); ./scripts/feeds install luasocket
 	touch $@
 
 # prepare patch
