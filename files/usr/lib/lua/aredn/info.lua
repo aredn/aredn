@@ -319,6 +319,37 @@ function model.getDefaultGW()
 	return gw
 end
 
+-------------------------------------
+-- Returns Local Hosts
+-------------------------------------
+function model.getLocalHosts()
+	local hosts, line
+	if nixio.fs.access("/etc/hosts") then
+		for line in io.lines("/etc/hosts") do
+			line = line:lower()
+			-- line is not a comment
+			local data = line:match("^([^#;]+)[#;]*(.*)$")
+			if data then 
+				local hostname, entries
+				local ip, entries = data:match("^%s*([%[%]%x%.%:]+)%s+(%S.-%S)%s*$")
 
+				if ip then 
+					local entry = {
+						["ip"] = ip,
+						["hostnames"] = { }
+					}
+					local index = 0
+					for hostname in entries:gmatch("%S+") do
+						entry["hostnames"][index] = hostname
+						index = index + 1
+					end
+					hosts = hosts or { }
+					hosts[#hosts+1] = entry
+				end
+			end
+		end
+	end
+	return hosts
+end
 
 return model
