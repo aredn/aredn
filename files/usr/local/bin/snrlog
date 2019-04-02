@@ -2,7 +2,7 @@
 --[[
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2016 Darryl Quinn
+	Copyright (C) 2019 Darryl Quinn
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -54,6 +54,7 @@ local AGETIME=43200
 local INACTIVETIMEOUT=10000
 local tmpdir="/tmp/snrlog"
 local lastdat="/tmp/snr.dat"
+local autolog="/tmp/AutoDistReset.log"
 local lasttime={}
 local lines={}
 local arpcache={}
@@ -91,6 +92,18 @@ function Neighbor.create(macaddress)
   n.rx_mcs=n:findRxMcs()
   n.rx_rate=n:findRxRate()
   n.lastseen=n:findLastTime()
+  -- check if auto-distance reset is required (new node)
+  local efn=n:getExistingDataFileName()
+  if efn==nil or ((now-n.lastseen) > 100) then  -- NEW or not recently seen node
+    reset_auto_distance()
+    f, err=assert(io.open(autolog, "a"),"Cannot open file (autolog) to write!")
+    if (f) then
+      f:write(now .. "\n")
+      f:close()
+    end
+    file_trim(autolog,MAXLINES)
+  end
+
   n.datafile=n:generateDataFileName()
   return n
 end

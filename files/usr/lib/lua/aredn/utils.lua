@@ -2,7 +2,7 @@
 --[[
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2016 Darryl Quinn
+	Copyright (C) 2019 Darryl Quinn
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -38,6 +38,7 @@
 local nxo = require("nixio")
 local ipc = require("luci.ip")
 local posix = require("posix.unistd")
+local auci = require("aredn.uci")
 require("uci")
 
 function round2(num, idp)
@@ -106,6 +107,47 @@ function get_ip_type(ip)
   end
 	--]]
   return R.STRING
+end
+
+-------------------------------------
+-- Returns name of the radio (radio0 or radio1) for the selected wifi interface (wifi or lan)
+-------------------------------------
+function get_radio(ifn)
+	local interfaces=auci.getUciConfType("wireless", "wifi-iface")
+	for n, i in ipairs(interfaces) do
+		if i.network==ifn then
+			return i.device
+		end
+	end
+end
+
+-------------------------------------
+-- Returns PHY name of the radio (phy0 or phy1) for the selected wifi interface (wifi or lan)
+-------------------------------------
+function get_radiophy(ifn)
+	local rname=get_radio(ifn)
+	return string.format("phy%d",string.sub(rname,-1))
+end
+
+-------------------------------------
+-- Reset the auto-distance calculation for the radio
+-------------------------------------
+function reset_auto_distance()
+    local rc=0
+    local radio = get_radio("wifi") -- get radio number from /etc/config/wireless and convert to -> phy0 or phy1
+    local u=uci.cursor()
+	local distance=u:get("wireless",radio,"distance")
+	print("DISTANCE=" .. distance)
+    if distance=="0" then
+    	local phyname = get_radiophy("wifi") -- get radio number from /etc/config/wireless and convert to -> phy0 or phy1
+		print("iw phy " .. phyname .. " set distance 60000")
+    	print("iw phy " .. phyname .. " set distance auto")
+    	os.execute("iw phy " .. phyname .. " set distance 60000")
+		rc=os.execute("iw phy " .. phyname .. " set distance auto")
+	else
+		rc=-1
+	end
+	return rc
 end
 
 function get_ifname(ifn)

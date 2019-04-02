@@ -2,7 +2,7 @@
 --[[
 
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2016 Darryl Quinn
+  Copyright (C) 2019 Darryl Quinn
   See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@ local api = {}
 function api.getUciConfType(conf,type)
    local curs=uci.cursor()
    local ifce={}
-   curs:foreach(conf,type,function(s) ifce[s[".index"]]=s end)
+   curs:foreach(conf,type,function(s) table.insert(ifce,s) end)
    return ifce
 end
 
