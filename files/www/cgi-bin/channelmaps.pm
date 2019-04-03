@@ -270,15 +270,15 @@ sub rf_default_channel
             channel => "5",
         },
         '2400' => {
-            chanbw  => "20",
-            channel => "1",
+            chanbw  => "10",
+            channel => "-2",
         },
         '3400' => {
-            chanbw  => "5",
+            chanbw  => "10",
             channel => "84",
         },
         '5800ubntus' => {
-            chanbw  => "5",
+            chanbw  => "10",
             channel => "149",
         },
     );
