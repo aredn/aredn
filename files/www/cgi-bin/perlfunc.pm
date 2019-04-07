@@ -594,7 +594,7 @@ sub save_setup
   open(FILE, ">$_[0]") or return 0;
   foreach(sort keys %parms)
   {
-    next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|wifi2|dtdlink|ntp|time|description)_/;
+    next unless /^(aprs|dhcp|dmz|lan|olsrd|wan|wifi|wifi2|wifi3|dtdlink|ntp|time|description)_/;
     print FILE "$_ = $parms{$_}\n";
   }
   close(FILE);

@@ -17,6 +17,9 @@ Table of Contents:
 <ul>
 <li><a href='#setup'>Basic Setup</a></li>
 <li><a href='#lanmode'>LAN Mode</a></li>
+<li><a href='#lanap'>LAN Access Point</a></li>
+<li><a href='#wansettings'>WAN Settings</a></li>
+<li><a href='#wanclient'>WAN Wifi Client</a></li>
 <li><a href='#ports'>Port Forwarding, DHCP, and Services</a></li>
 <li><a href='#admin'>Administration</a></li>
 <li><a href='#advancedconfig'>Advanced Configuration</a></li>
@@ -407,64 +410,7 @@ compare thoughput and determine the best distance setting.
 <p>
 The <strong>LAN</strong> box allows you to set the LAN IP Address
 of the node and the address range of the DHCP server, and these should be
-self explanatory.  The <b>LAN Mode</b> is described in the next section.
-</p>
-
-<p>
-The <strong>LAN Access Point</strong> section will appear on the hAP ac
-lite device. Configure similar to a typical home access point. DFS channels
-are currently not selectable. Access Points must detect Doppler Radar signals
-and dynamically move to a clear channel for part 15 compliance.  This capability
-and channels may be added in a future image.  Clients connecting to the LAN Access
-Point share the IP Address range with clients attached though the physical Ethernet
-ports.<br><br>The Encryption option 'none' is not given to enable operator control
-of who is connecting to the mesh network and manage compliance of part 97
-obligations.<br><br>The password key length must be between 8 and 63 characters.
-If the key is 64 characters, it is treated as hex encoded. A single quote character
-may not be used.</p>
-
-<p>
-The <strong>WAN</strong> box contains the settings used to
-connect with an upstream network, usually an internet connection.  The DNS
-servers are set by default to the Google DNS servers and should not be changed
-under normal circumstances.  More and more ISP's are adopting the "helpful"
-but <u>broken</u> behavior of taking you to an ISP generated web page if you
-incorrectly type in a URL or if the host you are trying to reach no longer
-exists.  The proper behavior is for your browser to be able to detect these
-error conditions and report them accordingly.  Google follows the rules and
-allows for the proper operation of the network.
-</p>
-<p>
-When the WAN protocol is set to disabled you have the option of using a
-default gateway on the LAN.  Integrating an existing LAN with a mesh node LAN
-is an expert level undertaking and there are far too many considerations to be
-covered here.
-</p>
-<p>
-The <strong>Allow others to use my WAN</strong> is an Advanced WAN option.
-<br> When a node has internet access from either the WAN or LAN, that access is
-available to the node itself and to any computer connected to the LAN network.
-When this option  is enabled this node will gate(route) traffic from the
-mesh onto this network and the internet.
-
-By default it is disabled, so consider carefully your
-intentions for enabling it. AREDN&trade; is an FCC Part 97 amateur radio
-computer network, so be sure that any internet traffic that will be sent over
-radio needs to comply with Part 97 rules.  If you just want local wireless
-internet access, consider using a standard Part 15 compliant access point
-instead of the Mesh Gateway function.
-
-<br><br>
-The <strong>Prevent LAN devices from accessing WAN</strong> checkbox will
-cause the node to not advertise to LAN devices that it should be chosen
-as the default route. This means that computers on the LAN of this node
-will not try and route to the internet or other networks via the mesh node
-and will only try and use the mesh node for the 10.0.0.0/8 and 172.16.0.0/12
-"mesh" network ranges. You will not be able to access the internet, even
-if your node has internet available on its WAN port with this setting checked.
-This also applies to internet available over the mesh. Use this only if you
-know what a default route is and you need to be connected to two networks at
-once such as wired to the mesh, and WiFi to a local served agency network.
+self explanatory.
 </p>
 <p>
 <br>
@@ -510,6 +456,83 @@ same way that most routers use an internet connection, and all services
 provided by computers on the LAN can only be accessed through port forwarding
 rules.  A single DMZ server can be set up to accept all incoming traffic that
 is not already handled by other rules or by the node itself.
+</p>
+<p>
+<br>
+<a name=lanap><b>LAN Access Point</b></a>
+</p>
+<p>
+The <strong>LAN Access Point</strong> section will appear on the hAP ac
+lite device. Configure similar to a typical home access point. DFS channels
+are currently not selectable. Access Points must detect Doppler Radar signals
+and dynamically move to a clear channel for part 15 compliance.  This capability
+and channels may be added in a future image.  Clients connecting to the LAN Access
+Point share the IP Address range with clients attached though the physical Ethernet
+ports.<br><br>The Encryption option 'none' is not given to enable operator control
+of who is connecting to the mesh network and manage compliance of part 97
+obligations.<br><br>The password key length must be between 8 and 63 characters.
+If the key is 64 characters, it is treated as hex encoded. A single quote character
+may not be used.</p>
+
+<p>
+<br>
+<a name=wansettings><b>WAN Settings</b></a>
+</p>
+<p>
+The <strong>WAN</strong> box contains the settings used to
+connect with an upstream network, usually an internet connection.  The DNS
+servers are set by default to the Google DNS servers and should not be changed
+under normal circumstances.  More and more ISP's are adopting the "helpful"
+but <u>broken</u> behavior of taking you to an ISP generated web page if you
+incorrectly type in a URL or if the host you are trying to reach no longer
+exists.  The proper behavior is for your browser to be able to detect these
+error conditions and report them accordingly.  Google follows the rules and
+allows for the proper operation of the network.
+</p>
+<p>
+When the WAN protocol is set to disabled you have the option of using a
+default gateway on the LAN.  Integrating an existing LAN with a mesh node LAN
+is an expert level undertaking and there are far too many considerations to be
+covered here.
+</p>
+<p>
+The <strong>Allow others to use my WAN</strong> is an Advanced WAN option.
+<br> When a node has internet access from either the WAN or LAN, that access is
+available to the node itself and to any computer connected to the LAN network.
+When this option  is enabled this node will gate(route) traffic from the
+mesh onto this network and the internet.
+
+By default it is disabled, so consider carefully your
+intentions for enabling it. AREDN&trade; is an FCC Part 97 amateur radio
+computer network, so be sure that any internet traffic that will be sent over
+radio needs to comply with Part 97 rules.  If you just want local wireless
+internet access, consider using a standard Part 15 compliant access point
+instead of the Mesh Gateway function.
+
+<br><br>
+The <strong>Prevent LAN devices from accessing WAN</strong> checkbox will
+cause the node to not advertise to LAN devices that it should be chosen
+as the default route. This means that computers on the LAN of this node
+will not try and route to the internet or other networks via the mesh node
+and will only try and use the mesh node for the 10.0.0.0/8 and 172.16.0.0/12
+"mesh" network ranges. You will not be able to access the internet, even
+if your node has internet available on its WAN port with this setting checked.
+This also applies to internet available over the mesh. Use this only if you
+know what a default route is and you need to be connected to two networks at
+once such as wired to the mesh, and WiFi to a local served agency network.
+</p>
+<p>
+<br>
+<a name=wanclient><b>WAN Wifi Client</b></a>
+</p>
+<p>
+The WAN Wifi Client feature enables connecting the mesh node to the Internet or foreign network
+available on a wifi Access Point.  Enabling the WAN Wifi Client will disable vlan1
+and access to the Internet over the physical Ethernet port.  Type in the SSID and password
+to connect to.  If the device is dual-band, e.g. an hAP a lite, the band option will be
+shown.<br><br>The password key length must not be greater than 64 characters.  If the key
+lenght is 64, it is treated as hex encoded. A single quote character
+may not be used.</p>
 </p>
 <hr width=500>
 <a name='optionalsettings'><h4>Optional Settings</h4>
