@@ -8,7 +8,7 @@ if [ ! -f /tmp/sysinfo/boardid ]; then
   ar71xx_board_detect
 
   case $AR71XX_BOARD_NAME in
-    *-m-xw)
+    *-m-xw|lbe-m5)
       BOARDID=$(dd if=/dev/mtd7 bs=1 skip=12 count=2 2>/dev/null | hexdump -v -n 4 -e '1/1 "%02x"')
       BOARDID="0x${BOARDID}"
       ;;
