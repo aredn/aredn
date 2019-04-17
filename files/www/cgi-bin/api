@@ -98,13 +98,13 @@ function getFreeMemory()
 	return info
 end
 
-function getSignal(realtime) 
+-- gets signal and noise data from either iwinfo (realtime = true) or the files archived in /tmp/snrlog (realtime = false)
+-- the files in /tmp/snrlog are written once per minute by the script /usr/local/bin/snrlog
+function getSignal(realtime)
 	local defnoise=-95
-	local ol={}
 	local dpa={}  -- datapoint table/array
 	local dirname="/tmp/snrlog"
-	local values={}
-	local counter=0
+
 	local datepattern="(%d+)/(%d+)/(%d+)%s(%d+):(%d+):(%d+)"
 
 	local parms={}
@@ -122,70 +122,82 @@ function getSignal(realtime)
 	local radio=aredn_info.getMeshRadioDevice()
 	local bandwidth=aredn_info.getChannelBW(radio)
 
+	local timestamp_s=os.time()
+	local signal_dbm, noise_dbm, tx_rate_mbps, rx_rate_mbps, tx_rate_mcs_index, rx_rate_mcs_index
+
+	--[[
+		-- insertResult() transforms data from iwinfo (realtime) and snrlog (archive) so that the responses are always the same.
+		-- the front end expects data points that look like this:
+		{
+			timestamp: string;
+			signal_dbm: number;
+			noise_dbm: number;
+			tx_rate_mbps: number;
+			rx_rate_mbps: number;
+			tx_rate_mcs_index: number | undefined;
+			rx_rate_mcs_index: number | undefined;
+		}
+	]]--
+
+	function insertResult(timestamp_s_epoch, signal_dbm, noise_dbm, tx_rate_mbps, rx_rate_mbps, tx_rate_mcs_index, rx_rate_mcs_index)
+		local dp={} -- datapoint
+		local timestamp
+
+		-- snrlog sometimes has the string "null" for signal/noise, if so then assume they are zero
+		if signal_dbm=="null" then
+			signal_dbm = 0
+		end
+		if noise_dbm=="null" then
+			noise_dbm = 0
+		end
+
+		-- signal and noise might also be nil, so convert them to numbers
+		signal_dbm = tonumber(signal_dbm or 0)
+		noise_dbm = tonumber(noise_dbm or 0)
+
+		--snrlog sometimes has -1 for mcs indices, if so then make them undefined
+		if tx_rate_mcs_index == -1 or tx_rate_mcs_index == "-1" then
+			tx_rate_mcs_index = nil
+		end
+		if rx_rate_mcs_index == -1 or rx_rate_mcs_index == "-1" then
+			rx_rate_mcs_index = nil
+		end
+
+		-- convert from seconds since epoch to iso 8601 format
+		timestamp=os.date("%Y-%m-%dT%H:%M:%SZ", timestamp_s_epoch)
+
+		dp.timestamp = timestamp
+		dp.signal_dbm=signal_dbm
+		dp.noise_dbm=noise_dbm
+		dp.tx_rate_mbps=tonumber(tx_rate_mbps or 0)
+		dp.rx_rate_mbps=tonumber(rx_rate_mbps or 0)
+		dp.tx_rate_mcs_index=tonumber(tx_rate_mcs_index)
+		dp.rx_rate_mcs_index=tonumber(rx_rate_mcs_index)
+		table.insert(dpa,dp)
+	end
+
 	if realtime then
 		-- REALTIME
-		local d=os.date("%H:%M:%S")
-		local n   -- noise
-		local m   -- margin
-		local s   -- signal
-		local dp={} -- datapoint
-		local yinfo={}
-
 		if (parms.device=="strongest" or parms.device=="" or (not parms.device)) then
 			-- REALTIME/STRONGEST SIGNAL
-			-- get radio noise floor
-			n=iwinfo["nl80211"].noise(wifiiface)
-			if (n < -101 or n > -50) then
-				n=defnoise
-			end
-			-- get strongest signal
-			s=iwinfo["nl80211"].signal(wifiiface)
-			m=tonumber(s)-tonumber(n)
-			if s==0 then
-				s="null"
-			end
-			tx_rate="N/A"
-			rx_rate="N/A"
-			tx_mcs="N/A"
-			rx_mcs="N/A"
-			dp.tx_rate=tx_rate
-			dp.rx_rate=rx_rate
-			dp.tx_mcs=tx_mcs
-			dp.rx_mcs=rx_mcs
+			signal_dbm=iwinfo["nl80211"].signal(wifiiface)
+			noise_dbm=iwinfo["nl80211"].noise(wifiiface)
 		else
 			-- REALTIME/SPECIFIC SIGNAL
 			-- split out device to mac-host
 			local mac,host=string.match(parms.device,"([^-]*)-(.*)")
 			local macinfo=iwinfo["nl80211"].assoclist(wifiiface)[mac:upper()]
-			n=macinfo.noise
-			s=macinfo.signal
-			n=tonumber(n)
-			s=tonumber(s)
-			m=s-n
-			tx_rate=macinfo.tx_rate/1000
-			tx_rate=adjust_rate(tx_rate,bandwidth)
-			rx_rate=macinfo.rx_rate/1000
-			rx_rate=adjust_rate(rx_rate,bandwidth)
-			tx_mcs=macinfo.tx_mcs
-			rx_mcs=macinfo.rx_mcs
-			m=tonumber(s)-tonumber(n)
-		end
 
-		if s==0 then
-			s="null"
+			signal_dbm=macinfo.signal
+			noise_dbm=macinfo.noise
+			tx_rate_mbps=macinfo.tx_rate/1000
+			tx_rate_mbps=adjust_rate(tx_rate_mbps,bandwidth)
+			rx_rate_mbps=macinfo.rx_rate/1000
+			rx_rate_mbps=adjust_rate(rx_rate_mbps,bandwidth)
+			tx_rate_mcs_index=macinfo.tx_mcs
+			rx_rate_mcs_index=macinfo.rx_mcs
 		end
-
-		table.insert(yinfo,s)
-		table.insert(yinfo,n)
-		dp.label=d
-		dp.y=yinfo
-		dp.m=m
-		dp.tx_rate=tx_rate
-		dp.rx_rate=rx_rate
-		dp.tx_mcs=tx_mcs
-		dp.rx_mcs=rx_mcs
-		table.insert(dpa,dp)
-		table.insert(ol,dpa)
+		insertResult(timestamp_s, signal_dbm, noise_dbm, tx_rate_mbps, rx_rate_mbps, tx_rate_mcs_index, rx_rate_mcs_index )
 	else
 		-- ARCHIVE
 		local filename
@@ -202,37 +214,18 @@ function getSignal(realtime)
 
 		if filename then
 			for line in io.lines(filename) do
-				local yinfo={}
-				local dp={}
-				local dt,s,n,tm,tr,rm,rr=line:match("(.*)%,(.*)%,(.*),(.*),(.*),(.*),(.*)")
-				local dtm,dtd,dty,dth,dtmin,dts=dt:match(datepattern)
-				local dtseconds=os.time({month=dtm,day=dtd,year=dty,hour=dth,min=dtmin,sec=dts})
-				dtseconds=dtseconds*1000
-				dtseconds=math.floor(dtseconds)
-				n=tonumber(n)
+				local timestamp
+				timestamp,signal_dbm,noise_dbm,tx_rate_mcs_index,tx_rate_mbps,rx_rate_mcs_index,rx_rate_mbps=line:match("(.*)%,(.*)%,(.*),(.*),(.*),(.*),(.*)")
 
-				if s~="null" then
-					s=tonumber(s)
-					m=s-n
-				else
-					m="N/A"
-				end
-				table.insert(yinfo,s)
-				table.insert(yinfo,n)
-				dp.label=dt
-				dp.x=dtseconds
-				dp.y=yinfo
-				dp.m=m
-				dp.tx_rate=tr
-				dp.rx_rate=rr
-				dp.tx_mcs=tm
-				dp.rx_mcs=rm
-				table.insert(dpa,dp)
+				-- convert the timestamp to seconds since epoch
+				local dtm,dtd,dty,dth,dtmin,dts=timestamp:match(datepattern)
+				timestamp_s = os.time({month=dtm,day=dtd,year=dty,hour=dth,min=dtmin,sec=dts})
+
+				insertResult(timestamp_s, signal_dbm, noise_dbm, tx_rate_mbps, rx_rate_mbps, tx_rate_mcs_index, rx_rate_mcs_index)
 			end
-			table.insert(ol,dpa)
 		end
 	end
-	return ol
+	return dpa
 end
 
 function getScanList()

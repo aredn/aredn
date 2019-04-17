@@ -114,18 +114,18 @@ $header = <<EOF;
         toolTip: {
           contentFormatter: function (e) {
             var content = " ";
-            content += "At " + e.entries[0].dataPoint.label + "<br />";
-            if (e.entries[0].dataPoint.y[0]!="null") {
-               content += "Signal: " + e.entries[0].dataPoint.y[0] + "dBm<br/>";
+            content += "At " + e.entries[0].dataPoint.timestamp.substring(11, 19) + "<br />";
+            if (e.entries[0].dataPoint.signal_dbm) {
+               content += "Signal: " + e.entries[0].dataPoint.signal_dbm + "dBm<br/>";
             } else {
-               content += "Signal: N/A<br/>";
+               content += "Signal: 0<br/>";
             }
-            content += "Noise: " + e.entries[0].dataPoint.y[1] + "dBm<br/>";
-            content += "SNR: " + e.entries[0].dataPoint.m + "dB<br/>";
-            content += "TX Rate: " + e.entries[0].dataPoint.tx_rate + "Mbps<br/>";
-            content += "TX MCS: " + e.entries[0].dataPoint.tx_mcs + "<br/>";
-            content += "RX Rate: " + e.entries[0].dataPoint.rx_rate + "Mbps<br/>";
-            content += "RX MCS: " + e.entries[0].dataPoint.rx_mcs + "<br/>";
+            content += "Noise: " + e.entries[0].dataPoint.noise_dbm + "dBm<br/>";
+            content += "SNR: " + e.entries[0].dataPoint.snr + "dB<br/>";
+            content += "TX Rate: " + e.entries[0].dataPoint.tx_rate_mbps + "Mbps<br/>";
+            content += "TX MCS: " + e.entries[0].dataPoint.tx_rate_mcs_index + "<br/>";
+            content += "RX Rate: " + e.entries[0].dataPoint.rx_rate_mbps + "Mbps<br/>";
+            content += "RX MCS: " + e.entries[0].dataPoint.rx_rate_mcs_index + "<br/>";
             return content;
           }
         },
@@ -140,9 +140,19 @@ $header = <<EOF;
         ],
       }); // --- chart
 
+      var formatDataPoint = function(point) {
+          point.label = point.timestamp.substring(5, 10) + " " + point.timestamp.substring(11, 19);
+          point.y = [point.signal_dbm, point.noise_dbm];
+          point.snr = (point.noise_dbm * -1) - (point.signal_dbm * -1);
+          point.tx_rate_mcs_index = point.tx_rate_mcs_index ? point.tx_rate_mcs_index : "N/A";
+          point.rx_rate_mcs_index = point.rx_rate_mcs_index ? point.rx_rate_mcs_index : "N/A";
+          return point;
+      };
+
       var updateArchiveChart = function () {
         \$.getJSON("/cgi-bin/api?chart=archive&device=$parms{device}", function (result) {
-          chart.options.data[0].dataPoints = result.pages.chart.archive[0];
+          var points = result.pages.chart.archive.map(formatDataPoint);
+          chart.options.data[0].dataPoints = points;
           if(result.pages.chart.archive.constructor === Array) {
             chart.render();
           };
@@ -151,11 +161,11 @@ $header = <<EOF;
 
       var updateRealtimeChart = function () {
         \$.getJSON("/cgi-bin/api?chart=realtime&realtime=1&device=$parms{device}", function (result) {
-          dps[0].push(result.pages.chart.realtime[0][0]);
+          var point = formatDataPoint(result.pages.chart.realtime[0]);
+          dps[0].push(point);
           chart.render();
-          var snr = (result.pages.chart.realtime[0][0].y[1] * -1) - (result.pages.chart.realtime[0][0].y[0] * -1);
-          toneFreq(snr);
-          \$('#snr').html(snr);
+          toneFreq(point.snr);
+          \$('#snr').html(point.snr);
         });
       };
 
