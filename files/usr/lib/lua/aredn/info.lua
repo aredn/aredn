@@ -37,10 +37,12 @@
 require("uci")
 local aredn_uci = require("aredn.uci")
 require("aredn.utils")
+local olsr=require("aredn.olsr")
 -- require("aredn.http")
 local lip=require("luci.ip")
 require("nixio")
 require("ubus")
+require("iwinfo")
 
 -------------------------------------
 -- Public API is attached to table
@@ -171,10 +173,114 @@ function model.getBand(radio)
 end
 
 -------------------------------------
--- TODO: Return Frequency
+-- Return Frequency
 -------------------------------------
-function model.getFrequency(radio)
-	return ""
+function model.getFreq()
+	local wlanInf=get_ifname('wifi')
+	local freq=""
+	freq=os.capture("iwinfo " .. wlanInf .. " info | egrep 'Mode:'")
+	freq=freq:gsub("^%s*(.-)%s*$", "%1")
+	freq=string.match(freq, "%((.-)%)")
+	return freq
+end
+
+-------------------------------------
+-- Return locally hosted services (for sysinfo.json)
+-------------------------------------
+function model.local_services()
+	local filelines={}
+	local lclsrvs={}
+	local lclsrvfile=io.open("/etc/config/services", "r")
+	if lclsrvfile~=nil then
+		for line in lclsrvfile:lines() do
+			table.insert(filelines, line)
+		end
+		lclsrvfile:close()
+		for pos,val in pairs(filelines) do
+			local service={}
+			local link,protocol,name = string.match(val,"^([^|]*)|(.+)|([^\t]*).*")
+			if link and protocol and name then
+				service['name']=name
+				service['protocol']=protocol
+				service['link']=link
+				table.insert(lclsrvs, service)
+			end
+		end
+	else
+		service['error']="Cannot read local services file"
+		table.insert(lclsrvs, service)
+	end
+	return lclsrvs
+end
+
+-------------------------------------
+-- Return *All* Network Services
+-------------------------------------
+function model.all_services()
+	local services={}
+	local lines={}
+	local pos, val
+	local hfile=io.open("/var/run/services_olsr","r")
+	if hfile~=nil then
+		for line in hfile:lines() do
+			table.insert(lines,line)
+		end
+		hfile:close()
+		for pos,val in pairs(lines) do
+			local service={}
+			local link,protocol,name = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#.*")
+			if link and protocol and name then
+				service['link']=link
+				service['protocol']=protocol
+				service['name']=name
+				table.insert(services,service)
+			end
+		end
+	else
+		service['error']="Cannot read services file"
+		table.insert(services,service)
+	end
+	return services
+end
+
+-------------------------------------
+-- Return *All* Hosts
+-------------------------------------
+function model.all_hosts()
+	local hosts={}
+	local lines={}
+	local pos, val
+	local hfile=io.open("/var/run/hosts_olsr","r")
+	if hfile~=nil then
+		for line in hfile:lines() do
+			table.insert(lines,line)
+		end
+		hfile:close()
+		for pos,val in pairs(lines) do
+			local host={}
+
+			-- local data,comment = string.match(val,"^([^#;]+)[#;]*(.*)$")
+			local data,comment = string.match(val,"^([^#;]+)[#;]*(.*)$")
+
+			if data then
+				--local ip, name=string.match(data,"^%s*([%x%.%:]+)%s+(%S.*)\t%s*$")
+				local ip, name=string.match(data,"^([%x%.%:]+)%s+(%S.*)\t%s*$")
+				if ip and name then
+					if not string.match(name,"^(dtdlink[.]).*") then
+						if not string.match(name,"^(mid[0-9][.]).*") then
+							host['name']=name
+							host['ip']=ip
+							table.insert(hosts,host)
+						end
+					end
+				end
+			end
+		end
+	else
+		host['error']="Cannot read hosts file"
+		table.insert(hosts,host)
+	end
+	return hosts
 end
 
 -------------------------------------

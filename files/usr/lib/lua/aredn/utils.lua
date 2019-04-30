@@ -198,13 +198,12 @@ function nslookup(ip)
                 rip = o4.."."..o3.."."..o2.."."..o1
                 nso = capture("nslookup "..ip)
                 hostname = nso:match(rip.."%.in%-addr%.arpa[%s]+name[%s]+=[%s]+(.*)")
-                hostname=hostname:chomp()
-                hostname=hostname:chomp()
-                if hostname=="" then
-                        hostname=nil
+				if hostname ~= nil then
+                	hostname=hostname:chomp()
+                	hostname=hostname:chomp()
+					return hostname
                 end
         end
-        return hostname
 end
 
 function file_trim(filename, maxl)
@@ -283,6 +282,19 @@ function capture(cmd)
 	local result=handle:read("*a")
 	handle:close()
 	return(result)
+end
+
+-- Return list of MAC to Hostname files
+function mac2host(dir)
+	dir = dir or "/tmp/snrlog"
+	local i, list, popen = 0, {}, io.popen
+	local pfile = popen("ls -A " .. dir)
+	for filename in pfile:lines() do
+		i = i + 1
+		list[i] = filename
+	end
+	pfile:close()
+	return list
 end
 
 --[[

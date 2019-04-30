@@ -57,7 +57,8 @@ function model.getOLSRInterfaceType(iface)
   return it
 end
 
-function model.getCurrentNeighbors()
+function model.getCurrentNeighbors(RFinfo)
+  local RFinfo = RFinfo or false
   local info={}
   local links=model.getOLSRLinks()
   for k,v in pairs(links) do
@@ -69,13 +70,41 @@ function model.getCurrentNeighbors()
     info[remip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])    -- RF or DTD or TUN
     info[remip]['linkQuality']=v['linkQuality']
     info[remip]['neighborLinkQuality']=v['neighborLinkQuality']
-    host = string.gsub(remhost,"dtdlink%.", "")
-    host = string.gsub(host,"mid%d.", "")
-    info[remip]['hostname']=host
+	  if remhost ~= nil then
+    	host = string.gsub(remhost,"dtdlink%.", "")
+	  end
+	  if host ~= nil then
+    	host = string.gsub(host,"mid%d.", "")
+    	info[remip]['hostname']=host
+	  else 
+		  info[remip]['hostname']=remip
+	  end
     -- services
     -- info[remip]['services']={}
-    -- get TxMBPS
-    -- info[remip]['rate']="0"
+    if info[remip]['linkType'] == "RF" and RFinfo then
+      -- get additional info for RF link
+		  require("aredn.utils")
+		  require("iwinfo")
+		  local wlan=get_ifname('wifi')
+		  local RFneighbors=iwinfo['nl80211'].assoclist(wlan)
+		  local mac2node=mac2host()
+		  for i, mac_host in pairs(mac2node) do
+		  	local mac=string.match(mac_host, "^(.-)\-")
+			  mac=mac:upper()
+			  local node=string.match(mac_host, "\-(.*)")
+			  if host == node or remip == node then
+				  for stn in pairs(RFneighbors) do
+					  stnInfo=iwinfo['nl80211'].assoclist(wlan)[mac]
+					  if stnInfo ~= nil then
+						  info[remip]["signal"]=tonumber(stnInfo.signal)
+						  info[remip]["noise"]=tonumber(stnInfo.noise)
+						  info[remip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
+						  info[remip]["rx_rate"]=adjust_rate(stnInfo.rx_rate/1000,bandwidth)
+					  end
+				  end
+			  end
+		  end
+	  end
   end
   return info
 end
