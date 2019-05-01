@@ -1,0 +1,96 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2019 Darryl Quinn
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.	If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("uci")
+require("aredn.uci")
+require("aredn.utils")
+require("aredn.http")
+local aredn_olsr = require("aredn.olsr")
+local aredn_info = require("aredn.info")
+require("nixio")
+local json = require("luci.jsonc")
+require("iwinfo")
+
+-- Function extensions
+os.capture = capture
+
+-- ==== MAIN =====
+ctx = uci.cursor()
+if not ctx then
+	error("Failed to get uci cursor")
+end
+
+info={}
+
+-- get/process query string
+local qsset={}
+if (arg[1]==nil and arg[2]==nil) then
+	qs=nixio.getenv("QUERY_STRING")
+	if qs~="" then
+		qsset=parseQueryString(qs)
+	else
+		-- maybe default to a help page
+		qsset["apiprotected"]="help"
+	end
+else
+	qsset[arg[1]]=arg[2]
+end
+
+info['topics']={}
+
+for topic, comps in pairs(qsset) do
+	if not setContains(info['topics'],topic) then
+		info['topics'][topic]={}
+	end
+
+	if topic=="apiprotected" then
+		info['topics'][topic]=nil
+		info['api_help']="AREDN Protected API. This API's primary function is to be used by the Web UI and calls are protected via uhttpd"
+	elseif page=="dhcp" then
+		for i,comp in pairs(comps:split(',')) do
+			if comp=="currentleases" then
+				info['topics'][topic][comp]=aredn_info.getCurrentDHCPLeases()
+			end
+		end
+	end
+end
+
+-- Output the HTTP header for JSON
+-- json_header()
+json_header()
+
+-- Output the info table as json
+print(json.stringify(info,true))
