@@ -64,7 +64,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  	pqi-air-pen|\
  	rb-411|\
  	rb-411u|\
-@@ -156,7 +159,9 @@ ar71xx_setup_interfaces()
+@@ -157,7 +160,9 @@ ar71xx_setup_interfaces()
  	wifi-pineapple-nano|\
  	wndap360|\
  	wp543)
@@ -75,7 +75,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  		;;
  	a40|\
  	a60|\
-@@ -175,7 +180,6 @@ ar71xx_setup_interfaces()
+@@ -176,7 +181,6 @@ ar71xx_setup_interfaces()
  	pb42|\
  	pb44|\
  	rb-951ui-2hnd|\
@@ -83,14 +83,12 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  	routerstation|\
  	tl-wr710n|\
  	tl-wr720n-v3|\
-@@ -183,15 +187,24 @@ ar71xx_setup_interfaces()
- 	tl-wr810n-v2|\
+@@ -185,14 +189,23 @@ ar71xx_setup_interfaces()
  	wpe72|\
  	wrtnode2q)
--		ucidef_set_interfaces_lan_wan "eth1" "eth0"
-+		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
+ 		ucidef_set_interfaces_lan_wan "eth1" "eth0"
 +		ucidef_set_interface_raw "wifi" "wlan0" "static"
-+		ucidef_set_interface_raw "dtdlink" "eth0.2" "static"
++		ucidef_set_interface_raw "dtdlink" "eth1.2" "static"
  		;;
  	rb-750-r2|\
  	rb-750p-pbr2|\
@@ -111,7 +109,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  		;;
  	all0258n|\
  	all0315n|\
-@@ -201,7 +214,9 @@ ar71xx_setup_interfaces()
+@@ -202,7 +215,9 @@ ar71xx_setup_interfaces()
  	ja76pf2|\
  	rocket-m-ti|\
  	ubnt-unifi-outdoor)
@@ -122,7 +120,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  		;;
  	wzr-hp-g300nh2)
  		ucidef_add_switch "switch0" \
-@@ -216,8 +231,9 @@ ar71xx_setup_interfaces()
+@@ -217,8 +232,9 @@ ar71xx_setup_interfaces()
  	rb-962uigs-5hact2hnt|\
  	wlr8100|\
  	wzr-hp-g450h)
@@ -133,7 +131,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  		;;
  	ap135-020|\
  	ap136-020|\
-@@ -299,11 +315,13 @@ ar71xx_setup_interfaces()
+@@ -300,11 +316,13 @@ ar71xx_setup_interfaces()
  	cpe510|\
  	wbs210|\
  	wbs510)
@@ -148,7 +146,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  		ucidef_add_switch "switch0" \
  			"0@eth0" "1:lan:1" "2:lan:4" "3:lan:3" "4:lan:2"
  		;;
-@@ -455,10 +473,6 @@ ar71xx_setup_interfaces()
+@@ -456,10 +474,6 @@ ar71xx_setup_interfaces()
  		ucidef_add_switch "switch0" \
  			"0@eth0" "1:lan" "5:wan" "6@eth1"
  		;;
@@ -159,7 +157,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  	onion-omega)
  		ucidef_set_interface_lan "wlan0"
  		;;
-@@ -468,9 +482,10 @@ ar71xx_setup_interfaces()
+@@ -469,9 +483,10 @@ ar71xx_setup_interfaces()
  			"0:lan:4" "1:lan:3" "2:lan:2" "3:lan:1" "5@eth1"
  		;;
  	routerstation-pro)
@@ -172,7 +170,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  		;;
  	rb-493g)
  		ucidef_set_interfaces_lan_wan "eth0.1 eth1.1" "eth1.2"
-@@ -571,8 +586,16 @@ ar71xx_setup_interfaces()
+@@ -572,8 +587,16 @@ ar71xx_setup_interfaces()
  		ucidef_add_switch "switch0" \
  			"0@eth0" "1:lan:1" "2:lan:2" "3:lan:3" "4:lan:4" "5:wan"
  		;;

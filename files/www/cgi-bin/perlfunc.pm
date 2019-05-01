@@ -982,6 +982,15 @@ sub hardware_boardid
 sub hardware_info
 {
   %model = (
+    'GL.iNet GL-AR150' => {
+      'name'            => 'GL.iNet GL-AR150',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '18',
+      'pwroffset'       => '0',
+      'usechains'       => 0,
+      'rfband'          => '2400',
+    },
     'TP-Link CPE210 v1.0' => {
       'name'            => 'TP-Link CPE210 v1.0',
       'comment'         => '',
