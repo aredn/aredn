@@ -1165,6 +1165,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
     },
+    'MikroTik RouterBOARD RBLDF-5nD' => {
+      'name'            => 'MikroTik RouterBOARD RBLDF-5nD',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '25',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+    },
     'MikroTik RouterBOARD LHG 5nD' => {
       'name'            => 'MikroTik RouterBOARD LHG 5nD',
       'comment'         => '',
