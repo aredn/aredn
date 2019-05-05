@@ -67,7 +67,7 @@ end
 -------------------------------------
 function model.getNodeName()
 	css=aredn_uci.getUciConfType("system", "system")
-	return css[0]['hostname']
+	return css[1]['hostname']
 end
 
 -------------------------------------
@@ -75,7 +75,7 @@ end
 -------------------------------------
 function model.getNodeDescription()
 	css=aredn_uci.getUciConfType("system", "system")
-	return css[0]['description']
+	return css[1]['description']
 end
 
 -------------------------------------
