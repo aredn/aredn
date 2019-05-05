@@ -991,6 +991,15 @@ sub hardware_info
       'usechains'       => 0,
       'rfband'          => '2400',
     },
+    'GL.iNet GL-USB150' => {
+      'name'            => 'GL.iNet GL-USB150',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '20',
+      'pwroffset'       => '0',
+      'usechains'       => 0,
+      'rfband'          => '2400',
+    },
     'TP-Link CPE210 v1.0' => {
       'name'            => 'TP-Link CPE210 v1.0',
       'comment'         => '',
