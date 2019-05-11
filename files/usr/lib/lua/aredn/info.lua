@@ -49,6 +49,14 @@ require("iwinfo")
 -------------------------------------
 local model = {}
 
+
+-------------------------------------
+-- Get FIRST_BOOT status
+-------------------------------------
+function model.getFirstBoot()
+	return (model.getNodeName()=="NOCALL")
+end
+
 -------------------------------------
 -- Returns WAN Address
 -------------------------------------
