@@ -99,6 +99,8 @@ Mikrotik LDF-5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik QRT5 RB911G-5HPnD-QRT | mikrotik-nand-large | 64Mb | stable
 GL.iNet GL-AR150 | gl-ar150 | 64Mb | stable
 GL.iNet GL-USB150 | gl-usb150 | 64Mb | stable
+GL.iNet GL-AR300M16 | gl-ar300m | 64Mb | stable
+GL.iNet GL-AR300M w/ 128Mb NAND | None | 64Mb | Not compatible
 
 Latest Mikrotik installation options are found at: https://www.arednmesh.org/content/installation-instructions-mikrotik-devices
 
@@ -136,7 +138,7 @@ The Mikrotik hAP AC Lite, Ubiquiti AirRouter, and AirRouter HP are pre-configure
 * Port 5: DtDLink Port Mesh Routing -- Connect to another mesh node or 8021.q switch. Packets in/out of this port must be vlan 2 tagged, other packets are ignored.
 * Ports 2-4: LAN devices -- Packets in/out of this port are expected to be untagged. The mesh node will (default) DHCP assign an IP address to your computer, ipCam, voip phone, etc. connected to these ports.
 
-The GL.iNet GL-AR150 is pre-configured with the following VLANS:
+The GL.iNet GL-AR150 and GL-AR300M16 are pre-configured with the following VLANS:
 
 * Port labeled "WAN": untagged = AREDN WAN
 * Port labeled "LAN": untagged = AREDN LAN, vlan 2 = DtDLink (device to device)

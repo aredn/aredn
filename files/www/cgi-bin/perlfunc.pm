@@ -991,6 +991,15 @@ sub hardware_info
       'usechains'       => 0,
       'rfband'          => '2400',
     },
+    'GL.iNet GL-AR300M' => {
+      'name'            => 'GL.iNet GL-AR300M',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '23',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '2400',
+    },
     'GL.iNet GL-USB150' => {
       'name'            => 'GL.iNet GL-USB150',
       'comment'         => '',
