@@ -435,6 +435,7 @@ foreach $ip (keys %hosts)
     $tactical = $hosts{$ip}{tactical} ? " / " . $hosts{$ip}{tactical} : "";
     $etx = sprintf "%.2f", $hosts{$ip}{etx};
     next if ($etx > 50 );
+    next if ($etx == 0 );
 
     $rows{$host}  = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $host . $tactical;
 
