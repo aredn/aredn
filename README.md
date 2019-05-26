@@ -101,6 +101,7 @@ GL.iNet GL-AR150 | gl-ar150 | 64Mb | stable
 GL.iNet GL-USB150 | gl-usb150 | 64Mb | stable
 GL.iNet GL-AR300M16 | gl-ar300m | 64Mb | stable
 GL.iNet GL-AR300M w/ 128Mb NAND | None | 64Mb | Not compatible
+GL.iNet GL-AR750 | gl-ar750 | 128Mb | stable
 
 Latest Mikrotik installation options are found at: https://www.arednmesh.org/content/installation-instructions-mikrotik-devices
 
@@ -143,6 +144,12 @@ The GL.iNet GL-AR150 and GL-AR300M16 are pre-configured with the following VLANS
 * Port labeled "WAN": untagged = AREDN WAN
 * Port labeled "LAN": untagged = AREDN LAN, vlan 2 = DtDLink (device to device)
 
+The GL.iNet GL-AR750 is pre-configured with the following ports, left to right:
+
+* Left Port with internet globe icon:  WAN (untagged)
+* Middle Port with "<..>" icon: LAN (untagged)
+* Right Port with "<..>" icon: DtDLink (vlan 2)
+ 
 ## Submitting Bug Reports
 
 Please submit all issues to http://github.com/aredn/aredn_ar71xx/issues
