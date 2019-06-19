@@ -1,0 +1,30 @@
+From: Jeff Kletsky <git-commits@allycomm.com>
+
+Wifi can, in certain situations, cause sysupgrade to fail silently
+with a 256 return value as all processes can't be killed.
+One of these situations is mesh with batman-adv active.
+
+Added `wifi down` just prior to the killall sequence in stage2
+
+Run-tested-on: Linksys EA8300
+
+Signed-off-by: Jeff Kletsky <git-commits@allycomm.com>
+---
+package/base-files/files/lib/upgrade/stage2 | 4 ++++
+1 file changed, 4 insertions(+)
+
+Index: openwrt/package/base-files/files/lib/upgrade/stage2
+===================================================================
+--- openwrt.orig/package/base-files/files/lib/upgrade/stage2
++++ openwrt/package/base-files/files/lib/upgrade/stage2
+@@ -122,6 +122,10 @@ kill_remaining() { # [ <signal> [ <loop>
+ 	echo
+ }
+ 
++if [-x "$(which wifi)"]; then
++	wifi down
++	sleep 1
++fi
+ 
+ killall -9 telnetd
+ killall -9 dropbear
