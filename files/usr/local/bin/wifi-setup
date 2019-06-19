@@ -57,7 +57,7 @@ meshphy="phy${meshif#wlan}"
 
 wan_intf=`cat /etc/board.json|jsonfilter -e '@.network.wan.ifname'`
 uci -c ${dropdir} -q batch > /dev/null <<-EOF
-set network.wan.ifname=$wan_intf
+set network.wan.ifname="$wan_intf"
 EOF
 uci -c ${dropdir} -q commit network
 
