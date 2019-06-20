@@ -84,6 +84,12 @@ push @setting, {
   postcallback => "setUSBOutput()",
   condition => "hasUSB()"
 };
+push @setting, {
+  key => "aredn.olsr.restart",
+  type => "boolean",
+  desc => "Value doesn't matter.  Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
+  postcallback => "olsr_restart()"
+};
 
 # ----------------------------------------
 
@@ -116,6 +122,13 @@ sub setUSBOutput()
   $newval="0" if(!$newval);
   system("/usr/local/bin/usb_passthrough",$newval);
 }
+
+sub olsr_restart()
+{
+  $rc=`/etc/init.d/olsrd restart`;
+  return $rc;
+}
+
 # ----- CALLBACKS ----------
 
 read_postdata({acceptfile => false});
