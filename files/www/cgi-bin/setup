@@ -452,9 +452,9 @@ if($parms{button_save})
     {
 	push (@errors, "LAN Access Point Password must be at least 8 characters, up to 64");
     }
-    if( "$wifi3_enable" eq "1" and length($wifi3_key) > 64) 
+    if( "$wifi3_enable" eq "1" and (length( $wifi3_key ) < 8 or length($wifi3_key) > 64) and ! length($wifi3_key) == 0)
     {
-	push (@errors, "WAN Wifi Client Password must not be greater than 64 characters");
+	push (@errors, "WAN Wifi Client Password must be between 8 and 64 characters");
     }
     if( "$wifi2_enable" eq "1" and ( $wifi2_key =~ /\'/ or $wifi2_ssid =~ /\'/ ))
     {

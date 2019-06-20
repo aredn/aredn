@@ -44,7 +44,9 @@ dropdir=${1-/etc/config}
 configfile=/etc/config.mesh/_setup
 while read -r line; do
   if [ -n "$line" -a -z "${line##wifi*}" ]; then
-    eval ${line%% =*}="\"${line##*= }"\" 
+    value="${line##*= }"
+    value="${value##*=}"
+    eval ${line%% =*}="\"$value"\" 
   fi
 done < $configfile
 
@@ -136,10 +138,15 @@ for _dev in /sys/class/ieee80211/*; do
     ssid=$(echo -e "${ssid}")
     ssid=${ssid//\"/\\\"}
     mode="sta"
-    encryption="psk2"
-    key=$(echo "${wifi3_key}" | sed -e 's/\(..\)/\\x\1/g')
-    key=$(echo -e "${key}")
-    key=${key//\"/\\\"}
+    if [ -z "$wifi3_key" ]; then
+        encryption="none"
+	key=""
+    else
+        encryption="psk2"
+	key=$(echo "${wifi3_key}" | sed -e 's/\(..\)/\\x\1/g')
+	key=$(echo -e "${key}")
+	key=${key//\"/\\\"}
+    fi
     network="wan"
     htmode=""
     uci -c ${dropdir} -q batch > /dev/null <<-EOF
