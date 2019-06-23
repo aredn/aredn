@@ -1,0 +1,73 @@
+Index: openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/base-files/lib/ar71xx.sh
++++ openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
+@@ -1121,15 +1121,33 @@ ar71xx_board_detect() {
+ 	*"RouterBOARD LHG 5nD")
+ 		name="rb-lhg-5nd"
+ 		;;
++	*"RouterBOARD LHG 2nD")
++		name="rb-lhg-5nd"
++		;;
++	*"RouterBOARD RBLHG 2nD")
++		name="rb-lhg-5nd"
++		;;
+ 	*"RouterBOARD LHG 5HPnD")
+ 		name="rb-lhg-5hpnd"
+ 		;;
+ 	*"RouterBOARD LHG 5HPnD-XL")
+ 		name="rb-lhg-5hpnd-xl"
+ 		;;
++	*"RouterBOARD LHG 2nD-XL")
++		name="rb-lhg-5hpnd-xl"
++		;;
++	*"RouterBOARD RBLHG 2nD-XL")
++		name="rb-lhg-5hpnd-xl"
++		;;
+ 	*"RouterBOARD LDF-5nD")
+ 		name="rb-ldf-5nd"
+ 		;;
++	*"RouterBOARD LDF-2nD")
++		name="rb-lhg-5nd"
++		;;
++	*"RouterBOARD RBLDF-2nD")
++		name="rb-lhg-5nd"
++		;;
+ 	*"RouterBOARD RBLDF-5nD")
+ 		name="rb-ldf-5nd"
+ 		;;
+Index: openwrt/target/linux/ar71xx/files/arch/mips/ath79/mach-rbspi.c
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/files/arch/mips/ath79/mach-rbspi.c
++++ openwrt/target/linux/ar71xx/files/arch/mips/ath79/mach-rbspi.c
+@@ -12,7 +12,10 @@
+  *  - MikroTik RouterBOARD 750UP r2
+  *  - MikroTik RouterBOARD 750P-PBr2
+  *  - MikroTik RouterBOARD 750 r2
++ *  - MikroTik RouterBOARD LHG 2nD
+  *  - MikroTik RouterBOARD LHG 5nD
++ *  - MikroTik RouterBOARD LDF 2nD
++ *  - MikroTik RouterBOARD LDF 2nD-XL
+  *  - MikroTik RouterBOARD wAP2nD
+  *  - MikroTik RouterBOARD wAP G-5HacT2HnDwAP (wAP AC)
+  *
+@@ -1115,6 +1118,7 @@ MIPS_MACHINE_NONAME(ATH79_MACH_RB_952, "
+ MIPS_MACHINE_NONAME(ATH79_MACH_RB_962, "962", rb962_setup);
+ MIPS_MACHINE_NONAME(ATH79_MACH_RB_750UPR2, "750-hb", rb750upr2_setup);
+ MIPS_MACHINE_NONAME(ATH79_MACH_RB_LHG5, "lhg", rblhg_setup);
++MIPS_MACHINE_NONAME(ATH79_MACH_RB_LHG2, "lhg-hb", rblhg_setup);
+ MIPS_MACHINE_NONAME(ATH79_MACH_RB_WAP, "wap-hb", rbwap_setup);
+ MIPS_MACHINE_NONAME(ATH79_MACH_RB_CAP, "cap-hb", rbcap_setup);
+ MIPS_MACHINE_NONAME(ATH79_MACH_RB_MAP, "map2-hb", rbmap_setup);
+Index: openwrt/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
++++ openwrt/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
+@@ -226,6 +226,7 @@ enum ath79_mach_type {
+ 	ATH79_MACH_RB_962,			/* MikroTik RouterBOARD 962UiGS-5HacT2HnT */
+ 	ATH79_MACH_RB_CAP,			/* Mikrotik RouterBOARD cAP2nD */
+ 	ATH79_MACH_RB_LHG5,			/* Mikrotik RouterBOARD LHG5 */
++	ATH79_MACH_RB_LHG2,			/* Mikrotik RouterBOARD LHG2 */
+ 	ATH79_MACH_RB_MAP,			/* Mikrotik RouterBOARD mAP2nD */
+ 	ATH79_MACH_RB_MAPL,			/* Mikrotik RouterBOARD mAP L-2nD */
+ 	ATH79_MACH_RB_WAP,			/* Mikrotik RouterBOARD wAP2nD */

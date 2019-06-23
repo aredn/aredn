@@ -92,10 +92,10 @@ TPLink CPE610 v1.0 | cpe610-v1 | 64Mb | stable
 TPLink WBS210 v1.0 | wbs210-v1 | 64mb | stable
 Mikrotik Basebox RB912UAG-5HPnD/2HPnD | mikrotik-nand-large | 64Mb | stable
 Mikrotik hAP ac lite 952Ui-5ac2nD | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
-Mikrotik RBLHG-5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
+Mikrotik RBLHG-2nD/5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLHG-5HPnD | mikrotik-rb-nor-flash-16M | 64Mb | stable
-Mikrotik RBLHG-5HPnD-XL | mikrotik-rb-nor-flash-16M | 64Mb | stable
-Mikrotik LDF-5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
+Mikrotik RBLHG-2nD-XL/5HPnD-XL | mikrotik-rb-nor-flash-16M | 64Mb | stable
+Mikrotik RBLDF-2nD/5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik QRT5 RB911G-5HPnD-QRT | mikrotik-nand-large | 64Mb | stable
 GL.iNet GL-AR150 | gl-ar150 | 64Mb | stable
 GL.iNet GL-USB150 | gl-usb150 | 64Mb | stable
