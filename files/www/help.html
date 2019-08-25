@@ -78,14 +78,21 @@ provided through those nodes.
  provides which gives you detailed information about the current state of the
  OLSR routing software.<br><br></li>
 
-<li><strong>WiFi Scan</strong> displays a list of other 802.11 signals that the
-node can see and only of the same bandwidth.   The 802.11 signals include
-Access Points (AP), neighbor nodes (connected ad-hoc stations), and other mesh networks
-(foreign ad-hoc networks). The AREDN mesh is created on top of an 802.11 'ad-hoc' network.
-Consequently when multiple ad-hoc networks are visible to each other (different SSID or
-channel), the 'network' is displayed and not individual nodes (stations).  There is also an
-automatic scan mode. It is not recommend to run a wifi scan continuously because this will degrade mesh
-performance. A wifi scan transmits queries on all channels to discover other devices.<br><br></li>
+<li><strong>WiFi Scan</strong> Displays a list of other 802.11 signals that your
+node can see. The 802.11 signals may include Access Points, neighbor nodes, and
+other mesh networks (foreign ad-hoc networks).  WiFi Scan only finds devices on
+the same channel width as your node is configured to.  When installing at a new
+location, it is best practice to scan on 5, 10, and 20MHz channels to find all
+802.11 signals in range.  This information will help to pick a channel clear of
+other interference.  When multiple ad-hoc networks are visible (with different
+SSIDs or channels), the ID of each 802.11 ad-hoc *network* is displayed but not
+the individual nodes. There is also an automatic scan mode, but running a Wifi
+Scan continuously is not recommended, particularly if the node is actively routing
+traffic.  The scan is passive, or only listens for other beacons through all channels,
+and risks loss of data on the assigned channel.  Wifi Scan does not transmit probes
+on every channel in passive mode, thus no risk of interfering with Radar stations
+on DFS channels, or other unintended transmissions.  Multiple attempts of Wifi Scan
+will be necessary to find all devices in range.
 
 <li><strong>Setup</strong> takes you to the setup pages of the web
 interface. You will need to supply a username and password to access those
