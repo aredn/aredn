@@ -168,7 +168,7 @@ die "bad interface" if not defined $iface;
 
 if($raw)
 {
-  system("iw dev $iface scan");
+  system("iw dev $iface scan passive");
   system("iw dev $iface station dump");
   exit;
 }
@@ -179,7 +179,7 @@ while(1)
   $line   =~ /['"](.*-(5|10|20)-v[3456])/;
   $myssid = $1;
 
-  open(FILE, "iw dev $iface scan 2>&1 |") or die "iw scan failed";
+  open(FILE, "iw dev $iface scan passive 2>&1 |") or die "iw scan failed";
   $mac = "";
   $host = "N/A";
   $lastseen = 0;
