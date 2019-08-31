@@ -97,6 +97,7 @@ Mikrotik RBLHG-5HPnD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLHG-2nD-XL/5HPnD-XL | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLDF-2nD/5nD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik QRT5 RB911G-5HPnD-QRT | mikrotik-nand-large | 64Mb | stable
+Mikrotik SXTsq 5HPnD | mikrotik-rb-nor-flash-16M | 64Mb | stable
 GL.iNet GL-AR150 | gl-ar150 | 64Mb | stable
 GL.iNet GL-USB150 | gl-usb150 | 64Mb | stable
 GL.iNet GL-AR300M16 | gl-ar300m | 64Mb | stable
