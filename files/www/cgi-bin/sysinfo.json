@@ -167,12 +167,6 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"link_info=1") then
 	info['link_info']=aredn_olsr.getCurrentNeighbors(true)
 end
 
--- MESHMAP INFO
-if string.find(nixio.getenv("QUERY_STRING"):lower(),"meshmap=1") then
-	info['services_local']=aredn_info.local_services()
-	info['link_info']=aredn_olsr.getCurrentNeighbors(true)
-end
-
 -- Output the HTTP header for JSON
 json_header()
 
