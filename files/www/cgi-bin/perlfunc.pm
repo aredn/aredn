@@ -1300,6 +1300,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '2400',
     },
+    'MikroTik RouterBOARD RBSXTsq2nD' => {
+      'name'            => 'MikroTik RouterBOARD RBSXTsq2nD',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '30',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '2400',
+    },
     'MikroTik RouterBOARD SXTsq 5HPnD' => {
       'name'            => 'MikroTik RouterBOARD SXTsq 5HPnD',
       'comment'         => '',
