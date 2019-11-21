@@ -1138,6 +1138,16 @@ sub hardware_info
       'rfband'          => '2400',
       'chanpower'       => { 1 => '13', 10 => '18', 11 => '13', 14 => '27' },
     },
+    'TP-Link WBS510 v2.0' => {
+      'name'            => 'TP-Link WBS510 v2.0',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '26',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+      'chanpower'       => { 133 => '26', 149 => '24', 157 => '23', 158 => '26' },
+    },
     'Mikrotik RouterBOARD 911G-2HPnD' => {
       'name'            => 'Mikrotik RouterBOARD 911G-2HPnD',
       'comment'         => '',

@@ -1,7 +1,5 @@
-Index: openwrt/package/base-files/files/lib/functions/uci-defaults.sh
-===================================================================
---- openwrt.orig/package/base-files/files/lib/functions/uci-defaults.sh
-+++ openwrt/package/base-files/files/lib/functions/uci-defaults.sh
+--- a/package/base-files/files/lib/functions/uci-defaults.sh
++++ b/package/base-files/files/lib/functions/uci-defaults.sh
 @@ -162,7 +162,7 @@ _ucidef_finish_switch_roles() {
  
  				if [ ${need_tag:-0} -eq 1 -o ${want_untag:-0} -ne 1 ]; then
@@ -11,10 +9,8 @@ Index: openwrt/package/base-files/files/lib/functions/uci-defaults.sh
  				fi
  
  				json_select roles
-Index: openwrt/package/base-files/files/bin/config_generate
-===================================================================
---- openwrt.orig/package/base-files/files/bin/config_generate
-+++ openwrt/package/base-files/files/bin/config_generate
+--- a/package/base-files/files/bin/config_generate
++++ b/package/base-files/files/bin/config_generate
 @@ -161,10 +161,11 @@ generate_switch_vlans_ports() {
  				json_get_vars ports
  			json_select ..
@@ -28,10 +24,8 @@ Index: openwrt/package/base-files/files/bin/config_generate
  				set network.@switch_vlan[-1].ports='$ports'
  			EOF
  		done
-Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/02_network
-+++ openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
+--- a/target/linux/ar71xx/base-files/etc/board.d/02_network
++++ b/target/linux/ar71xx/base-files/etc/board.d/02_network
 @@ -12,8 +12,9 @@ ar71xx_setup_interfaces()
  
  	case "$board" in
@@ -131,10 +125,10 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  		;;
  	ap135-020|\
  	ap136-020|\
-@@ -300,11 +316,13 @@ ar71xx_setup_interfaces()
- 	cpe510|\
+@@ -301,11 +317,13 @@ ar71xx_setup_interfaces()
  	wbs210|\
- 	wbs510)
+ 	wbs510|\
+ 	wbs510-v2)
 +		ucidef_set_interface_raw "wifi" "wlan0" "static"
  		ucidef_add_switch "switch0" \
 -			"0@eth0" "5:lan" "4:wan"
@@ -146,7 +140,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  		ucidef_add_switch "switch0" \
  			"0@eth0" "1:lan:1" "2:lan:4" "3:lan:3" "4:lan:2"
  		;;
-@@ -447,19 +465,16 @@ ar71xx_setup_interfaces()
+@@ -448,19 +466,16 @@ ar71xx_setup_interfaces()
  		;;
  	gl-ar750|\
  	rb-435g)
@@ -169,7 +163,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  	onion-omega)
  		ucidef_set_interface_lan "wlan0"
  		;;
-@@ -469,9 +484,10 @@ ar71xx_setup_interfaces()
+@@ -470,9 +485,10 @@ ar71xx_setup_interfaces()
  			"0:lan:4" "1:lan:3" "2:lan:2" "3:lan:1" "5@eth1"
  		;;
  	routerstation-pro)
@@ -182,7 +176,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  		;;
  	rb-493g)
  		ucidef_set_interfaces_lan_wan "eth0.1 eth1.1" "eth1.2"
-@@ -572,8 +588,16 @@ ar71xx_setup_interfaces()
+@@ -573,8 +589,16 @@ ar71xx_setup_interfaces()
  		ucidef_add_switch "switch0" \
  			"0@eth0" "1:lan:1" "2:lan:2" "3:lan:3" "4:lan:4" "5:wan"
  		;;
