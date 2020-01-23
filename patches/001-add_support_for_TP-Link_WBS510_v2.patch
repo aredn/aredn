@@ -34,11 +34,13 @@ Signed-off-by: Andrew Cameron <apcameron@softhome.net>
  tools/firmware-utils/src/tplink-safeloader.c       | 33 ++++++++++++++++++++++
  9 files changed, 57 insertions(+), 4 deletions(-)
 
---- a/target/linux/ar71xx/base-files/etc/board.d/01_leds
-+++ b/target/linux/ar71xx/base-files/etc/board.d/01_leds
-@@ -256,7 +256,8 @@ cpe510-v2|\
+Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/01_leds
++++ openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
+@@ -260,7 +260,8 @@ cpe510|\
+ cpe510-v2|\
  cpe510-v3|\
- cpe510|\
  wbs210|\
 -wbs510)
 +wbs510|\
@@ -46,9 +48,11 @@ Signed-off-by: Andrew Cameron <apcameron@softhome.net>
  	ucidef_set_rssimon "wlan0" "200000" "1"
  	ucidef_set_led_rssi "rssilow" "RSSILOW" "tp-link:green:link1" "wlan0" "1" "100" "0" "13"
  	ucidef_set_led_rssi "rssimediumlow" "RSSIMEDIUMLOW" "tp-link:green:link2" "wlan0" "26" "100" "-25" "13"
---- a/target/linux/ar71xx/base-files/etc/board.d/02_network
-+++ b/target/linux/ar71xx/base-files/etc/board.d/02_network
-@@ -296,7 +296,8 @@ ar71xx_setup_interfaces()
+Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/02_network
++++ openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
+@@ -298,7 +298,8 @@ ar71xx_setup_interfaces()
  	cpe220-v3|\
  	cpe510|\
  	wbs210|\
@@ -58,10 +62,12 @@ Signed-off-by: Andrew Cameron <apcameron@softhome.net>
  		ucidef_add_switch "switch0" \
  			"0@eth0" "5:lan" "4:wan"
  		;;
---- a/target/linux/ar71xx/base-files/etc/board.d/03_gpio_switches
-+++ b/target/linux/ar71xx/base-files/etc/board.d/03_gpio_switches
-@@ -13,7 +13,8 @@ case "$board" in
- cpe210|\
+Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/03_gpio_switches
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/03_gpio_switches
++++ openwrt/target/linux/ar71xx/base-files/etc/board.d/03_gpio_switches
+@@ -14,7 +14,8 @@ cpe210|\
+ cpe220-v3|\
  cpe510|\
  wbs210|\
 -wbs510)
@@ -70,9 +76,11 @@ Signed-off-by: Andrew Cameron <apcameron@softhome.net>
  	ucidef_add_gpio_switch "poe_passthrough" "PoE Passthrough" "20"
  	;;
  nanostation-m)
---- a/target/linux/ar71xx/base-files/lib/ar71xx.sh
-+++ b/target/linux/ar71xx/base-files/lib/ar71xx.sh
-@@ -1422,6 +1422,10 @@ ar71xx_board_detect() {
+Index: openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/base-files/lib/ar71xx.sh
++++ openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
+@@ -1471,6 +1471,10 @@ ar71xx_board_detect() {
  		name="wbs510"
  		tplink_pharos_board_detect "$(tplink_pharos_get_model_string | tr -d '\r')"
  		;;
@@ -83,9 +91,11 @@ Signed-off-by: Andrew Cameron <apcameron@softhome.net>
  	"WeIO"*)
  		name="weio"
  		;;
---- a/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
-+++ b/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
-@@ -596,7 +596,8 @@ platform_check_image() {
+Index: openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
++++ openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
+@@ -602,7 +602,8 @@ platform_check_image() {
  	cpe220-v2|\
  	cpe610|\
  	cpe510-v2|\
@@ -95,18 +105,22 @@ Signed-off-by: Andrew Cameron <apcameron@softhome.net>
  		tplink_pharos_check_image "$1" "7f454c46" "$(tplink_pharos_v2_get_model_string)" '\0\xff\r' && return 0
  		return 1
  		;;
---- a/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
-+++ b/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
-@@ -359,3 +359,6 @@ MIPS_MACHINE(ATH79_MACH_WBS210, "WBS210"
+Index: openwrt/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
++++ openwrt/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
+@@ -357,3 +357,6 @@ MIPS_MACHINE(ATH79_MACH_WBS210, "WBS210"
  
  MIPS_MACHINE(ATH79_MACH_WBS510, "WBS510", "TP-LINK WBS510",
  	     wbs_setup);
 +
 +MIPS_MACHINE(ATH79_MACH_WBS510_V2, "WBS510V2", "TP-LINK WBS510 v2",
 +	     wbs_setup);
---- a/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
-+++ b/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
-@@ -342,6 +342,7 @@ enum ath79_mach_type {
+Index: openwrt/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
++++ openwrt/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
+@@ -348,6 +348,7 @@ enum ath79_mach_type {
  	ATH79_MACH_WAM250,			/* Samsung WAM250 */
  	ATH79_MACH_WBS210,			/* TP-LINK WBS210 */
  	ATH79_MACH_WBS510,			/* TP-LINK WBS510 */
@@ -114,9 +128,11 @@ Signed-off-by: Andrew Cameron <apcameron@softhome.net>
  	ATH79_MACH_WEIO,			/* WeIO board */
  	ATH79_MACH_WHR_G301N,			/* Buffalo WHR-G301N */
  	ATH79_MACH_WHR_HP_G300N,		/* Buffalo WHR-HP-G300N */
---- a/target/linux/ar71xx/image/generic-tp-link.mk
-+++ b/target/linux/ar71xx/image/generic-tp-link.mk
-@@ -255,6 +255,14 @@ define Device/wbs510-v1
+Index: openwrt/target/linux/ar71xx/image/generic-tp-link.mk
+===================================================================
+--- openwrt.orig/target/linux/ar71xx/image/generic-tp-link.mk
++++ openwrt/target/linux/ar71xx/image/generic-tp-link.mk
+@@ -270,6 +270,14 @@ define Device/wbs510-v1
  endef
  TARGET_DEVICES += wbs510-v1
  
@@ -131,9 +147,11 @@ Signed-off-by: Andrew Cameron <apcameron@softhome.net>
  define Device/eap120-v1
    DEVICE_TITLE := TP-LINK EAP120 v1
    MTDPARTS := spi0.0:128k(u-boot)ro,64k(partition-table)ro,64k(product-info)ro,1536k(kernel),14336k(rootfs),192k(config)ro,64k(ART)ro,15872k@0x40000(firmware)
---- a/tools/firmware-utils/src/tplink-safeloader.c
-+++ b/tools/firmware-utils/src/tplink-safeloader.c
-@@ -384,6 +384,39 @@ static struct device_info boards[] = {
+Index: openwrt/tools/firmware-utils/src/tplink-safeloader.c
+===================================================================
+--- openwrt.orig/tools/firmware-utils/src/tplink-safeloader.c
++++ openwrt/tools/firmware-utils/src/tplink-safeloader.c
+@@ -477,6 +477,39 @@ static struct device_info boards[] = {
  		.last_sysupgrade_partition = "support-list",
  	},
  

@@ -2,7 +2,7 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
 ===================================================================
 --- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/01_leds
 +++ openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
-@@ -681,7 +681,8 @@ rb-2011uias-2hnd)
+@@ -693,7 +693,8 @@ rb-2011uias-2hnd-r2)
  	ucidef_set_led_switch "eth10" "ETH10" "rb:green:eth10" "switch1" "0x02"
  	;;
  rb-lhg-5nd|\
@@ -16,73 +16,73 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
 ===================================================================
 --- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/02_network
 +++ openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
-@@ -114,6 +114,7 @@ ar71xx_setup_interfaces()
- 	rb-921gs-5hpacd-r2|\
+@@ -115,6 +115,7 @@ ar71xx_setup_interfaces()
+ 	rb-922uags-5hpacd|\
  	rb-lhg-5nd|\
  	rb-lhg-5hpnd-xl|\
 +	rb-ldf-5nd|\
  	rb-mapl-2nd|\
  	rb-sxt2n|\
- 	rb-sxt5n|\
+ 	rb-sxt-2nd-r3|\
 Index: openwrt/target/linux/ar71xx/base-files/etc/diag.sh
 ===================================================================
 --- openwrt.orig/target/linux/ar71xx/base-files/etc/diag.sh
 +++ openwrt/target/linux/ar71xx/base-files/etc/diag.sh
-@@ -377,6 +377,7 @@ get_status_led() {
+@@ -379,6 +379,7 @@ get_status_led() {
  	rb-962uigs-5hact2hnt|\
  	rb-lhg-5nd|\
  	rb-lhg-5hpnd-xl|\
 +	rb-ldf-5nd|\
  	rb-map-2nd|\
  	rb-mapl-2nd|\
- 	rb-wap-2nd)
+ 	rb-sxt-2nd-r3|\
 Index: openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
 ===================================================================
 --- openwrt.orig/target/linux/ar71xx/base-files/lib/ar71xx.sh
 +++ openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
-@@ -1121,6 +1121,12 @@ ar71xx_board_detect() {
- 	*"RouterBOARD LHG 5HPnD-XL")
+@@ -528,6 +528,12 @@ mikrotik_board_detect() {
+ 	*"LHG 5HPnD-XL")
  		name="rb-lhg-5hpnd-xl"
  		;;
-+	*"RouterBOARD LDF-5nD")
++	*"LDF-5nD")
 +		name="rb-ldf-5nd"
 +		;;
-+	*"RouterBOARD RBLDF-5nD")
++	*"RBLDF-5nD")
 +		name="rb-ldf-5nd"
 +		;;
- 	*"RouterBOARD mAP 2nD")
+ 	*"mAP 2nD"|\
+ 	*"mAP2nD")
  		name="rb-map-2nd"
- 		;;
 Index: openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
 ===================================================================
 --- openwrt.orig/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
 +++ openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
-@@ -721,6 +721,7 @@ platform_check_image() {
+@@ -729,6 +729,7 @@ platform_check_image() {
  	rb-962uigs-5hact2hnt|\
  	rb-lhg-5nd|\
  	rb-lhg-5hpnd-xl|\
 +	rb-ldf-5nd|\
  	rb-map-2nd|\
  	rb-mapl-2nd|\
- 	rb-wap-2nd|\
-@@ -748,6 +749,7 @@ platform_pre_upgrade() {
+ 	rb-sxt-2nd-r3|\
+@@ -759,6 +760,7 @@ platform_pre_upgrade() {
  	rb-962uigs-5hact2hnt|\
  	rb-lhg-5nd|\
  	rb-lhg-5hpnd-xl|\
 +	rb-ldf-5nd|\
  	rb-map-2nd|\
  	rb-mapl-2nd|\
- 	rb-wap-2nd|\
+ 	rb-sxt-2nd-r3|\
 Index: openwrt/target/linux/ar71xx/image/mikrotik.mk
 ===================================================================
 --- openwrt.orig/target/linux/ar71xx/image/mikrotik.mk
 +++ openwrt/target/linux/ar71xx/image/mikrotik.mk
-@@ -40,7 +40,7 @@ define Device/rb-nor-flash-16M
-   LOADER_TYPE := elf
+@@ -46,7 +46,7 @@ define Device/rb-nor-flash-16M
+   DEVICE_PACKAGES := rbcfg rssileds -nand-utils kmod-ledtrig-gpio
+   IMAGE_SIZE := 16000k
    KERNEL_INSTALL := 1
-   KERNEL := kernel-bin | lzma | loader-kernel
--  SUPPORTED_DEVICES := rb-750-r2 rb-750up-r2 rb-750p-pbr2 rb-911-2hn rb-911-5hn rb-941-2nd rb-951ui-2nd rb-952ui-5ac2nd rb-962uigs-5hact2hnt rb-lhg-5nd rb-lhg-5hpnd-xl rb-map-2nd rb-mapl-2nd rb-wap-2nd
-+  SUPPORTED_DEVICES := rb-750-r2 rb-750up-r2 rb-750p-pbr2 rb-911-2hn rb-911-5hn rb-941-2nd rb-951ui-2nd rb-952ui-5ac2nd rb-962uigs-5hact2hnt rb-lhg-5nd rb-lhg-5hpnd-xl rb-ldf-5nd rb-map-2nd rb-mapl-2nd rb-wap-2nd
+-  SUPPORTED_DEVICES := rb-750-r2 rb-750up-r2 rb-750p-pbr2 rb-911-2hn rb-911-5hn rb-931-2nd rb-941-2nd rb-951ui-2nd rb-952ui-5ac2nd rb-962uigs-5hact2hnt rb-lhg-5nd rb-lhg-5hpnd-xl rb-map-2nd rb-mapl-2nd rb-wap-2nd rb-wapr-2nd rb-sxt-2nd-r3
++  SUPPORTED_DEVICES := rb-750-r2 rb-750up-r2 rb-750p-pbr2 rb-911-2hn rb-911-5hn rb-931-2nd rb-941-2nd rb-951ui-2nd rb-952ui-5ac2nd rb-962uigs-5hact2hnt rb-lhg-5nd rb-lhg-5hpnd-xl rb-ldf-5nd rb-map-2nd rb-mapl-2nd rb-wap-2nd rb-wapr-2nd rb-sxt-2nd-r3
    IMAGE/sysupgrade.bin := append-kernel | kernel2minor -s 1024 -e | pad-to $$$$(BLOCKSIZE) | \
  	append-rootfs | pad-rootfs | append-metadata | check-size $$$$(IMAGE_SIZE)
  endef

@@ -1,7 +1,7 @@
-Index: openwrt/package/kernel/mac80211/patches/301-extended-spectrum.patch
+Index: openwrt/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
 ===================================================================
 --- /dev/null
-+++ openwrt/package/kernel/mac80211/patches/301-extended-spectrum.patch
++++ openwrt/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
 @@ -0,0 +1,169 @@
 +--- a/drivers/net/wireless/ath/ath9k/common-init.c
 ++++ b/drivers/net/wireless/ath/ath9k/common-init.c
@@ -220,7 +220,7 @@ Index: openwrt/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
 ===================================================================
 --- /dev/null
 +++ openwrt/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,74 @@
 +--- a/iwinfo_cli.c
 ++++ b/iwinfo_cli.c
 +@@ -48,10 +48,21 @@ static char * format_channel(int ch)
@@ -267,9 +267,11 @@ Index: openwrt/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
 + 
 + 	for (i = 0; i < len; i += sizeof(struct iwinfo_freqlist_entry))
 + 	{
-+--- a/iwinfo_nl80211.c
-++++ b/iwinfo_nl80211.c
-+@@ -402,12 +402,16 @@ static int nl80211_channel2freq(int channel, const char *band)
++--- a/iwinfo_nl80211.c	2019-05-25 14:36:00.660702602 -0500
+++++ b/iwinfo_nl80211.c	2019-05-25 14:38:41.985324601 -0500
++@@ -578,20 +578,24 @@
++ {
++ 	if (!band || band[0] != 'a')
 + 	{
 + 		if (channel == 14)
 + 			return 2484;
@@ -280,6 +282,10 @@ Index: openwrt/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
 + 		else if (channel < 14)
 + 			return (channel * 5) + 2407;
 + 	}
++ 	else if ( strcmp(band, "ad") == 0)
++ 	{
++ 		return 56160 + 2160 * channel;
++ 	}
 + 	else
 + 	{
 +-		if (channel >= 182 && channel <= 196)
@@ -287,3 +293,5 @@ Index: openwrt/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
 + 			return (channel * 5) + 4000;
 + 		else
 + 			return (channel * 5) + 5000;
++ 	}
++ 

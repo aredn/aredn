@@ -17,14 +17,14 @@ Index: openwrt/package/base-files/files/lib/upgrade/stage2
 ===================================================================
 --- openwrt.orig/package/base-files/files/lib/upgrade/stage2
 +++ openwrt/package/base-files/files/lib/upgrade/stage2
-@@ -122,6 +122,10 @@ kill_remaining() { # [ <signal> [ <loop>
- 	echo
- }
+@@ -123,6 +123,10 @@ kill_remaining KILL 1
+ 
+ sleep 1
  
 +if [-x "$(which wifi)"]; then
 +	wifi down
 +	sleep 1
 +fi
  
- killall -9 telnetd
- killall -9 dropbear
+ if [ -n "$IMAGE" ] && type 'platform_pre_upgrade' >/dev/null 2>/dev/null; then
+ 	platform_pre_upgrade "$IMAGE"

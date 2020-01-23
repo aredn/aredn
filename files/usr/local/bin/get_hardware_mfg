@@ -1,5 +1,9 @@
 #!/bin/sh
+# Return the hardware mfg of the device
 
+SYSINFO=/tmp/sysinfo/hardware_mfg
+
+if [ ! -f $SYSINFO ]; then
 CFG=/etc/board.json
 name=""
 
@@ -10,5 +14,9 @@ json_init
 json_load "$(cat ${CFG})"
 json_select model
 json_get_vars name
-echo "$name" > /tmp/sysinfo/hardware_mfg
-cat /tmp/sysinfo/hardware_mfg
+
+echo "${name%% *}" > $SYSINFO
+
+fi
+
+cat $SYSINFO

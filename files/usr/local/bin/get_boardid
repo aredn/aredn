@@ -1,24 +1,22 @@
 #!/bin/sh
-#CMLARA:  Temporary shell script for ar71xx platform models
-# Return the model of the device
+# Return the boardid of the device
 
-if [ ! -f /tmp/sysinfo/boardid ]; then
-  . /lib/functions.sh
-  . /lib/ar71xx.sh
-  ar71xx_board_detect
+SYSINFO=/tmp/sysinfo/boardid
 
-  case $AR71XX_BOARD_NAME in
-    *-m-xw|lbe-m5)
-      BOARDID=$(dd if=/dev/mtd7 bs=1 skip=12 count=2 2>/dev/null | hexdump -v -n 4 -e '1/1 "%02x"')
-      BOARDID="0x${BOARDID}"
-      ;;
-    *)
-      BOARDID=$AR71XX_MODEL
-      ;;
-  esac
+if [ ! -f $SYSINFO ]; then
+  name=""
 
-echo "$BOARDID" > /tmp/sysinfo/boardid
+  if [ "$(/usr/local/bin/get_hardware_mfg)" = "Ubiquiti" ]; then
+    [ -f "/sys/devices/pci0000:00/0000:00:00.0/subsystem_device" ] && 
+	    name="$(cat /sys/devices/pci0000:00/0000:00:00.0/subsystem_device)"
+    [ "$name" = "0x0000" -o -z $name ] &&  
+	    name="0x$(dd if=/dev/mtd7 bs=1 skip=12 count=2 2>/dev/null | hexdump -v -n 4 -e '1/1 "%02x"')"
+  fi	
+
+  [ "$name" = "0x0000" -o -z $name ] && name="$(/usr/local/bin/get_model)" 
+
+  echo "$name" > $SYSINFO
 
 fi
 
-cat /tmp/sysinfo/boardid
+cat $SYSINFO

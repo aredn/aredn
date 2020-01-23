@@ -75,6 +75,8 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 .stamp-feeds-updated: $(OPENWRT_DIR)/feeds.conf
 	cd $(OPENWRT_DIR); ./scripts/feeds uninstall -a
 	cd $(OPENWRT_DIR); ./scripts/feeds update -a
+	cd $(OPENWRT_DIR); ./scripts/feeds install libcap
+	cd $(OPENWRT_DIR); ./scripts/feeds install jansson
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn2
 	cd $(OPENWRT_DIR); ./scripts/feeds install liblzma
 	cd $(OPENWRT_DIR); ./scripts/feeds install libssh2
@@ -142,18 +144,17 @@ compile: stamp-clean-compiled .stamp-compiled
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
 	for FILE in `find $(TOP_DIR)/firmware/targets/ -path "*packages" -prune -o \( -type f -a \
-	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin" -o -name "*.manifest" -o \
-	  -name "*-mikrotik-vmlinux-initramfs.elf" -o -name sha256sums -o -name config.seed \) \
+	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin" -o -name "*initramfs.elf" -o \
+	  -name sha256sums -o -name "*.buildinfo" \) \
 	  -print \)`; do rm $$FILE; \
 	done;
 	for FILE in `find $(TOP_DIR)/firmware/targets/ -type f -a \
-	  \( -name "*ar71xx-generic-*" -o -name "*squashfs-*" \
-	  -o -name "*$(GIT_COMMIT)-?????-*" -o -name "aredn*ar71xx-mikrotik*" \
+	  \( -name "*ar71xx-generic-*" \
+	  -o -name "*ath79-generic-*" \
+	  -o -name "*ar71xx-mikrotik*squashfs*" \
 	  \) -print`; do \
-	  NEWNAME="$${FILE/ar71xx-generic-/}"; \
+	  NEWNAME="$${FILE/generic-/}"; \
 	  NEWNAME="$${NEWNAME/squashfs-/}"; \
-	  NEWNAME="$${NEWNAME/$(GIT_COMMIT)-?????-/$(GIT_COMMIT)-}"; \
-	  NEWNAME="$${NEWNAME/ar71xx-mikrotik/mikrotik}"; \
 	  mv "$$FILE" "$$NEWNAME"; \
 	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh
@@ -176,7 +177,6 @@ stamp-clean:
 	touch $@
 
 clean: stamp-clean .stamp-openwrt-cleaned
-
 
 .PHONY: openwrt-clean openwrt-update patch feeds-update prepare compile stamp-clean clean always
 .NOTPARALLEL:
