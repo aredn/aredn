@@ -198,7 +198,7 @@ sub install_vtun
         system "opkg update >/dev/null 2>&1";
         if ($? eq 0) 
         {
-            system "opkg install kmod-tun zlib libopenssl liblzo vtun >/dev/null 2>&1";
+            system "opkg install kmod-tun zlib liblzo vtun >/dev/null 2>&1";
             if ($? eq 0) 
             {
                 # add network interfaces
