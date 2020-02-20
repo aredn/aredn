@@ -1029,8 +1029,8 @@ sub hardware_info
       'rfband'          => '2400',
       'chanpower'       => { 1 => '22', 14 => '23' },
     },
-    'TP-Link CPE210 v2.0' => {
-      'name'            => 'TP-Link CPE210 v2.0',
+    'TP-LINK CPE210 v2' => {
+      'name'            => 'TP-LINK CPE210 v2',
       'comment'         => '',
       'supported'       => '1',
       'maxpower'        => '29',
