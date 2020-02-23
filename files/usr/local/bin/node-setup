@@ -380,14 +380,17 @@ foreach(`cat $portfile`)
   if($intf eq "both")
   {
     print FILE "\nconfig redirect\n\toption src              wifi\n\t$match\toption src_dip          $cfg{wifi_ip}\n\t$host\n";
+    print FILE "\nconfig redirect\n\toption src              dtdlink\n\t$match\toption src_dip          $cfg{wifi_ip}\n\t$host\n";
     print FILE "config redirect\n\toption src              wan\n\t$match\t$host\n";
   }
   elsif($intf eq "wifi")
   {
+    print FILE "\nconfig redirect\n\toption src              dtdlink\n\t$match\toption src_dip          $cfg{wifi_ip}\n\t$host\n";
     print FILE "config redirect\n\toption src              wifi\n\t$match\toption src_dip          $cfg{wifi_ip}\n\t$host\n";
   }
   elsif($intf eq "wan")
   {
+    print FILE "\nconfig redirect\n\toption src              dtdlink\n\t$match\toption          src_dip $cfg{wifi_ip}\n\t$host\n";
     print FILE "config redirect\n\toption src              wan\n\t$match\t$host\n";
   }
   else
