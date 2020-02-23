@@ -44,7 +44,7 @@ Index: openwrt/target/linux/ath79/base-files/etc/board.d/02_network
  		;;
  	devolo,dvl1200e|\
  	devolo,dvl1750e|\
-@@ -252,10 +259,6 @@ ath79_setup_interfaces()
+@@ -252,18 +259,21 @@ ath79_setup_interfaces()
  		ucidef_add_switch "switch0" \
  			"0@eth1" "2:lan:3" "3:lan:2" "4:lan:1"
  		;;
@@ -55,9 +55,14 @@ Index: openwrt/target/linux/ath79/base-files/etc/board.d/02_network
  	zbtlink,zbt-wd323|\
  	xiaomi,mi-router-4q)
  		ucidef_set_interface_wan "eth1"
-@@ -263,7 +266,9 @@ ath79_setup_interfaces()
+ 		ucidef_add_switch "switch0" \
  			"0@eth0" "3:lan:1" "4:lan:2"
  		;;
++        glinet,gl-ar150)
++                ucidef_set_interface "wifi" ifname "wlan0" protocol "static"
++                ucidef_set_interfaces_lan_wan "eth0" "eth1"
++                ucidef_set_interface "dtdlink" ifname "eth0.2" protocol "static"
++                ;;
  	*)
 -		ucidef_set_interfaces_lan_wan "eth0" "eth1"
 +		ucidef_set_interface "wifi" ifname "wlan0" protocol "static"
