@@ -1039,8 +1039,8 @@ sub hardware_info
       'rfband'          => '2400',
       'chanpower'       => { 1 => '27', 2 => '28', 9 => '29', 14 => '27' },
     },
-    'TP-Link CPE210 v3.0' => {
-      'name'            => 'TP-Link CPE210 v3.0',
+    'TP-LINK CPE210 v3' => {
+      'name'            => 'TP-LINK CPE210 v3',
       'comment'         => '',
       'supported'       => '1',
       'maxpower'        => '25',
@@ -1059,8 +1059,8 @@ sub hardware_info
       'rfband'          => '2400',
       'chanpower'       => { 1 => '25', 2 => '28', 11 => '27'  },
     },
-    'TP-Link CPE220 v3.0' => {
-      'name'            => 'TP-Link CPE220 v3.0',
+    'TP-Link CPE220 v3' => {
+      'name'            => 'TP-Link CPE220 v3',
       'comment'         => '',
       'supported'       => '1',
       'maxpower'        => '30',

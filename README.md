@@ -85,7 +85,7 @@ TPLink CPE210 v1.0/v1.1 | ar71xx | cpe210-220-v1 | 64Mb | stable
 TPLink CPE210 v2.0 | ath79 | cpe210-v2 | 64Mb | stable
 TPLink CPE210 v3.0 | ath79 | cpe210-v3 | 64Mb | stable
 TPLink CPE220 v2.0 | ar71xx | cpe220-v2 | 64Mb | stable
-TPLink CPE220 v3.0 | ar71xx | cpe220-v3 | 64Mb | stable
+TPLink CPE220 v3.0 | ath79  | cpe220-v3 | 64Mb | stable
 TPLink CPE510 v1.0/v1.1 | ar71xx | cpe510-520-v1 | 64Mb | stable
 TPLink CPE510 v2.0 | ar71xx | cpe510-v2 | 64Mb | stable
 TPLink CPE510 v3.0 | ar71xx | cpe510-v3 | 64Mb | stable
@@ -129,14 +129,21 @@ only. Depending on deployed usage, 2 cat5 cables may be needed.
 The following devices have enhanced Ethernet port usage.  A single cat5 to the device
 could be plugged into ether the 'main' or 'secondary' port with standard port functionality.
 Both ports can be used interchangeably and simultaneously with LAN devices on both ports
-at the same time. POE PassThough can be turned on in Advanced Settings to power ipCams or
-other mesh nodes.
+at the same time. 
 
-* NanoStation M5 XW
+If the device's hardware supports POE (Power Over Ethernet) pass-through from main port to secondary
+port, an Advanced Setting option will show to turn on/off.  This is useful to power ipCams or other
+mesh nodes by daisy chaining the network cable from one device to another. Then only one network
+cable may be needed to reach 2 or 3 devices on the tower. Be sure to check the power capacity in the
+vendor specifications to not exceed. The first device in the chain will provide the DHCP address to
+all LAN devices on all nodes (because it powers up first).
+
 * NanoStation M2 XW
+* NanoStation M5 XW
 * NanoStation M2 XM
 * NanoStation M3 XM
 * NanoStation M5 XM
+* TP-Link CPE220 v3
 
 The Mikrotik hAP AC Lite, Ubiquiti AirRouter, and AirRouter HP are pre-configured with the following VLANs:
 
