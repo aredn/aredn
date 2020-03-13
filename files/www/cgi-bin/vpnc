@@ -74,7 +74,10 @@ sub save_connections()
         $rc=&uci_set_named_option("vtun","server_$i","node",$vtun_node_name);
         push(@conn_err,"Problem saving UCI vtun connection name (#$i)") if $rc;
 
-        foreach $var (qw(enabled host passwd netip))
+        $rc=&uci_set_named_option("vtun","server_$i","contact",$contact);
+        push(@conn_err,"Problem saving UCI vtun contact info (#$i)") if $rc;
+
+        foreach $var (qw(enabled host passwd netip contact))
         {
             $rc=&uci_set_named_option("vtun","server_$i",$var,$parms{"conn${i}_$var"});
             push(@conn_err,"Problem saving UCI vtun connection (#$i)") if $rc;
@@ -137,7 +140,7 @@ if($parms{button_reset} or not $parms{reload})
     &get_connection_info();
     
     # initialize the "add" entries to clear them
-    foreach $var (qw(enabled host passwd netip))
+    foreach $var (qw(enabled host passwd netip contact))
     {
         $varname = "conn${val}_$var";
         $parms{$varname} = "";
@@ -155,7 +158,7 @@ $conn_num = 0;
 
 foreach $val (@list)
 {
-    foreach $var (qw(enabled host passwd netip))
+    foreach $var (qw(enabled host passwd netip contact))
     {
         $varname = "conn${val}_$var";
         $parms{$varname} = "0" if($val eq "enabled" and $parms{$varname} eq "");
@@ -174,7 +177,7 @@ foreach $val (@list)
 
 
     # Validate ADDed values    
-    if($val eq "_add")  { next unless ($enabled or $host or $passwd or $netip) and ($parms{conn_add} or $parms{button_save}) }
+    if($val eq "_add")  { next unless ($enabled or $host or $passwd or $netip or $contact) and ($parms{conn_add} or $parms{button_save}) }
     else                { next if $parms{"conn${val}_del"} }
 
     # Validate password is vtun compliant
@@ -198,6 +201,7 @@ foreach $val (@list)
     $parms{"conn${conn_num}_host"} = $host;
     $parms{"conn${conn_num}_passwd"} = $passwd;
     $parms{"conn${conn_num}_netip"} = $netip;
+    $parms{"conn${conn_num}_contact"} = $contact;
 
     # Commit the data for this connection
     $conn_num++;
@@ -205,7 +209,7 @@ foreach $val (@list)
     # Clear out the ADD values
     if($val eq "_add")
     {
-        foreach $var (qw(enabled host passwd netip))
+        foreach $var (qw(enabled host passwd netip contact))
             {
                 $parms{"conn_add_${var}"} = "";
             }   
@@ -359,14 +363,14 @@ sub print_vpn_connections()
     $cnum=0;
     foreach $val (@list)
     {
-        foreach $var (qw(enabled host passwd netip))
+        foreach $var (qw(enabled host passwd netip contact))
         {
             eval sprintf("\$%s = \$parms{conn%s_%s}", $var, $val, $var);
         }
 
         print "<tr><td height=10></td></tr>\n" if $val eq "_add" and scalar(@list) > 1;
-        print "<tr>";
-        print "<td>";
+        print "<tr class='tun_client_list2 tun_client_row'>";
+        print "<td class='tun_client_center_item' rowspan='2'>";
 
         # Required to be first, so, if the checkbox is cleared, a value will still POST
         print "<input type='hidden' name='conn${val}_enabled' value='0'>" unless($val eq "_add");
@@ -381,31 +385,39 @@ sub print_vpn_connections()
         # print " disabled" unless $val eq "_add";
         print " title='connection name'></td>";
 
-        print "<td>&nbsp;&nbsp;<input type=text size=20 name=conn${val}_passwd value='$passwd' ";
+        print "<td><input type=text size=20 name=conn${val}_passwd value='$passwd' ";
         print " onChange='form.submit()'" unless $val eq "_add";
         print " title='connection password'";
         #print " disabled" unless $val eq "_add";
         print "></td>";
 
-        print "<td>&nbsp;&nbsp;<input type=text size=14 name=conn${val}_netip value='$netip'";
+        print "<td><input type=text size=14 name=conn${val}_netip value='$netip'";
         print " onChange='form.submit()'" unless $val eq "_add";
         # print " disabled" unless $val eq "_add";
         print " title='connection network'></td>";
 
         print "</td>";
-        print "<td>&nbsp;";
+        print "<td class='tun_client_center_item' rowspan='2'>&nbsp;";
         if (&is_tunnel_active($netip,@active_tun) && ($val ne "_add")) {
             print "<img class='tun_client_active_img' src='/connected.png' title='Connected' />";
         } else {
             print "<img class='tun_client_inactive_img' src='/disconnected.png' title='Not connected' />" if ($val ne "_add");
         }
         print "</td>";
-        print "<td>&nbsp;";    
+        print "<td class='tun_client_center_item' rowspan='2'>&nbsp;";    
 
         print "<input type=submit name=";
         if($val eq "_add")  { print "conn_add value=Add title='Add this connection'" }
         else                { print "conn${val}_del value=Del title='Delete this connection'" }
-        print "></td></tr>\n";
+
+        print "></td>";
+        #contact info for this tunnel
+        print "</tr>\n";
+        print "<tr class='tun_client_list1 tun_client_row tun_loading_css_comment'><td colspan='3' align='right'>Contact Info/Comment (Optional): <input type=text maxlength='50' size=40 name=conn${val}_contact value='$contact'";
+        print " onChange='form.submit()'" unless ($val eq "_add" || $val eq "");
+        print " title='client contact info'></td>";
+
+        print "</tr>\n";
 
         # display any errors
         while(@conn_err and $conn_err[0] =~ /^$val /)
@@ -435,10 +447,11 @@ sub get_connection_info()
     {
         my $myconn={};
         $myconn=&uci_get_named_section("vtun",$_);
-        foreach $var (qw(enabled host passwd netip))
+        foreach $var (qw(enabled host passwd netip contact))
         {
             $parms{"conn${c}_$var"} = $myconn->{$var};
             $parms{"conn${c}_$var"} = "0" if($parms{"conn${c}_$var"} eq "");
+            $myconn->{$var} = "";
         }
         $c++;
     }

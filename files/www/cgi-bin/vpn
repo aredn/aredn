@@ -65,13 +65,16 @@ sub save_clients()
         push(@cli_err,"Problem saving UCI vtun client net IP (#$i): $rc") if $rc;
 
         $rc=&uci_set_named_option("vtun","client_$i","enabled",$parms{"client${i}_enabled"});
-        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
+        push(@cli_err,"Problem saving UCI vtun client enabled (#$i): $rc") if $rc;
 
         $rc=&uci_set_named_option("vtun","client_$i","name",$parms{"client${i}_name"});
-        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
+        push(@cli_err,"Problem saving UCI vtun client name (#$i): $rc") if $rc;
+
+        $rc=&uci_set_named_option("vtun","client_$i","contact",$parms{"client${i}_contact"});
+        push(@cli_err,"Problem saving UCI vtun client contact (#$i): $rc") if $rc;
 
         $rc=&uci_set_named_option("vtun","client_$i","passwd",$parms{"client${i}_passwd"});
-        push(@cli_err,"Problem saving UCI vtun client (#$i): $rc") if $rc;
+        push(@cli_err,"Problem saving UCI vtun client password (#$i): $rc") if $rc;
 
         # generate the VTUN NODE name based on the node name and netip
         $net=~ s/\./\-/g;
@@ -174,7 +177,7 @@ $client_num = 0;
 
 foreach $val (@list)
 {
-    foreach $var (qw(enabled name passwd netip))
+    foreach $var (qw(enabled name passwd netip contact))
     {
         $varname = "client${val}_$var";
         $parms{$varname} = "0" if($val eq "enabled" and $parms{$varname} eq "");
@@ -196,7 +199,7 @@ foreach $val (@list)
     if($val eq "_add")
     {
         # skip any null values on add or save
-        next unless ($enabled or $name or $passwd) and ($parms{client_add} or $parms{button_save});
+        next unless ($enabled or $name or $passwd or $contact) and ($parms{client_add} or $parms{button_save});
     }   # no delete capabilities as net renumbering is not allowed
 
 
@@ -226,7 +229,7 @@ foreach $val (@list)
     # Clear out the ADD values
     if($val eq "_add")
     {
-        foreach $var (qw(net enabled name passwd netip))
+        foreach $var (qw(net enabled name passwd netip contact))
             {
                 $parms{"client_add_${var}"} = "";
             }   
@@ -385,11 +388,12 @@ sub print_vpn_clients()
     print "<input type='text' name='dns' size='30' value='$dns' onChange='form.submit()' ></td></tr>";
 
     print "</table>";
-    print "<hr />";
-    print "<table class=tun_client_table cellpadding=0 cellspacing=0>";
+    #print "<hr />";
+    print "<table cellpadding=0 cellspacing=0>";
     print "<tr><th colspan=6 align=center valign=top>&nbsp;</th></tr>\n";
     print "<tr class=tun_client_row>";
     print "<tr><th colspan=6>Allow the following clients to connect to this server:</th></tr>\n";
+    print "<tr><th colspan=6><hr></th></tr>\n";
     print "<tr><th>Enabled?</th><th>Client</th><th>Pwd</th><th>Net</th><th>Active&nbsp;</td><th>Action</th></tr>\n";
     
     for($i = 0, @list = (); $i < $parms{client_num}; ++$i) { push @list, $i };
@@ -399,14 +403,14 @@ sub print_vpn_clients()
     $cnum=0;
     foreach $val (@list)
     {
-        foreach $var (qw(enabled name passwd))
+        foreach $var (qw(enabled name passwd contact))
         {
             eval sprintf("\$%s = \$parms{client%s_%s}", $var, $val, $var);
         }
 
         print "<tr class=tun_client_add_row><td height=10></td></tr>\n" if $val eq "_add" and scalar(@list) > 1;
-        print "<tr class=tun_client_row>";
-        print "<td>";
+        print "<tr class='tun_client_list2 tun_client_row'>";
+        print "<td class='tun_client_center_item' rowspan='2'>";
 
         # Required to be first, so, if the checkbox is cleared, a value will still POST
         print "<input type='hidden' name='client${val}_enabled' value='0'>" unless($val eq "_add");
@@ -420,7 +424,7 @@ sub print_vpn_clients()
         # print " disabled" unless $val eq "_add";
 		print " title='client name'></td>";
 
-        print "<td>&nbsp;&nbsp;<input type=text size=25 name=client${val}_passwd value='$passwd' ";
+        print "<td><input type=text size=25 name=client${val}_passwd value='$passwd' ";
         print " onChange='form.submit()'" unless $val eq "_add";
         print " title='client password'";
         #print " disabled" unless $val eq "_add";
@@ -439,18 +443,25 @@ sub print_vpn_clients()
         if($val eq "_add") { $lastnet=$netw[3]+(($net) * 4); }
         else { $lastnet=$netw[3]+($net * 4); }
         $fullnet=sprintf("%d.%d.%d.%d",$netw[0],$netw[1],$netw[2],$lastnet);
-        print "<td>&nbsp;$fullnet";
+        print "<td rowspan='2' class='tun_client_center_item'>&nbsp;$fullnet";
         print "<input type=hidden name=client${val}_netip value='$fullnet'/></td>";       
-        print "<td align=center>&nbsp;"; 
+        print "<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;"; 
         if (&is_tunnel_active($fullnet,@active_tun) && ($val ne "_add")) {
             print "<img class='tun_client_active_img' src='/connected.png' title='Connected' />";
         } else {
             print "<img class='tun_client_inactive_img' src='/disconnected.png' title='Not connected' />";
         }
         print "</td>";
-        print "<td><input type=submit name=client_add value=Add title='Add this client'>" if($val eq "_add");
+        print "<td rowspan='2' class='tun_client_center_item'><input type=submit name=client_add value=Add title='Add this client'>" if($val eq "_add");
         print "</td>";
-        print "<td class='tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$passwd%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20$dns'><img class='tun_client_mailto_img' src='/email.png' title='Email details' /></a></td>" unless($val eq "_add");
+        print "<td rowspan='2' class='tun_client_center_item tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$passwd%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20$dns'><img class='tun_client_mailto_img' src='/email.png' title='Email details' /></a></td>" unless($val eq "_add");
+
+	#contact info for the tunnel
+        print "</tr>";
+        print "<tr class='tun_client_list1 tun_client_row tun_loading_css_comment'><td colspan='2' align='right'>Contact Info/Comment (Optional): <input type=text maxlength='50' size=40 name=client${val}_contact value='$contact'";
+        print " onChange='form.submit()'" unless ($val eq "_add" || $val eq "");
+        print " title='client contact info'></td>";
+
         print "</tr>\n";
 
         # display any errors
@@ -480,10 +491,11 @@ sub get_client_info()
     {
         my $myclient={};
         $myclient=&uci_get_named_section("vtun",$_);
-        foreach $var (qw(enabled name passwd netip))
+        foreach $var (qw(enabled name passwd netip contact))
         {
             $parms{"client${c}_$var"} = $myclient->{$var};
             $parms{"client${c}_$var"} = "0" if($parms{"client${c}_$var"} eq "");
+            $myclient->{$var} = "";
         }
         $c++;
     }

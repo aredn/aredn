@@ -245,7 +245,7 @@ sub uci_delete_indexed_type()
 sub uci_set_named_option()
 {
     my ($config,$sname,$option,$val)=@_;
-    my $cmd=sprintf('uci set %s.%s.%s=%s',$config,$sname,$option,$val);
+    my $cmd=sprintf('uci set %s.%s.%s="%s"',$config,$sname,$option,$val);
     #uci set olsrd.tunnelserver.Ip4Broadcast=255.255.255.255
     my $res=`$cmd`;
     my $rc=$?;
