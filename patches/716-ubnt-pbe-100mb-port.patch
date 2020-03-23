@@ -1,0 +1,17 @@
+Index: openwrt/package/base-files/files/etc/rc.local
+===================================================================
+--- openwrt.orig/package/base-files/files/etc/rc.local
++++ openwrt/package/base-files/files/etc/rc.local
+@@ -1,4 +1,12 @@
+ # Put your custom commands here that should be executed once
+ # the system init finished. By default this file does nothing.
+ /etc/init.d/dnsmasq start
++
++BOARDID=$(/usr/local/bin/get_boardid)                                 
++case "$BOARDID" in                                                         
++        0xe885|0xe4e5|0xe6e5)                                                            
++		/usr/sbin/ethtool -s eth0 speed 100 duplex full autoneg off
++                ;;
++esac
++
+ exit 0
