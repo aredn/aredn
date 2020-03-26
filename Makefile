@@ -17,9 +17,9 @@ UMASK=umask 022
 # set variables based on private or CircleCI build
 ifeq ($(CIRCLECI),true)
 $(info CircleCI build ...)
-FW_VERSION=$(PRIVATE_BUILD_VERSION)-$(GIT_COMMIT)
+FW_VERSION=$(PRIVATE_BUILD_VERSION)
 else
-FW_VERSION=$(PRIVATE_BUILD_VERSION)-$(GIT_BRANCH)-$(GIT_COMMIT)
+FW_VERSION=$(PRIVATE_BUILD_VERSION)
 endif
 
 # test for existing $TARGET-config or abort

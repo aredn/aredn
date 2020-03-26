@@ -28,20 +28,26 @@ license, please refer to http://www.arrl.org/getting-your-technician-license
 
 ### What to know about the images built with the instructions below
 
-This is the active 'develop' branch with latest AREDN code.
-At anytime a new change may be broken or break prior capabilities.
+This is the 3.20.3.0 release build.
 
-The Amateur Radio community is encouraged to participate in loading the
-images produced from a "nightly build" and run the AREDN firmware in a
-variety of environments.  Given new features may not yet be documented,
-participants should already have a basic knowledge of Linux and Networking to
-understand and provide useful feedback to the Developer submitting the
-code.
+Here is a summary of the significant features added since 3.19.3.0
+was released:
 
-The goal of participation is to obtain confidence that new
-features and the overall mesh node is stable.   The more participation,
-the earlier an issue is found, the faster an enhancement will be
-turned into a release.
+* Upgrade to Openwrt 19.07.2 https://openwrt.org/releases/19.07/notes-19.07.0
+* Numerous Documentation updates and new sections
+* Added Mikrotik LHG 2nD/2nD-XL/5HPnD
+* Added Mikrotik LDF-2nD
+* Added Mikrotik RBSXTsq 2nD/5HPnD
+* Added Mikrotik RB911G-2HPnD mANTBox
+* Added GL.iNet GL-USB150
+* Added GL.iNet GL-AR150
+* Added GL.iNet GL-AR300M16
+* Added GL.iNet GL-AR750
+* Added TpLink WBS510 v2
+* Added TpLink CPE210 v3.1/v3.2
+* Added auto distance feature
+* Added Wan Wifi Client feature
+* No longer require password on Wifi Scan changing to passive scan
 
 Please refer to https://github.com/aredn/aredn_ar71xx/issues
 for a list of outstanding defects.
@@ -56,7 +62,6 @@ AirRouter  | ath79 | airrouter | 32Mb | stable
 AirRouter HP | ath79 | airrouter | 32Mb | stable
 Bullet M2Ti/M5/M5Ti | ar71xx | bullet-m | 32Mb | stable
 Bullet M2 | ath79 | bullet-m | 32Mb | stable
-Bullet Ti | ar71xx | bullet-m | 32Mb | stable
 Bullet M2 XW | ath79 | bullet-m-xw | 64Mb | stable
 LiteBeam M5 | ar71xx | lbe-m5 | 64Mb | stable
 NanoBeam M2-13/M5-16/M5-19 | ar71xx | loco-m-xw | 32Mb | stable
@@ -245,6 +250,12 @@ You need approximately 10GB of space for the build.
 
 Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn_ar71xx" command above:
+
+AREDN release 3.20.3.0
+
+```
+git checkout 3.20.3.0
+```
 
 AREDN release 3.19.3.0
 
