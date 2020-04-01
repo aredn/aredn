@@ -16,3 +16,19 @@ Index: openwrt/target/linux/ar71xx/patches-4.14/903-phy-ar8216-no-vlan-ports.pat
 + 			portmask[AR8216_PORT_CPU] |= (1 << i);
 + 		}
 + 	}
+--- /dev/null
++++ openwrt/target/linux/ath79/patches-4.14/903-phy-ar8216-no-vlan-ports.patch
+@@ -0,0 +1,13 @@
++--- a/drivers/net/phy/ar8216.c
+++++ b/drivers/net/phy/ar8216.c
++@@ -1154,7 +1154,9 @@
++ 			if (i == AR8216_PORT_CPU)
++ 				continue;
++ 
++-			portmask[i] = 1 << AR8216_PORT_CPU;
+++			for (j = 0; j < dev->ports; j++) {
+++				portmask[i] |= (1 << j);
+++			}
++ 			portmask[AR8216_PORT_CPU] |= (1 << i);
++ 		}
++ 	}
