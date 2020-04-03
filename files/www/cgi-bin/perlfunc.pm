@@ -2047,5 +2047,65 @@ sub tz_names_array {
   return \@array;
 }
 
+# firmware/packages downloads functions
+sub getDistTarget {
+  # to tell where to download the kernel mod packages (kmod-tun, etc)
+  my $filename = '/etc/openwrt_release';
+  open my $fh, '<', $filename or die "Could not open $filename!";
+  while(my $row = <$fh>) {
+    if($row =~ /\bDISTRIB_TARGET\b/) {
+      chomp $row;
+      my @target = split /'/, $row;
+      return @target[1];
+    }
+  }
+}
+sub getRelease {
+  # what firmware are we running?
+  my $filename = '/etc/openwrt_release';
+  open my $fh, '<', $filename or die "Could not open $filename!";
+  while(my $row = <$fh>) {
+    if($row =~ /\bDISTRIB_RELEASE\b/) {
+      my @release = split /'/, $row;
+      return @release[1];
+    }
+  }
+}
+
+# unused. commented for now.
+#sub firmwareDownload {
+#  my $target = getDistTarget();
+#  my $release = getRelease();
+#  if ($release !~ /\./) {
+#    return "http://downloads.arednmesh.org/snapshots/trunk/" . $target;
+#  } else {
+#    return "http://downloads.arednmesh.org/firmware";
+#  }  
+#}
+
+sub defaultPackageRepos {
+  # returns the default package repository URL based on if the running firmware is a "stable release" or not
+  # send this function a package repo name, ie: "aredn_core", "arednpackages, "base", "packages", "routing", etc...
+  my $repo = @_[0];
+  my $target = getDistTarget();
+  my $release = getRelease();
+  my $urlprefix = 'http://downloads.arednmesh.org';
+  my $url = '';
+  #check release
+  if ($release =~ /\./) {
+    my @nums = split /\./, $release;
+    $urlprefix .= "/releases/" . @nums[0] . "/" . @nums[1] . "/" . $release . "/";
+  } else {
+    #nightly build or self built firmware
+    $urlprefix .= "/snapshots/trunk/";
+  }
+  # have prefix (hopefully), now finish the rest of the url
+  if ($repo =~ "aredn_core") {
+    $url = $urlprefix . "targets/" . $target . "/packages";
+  } else {
+    $url = $urlprefix . "packages/mips_24kc/" . $repo;
+  }
+  return $url;
+}
 #weird uhttpd/busybox error requires a 1 at the end of this file
 1

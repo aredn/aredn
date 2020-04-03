@@ -69,6 +69,56 @@ push @setting, {
   default => "http://downloads.arednmesh.org/firmware"
 };
 push @setting, {
+  key => "aredn.\@downloads[0].pkgs_core",
+  type => "string",
+  desc => "Specifies the URL for the 'core' packages: kernel modules and the like",
+  default => defaultPackageRepos('aredn_core'),
+  postcallback => "writePackageRepo('core')"
+};
+push @setting, {
+  key => "aredn.\@downloads[0].pkgs_base",
+  type => "string",
+  desc => "Specifies the URL for the 'base' packages: libraries, shells, etc.",
+  default => defaultPackageRepos('base'),
+  postcallback => "writePackageRepo('base')"
+};
+push @setting, {
+  key => "aredn.\@downloads[0].pkgs_arednpackages",
+  type => "string",
+  desc => "Specifies the URL for the 'arednpackages' packages: vtun, etc.",
+  default => defaultPackageRepos('arednpackages'),
+  postcallback => "writePackageRepo('arednpackages')"
+};
+push @setting, {
+  key => "aredn.\@downloads[0].pkgs_luci",
+  type => "string",
+  desc => "Specifies the URL for the 'luci' packages: luci and things needed for luci.",
+  default => defaultPackageRepos('luci'),
+  postcallback => "writePackageRepo('luci')"
+};
+push @setting, {
+  key => "aredn.\@downloads[0].pkgs_packages",
+  type => "string",
+  desc => "Specifies the URL for the 'packages' packages: everything not included in the other dirs.",
+  default => defaultPackageRepos('packages'),
+  postcallback => "writePackageRepo('packages')"
+};
+push @setting, {
+  key => "aredn.\@downloads[0].pkgs_routing",
+  type => "string",
+  desc => "Specifies the URL for the 'routing' packages: olsr, etc.",
+  default => defaultPackageRepos('routing'),
+  postcallback => "writePackageRepo('routing')"
+};
+push @setting, {
+  key => "aredn.\@downloads[0].pkgs_telephony",
+  type => "string",
+  desc => "Specifies the URL for the 'telephony' packages.",
+  default => defaultPackageRepos('telephony'),
+  postcallback => "writePackageRepo('telephony')"
+};
+
+push @setting, {
   key => "aredn.\@poe[0].passthrough", 
   type => "boolean", 
   desc => "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports.", 
@@ -129,6 +179,15 @@ sub olsr_restart()
   return $rc;
 }
 
+sub writePackageRepo {
+  my $repo = @_[0];
+  my $uciurl = `uci get aredn.\@downloads[0].pkgs_$repo`;
+  chomp($uciurl);
+  my $file = '/etc/opkg/distfeeds.conf';
+  my $disturl = `grep aredn_$repo /etc/opkg/distfeeds.conf | cut -d' ' -f3`;
+  chomp($disturl);
+  system("sed -i 's|$disturl|$uciurl|g' $file");
+}
 # ----- CALLBACKS ----------
 
 read_postdata({acceptfile => false});

@@ -74,4 +74,25 @@ boot() {
     usbvalue=$duval
   fi
   /usr/local/bin/usb_passthrough "${usbvalue}"
+
+  # package repositorys
+  local repos="core base arednpackages packages luci routing telephony"
+  set -- $repos
+  while [ -n "$1" ]; do
+    local ucirepo=$(uci -q get aredn.@downloads[0].pkgs_$1)
+    local distrepo=$(grep aredn_$1 /etc/opkg/distfeeds.conf | cut -d' ' -f3)
+    # get the URLs from distfeeds.conf and set the initial UCI values if not present
+    if [ -z $ucirepo ]; then
+      uci set aredn.@downloads[0].pkgs_$1=$distrepo
+      uci commit aredn
+      uci -c /etc/config.mesh set aredn.@downloads[0].pkgs_$1=$distrepo
+      uci -c /etc/config.mesh commit aredn
+    # check values in distfeeds.conf against UCI settings
+    # and change distfeeds.conf if needed (upgrades?)
+    ## commented for now, may need it later
+    #elif [ $ucirepo != $distrepo ]; then
+    #  sed -i "s|$distrepo|$ucirepo|g" /etc/opkg/distfeeds.conf
+    fi
+    shift
+  done
 }

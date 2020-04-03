@@ -168,7 +168,7 @@ if(${hardwaretype} eq "nanostation-m")
 # refresh fw
 if($parms{button_refresh_fw})
 {
-    if(get_default_gw() ne "none")
+    if((get_default_gw() ne "none") || ($uciserverpath =~ ".local.mesh"))
     {
 	push @fw_output, "Downloading firmware list from $uciserverpath...\n";
 	unlink "/tmp/web/firmware.list";
@@ -184,7 +184,7 @@ if($parms{button_refresh_fw})
     }
     else
     {
-	push @fw_output, "Error: no route to the Internet\n";
+	push @fw_output, "Error: no route to Host\n";
 	unlink "/tmp/web/firmware.list";
     }
 }
@@ -233,7 +233,7 @@ if($parms{button_ul_fw} and -f "/tmp/web/upload/file")
 # download fw
 if($parms{button_dl_fw} and $parms{dl_fw} ne "default")
 {
-    if(get_default_gw() ne "none")
+    if((get_default_gw() ne "none") || ($uciserverpath =~ ".local.mesh"))
     {
 	unlink "$tmpdir/firmware";
 	system("/usr/local/bin/uploadctlservices","upgrade");
@@ -298,7 +298,7 @@ if($parms{button_dl_fw} and $parms{dl_fw} ne "default")
     }
     else
     {
-	push @fw_output, "Error: no route to the Internet\n";
+	push @fw_output, "Error: no route to Host\n";
 	unlink "/tmp/web/firmware.list";
     }
 }
@@ -483,9 +483,10 @@ if($parms{button_ul_pkg} and -f "/tmp/web/upload/file")
 } 
 
 # download package
+$meshpkgs = system('grep -q ".local.mesh" /etc/opkg/distfeeds.conf');
 if($parms{button_dl_pkg} and $parms{dl_pkg} ne "default")
 {
-    if(get_default_gw() ne "none")
+    if((get_default_gw() ne "none") || (!$meshpkgs))
     {
 	system("/usr/local/bin/uploadctlservices","opkginstall");
 	push @pkg_output, `opkg -force-overwrite install $parms{dl_pkg} 2>&1`;
@@ -493,21 +494,21 @@ if($parms{button_dl_pkg} and $parms{dl_pkg} ne "default")
     }
     else
     {
-	push @pkg_output, "Error: no route to the Internet\n";
+	push @pkg_output, "Error: no route to Host\n";
     }
 } 
 
 # refresh package list
 if($parms{button_refresh_pkg})
 {
-    if(get_default_gw() ne "none")
+    if((get_default_gw() ne "none") || (!$meshpkgs))
     {
 	@pkg_output = `opkg update 2>&1`;
 	system "opkg list | grep -v '^ ' | cut -f1,3 -d' ' | gzip -c > /etc/opkg.list.gz";
     }
     else
     {
-	push @pkg_output, "Error: no route to the Internet\n";
+	push @pkg_output, "Error: no route to Host\n";
     }
 } 
 
