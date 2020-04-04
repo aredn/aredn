@@ -543,8 +543,12 @@ my ($rc, $maptiles, $leafletcss, $leafletjs);
 
 http_header() unless $debug == 2;
 html_header(nvram_get("node") . " setup", 0);
-print "<link rel='stylesheet' href='${leafletcss}' />\n" if $pingOk;
-print "<script src='${leafletjs}'></script>\n" if $pingOk;
+if(($pingOk) || ($leafletcss =~ ".local.mesh")) {
+  print "<link rel='stylesheet' href='${leafletcss}' />\n";
+}
+if(($pingOk) || ($leafletjs =~ ".local.mesh")) {
+  print "<script src='${leafletjs}'></script>\n";
+}
 print "</head>";
 print "<body><center>\n";
 
