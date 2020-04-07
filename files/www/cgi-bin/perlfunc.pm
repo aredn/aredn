@@ -2056,7 +2056,7 @@ sub getDistTarget {
     if($row =~ /\bDISTRIB_TARGET\b/) {
       chomp $row;
       my @target = split /'/, $row;
-      return @target[1];
+      return $target[1];
     }
   }
 }
@@ -2067,7 +2067,7 @@ sub getRelease {
   while(my $row = <$fh>) {
     if($row =~ /\bDISTRIB_RELEASE\b/) {
       my @release = split /'/, $row;
-      return @release[1];
+      return $release[1];
     }
   }
 }
@@ -2086,7 +2086,7 @@ sub getRelease {
 sub defaultPackageRepos {
   # returns the default package repository URL based on if the running firmware is a "stable release" or not
   # send this function a package repo name, ie: "aredn_core", "arednpackages, "base", "packages", "routing", etc...
-  my $repo = @_[0];
+  my $repo = $_[0];
   my $target = getDistTarget();
   my $release = getRelease();
   my $urlprefix = 'http://downloads.arednmesh.org';
@@ -2094,7 +2094,7 @@ sub defaultPackageRepos {
   #check release
   if ($release =~ /\./) {
     my @nums = split /\./, $release;
-    $urlprefix .= "/releases/" . @nums[0] . "/" . @nums[1] . "/" . $release . "/";
+    $urlprefix .= "/releases/" . $nums[0] . "/" . $nums[1] . "/" . $release . "/";
   } else {
     #nightly build or self built firmware
     $urlprefix .= "/snapshots/trunk/";
