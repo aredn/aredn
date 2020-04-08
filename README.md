@@ -86,8 +86,8 @@ TPLink CPE210 v3.0 | ath79 | cpe210-v3 | 64Mb | stable
 TPLink CPE220 v2.0 | ar71xx | cpe220-v2 | 64Mb | stable
 TPLink CPE220 v3.0 | ath79  | cpe220-v3 | 64Mb | stable
 TPLink CPE510 v1.0/v1.1 | ar71xx | cpe510-520-v1 | 64Mb | stable
-TPLink CPE510 v2.0 | ar71xx | cpe510-v2 | 64Mb | stable
-TPLink CPE510 v3.0 | ar71xx | cpe510-v3 | 64Mb | stable
+TPLink CPE510 v2.0 | ath79  | cpe510-v2 | 64Mb | stable
+TPLink CPE510 v3.0 | ath79  | cpe510-v3 | 64Mb | stable
 TPLink CPE610 v1.0 | ar71xx | cpe610-v1 | 64Mb | stable
 TPLink WBS210 v1.0 | ar71xx | wbs210-v1 | 64mb | stable
 TPLink WBS510 v2.0 | ar71xx | wbs510-v2 | 64mb | stable

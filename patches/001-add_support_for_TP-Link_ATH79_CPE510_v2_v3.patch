@@ -1,0 +1,261 @@
+--- a/target/linux/ath79/base-files/etc/board.d/01_leds
++++ b/target/linux/ath79/base-files/etc/board.d/01_leds
+@@ -168,6 +168,15 @@ tplink,cpe210-v3)
+ 	ucidef_set_led_rssi "rssimediumhigh" "RSSIMEDIUMHIGH" "tp-link:green:link3" "wlan0" "60" "100"
+ 	ucidef_set_led_rssi "rssihigh" "RSSIHIGH" "tp-link:green:link4" "wlan0" "80" "100"
+ 	;;
++tplink,cpe510-v2|\
++tplink,cpe510-v3)
++        ucidef_set_led_netdev "lan" "LAN" "tp-link:green:lan" "eth0"
++        ucidef_set_rssimon "wlan0" "200000" "1"
++        ucidef_set_led_rssi "rssilow" "RSSILOW" "tp-link:green:link1" "wlan0" "1" "100" "0" "13"
++        ucidef_set_led_rssi "rssimediumlow" "RSSIMEDIUMLOW" "tp-link:green:link2" "wlan0" "26" "100" "-25" "13"
++        ucidef_set_led_rssi "rssimediumhigh" "RSSIMEDIUMHIGH" "tp-link:green:link3" "wlan0" "51" "100" "-50" "13"
++        ucidef_set_led_rssi "rssihigh" "RSSIHIGH" "tp-link:green:link4" "wlan0" "76" "100" "-75" "13"
++        ;;
+ tplink,re450-v2)
+ 	ucidef_set_led_netdev "lan_data" "LAN Data" "tp-link:green:lan_data" "eth0" "tx rx"
+ 	ucidef_set_led_netdev "lan_link" "LAN Link" "tp-link:green:lan_link" "eth0" "link"
+--- a/target/linux/ath79/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/base-files/etc/board.d/02_network
+@@ -26,6 +26,8 @@ ath79_setup_interfaces()
+ 	pqi,air-pen|\
+ 	tplink,cpe210-v2|\
+ 	tplink,cpe210-v3|\
++	tplink,cpe510-v2|\
++	tplink,cpe510-v3|\
+ 	tplink,re350k-v1|\
+ 	tplink,re450-v2|\
+ 	tplink,tl-mr10u|\
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_tplink_cpe.dtsi
+@@ -0,0 +1,112 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++
++#include "ar9344.dtsi"
++
++/ {
++	aliases {
++		label-mac-device = &wmac;
++	};
++
++	keys {
++		compatible = "gpio-keys";
++
++		reset {
++			linux,code = <KEY_RESTART>;
++			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
++			debounce-interval = <60>;
++		};
++	};
++};
++
++&ref {
++	clock-frequency = <40000000>;
++};
++
++&uart {
++	status = "okay";
++};
++
++&spi {
++	status = "okay";
++
++	num-cs = <1>;
++
++	flash@0 {
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <25000000>;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			uboot: partition@0 {
++				label = "u-boot";
++				reg = <0x000000 0x020000>;
++				read-only;
++			};
++
++			partition@20000 {
++				label = "partition-table";
++				reg = <0x020000 0x010000>;
++				read-only;
++			};
++
++			info: partition@30000 {
++				label = "info";
++				reg = <0x030000 0x010000>;
++				read-only;
++			};
++
++			partition@40000 {
++				label = "firmware";
++				reg = <0x040000 0x780000>;
++
++				compatible = "fixed-partitions";
++				#address-cells = <1>;
++				#size-cells = <1>;
++
++				partition@0 {
++					label = "kernel";
++					reg = <0x000000 0x1c0000>;
++				};
++
++				partition@1c0000 {
++					label = "rootfs";
++					reg = <0x1c0000 0x5c0000>;
++				};
++			};
++
++			partition@7c0000 {
++				label = "config";
++				reg = <0x7c0000 0x030000>;
++				read-only;
++			};
++
++			art: partition@7f0000 {
++				label = "art";
++				reg = <0x7f0000 0x010000>;
++				read-only;
++			};
++		};
++	};
++};
++
++&wmac {
++	status = "okay";
++
++	mtd-cal-data = <&art 0x1000>;
++	mtd-mac-address = <&info 0x08>;
++};
++
++&eth0 {
++	status = "okay";
++
++	phy-handle = <&swphy4>;
++
++	mtd-mac-address = <&info 0x8>;
++};
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_tplink_cpe510-v2.dts
+@@ -0,0 +1,10 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++/dts-v1/;
++
++#include "ar9344_tplink_cpe_1port.dtsi"
++
++/ {
++        compatible = "tplink,cpe510-v2", "qca,ar9344";
++        model = "TP-Link CPE510 v2";
++};
++
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_tplink_cpe510-v3.dts
+@@ -0,0 +1,10 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++/dts-v1/;
++
++#include "ar9344_tplink_cpe_1port.dtsi"
++
++/ {
++        compatible = "tplink,cpe510-v3", "qca,ar9344";
++        model = "TP-Link CPE510 v3";
++};
++
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_tplink_cpe_1port.dtsi
+@@ -0,0 +1,47 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++#include "ar9344_tplink_cpe.dtsi"
++
++/ {
++	aliases {
++		led-boot = &led_system;
++		led-failsafe = &led_system;
++		led-running = &led_system;
++		led-upgrade = &led_system;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		lan {
++			label = "tp-link:green:lan";
++			gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
++		};
++
++		link1 {
++			label = "tp-link:green:link1";
++			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
++		};
++
++		link2 {
++			label = "tp-link:green:link2";
++			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
++		};
++
++		link3 {
++			label = "tp-link:green:link3";
++			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
++		};
++
++		led_system: link4 {
++			label = "tp-link:green:link4";
++			gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
++		};
++	};
++};
++
++&eth1 {
++	status = "okay";
++
++	compatible = "syscon", "simple-mfd";
++};
+--- a/target/linux/ath79/image/generic-tp-link.mk
++++ b/target/linux/ath79/image/generic-tp-link.mk
+@@ -179,6 +179,38 @@ define Device/tplink_cpe220-v3
+ endef
+ TARGET_DEVICES += tplink_cpe220-v3
+ 
++define Device/tplink_cpe510-v2
++  $(Device/tplink-safeloader)
++  ATH_SOC := ar9344
++  IMAGE_SIZE := 7680k
++  DEVICE_TITLE := TP-Link CPE510 v2
++  DEVICE_PACKAGES := rssileds
++  TPLINK_BOARD_ID := CPE510V2
++  LOADER_TYPE := elf
++  LOADER_FLASH_OFFS := 0x43000 
++  COMPILE := loader-$(1).elf 
++  COMPILE/loader-$(1).elf := loader-okli-compile 
++  KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x4f4b4c49 | loader-okli $(1) 12288
++  SUPPORTED_DEVICES += cpe510-v2
++endef
++TARGET_DEVICES += tplink_cpe510-v2
++
++define Device/tplink_cpe510-v3
++  $(Device/tplink-safeloader)
++  ATH_SOC := ar9344
++  IMAGE_SIZE := 7680k
++  DEVICE_TITLE := TP-Link CPE510 v3
++  DEVICE_PACKAGES := rssileds
++  TPLINK_BOARD_ID := CPE510V2
++  LOADER_TYPE := elf
++  LOADER_FLASH_OFFS := 0x43000 
++  COMPILE := loader-$(1).elf 
++  COMPILE/loader-$(1).elf := loader-okli-compile 
++  KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x4f4b4c49 | loader-okli $(1) 12288
++  SUPPORTED_DEVICES += cpe510-v3
++endef
++TARGET_DEVICES += tplink_cpe510-v3
++
+ define Device/tplink_archer-d50-v1
+   ATH_SOC := qca9531
+   DEVICE_TITLE := TP-Link Archer D50 v1
