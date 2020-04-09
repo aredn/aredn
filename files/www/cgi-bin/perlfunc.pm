@@ -1877,6 +1877,9 @@ sub is_hardware_supported
 # Needs to be renamed from alert_banner
 sub alert_banner
 {
+  # if /tmp/aredn_message file exists, then read and set $aredn_message to contents
+  $aredn_message = `cat /tmp/aredn_message` if( -f "/tmp/aredn_message");
+
   print "<div class=\"TopBanner\">";
 
   #AREDN Banner
@@ -1894,6 +1897,7 @@ sub alert_banner
       print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>\n";
     }
   }
+  print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">$aredn_message</div></div>\n" if $aredn_message;
 
   #TopBanner
   print "</div>";
