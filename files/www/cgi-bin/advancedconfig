@@ -140,6 +140,12 @@ push @setting, {
   desc => "Value doesn't matter.  Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
   postcallback => "olsr_restart()"
 };
+push @setting, {
+  key => "aredn.aam.refresh",
+  type => "boolean",
+  desc => "Value doesn't matter.  Will attempt to pull any AREDN Alert messages.",
+  postcallback => "aam_refresh()"
+};
 
 # ----------------------------------------
 
@@ -176,6 +182,12 @@ sub setUSBOutput()
 sub olsr_restart()
 {
   $rc=`/etc/init.d/olsrd restart`;
+  return $rc;
+}
+
+sub aam_refresh()
+{
+  $rc=`/usr/local/bin/aredn_message.sh`;
   return $rc;
 }
 
