@@ -1,0 +1,124 @@
+--- a/target/linux/ath79/base-files/etc/board.d/01_leds
++++ b/target/linux/ath79/base-files/etc/board.d/01_leds
+@@ -177,6 +177,9 @@ tplink,cpe510-v3)
+         ucidef_set_led_rssi "rssimediumhigh" "RSSIMEDIUMHIGH" "tp-link:green:link3" "wlan0" "51" "100" "-50" "13"
+         ucidef_set_led_rssi "rssihigh" "RSSIHIGH" "tp-link:green:link4" "wlan0" "76" "100" "-75" "13"
+         ;;
++tplink,cpe610-v1)
++	ucidef_set_led_netdev "lan" "LAN" "tp-link:green:lan" "eth0"
++	;;
+ tplink,re450-v2)
+ 	ucidef_set_led_netdev "lan_data" "LAN Data" "tp-link:green:lan_data" "eth0" "tx rx"
+ 	ucidef_set_led_netdev "lan_link" "LAN Link" "tp-link:green:lan_link" "eth0" "link"
+--- a/target/linux/ath79/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/base-files/etc/board.d/02_network
+@@ -28,6 +28,7 @@ ath79_setup_interfaces()
+ 	tplink,cpe210-v3|\
+ 	tplink,cpe510-v2|\
+ 	tplink,cpe510-v3|\
++	tplink,cpe610-v1|\
+ 	tplink,re350k-v1|\
+ 	tplink,re450-v2|\
+ 	tplink,tl-mr10u|\
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_tplink_cpe610-v1.dts
+@@ -0,0 +1,36 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++/dts-v1/;
++
++#include "ar9344_tplink_cpe.dtsi"
++
++/ {
++	model = "TP-Link CPE610 v1";
++	compatible = "tplink,cpe610-v1", "qca,ar9344";
++
++	aliases {
++		led-boot = &led_lan;
++		led-failsafe = &led_lan;
++		led-upgrade = &led_lan;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led_lan: lan {
++			label = "tp-link:green:lan";
++			gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
++		};
++
++		wlan5g {
++			label = "tp-link:green:wlan5g";
++			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "phy0tpt";
++		};
++	};
++};
++
++&eth1 {
++	status = "okay";
++
++	compatible = "syscon", "simple-mfd";
++};
+--- a/target/linux/ath79/image/generic-tp-link.mk
++++ b/target/linux/ath79/image/generic-tp-link.mk
+@@ -211,6 +211,22 @@ define Device/tplink_cpe510-v3
+ endef
+ TARGET_DEVICES += tplink_cpe510-v3
+ 
++define Device/tplink_cpe610-v1
++  $(Device/tplink-safeloader)
++  ATH_SOC := ar9344
++  IMAGE_SIZE := 7680k
++  DEVICE_TITLE := TP-Link CPE610 v1
++  DEVICE_PACKAGES := rssileds
++  TPLINK_BOARD_ID := CPE610
++  LOADER_TYPE := elf
++  LOADER_FLASH_OFFS := 0x43000 
++  COMPILE := loader-$(1).elf 
++  COMPILE/loader-$(1).elf := loader-okli-compile 
++  KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x4f4b4c49 | loader-okli $(1) 12288
++  SUPPORTED_DEVICES += cpe610
++endef
++TARGET_DEVICES += tplink_cpe610-v1
++
+ define Device/tplink_archer-d50-v1
+   ATH_SOC := qca9531
+   DEVICE_TITLE := TP-Link Archer D50 v1
+--- a/tools/firmware-utils/src/tplink-safeloader.c
++++ b/tools/firmware-utils/src/tplink-safeloader.c
+@@ -308,21 +308,20 @@ static struct device_info boards[] = {
+ 		.soft_ver = NULL,
+ 
+ 		.partitions = {
+-			{"fs-uboot", 0x00000, 0x20000},
+-			{"partition-table", 0x20000, 0x02000},
+-			{"default-mac", 0x30000, 0x00020},
+-			{"product-info", 0x31100, 0x00100},
+-			{"device-info", 0x31400, 0x00400},
+-			{"signature", 0x32000, 0x00400},
+-			{"device-id", 0x33000, 0x00100},
+-			{"firmware", 0x40000, 0x770000},
+-			{"soft-version", 0x7b0000, 0x00100},
+-			{"support-list", 0x7b1000, 0x01000},
+-			{"user-config", 0x7c0000, 0x10000},
+-			{"default-config", 0x7d0000, 0x10000},
+-			{"log", 0x7e0000, 0x10000},
+-			{"radio", 0x7f0000, 0x10000},
+-			{NULL, 0, 0}
++                        {"fs-uboot", 0x00000, 0x20000},
++                        {"partition-table", 0x20000, 0x02000},
++                        {"default-mac", 0x30000, 0x00020},
++                        {"product-info", 0x31100, 0x00100},
++                        {"signature", 0x32000, 0x00400},
++                        {"os-image", 0x40000, 0x1c0000},
++                        {"file-system", 0x200000, 0x5b0000},
++                        {"soft-version", 0x7b0000, 0x00100},
++                        {"support-list", 0x7b1000, 0x00400},
++                        {"user-config", 0x7c0000, 0x10000},
++                        {"default-config", 0x7d0000, 0x10000},
++                        {"log", 0x7e0000, 0x10000},
++                        {"radio", 0x7f0000, 0x10000},
++                        {NULL, 0, 0}
+ 		},
+ 
+ 		.first_sysupgrade_partition = "os-image",
