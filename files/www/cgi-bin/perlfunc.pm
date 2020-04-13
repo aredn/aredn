@@ -1139,6 +1139,16 @@ sub hardware_info
       'rfband'          => '5800ubntus',
       'chanpower'       => { 133 => '15', 141 => '26', 143 => '25' , 149 => '15' , 165 => '14', 166 => '25' },
     },
+    'TP-Link CPE610 v2' => {
+      'name'            => 'TP-Link CPE610 v2',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '30',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+      'chanpower'       => { 133 => '15', 141 => '26', 143 => '25' , 149 => '15' , 165 => '14', 166 => '25' },
+    },
     'TP-Link WBS210 v1.20' => {
       'name'            => 'TP-Link WBS210 v1.20',
       'comment'         => '',
