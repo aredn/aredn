@@ -159,8 +159,8 @@ The GL.iNet GL-AR150 and GL-AR300M16 are pre-configured with the following VLANS
 The GL.iNet GL-AR750 is pre-configured with the following ports, left to right:
 
 * Left Port with internet globe icon:  WAN (untagged)
-* Middle Port with "<..>" icon: LAN (untagged)
-* Right Port with "<..>" icon: DtDLink (vlan 2)
+* Middle Port with "<..>" icon: DtDLink (vlan 2)
+* Right Port with "<..>" icon: LAN (untagged)
 
 IMPORTANT: For Gl.iNet devices, when initially installing AREDN on OpenWRT, you *MUST* uncheck the "Keep Settings" checkbox.
  
