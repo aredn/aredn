@@ -200,8 +200,9 @@ sub read_postdata
         $line = fgets(10);
         push(@parse_errors, "not blank: '$line'") unless $line eq "\r\n";
         $line = fgets(1000);
-        if($parm =~ 'description_node') {
+        if(($parm =~ 'description_node') || ($parm =~ '_contact')) {
             $line = substr($line, 0, 210);
+            $line =~ s/"/&quot;/g;
             $line =~ s/'/&apos;/g;
             $line =~ s/</&lt;/g;
             $line =~ s/>/&gt;/g;
