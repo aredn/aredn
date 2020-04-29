@@ -80,12 +80,12 @@ Rocket M2 Titanium TI | ar71xx | rocket-m-ti | 64Mb | unknown
 Rocket M2 Titanium XW | ar71xx | rocket-m-xw | 64Mb | unknown
 Rocket M5 Titanium TI | ar71xx | rocket-m-ti | 64Mb | stable
 Rocket M5 Titanium XW | ar71xx | rocket-m-xw | 64Mb | stable
-TPLink CPE210 v1.0/v1.1 | ar71xx | cpe210-220-v1 | 64Mb | stable
+TPLink CPE210 v1.0/v1.1 | ath79  | cpe210-v1 | 64Mb | stable
 TPLink CPE210 v2.0 | ath79 | cpe210-v2 | 64Mb | stable
 TPLink CPE210 v3.0 | ath79 | cpe210-v3 | 64Mb | stable
 TPLink CPE220 v2.0 | ath79 | cpe220-v2 | 64Mb | stable
 TPLink CPE220 v3.0 | ath79  | cpe220-v3 | 64Mb | stable
-TPLink CPE510 v1.0/v1.1 | ar71xx | cpe510-520-v1 | 64Mb | stable
+TPLink CPE510 v1.0/v1.1 | ath79  | cpe510-v1 | 64Mb | stable
 TPLink CPE510 v2.0 | ath79  | cpe510-v2 | 64Mb | stable
 TPLink CPE510 v3.0 | ath79  | cpe510-v3 | 64Mb | stable
 TPLink CPE610 v1.0 | ath79  | cpe610-v1 | 64Mb | stable
@@ -119,13 +119,6 @@ switch is necessary to utilize the vlan tagged networks:
 * vlan 1:  WAN - gateway to connect AREDN network to home network and/or internet
 * vlan 2:  DtDLink (device to device) - AREDN network routing between nodes, typically cross band
 
-The following devices have a peculiar port configuration due to a limitation in the Ethernet driver.
-The 'Main" port is used for LAN devices only.  The "Secondary" port is WAN and DtDLink usage
-only. Depending on deployed usage, 2 cat5 cables may be needed.
-
-* TP-Link CPE210 v1.0 and v1.1
-* TP-Link CPE510 v1.0 and v1.1
-
 The following devices have enhanced Ethernet port usage.  A single cat5 to the device
 could be plugged into ether the 'main' or 'secondary' port with standard port functionality.
 Both ports can be used interchangeably and simultaneously with LAN devices on both ports
@@ -143,7 +136,10 @@ all LAN devices on all nodes (because it powers up first).
 * NanoStation M2 XM
 * NanoStation M3 XM
 * NanoStation M5 XM
+* TP-Link CPE210 v1/v1.1
+* TP-Link CPE220 v2
 * TP-Link CPE220 v3
+* TP-Link CPE510 v1/v1.1
 
 The Mikrotik hAP AC Lite, Ubiquiti AirRouter, and AirRouter HP are pre-configured with the following VLANs:
 
