@@ -1,6 +1,7 @@
 #!/bin/sh
 <<'LICENSE'
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2020 Joe Ayers
   Copyright (C) 2015 Conrad Lara and Joe Ayers
    See Contributors file for additional contributors
 
@@ -37,58 +38,63 @@ if [ "$MESHFW_TUNNELS_ENABLED" != "1" ]; then
         exit 0;
 fi
 
-# Test for pre-existing firewall rules which use a wildcard and only need setup 1 time for multiple tunnel connections
-if ( $(iptables -L forwarding_vpn 2>/dev/null | egrep "^Chain forwarding_vpn \(.+ references\)" > /dev/null) ) then
-	rules_exist=1
-else
-	rules_exist=0
-fi
+# In all cases - restart, flush, clear -- it is necessary to clean up any remenant rules to ensure chain order is correct
 
-# Do nothing on firewall if tunnels already (or still) exist--set up once.
-if [ $rules_exist -eq 0  ] ; then
-	echo "Adding vtun firewall rules..."
-        iptables -N forwarding_vpn
-        iptables -N zone_vpn_input
-        iptables -N zone_vpn_ACCEPT
-        iptables -N zone_vpn_DROP
-        iptables -N zone_vpn_REJECT
-        iptables -N zone_vpn_forward
-        iptables -I FORWARD 3 -i tun+ -j zone_vpn_forward
-        iptables -I INPUT 5 -i tun+ -j zone_vpn_input
-        iptables -I OUTPUT 3 -j zone_vpn_ACCEPT
-        iptables -A zone_vpn_input -p icmp -m icmp --icmp-type 8 -j ACCEPT
-        iptables -A zone_vpn_input -p tcp -m tcp --dport 2222 -j ACCEPT
-        iptables -A zone_vpn_input -p tcp -m tcp --dport 8080 -j ACCEPT
-        iptables -A zone_vpn_input -p tcp -m tcp --dport 80 -j ACCEPT
-        iptables -A zone_vpn_input -p udp -m udp --dport 698 -j ACCEPT
-        iptables -A zone_vpn_input -p tcp -m tcp --dport 1978 -j ACCEPT
-        iptables -A zone_vpn_input -p tcp -m tcp --dport 23 -j ACCEPT
-        iptables -A zone_vpn_input -p tcp -m tcp --dport 9090 -j ACCEPT
-        iptables -A zone_vpn_input -p udp -m udp --dport 161 -j ACCEPT
-        iptables -A zone_vpn_input -j zone_vpn_REJECT
-        iptables -I zone_vpn_forward 1 -j zone_vpn_ACCEPT
-	if [ "$MESHFW_MESHGW" -eq 1 ] ; then
-        	iptables -I zone_vpn_forward -j zone_wan_dest_ACCEPT
-	else
-        	iptables -I zone_vpn_forward -j zone_wan_dest_REJECT
-	fi
-        iptables -A zone_vpn_ACCEPT -o tun+ -j ACCEPT
-        iptables -A zone_vpn_ACCEPT -i tun+ -j ACCEPT
-        iptables -A zone_vpn_DROP -o tun+ -j DROP
-        iptables -A zone_vpn_DROP -i tun+ -j DROP
-        iptables -A zone_vpn_REJECT -o tun+ -j reject
-        iptables -A zone_vpn_REJECT -i tun+ -j reject
-        iptables -A zone_vpn_forward -j zone_dtdlink_dest_ACCEPT
-        iptables -A zone_vpn_forward -j zone_lan_dest_ACCEPT
-        iptables -A zone_vpn_forward -j zone_wifi_dest_ACCEPT
-        iptables -A zone_vpn_forward -j forwarding_vpn
-fi
+iptables -D FORWARD -i tun+ -j zone_vpn_forward 2>/dev/null
+iptables -D INPUT -i tun+ -j zone_vpn_input 2>/dev/null
+iptables -D OUTPUT -o tun+ -j zone_vpn_ACCEPT 2>/dev/null
+iptables -F forwarding_vpn_rule 2>/dev/null
+iptables -F zone_vpn_input 2>/dev/null
+iptables -F zone_vpn_ACCEPT 2>/dev/null
+iptables -F zone_vpn_REJECT 2>/dev/null
+iptables -F zone_vpn_forward 2>/dev/null
+iptables -F zone_vpn_dest_ACCEPT 2>/dev/null
+iptables -F zone_vpn_dest_REJECT 2>/dev/null
+iptables -X forwarding_vpn_rule 2>/dev/null
+iptables -X zone_vpn_input 2>/dev/null
+iptables -X zone_vpn_ACCEPT  2>/dev/null
+iptables -X zone_vpn_REJECT 2>/dev/null
+iptables -X zone_vpn_forward 2>/dev/null
+iptables -X zone_vpn_dest_ACCEPT 2>/dev/null
+iptables -X zone_vpn_dest_REJECT 2>/dev/null
 
-
-# Rules that modify core tables and as such always need to be executed as they are flushed on reload/restart
+echo " * Adding vtun firewall rules..."
+iptables -N forwarding_vpn_rule
+iptables -N zone_vpn_input
+iptables -N zone_vpn_ACCEPT
+iptables -N zone_vpn_REJECT
+iptables -N zone_vpn_forward
+iptables -N zone_vpn_dest_ACCEPT
+iptables -N zone_vpn_dest_REJECT
 iptables -I FORWARD 3 -i tun+ -j zone_vpn_forward
 iptables -I INPUT 5 -i tun+ -j zone_vpn_input
-iptables -I OUTPUT 3 -j zone_vpn_ACCEPT
-iptables -I zone_dtdlink_forward 1 -j zone_vpn_ACCEPT
-iptables -I zone_lan_forward 1 -j zone_vpn_ACCEPT
-iptables -I zone_wifi_forward 1 -j zone_vpn_ACCEPT
+iptables -I OUTPUT 4 -o tun+ -j zone_vpn_ACCEPT # instead of creating a zone_vpn_output chain
+iptables -A zone_vpn_input -p icmp -m icmp --icmp-type 8 -j ACCEPT
+iptables -A zone_vpn_input -p tcp -m tcp --dport 2222 -j ACCEPT
+iptables -A zone_vpn_input -p tcp -m tcp --dport 8080 -j ACCEPT
+iptables -A zone_vpn_input -p tcp -m tcp --dport 80 -j ACCEPT
+iptables -A zone_vpn_input -p udp -m udp --dport 698 -j ACCEPT
+iptables -A zone_vpn_input -p tcp -m tcp --dport 23 -j ACCEPT
+iptables -A zone_vpn_input -p tcp -m tcp --dport 9090 -j ACCEPT
+iptables -A zone_vpn_input -p udp -m udp --dport 161 -j ACCEPT
+iptables -A zone_vpn_input -m conntrack --ctstate DNAT -m comment --comment "!vtun: Accept port redirections" -j ACCEPT
+iptables -A zone_vpn_input -j zone_vpn_REJECT
+iptables -I zone_vpn_forward -j forwarding_vpn_rule
+iptables -A zone_vpn_forward -j zone_vpn_dest_ACCEPT 
+if [ "$MESHFW_MESHGW" -eq 1 ] ; then
+        iptables -I zone_vpn_forward -j zone_wan_dest_ACCEPT
+fi
+iptables -A zone_vpn_forward -m conntrack --ctstate DNAT -m comment --comment "!vtun: Accept port forwards" -j ACCEPT
+iptables -A zone_vpn_forward -j zone_dtdlink_dest_ACCEPT
+iptables -A zone_vpn_forward -j zone_lan_dest_ACCEPT
+iptables -A zone_vpn_forward -j zone_wifi_dest_ACCEPT
+iptables -A zone_vpn_forward -j zone_vpn_dest_REJECT
+iptables -A zone_vpn_ACCEPT -o tun+ -j ACCEPT
+iptables -A zone_vpn_ACCEPT -i tun+ -j ACCEPT
+iptables -A zone_vpn_REJECT -o tun+ -j reject
+iptables -A zone_vpn_REJECT -i tun+ -j reject
+iptables -A zone_vpn_dest_ACCEPT -o tun+ -j ACCEPT
+iptables -A zone_vpn_dest_REJECT -o tun+ -j reject
+iptables -I zone_dtdlink_forward 5 -j zone_vpn_dest_ACCEPT
+iptables -I zone_wifi_forward 6 -j zone_vpn_dest_ACCEPT
+iptables -I zone_lan_forward 5 -j zone_vpn_dest_ACCEPT
