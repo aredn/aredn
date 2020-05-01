@@ -1,0 +1,117 @@
+--- a/target/linux/ath79/base-files/etc/board.d/01_leds
++++ b/target/linux/ath79/base-files/etc/board.d/01_leds
+@@ -151,6 +151,7 @@ tplink,archer-d50-v1)
+ 	ucidef_set_led_switch "wan_link" "WAN Link" "tp-link:white:wan" "switch0" "0x02" "" "link"
+ 	;;
+ tplink,wbs210-v1|\
++tplink,wbs210-v2|\
+ tplink,cpe510-v1|\
+ tplink,cpe210-v1|\
+ tplink,cpe220-v2|\
+--- a/target/linux/ath79/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/base-files/etc/board.d/02_network
+@@ -103,6 +103,7 @@ ath79_setup_interfaces()
+ 	comfast,cf-e110n-v2|\
+ 	comfast,cf-e120a-v3|\
+ 	tplink,wbs210-v1|\
++	tplink,wbs210-v2|\
+ 	tplink,cpe510-v1|\
+ 	tplink,cpe210-v1|\
+ 	tplink,cpe220-v2|\
+--- a/target/linux/ath79/base-files/etc/board.d/03_gpio_switches
++++ b/target/linux/ath79/base-files/etc/board.d/03_gpio_switches
+@@ -28,6 +28,7 @@ tplink,archer-c25-v1)
+ 	ucidef_add_gpio_switch "led_reset" "LED reset" "19" "1"
+ 	;;
+ tplink,wbs210-v1|\
++tplink,wbs210-v2|\
+ tplink,cpe510-v1|\
+ tplink,cpe210-v1|\
+ tplink,cpe220-v2|\
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_tplink_wbs210-v2.dts
+@@ -0,0 +1,13 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++/dts-v1/;
++
++#include "ar9344_tplink_cpe_2port.dtsi"
++
++/ {
++	compatible = "tplink,wbs210-v2", "qca,ar9344";
++	model = "TP-Link WBS210 v2";
++};
++
++&led_link4 {
++	gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
++};
+--- a/target/linux/ath79/image/generic-tp-link.mk
++++ b/target/linux/ath79/image/generic-tp-link.mk
+@@ -307,6 +307,22 @@ define Device/tplink_wbs210-v1
+ endef
+ TARGET_DEVICES += tplink_wbs210-v1
+ 
++define Device/tplink_wbs210-v2
++  $(Device/tplink-safeloader)
++  ATH_SOC := ar9344
++  IMAGE_SIZE := 7680k
++  DEVICE_TITLE := TP-Link WBS210 v2
++  DEVICE_PACKAGES := rssileds
++  TPLINK_BOARD_ID := WBS210V2
++  LOADER_TYPE := elf
++  LOADER_FLASH_OFFS := 0x43000 
++  COMPILE := loader-$(1).elf 
++  COMPILE/loader-$(1).elf := loader-okli-compile 
++  KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x4f4b4c49 | loader-okli $(1) 12288
++  SUPPORTED_DEVICES += wbs210-v2
++endef
++TARGET_DEVICES += tplink_wbs210-v2
++
+ define Device/tplink_archer-d50-v1
+   ATH_SOC := qca9531
+   DEVICE_TITLE := TP-Link Archer D50 v1
+--- a/tools/firmware-utils/src/tplink-safeloader.c
++++ b/tools/firmware-utils/src/tplink-safeloader.c
+@@ -1,4 +1,3 @@
+-
+ /*
+   Copyright (c) 2014, Matthias Schiffer <mschiffer@universe-factory.net>
+   All rights reserved.
+@@ -510,6 +509,38 @@ static struct device_info boards[] = {
+ 		.support_trail = '\xff',
+ 		.soft_ver = NULL,
+ 
++		.partitions = {
++			{"fs-uboot", 0x00000, 0x20000},
++			{"partition-table", 0x20000, 0x02000},
++			{"default-mac", 0x30000, 0x00020},
++			{"product-info", 0x31100, 0x00100},
++			{"signature", 0x32000, 0x00400},
++			{"os-image", 0x40000, 0x1c0000},
++			{"file-system", 0x200000, 0x5b0000},
++			{"soft-version", 0x7b0000, 0x00100},
++			{"support-list", 0x7b1000, 0x00400},
++			{"user-config", 0x7c0000, 0x10000},
++			{"default-config", 0x7d0000, 0x10000},
++			{"log", 0x7e0000, 0x10000},
++			{"radio", 0x7f0000, 0x10000},
++			{NULL, 0, 0}
++		},
++
++		.first_sysupgrade_partition = "os-image",
++		.last_sysupgrade_partition = "support-list",
++	},
++
++	{
++		.id	= "WBS210V2",
++		.vendor	= "CPE510(TP-LINK|UN|N300-5):1.0\r\n",
++		.support_list =
++			"SupportList:\r\n"
++			"WBS210(TP-LINK|UN|N300-2|00000000):2.00\r\n"
++			"WBS210(TP-LINK|US|N300-2|55530000):2.00\r\n"
++			"WBS210(TP-LINK|EU|N300-2|45550000):2.00\r\n",
++		.support_trail = '\xff',
++		.soft_ver = NULL,
++
+ 		.partitions = {
+ 			{"fs-uboot", 0x00000, 0x20000},
+ 			{"partition-table", 0x20000, 0x02000},

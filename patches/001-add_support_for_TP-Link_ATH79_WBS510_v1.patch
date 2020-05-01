@@ -1,0 +1,71 @@
+--- a/target/linux/ath79/base-files/etc/board.d/01_leds
++++ b/target/linux/ath79/base-files/etc/board.d/01_leds
+@@ -152,6 +152,7 @@ tplink,archer-d50-v1)
+ 	;;
+ tplink,wbs210-v1|\
+ tplink,wbs210-v2|\
++tplink,wbs510-v1|\
+ tplink,cpe510-v1|\
+ tplink,cpe210-v1|\
+ tplink,cpe220-v2|\
+--- a/target/linux/ath79/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/base-files/etc/board.d/02_network
+@@ -104,6 +104,7 @@ ath79_setup_interfaces()
+ 	comfast,cf-e120a-v3|\
+ 	tplink,wbs210-v1|\
+ 	tplink,wbs210-v2|\
++	tplink,wbs510-v1|\
+ 	tplink,cpe510-v1|\
+ 	tplink,cpe210-v1|\
+ 	tplink,cpe220-v2|\
+--- a/target/linux/ath79/base-files/etc/board.d/03_gpio_switches
++++ b/target/linux/ath79/base-files/etc/board.d/03_gpio_switches
+@@ -29,6 +29,7 @@ tplink,archer-c25-v1)
+ 	;;
+ tplink,wbs210-v1|\
+ tplink,wbs210-v2|\
++tplink,wbs510-v1|\
+ tplink,cpe510-v1|\
+ tplink,cpe210-v1|\
+ tplink,cpe220-v2|\
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_tplink_wbs510-v1.dts
+@@ -0,0 +1,13 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++/dts-v1/;
++
++#include "ar9344_tplink_cpe_2port.dtsi"
++
++/ {
++	compatible = "tplink,wbs510-v1", "qca,ar9344";
++	model = "TP-Link WBS510 v1";
++};
++
++&led_link4 {
++	gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
++};
+--- a/target/linux/ath79/image/generic-tp-link.mk
++++ b/target/linux/ath79/image/generic-tp-link.mk
+@@ -323,6 +323,22 @@ define Device/tplink_wbs210-v2
+ endef
+ TARGET_DEVICES += tplink_wbs210-v2
+ 
++define Device/tplink_wbs510-v1
++  $(Device/tplink-safeloader)
++  ATH_SOC := ar9344
++  IMAGE_SIZE := 7680k
++  DEVICE_TITLE := TP-Link WBS510 v1
++  DEVICE_PACKAGES := rssileds
++  TPLINK_BOARD_ID := WBS510
++  LOADER_TYPE := elf
++  LOADER_FLASH_OFFS := 0x43000 
++  COMPILE := loader-$(1).elf 
++  COMPILE/loader-$(1).elf := loader-okli-compile 
++  KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x4f4b4c49 | loader-okli $(1) 12288
++  SUPPORTED_DEVICES += wbs510
++endef
++TARGET_DEVICES += tplink_wbs510-v1
++
+ define Device/tplink_archer-d50-v1
+   ATH_SOC := qca9531
+   DEVICE_TITLE := TP-Link Archer D50 v1

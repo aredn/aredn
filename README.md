@@ -90,8 +90,10 @@ TPLink CPE510 v2.0 | ath79  | cpe510-v2 | 64Mb | stable
 TPLink CPE510 v3.0 | ath79  | cpe510-v3 | 64Mb | stable
 TPLink CPE610 v1.0 | ath79  | cpe610-v1 | 64Mb | stable
 TPLink CPE610 v2.0 | ath79  | cpe610-v2 | 64Mb | stable
-TPLink WBS210 v1.0 | ar71xx | wbs210-v1 | 64mb | stable
-TPLink WBS510 v2.0 | ar71xx | wbs510-v2 | 64mb | stable
+TPLink WBS210 v1.0 | ath79  | wbs210-v1 | 64mb | stable
+TPLink WBS210 v2.0 | ath79  | wbs210-v2 | 64mb | stable
+TPLink WBS510 v1.0 | ath79  | wbs510-v1 | 64mb | stable
+TPLink WBS510 v2.0 | ath79  | wbs510-v2 | 64mb | stable
 Mikrotik Basebox RB912UAG-5HPnD/2HPnD | ar71xx | mikrotik-nand-large | 64Mb | stable
 Mikrotik hAP ac lite 952Ui-5ac2nD | ar71xx | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
 Mikrotik RBLHG-2nD/5nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
@@ -140,6 +142,10 @@ all LAN devices on all nodes (because it powers up first).
 * TP-Link CPE220 v2
 * TP-Link CPE220 v3
 * TP-Link CPE510 v1/v1.1
+* TP-Link WBS210 v1
+* TP-Link WBS210 v2
+* TP-Link WBS510 v1
+* TP-Link WBS510 v2
 
 The Mikrotik hAP AC Lite, Ubiquiti AirRouter, and AirRouter HP are pre-configured with the following VLANs:
 
