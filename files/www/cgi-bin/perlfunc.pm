@@ -1249,6 +1249,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
     },
+    'MikroTik RouterBOARD RBLHG-5nD' => {
+      'name'            => 'MikroTik RouterBOARD RBLHG-5nD',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '25',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+    },
     'MikroTik RouterBOARD LHG 2nD' => {
       'name'            => 'MikroTik RouterBOARD LHG 2nD',
       'comment'         => '',
@@ -1278,6 +1287,15 @@ sub hardware_info
     },
     'MikroTik RouterBOARD RBLHG 2nD-XL' => {
       'name'            => 'MikroTik RouterBOARD RBLHG 2nD-XL',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '25',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '2400',
+    },
+    'MikroTik RouterBOARD RBLHG-2nD-XL' => {
+      'name'            => 'MikroTik RouterBOARD RBLHG-2nD-XL',
       'comment'         => '',
       'supported'       => '1',
       'maxpower'        => '25',
