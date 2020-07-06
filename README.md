@@ -28,20 +28,24 @@ license, please refer to http://www.arrl.org/getting-your-technician-license
 
 ### What to know about the images built with the instructions below
 
-This is the active 'develop' branch with latest AREDN code.
-At anytime a new change may be broken or break prior capabilities.
+This is the 3.20.3.1 release build.
 
-The Amateur Radio community is encouraged to participate in loading the
-images produced from a "nightly build" and run the AREDN firmware in a
-variety of environments.  Given new features may not yet be documented,
-participants should already have a basic knowledge of Linux and Networking to
-understand and provide useful feedback to the Developer submitting the
-code.
+Here is a summary of the significant changes since 3.20.3.0
+was release:
 
-The goal of participation is to obtain confidence that new
-features and the overall mesh node is stable.   The more participation,
-the earlier an issue is found, the faster an enhancement will be
-turned into a release.
+* Migrate all remaining TP-Link models to ath79 target
+* Fix CPE510 v3 image not installing
+* Fix Ethernet port to fully conform with AREDN expected usage on NanoStation M5 XW
+* Added ability to change and revert firmware and package download paths
+* Added target type info (ar71xx/ath79) to admin page
+* Fix issue with the map on the setup page PR #501
+* Added "aredn alerts" feature in header
+* Fix firewall blocking traffic when using tunnel PR #524
+* Added support for Mikrotik r2 hardware
+* Bump to OpenWRT 19.07.3 https://openwrt.org/releases/19.07/notes-19.07.3
+* Use "mode ether" for tunnel links reducing ETX to 0.1
+* Change default map tile server url away from MapBox PR #527
+* Allow ping from WAN to node
 
 Please refer to https://github.com/aredn/aredn_ar71xx/issues
 for a list of outstanding defects.
@@ -247,6 +251,12 @@ You need approximately 10GB of space for the build.
 
 Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn_ar71xx" command above:
+
+AREDN release 3.20.3.1
+
+```
+git checkout 3.20.3.1
+```
 
 AREDN release 3.20.3.0
 
