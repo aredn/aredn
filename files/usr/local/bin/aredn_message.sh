@@ -39,12 +39,12 @@ ping -q -W10 -c1 downloads.arednmesh.org > /dev/null &&
   [ -f /tmp/aredn_message ] && 
   rm /tmp/aredn_message
 
+nodename=$(echo "$HOSTNAME" | tr '[:upper:]' '[:lower:]')
 
 if [ $online = "true" ] 
 then
   # fetch node specific message file
   # nodename=$(echo "$HOSTNAME" | tr 'A-Z' 'a-z')
-  nodename=$(echo "$HOSTNAME" | tr 'A-Z' 'a-z')
   wget -q -O aredn_message -P /tmp http://downloads.arednmesh.org/messages/"${nodename}".txt
   echo "<strong>(${nodename}):</strong>"|cat - /tmp/aredn_message > /tmp/out && mv /tmp/out /tmp/aredn_message
   if [ $? -ne 0 ] # no node specific file
@@ -61,4 +61,29 @@ then
       rm /tmp/aredn_message_all;
   fi
 fi
+
+# are local alerts enabled?   uci:  aredn.alerts.localpath != NULL
+#
+alertslocalpath=$(uci -q get aredn.@alerts[0].localpath)
+if [ ! -z "$alertslocalpath" ]; then
+  # fetch node specific message file
+  wget -q -O local_message -P /tmp "${alertslocalpath}/${nodename}".txt
+  echo "<strong>(LOCAL ${nodename}):</strong>"|cat - /tmp/local_message > /tmp/out && mv /tmp/out /tmp/local_message
+  if [ $? -ne 0 ] # no node specific file
+  then
+    # fetch broadcast message file
+    wget -q -O local_message -P /tmp "${alertslocalpath}/all.txt"
+    echo "<strong>(LOCAL QST):</strong>"|cat - /tmp/local_message > /tmp/out && mv /tmp/out /tmp/local_message
+  else
+    # need to append to node file
+    wget -q -O local_message_all -P /tmp "${alertslocalpath}/all.txt" &&
+      echo "<strong>(LOCAL QST):</strong>"|cat - /tmp/local_message_all > /tmp/out && mv /tmp/out /tmp/local_message_all
+      echo "<br />" >> /tmp/local_message;
+      [ -f /tmp/local_message_all ] && 
+      cat /tmp/local_message_all >> /tmp/local_message && 
+      rm /tmp/local_message_all;
+  fi
+fi
+
+
 

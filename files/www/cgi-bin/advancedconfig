@@ -2,7 +2,7 @@
 =for comment
 
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2018 - Darryl Quinn
+  Copyright (C) 2020 - Darryl Quinn
    See Contributors file for additional contributors
 
   Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
@@ -145,6 +145,12 @@ push @setting, {
   type => "boolean",
   desc => "Value doesn't matter.  Will attempt to pull any AREDN Alert messages.",
   postcallback => "aam_refresh()"
+};
+push @setting, {
+  key => "aredn.\@alerts[0].localpath", 
+  type => "string", 
+  desc => "Specifies the URL of the location from which local AREDN Alerts can be downloaded.", 
+  default => ""
 };
 
 # ----------------------------------------

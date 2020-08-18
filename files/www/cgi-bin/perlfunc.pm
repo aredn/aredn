@@ -1908,6 +1908,7 @@ sub alert_banner
 {
   # if /tmp/aredn_message file exists, then read and set $aredn_message to contents
   $aredn_message = `cat /tmp/aredn_message` if( -f "/tmp/aredn_message");
+  $local_message = `cat /tmp/local_message` if( -f "/tmp/local_message");
 
   print "<div class=\"TopBanner\">";
 
@@ -1927,6 +1928,7 @@ sub alert_banner
     }
   }
   print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">$aredn_message</div></div>\n" if $aredn_message;
+  print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">$local_message</div></div>\n" if $local_message;
 
   #TopBanner
   print "</div>";

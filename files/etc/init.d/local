@@ -75,7 +75,7 @@ boot() {
   fi
   /usr/local/bin/usb_passthrough "${usbvalue}"
 
-  # package repositorys
+  # package repositories
   local repos="core base arednpackages packages luci routing telephony"
   set -- $repos
   while [ -n "$1" ]; do
@@ -95,4 +95,11 @@ boot() {
     fi
     shift
   done
+
+  # set local alerts if available
+  local alertslocalpath=$(uci -q get aredn.@alerts[0].localpath)
+  if [ -z "$alertslocalpath" ]; then
+      uci -q add aredn alerts
+      uci -q commit aredn
+  fi
 }
