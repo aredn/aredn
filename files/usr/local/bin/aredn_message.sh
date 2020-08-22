@@ -39,7 +39,7 @@ ping -q -W10 -c1 downloads.arednmesh.org > /dev/null &&
   [ -f /tmp/aredn_message ] && 
   rm /tmp/aredn_message
 
-nodename=$(echo "$HOSTNAME" | tr '[:upper:]' '[:lower:]')
+nodename=$(echo "$HOSTNAME" | tr 'A-Z' 'a-z')
 
 if [ $online = "true" ] 
 then
