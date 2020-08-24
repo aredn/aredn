@@ -25,7 +25,7 @@
     See AREDNLicense.txt for more info.
 
   Attributions to the AREDN Project must be retained in the source code.
-  If importing this code into a new or existing project attribution 
+  If importing this code into a new or existing project attribution
   to the AREDN project must be added to the source code.
 
   You must not misrepresent the origin of the material contained within.
@@ -45,27 +45,27 @@ $| = 1;
 # ---------------------------------------- ADVANCED CONFIG ALLOWED UCI VALUES ------------------
 @setting = ();
 push @setting, {
-  key => "aredn.\@map[0].maptiles", 
-  type => "string", 
-  desc => "Specifies the URL of the location to access map tiles", 
+  key => "aredn.\@map[0].maptiles",
+  type => "string",
+  desc => "Specifies the URL of the location to access map tiles",
   default => "http://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg"
 };
 push @setting, {
-  key => "aredn.\@map[0].leafletcss", 
-  type => "string", 
-  desc => "Specifies the URL of the leaflet.css file", 
+  key => "aredn.\@map[0].leafletcss",
+  type => "string",
+  desc => "Specifies the URL of the leaflet.css file",
   default => "http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css"
 };
 push @setting, {
-  key => "aredn.\@map[0].leafletjs", 
-  type => "string", 
-  desc => "Specifies the URL of the leaflet.js file", 
-  default => "http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js" 
+  key => "aredn.\@map[0].leafletjs",
+  type => "string",
+  desc => "Specifies the URL of the leaflet.js file",
+  default => "http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"
 };
 push @setting, {
-  key => "aredn.\@downloads[0].firmwarepath", 
-  type => "string", 
-  desc => "Specifies the URL of the location from which firmware files will be downloaded.", 
+  key => "aredn.\@downloads[0].firmwarepath",
+  type => "string",
+  desc => "Specifies the URL of the location from which firmware files will be downloaded.",
   default => "http://downloads.arednmesh.org/firmware"
 };
 push @setting, {
@@ -119,18 +119,18 @@ push @setting, {
 };
 
 push @setting, {
-  key => "aredn.\@poe[0].passthrough", 
-  type => "boolean", 
-  desc => "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports.", 
+  key => "aredn.\@poe[0].passthrough",
+  type => "boolean",
+  desc => "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports.",
   default => "0",
   condition => "hasPOE()",
   postcallback => "setPOEOutput()"
 };
 push @setting, {
-  key => "aredn.\@usb[0].passthrough", 
-  type => "boolean", 
-  desc => "Specifies whether the USB port should be on or off.  (Not all devices have USB powered ports.", 
-  default => "1", 
+  key => "aredn.\@usb[0].passthrough",
+  type => "boolean",
+  desc => "Specifies whether the USB port should be on or off.  (Not all devices have USB powered ports.",
+  default => "1",
   postcallback => "setUSBOutput()",
   condition => "hasUSB()"
 };
@@ -147,9 +147,9 @@ push @setting, {
   postcallback => "aam_refresh()"
 };
 push @setting, {
-  key => "aredn.\@alerts[0].localpath", 
-  type => "string", 
-  desc => "Specifies the URL of the location from which local AREDN Alerts can be downloaded.", 
+  key => "aredn.\@alerts[0].localpath",
+  type => "string",
+  desc => "Specifies the URL of the location from which local AREDN Alerts can be downloaded.",
   default => ""
 };
 
@@ -234,7 +234,7 @@ for($i=0;$i<$scount;$i++)
     $newvalfield=eval "newval_" . $i;
     $newval=$parms{$newvalfield};
     $newval=~ s/^\s+|\s+$//;
-    if ($setting[$i]->{'type'} eq "boolean") 
+    if ($setting[$i]->{'type'} eq "boolean")
     {
       if ($newval)
       {
@@ -255,11 +255,11 @@ for($i=0;$i<$scount;$i++)
     # set "live" settings
     system("uci set '$key=$newval'");
     system("uci commit '$cfgfile'");
-    
+
     # set AREDN config settings (used after a "Save Settings" on the Setup page)
     system("uci -S -c /etc/config.mesh set '$key=$newval'");
     system("uci -S -c /etc/config.mesh commit '$cfgfile'");
-    
+
     push @msg, "Changed $key";
 
     # run postcallbacks
@@ -278,7 +278,7 @@ html_header("$node Advanced Configuration", 1);
 
 print "<body><center>\n";
 alert_banner();
-print "<div style=\"padding:5px;background-color:#FF0000;border:1px solid #ccc;width:600px;\">Changing these advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></a></div>\n";
+print "<div style=\"padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;\"><strong>WARNING:</strong> Changing advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></div>\n";
 print "<form method=post action=advancedconfig enctype='multipart/form-data'>\n";
 print "<table width=790>\n";
 print "<tr><td>\n";
@@ -331,7 +331,7 @@ foreach(@setting)
           <td>$sconfig</td>
           <td>
 EOF
-  
+
   print "<input type='text' id='field_$scount' name='newval_$scount' size='65' value='$sval'>" if($setting[$scount]->{'type'} eq "string");
   print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked >" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
   print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1'>" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );
@@ -344,7 +344,7 @@ EOF
           <input value="Set to Default" type="button" onclick="document.getElementById('field_$scount').value='$setting[$scount]->{'default'}';"></td>
       </tr>
 EOF
-  $scount++;  
+  $scount++;
 }
 
 print "</table>\n";
