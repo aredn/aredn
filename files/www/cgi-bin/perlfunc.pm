@@ -1357,6 +1357,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
     },
+    'MikroTik RouterBOARD RBSXTsq5HPnD' => {
+      'name'            => 'MikroTik RouterBOARD RBSXTsq5HPnD',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '28',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+    },
     '0xe005' => {
       'name'            => 'NanoStation M5',
       'comment'         => '',
