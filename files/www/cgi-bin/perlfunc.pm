@@ -1927,17 +1927,17 @@ sub alert_banner
   # Device compatibility alert
   if ( is_hardware_supported() != 1  ){
     if (is_hardware_supported() == 0 ){
-      print "<div style=\"padding:5px;background-color:#FF4719;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNSUPPORTED DEVICE !!!!</a></div>\n";
+      print "<div style=\"padding:5px;background-color:#FF4719;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNSUPPORTED DEVICE !!!!</a></div>\n";
     }
     elsif ( is_hardware_supported() == -2 ){
-      print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\"> !!!! THIS DEVICE IS STILL BEING TESTED !!!!</a></div>\n";
+      print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\"> !!!! THIS DEVICE IS STILL BEING TESTED !!!!</a></div>\n";
     }
     else {
-      print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>\n";
+      print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>\n";
     }
   }
-  print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">$aredn_message</div></div>\n" if $aredn_message;
-  print "<div style=\"padding:5px;background-color:#FFFF00;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">$local_message</div></div>\n" if $local_message;
+  print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">$aredn_message</div></div>\n" if $aredn_message;
+  print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">$local_message</div></div>\n" if $local_message;
 
   #TopBanner
   print "</div>";
@@ -2058,7 +2058,7 @@ sub is_online()
     if($? eq 0)
     {
       $online=1;
-    } 
+    }
   }
   return $online;
 }
@@ -2124,7 +2124,7 @@ sub getRelease {
 #    return "http://downloads.arednmesh.org/snapshots/trunk/" . $target;
 #  } else {
 #    return "http://downloads.arednmesh.org/firmware";
-#  }  
+#  }
 #}
 
 sub defaultPackageRepos {
