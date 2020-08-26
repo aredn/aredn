@@ -138,12 +138,14 @@ push @setting, {
   key => "aredn.olsr.restart",
   type => "boolean",
   desc => "Value doesn't matter.  Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
+  default => "0",
   postcallback => "olsr_restart()"
 };
 push @setting, {
   key => "aredn.aam.refresh",
   type => "boolean",
   desc => "Value doesn't matter.  Will attempt to pull any AREDN Alert messages.",
+  default => "0",
   postcallback => "aam_refresh()"
 };
 push @setting, {
@@ -274,7 +276,89 @@ for($i=0;$i<$scount;$i++)
 #
 
 http_header();
-html_header("$node Advanced Configuration", 1);
+html_header("$node Advanced Configuration", 0);
+print <<EOF;
+<style>
+ /* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+} 
+</style>
+
+<script>
+function toggleDefault(fname, defval) {
+  if(document.getElementById(fname).checked) {
+    cval = '1'
+  } else {
+    cval = '0'
+  }
+  if(cval != defval) {
+    document.getElementById(fname).click();
+  }
+  return true;
+}
+</script>
+</head>
+EOF
+
 
 print "<body><center>\n";
 alert_banner();
@@ -333,17 +417,35 @@ foreach(@setting)
 EOF
 
   print "<input type='text' id='field_$scount' name='newval_$scount' size='65' value='$sval'>" if($setting[$scount]->{'type'} eq "string");
-  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked >" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
-  print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1'>" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );
-  print "&nbsp;ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
-  print "&nbsp;OFF" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0);
+  
+  #print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked >" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
+  #print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1'>" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );
+  #print "&nbsp;ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
+  #print "&nbsp;OFF" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0);
+
+
+
+
+  print "OFF<label class='switch'><input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked><span class='slider round'></span></label>ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
+  print "OFF<label class='switch'><input type='checkbox' id='field_$scount' name='newval_$scount' value='1'><span class='slider round'></span></label>ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );
+
+  #print "<input type='button' id='field_$scount' name='newval_$scount' value='Turn OFF'>" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
+  #print "<input type='button' id='field_$scount' name='newval_$scount' value='Turn ON'>" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );  
+  #print "&nbsp;Currently: ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
+  #print "&nbsp;Currently: OFF" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0);
 
   print <<EOF;
           </td>
           <td align="center"><input type="submit" name="button_save_$scount" value="Save Setting" /><br><br>
-          <input value="Set to Default" type="button" onclick="document.getElementById('field_$scount').value='$setting[$scount]->{'default'}';"></td>
+EOF
+  print "<input value='Set to Default' type='button' onclick=\"document.getElementById('field_$scount').value='$setting[$scount]->{'default'}';\">" if($setting[$scount]->{'type'} ne "boolean");
+  
+  print "<input value='Set to Default' type='button' onclick=\"return toggleDefault('field_$scount', '$setting[$scount]->{'default'}' );\">" if($setting[$scount]->{'type'} eq "boolean");
+  print <<EOF;
+          </td>
       </tr>
 EOF
+
   $scount++;
 }
 
