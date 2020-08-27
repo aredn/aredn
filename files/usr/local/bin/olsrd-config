@@ -69,6 +69,10 @@ if(-f "/etc/config/dmz-mode")
   #($lanip, $lanmask, $lanbcast, $lannet) = get_ip4_network("eth0.0");
   foreach(`cat /etc/ethers`)
   {
+    #stop certain IP's from getting propagated over the mesh
+    ($junk, $junk, $noprop) = split ' ', $_;
+    next if $noprop eq "#NOPROP";
+
     next unless ($ip) = /[0-9a-f:]+\s+([\d\.]+)/i;
     next unless $host = ip2hostname($ip);
     push @hosts, qq("$ip" "$host");

@@ -132,11 +132,15 @@ if($parms{button_reset} or not $parms{reload})
 	next if /^\s*$/;
 	chomp;
 	@parts = split /\s+/, $_;
-	next unless scalar(@parts) == 3;
+	if (!defined $parts[3]) {
+          $parts[3] = '';
+        }
+	next unless scalar(@parts) == 4;
 	++$i;
 	$parms{"dhcp${i}_host"} = $parts[2];
 	$parms{"dhcp${i}_ip"}   = add_ip_address($lannet, $parts[1]);
 	$parms{"dhcp${i}_mac"}  = $parts[0];
+	$parms{"dhcp${i}_noprop"} = $parts[3];
     }
     $parms{dhcp_num} = $i;
 
@@ -164,7 +168,7 @@ if($parms{button_reset} or not $parms{reload})
     $parms{port_add_type} = "tcp";
     $parms{dmz_ip} = "" unless defined $parms{dmz_ip};
 
-    foreach $var (qw(port_add_out port_add_ip port_add_in dhcp_add_host dhcp_add_ip dhcp_add_mac serv_add_name serv_add_proto serv_add_host serv_add_port serv_add_suffix))
+    foreach $var (qw(port_add_out port_add_ip port_add_in dhcp_add_host dhcp_add_ip dhcp_add_mac dhcp_add_noprop serv_add_name serv_add_proto serv_add_host serv_add_port serv_add_suffix))
     {
 	$parms{$var} = "";
     }
@@ -284,6 +288,7 @@ foreach $val (@list)
     $host = $parms{"dhcp${val}_host"};
     $ip   = $parms{"dhcp${val}_ip"};
     $mac  = $parms{"dhcp${val}_mac"};
+    $noprop = $parms{"dhcp${val}_noprop"};
     $foundHost = 0;
     if($val eq "_add")
     {
@@ -373,6 +378,7 @@ foreach $val (@list)
     $parms{"dhcp${dhcp_num}_host"} = $host;
     $parms{"dhcp${dhcp_num}_ip"}   = $ip;
     $parms{"dhcp${dhcp_num}_mac"}  = $mac;
+    $parms{"dhcp${dhcp_num}_noprop"} = $noprop;
 
     $hosts{$host} = 1;
     $addrs{$ip} = 1;
@@ -383,6 +389,7 @@ foreach $val (@list)
 	$parms{dhcp_add_host} = "";
 	$parms{dhcp_add_ip}   = "";
 	$parms{dhcp_add_mac}  = "";
+        $parms{dhcp_add_noprop} = "";
     }
 }
 
@@ -406,9 +413,13 @@ foreach $lease (keys %parms)
     $host = $parms{"lease${n}_host"};
     $ip   = $parms{"lease${n}_ip"};
     $mac  = $parms{"lease${n}_mac"};
+    $noprop = $parms{"lease${n}_noprop"};
+
     $parms{"dhcp${dhcp_num}_host"} = $host;
     $parms{"dhcp${dhcp_num}_ip"}   = $ip;
     $parms{"dhcp${dhcp_num}_mac"}  = $mac;
+    $parms{"dhcp${dhcp_num}_noprop"} = $noprop;
+
     push(@dhcp_err, "$dhcp_num hostname '$host' is already in use") if (lc $host eq lc $node || lc $host eq lc $tactical);
     foreach my $key (keys %hosts) {
         if ( lc $key eq lc $host ){
@@ -434,10 +445,11 @@ for($i = $nn = 1; $i <= $parms{dhcp_num}; $i++)
 	$parms{"dhcp${i}_host"} = "noname$nn";
 	$hosts{"noname$nn"} = 1;
     }
-    printf FILE "%s %d %s\n",
+    printf FILE "%s %d %s %s\n",
            $parms{"dhcp${i}_mac"},
            ip2decimal($parms{"dhcp${i}_ip"}) - $lannet_d,
-           $parms{"dhcp${i}_host"};
+           $parms{"dhcp${i}_host"},
+           $parms{"dhcp${i}_noprop"};
 
     # save it in a lookup table
     $dhcphosts{$parms{"dhcp${i}_ip"}} = $parms{"dhcp${i}_host"} unless $dhcphosts{$parms{"dhcp${i}_ip"}};
@@ -786,7 +798,7 @@ sub print_reservations
 {
     print "<table cellpadding=0 cellspacing=0><tr><th colspan=4>DHCP Address Reservations</th></tr>\n";
     print "<tr><td colspan=4 height=5></td></tr>\n";
-    print "<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td><td></td></tr>\n";
+    print "<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td><td>Do Not<br>Propagate</td><td></td></tr>\n";
     print "<tr><td colspan=4 height=5></td></tr>\n";
 
     for($i = 1, @list = (); $i <= $parms{dhcp_num}; ++$i) { push @list, $i }
@@ -798,6 +810,7 @@ sub print_reservations
 	$host = $parms{"dhcp${val}_host"};
 	$ip   = $parms{"dhcp${val}_ip"};
 	$mac  = lc $parms{"dhcp${val}_mac"};
+        $noprop = $parms{"dhcp${val}_noprop"};
 
 	print "<tr><td colspan=4 height=10></td></tr>\n" if $val eq "_add" and scalar(@list) > 1;
 	print "<tr><td><input type=text name=dhcp${val}_host value='$host' size=10></td>\n";
@@ -815,6 +828,11 @@ sub print_reservations
 	print "</select></td>\n";
 
 	print "<td><input type=text name=dhcp${val}_mac value='$mac' size=16></td>\n";
+        if ($noprop eq "#NOPROP") {
+          print "<td align=center><input type=checkbox id=dhcp${val}_noprop name=dhcp${val}_noprop value='#NOPROP' checked></td>\n";
+        }else {
+          print "<td align=center><input type=checkbox id=dhcp${val}_noprop name=dhcp${val}_noprop value='#NOPROP'></td>\n";
+        }
 	print "<td><nobr>&nbsp;<input type=submit name=";
 
 	if($val eq "_add") { print "dhcp_add       value=Add title='Add this as a DHCP reservation'" }

@@ -290,14 +290,14 @@ foreach(`cat $dhcpfile`)
 {
   next if /^\s*#/;
   next if /^\s*$/;
-  ($mac, $ip, $host) = split /\s+/, $_;
+  ($mac, $ip, $host, $noprop) = split /\s+/, $_;
   $ip = decimal2ip($netaddr + $ip);
 
   # filter out addresses that are illegal for the lan subnet
   next unless validate_same_subnet($ip, $cfg{lan_ip}, $cfg{lan_mask});
   next unless validate_ip_netmask($ip, $cfg{lan_mask});
 
-  printf ETHER "$mac\t$ip\n";
+  printf ETHER "$mac\t$ip $noprop\n";
   printf HOSTS "$ip\t$host\n";
 }
 
