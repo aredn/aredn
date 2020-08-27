@@ -798,7 +798,7 @@ sub print_reservations
 {
     print "<table cellpadding=0 cellspacing=0><tr><th colspan=4>DHCP Address Reservations</th></tr>\n";
     print "<tr><td colspan=4 height=5></td></tr>\n";
-    print "<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td><td>Do Not<br>Propagate</td><td></td></tr>\n";
+    print "<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td><td align=center style='font-size:10px;'>Do Not<br>Propagate</td><td></td></tr>\n";
     print "<tr><td colspan=4 height=5></td></tr>\n";
 
     for($i = 1, @list = (); $i <= $parms{dhcp_num}; ++$i) { push @list, $i }
@@ -860,7 +860,7 @@ sub print_reservations
 	($junk, $mac, $ip, $host) = split /\s+/, $_;
 	print "<tr><td height=5></td></tr>\n";
 	print "<tr><td align=center>$host</td><td align=center><small>$ip</small></td>";
-	print "<td align=center><small>$mac</small></td><td><nobr>&nbsp;";
+	print "<td align=center><small>$mac</small></td><td></td><td><nobr>&nbsp;";
 	print "<input type=submit name=lease${i}_add  value=Add ";
 	print "title='Use these values as an address reservation'></nobr></td></tr>\n";
 	push @hidden, "<input type=hidden name=lease${i}_host value=$host>";
