@@ -34,28 +34,28 @@ true <<'LICENSE'
 LICENSE
 
 # does the node have access to downloads.arednmesh.org
-ping -q -W10 -c1 downloads.arednmesh.org > /dev/null && 
+ping -q -W10 -c1 downloads.arednmesh.org > /dev/null &&
   online=true;
-  [ -f /tmp/aredn_message ] && 
+  [ -f /tmp/aredn_message ] &&
   rm /tmp/aredn_message
 
 nodename=$(echo "$HOSTNAME" | tr 'A-Z' 'a-z')
 
-if [ $online = "true" ] 
+if [ $online = "true" ]
 then
   # fetch node specific message file
   # nodename=$(echo "$HOSTNAME" | tr 'A-Z' 'a-z')
   wget -q -O aredn_message -P /tmp http://downloads.arednmesh.org/messages/"${nodename}".txt
-  echo "<strong>(${nodename}):</strong>"|cat - /tmp/aredn_message > /tmp/out && mv /tmp/out /tmp/aredn_message
+  echo "<strong>&#8611; ${nodename}:</strong>"|cat - /tmp/aredn_message > /tmp/out && mv /tmp/out /tmp/aredn_message
   if [ $? -ne 0 ] # no node specific file
   then
     # fetch broadcast message file
     wget -q -O aredn_message -P /tmp http://downloads.arednmesh.org/messages/all.txt
-    echo "<strong>(QST):</strong>"|cat - /tmp/aredn_message > /tmp/out && mv /tmp/out /tmp/aredn_message
+    echo "<strong>&#8611; all nodes:</strong>"|cat - /tmp/aredn_message > /tmp/out && mv /tmp/out /tmp/aredn_message
   else
     # need to append to node file
     wget -q -O aredn_message_all -P /tmp http://downloads.arednmesh.org/messages/all.txt &&
-      echo "<strong>(QST):</strong>"|cat - /tmp/aredn_message_all > /tmp/out && mv /tmp/out /tmp/aredn_message_all
+      echo "<strong>&#8611; all nodes:</strong>"|cat - /tmp/aredn_message_all > /tmp/out && mv /tmp/out /tmp/aredn_message_all
       echo "<br />" >> /tmp/aredn_message;
       cat /tmp/aredn_message_all >> /tmp/aredn_message;
       rm /tmp/aredn_message_all;
@@ -68,22 +68,19 @@ alertslocalpath=$(uci -q get aredn.@alerts[0].localpath)
 if [ ! -z "$alertslocalpath" ]; then
   # fetch node specific message file
   wget -q -O local_message -P /tmp "${alertslocalpath}/${nodename}".txt
-  echo "<strong>(LOCAL ${nodename}):</strong>"|cat - /tmp/local_message > /tmp/out && mv /tmp/out /tmp/local_message
+  echo "<strong>&#8611; ${nodename}:</strong>"|cat - /tmp/local_message > /tmp/out && mv /tmp/out /tmp/local_message
   if [ $? -ne 0 ] # no node specific file
   then
     # fetch broadcast message file
     wget -q -O local_message -P /tmp "${alertslocalpath}/all.txt"
-    echo "<strong>(LOCAL QST):</strong>"|cat - /tmp/local_message > /tmp/out && mv /tmp/out /tmp/local_message
+    echo "<strong>&#8611; all nodes:</strong>"|cat - /tmp/local_message > /tmp/out && mv /tmp/out /tmp/local_message
   else
     # need to append to node file
     wget -q -O local_message_all -P /tmp "${alertslocalpath}/all.txt" &&
-      echo "<strong>(LOCAL QST):</strong>"|cat - /tmp/local_message_all > /tmp/out && mv /tmp/out /tmp/local_message_all
+      echo "<strong>&#8611; all nodes:</strong>"|cat - /tmp/local_message_all > /tmp/out && mv /tmp/out /tmp/local_message_all
       echo "<br />" >> /tmp/local_message;
-      [ -f /tmp/local_message_all ] && 
-      cat /tmp/local_message_all >> /tmp/local_message && 
+      [ -f /tmp/local_message_all ] &&
+      cat /tmp/local_message_all >> /tmp/local_message &&
       rm /tmp/local_message_all;
   fi
 fi
-
-
-
