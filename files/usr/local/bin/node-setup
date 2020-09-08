@@ -192,6 +192,7 @@ $portfile  = "/etc/config.mesh/_setup.ports";
 $dhcpfile  = "/etc/config.mesh/_setup.dhcp";
 $portfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat");
 $dhcpfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat");
+$aliasfile = "/etc/config.mesh/aliases";
 
 
 # basic configuration
@@ -300,7 +301,16 @@ foreach(`cat $dhcpfile`)
   printf ETHER "$mac\t$ip $noprop\n";
   printf HOSTS "$ip\t$host\n";
 }
-
+#aliases need to be added to /etc/hosts or they will not show up on the localnode
+#nor will the services they might offer
+if(-e $aliasfile) {
+  foreach(`cat $aliasfile`) {
+    next if /^\s*#/;
+    next if /^\s*$/;
+    ($ip, $host) = split /\s+/, $_;
+    printf HOSTS "$ip\t$host\n";
+  }
+}
 print HOSTS "\n";
 close(HOSTS);
 close(ETHER);

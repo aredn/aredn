@@ -89,11 +89,13 @@ system "mkdir -p $tmpdir";
 $portfile  = "/etc/config.mesh/_setup.ports";
 $dhcpfile  = "/etc/config.mesh/_setup.dhcp";
 $servfile  = "/etc/config.mesh/_setup.services";
+$aliasfile = "/etc/config.mesh/aliases";
 
 my $suffix = $dmz_mode ? ".dmz" : ".nat";
 $portfile .= $suffix;
 $dhcpfile .= $suffix;
 $servfile .= $suffix;
+#do not need mesh aliases in anything other than "dmz_mode"
 
 # if a reset or a first time page load
 # read the data from the config files
@@ -163,12 +165,27 @@ if($parms{button_reset} or not $parms{reload})
     }
     $parms{serv_num} = $i;
 
+    #aliases
+    $i = 0;
+    foreach(`cat $aliasfile 2>/dev/null`)
+    {
+	next if /^\s*#/;
+	next if /^\s*$/;
+	chomp;
+	@parts = split /\s+/, $_;
+	next unless scalar(@parts) == 2;
+	++$i;
+	$parms{"alias${i}_host"} = $parts[1];
+	$parms{"alias${i}_ip"}   = $parts[0];
+    }
+    $parms{alias_num} = $i;
+
     # sanitize the "add" values
     $parms{port_add_intf} = $dmz_mode ? "wan" : "wifi";
     $parms{port_add_type} = "tcp";
     $parms{dmz_ip} = "" unless defined $parms{dmz_ip};
 
-    foreach $var (qw(port_add_out port_add_ip port_add_in dhcp_add_host dhcp_add_ip dhcp_add_mac dhcp_add_noprop serv_add_name serv_add_proto serv_add_host serv_add_port serv_add_suffix))
+    foreach $var (qw(port_add_out port_add_ip port_add_in dhcp_add_host dhcp_add_ip dhcp_add_mac dhcp_add_noprop serv_add_name serv_add_proto serv_add_host serv_add_port serv_add_suffix alias_add_host alias_add_ip))
     {
 	$parms{$var} = "";
     }
@@ -456,6 +473,64 @@ for($i = $nn = 1; $i <= $parms{dhcp_num}; $i++)
 }
 close(FILE);
 
+#
+# aliases
+#
+for($i = 1, @list = (); $i <= $parms{alias_num}; ++$i) { push @list, $i }
+push @list, "_add";
+$alias_num = 0;
+foreach $val (@list) {
+    $host = $parms{"alias${val}_host"};
+    $ip   = $parms{"alias${val}_ip"};
+    #if adding alias check the name is not already in use,
+    #also check that it does not contain anything that will be weird on the mesh
+    #for instance: supercoolservice.kg6wxc-host.local.mesh is certainly a valid host name, but it won't work for the mesh.
+    if($val eq "_add") {
+        if($host) {
+            my $olsrFile = 0;
+        	$olsrFile = 1 if -f "/var/run/hosts_olsr";
+        	if($olsrFile) {
+                open(my $hostFile, "<", "/var/run/hosts_olsr");
+                while(<$hostFile>) {
+            		if($_ =~ /\s$host\s/i) {
+                        $foundHost = 1;
+              			last;
+                    }
+          		}
+                close($hostFile);
+         		push(@alias_err, "$val <font color='red'>Warning!</font> '$host' is already in use!<br>" .
+         		"Please choose another alias name.<br>" .
+            	"Prefixing the hostname with your callsign will help prevent duplicates on the network.") if $foundHost == 1;
+        	}
+        	push(@alias_err, "$val <font color='red'>Warning!</font> The alias name: '$host' is invalid") if !validate_hostname($host);
+            push(@alias_err, "$val '$host' cannot contain the dot '.' character!") if index($host, ".") != -1;
+        }
+        next unless ($host or $ip or $foundHost) and ($parms{alias_add} or $parms{button_save});
+    } else {
+        next if $parms{"alias${val}_del"};
+    }
+    if($val eq "_add" and $parms{button_save}) {
+        push(@alias_err, "$val this alias must be added or cleared out before saving changes");
+        next;
+    }
+    next if $val eq "_add" and @alias_err and $alias_err[-1] =~ /^$val /;
+    # commit the data for this alias
+    ++$alias_num;
+    $parms{"alias${alias_num}_host"} = $host;
+    $parms{"alias${alias_num}_ip"}   = $ip;
+    $hosts{$host} = 1;
+    if($val eq "_add") {
+        $parms{alias_add_host} = "";
+        $parms{alias_add_ip}   = "";
+    }
+}
+#write to temp file
+open(FILE, ">$tmpdir/aliases");
+for($i = 1, @list = (); $i <= $alias_num; ++$i) {
+    printf FILE "%s %s\n", $parms{"alias${i}_ip"}, $parms{"alias${i}_host"};
+}
+close(FILE);
+$parms{alias_num} = $alias_num;
 
 #
 # load and validate the services
@@ -549,16 +624,17 @@ foreach $val (@list)
 close(FILE);
 $parms{serv_num} = $serv_num;
 
-
 #
 # save configuration
 #
 
-if($parms{button_save} and not (@port_err or @dhcp_err or @dmz_err or @serv_err))
+if($parms{button_save} and not (@port_err or @dhcp_err or @dmz_err or @serv_err or @alias_err))
 {
     system "cp -f $tmpdir/ports $portfile";
     system "cp -f $tmpdir/dhcp $dhcpfile";
     system "cp -f $tmpdir/services $servfile";
+    system "cp -f $tmpdir/aliases $aliasfile";
+
     push(@errors, "problem with configuration")  if system "/usr/local/bin/node-setup -a -p mesh";
 
     unless($debug == 3)
@@ -633,16 +709,20 @@ if($dmz_mode)
     print "<tr><td width=1 align=center valign=top>\n";
     &print_reservations();
     print "</td>\n";
-
     print "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td align=center valign=top>\n";
     &print_services();
     print "</td>\n";
-
     print "</tr></table></td></tr>\n";
     print "<tr><td>&nbsp;</td></tr>\n";
-    print "<tr><td><hr></td></tr>\n";
-    print "<tr><td align=center>\n";
+    print "<tr><td><hr></td></tr>\n";  
+    print "</table><table width=790>\n";
+    print "<tr><td align=center valign=top>\n";
     &print_forwarding();
+    print "</td>\n";
+    print "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>\n";
+    print "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>\n";
+    print "<td align=center valign=top>\n";
+    &print_aliases();
     print "</td></tr>\n";
 }
 else
@@ -669,6 +749,7 @@ print "</table>\n";
 push @hidden, "<input type=hidden name=port_num value=$parms{port_num}>";
 push @hidden, "<input type=hidden name=dhcp_num value=$parms{dhcp_num}>";
 push @hidden, "<input type=hidden name=serv_num value=$parms{serv_num}>";
+push @hidden, "<input type=hidden name=alias_num value=$parms{alias_num}>";
 foreach(@hidden) { print "$_\n" }
 
 print "</form></center>\n";
@@ -880,7 +961,7 @@ sub print_services
     unless($dmz_mode or $parms{port_num} or $parms{dmz_ip})
     {
 	if($dmz_mode) { print "<tr><td>&nbsp;</td></tr><tr><td height=10></td></tr>\n" }
-	else          { print "<tr><td>&nbsp<br><br>", "</td></tr>\n" }
+	else          { print "<tr><td>&nbsp;<br><br>", "</td></tr>\n" }
 	print "<tr><td colspan=4 align=center>none</td></tr>\n";
 	print "</table>\n";
 	return;
@@ -921,6 +1002,9 @@ sub print_services
 	    print " disabled" unless $val eq "_add" or $link;
 	    print ">\n";
 	    selopt($node, $node, $host);
+	    for($i = 1; $i <= $parms{alias_num}; $i++) {
+            selopt($parms{"alias${i}_host"}, $parms{"alias${i}_host"}, $host);
+	    }
 	    for($i = 1; $i <= $parms{dhcp_num}; $i++)
 	    {
 		selopt($parms{"dhcp${i}_host"}, $parms{"dhcp${i}_host"}, $host);
@@ -966,3 +1050,44 @@ sub print_services
     print "</table>\n";
 }
 
+# aliases
+sub print_aliases {
+  print "<table cellpadding=0 cellspacing=0><tr><th colspan=4>DNS Aliases</th></tr>\n";
+  print "<tr><td colspan=3 height=5></td></tr>\n";
+  print "<tr><td align=center>Alias Name</td><td></td><td align=center>IP Address</td></tr>\n";
+  print "<tr><td colspan=3 height=5></td></tr>\n";
+  for($i = 1, @list = (); $i <= $parms{alias_num}; ++$i) { push @list, $i }
+  push @list, "_add";
+  foreach $val (@list) {
+    $host = $parms{"alias${val}_host"};
+    $ip = $parms{"alias${val}_ip"};
+    print "<tr><td colspan=3 height=10></td></tr>\n" if $val eq "_add" and scalar(@list) > 1;
+    print "<tr><td align=center><input type=text name=alias${val}_host value='$host' size=20></td>\n";
+    print "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>";
+    print "<td align=center><select name=alias${val}_ip>\n";
+    print "<option value=''>- IP Address -</option>\n" if $val eq "_add";
+    for($i = $dhcp_start; $i <= $dhcp_end; $i++) {
+        $selip = add_ip_address($lannet, $i - ($lannet_d & 0xff));
+        next if $selip eq $lanip;
+        if(defined($dhcphosts{$selip})) {
+            $ipname = $dhcphosts{$selip};
+            selopt($ipname, $selip, $ip);
+        }else {
+            $ipname = $selip or $ip;
+            selopt($ipname, $selip, $ip);
+        }
+    }
+    print "</select></td>\n";
+    print "<td><nobr>&nbsp;<input type=submit name=";
+    if($val eq "_add") { print "alias_add       value=Add title='Add Alias'" }
+    else               { print "alias${val}_del value=Del title='Remove Alias'" }
+	print "></nobr></td></tr>\n";
+  }
+  while(@alias_err)
+	{
+	    $err = shift @alias_err;
+	    $err =~ s/^\S+ //;
+	    print "<tr><th colspan=4>$err</th></tr>\n";
+	}
+  print "</table>\n";
+}
