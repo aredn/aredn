@@ -299,16 +299,17 @@ foreach(`cat $dhcpfile`)
   next unless validate_ip_netmask($ip, $cfg{lan_mask});
 
   printf ETHER "$mac\t$ip $noprop\n";
-  printf HOSTS "$ip\t$host\n";
+  printf HOSTS "$ip\t$host $noprop\n";
 }
 #aliases need to be added to /etc/hosts or they will not show up on the localnode
 #nor will the services they might offer
+#also add a comment to the hosts file so we can display the aliases differently if needed
 if(-e $aliasfile) {
   foreach(`cat $aliasfile`) {
     next if /^\s*#/;
     next if /^\s*$/;
     ($ip, $host) = split /\s+/, $_;
-    printf HOSTS "$ip\t$host\n";
+    printf HOSTS "$ip\t$host #ALIAS\n";
   }
 }
 print HOSTS "\n";

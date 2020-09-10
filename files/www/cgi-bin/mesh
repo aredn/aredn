@@ -228,6 +228,8 @@ foreach(`cat /etc/hosts`)
 	$localhosts{$ip}{name} = $name;
     }
     else { push @{$localhosts{$my_ip}{hosts}}, $name; }
+    if($tactical eq "#NOPROP") { push @{$localhosts{$my_ip}{noprops}}, $name; }
+    if($tactical eq "#ALIAS") { push @{$localhosts{$my_ip}{aliases}}, $name; }
 }
 
 # load the olsr hosts file
@@ -394,8 +396,16 @@ if(keys %localhosts)
 	# add locally advertised dmz hosts
 	foreach $dmzhost (@{$localhosts{$ip}{hosts}})
 	{
-            $localpart = $dmzhost =~ s/.local.mesh//r;
-	    $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>";
+        #find non-propagated and aliased hosts and change color
+        $nopropd = 0;
+	$aliased = 0;
+        if(grep { /$dmzhost/ } @{$localhosts{$ip}{noprops}}) { $nopropd = 1; }
+	if(grep { /$dmzhost/ } @{$localhosts{$ip}{aliases}}) { $aliased = 1; }
+        $localpart = $dmzhost =~ s/.local.mesh//r;
+	    if(!$nopropd and !$aliased) { $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>"; }
+	    elsif($aliased) { $rows{$host} .= "<tr><td class=aliased-hosts valign=top title='Aliased Host'><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>"; }
+	    else { $rows{$host} .= "<tr><td class=hidden-hosts valign=top title='Non Propagated Host'><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>"; }
+	    
 	    $rows{$host} .= "<td colspan=3></td><td>\n";
 	    foreach(sort keys %{$services{$dmzhost}})
 	    {
