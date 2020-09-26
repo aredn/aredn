@@ -89,9 +89,8 @@ boot() {
       uci -c /etc/config.mesh commit aredn
     # check values in distfeeds.conf against UCI settings
     # and change distfeeds.conf if needed (upgrades?)
-    ## commented for now, may need it later
-    #elif [ $ucirepo != $distrepo ]; then
-    #  sed -i "s|$distrepo|$ucirepo|g" /etc/opkg/distfeeds.conf
+    elif [ $ucirepo != $distrepo ]; then
+      sed -i "s|$distrepo|$ucirepo|g" /etc/opkg/distfeeds.conf
     fi
     shift
   done
