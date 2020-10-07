@@ -193,8 +193,17 @@ $dhcpfile  = "/etc/config.mesh/_setup.dhcp";
 $portfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat");
 $dhcpfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat");
 $aliasfile = "/etc/config.mesh/aliases";
+$aliasfile .= ($cfg{dmz_mode} ? ".dmz" : ".nat");
 
-
+#check for old aliases file, copy it to .dmz and create symlink
+#just in case anyone is already using the file for some script or something
+unless(-l "/etc/config.mesh/aliases") {
+  if(-f "/etc/config.mesh/aliases") {
+    system "cat /etc/config.mesh/aliases > /etc/config.mesh/aliases.dmz";
+    system "rm /etc/config.mesh/aliases";
+    system "cd /etc/config.mesh ; ln -s aliases.dmz aliases";
+  } else { system "cd /etc/config.mesh ; touch aliases.dmz ; ln -s aliases.dmz aliases"; }
+}
 # basic configuration
 
 if($do_basic)

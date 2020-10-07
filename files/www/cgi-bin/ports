@@ -95,7 +95,7 @@ my $suffix = $dmz_mode ? ".dmz" : ".nat";
 $portfile .= $suffix;
 $dhcpfile .= $suffix;
 $servfile .= $suffix;
-#do not need mesh aliases in anything other than "dmz_mode"
+$aliasfile .= $suffix;
 
 # if a reset or a first time page load
 # read the data from the config files
@@ -739,8 +739,14 @@ else
     print "</tr></table></td></tr>\n";
     print "<tr><td>&nbsp;</td></tr>\n";
     print "<tr><td><hr></td></tr>\n";
+    print "</table><table width=790>\n";
     print "<tr><td align=center>\n";
     &print_reservations();
+    print "</td>\n";
+    print "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>\n";
+    print "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>\n";
+    print "<td align=center valign=top>\n";
+    &print_aliases();
     print "</td></tr>\n";
 }
 
@@ -879,7 +885,10 @@ sub print_reservations
 {
     print "<table cellpadding=0 cellspacing=0><tr><th colspan=4>DHCP Address Reservations</th></tr>\n";
     print "<tr><td colspan=4 height=5></td></tr>\n";
-    print "<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td><td align=center style='font-size:10px;'>Do Not<br>Propagate</td><td></td></tr>\n";
+    print "<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td>";
+    if($dmz_mode) {
+      print "<td align=center style='font-size:10px;'>Do Not<br>Propagate</td><td></td></tr>\n";
+    } else { print "<td></td><td></td></tr>\n"; }
     print "<tr><td colspan=4 height=5></td></tr>\n";
 
     for($i = 1, @list = (); $i <= $parms{dhcp_num}; ++$i) { push @list, $i }
@@ -909,11 +918,14 @@ sub print_reservations
 	print "</select></td>\n";
 
 	print "<td><input type=text name=dhcp${val}_mac value='$mac' size=16></td>\n";
-        if ($noprop eq "#NOPROP") {
-          print "<td align=center><input type=checkbox id=dhcp${val}_noprop name=dhcp${val}_noprop value='#NOPROP' checked></td>\n";
-        }else {
-          print "<td align=center><input type=checkbox id=dhcp${val}_noprop name=dhcp${val}_noprop value='#NOPROP'></td>\n";
-        }
+    if($dmz_mode) {
+      if ($noprop eq "#NOPROP") {
+        print "<td align=center><input type=checkbox id=dhcp${val}_noprop name=dhcp${val}_noprop value='#NOPROP' checked></td>\n";
+      }else {
+        print "<td align=center><input type=checkbox id=dhcp${val}_noprop name=dhcp${val}_noprop value='#NOPROP'></td>\n";
+      }
+    }else { print "<td></td>\n"; }
+    
 	print "<td><nobr>&nbsp;<input type=submit name=";
 
 	if($val eq "_add") { print "dhcp_add       value=Add title='Add this as a DHCP reservation'" }
