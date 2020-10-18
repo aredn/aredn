@@ -1276,6 +1276,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '2400',
     },
+    'MikroTik RouterBOARD RBLHG-2nD' => {
+      'name'            => 'MikroTik RouterBOARD RBLHG-2nD',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '28',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '2400',
+    },
     'MikroTik RouterBOARD LHG 2nD-XL' => {
       'name'            => 'MikroTik RouterBOARD LHG 2nD-XL',
       'comment'         => '',
