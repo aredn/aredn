@@ -1,0 +1,47 @@
+--- a/target/linux/ath79/dts/ar9344_tplink_cpe.dtsi
++++ b/target/linux/ath79/dts/ar9344_tplink_cpe.dtsi
+@@ -110,3 +110,20 @@
+ 
+ 	mtd-mac-address = <&info 0x8>;
+ };
++
++&gpio { 
++ 	gpio_ext_lna0 { 
++ 		gpio-hog; 
++ 		gpios = <18 GPIO_ACTIVE_HIGH>; 
++ 		output-high; 
++ 		line-name = "tp-link:ext:lna0"; 
++ 	}; 
++ 
++ 
++ 	gpio_ext_lna1 { 
++ 		gpio-hog; 
++ 		gpios = <19 GPIO_ACTIVE_HIGH>; 
++ 		output-high; 
++ 		line-name = "tp-link:ext:lna1"; 
++ 	}; 
++}; 
+--- a/target/linux/ath79/dts/ar9344_tplink_cpe_2port.dtsi
++++ b/target/linux/ath79/dts/ar9344_tplink_cpe_2port.dtsi
+@@ -44,21 +44,6 @@
+ 	};
+ };
+ 
+-&gpio {
+-	gpio_ext_lna0 {
+-		gpio-hog;
+-		gpios = <18 0>;
+-		output-high;
+-		line-name = "tp-link:ext:lna0";
+-	};
+-
+-	gpio_ext_lna1 {
+-		gpio-hog;
+-		gpios = <19 0>;
+-		output-high;
+-		line-name = "tp-link:ext:lna1";
+-	};
+-};
+ 
+ &eth1 {
+ 	status = "okay";
