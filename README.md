@@ -108,7 +108,7 @@ GL.iNet GL-AR300M16 | ar71xx | gl-ar300m | 64Mb | stable
 GL.iNet GL-AR300M w/ 128Mb NAND | None | None | 64Mb | Not compatible
 GL.iNet GL-AR750 | ar71xx | gl-ar750 | 128Mb | stable
 
-The 'target' is a directory to find the image on at https://downloads.arednmesh.org.
+The 'target' is a directory to find the image on at http://downloads.arednmesh.org
 
 Latest Mikrotik installation options are found at: https://www.arednmesh.org/content/installation-instructions-mikrotik-devices
 
