@@ -2,6 +2,9 @@
 
 http://www.arednmesh.org
 
+THIS IS A NEW REPO THAT IS IN PROGRESS - DO NOT USE YET
+
+
 ## About AREDN
 
 AREDN wireless networks are deployed by licensed Amateur Radio
@@ -43,7 +46,7 @@ features and the overall mesh node is stable.   The more participation,
 the earlier an issue is found, the faster an enhancement will be
 turned into a release.
 
-Please refer to https://github.com/aredn/aredn_ar71xx/issues
+Please refer to https://github.com/aredn/aredn/issues
 for a list of outstanding defects.
 
 ### Images built
@@ -169,7 +172,7 @@ IMPORTANT: For Gl.iNet devices, when initially installing AREDN on OpenWRT, you 
  
 ## Submitting Bug Reports
 
-Please submit all issues to http://github.com/aredn/aredn_ar71xx/issues
+Please submit all issues to http://github.com/aredn/aredn/issues
 
 ## Developer Only Information
 
@@ -187,7 +190,7 @@ docker run -it --name builder arednmesh/builder
 
 To pull an image (or any other file) out of the docker container:
 ```
-docker cp builder:/opt/aredn/aredn_ar71xx/firmware/targets/ar71xx/generic/<image>.bin <local directory>
+docker cp builder:/opt/aredn/aredn/firmware/targets/ar71xx/generic/<image>.bin <local directory>
 ```
 
 ### Build Prerequisites
@@ -222,8 +225,8 @@ To obtain the source and build the firmware locally use:
 
 ```
 bash
-git clone https://github.com/aredn/aredn_ar71xx.git
-cd aredn_ar71xx
+git clone https://github.com/aredn/aredn.git
+cd aredn
 vi config.mk # enter your callsign, etc.
 # build default legacy ar71xx target ubnt and tplink images
 make  
@@ -246,7 +249,7 @@ You need approximately 10GB of space for the build.
 ### How to build prior builds of AREDN
 
 Prior AREDN images can be rebuilt.  Replace one of the following after
-the "cd aredn_ar71xx" command above:
+the "cd aredn" command above:
 
 AREDN release 3.20.3.1
 
@@ -346,11 +349,11 @@ quilt refresh                 # creates/updates the patch file
 
 ## Submitting new features and patches to AREDN
 
-The high level steps to submit to this repository https://github.com/aredn/aredn_ar71xx are:
+The high level steps to submit to this repository https://github.com/aredn/aredn are:
 
 1) create a github account and 'fork' this repo
-2) git commit a change into your fork, e.g. http://github.com/ae6xe/aredn_ar71xx
-3) create a pull request for http://github.com/aredn/aredn_ar71xx to consider your change
+2) git commit a change into your fork, e.g. http://github.com/ae6xe/aredn
+3) create a pull request for http://github.com/aredn/aredn to consider your change
 
 
 
