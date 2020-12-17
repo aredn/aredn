@@ -12,7 +12,7 @@ jobs:
           name: Update Config.mk
           command:  |
             export MY_WORKING_DIRECTORY=`pwd`
-            export MY_PROCS=`nprocs`
+            export MY_PROCS=`nproc`
             echo "Procs: ${MY_PROCS}" 
             sed -i "s/NoCall/${CIRCLE_BUILD_NUM}/g" ${MY_WORKING_DIRECTORY}/config.mk
             sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j${MY_PROCS}/g" ${MY_WORKING_DIRECTORY}/config.mk
