@@ -2,9 +2,6 @@
 
 http://www.arednmesh.org
 
-THIS IS A NEW REPO THAT IS IN PROGRESS - DO NOT USE YET
-
-
 ## About AREDN
 
 AREDN wireless networks are deployed by licensed Amateur Radio
