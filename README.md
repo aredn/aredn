@@ -293,7 +293,7 @@ git checkout 91ee867
 Return to most current changes
 
 ```
-git checkout develop
+git checkout main
 ```
 
 ### Directory Layout
