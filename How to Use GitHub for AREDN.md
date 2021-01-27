@@ -31,18 +31,18 @@ Now your local environment knows about both the master code repository and your 
 
 #### Ongoing Development Cycle:
 
-1. Update your local environment with the latest code changes from the rest of the community, which will include any changes you had previously submitted.   *Caution:*  never make code changes directly on the `develop` branch.  This will result in inconsistencies between the main repository and your repository, requiring a force-remove of any changes you have made.
-	1. `git checkout develop`
-	2. `git pull aredn develop`
+1. Update your local environment with the latest code changes from the rest of the community, which will include any changes you had previously submitted.   *Caution:*  never make code changes directly on the `main` branch.  This will result in inconsistencies between the main repository and your repository, requiring a force-remove of any changes you have made.
+	1. `git checkout main`
+	2. `git pull aredn main`
 2. Create a git code branch to fix a bug or implement a new feature:
 	1. `git checkout -b my-wiz-bang-feature-name`
 3. Make your changes and test them.
 4. When ready to submit changes, check to see whether they still work with code others have recently submitted. In GitHub terminology, “pull” down the latest changes and “rebase” or move your code on top of the latest. In this process you might find conflicts with someone else’s code, making further merge edits necessary.
 	1. `git stash` to stash the changes still in process.
-	2. `git checkout develop`
-	3. `git pull aredn develop`
+	2. `git checkout main`
+	3. `git pull aredn main`
 	4. `git checkout my-wiz-bang-feature-name`
-	5. `git rebase develop` to move your branch and changes on top of the latest code others have submitted.
+	5. `git rebase main` to move your branch and changes on top of the latest code others have submitted.
 	6. `git stash pop` to reapply your stashed changes
 	7. Resolve any conflicts that need to be merged if warned in the step above.
 	8. Final build and validation that your changes work on top of the latest changes from all of the AREDN contributors.
