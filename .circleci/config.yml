@@ -104,7 +104,7 @@ workflows:
           cron: "0 9 * * *" # 9AM UTC
           filters:
             branches:
-              only: develop
+              only: main
     jobs:
       - check2build
       - build:
@@ -118,17 +118,17 @@ workflows:
             - build
           filters:
             branches:
-              only: develop
+              only: main
       - readme_nightly:
           requires:
             - process_artifacts_nightly
           filters:
             branches:
               only:
-                - develop
+                - main
       - changelog_nightly:
           requires:
             - process_artifacts_nightly
           filters:
             branches:
-              only: develop
+              only: main
