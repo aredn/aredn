@@ -13,9 +13,9 @@ To contribute to the AREDN project you first must create your own GitHub account
 
 ### Understanding GitHub Workflow
 
-The process of contributing and tracking changes to AREDN is circular. Code is maintained in the AREDN Master repository on GitHub. To contribute a potential code update, you must first FORK the AREDN master repository to your own GitHub account. You then CLONE your copy of the code from your GitHub repository to your own local computer. Make and test any changes you want to contribute using your local computer's copy of the code.
+The process of contributing and tracking changes to AREDN is circular. Code is maintained in the `aredn/aredn` repository on GitHub. To contribute a potential code update, you must first FORK the `aredn/aredn` repository to your own GitHub account. You then CLONE your copy of the code from your GitHub repository to your own local computer. Make and test any changes you want to contribute using your local computer's copy of the code.
 
-When you are satisfied with your changes, stage and COMMIT them to your local computer's repository, then PUSH those local changes to your copy of the code on your own GitHub account. Finally, create a PULL REQUEST, which tells the AREDN development team that you would like your changes to be reviewed for inclusion in the AREDN Master repository.
+When you are satisfied with your changes, stage and COMMIT them to your local computer's repository, then PUSH those local changes to your copy of the code on your own GitHub account. Finally, create a PULL REQUEST, which tells the AREDN development team that you would like your changes to be reviewed for inclusion in the `aredn/aredn` repository.
 
 ![GitHub Workflow](GitHub-workflow.png)
 
@@ -27,7 +27,7 @@ When you are satisfied with your changes, stage and COMMIT them to your local co
 4. `cd aredn`  This directory contains your local copy of the AREDN source code. The following commands will be executed while you are in this directory or its subdirectories.
 5. `git remote add aredn https://github.com/aredn/aredn`  
 
-Now your local environment knows about both the master code repository and your forked copy on your GitHub account.
+Now your local environment knows about both the `aredn/aredn` code repository and your forked copy on your GitHub account.
 
 #### Ongoing Development Cycle:
 
@@ -50,8 +50,8 @@ Now your local environment knows about both the master code repository and your 
 	1. `git add [any-changed-files]` (stage changes for commit)
 	2. `git commit` (Be sure to commit your changes with a meaningful commit message. You can refer to the standards used by OpenWRT <https://openwrt.org/submitting-patches> for creating commit descriptions that are easy for others to understand. The key is a commit description that concisely communicates to others what is in the commit.)
 	3. `git push origin my-wiz-bang-feature-name`
-6. Create a `Pull Request` (PR) to the AREDN master repository by browsing to `github.com/[myCall]/aredn`, then select the my-wiz-bang-feature-name branch. Click the `New Pull Request` button to generate your Pull Request. Others can now review your code, test it, and give feedback. If feedback is given and you need to make changes, go back to step 3.
-7. Once your changes have been accepted into the AREDN master repository, delete your branch:
+6. Create a `Pull Request` (PR) to the `aredn/aredn` repository by browsing to `github.com/[myCall]/aredn`, then select the my-wiz-bang-feature-name branch. Click the `New Pull Request` button to generate your Pull Request. Others can now review your code, test it, and give feedback. If feedback is given and you need to make changes, go back to step 3.
+7. Once your changes have been accepted into the `aredn/aredn` repository, delete your branch:
 	1. On your local repository: `git branch -D my-wiz-bang-feature-name`
 	2. On your forked copy of your GitHub repository: `git push origin --delete my-wiz-bang-feature-name`
 
