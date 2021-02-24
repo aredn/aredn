@@ -1,0 +1,81 @@
+#!/usr/bin/perl
+=for comment
+
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2021 - Darryl Quinn
+   See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+=cut
+
+BEGIN {push @INC, '/www/cgi-bin'};
+use perlfunc;
+use ucifunc;
+
+$debug = 0;
+$| = 1;
+
+sub checkPath {
+	my $uciopt = $_[0];
+	my $repo = $_[1];
+	my ($rc, $uci_val) = &uci_get_indexed_option("aredn", "downloads", "0", $uciopt);
+	my $default_val = &defaultPackageRepos($repo);
+	# is the current value different than the default?
+	if($uci_val ne $default_val)
+	{
+		# does the non-standard value START with downloads.arednmesh.org? if so, change it, if NOT, leave it.
+		if($uci_val =~ m/^http:\/\/downloads.arednmesh.org\/*./)
+	  	{
+	  		&uci_set_indexed_option("aredn", "downloads", "0", $uciopt, $default_val);
+	  	}
+	}
+}
+
+#PKGS_CORE
+checkPath("pkgs_core", "aredn_core");
+
+# PKGS_BASE
+checkPath("pkgs_base", "base");
+
+# PKGS_AREDNPACKAGES
+checkPath("pkgs_arednpackages", "arednpackages");
+
+# PKGS_LUCI
+checkPath("pkgs_luci", "luci");
+
+# PKGS_PACKAGES
+checkPath("pkgs_packages", "packages");
+
+# PKGS_ROUTING
+checkPath("pkgs_routing", "routing");
+
+# PKGS_TELEPHONY
+checkPath("pkgs_telephony", "telephony");
+
+&uci_commit("aredn");
