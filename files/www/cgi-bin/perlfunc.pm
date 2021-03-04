@@ -1963,8 +1963,8 @@ sub alert_banner
       print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>\n";
     }
   }
-  print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">$aredn_message</div></div>\n" if $aredn_message;
-  print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">$local_message</div></div>\n" if $local_message;
+  print "<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">$aredn_message</div></div>\n" if $aredn_message;
+  print "<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">$local_message</div></div>\n" if $local_message;
 
   #TopBanner
   print "</div>";
