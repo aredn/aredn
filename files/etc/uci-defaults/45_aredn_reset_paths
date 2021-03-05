@@ -2,21 +2,11 @@
 
 #check for modified path values and update if needed
 #will not change existing custom entries
-
-#PKGS_CORE_C=$(/sbin/uci -c /etc/config.mesh get aredn.@downloads[0].pkgs_core)
-#PKGS_BASE_C=$(/sbin/uci -c /etc/config.mesh get aredn.@downloads[0].pkgs_base)
-#PKGS_AREDNPACKAGES_C=$(/sbin/uci -c /etc/config.mesh get aredn.@downloads[0].pkgs_arednpackages)
-#PKGS_LUCI_C=$(/sbin/uci -c /etc/config.mesh get aredn.@downloads[0].pkgs_luci)
-#PKGS_PACKAGES_C=$(/sbin/uci -c /etc/config.mesh get aredn.@downloads[0].pkgs_packages)
-#PKGS_ROUTING_C=$(/sbin/uci -c /etc/config.mesh get aredn.@downloads[0].pkgs_routing)
-#PKGS_TELEPHONY_C=$(/sbin/uci -c /etc/config.mesh get aredn.@downloads[0].pkgs_telephony)
-
 DISTRIB_TARGET=$(grep DISTRIB_TARGET /etc/openwrt_release|cut -d'=' -f2|tr -d "'")
 DISTRIB_RELEASE=$(grep DISTRIB_RELEASE /etc/openwrt_release|cut -d'=' -f2|tr -d "'")
 
 SERVER_PREFIX='http://downloads.arednmesh.org/'
 SNAPSHOT_PREFIX='snapshots/trunk/'
-
 
 getReleasePrefix()
 {
@@ -42,8 +32,6 @@ defaultPackageRepos()
   else
     echo "${SERVER_PREFIX}${BUILD_PREFIX}packages/mips_24kc/${repo}"
   fi
-  #echo "http://downloads.arednmesh.org/snapshots/trunk/targets/ar71xx/mikrotik/packages"
-  #echo "http://downloads.arednmesh.org/snapshots/trunk/packages/mips_24kc/luci"
 }
 
 checkPath()
