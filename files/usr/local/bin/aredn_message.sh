@@ -33,11 +33,13 @@ true <<'LICENSE'
 
 LICENSE
 
+# clean up any stale message files
+[ -f /tmp/aredn_message ] && rm /tmp/aredn_message
+[ -f /tmp/local_message ] && rm /tmp/local_message
+
 # does the node have access to downloads.arednmesh.org
 ping -q -W10 -c1 downloads.arednmesh.org > /dev/null &&
   online=true;
-  [ -f /tmp/aredn_message ] &&
-  rm /tmp/aredn_message
 
 nodename=$(echo "$HOSTNAME" | tr 'A-Z' 'a-z')
 
