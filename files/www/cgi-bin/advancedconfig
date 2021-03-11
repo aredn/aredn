@@ -154,7 +154,13 @@ push @setting, {
   desc => "Specifies the URL of the location from which local AREDN Alerts can be downloaded.",
   default => ""
 };
-
+push @setting, {
+  key => "aredn.aam.purge",
+  type => "boolean",
+  desc => "Value doesn't matter.  Will immediately purge/delete all AREDN (and local) Alerts from this node.",
+  default => "",
+  postcallback => "alert_purge()"
+};
 # ----------------------------------------
 
 # ----- CONDITIONS ----------
@@ -197,6 +203,13 @@ sub aam_refresh()
 {
   $rc=`/usr/local/bin/aredn_message.sh`;
   return $rc;
+}
+
+sub alert_purge()
+{
+  unlink("/tmp/aredn_message");
+  unlink("/tmp/local_message");
+  return 0;
 }
 
 sub writePackageRepo {
