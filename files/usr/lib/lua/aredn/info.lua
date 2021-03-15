@@ -487,4 +487,13 @@ function model.getLocalHosts()
 	return hosts
 end
 
+-------------------------------------
+-- Returns Mesh gateway setting
+-------------------------------------
+function model.getMeshGatewaySetting()
+	gw=os.capture("cat /etc/config.mesh/_setup|grep olsrd_gw|cut -d'=' -f2|tr -d ' ' ")
+	gw=gw:chomp()
+	return gw
+end
+
 return model
