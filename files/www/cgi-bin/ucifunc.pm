@@ -38,7 +38,7 @@
 sub uci_get_sectiontype_count()
 {
     my ($config, $stype)=@_;
-    my $cmd=sprintf('uci show %s|egrep %s\.\@%s.*=%s|wc -l',$config,$stype,$stype,$stype);
+    my $cmd=sprintf('uci show %s|egrep %s\.\@%s.*=%s|wc -l',$config,$config,$stype,$stype);
     my $res=`$cmd`;
     my $rc=$?;
     chomp($res);
