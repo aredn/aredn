@@ -136,15 +136,15 @@ push @setting, {
 };
 push @setting, {
   key => "aredn.olsr.restart",
-  type => "boolean",
-  desc => "Value doesn't matter.  Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
+  type => "none",
+  desc => "Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
   default => "0",
   postcallback => "olsr_restart()"
 };
 push @setting, {
   key => "aredn.aam.refresh",
-  type => "boolean",
-  desc => "Value doesn't matter.  Will attempt to pull any AREDN Alert messages.",
+  type => "none",
+  desc => "Attempt to pull any AREDN Alert messages.",
   default => "0",
   postcallback => "aam_refresh()"
 };
@@ -156,8 +156,8 @@ push @setting, {
 };
 push @setting, {
   key => "aredn.aam.purge",
-  type => "boolean",
-  desc => "Value doesn't matter.  Will immediately purge/delete all AREDN (and local) Alerts from this node.",
+  type => "none",
+  desc => "Immediately purge/delete all AREDN (and local) Alerts from this node.",
   default => "",
   postcallback => "alert_purge()"
 };
@@ -429,30 +429,22 @@ foreach(@setting)
           <td>
 EOF
 
-  print "<input type='text' id='field_$scount' name='newval_$scount' size='65' value='$sval'>" if($setting[$scount]->{'type'} eq "string");
-  
-  #print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked >" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
-  #print "<input type='checkbox' id='field_$scount' name='newval_$scount' value='1'>" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );
-  #print "&nbsp;ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
-  #print "&nbsp;OFF" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0);
-
-
-
-
+  print "<input type='text' id='field_$scount' name='newval_$scount' size='65' value='$sval'>" if($setting[$scount]->{'type'} eq "string");  
   print "OFF<label class='switch'><input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked><span class='slider round'></span></label>ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
   print "OFF<label class='switch'><input type='checkbox' id='field_$scount' name='newval_$scount' value='1'><span class='slider round'></span></label>ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );
-
-  #print "<input type='button' id='field_$scount' name='newval_$scount' value='Turn OFF'>" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
-  #print "<input type='button' id='field_$scount' name='newval_$scount' value='Turn ON'>" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );  
-  #print "&nbsp;Currently: ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
-  #print "&nbsp;Currently: OFF" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0);
+  print "(Value not applicable)<input type='hidden' id='field_$scount' name='newval_$scount' value='$sval'>" if($setting[$scount]->{'type'} eq "none");
 
   print <<EOF;
           </td>
-          <td align="center"><input type="submit" name="button_save_$scount" value="Save Setting" /><br><br>
 EOF
-  print "<input value='Set to Default' type='button' onclick=\"document.getElementById('field_$scount').value='$setting[$scount]->{'default'}';\">" if($setting[$scount]->{'type'} ne "boolean");
+  if($setting[$scount]->{'type'} ne "none")
+  {
+    print "<td align='center'><input type='submit' name='button_save_$scount' value='Save Setting' /><br><br>";
+  } else {
+    print "<td align='center'><input type='submit' name='button_save_$scount' value='Execute' /><br><br>";
+  }
   
+  print "<input value='Set to Default' type='button' onclick=\"document.getElementById('field_$scount').value='$setting[$scount]->{'default'}';\">" if($setting[$scount]->{'type'} eq "string");
   print "<input value='Set to Default' type='button' onclick=\"return toggleDefault('field_$scount', '$setting[$scount]->{'default'}' );\">" if($setting[$scount]->{'type'} eq "boolean");
   print <<EOF;
           </td>
