@@ -74,6 +74,7 @@ PowerBeam-M5-300 | ar71xx | loco-m-xw | 64Mb | stable
 PowerBeam-M5-400/400ISO/620 | ar71xx | rocket-m-xw | 64Mb | stable
 PowerBridge | ar71xx | nano-m  | 64Mb | stable
 Rocket M9/M2/M3/M5/M5GPS XM | ath79 | rocket-m | 64Mb | stable
+Rocket M2/M5 XM with USB port | ar71xx | rocket-m | 64Mb | stable
 Rocket M2 XW | ar71xx | loco-m-xw | 64Mb | stable
 Rocket M5 XW | ar71xx | rocket-m-xw | 64Mb | stable
 Rocket M2 Titanium TI | ar71xx | rocket-m-ti | 64Mb | unknown
