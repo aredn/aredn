@@ -358,7 +358,7 @@ sub print_vpn_connections()
 
     for($i = 0, @list = (); $i < $parms{conn_num}; $i++) { push @list, $i };
 
-    push @list, "_add" unless($parms{conn_num} > 9);
+    push @list, "_add" unless($parms{conn_num} >= &get_tunnel_maxservers());
 
     $cnum=0;
     foreach $val (@list)

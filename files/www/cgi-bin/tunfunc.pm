@@ -101,6 +101,30 @@ sub is_tunnel_active()
     return $match; # the return value of the do block   
 }
 
+sub get_tunnel_option()
+{
+    my ($optionname) = @_;
+    return &uci_get_indexed_option("aredn", "tunnel", 0, "$optionname");
+}
+
+sub get_tunnel_maxclients()
+{
+    my ($rc, $maxclients) = &get_tunnel_option("maxclients");
+    return $rc ? 10 : $maxclients;
+}
+
+sub get_tunnel_maxservers()
+{
+    my ($rc, $maxservers) = &get_tunnel_option("maxservers");
+    return $rc ? 10 : $maxservers;
+}
+
+sub get_tunnel_interface_count()
+{
+    my $count = `uci show network_tun | fgrep =interface | wc -l`;
+    return $? ? "0" : $count;
+}
+
 ##########################
 # Add OLSRD interfaces - NOT NEEDED
 ##########################
@@ -128,6 +152,10 @@ sub add_olsrd_interfaces() {
 # Add network interfaces tun50 thru tun69 - called on install
 ##########################
 sub add_network_interfaces() {
+    &uci_set_indexed_option("aredn","tunnel",0,"maxclients","10");
+    &uci_set_indexed_option("aredn","tunnel",0,"maxservers","10");
+    &uci_commit("aredn");
+    &uci_clone("aredn");
 
     for (my $tunnum=50; $tunnum<=69; $tunnum++)
     {

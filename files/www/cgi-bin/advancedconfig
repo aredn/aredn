@@ -38,6 +38,8 @@
 
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
+use ucifunc;
+use tunfunc;
 
 $debug = 0;
 $| = 1;
@@ -135,6 +137,22 @@ push @setting, {
   condition => "hasUSB()"
 };
 push @setting, {
+  key => "aredn.\@tunnel[0].maxclients", 
+  type => "string", 
+  desc => "Specifies the maximum number of tunnel clients this node can serve.  (Only applies if tunnel software is installed)", 
+  default => "10", 
+  condition => "hasTunnelSoftware()",
+  postcallback => "adjustTunnelInterfaceCount()"
+};
+push @setting, {
+  key => "aredn.\@tunnel[0].maxservers", 
+  type => "string", 
+  desc => "Specifies the maximum number of tunnel servers to which this node can connect.  (Only applies if tunnel software is installed)", 
+  default => "10", 
+  condition => "hasTunnelSoftware()",
+  postcallback => "adjustTunnelInterfaceCount()"
+};
+push @setting, {
   key => "aredn.olsr.restart",
   type => "none",
   desc => "Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
@@ -176,6 +194,11 @@ sub hasUSB()
   $pin=`cat /etc/board.json|jsonfilter -e '@.gpioswitch.usb_power_switch.pin'`;
   chomp($pin);
   return $pin ? return 1 : return 0;
+}
+
+sub hasTunnelSoftware()
+{
+  return (-e "/usr/sbin/vtund") ? 1 : 0;
 }
 # ----- CONDITIONS ----------
 
@@ -220,6 +243,39 @@ sub writePackageRepo {
   my $disturl = `grep aredn_$repo /etc/opkg/distfeeds.conf | cut -d' ' -f3`;
   chomp($disturl);
   system("sed -i 's|$disturl|$uciurl|g' $file");
+}
+
+sub addTunnelInterface() {
+    my ($configfile, $tunnum) = @_;
+    &uci_add_named_section($configfile,"tun${tunnum}","interface");
+    &uci_set_named_option($configfile,"tun${tunnum}","ifname","tun${tunnum}");
+    &uci_set_named_option($configfile,"tun${tunnum}","proto","none");
+}
+
+sub adjustTunnelInterfaceCount() {
+    my $tunnelIfCount = &get_tunnel_interface_count();
+    my $neededIfCount = &get_tunnel_maxclients() + &get_tunnel_maxservers();
+
+    if ($tunnelIfCount != $neededIfCount) {
+        for (my $i = $tunnelIfCount; $i < $neededIfCount; $i++) {
+            my $tunnum = $i + 50;
+            &addTunnelInterface("network_tun",$tunnum);
+            &addTunnelInterface("network",$tunnum);
+        }
+        for (my $i = $tunnelIfCount - 1; $i >= $neededIfCount; $i--) {
+            my $tunnum = $i + 50;
+            &uci_delete_named_section("network_tun","tun${tunnum}");
+            &uci_delete_named_section("network","tun${tunnum}");
+        }
+        &uci_commit("network_tun");
+        &uci_commit("network");
+        &uci_clone("network_tun");
+        # can't clone network because it contains macros; re-edit it instead:
+        system "sed -i"
+                . " -e '\$r /etc/config.mesh/network_tun'"
+                . " -e '/interface.*tun/,\$d'"
+                . " /etc/config.mesh/network";
+    }
 }
 # ----- CALLBACKS ----------
 
