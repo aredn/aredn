@@ -409,7 +409,7 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
-} 
+}
 </style>
 
 <script>
@@ -485,10 +485,10 @@ foreach(@setting)
           <td>
 EOF
 
-  print "<input type='text' id='field_$scount' name='newval_$scount' size='65' value='$sval'>" if($setting[$scount]->{'type'} eq "string");  
+  print "<input type='text' id='field_$scount' name='newval_$scount' size='65' value='$sval'>" if($setting[$scount]->{'type'} eq "string");
   print "OFF<label class='switch'><input type='checkbox' id='field_$scount' name='newval_$scount' value='1' checked><span class='slider round'></span></label>ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 1 );
   print "OFF<label class='switch'><input type='checkbox' id='field_$scount' name='newval_$scount' value='1'><span class='slider round'></span></label>ON" if($setting[$scount]->{'type'} eq "boolean" and $sval == 0 );
-  print "(Value not applicable)<input type='hidden' id='field_$scount' name='newval_$scount' value='$sval'>" if($setting[$scount]->{'type'} eq "none");
+  print "Click EXECUTE button to trigger this action<input type='hidden' id='field_$scount' name='newval_$scount' value='$sval'>" if($setting[$scount]->{'type'} eq "none");
 
   print <<EOF;
           </td>
@@ -499,7 +499,7 @@ EOF
   } else {
     print "<td align='center'><input type='submit' name='button_save_$scount' value='Execute' /><br><br>";
   }
-  
+
   print "<input value='Set to Default' type='button' onclick=\"document.getElementById('field_$scount').value='$setting[$scount]->{'default'}';\">" if($setting[$scount]->{'type'} eq "string");
   print "<input value='Set to Default' type='button' onclick=\"return toggleDefault('field_$scount', '$setting[$scount]->{'default'}' );\">" if($setting[$scount]->{'type'} eq "boolean");
   print <<EOF;
