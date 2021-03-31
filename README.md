@@ -304,7 +304,7 @@ Included in the git Repo:
 config.mk    <- build settings
 openwrt.mk   <- which openwrt repo and branch/tag/commit to use
 feeds.conf/  <- custom package feeds (edit to point to your clone of aredn_packages)
-files/       <- file system in AERDN created images, most customizations go here
+files/       <- file system in AREDN created images, most customizations go here
 patches/     <- patches to openwrt go here 
 scripts/     <- tests and other scripts called from the build 
 configs/     <- definitions of features in the devices' kernel and what packages to include
