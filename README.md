@@ -28,20 +28,7 @@ license, please refer to http://www.arrl.org/getting-your-technician-license
 
 ### What to know about the images built with the instructions below
 
-This is the active 'develop' branch with latest AREDN code.
-At anytime a new change may be broken or break prior capabilities.
-
-The Amateur Radio community is encouraged to participate in loading the
-images produced from a "nightly build" and run the AREDN firmware in a
-variety of environments.  Given new features may not yet be documented,
-participants should already have a basic knowledge of Linux and Networking to
-understand and provide useful feedback to the Developer submitting the
-code.
-
-The goal of participation is to obtain confidence that new
-features and the overall mesh node is stable.   The more participation,
-the earlier an issue is found, the faster an enhancement will be
-turned into a release.
+This is the 3.21.4.0 release.
 
 Please refer to https://github.com/aredn/aredn/issues
 for a list of outstanding defects.
@@ -102,6 +89,7 @@ Mikrotik RBLHG-5HPnD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLHG-2nD-XL/5HPnD-XL | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLDF-2nD/5nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik QRT5 RB911G-5HPnD-QRT | ar71xx | mikrotik-nand-large | 64Mb | stable
+Mikrotik mAntbox RB911G-2HPnD/5HPnD | ar71xx | mikrotik-nand-large | 64Mb | stable
 Mikrotik SXTsq 5HPnD/5nD/2nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 GL.iNet GL-AR150 | ath79 | gl-ar150 | 64Mb | stable
 GL.iNet GL-USB150 | ar71xx | gl-usb150 | 64Mb | stable
@@ -248,6 +236,12 @@ You need approximately 10GB of space for the build.
 
 Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn" command above:
+
+AREDN release 3.21.4.0
+
+```
+git checkout 3.21.4.0
+```
 
 AREDN release 3.20.3.1
 
