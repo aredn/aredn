@@ -28,7 +28,20 @@ license, please refer to http://www.arrl.org/getting-your-technician-license
 
 ### What to know about the images built with the instructions below
 
-This is the 3.21.4.0 release.
+This is the active 'main' branch with latest AREDN code.
+At anytime a new change may be broken or break prior capabilities.
+
+The Amateur Radio community is encouraged to participate in loading the
+images produced from a "nightly build" and run the AREDN firmware in a
+variety of environments.  Given new features may not yet be documented,
+participants should already have a basic knowledge of Linux and Networking to
+understand and provide useful feedback to the Developer submitting the
+code.
+
+The goal of participation is to obtain confidence that new
+features and the overall mesh node is stable.   The more participation,
+the earlier an issue is found, the faster an enhancement will be
+turned into a release.
 
 Please refer to https://github.com/aredn/aredn/issues
 for a list of outstanding defects.
