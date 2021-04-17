@@ -136,20 +136,23 @@ push @setting, {
   postcallback => "setUSBOutput()",
   condition => "hasUSB()"
 };
+my $tunnelLimitsUpperBound = 100; # maxclients/maxservers cannot exceed this value
 push @setting, {
   key => "aredn.\@tunnel[0].maxclients", 
   type => "string", 
-  desc => "Specifies the maximum number of tunnel clients this node can serve.  (Only applies if tunnel software is installed)", 
+  desc => "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,$tunnelLimitsUpperBound].  (Only applies if tunnel software is installed)", 
   default => "10", 
   condition => "hasTunnelSoftware()",
+  precallback => "restrictTunnelLimitToValidRange",
   postcallback => "adjustTunnelInterfaceCount()"
 };
 push @setting, {
   key => "aredn.\@tunnel[0].maxservers", 
   type => "string", 
-  desc => "Specifies the maximum number of tunnel servers to which this node can connect.  (Only applies if tunnel software is installed)", 
+  desc => "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,$tunnelLimitsUpperBound].  (Only applies if tunnel software is installed)", 
   default => "10", 
   condition => "hasTunnelSoftware()",
+  precallback => "restrictTunnelLimitToValidRange",
   postcallback => "adjustTunnelInterfaceCount()"
 };
 push @setting, {
@@ -243,6 +246,20 @@ sub writePackageRepo {
   my $disturl = `grep aredn_$repo /etc/opkg/distfeeds.conf | cut -d' ' -f3`;
   chomp($disturl);
   system("sed -i 's|$disturl|$uciurl|g' $file");
+}
+
+sub restrictTunnelLimitToValidRange() {
+	$newval =~ s/^\s+|\s+$//g;
+	if ($newval !~ /^\s*-?\d+\s*$/) {
+        push @msg, "$key must be an integer in the range [0,$tunnelLimitsUpperBound]";
+        $newval = 0
+	} elsif ($newval < 0) {
+        push @msg, "Lower limit of $key is 0";
+        $newval = 0
+    } elsif ($newval > $tunnelLimitsUpperBound) {
+        push @msg, "Upper limit of $key is $tunnelLimitsUpperBound";
+        $newval = $tunnelLimitsUpperBound
+    }
 }
 
 sub addTunnelInterface() {
