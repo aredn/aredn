@@ -28,7 +28,7 @@ license, please refer to http://www.arrl.org/getting-your-technician-license
 
 ### What to know about the images built with the instructions below
 
-This is the active 'develop' branch with latest AREDN code.
+This is the active 'main' branch with latest AREDN code.
 At anytime a new change may be broken or break prior capabilities.
 
 The Amateur Radio community is encouraged to participate in loading the
@@ -102,6 +102,7 @@ Mikrotik RBLHG-5HPnD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLHG-2nD-XL/5HPnD-XL | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLDF-2nD/5nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik QRT5 RB911G-5HPnD-QRT | ar71xx | mikrotik-nand-large | 64Mb | stable
+Mikrotik mAntbox RB911G-2HPnD/5HPnD | ar71xx | mikrotik-nand-large | 64Mb | stable
 Mikrotik SXTsq 5HPnD/5nD/2nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 GL.iNet GL-AR150 | ath79 | gl-ar150 | 64Mb | stable
 GL.iNet GL-USB150 | ar71xx | gl-usb150 | 64Mb | stable
@@ -249,6 +250,12 @@ You need approximately 10GB of space for the build.
 Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn" command above:
 
+AREDN release 3.21.4.0
+
+```
+git checkout 3.21.4.0
+```
+
 AREDN release 3.20.3.1
 
 ```
@@ -304,7 +311,7 @@ Included in the git Repo:
 config.mk    <- build settings
 openwrt.mk   <- which openwrt repo and branch/tag/commit to use
 feeds.conf/  <- custom package feeds (edit to point to your clone of aredn_packages)
-files/       <- file system in AERDN created images, most customizations go here
+files/       <- file system in AREDN created images, most customizations go here
 patches/     <- patches to openwrt go here 
 scripts/     <- tests and other scripts called from the build 
 configs/     <- definitions of features in the devices' kernel and what packages to include

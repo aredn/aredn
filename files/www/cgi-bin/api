@@ -146,15 +146,15 @@ function getSignal(realtime)
 
 		-- snrlog sometimes has the string "null" for signal/noise, if so then assume they are zero
 		if signal_dbm=="null" then
-			signal_dbm = 0
+			signal_dbm = -95
 		end
 		if noise_dbm=="null" then
-			noise_dbm = 0
+			noise_dbm = -95
 		end
 
 		-- signal and noise might also be nil, so convert them to numbers
-		signal_dbm = tonumber(signal_dbm or 0)
-		noise_dbm = tonumber(noise_dbm or 0)
+		signal_dbm = tonumber(signal_dbm or -95)
+		noise_dbm = tonumber(noise_dbm or -95)
 
 		--snrlog sometimes has -1 for mcs indices, if so then make them undefined
 		if tx_rate_mcs_index == -1 or tx_rate_mcs_index == "-1" then

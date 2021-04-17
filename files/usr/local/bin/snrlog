@@ -282,7 +282,7 @@ local f = io.open(pidfile,"r")
 if (f) then
   local oldpid = f:read("*number")
   f:close()
-  if (oldpid ~= nill and dir_exists("/proc/" .. oldpid)) then
+  if (oldpid ~= nil and dir_exists("/proc/" .. oldpid)) then
     return
   end
 end
@@ -300,7 +300,7 @@ local f = io.open(rssifile,"r")
 if (f) then
   local oldpid = f:read("*number")
   f:close()
-  if (oldpid ~= nill and dir_exists("/proc/" .. oldpid)) then
+  if (oldpid ~= nil and dir_exists("/proc/" .. oldpid)) then
     os.remove(pidfile)
     return
   end
