@@ -84,6 +84,9 @@ sub save_connections()
         }
         $enabled_count++ if $parms{"conn${i}_enabled"}; 
     }
+
+    my $maxservers = &get_tunnel_maxservers();
+    push(@conn_err,"Number of servers enabled ($enabled_count) exceeds maxservers ($maxservers); only the first $maxservers will activate.") if $enabled_count > $maxservers;
 }
 
 #################
