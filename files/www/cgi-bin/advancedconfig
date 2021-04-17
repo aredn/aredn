@@ -249,11 +249,11 @@ sub writePackageRepo {
 }
 
 sub restrictTunnelLimitToValidRange() {
-	$newval =~ s/^\s+|\s+$//g;
-	if ($newval !~ /^\s*-?\d+\s*$/) {
+    $newval =~ s/^\s+|\s+$//g;
+    if ($newval !~ /^\s*-?\d+\s*$/) {
         push @msg, "$key must be an integer in the range [0,$tunnelLimitsUpperBound]";
         $newval = 0
-	} elsif ($newval < 0) {
+    } elsif ($newval < 0) {
         push @msg, "Lower limit of $key is 0";
         $newval = 0
     } elsif ($newval > $tunnelLimitsUpperBound) {
