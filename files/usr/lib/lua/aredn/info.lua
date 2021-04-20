@@ -69,6 +69,19 @@ local function getWAN()
 	return niws['ipv4-address'][1]['address']
 end
 
+-------------------------------------
+-- Returns build target type
+-------------------------------------
+function model.getTargetType()
+	local cubus = ubus.connect()
+	sb=cubus:call("system","board",{})
+	if sb['release']['target'] == nil then
+		return ""
+	end
+	return sb['release']['target']
+end
+
+
 
 -------------------------------------
 -- Returns name of the node
@@ -119,6 +132,39 @@ function model.getGridSquare()
 	end
 	return grid
 end
+
+-------------------------------------
+-- Returns AREDN Alert (if exists)
+-------------------------------------
+function model.getArednAlert()
+	local fname="/tmp/aredn_message"
+	local alert=""
+	if file_exists(fname) then
+		afile=io.open(fname,"r")
+		if afile~=nil then
+			alert=afile:read("*a")
+			afile:close()
+		end
+	end
+	return alert
+end
+
+-------------------------------------
+-- Returns LOCAL Alert (if exists)
+-------------------------------------
+function model.getLocalAlert()
+	local fname="/tmp/local_message"
+	local alert=""
+	if file_exists(fname) then
+		afile=io.open(fname,"r")
+		if afile~=nil then
+			alert=afile:read()
+			afile:close()
+		end
+	end
+	return alert
+end
+
 
 -------------------------------------
 -- Returns Current Firmware Version
