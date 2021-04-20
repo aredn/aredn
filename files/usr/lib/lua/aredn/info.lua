@@ -423,6 +423,7 @@ end
 function model.getFreeMemory()
 	local mem={}
 	local mynix=nixio.sysinfo()
+	mem['totalram']=mynix['totalram']/1024
 	mem['freeram']=mynix['freeram']/1024
 	mem['sharedram']=mynix['sharedram']/1024
 	mem['bufferram']=mynix['bufferram']/1024
@@ -436,8 +437,10 @@ function model.getFSFree()
 	local fsf={}
 	local mynix=nixio.fs.statvfs("/")
 	fsf['rootfree']=mynix['bfree']*4
+	fsf['roottotal']=mynix['blocks']*4
 	mynix=nixio.fs.statvfs("/tmp")
 	fsf['tmpfree']=mynix['bfree']*4
+	fsf['tmptotal']=mynix['blocks']*4
 	mynix=nil
 	return fsf
 end
