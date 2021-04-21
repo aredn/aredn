@@ -81,8 +81,6 @@ function model.getTargetType()
 	return sb['release']['target']
 end
 
-
-
 -------------------------------------
 -- Returns name of the node
 -------------------------------------
@@ -476,7 +474,7 @@ end
 function model.getDefaultGW()
 	local gw=""
   	local rt=lip.route("8.8.8.8")
- 	if rt ~= "" then
+ 	if rt ~= nil then
 		gw=tostring(rt.gw)
  	end
 	return gw
