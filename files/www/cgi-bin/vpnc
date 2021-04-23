@@ -84,6 +84,9 @@ sub save_connections()
         }
         $enabled_count++ if $parms{"conn${i}_enabled"}; 
     }
+
+    my $maxservers = &get_tunnel_maxservers();
+    push(@conn_err,"Number of servers enabled ($enabled_count) exceeds maxservers ($maxservers); only the first $maxservers will activate.") if $enabled_count > $maxservers;
 }
 
 #################
@@ -358,7 +361,7 @@ sub print_vpn_connections()
 
     for($i = 0, @list = (); $i < $parms{conn_num}; $i++) { push @list, $i };
 
-    push @list, "_add" unless($parms{conn_num} > 9);
+    push @list, "_add" unless($parms{conn_num} >= &get_tunnel_maxservers());
 
     $cnum=0;
     foreach $val (@list)

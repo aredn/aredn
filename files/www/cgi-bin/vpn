@@ -90,6 +90,9 @@ sub save_clients()
 
         $enabled_count++ if $parms{"client${i}_enabled"};    
     }
+
+    my $maxclients = &get_tunnel_maxclients();
+    push(@cli_err,"Number of clients enabled ($enabled_count) exceeds maxclients ($maxclients); only the first $enabled_count will activate.") if $enabled_count > $maxclients;
 }
 
 #################################
@@ -398,7 +401,7 @@ sub print_vpn_clients()
     
     for($i = 0, @list = (); $i < $parms{client_num}; ++$i) { push @list, $i };
 
-    push @list, "_add" unless($parms{client_num} > 9);
+    push @list, "_add" unless($parms{client_num} >= &get_tunnel_maxclients());
 
     $cnum=0;
     foreach $val (@list)
