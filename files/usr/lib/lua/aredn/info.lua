@@ -69,6 +69,17 @@ local function getWAN()
 	return niws['ipv4-address'][1]['address']
 end
 
+-------------------------------------
+-- Returns build target type
+-------------------------------------
+function model.getTargetType()
+	local cubus = ubus.connect()
+	sb=cubus:call("system","board",{})
+	if sb['release']['target'] == nil then
+		return ""
+	end
+	return sb['release']['target']
+end
 
 -------------------------------------
 -- Returns name of the node
@@ -119,6 +130,39 @@ function model.getGridSquare()
 	end
 	return grid
 end
+
+-------------------------------------
+-- Returns AREDN Alert (if exists)
+-------------------------------------
+function model.getArednAlert()
+	local fname="/tmp/aredn_message"
+	local alert=""
+	if file_exists(fname) then
+		afile=io.open(fname,"r")
+		if afile~=nil then
+			alert=afile:read("*a")
+			afile:close()
+		end
+	end
+	return alert
+end
+
+-------------------------------------
+-- Returns LOCAL Alert (if exists)
+-------------------------------------
+function model.getLocalAlert()
+	local fname="/tmp/local_message"
+	local alert=""
+	if file_exists(fname) then
+		afile=io.open(fname,"r")
+		if afile~=nil then
+			alert=afile:read()
+			afile:close()
+		end
+	end
+	return alert
+end
+
 
 -------------------------------------
 -- Returns Current Firmware Version
@@ -377,6 +421,7 @@ end
 function model.getFreeMemory()
 	local mem={}
 	local mynix=nixio.sysinfo()
+	mem['totalram']=mynix['totalram']/1024
 	mem['freeram']=mynix['freeram']/1024
 	mem['sharedram']=mynix['sharedram']/1024
 	mem['bufferram']=mynix['bufferram']/1024
@@ -390,8 +435,10 @@ function model.getFSFree()
 	local fsf={}
 	local mynix=nixio.fs.statvfs("/")
 	fsf['rootfree']=mynix['bfree']*4
+	fsf['roottotal']=mynix['blocks']*4
 	mynix=nixio.fs.statvfs("/tmp")
 	fsf['tmpfree']=mynix['bfree']*4
+	fsf['tmptotal']=mynix['blocks']*4
 	mynix=nil
 	return fsf
 end
@@ -427,7 +474,7 @@ end
 function model.getDefaultGW()
 	local gw=""
   	local rt=lip.route("8.8.8.8")
- 	if rt ~= "" then
+ 	if rt ~= nil then
 		gw=tostring(rt.gw)
  	end
 	return gw

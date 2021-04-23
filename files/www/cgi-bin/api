@@ -44,6 +44,8 @@ require("nixio")
 local json = require("luci.jsonc")
 require("iwinfo")
 
+local API_VERSION="1.1"
+
 -- Function extensions
 os.capture = capture
 
@@ -61,6 +63,14 @@ function getSysinfo()
 	info['uptime']=aredn_info.getUptime()
 	info['loads']=aredn_info.getLoads()
 	info['first_boot']=aredn_info.getFirstBoot()
+	info['target_type']=aredn_info.getTargetType()
+	return info
+end
+
+function getAlerts()
+	local info={}
+	info['aredn']=aredn_info.getArednAlert()
+	info['local']=aredn_info.getLocalAlert()
 	return info
 end
 
@@ -248,6 +258,7 @@ if not ctx then
 end
 
 info={}
+info['api_version'] = API_VERSION
 
 -- get/process query string
 local qsset={}
@@ -274,6 +285,14 @@ for page, comps in pairs(qsset) do
 	if page=="api" then
 		info['pages'][page]=nil
 		info['api_help']="AREDN API. This API's primary function is to drive the Web UI."
+	elseif page=="common" then
+		for i,comp in pairs(comps:split(',')) do
+			if comp=="sysinfo" then
+				info['pages'][page][comp]=getSysinfo()
+			elseif comp=="alerts" then
+				info['pages'][page][comp]=getAlerts()
+			end
+		end
 	elseif page=="status" then
 		for i,comp in pairs(comps:split(',')) do
 			if comp=="meshrf" then
@@ -292,6 +311,8 @@ for page, comps in pairs(qsset) do
 				info['pages'][page][comp]=getLocationInfo()
 			elseif comp=="freqlist" then
 				info['pages'][page][comp]=getFreqList()
+			elseif comp=="alerts" then
+				info['pages'][page][comp]=getAlerts()
 			end
 		end
 	elseif page=="mesh" then
