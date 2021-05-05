@@ -374,9 +374,15 @@ end
 -- Current System Uptime
 -------------------------------------
 function model.getUptime()
-	local mynix=nixio.sysinfo()
-	local upsecs=mynix['uptime']
-	return upsecs
+        local mynix=nixio.sysinfo()
+        local upsecs=mynix['uptime']
+        local days=math.floor(upsecs / 86400)
+        upsecs=upsecs - days * 86400
+        local hours=math.floor(upsecs / 3600)
+        upsecs=upsecs - hours *3600
+        local minutes=math.floor(upsecs / 60)
+        upsecs=upsecs - minutes * 60
+        return string.format("%d days, %d hrs, %d min, %d sec", days,hours,minutes,upsecs)
 end
 
 
@@ -481,7 +487,7 @@ function model.getDefaultGW()
 end
 
 -------------------------------------
--- Returns Table of current DHCP leases 
+-- Returns Table of current DHCP leases
 -------------------------------------
 function model.getCurrentDHCPLeases()
     local lines={}
@@ -511,11 +517,11 @@ function model.getLocalHosts()
 			line = line:lower()
 			-- line is not a comment
 			local data = line:match("^([^#;]+)[#;]*(.*)$")
-			if data then 
+			if data then
 				local hostname, entries
 				local ip, entries = data:match("^%s*([%[%]%x%.%:]+)%s+(%S.-%S)%s*$")
 
-				if ip then 
+				if ip then
 					local entry = {
 						["ip"] = ip,
 						["hostnames"] = { }
