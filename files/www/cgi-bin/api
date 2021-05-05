@@ -76,12 +76,15 @@ end
 
 function getStatusMeshRF()
 	local info={}
-	info['ssid']=aredn_info.getSSID()
-	info['device']=aredn_info.getMeshRadioDevice()
-	info['channel']=aredn_info.getChannel(info['device'])
-	info['chanbw']=aredn_info.getChannelBW(info['device'])
-	info['band']=aredn_info.getBand(info['device'])
-	info['frequency']=aredn_info.getFreq(info['device'])
+	local dev = aredn_info.getMeshRadioDevice()
+	if dev ~= "" then
+		info['device']= dev
+		info['ssid']=aredn_info.getSSID()
+		info['channel']=aredn_info.getChannel(info['device'])
+		info['chanbw']=aredn_info.getChannelBW(info['device'])
+		info['band']=aredn_info.getBand(info['device'])
+		info['frequency']=aredn_info.getFreq(info['device'])
+	end
 	return info
 end
 
