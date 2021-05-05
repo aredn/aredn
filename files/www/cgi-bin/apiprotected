@@ -69,7 +69,6 @@ local request={}
 local response={}
 local topic=""
 
-
 -- PRE-PROCESS INCOMING REQUEST
 local qsset={}
 local qs=""
@@ -101,6 +100,7 @@ elseif method=='PUT' then		-- CREATE
 	request['content_length']=nixio.getenv("CONTENT_LENGTH")
 	request['content']=io.read("*all")
 elseif method=='DELETE' then	-- DELETE
+	local x=true
 else
 	request['content_length']=nixio.getenv("CONTENT_LENGTH")
 	request['content']=io.read("*all")
@@ -110,11 +110,10 @@ end
 
 -- -------------------------------------------------
 function getController(t, req)
-	if topic=="setup_basic" then
-		c = require("aredn.controller.setup_basic")
-		return c:new(req)
-	elseif topic=="setup_meshrf" then
-		c = require("aredn.controller.setup_meshrf")
+	cname = "aredn.controller." .. t
+	-- TODO: need to catch errors on non-existent controllers below
+	c = require(cname)
+	if c then
 		return c:new(req)
 	else
 		return nil

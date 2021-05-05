@@ -67,7 +67,7 @@ function module:GET()
   local data={}
   data['nodename']=aredn_info.getNodeName()
   data['description']=aredn_info.getNodeDescription()
-  data['password']="CAN WE RETRIEVE THE PASSWORD?  I THINK NOT"
+  -- data['password']="WE CANNOT RETRIEVE THE PASSWORD"
   res['data']=data
   res['errors'] = {}
   res['success']=true
@@ -91,6 +91,9 @@ function module:POST()
   if next(e)~=nil then table.insert(errors, e) end
   
   -- password
+  local passwd = self.req['content']['data']['password']
+  e = module:save_password(passwd)
+  if next(e)~=nil then table.insert(errors, e) end
   
   -- -- UCI commit
   if #errors==0 then
@@ -115,7 +118,7 @@ function module:save_nodename(nodename)
     e.name = "nodename"
     e.msg = "field cannot be empty"
   else
-    local rc = os.execute("uci -q -c /etc/local/uci/ set hsmmmesh.settings.node=" .. nodename)
+    local rc = os.execute("uci -q -c /etc/local/uci/ set hsmmmesh.settings.node='" .. nodename .. "'")
     if (rc ~= 0) then
       e.name="nodename"
       e.msg="error setting uci value"
@@ -126,7 +129,7 @@ end
 
 function module:save_description(description)
   local e = {}
-  local rc = os.execute("uci -q -c /etc/config/ set system.@system[0].description=" .. description)
+  local rc = os.execute("uci -q set system.@system[0].description='" .. description .. "'")
   if (rc ~= 0) then
     e.name="description"
     e.msg="error setting uci value " .. rc
@@ -134,6 +137,18 @@ function module:save_description(description)
   return e
 end
 
+function module:save_password(password)
+  local e = {}
+  local rc = nil
+  if password then
+    rc = os.execute("/usr/local/bin/setpasswd '"  .. password .. "' >/dev/null 2>&1")
+  end
+  if (rc ~= 0) then
+    e.name="password"
+    e.msg="error setting password " .. rc
+  end
+  return e
+end
 
 
 return module
