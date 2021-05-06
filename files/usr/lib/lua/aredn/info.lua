@@ -229,11 +229,10 @@ end
 -------------------------------------
 function model.getFreq()
 	local wlanInf=get_ifname('wifi')
-	local freq=""
-	freq=os.capture("iwinfo " .. wlanInf .. " info | egrep 'Mode:'")
-	freq=freq:gsub("^%s*(.-)%s*$", "%1")
-	freq=string.match(freq, "%((.-)%)")
-	return freq
+	local api=iwinfo.type(wlanInf)
+	local iw = iwinfo[api]
+	local freq = iw.frequency(wlanInf)
+	return tostring(freq)
 end
 
 -------------------------------------
