@@ -374,15 +374,9 @@ end
 -- Current System Uptime
 -------------------------------------
 function model.getUptime()
-        local mynix=nixio.sysinfo()
-        local upsecs=mynix['uptime']
-        local days=math.floor(upsecs / 86400)
-        upsecs=upsecs - days * 86400
-        local hours=math.floor(upsecs / 3600)
-        upsecs=upsecs - hours *3600
-        local minutes=math.floor(upsecs / 60)
-        upsecs=upsecs - minutes * 60
-        return string.format("%d days, %d hrs, %d min, %d sec", days,hours,minutes,upsecs)
+  local mynix=nixio.sysinfo()
+  local upsecs=mynix['uptime']
+	return secondsToClock(upsecs)
 end
 
 
