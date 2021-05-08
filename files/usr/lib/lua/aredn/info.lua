@@ -144,7 +144,9 @@ function model.getArednAlert()
 			afile:close()
 		end
 	end
-	return alert
+        if #alert~=0 then return alert                                                                    
+        else return ""                                                                                    
+        end 
 end
 
 -------------------------------------
@@ -160,7 +162,9 @@ function model.getLocalAlert()
 			afile:close()
 		end
 	end
-	return alert
+        if #alert~=0 then return alert                                                                    
+        else return ""                                                                                    
+        end 
 end
 
 
