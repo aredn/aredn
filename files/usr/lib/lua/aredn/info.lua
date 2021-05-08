@@ -156,7 +156,7 @@ function model.getLocalAlert()
 	if file_exists(fname) then
 		afile=io.open(fname,"r")
 		if afile~=nil then
-			alert=afile:read()
+			alert=afile:read("*a")
 			afile:close()
 		end
 	end
