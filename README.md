@@ -109,7 +109,7 @@ GL.iNet GL-USB150 | ar71xx | gl-usb150 | 64Mb | stable
 GL.iNet GL-AR300M16 | ar71xx | gl-ar300m | 64Mb | stable
 GL.iNet GL-AR300M w/ 128Mb NAND | None | None | 64Mb | Not compatible
 GL.iNet GL-AR750 | ar71xx | gl-ar750 | 128Mb | stable
-Meraki MR-16 | ar71xx | mr16 | 64mb | unknown
+Meraki MR-16 | ar71xx | mr16 | 64mb | stable
 
 The 'target' is a directory to find the image on at http://downloads.arednmesh.org
 
