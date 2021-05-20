@@ -144,9 +144,9 @@ function model.getArednAlert()
 			afile:close()
 		end
 	end
-        if #alert~=0 then return alert                                                                    
-        else return ""                                                                                    
-        end 
+        if #alert~=0 then return alert
+        else return ""
+        end
 end
 
 -------------------------------------
@@ -162,9 +162,9 @@ function model.getLocalAlert()
 			afile:close()
 		end
 	end
-        if #alert~=0 then return alert                                                                    
-        else return ""                                                                                    
-        end 
+        if #alert~=0 then return alert
+        else return ""
+        end
 end
 
 
@@ -525,6 +525,7 @@ function model.getLocalHosts()
 					}
 					local index = 0
 					for hostname in entries:gmatch("%S+") do
+						hostname = string.gsub(hostname,".local.mesh$","")
 						entry["hostnames"][index] = hostname
 						index = index + 1
 					end
