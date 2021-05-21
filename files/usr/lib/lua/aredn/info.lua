@@ -505,6 +505,21 @@ function model.getCurrentDHCPLeases()
 end
 
 -------------------------------------
+-- Returns Local Host Connection Type
+-------------------------------------
+function model.getLocalCnxType(hostname)
+	if string.match(hostname,"localhost") then
+		return "Loopback"
+	elseif string.match(hostname,"dtdlink") then
+		return "DTD"
+	elseif hostname == string.lower( model.getNodeName() ) then
+		return "RF"
+	else
+		return "LAN"
+	end
+end
+
+-------------------------------------
 -- Returns Local Hosts
 -------------------------------------
 function model.getLocalHosts()
@@ -521,11 +536,13 @@ function model.getLocalHosts()
 				if ip then
 					local entry = {
 						["ip"] = ip,
-						["hostnames"] = { }
+						["hostnames"] = { },
+						["cnxtype"] = ""
 					}
 					local index = 0
 					for hostname in entries:gmatch("%S+") do
 						hostname = string.gsub(hostname,".local.mesh$","")
+						entry["cnxtype"] = model.getLocalCnxType(hostname)
 						entry["hostnames"][index] = hostname
 						index = index + 1
 					end
