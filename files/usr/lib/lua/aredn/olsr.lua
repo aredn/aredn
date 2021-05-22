@@ -75,7 +75,7 @@ function model.getCurrentNeighbors(RFinfo)
 	  end
 	  if host ~= nil then
     	host = string.gsub(host,"mid%d+.", "")
-      host = string.gsub(remhost,"dtdlink%.", "")
+      host = string.gsub(host,"dtdlink%.", "")
       host = string.gsub(host,".local.mesh$","")
     	info[remip]['hostname']=host
 	  else
