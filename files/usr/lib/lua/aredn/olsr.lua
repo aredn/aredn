@@ -71,7 +71,7 @@ function model.getCurrentNeighbors(RFinfo)
     info[remip]['linkQuality']=v['linkQuality']
     info[remip]['neighborLinkQuality']=v['neighborLinkQuality']
 	  if remhost ~= nil then
-      host = string.lower(host)
+      host = string.lower(remhost)
 	  end
 	  if host ~= nil then
     	host = string.gsub(host,"mid%d+.", "")
