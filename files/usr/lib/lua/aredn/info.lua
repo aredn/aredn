@@ -94,6 +94,7 @@ end
 -------------------------------------
 function model.getNodeDescription()
 	css=aredn_uci.getUciConfType("system", "system")
+	css[1]['description'] = css[1]['description'] or "None"
 	return css[1]['description']
 end
 
