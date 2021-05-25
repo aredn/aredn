@@ -512,7 +512,7 @@ function model.getLocalCnxType(hostname)
 		return "Loopback"
 	elseif string.match(hostname,"dtdlink") then
 		return "DTD"
-	elseif hostname == string.lower( model.getNodeName() ) then
+	elseif hostname == model.getNodeName() then
 		return "RF"
 	else
 		return "LAN"
@@ -526,9 +526,8 @@ function model.getLocalHosts()
 	local hosts, line
 	if nixio.fs.access("/etc/hosts") then
 		for line in io.lines("/etc/hosts") do
-			line = line:lower()
-			-- line is not a comment
-			local data = line:match("^([^#;]+)[#;]*(.*)$")
+--			line = line:lower()
+			local data = line:match("^([^#;]+)[#;]*(.*)$")  -- skip comment lines
 			if data then
 				local hostname, entries
 				local ip, entries = data:match("^%s*([%[%]%x%.%:]+)%s+(%S.-%S)%s*$")

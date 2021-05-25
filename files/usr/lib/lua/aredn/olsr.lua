@@ -62,7 +62,6 @@ function model.getCurrentNeighbors(RFinfo)
   local info={}
   local links=model.getOLSRLinks()
   for k,v in pairs(links) do
-    local host
     local remip=v['remoteIP']
     local remhost=nslookup(remip)
     info[remip]={}
@@ -71,13 +70,10 @@ function model.getCurrentNeighbors(RFinfo)
     info[remip]['linkQuality']=v['linkQuality']
     info[remip]['neighborLinkQuality']=v['neighborLinkQuality']
 	  if remhost ~= nil then
-      host = string.lower(remhost)
-	  end
-	  if host ~= nil then
-    	host = string.gsub(host,"mid%d+.", "")
-      host = string.gsub(host,"dtdlink%.", "")
-      host = string.gsub(host,".local.mesh$","")
-    	info[remip]['hostname']=host
+    	remhost = string.gsub(remhost,"^mid%d+.", "")
+      remhost = string.gsub(remhost,"^dtdlink%.", "")
+      remhost = string.gsub(remhost,".local.mesh$","")
+    	info[remip]['hostname']=remhost
 	  else
 		  info[remip]['hostname']=remip
 	  end
