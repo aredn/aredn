@@ -288,6 +288,11 @@ function model.all_services()
 				service['link']=link
 				service['protocol']=protocol
 				service['name']=name
+				if ip==" my own service" then
+					service['ip']=model.getInterfaceIPAddress("wifi")
+				else
+					service['ip']=ip
+				end
 				table.insert(services,service)
 			end
 		end
@@ -323,7 +328,7 @@ function model.all_hosts()
 				if ip and name then
 					if not string.match(name,"^(dtdlink[.]).*") then
 						if not string.match(name,"^(mid[0-9][.]).*") then
-							host['name']=name
+							host['name']=name:upper()
 							host['ip']=ip
 							table.insert(hosts,host)
 						end
@@ -543,7 +548,7 @@ function model.getLocalHosts()
 					for hostname in entries:gmatch("%S+") do
 						hostname = string.gsub(hostname,".local.mesh$","")
 						entry["cnxtype"] = model.getLocalCnxType(hostname)
-						entry["hostnames"][index] = hostname
+						entry["hostnames"][index] = hostname:upper()
 						index = index + 1
 					end
 					hosts = hosts or { }

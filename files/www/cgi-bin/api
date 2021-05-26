@@ -112,6 +112,46 @@ function getFreeMemory()
 	return info
 end
 
+
+function get_key_for_value( t, value )
+  for k,v in pairs(t) do
+    if v==value then return k end
+  end
+  return nil
+end
+
+
+function getRemoteNodes()
+	local info={}
+	
+	local mynode = aredn_info.getNodeName()
+	local allhosts = aredn_info.all_hosts()
+	local cn = aredn_olsr.getCurrentNeighbors()
+	local routes = aredn_olsr.getOLSRRoutes()
+	for k, v in pairs(allhosts) do
+		local node={}	
+		-- skip currentneighbors, myself, and MID*. entries
+		for cnk, cnv in pairs(cn) do
+			if not (cnk == allhosts[k].ip or allhosts[k].name == mynode or (allhosts[k].name:match("^MID%d+%.") ~= nil)) then
+				node=allhosts[k]	
+			end
+		end
+
+		-- add etx from routes table
+		for rk, rv in pairs(routes) do
+			if rv['destination'] == node.ip then
+				node['etx']=tostring(round2(routes[rk].etx, 2))
+			end
+		end
+
+		if setContains(node,"etx") then		-- ie.  skip HOSTnames, only NODES
+			table.insert(info, node)
+		end
+	end
+	return info
+end
+
+
 -- gets signal and noise data from either iwinfo (realtime = true) or the files archived in /tmp/snrlog (realtime = false)
 -- the files in /tmp/snrlog are written once per minute by the script /usr/local/bin/snrlog
 function getSignal(realtime)
@@ -318,14 +358,22 @@ for page, comps in pairs(qsset) do
 				info['pages'][page][comp]=getAlerts()
 			end
 		end
+	elseif page=="traceroute" then
+		for i,tonode in pairs(comps:split(',')) do
+			if tonode~="" then
+				info['pages'][page][tonode]=getTraceroute(tonode)
+			end
+		end
 	elseif page=="mesh" then
 		for i,comp in pairs(comps:split(',')) do
 			if comp=="sysinfo" then
 				info['pages'][page][comp]=getSysinfo()
+			elseif comp=="allhosts" then
+				info['pages'][page][comp]=aredn_info.all_hosts()
 			elseif comp=="localhosts" then
 				info['pages'][page][comp]=aredn_info.getLocalHosts()
 			elseif comp=="remotenodes" then
-				info['pages'][page][comp]={}
+				info['pages'][page][comp]=getRemoteNodes()
 			elseif comp=="currentneighbors" then
 				info['pages'][page][comp]=aredn_olsr.getCurrentNeighbors()
 			elseif comp=="previousneighbors" then

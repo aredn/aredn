@@ -45,6 +45,11 @@ function model.getOLSRLinks()
   return links['links']
 end
 
+function model.getOLSRRoutes()
+  local routes=fetch_json("http://127.0.0.1:9090/routes")
+  return routes['routes']
+end
+
 function model.getOLSRInterfaceType(iface)
   local it=""
   if string.match(iface,"wlan") then
