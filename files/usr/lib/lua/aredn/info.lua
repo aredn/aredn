@@ -37,7 +37,7 @@
 require("uci")
 local aredn_uci = require("aredn.uci")
 require("aredn.utils")
-local olsr=require("aredn.olsr")
+
 -- require("aredn.http")
 local lip=require("luci.ip")
 require("nixio")
@@ -283,11 +283,22 @@ function model.all_services()
 		hfile:close()
 		for pos,val in pairs(lines) do
 			local service={}
-			local link,protocol,name = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#.*")
+			local link,protocol,name,ip = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#(.*)")
 			if link and protocol and name then
 				service['link']=link
 				service['protocol']=protocol
 				service['name']=name
+				if ip==" my own service" then
+					service['ip']=model.getInterfaceIPAddress("wifi")
+				else
+					service['ip']=ip
+				end
+				-- MAYBE: convert this to a table lookup from reading /var/run/hosts_olsr to improve performance
+				hostname=nslookup(service['ip'])
+				if hostname ~= nil then
+					hostname = string.gsub(hostname,".local.mesh$","")	-- strip .local.mesh
+				end
+				service['hostname']=hostname
 				table.insert(services,service)
 			end
 		end

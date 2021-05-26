@@ -46,11 +46,11 @@ function round2(num, idp)
 end
 
 function adjust_rate(r,b)
-	local ar=r
+	local ar
 	if b==5 then
-		ar=round2(ar/4,1)
+		ar=round2(r/4,1)
 	elseif b==10 then
-		ar=round2(ar/2,1)
+		ar=round2(r/2,1)
 	end
 	return ar
 end
