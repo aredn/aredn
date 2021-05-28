@@ -70,10 +70,10 @@ function model.getCurrentNeighbors(RFinfo)
     info[remip]['linkQuality']=v['linkQuality']
     info[remip]['neighborLinkQuality']=v['neighborLinkQuality']
 	  if remhost ~= nil then
-    	remhost = string.gsub(remhost,"^mid%d+.", "")
-      remhost = string.gsub(remhost,"^dtdlink%.", "")
-      remhost = string.gsub(remhost,".local.mesh$","")
-    	info[remip]['hostname']=remhost
+    	host = string.gsub(remhost,"^mid%d+.", "")
+      host = string.gsub(remhost,"^dtdlink%.", "")
+      host = string.gsub(remhost,".local.mesh$","")
+    	info[remip]['hostname']=host
 	  else
 		  info[remip]['hostname']=remip
 	  end
@@ -90,7 +90,7 @@ function model.getCurrentNeighbors(RFinfo)
 		  	local mac=string.match(mac_host, "^(.-)\-")
 			  mac=mac:upper()
 			  local node=string.match(mac_host, "\-(.*)")
-			  if host == node or remip == node then
+			  if remhost == node or remip == node then
 				  for stn in pairs(RFneighbors) do
 					  stnInfo=iwinfo['nl80211'].assoclist(wlan)[mac]
 					  if stnInfo ~= nil then
