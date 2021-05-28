@@ -285,7 +285,11 @@ function model.all_services()
 			local service={}
 			local link,protocol,name,ip = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#(.*)")
 			if link and protocol and name then
-				service['link']=link
+				if string.match(link,":0/") then
+					service['link']=""
+				else
+					service['link']=link
+				end
 				service['protocol']=protocol
 				service['name']=name
 				if ip==" my own service" then
