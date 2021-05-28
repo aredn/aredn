@@ -62,6 +62,7 @@ function model.getCurrentNeighbors(RFinfo)
   local info={}
   local links=model.getOLSRLinks()
   for k,v in pairs(links) do
+    local host
     local remip=v['remoteIP']
     local remhost=nslookup(remip)
     info[remip]={}
