@@ -37,7 +37,7 @@
 require("uci")
 local aredn_uci = require("aredn.uci")
 require("aredn.utils")
-local olsr=require("aredn.olsr")
+
 -- require("aredn.http")
 local lip=require("luci.ip")
 require("nixio")
@@ -283,7 +283,7 @@ function model.all_services()
 		hfile:close()
 		for pos,val in pairs(lines) do
 			local service={}
-			local link,protocol,name = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#.*")
+			local link,protocol,name,ip = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#(.*)")
 			if link and protocol and name then
 				service['link']=link
 				service['protocol']=protocol

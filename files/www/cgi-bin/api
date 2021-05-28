@@ -375,7 +375,9 @@ for page, comps in pairs(qsset) do
 			elseif comp=="remotenodes" then
 				info['pages'][page][comp]=getRemoteNodes()
 			elseif comp=="currentneighbors" then
-				info['pages'][page][comp]=aredn_olsr.getCurrentNeighbors()
+				info['pages'][page][comp]=aredn_olsr.getCurrentNeighbors(true)
+			elseif comp=="services" then
+				info['pages'][page][comp]=aredn_info.all_services()
 			elseif comp=="previousneighbors" then
 				info['pages'][page][comp]={}
 			end
