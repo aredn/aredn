@@ -49,7 +49,6 @@ require("iwinfo")
 -------------------------------------
 local model = {}
 
-
 -------------------------------------
 -- Get FIRST_BOOT status
 -------------------------------------
@@ -526,7 +525,6 @@ function model.getLocalHosts()
 	local hosts, line
 	if nixio.fs.access("/etc/hosts") then
 		for line in io.lines("/etc/hosts") do
---			line = line:lower()
 			local data = line:match("^([^#;]+)[#;]*(.*)$")  -- skip comment lines
 			if data then
 				local hostname, entries
