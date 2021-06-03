@@ -76,7 +76,7 @@ if [ "$ACTION" = "ifup" ] ; then
     if [ $bridge = "bridge" ] ; then
         lan_ifname="br-lan"
     else
-	lan_ifname=$(uci -q get network.lan.ifname | cut -f1)
+	lan_ifname=$(uci -q get network.lan.device | cut -f1)
     fi
     if [ "$lan_ifname" != "" ] && [ "$lan_ipaddr" != "" ] && [ "$lan_netmask" != "" ] ; then
       lan_networkip=$(ipcalc.sh $lan_ipaddr $lan_netmask|grep NETWORK|cut -d'=' -f2)

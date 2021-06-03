@@ -52,14 +52,14 @@ done < $configfile
 
 # get mesh RF dev master setting in /etc/config/network
 
-meshif="$(uci -q get network.wifi.ifname)"
+meshif="$(uci -q get network.wifi.device)"
 meshphy="phy${meshif#wlan}"
 
 # set physical wan interface in network
 
-wan_intf=`cat /etc/board.json|jsonfilter -e '@.network.wan.ifname'`
+wan_intf=`cat /etc/board.json|jsonfilter -e '@.network.wan.device'`
 uci -c ${dropdir} -q batch > /dev/null <<-EOF
-set network.wan.ifname="$wan_intf"
+set network.wan.device="$wan_intf"
 EOF
 uci -c ${dropdir} -q commit network
 
@@ -150,7 +150,7 @@ for _dev in /sys/class/ieee80211/*; do
     network="wan"
     htmode=""
     uci -c ${dropdir} -q batch > /dev/null <<-EOF
-set network.wan.ifname=$wlan
+set network.wan.device=$wlan
 EOF
     uci -c ${dropdir} -q commit network
   else 

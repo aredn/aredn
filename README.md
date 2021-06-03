@@ -91,6 +91,7 @@ TPLink CPE510 v2.0 | ath79  | cpe510-v2 | 64Mb | stable
 TPLink CPE510 v3.0 | ath79  | cpe510-v3 | 64Mb | stable
 TPLink CPE610 v1.0 | ath79  | cpe610-v1 | 64Mb | stable
 TPLink CPE610 v2.0 | ath79  | cpe610-v2 | 64Mb | stable
+TPLink CPE710 v1.0 | ath79  | cpe710-v1 | 128Mb | stable
 TPLink WBS210 v1.0 | ath79  | wbs210-v1 | 64mb | stable
 TPLink WBS210 v2.0 | ath79  | wbs210-v2 | 64mb | stable
 TPLink WBS510 v1.0 | ath79  | wbs510-v1 | 64mb | stable

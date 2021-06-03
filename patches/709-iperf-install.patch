@@ -1,0 +1,193 @@
+From fd2a09c773c52a053ed050155a7ef9f4671d011f Mon Sep 17 00:00:00 2001
+From: apcameron <apcameron@softhome.net>
+Date: Fri, 2 Jul 2021 21:26:31 -0500
+Subject: [PATCH] add iperf and iperf3
+
+---
+ package/network/utils/iperf/Makefile          | 55 ++++++++++++
+ .../patches/0003-fix-non-ipv6-builds.patch    | 20 +++++
+ package/network/utils/iperf3/Makefile         | 83 +++++++++++++++++++
+ 3 files changed, 158 insertions(+)
+ create mode 100644 package/network/utils/iperf/Makefile
+ create mode 100644 package/network/utils/iperf/patches/0003-fix-non-ipv6-builds.patch
+ create mode 100644 package/network/utils/iperf3/Makefile
+
+diff --git a/package/network/utils/iperf/Makefile b/package/network/utils/iperf/Makefile
+new file mode 100644
+index 0000000000..33d00b43d7
+--- /dev/null
++++ b/package/network/utils/iperf/Makefile
+@@ -0,0 +1,55 @@
++#
++# Copyright (C) 2007-2010 OpenWrt.org
++#
++# This is free software, licensed under the GNU General Public License v2.
++# See /LICENSE for more information.
++#
++
++include $(TOPDIR)/rules.mk
++
++PKG_NAME:=iperf
++PKG_VERSION:=2.0.13
++PKG_RELEASE:=1
++
++PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
++PKG_HASH:=c88adec966096a81136dda91b4bd19c27aae06df4d45a7f547a8e50d723778ad
++PKG_SOURCE_URL:=@SF/iperf2
++
++PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
++PKG_LICENSE:=BSD-3-Clause
++
++PKG_BUILD_PARALLEL:=1
++
++include $(INCLUDE_DIR)/uclibc++.mk
++include $(INCLUDE_DIR)/package.mk
++
++define Package/iperf
++  SECTION:=net
++  CATEGORY:=Network
++  DEPENDS:= $(CXX_DEPENDS) +libpthread
++  TITLE:=Internet Protocol bandwidth measuring tool
++  URL:=http://sourceforge.net/projects/iperf2/
++endef
++
++define Package/iperf/description
++ Iperf is a modern alternative for measuring TCP and UDP bandwidth
++ performance, allowing the tuning of various parameters and
++ characteristics.
++endef
++
++TARGET_CFLAGS += -D_GNU_SOURCE
++CONFIGURE_ARGS += --disable-multicast
++
++ifeq ($(CONFIG_IPV6),)
++	CONFIGURE_ARGS += --disable-ipv6
++endif
++
++CONFIGURE_VARS += CXXFLAGS="$$$$CXXFLAGS -fno-rtti"
++CONFIGURE_VARS += LIBS="-lpthread -lm"
++
++define Package/iperf/install
++	$(INSTALL_DIR) $(1)/usr/bin
++	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/iperf $(1)/usr/bin/iperf
++endef
++
++$(eval $(call BuildPackage,iperf))
+diff --git a/package/network/utils/iperf/patches/0003-fix-non-ipv6-builds.patch b/package/network/utils/iperf/patches/0003-fix-non-ipv6-builds.patch
+new file mode 100644
+index 0000000000..c6afa3e160
+--- /dev/null
++++ b/package/network/utils/iperf/patches/0003-fix-non-ipv6-builds.patch
+@@ -0,0 +1,20 @@
++--- a/src/Listener.cpp
+++++ b/src/Listener.cpp
++@@ -723,6 +723,7 @@ int Listener::L2_setup (void) {
++ 
++     // Now optimize packet flow up the raw socket
++     // Establish the flow BPF to forward up only "connected" packets to this raw socket
+++#ifdef HAVE_IPV6
++     if (l->sa_family == AF_INET6) {
++ #ifdef HAVE_IPV6
++ 	struct in6_addr *v6peer = SockAddr_get_in6_addr(&server->peer);
++@@ -740,6 +741,9 @@ int Listener::L2_setup (void) {
++ 	return -1;
++ #endif /* HAVE_IPV6 */
++     } else {
+++#else
+++    {
+++#endif
++ 	rc = SockAddr_v4_Connect_BPF(server->mSock, ((struct sockaddr_in *)(l))->sin_addr.s_addr, ((struct sockaddr_in *)(p))->sin_addr.s_addr, ((struct sockaddr_in *)(l))->sin_port, ((struct sockaddr_in *)(p))->sin_port);
++ 	WARN_errno( rc == SOCKET_ERROR, "l2 connect ip bpf");
++     }
+diff --git a/package/network/utils/iperf3/Makefile b/package/network/utils/iperf3/Makefile
+new file mode 100644
+index 0000000000..ab946c2590
+--- /dev/null
++++ b/package/network/utils/iperf3/Makefile
+@@ -0,0 +1,83 @@
++#
++# Copyright (C) 2007-2010 OpenWrt.org
++#
++# This is free software, licensed under the GNU General Public License v2.
++# See /LICENSE for more information.
++#
++
++include $(TOPDIR)/rules.mk
++
++PKG_NAME:=iperf
++PKG_VERSION:=3.7
++PKG_RELEASE:=1
++
++PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
++PKG_SOURCE_URL:=https://downloads.es.net/pub/iperf
++PKG_HASH:=d846040224317caf2f75c843d309a950a7db23f9b44b94688ccbe557d6d1710c
++
++PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
++PKG_LICENSE:=BSD-3-Clause
++
++PKG_BUILD_PARALLEL:=1
++PKG_INSTALL:=1
++
++PKG_FIXUP:=autoreconf
++
++include $(INCLUDE_DIR)/package.mk
++
++DISABLE_NLS:=
++
++define Package/iperf3/default
++  SECTION:=net
++  CATEGORY:=Network
++  TITLE:=Internet Protocol bandwidth measuring tool
++  URL:=https://github.com/esnet/iperf
++endef
++
++define Package/iperf3
++$(call Package/iperf3/default)
++  VARIANT:=nossl
++endef
++
++define Package/iperf3-ssl
++$(call Package/iperf3/default)
++  TITLE+= with iperf_auth support
++  VARIANT:=ssl
++  DEPENDS:= +libopenssl
++endef
++
++TARGET_CFLAGS += -D_GNU_SOURCE
++CONFIGURE_ARGS += --disable-shared
++
++ifeq ($(BUILD_VARIANT),ssl)
++	CONFIGURE_ARGS += --with-openssl="$(STAGING_DIR)/usr"
++else
++	CONFIGURE_ARGS += --without-openssl
++endif
++
++MAKE_FLAGS += noinst_PROGRAMS=
++
++define Package/iperf3/description
++ Iperf is a modern alternative for measuring TCP and UDP bandwidth
++ performance, allowing the tuning of various parameters and
++ characteristics.
++endef
++
++# autoreconf fails if the README file isn't present
++define Build/Prepare
++	$(call Build/Prepare/Default)
++	touch $(PKG_BUILD_DIR)/README
++endef
++
++define Package/iperf3/install
++	$(INSTALL_DIR) $(1)/usr/bin
++	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/iperf3 $(1)/usr/bin/
++endef
++
++define Package/iperf3-ssl/install
++	$(INSTALL_DIR) $(1)/usr/bin
++	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/iperf3 $(1)/usr/bin/
++endef
++
++$(eval $(call BuildPackage,iperf3))
++$(eval $(call BuildPackage,iperf3-ssl))
+-- 
+2.20.1
+

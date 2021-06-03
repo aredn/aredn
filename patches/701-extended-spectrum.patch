@@ -2,88 +2,99 @@ Index: openwrt/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
 ===================================================================
 --- /dev/null
 +++ openwrt/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
-@@ -0,0 +1,152 @@
+@@ -0,0 +1,164 @@
 +--- a/drivers/net/wireless/ath/ath9k/common-init.c
 ++++ b/drivers/net/wireless/ath/ath9k/common-init.c
-+39a40,41
-+> 	CHAN2G(2397, 39), /* Channel -2 */
-+> 	CHAN2G(2402, 38), /* Channel -1 */
-+70a73,99
-+> 	/* _We_ claim this "For the HAMS" */
-+> 	CHAN5G(5370, 40), /* Channel 74 */
-+> 	CHAN5G(5375, 41), /* Channel 75 */
-+> 	CHAN5G(5380, 42), /* Channel 76 */
-+> 	CHAN5G(5385, 43), /* Channel 77 */
-+> 	CHAN5G(5390, 44), /* Channel 78 */
-+> 	CHAN5G(5395, 45), /* Channel 79 */
-+> 	CHAN5G(5400, 46), /* Channel 80 */
-+> 	CHAN5G(5405, 47), /* Channel 81 */
-+> 	CHAN5G(5410, 48), /* Channel 82 */
-+> 	CHAN5G(5415, 49), /* Channel 83 */
-+> 	CHAN5G(5420, 50), /* Channel 84 */
-+> 	CHAN5G(5425, 51), /* Channel 85 */
-+> 	CHAN5G(5430, 52), /* Channel 86 */
-+> 	CHAN5G(5435, 53), /* Channel 87 */
-+> 	CHAN5G(5440, 54), /* Channel 88 */
-+> 	CHAN5G(5445, 55), /* Channel 89 */
-+> 	CHAN5G(5450, 56), /* Channel 90 */
-+> 	CHAN5G(5455, 57), /* Channel 91 */
-+> 	CHAN5G(5460, 58), /* Channel 92 */
-+> 	CHAN5G(5465, 59), /* Channel 93 */
-+> 	CHAN5G(5470, 60), /* Channel 94 */
-+> 	CHAN5G(5475, 61), /* Channel 95 */
-+> 	CHAN5G(5480, 62), /* Channel 96 */
-+> 	CHAN5G(5485, 63), /* Channel 97 */
-+> 	CHAN5G(5490, 64), /* Channel 98 */
-+> 	CHAN5G(5495, 65), /* Channel 99 */
-+88a118,164
-+> 	/* _We_ claim this "For the HAMS" x2 */
-+> 	CHAN5G(5655, 66), /* Channel 131 */
-+> 	CHAN5G(5665, 67), /* Channel 133 */
-+> 	CHAN5G(5670, 68), /* Channel 134 */
-+> 	CHAN5G(5675, 69), /* Channel 135 */
-+> 	CHAN5G(5685, 70), /* Channel 137 */
-+> 	CHAN5G(5690, 71), /* Channel 138 */
-+> 	CHAN5G(5695, 72), /* Channel 139 */
-+> 	CHAN5G(5705, 73), /* Channel 141 */
-+> 	CHAN5G(5710, 74), /* Channel 142 */
-+> 	CHAN5G(5715, 75), /* Channel 143 */
-+> 	CHAN5G(5720, 76), /* Channel 144 */
-+> 	CHAN5G(5725, 77), /* Channel 145 */
-+> 	CHAN5G(5730, 78), /* Channel 146 */
-+> 	CHAN5G(5735, 79), /* Channel 147 */
-+> 	CHAN5G(5740, 80), /* Channel 148 */
-+> 	CHAN5G(5750, 81), /* Channel 150 */
-+> 	CHAN5G(5755, 82), /* Channel 151 */
-+> 	CHAN5G(5760, 83), /* Channel 152 */
-+> 	CHAN5G(5770, 84), /* Channel 154 */
-+> 	CHAN5G(5775, 85), /* Channel 155 */
-+> 	CHAN5G(5780, 86), /* Channel 156 */
-+> 	CHAN5G(5790, 87), /* Channel 158 */
-+> 	CHAN5G(5795, 88), /* Channel 159 */
-+> 	CHAN5G(5800, 89), /* Channel 160 */
-+> 	CHAN5G(5810, 90), /* Channel 162 */
-+> 	CHAN5G(5815, 91), /* Channel 163 */
-+> 	CHAN5G(5820, 92), /* Channel 164 */
-+> 	CHAN5G(5830, 93), /* Channel 166 */
-+> 	CHAN5G(5835, 94), /* Channel 167 */
-+> 	CHAN5G(5840, 95), /* Channel 168 */
-+> 	CHAN5G(5845, 96), /* Channel 169 */
-+> 	CHAN5G(5850, 97), /* Channel 170 */
-+> 	CHAN5G(5855, 98), /* Channel 171 */
-+> 	CHAN5G(5860, 99), /* Channel 172 */
-+> 	CHAN5G(5865, 100), /* Channel 173 */
-+> 	CHAN5G(5870, 101), /* Channel 174 */
-+> 	CHAN5G(5875, 102), /* Channel 175 */
-+> 	CHAN5G(5880, 103), /* Channel 176 */
-+> 	CHAN5G(5885, 104), /* Channel 177 */
-+> 	CHAN5G(5890, 105), /* Channel 178 */
-+> 	CHAN5G(5895, 106), /* Channel 179 */
-+> 	CHAN5G(5900, 107), /* Channel 180 */
-+> 	CHAN5G(5905, 108), /* Channel 181 */
-+> 	CHAN5G(5910, 109), /* Channel 182 */
-+> 	CHAN5G(5915, 110), /* Channel 183 */
-+> 	CHAN5G(5920, 111), /* Channel 184 */
++@@ -37,6 +37,8 @@
++  * we have calibration data for all cards though to make
++  * this static */
++ static const struct ieee80211_channel ath9k_2ghz_chantable[] = {
+++	CHAN2G(2397, 39), /* Channel -2 */
+++	CHAN2G(2402, 38), /* Channel -1 */
++ 	CHAN2G(2412, 0), /* Channel 1 */
++ 	CHAN2G(2417, 1), /* Channel 2 */
++ 	CHAN2G(2422, 2), /* Channel 3 */
++@@ -86,6 +88,80 @@
++ 	CHAN5G(5785, 35), /* Channel 157 */
++ 	CHAN5G(5805, 36), /* Channel 161 */
++ 	CHAN5G(5825, 37), /* Channel 165 */
+++	/* _We_ claim this "For the HAMS" */
+++	CHAN5G(5370, 40), /* Channel 74 */
+++	CHAN5G(5375, 41), /* Channel 75 */
+++	CHAN5G(5380, 42), /* Channel 76 */
+++	CHAN5G(5385, 43), /* Channel 77 */
+++	CHAN5G(5390, 44), /* Channel 78 */
+++	CHAN5G(5395, 45), /* Channel 79 */
+++	CHAN5G(5400, 46), /* Channel 80 */
+++	CHAN5G(5405, 47), /* Channel 81 */
+++	CHAN5G(5410, 48), /* Channel 82 */
+++	CHAN5G(5415, 49), /* Channel 83 */
+++	CHAN5G(5420, 50), /* Channel 84 */
+++	CHAN5G(5425, 51), /* Channel 85 */
+++	CHAN5G(5430, 52), /* Channel 86 */
+++	CHAN5G(5435, 53), /* Channel 87 */
+++	CHAN5G(5440, 54), /* Channel 88 */
+++	CHAN5G(5445, 55), /* Channel 89 */
+++	CHAN5G(5450, 56), /* Channel 90 */
+++	CHAN5G(5455, 57), /* Channel 91 */
+++	CHAN5G(5460, 58), /* Channel 92 */
+++	CHAN5G(5465, 59), /* Channel 93 */
+++	CHAN5G(5470, 60), /* Channel 94 */
+++	CHAN5G(5475, 61), /* Channel 95 */
+++	CHAN5G(5480, 62), /* Channel 96 */
+++	CHAN5G(5485, 63), /* Channel 97 */
+++	CHAN5G(5490, 64), /* Channel 98 */
+++	CHAN5G(5495, 65), /* Channel 99 */
+++	/* _We_ claim this "For the HAMS" x2 */
+++	CHAN5G(5655, 66), /* Channel 131 */
+++	CHAN5G(5665, 67), /* Channel 133 */
+++	CHAN5G(5670, 68), /* Channel 134 */
+++	CHAN5G(5675, 69), /* Channel 135 */
+++	CHAN5G(5685, 70), /* Channel 137 */
+++	CHAN5G(5690, 71), /* Channel 138 */
+++	CHAN5G(5695, 72), /* Channel 139 */
+++	CHAN5G(5705, 73), /* Channel 141 */
+++	CHAN5G(5710, 74), /* Channel 142 */
+++	CHAN5G(5715, 75), /* Channel 143 */
+++	CHAN5G(5720, 76), /* Channel 144 */
+++	CHAN5G(5725, 77), /* Channel 145 */
+++	CHAN5G(5730, 78), /* Channel 146 */
+++	CHAN5G(5735, 79), /* Channel 147 */
+++	CHAN5G(5740, 80), /* Channel 148 */
+++	CHAN5G(5750, 81), /* Channel 150 */
+++	CHAN5G(5755, 82), /* Channel 151 */
+++	CHAN5G(5760, 83), /* Channel 152 */
+++	CHAN5G(5770, 84), /* Channel 154 */
+++	CHAN5G(5775, 85), /* Channel 155 */
+++	CHAN5G(5780, 86), /* Channel 156 */
+++	CHAN5G(5790, 87), /* Channel 158 */
+++	CHAN5G(5795, 88), /* Channel 159 */
+++	CHAN5G(5800, 89), /* Channel 160 */
+++	CHAN5G(5810, 90), /* Channel 162 */
+++	CHAN5G(5815, 91), /* Channel 163 */
+++	CHAN5G(5820, 92), /* Channel 164 */
+++	CHAN5G(5830, 93), /* Channel 166 */
+++	CHAN5G(5835, 94), /* Channel 167 */
+++	CHAN5G(5840, 95), /* Channel 168 */
+++	CHAN5G(5845, 96), /* Channel 169 */
+++	CHAN5G(5850, 97), /* Channel 170 */
+++	CHAN5G(5855, 98), /* Channel 171 */
+++	CHAN5G(5860, 99), /* Channel 172 */
+++	CHAN5G(5865, 100), /* Channel 173 */
+++	CHAN5G(5870, 101), /* Channel 174 */
+++	CHAN5G(5875, 102), /* Channel 175 */
+++	CHAN5G(5880, 103), /* Channel 176 */
+++	CHAN5G(5885, 104), /* Channel 177 */
+++	CHAN5G(5890, 105), /* Channel 178 */
+++	CHAN5G(5895, 106), /* Channel 179 */
+++	CHAN5G(5900, 107), /* Channel 180 */
+++	CHAN5G(5905, 108), /* Channel 181 */
+++	CHAN5G(5910, 109), /* Channel 182 */
+++	CHAN5G(5915, 110), /* Channel 183 */
+++	CHAN5G(5920, 111), /* Channel 184 */
++ };
++
++
 +--- a/drivers/net/wireless/ath/ath9k/hw.h
 ++++ b/drivers/net/wireless/ath/ath9k/hw.h
 +@@ -71,7 +71,7 @@
@@ -97,64 +108,65 @@ Index: openwrt/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
 + #define REG_WRITE(_ah, _reg, _val) \
 +--- a/drivers/net/wireless/ath/regd.c
 ++++ b/drivers/net/wireless/ath/regd.c
-+@@ -33,6 +33,7 @@ static int __ath_regd_init(struct ath_re
++@@ -33,6 +33,7 @@
 +  */
 + 
 + /* Only these channels all allow active scan on all world regulatory domains */
-++#define ATH9K_2GHZ_CHN02_00	REG_RULE(2392-5, 2407+10, 40, 0, 20, 0)
-+ #define ATH9K_2GHZ_CH01_11	REG_RULE(2412-10, 2462+10, 40, 0, 20, 0)
+++#define ATH_2GHZ_CHN02_00     	REG_RULE(2392-5, 2407+10, 40, 0, 20, 0)
++ #define ATH_2GHZ_CH01_11	REG_RULE(2412-10, 2462+10, 40, 0, 20, 0)
 + 
 + /* We enable active scan on these a case by case basis by regulatory domain */
-+@@ -46,17 +47,25 @@ static int __ath_regd_init(struct ath_re
-+ #define ATH9K_5GHZ_5150_5350	REG_RULE(5150-10, 5240+10, 80, 0, 30, 0),\
-+ 				REG_RULE(5260-10, 5350+10, 80, 0, 30,\
++@@ -45,17 +46,25 @@
++ /* We allow IBSS on these on a case by case basis by regulatory domain */
++ #define ATH_5GHZ_5150_5350	REG_RULE(5150-10, 5350+10, 80, 0, 30,\
 + 					 NL80211_RRF_NO_IR)
-++#define ATH9K_5GHZ_5320_5490    REG_RULE(5320-10, 5490+10, 80, 0, 30,\
-++					 NL80211_RRF_NO_IR)
-+ #define ATH9K_5GHZ_5470_5850	REG_RULE(5470-10, 5850+10, 80, 0, 30,\
+++#define ATH_5GHZ_5320_5490    	REG_RULE(5320-10, 5490+10, 80, 0, 30,\
+++                                        NL80211_RRF_NO_IR)
++ #define ATH_5GHZ_5470_5850	REG_RULE(5470-10, 5850+10, 80, 0, 30,\
 + 					 NL80211_RRF_NO_IR)
-+ #define ATH9K_5GHZ_5725_5850	REG_RULE(5725-10, 5850+10, 80, 0, 30,\
++ #define ATH_5GHZ_5725_5850	REG_RULE(5725-10, 5850+10, 80, 0, 30,\
 + 					 NL80211_RRF_NO_IR)
-++#define ATH9K_5GHZ_5850_5925    REG_RULE(5850-10, 5925+5, 80, 0, 30,\
-++					 NL80211_RRF_NO_IR)
+++#define ATH_5GHZ_5850_5925    	REG_RULE(5850-10, 5925+5, 80, 0, 30,\
+++                                         NL80211_RRF_NO_IR)
++ 
++-#define ATH_2GHZ_ALL		ATH_2GHZ_CH01_11, \
 ++
+++#define ATH_2GHZ_ALL         	ATH_2GHZ_CHN02_00, \
+++                                ATH_2GHZ_CH01_11, \
++ 				ATH_2GHZ_CH12_13, \
++ 				ATH_2GHZ_CH14
 + 
-+-#define ATH9K_2GHZ_ALL		ATH9K_2GHZ_CH01_11, \
-++#define ATH9K_2GHZ_ALL		ATH9K_2GHZ_CHN02_00, \
-++				ATH9K_2GHZ_CH01_11, \
-+ 				ATH9K_2GHZ_CH12_13, \
-+ 				ATH9K_2GHZ_CH14
-+ 
-+ #define ATH9K_5GHZ_ALL		ATH9K_5GHZ_5150_5350, \
-+-				ATH9K_5GHZ_5470_5850
-++				ATH9K_5GHZ_5320_5490, \
-++				ATH9K_5GHZ_5470_5850, \
-++				ATH9K_5GHZ_5850_5925
++ #define ATH_5GHZ_ALL		ATH_5GHZ_5150_5350, \
++-				ATH_5GHZ_5470_5850
+++                                ATH_5GHZ_5320_5490, \
+++                                ATH_5GHZ_5470_5850, \
+++                                ATH_5GHZ_5850_5925
 + 
 + /* This one skips what we call "mid band" */
-+ #define ATH9K_5GHZ_NO_MIDBAND	ATH9K_5GHZ_5150_5350, \
++ #define ATH_5GHZ_NO_MIDBAND	ATH_5GHZ_5150_5350, \
 +--- a/net/wireless/util.c
 ++++ b/net/wireless/util.c
-+@@ -72,13 +72,18 @@ int ieee80211_channel_to_frequency(int c
++@@ -80,13 +80,18 @@
 + 		return 0; /* not supported */
 + 	switch (band) {
 + 	case NL80211_BAND_2GHZ:
 ++		chan = (int)(char)chan;
 + 		if (chan == 14)
-+ 			return 2484;
-++		else if (chan == 255)
-++			return 2402;
-++		else if (chan == 254)
-++			return 2397;
++ 			return MHZ_TO_KHZ(2484);
+++                else if (chan == 255)
+++                        return MHZ_TO_KHZ(2402);
+++                else if (chan == 254)
+++                       return MHZ_TO_KHZ(2397);
 + 		else if (chan < 14)
-+ 			return 2407 + chan * 5;
++ 			return MHZ_TO_KHZ(2407 + chan * 5);
 + 		break;
 + 	case NL80211_BAND_5GHZ:
 +-		if (chan >= 182 && chan <= 196)
 ++		if (chan >= 187 && chan <= 196)
-+ 			return 4000 + chan * 5;
++ 			return MHZ_TO_KHZ(4000 + chan * 5);
 + 		else
-+ 			return 5000 + chan * 5;
++ 			return MHZ_TO_KHZ(5000 + chan * 5);
++
 Index: openwrt/package/network/utils/iw/patches/300-extended_spectrum.patch
 ===================================================================
 --- /dev/null

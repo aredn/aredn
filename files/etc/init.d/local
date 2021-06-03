@@ -8,9 +8,9 @@ boot() {
   then
     mkdir -p /etc/aredn_include
     touch /etc/aredn_include/ethmacfixup
-    local lanintf="$(uci -q get 'network.lan.ifname')"
+    local lanintf="$(uci -q get 'network.lan.device')"
     lanintf=${lanintf%% *}
-    local wifiintf="$(uci -q get 'network.wifi.ifname')"
+    local wifiintf="$(uci -q get 'network.wifi.device')"
     local lanmac=`ifconfig $lanintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
     local wifimac=`ifconfig $wifiintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
 
@@ -28,11 +28,11 @@ boot() {
       lanintf=${lanintf%%.*}
       echo "" > /etc/aredn_include/ethmacfixup
       echo "config interface 'setethmac'" >> /etc/aredn_include/ethmacfixup
-      echo -e "\toption\tifname\t'$lanintf'" >> /etc/aredn_include/ethmacfixup
+      echo -e "\toption\tdevice\t'$lanintf'" >> /etc/aredn_include/ethmacfixup
       echo -e "\toption\tproto\t'none'" >> /etc/aredn_include/ethmacfixup
       echo -e "\toption\tmacaddr\t$newmac" >> /etc/aredn_include/ethmacfixup
       uci set "network.setethmac=interface"
-      uci set "network.setethmac.ifname=$lanintf"
+      uci set "network.setethmac.device=$lanintf"
       uci set "network.setethmac.proto=none"
       uci set "network.setethmac.macaddr=$newmac"
       uci commit

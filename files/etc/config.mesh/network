@@ -1,6 +1,6 @@
 #### Loopback configuration
 config interface loopback
-	option ifname	"lo"
+	option device	"lo"
 	option proto	static
 	option ipaddr	127.0.0.1
 	option netmask	255.0.0.0
@@ -8,7 +8,7 @@ config interface loopback
 
 #### LAN configuration
 config interface lan
-	option ifname	"<lan_intf>"
+	option device	"<lan_intf>"
 	option type	"bridge"
 	option proto	<lan_proto>
 	option ipaddr	<lan_ip>
@@ -19,7 +19,7 @@ include /etc/aredn_include/ethmacfixup
 
 #### WAN configuration
 config interface wan
-	option ifname	"<wan_intf>"
+	option device	"<wan_intf>"
 include /etc/aredn_include/bridge_ports
 	option proto	<wan_proto>
 	option ipaddr	<wan_ip>
@@ -29,14 +29,14 @@ include /etc/aredn_include/bridge_ports
 	
 #### WIFI configuration
 config interface wifi
-	option ifname	"<wifi_intf>"
+	option device	"<wifi_intf>"
 	option proto	<wifi_proto>
 	option ipaddr	<wifi_ip>
 	option netmask	<wifi_mask>
 
 #### device to device configuration
 config interface dtdlink
-        option ifname   "<dtdlink_intf>"
+        option device   "<dtdlink_intf>"
 include /etc/aredn_include/bridge_ports
         option proto    static
         option ipaddr   <dtdlink_ip>

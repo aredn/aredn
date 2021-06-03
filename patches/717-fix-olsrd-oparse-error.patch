@@ -1,0 +1,154 @@
+--- /dev/null
++++ openwrt/feeds/arednpackages/net/olsrd/patches/009-fix-oparse-error.patch
+@@ -0,0 +1,151 @@
++diff -NarU5 a/lib/pud/src/gpsdclient.c b/lib/pud/src/gpsdclient.c
++--- a/lib/pud/src/gpsdclient.c	2017-06-06 05:17:26.000000000 -0500
+++++ b/lib/pud/src/gpsdclient.c	2021-05-27 21:19:12.534140371 -0500
++@@ -77,10 +77,27 @@
++ /* log gpsd errors */
++ static void gpsdError(const char *s) {
++   syslog(LOG_ERR, "gpsd error: %s", s);
++ }
++ 
+++#if GPSD_API_MAJOR_VERSION >= 9
+++static double time_as_double(struct timespec *ts) {
+++ return (ts->tv_sec + ts->tv_nsec * 1e-9);
+++}
+++
+++static bool is_online(struct gps_data_t *gpsdata) {
+++  return !!gpsdata->online.tv_sec;
+++}
+++#else
+++
+++#define time_as_double(x) *(x)
+++
+++static bool is_online(struct gps_data_t *gpsdata) {
+++  return !!gpsdata->online;
+++}
+++#endif
+++
++ /* standard parsing of a GPS data source spec */
++ void gpsdParseSourceSpec(char *arg, GpsDaemon *gpsDaemon) {
++   if (!arg //
++       || !gpsDaemon) {
++     return;
++@@ -296,12 +313,12 @@
++             dev->driver_mode ? "native" : "compatibility", //
++             dev->baudrate, //
++             8, //
++             dev->parity, //
++             dev->stopbits, //
++-            dev->cycle, //
++-            dev->mincycle);
+++            time_as_double(&dev->cycle), //
+++            time_as_double(&dev->mincycle));
++ 
++         connectionTracking->devSeen[i] = true;
++         connectionTracking->dev[i] = *dev;
++       } else if (connectionTracking->devSeen[i]) {
++         size_t subtypeLength;
++@@ -351,11 +368,11 @@
++           | NAVDATA_SET //
++ #endif
++           );
++ 
++   gpsdata->set &= ~STATUS_SET; /* always valid */
++-  if (gpsdata->status == STATUS_NO_FIX) {
+++  if (gpsdata-> fix.status == STATUS_NO_FIX) {
++     nmeaInfoClear(info);
++     return;
++   }
++ 
++   if (!gpsdata->set) {
++@@ -364,31 +381,38 @@
++ 
++   info->smask = NMEALIB_SENTENCE_MASK;
++   nmeaInfoSetPresent(&info->present, NMEALIB_PRESENT_SMASK);
++ 
++   /* date & time */
+++#if GPSD_API_MAJOR_VERSION >= 9
+++  if (gpsdata->fix.time.tv_sec > 0) {
+++    struct tm *time = gmtime(&gpsdata->fix.time.tv_sec);
+++    unsigned int hsec = (unsigned int) (gpsdata->fix.time.tv_nsec / 10000000);
+++#else
++   if (!isNaN(gpsdata->fix.time)) {
++     double seconds;
++     double fraction = modf(fabs(gpsdata->fix.time), &seconds);
++     long sec = lrint(seconds);
++     struct tm *time = gmtime(&sec);
+++    unsigned int hsec = (unsigned int) lrint(fraction * 100);
+++#endif
++     if (time) {
++       info->utc.year = (unsigned int) time->tm_year + 1900;
++       info->utc.mon = (unsigned int) time->tm_mon + 1;
++       info->utc.day = (unsigned int) time->tm_mday;
++       info->utc.hour = (unsigned int) time->tm_hour;
++       info->utc.min = (unsigned int) time->tm_min;
++       info->utc.sec = (unsigned int) time->tm_sec;
++-      info->utc.hsec = (unsigned int) lrint(fraction * 100);
+++      info->utc.hsec = hsec;
++ 
++       nmeaInfoSetPresent(&info->present, NMEALIB_PRESENT_UTCDATE | NMEALIB_PRESENT_UTCTIME);
++     }
++   }
++   gpsdata->set &= ~TIME_SET;
++ 
++   /* sig & fix */
++-  if (!gpsdata->online) {
+++  if (!is_online(gpsdata)) {
++     gpsdata->fix.mode = MODE_NO_FIX;
++   }
++ 
++   switch (gpsdata->fix.mode) {
++     case MODE_3D:
++@@ -458,11 +482,15 @@
++ 
++   /* elv */
++   if ((gpsdata->fix.mode >= MODE_3D) //
++       && !isNaN(gpsdata->fix.altitude)) {
++     info->elevation = gpsdata->fix.altitude;
+++#if GPSD_API_MAJOR_VERSION >= 9
+++    info->height = gpsdata->fix.geoid_sep;
+++#else
++     info->height = gpsdata->separation;
+++#endif
++     nmeaInfoSetPresent(&info->present, NMEALIB_PRESENT_ELV | NMEALIB_PRESENT_HEIGHT);
++   }
++   gpsdata->set &= ~ALTITUDE_SET;
++ 
++   /* speed */
++@@ -582,11 +610,11 @@
++ 
++   errno = 0;
++   if (!connectionTracking->connected) {
++     gpsReadCode = -1;
++   } else {
++-    gpsReadCode = gps_read(gpsdata);
+++    gpsReadCode = gps_read(gpsdata, NULL, 0);
++   }
++ 
++   if (gpsReadCode > 0) {
++     /* data received from gpsd */
++     nmeaInfoFromGpsd(gpsdata, nmeaInfo, connectionTracking);
++diff -NarU5 a/src/cfgparser/local.mk b/src/cfgparser/local.mk
++--- a/src/cfgparser/local.mk	2017-06-06 05:17:26.000000000 -0500
+++++ b/src/cfgparser/local.mk	2021-05-27 19:55:01.969001000 -0500
++@@ -72,16 +72,12 @@
++ 
++ $(C)oparse.c: $(C)oparse.y $(C)olsrd_conf.h $(C)Makefile
++ ifeq ($(VERBOSE),0)
++ 	@echo "[BISON] $@"
++ endif
++-	$(MAKECMDPREFIX)$(BISON) -d -o "$@-tmp" "$<"
++-	$(MAKECMDPREFIX)sed	-e 's/register //' \
++-		-e '/^#line/s/$(call quote,$@-tmp)/$(call quote,$@)/' \
++-		< "$@-tmp" >"$@"
++-	$(MAKECMDPREFIX)mv "$(subst .c,.h,$@-tmp)" "$(subst .c,.h,$@)"
++-	$(MAKECMDPREFIX)$(RM) "$@-tmp" "$(subst .c,.h,$@-tmp)"
+++	$(MAKECMDPREFIX)$(BISON) -d -o "$@" "$<"
+++	$(MAKECMDPREFIX)sed -e 's/register //' "$@" > "$@.o" && mv "$@.o" "$@"
++ 
++ $(C)oparse.o: CFLAGS := $(filter-out -Wunreachable-code,$(CFLAGS))
++ 
++ # and a few files to be cleaned
++ TMPFILES += $(foreach pat,oscan.c oparse.c oparse.h,$(C)$(pat) $(C)$(pat)-tmp)

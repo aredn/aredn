@@ -67,7 +67,7 @@ usage() unless defined $config;
 
 die "'$config' is not a valid configuration\n" unless ($config eq "mesh" and -f "/etc/config.mesh/_setup");
 
-chomp ($lanintf=`jsonfilter -e '@.network.lan.ifname' < /etc/board.json | cut -f1`);
+chomp ($lanintf=`jsonfilter -e '@.network.lan.device' < /etc/board.json | cut -f1`);
 $node = nvram_get("node");
 $tactical = nvram_get("tactical");
 $mac2 = mac2ip(get_mac(get_interface("wifi")), 0);
@@ -123,7 +123,7 @@ foreach $line (`cat /etc/config.mesh/_setup`)
   $cfg{$1} = $2;
 }
 
-chomp ($lanintf=`jsonfilter -e '@.network.lan.ifname' < /etc/board.json`);
+chomp ($lanintf=`jsonfilter -e '@.network.lan.device' < /etc/board.json`);
 $cfg{lan_intf} = "$lanintf";
 
 $cfg{wan_intf} = "dummy";
@@ -133,7 +133,7 @@ $cfg{dtdlink_intf} = get_bridge_interfaces("dtdlink");
 
 if ( $cfg{wifi_enable} == 1 )
 {
-  $cfg{wifi_intf} = `jsonfilter -e '@.network.wifi.ifname' < /etc/board.json | cut -f1`;
+  $cfg{wifi_intf} = `jsonfilter -e '@.network.wifi.device' < /etc/board.json | cut -f1`;
   $cfg{wifi_intf} =~ /wlan(\d+)/;
   chomp $cfg{wifi_intf};
 }

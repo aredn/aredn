@@ -90,7 +90,7 @@ $tactical = nvram_get("tactical");
 $config = nvram_get("config");
 $config = "not set" if $config eq "" or not -d "/etc/config.mesh";
 ($my_ip) = get_ip4_network(get_interface("wifi"));
-${wifiif} = `uci -q get 'network.wifi.ifname'`;
+${wifiif} = `uci -q get 'network.wifi.device'`;
 chomp ${wifiif};
 $phy = get_wlan2phy("${wifiif}");
 

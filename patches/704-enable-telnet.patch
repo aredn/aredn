@@ -2,16 +2,23 @@ Index: openwrt/package/base-files/files/lib/preinit/99_10_failsafe_login
 ===================================================================
 --- openwrt.orig/package/base-files/files/lib/preinit/99_10_failsafe_login
 +++ openwrt/package/base-files/files/lib/preinit/99_10_failsafe_login
-@@ -3,8 +3,7 @@
+@@ -1,6 +1,10 @@
+ # Copyright (C) 2006-2015 OpenWrt.org
  # Copyright (C) 2010 Vertical Communications
  
- failsafe_netlogin () {
--	dropbearkey -t rsa -s 1024 -f /tmp/dropbear_failsafe_host_key
--	dropbear -r /tmp/dropbear_failsafe_host_key <> /dev/null 2>&1
++failsafe_netlogin () {
 +	telnetd -l /bin/login.sh <> /dev/null 2>&1
++}
++
+ failsafe_shell() {
+ 	local console="$(sed -e 's/ /\n/g' /proc/cmdline | grep '^console=' | head -1 | sed -e 's/^console=//' -e 's/,.*//')"
+ 	[ -n "$console" ] || console=console
+@@ -11,4 +15,5 @@
+ 	done &
  }
  
- failsafe_shell() {
++boot_hook_add failsafe failsafe_netlogin
+ boot_hook_add failsafe failsafe_shell
 Index: openwrt/package/utils/busybox/Config-defaults.in
 ===================================================================
 --- openwrt.orig/package/utils/busybox/Config-defaults.in

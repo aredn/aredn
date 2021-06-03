@@ -625,7 +625,7 @@ sub save_setup
 
 sub get_wifi_signal
 {
-  my $wifiintf = `uci -q get network.wifi.ifname`;
+  my $wifiintf = `uci -q get network.wifi.device`;
   chomp $wifiintf;
   my $phy = get_wlan2phy("$wifiintf");
   my ($SignalLevel) = "N/A";
@@ -1118,6 +1118,16 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
       'chanpower'       => { 133 => '15', 141 => '26', 143 => '25' , 149 => '15' , 165 => '14', 166 => '25' },
+    },
+    'TP-Link CPE710 v1' => {
+      'name'            => 'TP-Link CPE710 v1',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '30',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+      'rfband'          => '5800ubntus',
+      'chanpower'       => { 133 => '30', 141 => '30', 143 => '30' , 149 => '30' , 165 => '30', 166 => '30' },
     },
     'TP-Link WBS210 v1' => {
       'name'            => 'TP-Link WBS210 v1',
@@ -2035,7 +2045,7 @@ sub get_interface
   if ( "$bridge" eq "bridge" ) {
     $intfname = "br-${intf}";
   } else {
-      $intfname = `uci -q get network.$intf.ifname | cut -f1`;
+      $intfname = `uci -q get network.$intf.device | cut -f1`;
   }
   chomp $intfname;
 
@@ -2063,7 +2073,7 @@ sub get_bridge_interfaces
 {
   my ($intf) = @_;
   my $bridge = `uci -q get network.$intf.type`;
-  my $intfname = `uci -q get network.$intf.ifname`;
+  my $intfname = `uci -q get network.$intf.device`;
   chomp $intfname;
 
   if ($intfname) {

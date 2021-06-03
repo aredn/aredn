@@ -1,0 +1,63 @@
+--- /dev/null
++++ b/package/kernel/mac80211/patches/ath/999-ath_revert_default_regd.patch
+@@ -0,0 +1,60 @@
++This reverts commit 2dc016599cfa9672a147528ca26d70c3654a5423.
++
++Per Atheros documentation to manufacturers, the EEPROM regulatory domain
++code 0x0 must always map to "US". In particular, it should not map to a
++custom world regulatory domain. For references, see [1] and [2] below.
++Furthermore, __ath_regd_init() has a specific condition to set the
++country code to "US" in this case, which emits the following log
++message:
++
++[    7.814307] ath: EEPROM indicates default country code should be used
++
++The patch being reverted mistakenly maps 0x0 to the custom world
++regulatory domain 0x64 - the most restrictive of the world regulatory
++domains. The premise of the patch is that in the case of EEPROM
++regulatory domain code 0x0, ath_is_world_regd() should return true. But,
++as stated above, 0x0 should not map to a world regulatory domain, and so
++the function should return false. The original behaviour, whereby
++NL80211_REGDOM_SET_BY_COUNTRY_IE is ignored, was correct according to
++the manufacturer's intent and should not have been changed.
++
++[1] https://wireless.wiki.kernel.org/en/users/drivers/ath#the_0x0_regulatory_domain
++[2] http://article.gmane.org/gmane.linux.kernel.wireless.general/38410
++
++Fixes: 2dc016599cfa ("ath: add support for special 0x0 regulatory domain")
++Cc: Wen Gong <wgong at codeaurora.org>
++Cc: Luis R. Rodriguez <mcgrof at kernel.org>
++Cc: linux-wireless at vger.kernel.org
++Tested-on: QCA9880 hw2.0 PCI 10.2.4-1.0-00047
++Signed-off-by: Alvin Šipraga <alsi at bang-olufsen.dk>
++---
++ drivers/net/wireless/ath/regd.c | 10 +++++-----
++ 1 file changed, 5 insertions(+), 5 deletions(-)
++
++diff --git a/drivers/net/wireless/ath/regd.c b/drivers/net/wireless/ath/regd.c
++index bee9110b91f3..20f4f8ea9f89 100644
++--- a/drivers/net/wireless/ath/regd.c
+++++ b/drivers/net/wireless/ath/regd.c
++@@ -666,14 +666,14 @@ ath_regd_init_wiphy(struct ath_regulatory *reg,
++ 
++ /*
++  * Some users have reported their EEPROM programmed with
++- * 0x8000 or 0x0 set, this is not a supported regulatory
++- * domain but since we have more than one user with it we
++- * need a solution for them. We default to 0x64, which is
++- * the default Atheros world regulatory domain.
+++ * 0x8000 set, this is not a supported regulatory domain
+++ * but since we have more than one user with it we need
+++ * a solution for them. We default to 0x64, which is the
+++ * default Atheros world regulatory domain.
++  */
++ static void ath_regd_sanitize(struct ath_regulatory *reg)
++ {
++-	if (reg->current_rd != COUNTRY_ERD_FLAG && reg->current_rd != 0)
+++	if (reg->current_rd != COUNTRY_ERD_FLAG)
++ 		return;
++ 	printk(KERN_DEBUG "ath: EEPROM regdomain sanitized\n");
++ 	reg->current_rd = 0x64;
++-- 
++2.27.0
++

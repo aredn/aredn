@@ -1,0 +1,92 @@
+--- a/target/linux/ath79/generic/target.mk
++++ b/target/linux/ath79/generic/target.mk
+@@ -1,6 +1,6 @@
+ BOARDNAME:=Generic
+ 
+-DEFAULT_PACKAGES += wpad-basic-wolfssl
++DEFAULT_PACKAGES += wpad-basic
+ 
+ define Target/Description
+ 	Build firmware images for generic Atheros AR71xx/AR913x/AR934x based boards.
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image/generic-ubnt.mk
+@@ -347,7 +347,7 @@ endef
+ TARGET_DEVICES += ubnt_rocket-m
+ 
+ define Device/ubnt_routerstation_common
+-  DEVICE_PACKAGES := -kmod-ath9k -wpad-basic-wolfssl -uboot-envtools kmod-usb-ohci \
++  DEVICE_PACKAGES := -kmod-ath9k -wpad-mini -uboot-envtools kmod-usb-ohci \
+ 	kmod-usb2 fconfig
+   DEVICE_VENDOR := Ubiquiti
+   SOC := ar7161
+--- a/target/linux/ath79/image/generic.mk
++++ b/target/linux/ath79/image/generic.mk
+@@ -1234,7 +1234,7 @@ define Device/hak5_lan-turtle
+   TPLINK_HWID := 0x5348334c
+   IMAGES := sysupgrade.bin
+   DEVICE_PACKAGES := kmod-usb-chipidea2 -iwinfo -kmod-ath9k -swconfig \
+-	-uboot-envtools -wpad-basic-wolfssl
++	-uboot-envtools -wpad-basic
+   SUPPORTED_DEVICES += lan-turtle
+ endef
+ TARGET_DEVICES += hak5_lan-turtle
+@@ -1247,7 +1247,7 @@ define Device/hak5_packet-squirrel
+   TPLINK_HWID := 0x5351524c
+   IMAGES := sysupgrade.bin
+   DEVICE_PACKAGES := kmod-usb-chipidea2 -iwinfo -kmod-ath9k -swconfig \
+-	-uboot-envtools -wpad-basic-wolfssl
++	-uboot-envtools -wpad-basic
+   SUPPORTED_DEVICES += packet-squirrel
+ endef
+ TARGET_DEVICES += hak5_packet-squirrel
+@@ -1270,7 +1270,7 @@ define Device/iodata_etg3-r
+   DEVICE_VENDOR := I-O DATA
+   DEVICE_MODEL := ETG3-R
+   IMAGE_SIZE := 7680k
+-  DEVICE_PACKAGES := -iwinfo -kmod-ath9k -wpad-basic-wolfssl
++  DEVICE_PACKAGES := -iwinfo -kmod-ath9k -wpad-basic
+ endef
+ TARGET_DEVICES += iodata_etg3-r
+ 
+@@ -1330,7 +1330,7 @@ define Device/jjplus_ja76pf2
+   SOC := ar7161
+   DEVICE_VENDOR := jjPlus
+   DEVICE_MODEL := JA76PF2
+-  DEVICE_PACKAGES += -kmod-ath9k -swconfig -wpad-basic-wolfssl -uboot-envtools fconfig
++  DEVICE_PACKAGES += -kmod-ath9k -swconfig -wpad-mini -uboot-envtools fconfig
+   IMAGES += kernel.bin rootfs.bin
+   IMAGE/kernel.bin := append-kernel
+   IMAGE/rootfs.bin := append-rootfs | pad-rootfs
+--- a/target/linux/ath79/mikrotik/target.mk
++++ b/target/linux/ath79/mikrotik/target.mk
+@@ -3,7 +3,7 @@ FEATURES += minor nand
+ KERNELNAME := vmlinux vmlinuz
+ IMAGES_DIR := ../../..
+ 
+-DEFAULT_PACKAGES += wpad-basic-wolfssl
++DEFAULT_PACKAGES += wpad-basic
+ 
+ define Target/Description
+ 	Build firmware images for MikroTik devices based on Qualcomm Atheros
+--- a/target/linux/ath79/nand/target.mk
++++ b/target/linux/ath79/nand/target.mk
+@@ -2,7 +2,7 @@ BOARDNAME := Generic devices with NAND f
+ 
+ FEATURES += nand
+ 
+-DEFAULT_PACKAGES += wpad-basic-wolfssl
++DEFAULT_PACKAGES += wpad-basic
+ 
+ define Target/Description
+ 	Firmware for boards using Qualcomm Atheros, MIPS-based SoCs
+--- a/target/linux/ath79/tiny/target.mk
++++ b/target/linux/ath79/tiny/target.mk
+@@ -1,7 +1,7 @@
+ BOARDNAME:=Devices with small flash
+ FEATURES += small_flash
+ 
+-DEFAULT_PACKAGES += wpad-basic-wolfssl
++DEFAULT_PACKAGES += wpad-mini
+ 
+ define Target/Description
+ 	Build firmware images for Atheros AR71xx/AR913x/AR934x based boards with small flash

@@ -1,0 +1,299 @@
+From 30cc630523d3c8869eabc888eac9103f450624e8 Mon Sep 17 00:00:00 2001
+From: Andrew Cameron <apcameron@softhome.net>
+Date: Mon, 12 Apr 2021 13:24:33 -0500
+Subject: [PATCH] ath79: add support for TP-Link CPE710-v1
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+TP-Link CPE710-v1 is an outdoor wireless CPE for 5 GHz with
+one Ethernet port based on the AP152 reference board
+
+Specifications:
+- SoC: QCA9563-AL3A MIPS 74kc @ 775MHz, AHB @ 258MHz
+- RAM: 128MiB DDR2 @ 650MHz
+- Flash: 16MiB SPI NOR
+- Wi-Fi 5Ghz: ath10k chip (802.11ac for up to 867Mbps on 5GHz wireless data rate)
+- Ethernet: one 1GbE port
+- 23dBi high-gain directional 2×2 MIMO antenna and a dedicated metal reflector
+- Power, LAN, WLAN5G Blue LEDs
+- 3x Blue LEDs
+
+Flashing instructions:
+Flash factory image through stock firmware WEB UI or through TFTP
+To get to TFTP recovery just hold reset button while powering on for
+around 30-40 seconds and release.
+Rename factory image to recovery.bin
+Stock TFTP server IP:192.168.0.100
+Stock device TFTP adress:192.168.0.254
+
+Signed-off-by: Andrew Cameron <apcameron@softhome.net>
+---
+ .../ath79/dts/qca9563_tplink_cpe710-v1.dts    | 141 ++++++++++++++++++
+ .../generic/base-files/etc/board.d/01_leds    |   3 +
+ .../generic/base-files/etc/board.d/02_network |   1 +
+ .../etc/hotplug.d/firmware/11-ath10k-caldata  |   6 +
+ target/linux/ath79/image/generic-tp-link.mk   |  11 ++
+ tools/firmware-utils/src/tplink-safeloader.c  |  36 +++++
+ 6 files changed, 198 insertions(+)
+ create mode 100644 target/linux/ath79/dts/qca9563_tplink_cpe710-v1.dts
+
+diff --git a/target/linux/ath79/dts/qca9563_tplink_cpe710-v1.dts b/target/linux/ath79/dts/qca9563_tplink_cpe710-v1.dts
+new file mode 100644
+index 000000000000..48c9fb3af2f2
+--- /dev/null
++++ b/target/linux/ath79/dts/qca9563_tplink_cpe710-v1.dts
+@@ -0,0 +1,140 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++#include "qca956x.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++
++/ {
++	model = "TP-Link CPE710 v1";
++	compatible = "tplink,cpe710-v1", "qca,qca9563";
++
++	aliases {
++		label-mac-device = &eth0;
++		led-boot = &led_lan;
++		led-failsafe = &led_lan;
++		led-upgrade = &led_lan;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led_lan: lan {
++			label = "blue:lan";
++			gpios = <&gpio 5 GPIO_ACTIVE_LOW>;
++		};
++
++		wlan5g {
++			label = "blue:wlan5g";
++			gpios = <&gpio 1 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "phy0tpt";
++		};
++	};
++
++	keys {
++		compatible = "gpio-keys";
++
++		reset {
++			linux,code = <KEY_RESTART>;
++			gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
++			debounce-interval = <60>;
++		};
++	};
++};
++
++&pcie {
++	status = "okay";
++};
++
++&spi {
++	status = "okay";
++
++	flash@0 {
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <40000000>;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "u-boot";
++				reg = <0x000000 0x040000>;
++				read-only;
++			};
++
++			partition@40000 {
++				label = "u-boot-env";
++				reg = <0x040000 0x010000>;
++			};
++
++			partition@50000 {
++				label = "partition-table";
++				reg = <0x050000 0x010000>;
++				read-only;
++			};
++
++			info: partition@60000 {
++				label = "info";
++				reg = <0x060000 0x010000>;
++				read-only;
++			};
++
++			partition@70000 {
++				compatible = "denx,uimage";
++				label = "firmware";
++				reg = <0x070000 0xf50000>;
++			};
++
++			partition@fc0000 {
++				label = "config";
++				reg = <0xfc0000 0x030000>;
++				read-only;
++			};
++
++			art: partition@ff0000 {
++				label = "art";
++				reg = <0xff0000 0x010000>;
++				read-only;
++			};
++		};
++	};
++};
++
++&pinmux {
++	mdio_pins: mdio_pins {
++		/* GPIO 10 as MDIO(0x20), GPIO 8 as MDC(0x21) */
++		pinctrl-single,bits = <0x8 0x00200021 0x00ff00ff>;
++	};
++};
++
++&mdio0 {
++	status = "okay";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&mdio_pins>;
++
++	phy-mask = <0x10>;
++
++	phy4: ethernet-phy@4 {
++		reg = <4>;
++		reset-gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&eth0 {
++	status = "okay";
++
++	phy-handle = <&phy4>;
++	phy-mode = "sgmii";
++
++	mtd-mac-address = <&info 0x8>;
++
++	qca956x-serdes-fixup;
++
++	gmac-config {
++		device = <&gmac>;
++	};
++};
+diff --git a/target/linux/ath79/generic/base-files/etc/board.d/01_leds b/target/linux/ath79/generic/base-files/etc/board.d/01_leds
+index 783b55ec322f..94ae7c587975 100644
+--- a/target/linux/ath79/generic/base-files/etc/board.d/01_leds
++++ b/target/linux/ath79/generic/base-files/etc/board.d/01_leds
+@@ -22,6 +22,9 @@ tplink,cpe610-v1|\
+ tplink,cpe610-v2)
+ 	ucidef_set_led_netdev "lan" "LAN" "green:lan" "eth0"
+ 	;;
++tplink,cpe710-v1)
++	ucidef_set_led_netdev "lan" "LAN" "blue:lan" "eth0"
++	;;
+ alfa-network,n2q)
+ 	ucidef_set_led_netdev "lan2" "LAN2" "orange:lan2" "eth1"
+ 	ucidef_set_led_switch "lan1" "LAN1" "orange:lan1" "switch0" "0x10"
+diff --git a/target/linux/ath79/generic/base-files/etc/board.d/02_network b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+index 8b3f04c8e117..72e180b3d4c3 100644
+--- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+@@ -62,6 +62,7 @@ ath79_setup_interfaces()
+ 	tplink,cpe510-v3|\
+ 	tplink,cpe610-v1|\
+ 	tplink,cpe610-v2|\
++	tplink,cpe710-v1|\
+ 	tplink,eap225-outdoor-v1|\
+ 	tplink,eap225-v3|\
+ 	tplink,eap245-v1|\
+diff --git a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+index 5a44dd94e511..1391116e639c 100644
+--- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -238,6 +238,12 @@ case "$FIRMWARE" in
+ 		ln -sf /lib/firmware/ath10k/pre-cal-pci-0000\:00\:00.0.bin \
+ 			/lib/firmware/ath10k/QCA9888/hw2.0/board.bin
+ 		;;
++	tplink,cpe710-v1)
++		caldata_extract "art" 0x5000 0x2f20
++		ath10k_patch_mac $(macaddr_add $(mtd_get_mac_binary info 0x8) )
++		ln -sf /lib/firmware/ath10k/pre-cal-pci-0000\:00\:00.0.bin \
++			/lib/firmware/ath10k/QCA9888/hw2.0/board.bin
++		;;
+ 	tplink,eap245-v3)
+ 		caldata_extract "art" 0x5000 0x2f20
+ 		ath10k_patch_mac $(macaddr_add $(mtd_get_mac_binary info 0x8) +1)
+diff --git a/target/linux/ath79/image/generic-tp-link.mk b/target/linux/ath79/image/generic-tp-link.mk
+index be6aa06b5568..78340f650e69 100644
+--- a/target/linux/ath79/image/generic-tp-link.mk
++++ b/target/linux/ath79/image/generic-tp-link.mk
+@@ -362,6 +362,17 @@ define Device/tplink_cpe610-v2
+ endef
+ TARGET_DEVICES += tplink_cpe610-v2
+ 
++define Device/tplink_cpe710-v1
++  $(Device/tplink-safeloader-uimage)
++  SOC := qca9563
++  IMAGE_SIZE := 15680k
++  DEVICE_MODEL := CPE710
++  DEVICE_VARIANT := v1
++  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9888-ct
++  TPLINK_BOARD_ID := CPE710V1
++endef
++TARGET_DEVICES += tplink_cpe710-v1
++
+ define Device/tplink-eap2x5
+   $(Device/tplink-safeloader)
+   LOADER_TYPE := elf
+diff --git a/tools/firmware-utils/src/tplink-safeloader.c b/tools/firmware-utils/src/tplink-safeloader.c
+index b3d5c9151d33..0ba17bb2df4f 100644
+--- a/tools/firmware-utils/src/tplink-safeloader.c
++++ b/tools/firmware-utils/src/tplink-safeloader.c
+@@ -539,6 +539,43 @@ static struct device_info boards[] = {
+ 		.first_sysupgrade_partition = "os-image",
+ 		.last_sysupgrade_partition = "support-list",
+ 	},
++	/** Firmware layout for the CPE710 V1 */
++	{
++		.id     = "CPE710V1",
++		.vendor = "CPE710(TP-LINK|UN|AC866-5|00000000):1.0\r\n",
++		.support_list =
++			"SupportList:\r\n"
++			"CPE710(TP-LINK|UN|AC866-5|00000000):1.0\r\n"
++			"CPE710(TP-LINK|EU|AC866-5|45550000):1.0\r\n"
++			"CPE710(TP-LINK|US|AC866-5|55530000):1.0\r\n"
++			"CPE710(TP-LINK|UN|AC866-5):1.0\r\n"
++			"CPE710(TP-LINK|EU|AC866-5):1.0\r\n"
++			"CPE710(TP-LINK|US|AC866-5):1.0\r\n",
++		.part_trail = 0xff,
++		.soft_ver = NULL,
++
++		.partitions = {
++			{"fs-uboot", 0x00000, 0x50000},
++			{"partition-table", 0x50000, 0x02000},
++			{"default-mac", 0x60000, 0x00020},
++			{"serial-number", 0x60100, 0x00020},
++			{"product-info", 0x61100, 0x00100},
++			{"device-info", 0x61400, 0x00400},
++			{"signature", 0x62000, 0x00400},
++			{"device-id", 0x63000, 0x00100},
++			{"firmware", 0x70000, 0xf40000},
++			{"soft-version", 0xfb0000, 0x00100},
++			{"support-list", 0xfb1000, 0x01000},
++			{"user-config", 0xfc0000, 0x10000},
++			{"default-config", 0xfd0000, 0x10000},
++			{"log", 0xfe0000, 0x10000},
++			{"radio", 0xff0000, 0x10000},
++			{NULL, 0, 0}
++		},
++
++		.first_sysupgrade_partition = "os-image",
++		.last_sysupgrade_partition = "support-list",
++	},
+ 
+ 	{
+ 		.id     = "WBS210",
