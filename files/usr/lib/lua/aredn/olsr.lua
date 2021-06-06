@@ -98,7 +98,7 @@ function model.getCurrentNeighbors(RFinfo)
 		  	local mac=string.match(mac_host, "^(.-)\-")
 			  mac=mac:upper()
 			  local node=string.match(mac_host, "\-(.*)")
-			  if host == node or remip == node then
+			  if remhost == node or remip == node then
 				  for stn in pairs(RFneighbors) do
 					  stnInfo=iwinfo['nl80211'].assoclist(wlan)[mac]
 					  if stnInfo ~= nil then
