@@ -293,12 +293,6 @@ function model.all_services()
 				else
 					service['ip']=ip
 				end
-				-- MAYBE: convert this to a table lookup from reading /var/run/hosts_olsr to improve performance
-				hostname=nslookup(service['ip'])
-				if hostname ~= nil then
-					hostname = string.gsub(hostname,".local.mesh$","")	-- strip .local.mesh
-				end
-				service['hostname']=hostname
 				table.insert(services,service)
 			end
 		end
@@ -334,7 +328,7 @@ function model.all_hosts()
 				if ip and name then
 					if not string.match(name,"^(dtdlink[.]).*") then
 						if not string.match(name,"^(mid[0-9][.]).*") then
-							host['name']=name
+							host['name']=name:upper()
 							host['ip']=ip
 							table.insert(hosts,host)
 						end
@@ -554,7 +548,7 @@ function model.getLocalHosts()
 					for hostname in entries:gmatch("%S+") do
 						hostname = string.gsub(hostname,".local.mesh$","")
 						entry["cnxtype"] = model.getLocalCnxType(hostname)
-						entry["hostnames"][index] = hostname
+						entry["hostnames"][index] = hostname:upper()
 						index = index + 1
 					end
 					hosts = hosts or { }
