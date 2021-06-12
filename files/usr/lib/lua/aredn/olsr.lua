@@ -51,6 +51,14 @@ function model.getOLSRRoutes()
   return routes['routes']
 end
 
+-- Get the RF IP address of a neighbor node
+function model.getRemRFIP(ip)
+  local url=string.format("http://%s/cgi-bin/api?status=ip", ip )
+  local iplist=fetch_json(url)
+  local rfip=iplist.pages.status.ip.wifi
+  return rfip
+end
+
 function model.getOLSRInterfaceType(iface)
   local it=""
   if string.match(iface,"wlan") then
@@ -70,10 +78,14 @@ function model.getCurrentNeighbors(RFinfo)
   for k,v in pairs(links) do
     local host
     local remip=v['remoteIP']
+    local linktype=model.getOLSRInterfaceType(v['olsrInterface'])  -- RF or DTD or TUN
+    if linktype~="RF" then
+      remip=model.getRemRFIP(remip)
+    end
     local remhost=nslookup(remip)
     info[remip]={}
     info[remip]['olsrInterface']=v['olsrInterface']
-    info[remip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])    -- RF or DTD or TUN
+    info[remip]['linkType']=linktype
     info[remip]['linkQuality']=v['linkQuality']
     info[remip]['neighborLinkQuality']=v['neighborLinkQuality']
 	  if remhost ~= nil then
@@ -87,11 +99,10 @@ function model.getCurrentNeighbors(RFinfo)
 	  else
 		  info[remip]['hostname']=remip
 	  end
-    
+
     if info[remip]['linkType'] == "RF" and RFinfo then
       -- get additional info for RF link
 		  require("iwinfo")
-
       local radio = ai.getMeshRadioDevice()
       local bandwidth = tonumber(ai.getChannelBW(radio))
 		  local wlan=get_ifname('wifi')
