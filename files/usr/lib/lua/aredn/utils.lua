@@ -257,6 +257,18 @@ function nslookup(ip)
         end
 end
 
+function iplookup(host)
+	local ip=nil
+	local shortname=nil
+	local nso=nil
+	if host:find("%.") then
+		shortname=host:match("%.(.*)")
+	end
+	nso=capture("nslookup "..shortname)
+	ip=nso:match("Address 1: (.*)%c")
+	return ip
+end
+
 -------------------------------------
 -- Returns traceroute
 -------------------------------------

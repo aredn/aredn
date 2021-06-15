@@ -71,6 +71,7 @@ function model.getCurrentNeighbors(RFinfo)
     local host
     local remip=v['remoteIP']
     local remhost=nslookup(remip)
+    remip=iplookup(remhost)
     info[remip]={}
     info[remip]['olsrInterface']=v['olsrInterface']
     info[remip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])    -- RF or DTD or TUN
