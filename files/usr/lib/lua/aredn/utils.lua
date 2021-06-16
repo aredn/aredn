@@ -261,7 +261,7 @@ function iplookup(host)
 	local ip=nil
 	local shortname=nil
 	local nso=nil
-	if host:find("%.") then
+	if host:find("dtd.*%.") or host:find("mid%d%.") then
 		shortname=host:match("%.(.*)")
 	end
 	nso=capture("nslookup "..shortname)
