@@ -259,12 +259,11 @@ end
 
 function iplookup(host)
 	local ip=nil
-	local shortname=nil
 	local nso=nil
 	if host:find("dtd.*%.") or host:find("mid%d%.") then
 		shortname=host:match("%.(.*)")
 	end
-	nso=capture("nslookup "..shortname)
+	nso=capture("nslookup "..host)
 	ip=nso:match("Address 1: (.*)%c")
 	return ip
 end
