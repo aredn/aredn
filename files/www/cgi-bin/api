@@ -123,17 +123,17 @@ end
 
 function getRemoteNodes()
 	local info={}
-	
+
 	local mynode = aredn_info.getNodeName()
 	local allhosts = aredn_info.all_hosts()
 	local cn = aredn_olsr.getCurrentNeighbors()
 	local routes = aredn_olsr.getOLSRRoutes()
 	for k, v in pairs(allhosts) do
-		local node={}	
+		local node={}
 		-- skip currentneighbors, myself, and MID*. entries
 		for cnk, cnv in pairs(cn) do
-			if not (cnk == allhosts[k].ip or allhosts[k].name == mynode or (allhosts[k].name:match("^MID%d+%.") ~= nil)) then
-				node=allhosts[k]	
+			if not (cnk == allhosts[k].ip or allhosts[k].name == mynode or (allhosts[k].name:match("^mid%d+%.") ~= nil)) then
+				node=allhosts[k]
 			end
 		end
 
