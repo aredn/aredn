@@ -327,8 +327,8 @@ function model.all_hosts()
 				local ip, name=string.match(data,"^([%x%.%:]+)%s+(%S.*)\t%s*$")
 				if ip and name then
 					if not string.match(name,"^(dtdlink[.]).*") then
-						if not string.match(name,"^(mid[0-9][.]).*") then
-							host['name']=name:upper()
+						if not string.match(name,"^(mid%d+[.]).*") then
+							host['name']=name
 							host['ip']=ip
 							table.insert(hosts,host)
 						end
@@ -517,7 +517,7 @@ function model.getLocalCnxType(hostname)
 		return "Loopback"
 	elseif string.match(hostname,"dtdlink") then
 		return "DTD"
-	elseif hostname == string.lower( model.getNodeName() ) then
+	elseif hostname:lower() == string.lower( model.getNodeName() ) then
 		return "RF"
 	else
 		return "LAN"
@@ -531,9 +531,7 @@ function model.getLocalHosts()
 	local hosts, line
 	if nixio.fs.access("/etc/hosts") then
 		for line in io.lines("/etc/hosts") do
-			line = line:lower()
-			-- line is not a comment
-			local data = line:match("^([^#;]+)[#;]*(.*)$")
+			local data = line:match("^([^#;]+)[#;]*(.*)$")  -- line is not a comment
 			if data then
 				local hostname, entries
 				local ip, entries = data:match("^%s*([%[%]%x%.%:]+)%s+(%S.-%S)%s*$")
@@ -548,7 +546,7 @@ function model.getLocalHosts()
 					for hostname in entries:gmatch("%S+") do
 						hostname = string.gsub(hostname,".local.mesh$","")
 						entry["cnxtype"] = model.getLocalCnxType(hostname)
-						entry["hostnames"][index] = hostname:upper()
+						entry["hostnames"][index] = hostname
 						index = index + 1
 					end
 					hosts = hosts or { }
