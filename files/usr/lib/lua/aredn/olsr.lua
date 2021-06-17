@@ -66,55 +66,61 @@ end
 function model.getCurrentNeighbors(RFinfo)
   local RFinfo = RFinfo or false
   local info={}
-  local links=model.getOLSRLinks()
+  local links=model.getOLSRLinks()  -- Get info for all current neighbors
   for k,v in pairs(links) do
     local host
-    local remip=v['remoteIP']
-    local remhost=nslookup(remip)
-    info[remip]={}
-    info[remip]['olsrInterface']=v['olsrInterface']
-    info[remip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])    -- RF or DTD or TUN
-    info[remip]['linkQuality']=v['linkQuality']
-    info[remip]['neighborLinkQuality']=v['neighborLinkQuality']
-	  if remhost ~= nil then
-      host = string.lower(remhost)
-	  end
-	  if host ~= nil then
-    	host = string.gsub(host,"mid%d+.", "")
+    local linkip=v['remoteIP']
+
+    info[linkip]={}
+    info[linkip]['olsrInterface']=v['olsrInterface']
+    info[linkip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])  -- RF or DTD or TUN
+    info[linkip]['linkQuality']=v['linkQuality']
+    info[linkip]['neighborLinkQuality']=v['neighborLinkQuality']
+
+    local linkhost=nslookup(linkip) -- TOTO: stop using nslookup? use /var/run/olsr_hosts
+    if linkhost~=nil then
+      host = string.gsub(linkhost,"mid%d+.", "")
       host = string.gsub(host,"dtdlink%.", "")
       host = string.gsub(host,".local.mesh$","")
-    	info[remip]['hostname']=host
-	  else
-		  info[remip]['hostname']=remip
-	  end
-    
-    if info[remip]['linkType'] == "RF" and RFinfo then
-      -- get additional info for RF link
-		  require("iwinfo")
+      info[linkip]['hostname']=host
+    else
+      info[linkip]['hostname']=linkip
+    end
 
+    if info[linkip]['linkType'] == "RF" and RFinfo then  -- get additional info for RF link
+      require("iwinfo")
+      info[linkip]["rfip"] = linkip
       local radio = ai.getMeshRadioDevice()
       local bandwidth = tonumber(ai.getChannelBW(radio))
-		  local wlan=get_ifname('wifi')
-		  local RFneighbors=iwinfo['nl80211'].assoclist(wlan)
-		  local mac2node=mac2host()
-		  for i, mac_host in pairs(mac2node) do
-		  	local mac=string.match(mac_host, "^(.-)\-")
-			  mac=mac:upper()
-			  local node=string.match(mac_host, "\-(.*)")
-			  if host == node or remip == node then
-				  for stn in pairs(RFneighbors) do
-					  stnInfo=iwinfo['nl80211'].assoclist(wlan)[mac]
-					  if stnInfo ~= nil then
-						  info[remip]["signal"]=tonumber(stnInfo.signal)
-						  info[remip]["noise"]=tonumber(stnInfo.noise)
-						  info[remip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
-						  info[remip]["rx_rate"]=adjust_rate(stnInfo.rx_rate/1000,bandwidth)
-              info[remip]["expected_throughput"]=adjust_rate(stnInfo.expected_throughput/1000,bandwidth)
-					  end
-				  end
-			  end
-		  end
-	  end
+      local wlan=get_ifname('wifi')
+      local RFneighbors=iwinfo['nl80211'].assoclist(wlan)
+      local mac2node=mac2host()
+      for i, mac_host in pairs(mac2node) do
+        local mac=string.match(mac_host, "^(.-)\-")
+        mac=mac:upper()
+        local node=string.match(mac_host, "\-(.*)")  -- add error checking here?
+        if node == "" then node=linkhost end
+        if linkhost == node or linkip == node then
+          for stn in pairs(RFneighbors) do
+            stnInfo=iwinfo['nl80211'].assoclist(wlan)[mac]
+            if stnInfo ~= nil then
+              info[linkip]["signal"]=tonumber(stnInfo.signal)
+              info[linkip]["noise"]=tonumber(stnInfo.noise)
+              info[linkip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
+              info[linkip]["rx_rate"]=adjust_rate(stnInfo.rx_rate/1000,bandwidth)
+              info[linkip]["expected_throughput"]=adjust_rate(stnInfo.expected_throughput/1000,bandwidth)
+            end
+          end
+        end
+      end
+    else  -- Get RF IP for non-RF nodes to display services keyed to RF IP
+      local allhosts=ai.all_hosts()
+      for k,v in pairs(allhosts) do
+        if linkhost == v['name'] or host == v['name'] then
+          info[linkip]["rfip"]=v['ip']
+        end
+      end
+    end
   end
   return info
 end
