@@ -71,13 +71,15 @@ function model.getCurrentNeighbors(RFinfo)
     local host
     local linkip=v['remoteIP']
 
+    local linkhost=nslookup(linkip) -- TOTO: stop using nslookup? use /var/run/olsr_hosts
+    linkip=iplookup(linkhost)
+
     info[linkip]={}
     info[linkip]['olsrInterface']=v['olsrInterface']
     info[linkip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])  -- RF or DTD or TUN
     info[linkip]['linkQuality']=v['linkQuality']
     info[linkip]['neighborLinkQuality']=v['neighborLinkQuality']
 
-    local linkhost=nslookup(linkip) -- TOTO: stop using nslookup? use /var/run/olsr_hosts
     if linkhost~=nil then
       host = string.gsub(linkhost,"mid%d+.", "")
       host = string.gsub(host,"dtdlink%.", "")
