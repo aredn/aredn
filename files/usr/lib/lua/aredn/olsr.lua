@@ -111,16 +111,19 @@ function model.getCurrentNeighbors(RFinfo)
       local bandwidth = tonumber(ai.getChannelBW(radio))
       local wlan=get_ifname('wifi')
       local RFneighbors=iwinfo['nl80211'].assoclist(wlan)
-      local mac2node=mac2host()
-      for i, mac_host in pairs(mac2node) do
-        local mac=string.match(mac_host, "^(.-)\-")
+
+      arptable=capture('/bin/cat /proc/net/arp |grep wlan')
+      local lines=arptable:splitNewLine()
+      table.remove(lines, #lines) -- remove blank last line
+      for k1,v1 in pairs(lines) do
+        local field=v1:splitWhiteSpace()
+        local arpip=field[1]
+        local mac=field[4]
         mac=mac:upper()
-        local node=string.match(mac_host, "\-(.*)")
-        if node == "" then node=host end
-        if host == node or mainip == node then
+        if mac and arpip == mainip then
           for stn in pairs(RFneighbors) do
             stnInfo=iwinfo['nl80211'].assoclist(wlan)[mac]
-            if stnInfo ~= nil then
+            if stnInfo~=nil then
               info[mainip]["signal"]=tonumber(stnInfo.signal)
               info[mainip]["noise"]=tonumber(stnInfo.noise)
               info[mainip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
