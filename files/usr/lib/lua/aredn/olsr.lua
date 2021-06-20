@@ -112,7 +112,8 @@ function model.getCurrentNeighbors(RFinfo)
       local wlan=get_ifname('wifi')
       local RFneighbors=iwinfo['nl80211'].assoclist(wlan)
 
-      arptable=capture('/bin/cat /proc/net/arp |grep wlan')
+      arpquery = string.format("/bin/cat /proc/net/arp |grep %s", wlan)
+      arptable=capture(arpquery)
       local lines=arptable:splitNewLine()
       table.remove(lines, #lines) -- remove blank last line
       for k1,v1 in pairs(lines) do
