@@ -69,70 +69,74 @@ function model.getCurrentNeighbors(RFinfo)
   local links=model.getOLSRLinks()  -- Get info for all current neighbors
   for k,v in pairs(links) do
     local host=nslookup(v['remoteIP'])
-    local mainip=iplookup(host)
-    info[mainip]={}
+    if host then
+      local mainip=iplookup(host)
+      if mainip then
+        info[mainip]={}
 
-    if host~=nil then
-      host = string.gsub(host,"mid%d+.", "")
-      host = string.gsub(host,"dtdlink%.", "")
-      host = string.gsub(host,".local.mesh$","")
-      info[mainip]['hostname']=host
-    else
-      info[mainip]['hostname']=mainip
-    end
+        if host~=nil then
+          host = string.gsub(host,"mid%d+.", "")
+          host = string.gsub(host,"dtdlink%.", "")
+          host = string.gsub(host,".local.mesh$","")
+          info[mainip]['hostname']=host
+        else
+          info[mainip]['hostname']=mainip
+        end
 
-    info[mainip]['olsrInterface']=v['olsrInterface']
-    info[mainip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])  -- RF or DTD or TUN
-    info[mainip]['linkQuality']=v['linkQuality']
-    info[mainip]['neighborLinkQuality']=v['neighborLinkQuality']
+        info[mainip]['olsrInterface']=v['olsrInterface']
+        info[mainip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])  -- RF or DTD or TUN
+        info[mainip]['linkQuality']=v['linkQuality']
+        info[mainip]['neighborLinkQuality']=v['neighborLinkQuality']
 
-    -- additional info about each link
---    info[mainip]['validityTime']=v['validityTime']
---    info[mainip]['symmetryTime']=v['symmetryTime']
---    info[mainip]['asymmetryTime']=v['asymmetryTime']
---    info[mainip]['vtime']=v['vtime']
---    info[mainip]['currentLinkStatus']=v['currentLinkStatus']
---    info[mainip]['previousLinkStatus']=v['previousLinkStatus']
---    info[mainip]['hysteresis']=v['hysteresis']
---    info[mainip]['pending']=v['pending']
---    info[mainip]['lostLinkTime']=v['lostLinkTime']
---    info[mainip]['helloTime']=v['helloTime']
---    info[mainip]['lastHelloTime']=v['lastHelloTime']
---    info[mainip]['seqnoValid']=v['seqnoValid']
---    info[mainip]['seqno']=v['seqno']
---    info[mainip]['lossHelloInterval']=v['lossHelloInterval']
---    info[mainip]['lossTime']=v['lossTime']
---    info[mainip]['lossMultiplier']=v['lossMultiplier']
---    info[mainip]['linkCost']=v['linkCost']
+        -- additional info about each link
+        -- info[mainip]['validityTime']=v['validityTime']
+        -- info[mainip]['symmetryTime']=v['symmetryTime']
+        -- info[mainip]['asymmetryTime']=v['asymmetryTime']
+        -- info[mainip]['vtime']=v['vtime']
+        -- info[mainip]['currentLinkStatus']=v['currentLinkStatus']
+        -- info[mainip]['previousLinkStatus']=v['previousLinkStatus']
+        -- info[mainip]['hysteresis']=v['hysteresis']
+        -- info[mainip]['pending']=v['pending']
+        -- info[mainip]['lostLinkTime']=v['lostLinkTime']
+        -- info[mainip]['helloTime']=v['helloTime']
+        -- info[mainip]['lastHelloTime']=v['lastHelloTime']
+        -- info[mainip]['seqnoValid']=v['seqnoValid']
+        -- info[mainip]['seqno']=v['seqno']
+        -- info[mainip]['lossHelloInterval']=v['lossHelloInterval']
+        -- info[mainip]['lossTime']=v['lossTime']
+        -- info[mainip]['lossMultiplier']=v['lossMultiplier']
+        -- info[mainip]['linkCost']=v['linkCost']
 
-    if info[mainip]['linkType'] == "RF" and RFinfo then
-      require("iwinfo")
-      local radio = ai.getMeshRadioDevice()
-      local bandwidth = tonumber(ai.getChannelBW(radio))
-      local RFinterface=get_ifname('wifi')
-      local arptable=capture("/bin/cat /proc/net/arp |grep "..RFinterface)
-      local lines=arptable:splitNewLine()
-      table.remove(lines, #lines) -- remove blank last line
-      for k1,v1 in pairs(lines) do
-        local field=v1:splitWhiteSpace()
-        local arpip=field[1]
-        local mac=field[4]
-        mac=mac:upper()
-        if mac and arpip == mainip then
-            stnInfo=iwinfo['nl80211'].assoclist(RFinterface)[mac]
-            if stnInfo~=nil then
-              info[mainip]["signal"]=tonumber(stnInfo.signal)
-              info[mainip]["noise"]=tonumber(stnInfo.noise)
-              if stnInfo.tx_rate then
-                info[mainip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
-              end
-              if stnInfo.rx_rate then
-                info[mainip]["rx_rate"]=adjust_rate(stnInfo.rx_rate/1000,bandwidth)
-              end
-              if stnInfo.expected_throughput then
-                info[mainip]["expected_throughput"]=adjust_rate(stnInfo.expected_throughput/1000,bandwidth)
+        if info[mainip]['linkType'] == "RF" and RFinfo then
+          require("iwinfo")
+          local radio = ai.getMeshRadioDevice()
+          local bandwidth = tonumber(ai.getChannelBW(radio))
+          local RFinterface=get_ifname('wifi')
+          local arptable=capture("/bin/cat /proc/net/arp |grep "..RFinterface)
+          local lines=arptable:splitNewLine()
+          table.remove(lines, #lines) -- remove blank last line
+          for k1,v1 in pairs(lines) do
+            local field=v1:splitWhiteSpace()
+            local arpip=field[1]
+            local mac=field[4]
+            mac=mac:upper()
+            if mac and arpip == mainip then
+              stnInfo=iwinfo['nl80211'].assoclist(RFinterface)[mac]
+              if stnInfo~=nil then
+                info[mainip]["signal"]=tonumber(stnInfo.signal)
+                info[mainip]["noise"]=tonumber(stnInfo.noise)
+                if stnInfo.tx_rate then
+                  info[mainip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
+                end
+                if stnInfo.rx_rate then
+                  info[mainip]["rx_rate"]=adjust_rate(stnInfo.rx_rate/1000,bandwidth)
+                end
+                if stnInfo.expected_throughput then
+                  info[mainip]["expected_throughput"]=adjust_rate(stnInfo.expected_throughput/1000,bandwidth)
+                end
               end
             end
+          end
         end
       end
     end
