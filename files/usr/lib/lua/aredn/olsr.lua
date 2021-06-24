@@ -87,33 +87,30 @@ function model.getCurrentNeighbors(RFinfo)
     info[mainip]['neighborLinkQuality']=v['neighborLinkQuality']
 
     -- additional info about each link
-    info[mainip]['validityTime']=v['validityTime']
-    info[mainip]['symmetryTime']=v['symmetryTime']
-    info[mainip]['asymmetryTime']=v['asymmetryTime']
-    info[mainip]['vtime']=v['vtime']
-    info[mainip]['currentLinkStatus']=v['currentLinkStatus']
-    info[mainip]['previousLinkStatus']=v['previousLinkStatus']
-    info[mainip]['hysteresis']=v['hysteresis']
-    info[mainip]['pending']=v['pending']
-    info[mainip]['lostLinkTime']=v['lostLinkTime']
-    info[mainip]['helloTime']=v['helloTime']
-    info[mainip]['lastHelloTime']=v['lastHelloTime']
-    info[mainip]['seqnoValid']=v['seqnoValid']
-    info[mainip]['seqno']=v['seqno']
-    info[mainip]['lossHelloInterval']=v['lossHelloInterval']
-    info[mainip]['lossTime']=v['lossTime']
-    info[mainip]['lossMultiplier']=v['lossMultiplier']
-    info[mainip]['linkCost']=v['linkCost']
+--    info[mainip]['validityTime']=v['validityTime']
+--    info[mainip]['symmetryTime']=v['symmetryTime']
+--    info[mainip]['asymmetryTime']=v['asymmetryTime']
+--    info[mainip]['vtime']=v['vtime']
+--    info[mainip]['currentLinkStatus']=v['currentLinkStatus']
+--    info[mainip]['previousLinkStatus']=v['previousLinkStatus']
+--    info[mainip]['hysteresis']=v['hysteresis']
+--    info[mainip]['pending']=v['pending']
+--    info[mainip]['lostLinkTime']=v['lostLinkTime']
+--    info[mainip]['helloTime']=v['helloTime']
+--    info[mainip]['lastHelloTime']=v['lastHelloTime']
+--    info[mainip]['seqnoValid']=v['seqnoValid']
+--    info[mainip]['seqno']=v['seqno']
+--    info[mainip]['lossHelloInterval']=v['lossHelloInterval']
+--    info[mainip]['lossTime']=v['lossTime']
+--    info[mainip]['lossMultiplier']=v['lossMultiplier']
+--    info[mainip]['linkCost']=v['linkCost']
 
     if info[mainip]['linkType'] == "RF" and RFinfo then
       require("iwinfo")
       local radio = ai.getMeshRadioDevice()
       local bandwidth = tonumber(ai.getChannelBW(radio))
-      local wlan=get_ifname('wifi')
-      local RFneighbors=iwinfo['nl80211'].assoclist(wlan)
-
-      arpquery = string.format("/bin/cat /proc/net/arp |grep %s", wlan)
-      arptable=capture(arpquery)
+      local RFinterface=get_ifname('wifi')
+      local arptable=capture("/bin/cat /proc/net/arp |grep "..RFinterface)
       local lines=arptable:splitNewLine()
       table.remove(lines, #lines) -- remove blank last line
       for k1,v1 in pairs(lines) do
@@ -122,16 +119,20 @@ function model.getCurrentNeighbors(RFinfo)
         local mac=field[4]
         mac=mac:upper()
         if mac and arpip == mainip then
-          for stn in pairs(RFneighbors) do
-            stnInfo=iwinfo['nl80211'].assoclist(wlan)[mac]
+            stnInfo=iwinfo['nl80211'].assoclist(RFinterface)[mac]
             if stnInfo~=nil then
               info[mainip]["signal"]=tonumber(stnInfo.signal)
               info[mainip]["noise"]=tonumber(stnInfo.noise)
-              info[mainip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
-              info[mainip]["rx_rate"]=adjust_rate(stnInfo.rx_rate/1000,bandwidth)
-              info[mainip]["expected_throughput"]=adjust_rate(stnInfo.expected_throughput/1000,bandwidth)
+              if stnInfo.tx_rate then
+                info[mainip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
+              end
+              if stnInfo.rx_rate then
+                info[mainip]["rx_rate"]=adjust_rate(stnInfo.rx_rate/1000,bandwidth)
+              end
+              if stnInfo.expected_throughput then
+                info[mainip]["expected_throughput"]=adjust_rate(stnInfo.expected_throughput/1000,bandwidth)
+              end
             end
-          end
         end
       end
     end
@@ -144,3 +145,4 @@ function model.getServicesByNode(node)
 end
 
 return model
+
