@@ -261,7 +261,7 @@ end
 -- Returns first IP of given host
 -------------------------------------
 function iplookup(host)
-	if host:find("dtd.*%.") or host:find("mid%d%.") then
+	if host:find("dtd.*%.") or host:find("mid%d+%.") then
 		host=host:match("%.(.*)")
 	end
 	local nso=capture("nslookup "..host)
