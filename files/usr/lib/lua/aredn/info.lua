@@ -525,16 +525,15 @@ function model.getLocalHosts()
     data = v:splitWhiteSpace()
     local ip = data[1]
     local hostname = data[2]
-    if ip~=nil and hostname~=nil then
-      if hostname:lower() == string.lower( model.getNodeName() ) then
-        cnxtype = "RF"
-      else
-        cnxtype = "LAN"
-      end
+    if ip and hostname then
       local entry = {}
       entry['ip'] = ip
       entry['hostname'] = hostname
-      entry['cnxtype'] = cnxtype
+      if hostname:lower() == string.lower( model.getNodeName() ) then
+        entry['cnxtype'] = "RF"
+      else
+        entry['cnxtype'] = "LAN"
+      end
       table.insert(localhosts, entry)
     end
   end
