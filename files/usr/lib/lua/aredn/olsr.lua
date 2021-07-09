@@ -89,23 +89,23 @@ function model.getCurrentNeighbors(RFinfo)
         info[mainip]['neighborLinkQuality']=v['neighborLinkQuality']
 
         -- additional info about each link
-        -- info[mainip]['validityTime']=v['validityTime']
-        -- info[mainip]['symmetryTime']=v['symmetryTime']
-        -- info[mainip]['asymmetryTime']=v['asymmetryTime']
-        -- info[mainip]['vtime']=v['vtime']
-        -- info[mainip]['currentLinkStatus']=v['currentLinkStatus']
-        -- info[mainip]['previousLinkStatus']=v['previousLinkStatus']
-        -- info[mainip]['hysteresis']=v['hysteresis']
-        -- info[mainip]['pending']=v['pending']
-        -- info[mainip]['lostLinkTime']=v['lostLinkTime']
-        -- info[mainip]['helloTime']=v['helloTime']
-        -- info[mainip]['lastHelloTime']=v['lastHelloTime']
-        -- info[mainip]['seqnoValid']=v['seqnoValid']
-        -- info[mainip]['seqno']=v['seqno']
-        -- info[mainip]['lossHelloInterval']=v['lossHelloInterval']
-        -- info[mainip]['lossTime']=v['lossTime']
-        -- info[mainip]['lossMultiplier']=v['lossMultiplier']
-        -- info[mainip]['linkCost']=v['linkCost']
+        info[mainip]['validityTime']=v['validityTime']
+        info[mainip]['symmetryTime']=v['symmetryTime']
+        info[mainip]['asymmetryTime']=v['asymmetryTime']
+        info[mainip]['vtime']=v['vtime']
+        info[mainip]['currentLinkStatus']=v['currentLinkStatus']
+        info[mainip]['previousLinkStatus']=v['previousLinkStatus']
+        info[mainip]['hysteresis']=v['hysteresis']
+        info[mainip]['pending']=v['pending']
+        info[mainip]['lostLinkTime']=v['lostLinkTime']
+        info[mainip]['helloTime']=v['helloTime']
+        info[mainip]['lastHelloTime']=v['lastHelloTime']
+        info[mainip]['seqnoValid']=v['seqnoValid']
+        info[mainip]['seqno']=v['seqno']
+        info[mainip]['lossHelloInterval']=v['lossHelloInterval']
+        info[mainip]['lossTime']=v['lossTime']
+        info[mainip]['lossMultiplier']=v['lossMultiplier']
+        info[mainip]['linkCost']=v['linkCost']
 
         if info[mainip]['linkType'] == "RF" and RFinfo then
           require("iwinfo")
@@ -149,4 +149,3 @@ function model.getServicesByNode(node)
 end
 
 return model
-
