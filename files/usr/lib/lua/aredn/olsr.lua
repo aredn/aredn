@@ -68,56 +68,75 @@ function model.getCurrentNeighbors(RFinfo)
   local info={}
   local links=model.getOLSRLinks()  -- Get info for all current neighbors
   for k,v in pairs(links) do
-    local host
-    local linkip=v['remoteIP']
+    local host=nslookup(v['remoteIP'])
+    if host then
+      local mainip=iplookup(host)
+      if mainip then
+        info[mainip]={}
 
-    info[linkip]={}
-    info[linkip]['olsrInterface']=v['olsrInterface']
-    info[linkip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])  -- RF or DTD or TUN
-    info[linkip]['linkQuality']=v['linkQuality']
-    info[linkip]['neighborLinkQuality']=v['neighborLinkQuality']
+        if host~=nil then
+          host = string.gsub(host,"mid%d+.", "")
+          host = string.gsub(host,"dtdlink%.", "")
+          host = string.gsub(host,".local.mesh$","")
+          info[mainip]['hostname']=host
+        else
+          info[mainip]['hostname']=mainip
+        end
 
-    local linkhost=nslookup(linkip) -- TOTO: stop using nslookup? use /var/run/olsr_hosts
-    if linkhost~=nil then
-      host = string.gsub(linkhost,"mid%d+.", "")
-      host = string.gsub(host,"dtdlink%.", "")
-      host = string.gsub(host,".local.mesh$","")
-      info[linkip]['hostname']=host
-    else
-      info[linkip]['hostname']=linkip
-    end
+        info[mainip]['olsrInterface']=v['olsrInterface']
+        info[mainip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])  -- RF or DTD or TUN
+        info[mainip]['linkQuality']=v['linkQuality']
+        info[mainip]['neighborLinkQuality']=v['neighborLinkQuality']
 
-    if info[linkip]['linkType'] == "RF" and RFinfo then  -- get additional info for RF link
-      require("iwinfo")
-      info[linkip]["rfip"] = linkip
-      local radio = ai.getMeshRadioDevice()
-      local bandwidth = tonumber(ai.getChannelBW(radio))
-      local wlan=get_ifname('wifi')
-      local RFneighbors=iwinfo['nl80211'].assoclist(wlan)
-      local mac2node=mac2host()
-      for i, mac_host in pairs(mac2node) do
-        local mac=string.match(mac_host, "^(.-)\-")
-        mac=mac:upper()
-        local node=string.match(mac_host, "\-(.*)")  -- add error checking here?
-        if node == "" then node=linkhost end
-        if linkhost == node or linkip == node then
-          for stn in pairs(RFneighbors) do
-            stnInfo=iwinfo['nl80211'].assoclist(wlan)[mac]
-            if stnInfo ~= nil then
-              info[linkip]["signal"]=tonumber(stnInfo.signal)
-              info[linkip]["noise"]=tonumber(stnInfo.noise)
-              info[linkip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
-              info[linkip]["rx_rate"]=adjust_rate(stnInfo.rx_rate/1000,bandwidth)
-              info[linkip]["expected_throughput"]=adjust_rate(stnInfo.expected_throughput/1000,bandwidth)
+        -- additional info about each link
+        info[mainip]['validityTime']=v['validityTime']
+        info[mainip]['symmetryTime']=v['symmetryTime']
+        info[mainip]['asymmetryTime']=v['asymmetryTime']
+        info[mainip]['vtime']=v['vtime']
+        info[mainip]['currentLinkStatus']=v['currentLinkStatus']
+        info[mainip]['previousLinkStatus']=v['previousLinkStatus']
+        info[mainip]['hysteresis']=v['hysteresis']
+        info[mainip]['pending']=v['pending']
+        info[mainip]['lostLinkTime']=v['lostLinkTime']
+        info[mainip]['helloTime']=v['helloTime']
+        info[mainip]['lastHelloTime']=v['lastHelloTime']
+        info[mainip]['seqnoValid']=v['seqnoValid']
+        info[mainip]['seqno']=v['seqno']
+        info[mainip]['lossHelloInterval']=v['lossHelloInterval']
+        info[mainip]['lossTime']=v['lossTime']
+        info[mainip]['lossMultiplier']=v['lossMultiplier']
+        info[mainip]['linkCost']=v['linkCost']
+
+        if info[mainip]['linkType'] == "RF" and RFinfo then
+          require("iwinfo")
+          local radio = ai.getMeshRadioDevice()
+          local bandwidth = tonumber(ai.getChannelBW(radio))
+          local RFinterface=get_ifname('wifi')
+          local arptable=capture("/bin/cat /proc/net/arp |grep "..RFinterface)
+          local lines=arptable:splitNewLine()
+          table.remove(lines, #lines) -- remove blank last line
+          for k1,v1 in pairs(lines) do
+            local field=v1:splitWhiteSpace()
+            local arpip=field[1]
+            local mac=field[4]
+            mac=mac:upper()
+            if mac and arpip == mainip then
+              stnInfo=iwinfo['nl80211'].assoclist(RFinterface)[mac]
+              if stnInfo~=nil then
+                info[mainip]["signal"]=tonumber(stnInfo.signal)
+                info[mainip]["noise"]=tonumber(stnInfo.noise)
+                if stnInfo.tx_rate then
+                  info[mainip]["tx_rate"]=adjust_rate(stnInfo.tx_rate/1000,bandwidth)
+                end
+                if stnInfo.rx_rate then
+                  info[mainip]["rx_rate"]=adjust_rate(stnInfo.rx_rate/1000,bandwidth)
+                end
+                if stnInfo.expected_throughput then
+                  info[mainip]["expected_throughput"]=adjust_rate(stnInfo.expected_throughput/1000,bandwidth)
+                end
+              end
             end
           end
-        end
-      end
-    else  -- Get RF IP for non-RF nodes to display services keyed to RF IP
-      local allhosts=ai.all_hosts()
-      for k,v in pairs(allhosts) do
-        if linkhost == v['name'] or host == v['name'] then
-          info[linkip]["rfip"]=v['ip']
         end
       end
     end
