@@ -380,6 +380,8 @@ for page, comps in pairs(qsset) do
 				info['pages'][page][comp]=aredn_info.all_services()
 			elseif comp=="previousneighbors" then
 				info['pages'][page][comp]={}
+			elseif comp=="topology" then
+				info['pages'][page][comp]=fetch_json("http://127.0.0.1:9090/topology")
 			end
 		end
 	elseif page=="services" then
