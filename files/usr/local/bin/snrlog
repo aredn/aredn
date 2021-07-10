@@ -85,13 +85,13 @@ function Neighbor.create(macaddress)
 
   n.ip=n:findIp()
   n.hostname=n:findHostname()
-  n.signal=n:findSignal()
-  n.noise=n:findNoise()
-  n.tx_mcs=n:findTxMcs()
-  n.tx_rate=n:findTxRate()
-  n.rx_mcs=n:findRxMcs()
-  n.rx_rate=n:findRxRate()
-  n.lastseen=n:findLastTime()
+  n.signal=n:findSignal() or ""
+  n.noise=n:findNoise() or ""
+  n.tx_mcs=n:findTxMcs() or ""
+  n.tx_rate=n:findTxRate() or ""
+  n.rx_mcs=n:findRxMcs() or ""
+  n.rx_rate=n:findRxRate() or ""
+  n.lastseen=n:findLastTime() or now
   -- check if auto-distance reset is required (new node)
   local efn=n:getExistingDataFileName()
   if efn==nil or ((now-n.lastseen) > 100) then  -- NEW or not recently seen node
