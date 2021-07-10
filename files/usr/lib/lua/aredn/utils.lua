@@ -51,6 +51,8 @@ function adjust_rate(r,b)
 		ar=round2(r/4,1)
 	elseif b==10 then
 		ar=round2(r/2,1)
+	else
+		ar=round2(r/1,1)
 	end
 	return ar
 end
