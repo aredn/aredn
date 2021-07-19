@@ -46,7 +46,7 @@ $(OPENWRT_DIR): .stamp-openwrt-removed
 
 # clean up openwrt working copy
 openwrt-clean: stamp-clean-openwrt-cleaned .stamp-openwrt-cleaned
-.stamp-openwrt-cleaned: | $(OPENWRT_DIR) 
+.stamp-openwrt-cleaned: | $(OPENWRT_DIR)
 	cd $(OPENWRT_DIR); \
 	  ./scripts/feeds clean && \
 	  git clean -dff && git fetch && git reset --hard HEAD && \
@@ -100,6 +100,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-jsonc
 	cd $(OPENWRT_DIR); ./scripts/feeds install luaposix
 	cd $(OPENWRT_DIR); ./scripts/feeds install luasocket
+	cd $(OPENWRT_DIR); ./scripts/feeds install mmc-utils
 	touch $@
 
 # prepare patch
