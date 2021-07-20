@@ -78,7 +78,8 @@ sub save_clients()
 
         # generate the VTUN NODE name based on the node name and netip
         $net=~ s/\./\-/g;
-        my $vtun_node_name=$parms{"client${i}_name"} . "-" . $net;
+	#VTUN NODE name must not be more than 23 chars long to avoid username limits!
+        my $vtun_node_name=substr($parms{"client${i}_name"},0,23) . "-" . $net;
         $rc=&uci_set_named_option("vtun","client_$i","clientip",$clientip);
         push(@cli_err,"Problem saving UCI vtun client client IP (#$i): $rc") if $rc;
 
