@@ -44,6 +44,10 @@ $config = nvram_get("config");
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
 
+#truncate node name down to 23 chars (max) to avoid vtun issues
+#this becomes the vtun "username"
+$node = substr($node,0,23);
+
 read_postdata();
 
 #################################
