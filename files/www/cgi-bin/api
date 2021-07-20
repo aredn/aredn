@@ -121,38 +121,31 @@ function get_key_for_value( t, value )
   return nil
 end
 
-
 function getRemoteNodes()
 	local info={}
-
-	local mynode = aredn_info.getNodeName()
-	local allhosts = aredn_info.all_hosts()
-	local cn = aredn_olsr.getCurrentNeighbors()
-	local routes = aredn_olsr.getOLSRRoutes()
-	for k, v in pairs(allhosts) do
-		local node={}
-		-- skip currentneighbors, myself, and MID*. entries
-		for cnk, cnv in pairs(cn) do
-			if not (cnk == allhosts[k].ip or allhosts[k].name == mynode or (allhosts[k].name:match("^mid%d+%.") ~= nil)) then
-				node=allhosts[k]
-			end
-		end
-
-		-- add etx from routes table
-		for rk, rv in pairs(routes) do
-			if rv['destination'] == node.ip then
-				node['etx']=tostring(round2(routes[rk].etx, 2))
-			end
-		end
-
-		if setContains(node,"etx") then		-- ie.  skip HOSTnames, only NODES
-			table.insert(info, node)
-		end
+  local allhosts = aredn_info.all_hosts()
+  local cn = aredn_olsr.getCurrentNeighbors()
+  local routes = aredn_olsr.getOLSRRoutes()
+  for k, v in pairs(allhosts) do
+    for rk, rv in pairs(routes) do  -- add etx from routes table
+      if rv['destination'] == allhosts[k].ip then
+        allhosts[k]['etx']=tostring(round2(routes[rk].etx, 2))
+      end
+    end
+    if setContains(allhosts[k],"etx") then  -- only include nodes with etx
+      table.insert(info, allhosts[k])
+    end
+  end
+  for k, v in pairs(info) do
+    for cnk, cnv in pairs(cn) do  -- remove currentneighbors
+      if cnk == info[k].ip then
+        table.remove(info, k)
+      end
+    end
 	end
-	table.sort( info, function(a,b) return tonumber(a.etx) < tonumber(b.etx) end)
-	return info
+  table.sort( info, function(a,b) return tonumber(a.etx) < tonumber(b.etx) end)
+  return info
 end
-
 
 -- gets signal and noise data from either iwinfo (realtime = true) or the files archived in /tmp/snrlog (realtime = false)
 -- the files in /tmp/snrlog are written once per minute by the script /usr/local/bin/snrlog
