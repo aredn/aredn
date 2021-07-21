@@ -289,16 +289,18 @@ function getTraceroute(target)
 	for i,v in pairs(lines) do
 		data = v:splitWhiteSpace()
 		entry = {}
-		node = data[2]:gsub("^mid[0-9]*%.","") 	-- strip midXX.
-		node = node:gsub("^dtdlink%.","")		-- strip dtdlink.
-		node = node:gsub("%.local%.mesh$","")	-- strip .local.mesh
-		entry['nodename'] = node
-		ip = data[3]:match("%((.*)%)")
-		entry['ip'] = ip
-		entry['timeto'] = round2(data[4])
-		entry['timedelta'] = math.abs(round2(data[4] - priortime))
-		priortime = round2(data[4])
-		table.insert(routes, entry)
+		if data[2] ~= "*" then
+			node = data[2]:gsub("^mid[0-9]*%.","") 	-- strip midXX.
+			node = node:gsub("^dtdlink%.","")		-- strip dtdlink.
+			node = node:gsub("%.local%.mesh$","")	-- strip .local.mesh
+			entry['nodename'] = node
+			ip = data[3]:match("%((.*)%)")
+			entry['ip'] = ip
+			entry['timeto'] = round2(data[4])
+			entry['timedelta'] = math.abs(round2(data[4] - priortime))
+			priortime = round2(data[4])
+			table.insert(routes, entry)
+		end
 	end
 	return routes
 end

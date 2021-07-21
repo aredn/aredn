@@ -90,6 +90,14 @@ function model.getNodeName()
 end
 
 -------------------------------------
+-- Returns tactical name of the node
+-------------------------------------
+function model.getTacticalName()
+	css=aredn_uci.getNonStandardUciConfType("/etc/local/uci/", "hsmmmesh", "settings")
+	return css[1]['tactical']
+end
+
+-------------------------------------
 -- Returns description of the node
 -------------------------------------
 function model.getNodeDescription()
