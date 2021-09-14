@@ -1501,6 +1501,15 @@ sub hardware_info
       'usechains'       => 1,
       'rfband'          => '5800ubntus',
     },
+    '0xe112' => {
+      'name'            => 'Rocket M2 with USB',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '18',
+      'pwroffset'       => '10',
+      'usechains'       => 1,
+      'rfband'          => '2400',
+    },
     '0xe1b2' => {
       'name'            => 'Rocket M2',
       'comment'         => '',
