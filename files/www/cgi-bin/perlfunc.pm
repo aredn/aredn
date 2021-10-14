@@ -974,6 +974,15 @@ sub hardware_boardid
 sub hardware_info
 {
   %model = (
+      'Meraki MR18' => {
+      'name'            => 'Meraki MR18',
+      'comment'         => '',
+      'supported'       => '-1',
+      'maxpower'        => '21',
+      'pwroffset'       => '0',
+      'usechains'       => 0,
+      'rfband'          => '2400',
+    },
     'Meraki MR16' => {
       'name'            => 'Meraki MR16',
       'comment'         => '',
