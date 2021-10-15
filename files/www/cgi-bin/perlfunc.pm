@@ -978,7 +978,7 @@ sub hardware_info
       'name'            => 'Meraki MR18',
       'comment'         => '',
       'supported'       => '-1',
-      'maxpower'        => '21',
+      'maxpower'        => '24',
       'pwroffset'       => '0',
       'usechains'       => 0,
       'rfband'          => '2400',
