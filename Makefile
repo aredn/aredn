@@ -147,7 +147,7 @@ compile: stamp-clean-compiled .stamp-compiled
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
 	for FILE in `find $(TOP_DIR)/firmware/targets/ -path "*packages" -prune -o \( -type f -a \
 	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin" -o -name "*initramfs.elf" -o \
-	  -name sha256sums -o -name "*.buildinfo" \) \
+	  -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
 	done;
 	for FILE in `find $(TOP_DIR)/firmware/targets/ -type f -a \
