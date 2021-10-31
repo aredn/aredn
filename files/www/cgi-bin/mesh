@@ -156,7 +156,7 @@ foreach(`echo /lin | nc 127.0.0.1 2006 2>>$tmperr`)
     $links{$ip} = {
         lq => $lq,
         nlq => $nlq,
-        mbps => "0.0"
+        mbps => ""
     };
     $neighbor{$ip} = 1;
 
@@ -184,10 +184,7 @@ foreach(`echo /lin | nc 127.0.0.1 2006 2>>$tmperr`)
                 $mbps = $1*$3/100;
             }
         }
-        if ($mbps)
-        {
-            $links{$ip}{mbps} = sprintf "%.1f",$mbps / $chanbw;
-        }
+        $links{$ip}{mbps} = $mbps ? sprintf "%.1f", $mbps / $chanbw : "0.0";
     }
 }
 foreach(`echo /hna | nc 127.0.0.1 2006 2>>$tmperr`)
