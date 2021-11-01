@@ -445,20 +445,20 @@ print "<tr><td>&nbsp;</td></tr>\n";
 print "<tr><th align=left><nobr>Remote Nodes</nobr></th><th>&nbsp;&nbsp;</th><th>ETX</th><th>&nbsp;&nbsp;</th><th align=left>Services</th></tr>\n";
 print "<tr><td colspan=5><hr></td></tr>\n";
 
-%rows = ();
-foreach $ip (keys %hosts)
+my $row;
+foreach $ip (sort { $hosts{$a}{etx} <=> $hosts{$b}{etx} } keys %hosts)
 {
     next if $neighbor{$ip};
-    $host = $hosts{$ip}{name};
+    my $host = $hosts{$ip}{name};
     next unless $host;
-    $localpart = $host =~ s/.local.mesh//r;
-    $tactical = $hosts{$ip}{tactical} ? " / " . $hosts{$ip}{tactical} : "";
-    $etx = sprintf "%.2f", $hosts{$ip}{etx};
+    my $localpart = $host =~ s/.local.mesh//r;
+    my $tactical = $hosts{$ip}{tactical} ? " / " . $hosts{$ip}{tactical} : "";
+    my $etx = sprintf "%.2f", $hosts{$ip}{etx};
 
     $row  = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $localpart . $tactical;
 
-    undef $nodeiface;
-    $mcount = 0 + $midcount{$ip};
+    my $nodeiface;
+    my $mcount = 0 + $midcount{$ip};
     if ( $dtd{$ip} ) { $mcount -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
     if ( $hosts{$ip}{tactical} ) { $mcount -= 1; } # extra mid entry if tactical name defined
     if ( $mcount > 0 ) { $nodeiface = "tun*$mcount" ;  }
@@ -476,7 +476,7 @@ foreach $ip (keys %hosts)
     # add advertised dmz hosts
     foreach $dmzhost (@{$hosts{$ip}{hosts}})
     {
-        $localpart = $dmzhost =~ s/.local.mesh//r;
+        my $localpart = $dmzhost =~ s/.local.mesh//r;
 	$row .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>";
 	$row .= "<td colspan=3></td><td>\n";
 	foreach(sort keys %{$services{$dmzhost}})
@@ -485,16 +485,12 @@ foreach $ip (keys %hosts)
 	}
 	$row .= "</td></tr>\n";
     }
-    $rows{$ip}=$row;
+    print $row;
 }
 
 undef %neighbor;
 
-if(keys %rows)
-{
-    foreach(sort { $hosts{$a}{etx} <=> $hosts{$b}{etx} } keys %rows) { print $rows{$_} }
-}
-else
+if(!$row)
 {
     print "<tr><td>none</td></tr>\n";
 }
