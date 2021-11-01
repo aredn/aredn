@@ -158,6 +158,7 @@ if ($olsrTotal > $lowMemoryLimits{routes} and get_available_mem() < $lowMemoryLi
       delete $routes{$_};
     }
 }
+@arps = `grep ${wifiif} /proc/net/arp | grep -v "00:00:00:00:00:00"`;
 foreach(`echo /lin | nc 127.0.0.1 2006 2>>$tmperr`)
 {
     next if /^\D/;
@@ -169,14 +170,15 @@ foreach(`echo /lin | nc 127.0.0.1 2006 2>>$tmperr`)
     };
     $neighbor{$ip} = 1;
 
-    my $mac = `grep $ip /proc/net/arp | grep ${wifiif} | grep -v "00:00:00:00:00:00" | head -1`;
+    my ($mac) = grep /^$ip/, @arps;
     $mac =~ s/^.*(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w).*$/$1/;
     chomp $mac;
 
-    if ( $mac and -e "/sys/kernel/debug/ieee80211/${phy}/netdev:${wifiif}/stations/$mac" )
+    my @csv = `cat /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv 2>/dev/null`;
+    if ( $mac and @csv )
     {
 	#802.11b/n
-	my $mbps = `egrep '^([^,]*,){3}A' /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
+    my ($mbps) = grep /^([^,]*,){3}A/, @csv;
 	if ($mbps)
 	{
 		my ($gi, $dummy, $rate, $dummy, $ewma) = $mbps =~ /^[^,]*,([^,]*),([^,]*,){2}([^,]*),([^,]*,){4}([^,]*).*$/ ;
@@ -186,7 +188,7 @@ foreach(`echo /lin | nc 127.0.0.1 2006 2>>$tmperr`)
 	else
 	{
 		#802.11a/b/g
-		$mbps = `egrep \"^A" /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
+        ($mbps) = grep /^A/, @csv;
 		if ($mbps)
 		{
 		$mbps =~ /^[^,]*,([^,]*),([^,]*,){4}([^,]*).*$/;
