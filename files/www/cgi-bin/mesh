@@ -89,6 +89,17 @@ use perlfunc;
         routes => 1000,
 );
 
+sub get_available_mem
+{
+  foreach(`free`)
+  {
+    next unless /^Mem[:]/;
+    my @tmp = split /\s+/, $_;
+    return $tmp[6];
+  }
+  return "N/A";
+}
+
 # collect some variables
 $node = nvram_get("node");
 $node = "NOCALL" if $node eq "";
@@ -140,7 +151,7 @@ foreach(`echo /rou | nc 127.0.0.1 2006 2>>$tmperr`)
     ($net, $cidr) = split /\//, $ip;
     if ( $etx <= 50 ) { $routes{$net}{etx} = $etx; }
 }
-if ($olsrTotal > $lowMemoryLimits{routes} and get_free_mem() < $lowMemoryLimits{memory})
+if ($olsrTotal > $lowMemoryLimits{routes} and get_available_mem() < $lowMemoryLimits{memory})
 {
     @oroutes = sort { $routes{$a}{etx} <=> $routes{$b}{etx} } keys %routes;
     foreach ( @oroutes[$lowMemoryLimits{routes} .. $#oroutes] )
