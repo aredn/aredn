@@ -481,9 +481,12 @@ foreach $ip (keys %hosts)
     $sortrows{$ip}=$host;
 }
 
+undef %neighbor;
+
 if(keys %rows)
 {
     foreach(sort { $hosts{$a}{etx} <=> $hosts{$b}{etx} } keys %sortrows) { print $rows{$sortrows{$_}} }
+    undef %sortrows;
 }
 else
 {
@@ -552,6 +555,7 @@ else
     print "<tr><td>none</td></tr>\n";
 }
 
+undef %services;
 
 # show previous neighbors
 
