@@ -125,7 +125,7 @@ system "rm -f /tmp/web/automesh" if $parms{stop};
 #get location info if available
 $lat_lon = "<strong>Location Not Available</strong>";
 if(-f "/etc/latlon") {
-    $rcgood=open(FILE, "/etc/latlon");
+    my $rcgood=open(FILE, "/etc/latlon");
     if($rcgood) {
         while(<FILE>){
             chomp;
@@ -141,29 +141,27 @@ $node_desc = `/sbin/uci -q get system.\@system[0].description`; #pull the node d
 
 # parse the txtinfo output
 
-$table = "none";
 chomp($tmperr = `mktemp /tmp/web/nc.XXXXXX`);
 
 foreach(`echo /rou | nc 127.0.0.1 2006 2>>$tmperr`)
 {
     next if /^\D/;
-    ($ip, $junk, $junk, $etx) = split /\s+/, $_;
-    ($net, $cidr) = split /\//, $ip;
+    my ($ip, $junk, $junk, $etx) = split /\s+/, $_;
+    my ($net, $cidr) = split /\//, $ip;
     if ( $etx <= 50 ) { $routes{$net}{etx} = $etx; }
 }
 if ($olsrTotal > $lowMemoryLimits{routes} and get_available_mem() < $lowMemoryLimits{memory})
 {
-    @oroutes = sort { $routes{$a}{etx} <=> $routes{$b}{etx} } keys %routes;
+    my @oroutes = sort { $routes{$a}{etx} <=> $routes{$b}{etx} } keys %routes;
     foreach ( @oroutes[$lowMemoryLimits{routes} .. $#oroutes] )
     {
       delete $routes{$_};
     }
-    undef @oroutes;
 }
 foreach(`echo /lin | nc 127.0.0.1 2006 2>>$tmperr`)
 {
     next if /^\D/;
-    ($junk, $ip, $junk, $lq, $nlq) = split /\s+/, $_;
+    my ($junk, $ip, $junk, $lq, $nlq) = split /\s+/, $_;
     $links{$ip} = {
         lq => $lq,
         nlq => $nlq,
@@ -171,17 +169,17 @@ foreach(`echo /lin | nc 127.0.0.1 2006 2>>$tmperr`)
     };
     $neighbor{$ip} = 1;
 
-    $mac = `grep $ip /proc/net/arp | grep ${wifiif} | grep -v "00:00:00:00:00:00" | head -1`;
+    my $mac = `grep $ip /proc/net/arp | grep ${wifiif} | grep -v "00:00:00:00:00:00" | head -1`;
     $mac =~ s/^.*(\w\w:\w\w:\w\w:\w\w:\w\w:\w\w).*$/$1/;
     chomp $mac;
 
     if ( $mac and -e "/sys/kernel/debug/ieee80211/${phy}/netdev:${wifiif}/stations/$mac" )
     {
 	#802.11b/n
-	$mbps = `egrep '^([^,]*,){3}A' /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
+	my $mbps = `egrep '^([^,]*,){3}A' /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
 	if ($mbps)
 	{
-		($gi, $dummy, $rate, $dummy, $ewma) = $mbps =~ /^[^,]*,([^,]*),([^,]*,){2}([^,]*),([^,]*,){4}([^,]*).*$/ ;
+		my ($gi, $dummy, $rate, $dummy, $ewma) = $mbps =~ /^[^,]*,([^,]*),([^,]*,){2}([^,]*),([^,]*,){4}([^,]*).*$/ ;
 		$rate =~ s/[ \t]//g;
 		$mbps =  $gi eq "SGI" ?  $rateS{$rate}*$ewma/100 : $rateL{$rate}*$ewma/100 ;
 	}
@@ -201,14 +199,14 @@ foreach(`echo /lin | nc 127.0.0.1 2006 2>>$tmperr`)
 foreach(`echo /hna | nc 127.0.0.1 2006 2>>$tmperr`)
 {
     next if /^\D/;
-    ($iproute, $ip) = split /\s+/, $_;
-    ($net, $cidr) = split /\//, $iproute;
+    my ($iproute, $ip) = split /\s+/, $_;
+    my ($net, $cidr) = split /\//, $iproute;
     if ( $net eq "0.0.0.0" ) {  $wangateway{$ip} = 1; }
 }
 foreach(`echo /mid | nc 127.0.0.1 2006 2>>$tmperr`)
 {
     next if /^\D/;
-    ($ip, $junk) = $_ =~ /^(\S+)\s+(.*)$/;
+    my ($ip, $junk) = $_ =~ /^(\S+)\s+(.*)$/;
     foreach $aip ( split /\s+/, $junk )
     {
         $ipalias{$aip} = $ip;
@@ -227,7 +225,7 @@ foreach(`cat /etc/hosts`)
 {
     next unless /^10[.]/;
     chomp;
-    ($ip, $name, $tactical) = split /\s+/, $_;
+    my ($ip, $name, $tactical) = split /\s+/, $_;
     next if $name =~ /^(localhost|localnode|localap|dtdlink\..*)$/;
     if ( $name !~ /\./ ) { $name="${name}.local.mesh"; }
     if($ip eq $my_ip)
@@ -246,13 +244,13 @@ foreach(`cat /var/run/hosts_olsr 2>/dev/null`)
 {
     next unless /^\d/;
     chomp;
-    ($ip, $name, undef, $originator, undef, undef) = split /\s+/, $_;
+    my ($ip, $name, undef, $originator, undef, undef) = split /\s+/, $_;
     next unless $originator;
     next if $originator eq "myself";
     # Filter hosts which are unreachable
     next unless $routes{$ip} or $routes{$originator};
 
-    $etx = $routes{$ip}{etx} ? $routes{$ip}{etx} : $routes{$originator}{etx};
+    my $etx = $routes{$ip}{etx} ? $routes{$ip}{etx} : $routes{$originator}{etx};
 
     if (( $name !~ /\./ ) || ( $name =~ /^mid\.[^\.]*$/ )) { $name="${name}.local.mesh"; }
 
@@ -292,17 +290,18 @@ foreach(`cat /var/run/services_olsr 2>/dev/null`)
 {
     next unless /^\w/;
     chomp;
-    ($url, $junk, $name) = split /\|/, $_;
+    my ($url, $junk, $name) = split /\|/, $_;
     next unless defined $name;
-    ($protocol, $host, $port, $path) = $url =~ /^(\w+):\/\/([\w\-\.]+):(\d+)\/(.*)/;
+    my ($protocol, $host, $port, $path) = $url =~ /^(\w+):\/\/([\w\-\.]+):(\d+)\/(.*)/;
     next unless defined $path;
-    ($name, $originator) = split /\#/, $name;
-    $name =~ s/\s+$//;
-
-    if ( $host !~ /\./ ) { $host="${host}.local.mesh"; }
+    my ($name, $originator) = split /\#/, $name;
 
     # Filter services for unreachable hosts
     next unless $hosts{$originator}{name} or $originator eq " my own service";
+
+    $name =~ s/\s+$//;
+
+    if ( $host !~ /\./ ) { $host="${host}.local.mesh"; }
 
     # attempt to work around olsr never forgetting defunct services
     # assume that the first entry in the file by this name is the most recent, ignore the rest
@@ -390,13 +389,13 @@ print "<tr><td colspan=5><hr></td></tr>\n";
 
 if(keys %localhosts)
 {
-    %rows = ();
+    my %rows = ();
 
     foreach $ip (keys %localhosts)
     {
-	$host = $localhosts{$ip}{name};
-        $localpart = $host =~ s/.local.mesh//r;
-	$tactical = $localhosts{$ip}{tactical} ? " / " . $localhosts{$ip}{tactical} : "";
+	my $host = $localhosts{$ip}{name};
+        my $localpart = $host =~ s/.local.mesh//r;
+	my $tactical = $localhosts{$ip}{tactical} ? " / " . $localhosts{$ip}{tactical} : "";
 	$rows{$host} = sprintf "<tr><td valign=top><nobr>%s</nobr>", $localpart . $tactical;
 
         if ( $wangateway{$ip} ) { $nodeiface =  "wan" ; }
@@ -414,8 +413,8 @@ if(keys %localhosts)
 	foreach $dmzhost (@{$localhosts{$ip}{hosts}})
 	{
         #find non-propagated and aliased hosts and change color
-        $nopropd = 0;
-	$aliased = 0;
+        my $nopropd = 0;
+	my $aliased = 0;
         if(grep { /$dmzhost/ } @{$localhosts{$ip}{noprops}}) { $nopropd = 1; }
 	if(grep { /$dmzhost/ } @{$localhosts{$ip}{aliases}}) { $aliased = 1; }
         $localpart = $dmzhost =~ s/.local.mesh//r;
@@ -505,21 +504,21 @@ print "<tr><td colspan=7><hr></td></tr>\n";
 
 if(keys %links)
 {
-    %rows = ();
+    my %rows = ();
 
     foreach $ip (keys %links)
     {
-	$ipmain = exists $ipalias{$ip} ? $ipalias{$ip} : $ip ;
-	$host = $hosts{$ipmain}{name} ? $hosts{$ipmain}{name} : $ipmain;
-        $localpart = $host =~ s/.local.mesh//r;
-	$tactical = $hosts{$ipmain}{tactical} ? " / " . $hosts{$ipmain}{tactical} : "";
+	my $ipmain = exists $ipalias{$ip} ? $ipalias{$ip} : $ip ;
+	my $host = $hosts{$ipmain}{name} ? $hosts{$ipmain}{name} : $ipmain;
+        my $localpart = $host =~ s/.local.mesh//r;
+	my $tactical = $hosts{$ipmain}{tactical} ? " / " . $hosts{$ipmain}{tactical} : "";
         if ( $rows{$host} ) { $host .= " " ; } # avoid collision 2 links to same host {rf, dtd}
 
-	$no_space_host=$host;
+	my $no_space_host=$host;
 	$no_space_host =~ s/\s+$//;
-	$row = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $no_space_host, $localpart . $tactical;
+	my $row = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $no_space_host, $localpart . $tactical;
 
-	undef $nodeiface;
+	my $nodeiface;
 	if ( $ipmain ne $ip ) # indicate if dtd or tunnel interface to neighbor
 	{
             if    ( $links{$ip}{dtd} ){ $nodeiface="dtd" ; }
@@ -541,7 +540,7 @@ if(keys %links)
 	    # add advertised dmz hosts
 	    foreach $dmzhost (@{$hosts{$ipmain}{hosts}})
 	    {
-                $localpart = $dmzhost =~ s/.local.mesh//r;
+                my $localpart = $dmzhost =~ s/.local.mesh//r;
 	        $row .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td><td colspan=5></td><td>\n";
 	        foreach(sort keys %{$services{$dmzhost}}) { $row .= $services{$dmzhost}{$_} . "<br>\n" }
 	        $row .= "</td></tr>\n";
