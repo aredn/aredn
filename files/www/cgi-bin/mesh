@@ -435,7 +435,6 @@ print "<tr><th align=left><nobr>Remote Nodes</nobr></th><th>&nbsp;&nbsp;</th><th
 print "<tr><td colspan=5><hr></td></tr>\n";
 
 %rows = ();
-%sortrows = ();
 foreach $ip (keys %hosts)
 {
     next if $neighbor{$ip};
@@ -445,47 +444,44 @@ foreach $ip (keys %hosts)
     $tactical = $hosts{$ip}{tactical} ? " / " . $hosts{$ip}{tactical} : "";
     $etx = sprintf "%.2f", $hosts{$ip}{etx};
 
-    $rows{$host}  = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $localpart . $tactical;
+    $row  = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $host, $localpart . $tactical;
 
     undef $nodeiface;
-    if ( $dtd{$ip} )
-    {
-	if ( $midcount{$ip} ) { $midcount{$ip} -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
-    }
-    if ( $hosts{$ip}{tactical} ) { $midcount{$ip} -= 1; } # extra mid entry if tactical name defined
-    if ( $midcount{$ip} )  {  $nodeiface = "tun*$midcount{$ip}" ;  }
+    $mcount = 0 + $midcount{$ip};
+    if ( $dtd{$ip} ) { $mcount -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
+    if ( $hosts{$ip}{tactical} ) { $mcount -= 1; } # extra mid entry if tactical name defined
+    if ( $mcount > 0 ) { $nodeiface = "tun*$mcount" ;  }
     if ( $wangateway{$ip} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" : "wan" ; }
 
-    if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
+    if ( $nodeiface ) { $row .= " &nbsp; <small>($nodeiface)</small>"; }
 
-    $rows{$host} .= sprintf "</nobr></td><td></td><td align=right valign=top>%s</td><td></td><td>\n", $etx;
+    $row .= sprintf "</nobr></td><td></td><td align=right valign=top>%s</td><td></td><td>\n", $etx;
     foreach(sort keys %{$services{$host}})
     {
-	$rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n";
+	$row .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n";
     }
-    $rows{$host} .= "</td></tr>\n";
+    $row .= "</td></tr>\n";
 
     # add advertised dmz hosts
     foreach $dmzhost (@{$hosts{$ip}{hosts}})
     {
         $localpart = $dmzhost =~ s/.local.mesh//r;
-	$rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>";
-	$rows{$host} .= "<td colspan=3></td><td>\n";
+	$row .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>";
+	$row .= "<td colspan=3></td><td>\n";
 	foreach(sort keys %{$services{$dmzhost}})
 	{
-	    $rows{$host} .= "<nobr>" . $services{$dmzhost}{$_} . "</nobr><br>\n";
+	    $row .= "<nobr>" . $services{$dmzhost}{$_} . "</nobr><br>\n";
 	}
-	$rows{$host} .= "</td></tr>\n";
+	$row .= "</td></tr>\n";
     }
-    $sortrows{$ip}=$host;
+    $rows{$ip}=$row;
 }
 
 undef %neighbor;
 
 if(keys %rows)
 {
-    foreach(sort { $hosts{$a}{etx} <=> $hosts{$b}{etx} } keys %sortrows) { print $rows{$sortrows{$_}} }
-    undef %sortrows;
+    foreach(sort { $hosts{$a}{etx} <=> $hosts{$b}{etx} } keys %rows) { print $rows{$_} }
 }
 else
 {
@@ -514,7 +510,7 @@ if(keys %links)
 
 	$no_space_host=$host;
 	$no_space_host =~ s/\s+$//;
-	$rows{$host} = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $no_space_host, $localpart . $tactical;
+	$row = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $no_space_host, $localpart . $tactical;
 
 	undef $nodeiface;
 	if ( $ipmain ne $ip ) # indicate if dtd or tunnel interface to neighbor
@@ -525,26 +521,28 @@ if(keys %links)
 	}
 
 	if ( $wangateway{$ip} or $wangateway{$ipmain} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" :  "wan" ; }
-        if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
+        if ( $nodeiface ) { $row .= " &nbsp; <small>($nodeiface)</small>"; }
 
-        $rows{$host} .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%s</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq},$links{$ip}{mbps});
+        $row .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%s</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq},$links{$ip}{mbps});
 
 	if ( ! exists $neighservices{$host} )
 	    {
-	    foreach(sort keys %{$services{$host}}) { $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n" }
+	    foreach(sort keys %{$services{$host}}) { $row .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n" }
 
-	    $rows{$host} .= "</td></tr>\n";
+	    $row .= "</td></tr>\n";
 
 	    # add advertised dmz hosts
 	    foreach $dmzhost (@{$hosts{$ipmain}{hosts}})
 	    {
                 $localpart = $dmzhost =~ s/.local.mesh//r;
-	        $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td><td colspan=5></td><td>\n";
-	        foreach(sort keys %{$services{$dmzhost}}) { $rows{$host} .= $services{$dmzhost}{$_} . "<br>\n" }
-	        $rows{$host} .= "</td></tr>\n";
+	        $row .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td><td colspan=5></td><td>\n";
+	        foreach(sort keys %{$services{$dmzhost}}) { $row .= $services{$dmzhost}{$_} . "<br>\n" }
+	        $row .= "</td></tr>\n";
 	    }
 	    $neighservices{$host}=1;
 	}
+
+	$rows{$host}=$row;
     }
 
     foreach(sort keys %rows) { print $rows{$_} }
