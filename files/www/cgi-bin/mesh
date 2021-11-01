@@ -42,46 +42,46 @@ BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
 
 %rateL = (
-        '1.0M' => '1',   # CCP LP
-        '2.0M' => '2',   # CCP LP
-        '5.5M' => '5.5', # CCP LP
-        'MCS0' => '6.5', # HT20 LGI
-        '11.0M'=> '11',  # CCP LP
-        'MCS1' => '13',  # HT20 LGI...
-        'MCS2' => '19.5',
-        'MCS3' => '26',
-        'MCS4' => '39',
-        'MCS5' => '52',
-        'MCS6' => '58.5',
-        'MCS7' => '65',
-        'MCS8' => '13',
-        'MCS9' => '26',
-        'MCS10' => '39',
-        'MCS11' => '52',
-        'MCS12' => '78',
-        'MCS13' => '104',
-        'MCS14' => '117',
-        'MCS15' => '130',
+	'1.0M' => '1',   # CCP LP
+	'2.0M' => '2',   # CCP LP
+	'5.5M' => '5.5', # CCP LP
+	'MCS0' => '6.5', # HT20 LGI
+	'11.0M'=> '11',  # CCP LP
+	'MCS1' => '13',  # HT20 LGI...
+	'MCS2' => '19.5',
+	'MCS3' => '26',
+	'MCS4' => '39',
+	'MCS5' => '52',
+	'MCS6' => '58.5',
+	'MCS7' => '65',
+	'MCS8' => '13',
+	'MCS9' => '26',
+	'MCS10' => '39',
+	'MCS11' => '52',
+	'MCS12' => '78',
+	'MCS13' => '104',
+	'MCS14' => '117',
+	'MCS15' => '130',
 );
 
 %rateS = (
-        'MCS0' => '7.2',
-        'MCS1' => '14.4',
-        'MCS2' => '21.7',
-        'MCS3' => '28.9',
-        'MCS4' => '43.3',
-        'MCS5' => '57.8',
-        'MCS6' => '65',
-        'MCS7' => '72.2',
-        'MCS8' => '14.4',
-        'MCS9' => '28.9',
-        'MCS10' => '43.3',
-        'MCS11' => '57.8',
-        'MCS12' => '86.7',
-        'MCS13' => '115.6',
-        'MCS14' => '130',
-        'MCS15' => '144.4',
-);
+	'MCS0' => '7.2',
+	'MCS1' => '14.4',
+	'MCS2' => '21.7',
+	'MCS3' => '28.9',
+	'MCS4' => '43.3',
+	'MCS5' => '57.8',
+	'MCS6' => '65',
+	'MCS7' => '72.2',
+	'MCS8' => '14.4',
+	'MCS9' => '28.9',
+	'MCS10' => '43.3',
+	'MCS11' => '57.8',
+	'MCS12' => '86.7',
+	'MCS13' => '115.6',
+	'MCS14' => '130',
+	'MCS15' => '144.4',
+	);
 
 # Limit displayed nodes and services to the most reachable routes if memory on the node is small
 %lowMemoryLimits = (
@@ -122,7 +122,7 @@ if(-f "/etc/latlon") {
         }
     }
     close(FILE);
-        $lat_lon = "<center><strong>Location: </strong> $lat_lon[0] $lat_lon[1]</center>";
+	$lat_lon = "<center><strong>Location: </strong> $lat_lon[0] $lat_lon[1]</center>";
 }
 $olsrTotal = `/sbin/ip route list table 30 | wc -l`; #num hosts olsr is keeping track of
 $olsrNodes = `/sbin/ip route list table 30 | egrep "/" | wc -l`; #num *nodes* on the network (minus other hosts)
@@ -166,24 +166,24 @@ foreach(`echo /lin | nc 127.0.0.1 2006 2>>$tmperr`)
 
     if ( $mac and -e "/sys/kernel/debug/ieee80211/${phy}/netdev:${wifiif}/stations/$mac" )
     {
-        #802.11b/n
-        $mbps = `egrep '^([^,]*,){3}A' /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
-        if ($mbps)
-        {
-            ($gi, $dummy, $rate, $dummy, $ewma) = $mbps =~ /^[^,]*,([^,]*),([^,]*,){2}([^,]*),([^,]*,){4}([^,]*).*$/ ;
-            $rate =~ s/[ \t]//g;
-            $mbps =  $gi eq "SGI" ?  $rateS{$rate}*$ewma/100 : $rateL{$rate}*$ewma/100 ;
-        }
-        else
-        {
-            #802.11a/b/g
-            $mbps = `egrep \"^A" /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
-            if ($mbps)
-            {
-                $mbps =~ /^[^,]*,([^,]*),([^,]*,){4}([^,]*).*$/;
-                $mbps = $1*$3/100;
-            }
-        }
+	#802.11b/n
+	$mbps = `egrep '^([^,]*,){3}A' /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
+	if ($mbps)
+	{
+		($gi, $dummy, $rate, $dummy, $ewma) = $mbps =~ /^[^,]*,([^,]*),([^,]*,){2}([^,]*),([^,]*,){4}([^,]*).*$/ ;
+		$rate =~ s/[ \t]//g;
+		$mbps =  $gi eq "SGI" ?  $rateS{$rate}*$ewma/100 : $rateL{$rate}*$ewma/100 ;
+	}
+	else
+	{
+		#802.11a/b/g
+		$mbps = `egrep \"^A" /sys/kernel/debug/ieee80211/${phy}/netdev\:${wifiif}/stations/$mac/rc_stats_csv`;
+		if ($mbps)
+		{
+		$mbps =~ /^[^,]*,([^,]*),([^,]*,){4}([^,]*).*$/;
+		$mbps = $1*$3/100;
+		}
+	}
         $links{$ip}{mbps} = $mbps ? sprintf "%.1f", $mbps / $chanbw : "0.0";
     }
 }
@@ -221,9 +221,9 @@ foreach(`cat /etc/hosts`)
     if ( $name !~ /\./ ) { $name="${name}.local.mesh"; }
     if($ip eq $my_ip)
     {
-        $tactical = "" unless $tactical;
-        $localhosts{$ip}{tactical} = $tactical;
-        $localhosts{$ip}{name} = $name;
+	$tactical = "" unless $tactical;
+	$localhosts{$ip}{tactical} = $tactical;
+	$localhosts{$ip}{name} = $name;
     }
     else { push @{$localhosts{$my_ip}{hosts}}, $name; }
     if($tactical eq "#NOPROP") { push @{$localhosts{$my_ip}{noprops}}, $name; }
@@ -383,42 +383,41 @@ if(keys %localhosts)
 
     foreach $ip (keys %localhosts)
     {
-        $host = $localhosts{$ip}{name};
+	$host = $localhosts{$ip}{name};
         $localpart = $host =~ s/.local.mesh//r;
-        $tactical = $localhosts{$ip}{tactical} ? " / " . $localhosts{$ip}{tactical} : "";
-        $rows{$host} = sprintf "<tr><td valign=top><nobr>%s</nobr>", $localpart . $tactical;
+	$tactical = $localhosts{$ip}{tactical} ? " / " . $localhosts{$ip}{tactical} : "";
+	$rows{$host} = sprintf "<tr><td valign=top><nobr>%s</nobr>", $localpart . $tactical;
 
         if ( $wangateway{$ip} ) { $nodeiface =  "wan" ; }
-        if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
+	if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
 
-        $rows{$host} .= "</td><td colspan=3>&nbsp;</td><td>\n" ;
+	$rows{$host} .= "</td><td colspan=3>&nbsp;</td><td>\n" ;
 
-        foreach(sort keys %{$services{$host}})
-        {
-            $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n";
-        }
-        $rows{$host} .= "</td></tr>\n";
+	foreach(sort keys %{$services{$host}})
+	{
+	    $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n";
+	}
+	$rows{$host} .= "</td></tr>\n";
 
-        # add locally advertised dmz hosts
-        foreach $dmzhost (@{$localhosts{$ip}{hosts}})
-        {
+	# add locally advertised dmz hosts
+	foreach $dmzhost (@{$localhosts{$ip}{hosts}})
+	{
         #find non-propagated and aliased hosts and change color
         $nopropd = 0;
-        $aliased = 0;
+	$aliased = 0;
         if(grep { /$dmzhost/ } @{$localhosts{$ip}{noprops}}) { $nopropd = 1; }
-        if(grep { /$dmzhost/ } @{$localhosts{$ip}{aliases}}) { $aliased = 1; }
+	if(grep { /$dmzhost/ } @{$localhosts{$ip}{aliases}}) { $aliased = 1; }
         $localpart = $dmzhost =~ s/.local.mesh//r;
-            if(!$nopropd and !$aliased) { $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>"; }
-            elsif($aliased) { $rows{$host} .= "<tr><td class=aliased-hosts valign=top title='Aliased Host'><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>"; }
-            else { $rows{$host} .= "<tr><td class=hidden-hosts valign=top title='Non Propagated Host'><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>"; }
-            
-            $rows{$host} .= "<td colspan=3></td><td>\n";
-            foreach(sort keys %{$services{$dmzhost}})
-            {
-                $rows{$host} .= "<nobr>" . $services{$dmzhost}{$_} . "</nobr><br>\n";
-            }
-            $rows{$host} .= "</td></tr>\n";
-        }
+	    if(!$nopropd and !$aliased) { $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>"; }
+	    elsif($aliased) { $rows{$host} .= "<tr><td class=aliased-hosts valign=top title='Aliased Host'><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>"; }
+	    else { $rows{$host} .= "<tr><td class=hidden-hosts valign=top title='Non Propagated Host'><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>"; }
+	    $rows{$host} .= "<td colspan=3></td><td>\n";
+	    foreach(sort keys %{$services{$dmzhost}})
+	    {
+		$rows{$host} .= "<nobr>" . $services{$dmzhost}{$_} . "</nobr><br>\n";
+	    }
+	    $rows{$host} .= "</td></tr>\n";
+	}
     }
 
     foreach(sort keys %rows) { print $rows{$_} }
@@ -451,7 +450,7 @@ foreach $ip (keys %hosts)
     undef $nodeiface;
     if ( $dtd{$ip} )
     {
-        if ( $midcount{$ip} ) { $midcount{$ip} -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
+	if ( $midcount{$ip} ) { $midcount{$ip} -= 1; } # extra mid entry matching and with dtdlink in hosts_olsrd
     }
     if ( $hosts{$ip}{tactical} ) { $midcount{$ip} -= 1; } # extra mid entry if tactical name defined
     if ( $midcount{$ip} )  {  $nodeiface = "tun*$midcount{$ip}" ;  }
@@ -462,7 +461,7 @@ foreach $ip (keys %hosts)
     $rows{$host} .= sprintf "</nobr></td><td></td><td align=right valign=top>%s</td><td></td><td>\n", $etx;
     foreach(sort keys %{$services{$host}})
     {
-        $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n";
+	$rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n";
     }
     $rows{$host} .= "</td></tr>\n";
 
@@ -470,13 +469,13 @@ foreach $ip (keys %hosts)
     foreach $dmzhost (@{$hosts{$ip}{hosts}})
     {
         $localpart = $dmzhost =~ s/.local.mesh//r;
-        $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>";
-        $rows{$host} .= "<td colspan=3></td><td>\n";
-        foreach(sort keys %{$services{$dmzhost}})
-        {
-            $rows{$host} .= "<nobr>" . $services{$dmzhost}{$_} . "</nobr><br>\n";
-        }
-        $rows{$host} .= "</td></tr>\n";
+	$rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td>";
+	$rows{$host} .= "<td colspan=3></td><td>\n";
+	foreach(sort keys %{$services{$dmzhost}})
+	{
+	    $rows{$host} .= "<nobr>" . $services{$dmzhost}{$_} . "</nobr><br>\n";
+	}
+	$rows{$host} .= "</td></tr>\n";
     }
     $sortrows{$ip}=$host;
 }
@@ -507,45 +506,45 @@ if(keys %links)
 
     foreach $ip (keys %links)
     {
-        $ipmain = exists $ipalias{$ip} ? $ipalias{$ip} : $ip ;
-        $host = $hosts{$ipmain}{name} ? $hosts{$ipmain}{name} : $ipmain;
+	$ipmain = exists $ipalias{$ip} ? $ipalias{$ip} : $ip ;
+	$host = $hosts{$ipmain}{name} ? $hosts{$ipmain}{name} : $ipmain;
         $localpart = $host =~ s/.local.mesh//r;
-        $tactical = $hosts{$ipmain}{tactical} ? " / " . $hosts{$ipmain}{tactical} : "";
+	$tactical = $hosts{$ipmain}{tactical} ? " / " . $hosts{$ipmain}{tactical} : "";
         if ( $rows{$host} ) { $host .= " " ; } # avoid collision 2 links to same host {rf, dtd}
 
-        $no_space_host=$host;
-        $no_space_host =~ s/\s+$//;
-        $rows{$host} = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $no_space_host, $localpart . $tactical;
+	$no_space_host=$host;
+	$no_space_host =~ s/\s+$//;
+	$rows{$host} = sprintf "<tr><td valign=top><nobr><a href='http://%s:8080/'>%s</a>", $no_space_host, $localpart . $tactical;
 
-        undef $nodeiface;
-        if ( $ipmain ne $ip ) # indicate if dtd or tunnel interface to neighbor
-        {
-            if    ( $links{$ip}{dtd} ){ $nodeiface="dtd" ; }   
-            elsif ( $links{$ip}{tun} ){ $nodeiface="tun" ; }                                                                                                                           
-            else        				  { $nodeiface="?" ; }
-        }
+	undef $nodeiface;
+	if ( $ipmain ne $ip ) # indicate if dtd or tunnel interface to neighbor
+	{
+            if    ( $links{$ip}{dtd} ){ $nodeiface="dtd" ; }
+	    elsif ( $links{$ip}{tun} ){ $nodeiface="tun" ; }
+            else { $nodeiface="?" ; }
+	}
 
-        if ( $wangateway{$ip} or $wangateway{$ipmain} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" :  "wan" ; }
+	if ( $wangateway{$ip} or $wangateway{$ipmain} ) { $nodeiface = $nodeiface ? $nodeiface . ",wan" :  "wan" ; }
         if ( $nodeiface ) { $rows{$host} .= " &nbsp; <small>($nodeiface)</small>"; }
 
         $rows{$host} .= sprintf ("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%s</td><td></td><td>\n", 100*$links{$ip}{lq}, 100*$links{$ip}{nlq},$links{$ip}{mbps});
 
-        if ( ! exists $neighservices{$host} )
-            {
-            foreach(sort keys %{$services{$host}}) { $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n" }
+	if ( ! exists $neighservices{$host} )
+	    {
+	    foreach(sort keys %{$services{$host}}) { $rows{$host} .= "<nobr>" . $services{$host}{$_} . "</nobr><br>\n" }
 
-            $rows{$host} .= "</td></tr>\n";
+	    $rows{$host} .= "</td></tr>\n";
 
-            # add advertised dmz hosts
-            foreach $dmzhost (@{$hosts{$ipmain}{hosts}})
-            {
+	    # add advertised dmz hosts
+	    foreach $dmzhost (@{$hosts{$ipmain}{hosts}})
+	    {
                 $localpart = $dmzhost =~ s/.local.mesh//r;
-                $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td><td colspan=5></td><td>\n";
-                foreach(sort keys %{$services{$dmzhost}}) { $rows{$host} .= $services{$dmzhost}{$_} . "<br>\n" }
-                $rows{$host} .= "</td></tr>\n";
-            }
-            $neighservices{$host}=1;
-        }
+	        $rows{$host} .= "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>$localpart</nobr></td><td colspan=5></td><td>\n";
+	        foreach(sort keys %{$services{$dmzhost}}) { $rows{$host} .= $services{$dmzhost}{$_} . "<br>\n" }
+	        $rows{$host} .= "</td></tr>\n";
+	    }
+	    $neighservices{$host}=1;
+	}
     }
 
     foreach(sort keys %rows) { print $rows{$_} }
@@ -578,13 +577,13 @@ foreach $ip (keys %history)
     $rows{$age} .= "</td><td valign=top><nobr>";
     if($age < 3600)
     {
-        $val = int($age/60);
-        $rows{$age} .= $val == 1 ? "1 minute ago" : "$val minutes ago";
+	$val = int($age/60);
+	$rows{$age} .= $val == 1 ? "1 minute ago" : "$val minutes ago";
     }
     else
     {
-        $val = sprintf "%.1f", $age/3660;
-        $rows{$age} .= $val eq "1.0" ? "1 hour ago" : "$val hours ago";
+	$val = sprintf "%.1f", $age/3660;
+	$rows{$age} .= $val eq "1.0" ? "1 hour ago" : "$val hours ago";
     }
     $rows{$age} .= "</nobr></td></tr>\n";
 }
@@ -615,26 +614,26 @@ if($debug)
     print "localhosts\n";
     foreach $ip (sort keys %localhosts)
     {
-        printf "%s %s", $ip, $localhosts{$ip}{name};
-        printf "/%s", $localhosts{$ip}{tactical} if $localhosts{$ip}{tactical};
-        foreach(@{$localhosts{$ip}{hosts}}) { print ":$_" }
-        print "\n";
+	printf "%s %s", $ip, $localhosts{$ip}{name};
+	printf "/%s", $localhosts{$ip}{tactical} if $localhosts{$ip}{tactical};
+	foreach(@{$localhosts{$ip}{hosts}}) { print ":$_" }
+	print "\n";
     }
 
     print "\nhosts\n";
     foreach $ip (sort keys %hosts)
     {
-        $hosts{$ip}{name} = "" unless $hosts{$ip}{name};
-        printf "%s %s", $ip, $hosts{$ip}{name};
-        printf "/%s", $hosts{$ip}{tactical} if $hosts{$ip}{tactical};
-        foreach(@{$hosts{$ip}{hosts}}) { print ":$_" }
-        printf(" %d", $hosts{$ip}{mid}) if $hosts{$ip}{mid};
+	$hosts{$ip}{name} = "" unless $hosts{$ip}{name};
+	printf "%s %s", $ip, $hosts{$ip}{name};
+	printf "/%s", $hosts{$ip}{tactical} if $hosts{$ip}{tactical};
+	foreach(@{$hosts{$ip}{hosts}}) { print ":$_" }
+	printf(" %d", $hosts{$ip}{mid}) if $hosts{$ip}{mid};
     }
 
     print "\nlinks\n";
     foreach(sort keys %links)
     {
-        print "$_\n";
+	print "$_\n";
     }
 
     print "</pre>\n";
