@@ -341,9 +341,19 @@ close $fh;
 
 #delete $hosts{"127.0.0.1"};
 
+# compress the output if we can                                                                                            
+if ( $ENV{HTTP_ACCEPT_ENCODING} =~ /gzip/ )                                                                                
+{                                                                                                                          
+    print "Content-type: text/html\r\nCache-Control: no-store\r\nContent-Encoding: gzip\r\n\r\n";                      
+    open my $zout, "|gzip";                                                                                            
+    select $zout;                                                                                                      
+}                                                                                                                          
+else                                                                                                                       
+{                                                                                                                          
+    print "Content-type: text/html\r\nCache-Control: no-store\r\n\r\n";                                                
+}    
 
 # generate the page
-http_header();
 html_header("$node mesh status", 0);
 print "<meta http-equiv='refresh' content='10;url=/cgi-bin/mesh'>\n" if -f "/tmp/web/automesh";
 print "</head>\n";
