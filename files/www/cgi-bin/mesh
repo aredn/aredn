@@ -85,8 +85,8 @@ use perlfunc;
 
 # Limit displayed nodes and services to the most reachable routes if memory on the node is small
 %lowMemoryLimits = (
-        memory => 10000,
-        routes => 1000,
+        memory => `/sbin/uci -q get aredn.\@meshstatus[0].lowmem` || 10000,
+        routes => `/sbin/uci -q get aredn.\@meshstatus[0].lowroutes` || 1000,
 );
 
 sub get_available_mem
