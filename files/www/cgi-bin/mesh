@@ -123,13 +123,15 @@ system "touch /tmp/web/automesh" if $parms{auto};
 system "rm -f /tmp/web/automesh" if $parms{stop};
 
 #get location info if available
+open my $rcgood, '<', '/etc/latlon';
+if ($rcgood)
+{
+    $lat_lon = "<center><strong>Location: </strong> " . <$rcgood> . <$rcgood> . "</center>";
+    close $rcgood;
+}
+else
+{
 $lat_lon = "<strong>Location Not Available</strong>";
-if(-f "/etc/latlon") {
-    my $rcgood=open(FILE, "/etc/latlon");
-    if($rcgood) {
-        while(<FILE>){
-            chomp;
-            push @lat_lon,$_;
         }
     }
     close(FILE);
