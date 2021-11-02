@@ -131,15 +131,13 @@ if ($rcgood)
 }
 else
 {
-$lat_lon = "<strong>Location Not Available</strong>";
-        }
-    }
-    close(FILE);
-	$lat_lon = "<center><strong>Location: </strong> $lat_lon[0] $lat_lon[1]</center>";
+    $lat_lon = "<strong>Location Not Available</strong>";
 }
-$olsrTotal = `/sbin/ip route list table 30 | wc -l`; #num hosts olsr is keeping track of
-$olsrNodes = `/sbin/ip route list table 30 | egrep "/" | wc -l`; #num *nodes* on the network (minus other hosts)
+@route30 = `/sbin/ip route list table 30`;
+$olsrTotal = scalar @route30;
+$olsrNodes = scalar grep /\//, @route30;
 $node_desc = `/sbin/uci -q get system.\@system[0].description`; #pull the node description from uci
+undef @route30;
 
 # parse the txtinfo output
 
