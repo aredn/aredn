@@ -84,7 +84,7 @@ use perlfunc;
 	);
 
 # Limit displayed nodes and services to the most reachable routes if memory on the node is small
-if ( `/sbin/uci -q get aredn.\@meshstatus[0]` )
+if ( `/sbin/uci -q get aredn.\@meshstatus[0]` eq "" )
 {
     system "(/sbin/uci -q add aredn meshstatus; /sbin/uci -q commit aredn) > /dev/null";
 }
