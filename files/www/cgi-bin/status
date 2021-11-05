@@ -52,25 +52,29 @@ $wifi_iface =~ /wlan(\d+)/;
 $radio = ( defined $1 )? "radio$1" : "radio0";
 $wifi_disable = ( $wifi_iface =~ /eth.*$/ )? 1 : 0;
 $fw = `cat /etc/mesh-release`;
+$nightly = `/sbin/uci -q get aredn.\@downloads[0].nightly`;
 
-# Check if there is an update to the firmware
-if(-e '/tmp/web/firmware.list') {
-	foreach(`cat /tmp/web/firmware.list 2>/dev/null`) {
-		my($md5, $fw, $tag) = /^(\S+) (\S+) (.*)/;
-		$fw_next = $fw;
-		if ($fw_next =~ /([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})/){
-			$fw_next_vn = $1;
+# Check to see if the node is on a nightly build, and if not proceed in loop
+if($nightly != 1) {
+	# Check if there is an update to the firmware
+	if(-e '/tmp/web/firmware.list') {
+		foreach(`cat /tmp/web/firmware.list 2>/dev/null`) {
+			my($md5, $fw, $tag) = /^(\S+) (\S+) (.*)/;
+			$fw_next = $fw;
+			if ($fw_next =~ /([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})/){
+				$fw_next_vn = $1;
+			}
 		}
-	}
-	if($fw == $fw_next_vn) {
-		$fw_next_update = 1; 
-	}elsif($fw != $fw_next_vn) {
-		$fw_next_update = 2;
-	}
+		if($fw == $fw_next_vn) {
+			$fw_next_update = 1; 
+		}elsif($fw != $fw_next_vn) {
+			$fw_next_update = 2;
+		}
 
-} else {
-	# TODO: Add lazy loading script here to check or internet, if internet
-	# then download after rest of page has loaded, once per $interval.
+	} else {
+		# TODO: Add lazy loading script here to check or internet, if internet
+		# then download after rest of page has loaded, once per $interval.
+	}
 }
 
 if ( ! $wifi_disable )
@@ -285,6 +289,10 @@ if($fw_next_update == 2){
 	push @col2, "<th align=right><nobr>firmware version</nobr></th><td>" . $fw . "</td>";
 }
 
+if($nightly==1){
+	push @col2, "<th align=right><nobr>nightly mode on</nobr></th><td>firmware check service disabled</td>";
+}
+
 push @col2, "<th align=right>system time</th><td>" . `date +'%a %b %e %Y<br>%T %Z'` . "</td>";
 
 $uptime = `uptime`;
@@ -321,6 +329,7 @@ print "</form>\n";
 
 show_debug_info();
 show_parse_errors();
+
 
 page_footer();
 print "</body>\n";
