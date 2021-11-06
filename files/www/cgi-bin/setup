@@ -257,6 +257,26 @@ if($parms{button_updatelocation})
        unlink("/etc/latlon") if(-f "/etc/latlon");
        push @output, "Lat/lon purged.\n";
     }
+    # Process devicelocation -----------------------------------
+    if($parms{devicelocation})
+    {
+        # validate values
+        if($parms{devicelocation} !~ /^\w+$/)
+        {
+            # delete/define file
+            unlink("/etc/devicelocation") if(-f "/etc/devicelocation");
+            my $rcgood=open(my $gs, ">", "/etc/devicelocation");
+            push @errors, "Cannot open devicelocation file" unless $rcgood;
+            print $gs "$parms{devicelocation}\n";
+            close($gs);
+            push @output, "Device location updated.\n";
+        } else {
+            push @errors, "ERROR: Device location format is: City, State. (Honolulu, Hawaii)\n";
+        }
+    } else {
+       unlink("/etc/devicelocation") if(-f "/etc/devicelocation");
+       push @output, "Device location purged.\n";
+    }    
 }
 
 #
@@ -288,6 +308,18 @@ if(-f "/etc/gridsquare")
     $gridsquare=$lines[0];
 }
 
+@lines=();
+if(-f "/etc/devicelocation")
+{
+    $rcgood=open(FILE, "/etc/devicelocation");
+    push @errors, "ERROR: reading devicelocation data\n" unless $rcgood;
+    while(<FILE>){
+        chomp;
+        push @lines,$_;
+    }
+    close(FILE);
+    $devicelocation=$lines[0];
+}
 
 # validate and save configuration
 if($parms{button_save})
@@ -1259,6 +1291,7 @@ if($pingOk)
 print "</td>\n";
 print "<tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='$lon' title='Longitude value (in decimal) (ie. -95.334454)' /></td>";
 print "<td align=left>Grid Square</td><td align='left'><input type=text name=gridsquare maxlength=6 size=6 value='$gridsquare' title='Gridsquare value (ie. AB12cd)' /></td></tr>\n";
+print "<td align=left>Device Location</td><td align='left'><input type=text name=devicelocation maxlength=50 size=15 value='$devicelocation' title='Device Location (ie. Honolulu, Hawaii)' /></td></tr>\n";
 print "<tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr>";
 print "<tr><td colspan=4><hr /></td></tr>";
 print "<tr>
