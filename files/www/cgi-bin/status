@@ -246,6 +246,11 @@ if ( ! $wifi_disable )
   push @col1, $str . "</td>";
 }
 
+push @col1, "<th align=left><nobr>Device Location:</nobr></th><td>" . `cat /etc/devicelocation`. "</td>";
+push @col1, "<th align=right><nobr>Latitude:</nobr></th><td>" . `head -1 /etc/latlon`. "</td>";
+push @col1, "<th align=right><nobr>Longitude:</nobr></th><td>" . `tail -1 /etc/latlon`. "</td>";
+push @col1, "<th align=right><nobr>Grid Square:</nobr></th><td>" . `cat /etc/gridsquare`. "</td>";
+
 # right column - system info
 
 if($config eq "mesh" and ! $wifi_disable )
