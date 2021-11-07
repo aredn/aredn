@@ -56,8 +56,19 @@ $nightly = `/sbin/uci -q get aredn.\@downloads[0].nightly`;
 
 # Check to see if the node is on a nightly build, and if not proceed in loop
 if($nightly != 1) {
+
 	# Check if there is an update to the firmware
 	if(-e '/tmp/web/firmware.list') {
+
+		# See if new file should be downloaded, and if so, set a variable to do this at the end of the script
+		$fh = "/tmp/web/firmware.list";
+		my $file_last_updated = (stat($fh))[9];
+		$time_compare = time() - $file_last_updated;
+		if ($time_compare > 604800) {  #if the firmware.list file was downloaded more than a week ago, then...
+			$download_new_file = 1;
+		}
+
+		# regex the firmware file to get the current release number ("fw_next")
 		foreach(`cat /tmp/web/firmware.list 2>/dev/null`) {
 			my($md5, $fw, $tag) = /^(\S+) (\S+) (.*)/;
 			$fw_next = $fw;
@@ -74,6 +85,7 @@ if($nightly != 1) {
 	} else {
 		# TODO: Add lazy loading script here to check or internet, if internet
 		# then download after rest of page has loaded, once per $interval.
+		$download_new_file = 1;
 	}
 }
 
@@ -332,5 +344,6 @@ show_parse_errors();
 
 
 page_footer();
+print $debug_message;  # TODO:  Delete this line
 print "</body>\n";
 print "</html>\n";
