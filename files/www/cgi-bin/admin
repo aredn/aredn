@@ -630,12 +630,13 @@ print <<EOF;
         var searchstring = "";
         var efn = "";
         if(hwmfg != "cpe"){
-            if ($mfgprefix == "wbs") {
+            if (hwmfg == "wbs") {
                 searchstring= ".*wbs" + hwtype + "-sysupgrade.bin$\";
-                efn = "aredn-$fw_version-$mfgprefix${hardwaretypev}-sysupgrade.$
+                efn = "aredn-$fw_version-$mfgprefix${hardwaretypev}-sysupgrade.bin";
             } else {
-                searchstring= ".*-" + hwtype + "-sysupgrade.bin$\";
+                searchstring= ".*(-|_)" + hwtype + "-sysupgrade.bin$\";
                 efn = "aredn-$fw_version-$mfgprefix-${hardwaretypev}-sysupgrade.bin";
+            }
         } else {
             searchstring= ".*cpe" + hwtype + "-sysupgrade.bin$\";
             efn = "aredn-$fw_version-$mfgprefix${hardwaretypev}-sysupgrade.bin";

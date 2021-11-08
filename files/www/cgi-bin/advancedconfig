@@ -163,6 +163,18 @@ push @setting, {
   postcallback => "adjustTunnelInterfaceCount()"
 };
 push @setting, {
+  key => "aredn.\@meshstatus[0].lowmem",
+  type => "string",
+  desc => "Specifies the low memory threshold (in KB) when we will truncate the mesh status page",
+  default => "10000"
+};
+push @setting, {
+  key => "aredn.\@meshstatus[0].lowroutes",
+  type => "string",
+  desc => "When low memory is detected, limit the number of routes shown on the mesh status page",
+  default => "1000"
+};
+push @setting, {
   key => "aredn.olsr.restart",
   type => "none",
   desc => "Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
