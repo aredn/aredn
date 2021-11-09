@@ -109,34 +109,16 @@ end
 -- Returns array [Latitude, Longitude]
 -------------------------------------
 function model.getLatLon()
-	local llfname="/etc/latlon"
-	local lat=""
-	local lon=""
-	if file_exists(llfname) then
-		llfile=io.open(llfname,"r")
-		if llfile~=nil then
-			lat=llfile:read()
-			lon=llfile:read()
-			llfile:close()
-		end
-	end
-	return lat,lon
+	loc=aredn_uci.getUciConfType("aredn", "location")
+	return loc[1]['lat'], loc[1]['lon']
 end
 
 -------------------------------------
 -- Returns Grid Square of Node
 -------------------------------------
 function model.getGridSquare()
-	local gsfname="/etc/gridsquare"
-	local grid=""
-	if file_exists(gsfname) then
-		gsfile=io.open(gsfname,"r")
-		if gsfile~=nil then
-			grid=gsfile:read()
-			gsfile:close()
-		end
-	end
-	return grid
+		loc=aredn_uci.getUciConfType("aredn", "location")
+	return loc[1]['gridsquare']
 end
 
 -------------------------------------
