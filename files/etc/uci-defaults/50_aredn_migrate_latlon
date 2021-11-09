@@ -1,0 +1,20 @@
+#! /bin/sh
+if [ "$(/sbin/uci -q get aredn.\@location[0])" = "" ]; then
+    /sbin/uci -q add aredn location
+fi
+
+
+# read /etc/latlon
+if [ -f /etc/latlon ]
+then
+    LAT=$(head -1 /etc/latlon)
+    LON=$(tail -1 /etc/latlon)
+    /sbin/uci -q set aredn.@location[0].lat=$LAT
+    /sbin/uci -q set aredn.@location[0].lon=$LON
+fi
+
+/sbin/uci -q commit aredn
+
+# remove the /etc/latlon file, if it exists
+# rm -f /etc/latlon
+mv /etc/latlon /etc/latlon_OLD
