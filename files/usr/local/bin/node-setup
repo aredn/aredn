@@ -514,7 +514,8 @@ if(-f "/etc/config.mesh/olsrd")
 }
 
 # indicate whether lan is running in dmz mode
-system "echo $cfg{dmz_mode} > /etc/dmz-mode" if $cfg{dmz_mode};
+system("/sbin/uci -q set aredn.\@dmz[0].mode=$cfg{dmz_mode}");
+
 
 # Setup node lan dhcp
 if ( $cfg{lan_dhcp_noroute} ) {
