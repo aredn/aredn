@@ -56,18 +56,6 @@ if ( $UCI_CONF_FILE eq "olsrd6" ) {
   exit 0;
 }
 
-# Make sure wifi exists and is up to avoid OLSRD nameservice problems later.
-# This is not the perfect place to do this, but it avoids changing more core functions.
-if (system "ubus -t 10 wait_for network.interface.wifi" == 0)
-{
-  for ($i = 0; $i < 10; $i++)
-  {
-    chomp($wifiup = `ubus -S call network.interface.wifi status | jsonfilter -e '@.up'`);
-    last if ($wifiup eq "true");
-    sleep 2;
-  }
-}
-
 @names = @hosts = @services = @tunnels = ();
 
 # canonical names for this node
