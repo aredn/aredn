@@ -3,7 +3,6 @@ if [ "$(/sbin/uci -q get aredn.\@location[0])" = "" ]; then
     /sbin/uci -q add aredn location
 fi
 
-
 # read /etc/latlon
 if [ -f /etc/latlon ]
 then
@@ -21,6 +20,6 @@ fi
 /sbin/uci -q set aredn.@location[0].gridsquare="$GRIDSQUARE"
 /sbin/uci -q commit aredn
 
-# remove the /etc/latlon file, if it exists
+# remove the /etc/latlon and gridsquare files
 rm -f /etc/latlon
 rm -f /etc/gridsquare
