@@ -9,11 +9,18 @@ if [ -f /etc/latlon ]
 then
     LAT=$(head -1 /etc/latlon)
     LON=$(tail -1 /etc/latlon)
-    /sbin/uci -q set aredn.@location[0].lat=$LAT
-    /sbin/uci -q set aredn.@location[0].lon=$LON
 fi
 
+if [ -f /etc/gridsquare ]
+then
+    GRIDSQUARE=$(head -1 /etc/gridsquare)
+fi
+
+/sbin/uci -q set aredn.@location[0].lat="$LAT"
+/sbin/uci -q set aredn.@location[0].lon="$LON"
+/sbin/uci -q set aredn.@location[0].gridsquare="$GRIDSQUARE"
 /sbin/uci -q commit aredn
 
 # remove the /etc/latlon file, if it exists
 rm -f /etc/latlon
+rm -f /etc/gridsquare
