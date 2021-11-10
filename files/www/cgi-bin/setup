@@ -221,6 +221,7 @@ if($parms{button_updatelocation})
             # set values/commit
             $rc=&uci_set_indexed_option("aredn","location",0,"gridsquare", $parms{gridsquare});
             $rc=&uci_commit("aredn");
+            &uci_clone("aredn");
             push @errors, "Cannot save gridsquare in uci" if $rc ne "0";
             push @output, "Gridsquare updated.\n";
         } else {
@@ -229,6 +230,7 @@ if($parms{button_updatelocation})
     } else {
        $rc=&uci_set_indexed_option("aredn","location",0,"gridsquare", "");
        $rc=&uci_commit("aredn");
+       &uci_clone("aredn");
        push @output, "Gridsquare purged.\n";
     }
 
@@ -242,6 +244,7 @@ if($parms{button_updatelocation})
                 $rc=&uci_set_indexed_option("aredn","location",0,"lat", $parms{latitude});
                 $rc=&uci_set_indexed_option("aredn","location",0,"lon", $parms{longitude});
                 $rc=&uci_commit("aredn");
+                &uci_clone("aredn");
                 push @errors, "Cannot save latitude/longitude in uci" if $rc ne "0";
                 push @output, "Lat/lon updated.\n";
             } else {
@@ -254,6 +257,7 @@ if($parms{button_updatelocation})
        $rc=&uci_set_indexed_option("aredn","location",0,"lat", "");
        $rc=&uci_set_indexed_option("aredn","location",0,"lon", "");
        $rc=&uci_commit("aredn");
+       &uci_clone("aredn");
        push @output, "Lat/lon purged.\n";
     }
 }
