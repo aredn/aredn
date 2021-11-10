@@ -1,9 +1,9 @@
 #! /bin/sh
 if [ -e /etc/config/dmz-mode ] ; then
-    /sbin/uci -q add aredn dmz
-    /sbin/uci -q set aredn.@dmz[0].mode=$(cat /etc/config/dmz-mode)
+    /sbin/uci -q -c /etc/config.mesh add aredn dmz
+    /sbin/uci -q -c /etc/config.mesh set aredn.@dmz[0].mode=$(cat /etc/config/dmz-mode)
     rm -f /etc/config/dmz-mode
-elif [ "$(/sbin/uci -q get aredn.@dmz[0].mode)" = "" ]; then
-    /sbin/uci -q add aredn dmz
-    /sbin/uci -q set aredn.@dmz[0].mode=0
+elif [ "$(/sbin/uci -q -c /etc/config.mesh get aredn.@dmz[0].mode)" = "" ]; then
+    /sbin/uci -q -c /etc/config.mesh add aredn dmz
+    /sbin/uci -q -c /etc/config.mesh set aredn.@dmz[0].mode=0
 fi
