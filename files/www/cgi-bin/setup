@@ -218,18 +218,19 @@ if($parms{button_updatelocation})
         # validate values
         if($parms{gridsquare} =~ /^[A-Z][A-Z]\d\d[a-z][a-z]$/)
         {
-            # delete/define file
-            unlink("/etc/gridsquare") if(-f "/etc/gridsquare");
-            my $rcgood=open(my $gs, ">", "/etc/gridsquare");
-            push @errors, "Cannot open gridsquare file" unless $rcgood;
-            print $gs "$parms{gridsquare}\n";
-            close($gs);
+            # set values/commit
+            $rc=&uci_set_indexed_option("aredn","location",0,"gridsquare", $parms{gridsquare});
+            $rc=&uci_commit("aredn");
+            &uci_clone("aredn");
+            push @errors, "Cannot save gridsquare in uci" if $rc ne "0";
             push @output, "Gridsquare updated.\n";
         } else {
             push @errors, "ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)\n";
         }
     } else {
-       unlink("/etc/gridsquare") if(-f "/etc/gridsquare");
+       $rc=&uci_set_indexed_option("aredn","location",0,"gridsquare", "");
+       $rc=&uci_commit("aredn");
+       &uci_clone("aredn");
        push @output, "Gridsquare purged.\n";
     }
 
@@ -239,13 +240,12 @@ if($parms{button_updatelocation})
         # validate values
         if($parms{latitude} =~ /^([-+]?\d{1,2}([.]\d+)?)$/ and $parms{longitude} =~ /^([-+]?\d{1,3}([.]\d+)?)$/) {
             if($parms{latitude} >= -90 and $parms{latitude} <= 90 and $parms{longitude} >= -180 and $parms{longitude} <= 180) {
-                # delete/define file
-                unlink("/etc/latlon") if(-f "/etc/latlon");
-                $rcgood=open(my $ll, ">", "/etc/latlon");
-                push @errors, "Cannot open lat/lon file" unless $rcgood;
-                print $ll "$parms{latitude}\n";
-                print $ll "$parms{longitude}\n";
-                close($ll);
+                # set values/commit
+                $rc=&uci_set_indexed_option("aredn","location",0,"lat", $parms{latitude});
+                $rc=&uci_set_indexed_option("aredn","location",0,"lon", $parms{longitude});
+                $rc=&uci_commit("aredn");
+                &uci_clone("aredn");
+                push @errors, "Cannot save latitude/longitude in uci" if $rc ne "0";
                 push @output, "Lat/lon updated.\n";
             } else {
                 push @errors, "ERROR: Lat/lon values must be between -90/90 and -180/180, respectively.\n";
@@ -254,7 +254,10 @@ if($parms{button_updatelocation})
             push @errors, "ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154)\n";
         }
     } else {
-       unlink("/etc/latlon") if(-f "/etc/latlon");
+       $rc=&uci_set_indexed_option("aredn","location",0,"lat", "");
+       $rc=&uci_set_indexed_option("aredn","location",0,"lon", "");
+       $rc=&uci_commit("aredn");
+       &uci_clone("aredn");
        push @output, "Lat/lon purged.\n";
     }
 }
@@ -262,31 +265,9 @@ if($parms{button_updatelocation})
 #
 # retrieve location data
 #
-if(-f "/etc/latlon")
-{
-    $rcgood=open(FILE, "/etc/latlon");
-    push @errors, "ERROR: reading lat/lon data\n" unless $rcgood;
-    while(<FILE>){
-        chomp;
-        push @lines,$_;
-    }
-    close(FILE);
-    $lat=$lines[0];
-    $lon=$lines[1];
-}
-
-@lines=();
-if(-f "/etc/gridsquare")
-{
-    $rcgood=open(FILE, "/etc/gridsquare");
-    push @errors, "ERROR: reading gridsquare data\n" unless $rcgood;
-    while(<FILE>){
-        chomp;
-        push @lines,$_;
-    }
-    close(FILE);
-    $gridsquare=$lines[0];
-}
+$lat=&uci_get_indexed_option("aredn","location",0,"lat");
+$lon=&uci_get_indexed_option("aredn","location",0,"lon");
+$gridsquare=&uci_get_indexed_option("aredn","location",0,"gridsquare");
 
 
 # validate and save configuration

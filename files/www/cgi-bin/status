@@ -73,16 +73,11 @@ if ( ! $wifi_disable )
 $node_desc = `/sbin/uci -q get system.\@system[0].description`; #pull the node description from uci
 #get location info if available
 $lat_lon = "<strong>Location Not Available</strong>";
-if(-f "/etc/latlon") {
-    $rcgood=open(FILE, "/etc/latlon");
-    if($rcgood) {
-        while(<FILE>){
-            chomp;
-            push @lat_lon,$_;
-        }
-    }
-    close(FILE);
-	$lat_lon = "<center><strong>Location: </strong> $lat_lon[0] $lat_lon[1]</center>";
+$lat=&uci_get_indexed_option("aredn","location",0,"lat");
+$lon=&uci_get_indexed_option("aredn","location",0,"lon");
+
+if($lat ne "" and $lon ne "") {
+	$lat_lon = "<center><strong>Location: </strong> $lat $lon</center>";
 }
 $olsrTotal = `/sbin/ip route list table 30 | wc -l`; #num hosts olsr is keeping track of
 $olsrNodes = `/sbin/ip route list table 30 | egrep "/" | wc -l`; #num *nodes* on the network (minus other hosts)
