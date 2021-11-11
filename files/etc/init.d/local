@@ -95,9 +95,7 @@ boot() {
     shift
   done
 
-  # set local alerts if available
-  local alertslocalpath=$(uci -q get aredn.@alerts[0].localpath)
-  if [ -z "$alertslocalpath" ]; then
+  if [ -z "$(uci -q get aredn.@alerts[0])" ]; then
       uci -q add aredn alerts
       uci -q commit aredn
   fi
