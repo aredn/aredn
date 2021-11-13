@@ -83,8 +83,7 @@ if($nightly != 1) {
 		}
 
 	} else {
-		# TODO: Add lazy loading script here to check or internet, if internet
-		# then download after rest of page has loaded, once per $interval.
+		# If file doesn't exist, then download it after page is loaded
 		$download_new_file = 1;
 	}
 }
@@ -342,8 +341,28 @@ print "</form>\n";
 show_debug_info();
 show_parse_errors();
 
+# TODO: Add lazy loading script here to check or internet, if internet
+# then download after rest of page has loaded, once per $interval.
+if ($download_new_file == 1){
+	${hardwaretype} = `/usr/local/bin/get_hardwaretype`;
+	@serverpaths = ();
+	$uciserverpath=`uci get aredn.\@downloads[0].firmwarepath`;
+	chomp($uciserverpath);
+	push @serverpaths, $uciserverpath;
+	`touch '/tmp/web/firmware.list.lasttry'`;
+	foreach $serverpath (@serverpaths) {
+		system "$wget -O /tmp/web/firmware.list $serverpath/firmware.${hardwaretype}.list";
+		print $serverpath.'/firmware.'.${hardwaretype}.'.list';
+#		system "$wget -O /tmp/web/firmware.list $serverpath/firmware.${hardwaretype}.list >/dev/null 2>>$tmpdir/wget.err";
+	}
+}
 
 page_footer();
 print $debug_message;  # TODO:  Delete this line
+print ${hardwaretype};  # TODO:  Delete this line
+print $download_new_file;  # TODO:  Delete this line
+print $serverpath;  # TODO:  Delete this line
 print "</body>\n";
 print "</html>\n";
+
+
