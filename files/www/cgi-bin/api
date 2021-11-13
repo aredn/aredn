@@ -356,8 +356,11 @@ for page, comps in pairs(qsset) do
 		end
 	elseif page=="traceroute" then
 		for i,tonode in pairs(comps:split(',')) do
-			if tonode~="" then
+			-- Validate that input as ip or hostname inside the mesh
+			if tonode:match("^[%d%.]+$") or tonode:match("^[%d%a%-%.%_]+$") then
 				info['pages'][page][tonode]=getTraceroute(tonode)
+			else
+				info['pages'][page][tonode]="Invalid input!"
 			end
 		end
 	elseif page=="mesh" then
