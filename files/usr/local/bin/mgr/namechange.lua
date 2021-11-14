@@ -4,7 +4,7 @@ function namechange()
     local count = 0
     while true
     do
-        if not posix.stat("/tmp/namechange") and count < 12 then
+        if not posix.sys.stat.stat("/tmp/namechange") and count < 12 then
             count = count + 1
             utils.wait_for_ticks(5)
         else
