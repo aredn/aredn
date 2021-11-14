@@ -36,8 +36,14 @@
 
 require("mgr.utils")
 require("uci")
-posix = require("posix")
+require("posix")
 socket = require("socket")
+require("aredn.utils")
+aredn_info = require("aredn.info")
+require("aredn.uci")
+nxo = require("nixio")
+require("iwinfo")
+require("luci.sys")
 
 local tasks = {
 	coroutine.create(require("mgr.rssi_monitor")),
@@ -67,7 +73,7 @@ do
 	table.sort(times)
 	delay = times[1] - os.time()
 	if delay > 0 then
-		posix.sleep(delay)
+		posix.unistd.sleep(delay)
 	else
 		delay = 0
 	end

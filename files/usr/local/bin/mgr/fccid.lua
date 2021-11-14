@@ -9,7 +9,7 @@ function fccid()
     udp:setpeername("10.255.255.255", 4919)
     while true
     do
-        if posix.stat("/etc/config/run-fccid") then
+        if posix.sys.stat.stat("/etc/config/run-fccid") then
             udp:send(id)
         end
 
