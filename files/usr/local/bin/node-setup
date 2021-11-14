@@ -536,6 +536,19 @@ system $cmd;
 #
 system('/usr/local/bin/wifi-setup');
 
+#
+# Generate additional DNS hosts file for ntp hostname override
+#
+open(OUT, ">/etc/hosts_override") or die;
+if ($cfg{ntp_server} ne "")
+{
+  @ntp_override_hosts_array = split /,/, $cfg{ntp_override_hosts};
+  foreach $ntp_override_host (@ntp_override_hosts_array) {
+    print OUT "$cfg{ntp_server} $ntp_override_host\n";
+  }
+}
+close(OUT);
+
 unless($auto)
 {
   print "configuration complete.\n";
