@@ -51,7 +51,7 @@ function do_namechange()
     end
     for i, link in ipairs(links.links)
     do
-        history[link.remoteIP] = { age = uptime, name = hosts[link.remoteIP] }
+        history[link.remoteIP] = { age = uptime, name = hosts[link.remoteIP] or "" }
     end
 
     -- load the strip the current history
@@ -64,11 +64,8 @@ function do_namechange()
             age = math.floor(v[2])
         end
         local name = v[3]
-        if not name then
-            name = ""
-        end
         if age and not history[ip] and uptime - age < 86400 then
-            history[ip] = { age = age, name = name }
+            history[ip] = { age = age, name = name or "" }
         end
     end
 
@@ -77,7 +74,7 @@ function do_namechange()
     if f then
         for k,v in pairs(history)
         do
-            f:write(string.format("%s %d %s\n", k, v.age , v.name))
+            f:write(string.format("%s %d %s\n", k, v.age, v.name))
         end
         f:close()
     end
