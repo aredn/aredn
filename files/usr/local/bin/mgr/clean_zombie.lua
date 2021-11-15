@@ -12,14 +12,13 @@ local zombies = { "iw" }
 utils.log_start("/tmp/zombie.log", 100)
 
 function clean()
-
     for i, name in ipairs(zombies)
     do
         local pids = utils.split(utils.system_run("pidof " .. name)[1])
         for j, pid in ipairs(pids)
         do
             local zombie = false
-            local ppid
+            local ppid = nil
             for k, line in ipairs(utils.read_all("/proc/" .. pid .. "/status"))
             do
                 -- Look for a zombie
@@ -35,7 +34,7 @@ function clean()
                     end
                 end
             end
-            if not ppid then
+            if not ppid and ppid ~= 1 then
                 posix.signal.kill(ppid, posix.signal.SIGKILL)
                 utils.log("Killed " .. ppid)
             end
