@@ -5,10 +5,7 @@ local json = require("luci.jsonc")
 utils = {}
 
 function utils.wait_for_ticks(ticks)
-    while ticks > 0
-    do
-        ticks = ticks - coroutine.yield(ticks)
-    end
+    coroutine.yield(ticks)
 end
 
 function utils.read_all(filename)
