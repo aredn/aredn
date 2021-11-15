@@ -22,7 +22,7 @@ function clean()
             for k, line in ipairs(utils.read_all("/proc/" .. pid .. "/status"))
             do
                 -- Look for a zombie
-                local m = string.match(line, "State:%sZ")
+                local m = string.match(line, "State:%s[ZT]")
                 if m then
                     zombie = true
                 end
@@ -34,13 +34,12 @@ function clean()
                     end
                 end
             end
-            if not ppid and ppid ~= 1 then
-                posix.signal.kill(ppid, posix.signal.SIGKILL)
+            if ppid and ppid ~= 1 then
                 utils.log("Killed " .. ppid)
+                posix.signal.kill(ppid, posix.signal.SIGKILL)
             end
         end
     end
-
     utils.log_end()
 end
 

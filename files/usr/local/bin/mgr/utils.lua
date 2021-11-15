@@ -74,7 +74,7 @@ function utils.log_start(name, maxlines)
 end
 
 function utils.log(str)
-    if not logf and then
+    if not logf then
         logf = io.open(logfile, "a")
     end
     logf:write("%s: %s\n", os.date("%m/%d %H:%M:%S", os.time()), str)
