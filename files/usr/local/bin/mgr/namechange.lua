@@ -18,7 +18,7 @@ end
 
 function do_namechange()
     -- Do nothing if olsrd is not running
-    if not utils.system_run("pidof olsrd") then
+    if not utils.system_run("pidof olsrd")[1] then
         return
     end
 
