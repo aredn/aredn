@@ -12,8 +12,7 @@ function fccid()
         if posix.sys.stat.stat("/etc/config/run-fccid") then
             udp:send(id)
         end
-
-        utils.wait_for_ticks(5 * 60) -- 5 minutes
+        wait_for_ticks(5 * 60) -- 5 minutes
     end
 end
 

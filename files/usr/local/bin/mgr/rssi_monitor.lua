@@ -5,7 +5,7 @@ function rssi_monitor()
         if not string.match(uci.cursor():get("network", "wifi", "ifname"), "^eth.") and utils.uptime() > 119 then
             run_monitor()
         end
-        utils.wait_for_ticks(60) -- 1 minute
+        wait_for_ticks(60) -- 1 minute
     end
 end
 
@@ -108,7 +108,7 @@ function run_monitor()
     if amac then
         -- reset
         utils.system_run("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
-        utils.wait_for_ticks(5)
+        wait_for_ticks(5)
         -- update time
         now = luci.sys.uptime()
 
