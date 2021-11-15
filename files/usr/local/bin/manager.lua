@@ -34,8 +34,6 @@
 
 --]]
 
-collectgarbage("setstepmul", 1000) -- agressive gc
-
 require("mgr.utils")
 require("uci")
 require("posix")
@@ -47,33 +45,45 @@ nxo = require("nixio")
 require("iwinfo")
 require("luci.sys")
 
+-- aggressive gc on low memory devices
+if aredn_info.getFreeMemory().totalram < 32768 then
+	collectgarbage("setstepmul", 1000)
+end
+
+
 local tasks = {
-	coroutine.create(require("mgr.rssi_monitor")),
-	coroutine.create(require("mgr.linkled")),
-	coroutine.create(require("mgr.namechange")),
-	coroutine.create(require("mgr.watchdog")),
-	coroutine.create(require("mgr.fccid")),
-	coroutine.create(require("mgr.snrlog"))
+	{ app = require("mgr.rssi_monitor") },
+	{ app = require("mgr.linkled") },
+	{ app = require("mgr.namechange") },
+	{ app = require("mgr.watchdog") },
+	{ app = require("mgr.fccid") },
+	{ app = require("mgr.snrlog") }
 }
 
-local delay = 0
 while true
 do
 	print "Tick"
-	local times = {}
-	for i,task in ipairs(tasks)
+	for i, task in ipairs(tasks)
 	do
-		local status, newdelay = coroutine.resume(task, delay)
-		if not status then
-			print (newdelay) -- error message
-			newdelay = 1
-		elseif not newdelay then
-			newdelay = 1
+		if not task.routine then
+			task.routine = coroutine.create(task.app)
+			task.time = 0
 		end
-		times[i] = newdelay + os.time()
+		if task.time <= os.time() then
+			local status, newdelay = coroutine.resume(task.routine)
+			if not status then
+				print (newdelay) -- error message
+				task.routine = nil
+				task.time = 120 + os.time() -- 2 minute restart delay
+			elseif not newdelay then
+				task.time = 60 + os.time() -- 1 minute default delay
+			else
+				task.time = newdelay + os.time()
+			end
+		end
 	end
-	table.sort(times)
-	delay = times[1] - os.time()
+	table.sort(tasks, function(a,b) return a.time < b.time end)
+	local delay = tasks[1].time - os.time()
 	if delay > 0 then
 		posix.unistd.sleep(delay)
 	else
