@@ -61,7 +61,8 @@ local tasks = {
 	{ app = require("mgr.namechange") },
 	{ app = require("mgr.watchdog") },
 	{ app = require("mgr.fccid") },
-	{ app = require("mgr.snrlog") }
+	{ app = require("mgr.snrlog") },
+	{ app = require("mgr.clean_zombie") }
 }
 
 while true
