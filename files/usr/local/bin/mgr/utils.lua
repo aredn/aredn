@@ -63,3 +63,27 @@ function utils.fetch_json(url)
         return nil
     end
 end
+
+local logfile
+local logmax
+local logf
+
+function utils.log_start(name, maxlines)
+    logfile = name
+    logmax = maxlines
+end
+
+function utils.log(str)
+    if not logf and then
+        logf = io.open(logfile, "a")
+    end
+    logf:write("%s: %s\n", os.date("%m/%d %H:%M:%S", os.time()), str)
+end
+
+function utils.log_end()
+    if logf then
+        logf:close()
+        logf = nil
+        file_trim(logfile, logmax)
+    end
+end

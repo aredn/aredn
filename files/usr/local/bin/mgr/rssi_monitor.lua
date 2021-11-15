@@ -23,6 +23,8 @@ if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
 
+utils.log_start(logfile, MAXLINES)
+
 function run_monitor()
 
     local now = luci.sys.uptime()
@@ -80,7 +82,7 @@ function run_monitor()
             end
             if rssih.num > 9 and ofdm_level <= 3 and hit > 0 then
                 -- overly attenuated chain suspected
-                log(string.format("Attenuated Suspect %s [%d] %f %f", mac, info.Hrssi, rssih.ave_h, rssih.sd_h))
+                utils.log(string.format("Attenuated Suspect %s [%d] %f %f", mac, info.Hrssi, rssih.ave_h, rssih.sd_h))
                 if not amac or rssi[amac] < info.Hrssi then
                     amac = mac
                 end
@@ -115,12 +117,12 @@ function run_monitor()
         local beforeh = rssi[amac].Hrssi
         local arssi = get_rssi()
 
-        log(string.format("before %s [%d]", beforeh))
-        log(string.format("after  %s [%d]", arssi[amac].Hrssi))
+        utils.log(string.format("before %s [%d]", beforeh))
+        utils.log(string.format("after  %s [%d]", arssi[amac].Hrssi))
 
         if math.abs(beforeh - arssi[amac].Hrssi) <= 2 then
             -- false positive if within 2dB after reset
-            log(string.format("%s Possible valid data point, adding to statistics", amac))
+            utils.log(string.format("%s Possible valid data point, adding to statistics", amac))
             local rssih = rssi_hist[amac]
             local ave_h = (rssih.ave_h * rssih.num + beforeh) / (rssih.num + 1)
             local sd_h = math.sqrt(((rssih.num - 1) * rssih.sd_h * rssih.sd_h + (beforeh - ave_h) * (beforeh - rssih.ave_h)) / rssih.num)
@@ -142,7 +144,7 @@ function run_monitor()
         f:close()
     end
 
-    log_end()
+    utils.log_end()
 end
 
 function get_rssi()
@@ -159,23 +161,6 @@ function get_rssi()
         end
     end
     return rssi
-end
-
-local logf
-
-function log(str)
-    if not logf then
-        logf = io.open(logfile, "a")
-    end
-    logf:write("%s: %s\n", os.date("%m/%d %H:%M:%S", os.time()), str)
-end
-
-function log_end()
-    if logf then
-        logf:close()
-        logf = nil
-        file_trim(logfile, MAXLINES)
-    end
 end
 
 return rssi_monitor
