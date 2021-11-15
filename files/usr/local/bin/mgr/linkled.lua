@@ -29,14 +29,13 @@ function linkled()
 
     while true
     do
-        utils.wait_for_ticks(11)
-        
         local nei = utils.fetch_json("http://127.0.0.1:9090/neighbors")
         if #nei.neighbors > 0 then
             utils.write_all(link1led .. "/brightness", "1")
         else
             utils.write_all(link1led .. "/brightness", "0")
         end
+        wait_for_ticks(11)
     end
 end
 

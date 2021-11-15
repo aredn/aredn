@@ -90,3 +90,7 @@ do
 		delay = 0
 	end
 end
+
+function wait_for_ticks(ticks)
+    coroutine.yield(ticks)
+end

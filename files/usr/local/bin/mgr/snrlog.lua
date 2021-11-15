@@ -37,7 +37,7 @@ function snrlog()
     while true
     do
         run_snrlog()
-        utils.wait_for_ticks(60) -- 1 minute
+        wait_for_ticks(60) -- 1 minute
     end
 end
 

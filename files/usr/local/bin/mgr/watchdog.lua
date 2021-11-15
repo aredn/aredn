@@ -27,7 +27,7 @@ end
 function watchdog()
     while true
     do
-        utils.wait_for_ticks(21)
+        wait_for_ticks(21)
 
         local pid = utils.read_all(pidfile)[1]
         if pid and posix.sys.stat.stat("/proc/" .. pid) then
