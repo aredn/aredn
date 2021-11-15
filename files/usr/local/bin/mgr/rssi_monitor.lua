@@ -43,7 +43,7 @@ function run_monitor()
     -- load history
     local rssi_hist = {}
     for line in io.lines(datfile) do
-        local mac, ave_h, st_h, num, last = string.match(line, "(.*)|(.*)|(.*)|(.*)|(.*)")
+        local mac, ave_h, sd_h, num, last = string.match(line, "([0-9a-fA-F:]*)|(.*)|(.*)|(.*)|(.*)")
         rssi_hist[mac] = {
             ave_h = ave_h,
             sd_h = sd_h,
@@ -69,7 +69,7 @@ function run_monitor()
     end
 
     local rssi = get_rssi()
-    for mac, info in rssi
+    for mac, info in pairs(rssi)
     do
         local rssih = rssi_hist[mac]
         if rssih and now - rssih[mac].last < 3600 then
@@ -137,7 +137,7 @@ function run_monitor()
     if f then
         for mac, hist in pairs(rssi_hist)
         do
-            io:write(string.format("%s|%f|%f|%d|%s\n", mac, info.ave_h, info.sd_h, info.num, info.last))
+            io:write(string.format("%s|%f|%f|%d|%s\n", mac, hist.ave_h, hist.sd_h, hist.num, hist.last))
         end
         f:close()
     end
@@ -148,7 +148,7 @@ end
 function get_rssi()
     local rssi = {}
     local stations = iwinfo.nl80211.assoclist(wifiiface)
-    for mac, station in stations
+    for mac, station in pairs(stations)
     do
         if station.signal ~= 0 then
             if station.signal < -95 then
