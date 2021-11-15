@@ -50,7 +50,11 @@ if aredn_info.getFreeMemory().totalram < 32768 then
 	collectgarbage("setstepmul", 1000)
 end
 
+function wait_for_ticks(ticks)
+    coroutine.yield(ticks)
+end
 
+-- Define the list of management task
 local tasks = {
 	{ app = require("mgr.rssi_monitor") },
 	{ app = require("mgr.linkled") },
@@ -62,7 +66,6 @@ local tasks = {
 
 while true
 do
-	print "Tick"
 	for i, task in ipairs(tasks)
 	do
 		if not task.routine then
@@ -89,8 +92,4 @@ do
 	else
 		delay = 0
 	end
-end
-
-function wait_for_ticks(ticks)
-    coroutine.yield(ticks)
 end
