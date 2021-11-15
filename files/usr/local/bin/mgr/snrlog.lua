@@ -95,12 +95,10 @@ function run_snrlog()
     -- load the lasttime table
     local lasttime = {}
     local nulledout = {}
-    if file_exists(lastdat) then
-        for line in io.lines(lastdat) do
-            local mac, last, nulled = string.match(line, "(.*)|(.*)|(.*)")
-            lasttime[mac] = last
-            nulledout[mac] = nulled
-        end
+    for line in io.lines(lastdat) do
+        local mac, last, nulled = string.match(line, "(.*)|(.*)|(.*)")
+        lasttime[mac] = last
+        nulledout[mac] = nulled
     end
 
     -- iterate over all the stations and log neighbors
