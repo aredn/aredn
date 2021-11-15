@@ -34,6 +34,8 @@
 
 --]]
 
+collectgarbage("setstepmul", 1000) -- agressive gc
+
 require("mgr.utils")
 require("uci")
 require("posix")
