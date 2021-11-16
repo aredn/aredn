@@ -87,19 +87,3 @@ config rule
        option dest_port        698
        option proto    udp
        option target   ACCEPT
-
-# prevent mesh from accessing lan via shared wan
-config rule
-       option dest wan
-       option dest_ip '192.168.0.0/16'
-       option target DROP
-
-config rule
-       option dest wan
-       option dest_ip '172.16.0.0/12'
-       option target DROP
-
-config rule
-       option dest wan
-       option dest_ip '10.0.0.0/8'
-       option target DROP
