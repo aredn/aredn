@@ -68,6 +68,14 @@ function module:GET()
   data['nodename']=aredn_info.getNodeName()
   data['description']=aredn_info.getNodeDescription()
   -- data['password']="WE CANNOT RETRIEVE THE PASSWORD"
+
+  -- MESHRF
+  -- enabled, ip, mask, distance, power, channel, bw
+  data['ssid_full'] = aredn_info.getSSID()
+  data['ssid_prefix'] = data['ssid_full']:split("-")[1]
+
+
+
   res['data']=data
   res['errors'] = {}
   res['success']=true

@@ -40,7 +40,7 @@ local class = require("middleclass")
 -- -------------------------------------
 -- -- Public API is attached to table
 -- -------------------------------------
-local c = class('setup_meshrf')
+local c = class('setup_optional')
 
 -- Class constructor (NEW method)
 function c:initialize(req)
@@ -62,7 +62,7 @@ end
 
 function c:GET()
   local res={}
-  msg="SetupMeshRF:GET()"
+  msg="SetupOptional:GET()"
   res['msg']=msg
   res['success']=true
   return res
@@ -70,7 +70,7 @@ end
 
 function c:POST()
   local res={}
-  msg="SetupMeshRF:POST()"
+  msg="SetupOptional:POST()"
   res['msg']=msg
   res['success']=true
   return res
