@@ -72,11 +72,11 @@ end
 utils.log = {}
 utils.log.__index = utils.log
 
-function utils.log.start(name, maxlines)
+function utils.log.start(name, maxsize)
     local l = {}
     setmetatable(l, utils.log)
     l.logfile = name
-    l.logmax = maxlines
+    l.logmax = maxsize
     l.logf = nil
     return l
 end
@@ -92,6 +92,12 @@ function utils.log:flush()
     if self.logf then
         self.logf:close()
         self.logf = nil
-        file_trim(self.logfile, self.logmax)
+        if posix.sys.stat.stat(self.logfile).st_size > self.logmax then
+            local old = self.logfile .. '.0'
+            if posix.sys.stat.stat(old) then
+                os.remove(old)
+            end
+            os.rename(self.logfile, old)
+        end
     end
 end

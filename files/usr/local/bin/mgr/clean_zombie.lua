@@ -9,7 +9,7 @@ end
 
 local zombies = { "iw" }
 
-local log = utils.log.start("/tmp/zombie.log", 100)
+local log = utils.log.start("/tmp/zombie.log", 12000)
 
 function clean()
     for i, name in ipairs(zombies)

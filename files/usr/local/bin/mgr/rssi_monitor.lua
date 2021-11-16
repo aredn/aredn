@@ -11,7 +11,6 @@ end
 
 local datfile = "/tmp/rssi.dat"
 local logfile = "/tmp/rssi.log"
-local MAXLINE = 200
 
 local wifiiface
 local phy
@@ -23,7 +22,7 @@ if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
 
-local log = utils.log.start(logfile, MAXLINES)
+local log = utils.log.start(logfile, 16000)
 
 function run_monitor()
 
