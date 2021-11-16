@@ -65,22 +65,41 @@ end
 function module:GET()
   local res={}
   local data={}
-  data['nodename']=aredn_info.getNodeName()
-  data['description']=aredn_info.getNodeDescription()
+  data['basic'] = {}
+  data['basic']['nodename']=aredn_info.getNodeName()
+  data['basic']['description']=aredn_info.getNodeDescription()
   -- data['password']="WE CANNOT RETRIEVE THE PASSWORD"
 
   -- MESHRF
-  data['ssid_full'] = aredn_info.getSSID()
-  data['ssid_prefix'] = data['ssid_full']:split("-")[1]
+  data['meshrf'] = {}
+  data['meshrf']['ssid_full'] = aredn_info.getSSID()
+  data['meshrf']['ssid_prefix'] = data['meshrf']['ssid_full']:split("-")[1]
   radio = aredn_info.getMeshRadioDevice()
-  data['meshrf_enabled'] = aredn_info.isMeshRadioEnabled(radio)
-  data['meshrf_ip'] = aredn_info.getInterfaceIPAddress("wifi")
-  data['meshrf_netmask'] = aredn_info.getInterfaceNetmask("wifi")
-  data['meshrf_distance'] = aredn_info.getMeshRadioDistance(radio)
-  data['meshrf_bw'] = aredn_info.getChannelBW(radio)
-  data['meshrf_channel'] = aredn_info.getChannel(radio)
-  data['meshrf_power'] = aredn_info.getTXPower()
+  data['meshrf']['enabled'] = aredn_info.isMeshRadioEnabled(radio)
+  data['meshrf']['ip'] = aredn_info.getInterfaceIPAddress("wifi")
+  data['meshrf']['netmask'] = aredn_info.getInterfaceNetmask("wifi")
+  data['meshrf']['distance'] = aredn_info.getMeshRadioDistance(radio)
+  data['meshrf']['bw'] = aredn_info.getChannelBW(radio)
+  data['meshrf']['channel'] = aredn_info.getChannel(radio)
+  data['meshrf']['power'] = aredn_info.getTXPower()
 
+  -- LAN
+  data['lan'] = {}
+  data['lan']['mode'] = aredn_info.getLANMode()
+  data['lan']['dhcp'] = aredn_info.isLANDHCPEnabled()
+  -- lan_ip, lan_mask, dhcp_start, dhcp_end
+
+  -- LANAP
+  data['lanap'] = {}
+
+  -- WAN
+  data['wan'] = {}
+
+  -- WAN Advanced
+  data['wanadv'] = {}
+
+  -- WAN Wifi Client
+  data['wanclient'] = {}
 
   res['data']=data
   res['errors'] = {}

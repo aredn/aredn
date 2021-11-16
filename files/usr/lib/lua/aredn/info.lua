@@ -599,4 +599,27 @@ function model.getMeshGatewaySetting()
 	return gw
 end
 
+-------------------------------------
+-- Returns LAN Mode (dmz_mode)
+-------------------------------------
+function model.getLANMode()
+	lm=os.capture("cat /etc/config.mesh/_setup|grep dmz_mode|cut -d'=' -f2|tr -d ' ' ")
+	lm=lm:chomp()
+	return lm
+end
+
+-------------------------------------
+-- is LAN DHCP enabled
+-------------------------------------
+function model.isLANDHCPEnabled()
+	r=os.capture("cat /etc/config.mesh/_setup|grep lan_dhcp|cut -d'=' -f2|tr -d ' ' ")
+	r=r:chomp()
+	if r=="0" then
+		return false
+	else
+		return true
+	end
+end
+
+
 return model
