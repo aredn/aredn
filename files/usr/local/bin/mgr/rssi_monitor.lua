@@ -59,7 +59,7 @@ function run_monitor()
     for mac, info in pairs(rssi)
     do
         local rssih = rssi_hist[mac]
-        if rssih and now - rssih[mac].last < 3600 then
+        if rssih and now - rssih.last < 3600 then
             local hit = 0
             local sdh3 = math.floor(rssih.sd_h * 3 + 0.5)
             if math.abs(rssih.ave_h - info.Hrssi) > sdh3 then
