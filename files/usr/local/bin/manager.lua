@@ -65,6 +65,8 @@ local tasks = {
 	{ app = require("mgr.clean_zombie") }
 }
 
+local log = utils.log.start("/tmp/manager.log", 10)
+
 while true
 do
 	for i, task in ipairs(tasks)
@@ -76,7 +78,7 @@ do
 		if task.time <= os.time() then
 			local status, newdelay = coroutine.resume(task.routine)
 			if not status then
-				print (newdelay) -- error message
+				log:write(newdelay) -- error message
 				task.routine = nil
 				task.time = 120 + os.time() -- 2 minute restart delay
 			elseif not newdelay then

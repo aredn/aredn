@@ -64,26 +64,34 @@ function utils.fetch_json(url)
     end
 end
 
-local logfile
-local logmax
-local logf
-
-function utils.log_start(name, maxlines)
-    logfile = name
-    logmax = maxlines
+function utils.get_board_type()
+    local json = json.parse(table.concat(utils.read_all("/etc/board.json")))
+    return json.model.id;
 end
 
-function utils.log(str)
-    if not logf then
-        logf = io.open(logfile, "a")
+utils.log = {}
+utils.log.__index = utils.log
+
+function utils.log.start(name, maxlines)
+    local l = {}
+    setmetatable(l, utils.log)
+    l.logfile = name
+    l.logmax = maxlines
+    l.logf = nil
+    return l
+end
+
+function utils.log:write(str)
+    if not self.logf then
+        self.logf = io.open(self.logfile, "a")
     end
-    logf:write("%s: %s\n", os.date("%m/%d %H:%M:%S", os.time()), str)
+    self.logf:write("%s: %s\n", os.date("%m/%d %H:%M:%S", os.time()), str)
 end
 
-function utils.log_end()
-    if logf then
-        logf:close()
-        logf = nil
-        file_trim(logfile, logmax)
+function utils.log:flush()
+    if self.logf then
+        self.logf:close()
+        self.logf = nil
+        file_trim(self.logfile, self.logmax)
     end
 end

@@ -9,7 +9,7 @@ end
 
 local zombies = { "iw" }
 
-utils.log_start("/tmp/zombie.log", 100)
+local log = utils.log.start("/tmp/zombie.log", 100)
 
 function clean()
     for i, name in ipairs(zombies)
@@ -35,12 +35,12 @@ function clean()
                 end
             end
             if ppid and ppid ~= 1 then
-                utils.log("Killed " .. ppid)
+                log:write("Killed " .. ppid)
                 posix.signal.kill(ppid, posix.signal.SIGKILL)
             end
         end
     end
-    utils.log_end()
+    log:flush()
 end
 
 return clean_zombie

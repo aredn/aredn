@@ -23,7 +23,7 @@ if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
 
-utils.log_start(logfile, MAXLINES)
+local log = utils.log.start(logfile, MAXLINES)
 
 function run_monitor()
 
@@ -82,7 +82,7 @@ function run_monitor()
             end
             if rssih.num > 9 and ofdm_level <= 3 and hit > 0 then
                 -- overly attenuated chain suspected
-                utils.log(string.format("Attenuated Suspect %s [%d] %f %f", mac, info.Hrssi, rssih.ave_h, rssih.sd_h))
+                log:write(string.format("Attenuated Suspect %s [%d] %f %f", mac, info.Hrssi, rssih.ave_h, rssih.sd_h))
                 if not amac or rssi[amac] < info.Hrssi then
                     amac = mac
                 end
@@ -117,12 +117,12 @@ function run_monitor()
         local beforeh = rssi[amac].Hrssi
         local arssi = get_rssi()
 
-        utils.log(string.format("before %s [%d]", beforeh))
-        utils.log(string.format("after  %s [%d]", arssi[amac].Hrssi))
+        log:write(string.format("before %s [%d]", beforeh))
+        log:write(string.format("after  %s [%d]", arssi[amac].Hrssi))
 
         if math.abs(beforeh - arssi[amac].Hrssi) <= 2 then
             -- false positive if within 2dB after reset
-            utils.log(string.format("%s Possible valid data point, adding to statistics", amac))
+            log:write(string.format("%s Possible valid data point, adding to statistics", amac))
             local rssih = rssi_hist[amac]
             local ave_h = (rssih.ave_h * rssih.num + beforeh) / (rssih.num + 1)
             local sd_h = math.sqrt(((rssih.num - 1) * rssih.sd_h * rssih.sd_h + (beforeh - ave_h) * (beforeh - rssih.ave_h)) / rssih.num)
@@ -144,7 +144,7 @@ function run_monitor()
         f:close()
     end
 
-    utils.log_end()
+    log:flush()
 end
 
 function get_rssi()

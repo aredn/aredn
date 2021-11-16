@@ -16,6 +16,10 @@ function namechange()
 
 end
 
+if not file_exists("/tmp/node.history") then
+    io.open("/tmp/node.history", "w+"):close()
+end
+
 function do_namechange()
     -- Do nothing if olsrd is not running
     if not utils.system_run("pidof olsrd")[1] then
