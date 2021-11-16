@@ -2,7 +2,7 @@
 function rssi_monitor()
     while true
     do
-        if not string.match(uci.cursor():get("network", "wifi", "ifname"), "^eth.") and utils.uptime() > 119 then
+        if not string.match(get_ifname("wifi"), "^eth.") and utils.uptime() > 119 then
             run_monitor()
         end
         wait_for_ticks(60) -- 1 minute
@@ -11,9 +11,6 @@ end
 
 local datfile = "/tmp/rssi.dat"
 local logfile = "/tmp/rssi.log"
-
-local wifiiface
-local phy
 
 if not file_exists(datfile) then
     io.open(datfile, "w+"):close()
@@ -28,18 +25,7 @@ function run_monitor()
 
     local now = luci.sys.uptime()
 
-    wifiiface = aredn_info.getMeshRadioDevice()
-
-    -- find physical device for wifiiface
-    local phy = "phy0"
-    for i, line in ipairs(utils.system_run("/usr/bin/iwinfo " .. wifiiface .. " info"))
-    do
-        local mphy = string.match(line, "PHY name: (.*)")
-        if mphy then
-            phy = mphy
-            break
-        end
-    end
+    local wifiiface = get_ifname("wifi")
 
     -- load history
     local rssi_hist = {}
@@ -54,7 +40,7 @@ function run_monitor()
     end
 
     local ofdm_level
-    for i, line in ipairs(utils.read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/ani"))
+    for i, line in ipairs(utils.read_all("/sys/kernel/debug/ieee80211/" .. iwinfo.nl80211.phyname(wifiiface) .. "/ath9k/ani"))
     do
         ofdm_level = tonumber(string.match(line, "OFDM LEVEL: (.*)"))
         if not ofdm_level then
@@ -69,7 +55,7 @@ function run_monitor()
         utils.system_run("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
     end
 
-    local rssi = get_rssi()
+    local rssi = get_rssi(wifiiface)
     for mac, info in pairs(rssi)
     do
         local rssih = rssi_hist[mac]
@@ -114,7 +100,7 @@ function run_monitor()
         now = luci.sys.uptime()
 
         local beforeh = rssi[amac].Hrssi
-        local arssi = get_rssi()
+        local arssi = get_rssi(wifiiface)
 
         log:write(string.format("before %s [%d]", beforeh))
         log:write(string.format("after  %s [%d]", arssi[amac].Hrssi))
@@ -138,7 +124,7 @@ function run_monitor()
     if f then
         for mac, hist in pairs(rssi_hist)
         do
-            io:write(string.format("%s|%f|%f|%d|%s\n", mac, hist.ave_h, hist.sd_h, hist.num, hist.last))
+            f:write(string.format("%s|%f|%f|%d|%s\n", mac, hist.ave_h, hist.sd_h, hist.num, hist.last))
         end
         f:close()
     end
@@ -146,7 +132,7 @@ function run_monitor()
     log:flush()
 end
 
-function get_rssi()
+function get_rssi(wifiiface)
     local rssi = {}
     local stations = iwinfo.nl80211.assoclist(wifiiface)
     for mac, station in pairs(stations)
