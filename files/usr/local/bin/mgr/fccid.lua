@@ -1,8 +1,7 @@
 
 function fccid()
     local id = string.format("ID: %s", utils.system_run("uname -n")[1])
-    local wifiif = uci.cursor():get("network", "wifi", "ifname")
-    local ip = utils.system_run("ip addr show " .. wifiif .. " | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/'")[1]
+    local ip = aredn_info.getInterfaceIPAddress("wifi")
     local udp = socket.udp()
     udp:setoption("broadcast", true)
     udp:setsockname(ip, 4919)
