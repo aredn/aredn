@@ -1,0 +1,13 @@
+#!/bin/sh /etc/rc.common
+START=90
+
+start() {
+    cd /usr/local/bin
+    ./manager.lua > /dev/null 2>&1 &
+  } &
+}
+
+stop() {
+  killall manager.lua
+}
+
