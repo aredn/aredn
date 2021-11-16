@@ -70,10 +70,16 @@ function module:GET()
   -- data['password']="WE CANNOT RETRIEVE THE PASSWORD"
 
   -- MESHRF
-  -- enabled, ip, mask, distance, power, channel, bw
   data['ssid_full'] = aredn_info.getSSID()
   data['ssid_prefix'] = data['ssid_full']:split("-")[1]
-
+  radio = aredn_info.getMeshRadioDevice()
+  data['meshrf_enabled'] = aredn_info.isMeshRadioEnabled(radio)
+  data['meshrf_ip'] = aredn_info.getInterfaceIPAddress("wifi")
+  data['meshrf_netmask'] = aredn_info.getInterfaceNetmask("wifi")
+  data['meshrf_distance'] = aredn_info.getMeshRadioDistance(radio)
+  data['meshrf_bw'] = aredn_info.getChannelBW(radio)
+  data['meshrf_channel'] = aredn_info.getChannel(radio)
+  data['meshrf_power'] = aredn_info.getTXPower()
 
 
   res['data']=data

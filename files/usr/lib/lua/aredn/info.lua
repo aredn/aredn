@@ -37,7 +37,7 @@
 require("uci")
 local aredn_uci = require("aredn.uci")
 require("aredn.utils")
-local olsr=require("aredn.olsr")
+
 -- require("aredn.http")
 local lip=require("luci.ip")
 require("nixio")
@@ -90,6 +90,14 @@ function model.getNodeName()
 end
 
 -------------------------------------
+-- Returns tactical name of the node
+-------------------------------------
+function model.getTacticalName()
+	css=aredn_uci.getNonStandardUciConfType("/etc/local/uci/", "hsmmmesh", "settings")
+	return css[1]['tactical']
+end
+
+-------------------------------------
 -- Returns description of the node
 -------------------------------------
 function model.getNodeDescription()
@@ -101,34 +109,16 @@ end
 -- Returns array [Latitude, Longitude]
 -------------------------------------
 function model.getLatLon()
-	local llfname="/etc/latlon"
-	local lat=""
-	local lon=""
-	if file_exists(llfname) then
-		llfile=io.open(llfname,"r")
-		if llfile~=nil then
-			lat=llfile:read()
-			lon=llfile:read()
-			llfile:close()
-		end
-	end
-	return lat,lon
+	loc=aredn_uci.getUciConfType("aredn", "location")
+	return loc[1]['lat'], loc[1]['lon']
 end
 
 -------------------------------------
 -- Returns Grid Square of Node
 -------------------------------------
 function model.getGridSquare()
-	local gsfname="/etc/gridsquare"
-	local grid=""
-	if file_exists(gsfname) then
-		gsfile=io.open(gsfname,"r")
-		if gsfile~=nil then
-			grid=gsfile:read()
-			gsfile:close()
-		end
-	end
-	return grid
+		loc=aredn_uci.getUciConfType("aredn", "location")
+	return loc[1]['gridsquare']
 end
 
 -------------------------------------
@@ -144,7 +134,9 @@ function model.getArednAlert()
 			afile:close()
 		end
 	end
-	return alert
+        if #alert~=0 then return alert
+        else return ""
+        end
 end
 
 -------------------------------------
@@ -156,11 +148,13 @@ function model.getLocalAlert()
 	if file_exists(fname) then
 		afile=io.open(fname,"r")
 		if afile~=nil then
-			alert=afile:read()
+			alert=afile:read("*a")
 			afile:close()
 		end
 	end
-	return alert
+        if #alert~=0 then return alert
+        else return ""
+        end
 end
 
 
@@ -218,6 +212,40 @@ function model.getMeshRadioDevice()
 end
 
 -------------------------------------
+-- Determine if Radio Device for Mesh is enabled
+-------------------------------------
+function model.isMeshRadioEnabled(radio)
+	local wifidevice=aredn_uci.getUciConfType("wireless","wifi-device")
+	for pos,i in pairs(wifidevice) do
+		if wifidevice[pos]['.name']==radio then
+			disabled=wifidevice[pos]['disabled']
+		end
+	end
+	
+	if disabled == "0" then
+		return true
+	else
+		return false
+	end
+end
+
+-------------------------------------
+-- Determine distance value for Mesh radio
+-------------------------------------
+function model.getMeshRadioDistance(radio)
+	local distance = ""
+	local wifidevice=aredn_uci.getUciConfType("wireless","wifi-device")
+	for pos,i in pairs(wifidevice) do
+		if wifidevice[pos]['.name']==radio then
+			distance=wifidevice[pos]['distance']
+		end
+	end
+	return distance
+end
+
+
+
+-------------------------------------
 -- TODO: Return Band
 -------------------------------------
 function model.getBand(radio)
@@ -225,15 +253,27 @@ function model.getBand(radio)
 end
 
 -------------------------------------
+-- Return TX Power
+-------------------------------------
+function model.getTXPower()
+	local wlanInf=get_ifname('wifi')
+	local api=iwinfo.type(wlanInf)
+	local iw = iwinfo[api]
+	local power = iw.txpower(wlanInf)
+	return tostring(power)
+end
+
+
+
+-------------------------------------
 -- Return Frequency
 -------------------------------------
 function model.getFreq()
 	local wlanInf=get_ifname('wifi')
-	local freq=""
-	freq=os.capture("iwinfo " .. wlanInf .. " info | egrep 'Mode:'")
-	freq=freq:gsub("^%s*(.-)%s*$", "%1")
-	freq=string.match(freq, "%((.-)%)")
-	return freq
+	local api=iwinfo.type(wlanInf)
+	local iw = iwinfo[api]
+	local freq = iw.frequency(wlanInf)
+	return tostring(freq)
 end
 
 -------------------------------------
@@ -280,11 +320,20 @@ function model.all_services()
 		hfile:close()
 		for pos,val in pairs(lines) do
 			local service={}
-			local link,protocol,name = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#.*")
+			local link,protocol,name,ip = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#(.*)")
 			if link and protocol and name then
-				service['link']=link
+				if string.match(link,":0/") then
+					service['link']=""
+				else
+					service['link']=link
+				end
 				service['protocol']=protocol
 				service['name']=name
+				if ip==" my own service" then
+					service['ip']=model.getInterfaceIPAddress("wifi")
+				else
+					service['ip']=ip
+				end
 				table.insert(services,service)
 			end
 		end
@@ -319,7 +368,7 @@ function model.all_hosts()
 				local ip, name=string.match(data,"^([%x%.%:]+)%s+(%S.*)\t%s*$")
 				if ip and name then
 					if not string.match(name,"^(dtdlink[.]).*") then
-						if not string.match(name,"^(mid[0-9][.]).*") then
+						if not string.match(name,"^(mid%d+[.]).*") then
 							host['name']=name
 							host['ip']=ip
 							table.insert(hosts,host)
@@ -374,9 +423,9 @@ end
 -- Current System Uptime
 -------------------------------------
 function model.getUptime()
-	local mynix=nixio.sysinfo()
-	local upsecs=mynix['uptime']
-	return upsecs
+  local mynix=nixio.sysinfo()
+  local upsecs=mynix['uptime']
+	return secondsToClock(upsecs)
 end
 
 
@@ -469,6 +518,19 @@ function model.getInterfaceIPAddress(interface)
 end
 
 -------------------------------------
+-- Returns Interface Netmask
+-- @param interface name of interface 'wifi' | 'lan' | 'wan'
+-------------------------------------
+function model.getInterfaceNetmask(interface)
+	-- special case
+	-- if interface == "wan" then
+	-- 	return getWAN()
+	-- end
+	return aredn_uci.getUciConfSectionOption("network",interface,"netmask")
+end
+
+
+-------------------------------------
 -- Returns Default Gateway
 -------------------------------------
 function model.getDefaultGW()
@@ -481,7 +543,7 @@ function model.getDefaultGW()
 end
 
 -------------------------------------
--- Returns Table of current DHCP leases 
+-- Returns Table of current DHCP leases
 -------------------------------------
 function model.getCurrentDHCPLeases()
     local lines={}
@@ -505,33 +567,27 @@ end
 -- Returns Local Hosts
 -------------------------------------
 function model.getLocalHosts()
-	local hosts, line
-	if nixio.fs.access("/etc/hosts") then
-		for line in io.lines("/etc/hosts") do
-			line = line:lower()
-			-- line is not a comment
-			local data = line:match("^([^#;]+)[#;]*(.*)$")
-			if data then 
-				local hostname, entries
-				local ip, entries = data:match("^%s*([%[%]%x%.%:]+)%s+(%S.-%S)%s*$")
-
-				if ip then 
-					local entry = {
-						["ip"] = ip,
-						["hostnames"] = { }
-					}
-					local index = 0
-					for hostname in entries:gmatch("%S+") do
-						entry["hostnames"][index] = hostname
-						index = index + 1
-					end
-					hosts = hosts or { }
-					hosts[#hosts+1] = entry
-				end
-			end
-		end
-	end
-	return hosts
+  local localhosts = {}
+  myhosts=os.capture('/bin/grep "# myself" /var/run/hosts_olsr|grep -v dtdlink')
+  local lines = myhosts:splitNewLine()
+  data = {}
+  for k,v in pairs(lines) do
+    data = v:splitWhiteSpace()
+    local ip = data[1]
+    local hostname = data[2]
+    if ip and hostname then
+      local entry = {}
+      entry['ip'] = ip
+      entry['hostname'] = hostname
+      if hostname:lower() == string.lower( model.getNodeName() ) then
+        entry['cnxtype'] = "RF"
+      else
+        entry['cnxtype'] = "LAN"
+      end
+      table.insert(localhosts, entry)
+    end
+  end
+  return localhosts
 end
 
 -------------------------------------
