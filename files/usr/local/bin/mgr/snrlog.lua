@@ -130,7 +130,7 @@ function run_snrlog()
             end
         end
         -- rename if necessary
-        if efn ~= datafile then
+        if efn and efn ~= datafile then
             nxo.fs.rename(efn, datafile)
         end
 
