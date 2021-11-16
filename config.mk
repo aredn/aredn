@@ -1,7 +1,8 @@
 # default parameters for Makefile
 
 # What version will show in the AREDN firmware 'Node Status" UI page?
-PRIVATE_BUILD_VERSION=NoCall
+#PRIVATE_BUILD_VERSION=NoCall
+PRIVATE_BUILD_VERSION=KN6PLV
 
 # build options:  -j# for (# of cores +1) on build machine,  V=s for verbose output
 # https://wiki.openwrt.org/doc/howto/build#make_options  (archive)
@@ -16,4 +17,5 @@ PRIVATE_BUILD_PACKAGES=http://downloads.arednmesh.org/snapshots/trunk
 
 # These options are for more complex changes
 SHELL:=$(shell which bash)
-TARGET=ar71xx-generic
+#TARGET=ar71xx-generic
+TARGET=ath79-generic
