@@ -85,7 +85,7 @@ function utils.log:write(str)
     if not self.logf then
         self.logf = io.open(self.logfile, "a")
     end
-    self.logf:write("%s: %s\n", os.date("%m/%d %H:%M:%S", os.time()), str)
+    self.logf:write(string.format("%s: %s\n", os.date("%m/%d %H:%M:%S", os.time()), str))
 end
 
 function utils.log:flush()
