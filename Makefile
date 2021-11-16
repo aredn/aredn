@@ -150,15 +150,6 @@ compile: stamp-clean-compiled .stamp-compiled
 	  -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
 	done;
-	for FILE in `find $(TOP_DIR)/firmware/targets/ -type f -a \
-	  \( -name "*ar71xx-generic-*" \
-	  -o -name "*ath79-generic-*" \
-	  -o -name "*ar71xx-mikrotik*squashfs*" \
-	  \) -print`; do \
-	  NEWNAME="$${FILE/generic-/}"; \
-	  NEWNAME="$${NEWNAME/squashfs-/}"; \
-	  mv "$$FILE" "$$NEWNAME"; \
-	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh
 
 $(TOP_DIR)/firmware:
