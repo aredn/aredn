@@ -34,6 +34,8 @@
 
 --]]
 
+require("nixio")
+
 -- suffix to add to various file and directories while debugging this
 -- to avoid blowing away the real config
 local suffix = ".alt" 
@@ -272,21 +274,21 @@ end
 
 -- check for old aliases file, copy it to .dmz and create symlink
 -- just in case anyone is already using the fule for some script or something
-local astat = nxo.fs.stat("/etc/config.mesh/aliases", "type")
+local astat = nixio.fs.stat("/etc/config.mesh/aliases", "type")
 if not (astat and astat == "lnk") then
     if astat then
-        nxo.fs.copy("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
+        nixio.fs.copy("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
         os.remove("/etc/config.mesh/aliases")
     else
         io.open("/etc/config.mesh/aliases.dmz", "w"):close()
     end
-    nxo.fs.link("aliases.dmz", "/etc/config.mesh/aliases")
+    nixio.fs.link("aliases.dmz", "/etc/config.mesh/aliases")
 end
 
 -- basic configuration
 if do_basic then
     utils.remove_all("/tmp/new_config")
-    nxo.fs.mkdir("/tmp/new_config")
+    nixio.fs.mkdir("/tmp/new_config")
 
     for file in nixio.fs.glob("/etc/config.mesh/*")
     do
@@ -326,14 +328,14 @@ if do_basic then
     -- make it official
     for file in nixio.fs.glob("/etc/config" .. suffix .. "/*")
     do
-        nxo.fs.remove(file)
+        nixio.fs.remove(file)
     end
     for file in nixio.fs.glob("/etc/new_config/*")
     do
-        nxo.fs.rename(file, "/etc/config" .. suffix .. "/" .. nxo.fs.basename(file))
+        nixio.fs.rename(file, "/etc/config" .. suffix .. "/" .. nixio.fs.basename(file))
     end
-    nxo.fs.rmdir("/etc/new_config")
-    nxo.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
+    nixio.fs.rmdir("/etc/new_config")
+    nixio.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
 
     utils.set_nvram("config", "mesh")
     utils.set_nvram("node", node)
@@ -415,8 +417,8 @@ if h and e then
 end
 
 if not do_basic then
-    nxo.fs.copy("/etc/config.mesh/firewall", "/etc/config/firewall" .. suffix)
-    nxo.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
+    nixio.fs.copy("/etc/config.mesh/firewall", "/etc/config/firewall" .. suffix)
+    nixio.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
 end
 
 -- for all the uci changes
@@ -523,7 +525,7 @@ if sf then
         end
     end
     sf:close()
-    nxo.fs.chmod("/etc/local/services" .. suffix, "+x")
+    nixio.fs.chmod("/etc/local/services" .. suffix, "+x")
 end
 
 -- generate olsrd.conf

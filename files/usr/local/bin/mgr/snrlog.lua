@@ -51,7 +51,7 @@ local defnoise = -95
 
 -- create tmp dir if needed
 if not dir_exists(tmpdir) then
-    nxo.fs.mkdir(tmpdir)
+    nixio.fs.mkdir(tmpdir)
 end
 
 -- create lastdata file if needed
@@ -131,7 +131,7 @@ function run_snrlog()
         end
         -- rename if necessary
         if efn and efn ~= datafile then
-            nxo.fs.rename(efn, datafile)
+            nixio.fs.rename(efn, datafile)
         end
 
         -- check if auto-distance reset is required (new node)

@@ -36,7 +36,7 @@ function clean()
             end
             if ppid and ppid ~= 1 then
                 log:write("Killed " .. ppid)
-                nxo.kill(ppid, 9)
+                nixio.kill(ppid, 9)
             end
         end
     end

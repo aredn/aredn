@@ -22,16 +22,16 @@ function utils.write_all(filename, data)
 end
 
 function utils.remove_all(name)
-    local type = nxo.fs.stat(name, "type")
+    local type = nixio.fs.stat(name, "type")
     if type then
         if type == "dir" then
-            for subname in nxo.fs.dir(name)
+            for subname in nixio.fs.dir(name)
             do
                 utils.remove_all(name .. "/" .. subname)
             end
-            nxo.fs.rmdir(name)
+            nixio.fs.rmdir(name)
         else
-            nxo.fs.remove(name)
+            nixio.fs.remove(name)
         end
     end
 end

@@ -36,7 +36,7 @@
 
 require("mgr.utils")
 require("uci")
-nxo = require("nixio")
+require("nixio")
 socket = require("socket")
 require("aredn.utils")
 aredn_info = require("aredn.info")
@@ -91,6 +91,6 @@ do
 	table.sort(tasks, function(a,b) return a.time < b.time end)
 	local delay = tasks[1].time - os.time()
 	if delay > 0 then
-		nxo.nanosleep(delay, 0)
+		nixio.nanosleep(delay, 0)
 	end
 end
