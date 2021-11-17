@@ -4,6 +4,10 @@ local json = require("luci.jsonc")
 
 utils = {}
 
+function utils.basename(pathname)
+    return string.gsub(pathname, "(.*/)(.*)", "%2")
+end
+
 function utils.read_all(filename)
     local lines = {}
     for line in io.lines(filename)
@@ -18,6 +22,32 @@ function utils.write_all(filename, data)
     if f then
         f:write(data)
         f:close()
+    end
+end
+
+function utils.copy_from_to(from, to)
+    local f = io.open(to, "w")
+    if f then
+        for line in io.lines(from)
+        do
+            f:write(line .. "\n")
+        end
+        f:close()
+    end
+end
+
+function utils.remove_all(name)
+    local ns = posix.sys.stat.stat(name)
+    if ns then
+        if posix.sys.stat.S_ISDIR(ns.st_mode) then
+            for i, subname in ipairs(posix.glob.glob(name .. "/*"))
+            do
+                utils.remove_all(subname)
+            end
+            posix.rmdir(name)
+        else
+            posix.remove(name)
+        end
     end
 end
 
@@ -67,6 +97,19 @@ end
 function utils.get_board_type()
     local json = json.parse(table.concat(utils.read_all("/etc/board.json")))
     return json.model.id;
+end
+
+function utils.get_iface_name(name)
+    local json = json.parse(table.concat(utils.read_all("/etc/board.json")))
+    return json.network[name].ifname;
+end
+
+function utils.get_nvram(var)
+    return uci.cursor("/etc/local/uci"):get("msmmmesh", "settings", var) or ""
+end
+
+function utils.set_nvram(var, val)
+    return uci.cursor("/etc/local/uci"):set("msmmmesh", "settings", var, val)
 end
 
 utils.log = {}
