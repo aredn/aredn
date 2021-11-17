@@ -102,8 +102,8 @@ function run_monitor()
         local beforeh = rssi[amac].Hrssi
         local arssi = get_rssi(wifiiface)
 
-        log:write(string.format("before %s [%d]", beforeh))
-        log:write(string.format("after  %s [%d]", arssi[amac].Hrssi))
+        log:write(string.format("before %s [%d]", amac, beforeh))
+        log:write(string.format("after  %s [%d]", amac, arssi[amac].Hrssi))
 
         if math.abs(beforeh - arssi[amac].Hrssi) <= 2 then
             -- false positive if within 2dB after reset
