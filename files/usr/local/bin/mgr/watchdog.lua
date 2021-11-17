@@ -30,8 +30,8 @@ function watchdog()
         wait_for_ticks(21)
 
         local pid = utils.read_all(pidfile)[1]
-        if pid and posix.sys.stat.stat("/proc/" .. pid) then
-            if posix.sys.stat.stat(watchdogfile) then
+        if pid and nixio.fs.stat("/proc/" .. pid) then
+            if nixio.fs.stat(watchdogfile) then
                 os.remove(watchdogfile)
             else
                 olsrd_restart()

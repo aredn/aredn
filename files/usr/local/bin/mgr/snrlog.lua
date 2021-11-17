@@ -112,7 +112,7 @@ function run_snrlog()
 
         -- find current data file
         local efn = nil
-        for fn in nxo.fs.glob(tmpdir.."/"..mac.."-*") do
+        for fn in nixio.fs.glob(tmpdir.."/"..mac.."-*") do
             efn = fn
             break
         end
@@ -192,7 +192,7 @@ function run_snrlog()
             -- If not a neighbor and wasn't previously nulled out, write a null
             if not snrdatcache[mac] and nulledout[mac] == "false" then
                 -- find the log file name
-                for logdatafile in nxo.fs.glob(tmpdir.."/"..mac.."*") do                    
+                for logdatafile in nixio.fs.glob(tmpdir.."/"..mac.."*") do                    
                     -- Write a null to the log file
                     local f, err = assert(io.open(logdatafile, "a"),"Cannot open file ("..logdatafile..") for appending!")
                     if f then
@@ -211,8 +211,8 @@ function run_snrlog()
             snrdatcache[mac] = snrdatcache[mac] or last
         else
             -- find the file and purge it
-            for maclist in nxo.fs.glob(tmpdir.."/"..mac.."*") do
-                nxo.fs.remove(maclist)
+            for maclist in nixio.fs.glob(tmpdir.."/"..mac.."*") do
+                os.remove(maclist)
                 break
             end
         end

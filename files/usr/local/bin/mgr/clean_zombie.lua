@@ -36,7 +36,7 @@ function clean()
             end
             if ppid and ppid ~= 1 then
                 log:write("Killed " .. ppid)
-                posix.signal.kill(ppid, posix.signal.SIGKILL)
+                nxo.kill(ppid, 9)
             end
         end
     end

@@ -8,7 +8,7 @@ function fccid()
     udp:setpeername("10.255.255.255", 4919)
     while true
     do
-        if posix.sys.stat.stat("/etc/config/run-fccid") then
+        if nxo.fs.stat("/etc/config/run-fccid") then
             udp:send(id)
         end
         wait_for_ticks(5 * 60) -- 5 minutes

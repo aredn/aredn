@@ -37,7 +37,6 @@
 
 local nxo = require("nixio")
 local ipc = require("luci.ip")
-local posix = require("posix.unistd")
 local auci = require("aredn.uci")
 require("uci")
 
@@ -89,7 +88,7 @@ function setContains(set, key)
 end
 
 function sleep(n)  -- seconds
-	posix.sleep(n)
+	nxo.nanosleep(n, 0)
 end
 
 function get_ip_type(ip)

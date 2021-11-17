@@ -203,7 +203,7 @@ else
 end
 
 -- verify that we have all the variables we need
-for i, file in ipairs(posix.glob.glob("/etc/config.mesh/*"))
+for file in nixio.fs.glob("/etc/config.mesh/*")
 do
     for line in lines.io(file)
     do
@@ -257,23 +257,23 @@ end
 
 -- check for old aliases file, copy it to .dmz and create symlink
 -- just in case anyone is already using the fule for some script or something
-local astat = posix.sys.stat.stat("/etc/config.mesh/aliases")
-if not (astat and posix.sys.stat.S_ISLNK(astat.st_mode) then
+local astat = nxo.fs.stat("/etc/config.mesh/aliases", "type")
+if not (astat and astat == "lnk") then
     if astat then
-        utils.copy_from_to("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
-        posix.remove("/etc/config.mesh/aliases")
+        nxo.fs.copy("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
+        os.remove("/etc/config.mesh/aliases")
     else
         io.open("/etc/config.mesh/aliases.dmz", "w"):close()
     end
-    posix.unistd.link("aliases.dmz", "/etc/config.mesh/aliases")
+    nxo.fs.link("aliases.dmz", "/etc/config.mesh/aliases")
 end
 
 -- basic configuration
 if do_basic then
     utils.remove_all("/tmp/new_config")
-    posix.mkdir("/tmp/new_config")
+    nxo.fs.mkdir("/tmp/new_config")
 
-    for i, file in ipairs(posix.glob.glob("/etc/config.mesh/*"))
+    for file in nixio.fs.glob("/etc/config.mesh/*")
     do
         if not (file:match("^_setup") or file:match("^firewall.user") or file:match("^olsrd")) then
             local f = io.open("/tmp/new_config/" .. file, "w")
@@ -309,16 +309,16 @@ if do_basic then
     end
 
     -- make it official
-    for file in posix.glob.glob("/etc/config/*")
+    for file in nixio.fs.glob("/etc/config/*")
     do
-        posix.remove(file)
+        nxo.fs.remove(file)
     end
-    for file in posix.glob.glob("/etc/new_config/*")
+    for file in nixio.fs.glob("/etc/new_config/*")
     do
-        posix.rename(file, "/etc/config/" .. utils.basename(file))
+        nxo.fs.rename(file, "/etc/config/" .. nxo.fs.basename(file))
     end
-    posix.rmdir("/etc/new_config")
-    utils.copy_from_to("/etc/config.mesh/firewall.user", "/etc/firewall.user")
+    nxo.fs.rmdir("/etc/new_config")
+    nxo.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user")
 
     utils.set_nvram("config", "mesh")
     utils.set_nvram("node", node)
@@ -398,8 +398,8 @@ if h and e then
 end
 
 if not do_basic then
-    utils.copy_from_to("/etc/config.mesh/firewall", "/etc/config/firewall")
-    utils.copy_from_to("/etc/config.mesh/firewall.user", "/etc/firewall.user")
+    nxo.fs.copy("/etc/config.mesh/firewall", "/etc/config/firewall")
+    nxo.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user")
 end
 
 -- append to firewall

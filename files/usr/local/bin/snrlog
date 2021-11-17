@@ -42,7 +42,6 @@ local nxo=require("nixio")
 require("iwinfo")
 require("luci.sys")
 
-
 -- setup extensions
 os.capture=capture
 string.print=print_r
@@ -290,7 +289,7 @@ end
 --- create pid file to communicate I'm running
 f, err=assert(io.open(pidfile, "w"),"Cannot open file (pidfile) to write!")
 if (f) then
-  local mypid = posix.unistd.getpid()
+  local mypid = nxo.getpid()
   f:write(mypid)
   f:close()
 end

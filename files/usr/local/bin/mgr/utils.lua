@@ -4,10 +4,6 @@ local json = require("luci.jsonc")
 
 utils = {}
 
-function utils.basename(pathname)
-    return string.gsub(pathname, "(.*/)(.*)", "%2")
-end
-
 function utils.read_all(filename)
     local lines = {}
     for line in io.lines(filename)
@@ -25,28 +21,17 @@ function utils.write_all(filename, data)
     end
 end
 
-function utils.copy_from_to(from, to)
-    local f = io.open(to, "w")
-    if f then
-        for line in io.lines(from)
-        do
-            f:write(line .. "\n")
-        end
-        f:close()
-    end
-end
-
 function utils.remove_all(name)
-    local ns = posix.sys.stat.stat(name)
-    if ns then
-        if posix.sys.stat.S_ISDIR(ns.st_mode) then
-            for i, subname in ipairs(posix.glob.glob(name .. "/*"))
+    local type = nxo.fs.stat(name, "type")
+    if type then
+        if type == "dir" then
+            for subname in nxo.fs.dir(name)
             do
-                utils.remove_all(subname)
+                utils.remove_all(name .. "/" .. subname)
             end
-            posix.rmdir(name)
+            nxo.fs.rmdir(name)
         else
-            posix.remove(name)
+            nxo.fs.remove(name)
         end
     end
 end
@@ -135,9 +120,9 @@ function utils.log:flush()
     if self.logf then
         self.logf:close()
         self.logf = nil
-        if posix.sys.stat.stat(self.logfile).st_size > self.logmax then
+        if nixio.fs.stat(self.logfile, "size") > self.logmax then
             local old = self.logfile .. '.0'
-            if posix.sys.stat.stat(old) then
+            if pnixio.fs.stat(old) then
                 os.remove(old)
             end
             os.rename(self.logfile, old)
