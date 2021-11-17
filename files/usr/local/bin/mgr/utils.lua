@@ -140,7 +140,7 @@ function utils.log:flush()
         self.logf = nil
         if nixio.fs.stat(self.logfile, "size") > self.logmax then
             local old = self.logfile .. '.0'
-            if pnixio.fs.stat(old) then
+            if nixio.fs.stat(old) then
                 os.remove(old)
             end
             os.rename(self.logfile, old)
