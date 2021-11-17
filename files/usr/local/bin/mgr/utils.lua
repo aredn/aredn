@@ -111,27 +111,6 @@ function utils.set_nvram(var, val)
     c:commit("hsmmmesh")
 end
 
-local radio_json
-function utils.wifi_maxpower(channel)
-    if nil radio_json then
-        radio_json = json.parse(table.concat(utils.read_all("/etc/radios.json")))
-    end
-    local board = radio_json[name]
-    if board then
-        if board.chanpower then
-            for k, v in pairs(board.chanpower)
-            do
-                if channel <= tonumber(k) then
-                    return tonumber(v)
-                end
-            end
-        elseif board.maxpower then
-            return tonumber(board.maxpower)
-        end
-    end
-    return 27 -- if all else fails
-end
-
 utils.log = {}
 utils.log.__index = utils.log
 
