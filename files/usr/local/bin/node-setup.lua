@@ -34,9 +34,21 @@
 
 --]]
 
+-- suffix to add to various file and directories while debugging this
+-- to avoid blowing away the real config
+local suffix = ".alt" 
+
 -- helpers start
+function is_null(v)
+    if not v or v == "" or v == 0 then
+        return true
+    else
+        return false
+    end
+end
+
 function decimal_to_ip(val)
-    return ((val >> 24) and 255) .. "." .. ((val >> 16) and 255) .. "." .. ((val >> 8) and 255) .. "." .. (val and 255)
+    return ((val / 16777216) and 255) .. "." .. ((val / 65536) and 255) .. "." .. ((val / 256) and 255) .. "." .. (val and 255)
 end
 
 function ip_to_decimal(ip)
@@ -52,7 +64,7 @@ function validate_same_subnet(ip1, ip2, mask)
     ip1 = ip_to_decimal(ip1)
     ip2 = ip_to_decimal(ip2)
     mask = ip_to_decimal(mask)
-    if (ip1 & mask) == (ip2 & mask) then
+    if (ip1 and mask) == (ip2 and mask) then
         return true
     else
         return false
@@ -100,7 +112,7 @@ function validate_netmask(mask)
     elseif not (b == 0 and c == 0 and d == 0) then
         return false
     end
-    if a == 128 or a == 192 or a == 224 or a = 240 or a == 248 or a == 252 or a == 254 or a == 255 then
+    if a == 128 or a == 192 or a == 224 or a == 240 or a == 248 or a == 252 or a == 254 or a == 255 then
         return true
     else
         return false
@@ -145,7 +157,7 @@ if not config then
 end
 
 if not (config == "mesh" and file_exists("/etc/config.mesh/_setup")) then
-    print "'" .. config .. "' is not a valid configuration"
+    print (string.format("'%s' is not a valid configuration", config))
     return -1
 end
 
@@ -177,7 +189,7 @@ do
     end
 end
 
-if cfg.wifi_enable == 1 then
+if cfg.wifi_enable == "1" then
     cfg.wifi_intf = utils.get_iface_name("wifi"):match("wlan(.*)")
 else
     cfg.wifi_intf = lanintf:match("([%w]*)") .. ".3975"
@@ -190,13 +202,13 @@ if cfg.wan_proto == "dhcp" then
     deleteme.wan_gw = true
     deleteme.wan_mask = true
 end
-if cfg.dmz_mode == 1 or cfg.wan_proto ~= "disabled" then
+if cfg.dmz_mode == "1" or cfg.wan_proto ~= "disabled" then
     deleteme.lan_gw = true
 end
 
 -- lan_dhcp sense is inverted in the dhcp config file
 -- and it is a checkbox so it may not be defined - this fixes that
-if cfg.lan_dhcp == 1 then
+if cfg.lan_dhcp == "1" then
     cfg.lan_dhcp = 0
 else
     cfg.lan_dhcp = 1
@@ -213,12 +225,12 @@ do
                 if parm:upper() == parm then
                     -- nvram variable
                     if get_nvram(parm:lower()) == "" then
-                        print "parameter '" .. parm .. "' in file '" .. file .. "' does not exist"
+                        print ("parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
                         return -1
                     end
                 else
                     if not (cfg[parm] or deleteme[parm]) then
-                        print "parameter '" .. parm .. "' in file '" .. file .. "' does not exist"
+                        print ("parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
                         return -1
                     end
                 end
@@ -233,7 +245,7 @@ if not cfg.dmz_mode then
 end
 
 -- switch to dmz values if needed
-if cfg.dmz_mode ~= 0 then
+if not is_null(cfg.dmz_mode) then
     cfg.lan_ip = cfg.dmz_lan_ip
     cfg.lan_mask = cfg.dmz_lan_mask
     cfg.dhcp_start = cfg.dmz_dhcp_start
@@ -245,14 +257,17 @@ end
 local portfile  = "/etc/config.mesh/_setup.ports"
 local dhcpfile  = "/etc/config.mesh/_setup.dhcp"
 local aliasfile = "/etc/config.mesh/aliases"
-if cfg.dmz_mode == 0 then
+local servfile = "/etc/config.mesh/_setup.services"
+if is_null(cfg.dmz_mode) then
     portfile = portfile .. ".nat"
     dhcpfile = dhcpfile .. ".nat"
-    aliasfile = aliasfile .. ".net"
+    aliasfile = aliasfile .. ".nat"
+    servfile = servfile .. ".nat"
 else
     portfile = portfile .. ".dmz"
     dhcpfile = dhcpfile .. ".dmz"
     aliasfile = aliasfile .. ".dmz"
+    servfile = servfile .. ".dmz"
 end
 
 -- check for old aliases file, copy it to .dmz and create symlink
@@ -286,7 +301,7 @@ if do_basic then
                         do
                             f:write(iline .. "\n")
                         end
-                    else if line:match("^[^#]") then
+                    elseif line:match("^[^#]") then
                         local out = true
                         for parm in line:gmatch("<([^%s]*)>")
                         do
@@ -309,16 +324,16 @@ if do_basic then
     end
 
     -- make it official
-    for file in nixio.fs.glob("/etc/config/*")
+    for file in nixio.fs.glob("/etc/config" .. suffix .. "/*")
     do
         nxo.fs.remove(file)
     end
     for file in nixio.fs.glob("/etc/new_config/*")
     do
-        nxo.fs.rename(file, "/etc/config/" .. nxo.fs.basename(file))
+        nxo.fs.rename(file, "/etc/config" .. suffix .. "/" .. nxo.fs.basename(file))
     end
     nxo.fs.rmdir("/etc/new_config")
-    nxo.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user")
+    nxo.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
 
     utils.set_nvram("config", "mesh")
     utils.set_nvram("node", node)
@@ -327,33 +342,35 @@ end
 
 -- generate the system files
 
-local h = io.open("/etc/hosts", "w")
-local e = io.open("/etc/ethers", "w")
+local h = io.open("/etc/hosts" .. suffix, "w")
+local e = io.open("/etc/ethers" .. suffix, "w")
 if h and e then
     h:write("# automatically generated file - do not edit\n")
     h:write("# use /etc/hosts.user for custom entries\n")
     h:write("127.0.0.1\tlocalhost\n")
-    if cfg.wifi_ip ~= "" then
+    if not is_null(cfg.wifi_ip) then
         h:write(cfg.lan_up .. "\tlocalnode\n")
         h:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
     else
         h:write(cfg.lan_up .. "\tlocalnode " .. node .. " " .. tactical .. "\n")
     end
-    if cfg.dtdlink_ip ~= "" then
-        h:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n"
+    if not is_null(cfg.dtdlink_ip) then
+        h:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
     end
-    if cfg.dmz_mode == 0 then
-        h:write(-- add_ip_address(cfg.lan_ip, 1) .. "\tlocalap\n")
+    if is_null(cfg.dmz_mode) then
+        h:write(decimal_to_ip(ip_to_decimal(cfg.lan_ip) + 1) .. "\tlocalap\n")
     end
 
     e:write("# automatically generated file - do not edit\n")
     e:write("# use /etc/ethers.user for custom entries\n")
 
+    local netaddr = ip_to_decimal(cfg.lan_ip) and ip_to_decimal(cfg_lan_mask)
+
     for line in io.lines(dhcpfile)
     do
         if not (line:match("^%s#") or line:match("^%s$")) then
             local mac, ip, host, noprop = line:match("(.*)%s+(.*)%s+(.*)%s+(.*)")
-            ip = decimal_to_ip(ip)
+            ip = decimal_to_ip(netaddr + ip)
             if validate_same_subnet(ip, cfg.lan_ip, cfg.lan_mask) and validate_ip_netmask(ip, cfg.lan_mask) then
                 h:write(ip .. "\t" .. host .. " " .. noprop .. "\n")
                 e:write(mac .. "\t" .. ip .. " " .. noprop .. "\n")
@@ -398,22 +415,25 @@ if h and e then
 end
 
 if not do_basic then
-    nxo.fs.copy("/etc/config.mesh/firewall", "/etc/config/firewall")
-    nxo.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user")
+    nxo.fs.copy("/etc/config.mesh/firewall", "/etc/config/firewall" .. suffix)
+    nxo.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
 end
 
+-- for all the uci changes
+local c = uci.cursor()
+
 -- append to firewall
-local fw = io:open("/etc/config/firewall", "a")
+local fw = io:open("/etc/config/firewall" .. suffix, "a")
 if fw then
-    if cfg.dmz_mode ~= 0 then
+    if not is_null(cfg.dmz_mode) then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   lan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   lan\n")
-        uci.cursor():set("firewall", "@zone[2]", "masq", "0")
+        c:set("firewall", "@zone[2]", "masq", "0")
     else
         fw:write("\nconfig 'include'\n        option 'path' '/etc/firewall.natmode'\n        option 'reload' '1'\n")
     end
 
-    if cfg.olsrd_gw then
+    if not is_null(cfg.olsrd_gw) then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   wan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   wan\n")
     end
@@ -428,43 +448,35 @@ if fw then
             else
                 local intf, type, oport, host, iport, enable = line:match("(.*):(.*):(.*):(.*):(.*):(.*)")
                 if enable then
-                    if cfg.dmz_mode ~= 0 then
-                        if intf == "wifi" then
-                            goto continue
-                        end
-                        if intf == "both" then
-                            intf = "wan"
-                        end
-                    end
-                    local match = "option src_dport    " .. oport .. "\n"
+                    local match = "option src_dport " .. oport .. "\n"
                     if type == "tcp" then
-                        match = match .. "option proto    tcp\n"
+                        match = match .. "option proto tcp\n"
                     elseif type == "udp" then
-                        match == match .. "option proto     udp\n"
+                        match = match .. "option proto udp\n"
                     end
                     -- uci the host and then
                     -- set the inside port unless the rule uses an outside port range
                     host = "option dest_ip    " .. host .. "\n"
                     if oport:match("-") then
-                        host = host .. "        option dest_port    " .. iport .. "\n"
+                        host = host .. "        option dest_port " .. iport .. "\n"
+                    end
+                    if not is_null(cfg.dmz_mode) and intf == "both" then
+                        intf = "wan"
                     end
                     if intf == "both" then
-                        fw:write("\nconfig redirect\n        option src    wifi\n        " .. match .. "        option src_dip    " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                        fw:write("\nconfig redirect\n        option src    dtdlink\n        " .. match .. "        option src_dip    " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                        fw:write("config redirect\n        option src    wan\n        " .. match .. "        " .. host .. "\n")
-                    elseif intf == "wifi" then
-                        fw:write("\nconfig redirect\n        option src    dtdlink\n        " .. match .. "        option src_dip    " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                        fw:write("\nconfig redirect\n        option src    wifi\n        " .. match .. "        option src_dip    " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                        fw:write("\nconfig redirect\n        option src  wifi\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                        fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                        fw:write("config redirect\n        option src wan\n        " .. match .. "        " .. host .. "\n")
+                    elseif intf == "wifi" and is_null(cfg.dmz_mode) then
+                        fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                        fw:write("\nconfig redirect\n        option src wifi\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
                     elseif intf == "wan" then
-                        fw:write("\nconfig redirect\n        option src    dtdlink\n        " .. match .. "        option src_dip    " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                        fw:write("config redirect\n        option src    wan\n        " .. match .. "        " .. host .. "\n")
-                    else
-                        -- error
+                        fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                        fw:write("config redirect\n        option src wan\n        " .. match .. "        " .. host .. "\n")
                     end
                 end
             end
         end
-        ::continue::
     end
 
     fw:close();
@@ -472,3 +484,113 @@ end
 
 -- generate the services file
 
+local sf = io.open("/etc/config/services" .. suffix, "w")
+if sf then
+    for line in io.lines(servfile)
+    do
+        if not (line:match("^%s#") or line:match("^%s$")) then
+            local name, link, proto, host, port, sffx = line:match("(.*)|(.*)|(.*)|(.*)|(.*)|(.*)")
+            if name and name ~= "" and host ~= "" then
+                if proto == "" then
+                    proto = "http"
+                end
+                if link == "" then
+                    port = "0"
+                end
+                sf:write(string.format("%s://%s:%s/%s|tcp|%s\n", proto, host, port, suffix, name))
+            end
+        end
+    end
+    sf:close()
+end
+
+local sf = io.open("/etc/local/services" .. suffix, "w")
+if sf then
+    sf:write("#!/bin/sh\n")
+    if cfg.wifi_proto ~= "disabled" then
+        if not cfg.wifi_txpower or cfg.wifi_txpower > wifi_maxpower(cfg.wifi_channel) then
+            cfg.wifi_txpower = wifi_maxpower(cfg.wifi_channel)
+        end
+        if cfg.wifi_txpower < 1 then
+            cgs.wifi_txpower = 1
+        end
+        if cfg.wifi_enable == 1 then
+            sf:write("/usr/sbin/iw dev " .. cfg.wifi_intf .. " set txpower fixed " .. cfg.wifi_txpower .. "00\n")
+        end
+        if not is_null(cfg.aprs_lat) and not is_null(cfg.aprs_lon) then
+            c:set("aredn", "@location[0]", "lat", cfg.aprs_lat)
+            c:set("aredn", "@location[0]", "lon", cfg.aprs_lon)
+        end
+    end
+    sf:close()
+    nxo.fs.chmod("/etc/local/services" .. suffix, "+x")
+end
+
+-- generate olsrd.conf
+
+if file_exists("/etc/config.mesh/olsrd") then
+    local of = io.open("/etc/config/olsrd" .. suffix, "w")
+    if of then
+        for line in io.lines("/etc/config.mesh/olsrd")
+        do
+            if line:match("<olsrd_bridge>") then
+                if is_null(cfg.olsrd_bridge) then
+                    line = line.gsub("<olsrd_bridge>", '"wifi" "lan"')
+                else
+                    line = line.gsub("<olsrd_bridge>", '"lan"')
+                end
+            elseif line:match("^[^#]") then
+                for parm in line:gmatch("<([^%s]*)>")
+                do
+                    line = line:gsub("<" .. parm .. ">", cfg[parm])
+                end
+            end
+            of:write(line .. "\n")
+        end
+
+        if not is_null(cfg.dmz_mode) then
+            local a, b, c, d = cfg.dmz_lan_ip:match("(.*)%.(.*)%.(.*)%.(.*)")
+            of:write(string.format("\nconfig Hna4\n option netaddr %s.%s.%s.%d\n option netmask 255.255.255.%d\n\n"), a, b, c, d - 1, (255 * 2 ^ cfg.dmz_mode) and 255)
+        end
+    
+        if not is_null(cfg.olsrd_gw) then
+            of:write("config LoadPlugin\n option library 'olsrd_dyn_gw.so.0.5'\n option Interval '60'\n list Ping '8.8.8.8'\n list Ping '8.8.4.4'\n\n\n")
+        end
+
+        of:close()
+    end
+
+end
+
+-- indicate whether lan is running in dmz mode
+
+c:set("aredn", "dmz", "mode", cfg.dmz_mode)
+
+-- setup node lan dhcp
+
+if not is_null(cfg.lan_dhcp_noroute) then
+    c:set("dhcp", "@dhcp[0]", "dhcp_option", {
+        "121,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip,
+        "249,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip,
+        "3"
+    })
+else
+    c:set("dhcp", "@dhcp[0]", "dhcp_option", {
+        "121,10.0.0.0/8" .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg/lan_ip,
+        "249,10.0.0.0/8" .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg/lan_ip
+    })
+end
+
+-- uci changes done
+c:commit()
+
+-- generate the wireless config file
+-- TODO - move that into lua
+os.system("/usr/local/bin/wifi-setup")
+
+if not auto then
+    print "configuration complete.";
+    print "you should now reboot the router.";
+end
+
+return 0
