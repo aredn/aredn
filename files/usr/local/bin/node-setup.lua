@@ -34,6 +34,7 @@
 
 --]]
 
+require("mgr.utils")
 require("nixio")
 
 -- suffix to add to various file and directories while debugging this
@@ -41,6 +42,7 @@ require("nixio")
 local suffix = ".alt" 
 
 -- helpers start
+
 function is_null(v)
     if not v or v == "" or v == 0 then
         return true
@@ -50,7 +52,7 @@ function is_null(v)
 end
 
 function decimal_to_ip(val)
-    return ((val / 16777216) and 255) .. "." .. ((val / 65536) and 255) .. "." .. ((val / 256) and 255) .. "." .. (val and 255)
+    return nixio.bit.band(val / 16777216, 255) .. "." .. nixio.bit.band(val / 65536, 255) .. "." .. nixio.bit.band(val / 256, 255) .. "." .. nixio.bit.band(val, 255)
 end
 
 function ip_to_decimal(ip)
@@ -66,7 +68,7 @@ function validate_same_subnet(ip1, ip2, mask)
     ip1 = ip_to_decimal(ip1)
     ip2 = ip_to_decimal(ip2)
     mask = ip_to_decimal(mask)
-    if (ip1 and mask) == (ip2 and mask) then
+    if nixio.bit.band(ip1, mask) == nixio.bit.band(ip2, mask) then
         return true
     else
         return false
@@ -82,7 +84,7 @@ function validate_ip(ip)
     if not a then
         return false
     end
-    if a > 255 or b > 255 or c > 255 or d > 255 then
+    if tonumber(a) > 255 or tonumber(b) > 255 or tonumber(c) > 255 or tonumber(d) > 255 then
         return false
     end
     return true
@@ -97,24 +99,24 @@ function validate_netmask(mask)
     if not a then
         return false
     end
-    if a == 255 then
-        if b == 255 then
-            if c == 255 then
+    if a == "255" then
+        if b == "255" then
+            if c == "255" then
                 a = d
-            elseif d ~= 0 then
+            elseif d ~= "0" then
                 return false
             else
                 a = c
             end
-        elseif not (c == 0 and d == 0) then
+        elseif not (c == "0" and d == "0") then
             return false
         else
             a = b
         end
-    elseif not (b == 0 and c == 0 and d == 0) then
+    elseif not (b == "0" and c == "0" and d == "0") then
         return false
     end
-    if a == 128 or a == 192 or a == 224 or a == 240 or a == 248 or a == 252 or a == 254 or a == 255 then
+    if a == "128" or a == "192" or a == "224" or a == "240" or a == "248" or a == "252" or a == "254" or a == "255" then
         return true
     else
         return false
@@ -128,10 +130,31 @@ function validate_ip_netmask(ip, mask)
     ip = ip_to_decimal(ip)
     mask = ip_to_decimal(mask)
     local notmask = 0xffffffff - mask
-    if (ip and notmask) == 0 or (ip and notmask) == notmask then
+    if nixio.bit.band(ip, notmask) == 0 or nixio.bit.band(ip, notmask) == notmask then
         return false
     end
     return true
+end
+
+function get_mac(intf)
+    local mac = ""
+    if intf then
+        for i, line in ipairs(utils.system_run("ifconfig " .. intf))
+        do
+            local m = line:match("HWaddr ([%w:]+)")
+            if m then
+                mac = m
+                break
+            end
+        end
+    end
+    return mac
+end
+
+function mac_to_ip(mac, shift)
+    local a, b, c = mac:match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
+    local val = nixio.bit.lshift(((tonumber(a, 16) * 256) + tonumber(b, 16)) * 256 + tonumber(c, 16), shift)
+    return string.format("%d.%d.%d", nixio.bit.band(val / 16777216, 255), nixio.bit.band(val / 65536, 255), nixio.bit.band(val, 255))
 end
 
 -- helpers end
@@ -140,16 +163,18 @@ end
 local auto = false
 local do_basic = true
 local config = nil
-if #arg == 2 then
-    if arg[1] == "-a" then
+for i, a in ipairs(arg)
+do
+    if a == "-a" then
         auto = true
-        config = arg[2]
-    elseif arg[1] == "-p" then
+    elseif a == "-p" then
         do_basic = false
-        config = arg[2]
+    elseif a[1] == '-' then
+        break
+    else
+        config = a
+        break
     end
-elseif #arg == 1 then
-    config = arg[1]
 end
 if not config then
     print "usage: node-setup [-a] [-p] <configname>"
@@ -158,16 +183,16 @@ if not config then
     return -1
 end
 
-if not (config == "mesh" and file_exists("/etc/config.mesh/_setup")) then
+if not (config == "mesh" and nixio.fs.access("/etc/config.mesh/_setup", "r")) then
     print (string.format("'%s' is not a valid configuration", config))
     return -1
 end
 
 local lanintf = utils.get_iface_name("lan")
-local node = get_nvram("node")
-local tactical = get_nvram("tactical")
-local mac2 = utils.mac_to_ip(utils.get_mac(utils.get_iface_name("wifi")), 0)
-local dtdmac = utils.mac_to_ip(utils.get_mac(lanintf), 0) -- *not* based of dtdlink
+local node = utils.get_nvram("node")
+local tactical = utils.get_nvram("tactical")
+local mac2 = mac_to_ip(get_mac(utils.get_iface_name("wifi")), 0)
+local dtdmac = mac_to_ip(get_mac(lanintf), 0) -- *not* based of dtdlink
 
 local deleteme = {}
 local cfg = {
@@ -178,6 +203,8 @@ local cfg = {
 
 if not auto then
     -- Is this used now?
+    print "Non-auto mode no longer supported."
+    return -1
 end
 
 -- load the verify the selected configuration
@@ -186,10 +213,16 @@ for line in io.lines("/etc/config.mesh/_setup")
 do
     if not (line:match("^%s#") or line:match("^%s$")) then
         line = line:gsub("<NODE>", node):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
-        local k, v = line:match("^(.*)%s*=%s*(.*)$")
+        local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
         cfg[k] = v
     end
 end
+
+-- debug
+-- for k, v in pairs(cfg)
+-- do
+--    print ("'" .. k .. "'", " -> ", "'" .. v .. "'")
+-- end
 
 if cfg.wifi_enable == "1" then
     cfg.wifi_intf = utils.get_iface_name("wifi"):match("wlan(.*)")
@@ -219,19 +252,19 @@ end
 -- verify that we have all the variables we need
 for file in nixio.fs.glob("/etc/config.mesh/*")
 do
-    for line in lines.io(file)
+    for line in io.lines(file)
     do
         if line:match("^[^#]") then
             for parm in line:gmatch("<([^%s]*)>")
             do
                 if parm:upper() == parm then
                     -- nvram variable
-                    if get_nvram(parm:lower()) == "" then
-                        print ("parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
+                    if utils.get_nvram(parm:lower()) == "" then
+                        print ("nv parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
                         return -1
                     end
                 else
-                    if not (cfg[parm] or deleteme[parm]) then
+                    if not cfg[parm] and not deleteme[parm] then
                         print ("parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
                         return -1
                     end
@@ -242,7 +275,7 @@ do
 end
 
 -- sensible dmz_mode default
-if not cfg.dmz_mode then
+if is_null(cfg.dmz_mode) then
     cfg.dmz_mode = 0
 end
 
@@ -260,7 +293,7 @@ local portfile  = "/etc/config.mesh/_setup.ports"
 local dhcpfile  = "/etc/config.mesh/_setup.dhcp"
 local aliasfile = "/etc/config.mesh/aliases"
 local servfile = "/etc/config.mesh/_setup.services"
-if is_null(cfg.dmz_mode) then
+if cfg.dmz_mode == 0 then
     portfile = portfile .. ".nat"
     dhcpfile = dhcpfile .. ".nat"
     aliasfile = aliasfile .. ".nat"
@@ -277,12 +310,12 @@ end
 local astat = nixio.fs.stat("/etc/config.mesh/aliases", "type")
 if not (astat and astat == "lnk") then
     if astat then
-        nixio.fs.copy("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
+        utils.copytext("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
         os.remove("/etc/config.mesh/aliases")
     else
         io.open("/etc/config.mesh/aliases.dmz", "w"):close()
     end
-    nixio.fs.link("aliases.dmz", "/etc/config.mesh/aliases")
+    nixio.fs.symlink("aliases.dmz", "/etc/config.mesh/aliases")
 end
 
 -- basic configuration
@@ -292,50 +325,57 @@ if do_basic then
 
     for file in nixio.fs.glob("/etc/config.mesh/*")
     do
-        if not (file:match("^_setup") or file:match("^firewall.user") or file:match("^olsrd")) then
-            local f = io.open("/tmp/new_config/" .. file, "w")
+        local bfile = nixio.fs.basename(file)
+        if not (bfile:match("^_setup") or bfile:match("^firewall.user") or bfile:match("^olsrd")) then
+            local f = io.open("/tmp/new_config/" .. bfile, "w")
             if f then
                 for line in io.lines(file)
                 do
+                    local out = true
                     local inc = line:match("^include%s+(.*)%s*")
                     if inc then
                         for iline in io.lines(inc)
                         do
                             f:write(iline .. "\n")
                         end
+                        out = false
                     elseif line:match("^[^#]") then
-                        local out = true
                         for parm in line:gmatch("<([^%s]*)>")
                         do
                             if deleteme[parm] then
                                 out = false
+                            elseif parm == "NODE" then
+                                line = line:gsub("<NODE>", node)
+                            elseif parm == "MAC2" then
+                                line = line:gsub("<MAC2>", mac2)
+                            elseif parm == "DTDMAC" then
+                                line = line:gsub("<DTDMAC>", dtdmac)
                             else
                                 line = line:gsub("<" .. parm .. ">", cfg[parm])
                             end
                         end
-                        if out then
-                            f:write(line .. "\n")
-                        end
+                    end
+                    if out then
+                        f:write(line .. "\n")
                     end
                 end
                 f:close()
-            else
-                -- error
             end
         end
     end
 
     -- make it official
-    for file in nixio.fs.glob("/etc/config" .. suffix .. "/*")
+    for file in nixio.fs.glob("/etc/config/*" .. suffix)
     do
         nixio.fs.remove(file)
     end
-    for file in nixio.fs.glob("/etc/new_config/*")
+    for file in nixio.fs.glob("/tmp/new_config/*")
     do
-        nixio.fs.rename(file, "/etc/config" .. suffix .. "/" .. nixio.fs.basename(file))
+        utils.copytext(file, "/etc/config/" .. nixio.fs.basename(file) .. suffix)
+        nixio.fs.remove(file)
     end
     nixio.fs.rmdir("/etc/new_config")
-    nixio.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
+    utils.copytext("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
 
     utils.set_nvram("config", "mesh")
     utils.set_nvram("node", node)
@@ -351,10 +391,10 @@ if h and e then
     h:write("# use /etc/hosts.user for custom entries\n")
     h:write("127.0.0.1\tlocalhost\n")
     if not is_null(cfg.wifi_ip) then
-        h:write(cfg.lan_up .. "\tlocalnode\n")
+        h:write(cfg.lan_ip .. "\tlocalnode\n")
         h:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
     else
-        h:write(cfg.lan_up .. "\tlocalnode " .. node .. " " .. tactical .. "\n")
+        h:write(cfg.lan_ip .. "\tlocalnode " .. node .. " " .. tactical .. "\n")
     end
     if not is_null(cfg.dtdlink_ip) then
         h:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
@@ -366,7 +406,7 @@ if h and e then
     e:write("# automatically generated file - do not edit\n")
     e:write("# use /etc/ethers.user for custom entries\n")
 
-    local netaddr = ip_to_decimal(cfg.lan_ip) and ip_to_decimal(cfg_lan_mask)
+    local netaddr = nixio.bit.band(ip_to_decimal(cfg.lan_ip), ip_to_decimal(cfg.lan_mask))
 
     for line in io.lines(dhcpfile)
     do
@@ -399,13 +439,13 @@ if h and e then
 
     h:write("\n")
 
-    if file_exists("/etc/hosts.user") then
+    if nixio.fs.access("/etc/hosts.user", "r") then
         for line in io.lines("/etc/hosts.user")
         do
             h:write(line .. "\n")
         end
     end
-    if file_exists("/etc/ethers.user") then
+    if nixio.fs.access("/etc/ethers.user", "r") then
         for line in io.lines("/etc/ethers.user")
         do
             e:write(line .. "\n")
@@ -417,20 +457,21 @@ if h and e then
 end
 
 if not do_basic then
-    nixio.fs.copy("/etc/config.mesh/firewall", "/etc/config/firewall" .. suffix)
-    nixio.fs.copy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
+    utils.copytext("/etc/config.mesh/firewall", "/etc/config/firewall" .. suffix)
+    utils.copytext("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
 end
 
 -- for all the uci changes
 local c = uci.cursor()
 
 -- append to firewall
-local fw = io:open("/etc/config/firewall" .. suffix, "a")
+local fw = io.open("/etc/config/firewall" .. suffix, "a")
 if fw then
     if not is_null(cfg.dmz_mode) then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   lan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   lan\n")
         c:set("firewall", "@zone[2]", "masq", "0")
+        c:commit("firewall")
     else
         fw:write("\nconfig 'include'\n        option 'path' '/etc/firewall.natmode'\n        option 'reload' '1'\n")
     end
@@ -510,10 +551,9 @@ local sf = io.open("/etc/local/services" .. suffix, "w")
 if sf then
     sf:write("#!/bin/sh\n")
     if cfg.wifi_proto ~= "disabled" then
-        if not cfg.wifi_txpower or cfg.wifi_txpower > wifi_maxpower(cfg.wifi_channel) then
+        if is_null(cfg.wifi_txpower) or tonumber(cfg.wifi_txpower) > wifi_maxpower(cfg.wifi_channel) then
             cfg.wifi_txpower = wifi_maxpower(cfg.wifi_channel)
-        end
-        if cfg.wifi_txpower < 1 then
+        elseif tonumber(cfg.wifi_txpower) < 1 then
             cgs.wifi_txpower = 1
         end
         if cfg.wifi_enable == 1 then
@@ -522,24 +562,25 @@ if sf then
         if not is_null(cfg.aprs_lat) and not is_null(cfg.aprs_lon) then
             c:set("aredn", "@location[0]", "lat", cfg.aprs_lat)
             c:set("aredn", "@location[0]", "lon", cfg.aprs_lon)
+            c:commit("aredn")
         end
     end
     sf:close()
-    nixio.fs.chmod("/etc/local/services" .. suffix, "+x")
+    nixio.fs.chmod("/etc/local/services" .. suffix, "777")
 end
 
 -- generate olsrd.conf
 
-if file_exists("/etc/config.mesh/olsrd") then
+if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
     local of = io.open("/etc/config/olsrd" .. suffix, "w")
     if of then
         for line in io.lines("/etc/config.mesh/olsrd")
         do
             if line:match("<olsrd_bridge>") then
                 if is_null(cfg.olsrd_bridge) then
-                    line = line.gsub("<olsrd_bridge>", '"wifi" "lan"')
+                    line = line:gsub("<olsrd_bridge>", '"wifi" "lan"')
                 else
-                    line = line.gsub("<olsrd_bridge>", '"lan"')
+                    line = line:gsub("<olsrd_bridge>", '"lan"')
                 end
             elseif line:match("^[^#]") then
                 for parm in line:gmatch("<([^%s]*)>")
@@ -552,11 +593,11 @@ if file_exists("/etc/config.mesh/olsrd") then
 
         if not is_null(cfg.dmz_mode) then
             local a, b, c, d = cfg.dmz_lan_ip:match("(.*)%.(.*)%.(.*)%.(.*)")
-            of:write(string.format("\nconfig Hna4\n option netaddr %s.%s.%s.%d\n option netmask 255.255.255.%d\n\n"), a, b, c, d - 1, (255 * 2 ^ cfg.dmz_mode) and 255)
+            of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%s.%d\n\toption netmask 255.255.255.%d\n\n", a, b, c, d - 1, nixio.bit.band(255 * 2 ^ cfg.dmz_mode, 255)))
         end
     
         if not is_null(cfg.olsrd_gw) then
-            of:write("config LoadPlugin\n option library 'olsrd_dyn_gw.so.0.5'\n option Interval '60'\n list Ping '8.8.8.8'\n list Ping '8.8.4.4'\n\n\n")
+            of:write("config LoadPlugin\n\toption library 'olsrd_dyn_gw.so.0.5'\n\toption Interval '60'\n\tlist Ping '8.8.8.8'\n\tlist Ping '8.8.4.4'\n\n\n")
         end
 
         of:close()
@@ -567,6 +608,7 @@ end
 -- indicate whether lan is running in dmz mode
 
 c:set("aredn", "dmz", "mode", cfg.dmz_mode)
+c:commit("aredn")
 
 -- setup node lan dhcp
 
@@ -582,13 +624,11 @@ else
         "249,10.0.0.0/8" .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg/lan_ip
     })
 end
-
--- uci changes done
-c:commit()
+c:commit("dhcp")
 
 -- generate the wireless config file
 -- TODO - move that into lua
-os.system("/usr/local/bin/wifi-setup")
+utils.system_run("/usr/local/bin/wifi-setup")
 
 if not auto then
     print "configuration complete.";

@@ -1,6 +1,7 @@
 
 local http = require("socket.http")
 local json = require("luci.jsonc")
+local uci = require("uci")
 
 utils = {}
 
@@ -17,6 +18,17 @@ function utils.write_all(filename, data)
     local f = io.open(filename, "w")
     if f then
         f:write(data)
+        f:close()
+    end
+end
+
+function utils.copytext(from, to)
+    local f = io.open(to, "w")
+    if f then
+        for line in io.lines(from)
+        do
+            f:write(line .. "\n")
+        end
         f:close()
     end
 end
@@ -90,11 +102,17 @@ function utils.get_iface_name(name)
 end
 
 function utils.get_nvram(var)
-    return uci.cursor("/etc/local/uci"):get("msmmmesh", "settings", var) or ""
+    return uci.cursor("/etc/local/uci"):get("hsmmmesh", "settings", var) or ""
 end
 
 function utils.set_nvram(var, val)
-    return uci.cursor("/etc/local/uci"):set("msmmmesh", "settings", var, val)
+    local c = uci.cursor("/etc/local/uci")
+    c:set("hsmmmesh", "settings", var, val)
+    c:commit("hsmmmesh")
+end
+
+function wifi_maxpower(channel)
+    return 30 -- debug
 end
 
 utils.log = {}
