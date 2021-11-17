@@ -39,11 +39,11 @@ function run_monitor()
         }
     end
 
-    local ofdm_level
+    local ofdm_level = 0
     for i, line in ipairs(utils.read_all("/sys/kernel/debug/ieee80211/" .. iwinfo.nl80211.phyname(wifiiface) .. "/ath9k/ani"))
     do
         ofdm_level = tonumber(string.match(line, "OFDM LEVEL: (.*)"))
-        if not ofdm_level then
+        if ofdm_level then
             break
         end
     end
