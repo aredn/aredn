@@ -189,17 +189,17 @@ if not (config == "mesh" and nixio.fs.access("/etc/config.mesh/_setup", "r")) th
     return -1
 end
 
-local lanintf = utils.get_iface_name("lan")
+local lanintf = hw.get_iface_name("lan")
 local node = utils.get_nvram("node")
 local tactical = utils.get_nvram("tactical")
-local mac2 = mac_to_ip(get_mac(utils.get_iface_name("wifi")), 0)
+local mac2 = mac_to_ip(get_mac(hw.get_iface_name("wifi")), 0)
 local dtdmac = mac_to_ip(get_mac(lanintf), 0) -- *not* based of dtdlink
 
 local deleteme = {}
 local cfg = {
     lan_intf = lanintf,
     wan_intf = "dummy",
-    dtdlink_intf = utils.get_iface_name('dtdlink')
+    dtdlink_intf = hw.get_iface_name('dtdlink')
 }
 
 if not auto then
@@ -226,7 +226,7 @@ end
 -- end
 
 if cfg.wifi_enable == "1" then
-    cfg.wifi_intf = utils.get_iface_name("wifi"):match("wlan(.*)")
+    cfg.wifi_intf = hw.get_iface_name("wifi"):match("wlan(.*)")
 else
     cfg.wifi_intf = lanintf:match("([%w]*)") .. ".3975"
 end

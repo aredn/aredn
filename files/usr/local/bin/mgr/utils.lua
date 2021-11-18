@@ -91,16 +91,6 @@ function utils.fetch_json(url)
     end
 end
 
-function utils.get_board_type()
-    local json = json.parse(table.concat(utils.read_all("/etc/board.json")))
-    return json.model.id;
-end
-
-function utils.get_iface_name(name)
-    local json = json.parse(table.concat(utils.read_all("/etc/board.json")))
-    return json.network[name].ifname;
-end
-
 function utils.get_nvram(var)
     return uci.cursor("/etc/local/uci"):get("hsmmmesh", "settings", var) or ""
 end

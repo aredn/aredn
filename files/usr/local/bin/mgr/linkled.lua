@@ -3,7 +3,7 @@ local link1led
 
 function linkled()
     local link
-    local board_type = utils.get_board_type()
+    local board_type = hardware.get_board_type()
     if board_type == "airouter" then
         link = "/sys/class/leds/ubnt:green:globe"
     elseif board_type == "gl-ar150" then

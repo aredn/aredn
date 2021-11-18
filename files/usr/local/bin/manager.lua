@@ -43,6 +43,7 @@ aredn_info = require("aredn.info")
 require("aredn.uci")
 require("iwinfo")
 require("luci.sys")
+hardware = require("aredn.hardware")
 
 -- aggressive gc on low memory devices
 if aredn_info.getFreeMemory().totalram < 32768 then

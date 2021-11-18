@@ -38,6 +38,8 @@ local json = require("luci.jsonc")
 local hardware = {}
 
 local radio_json = nil
+local board_json = nil
+
 function get_radio_json()
     if not radio_json then
         local f = io.open("/etc/radios.json")
@@ -48,6 +50,18 @@ function get_radio_json()
         f:close()
     end
     return radio_json
+end
+
+function get_board_json()
+    if not board_json then
+        local f = io.open("/etc/board.json")
+        if not f then
+            return {}
+        end
+        board_json = json.parse(f:read("*a"))
+        f:close()
+    end
+    return board_json
 end
 
 function hardware.wifi_maxpower(channel)
@@ -65,6 +79,15 @@ function hardware.wifi_maxpower(channel)
         end
     end
     return 27 -- if all else fails
+end
+
+
+function hardware.get_board_type()
+    return get_board_json().model.id
+end
+
+function hardware.get_iface_name(name)
+    return get_board_json().network[name].ifname;
 end
 
 return hardware
