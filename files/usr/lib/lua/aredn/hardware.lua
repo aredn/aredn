@@ -94,4 +94,19 @@ function hardware.get_link_led()
     return "/sys/class/leds/" .. get_board_json().led.rssilow.sysfs
 end
 
+function get_interface_mac(intf)
+    local mac = ""
+    if intf then
+        for i, line in ipairs(utils.system_run("ifconfig " .. intf))
+        do
+            local m = line:match("HWaddr ([%w:]+)")
+            if m then
+                mac = m
+                break
+            end
+        end
+    end
+    return mac
+end
+
 return hardware

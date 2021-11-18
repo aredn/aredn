@@ -137,21 +137,6 @@ function validate_ip_netmask(ip, mask)
     return true
 end
 
-function get_mac(intf)
-    local mac = ""
-    if intf then
-        for i, line in ipairs(utils.system_run("ifconfig " .. intf))
-        do
-            local m = line:match("HWaddr ([%w:]+)")
-            if m then
-                mac = m
-                break
-            end
-        end
-    end
-    return mac
-end
-
 function mac_to_ip(mac, shift)
     local a, b, c = mac:match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
     local val = nixio.bit.lshift(((tonumber(a, 16) * 256) + tonumber(b, 16)) * 256 + tonumber(c, 16), shift)
@@ -192,8 +177,8 @@ end
 local lanintf = hw.get_iface_name("lan")
 local node = utils.get_nvram("node")
 local tactical = utils.get_nvram("tactical")
-local mac2 = mac_to_ip(get_mac(hw.get_iface_name("wifi")), 0)
-local dtdmac = mac_to_ip(get_mac(lanintf), 0) -- *not* based of dtdlink
+local mac2 = mac_to_ip(hw.get_interface_mac(hw.get_iface_name("wifi")), 0)
+local dtdmac = mac_to_ip(hw.get_interface_mac(lanintf), 0) -- *not* based of dtdlink
 
 local deleteme = {}
 local cfg = {
