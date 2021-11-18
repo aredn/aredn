@@ -61,7 +61,7 @@ local cfg = {}
 local defaultcfg = {}
 
 local tmp = io.open("/tmp/.mesh_setup", "r")
-if not tmp
+if not tmp then
     print "Failed to create temp file"
     os.exit(-1)
 end
@@ -117,7 +117,7 @@ end
 
 tmp:close()
 
-filecopy"/tmp/.mesh_setup", "/etc/config.mesh/_setup")
+filecopy("/tmp/.mesh_setup", "/etc/config.mesh/_setup")
 os.remove("/tmp/.mesh_setup")
 
 shell_no_capture("/usr/local/bin/node-setup.lua -a mesh")
