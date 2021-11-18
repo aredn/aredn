@@ -68,7 +68,7 @@ function run_monitor()
             if rssih.num > 9 and ofdm_level <= 3 and hit > 0 then
                 -- overly attenuated chain suspected
                 log:write(string.format("Attenuated Suspect %s [%d] %f %f", mac, info.Hrssi, rssih.ave_h, rssih.sd_h))
-                if not amac or rssi[amac] < info.Hrssi then
+                if not amac or rssi[amac].Hrssi < info.Hrssi then
                     amac = mac
                 end
             else
