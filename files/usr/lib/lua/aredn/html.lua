@@ -31,6 +31,32 @@ function html.footer()
     html.print "<div class=\"Page_Footer\"><hr><p class=\"PartOfAREDN\">Part of the AREDN&trade; Project. For more details please <a href=\"/about.html\" target=\"_blank\">see here</a></p></div>"
 end
 
+function html.alert_banner()
+    local aredn_message = read_all("/tmp/aredn_message")
+    local local_message = read_all("/tmp/local_message")
+
+    html.print("<div class=\"TopBanner\">")
+    html.print("<div class=\"LogoDiv\"><a href=\"http://localnode.local.mesh:8080\" title=\"Go to localnode\"><img src=\"/AREDN.png\" class=\"AREDNLogo\"></img></a></div>")
+
+    local supported = aredn.hardware.supported()
+    if supported == 0 then
+        html.print("<div style=\"padding:5px;background-color:#FF4719;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNSUPPORTED DEVICE !!!!</a></div>")
+    elseif supported == -2 then
+        html.print("<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\"> !!!! THIS DEVICE IS STILL BEING TESTED !!!!</a></div>")
+    elseif supported ~= 1 then
+        html.print("<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>")
+    end
+    
+    if aredn_message then
+        html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">" .. aredn_message .. "</div></div>")
+    end
+    if local_message then
+        html.print "<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">" .. local_message .. "</div></div>")
+    end
+
+    html.print("</div>")
+end
+
 function html.print(line)
     -- html output is defined in aredn.http
     -- this is a bit icky at the moment :-()

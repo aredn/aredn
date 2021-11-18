@@ -46,15 +46,18 @@ end
 
 http_output = nil
 
-function http_header(can_compress)
+function http_header(disable_compression)
    print("Content-type: text/html\r")
    print("Cache-Control: no-store\r")
-   if can_compress then
-     local gz = io.popen("gzip", "w")
-     if gz then
-       print "Content-Encoding: gzip\r"
-       http_output = gz
-     end
+   if not disable_compression then
+     local encoding = os.getenv("HTTP_ACCEPT_ENCODING")
+     if encoding and encoding:match("gzip") then
+      local gz = io.popen("gzip", "w")
+      if gz then
+        print "Content-Encoding: gzip\r"
+        http_output = gz
+      end
+    end
    end
    print("\n")
 end

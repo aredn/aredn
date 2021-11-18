@@ -180,13 +180,14 @@ end
 
 -- read_postdata()
 
--- gemnerate page
-http_header(true)
+-- generate page
+
+http_header()
 html.header(node .. "status", true)
 html.print("<body><form method='post' action='/cgi-bin/status' enctype='multipart/form-data'>")
 html.print("<center>")
 
--- alert_banner()
+html.alert_banner()
 
 -- page header
 html.print("<h1><big>" .. node)
@@ -259,7 +260,10 @@ end
 ip = cursor:get("network", "lan", "ipaddr")
 mask = cursor:get("network", "lan", "netmask")
 local browser_ip
-local remote_ip = env.REMOTE_ADDRESS.match("::ffff:([%d%.]+)")
+local remote_ip = os.getenv("REMOTE_ADDRESS")
+if remote_ip then
+    remote_ip = remote_ip.match("::ffff:([%d%.]+)")
+end
 local hide_local = false
 if remote_ip then
     browser_ip = remote_ip
@@ -268,13 +272,13 @@ if remote_ip then
     end
 end
 
-if ip.match("^10%.") or not hide_local then
+if ip:match("^10%.") or not hide_local then
     cidr = netmask_to_cidr(mask)
     col1[#col1 + 1] = "<th align=right><nobr>LAN address</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
 end
 
 ip = cursor:get("network", "wan", "ipaddr")
-if not hide_local and ip ~= "" then
+if not hide_local and ip then
     cidr = netmask_to_cidr(cursor:get("network", "wan", "netmask"))
     col1[#col1 + 1] = "<th align=right><nobr>WAN address</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
 end
@@ -331,7 +335,7 @@ if tspace < 3000 then
 else
     tspace = tspace .. " KB"
 end
-local rspace = system.freeram
+local rspace = sysinfo.freeram / 1024
 if rspace < 500 then
     rspace = "<blink><b>" .. rspace .. " KB</b></blink>"
 else

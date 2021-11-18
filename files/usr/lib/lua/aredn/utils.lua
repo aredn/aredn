@@ -474,7 +474,7 @@ function netmask_to_cidr(mask)
 	while v ~= 0
 	do
 		cidr = cidr + 1
-		v = (v * 2) & 0xffffffff
+		v = (v * 2) % 0x100000000
 	end
 	return cidr
 end
