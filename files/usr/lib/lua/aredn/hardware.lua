@@ -87,7 +87,11 @@ function hardware.get_board_type()
 end
 
 function hardware.get_iface_name(name)
-    return get_board_json().network[name].ifname;
+    return get_board_json().network[name].ifname
+end
+
+function hardware.get_link_led()
+    return "/sys/class/leds/" .. get_board_json().led.rssilow.sysfs
 end
 
 return hardware
