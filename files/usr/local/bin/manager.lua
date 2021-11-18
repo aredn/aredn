@@ -34,6 +34,8 @@
 
 --]]
 
+package.path = package.path .. ";/usr/local/bin/?.lua"
+
 require("uci")
 require("nixio")
 socket = require("socket")
