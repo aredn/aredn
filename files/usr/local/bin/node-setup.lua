@@ -53,29 +53,6 @@ function is_null(v)
     end
 end
 
-function decimal_to_ip(val)
-    return nixio.bit.band(val / 16777216, 255) .. "." .. nixio.bit.band(val / 65536, 255) .. "." .. nixio.bit.band(val / 256, 255) .. "." .. nixio.bit.band(val, 255)
-end
-
-function ip_to_decimal(ip)
-    local a, b, c, d = ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
-    if a then
-        return ((a * 256 + b) * 256 + c) * 256 + d
-    end
-    return 0
-end
-
-function validate_same_subnet(ip1, ip2, mask)
-    ip1 = ip_to_decimal(ip1)
-    ip2 = ip_to_decimal(ip2)
-    mask = ip_to_decimal(mask)
-    if nixio.bit.band(ip1, mask) == nixio.bit.band(ip2, mask) then
-        return true
-    else
-        return false
-    end
-end
-
 function validate_ip(ip)
     ip = ip:gsub("%s", "")
     if ip == "0.0.0.0" or ip == "255.255.255.255" then

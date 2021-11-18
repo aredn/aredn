@@ -40,7 +40,7 @@ local hardware = {}
 local radio_json = nil
 local board_json = nil
 
-function get_radio_json()
+local function get_radio_json()
     if not radio_json then
         local f = io.open("/etc/radios.json")
         if not f then
@@ -52,7 +52,7 @@ function get_radio_json()
     return radio_json
 end
 
-function get_board_json()
+local function get_board_json()
     if not board_json then
         local f = io.open("/etc/board.json")
         if not f then

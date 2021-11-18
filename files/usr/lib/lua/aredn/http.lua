@@ -44,9 +44,18 @@ function fetch_json(url)
   end
 end
 
-function http_header()
+http_output = nil
+
+function http_header(can_compress)
    print("Content-type: text/html\r")
    print("Cache-Control: no-store\r")
+   if can_compress then
+     local gz = io.popen("gzip", "w")
+     if gz then
+       print "Content-Encoding: gzip\r"
+       http_output = gz
+     end
+   end
    print("\n")
 end
 
