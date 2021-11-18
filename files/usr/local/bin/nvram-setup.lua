@@ -44,7 +44,7 @@
 
 require("aredn.utils")
 require("iwinfo")
-local hw = require("aredn.hardware")
+require("aredn.hardware")
 local aredn_info = require('aredn.info')
 
 local wifi_mac = aredn_info.get_nvram("wifimac")
@@ -85,6 +85,6 @@ if node == "" then
 end
 
 if dtdmac == "" then
-    local a, b, c = hw.get_interface_mac(hw.get_iface_name("lan")):match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
+    local a, b, c = aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")):match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
     aredn_info.set_nvram("dtdmac", string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16)))
 end

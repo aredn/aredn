@@ -19,11 +19,11 @@ if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
 
-local log = aredn_log.open(logfile, 16000)
+local log = ..open(logfile, 16000)
 
 function run_monitor()
 
-    local now = luci.sys.uptime()
+    local now = nixio.sysinfo().uptime
 
     local wifiiface = get_ifname("wifi")
 
@@ -52,7 +52,7 @@ function run_monitor()
     -- avoid node going deaf while trying to obtain 'normal' statistics of neighbor strength
     -- in first few minutes after boot
     if now > 119 and now < 750 then
-        shell_no_capture("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
+        os.execute("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
     end
 
     local rssi = get_rssi(wifiiface)
@@ -94,10 +94,10 @@ function run_monitor()
 
     if amac then
         -- reset
-        shell_no_capture("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
+        os.execute("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
         wait_for_ticks(5)
         -- update time
-        now = luci.sys.uptime()
+        now = nixio.sysinfo().uptime
 
         local beforeh = rssi[amac].Hrssi
         local arssi = get_rssi(wifiiface)

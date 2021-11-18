@@ -111,4 +111,8 @@ function get_interface_mac(intf)
     return mac
 end
 
+if not aredn then
+    aredn = {}
+end
+aredn.hardware = hardware
 return hardware

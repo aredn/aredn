@@ -9,12 +9,12 @@ end
 
 local zombies = { "iw" }
 
-local log = aredn_log.open("/tmp/zombie.log", 12000)
+local log = aredn.log.open("/tmp/zombie.log", 12000)
 
 function clean()
     for i, name in ipairs(zombies)
     do
-        local pids = shell_capture("pidof " .. name):splitWhiteSpace()
+        local pids = capture("pidof " .. name):splitWhiteSpace()
         for j, pid in ipairs(pids)
         do
             local zombie = false

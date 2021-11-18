@@ -2,7 +2,7 @@
 local link1led
 
 function linkled()
-    local link = hardware.get_link_led()
+    local link = aredn.hardware.get_link_led()
     
     -- Reset leds
     write_all(link .. "/trigger", "none")

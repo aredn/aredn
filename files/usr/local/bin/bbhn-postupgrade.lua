@@ -36,7 +36,7 @@
 
 require("aredn.utils")
 local aredn_info = require("aredn.info")
-local hw = require("aredn.hardware")
+require("aredn.hardware")
 
 local needsrun = aredn_info.get_nvram("nodeupgraded")
 if needsrun == "" or needsrun == "0" then
@@ -54,8 +54,8 @@ if config ~= "mesh" then
 end
 
 local node = aredn_info.get_nvram("node")
-local mac2 = mac_to_ip(hw.get_interface_mac(hw.get_iface_name("wifi")), 0)
-local dtdmac = mac_to_ip(hw.get_interface_mac(hw.get_iface_name("lan")), 0)
+local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
+local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
 
 local cfg = {}
 local defaultcfg = {}
@@ -120,8 +120,8 @@ tmp:close()
 filecopy("/tmp/.mesh_setup", "/etc/config.mesh/_setup")
 os.remove("/tmp/.mesh_setup")
 
-shell_no_capture("/usr/local/bin/node-setup.lua -a mesh")
+os.execute("/usr/local/bin/node-setup.lua -a mesh")
 
 aredn_info.set_nvram("nodeupgraded", "0")
 print "Rebooting node"
-shell_no_capture("reboot")
+os.execute("reboot")

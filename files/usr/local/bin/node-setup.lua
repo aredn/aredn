@@ -37,7 +37,7 @@
 require("nixio")
 require("aredn.utils")
 local aredn_info = require('aredn.info')
-local hw = require("aredn.hardware")
+require("aredn.hardware")
 
 -- suffix to add to various file and directories while debugging this
 -- to avoid blowing away the real config
@@ -168,17 +168,17 @@ if not (config == "mesh" and nixio.fs.access("/etc/config.mesh/_setup", "r")) th
     return -1
 end
 
-local lanintf = hw.get_iface_name("lan")
+local lanintf = aredn.hardware.get_iface_name("lan")
 local node = aredn_info.get_nvram("node")
 local tactical = aredn_info.get_nvram("tactical")
-local mac2 = mac_to_ip(hw.get_interface_mac(hw.get_iface_name("wifi")), 0)
-local dtdmac = mac_to_ip(hw.get_interface_mac(lanintf), 0) -- *not* based of dtdlink
+local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
+local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(lanintf), 0) -- *not* based of dtdlink
 
 local deleteme = {}
 local cfg = {
     lan_intf = lanintf,
     wan_intf = "dummy",
-    dtdlink_intf = hw.get_iface_name('dtdlink')
+    dtdlink_intf = aredn.hardware.get_iface_name('dtdlink')
 }
 
 if not auto then
@@ -205,7 +205,7 @@ end
 -- end
 
 if cfg.wifi_enable == "1" then
-    cfg.wifi_intf = hw.get_iface_name("wifi"):match("wlan(.*)")
+    cfg.wifi_intf = aredn.hardware.get_iface_name("wifi"):match("wlan(.*)")
 else
     cfg.wifi_intf = lanintf:match("([%w]*)") .. ".3975"
 end
@@ -531,8 +531,8 @@ local sf = io.open("/etc/local/services" .. suffix, "w")
 if sf then
     sf:write("#!/bin/sh\n")
     if cfg.wifi_proto ~= "disabled" then
-        if is_null(cfg.wifi_txpower) or tonumber(cfg.wifi_txpower) > hw.wifi_maxpower(cfg.wifi_channel) then
-            cfg.wifi_txpower = hw.wifi_maxpower(cfg.wifi_channel)
+        if is_null(cfg.wifi_txpower) or tonumber(cfg.wifi_txpower) > aredn.hardware.wifi_maxpower(cfg.wifi_channel) then
+            cfg.wifi_txpower = aredn.hardware.wifi_maxpower(cfg.wifi_channel)
         elseif tonumber(cfg.wifi_txpower) < 1 then
             cgs.wifi_txpower = 1
         end
@@ -608,7 +608,7 @@ c:commit("dhcp")
 
 -- generate the wireless config file
 -- TODO - move that into lua
-shell_no_capture("/usr/local/bin/wifi-setup")
+os.execute("/usr/local/bin/wifi-setup")
 
 if not auto then
     print "configuration complete.";

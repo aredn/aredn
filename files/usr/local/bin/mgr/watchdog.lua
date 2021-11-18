@@ -37,7 +37,7 @@ function watchdog()
                 olsrd_restart()
             end
         else
-            local pids = shell_capture("pidof olsrd"):splitWhiteSpace()
+            local pids = capture("pidof olsrd"):splitWhiteSpace()
             if #pids == 1 then
                 write_all(pidfile, pids[1]);
             elseif #pids == 0 then

@@ -383,18 +383,6 @@ function capture(cmd)
 	return(result)
 end
 
--- run shell command and capture output
-function shell_capture(cmd)
-	return capture(cmd)
-end
-
--- run shell command but dont capture output
-function shell_no_capture(cmd)
-	local handle = io.popen(cmd)
-	handle:read("*a")
-	handle:close()
-end
-
 -- copy a file
 function filecopy(from, to)
 	local f = io.open(from, "r")

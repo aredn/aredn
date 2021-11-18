@@ -33,7 +33,7 @@
 
 --]]
 
-log = {}
+local log = {}
 log.__index = log
 
 function log.open(name, maxsize)
@@ -73,4 +73,8 @@ function log:close()
     self:flush()
 end
 
+if not aredn then
+    aredn = {}
+end
+aredn.log = log
 return log

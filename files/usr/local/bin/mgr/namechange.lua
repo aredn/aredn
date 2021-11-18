@@ -22,7 +22,7 @@ end
 
 function do_namechange()
     -- Do nothing if olsrd is not running
-    if shell_capture("pidof olsrd") == "" then
+    if capture("pidof olsrd") == "" then
         return
     end
 

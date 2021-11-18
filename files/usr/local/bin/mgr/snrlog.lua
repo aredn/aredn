@@ -64,7 +64,7 @@ end
 function run_snrlog()
 
     -- get system uptime
-    local now = luci.sys.uptime()
+    local now = nixio.sysinfo().uptime
 
     -- get wifi interface name
     local wifiiface = get_ifname("wifi")
