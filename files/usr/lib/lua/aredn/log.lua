@@ -50,13 +50,16 @@ function log:write(str)
         self.logf = io.open(self.logfile, "a")
     end
     self.logf:write(string.format("%s: %s\n", os.date("%m/%d %H:%M:%S", os.time()), str))
+    if self.logf:seek() > self.logmax then
+        self:flush(true)
+    end
 end
 
-function log:flush()
+function log:flush(archive)
     if self.logf then
         self.logf:close()
         self.logf = nil
-        if nixio.fs.stat(self.logfile, "size") > self.logmax then
+        if archive then
             local old = self.logfile .. '.0'
             if nixio.fs.stat(old) then
                 os.remove(old)
