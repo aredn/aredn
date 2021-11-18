@@ -26,7 +26,7 @@ function do_namechange()
         return
     end
 
-    local uptime = aredn_info.getUptime()
+    local uptime = nixio.sysinfo().uptime
 
     local hosts = {}
     local history = {}
