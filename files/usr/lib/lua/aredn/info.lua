@@ -539,4 +539,17 @@ function model.getMeshGatewaySetting()
 	return gw
 end
 
+-------------------------------------
+-- Get and set NVRAM values
+-------------------------------------
+function model.get_nvram(var)
+    return uci.cursor("/etc/local/uci"):get("hsmmmesh", "settings", var) or ""
+end
+
+function model.set_nvram(var, val)
+    local c = uci.cursor("/etc/local/uci")
+    c:set("hsmmmesh", "settings", var, val)
+    c:commit("hsmmmesh")
+end
+
 return model

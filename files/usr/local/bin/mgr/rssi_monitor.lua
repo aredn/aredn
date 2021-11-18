@@ -52,7 +52,7 @@ function run_monitor()
     -- avoid node going deaf while trying to obtain 'normal' statistics of neighbor strength
     -- in first few minutes after boot
     if now > 119 and now < 750 then
-        utils.system_run("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
+        shell_no_capture("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
     end
 
     local rssi = get_rssi(wifiiface)
@@ -94,7 +94,7 @@ function run_monitor()
 
     if amac then
         -- reset
-        utils.system_run("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
+        shell_no_capture("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
         wait_for_ticks(5)
         -- update time
         now = luci.sys.uptime()

@@ -44,16 +44,13 @@
 
 require("aredn.utils")
 require("iwinfo")
-require("uci")
-local hw = require("hardware")
+local hw = require("aredn.hardware")
+local aredn_info = require('aredn.info')
 
-local commit = false
-local cursor = uci.cursor("/etc/local/uci/")
-
-local wifi_mac = cursor:get("hsmmmesh", "settings", "wifimac")
-local mac2 = cursor:get("hsmmmesh", "settings", "mac2")
-local node = cursor:get("hsmmmesh", "settings", "node")
-local dtdmac = cursor:get("hsmmmesh", "settings", "dtdmac")
+local wifi_mac = aredn_info.get_nvram("wifimac")
+local mac2 = aredn_info.get_nvram("mac2")
+local node = aredn_info.get_nvram("node")
+local dtdmac = aredn_info.get_nvram("dtdmac")
 
 local hardware_mac
 if wifi_mac == "" or mac2 == "" then
@@ -74,31 +71,20 @@ if wifi_mac == "" or mac2 == "" then
 end
 
 if wifi_mac == "" then
-    wifi_mac = hardware_mac
-    cursor:set("hsmmmesh", "settings", "wifimac", wifi_mac)
-    commit = true
+    aredn_info.set_nvram("wifimac", hardware_mac)
 end
 
 if mac2 == "" then
     local a, b, c = hardware_mac:match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
     mac2 = string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
-    cursor:set("hsmmmesh", "settings", "mac2", mac2)
-    commit = true
+    aredn_info.set_nvram("mac2", mac2)
 end
 
 if node == "" then
-    node = "NOCALL-" .. mac2:gsub("%.", "-")
-    cursor:set("hsmmmesh", "settings", "node", node)
-    commit = true
+    aredn_info.set_nvram("node", "NOCALL-" .. mac2:gsub("%.", "-"))
 end
 
 if dtdmac == "" then
     local a, b, c = hw.get_interface_mac(hw.get_iface_name("lan")):match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
-    dtdmac = string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
-    cursor:set("hsmmmesh", "settings", "dtdmac", node)
-    commit = true
-end
-
-if commit then
-    cursor:commit("hsmmmesh")
+    aredn_info.set_nvram("dtdmac", string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16)))
 end

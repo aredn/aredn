@@ -383,6 +383,36 @@ function capture(cmd)
 	return(result)
 end
 
+-- run shell command and capture output
+function shell_capture(cmd)
+	return capture(cmd)
+end
+
+-- run shell command but dont capture output
+function shell_no_capture(cmd)
+	local handle = io.popen(cmd)
+	handle:read("*a")
+	handle:close()
+end
+
+-- copy a file
+function filecopy(from, to)
+	local f = io.open(from, "r")
+	if not f then
+		return false
+	end
+	local t = io.open(to, "w")
+	if not t then
+		f:close()
+		return false
+	end
+	-- not great on memory usage
+	t:write(f:read("*a"))
+	t:close()
+	f:close()
+	return true
+end
+
 -- Return list of MAC to Hostname files
 function mac2host(dir)
 	dir = dir or "/tmp/snrlog"
@@ -394,6 +424,12 @@ function mac2host(dir)
 	end
 	pfile:close()
 	return list
+end
+
+function mac_to_ip(mac, shift)
+    local a, b, c = mac:match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
+    local val = nixio.bit.lshift(((tonumber(a, 16) * 256) + tonumber(b, 16)) * 256 + tonumber(c, 16), shift)
+    return string.format("%d.%d.%d", nixio.bit.band(val / 16777216, 255), nixio.bit.band(val / 65536, 255), nixio.bit.band(val, 255))
 end
 
 --[[

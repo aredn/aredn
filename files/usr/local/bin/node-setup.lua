@@ -36,6 +36,8 @@
 
 require("mgr.utils")
 require("nixio")
+require("aredn.utils")
+local aredn_info = require('aredn.info')
 local hw = require("aredn.hardware")
 
 -- suffix to add to various file and directories while debugging this
@@ -137,12 +139,6 @@ function validate_ip_netmask(ip, mask)
     return true
 end
 
-function mac_to_ip(mac, shift)
-    local a, b, c = mac:match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
-    local val = nixio.bit.lshift(((tonumber(a, 16) * 256) + tonumber(b, 16)) * 256 + tonumber(c, 16), shift)
-    return string.format("%d.%d.%d", nixio.bit.band(val / 16777216, 255), nixio.bit.band(val / 65536, 255), nixio.bit.band(val, 255))
-end
-
 -- helpers end
 
 -- validate args
@@ -175,8 +171,8 @@ if not (config == "mesh" and nixio.fs.access("/etc/config.mesh/_setup", "r")) th
 end
 
 local lanintf = hw.get_iface_name("lan")
-local node = utils.get_nvram("node")
-local tactical = utils.get_nvram("tactical")
+local node = aredn_info.get_nvram("node")
+local tactical = aredn_info.get_nvram("tactical")
 local mac2 = mac_to_ip(hw.get_interface_mac(hw.get_iface_name("wifi")), 0)
 local dtdmac = mac_to_ip(hw.get_interface_mac(lanintf), 0) -- *not* based of dtdlink
 
@@ -245,7 +241,7 @@ do
             do
                 if parm:upper() == parm then
                     -- nvram variable
-                    if utils.get_nvram(parm:lower()) == "" then
+                    if aredn_info.get_nvram(parm:lower()) == "" then
                         print ("nv parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
                         return -1
                     end
@@ -296,7 +292,7 @@ end
 local astat = nixio.fs.stat("/etc/config.mesh/aliases", "type")
 if not (astat and astat == "lnk") then
     if astat then
-        utils.copytext("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
+        filecopy("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
         os.remove("/etc/config.mesh/aliases")
     else
         io.open("/etc/config.mesh/aliases.dmz", "w"):close()
@@ -357,15 +353,15 @@ if do_basic then
     end
     for file in nixio.fs.glob("/tmp/new_config/*")
     do
-        utils.copytext(file, "/etc/config/" .. nixio.fs.basename(file) .. suffix)
+        filecopy(file, "/etc/config/" .. nixio.fs.basename(file) .. suffix)
         nixio.fs.remove(file)
     end
     nixio.fs.rmdir("/etc/new_config")
-    utils.copytext("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
+    filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
 
-    utils.set_nvram("config", "mesh")
-    utils.set_nvram("node", node)
-    utils.set_nvram("tactical", tactical)
+    aredn_info.set_nvram("config", "mesh")
+    aredn_info.set_nvram("node", node)
+    aredn_info.set_nvram("tactical", tactical)
 end
 
 -- generate the system files
@@ -443,8 +439,8 @@ if h and e then
 end
 
 if not do_basic then
-    utils.copytext("/etc/config.mesh/firewall", "/etc/config/firewall" .. suffix)
-    utils.copytext("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
+    filecopy("/etc/config.mesh/firewall", "/etc/config/firewall" .. suffix)
+    filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
 end
 
 -- for all the uci changes
@@ -614,7 +610,7 @@ c:commit("dhcp")
 
 -- generate the wireless config file
 -- TODO - move that into lua
-utils.system_run("/usr/local/bin/wifi-setup")
+shell_no_capture("/usr/local/bin/wifi-setup")
 
 if not auto then
     print "configuration complete.";

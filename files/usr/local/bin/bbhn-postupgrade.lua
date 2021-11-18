@@ -1,0 +1,127 @@
+#! /usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2021 Tim Wilkinson
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("aredn.utils")
+local aredn_info = require("aredn.info")
+local hw = require("aredn.hardware")
+
+local needsrun = aredn_info.get_nvram("nodeupgraded")
+if needsrun == "" or needsrun == "0" then
+    print "Node not upgraded, exiting"
+    os.exit(0)
+end
+
+local config = aredn_info.get_nvram("config")
+if config ~= "mesh" then
+    print "This node was previously configured in non-mesh mode and is no longer implemented.  Returning to 'firstboot'."
+    local f = io.popen("firstboot -y && reboot")
+    f:read("*a")
+    f:close()
+    os.exit(1)
+end
+
+local node = aredn_info.get_nvram("node")
+local mac2 = mac_to_ip(hw.get_interface_mac(hw.get_iface_name("wifi")), 0)
+local dtdmac = mac_to_ip(hw.get_interface_mac(hw.get_iface_name("lan")), 0)
+
+local cfg = {}
+local defaultcfg = {}
+
+local tmp = io.open("/tmp/.mesh_setup", "r")
+if not tmp
+    print "Failed to create temp file"
+    os.exit(-1)
+end
+
+for line in io.lines("/etc/config.mesh/_setup")
+do
+    if not (line:match("^%s#") or line:match("^%s$")) then
+        local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
+        cfg[k] = v
+    end
+end
+
+for line in io.lines("/etc/config.mesh/_setup.default")
+do
+    if not (line:match("^%s#") or line:match("^%s$")) then
+        line = line:gsub("<NODE>", node):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
+        local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
+        defaultcfg[k] = v
+    end
+end
+
+-- set variables in special conditions
+if cfg.dmz_mode == "0" or cfg.wan_proto == "disabled" then
+    cfg.olsrd_gw = "0"
+end
+-- end special condition overrides
+
+table.sort()
+local keys = {}
+for k, v in pairs(defaultcfg)
+do
+    keys[#keys + 1] = k
+end
+table.sort(keys)
+for i, key in ipairs(keys)
+do
+    local v = cfg[key]
+    if v then
+        tmp:write(key .. " = " .. v .. "\n")
+    else
+        tmp:write(key .. " = " .. defaultcfg[key] .. "\n")
+    end
+end
+
+-- specific settings for variables that are not in the default config but are added by the system
+for i, key in ipairs({ 'dmz_dhcp_end', 'dmz_dhcp_limit', 'dmz_dhcp_start', 'dmz_lan_ip', 'dmz_lan_mask', 'wifi_rxant', 'wifi_txant', 'wan_gw', 'wan_ip', 'wan_mask' })
+do
+    local v = cfg[key]
+    if v then
+        tmp:write(key .. " = " .. v .. "\n")
+    end
+end
+
+tmp:close()
+
+filecopy"/tmp/.mesh_setup", "/etc/config.mesh/_setup")
+os.remove("/tmp/.mesh_setup")
+
+shell_no_capture("/usr/local/bin/node-setup.lua -a mesh")
+
+aredn_info.set_nvram("nodeupgraded", "0")
+print "Rebooting node"
+shell_no_capture("reboot")

@@ -22,17 +22,6 @@ function utils.write_all(filename, data)
     end
 end
 
-function utils.copytext(from, to)
-    local f = io.open(to, "w")
-    if f then
-        for line in io.lines(from)
-        do
-            f:write(line .. "\n")
-        end
-        f:close()
-    end
-end
-
 function utils.remove_all(name)
     local type = nixio.fs.stat(name, "type")
     if type then
@@ -89,16 +78,6 @@ function utils.fetch_json(url)
     else
         return nil
     end
-end
-
-function utils.get_nvram(var)
-    return uci.cursor("/etc/local/uci"):get("hsmmmesh", "settings", var) or ""
-end
-
-function utils.set_nvram(var, val)
-    local c = uci.cursor("/etc/local/uci")
-    c:set("hsmmmesh", "settings", var, val)
-    c:commit("hsmmmesh")
 end
 
 utils.log = {}
