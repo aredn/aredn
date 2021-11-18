@@ -19,7 +19,7 @@ if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
 
-local log = ..open(logfile, 16000)
+local log = aredn.log.open(logfile, 16000)
 
 function run_monitor()
 
