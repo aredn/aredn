@@ -413,6 +413,42 @@ function filecopy(from, to)
 	return true
 end
 
+-- remove all files (including recursively into directories)
+function remove_all(name)
+    local type = nixio.fs.stat(name, "type")
+    if type then
+        if type == "dir" then
+            for subname in nixio.fs.dir(name)
+            do
+                remove_all(name .. "/" .. subname)
+            end
+            nixio.fs.rmdir(name)
+        else
+            nixio.fs.remove(name)
+        end
+    end
+end
+
+-- write all data to a file in one go
+function write_all(filename, data)
+    local f = io.open(filename, "w")
+    if f then
+        f:write(data)
+        f:close()
+    end
+end
+
+-- read all data from file in one go
+function read_all(filename)
+	local f = io.open(filename, "r")
+	local data
+	if f then
+		data = f:read("*a")
+		f:close()
+	end
+	return data
+end
+
 -- Return list of MAC to Hostname files
 function mac2host(dir)
 	dir = dir or "/tmp/snrlog"

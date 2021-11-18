@@ -97,7 +97,8 @@ end
 function get_interface_mac(intf)
     local mac = ""
     if intf then
-        for i, line in ipairs(utils.system_run("ifconfig " .. intf))
+        local f = io.popen("ifconfig " .. intf, "r")
+        for line in f:lines()
         do
             local m = line:match("HWaddr ([%w:]+)")
             if m then
@@ -105,6 +106,7 @@ function get_interface_mac(intf)
                 break
             end
         end
+        f:close()
     end
     return mac
 end

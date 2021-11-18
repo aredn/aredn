@@ -34,7 +34,6 @@
 
 --]]
 
-require("mgr.utils")
 require("uci")
 require("nixio")
 socket = require("socket")
@@ -43,7 +42,9 @@ aredn_info = require("aredn.info")
 require("aredn.uci")
 require("iwinfo")
 require("luci.sys")
+require("aredn.http")
 hardware = require("aredn.hardware")
+aredn_log = require("aredn.log")
 
 -- aggressive gc on low memory devices
 if aredn_info.getFreeMemory().totalram < 32768 then
@@ -65,7 +66,7 @@ local tasks = {
 	{ app = require("mgr.clean_zombie") }
 }
 
-local log = utils.log.start("/tmp/manager.log", 8000)
+local log = aredn_log.open("/tmp/manager.log", 8000)
 
 while true
 do

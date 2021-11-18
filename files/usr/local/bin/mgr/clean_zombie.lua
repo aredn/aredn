@@ -9,17 +9,17 @@ end
 
 local zombies = { "iw" }
 
-local log = utils.log.start("/tmp/zombie.log", 12000)
+local log = aredn_log.open("/tmp/zombie.log", 12000)
 
 function clean()
     for i, name in ipairs(zombies)
     do
-        local pids = utils.split(utils.system_run("pidof " .. name)[1])
+        local pids = shell_capture("pidof " .. name):splitWhiteSpace()
         for j, pid in ipairs(pids)
         do
             local zombie = false
             local ppid = nil
-            for k, line in ipairs(utils.read_all("/proc/" .. pid .. "/status"))
+            for k, line in ipairs(read_all("/proc/" .. pid .. "/status"):splitNewLine())
             do
                 -- Look for a zombie
                 local m = string.match(line, "State:%s[ZT]")

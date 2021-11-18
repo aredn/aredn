@@ -1,6 +1,6 @@
 
 function fccid()
-    local id = string.format("ID: %s", utils.system_run("uname -n")[1])
+    local id = string.format("ID: %s", shell_capture("uname -n"))
     local ip = aredn_info.getInterfaceIPAddress("wifi")
     local udp = socket.udp()
     udp:setoption("broadcast", true)

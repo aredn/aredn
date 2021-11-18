@@ -34,7 +34,6 @@
 
 --]]
 
-require("mgr.utils")
 require("nixio")
 require("aredn.utils")
 local aredn_info = require('aredn.info')
@@ -59,12 +58,11 @@ function decimal_to_ip(val)
 end
 
 function ip_to_decimal(ip)
-    local sum = 0
-    for i, part in ipairs(utils.split(ip, "%."))
-    do
-        sum = sum * 256 + part
+    local a, b, c, d = ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
+    if a then
+        return ((a * 256 + b) * 256 + c) * 256 + d
     end
-    return sum
+    return 0
 end
 
 function validate_same_subnet(ip1, ip2, mask)
@@ -302,7 +300,7 @@ end
 
 -- basic configuration
 if do_basic then
-    utils.remove_all("/tmp/new_config")
+    remove_all("/tmp/new_config")
     nixio.fs.mkdir("/tmp/new_config")
 
     for file in nixio.fs.glob("/etc/config.mesh/*")

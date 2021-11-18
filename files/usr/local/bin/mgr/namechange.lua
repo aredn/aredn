@@ -22,11 +22,11 @@ end
 
 function do_namechange()
     -- Do nothing if olsrd is not running
-    if not utils.system_run("pidof olsrd")[1] then
+    if shell_capture("pidof olsrd") == "" then
         return
     end
 
-    local uptime = utils.uptime()
+    local uptime = aredn_info.getUptime()
 
     local hosts = {}
     local history = {}
@@ -34,7 +34,7 @@ function do_namechange()
     -- Load the hosts file
     for line in io.lines("/var/run/hosts_olsr")
     do
-        local v = utils.split(line)
+        local v = line:splitWhiteSpace()
         local ip = v[1]
         local name = v[2]
         local originator = v[4]
@@ -49,7 +49,7 @@ function do_namechange()
     end
 
     -- Find the current neighbors
-    local links = utils.fetch_json("http://127.0.0.1:9090/links")
+    local links = fetch_json("http://127.0.0.1:9090/links")
     if #links.links == 0 then
         return
     end
@@ -61,7 +61,7 @@ function do_namechange()
     -- load the strip the current history
     for line in io.lines("/tmp/node.history")
     do
-        local v = utils.split(line)
+        local v = line:splitWhiteSpace()
         local ip = v[1]
         local age = 0
         if v[2] then

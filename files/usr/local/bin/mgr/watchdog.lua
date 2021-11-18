@@ -8,8 +8,8 @@ function olsrd_restart()
 
     os.execute("/etc/init.d/olsrd restart")
 
-    local lines = utils.read_all(logfile)
-    lines[#lines + 1] = utils.uptime() .. " " .. os.date()
+    local lines = read_all(logfile):splitNewLine()
+    lines[#lines + 1] = aredn_info.getUptime() .. " " .. os.date()
     local start = 1
     if #lines > 300 then
         start = #lines - 275
@@ -29,7 +29,7 @@ function watchdog()
     do
         wait_for_ticks(21)
 
-        local pid = utils.read_all(pidfile)[1]
+        local pid = read_all(pidfile)
         if pid and nixio.fs.stat("/proc/" .. pid) then
             if nixio.fs.stat(watchdogfile) then
                 os.remove(watchdogfile)
@@ -37,9 +37,9 @@ function watchdog()
                 olsrd_restart()
             end
         else
-            local pids = utils.split(utils.system_run("pidof olsrd")[1])
+            local pids = shell_capture("pidof olsrd"):splitWhiteSpace()
             if #pids == 1 then
-                utils.write_all(pidfile, pids[1]);
+                write_all(pidfile, pids[1]);
             elseif #pids == 0 then
                 olsrd_restart()
             end

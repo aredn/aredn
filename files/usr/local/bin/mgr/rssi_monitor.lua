@@ -2,7 +2,7 @@
 function rssi_monitor()
     while true
     do
-        if not string.match(get_ifname("wifi"), "^eth.") and utils.uptime() > 119 then
+        if not string.match(get_ifname("wifi"), "^eth.") and aredn_info.getUptime() > 119 then
             run_monitor()
         end
         wait_for_ticks(60) -- 1 minute
@@ -19,7 +19,7 @@ if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
 
-local log = utils.log.start(logfile, 16000)
+local log = aredn_log.open(logfile, 16000)
 
 function run_monitor()
 
@@ -40,7 +40,7 @@ function run_monitor()
     end
 
     local ofdm_level = 0
-    for i, line in ipairs(utils.read_all("/sys/kernel/debug/ieee80211/" .. iwinfo.nl80211.phyname(wifiiface) .. "/ath9k/ani"))
+    for i, line in ipairs(read_all("/sys/kernel/debug/ieee80211/" .. iwinfo.nl80211.phyname(wifiiface) .. "/ath9k/ani"):splitNewLine())
     do
         ofdm_level = tonumber(string.match(line, "OFDM LEVEL: (.*)"))
         if ofdm_level then
