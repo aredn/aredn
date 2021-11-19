@@ -332,10 +332,10 @@ if config == "mesh" and not wifi_disabled then
 end
 
 col2[#col2 + 1] = "<th align=right><nobr>firmware version</nobr></th><td>" .. read_all("/etc/mesh-release") .. "</td>";
-col2[#col2 + 1] = "<th align=right>system time</th><td>" .. os.date() .. "</td>";
+col2[#col2 + 1] = "<th align=right>system time</th><td>" .. os.date("%a %b %e %Y") .. "<br>" .. os.date("%T %Z") .. "</td>";
 
 local sysinfo = nixio.sysinfo()
-local uptime = string.format("%d:%02d", (sysinfo.uptime / 60) % 60, sysinfo.uptime % 60)
+local uptime = string.format("%d:%02d", math.floor(sysinfo.uptime / 3600) % 60, math.floor(sysinfo.uptime / 60) % 60)
 if sysinfo.uptime >= 172800 then
     uptime =  math.floor(uptime / 86400) .. " days, "
 elseif sysinfo.uptime >= 86400 then

@@ -38,7 +38,7 @@ function html.alert_banner()
     html.print("<div class=\"TopBanner\">")
     html.print("<div class=\"LogoDiv\"><a href=\"http://localnode.local.mesh:8080\" title=\"Go to localnode\"><img src=\"/AREDN.png\" class=\"AREDNLogo\"></img></a></div>")
 
-    local supported = aredn.hardware.supported()
+    local supported = 1 -- aredn.hardware.supported()
     if supported == 0 then
         html.print("<div style=\"padding:5px;background-color:#FF4719;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNSUPPORTED DEVICE !!!!</a></div>")
     elseif supported == -2 then
@@ -61,7 +61,7 @@ function html.print(line)
     -- html output is defined in aredn.http
     -- this is a bit icky at the moment :-()
     if http_output then
-        http_output.write(line .. "\n")
+        http_output:write(line .. "\n")
     else
         print(line)
     end
