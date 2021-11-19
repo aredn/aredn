@@ -65,17 +65,17 @@ local function get_board_json()
 end
 
 function hardware.wifi_maxpower(channel)
-    local board = get_radio_json()[name]
-    if board then
-        if board.chanpower then
-            for k, v in pairs(board.chanpower)
+    local radio = get_radio_json()[get_board_json().model.name]
+    if radio then
+        if radio.chanpower then
+            for k, v in pairs(radio.chanpower)
             do
                 if channel <= tonumber(k) then
                     return tonumber(v)
                 end
             end
-        elseif board.maxpower then
-            return tonumber(board.maxpower)
+        elseif radio.maxpower then
+            return tonumber(radio.maxpower)
         end
     end
     return 27 -- if all else fails
@@ -92,6 +92,15 @@ end
 
 function hardware.get_link_led()
     return "/sys/class/leds/" .. get_board_json().led.rssilow.sysfs
+end
+
+function hardware.supported()
+    local radio = get_radio_json()[get_board_json().model.name]
+    if radio then
+        return tonumber(radio.supported)
+    else
+        return 0
+    end
 end
 
 function hardware.get_interface_ip4(intf)
