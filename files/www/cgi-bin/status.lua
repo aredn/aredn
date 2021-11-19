@@ -41,7 +41,7 @@ require("aredn.utils")
 local html = require("aredn.html")
 require("uci")
 local aredn_info = require("aredn.info")
-local olsr = require("olsr")
+local olsr = require("aredn.olsr")
 
 -- helpers start
 
@@ -70,7 +70,7 @@ end
 
 function get_default_gw()
     -- a node with a wired default gw will route via this
-    local p = io.popen("ip route list table 254", "r")
+    local p = io.popen("ip route list table 254")
     if p then
         for line in p:lines()
         do
@@ -83,7 +83,7 @@ function get_default_gw()
         p:close()
     end
     -- table 31 is populated by OLSR
-    p = io.popen("ip route list table 31", "r")
+    p = io.popen("ip route list table 31")
     if p then
         for line in p:lines()
         do
@@ -114,6 +114,17 @@ function get_wifi_signal(wifiif)
         return "N/A", "N/A"
     else
         return signal, noise
+    end
+end
+
+function css_options()
+    html.print("<option>Select a theme</option>")
+    for file in nixio.fs.glob("/www/*.css")
+    do
+        if file ~= "/www/style.css" then
+            file = file:match("/www/(.*).css")
+            html.print("<option value=\"" .. file .. ".css\">" .. file .. "</option>")
+        end
     end
 end
 
@@ -204,23 +215,25 @@ html.print("<hr>")
 -- nav buttons
 html.print("<nobr>")
 html.print("<a href='/help.html' target='_blank'>Help</a>")
-html.print("&nbsp;&nbsp;&nbsp;")
+html.print("&nbsp;&nbsp;")
 html.print("<input type=submit name=refresh value=Refresh title='Refresh this page'>")
 if config == "mesh" then
-    html.print("&nbsp;&nbsp;&nbsp;")
+    html.print("&nbsp;&nbsp;")
     html.print("<button type=button onClick='window.location=\"mesh\"' title='See what is on the mesh'>Mesh Status</button>")
     if not wifi_disabled then
-        html.print("&nbsp;&nbsp;&nbsp;")
-	    html.print("<button type=button onClick='window.location=\"scan\"' title='See what wireless networks are nearby'>WiFi Scan</button>")
+        html.print("&nbsp;&nbsp;")
+        html.print("<button type=button onClick='window.location=\"scan\"' title='See what wireless networks are nearby'>WiFi Scan</button>")
     end
 end
-html.print("&nbsp;&nbsp;&nbsp;")
+html.print("&nbsp;&nbsp")
 html.print("<button type=button onClick='window.location=\"setup\"' title='Configure this node'>Setup</button>")
-html.print("&nbsp;&nbsp;&nbsp;")
+html.print("&nbsp;&nbsp;")
 html.print("<select name=\"css\" size=\"1\" onChange=\"form.submit()\" >")
--- css_options()
+css_options()
 html.print("</select>")
 html.print("</nobr")
+
+html.print("<input type=hidden name=reload value=reload>")
 
 if config == "not set" then
     html.print("<b><br><br>This node is not yet configured.<br>")
@@ -277,10 +290,13 @@ if ip:match("^10%.") or not hide_local then
     col1[#col1 + 1] = "<th align=right><nobr>LAN address</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
 end
 
-ip = cursor:get("network", "wan", "ipaddr")
-if not hide_local and ip then
-    cidr = netmask_to_cidr(cursor:get("network", "wan", "netmask"))
-    col1[#col1 + 1] = "<th align=right><nobr>WAN address</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
+local wan_iface = aredn.hardware.get_iface_name("wan")
+if not hide_local and wan_iface then
+    local ip, bcast, mask = aredn.hardware.get_interface_ip4(wan_iface)
+    if ip then
+        cidr = netmask_to_cidr(mask)
+        col1[#col1 + 1] = "<th align=right><nobr>WAN address</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
+    end
 end
 
 ip = get_default_gw()
@@ -319,8 +335,13 @@ col2[#col2 + 1] = "<th align=right><nobr>firmware version</nobr></th><td>" .. re
 col2[#col2 + 1] = "<th align=right>system time</th><td>" .. os.date() .. "</td>";
 
 local sysinfo = nixio.sysinfo()
--- fix uptime XXX
-col2[#col2 + 1] = "<th align=right>uptime<br>load average</th><td>" .. sysinfo.uptime .. "<br>" .. string.format("%.2f, %.2f, %.2f", sysinfo.loads[1], sysinfo.loads[2], sysinfo.loads[3]) .. "</td>";
+local uptime = string.format("%d:%02d", (sysinfo.uptime / 60) % 60, sysinfo.uptime % 60)
+if sysinfo.uptime >= 172800 then
+    uptime =  math.floor(uptime / 86400) .. " days, "
+elseif sysinfo.uptime >= 86400 then
+    uptime = "1 day, " .. uptime
+end
+col2[#col2 + 1] = "<th align=right>uptime<br>load average</th><td>" .. uptime .. "<br>" .. string.format("%.2f, %.2f, %.2f", sysinfo.loads[1], sysinfo.loads[2], sysinfo.loads[3]) .. "</td>";
 local vfs = nixio.fs.statvfs("/overlay")
 local fspace = vfs.bfree * vfs.bsize / 1024
 if fspace < 100 then

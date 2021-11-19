@@ -94,10 +94,24 @@ function hardware.get_link_led()
     return "/sys/class/leds/" .. get_board_json().led.rssilow.sysfs
 end
 
+function get_interface_ip4(intf)
+    if intf then
+        local f = io.popen("ifconfig " .. intf)
+        for line in f:lines()
+        do
+            local ip, bcast, mask = line:match("inet addr:([%d%.]+)%s+Bcast:([%d%.]+)%s+Mask:([%d%.]+)")
+            if ip then
+                return ip, bcast, mask
+            end
+        end
+        f:close()
+    end
+end
+
 function get_interface_mac(intf)
     local mac = ""
     if intf then
-        local f = io.popen("ifconfig " .. intf, "r")
+        local f = io.popen("ifconfig " .. intf)
         for line in f:lines()
         do
             local m = line:match("HWaddr ([%w:]+)")

@@ -40,7 +40,7 @@ if #arg ~= 1 then
 end
 
 local pw = arg[1].gsub("'", "\\'")
-local f = io.popen("{ echo '" .. pw .. "'; sleep 1; echo '" .. pw .. "'; } | passwd", "r")
+local f = io.popen("{ echo '" .. pw .. "'; sleep 1; echo '" .. pw .. "'; } | passwd")
 f:read("*a")
 f:close()
 
