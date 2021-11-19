@@ -73,8 +73,7 @@ if($config ne "mesh" or -e "/tmp/reboot-required")
 }
 
 # check for dmz mode
-if(-e "/etc/config/dmz-mode") { chomp ($dmz_mode = `cat /etc/config/dmz-mode`) }
-else                          { $dmz_mode = 0 }
+chomp(my $dmz_mode = `/sbin/uci -q get aredn.\@dmz[0].mode`);
 
 # get the network details of the lan interface for dhcp calculations
 

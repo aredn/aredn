@@ -37,7 +37,7 @@ LICENSE
 ### Lets export some variables to help other scripts we call later.
 
 #Are we in NAT mode
-if [ -f "/etc/config/dmz-mode" ]
+if [ "$(/sbin/uci -q get aredn.@dmz[0].mode)" != "0" ]
 then
   export MESHFW_NATLAN=0
 else

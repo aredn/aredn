@@ -64,7 +64,8 @@ push @names, $name if ($name = nvram_get("tactical"));
 push @names, $name if ($name = nvram_get("node"));
 
 # load the dhcp reservations when in dmz mode
-if(-f "/etc/config/dmz-mode")
+chomp(my $dmz_mode = `/sbin/uci -q get aredn.\@dmz[0].mode`);
+if($dmz_mode ne "0")
 {
   # add DNS aliases first
   # (see above comment about "tactical" names)
