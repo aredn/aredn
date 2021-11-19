@@ -103,10 +103,10 @@ function get_wifi_signal(wifiif)
     local noise = -1000
     for mac, station in pairs(iwinfo.nl80211.assoclist(wifiif))
     do
-        if station.signal > signal then
+        if station.signal ~= 0 and station.signal > signal then
             signal = station.signal
         end
-        if station.noise > noise then
+        if station.noise ~= 0 and station.noise > noise then
             noise = station.noise
         end
     end
@@ -189,13 +189,32 @@ do
     end
 end
 
--- read_postdata()
+-- post data
+
+if os.getenv("REQUEST_METHOD") == "POST" then
+    require('luci.http')
+    require('luci.sys')
+    local request = luci.http.Request(luci.sys.getenv(),
+      function()
+        local v = io.read(1024)
+        if not v then
+            io.close()
+        end
+        return v
+      end
+    )
+    local css = request:formvalue("css")
+    if css and css:match("%.css$") and nixio.fs.stat("/www/" .. css) then
+        nixio.fs.unlink("/tmp/web/style.css")
+        nixio.fs.symlink("/www/" .. css, "/tmp/web/style.css")
+    end
+end
 
 -- generate page
 
 http_header()
 html.header(node .. "status", true)
-html.print("<body><form method='post' action='/cgi-bin/status' enctype='multipart/form-data'>")
+html.print("<body><form method='post' action='/cgi-bin/status.lua' enctype='multipart/form-data'>")
 html.print("<center>")
 
 html.alert_banner()
@@ -356,7 +375,7 @@ if tspace < 3000 then
 else
     tspace = tspace .. " KB"
 end
-local rspace = sysinfo.freeram / 1024
+local rspace = (sysinfo.freeram + sysinfo.bufferram) / 1024
 if rspace < 500 then
     rspace = "<blink><b>" .. rspace .. " KB</b></blink>"
 else
