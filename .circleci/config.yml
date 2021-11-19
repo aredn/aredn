@@ -22,12 +22,15 @@ jobs:
       - run:
           name: Build
           command: make
+          no_output_timeout: 30m
       - run:
           name: Build
           command: make SUBTARGET=mikrotik
+          no_output_timeout: 30m
       - run:
           name: Build
           command: make MAINTARGET=ath79
+          no_output_timeout: 30m
       - run:
           name: Compress build files
           command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
