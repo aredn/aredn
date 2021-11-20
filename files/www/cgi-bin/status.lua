@@ -347,7 +347,7 @@ if config == "mesh" and not wifi_disabled then
     else
         col2[#col2] = col2[#col2] .. "<big><b>" .. s .. " / " .. n .. " / " .. (s - n) .. " dB</b></big>"
     end
-    col2[#col2] = col2[#col2] .. "&nbsp;&nbsp;&nbsp;<button type=button onClick='window.location=\"signal?realtime=1\"' title='Display continuous or archived signal strength on a chart'>Charts</button></nobr></td>"
+    col2[#col2] = col2[#col2] .. "&nbsp;&nbsp;&nbsp;<button type=button onClick='window.location=\"signal.lua?realtime=1\"' title='Display continuous or archived signal strength on a chart'>Charts</button></nobr></td>"
 end
 
 col2[#col2 + 1] = "<th align=right><nobr>firmware version</nobr></th><td>" .. read_all("/etc/mesh-release") .. "</td>";
