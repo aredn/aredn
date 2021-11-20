@@ -57,6 +57,7 @@ function http_header(disable_compression)
     end
    end
    print "\r"
+   io.flush()
 end
 
 function json_header()
