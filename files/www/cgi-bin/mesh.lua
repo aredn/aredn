@@ -46,6 +46,47 @@ require("iwinfo")
 
 local html = aredn.html
 
+local rateL = {
+	["1.0M"] = 1,   -- CCP LP
+	["2.0M"] = 2,   -- CCP LP
+	["5.5M"] = 5.5, -- CCP LP
+	MCS0 = 6.5, -- HT20 LGI
+	["11.0M"] = 11, -- CCP LP
+	MCS1 = 13,  -- HT20 LGI...
+	MCS2 = 19.5,
+	MCS3 = 26,
+	MCS4 = 39,
+	MCS5 = 52,
+	MCS6 = 58.5,
+	MCS7 = 65,
+	MCS8 = 13,
+	MCS9 = 26,
+	MCS10 = 39,
+	MCS11 = 52,
+	MCS12 = 78,
+	MCS13 = 104,
+	MCS14 = 117,
+	MCS15 = 130
+}
+local rateS = {
+    MCS0 = 7.2,
+	MCS1 = 14.4,
+	MCS2 = 21.7,
+	MCS3 = 28.9,
+	MCS4 = 43.3,
+	MCS5 = 57.8,
+	MCS6 = 65,
+	MCS7 = 72.2,
+	MCS8 = 14.4,
+	MCS9 = 28.9,
+	MCS10 = 43.3,
+	MCS11 = 57.8,
+	MCS12 = 86.7,
+	MCS13 = 115.6,
+	MCS14 = 130,
+	MCS15 = 144.4
+}
+
 local node = aredn.info.get_nvram("node")
 if node == "" then
     node = "NOCALL"
@@ -59,15 +100,42 @@ local wifiif = aredn.hardware.get_iface_name("wifi")
 local my_ip = aredn.hardware.get_interface_ip4(wifiif)
 local phy = iwinfo.nl80211.phyname(wifiif)
 
-local chanbw -- fix me
-
--- post data
+local chanbw = 1
+for line in io.lines("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/chanbw")
+do
+    if line == "0x00000005" then
+        chanbw = 4
+    elseif line == "0x0000000a" then
+        chanbw = 2
+    end
+    break
+end
 
 if not nixio.fs.stat("/tmp/web") then
     nixio.fs.mkdir("/tmp/web")
 end
 
---
+-- post data
+
+if os.getenv("REQUEST_METHOD") == "POST" then
+    require('luci.http')
+    require('luci.sys')
+    local request = luci.http.Request(luci.sys.getenv(),
+      function()
+        local v = io.read(1024)
+        if not v then
+            io.close()
+        end
+        return v
+      end
+    )
+    if request:formvalue("auto") then
+        io.open("/tmp/web/automesh", "w"):close()
+    end
+    if request:formvalue("stop") then
+        os.remove("/tmp/web/automesh")
+    end
+end
 
 local cursor = uci.cursor()
 local node_desc = cursor:get("system", "@system[0]", "description")
@@ -112,26 +180,33 @@ end)
 local prefix = "/sys/kernel/debug/ieee80211/" .. phy .. "/netdev:" .. wifiif .. "/stations/"
 for i, node in ipairs(aredn.olsr.getOLSRLinks())
 do
-    links[node.remoteIP] = { lq = node.linkQuality, nlq = node.neighborLinkQuality, mbps = 0 }
+    links[node.remoteIP] = { lq = node.linkQuality, nlq = node.neighborLinkQuality, mbps = "" }
     neighbor[node.remoteIP] = true
     local mac = arpcache[node.remoteIP]
-    --[[ if mac then
-        local f = io.open(prefix .. mac .. "/rc_stats_csv", "r")
+    if mac then
+        local f = io.open(prefix .. mac["HW address"] .. "/rc_stats_csv", "r")
         if f then
             for line in f:lines()
             do
-                -- 802.11b/n
-                local mbps = line:match("")
-                if mbps then
-                elseif line:match("^A") then
-                    -- 802.11a/b/g
+                local gi, rate, ewma = line:match("^[^,]*,([^,]*),[^,]*,A[^,]*,([^,%s]*)%s*,[^,]*,[^,]*,[^,]*,[^,]*,([^,]*),")
+                if gi then
+                    -- 802.11b/n
+                    if gi == "SGI" then
+                        links[node.remoteIP].mbps = string.format("%.1f", rateS[rate] * tonumber(ewma) / 100 / chanbw)
+                    else
+                        links[node.remoteIP].mbps = string.format("%.1f", rateL[rate] * tonumber(ewma) / 100 / chanbw)
+                    end
+                else
+                    rate, ewma = line:match("^A[^,]*,([^,]*),[^,]*,[^,]*,([^,]*,)")
+                    if rate then
+                        -- 802.11a/b/g
+                        links[node.remoteIP].mbps = string.format("%.1f", tonumber(rate) * tonumber(ewma) / 100 / chanbw)
+                    end
                 end
             end
-            links[node.remoteIP].mbps = --
             f:close()
         end
     end
-    --]]
 end
 
 -- discard
@@ -279,15 +354,9 @@ end
 -- load the node history
 for line in io.lines("/tmp/node.history")
 do
-    local ip, age = line:match("^(.*) (.*)")
+    local ip, age, host = line:match("^(.*) (.*) (.*)")
     if age then
-        local host = line:match("^.* .* (.*)")
-        if not host then
-            host = ""
-        else
-            host = host:gsub("/", " / ")
-        end
-        history[ip] = { age = age, host = host }
+        history[ip] = { age = age, host = host:gsub("/", " / ") }
     end
 end
 
@@ -299,7 +368,7 @@ if automesh then
 end
 html.print("</head>")
 
-html.print("<body><form method=post action=/cgi-bin/mesh enctype='multipart/form-data'>")
+html.print("<body><form method=post action=/cgi-bin/mesh.lua enctype='multipart/form-data'>")
 html.print("<input type=hidden name=reload value=1>")
 html.print("<center>")
 
@@ -313,7 +382,7 @@ if node_desc ~= "" then
 end
 html.print("<hr><nobr>")
 
-if authmesh then
+if nixio.fs.stat("/tmp/web/automesh") then
     html.print("<input type=submit name=stop value=Stop title='Abort continuous status'>")
 else
     html.print("<input type=submit name=refresh value=Refresh title='Refresh this page'>")
@@ -322,7 +391,7 @@ else
 end
 
 html.print("&nbsp;&nbsp;")
-html.print("<button type=button onClick='window.location=\"status\"' title='Return to the status page'>Quit</button>")
+html.print("<button type=button onClick='window.location=\"status.lua\"' title='Return to the status page'>Quit</button>")
 
 html.print("</nobr><br><br>")
 
@@ -410,6 +479,9 @@ else
     html.print("<tr><td>none</td></tr>")
 end
 
+-- discard
+localhosts = nil
+
 -- show remote nodes
 
 html.print("<tr><td>&nbsp;</td></tr>")
@@ -491,6 +563,8 @@ end
 
 -- discard
 neighbor = nil
+dtd = nil
+midcount = nil
 
 html.print("</table></td><td width=20>&nbsp;</td><td valign=top><table>")
 
@@ -589,13 +663,72 @@ else
     html.print("<tr><td>none</td></tr>")
 end
 
+-- discard
+wangateway = nil
+services = nil
+
 -- show previous neighbors
 
 html.print("<tr><td>&nbsp;</td></tr>")
 html.print("<tr><th colspan=6 align=left><nobr>Previous Neighbors</nobr></th><th align=left>When</th></tr>")
 html.print("<tr><td colspan=7><hr></td></tr>")
 
---
+local rows = {}
+local uptime = nixio.sysinfo().uptime
+for ip, node in pairs(history)
+do
+    if not (links[ip] or links[ipalias[ip]]) then
+        local age = uptime - tonumber(node.age)
+        local host = node.host
+        if not host then
+            host = ip
+        else
+            host = host:gsub("^mid%d+%.", ""):gsub("^dtdlink%.", "")
+        end
+        local row = "<tr><td colspan=6><nobr>" .. host .. "</nobr>"
+        if hosts[ip] and hosts[ip].hosts then
+            for _, v in ipairs(hosts[ip].hosts)
+            do
+                row = row .. "<br><nobr><img src='/dot.png'>" .. v .. "</nobr>"
+            end
+        end
+        row = row .. "</td><td valign=top><nobr>"
+        if age < 3600 then
+            local val = math.floor(age / 60)
+            if val == 1 then
+                row = row .. "1 minute ago"
+            else
+                row = row .. val .. " minutes ago"
+            end
+        else
+            val = string.format("%.1f", age / 3600)
+            if val == "1.0" then
+                row = row .. "1 hour ago"
+            else
+                row = row .. val .. " hours ago"
+            end
+            row = row .. "</nobr></td></tr>"
+        end
+        rows[#rows + 1] = { key = age, row = row }
+    end
+end
+if #rows > 0 then
+    table.sort(rows, function(a,b) return a.key < b.key end)
+    for _, row in ipairs(rows)
+    do
+        html.print(row.row)
+    end
+    -- discard
+    rows = nil
+else
+    html.print("<tr><td>none</td></tr>")
+end
+
+-- discard
+links = nil
+ipalias = nil
+hosts = nil
+history = nil
 
 -- footer
 

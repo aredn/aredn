@@ -89,7 +89,6 @@ if cfg.dmz_mode == "0" or cfg.wan_proto == "disabled" then
 end
 -- end special condition overrides
 
-table.sort()
 local keys = {}
 for k, v in pairs(defaultcfg)
 do
