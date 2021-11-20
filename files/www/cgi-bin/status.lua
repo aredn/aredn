@@ -238,7 +238,7 @@ html.print("&nbsp;&nbsp;")
 html.print("<input type=submit name=refresh value=Refresh title='Refresh this page'>")
 if config == "mesh" then
     html.print("&nbsp;&nbsp;")
-    html.print("<button type=button onClick='window.location=\"mesh\"' title='See what is on the mesh'>Mesh Status</button>")
+    html.print("<button type=button onClick='window.location=\"mesh.lua\"' title='See what is on the mesh'>Mesh Status</button>")
     if not wifi_disabled then
         html.print("&nbsp;&nbsp;")
         html.print("<button type=button onClick='window.location=\"scan\"' title='See what wireless networks are nearby'>WiFi Scan</button>")
