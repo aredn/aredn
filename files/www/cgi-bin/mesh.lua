@@ -147,13 +147,13 @@ if lat ~= "" and lon ~= "" then
 end
 -- low memory mitigation
 local lowmemory = cursor:get("aredn", "@meshstatus[0]", "lowmem")
-if lowmemory == "" then
+if not lowmemory then
     lowmemory = 10000
 else
     lowmemory = tonumber(lowmemory)
 end
 local lowroutes = cursor:get("aredn", "@meshstatus[0]", "lowroutes")
-if lowroutes == "" then
+if not lowroutes then
     lowroutes = 1000
 else
     lowroute = tonumber(lowroutes)
