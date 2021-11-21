@@ -38,7 +38,6 @@ require("nixio")
 require("aredn.http")
 require("aredn.utils")
 local html = require("aredn.html")
-require("uci")
 local aredn_info = require("aredn.info")
 
 local node = aredn_info.get_nvram("node")
@@ -46,7 +45,7 @@ if not node then
     node = "NOCALL"
 end
 local device = ""
-local tzone = ""
+local tzone = capture("date +%Z"):gsub("\n","")                                
 
 local dmode = "Realtime"
 -- query string
