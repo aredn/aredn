@@ -41,21 +41,248 @@ require("uci")
 local html = require("aredn.html")
 local aredn_info = require("aredn.info")
 
-local node = aredn_info.get_nvram("node")
-if not node then
-    node = "NOCALL"
+-- helpers start
+
+function capture_and_match(cmd, pattern)
+    local f = io.popen(cmd)
+    if f then
+        for line in f:lines()
+        do
+            local r = line:match(pattern)
+            if r then
+                return r
+            end
+        end
+        f:close()
+    end
 end
 
-local parms = {}
+-- helper end
+
 local errors = {}
 local output = {}
 local hidden = {}
 
-local  wifi_mode
+local pingOK = false -- fix me
+local tz_db_strings -- fix me
+local tz_db_names -- fix me
+
+local ctwo = { 1,2,3,4,5,6,7,8,9,10,11 }
+local cfive = { 36,40,44,48,149,153,157,161,165 }
+
+local wifiintf = aredn.hardware.get_iface_name("wifi")
+local phy = iwinfo.nl80211.phyname(wifiintf)
+local phycount = capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp()
+local cursor = uci:cursor()
 
 -- post_data
+local parms = {}
+local has_parms = false
+if os.getenv("REQUEST_METHOD") == "POST" then
+    require('luci.http')
+    require('luci.sys')
+    local request = luci.http.Request(luci.sys.getenv(),
+      function()
+        local v = io.read(1024)
+        if not v then
+            io.close()
+        end
+        return v
+      end
+    )
+    parms = request:formvaluetable("")
+    for _,_ in paris(parms)
+    do
+        has_parms = true
+        break
+    end
+end
 
-----
+if parms.button_uploaddata then
+    --
+end
+
+local node, mac2, dtdmac
+if not params.button_default then
+    for k, v in pairs(parms)
+    do
+        if k:match("^%w+") then
+            v = v:gsub("^%s+", ""):gsub("%s+$", "")
+            _G[k] = v
+        end
+    end
+end
+if parms.button_default or parms.button_reset or not has_parms then
+    node = aredn_info.get_nvram("node")
+    mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
+    dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
+    for line in io.lines("/etc/config.mesh/_setup.default")
+    do
+        if not (line:match("^%s#") or line:match("^%s$")) then
+            line = line:gsub("<NODE>", node):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
+            local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
+            _G[k] = v
+        end
+    end
+end
+if not parms.button_default then
+    local function h2s(hex)
+        local s = ""
+        for i = 1,#hex,2
+        do
+            s = s .. string.char(tonumber(hex.sub(i, i+1), 16))
+        end
+        return s
+    end
+    wifi2_key = h2s(wifi2_key)
+    wifi2_ssid = h2s(wifi2_ssid)
+    wifi3_key = h2s(wifi3_key)
+    wifi3_ssid = h2s(wifi3_ssid)
+end
+
+local nodetac
+if parms.button_reset or parms.button_default or (not nodetac and not #params) then
+    nodetac = aredn_info.get_nvram("node")
+    tactical = aredn_info.get_nvram("tactical")
+    if tactical then
+        nodetac = nodetac .. " / " .. tactical
+    end
+else
+    nodetac = parms.nodetac
+end
+
+local d0 = { "lan_dhcp", "olsrd_bridge", "olsrd_gw", "wifi2_enable", "lan_dhcp_noroute", "wifi_enable", "wifi3_enable" }
+for _, k in ipairs(d0)
+do
+    if not parms[k] then
+        parms[k] = 0
+    end
+end
+
+-- lan is always static
+local lan_proto = "static"
+
+-- enforce direct mode settings
+-- (formerly known as dmz mode)
+if dmz_mode ~= 0 and dmz_mode < 2 then
+    dmz_mode = 2
+elseif dmz_mode > 5 then
+    dmz_mode = 5
+end
+
+if dmz_mode ~= 0 then
+    -- fix me
+    dmz_dhcp_end = dmz_dhcp_start + math.pow(2, dmz_mode) - 4;
+    parms.dmz_lan_ip = dmz_lan_ip
+    parms.dmz_lan_mask = dmz_lan_mask
+    parms.dmz_dhcp_start = dmz_dhcp_start
+    parms.dmz_dhcp_end = dmz_dhcp_end
+end
+
+parms.dhcp_limit = dhcp_end - dhcp_start + 1
+parms.dmz_dhcp_limit = dmz_dhcp_end - dmz_dhcp_start + 1
+
+-- get the active wifi settings on a fresh page load
+if not parms.reload then
+    wifi_txpower = capture_and_match("iwinfo " .. wifiintf .. " info", "Tx-Power: (%d+)")
+    local doesiwoffset = capture_and_match("iwinfo " .. wifiintf .. " info", "TX power offset: (%d+)")
+    if doesiwoffset then
+        wifi_txpower = wifi_txpower - doesiwoffset
+    end
+end
+
+-- sanitize the active settings
+if not wifi_txpower or wifi_txpower > wifi_maxpower(wifi_channel) then
+    wifi_txpower = wifi_maxpower(wifi_channel)
+end
+if wifi_power < 1 then
+    wifi_power = 1
+end
+if not wifi_distance then
+    wifi_distance = 0
+end
+if tostring(wifi_distance):match("%D") then
+    wifi_distance = 0
+end
+
+-- stuff the sanitized data back into the parms tables
+-- so they get saved correctly
+parms.wifi_distance = wifi_distance
+parms.wifi_txpower = wifi_txpower
+
+-- apply the wifi settings
+if (parms.button_apply or parms.button_save) and wifi_enable then
+    if wifi_distance == 0 then
+        os.execute("iw phy " .. phy .. " set distance auto")
+    else
+        os.execute("iw phy " .. phy .. " set distance " .. wifi_distance)
+    end
+    os.execute("iw dev " .. wifiintf .. " set tx power fixed " .. wifi_txpower .. "00")
+end
+
+if parms.button_upodatelocation then
+    -- process gridsquare
+    if parms.gridsquare then
+        if parms.gridsquare:match("^[A-Z][A-Z]%d%d[a-z][a-z]$") then
+            cursor:set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
+            cursor:commit("aredn")
+            -- copy to /etc/config.mesh - fix me
+            output[#output + 1] = "Gridsquare updated."
+        else
+            errors[#errors + 1] = "ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)"
+        end
+    else
+        cursor:set("aredn", "@location[0]", "gridsquare", "")
+        cursor:commit("aredn")
+        -- copy - fix me
+        output[#output + 1] = "Gridsquare purged."
+    end
+
+    -- process lat/lng
+    if parms.latitude and parms.longitude then
+        if parms.latitude:match("^[-+]?%d%d?%.%d+$") and parms.longitude:match("^[-+]?%d%d?%d?%.%d+$") then
+            if tonumnber(params.latitude) >= -90 and tonumber(params.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
+                cursor:set("aredn", "@location[0]", "lat", params.latitude)
+                cursor:set("aredn", "@location[0]", "lon", params.longitude)
+                cursor:commit("aredn")
+                -- copy - fix me
+                output[#output + 1] = "Lat/lon updated."
+            else
+                errors[#errors + 1] = "ERROR: Lat/lon values must be between -90/90 and -180/180, respectively."
+            end
+        else
+            errors[#errors + 1] = "ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154)."
+        end
+    else
+        cursor:set("aredn", "@location[0]", "lat", "")
+        cursor:set("aredn", "@location[0]", "lon", "")
+        cursor:commit("aredn")
+        -- copy - fix me
+        output[#output + 1] = "Lat/lon purged."
+    end
+end
+
+-- retrieve location data
+lat = cursor:get("aredn", "@location[0]", "lat")
+lon = cursor:get("aredn", "@location[0]", "lon")
+gridsquare = cursor:get("aredn", "@location[0]", "gridsquare")
+
+-- validate and save configuration
+if parms.button_save then
+    -- to do fix me
+end
+
+remove_all("/tmp/web/save")
+if parms.button_reboot then
+    -- fix me
+end
+
+local desc = cursor:get("system", "@system[0]", "description")
+local maptiles = cursor:get("aredn", "@map[0]", "maptiles")
+local leafletcss = cursor:get("aredn", "@map[0]", "leafletcss")
+local leafletjs = cursor:get("aredn", "@map[0]", "leafletjs")
+
+-- generate page
 
 http_header()
 html.header(node .. " setup", false)
@@ -311,7 +538,7 @@ end
 html.print("<tr><td><nobr>IP Address</nobr></td><td><input type=text size=15 name=wifi_ip value='" .. wifi_ip .. "'></td></tr><tr><td>Netmask</td><td><input type=text size=15 name=wifi_mask value='" .. wifi_mask  .. "'></td></tr>")
 
 -- reset wifi channel/bandwidth to default
-if nixio.fs.stat("/e/tc/config/unconfigured") or params.button_reset then
+if nixio.fs.stat("/e/tc/config/unconfigured") or parms.button_reset then
     local defaultwifi = rf_default_channel()
     wifi_channel = defaultwifi.channel
     wifi_chanbw = defaultwifi.chanbw
@@ -347,7 +574,7 @@ if wifi_enable then
     html.print("</select>&nbsp;&nbsp;<a href=\"/help.html#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
     html.print("<tr id='dist' class='dist-norm'><td>Distance to<br/>FARTHEST Neighbor<br/><h3>'0' is auto</h3></td>")
 
-    wifi_distance = math.floor(tonumber(wifi_distance))
+    local wifi_distance = math.floor(tonumber(wifi_distance))
     local wifi_distance_disp_km = math.floor(wifi_distance / 1000)
     local wifi_distance_disp_miles = string.format("%.2f", wifi_distance_disp_km * 0.621371192)
     html.print("<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='" .. wifi_distance_disp_miles .. "' title='Distance to the farthest neighbor'>&nbsp;mi<br />")
