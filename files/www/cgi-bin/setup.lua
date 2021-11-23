@@ -39,6 +39,8 @@ require("aredn.http")
 require("aredn.utils")
 require("aredn.hardware")
 require("uci")
+require('luci.http')
+require('luci.sys')
 local html = require("aredn.html")
 local aredn_info = require("aredn.info")
 
@@ -183,8 +185,6 @@ end
 local parms = {}
 local has_parms = false
 if os.getenv("REQUEST_METHOD") == "POST" then
-    require('luci.http')
-    require('luci.sys')
     local request = luci.http.Request(luci.sys.getenv(),
       function()
         local v = io.read(1024)
@@ -384,7 +384,47 @@ end
 
 remove_all("/tmp/web/save")
 if parms.button_reboot then
-    -- fix me
+    local node = aredn_info.get_nvram("node")
+    if node == "" then
+        node = "Node"
+    end
+    local lanip, _, lanmask = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("lan"))
+    local browser = os.getenv("REMOTE_ADDR"):match("::ffff:([%d%.]+)")
+    local fromlan = validate_same_subnet(browser, lanip, lanmask)
+    local subnet_change = false
+    if fromlan then
+        lanmask = ip_to_decimal(lanmask)
+        local cfgip = cursor_get("network", "lan", "ipaddr")
+        local cfgmask = ip_to_decimal(cursor_get("network", "lan", "netmask"))
+        if lanmask ~= cfgmask or decimal_to_ip(nixio.bit.band(ip_to_decimal(ip), lanmask)) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
+            subnet_change = true
+        end
+    end
+    http_header()
+    if not (fromlan and subnet_change) then
+        html.header(node .. " rebooting", true);
+        html.print("<body><center>")
+        html.print("<h1>" .. node .. " is rebooting</h1><br>")
+        html.print("<h3>The LAN subnet has changed. You will need to acquire a new DHCP lease<br>")
+        html.print("and reset any name service caches you may be using.</h3><br>")
+        html.print("<h3>When the node reboots you get your new DHCP lease and reconnect with<br>")
+        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>")
+        html.print("<a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
+    else
+        html.header(node .. " rebooting", false)
+        html.print("<meta http-equiv='refresh' content='60;url=/cgi-bin/status.lua'>")
+        html.print("</head><body><center>")
+        html.print("<h1>" .. node .. " is rebooting</h1><br>")
+        html.print("<h3>Your browser should return to this node in 60 seconds.</br><br>")
+        html.print("If something goes astray you can try to connect with<br><br>")
+        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>")
+        if node ~= "Node" then
+            html.print("or<br><a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
+        end
+    end
+    html.print("</center></body></html>")
+    luci.sys.reboot()
+    os.exit()
 end
 
 local desc = cursor_get("system", "@system[0]", "description")
