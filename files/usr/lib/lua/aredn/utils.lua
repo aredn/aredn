@@ -456,7 +456,7 @@ function mac_to_ip(mac, shift)
 end
 
 function decimal_to_ip(val)
-    return ((val / 16777216) % 256) .. "." .. ((val / 65536) % 256) .. "." .. ((val / 256) % 256) .. "." .. (val % 256)
+    return (math.floor(val / 16777216) % 256) .. "." .. (math.floor(val / 65536) % 256) .. "." .. (math.floor(val / 256) % 256) .. "." .. (val % 256)
 end
 
 function ip_to_decimal(ip)
