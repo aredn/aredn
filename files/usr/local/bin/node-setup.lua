@@ -168,7 +168,7 @@ end
 
 for line in io.lines("/etc/config.mesh/_setup")
 do
-    if not (line:match("^%s#") or line:match("^%s$")) then
+    if not (line:match("^%s*#") or line:match("^%s*$")) then
         line = line:gsub("<NODE>", node):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
         local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
         cfg[k] = v
@@ -367,7 +367,7 @@ if h and e then
 
     for line in io.lines(dhcpfile)
     do
-        if not (line:match("^%s#") or line:match("^%s$")) then
+        if not (line:match("^%s*#") or line:match("^%s*$")) then
             local mac, ip, host, noprop = line:match("(.*)%s+(.*)%s+(.*)%s+(.*)")
             ip = decimal_to_ip(netaddr + ip)
             if validate_same_subnet(ip, cfg.lan_ip, cfg.lan_mask) and validate_ip_netmask(ip, cfg.lan_mask) then
@@ -384,7 +384,7 @@ if h and e then
     if f then
         for line in f:lines()
         do
-            if not (line:match("^%s#") or line:match("^%s$")) then
+            if not (line:match("^%s*#") or line:match("^%s*$")) then
                 local ip, host = line:match("(.*)%s+(.*)")
                 if ip then
                     h:write(ip .. "\t" .. host .. " #ALIAS\n")
@@ -440,7 +440,7 @@ if fw then
 
     for line in io.lines(portfile)
     do
-        if not (line:match("^%s#") or line:match("^%s$")) then
+        if not (line:match("^%s*#") or line:match("^%s*$")) then
             local dip = line:match("dmz_ip = (%w+)")
             if dip and cfg.dmz_mode ~= 0 then
                 fw:write("\nconfig redirect\n        option src    wifi\n        option proto  tcp\n        option src_dip " .. cfg.wifi_ip .. "\n        option dest_ip " .. dip .. "\n")
@@ -488,7 +488,7 @@ local sf = io.open("/etc/config/services" .. suffix, "w")
 if sf then
     for line in io.lines(servfile)
     do
-        if not (line:match("^%s#") or line:match("^%s$")) then
+        if not (line:match("^%s*#") or line:match("^%s*$")) then
             local name, link, proto, host, port, sffx = line:match("(.*)|(.*)|(.*)|(.*)|(.*)|(.*)")
             if name and name ~= "" and host ~= "" then
                 if proto == "" then

@@ -94,6 +94,15 @@ function hardware.get_link_led()
     return "/sys/class/leds/" .. get_board_json().led.rssilow.sysfs
 end
 
+function hardware.get_rfband()
+    local radio = get_radio_json()[get_board_json().model.name]
+    if radio then
+        return radio.rfband
+    else
+        return nil
+    end
+end
+
 function hardware.supported()
     local radio = get_radio_json()[get_board_json().model.name]
     if radio then

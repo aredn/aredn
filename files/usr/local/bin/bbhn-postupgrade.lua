@@ -68,7 +68,7 @@ end
 
 for line in io.lines("/etc/config.mesh/_setup")
 do
-    if not (line:match("^%s#") or line:match("^%s$")) then
+    if not (line:match("^%s*#") or line:match("^%s*$")) then
         local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
         cfg[k] = v
     end
@@ -76,7 +76,7 @@ end
 
 for line in io.lines("/etc/config.mesh/_setup.default")
 do
-    if not (line:match("^%s#") or line:match("^%s$")) then
+    if not (line:match("^%s*#") or line:match("^%s*$")) then
         line = line:gsub("<NODE>", node):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
         local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
         defaultcfg[k] = v
