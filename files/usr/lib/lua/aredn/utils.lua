@@ -452,12 +452,11 @@ end
 
 function mac_to_ip(mac, shift)
     local a, b, c = mac:match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
-    local val = nixio.bit.lshift(((tonumber(a, 16) * 256) + tonumber(b, 16)) * 256 + tonumber(c, 16), shift)
-    return string.format("%d.%d.%d", nixio.bit.band(val / 16777216, 255), nixio.bit.band(val / 65536, 255), nixio.bit.band(val, 255))
+    return string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
 end
 
 function decimal_to_ip(val)
-    return nixio.bit.band(val / 16777216, 255) .. "." .. nixio.bit.band(val / 65536, 255) .. "." .. nixio.bit.band(val / 256, 255) .. "." .. nixio.bit.band(val, 255)
+    return ((val / 16777216) % 256) .. "." .. ((val / 65536) % 256) .. "." .. ((val / 256) % 256) .. "." .. (val % 256)
 end
 
 function ip_to_decimal(ip)
