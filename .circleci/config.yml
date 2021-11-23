@@ -44,6 +44,10 @@ jobs:
       - run:
           name: Retrieve last build info and check
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c ' ~/needs2build.sh ${CIRCLE_PROJECT_USERNAME} ${CIRCLE_PROJECT_REPONAME} ${CIRCLE_BRANCH} ${CIRCLE_SHA1}'"
+      - run:
+          name: Check2build failure (build not needed)
+          when: on_fail
+          command: circleci-agent step halt
   save_build_info:
       machine:
         enabled: true
