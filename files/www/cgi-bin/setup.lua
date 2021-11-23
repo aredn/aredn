@@ -37,11 +37,48 @@
 require("nixio")
 require("aredn.http")
 require("aredn.utils")
+require("aredn.hardware")
 require("uci")
 local html = require("aredn.html")
 local aredn_info = require("aredn.info")
 
 -- helpers start
+
+local rf_channel_map = {
+    ["900"] = {},
+    ["2400"] = {},
+    ["3400"] = {},
+    ["5500"] = {},
+    ["5800ubntus"] = {}
+}
+for i = 4,7
+do
+    rf_channel_map["900"][i - 3] = { label = i .. " (" .. (887 + i * 5) .. ")", number = i, frequency = 887 + i * 5 }
+end
+for i = -2,11
+do
+    rf_channel_map["2400"][i + (i <= 0 and 2 or 1)] = { label = i .. " (" .. (2407 + i * 5) .. ")", number = i, frequency = 2407 + i * 5 }
+end
+for i = 76,99
+do
+    rf_channel_map["3400"][i - 75] = { label = i .. " (" .. (3000 + i * 5) .. ")", number = i, frequency = 3000 + i * 5 }
+end
+for i = 36,64,4
+do
+    rf_channel_map["5500"][(i - 32) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
+end
+for i = 100,140,4
+do
+    rf_channel_map["5500"][(i - 64) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
+end
+for i = 149,165,4
+do
+    rf_channel_map["5500"][(i - 69) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
+end
+for i = 131,184
+do
+    rf_channel_map["5800ubntus"][i - 130] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
+end
 
 function capture_and_match(cmd, pattern)
     local f = io.popen(cmd)
@@ -57,22 +94,74 @@ function capture_and_match(cmd, pattern)
     end
 end
 
+function rf_channels_list(wifiintf)
+    local channels = {}
+    local rfband = aredn.hardware.get_rfband()
+    if rfband and rf_channel_map[rfband] then
+        return rf_channel_map[rfband]
+    else
+        local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
+        if f then
+            for line in f:lines()
+            do
+                local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%d+)%)")
+                if freq and not line:match("restricted") then
+                    freq = freq:gsub("%.", "")
+                    num = num:gsub("^0+", "")
+                    channels[#channels + 1] = {
+                        label = num .. " (" .. freq .. ")",
+                        number = tonumber(num),
+                        frequency = freq
+                    }
+                end
+            end
+            f:close()
+        end
+    end
+    return channels
+end
+
+function wifi_txpoweroffset() -- fix me
+    return 0
+end
+
 -- helper end
 
 local errors = {}
 local output = {}
 local hidden = {}
 
+-- timezones
+local tz_db_names = {}
+for line in io.lines("/etc/zoneinfo")
+do
+    local name, _ = line:match("^(.*)\t")
+    tz_db_names[#tz_db_names + 1] = { tz = name, name = name }
+end
+
+-- online ping
+local pingOK = false
+if capture_and_match("ping -W1 -c1 8.8.8.8", "1 packets received") then
+    pingOK = true
+end
+
+local node = "" -- fix me
 local pingOK = false -- fix me
-local tz_db_strings -- fix me
-local tz_db_names -- fix me
+local passwd1 = "" -- fix me
+local passwd2 = "" -- fix me
+local dmz_lan_ip = "" -- fix me
+local dmz_lan_mask = "" -- fix me
+local lan_gw = "" -- fix me
+local wan_ip = "" -- fix me
+local wan_mask = "" -- fix me
+local wan_gw = "" -- fix me
 
 local ctwo = { 1,2,3,4,5,6,7,8,9,10,11 }
 local cfive = { 36,40,44,48,149,153,157,161,165 }
 
 local wifiintf = aredn.hardware.get_iface_name("wifi")
 local phy = iwinfo.nl80211.phyname(wifiintf)
-local phycount = capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp()
+local phycount = tonumber(capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp())
 local cursor = uci:cursor()
 
 -- post_data
@@ -102,8 +191,15 @@ if parms.button_uploaddata then
     --
 end
 
-local node, mac2, dtdmac
-if not params.button_default then
+if parms.button_default then
+    for line in io.lines("/etc/config.mesh/_setup.default")
+    do
+        if not (line:match("^%s*#") or line:match("^%s*$")) then
+            local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
+            _G[k] = v
+        end
+    end
+else
     for k, v in pairs(parms)
     do
         if k:match("^%w+") then
@@ -111,40 +207,34 @@ if not params.button_default then
             _G[k] = v
         end
     end
-end
-if parms.button_default or parms.button_reset or not has_parms then
-    node = aredn_info.get_nvram("node")
-    mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
-    dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
-    for line in io.lines("/etc/config.mesh/_setup.default")
-    do
-        if not (line:match("^%s#") or line:match("^%s$")) then
-            line = line:gsub("<NODE>", node):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
-            local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
-            _G[k] = v
-        end
-    end
-end
-if not parms.button_default then
-    local function h2s(hex)
-        local s = ""
-        for i = 1,#hex,2
+    if parms.button_reset or not has_parms then
+        for line in io.lines("/etc/config.mesh/_setup")
         do
-            s = s .. string.char(tonumber(hex.sub(i, i+1), 16))
+            if not (line:match("^%s*#") or line:match("^%s*$")) then
+                local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
+                _G[k] = v
+            end
         end
-        return s
+        local function h2s(hex)
+            local s = ""
+            for i = 1,#hex,2
+            do
+                s = s .. string.char(tonumber(hex:sub(i, i+1), 16))
+            end
+            return s
+        end
+        wifi2_key = h2s(wifi2_key)
+        -- wifi2_ssid = h2s(wifi2_ssid) fix me
+        wifi3_key = h2s(wifi3_key)
+        -- wifi3_ssid = h2s(wifi3_ssid)
     end
-    wifi2_key = h2s(wifi2_key)
-    wifi2_ssid = h2s(wifi2_ssid)
-    wifi3_key = h2s(wifi3_key)
-    wifi3_ssid = h2s(wifi3_ssid)
 end
 
 local nodetac
-if parms.button_reset or parms.button_default or (not nodetac and not #params) then
+if parms.button_reset or parms.button_default or (not nodetac and not has_parms) then
     nodetac = aredn_info.get_nvram("node")
     tactical = aredn_info.get_nvram("tactical")
-    if tactical then
+    if tactical ~= "" then
         nodetac = nodetac .. " / " .. tactical
     end
 else
@@ -155,7 +245,7 @@ local d0 = { "lan_dhcp", "olsrd_bridge", "olsrd_gw", "wifi2_enable", "lan_dhcp_n
 for _, k in ipairs(d0)
 do
     if not parms[k] then
-        parms[k] = 0
+        parms[k] = "0"
     end
 end
 
@@ -164,6 +254,7 @@ local lan_proto = "static"
 
 -- enforce direct mode settings
 -- (formerly known as dmz mode)
+dmz_mode = tonumber(dmz_mode)
 if dmz_mode ~= 0 and dmz_mode < 2 then
     dmz_mode = 2
 elseif dmz_mode > 5 then
@@ -171,7 +262,12 @@ elseif dmz_mode > 5 then
 end
 
 if dmz_mode ~= 0 then
-    -- fix me
+    local ipshift = (ip_to_decimal(wifi_ip) * math.pow(2, dmz_mode)) % 0x1000000
+    local a, b = decimal_to_ip(ipshift):match("(%d+%.%d+%.%d+%.)(%d+)")
+    dmz_lan_ip = "1" .. a .. (tonumber(b) + 1)
+    dmz_lan_mask = decimal_to_ip((0xffffffff * math.pow(2, dmz_mode)) % 0x100000000)
+    local octet = dmz_lan_ip:match("%d+%.%d+%.%d+%.(%d+)")
+    dmz_dhcp_start = octet + 1
     dmz_dhcp_end = dmz_dhcp_start + math.pow(2, dmz_mode) - 4;
     parms.dmz_lan_ip = dmz_lan_ip
     parms.dmz_lan_mask = dmz_lan_mask
@@ -184,18 +280,18 @@ parms.dmz_dhcp_limit = dmz_dhcp_end - dmz_dhcp_start + 1
 
 -- get the active wifi settings on a fresh page load
 if not parms.reload then
-    wifi_txpower = capture_and_match("iwinfo " .. wifiintf .. " info", "Tx-Power: (%d+)")
+    wifi_txpower = tonumber(capture_and_match("iwinfo " .. wifiintf .. " info", "Tx%-Power: (%d+)"))
     local doesiwoffset = capture_and_match("iwinfo " .. wifiintf .. " info", "TX power offset: (%d+)")
     if doesiwoffset then
-        wifi_txpower = wifi_txpower - doesiwoffset
+        wifi_txpower = wifi_txpower - tonumber(doesiwoffset)
     end
 end
 
 -- sanitize the active settings
-if not wifi_txpower or wifi_txpower > wifi_maxpower(wifi_channel) then
-    wifi_txpower = wifi_maxpower(wifi_channel)
+if not wifi_txpower or wifi_txpower > aredn.hardware.wifi_maxpower(wifi_channel) then
+    wifi_txpower = aredn.hardware.wifi_maxpower(wifi_channel)
 end
-if wifi_power < 1 then
+if not wifi_power or wifi_power < 1 then
     wifi_power = 1
 end
 if not wifi_distance then
@@ -241,9 +337,9 @@ if parms.button_upodatelocation then
     -- process lat/lng
     if parms.latitude and parms.longitude then
         if parms.latitude:match("^[-+]?%d%d?%.%d+$") and parms.longitude:match("^[-+]?%d%d?%d?%.%d+$") then
-            if tonumnber(params.latitude) >= -90 and tonumber(params.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
-                cursor:set("aredn", "@location[0]", "lat", params.latitude)
-                cursor:set("aredn", "@location[0]", "lon", params.longitude)
+            if tonumnber(parms.latitude) >= -90 and tonumber(parms.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
+                cursor:set("aredn", "@location[0]", "lat", parms.latitude)
+                cursor:set("aredn", "@location[0]", "lon", parms.longitude)
                 cursor:commit("aredn")
                 -- copy - fix me
                 output[#output + 1] = "Lat/lon updated."
@@ -266,6 +362,9 @@ end
 lat = cursor:get("aredn", "@location[0]", "lat")
 lon = cursor:get("aredn", "@location[0]", "lon")
 gridsquare = cursor:get("aredn", "@location[0]", "gridsquare")
+if not gridsquare then
+    gridsquare = ""
+end
 
 -- validate and save configuration
 if parms.button_save then
@@ -285,7 +384,7 @@ local leafletjs = cursor:get("aredn", "@map[0]", "leafletjs")
 -- generate page
 
 http_header()
-html.header(node .. " setup", false)
+html.header(aredn_info.get_nvram("node") .. " setup", false)
 
 html.print([[
  <script>
@@ -448,9 +547,17 @@ html.alert_banner()
 html.print("<form onSubmit='doSubmit();' name='mainForm' method=post action=/cgi-bin/setup.lua enctype='multipart/form-data'>\n")
 html.print("<table width=790>")
 html.print("<tr><td>")
--- navbar("setup");
+-- navbar
+html.print("<hr><table cellpadding=5 border=0 width=100%><tr>")
+html.print("<td align=center width=15%><a href='status.lua'>Node Status</a></td>")
+html.print("<td align=center width=15% class=navbar_select><a href='setup.lua'>Basic Setup</a></td>")
+html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
+html.print("<td align=center width=15%><a href='vpn'>Tunnel<br>Server</a></td>")
+html.print("<td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>")
+html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
+html.print("<td align=center width=15%><a href='advancedconfig'>Advanced<br>Configuration</a></td>")
+html.print("</tr></table><hr>")
 html.print("</td></tr>")
-
 -- control buttons
 html.print([[<tr><td align=center>
 <a href='/help.html#setup' target='_blank'>Help</a>
@@ -495,7 +602,7 @@ end
 -- note name and type, password
 
 html.print([[
-<tr><td align=center>\n";
+<tr><td align=center>
 <table cellpadding=5 border=0>
 <tr>
 <td>Node Name</td>
@@ -512,33 +619,34 @@ html.print([[
 hidden[#hidden + 1] = "<input type=hidden name=config value='mesh'>"
 html.print([[
 <td>Verify Password</td>
-<td><input type=password name=passwd2 value=']] .. passwd2 .. [[' size=8 tabindex=3></td>";
+<td><input type=password name=passwd2 value=']] .. passwd2 .. [[' size=8 tabindex=3></td>
 </tr>
 </table>
 </td></tr>
-<tr><td><br>";
+<tr><td><br>
 <table cellpadding=5 border=1 width=100%><tr><td valign=top width=33%>
 ]])
 
 -- mesh rf settings
 html.print("<table width=100% style='border-collapse: collapse;'>")
 if phycount > 1 then
-    html.print(" <tr><th colspan=2>Mesh RF (2GHz)</th></tr>")
+    html.print("<tr><th colspan=2>Mesh RF (2GHz)</th></tr>")
 else
-    html.print(" <tr><th colspan=2>Mesh RF</th></tr>")
+    html.print("<tr><th colspan=2>Mesh RF</th></tr>")
 end
 hidden[#hidden + 1] = "<input type=hidden name=wifi_proto value='static'>"
 
 -- add enable/disable
 
-html.print("tr><td>Enable</td><td><input type=checkbox name=wifi_enable value=1")
+html.print("<tr><td>Enable</td><td><input type=checkbox name=wifi_enable value=1")
 if wifi_enable then
     html.print(" checked")
 end
+html.print("></td></tr>")
 html.print("<tr><td><nobr>IP Address</nobr></td><td><input type=text size=15 name=wifi_ip value='" .. wifi_ip .. "'></td></tr><tr><td>Netmask</td><td><input type=text size=15 name=wifi_mask value='" .. wifi_mask  .. "'></td></tr>")
 
 -- reset wifi channel/bandwidth to default
-if nixio.fs.stat("/e/tc/config/unconfigured") or parms.button_reset then
+if nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset then
     local defaultwifi = rf_default_channel()
     wifi_channel = defaultwifi.channel
     wifi_chanbw = defaultwifi.chanbw
@@ -546,13 +654,13 @@ end
 
 if wifi_enable then
     html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi_ssid value='" .. wifi_ssid .. "'>-" .. wifi_chanbw .. "-v3</td></tr>")
-    hidden[#hidden + 1] = "<input type=hidden name=wifi_mode value='" .. wifi_mode .. "'>";
+    hidden[#hidden + 1] = "<input type=hidden name=wifi_mode value='" .. wifi_mode .. "'>"
     html.print("<tr><td>Channel</td><td><select name=wifi_channel>")
-    local rfchannels = rf_channels_list()
-    table.sort(rfchannels, function(a, b) return a.channelnumber < b.channelnumber end)
-    for _, v in ipairs(rfchannels)
+    local rfchannels = rf_channels_list(wifiintf)
+    table.sort(rfchannels, function(a, b) return a.number < b.number end)
+    for _, chan in ipairs(rfchannels)
     do
-        html.print("<option value='" .. v.channelnumber .. "' ".. (v.channelnumber == wifi_channel and " selected" or "") .. ">" .. v.channellabel .. "</option>")
+        html.print("<option value='" .. chan.number .. "' ".. (chan.number == tonumber(wifi_channel) and " selected" or "") .. ">" .. chan.label .. "</option>")
     end
     html.print("</select></td></tr>")
 
@@ -567,7 +675,7 @@ if wifi_enable then
     html.print("<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>")
     html.print("<tr><td><nobr>Tx Power</nobr></td><td><select name=wifi_txpower>")
     local txpoweroffset = wifi_txpoweroffset()
-    for i = wifi_maxpower(wifi_channel),1,-1
+    for i = aredn.hardware.wifi_maxpower(wifi_channel),1,-1
     do
         html.print("<option value='" .. i .. "'".. (i == wifi_txpower and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>") 
     end
@@ -616,7 +724,7 @@ hidden[#hidden + 1] = "<input type=hidden name=lan_proto value='static'>"
 
 if dmz_mode ~= 0 then
     html.print("<tr><td><nobr>IP Address</nobr></td><td>" .. dmz_lan_ip .."</td></tr>")
-    hidden[#hidden + 1] = "<input type=hidden name=dmz_lan_ip value='" ..dmz_lan_ip .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=dmz_lan_ip value='" .. dmz_lan_ip .. "'>"
 
     html.print("<tr><td>Netmask</td><td>" .. dmz_lan_mask .. "</td></tr>")
     hidden[#hidden + 1] = "<input type=hidden name=dmz_lan_mask value='" ..dmz_lan_mask .. "'>"
@@ -625,7 +733,7 @@ if dmz_mode ~= 0 then
     html.print("<tr><td><nobr>DHCP Start</nobr></td><td>" .. dmz_dhcp_start .. "</td></tr>")
     hidden[#hidden + 1] = "<input type=hidden name=dmz_dhcp_start value='" .. dmz_dhcp_start .. "'>"
 
-    html.print =("<tr><td><nobr>DHCP End</nobr></td><td>" .. dmz_dhcp_end .. "</td></tr>")
+    html.print("<tr><td><nobr>DHCP End</nobr></td><td>" .. dmz_dhcp_end .. "</td></tr>")
 
     hidden[#hidden + 1] = "<input type=hidden name=lan_ip     value='" .. lan_ip .."'>"
     hidden[#hidden + 1] = "<input type=hidden name=lan_mask   value='" .. lan_mask .."'>"
@@ -736,7 +844,7 @@ html.print("<td valign=top width=33%><table width=100%><tr><th colspan=2>WAN</th
 html.print("<option value='static'".. (wan_proto == "static" and " selected" or "") .. ">Static</option>")
 html.print("<option value='dhcp'".. (wan_proto == "dhcp" and " selected" or "") .. ">DHCP</option>")
 html.print("<option value='disabled'".. (wan_proto == "disabled" and " selected" or "") .. ">disabled</option>")
-hrml.print("</select></td></tr>")
+html.print("</select></td></tr>")
 
 if wan_proto == "static" then
     html.print("<tr><td><nobr>IP Address</nobr></td>")
@@ -756,11 +864,11 @@ html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan
 
 html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>Advanced WAN Access</th></tr>")
 if wan_proto ~= "disabled" then
-    html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "" and " checked" or "") .. "></td></tr>")
+    html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "0" and " checked" or "") .. "></td></tr>")
 else
     hidden[#hidden + 1] = "<input type=hidden name=olsrd_gw value='0'>"
 end
-html.print("<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td><td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'" .. (lan_dhcp_noroute ~= "" and " checked" or "") .. "></td></tr>")
+html.print("<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td><td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'" .. (lan_dhcp_noroute ~= "0" and " checked" or "") .. "></td></tr>")
 
 -- wan wifi client
 if (phycount > 1 and (not wifi_enable or not wifi2_enable)) or (phycount == 1 and not wifi_enable and not wifi2_enable) and not M390model then
@@ -803,10 +911,10 @@ if (phycount > 1 and (not wifi_enable or not wifi2_enable)) or (phycount == 1 an
     html.print("<tr><td>SSID</td><td><input type=text name=wifi3_ssid size=15 value='" .. wifi3_ssid .."'></select></td></tr>")
     html.print("<tr><td>Password</td><td><input type=password size=15 name=wifi3_key value='" .. wifi3_key .. "'></td></tr>")
 else
-    hidden[#hidden + 1] = "<input type=hidden name=wifi3_enable     value='" .. wifi3_enable .. "'>";
-    hidden[#hidden + 1] = "<input type=hidden name=wifi3_ssid       value='" .. wifi3_ssid .. "'>";
-    hidden[#hidden + 1] = "<input type=hidden name=wifi3_key        value='" .. wifi3_key .. "'>";
-    hidden[#hidden + 1] = "<input type=hidden name=wifi3_hwmode     value='" .. wifi3_hwmode .. "'>";
+    hidden[#hidden + 1] = "<input type=hidden name=wifi3_enable     value='" .. wifi3_enable .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi3_ssid       value='" .. wifi3_ssid .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi3_key        value='" .. wifi3_key .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi3_hwmode     value='" .. wifi3_hwmode .. "'>"
 end
 -- end wan wifi client
 
@@ -829,13 +937,13 @@ end
 
 html.print("</td><tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='" .. lon .. "' title='Longitude value (in decimal) (ie. -95.334454)' /></td><td align=left>Grid Square</td><td align='left'><input type=text name=gridsquare maxlength=6 size=6 value='" .. gridsquare .. "' title='Gridsquare value (ie. AB12cd)' /></td></tr><tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr><tr><td colspan=4><hr /></td></tr>")
 html.print("<tr><td>Timezone</td><td><select name=time_zone_name tabindex=10>")
-for _,zone in ipair(tz_db_names)
+for _,zone in ipairs(tz_db_names)
 do
     html.print("<option value='" .. zone.tz .. "'".. (zone.tz == time_zone_name and " selected" or "") .. ">" .. zone.name .. "</option>")
 end
 html.print("</select></td><td align=left>NTP Server</td><td><input type=text name=ntp_server size=20 value='" .. ntp_server .. "'></td></table></td></tr></table>")
 
-hidden[#hidden + 1] = "<input type=hidden name=reload value=1>";
+hidden[#hidden + 1] = "<input type=hidden name=reload value=1>"
 hidden[#hidden + 1] = "<input type=hidden name=dtdlink_ip value='" .. dtdlink_ip .. "'>"
 
 for _,hid in ipairs(hidden)
