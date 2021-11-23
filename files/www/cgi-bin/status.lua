@@ -245,7 +245,7 @@ if config == "mesh" then
     end
 end
 html.print("&nbsp;&nbsp")
-html.print("<button type=button onClick='window.location=\"setup\"' title='Configure this node'>Setup</button>")
+html.print("<button type=button onClick='window.location=\"setup.lua\"' title='Configure this node'>Setup</button>")
 html.print("&nbsp;&nbsp;")
 html.print("<select name=\"css\" size=\"1\" onChange=\"form.submit()\" >")
 css_options()
