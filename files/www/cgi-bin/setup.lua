@@ -121,7 +121,11 @@ function rf_channels_list(wifiintf)
     return channels
 end
 
-function wifi_txpoweroffset() -- fix me
+function wifi_txpoweroffset(wifiintf)
+    local doesiwoffset = capture_and_match("iwinfo " .. wifiintf .. " info", "TX power offset: (%d+)")
+    if doesiwoffset then
+        return tonumber(doesiwoffset)
+    end
     return 0
 end
 
@@ -145,16 +149,14 @@ if capture_and_match("ping -W1 -c1 8.8.8.8", "1 packets received") then
     pingOK = true
 end
 
-local node = "" -- fix me
-local pingOK = false -- fix me
-local passwd1 = "" -- fix me
-local passwd2 = "" -- fix me
-local dmz_lan_ip = "" -- fix me
-local dmz_lan_mask = "" -- fix me
-local lan_gw = "" -- fix me
-local wan_ip = "" -- fix me
-local wan_mask = "" -- fix me
-local wan_gw = "" -- fix me
+local dmz_lan_ip = ""
+local dmz_lan_mask = ""
+local lan_gw = ""
+local wan_ip = ""
+local wan_mask = ""
+local wan_gw = ""
+local passwd1 = ""
+local passwd2 = ""
 
 local ctwo = { 1,2,3,4,5,6,7,8,9,10,11 }
 local cfive = { 36,40,44,48,149,153,157,161,165 }
@@ -162,7 +164,20 @@ local cfive = { 36,40,44,48,149,153,157,161,165 }
 local wifiintf = aredn.hardware.get_iface_name("wifi")
 local phy = iwinfo.nl80211.phyname(wifiintf)
 local phycount = tonumber(capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp())
-local cursor = uci:cursor()
+
+-- uci cursor
+local cursora = uci:cursor()
+local cursorb = uci:cursor("/etc/config.mesh")
+function cursor_set(a, b, c, d)
+    cursora:set(a, b, c, d)
+    cursorb:set(a, b, c, d)
+    cursora:commit(a)
+    cursorb:commit(a)
+end
+
+function cursor_get(a, b, c)
+    return cursora:get(a, b, c)
+end
 
 -- post_data
 local parms = {}
@@ -179,8 +194,8 @@ if os.getenv("REQUEST_METHOD") == "POST" then
         return v
       end
     )
-    parms = request:formvaluetable("")
-    for _,_ in paris(parms)
+    parms = request:formvalue()
+    for _,_ in pairs(parms)
     do
         has_parms = true
         break
@@ -192,9 +207,13 @@ if parms.button_uploaddata then
 end
 
 if parms.button_default then
+    local node = aredn_info.get_nvram("node")
+    local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
+    local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
     for line in io.lines("/etc/config.mesh/_setup.default")
     do
         if not (line:match("^%s*#") or line:match("^%s*$")) then
+            line = line:gsub("<NODE>", node):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
             local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
             _G[k] = v
         end
@@ -288,7 +307,7 @@ if not parms.reload then
 end
 
 -- sanitize the active settings
-if not wifi_txpower or wifi_txpower > aredn.hardware.wifi_maxpower(wifi_channel) then
+if not wifi_txpower or tonumber(wifi_txpower) > aredn.hardware.wifi_maxpower(wifi_channel) then
     wifi_txpower = aredn.hardware.wifi_maxpower(wifi_channel)
 end
 if not wifi_power or wifi_power < 1 then
@@ -320,17 +339,13 @@ if parms.button_upodatelocation then
     -- process gridsquare
     if parms.gridsquare then
         if parms.gridsquare:match("^[A-Z][A-Z]%d%d[a-z][a-z]$") then
-            cursor:set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
-            cursor:commit("aredn")
-            -- copy to /etc/config.mesh - fix me
+            cursor_set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
             output[#output + 1] = "Gridsquare updated."
         else
             errors[#errors + 1] = "ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)"
         end
     else
-        cursor:set("aredn", "@location[0]", "gridsquare", "")
-        cursor:commit("aredn")
-        -- copy - fix me
+        cursor_set("aredn", "@location[0]", "gridsquare", "")
         output[#output + 1] = "Gridsquare purged."
     end
 
@@ -338,10 +353,8 @@ if parms.button_upodatelocation then
     if parms.latitude and parms.longitude then
         if parms.latitude:match("^[-+]?%d%d?%.%d+$") and parms.longitude:match("^[-+]?%d%d?%d?%.%d+$") then
             if tonumnber(parms.latitude) >= -90 and tonumber(parms.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
-                cursor:set("aredn", "@location[0]", "lat", parms.latitude)
-                cursor:set("aredn", "@location[0]", "lon", parms.longitude)
-                cursor:commit("aredn")
-                -- copy - fix me
+                cursor_set("aredn", "@location[0]", "lat", parms.latitude)
+                cursor_set("aredn", "@location[0]", "lon", parms.longitude)
                 output[#output + 1] = "Lat/lon updated."
             else
                 errors[#errors + 1] = "ERROR: Lat/lon values must be between -90/90 and -180/180, respectively."
@@ -350,18 +363,16 @@ if parms.button_upodatelocation then
             errors[#errors + 1] = "ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154)."
         end
     else
-        cursor:set("aredn", "@location[0]", "lat", "")
-        cursor:set("aredn", "@location[0]", "lon", "")
-        cursor:commit("aredn")
-        -- copy - fix me
+        cursor_set("aredn", "@location[0]", "lat", "")
+        cursor_set("aredn", "@location[0]", "lon", "")
         output[#output + 1] = "Lat/lon purged."
     end
 end
 
 -- retrieve location data
-lat = cursor:get("aredn", "@location[0]", "lat")
-lon = cursor:get("aredn", "@location[0]", "lon")
-gridsquare = cursor:get("aredn", "@location[0]", "gridsquare")
+lat = cursor_get("aredn", "@location[0]", "lat")
+lon = cursor_get("aredn", "@location[0]", "lon")
+gridsquare = cursor_get("aredn", "@location[0]", "gridsquare")
 if not gridsquare then
     gridsquare = ""
 end
@@ -376,10 +387,10 @@ if parms.button_reboot then
     -- fix me
 end
 
-local desc = cursor:get("system", "@system[0]", "description")
-local maptiles = cursor:get("aredn", "@map[0]", "maptiles")
-local leafletcss = cursor:get("aredn", "@map[0]", "leafletcss")
-local leafletjs = cursor:get("aredn", "@map[0]", "leafletjs")
+local desc = cursor_get("system", "@system[0]", "description")
+local maptiles = cursor_get("aredn", "@map[0]", "maptiles")
+local leafletcss = cursor_get("aredn", "@map[0]", "leafletcss")
+local leafletjs = cursor_get("aredn", "@map[0]", "leafletjs")
 
 -- generate page
 
@@ -458,7 +469,7 @@ function onMarkerDrag(e) {
 ]])
 
 if pingOK or (leafletcss:match("%.local%.mesh") and leafletjs:match("%.local%.mesh")) then
-    html.print("window.onload = function (event) { loadCSS('${leafletcss}',function () { loadScript('${leafletjs}', leafletLoad); }); };")
+    html.print("window.onload = function (event) { loadCSS('" .. leafletcss .. "',function () { loadScript('" .. leafletjs  .."', leafletLoad); }); };")
 end
 
 html.print([[
@@ -674,10 +685,10 @@ if wifi_enable then
 
     html.print("<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>")
     html.print("<tr><td><nobr>Tx Power</nobr></td><td><select name=wifi_txpower>")
-    local txpoweroffset = wifi_txpoweroffset()
+    local txpoweroffset = wifi_txpoweroffset(wifiintf)
     for i = aredn.hardware.wifi_maxpower(wifi_channel),1,-1
     do
-        html.print("<option value='" .. i .. "'".. (i == wifi_txpower and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>") 
+        html.print("<option value='" .. i .. "'".. (i == tonumber(wifi_txpower) and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>") 
     end
     html.print("</select>&nbsp;&nbsp;<a href=\"/help.html#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
     html.print("<tr id='dist' class='dist-norm'><td>Distance to<br/>FARTHEST Neighbor<br/><h3>'0' is auto</h3></td>")
