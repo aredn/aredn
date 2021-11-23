@@ -39,6 +39,7 @@ local hardware = {}
 
 local radio_json = nil
 local board_json = nil
+local radio = nil
 
 local function get_radio_json()
     if not radio_json then
@@ -64,8 +65,15 @@ local function get_board_json()
     return board_json
 end
 
+local function get_radio()
+    if not radio then
+        radio = get_radio_json()[get_board_json().model.name]
+    end
+    return radio
+end
+
 function hardware.wifi_maxpower(channel)
-    local radio = get_radio_json()[get_board_json().model.name]
+    local radio = get_radio()
     if radio then
         if radio.chanpower then
             for k, v in pairs(radio.chanpower)
@@ -95,7 +103,7 @@ function hardware.get_link_led()
 end
 
 function hardware.get_rfband()
-    local radio = get_radio_json()[get_board_json().model.name]
+    local radio = get_radio()
     if radio then
         return radio.rfband
     else
@@ -103,8 +111,23 @@ function hardware.get_rfband()
     end
 end
 
+function hardware.get_default_channel()
+    local radio = get_radio()
+    if radio.rfband == "900" then
+        return { channel = 5, bandwidth = 5 }
+    elseif radio.rfband == "2400" then
+        return { channel = -2, bandwidth = 10 }
+    elseif radio.rfband == "3400" then
+        return { channel = 84, bandwidth = 10 }
+    elseif radio.rfband == "5800ubntus" then
+        return { channel = 149, bandwidth = 10 }
+    else
+        return nil
+    end
+end
+
 function hardware.supported()
-    local radio = get_radio_json()[get_board_json().model.name]
+    local radio = get_radio()
     if radio then
         return tonumber(radio.supported)
     else

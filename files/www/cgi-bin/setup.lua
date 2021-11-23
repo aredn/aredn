@@ -658,9 +658,9 @@ html.print("<tr><td><nobr>IP Address</nobr></td><td><input type=text size=15 nam
 
 -- reset wifi channel/bandwidth to default
 if nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset then
-    local defaultwifi = rf_default_channel()
+    local defaultwifi = aredn.hardware.get_default_channel()
     wifi_channel = defaultwifi.channel
-    wifi_chanbw = defaultwifi.chanbw
+    wifi_chanbw = defaultwifi.bandwidth
 end
 
 if wifi_enable then
