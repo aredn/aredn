@@ -386,7 +386,7 @@ function adjustTunnelInterfaceCount()
         maxservers = 10
     end
     local needed_if_count = maxclients + maxservers
-    if tunnel_if_count != needed_if_count then
+    if tunnel_if_count ~= needed_if_count then
         for i = tunnel_if_count,needed_if_count-1
         do
             local tunnum = 50 + i
