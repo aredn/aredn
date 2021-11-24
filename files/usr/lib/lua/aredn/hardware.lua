@@ -102,6 +102,20 @@ function hardware.get_link_led()
     return "/sys/class/leds/" .. get_board_json().led.rssilow.sysfs
 end
 
+function hardware.has_poe()
+    return xpcall(
+        function() return get_board_json().gpioswitch.poe_passthrough.pin or true end,
+        function() return false end
+    )
+end
+
+function hardware.has_usb()
+    return xpcall(
+        function() return get_board_json().gpioswitch.usb_power_switch.pin or true end,
+        function() return false end
+    )
+end
+
 function hardware.get_rfband()
     local radio = get_radio()
     if radio then
