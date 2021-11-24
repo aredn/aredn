@@ -274,6 +274,20 @@ function cursor_set(a, b, c, d)
     cursorb:commit(a)
 end
 
+function cursor_add(a, b, c)
+    cursora:set(a, b, c)
+    cursorb:set(a, b, c)
+    cursora:commit(a)
+    cursorb:commit(a)
+end
+
+function cursor_delete(a, b)
+    cursora:delete(a, b)
+    cursorb:delete(a, b)
+    cursora:commit(a)
+    cursorb:commit(a)
+end
+
 function cursor_get(a, b, c)
     return cursora:get(a, b, c)
 end
@@ -348,12 +362,46 @@ function restrictTunnelLimitToValidRange()
     end
 end
 
-function addTunnelInterface()
-    -- fix me
+function addTunnelInterface(file, tunnum)
+    local section = "tun" .. tunnum
+    cursor_add(file, section, "interface")
+    cursor_set(file, section, "ifname", section)
+    cursor_set(file, section, "proto", "none")
+end
+
+function deleteTunnelInterface(file, tunnum)
+    local section = "tun" .. tunnum
+    cursor_delete(file, section)
 end
 
 function adjustTunnelInterfaceCount()
-    -- fix me
+    local tunnel_if_count = 0
+    cursora:foreach('network_tun', 'interface', function(s) tunnel_if_count = tunnel_if_count + 1 end)
+    local maxclients = cursor_get("aredn", "tunnel", "maxclients")
+    if not maxclients then
+        maxclients = 10
+    end
+    local maxservers = cursor_get("aredn", "tunnel", "maxservers")
+    if not maxservers then
+        maxservers = 10
+    end
+    local needed_if_count = maxclients + maxservers
+    if tunnel_if_count != needed_if_count then
+        for i = tunnel_if_count,needed_if_count-1
+        do
+            local tunnum = 50 + i
+            addTunnelInterface("network_tun", tunnum)
+            addTunnelInterface("network", tunnum)
+        end
+        for i = tunnel_if_count-1,needed_if_count,-1
+        do
+            local tunnum = 50 + i
+            deleteTunnelInterface("network_tun", tunnum)
+            deleteTunnelInterface("network", tunnum)
+        end
+        -- can't clone network because it contains macros; re-edit it instead
+        os.execute("sed -i -e '$r /etc/config.mesh/network_tun' -e '/interface.*tun',$d' /etc/config.mesh/network") 
+    end
 end
 
 -- read_postdata
