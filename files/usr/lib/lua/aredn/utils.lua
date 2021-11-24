@@ -489,6 +489,68 @@ function validate_same_subnet(ip1, ip2, mask)
     end
 end
 
+
+function validate_ip(ip)
+    ip = ip:gsub("%s", "")
+    if ip == "0.0.0.0" or ip == "255.255.255.255" then
+        return false
+    end
+    local a, b, c, d = ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+    if not a then
+        return false
+    end
+    if tonumber(a) > 255 or tonumber(b) > 255 or tonumber(c) > 255 or tonumber(d) > 255 then
+        return false
+    end
+    return true
+end
+
+function validate_netmask(mask)
+    mask = mask:gsub("%s", "")
+    if mask == "0.0.0.0" then
+        return false
+    end
+    local a, b, c, d = mask:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+    if not a then
+        return false
+    end
+    if a == "255" then
+        if b == "255" then
+            if c == "255" then
+                a = d
+            elseif d ~= "0" then
+                return false
+            else
+                a = c
+            end
+        elseif not (c == "0" and d == "0") then
+            return false
+        else
+            a = b
+        end
+    elseif not (b == "0" and c == "0" and d == "0") then
+        return false
+    end
+    if a == "128" or a == "192" or a == "224" or a == "240" or a == "248" or a == "252" or a == "254" or a == "255" then
+        return true
+    else
+        return false
+    end
+end
+
+function validate_ip_netmask(ip, mask)
+    if not (validate_ip(ip) and validate_netmask(mask)) then
+        return false
+    end
+    ip = ip_to_decimal(ip)
+    mask = ip_to_decimal(mask)
+    local notmask = 0xffffffff - mask
+    if nixio.bit.band(ip, notmask) == 0 or nixio.bit.band(ip, notmask) == notmask then
+        return false
+    end
+    return true
+end
+
 --[[
 LuCI - System library
 

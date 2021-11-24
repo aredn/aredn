@@ -60,6 +60,15 @@ function http_header(disable_compression)
    io.flush()
 end
 
+function http_footer()
+  if http_output then
+    http_output:close()
+    http_output = nil
+  else
+    io.flush()
+  end
+end
+
 function json_header()
    print("Content-type: application/json\r")
    print("Cache-Control: no-store\r")
