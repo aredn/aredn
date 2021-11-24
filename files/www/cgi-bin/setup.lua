@@ -44,6 +44,10 @@ require('luci.sys')
 local html = require("aredn.html")
 local aredn_info = require("aredn.info")
 
+local errors = {}
+local output = {}
+local hidden = {}
+
 -- helpers start
 
 local rf_channel_map = {
@@ -131,11 +135,63 @@ function wifi_txpoweroffset(wifiintf)
     return 0
 end
 
--- helper end
+function reboot()
+    local node = aredn_info.get_nvram("node")
+    if node == "" then
+        node = "Node"
+    end
+    local lanip, _, lanmask = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("lan"))
+    local browser = os.getenv("REMOTE_ADDR"):match("::ffff:([%d%.]+)")
+    local fromlan = false
+    local subnet_change = false
+    if lanip then
+        fromlan = validate_same_subnet(browser, lanip, lanmask)
+        if fromlan then
+            lanmask = ip_to_decimal(lanmask)
+            local cfgip = cursor_get("network", "lan", "ipaddr")
+            local cfgmask = ip_to_decimal(cursor_get("network", "lan", "netmask"))
+            if lanmask ~= cfgmask or decimal_to_ip(nixio.bit.band(ip_to_decimal(ip), lanmask)) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
+                subnet_change = true
+            end
+        end
+    end
+    http_header(true) -- no compression
+    if fromlan and subnet_change then
+        html.header(node .. " rebooting", true);
+        html.print("<body><center>")
+        html.print("<h1>" .. node .. " is rebooting</h1><br>")
+        html.print("<h3>The LAN subnet has changed. You will need to acquire a new DHCP lease<br>")
+        html.print("and reset any name service caches you may be using.</h3><br>")
+        html.print("<h3>When the node reboots you get your new DHCP lease and reconnect with<br>")
+        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>")
+        html.print("<a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
+    else
+        html.header(node .. " rebooting", false)
+        html.print("<meta http-equiv='refresh' content='60;url=/cgi-bin/status.lua'>")
+        html.print("</head><body><center>")
+        html.print("<h1>" .. node .. " is rebooting</h1><br>")
+        html.print("<h3>Your browser should return to this node in 60 seconds.</br><br>")
+        html.print("If something goes astray you can try to connect with<br><br>")
+        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>")
+        if node ~= "Node" then
+            html.print("or<br><a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
+        end
+    end
+    html.print("</center></body></html>")
+    http_footer()
+    luci.sys.reboot()
+    os.exit()
+end
 
-local errors = {}
-local output = {}
-local hidden = {}
+function err(str)
+    errors[#errors + 1] = str
+end
+
+function out(str)
+    output[#output + 1] = str
+end
+
+-- helper end
 
 -- timezones
 local tz_db_names = {}
@@ -243,9 +299,9 @@ else
             return s
         end
         wifi2_key = h2s(wifi2_key)
-        -- wifi2_ssid = h2s(wifi2_ssid) fix me
+        wifi2_ssid = h2s(wifi2_ssid)
         wifi3_key = h2s(wifi3_key)
-        -- wifi3_ssid = h2s(wifi3_ssid)
+        wifi3_ssid = h2s(wifi3_ssid)
     end
 end
 
@@ -340,13 +396,13 @@ if parms.button_upodatelocation then
     if parms.gridsquare then
         if parms.gridsquare:match("^[A-Z][A-Z]%d%d[a-z][a-z]$") then
             cursor_set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
-            output[#output + 1] = "Gridsquare updated."
+            out("Gridsquare updated.")
         else
-            errors[#errors + 1] = "ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)"
+            err("ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)")
         end
     else
         cursor_set("aredn", "@location[0]", "gridsquare", "")
-        output[#output + 1] = "Gridsquare purged."
+        out("Gridsquare purged.")
     end
 
     -- process lat/lng
@@ -355,17 +411,17 @@ if parms.button_upodatelocation then
             if tonumnber(parms.latitude) >= -90 and tonumber(parms.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
                 cursor_set("aredn", "@location[0]", "lat", parms.latitude)
                 cursor_set("aredn", "@location[0]", "lon", parms.longitude)
-                output[#output + 1] = "Lat/lon updated."
+                out("Lat/lon updated.")
             else
-                errors[#errors + 1] = "ERROR: Lat/lon values must be between -90/90 and -180/180, respectively."
+                err("ERROR: Lat/lon values must be between -90/90 and -180/180, respectively.")
             end
         else
-            errors[#errors + 1] = "ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154)."
+            err("ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154).")
         end
     else
         cursor_set("aredn", "@location[0]", "lat", "")
         cursor_set("aredn", "@location[0]", "lon", "")
-        output[#output + 1] = "Lat/lon purged."
+        out("Lat/lon purged.")
     end
 end
 
@@ -380,51 +436,230 @@ end
 -- validate and save configuration
 if parms.button_save then
     -- to do fix me
+    for _,zone in ipairs(tz_db_names)
+    do
+        if zone.tz == time_zone_name then
+            parms.time_zone = zone.name
+            break
+        end
+    end
+
+    if not validate_netmask(wifi_mask) then
+        err("invalid Mesh netmask")
+    elseif not validate_ip_netmask(wifi_ip, wifi_mask) then
+        err("invalid Mesh IP address")
+    end
+
+    if #wifi_ssid > 32 then
+        err("invalid Mesh RF SSID")
+    end
+
+    if not is_channel_valid(wifi_channel) then -- fix me
+        err("invalid Mesh RF channel")
+    end
+    if not is_wifi_chanbw_valid(wifi_chanbw, wifi_ssid) then
+        err("Invalid Mesh RF channel width")
+        wifi_chanbw = 20
+    end
+
+    local wifi_country_validated = false
+    local countries = { "00","HX","AD","AE","AL","AM","AN","AR","AT","AU","AW","AZ","BA","BB","BD","BE","BG","BH","BL","BN","BO","BR","BY","BZ","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GE","GB","GD","GR","GL","GT","GU","HN","HK","HR","HT","HU","ID","IE","IL","IN","IS","IR","IT","JM","JP","JO","KE","KH","KP","KR","KW","KZ","LB","LI","LK","LT","LU","LV","MC","MA","MO","MK","MT","MY","MX","NL","NO","NP","NZ","OM","PA","PE","PG","PH","PK","PL","PT","PR","QA","RO","RS","RU","RW","SA","SE","SG","SI","SK","SV","SY","TW","TH","TT","TN","TR","UA","US","UY","UZ","VE","VN","YE","ZA","ZW" }
+    for _,country in ipairs(countries)
+    do
+        if country == wifi_country then
+            wifi_country_validated = true
+            break
+        end
+    end
+    if not wifi_country_validated then
+        wifi_country = "00"
+        err("Invalid country")
+    end
+
+    if lan_proto == "static" then
+        if validate_netmask(lan_mask) then
+            err("invalid LAN netmask")
+        elseif not lan_mask:match("^255%.255%.255%.") then
+            err("LAN netmask must begin with 255.255.255")
+        elseif not validate_ip_netmask(lan_ip, lan_mask) then
+            err("invalid LAN IP address")
+        else
+            if lan_dhcp ~= "" then
+                local start_addr = change_ip_address(lan_ip, dhcp_start)
+                local end_addr = change_ip_address(lan_ip, dhcp_end)
+
+                if not (validate_ip_netmask(start_addr, lan_mask) and validate_same_subnet(start_addr, lan_ip, lan_mask)) then
+                    err("invalid DHCP start address")
+                end
+                if not (validate_ip_netmask(end_addr, lan_mask) and validate_same_subnet(end_addr, lan_ip, lan_mask)) then
+                    err("invalid DHCP end address")
+                end
+                if dhcp_start > dhcp_end then
+                    err("invalid DHCP start/end addresses")
+                end
+            end
+            if lan_gw ~= "" and not (validate_ip_netmask(lan_gw, lan_mask) and validate_same_subnet(lan_ip, lan_gw, lan_mask)) then
+                err("invalid LAN gateway")
+            end
+        end
+    end
+
+    if wan_proto == "static" then
+        if not validate_netmask(wan_mask) then
+            err("invalid WAN netmask")
+        elseif validate_ip_netmask(wan_ip, wan_mask) then
+            err("invalid WAN IP address")
+        elseif not (validate_ip_netmask(wan_gw, wan_mask) and validate_same_subnet(wan_ip, wan_gw, wan_mask)) then
+            err("invalid WAN gateway")
+        end
+    end
+
+    if not validate_ip(wan_dns1) then
+        err("invalid WAN DNS 1")
+    end
+    if wan_dns2 ~= '' and not validate_ip(wan_dns2) then
+        err("invaliud WAN DNS 2")
+    end
+
+    if passwd1 ~= "" or passwd2 ~= "" then
+        if passwd1 ~= passwd2 then
+            err("passwords do not match")
+        end
+        if passwd1:match("#") then
+            err("passwords cannot contain '#'")
+        end
+        if passwd1 == "hsmm" then
+            err("password must be changed")
+        end
+    elseif nixio.fs.stat("/etc/config/unconfigured") then
+        err("password must be changed during initial configuration")
+    end
+
+    if nodetac:match("/") then
+        node, tactical = nodetac:match("^%s*([%w-]+)%s*/%s*([%w-])%s*$")
+        if tactical == "" then
+            err("invalid node/tactical name")
+        end
+    else
+        node = nodetac
+        tactical = ""
+        if node == "" then
+            err("you must set the node name")
+        end 
+    end
+    if node ~= "" and node:match("[^%w-]") or node.match("_") then
+        err("invalid node name")
+    end
+    if tactical:match("[^%w-]") or tactical.match("_") then
+        err("invalid tactical name")
+    end
+
+    if not (ntp_server:match('^[%d%a_.]+$') ~= nil and ntp_server:sub(0, 1) ~= '.' and ntp_server:sub(-1) ~= '.' and ntp_server:find('%.%.') == nil) then
+        err("invalid ntp server")
+    end
+
+    if wifi2_enable == "1" then
+        if #wifi2_ssid > 32 then
+            err("LAN Access Point SSID musr be 32 or less characters")
+        end
+        if #wifi2_key < 8 or #wifi2_key > 64 then
+            err("LAN Access Point Password must be at least 8 characters, up to 64")
+        end
+        if wifi2_key:match("'") or wifi2_ssid:match("'") then
+            err("The LAN Access Point password and ssid may not contain a single quote character")
+        end
+        if wifi2_channel < 30 and wifi2_hwmode == "11a" then
+            err("Changed to 5GHz Mesh LAN AP, please review channel selection")
+        end
+        if wifi2_channel > 30 and wifi2_hwmode == "11g" then
+            err("Changed to 2GHz Mesh LAN AP, please review channel slection")
+        end
+    end
+    if wifi3_enable == "1" then
+        if #wifi3_key < 8 or #wifi3_key > 64 then
+            err("WAN Wifi Client Password must be between 8 and 64 characters")
+        end
+        if wifi3_key:match("'") or wifi3_ssid:match("'") then
+            err("The WAN Wifi Client password and ssid may not contain a single quote character")
+        end
+    end
+
+    if phycount > 1 and wifi_enable == "1" and wifi2_channel < 36 and wifi2_enable == "1" then
+        err("Mesh RF and LAN Access Point can not both use the same wireless card, review LAN AP settings")
+    end
+    if phycount > 1 and wifi_enable == "0" and wifi2_hwmode == wifi3_hwmode then
+        err("Some settings auto updated to avoid conflicts, please review and save one more time")
+    end
+    if wifi_enable == "1" and wifi2_enable == "1" and wifi3_enable == "1" then
+        err("Can not enable Mesh RF, LAN AP, and WAN Wifi Client with only 2 wireless cards, WAN Wifi Client turned off")
+        wifi2_enable = "0"
+    end
+    if phycount == 1 and wifi_enable == "1" and (wifi2_enable == "1" or wifi3_enable == "1") then
+        err("Can not enable Mesh RF along with LAN AP or WAN Wifi Client. Only Mesh RF enabled now, please review settings.")
+        wifi2_enable = "0"
+        wifi3_enable = "0"
+    end
+
+    if #errors == 0 then
+        parms.node = node
+        parms.tactical = tactical
+        if nixio.fs.stat("/etc/config/unconfigured") then
+            os.remove("/etc/config/unconfigured")
+        end
+        local function s2h(str)
+            local h = ""
+            for i = 1,#str
+            do
+                h = h .. string.format("%02x", string.byte(str, i))
+            end
+            return h
+        end
+        parms.wifi2_key = s2h(wifi2_key)
+        parms.wifi2_ssid = s2h(wifi2_ssid)
+        parms.wifi3_key = s2h(wifi3_key)
+        parms.wifi3_ssid = s2h(wifi3_ssid)
+
+        -- save_setup
+        local f = io.open("/etc/config.mesh/_setup", "w")
+        if f then
+            for k, v in parms
+            do
+                if k:match("^aprs_") or k:match("^dhcp_") or k:match("^dmz_") or k:match("^lan_") or k:match("^olsrd_") or k:match("^wan_") or k:match("^wifi_") or k:match("^wifi2_") or k:match("^wifi3_") or k:match("^dtdlink_") or k:match("^ntp_") or k:match("^time_") or k:match("^description_") then
+                    f:write(k .. " = " .. v .. "\n")
+                end
+            end
+            f:close()
+        end
+        aredn_info.set_nvram("node", parms.node);
+        aredn_info.set_nvram("tactical", parms.tactical)
+        aredn_info.set_nvram("config", parms.config)
+        
+        if not nixio.fs.stat("/tmp/web/save") then
+            nixio.fs.mkdir("/tmp/web/save")
+        end
+        os.execute("/usr/local/bin/node-setup.lua -a " .. parms.config .. " > /tmp/web/save/node-setup.out")
+        if nixio.fs.stat("/tmp/web/save/node-setup.out", "size") > 0 then
+            err(read_all("/tmp/web/save/node-setup.out"))
+        else
+            remove_all("/tmp/web/save")
+            -- set password
+            if passwd1 ~= "" then
+                local pw = passwd1.gsub("'", "\\'")
+                local f = io.popen("{ echo '" .. pw .. "'; sleep 1; echo '" .. pw .. "'; } | passwd")
+                f:read("*a")
+                f:close()
+            end 
+            io.open("/tmp/reboot-required", "w"):close()
+        end
+        if nixio.fs.stat("/tmp/unconfigured") and #errors == 0 then
+            reboot()
+        end
+    end
 end
 
 remove_all("/tmp/web/save")
 if parms.button_reboot then
-    local node = aredn_info.get_nvram("node")
-    if node == "" then
-        node = "Node"
-    end
-    local lanip, _, lanmask = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("lan"))
-    local browser = os.getenv("REMOTE_ADDR"):match("::ffff:([%d%.]+)")
-    local fromlan = validate_same_subnet(browser, lanip, lanmask)
-    local subnet_change = false
-    if fromlan then
-        lanmask = ip_to_decimal(lanmask)
-        local cfgip = cursor_get("network", "lan", "ipaddr")
-        local cfgmask = ip_to_decimal(cursor_get("network", "lan", "netmask"))
-        if lanmask ~= cfgmask or decimal_to_ip(nixio.bit.band(ip_to_decimal(ip), lanmask)) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
-            subnet_change = true
-        end
-    end
-    http_header()
-    if not (fromlan and subnet_change) then
-        html.header(node .. " rebooting", true);
-        html.print("<body><center>")
-        html.print("<h1>" .. node .. " is rebooting</h1><br>")
-        html.print("<h3>The LAN subnet has changed. You will need to acquire a new DHCP lease<br>")
-        html.print("and reset any name service caches you may be using.</h3><br>")
-        html.print("<h3>When the node reboots you get your new DHCP lease and reconnect with<br>")
-        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>")
-        html.print("<a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
-    else
-        html.header(node .. " rebooting", false)
-        html.print("<meta http-equiv='refresh' content='60;url=/cgi-bin/status.lua'>")
-        html.print("</head><body><center>")
-        html.print("<h1>" .. node .. " is rebooting</h1><br>")
-        html.print("<h3>Your browser should return to this node in 60 seconds.</br><br>")
-        html.print("If something goes astray you can try to connect with<br><br>")
-        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>")
-        if node ~= "Node" then
-            html.print("or<br><a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
-        end
-    end
-    html.print("</center></body></html>")
-    luci.sys.reboot()
-    os.exit()
+    reboot()
 end
 
 local desc = cursor_get("system", "@system[0]", "description")
@@ -640,7 +875,7 @@ if #errors > 0 then
     end
     html.print("</ul></td></tr></table>")
     html.print("</td></tr>")
-elseif parms.save_button then
+elseif parms.button_save then
     html.print("<tr><td align=center>")
     html.print("<b>Configuration saved.</b><br><br>")
     html.print("</td></tr>")
@@ -1005,3 +1240,4 @@ end
 html.print("</form></center>")
 html.footer()
 html.print("</body></html>")
+http_footer()
