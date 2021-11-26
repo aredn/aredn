@@ -38,13 +38,45 @@ require("nixio")
 require("aredn.hardware")
 require("aredn.http")
 require("aredn.utils")
-require("aredn.html")
+aredn.html = require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
 aredn.olsr = require("aredn.olsr")
 require("iwinfo")
 
 local html = aredn.html
+
+local urlprefix
+function defaultPackageRepos(repo)
+    if not urlprefix then
+        urlprefix = "http://downloads.arednmesh.org"
+        local release = "unknown"
+        local target = "unknown"
+        for line in io.lines("/etc/openwrt_release")
+        do
+            local m = line:match("DISTRIB_RELEASE='(.*)'")
+            if m then
+                release = m
+            end
+            m = lines:match("DISTRIB_TARGET='(.*)'")
+            if m then
+                target = m
+            end
+        end
+        if release:match("%.") then
+            local a, b = release:match("^(%d+)%.(%d+)%.")
+            urlprefix = urlprefix .. "/releases/" .. a .. "/" .. b .. "/" .. release
+        else
+            -- nightly
+            urlprefix = urlprefix .. "/snapshots/trunk"
+        end
+    end
+    if repo:match("aredn_core") then
+        return urlprefix .. "/targets/" .. target .. "/packages"
+    else
+        return urlprefix .. "/packages/mips_24kc/" .. repo
+    end
+end
 
 local settings = {
     {
@@ -210,10 +242,6 @@ local msgs = {}
 --
 function msg(m)
     msgs[#msgs + 1] = m
-end
-
-function defaultPackageRepos(v)
-    return v -- fix me
 end
 
 function reboot()
@@ -602,9 +630,9 @@ do
             html.print("<td align='center'><input type='submit' name='button_save_" .. i .. "' value='Execute' /><br><br>")
         end
         if setting.type == "string" then
-            html.print("<input value='Set to Default' type='button' onclick=\"document.getElementById('field_" .. i .. "').value='" .. setting.default .. "'}';\">")
+            html.print("<input value='Set to Default' type='button' onclick=\"document.getElementById('field_" .. i .. "').value='" .. setting.default .. "';\">")
         elseif setting.type == "boolean" then
-            html.print("<input value='Set to Default' type='button' onclick=\"return toggleDefault('field_" .. i .. "', '" .. setting.default .. "'}' );\">")
+            html.print("<input value='Set to Default' type='button' onclick=\"return toggleDefault('field_" .. i .. "', '" .. setting.default .. "' );\">")
         end
         html.print("</td></tr>")
     end
