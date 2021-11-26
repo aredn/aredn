@@ -155,7 +155,7 @@ function reboot()
             end
         end
     end
-    http_header(true) -- no compression
+    http_header()
     if fromlan and subnet_change then
         html.header(node .. " rebooting", true);
         html.print("<body><center>")
@@ -427,7 +427,13 @@ end
 
 -- retrieve location data
 lat = cursor_get("aredn", "@location[0]", "lat")
+if not lat then
+    lat = ""
+end
 lon = cursor_get("aredn", "@location[0]", "lon")
+if not lon then
+    lon = ""
+end
 gridsquare = cursor_get("aredn", "@location[0]", "gridsquare")
 if not gridsquare then
     gridsquare = ""
@@ -435,7 +441,6 @@ end
 
 -- validate and save configuration
 if parms.button_save then
-    -- to do fix me
     for _,zone in ipairs(tz_db_names)
     do
         if zone.tz == time_zone_name then
@@ -663,6 +668,9 @@ if parms.button_reboot then
 end
 
 local desc = cursor_get("system", "@system[0]", "description")
+if not desc then
+    desc = ""
+end
 local maptiles = cursor_get("aredn", "@map[0]", "maptiles")
 local leafletcss = cursor_get("aredn", "@map[0]", "leafletcss")
 local leafletjs = cursor_get("aredn", "@map[0]", "leafletjs")
@@ -841,7 +849,7 @@ html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP,
 html.print("<td align=center width=15%><a href='vpn'>Tunnel<br>Server</a></td>")
 html.print("<td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>")
 html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
-html.print("<td align=center width=15%><a href='advancedconfig'>Advanced<br>Configuration</a></td>")
+html.print("<td align=center width=15%><a href='advancedconfig.lua'>Advanced<br>Configuration</a></td>")
 html.print("</tr></table><hr>")
 html.print("</td></tr>")
 -- control buttons

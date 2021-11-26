@@ -38,17 +38,13 @@ require("nixio")
 require("aredn.hardware")
 require("aredn.http")
 require("aredn.utils")
-aredn.html = require("aredn.html")
+require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
 aredn.olsr = require("aredn.olsr")
 require("iwinfo")
 
 local html = aredn.html
-
-function defaultPackageRepos(v)
-    return v
-end
 
 local settings = {
     {
@@ -214,6 +210,10 @@ local msgs = {}
 --
 function msg(m)
     msgs[#msgs + 1] = m
+end
+
+function defaultPackageRepos(v)
+    return v -- fix me
 end
 
 function reboot()
@@ -551,7 +551,7 @@ html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP,
 html.print("<td align=center width=15%><a href='vpn'>Tunnel<br>Server</a></td>")
 html.print("<td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>")
 html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
-html.print("<td align=center width=15% class=navbar_select><a href='advancedconfig'>Advanced<br>Configuration</a></td>")
+html.print("<td align=center width=15% class=navbar_select><a href='advancedconfig.lua'>Advanced<br>Configuration</a></td>")
 html.print("</tr></table><hr>")
 html.print("</td></tr>")
 

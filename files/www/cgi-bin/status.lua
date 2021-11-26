@@ -174,7 +174,7 @@ local node_desc = cursor:get("system", "@system[0]", "description")
 local lat_lon = "<strong>Location Not Available</strong>"
 local lat = cursor:get("aredn", "@location[0]", "lat")
 local lon = cursor:get("aredn", "@location[0]", "lon")
-if lat ~= "" and lon ~= "" then
+if lat and lon then
     lat_lon = string.format("<center><strong>Location: </strong> %s %s</center>", lat, lon)
 end
 
@@ -226,7 +226,7 @@ if tactical ~= "" then
 end
 html.print("</big></h1>")
 html.print("<center>" .. lat_lon .. "</center>")
-if node_desc ~= "" then
+if node_desc then
     html.print("<table id='node_description_display'><tr><td>" .. node_desc .. "</td></tr></table>")
 end
 html.print("<hr>")
