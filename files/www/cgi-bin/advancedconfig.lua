@@ -47,18 +47,18 @@ require("iwinfo")
 local html = aredn.html
 
 local urlprefix
+local target = "unknown"
 function defaultPackageRepos(repo)
     if not urlprefix then
         urlprefix = "http://downloads.arednmesh.org"
         local release = "unknown"
-        local target = "unknown"
         for line in io.lines("/etc/openwrt_release")
         do
             local m = line:match("DISTRIB_RELEASE='(.*)'")
             if m then
                 release = m
             end
-            m = lines:match("DISTRIB_TARGET='(.*)'")
+            m = line:match("DISTRIB_TARGET='(.*)'")
             if m then
                 target = m
             end
