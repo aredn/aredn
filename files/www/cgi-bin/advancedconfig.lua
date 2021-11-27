@@ -41,8 +41,6 @@ require("aredn.utils")
 aredn.html = require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
-aredn.olsr = require("aredn.olsr")
-require("iwinfo")
 
 local html = aredn.html
 
@@ -579,7 +577,7 @@ html.print("<td align=center width=15%><a href='status.lua'>Node Status</a></td>
 html.print("<td align=center width=15%><a href='setup.lua'>Basic Setup</a></td>")
 html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
 html.print("<td align=center width=15%><a href='vpn.lua'>Tunnel<br>Server</a></td>")
-html.print("<td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>")
+html.print("<td align=center width=15%><a href='vpnc.lua'>Tunnel<br>Client</a></td>")
 html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
 html.print("<td align=center width=15% class=navbar_select><a href='advancedconfig.lua'>Advanced<br>Configuration</a></td>")
 html.print("</tr></table><hr>")

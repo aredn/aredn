@@ -56,6 +56,8 @@ local VPNVER = "1.1"
 -- post_data
 local parms = {}
 if os.getenv("REQUEST_METHOD") == "POST" then
+    require('luci.http')
+    require('luci.sys')
     local request = luci.http.Request(luci.sys.getenv(),
       function()
         local v = io.read(1024)
@@ -87,7 +89,7 @@ function navbar()
     html.print("<td align=center width=15%><a href='setup.lua'>Basic Setup</a></td>")
     html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
     html.print("<td align=center width=15% class=navbar_select><a href='vpn.lua'>Tunnel<br>Server</a></td>")
-    html.print("<td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>")
+    html.print("<td align=center width=15%><a href='vpnc.lua'>Tunnel<br>Client</a></td>")
     html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
     html.print("<td align=center width=15%><a href='advancedconfig.lua'>Advanced<br>Configuration</a></td>")
     html.print("</tr></table><hr>")
@@ -166,7 +168,7 @@ if parms.button_reboot then
 end
 
 if parms.button_install then
-    --
+    -- fix me
 end
 
 if config == "" or nixio.fs.stat("/tmp/reboot-required") then
@@ -179,7 +181,7 @@ if config == "" or nixio.fs.stat("/tmp/reboot-required") then
         html.print("<b>This page is not available until the configuration has been set.</b>")
     else
         html.print("<b>The configuration has been changed.<br>This page will not be available until the node is rebooted.</b>")
-        html.print("<form method='post' action='/cgi-bin/vpn' enctype='multipart/form-data'>")
+        html.print("<form method='post' action='/cgi-bin/vpn.lua' enctype='multipart/form-data'>")
         html.print("<input type=submit name=button_reboot value='Click to REBOOT' />")
         html.print("</form>")
     end
@@ -206,7 +208,7 @@ if not nixio.fs.stat("/usr/sbin/vtund") then
     end
     html.print("<tr><td align=center><br><b>")
     html.print("Tunnel software needs to be installed.<br/>")
-    html.print("<form method='post' action='/cgi-bin/$navpage' enctype='multipart/form-data'>")
+    html.print("<form method='post' action='/cgi-bin/vpn.lua' enctype='multipart/form-data'>")
     html.print("<input type=submit name=button_install value='Click to install' class='btn_tun_install' />")
     html.print("</form>")
     html.print("</b></td></tr>")
@@ -368,6 +370,8 @@ end
 if parms.button_save and #cli_err == 0 then
     cursor:commit("vtun")
     write_all("/etc/config.mesh/vtun", read_all("/etc/config/vtun"))
+    os.execute("/etc/init.d/olsrd restart")
+    os.execute("/etc/init.d/vtundsrv restart")
 end
 
 local active_tun = get_active_tun()
