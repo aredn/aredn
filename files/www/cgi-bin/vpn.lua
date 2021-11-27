@@ -349,6 +349,8 @@ do
     local clientip = decimal_to_ip(base + 1)
     local serverip = decimal_to_ip(base + 2)
 
+    cursor:set("vtun", client_x)
+
     cursor:set("vtun", client_x, "netip", net)
     cursor:set("vtun", client_x, "enabled", parms[clientx_ .. "enabled"])
     cursor:set("vtun", client_x, "name", parms[clientx_ .. "name"])

@@ -203,7 +203,7 @@ do
         cursor:delete("vtun", "server_" .. i)
         for x=i+1,9
         do
-            -- cursor:rename() -- fix me
+            cursor:rename("vtun", "server_" .. x, "server_" .. (x - 1))
         end
     end
 end
@@ -307,6 +307,8 @@ do
     local clientip = decimal_to_ip(base + 2)
     local serverip = decimal_to_ip(base + 1)
 
+    cursor:add("vtun", conn_x)
+
     cursor:set("vtun", conn_x, "clientip", clientip)
     cursor:set("vtun", conn_x, "serverip", serverip)
     cursor:set("vtun", conn_x, "node", vtun_node_name)
@@ -321,8 +323,8 @@ do
         enabled_count = enabled_count + 1
     end
 end
-if enabled_count > 100 then
-    err("Number of servers enabled (" .. enabled_count .. " exceeds maxservers (100); only the first 100 will activate.")
+if enabled_count > 10 then
+    err("Number of servers enabled (" .. enabled_count .. " exceeds maxservers (10); only the first 10 will activate.")
 end
 
 -- save the connections the uci vtun file
@@ -392,7 +394,7 @@ if config == "mesh" then
     do
         list[#list+1] = i
     end
-    if parms.conn_num < 100 then
+    if parms.conn_num < 10 then
         list[#list+1] = "_add"
     end
 
