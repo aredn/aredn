@@ -156,7 +156,7 @@ local lowroutes = cursor:get("aredn", "@meshstatus[0]", "lowroutes")
 if not lowroutes then
     lowroutes = 1000
 else
-    lowroute = tonumber(lowroutes)
+    lowroutes = tonumber(lowroutes)
 end
 
 
