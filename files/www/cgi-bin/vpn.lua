@@ -38,6 +38,8 @@ require("nixio")
 require("aredn.http")
 require("aredn.utils")
 require("aredn.html")
+require("aredn.hardware")
+aredn.info = require("aredn.info")
 require("uci")
 
 local html = aredn.html
@@ -48,6 +50,8 @@ local node = aredn.info.get_nvram("node")
 if node == "" then
     node = "NOCALL"
 end
+local config = aredn.info.get_nvram("config");
+local VPNVER = "1.1"
 
 -- post_data
 local parms = {}
@@ -77,12 +81,12 @@ function hide(inp)
 end
 
 function navbar()
-    html.print("<tr><tr>")
+    html.print("<tr><td>")
     html.print("<hr><table cellpadding=5 border=0 width=100%><tr>")
     html.print("<td align=center width=15%><a href='status.lua'>Node Status</a></td>")
     html.print("<td align=center width=15%><a href='setup.lua'>Basic Setup</a></td>")
     html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
-    html.print("<td align=center width=15% class=navbar_select><a href='vpn'>Tunnel<br>Server</a></td>")
+    html.print("<td align=center width=15% class=navbar_select><a href='vpn.lua'>Tunnel<br>Server</a></td>")
     html.print("<td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>")
     html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
     html.print("<td align=center width=15%><a href='advancedconfig.lua'>Advanced<br>Configuration</a></td>")
@@ -115,6 +119,24 @@ function is_tunnel_active(ip, tunnels)
     return false
 end
 
+function get_server_network_address()
+    local server_net = cursor:get("vtun", "@network[0]", "start")
+    if not server_net then
+        local mac = aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan"))
+        local a, b = mac:match("^..:..:..:..:(..):(..)$")
+        server_net = "172.31." .. tonumber(b, 16) .. "." .. ((tonumber(a, 16) * 4) % 256)
+        cursor:set("vtun", "@network[0]", "start", server_net)
+        cursor:commit("vtun")
+
+    end
+    local a, b, c, d = server_net:match("^(%d+).(%d+).(%d+).(%d+)$")
+    return { a, b, c, d }
+end
+
+function get_server_dns()
+    return cursor:get("vtun", "@network[0]", "dns")
+end
+
 -- helper end
 
 -- load client info from uci
@@ -128,14 +150,14 @@ function get_client_info()
             do
                 local key = "client" .. c .. "_" .. var
                 parms[key] = myclient[var]
-                if not parms[key] or parms[key] == "" then
-                    parms[key] = "0"
+                if not parms[key] then
+                    parms[key] = ""
                 end
             end
             c = c + 1
         end
     end
-    parm.client_num = c
+    parms.client_num = c
 end
 
 if parms.button_reboot then
@@ -220,7 +242,7 @@ end
 local list = {}
 for i = 0,parms.client_num-1
 do
-    list[i] = i
+    list[#list + 1] = i
 end
 list[#list + 1] = "_add"
 local client_num = 0
@@ -252,11 +274,11 @@ do
             err(val .. " this client must be added or cleared out before saving changes")
             -- continue
         else
-            if passwd:match("[^a-zA-Z0-9@]") then
-                err("The password cannot contain non-alphanumeric characters (" .. #client_num .. ")")
+            if passwd:match("%W") then
+                err("The password cannot contain non-alphanumeric characters (#" .. client_num .. ")")
             end
-            if passwd:match("%D") then
-                err("The password must contain at least one alphabetic character (" .. #client_num .. ")")
+            if not passwd:match("%a") then
+                err("The password must contain at least one alphabetic character (#" .. client_num .. ")")
             end
             if name == "" then
                 err("A client name is required")
@@ -265,7 +287,7 @@ do
                 err("A client password is required")
             end
 
-            if val == "_add" and #cli_err > 0 then
+            if val == "_add" or #cli_err > 0 then
                 -- continue
             else
                 parms["client" .. client_num .. "_enabled"] = enabled
@@ -303,7 +325,7 @@ end
 if not tonumber(parms.server_net2) or tonumber(parms.server_net2) %4 ~= 0 then
     err("The last octet of the network MUST be a multiple of 4 (ie. 0,4,8,12,16,...)")
 end
-if not (dns:match('^[%d%a_.]+$') ~= nil and dns:sub(0, 1) ~= '.' and dns:sub(-1) ~= '.' and dns:find('%.%.') == nil) then
+if not validate_fqdn(dns) then
     err("Not a valid DNS name")
 end
 if #cli_err == 0 then
@@ -366,7 +388,7 @@ html.print("</td></tr>")
 
 -- control buttons
 html.print("<tr><td align=center>")
-html.print("<a href='/help.html#vpn' target='_blank'>Help")
+html.print("<a href='/help.html#vpn' target='_blank'>Help</a>")
 html.print("&nbsp;&nbsp;&nbsp;")
 html.print("<input type=submit name=button_save value='Save Changes' title='Save and use these settings now (takes about 20 seconds)'>&nbsp;")
 html.print("<input type=submit name=button_reset value='Reset Values' title='Revert to the last saved settings'>&nbsp;")
@@ -420,10 +442,10 @@ if config == "mesh" then
     local list = {}
     for i = 0,client_num-1
     do
-        list[i+1] = i
+        list[#list+1] = i
     end
     if client_num < 100 then
-        list[client_num] = "_add"
+        list[#list+1] = "_add"
     end
 
     local keys = { "enabled", "name", "passwd", "contact" }
@@ -447,7 +469,7 @@ if config == "mesh" then
         if val ~= "_add" then
             html.print(" onChange='form.submit()'")
         end
-        if enabled then
+        if enabled == "1" then
             html.print(" checked='checked'")
         end
         html.print(" title='enable this client'></td>")
@@ -475,7 +497,7 @@ if config == "mesh" then
         local lastnet = netw[4] + net * 4
         local fullnet = netw[1] .. "." .. netw[2] .. "." .. netw[3] .. "." .. lastnet
         html.print("<td rowspan='2' class='tun_client_center_item'>&nbsp;" .. fullnet)
-        html.print("<input type=hidden name=client${val}_netip value='" .. fullnet .. "'/></td>")
+        html.print("<input type=hidden name=client" .. val .. "_netip value='" .. fullnet .. "'/></td>")
         html.print("<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;")
         if val ~= "_add" and is_tunnel_active(val, active_tun) then
             html.print("<img class='tun_client_active_img' src='/connected.png' title='Connected' />")
@@ -509,7 +531,7 @@ if config == "mesh" then
         cnum = cnum + 1
     end
 
-    htnl.print("</table>")
+    html.print("</table>")
     -- 
     html.print("</td></tr><tr><td><hr></td></tr>")
 end

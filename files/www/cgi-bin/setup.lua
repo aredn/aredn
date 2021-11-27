@@ -559,7 +559,7 @@ if parms.button_save then
         err("invalid tactical name")
     end
 
-    if not (ntp_server:match('^[%d%a_.]+$') ~= nil and ntp_server:sub(0, 1) ~= '.' and ntp_server:sub(-1) ~= '.' and ntp_server:find('%.%.') == nil) then
+    if not validate_fqdn(ntp_server) then
         err("invalid ntp server")
     end
 
@@ -846,7 +846,7 @@ html.print("<hr><table cellpadding=5 border=0 width=100%><tr>")
 html.print("<td align=center width=15%><a href='status.lua'>Node Status</a></td>")
 html.print("<td align=center width=15% class=navbar_select><a href='setup.lua'>Basic Setup</a></td>")
 html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
-html.print("<td align=center width=15%><a href='vpn'>Tunnel<br>Server</a></td>")
+html.print("<td align=center width=15%><a href='vpn.lua'>Tunnel<br>Server</a></td>")
 html.print("<td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>")
 html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
 html.print("<td align=center width=15%><a href='advancedconfig.lua'>Advanced<br>Configuration</a></td>")
