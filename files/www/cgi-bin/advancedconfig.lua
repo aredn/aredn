@@ -435,6 +435,8 @@ end
 -- read_postdata
 local parms = {}
 if os.getenv("REQUEST_METHOD") == "POST" then
+    require('luci.http')
+    require('luci.sys')
     local request = luci.http.Request(luci.sys.getenv(),
       function()
         local v = io.read(1024)
@@ -473,7 +475,7 @@ do
         end
         local a, b, c = setting.key:match("(.+)%.(.+)%.(.*)")
         cursor_set(a, b, c, newval)
-        msg("Changed key")
+        msg("Changed " .. key)
         if setting.postcallback then
             loadstring(setting.postcallback)()
         end
@@ -569,7 +571,7 @@ function toggleDefault(fname, defval) {
 
 html.print("<body><center>")
 html.alert_banner();
-html.print("<div style=\"padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;\"><strong>WARNING:</strong> Changing advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></div><form method=post action=advancedconfig enctype='multipart/form-data'><table width=790><tr><td>")
+html.print("<div style=\"padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;\"><strong>WARNING:</strong> Changing advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></div><form method=post action=advancedconfig.lua enctype='multipart/form-data'><table width=790><tr><td>")
 
 -- navbar
 html.print("<hr><table cellpadding=5 border=0 width=100%><tr>")
