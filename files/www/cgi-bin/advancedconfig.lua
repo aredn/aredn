@@ -245,7 +245,7 @@ function msg(m)
 end
 
 function reboot()
-    local node = aredn_info.get_nvram("node")
+    local node = aredn.info.get_nvram("node")
     if node == "" then
         node = "Node"
     end
