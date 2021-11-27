@@ -264,7 +264,7 @@ function reboot()
             end
         end
     end
-    http_header(true) -- no compression
+    http_header()
     if fromlan and subnet_change then
         html.header(node .. " rebooting", true);
         html.print("<body><center>")
