@@ -76,7 +76,7 @@ function run_snrlog()
 
     -- get radio noise floor
     local nf = iwinfo.nl80211.noise(wifiiface)
-    if nf < -101 or nf > -50 then
+    if not nf or nf < -101 or nf > -50 then
         nf = defnoise
     end
 

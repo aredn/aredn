@@ -82,7 +82,7 @@ while true
 do
 	for i, task in ipairs(tasks)
 	do
-		if task.routine and task.time <= os.time() then
+		if task.time <= os.time() then
 			local status, newdelay = coroutine.resume(task.routine)
 			if not status then
 				log:write(newdelay) -- error message
@@ -93,6 +93,7 @@ do
 				task.time = 60 + os.time() -- 1 minute default delay
 			elseif newdelay == "exit" then
 				task.routine = null
+				task.time = math.huge
 			else
 				task.time = newdelay + os.time()
 			end
