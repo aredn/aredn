@@ -672,8 +672,17 @@ if not desc then
     desc = ""
 end
 local maptiles = cursor_get("aredn", "@map[0]", "maptiles")
+if not maptiles then
+    maptiles = ""
+end
 local leafletcss = cursor_get("aredn", "@map[0]", "leafletcss")
+if not leafletcss then
+    leafletcss = ""
+end
 local leafletjs = cursor_get("aredn", "@map[0]", "leafletjs")
+if not leafletjs then
+    leafletjs = ""
+end
 
 -- generate page
 

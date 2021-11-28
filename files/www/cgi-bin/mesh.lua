@@ -663,18 +663,20 @@ do
         end
         row = row .. "</td></tr>"
         -- add advertised dmz hosts
-        for _, dmzhost in ipairs(host.hosts)
-        do
-            local localpart = dmzhost:match("(.*)%.local%.mesh")
-            row = row .. "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>" .. localpart .. "</nobr></td>"
-	        row = row .. "<td colspan=5></td><td>"
-            if services[dmzhost] then
-                for _, v in pairs(services[dmzhost])
-                do
-                    row = row .. v .. "<br>"
+        if host then
+            for _, dmzhost in ipairs(host.hosts)
+            do
+                local localpart = dmzhost:match("(.*)%.local%.mesh")
+                row = row .. "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>" .. localpart .. "</nobr></td>"
+                row = row .. "<td colspan=5></td><td>"
+                if services[dmzhost] then
+                    for _, v in pairs(services[dmzhost])
+                    do
+                        row = row .. v .. "<br>"
+                    end
                 end
+                row = row .. "</td></tr>"
             end
-            row = row .. "</td></tr>"
         end
     end
 

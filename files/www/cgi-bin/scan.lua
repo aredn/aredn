@@ -203,7 +203,9 @@ end)
 local scanlist = {}
 for _, v in pairs(scanned)
 do
-    scanlist[#scanlist + 1] = v
+    if v.signal ~= 0 then
+        scanlist[#scanlist + 1] = v
+    end
 end
 table.sort(scanlist, function(a, b) return a.signal > b.signal end)
 for _, scan in ipairs(scanlist)
