@@ -72,30 +72,29 @@ local tasks = {
 
 local log = aredn.log.open("/tmp/manager.log", 8000)
 
+for i, task in ipairs(tasks)
+do
+	task.routine = coroutine.create(task.app)
+	task.time = 0
+end
+
 while true
 do
 	for i, task in ipairs(tasks)
 	do
-		if not task.exited then
-			if not task.routine then
+		if task.routine and task.time <= os.time() then
+			local status, newdelay = coroutine.resume(task.routine)
+			if not status then
+				log:write(newdelay) -- error message
+				log:flush()
 				task.routine = coroutine.create(task.app)
-				task.time = 0
-			end
-			if task.time <= os.time() then
-				local status, newdelay = coroutine.resume(task.routine)
-				if not status then
-					log:write(newdelay) -- error message
-					log:flush()
-					task.routine = nil
-					task.time = 120 + os.time() -- 2 minute restart delay
-				elseif not newdelay then
-					task.time = 60 + os.time() -- 1 minute default delay
-				elseif newdelay == "exit" then
-					task.routine = null
-					task.exited = true
-				else
-					task.time = newdelay + os.time()
-				end
+				task.time = 120 + os.time() -- 2 minute restart delay
+			elseif not newdelay then
+				task.time = 60 + os.time() -- 1 minute default delay
+			elseif newdelay == "exit" then
+				task.routine = null
+			else
+				task.time = newdelay + os.time()
 			end
 		end
 	end
