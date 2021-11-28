@@ -315,6 +315,8 @@ if not hide_local and wan_iface then
     if ip then
         cidr = netmask_to_cidr(mask)
         col1[#col1 + 1] = "<th align=right><nobr>WAN address</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
+    else
+        col1[#col1 + 1] = "<th align=right><nobr>WAN address</nobr></th><td>none</small><br>"
     end
 end
 
