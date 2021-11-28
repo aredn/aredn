@@ -1,0 +1,191 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2021 Tim Wilkinson
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("nixio")
+require("aredn.utils")
+require("uci")
+require("iwinfo")
+
+
+local wifiif = uci.cursor():get("network", "wifi", "ifname")
+local phy = iwinfo.nl80211.phyname(wifiif)
+local mfg = capture("/usr/local/bin/get_hardware_mfg"):chomp()
+
+
+local files = {
+    "/etc/config/",
+    "/etc/config.mesh/",
+    "/etc/local/",
+    "/etc/mesh-release",
+    "/tmp/etc/",
+    "/var/run/hosts_olsr",
+    "/tmp/rssi.dat",
+    "/tmp/rssi.log",
+    "/tmp/zombie.log",
+    "/tmp/olsrd.log",
+    "/tmp/manager.log",
+    "/tmp/manager.log.0",
+    "/tmp/AutoDistReset.log",
+    "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
+    "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
+    "/etc/board.json"
+}
+local sensitive = {
+    "/etc/config/vtun",
+    "/etc/config.mesh/vtun",
+    "/etc/httpd.conf"
+}
+local cmds = {
+    "cat /proc/cpuinfo",
+    "cat /proc/meminfo",
+    "df -k",
+    "dmesg",
+    "ifconfig",
+    "iptables -t filter -L -v",
+    "iptables -t nat -L -v",
+    "iptables -t mangle -L -v",
+    "ip route list",
+    "ip route list table 29",
+    "ip route list table 30",
+    "ip route list table 31",
+    "ip route list table main",
+    "ip route list table default",
+    "ip rule list",
+    "iwinfo",
+    "iwinfo " .. wifiif .. " assoclist",
+    "iw phy " .. phy .. " info",
+    "iw dev " .. wifiif .. " info",
+    "iw dev " .. wifiif .. " scan",
+    "iw dev " .. wifiif .. " station dump",
+    "logread",
+    "md5sum /www/cgi-bin/*",
+    "echo /all | nc 127.0.0.1 2006",
+    "opkg list-installed",
+    "ps -w",
+    "/usr/local/bin/get_hardwaretype",
+    "/usr/local/bin/get_boardid",
+    "/usr/local/bin/get_model",
+    "/usr/local/bin/get_hardware_mfg",
+}
+local cmds_ubnt = {
+    "cat /dev/mtd0|grep 'U-Boot'|head -n1"
+}
+
+-- need space for this
+local vfs = nixio.fs.statvfs("/tmp")
+local fspace = vfs.bfree * vfs.bsize / 1024
+if fspace < 2048 then
+    os.exit(1)
+end
+
+remove_all("/tmp/sd")
+
+for _, path in ipairs(files)
+do
+    if nixio.fs.stat(path) then
+        local m = path:match("^/(.*/).*/$")
+        if m then
+            os.execute("mkdir -p /tmp/sd/" .. m);
+            os.execute("cp -r -p " .. path .. " /tmp/sd/" .. m)
+        else
+            m = path:match("^/(.*/).*")
+            os.execute("mkdir -p /tmp/sd/" .. m);
+            os.execute("cp -r -p " .. path .. " /tmp/sd/" .. m)
+        end
+    end
+end
+
+-- remove sensitive files
+for _, path in ipairs(sensitive)
+do
+    local m = path:match("^/(.*)")
+    if m then
+        remove_all("/tmp/sd/" .. m)
+    end
+end
+
+-- remove passwords from config file
+os.execute("sed -i -e 's/ key.*$/ key ******/' /tmp/sd/etc/config/wireless")
+os.execute("sed -i -e 's/_key =.*$/_key =/' /tmp/sd/etc/config.mesh/_setup")
+
+local f = io.open("/tmp/sd/data.txt", "w")
+if f then
+    for _, cmd in ipairs(cmds)
+    do
+        local p = io.popen(cmd)
+        if p then
+            f:write("========== " .. cmd .. " ==========\n")
+            f:write(p:read("*a"))
+            p:close()
+        end
+    end
+
+    if mfg == "Ubiquiti" then
+        for _, cmd in ipairs(cmds_ubnt)
+        do
+            local p = io.popen(cmd)
+            if p then
+                f:write("========== " .. cmd .. " (UBNT only) ==========\n")
+                f:write(p:read("*a"))
+                p:close()
+            end
+        end
+    end
+
+    f:close()
+end
+
+os.execute("tar -zcf /tmp/supportdata.tgz -C /tmp/sd ./")
+-- cleaup the temp files
+remove_all("/tmp/sd")
+
+local nodename = capture("uname -n"):chomp()
+local tstamp = capture("date +%Y%m%d%H%M"):chomp()
+
+if os.getenv("GATEWAY_INTERFACE") then
+    local fn = "supportdata-" .. nodename .. "-" .. tstamp .. ".tgz"
+    print("Content-type: application/x-gzip\r")
+    print("Content-Disposition: attachment; filename=" .. fn .. "\r")
+    print("\r")
+    io.write(read_all("/tmp/supportdata.tgz"))
+else
+    local fn = "/tmp/supportdata-" .. nodename .. "-" .. tstamp .. ".tgz"
+    nixio.fs.remove(fn)
+    nixio.fs.rename("/tmp/supportdata.tgz", fn)
+    print("File created: " .. fn)
+    print("Please copy this file and remove from the node")
+    print("to free up resources.")
+end
