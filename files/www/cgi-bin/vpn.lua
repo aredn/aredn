@@ -139,6 +139,60 @@ function get_server_dns()
     return cursor:get("vtun", "@network[0]", "dns")
 end
 
+function install_vtun()
+    local vfs = nixio.fs.statvfs("/overlay")
+    local fspace = vfs.bfree * vfs.bsize / 1024
+    if fspace < 600 then
+        err("Insufficient free disk space")
+        return
+    end
+    if not os.execute("opkg update") then
+        err("Package update failed!")
+        return
+    end
+    if not os.execute("opkg install kmod-tun zlib liblzo vtun") then
+        err("Package installation failed!")
+        return
+    end
+    cursor:set("aredn", "@tunnel[0]", "maxclients", "10")
+    cursor:set("aredn", "@tunnel[0]", "maxservers", "10")
+    cursor:commit("aredn")
+    write_all("/etc/config.mesh/aredn", read_all("/etc/config/aredn"))
+    for tunnum = 50,69
+    do
+        cursor:set("network_tun", "tun" .. tunnum, "interface")
+        cursor:set("network_tun", "tun" .. tunnum, "ifname", "tun" .. tunnum)
+        cursor:set("network_tun", "tun" .. tunnum, "proto", "none")
+    end
+    cursor:commit("network_tun")
+    write_all("/etc/config.mesh/network_tun", read_all("/etc/config/network_tun"))
+    os.execute("cat /etc/config.mesh/network_tun >> /etc/config.mesh/network")
+    os.execute("cat /etc/config.mesh/network_tun >> /etc/config/network")
+
+    io.open("/etc/config/vtun", "w"):close()
+    cursor:add("vtun", "options")
+    cursor:commit("vtun")
+
+    http_header()
+    html.header("TUNNEL INSTALLATION IN PROGRESS", true)
+    html.print("<body><center>")
+    html.print("<h2>Installing tunnel software...</h2>")
+    html.print("<h1>DO NOT REMOVE POWER UNTIL THE INSTALLATION IS FINISHED</h1>")
+    html.print("</center><br>")
+    html.print([[
+        <center><h2>The node is rebooting</h2>
+        <h3>When the node has fully rebooted you can reconnect with<br>
+        <a href='http://]] .. node .. [[.local.mesh:8080/'>http://]] .. node .. [[.local.mesh:8080/</a><br>
+        </h3>
+        </center>
+    ]])
+    html.footer()
+    html.print("</body></html>")
+    http_footer()
+    luci.sys.reboot()
+    os.exit()
+end
+
 -- helper end
 
 -- load client info from uci
@@ -168,7 +222,7 @@ if parms.button_reboot then
 end
 
 if parms.button_install then
-    -- fix me
+    install_vtun()
 end
 
 if config == "" or nixio.fs.stat("/tmp/reboot-required") then
