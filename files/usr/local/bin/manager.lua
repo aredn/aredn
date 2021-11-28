@@ -55,6 +55,10 @@ function wait_for_ticks(ticks)
     coroutine.yield(ticks)
 end
 
+function exit_app()
+	coroutine.yield('exit')
+end
+
 -- Define the list of management task
 local tasks = {
 	{ app = require("mgr.rssi_monitor") },
@@ -72,21 +76,26 @@ while true
 do
 	for i, task in ipairs(tasks)
 	do
-		if not task.routine then
-			task.routine = coroutine.create(task.app)
-			task.time = 0
-		end
-		if task.time <= os.time() then
-			local status, newdelay = coroutine.resume(task.routine)
-			if not status then
-				log:write(newdelay) -- error message
-				log:flush()
-				task.routine = nil
-				task.time = 120 + os.time() -- 2 minute restart delay
-			elseif not newdelay then
-				task.time = 60 + os.time() -- 1 minute default delay
-			else
-				task.time = newdelay + os.time()
+		if not task.exited then
+			if not task.routine then
+				task.routine = coroutine.create(task.app)
+				task.time = 0
+			end
+			if task.time <= os.time() then
+				local status, newdelay = coroutine.resume(task.routine)
+				if not status then
+					log:write(newdelay) -- error message
+					log:flush()
+					task.routine = nil
+					task.time = 120 + os.time() -- 2 minute restart delay
+				elseif not newdelay then
+					task.time = 60 + os.time() -- 1 minute default delay
+				elseif newdelay == "exit" then
+					task.routine = null
+					task.exited = true
+				else
+					task.time = newdelay + os.time()
+				end
 			end
 		end
 	end
