@@ -517,7 +517,7 @@ end
 
 -- install patch
 if patch_install and nixio.fs.stat(tmpdir .. "/firmware") then
-    -- fix me
+    fwout("Error: Installing firmware patches no longer supported")
 end
 
 -- handle package actions
@@ -536,13 +536,27 @@ end
 
 -- upload package
 if parms.button_ul_pkg and nixio.fs.stat("/tmp/web/upload/file") then
-    -- fix me
+    os.execute("mv -f /tmp/web/upload/file /tmp/web/upload/newpkg.ipk")
+    pkgout(capture("opkg -force-overwrite install /tmp/web/upload/newpkg.ipk 2>&"))
+    os.execute("rm -rf /tmp/opkg-*")
+    nixio.fs.remove("/tmp/web/upload/newpkg.ipk")
+    if os.execute("/usr/local/bin/uploadctlservices restore") ~= 0 then
+        pkgout("Failed to restart all services, please reboot this node.")
+    end
 end
 
 -- download package
 local meshpkgs = capture("grep -q \".local.mesh\" /etc/opkg/distfeeds.conf"):chomp()
 if parms.button_dl_pkg and parms.dl_pkg ~= "default" then
-    -- fix me
+    if get_default_gw() ~= "none" or meshpkgs ~= "" then
+        os.execute("/usr/local/bin/uploadctlservices opkginstall")
+        pkgout(capture("opkg -force-overwrite install " .. parms.dl_pkg .. " 2>&1"))
+        if os.execute("/usr/local/bin/uploadctlservices restore") ~= 0 then
+            pkgout("Failed to restart all services, please reboot this node.")
+        end
+    else
+        pkgout("Error: no route to Host")
+    end
 end
 
 -- refresh package list
@@ -557,7 +571,11 @@ end
 
 -- remove package
 if parms.button_rm_pkg and parms.rm_pkg ~= "default" and not permpkg[parms.rm_pkg] then
-    -- fix me
+    local output = capture("opkg remove " .. parms.rm_pkg .. " 2>&1")
+    pkgout(output)
+    if not output:match("No packages removed") then
+        pkgout("Package removed succssfully")
+    end
 end
 
 -- generate data structures
