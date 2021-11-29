@@ -110,7 +110,7 @@ function hardware.get_board_type()
 end
 
 function hardware.get_type()
-    return hardware.get_board_type():match("(.*),")
+    return hardware.get_board_type():match(",(.*)")
 end
 
 function hardware.get_manufacturer()

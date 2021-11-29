@@ -48,8 +48,24 @@ local html = aredn.html
 local cursor = uci.cursor()
 local conn = ubus.connect()
 
+local fw_images = {}
+local fw_version = ""
 function firmware_list_gen()
-    -- fix me
+    for line in io.lines("/etc/mesh-release")
+    do
+        fw_version = line:chomp()
+        break
+    end
+    if nixio.fs.stat("/etc/web/firmware.list") then
+        for line in io.lines("/etc/web/firmware.list")
+        do
+            local md5, fw, tag = line:match("")
+            if tag and tag ~= "none" and (tag == "all" or fw_version:match(tag)) then
+                fw_images[#fw_images + 1] = fw
+                fw_md5[fw] = md5
+            end
+        end
+    end
 end
 
 local tunnel_active = false
@@ -61,6 +77,36 @@ if nixio.fs.stat("/usr/sbin/vtund") then
             break
         end
     end
+end
+
+function get_default_gw()
+    -- a node with a wired default gw will route via this
+    local p = io.popen("ip route list table 254")
+    if p then
+        for line in p:lines()
+        do
+            local gw = line:match("^default%svia%s([%d%.]+)")
+            if gw then
+                p:close()
+                return gw
+            end
+        end
+        p:close()
+    end
+    -- table 31 is populated by OLSR
+    p = io.popen("ip route list table 31")
+    if p then
+        for line in p:lines()
+        do
+            local gw = line:match("^default%svia%s([%d%.]+)")
+            if gw then
+                p:close()
+                return gw
+            end
+        end
+        p:close()
+    end
+    return "none"
 end
 
 function reboot()
@@ -111,6 +157,28 @@ function reboot()
     os.exit()
 end
 
+function word_wrap(len, lines)
+    local output = ""
+    for _, str in ipairs(lines)
+    do
+        while #str > len
+        do
+            local str1 = str:sub(1, len)
+            local str2 = str:sub(len + 1)
+            local m, x = str1:match("^(.*)%s(%S+)$")
+            if m then
+                output = output .. m .. "\n"
+                str = x .. str2
+            else
+                output = output .. str1 .. "\n"
+                str = str2
+            end
+        end
+        output = output .. str .. "\n"
+    end
+    return output:sub(1, #output - 1)
+end
+
 -- read_postdata
 local parms = {}
 if os.getenv("REQUEST_METHOD") == "POST" then
@@ -142,7 +210,7 @@ nixio.fs.mkdir("/tmp/web")
 nixio.fs.mkdir("/tmp/web/admin")
 
 -- set the wget command options
-local wget = "wget -U 'node: " .. node .. "'"
+local wget = "wget -U 'node: " .. node .. "' "
 
 -- handle firmware updates
 local fw_install = false
@@ -151,11 +219,16 @@ local fw_output = {}
 local fw_images = {}
 local fw_md5 = {}
 
+function fwout(msg)
+    fw_output[#fw_output + 1] = msg
+end
+
 local serverpaths = {}
 local uciserverpath = cursor:get("aredn", "@downloads[0]", "firmwarepath")
-if uciserverpath then
-    serverpaths[#serverpaths + 1] = uciserverpath
+if not uciserverpath then
+    uciserverpath = ""
 end
+serverpaths[#serverpaths + 1] = uciserverpath
 
 local hardwaretype = aredn.hardware.get_type()
 local targettype = conn:call("system", "board", {}).release.target
@@ -217,13 +290,31 @@ end
 
 -- refresh fw
 if parms.button_refresh_fw then
-    -- fix me
+    nixio.fs.remove("/tmp/web/firmware.list")
+    if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
+        fwout("Downloading firmware list from " .. uciserverpath .. "...")
+        local ok = false
+        for _, serverpath in ipairs(serverpaths)
+        do
+            if os.execute(wget .. "-O /tmp/web/firmware.list " .. serverpath .. "/firmware." .. hardwaretype .. ".list >/dev/null 2>>" .. tmpdir .. "/wget.err") == 0 then
+                ok = true
+                break
+            end
+        end
+        if ok then
+            fwout("Done")
+        else
+            fwout(read_all(tmpdir .. "/wget.err"))
+        end
+        nixio.fs.remove(tmpdir .. "/wget.err")
+    else
+        fwout("Error: no route to Host")
+    end
 end
 
 -- generate data structures
 -- and set fw_version
 firmware_list_gen()
-
 
 -- upload fw
 if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
@@ -247,6 +338,9 @@ end
 
 -- handle package actions
 local pkg_output = {}
+function pkgout(msg)
+    pkg_output[#pkg_output + 1] = msg
+end
 
 local permpkg = {}
 for line in io.lines("/etc/permpkg")
@@ -262,14 +356,19 @@ if parms.button_ul_pkg and nixio.fs.stat("/tmp/web/upload/file") then
 end
 
 -- download package
-local meshpkgs = capture("grep -q \".local.mesh\" /etc/opkg/distfeeds.conf")
+local meshpkgs = capture("grep -q \".local.mesh\" /etc/opkg/distfeeds.conf"):chomp()
 if parms.button_dl_pkg and parms.dl_pkg ~= "default" then
     -- fix me
 end
 
 -- refresh package list
 if parms.button_refresh_pkg then
-    -- fix me
+    if get_default_gw() ~= "none" or meshpkgs ~= "" then
+        pkgout(capture("opkg update 2>&1"))
+        os.execute("opkg list | grep -v '^ ' | cut -f1,3 -d' ' | gzip -c > /etc/opkg.list.gz")
+    else
+        pkgout("Error: no route to Host")
+    end
 end
 
 -- remove package
@@ -296,17 +395,19 @@ end
 
 local dl_pkgs = {}
 local dlpkgver = {}
-local f = io.popen("zcat /etc/opkg.list.gz")
-if f then
-    for line in f:lines()
-    do
-        local pkg, ver = line:match("(.+)%s(.+)")
-        if ver and not (pkgver[pkg] and pkgver[pkg] == ver) then
-            dl_pkgs[#pkgs + 1] = pkg
-            dlpkgver[pkg] = ver
+if nixio.fs.stat("/etc/opkg.list.gz") then
+    local f = io.popen("zcat /etc/opkg.list.gz")
+    if f then
+        for line in f:lines()
+        do
+            local pkg, ver = line:match("(.+)%s(.+)")
+            if ver and not (pkgver[pkg] and pkgver[pkg] == ver) then
+                dl_pkgs[#pkgs + 1] = pkg
+                dlpkgver[pkg] = ver
+            end
         end
+        f:close()
     end
-    f:close()
 end
 
 -- handle ssh key actions
@@ -418,9 +519,9 @@ html.print("<table cellspacing=10>")
 html.print("<tr><th colspan=3>Firmware Update</th></tr>")
 
 if #fw_output > 0 then
-    html.print("<tr><td colspan=3 align=center><table><tr><td><b><pre>")
-    html.print(word_wrap(80, fw_output))
-    html.print("</pre></b></td></tr></table></td></tr>")
+    html.print("<tr><td colspan=3 align=center><table><tr><td><b>")
+    html.print("<pre>" .. word_wrap(80, fw_output) .. "</pre>")
+    html.print("</b></td></tr></table></td></tr>")
 end
 
 html.print("<tr><td align=center colspan=3>current version: " .. fw_version .. "</td></tr>")
@@ -547,7 +648,7 @@ html.print("</table></td></tr>")
 html.print("<tr><td colspan=3><hr></td></tr>")
 
 html.print("<tr><th colspan=3>Support Data</th></tr>")
-html.print("<tr><td colspan=3 align=center><a href=/cgi-bin/supporttool>Download Support Data</a></td></tr>")
+html.print("<tr><td colspan=3 align=center><a href=/cgi-bin/supporttool.lua>Download Support Data</a></td></tr>")
 
 html.print("<tr><td colspan=3><hr></td></tr>")
 
@@ -557,7 +658,7 @@ html.print("</table>")
 
 html.print("</form>")
 html.print("</center>")
-html.footer();
+html.footer()
 html.print("</body>")
 html.print("</html>")
-http_header()
+http_footer()
