@@ -109,6 +109,14 @@ function hardware.get_board_type()
     return get_board_json().model.id
 end
 
+function hardware.get_type()
+    return hardware.get_board_type():match("(.*),")
+end
+
+function hardware.get_manufacturer()
+    return hardware.get_board_id():match("(.*)%s")
+end
+
 function hardware.get_iface_name(name)
     return get_board_json().network[name].ifname
 end

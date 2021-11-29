@@ -94,7 +94,7 @@ function navbar()
     html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
     html.print("<td align=center width=15%><a href='vpn.lua'>Tunnel<br>Server</a></td>")
     html.print("<td align=center width=15% class=navbar_select><a href='vpnc.lua'>Tunnel<br>Client</a></td>")
-    html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
+    html.print("<td align=center width=15%><a href='admin.lua'>Administration</a></td>")
     html.print("<td align=center width=15%><a href='advancedconfig.lua'>Advanced<br>Configuration</a></td>")
     html.print("</tr></table><hr>")
 end

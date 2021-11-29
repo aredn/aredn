@@ -264,7 +264,7 @@ function reboot()
     end
     http_header()
     if fromlan and subnet_change then
-        html.header(node .. " rebooting", true);
+        html.header(node .. " rebooting", true)
         html.print("<body><center>")
         html.print("<h1>" .. node .. " is rebooting</h1><br>")
         html.print("<h3>The LAN subnet has changed. You will need to acquire a new DHCP lease<br>")
@@ -453,7 +453,7 @@ end
 if parms.button_firstboot or parms.button_reboot then
     reboot()
 end
-local node = aredn.info.get_nvram("node");
+local node = aredn.info.get_nvram("node")
 
 for i, setting in ipairs(settings)
 do
@@ -578,7 +578,7 @@ html.print("<td align=center width=15%><a href='setup.lua'>Basic Setup</a></td>"
 html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
 html.print("<td align=center width=15%><a href='vpn.lua'>Tunnel<br>Server</a></td>")
 html.print("<td align=center width=15%><a href='vpnc.lua'>Tunnel<br>Client</a></td>")
-html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
+html.print("<td align=center width=15%><a href='admin.lua'>Administration</a></td>")
 html.print("<td align=center width=15% class=navbar_select><a href='advancedconfig.lua'>Advanced<br>Configuration</a></td>")
 html.print("</tr></table><hr>")
 html.print("</td></tr>")
