@@ -41,6 +41,7 @@ require("aredn.html")
 require("aredn.hardware")
 aredn.info = require("aredn.info")
 require("uci")
+require("luci.sys")
 
 local html = aredn.html
 
@@ -57,7 +58,6 @@ local VPNVER = "1.1"
 local parms = {}
 if os.getenv("REQUEST_METHOD") == "POST" then
     require('luci.http')
-    require('luci.sys')
     local request = luci.http.Request(luci.sys.getenv(),
       function()
         local v = io.read(1024)

@@ -42,6 +42,7 @@ aredn.html = require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
 require("ubus")
+require("luci.sys")
 
 local html = aredn.html
 
@@ -181,9 +182,9 @@ end
 
 -- read_postdata
 local parms = {}
+local firmfile = ""
 if os.getenv("REQUEST_METHOD") == "POST" then
     require('luci.http')
-    require('luci.sys')
     local request = luci.http.Request(luci.sys.getenv(),
       function()
         local v = io.read(1024)
@@ -193,12 +194,28 @@ if os.getenv("REQUEST_METHOD") == "POST" then
         return v
       end
     )
+    -- only allow file uploading without active tunnels
+    if not active_tunnel then
+        local fp
+        request:setfilehandler(
+            function(meta, chunk, eof)
+                if not fp then
+                    if meta and meta.file then
+                        firmfile = meta.file
+                    end
+                    nixio.fs.mkdir("/tmp/web/upload")
+                    fp = io.open("/tmp/web/upload/file", "w")
+                 end
+                 if chunk then
+                    fp:write(chunk)
+                 end
+                 if eof then
+                    fp:close()
+                 end
+            end
+        )
+    end
     parms = request:formvalue()
-end
-if tunnel_active then
-    -- accept file - fix me
-else
-    -- dont accept file
 end
 
 if parms.button_reboot then
@@ -318,17 +335,184 @@ firmware_list_gen()
 
 -- upload fw
 if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
-    -- fix me
+    os.execute("mv -f /tmp/web/upload/file " .. tmpdir .. "/firmware")
+    if firmfile:match("sysupgrade%.bin$") then -- full firmware
+        fw_install = true
+        -- drop the page cache to take pressure off tmps when checking the firmware
+        write_all("/proc/sys/vm/drop_caches", "3")
+        -- check firmware header
+        if os.execute("/usr/local/bin/firmwarecheck.sh " .. tmpdir .. "/firmware") ~= 0 then
+            fwout("Firmware CANNOT be updated")
+            fwout("firmware file is not valid")
+            fw_install = false
+            nixio.fs.remove(tmpdir .. "/firmware")
+            if os.execute("/usr/local/bin/uploadctlservices restore") ~= 0 then
+                fwout("Failed to restart all services, please reboot this node.")
+            end
+        end
+    elseif firmfile:match("^patch%S+%.tgz$") then -- firmware patch
+        patch_install = false
+    else
+        fwout("Firmware CANNOT be updated")
+        fwout("the uploaded file is not recognized")
+        nixio.fs.remove(tmpdir .. "/firmware")
+        if os.execute("/usr/local/bin/uploadctlservices restore") ~= 0 then
+            fwout("Failed to restart all services, please reboot this node.")
+        end
+    end
 end
 
 -- download fw
 if parms.button_dw_fw and parms.dl_fw ~= "default" then
-    -- fix me
+    if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
+        nixio.fs.remove(tmpdir .. "/firmware")
+        os.execute("/usr/local/bin/uploadctlservices update")
+        local ok = false
+        for _, serverpath in ipairs(serverpaths)
+        do
+            if os.execute(wget .. "-O " .. tmpdir .. "/firmware " .. serverpath .. "/" .. parms.dl_fw .. " >/dev/null 2>>" .. tmpdir .. "/wget.err") == 0 then
+                ok = true
+                break
+            end
+        end
+
+        if parms.dl_fw:match("/sysupgrade%.bin$") then -- full firmware
+            fw_install = true
+            if not ok then
+                fwout("Downloading firmware image...")
+                fwout(read_all(tmpdir .. "/wget.err"))
+            end
+            nixio.fs.remove(tmpdir .. "/wget.err")
+            -- check md5sum
+            local fw = parms.dl_fw
+            if os.execute("echo '" .. fw_md5[fw] .. "  firmware' | md5sum -cs") ~= 0 then
+                fwout("Firmware CANNOT be updated")
+                fwout("firmware file is not valid")
+                fw_install = false
+                nixio.fs.remove(tmpdir .. "/firmware")
+                if os.execute("/usr/local/bin/uploadctlservices restore") ~= 0 then
+                    fwout("Failed to restart all services, please reboot this node.")
+                end
+            end
+        elseif parms.dl_fw:match("^patch%S+%.tgz$") then -- firmware patch
+            patch_install = true
+            if not ok then
+                fwout("Downloading patch file...")
+                fwout(read_all(tmpdir .. "/wget.err"))
+            end
+            nixio.fs.remove(tmpdir .. "/wget.err")
+            -- check md5sum
+            local fw = parms.dl_fw
+            if os.execute("echo '" .. fw_md5[fw] .. "  firmware' | md5sum -cs") ~= 0 then
+                fwout("Firmware CANNOT be updated")
+                fwout("patch file is not valid")
+                patch_install = false
+                nixio.fs.remove(tmpdir .. "/firmware")
+                if os.execute("/usr/local/bin/uploadctlservices restore") ~= 0 then
+                    fwout("Failed to restart all services, please reboot this node.")
+                end
+            end
+        else
+            fwout("Firmware CANNOT be updated")
+            fwout("the downloaded file is not recognized")
+            nixio.fs.remove(tmpdir .. "/firmware")
+            if os.execute("/usr/local/bin/uploadctlservices restore") ~= 0 then
+                fwout("Failed to restart all services, please reboot this node.")
+            end
+        end
+    else
+        fwout("Error: no route to Host")
+        nixio.fs.remove(tmpdir .. "/wget.err")
+    end
 end
 
 -- install fw
 if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
-    -- fix me
+    http_header(true) -- no compression (gzip will be killed)
+    html.header("FIRMWARE UPDATE IN PROGRESS", false)
+    html.print("<meta http-equiv='refresh' content='180;URL=http://" .. node .. ".local.mesh:8080'>")
+    html.print("</head>")
+    html.print("<body><center>")
+    html.print("<h2>The firmware is being updated.</h2>")
+    html.print("<h1>DO NOT REMOVE POWER UNTIL UPDATE IS FINISHED</h1>")
+    html.print("</center><br>")
+    -- drop page cache to take pressure of tmps for the upgrade process
+    write_all("/proc/sys/vm/drop_caches", "3")
+    os.execute("/usr/local/bin/upgrade_kill_prep > /dev/null 2>&1")
+    if parms.checkbox_keep_settings then
+        local fin = io.open("/etc/arednsysupgrade.conf", "r")
+        if fin then
+            local fout = io.open("/tmp/sysupgradefilelist", "w")
+            if fout then
+                for line in fin:lines()
+                do
+                    if not line:match("^#") and nixio.fs.stat(line) then
+                        fout:write(line .. "\n")
+                    end
+                end
+                fout:close()
+                fin:close()
+                aredn.info.set_nvram("nodeupgraded", "1")
+                if os.execute("tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist") ~= 0 then
+                    html.print([[
+                        <center><h2>ERROR: Could not backup filesystem.</h2>
+                        <h3>An error occured trying to backup the file system. Node will now reboot.
+                        </center>
+                    ]])
+                    html.footer()
+                    html.print("</body></html>")
+                    http_footer()
+                    aredn.info.set_nvram("nodeupgraded", "0")
+                    luci.sys.reboot()
+                else
+                    html.print([[
+                        <center><h2>Firmware will be written in the background.</h2>
+                        <h3>If your computer is connected to the LAN of this node you may need to acquire<br>
+                        a new IP address and reset any name service caches you may be using.</h3>
+                        <h3>The node will reboot twice while the configuration is applied<br>
+                        When the node has finished booting you should ensure your computer has<br>
+                        received a new IP address and reconnect with<br>
+                        <a href='http://]] .. node .. [[.local.mesh:8080/'>http://]] .. node .. [[.local.mesh:8080/</a><br>
+                        (This page will automatically reload in 3 minutes)</h3>
+                        </center></body></html>
+                    ]])
+                    http_footer()
+                    nixio.fs.remove("/tmp/sysupgradefilelist")
+                    os.execute("/usr/local/bin/spawn_sysupgrade " .. tmpdir .. "/firmware 2>&1 &")
+                end
+                os.exit()
+            else
+                fin:close()
+            end
+        end
+        html.print([[
+            <center><h2>ERROR: Failed to create backup.</h2>
+            <h3>An error occured trying to backup the file system. Node will now reboot.
+            </center>
+        ]])
+        html.footer()
+        html.print("</body></html>")
+        http_footer()
+        luci.sys.reboot()
+        os.exit()
+    else
+        html.print([[
+            <center><h2>Firmware will be written in the background.</h2>
+            <h3>If your computer is connected to the LAN of this node you may need to acquire<br>
+            a new IP address and reset any name service caches you may be using.</h3>
+            <h3>The node will reboot after the firmware has been written to flash memory<br>
+            When the node has finished booting you should ensure your computer has<br>
+            received a new IP address and reconnect with<br>
+            <a href='http://localnode.local.mesh:8080/'>http://192.168.1.1:8080/</a><br>
+            and continue setup of the node in firstboot state.<br>
+            (This page will automatically reload in 3 minutes)</h3>
+            </center></body></html>
+        ]])
+        http_footer()
+        os.execute("/sbin/sysupgrade -n " .. tmpdir .. "/firmware 2>&1 &")
+    end
+    os.execute("killall uhttpd &")
+    os.exit()
 end
 
 -- install patch
