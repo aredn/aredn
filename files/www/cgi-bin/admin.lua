@@ -605,12 +605,47 @@ local keyfile = "/etc/dropbear/authorized_keys"
 
 -- upload key
 if parms.button_ul_key and nixio.fs.stat("/tmp/web/upload/file") then
-    -- fix me
+    local count = 0
+    for _ in io.lines(keyfile)
+    do
+        count = count + 1
+    end
+    os.execute("grep ^ssh- /tmp/web/upload/file >> " .. keyfile)
+    local count = 0
+    for _ in io.lines(keyfile)
+    do
+        count = count - 1
+    end
+    if count == 0 then
+        keyout("Error: file does not appear to be an ssh key file")
+        keyout("Authorized keys not changed.")
+    else
+        keyout("Key installed.")
+    end
+    nixio.fs.remove("/tmp/web/upload/file")
+    if os.execute("/usr/local/bin/uploadctlservices restore") ~= 0 then
+        keyout("Failed to restart all services, please reboot this node.")
+    end
 end
 
 -- remove key
 if parms.button_rm_key and parms.rm_key ~= "default" and nixio.fs.stat(keyfile) then
-    -- fix me
+    local count = 0
+    for _ in io.lines(keyfile)
+    do
+        count = count + 1
+    end
+    os.execute("grep -v '" .. parms.rm_key .. "' " .. keyfile .. " > " .. tmpdir .. "/keys")
+    os.execute("mv -f " .. tmpdir .. "/keys " .. keyfile)
+    for _ in io.lines(keyfile)
+    do
+        count = count - 1
+    end
+    if count == 0 then
+        keyout("Error: authorized keys were not changed.")
+    else
+        keyout("Key " .. parms.rm_key .. " removed.")
+    end
 end
 
 -- generate data structures
