@@ -1,0 +1,175 @@
+#! /usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2021 Tim Wilkinson
+	Original Perl Copyright (C) 2015 Conrad Lara
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("nixio")
+require("aredn.utils")
+require("aredn.hardwae")
+aredn.info = require('aredn.info')
+require("uci")
+
+-- check what config gile we are building for
+local uci_conf_file
+if #arg == 0 then
+    uci_conf_file = "olsrd"
+else
+    uci_conf_file = arg[1]
+end
+
+if uci_conf_file == "olsrd6" then
+    -- we only generate entries for IPv4 at the moment
+    os.exit(0)
+end
+
+local cursor = uci.cursor()
+
+local names = {}
+local hosts = {}
+local services = {}
+local tunnels = {}
+
+function ip_to_hostname(ip)
+end
+
+-- canonical names for this node
+-- (they should up in reverse order, make the official name last)
+local name = aredn.info.get_nvram("tactical")
+if name then
+    names[#names + 1] = name
+end
+name = aredn.info.get_nvram("node")
+if name then
+    names[#names + 1] = name
+end
+
+local dmz_mode = cursor:get("aredn", "@dmz[0]", "mode")
+if dmz_mode ~= "0" then
+    for line in io.lines("/etc/config.mesh/aliases.dmz")
+    do
+        local ip, host = line:match("(.*) (.*)")
+        if host then
+            hosts[#hosts + 1] = { ip = ip, host = host }
+        end
+    end
+    for line in io.lines("/etc/ethers")
+    do
+        local noprop = line:match(".* .*( .*)")
+        if noprop ~= " #NOPROP" then
+            local ip = line:match("[0-9a-fA-F:]+%s+([%d%.]+)")
+            if ip then
+                local host = ip_to_hostname(ip)
+                if host then
+                    hosts[#hosts + 1] = { ip = ip, host = host }
+                end
+            end
+        end
+    end
+end
+
+-- add a name for the dtdlink interface
+if name then
+    local dtdip = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("dtdlink"))
+    hosts[#hosts + 1] = { ip = dtdip, name = "dtdlink." .. name .. ".local.mesh" }
+end
+
+-- load the services
+for line in io.lines("/etc/config/services")
+do
+    if line:match("^%w+://[%w%-%.]+:%d+(/[^|]*)?|[tu][cd]p|%w") then
+        services[#services + 1] = line
+    end
+end
+
+-- load the tunnels
+if nixio.fs.stat("/etc/local/mesh-firewall/02-vtund") then
+    local tunnum = 50
+    cursor:foreach("vtun", "client",
+        function(section)
+            if section.enabled == "1" then
+                tunnels[#tunnels + 1] = "tun" .. tunnum
+                tunnum = tunnum + 1
+            end
+        end
+    )
+    local maxclients = cursor:get("aredn", "@tunnel[0]", "maxclients")
+    if not maxclients then
+        maxclients = 10
+    end
+    tunnum = 50 + maxclients
+    cursor:foreach("vtun", "server",
+        function(section)
+            if section.enabled == "1" then
+                tunnels[#tunnels + 1] = "tun" .. tunnum
+                tunnum = tunnum + 1
+            end
+        end
+    )
+end
+
+-- add the nameservice plugin
+print([[\nLoadPlugin "olsrd_nameservice.so.0.4"]])
+print([[{]])
+print([[    PlParam "sighup-pid-file" "/var/run/dnsmasq/dnsmasq.pid"]])
+print([[    PlParam "interval" "30"]])
+print([[    PlParam "timeout" "300"]])
+print([[    PlParam "name-change-script" "touch /tmp/namechange"]])
+for _, name in ipairs(names)
+do
+    print([[    PlParam "name" "]] .. name .. [["]])
+end
+for _, host in ipairs(hosts)
+do
+    print([[    PlParam ]] .. host)
+end
+for _, service in ipairs(services)
+do
+    print([[    PlParam "service" "]] .. service .. [["]])
+end
+print([[}]])
+
+-- add the ACTIVE tunnel interfaces
+if #tunnels > 0 then
+    local tuns = ""
+    for _, tunnel in ipairs(tunnels)
+    do
+        tuns = tuns .. " " .. tunnel
+    end
+    print([[Interface]] .. tuns)
+    print([[     Ip4Broadcast 255.255.255.255]])
+    print([[     Mode "ether"]])
+    print([[}]])
+end
+
