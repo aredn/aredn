@@ -3,7 +3,7 @@
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
 	Copyright (C) 2021 Tim Wilkinson
-    Original Perl Copyright (C) 2015 Conrad Lara
+	Original Perl Copyright (C) 2015 Conrad Lara
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -157,11 +157,11 @@ if not parms.reload then
 end
 nixio.fs.mkdir(tmpdir)
 
-local suffix = dmz_mode == 0 and ".nat" or ".dmz"
-local portfile = "/etc/config.mesh/_setup.ports" .. suffix
-local dhcpfile = "/etc/config.mesh/_setup.dhcp" .. suffix
-local servfile = "/etc/config.mesh/_setup.services" .. suffix
-local aliasfile = "/etc/config.mesh/aliases" .. suffix
+local fsuffix = dmz_mode == 0 and ".nat" or ".dmz"
+local portfile = "/etc/config.mesh/_setup.ports" .. fsuffix
+local dhcpfile = "/etc/config.mesh/_setup.dhcp" .. fsuffix
+local servfile = "/etc/config.mesh/_setup.services" .. fsuffix
+local aliasfile = "/etc/config.mesh/aliases" .. fsuffix
 
 -- if a reset or a first time page load
 -- read the data from the config files
@@ -197,7 +197,7 @@ if parms.button_reset or not parms.reload then
     do
         if not (line:match("^%s*#") or line:match("^%s*$")) then
             local a, b, x = line:match("(.*)%s+(.*)%s+(.*)")
-            if not x then
+            if x then
                 local c, d = x:match("(.*)%s+(.*)")
                 if not c then
                     c = x
@@ -220,7 +220,7 @@ if parms.button_reset or not parms.reload then
     do
         if not (line:match("^%s*#") or line:match("^%s*$")) then
             local a, b, c, d, x = line:match("(.*)|(.*)|(.*)|(.*)|(.*)")
-            if not x then
+            if x then
                 local e, f = x:match("(.*)|(.*)")
                 if not e then
                     e = x
@@ -245,7 +245,8 @@ if parms.button_reset or not parms.reload then
     do
         if not (line:match("^%s*#") or line:match("^%s*$")) then
             local a, b = line:match("(.*)%s+(.*)")
-            if not b then
+            if b then
+                i = i + 1
                 parms["alias" .. i .. "_ip"] = a
                 parms["alias" .. i .. "_host"] = b
             end
@@ -321,7 +322,7 @@ if f then
 
             local continue = false
             if val == "_add" then
-                if not ( (_out or _ip or _in) and (parms.port_add or parms.button_save)) then
+                if not ( (_out ~= "" or _ip ~= "" or _in ~= "") and (parms.port_add or parms.button_save)) then
                     break
                 end
             else
@@ -430,7 +431,8 @@ do
                         break
                     end
                 end
-            elseif not ((host or ip or mac or foundhost) and (parms.dhcp_add or parms.button_save)) then
+            end
+            if not ((host ~= "" or ip ~= "" or mac ~= "" or foundhost) and (parms.dhcp_add or parms.button_save)) then
                 break
             end
         elseif parms["dhcp" .. val .. "_del"] then
@@ -629,7 +631,8 @@ do
                 if host:match("%.") then
                     aliaserr(val .. " '" .. host .. "' cannot contain the dot '.' character")
                 end
-            elseif not ((host or ip or foundhost) and (parms.alias_add or parms.button_save)) then
+            end
+            if not ((host ~= "" or ip ~= "" or foundhost) and (parms.alias_add or parms.button_save)) then
                 break
             end
         elseif parms["alias" .. val .. "_del"] then
@@ -713,11 +716,11 @@ if f then
             end
 
             if val == "_add" then
-                if not ((name or proto or port or suffix) and (parms.serv_add or parms.button_save)) then
+                if not ((name ~= "" or proto ~= "" or port ~= "" or suffix ~= "") and (parms.serv_add or parms.button_save)) then
                     break
                 end
             else
-                if parms["serv" .. val .. "_del"] or not (name or proto or port or suffix) then
+                if parms["serv" .. val .. "_del"] or not (name ~= "" or proto ~= "" or port ~= "" or suffix ~= "") then
                     break
                 end
             end
@@ -859,7 +862,7 @@ function print_reservations()
     local list = {}
     for i = 1,parms.dhcp_num
     do
-        list[#list + 1] = 1
+        list[#list + 1] = i
     end
     list[#list + 1] = "_add"
 
@@ -952,7 +955,7 @@ function print_forwarding()
     local list = {}
     for i = 1,parms.port_num
     do
-        list[#list + 1] = 1
+        list[#list + 1] = i
     end
     list[#list + 1] = "_add"
     local vars = { "_intf", "_type", "_out", "_ip", "_in", "_enable", "_adv", "_link", "_proto", "_suffix", "_name" }
@@ -1077,7 +1080,7 @@ function print_services()
     local list = {}
     for i = 1,parms.serv_num
     do
-        list[#list + 1] = 1
+        list[#list + 1] = i
     end
     list[#list + 1] = "_add"
 
@@ -1107,7 +1110,7 @@ function print_services()
             html.print(" checked")
         end
         html.print(" title='create a clickable link for this service'>")
-        html.print("<input type=text size=2 name=serv" .. val .. "_proto value='" .. proto .. "' title='URL Protocol'")
+        html.print("<input type=text size=2 name=serv" .. val .. "_proto value='" .. _proto .. "' title='URL Protocol'")
         if val ~= "_add" and not link then
             html.print(" disabled")
         end
@@ -1155,7 +1158,7 @@ function print_services()
         -- display any errors
         while #serv_err > 0 and serv_err[1]:match("^" .. val .. " ")
         do
-            html.print("<tr><th colspan=4>" .. serv_err[1]:gsub("^%S+ ", "") .. "/th></tr>")
+            html.print("<tr><th colspan=4>" .. serv_err[1]:gsub("^%S+ ", "") .. "</th></tr>")
             table.remove(serv_err, 1)
         end
 
@@ -1180,7 +1183,7 @@ function print_aliases()
     local list = {}
     for i = 1,parms.alias_num
     do
-        list[#list + 1] = 1
+        list[#list + 1] = i
     end
     list[#list + 1] = "_add"
 

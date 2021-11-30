@@ -575,7 +575,7 @@ html.print("<div style=\"padding:5px;background-color:#FF0000;color:#FFFFFF;widt
 html.print("<hr><table cellpadding=5 border=0 width=100%><tr>")
 html.print("<td align=center width=15%><a href='status.lua'>Node Status</a></td>")
 html.print("<td align=center width=15%><a href='setup.lua'>Basic Setup</a></td>")
-html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
+html.print("<td align=center width=15%><a href='ports.lua'>Port Forwarding,<br>DHCP, and Services</a></td>")
 html.print("<td align=center width=15%><a href='vpn.lua'>Tunnel<br>Server</a></td>")
 html.print("<td align=center width=15%><a href='vpnc.lua'>Tunnel<br>Client</a></td>")
 html.print("<td align=center width=15%><a href='admin.lua'>Administration</a></td>")
