@@ -195,7 +195,7 @@ if parms.button_reset or not parms.reload then
             local a, b, x = line:match("(.*)%s+(.*)%s+(.*)")
             if not x then
                 local c, d = x:match("(.*)%s+(.*)")
-                it not c then
+                if not c then
                     c = x
                     d = ""
                 end
@@ -244,6 +244,7 @@ if parms.button_reset or not parms.reload then
             if not b then
                 parms["alias" .. i .. "_ip"] = a
                 parms["alias" .. i .. "_host"] = b
+            end
         end
     end
     parms.alias_num = i
@@ -527,7 +528,7 @@ do
         if not found then
             dhcp_num = dhcp_num + 1
             local prefix1 = "leases" .. n .. "_"
-            local prefix2 == "dhcp" .. dhcp_num .. "_"
+            local prefix2 = "dhcp" .. dhcp_num .. "_"
             local host = parms[prefix1 .. "host"]
             local ip = parms[prefix1 .. "ip"]
             local mac = parms[prefix1 .. "mac"]
@@ -535,8 +536,8 @@ do
 
             parms[prefix2 .. "host"] = host
             parms[prefix2 .. "ip"] = ip
-            parms[prefix2 .. "mac"] == mac
-            parms[prefix2 .. "noprop"] == noprop
+            parms[prefix2 .. "mac"] = mac
+            parms[prefix2 .. "noprop"] = noprop
             local lhost = host:lower()
             if lhost == node:lower() or lhost == tactical:lower() then
                 dhcperr(dhcp_num .. " hostname '" .. host .. "' is already in use")
@@ -696,7 +697,7 @@ if f then
             end
 
             -- remove services that have had their host or port deleted
-            if val ~= "_add" and not (dmz_mode == 0 ? true : hosts[hosts]) then
+            if val ~= "_add" and not (dmz_mode == 0 and true or hosts[hosts]) then
                 break
             end
 
@@ -838,6 +839,102 @@ end
 -- everything else
 
 function print_reservations()
+    html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>DHCP Address Reservations</th></tr>")
+    html.print("<tr><td colspan=4 height=5></td></tr>")
+    html.print("<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td>")
+    
+    if dmz_mode ~= 0 then
+        html.print("<td align=center style='font-size:10px;'>Do Not<br>Propagate</td><td></td></tr>")
+    else
+        html.print("<td></td><td></td></tr>")
+    end
+    html.print("<tr><td colspan=4 height=5></td></tr>")
+
+    local list = {}
+    for i = 1,parms.dhcp_num
+    do
+        list[#list + 1] = 1
+    end
+    list[#list + 1] = "_add"
+
+    for _, val in ipairs(list)
+    do
+        local host = parms["dhcp" .. val .. "_host"]
+        local ip = parms["dhcp" .. val .. "_ip"]
+        local mac = parms["dhcp" .. val .. "_mac"]:lower()
+        local noprop = params["dhcp" .. val .. "_noprop"]
+
+        if val == "_add" and #list > 1 then
+            html.print("<tr><td colspan=4 height=10></td></tr>")
+        end
+	    html.print("<tr><td><input type=text name=dhcp" .. val .. "_host value='" .. host .. "' size=10></td>")
+        html.print("<td align=center><select name=dhcp" .. val .. "_ip>")
+        if val == "_add" then
+	        html.print("<option value=''>- IP Address -</option>\n")
+        end
+        for i = dhcp_start,dhcp_end
+        do
+            local selip = decimal_to_ip(lannet_d + i - lannet_d % 256)
+            if selip ~= lanip then
+                local ipname = dhcphosts[selip]
+                if not ipname then
+                    ipname = selip
+                end
+                html.print("<option " .. ( _ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
+            end
+        end
+        html.print("</select></td>")
+        html.print("<td><input type=text name=dhcp" .. val .. "_mac value='" .. mac .. "' size=16></td>")
+        if dmz_mode ~= 0 then
+            if noprop == "#NOPROP" then
+                html.print("<td align=center><input type=checkbox id=dhcp" .. val .. "_noprop name=dhcp" .. val .. "_noprop value='#NOPROP' checked></td>")
+            else
+                html.print("<td align=center><input type=checkbox id=dhcp" .. val .. "_noprop name=dhcp" .. val .. "_noprop value='#NOPROP'></td>")
+            end
+        else
+            html.print("<td></td>")
+        end
+
+        html.print("<td><nobr>&nbsp;<input type=submit name=")
+
+        if val == "_add" then
+            html.print("dhcp_add       value=Add title='Add this as a DHCP reservation'")
+        else
+            html.print("dhcp" .. val .. "_del value=Del title='Remove this reservation'")
+        end
+        html.print("></nobr></td></tr>")
+
+        while #dhcp_err > 0 and dhcp_err[1]:match("^" .. val .. " ")
+        do
+            html.print("<tr><th colspan=4>" .. dhcp_err[1]:gsub("^%S+ ", "") .. "</th></tr>")
+            dhcp_err:remove(1)
+        end
+
+        html.print("<tr><td height=5></td></tr>")
+    end
+
+    html.print("<tr><td>&nbsp;</td></tr>")
+    html.print("<tr><th colspan=4>Current DHCP Leases</th></tr>\n<tr>")
+
+    local i = 0
+    for line in io.lines("/tmp/dhcp.leases")
+    do
+        i = i + 1
+        local _, mac, ip, host = line:match("(%S+)%s+(%S+)%s+(%S+)%s+(%S+)")
+        html.print("<tr><td height=5></td></tr>")
+        html.print("<tr><td align=center>" .. host .. "</td><td align=center><small>" .. ip .. "</small></td>")
+        html.print("<td align=center><small>" .. mac .. "</small></td><td></td><td><nobr>&nbsp;")
+        html.print("<input type=submit name=lease" .. i .. "_add  value=Add ")
+        html.print("title='Use these values as an address reservation'></nobr></td></tr>")
+        hide("<input type=hidden name=lease" .. i .. "_host value=" .. host .. ">")
+        hide("<input type=hidden name=lease" .. i .. "_ip   value=" .. ip .. ">")
+        hide("<input type=hidden name=lease" .. i .. "_mac  value=" .. mac .. ">")
+    end
+
+    if i == 0 then
+        html.print("<tr><td align=center colspan=4>there are no active leases</td></tr>")
+    end
+    html.print("</table>")
 end
 
 function print_forwarding()
@@ -852,12 +949,12 @@ function print_forwarding()
         list[#list + 1] = 1
     end
     list[#list + 1] = "_add"
-    local vars = { "_intf", "_type", "_out" "_ip", "_in", "_enable", "__adv", "_link", "_proto", "_suffix", "_name" }
+    local vars = { "_intf", "_type", "_out", "_ip", "_in", "_enable", "_adv", "_link", "_proto", "_suffix", "_name" }
     for _, val in ipairs(list)
     do
         for _, var in ipairs(vars)
         do
-            _G[var] = params["port" .. val ., var]
+            _G[var] = params["port" .. val .. var]
         end
 
         if val == "_add" and #list > 1 then
@@ -916,7 +1013,7 @@ function print_forwarding()
         do
             local err = port_err[1]:gsub("^%S+ ", "")
             html.print("<tr><th colspan=7>" .. err .. "</th></tr>")
-            port_err:delete(1)
+            port_err:remove(1)
         end
 
         html.print("<tr><td colspan=7 height=5></td></tr>")
@@ -951,9 +1048,174 @@ function print_forwarding()
 end
 
 function print_services()
+    html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>Advertised Services</th></tr>")
+    if not (dmz_mode ~= 0 or parms.port_num ~= 0 or parms.dmz_ip) then
+        if dmz_mode ~= 0 then
+            html.print("<tr><td>&nbsp;</td></tr><tr><td height=10></td></tr>")
+        else
+            html.print("<tr><td>&nbsp;<br><br></td></tr>")
+        end
+        html.print("<tr><td colspan=4 align=center>none</td></tr>")
+        html.print("</table>")
+        return;
+    end
+
+    if dmz_mode ~= 0 then
+        html.print("<tr><td height=5></td></tr>")
+        html.print("<tr><td>Name</td><td>Link</td><td>URL</td><td></td></tr>")
+        html.print("<tr><td height=5></td></tr>")
+    else
+        html.print("<tr><td>Name</td><td>Link</td><td>URL</td><td><br><br></td></tr>")
+    end
+
+    local list = {}
+    for i = 1,parms.serv_num
+    do
+        list[#list + 1] = 1
+    end
+    list[#list + 1] = "_add"
+
+    local vars = { "_name", "_link", "_proto", "_host", "_port", "_suffix" }
+    for _, val in ipairs(list)
+    do
+        for _, var in ipairs(vars)
+        do
+            _G[var] = parms["serv" .. val .. var]
+        end
+        if dmz_mode == 0 then
+            _host = node
+            parms["serv" .. val .. "_host"] = node
+        end
+
+        if val == "_add" and #list > 1 then
+            html.print("<tr><td colspan=4 height=10></td></tr>")
+        end
+        html.print("<tr>")
+        html.print("<td><input type=text size=6 name=serv" .. val .. "_name value='" .. _name .. "' title='what to call this service'></td>")
+
+        html.print("<td><nobr><input type=checkbox name=serv" .. val .. "_link value=1")
+        if val ~= "_add" then
+            html.print(" onChange='form.submit()'")
+        end
+        if _link then
+            html.print(" checked")
+        end
+        html.print(" title='create a clickable link for this service'>")
+        html.print("<input type=text size=2 name=serv" .. val .. "_proto value='" .. proto .. "' title='URL Protocol'")
+        if val ~= "_add" and not link then
+            html.print(" disabled")
+        end
+        html.print("></nobr></td>")
+
+        if dmz_mode ~= 0 then
+            html.print("<td><nobr><b>:</b>//<select name=serv" .. val .. "_host")
+            if val ~= "_add" and not link then
+                html.print(" disabled")
+            end
+            html.print(">")
+            html.print("<option " .. ( node == _host and "selected" or "") .. " value='" .. node .. "'>" .. node .. "</option>")
+            for i = 1,parms.alias_num
+            do
+                html.print("<option " .. ( parms["alias" .. i .. "_host"] == _host and "selected" or "") .. " value='" .. parms["alias" .. i .. "_host"] .. "'>" .. parms["alias" .. i .. "_host"] .. "</option>")
+            end
+            for i = 1,parms.dhcp_num
+            do
+                html.print("<option " .. ( parms["dhcp" .. i .. "_host"] == _host and "selected" or "") .. " value='" .. parms["dhcp" .. i .. "_host"] .. "'>" .. parms["dhcp" .. i .. "_host"] .. "</option>")
+            end
+            html.print("</select>")
+        else
+	        html.print("<td><nobr><b>:</b>//<small>" .. _host .. "</small>")
+        end
+
+        html.print("<b>:</b><input type=text size=2 name=serv" .. val .. "_port value='" .. _port .. "' title='port number'")
+        if val ~= "_add" and not link then
+            html.print(" disabled")
+        end
+        html.print("> / <input type=text size=6 name=serv" .. val .. "_suffix value='" .. _suffix .. "' ")
+        html.print("title='leave blank unless the URL needs a more specific path'")
+        if val ~= "_add" and not link then
+            html.print(" disabled")
+        end
+        html.print("></nobr></td>")
+
+        html.print("<td><nobr>&nbsp;<input type=submit name=")
+        if val == "_add" then
+            html.print("serv_add       value=Add title='Add this as a service'")
+        else
+            html.print("serv" .. val .. "_del value=Del title='Remove this service'")
+        end
+        html.print("></nobr></td></tr>")
+
+        -- display any errors
+        while #serv_err > 0 and serv_err[1]:match("^" .. val .. " ")
+        do
+            html.print("<tr><th colspan=4>" .. serv_err[1]:gsub("^%S+ ", "") .. "/th></tr>")
+            serv_err:remove(1)
+        end
+
+        if not (link or val == "_add") then
+            hide("<input type=hidden name=serv" .. val .. "_proto  value='$proto'>")
+            hide("<input type=hidden name=serv" .. val .. "_host   value='$host'>")
+            hide("<input type=hidden name=serv" .. val .. "_port   value='$port'>")
+            hide("<input type=hidden name=serv" .. val .. "_suffix value='$suffix'>")
+        end
+
+        html.print("<tr><td colspan=4 height=4></td></tr>")
+    end
+    html.print("</table>")
 end
 
 function print_aliases()
+    html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>DNS Aliases</th></tr>")
+    html.print("<tr><td colspan=3 height=5></td></tr>")
+    html.print("<tr><td align=center>Alias Name</td><td></td><td align=center>IP Address</td></tr>")
+    html.print("<tr><td colspan=3 height=5></td></tr>")
+
+    local list = {}
+    for i = 1,parms.alias_num
+    do
+        list[#list + 1] = 1
+    end
+    list[#list + 1] = "_add"
+
+    for _, val in ipairs(list)
+    do
+        local host = parms["alias" .. val .. "_host"]
+        local ip = parms["alias" .. val .. "_ip"]
+        if val == "_add" and #list > 1 then
+            html.print("<tr><td colspan=3 height=10></td></tr>\n")
+        end
+        html.print("<tr><td align=center><input type=text name=alias" .. val .. "_host value='" .. host .. "' size=20></td>")
+        html.print("<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>")
+        html.print("<td align=center><select name=alias" .. val .. "_ip>")
+        if val == "_add" then
+            html.print("<option value=''>- IP Address -</option>")
+        end
+        for i = dhcp_start,dhcp_end
+        do
+            local selip = decimal_to_ip(lannet_d + i - lannet_d % 256)
+            if selip ~= lanip then
+                local ipname = dhcphosts[selip]
+                if not ipname then
+                    ipname = selip
+                end
+                html.print("<option " .. ( _ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
+            end
+        end
+        html.print("</select></td>")
+        html.print("<td><nobr>&nbsp;<input type=submit name=")
+        if val == "_add" then
+            html.print("alias_add       value=Add title='Add Alias'")
+        else
+            html.print("alias" .. val .. "_del value=Del title='Remove Alias'")
+        end
+        html.print("></nobr></td></tr>")
+    end
+    for _, e in ipairs(alias_err)
+    do
+        html.print("<tr><th colspan=4>" .. e:gsub("^%S+ ", "") .. "</th></tr>")
+    end
+    html.print("</table>")
 end
 
 html.print("<tr><td align=center><table width=100%>")
@@ -972,7 +1234,7 @@ html.print("<tr><td>&nbsp;</td></tr>")
 html.print("<tr><td><hr></td></tr>")  
 html.print("</table><table width=790>")
 html.print("<tr><td align=center valign=top>")
-if dmz_mode ~= 0 rhwn
+if dmz_mode ~= 0 then
     print_forwarding()
 else
     print_reservations()
