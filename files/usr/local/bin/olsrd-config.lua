@@ -62,6 +62,23 @@ local services = {}
 local tunnels = {}
 
 function ip_to_hostname(ip)
+    if ip and ip ~= "" and ip ~= "none" then
+        local a, b, c, d = ip:match("(.*)%.(.*)%.(.*)%.(.*)")
+        local revip = d .. "." .. c .. "." .. b .. "." .. a
+        local f = io.popen("nslookup " .. ip)
+        if f then
+            local pattern = "^" .. revip .. "%.in-addr%.arpa%s+name%s+=%s+(%S+)%.local%.mesh"
+            for line in f:lines()
+            do
+                local host = line:match(pattern)
+                if host then
+                    return host
+                end
+            end
+            f:close()
+        end
+    end
+    return ""
 end
 
 -- canonical names for this node
