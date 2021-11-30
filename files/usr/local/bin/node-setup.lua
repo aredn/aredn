@@ -3,6 +3,7 @@
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
 	Copyright (C) 2021 Tim Wilkinson
+	Orignal Perl Copyright (C) 2015 Conrad Lara
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
