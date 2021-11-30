@@ -1,0 +1,89 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2021 Tim Wilkinson
+	Original Perl Copyright (C) 2015 Conrad Lara
+	Original Perl Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("aredn.http")
+require("aredn.hardware")
+local html = require("aredn.html")
+aredn.info = require("aredn.info")
+
+local node = aredn.info.get_nvram("node")
+if not node then
+    node = "NOCALL"
+end
+
+http_header()
+html.header(node .. " system information", false)
+html.print("<body><pre>")
+html.print(" node: " .. node)
+html.print("model: " .. aredn.hardware.get_board_id())
+html.print("")
+
+if aredn.hardware.supported() ~= 1 then
+    html.print("<font color=\"red\">!!!! UNSUPPORTED DEVICE !!!!</font>")
+    html.print("boardid: " .. aredn.hardware.get_board_id())
+    if aredn.hardware.supported() == 0 then
+        html.print("<font color=\"red\">Device HAS BEEN TESTED AS UNSUPPORTED</font>")
+    else
+        html.print("<font color=\"red\">Device has not been tested. Please file a ticket with your experiences.</font>")
+    end
+    print("")
+end
+
+local f = io.popen("ifconfig -a")
+if f then
+    for line in f:lines()
+    do
+        local a, b = line:match("^(%S+) .*HWaddr (%S+)")
+        if b then
+            html.print(string.format("%-6s %s", a, b))
+        end
+    end
+    f:close()
+end
+
+html.print("")
+html.print("/proc/cpuinfo")
+html.print(read_all("/proc/cpuinfo"))
+
+html.print("nvram")
+html.print(capture("uci -c /etc/local/uci show 2>&1"))
+
+html.print("</pre>")
+html.footer()
+html.print("</body></html>")
+http_footer()
