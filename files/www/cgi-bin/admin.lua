@@ -704,15 +704,15 @@ html.print([[
         var efn = "";
         if(hwmfg != "cpe"){
             if (hwmfg == "wbs") {
-                searchstring= ".*wbs" + hwtype + "-sysupgrade.bin$\";
-                efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. hardwaretypev .. "-sysupgrade.bin";
+                searchstring= ".*wbs" + hwtype + ".*-sysupgrade.bin$\";
+                efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. hardwaretypev .. ".*-sysupgrade.bin";
             } else {
-                searchstring= ".*(-|_)" + hwtype + "-sysupgrade.bin$\";
-                efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. "-" .. hardwaretypev .. "-sysupgrade.bin";
+                searchstring= ".*(-|_)" + hwtype + ".*-sysupgrade.bin$\";
+                efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. "-" .. hardwaretypev .. ".*-sysupgrade.bin";
             }
         } else {
-            searchstring= ".*cpe" + hwtype + "-sysupgrade.bin$\";
-            efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. hardwaretypev .. "-sysupgrade.bin";
+            searchstring= ".*cpe" + hwtype + ".*-sysupgrade.bin$\";
+            efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. hardwaretypev .. ".*-sysupgrade.bin";
         }
         var re = new RegExp(searchstring,"g");   
         if(elem.value.match(re)){
