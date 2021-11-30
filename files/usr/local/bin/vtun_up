@@ -48,7 +48,7 @@ if [ "$action" = "up" ] ; then
 	# Adding route policies for tunnel interface
 	# identical to hotplug for dtdlink
 	if ( ! ip rule list | egrep "^20020:.*$interface.*30" > /dev/null ) then
-	    if [ -e /etc/config/dmz-mode ] ; then
+	    if [ "$(/sbin/uci -q get aredn.@dmz[0].mode)" != "0" ] ; then
       	        ip rule add pref 20010 iif "$interface" lookup 29 # local interfaces
       	    fi
             ip rule add pref 20020 iif "$interface" lookup 30 # mesh

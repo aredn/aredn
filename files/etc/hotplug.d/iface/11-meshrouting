@@ -50,7 +50,7 @@ if [ "$ACTION" = "ifup" ] ; then
   echo "Setting routing rules."
 
   if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ]; then
-    if [ -e /etc/config/dmz-mode ] ; then 
+    if [ "$(/sbin/uci -q get aredn.@dmz[0].mode)" != "0" ] ; then 
       ip rule add pref 20010 iif $DEVICE lookup 29
     fi
     ip rule add pref 20020 iif $DEVICE lookup 30
