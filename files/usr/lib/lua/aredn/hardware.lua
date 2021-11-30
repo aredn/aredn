@@ -34,6 +34,7 @@
 --]]
 
 require("aredn.utils")
+require('uci')
 local json = require("luci.jsonc")
 
 local hardware = {}
@@ -118,6 +119,10 @@ function hardware.get_manufacturer()
 end
 
 function hardware.get_iface_name(name)
+    local type = uci.cursor():get("network", name, "type")
+    if type and type == "bridge" then
+        return "br-" .. name
+    end
     return get_board_json().network[name].ifname
 end
 

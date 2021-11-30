@@ -331,7 +331,7 @@ local lan_proto = "static"
 -- (formerly known as dmz mode)
 local dmz_mode = cursor_get("aredn", "@dmz[0]", "mode")
 dmz_mode = tonumber(dmz_mode)
-if dmz_mode ~= 0 and dmz_mode < 2 then
+if not dmz_mode or (dmz_mode ~= 0 and dmz_mode < 2) then
     dmz_mode = 2
 elseif dmz_mode > 5 then
     dmz_mode = 5

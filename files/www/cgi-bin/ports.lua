@@ -88,6 +88,10 @@ function navbar()
     html.print("</tr></table><hr>")
 end
 
+local serv_err = {}
+function serverr(msg)
+    serv_err[#serv_err + 1] = msg
+end
 local port_err = {}
 function porterr(msg)
     port_err[#port_err + 1] = msg
@@ -141,11 +145,11 @@ end
 -- check for dmz mode
 local dmz_mode = tonumber(cursor:get("aredn", "@dmz[0]", "mode"))
 if not dmz_mode then
-    dmz_mode = 0
+    dmz_mode = 2
 end
 
 local lanip, lanbcast, lanmask = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("lan"))
-local lannet_d = nixio.bits.band(ip_to_decimal(lanip), ip_to_decimal(lanmask))
+local lannet_d = nixio.bit.band(ip_to_decimal(lanip), ip_to_decimal(lanmask))
 
 local tmpdir = "/tmp/web/ports"
 if not parms.reload then
@@ -153,7 +157,7 @@ if not parms.reload then
 end
 nixio.fs.mkdir(tmpdir)
 
-local suffix = dmz_mode == 0 and ".net" or ".dmz"
+local suffix = dmz_mode == 0 and ".nat" or ".dmz"
 local portfile = "/etc/config.mesh/_setup.ports" .. suffix
 local dhcpfile = "/etc/config.mesh/_setup.dhcp" .. suffix
 local servfile = "/etc/config.mesh/_setup.services" .. suffix
@@ -273,7 +277,7 @@ end
 
 local dhcp_start = tonumber(cursor:get("dhcp", "@dhcp[0]", "start"))
 local dhcp_limit = tonumber(cursor:get("dhcp", "@dhcp[0]", "limit"))
-local dhcp_end =- dhcp_start + dhcp_limit - 1
+local dhcp_end = dhcp_start + dhcp_limit - 1
 
 -- load and validate the ports
 
@@ -413,7 +417,7 @@ do
 
         local foundhost = false
         if val == "_add" then
-            if host then
+            if host ~= "" then
                 local pattern = "%s" .. host .. "%s"
                 for line in io.lines("/var/run/hosts_olsr")
                 do
@@ -474,7 +478,7 @@ do
             end
         end
 
-        if validate_mac(mac) then
+        if mac:match("[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]") then
             if macs[mac] then
                 dhcperr(val .. " MAC " .. mac .. " is already in use")
             end
@@ -606,7 +610,7 @@ do
         -- also check that it dos not contain anything that will be weird on the mesh
         -- for instance: supercoolservice.kg6wxc-host.local.mesh is certainly a valid host name, but it won't work for the mesh.
         if val == "_add" then
-            if host then
+            if host ~= "" then
                 local pattern = "%s" .. host .. "%s"
                 for line in io.lines("/var/run/hosts_olsr")
                 do
@@ -625,6 +629,8 @@ do
                 if host:match("%.") then
                     aliaserr(val .. " '" .. host .. "' cannot contain the dot '.' character")
                 end
+            elseif not ((host or ip or foundhost) and (parms.alias_add or parms.button_save)) then
+                break
             end
         elseif parms["alias" .. val .. "_del"] then
             break
@@ -633,7 +639,7 @@ do
             aliaserr(val .. " this alias must be added or cleared out before saving changes")
             break
         end
-        if val == "_add" and #alias_err > 0 then
+        if val == "_add" and #alias_err > 0 and alias_err[#alias_err]:match("^" .. val .. " ") then
             break
         end
 
@@ -675,7 +681,7 @@ local vars = { "name", "proto", "host", "port", "suffix" }
 local vars2 = { "name", "link", "proto", "host", "port", "suffix" }
 local f = io.open(tmpdir .. "/services", "w")
 if f then
-    for _, val in ipairs(lists)
+    for _, val in ipairs(list)
     do
         for _ = 1,1
         do
@@ -862,7 +868,7 @@ function print_reservations()
         local host = parms["dhcp" .. val .. "_host"]
         local ip = parms["dhcp" .. val .. "_ip"]
         local mac = parms["dhcp" .. val .. "_mac"]:lower()
-        local noprop = params["dhcp" .. val .. "_noprop"]
+        local noprop = parms["dhcp" .. val .. "_noprop"]
 
         if val == "_add" and #list > 1 then
             html.print("<tr><td colspan=4 height=10></td></tr>")
@@ -907,7 +913,7 @@ function print_reservations()
         while #dhcp_err > 0 and dhcp_err[1]:match("^" .. val .. " ")
         do
             html.print("<tr><th colspan=4>" .. dhcp_err[1]:gsub("^%S+ ", "") .. "</th></tr>")
-            dhcp_err:remove(1)
+            table.remove(dhcp_err, 1)
         end
 
         html.print("<tr><td height=5></td></tr>")
@@ -954,7 +960,7 @@ function print_forwarding()
     do
         for _, var in ipairs(vars)
         do
-            _G[var] = params["port" .. val .. var]
+            _G[var] = parms["port" .. val .. var]
         end
 
         if val == "_add" and #list > 1 then
@@ -1013,7 +1019,7 @@ function print_forwarding()
         do
             local err = port_err[1]:gsub("^%S+ ", "")
             html.print("<tr><th colspan=7>" .. err .. "</th></tr>")
-            port_err:remove(1)
+            table.remove(port_err, 1)
         end
 
         html.print("<tr><td colspan=7 height=5></td></tr>")
@@ -1150,7 +1156,7 @@ function print_services()
         while #serv_err > 0 and serv_err[1]:match("^" .. val .. " ")
         do
             html.print("<tr><th colspan=4>" .. serv_err[1]:gsub("^%S+ ", "") .. "/th></tr>")
-            serv_err:remove(1)
+            table.remove(serv_err, 1)
         end
 
         if not (link or val == "_add") then

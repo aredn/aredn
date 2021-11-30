@@ -560,7 +560,7 @@ function validate_hostname(name)
 		return false
 	end
 	name = name:gsub("^%s+", ""):gsub("%s+$", "")
-	if name:match("_") or not name:match("^[%w%-]+$")
+	if name:match("_") or not name:match("^[%w%-]+$") then
 		return false
 	end
 	return true
