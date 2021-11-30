@@ -555,6 +555,49 @@ function validate_fqdn(name)
 	return name:match('^[%d%a_.-]+$') ~= nil and name:sub(0, 1) ~= '.' and name:sub(-1) ~= '.' and name:find('%.%.') == nil
 end
 
+function validate_hostname(name)
+	if not name then
+		return false
+	end
+	name = name:gsub("^%s+", ""):gsub("%s+$", "")
+	if name:match("_") or not name:match("^[%w%-]+$")
+		return false
+	end
+	return true
+end
+
+function validate_port(port)
+	if not port then
+		return false
+	end
+	port = port:gsub("^%s+", ""):gsub("%s+$", "")
+	if port == "" or port:match("%D") then
+		return false
+	end
+	port = tonumber(port)
+	if port < 1 or port > 65535 then
+		return false
+	end
+	return true
+end
+
+function validate_port_range(range)
+	if not range then
+		return false
+	end
+	local port1, port2 = range:match("^%s*(%d+)%s*-%s*(%d+)%s*$")
+	if not port2 then
+		return false
+	end
+	if not validate_port(port1) or not validate_port(port2) then
+		return false
+	end
+	if tonumber(port2) > tonumber(port1) then
+		return false
+	end
+	return true
+end
+
 --[[
 LuCI - System library
 

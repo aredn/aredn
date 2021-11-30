@@ -329,6 +329,7 @@ local lan_proto = "static"
 
 -- enforce direct mode settings
 -- (formerly known as dmz mode)
+local dmz_mode = cursor_get("aredn", "@dmz[0]", "mode")
 dmz_mode = tonumber(dmz_mode)
 if dmz_mode ~= 0 and dmz_mode < 2 then
     dmz_mode = 2
