@@ -37,7 +37,7 @@
 
 require("nixio")
 require("aredn.utils")
-require("aredn.hardwae")
+require("aredn.hardware")
 aredn.info = require('aredn.info')
 require("uci")
 
@@ -67,11 +67,11 @@ end
 -- canonical names for this node
 -- (they should up in reverse order, make the official name last)
 local name = aredn.info.get_nvram("tactical")
-if name then
+if name ~= "" then
     names[#names + 1] = name
 end
 name = aredn.info.get_nvram("node")
-if name then
+if name ~= "" then
     names[#names + 1] = name
 end
 
@@ -102,7 +102,7 @@ end
 -- add a name for the dtdlink interface
 if name then
     local dtdip = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("dtdlink"))
-    hosts[#hosts + 1] = { ip = dtdip, name = "dtdlink." .. name .. ".local.mesh" }
+    hosts[#hosts + 1] = { ip = dtdip, host = "dtdlink." .. name .. ".local.mesh" }
 end
 
 -- load the services
@@ -140,7 +140,8 @@ if nixio.fs.stat("/etc/local/mesh-firewall/02-vtund") then
 end
 
 -- add the nameservice plugin
-print([[\nLoadPlugin "olsrd_nameservice.so.0.4"]])
+print()
+print([[LoadPlugin "olsrd_nameservice.so.0.4"]])
 print([[{]])
 print([[    PlParam "sighup-pid-file" "/var/run/dnsmasq/dnsmasq.pid"]])
 print([[    PlParam "interval" "30"]])
@@ -152,7 +153,7 @@ do
 end
 for _, host in ipairs(hosts)
 do
-    print([[    PlParam ]] .. host)
+    print([[    PlParam "]] .. host.ip .. [[" "]] .. host.host .. [["]])
 end
 for _, service in ipairs(services)
 do
@@ -167,7 +168,9 @@ if #tunnels > 0 then
     do
         tuns = tuns .. " " .. tunnel
     end
+    print()
     print([[Interface]] .. tuns)
+    print([[{}]])
     print([[     Ip4Broadcast 255.255.255.255]])
     print([[     Mode "ether"]])
     print([[}]])
