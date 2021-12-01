@@ -253,6 +253,7 @@ local prelude = [[
     <center>
         <div class="TopBanner">
         <div class="LogoDiv"><img src="/AREDN.png" class="AREDNLogo"></img></div>
+        <div style="float: right;font-size: 8px;color: grey;">Lua version</div>
         </div>
         <h1><big>$node</big></h1><hr>
         <nobr>
