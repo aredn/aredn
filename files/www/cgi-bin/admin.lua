@@ -671,19 +671,21 @@ end
 local keys = {}
 local f = io.open(tmpdir .. "/newkeys", "w")
 if f then
-    for line in io.lines(keyfile)
-    do
-        local type, key, who, extra = line:match("(%S+)%s+(%S+)%s+(%S+)(.*)")
-        if extra == "" and who:match(".@.") and type:match("^ssh-") then
-            keys[#keys + 1] = who
-            f:write(type .. " " .. key .. " " .. who .. "\n")
+    if nixio.fs.stat(keyfile) then
+        for line in io.lines(keyfile)
+        do
+            local type, key, who, extra = line:match("(%S+)%s+(%S+)%s+(%S+)(.*)")
+            if extra == "" and who:match(".@.") and type:match("^ssh-") then
+                keys[#keys + 1] = who
+                f:write(type .. " " .. key .. " " .. who .. "\n")
+            end
         end
     end
     f:close()
 end
 
 -- sanitize the key file
-if nixio.fs.stat(keyfile) and os.execute("diff " .. keyfile .. " " .. tmpdir .. "/newkeys >/dev/null 2>&1") then
+if nixio.fs.stat(keyfile) and os.execute("diff " .. keyfile .. " " .. tmpdir .. "/newkeys >/dev/null 2>&1") ~= 0 then
     os.execute("mv -f " .. tmpdir .. "/newkeys " .. keyfile)
     keyout("Info: key file sanitized.")
 end
