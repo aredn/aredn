@@ -214,7 +214,7 @@ end
 -- generate page
 
 http_header()
-html.header(node .. "status", true)
+html.header(node .. " status", true)
 html.print("<body><form method='post' action='/cgi-bin/status.lua' enctype='multipart/form-data'>")
 html.print("<center>")
 
