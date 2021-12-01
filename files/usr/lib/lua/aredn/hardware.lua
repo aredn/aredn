@@ -69,7 +69,6 @@ end
 
 local function get_radio()
     if not radio then
-
         radio = get_radio_json()[hardware.get_board_id()]
     end
     return radio
@@ -97,7 +96,7 @@ function hardware.get_board_id()
     if get_board_json().model.name:match("^(%S*)") == "Ubiquiti" then
         name = read_all("/sys/devices/pci0000:00/0000:00:00.0/subsystem_device")
         if not name or name == "" or name == "0x0000" then
-            name = capture([[0x$(dd if=/dev/mtd7 bs=1 skip=12 count=2 2>/dev/null | hexdump -v -n 4 -e '1/1 "%02x"')]])
+            name = "0x" .. capture([[dd if=/dev/mtd7 bs=1 skip=12 count=2 2>/dev/null | hexdump -v -n 4 -e '1/1 "%02x"']])
         end
     end
     if not name or name == "" or name == "0x0000" then

@@ -61,7 +61,7 @@ if aredn.hardware.supported() ~= 1 then
     else
         html.print("<font color=\"red\">Device has not been tested. Please file a ticket with your experiences.</font>")
     end
-    print("")
+    html.print("")
 end
 
 local f = io.popen("ifconfig -a")
