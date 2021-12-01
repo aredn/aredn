@@ -266,7 +266,7 @@ local prelude = [[
 ]]
 html.print(prelude:gsub("$dmode", dmode):gsub("$tzone", tzone):gsub("$parms{device}", device):gsub("$node", node))
 
-if dmode == "Realtime" and not device then
+if dmode == "Realtime" and device == "" then
     html.print("<option selected value='strongest'>Average signal for all connected stations</option>")
 end
 
