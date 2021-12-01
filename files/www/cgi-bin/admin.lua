@@ -669,12 +669,12 @@ end
 
 -- generate data structures
 local keys = {}
-local f = io.open(tmpdir .. "/newkeys")
+local f = io.open(tmpdir .. "/newkeys", "w")
 if f then
     for line in io.lines(keyfile)
     do
         local type, key, who, extra = line:match("(%S+)%s+(%S+)%s+(%S+)(.*)")
-        if not extra and who:match(".@.") and type:match("^ssh-") then
+        if extra == "" and who:match(".@.") and type:match("^ssh-") then
             keys[#keys + 1] = who
             f:write(type .. " " .. key .. " " .. who .. "\n")
         end
