@@ -1072,7 +1072,7 @@ if dmz_mode ~= 0 then
     html.print("<tr><td>Netmask</td><td>" .. dmz_lan_mask .. "</td></tr>")
     hidden[#hidden + 1] = "<input type=hidden name=dmz_lan_mask value='" ..dmz_lan_mask .. "'>"
 
-    html.print("<tr><td><nobr>DHCP Server</nobr></td><td><input type=checkbox name=lan_dhcp value=1" .. (lan_dhcp ~= 0 and " checked" or "") .. "></td></tr>")
+    html.print("<tr><td><nobr>DHCP Server</nobr></td><td><input type=checkbox name=lan_dhcp value=1" .. (lan_dhcp ~= "0" and " checked" or "") .. "></td></tr>")
     html.print("<tr><td><nobr>DHCP Start</nobr></td><td>" .. dmz_dhcp_start .. "</td></tr>")
     hidden[#hidden + 1] = "<input type=hidden name=dmz_dhcp_start value='" .. dmz_dhcp_start .. "'>"
 
@@ -1091,7 +1091,7 @@ else
     else
         hidden[#hidden + 1] = "<input type=hidden name=lan_gw     value='" .. lan_gw .. "'>"
     end
-    html.print("<tr><td><nobr>DHCP Server</nobr></td><td><input type=checkbox name=lan_dhcp value=1" .. (lan_dhcp ~= "" and " checked" or "") .. "></td></tr>")
+    html.print("<tr><td><nobr>DHCP Server</nobr></td><td><input type=checkbox name=lan_dhcp value=1" .. (lan_dhcp ~= "0" and " checked" or "") .. "></td></tr>")
     html.print("<tr><td><nobr>DHCP Start</nobr></td><td><input type=text size=4 name=dhcp_start value='" .. dhcp_start .. "'></td></tr>")
     html.print("<tr><td><nobr>DHCP End</nobr></td><td><input type=text size=4 name=dhcp_end value='" .. dhcp_end .. "'></td></tr>")
 
