@@ -111,11 +111,21 @@ function hardware.get_board_type()
 end
 
 function hardware.get_type()
-    return hardware.get_board_type():match(",(.*)")
+    local id = get_board_json().model.id
+    local type = id:match(",(.*)")
+    if type then
+        return type
+    end
+    return id
 end
 
 function hardware.get_manufacturer()
-    return hardware.get_board_id():match("(.*)%s")
+    local name = get_board_json().model.name
+    local man = name:match("(.*)%s")
+    if man then
+        return man
+    end
+    return name
 end
 
 function hardware.get_iface_name(name)
