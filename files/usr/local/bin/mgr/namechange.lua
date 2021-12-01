@@ -51,10 +51,6 @@ function namechange()
 
 end
 
-if not file_exists("/tmp/node.history") then
-    io.open("/tmp/node.history", "w+"):close()
-end
-
 function do_namechange()
     -- Do nothing if olsrd is not running
     if capture("pidof olsrd") == "" then
@@ -94,17 +90,19 @@ function do_namechange()
     end
 
     -- load the strip the current history
-    for line in io.lines("/tmp/node.history")
-    do
-        local v = line:splitWhiteSpace()
-        local ip = v[1]
-        local age = 0
-        if v[2] then
-            age = math.floor(v[2])
-        end
-        local name = v[3]
-        if age and not history[ip] and uptime - age < 86400 then
-            history[ip] = { age = age, name = name or "" }
+    if nixio.fs.stat("/tmp/node.history") then
+        for line in io.lines("/tmp/node.history")
+        do
+            local v = line:splitWhiteSpace()
+            local ip = v[1]
+            local age = 0
+            if v[2] then
+                age = math.floor(v[2])
+            end
+            local name = v[3]
+            if age and not history[ip] and uptime - age < 86400 then
+                history[ip] = { age = age, name = name or "" }
+            end
         end
     end
 

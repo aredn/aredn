@@ -44,19 +44,21 @@ function olsrd_restart()
 
     os.execute("/etc/init.d/olsrd restart")
 
-    local lines = read_all(logfile):splitNewLine()
-    lines[#lines + 1] = aredn_info.getUptime() .. " " .. os.date()
-    local start = 1
-    if #lines > 300 then
-        start = #lines - 275
-    end
-    local f = io.open(logfile, "w")
-    if f then
-        for i = start, #lines
-        do
-            f:write(lines[i] .. "\n")
+    if nixio.fs.stat(logfile) then
+        local lines = read_all(logfile):splitNewLine()
+        lines[#lines + 1] = aredn_info.getUptime() .. " " .. os.date()
+        local start = 1
+        if #lines > 300 then
+            start = #lines - 275
         end
-        f:close()
+        local f = io.open(logfile, "w")
+        if f then
+            for i = start, #lines
+            do
+                f:write(lines[i] .. "\n")
+            end
+            f:close()
+        end
     end
 end
 

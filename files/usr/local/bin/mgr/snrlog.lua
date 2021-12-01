@@ -51,16 +51,7 @@ local autolog = "/tmp/AutoDistReset.log"
 local defnoise = -95
 
 -- create tmp dir if needed
-if not dir_exists(tmpdir) then
-    nixio.fs.mkdir(tmpdir)
-end
-
--- create lastdata file if needed
-if not file_exists(lastdat) then
-    -- create file
-    local f,err = assert(io.open(lastdat,"w+"),"Cannot create "..lastdat)
-    f:close()
-end
+nixio.fs.mkdir(tmpdir)
 
 function run_snrlog()
 
@@ -96,10 +87,12 @@ function run_snrlog()
     -- load the lasttime table
     local lasttime = {}
     local nulledout = {}
-    for line in io.lines(lastdat) do
-        local mac, last, nulled = string.match(line, "(.*)|(.*)|(.*)")
-        lasttime[mac] = last
-        nulledout[mac] = nulled
+    if nixio.fs.stat(lastdat) then
+        for line in io.lines(lastdat) do
+            local mac, last, nulled = string.match(line, "(.*)|(.*)|(.*)")
+            lasttime[mac] = last
+            nulledout[mac] = nulled
+        end
     end
 
     -- iterate over all the stations and log neighbors
