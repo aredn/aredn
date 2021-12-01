@@ -196,9 +196,9 @@ if parms.button_reset or not parms.reload then
     for line in io.lines(dhcpfile)
     do
         if not (line:match("^%s*#") or line:match("^%s*$")) then
-            local a, b, x = line:match("(.*)%s+(.*)%s+(.*)")
+            local a, b, x = line:match("(%S*)%s+(%S*)%s+(.*)")
             if x then
-                local c, d = x:match("(.*)%s+(.*)")
+                local c, d = x:match("(%S*)%s+(%S*)")
                 if not c then
                     c = x
                     d = ""
@@ -206,7 +206,7 @@ if parms.button_reset or not parms.reload then
                 i = i + 1
                 local prefix = "dhcp" .. i .. "_"
                 parms[prefix .. "mac"] = a
-                parms[prefix .. "ip"] = decimal_to_ip(lannet_d + b)
+                parms[prefix .. "ip"] = decimal_to_ip(lannet_d + tonumber(b))
                 parms[prefix .. "host"] = c
                 parms[prefix .. "noprop"] = d
             end
@@ -569,9 +569,9 @@ parms.dhcp_num = dhcp_num
 dhcphosts = {}
 dhcphosts[lanip] = "localhost"
 
--- replace "blank" dhcp hostname and sae the dhcp info into the tmpdir
+-- replace "blank" dhcp hostname and save the dhcp info into the tmpdir
 
-local f = io.open(tmpdir .. "/dhcp", "r")
+local f = io.open(tmpdir .. "/dhcp", "w")
 if f then
     local nn = 1
     for i = 1,parms.dhcp_num
@@ -584,7 +584,7 @@ if f then
             parms["dhcp" .. i .. "_host"] = "noname" .. nn
             hosts["noname" .. nn] = true
         end
-        f:write(parms["dhcp" .. i .. "mac"] .. " " .. (ip_to_decimal(parms["dhcp" .. i .. "_ip"]) - lannet_d) .. " " .. parms["dhcp" .. i .. "_host"] .. " " .. parms["dhcp" .. i .. "_noprops"] .. "\n")
+        f:write(parms["dhcp" .. i .. "_mac"] .. " " .. (ip_to_decimal(parms["dhcp" .. i .. "_ip"]) - lannet_d) .. " " .. parms["dhcp" .. i .. "_host"] .. " " .. parms["dhcp" .. i .. "_noprop"] .. "\n")
         if not (dhcphosts[parms["dhcp" .. i .. "_ip"]]) then
             dhcphosts[parms["dhcp" .. i .. "_ip"]] = parms["dhcp" .. i .. "_host"]
         end
@@ -886,10 +886,10 @@ function print_reservations()
             local selip = decimal_to_ip(lannet_d + i - lannet_d % 256)
             if selip ~= lanip then
                 local ipname = dhcphosts[selip]
-                if not ipname then
+                if not ipname or selip == ip then
                     ipname = selip
                 end
-                html.print("<option " .. ( _ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
+                html.print("<option " .. (ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
             end
         end
         html.print("</select></td>")
@@ -976,18 +976,18 @@ function print_forwarding()
         -- port forwarding settings
         html.print("<td align=center valign=top><select name=port" .. val .. "_intf title='forward inbound packets from this interface'>")
         if dmz_mode == 0 then
-            html.print("<option " .. ( _inntf == "wifi" and "selected" or "") .. " value='wifi'>WiFi</option>")
-            html.print("<option " .. ( _inntf == "wab" and "selected" or "") .. " value='wan'>WAN</option>")
-            html.print("<option " .. ( _inntf == "both" and "selected" or "") .. " value='both'>Both</option>")
+            html.print("<option " .. (_inntf == "wifi" and "selected" or "") .. " value='wifi'>WiFi</option>")
+            html.print("<option " .. (_inntf == "wab" and "selected" or "") .. " value='wan'>WAN</option>")
+            html.print("<option " .. (_inntf == "both" and "selected" or "") .. " value='both'>Both</option>")
         else
-            html.print("<option " .. ( _inntf == "wan" and "selected" or "") .. " value='wan'>WAN</option>")
+            html.print("<option " .. (_inntf == "wan" and "selected" or "") .. " value='wan'>WAN</option>")
         end
         html.print("</select></td>")
 
         html.print("<td align=center valign=top><select name=port" .. val .. "_type>")
-        html.print("<option " .. ( _type == "tcp" and "selected" or "") .. " value='tcp'>TCP</option>")
-        html.print("<option " .. ( _type == "udp" and "selected" or "") .. " value='udp'>UDP</option>")
-        html.print("<option " .. ( _type == "both" and "selected" or "") .. " value='both'>Both</option>")
+        html.print("<option " .. (_type == "tcp" and "selected" or "") .. " value='tcp'>TCP</option>")
+        html.print("<option " .. (_type == "udp" and "selected" or "") .. " value='udp'>UDP</option>")
+        html.print("<option " .. (_type == "both" and "selected" or "") .. " value='both'>Both</option>")
         html.print("</select></td>")
 
         html.print("<td align=center valign=top><input type=text name=port" .. val .. "_out value='" .. _out .. "' size=8></td>")
@@ -1003,7 +1003,7 @@ function print_forwarding()
             if not ipname then
                 ipname = selip
             end
-            html.print("<option " .. ( _ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
+            html.print("<option " .. (_ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
         end
         html.print("</select></td>")
 
@@ -1043,7 +1043,7 @@ function print_forwarding()
                 if not ipname then
                     ipname = selip
                 end
-                html.print("<option " .. ( parms.dmz_ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
+                html.print("<option " .. (parms.dmz_ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
             end
         end
         html.print("</select></td>")
@@ -1122,14 +1122,14 @@ function print_services()
                 html.print(" disabled")
             end
             html.print(">")
-            html.print("<option " .. ( node == _host and "selected" or "") .. " value='" .. node .. "'>" .. node .. "</option>")
+            html.print("<option " .. (node == _host and "selected" or "") .. " value='" .. node .. "'>" .. node .. "</option>")
             for i = 1,parms.alias_num
             do
-                html.print("<option " .. ( parms["alias" .. i .. "_host"] == _host and "selected" or "") .. " value='" .. parms["alias" .. i .. "_host"] .. "'>" .. parms["alias" .. i .. "_host"] .. "</option>")
+                html.print("<option " .. (parms["alias" .. i .. "_host"] == _host and "selected" or "") .. " value='" .. parms["alias" .. i .. "_host"] .. "'>" .. parms["alias" .. i .. "_host"] .. "</option>")
             end
             for i = 1,parms.dhcp_num
             do
-                html.print("<option " .. ( parms["dhcp" .. i .. "_host"] == _host and "selected" or "") .. " value='" .. parms["dhcp" .. i .. "_host"] .. "'>" .. parms["dhcp" .. i .. "_host"] .. "</option>")
+                html.print("<option " .. (parms["dhcp" .. i .. "_host"] == _host and "selected" or "") .. " value='" .. parms["dhcp" .. i .. "_host"] .. "'>" .. parms["dhcp" .. i .. "_host"] .. "</option>")
             end
             html.print("</select>")
         else
@@ -1208,7 +1208,7 @@ function print_aliases()
                 if not ipname then
                     ipname = selip
                 end
-                html.print("<option " .. ( _ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
+                html.print("<option " .. (_ip == selip and "selected" or "") .. " value='" .. selip .. "'>" .. ipname .. "</option>")
             end
         end
         html.print("</select></td>")
