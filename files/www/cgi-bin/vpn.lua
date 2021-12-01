@@ -229,7 +229,9 @@ end
 if config == "" or nixio.fs.stat("/tmp/reboot-required") then
     http_header();
     html.header(node .. " setup", true);
-    html.print("<body><center><table width=790><tr><td>")
+    html.print("<body><center>")
+    html.alert_banner()
+    html.print("<table width=790><tr><td>")
     navbar();
     hrml.print("</td></tr><tr><td align=center><br>")
     if config == "" then
@@ -249,7 +251,9 @@ end
 if not nixio.fs.stat("/usr/sbin/vtund") then
     http_header();
     html.header(node .. " setup", true);
-    html.print("<body><center><table width=790>")
+    html.print("<body><center>")
+    html.alert_banner()
+    html.print("<table width=790>")
     html.print("<tr><td>")
     navbar();
     html.print("</td></tr>")
