@@ -121,7 +121,7 @@ end
 
 function hardware.get_manufacturer()
     local name = get_board_json().model.name
-    local man = name:match("(.*)%s")
+    local man = name:match("(%S*)%s")
     if man then
         return man
     end

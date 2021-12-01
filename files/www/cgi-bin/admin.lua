@@ -254,11 +254,11 @@ local targettype = conn:call("system", "board", {}).release.target
 -- handle TPLink and Mikrotik exception conditions
 local mfg = aredn.hardware.get_manufacturer()
 local mfgprefix = ""
-if mfg:match("Ubiquiti") then
+if mfg:match("[Uu]biquiti") then
     mfgprefix = "ubnt"
-elseif mfg:match("Mikrotik") then
+elseif mfg:match("[Mm]ikro[Tt]ik") then
     mfgprefix = "mikrotik"
-elseif mfg:match("TP-Link") then
+elseif mfg:match("[Tt][Pp]-[Ll]ink") then
     mfgprefix = "cpe"
 end
 
