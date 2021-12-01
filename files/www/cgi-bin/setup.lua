@@ -193,6 +193,27 @@ function out(str)
     output[#output + 1] = str
 end
 
+function is_channel_valid(channel)
+    if channel then
+        local f = io.popen("iwinfo " .. aredn.hardware.get_iface_name("wifi") .. " freqlist")
+        if f then
+            for line in f:lines()
+            do
+                if line:match("Channel " .. channel) and not line:match("%[restricted%]") then
+                    f:close()
+                    return true
+                end
+            end
+            f:close()
+        end
+    end
+    return false
+end
+
+function is_wifi_chanbw_valid(wifi_chanbw, wifi_ssid)
+    return true -- always true
+end
+
 -- helper end
 
 -- timezones
@@ -261,7 +282,23 @@ if os.getenv("REQUEST_METHOD") == "POST" then
 end
 
 if parms.button_uploaddata then
-    -- fix me
+    local si = capture("curl 'http://localnode:8080/cgi-bin/sysinfo.json?hosts=1' 2>/dev/null"):chomp()
+    -- strip closing }
+    si = si.sub(1, #sub - 1)
+
+    -- get olsrd topo information
+    local topo = capture("url 'http://localnode:9090/links' 2>/dev/null"):chomp()
+
+    -- add topo subdoc and close root doc
+    local newsi = string.format("%s,\"olsr\": %s}", si, topo)
+
+    -- PUT it to the server
+    local upcurl = os.execute("curl -H 'Accept: application/json' -X PUT -d '" .. newsi .. "' http://data.arednmesh.org/sysinfo")
+    if upcurl == 0 then
+        out("AREDN online map updated")
+    else
+        err("ERROR: Cannot update online map. Please ensure this node has access to the internet.");
+    end
 end
 
 if parms.button_default then
@@ -462,7 +499,7 @@ if parms.button_save then
         err("invalid Mesh RF SSID")
     end
 
-    if not is_channel_valid(wifi_channel) then -- fix me
+    if not is_channel_valid(wifi_channel) then
         err("invalid Mesh RF channel")
     end
     if not is_wifi_chanbw_valid(wifi_chanbw, wifi_ssid) then
