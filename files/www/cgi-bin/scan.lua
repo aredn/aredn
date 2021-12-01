@@ -58,7 +58,7 @@ if f then
     local scan
     for line in f:lines()
     do
-        local m = line:match("^BSS ([%da-f:]+)")
+        local m = line:match("^BSS ([%da-fA-F:]+)")
         if m then
             scan = {
                 mac = m,
@@ -105,7 +105,7 @@ if f then
     local myfreq = tonumber(aredn_info.getFreq())
     for line in f:lines()
     do
-        local m = line:match("^Station ([%da-f:]+) %(on " .. wifiiface .. "%)")
+        local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")
         if m then
             scan = scanned[m]
             if not scan then

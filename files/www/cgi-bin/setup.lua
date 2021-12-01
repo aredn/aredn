@@ -94,6 +94,7 @@ function capture_and_match(cmd, pattern)
         do
             local r = line:match(pattern)
             if r then
+                f:close()
                 return r
             end
         end

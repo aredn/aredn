@@ -189,6 +189,7 @@ function hardware.get_interface_ip4(intf)
         do
             local ip, bcast, mask = line:match("inet addr:([%d%.]+)%s+Bcast:([%d%.]+)%s+Mask:([%d%.]+)")
             if ip then
+                f:close()
                 return ip, bcast, mask
             end
         end
@@ -204,6 +205,7 @@ function hardware.get_interface_mac(intf)
         do
             local m = line:match("HWaddr ([%w:]+)")
             if m then
+                f:close()
                 mac = m
                 break
             end

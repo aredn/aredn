@@ -72,6 +72,7 @@ function ip_to_hostname(ip)
             do
                 local host = line:match(pattern)
                 if host then
+                    f:close()
                     return host
                 end
             end

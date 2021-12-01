@@ -1,0 +1,323 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2021 Tim Wilkinson
+	Original Perl Copyright (c) 2015 Joe Ayers AE6XE
+	Original Perl Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+	See Contributors file for additional contributors
+
+	2015-04-01 AE6XE update to display neighbor nodes, replace vendor with mode
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("nixio")
+require("aredn.utils")
+require("aredn.hardware")
+aredn.info = require("aredn.info")                                                                                                 
+
+function usage()
+    print("usage: wscan [-1abnor] [-i iface]")
+    print("       -1   run once and quit")
+    print("       -a   average mode")
+    print("       -b   batch mode")
+    print("       -n   <num> number of times to scan")
+    print("       -o   show only open access points")
+    print("       -r   raw mode")
+    os.exit()
+end
+
+function die(msg)
+    print(msg)
+    os.exit(1)
+end
+
+function freq_to_chan(freq)
+    local chan = freq
+    if chan < 256 then
+    elseif chan == 2484 then
+        return 14
+    elseif chan == 2407 then
+        return 0
+    elseif chan < 2484 then
+        return (chan - 2407) / 5
+    elseif chan < 5000 then
+    elseif chan < 5380 then
+        return (chan - 5000) / 5
+    elseif chan < 5500 then
+        return chan - 2000
+    elseif chan < 6000 then
+        return (chan - 5000) / 5
+    end
+    return "?"
+end
+
+-- load arp cache
+local arpcache = {}
+arptable(function(a)
+    arpcache[a["HW address"]] = a["IP address"]
+end)
+
+local hostcache = {}
+function mac_to_host(mac)
+    if not mac then
+        return "N/A"
+    end
+    local host = hostcache[mac]
+    if host then
+        return host
+    end
+    local ip = arpcache[mac]
+    if ip then
+        hostname = ip
+        local f = io.popen("nslookup " .. ip)
+        if f then
+            for line in f:lines()
+            do
+                local m = line:match("name = (.*)%.local%.mesh")
+                if m then
+                    f:close()
+                    hostcache[mac] = m
+                    return m
+                end
+            end
+            f:close()
+        end
+    else
+        hostcache[mac] = "N/A"
+        return "N/A"
+    end
+end
+
+local avg = false -- average mode
+local batch = false -- batch mode
+local loops = 0 -- number of times to run 0=inf
+local raw = false -- raw mode
+local openap = false -- show open ap's
+
+local iface = aredn.hardware.get_iface_name("wifi") -- wifi interface
+
+local iters = 0 -- number of iterations
+local avgs = {} -- average statistics
+
+local i = 1
+while i <= #arg
+do
+    local a = arg[i]
+    i = i + 1
+    if a == "-h" then
+        usage()
+    elseif a == "-1" then
+        loops = 1
+    elseif a == "-a" then
+        avg = true
+    elseif a == "-b" then
+        batch = true
+    elseif a == "-o" then
+        openap = true
+    elseif a == "-r" then
+        raw = true
+    elseif a == "-i" then
+        iface = arg[i]
+        i = i + 1
+    elseif a == "-n" then
+        loops = tonumber(arg[i])
+        i = i + 1
+    else
+        die("bad arg " .. a)
+    end
+end
+
+if not iface or iface == "" then
+    die("bad interface")
+end
+
+if raw then
+    os.execute("iw dev " .. iface .. " scan passive")
+    os.execute("iw dev " .. iface .. " station dump")
+    os.exit()
+end
+
+if loops == 0 then
+    loops = math.huge
+end
+
+local myssid = aredn.info.getSSID()                                          
+local myfreq = tonumber(aredn.info.getFreq())    
+
+for _ = 1,loops
+do
+    -- scan start
+    local scanned = {}
+    local f = io.popen("iw dev " .. iface .. " scan passive")
+    if f then
+        local scan
+        for line in f:lines()
+        do
+            local m = line:match("^BSS ([%da-fA-F:]+)")
+            if m then
+                scan = {
+                    mac = m,
+                    mode = "AP",
+                    ssid = "",
+                    signal = 0,
+                    freq = 0,
+                    key = ""
+                }
+                scanned[m] = scan
+                if line:match("joined") then
+                    scan.mode = "My Ad-Hoc Network"
+                end
+            end
+            m = line:match("freq: (%d+)")
+            if m then
+                scan.freq = tonumber(m)
+            end
+            m = line:match("SSID: (.+)")
+            if m then
+                scan.ssid = m
+            end
+            m = line:match("signal: ([%d-]+)")
+            if m then
+                scan.signal = tonumber(m)
+            end
+            m = line:match("Group cipher: (.+)")
+            if m then
+                scan.key = m
+            end
+            if line:match("capability: IBSS") and scan.mode == "AP" then
+                scan.mode = "Foreign Ad-Hoc Network"
+            end
+        end
+        f:close()
+    end
+    local f = io.popen("iw dev " .. iface .. " station dump")
+    if f then
+        local scan
+        for line in f:lines()
+        do
+            local m = line:match("^Station ([%da-fA-F:]+) %(on " .. iface .. "%)")
+            if m then
+                scan = scanned[m]
+                if not scan then
+                    scan = {
+                        mac = m,
+                        mode = "Connected Ad-Hoc Station",
+                        ssid = myssid,
+                        signal = 0,
+                        freq = myfreq,
+                        key = ""
+                    }
+                    scanned[m] = scan
+                else
+                    scan.mode = "Connected Ad-Hoc Station"
+                    scan.ssid = myssid
+                    scan.key = ""
+                    scan.freq = myfreq
+                end
+            end
+            m = line:match("signal avg:%s+([%d-]+)")
+            if m then
+                scan.signal = tonumber(m)
+            end
+        end
+        f:close()
+    end
+    -- scan end
+
+    -- update running averages
+    for _, scan in pairs(scanned)
+    do
+        local v = avgs[scan.mac]
+        if not v then
+            v = { num = 1, total = scan.signal }
+            avgs[scan.mac] = v
+        else
+            v.num = v.num + 1
+            v.total = v.total + scan.signal
+        end
+        v.mac = scan.mac
+        v.mode = scan.mode
+        v.ssid = scan.ssid
+        v.signal = scan.signal
+        v.freq = scan.freq
+        v.key = scan.key
+    end
+
+    if #scanned == 0 and loops ~= 1 then
+        nixio.nanosleep(1, 0)
+    end
+
+    iters = iters + 1
+
+    -- create output
+    local output = {}
+
+    if avg then
+        for _, scan in pairs(avgs)
+        do
+            if scan.signal ~= 0 and (not openap or scan.key == "") then
+                local chan = freq_to_chan(scan.freq)
+                local ssid = scan.ssid == "" and "(hidden)" or scan.ssid
+                local key = scan.key == "" and " " or "*"
+                output[#output + 1] = string.format("%3d %3d %3d %s %-32s\t%s\t%s\t%s", math.floor((scan.total - scan.num + 1) / scan.num), math.floor(100 * scan.num / iters), chan, key, ssid, mac_to_host(scan.host), scan.mac:upper(), scan.mode)
+            end
+        end
+    else
+        for _, scan in pairs(scanned)
+        do
+            if scan.signal ~= 0 and (not openap or scan.key == "") then
+                local chan = freq_to_chan(scan.freq)
+                local ssid = scan.ssid == "" and "(hidden)" or scan.ssid
+                local key = scan.key == "" and " " or "*"
+                output[#output + 1] = string.format("%3d %2d %s %-32s\t%s\t%s\t%s", scan.signal, chan, key, ssid, mac_to_host(scan.host), scan.mac:upper(), scan.mode)
+            end
+        end
+    end
+
+    table.sort(output, function(a,b) return a < b end)
+
+    if not batch then
+        if avg then
+            os.execute("clear")
+            print(string.format("Sig Rel Ch E          SSID                   Hostname              MAC/BSSID       802.11 Mode  %6d", iters))
+            print("--- --- -- - -------------------------------- ----------------- ------------- -----------")
+        else
+            print(string.format("Sig Ch E         SSID                    Hostname                    MAC/BSSID      802.11 Mode  %6d", iters))
+            print("--- -- - -------------------------------- --------------------- ------------- ------------")
+        end
+    end
+
+    for _, out in ipairs(output)
+    do
+        print(out)
+    end
+
+end
