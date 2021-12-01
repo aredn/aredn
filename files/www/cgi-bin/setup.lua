@@ -64,7 +64,7 @@ do
 end
 for i = -2,11
 do
-    rf_channel_map["2400"][i + (i <= 0 and 2 or 1)] = { label = i .. " (" .. (2407 + i * 5) .. ")", number = i, frequency = 2407 + i * 5 }
+    rf_channel_map["2400"][i + (i <= 0 and 3 or 2)] = { label = i .. " (" .. (2407 + i * 5) .. ")", number = i, frequency = 2407 + i * 5 }
 end
 for i = 76,99
 do
