@@ -444,7 +444,7 @@ if next(localhosts) then
     local rows = {}
     for ip, host in pairs(localhosts)
     do
-        local localpart = host.name:match("(.*)%.")
+        local localpart = host.name:match("([^.]*)%.")
         local tactical = ""
         if host.tactical ~= "" then
             tactical = " / " .. host.tactical
