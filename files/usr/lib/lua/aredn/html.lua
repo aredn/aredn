@@ -70,7 +70,7 @@ function html.alert_banner()
     local local_message = read_all("/tmp/local_message")
 
     html.print("<div class=\"TopBanner\">")
-    html.print("<div class=\"LogoDiv\"><a href=\"http://localnode.local.mesh:8080\" title=\"Go to localnode\"><img src=\"/AREDN.png\" class=\"AREDNLogo\"></img></a></div>")
+    html.print("<div class=\"LogoDiv\"><a href=\"http://localnode.local.mesh:8080\" title=\"Go to localnode\"><img src=\"/AREDN.png\" class=\"AREDNLogo\"></img></a><div style=\"float: right;font-size: 8px;color: grey;\">Lua version</div></div>")
 
     local supported = aredn.hardware.supported()
     if supported == 0 then
