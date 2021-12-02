@@ -81,7 +81,7 @@ if not (config == "mesh" and nixio.fs.access("/etc/config.mesh/_setup", "r")) th
     return -1
 end
 
-local lanintf = aredn.hardware.get_iface_name("lan")
+local lanintf = aredn.hardware.get_board().network.lan.ifname
 local node = aredn_info.get_nvram("node")
 local tactical = aredn_info.get_nvram("tactical")
 local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
