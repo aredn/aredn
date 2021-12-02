@@ -143,7 +143,11 @@ function reboot()
         node = "Node"
     end
     local lanip, _, lanmask = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("lan"))
-    local browser = os.getenv("REMOTE_ADDR"):match("::ffff:([%d%.]+)")
+    local browser = os.getenv("REMOTE_ADDR")
+    local browser6 = browser:match("::ffff:([%d%.]+)")
+    if browser6 then
+        browser = browser6
+    end
     local fromlan = false
     local subnet_change = false
     if lanip then
@@ -344,6 +348,14 @@ else
     end
 end
 
+-- type conversions
+for _, k in ipairs({ "wifi_channel", "wifi2_channel" })
+do
+    if _G[k] then
+        _G[k] = tonumber(_G[k])
+    end
+end
+
 local nodetac
 if parms.button_reset or parms.button_default or (not nodetac and not has_parms) then
     nodetac = aredn_info.get_nvram("node")
@@ -422,7 +434,7 @@ parms.wifi_distance = wifi_distance
 parms.wifi_txpower = wifi_txpower
 
 -- apply the wifi settings
-if (parms.button_apply or parms.button_save) and wifi_enable then
+if (parms.button_apply or parms.button_save) and wifi_enable == "1" then
     if wifi_distance == 0 then
         os.execute("iw phy " .. phy .. " set distance auto")
     else
@@ -592,10 +604,10 @@ if parms.button_save then
             err("you must set the node name")
         end 
     end
-    if node ~= "" and node:match("[^%w-]") or node.match("_") then
+    if node ~= "" and node:match("[^%w-]") or node:match("_") then
         err("invalid node name")
     end
-    if tactical:match("[^%w-]") or tactical.match("_") then
+    if tactical:match("[^%w-]") or tactical:match("_") then
         err("invalid tactical name")
     end
 
@@ -982,7 +994,7 @@ hidden[#hidden + 1] = "<input type=hidden name=wifi_proto value='static'>"
 -- add enable/disable
 
 html.print("<tr><td>Enable</td><td><input type=checkbox name=wifi_enable value=1")
-if wifi_enable then
+if wifi_enable == "1" then
     html.print(" checked")
 end
 html.print("></td></tr>")
@@ -995,7 +1007,7 @@ if nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset then
     wifi_chanbw = defaultwifi.bandwidth
 end
 
-if wifi_enable then
+if wifi_enable == "1" then
     html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi_ssid value='" .. wifi_ssid .. "'>-" .. wifi_chanbw .. "-v3</td></tr>")
     hidden[#hidden + 1] = "<input type=hidden name=wifi_mode value='" .. wifi_mode .. "'>"
     html.print("<tr><td>Channel</td><td><select name=wifi_channel>")
@@ -1105,7 +1117,7 @@ html.print("<tr><td colspan=2><hr></hr></td></tr>")
 
 -- $M39model = `/usr/local/bin/get_model | grep -e "M[39]"`;
 local M39model
-if (phycount > 1 and (not wifi_enable or not wifi3_enable) or (phycount == 1 and not wifi_enabe and not wifi3_enable)) and not M39model then
+if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi3_enable ~= "1") and not M39model then
     -- lan ap shows as an option
     -- determine hardware options and set band ahd channels accordingly
     if phycount == 1 then
@@ -1115,6 +1127,7 @@ if (phycount > 1 and (not wifi_enable or not wifi3_enable) or (phycount == 1 and
             if wifi2_channel > 14 then
                 wifi2_channel = 1
             end
+            chan = ctwo
         else
             wifi2_hwmode = "11a"
             if wifi2_channel < 36 then
@@ -1124,17 +1137,17 @@ if (phycount > 1 and (not wifi_enable or not wifi3_enable) or (phycount == 1 and
         end
     else
         -- 2 band device
-        if wifi_enable then
+        if wifi_enable == "1" then
             wifi2_hwmode = "11a"
             if wifi2_channel < 36 then
                 wifi2_channel = 36
             end
             chan = cfive
         else
-            if not wifi2_enable and wifi3_enable and wifi3_hwmode == "11a" then
+            if wifi2_enable ~= "1" and wifi3_enable == "1" and wifi3_hwmode == "11a" then
                 wifi2_hwmode = "11g"
             end
-            if not wifi2_enable and wifi3_enable and wifi3_hwmode == "11g" then
+            if wifi2_enable ~= "1" and wifi3_enable == "1" and wifi3_hwmode == "11g" then
                 wifi2_hwmode = "11a"
             end
             if wifi2_hwmode == "11a" then
@@ -1150,10 +1163,10 @@ if (phycount > 1 and (not wifi_enable or not wifi3_enable) or (phycount == 1 and
             end
         end
     end
-    html.print("<tr><th colspan=2>LAN Access Point</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi2_enable value=1" .. (wifi2_enable and " checked" or "") .. "></td></tr>")
+    html.print("<tr><th colspan=2>LAN Access Point</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi2_enable value=1" .. (wifi2_enable == "1" and " checked" or "") .. "></td></tr>")
     if phycount > 1 then
         html.print("<tr><td>AP band</td><td><select name=wifi2_hwmode>")
-        if not wifi_enable then
+        if wifi_enable ~= "1" then
             html.print("<option value='11g'".. (wifi2_hwmode == "11g" and " selected" or "") .. ">2GHz</option>")
         end
         html.print("<option value='11a'".. (wifi2_hwmode == "11a" and " selected" or "") .. ">5GHz</option>")
@@ -1162,7 +1175,7 @@ if (phycount > 1 and (not wifi_enable or not wifi3_enable) or (phycount == 1 and
         hidden[#hidden + 1] = "<input type=hidden name=wifi2_hwmode  value='" .. wifi2_hwmode .."'>"
     end
     html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi2_ssid value='" .. wifi2_ssid .."'></td></tr><tr><td>Channel</td><td><select name=wifi2_channel>")
-    for i in 0,#chan
+    for i = 1,#chan
     do
         html.print("<option value='" .. chan[i] .. "'" .. (wifi2_channel == chan[i] and " selected" or "") .. ">" .. chan[i] .. "</option>")
     end
@@ -1214,7 +1227,7 @@ end
 html.print("<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td><td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'" .. (lan_dhcp_noroute ~= "0" and " checked" or "") .. "></td></tr>")
 
 -- wan wifi client
-if (phycount > 1 and (not wifi_enable or not wifi2_enable)) or (phycount == 1 and not wifi_enable and not wifi2_enable) and not M390model then
+if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1") and not M390model then
     -- wifi client shows as an option
     -- determine hardware options and set band accordingly
 
@@ -1228,21 +1241,21 @@ if (phycount > 1 and (not wifi_enable or not wifi2_enable)) or (phycount == 1 an
         end
     else
         -- 2 band
-        if wifi_enable then
+        if wifi_enable == "1" then
             wifi3_hwmode = "11a"
         else
-            if wifi2_hwmode == "11g" and wifi2_enable then
+            if wifi2_hwmode == "11g" and wifi2_enable == "1" then
                 wifi3_hwmode = "11a"
             end
-            if wifi2_hwmode == "11a" and wifi2_enable then
+            if wifi2_hwmode == "11a" and wifi2_enable == "1" then
                 wifi3_hwmode = "11g"
             end
         end
     end
 
-    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>WAN Wifi Client</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable and " checked" or "") .. "></td></tr>")
+    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>WAN Wifi Client</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. "></td></tr>")
 
-    if not wifi_enable and not wifi2_enable and phycount > 1 then
+    if wifi_enable ~= "1" and wifi2_enable ~= "1" and phycount > 1 then
         html.print("<tr><td>WAN Wifi Client band</td><td><select name=wifi3_hwmode>")
         html.print("<option value='11g'".. (wifi3_hwmode == "11g" and " selected" or "") .. ">2GHz</option>")
         html.print("<option value='11a'".. (wifi3_hwmode == "11a" and " selected" or "") .. ">5GHz</option>")
