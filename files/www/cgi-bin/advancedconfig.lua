@@ -250,7 +250,11 @@ function reboot()
         node = "Node"
     end
     local lanip, _, lanmask = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("lan"))
-    local browser = os.getenv("REMOTE_ADDR"):match("::ffff:([%d%.]+)")
+    local browser = os.getenv("REMOTE_ADDR")
+    local browser6 = browser:match("::ffff:([%d%.]+)")
+    if browser6 then
+        browser = browser6
+    end
     local fromlan = false
     local subnet_change = false
     if lanip then
