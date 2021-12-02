@@ -531,7 +531,7 @@ function validate_netmask(mask)
     elseif not (b == "0" and c == "0" and d == "0") then
         return false
     end
-    if a == "128" or a == "192" or a == "224" or a == "240" or a == "248" or a == "252" or a == "254" or a == "255" then
+    if a == "0" or a == "128" or a == "192" or a == "224" or a == "240" or a == "248" or a == "252" or a == "254" or a == "255" then
         return true
     else
         return false
