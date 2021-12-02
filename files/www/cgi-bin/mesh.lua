@@ -100,16 +100,22 @@ end
 local wifiif = aredn.hardware.get_iface_name("wifi")
 local my_ip = aredn.hardware.get_interface_ip4(wifiif)
 local phy = iwinfo.nl80211.phyname(wifiif)
+if not phy then
+    phy = 0
+end
 
 local chanbw = 1
-for line in io.lines("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/chanbw")
-do
-    if line == "0x00000005" then
-        chanbw = 4
-    elseif line == "0x0000000a" then
-        chanbw = 2
+local cb = "/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/chanbw"
+if nixio.fs.stat(cb) then
+    for line in io.lines(cb)
+    do
+        if line == "0x00000005" then
+            chanbw = 4
+        elseif line == "0x0000000a" then
+            chanbw = 2
+        end
+        break
     end
-    break
 end
 
 if not nixio.fs.stat("/tmp/web") then
