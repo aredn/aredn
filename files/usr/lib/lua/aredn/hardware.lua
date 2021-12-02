@@ -202,7 +202,6 @@ function hardware.get_interface_ip4(intf)
         end
         f:close()
     end
-    return "none"
 end
 
 function hardware.get_interface_mac(intf)
