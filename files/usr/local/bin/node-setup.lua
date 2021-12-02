@@ -115,14 +115,8 @@ do
     end
 end
 
--- debug
--- for k, v in pairs(cfg)
--- do
---    print ("'" .. k .. "'", " -> ", "'" .. v .. "'")
--- end
-
 if cfg.wifi_enable == "1" then
-    cfg.wifi_intf = aredn.hardware.get_iface_name("wifi"):match("wlan(.*)")
+    cfg.wifi_intf = "wlan" .. aredn.hardware.get_iface_name("wifi"):match("wlan(.*)")
 else
     cfg.wifi_intf = lanintf:match("([%w]*)") .. ".3975"
 end
