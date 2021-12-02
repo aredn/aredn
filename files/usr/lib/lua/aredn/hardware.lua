@@ -128,9 +128,14 @@ function hardware.get_manufacturer()
 end
 
 function hardware.get_iface_name(name)
-    local type = uci.cursor():get("network", name, "type")
+    local cursor = uci.cursor()
+    local type = cursor:get("network", name, "type")
     if type and type == "bridge" then
         return "br-" .. name
+    end
+    local intfname = cursor:get("network", name, "ifname")
+    if intfname then
+        return intfname
     end
     return get_board_json().network[name].ifname
 end
@@ -214,7 +219,6 @@ function hardware.get_interface_mac(intf)
         do
             local m = line:match("HWaddr ([%w:]+)")
             if m then
-                f:close()
                 mac = m
                 break
             end
