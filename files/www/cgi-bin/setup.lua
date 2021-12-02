@@ -297,7 +297,7 @@ if parms.button_uploaddata then
     local newsi = string.format("%s,\"olsr\": %s}", si, topo)
 
     -- PUT it to the server
-    local upcurl = os.execute("curl -H 'Accept: application/json' -X PUT -d '" .. newsi .. "' http://data.arednmesh.org/sysinfo")
+    local upcurl = os.execute("curl -H 'Accept: application/json' -X PUT -d '" .. newsi .. "' http://data.arednmesh.org/sysinfo >/dev/null 2>&1")
     if upcurl == 0 then
         out("AREDN online map updated")
     else
@@ -335,9 +335,11 @@ else
         end
         local function h2s(hex)
             local s = ""
-            for i = 1,#hex,2
-            do
-                s = s .. string.char(tonumber(hex:sub(i, i+1), 16))
+            if hex then
+                for i = 1,#hex,2
+                do
+                    s = s .. string.char(tonumber(hex:sub(i, i+1), 16))
+                end
             end
             return s
         end
@@ -348,8 +350,18 @@ else
     end
 end
 
--- type conversions
-for _, k in ipairs({ "wifi_channel", "wifi2_channel" })
+-- make sure everything we need is initialized
+local d0 = { "lan_dhcp", "olsrd_bridge", "olsrd_gw", "wifi2_enable", "lan_dhcp_noroute", "wifi_enable", "wifi3_enable" }
+for _, k in ipairs(d0)
+do
+    if not parms[k] then
+        parms[k] = "0"
+    end
+    if not _G[k] then
+        _G[k] = "0"
+    end
+end
+for _, k in ipairs({ "wifi_channel", "wifi2_channel", "wifi_txpower", "dhcp_start", "dhcp_end" })
 do
     if _G[k] then
         _G[k] = tonumber(_G[k])
@@ -365,14 +377,6 @@ if parms.button_reset or parms.button_default or (not nodetac and not has_parms)
     end
 else
     nodetac = parms.nodetac
-end
-
-local d0 = { "lan_dhcp", "olsrd_bridge", "olsrd_gw", "wifi2_enable", "lan_dhcp_noroute", "wifi_enable", "wifi3_enable" }
-for _, k in ipairs(d0)
-do
-    if not parms[k] then
-        parms[k] = "0"
-    end
 end
 
 -- lan is always static
@@ -407,15 +411,18 @@ parms.dmz_dhcp_limit = dmz_dhcp_end - dmz_dhcp_start + 1
 
 -- get the active wifi settings on a fresh page load
 if not parms.reload then
-    wifi_txpower = tonumber(capture_and_match("iwinfo " .. wifiintf .. " info", "Tx%-Power: (%d+)"))
+    wifi_txpower = capture_and_match("iwinfo " .. wifiintf .. " info", "Tx%-Power: (%d+)")
     local doesiwoffset = capture_and_match("iwinfo " .. wifiintf .. " info", "TX power offset: (%d+)")
-    if doesiwoffset then
-        wifi_txpower = wifi_txpower - tonumber(doesiwoffset)
+    if wifi_txpower then
+        wifi_txpower = tonumber(wifi_txpower)
+        if doesiwoffset then
+            wifi_txpower = wifi_txpower - tonumber(doesiwoffset)
+        end
     end
 end
 
 -- sanitize the active settings
-if not wifi_txpower or tonumber(wifi_txpower) > aredn.hardware.wifi_maxpower(wifi_channel) then
+if not wifi_txpower or wifi_txpower > aredn.hardware.wifi_maxpower(wifi_channel) then
     wifi_txpower = aredn.hardware.wifi_maxpower(wifi_channel)
 end
 if not wifi_power or wifi_power < 1 then
@@ -434,13 +441,13 @@ parms.wifi_distance = wifi_distance
 parms.wifi_txpower = wifi_txpower
 
 -- apply the wifi settings
-if (parms.button_apply or parms.button_save) and wifi_enable == "1" then
+if (parms.button_apply or parms.button_save) and wifi_enable == "1" and phy then
     if wifi_distance == 0 then
-        os.execute("iw phy " .. phy .. " set distance auto")
+        os.execute("iw phy " .. phy .. " set distance auto >/dev/null 2>&1")
     else
-        os.execute("iw phy " .. phy .. " set distance " .. wifi_distance)
+        os.execute("iw phy " .. phy .. " set distance " .. wifi_distance .. " >/dev/null 2>&1")
     end
-    os.execute("iw dev " .. wifiintf .. " set tx power fixed " .. wifi_txpower .. "00")
+    os.execute("iw dev " .. wifiintf .. " set tx power fixed " .. wifi_txpower .. "00 >/dev/null 2>&1")
 end
 
 if parms.button_upodatelocation then
@@ -534,7 +541,7 @@ if parms.button_save then
     end
 
     if lan_proto == "static" then
-        if validate_netmask(lan_mask) then
+        if not validate_netmask(lan_mask) then
             err("invalid LAN netmask")
         elseif not lan_mask:match("^255%.255%.255%.") then
             err("LAN netmask must begin with 255.255.255")
@@ -542,8 +549,8 @@ if parms.button_save then
             err("invalid LAN IP address")
         else
             if lan_dhcp ~= "" then
-                local start_addr = change_ip_address(lan_ip, dhcp_start)
-                local end_addr = change_ip_address(lan_ip, dhcp_end)
+                local start_addr = lan_ip:match("^(.*%.)%d$") .. dhcp_start
+                local end_addr = lan_ip:match("^(.*%.)%d$") .. dhcp_end
 
                 if not (validate_ip_netmask(start_addr, lan_mask) and validate_same_subnet(start_addr, lan_ip, lan_mask)) then
                     err("invalid DHCP start address")
@@ -679,7 +686,7 @@ if parms.button_save then
         -- save_setup
         local f = io.open("/etc/config.mesh/_setup", "w")
         if f then
-            for k, v in parms
+            for k, v in pairs(parms)
             do
                 if k:match("^aprs_") or k:match("^dhcp_") or k:match("^dmz_") or k:match("^lan_") or k:match("^olsrd_") or k:match("^wan_") or k:match("^wifi_") or k:match("^wifi2_") or k:match("^wifi3_") or k:match("^dtdlink_") or k:match("^ntp_") or k:match("^time_") or k:match("^description_") then
                     f:write(k .. " = " .. v .. "\n")
@@ -694,7 +701,7 @@ if parms.button_save then
         if not nixio.fs.stat("/tmp/web/save") then
             nixio.fs.mkdir("/tmp/web/save")
         end
-        os.execute("/usr/local/bin/node-setup.lua -a " .. parms.config .. " > /tmp/web/save/node-setup.out")
+        os.execute("/usr/local/bin/node-setup.lua -a " .. parms.config .. " > /tmp/web/save/node-setup.out 2>&1")
         if nixio.fs.stat("/tmp/web/save/node-setup.out", "size") > 0 then
             err(read_all("/tmp/web/save/node-setup.out"))
         else
