@@ -42,7 +42,7 @@ require("aredn.hardware")
 
 -- suffix to add to various file and directories while debugging this
 -- to avoid blowing away the real config
-local suffix = ".alt" 
+local suffix = "" -- ".alt" 
 
 -- helpers start
 
