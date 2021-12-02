@@ -99,6 +99,9 @@ if config == "" or nixio.fs.stat("/etc/config.mesh", "type") ~= "dir" then
 end
 local wifiif = aredn.hardware.get_iface_name("wifi")
 local my_ip = aredn.hardware.get_interface_ip4(wifiif)
+if not my_ip then
+    my_ip = "none"
+end
 local phy = iwinfo.nl80211.phyname(wifiif)
 if not phy then
     phy = 0
@@ -287,7 +290,7 @@ do
                         tac = ""
                     end
                     if not localhosts[my_ip] then
-                        localhosts[my_ip] = { hosts = {}, noprops = {}, aliases = {} }
+                        localhosts[my_ip] = { hosts = {}, noprops = {}, aliases = {}, name = name, tactical = tac }
                     end
                     local host = localhosts[my_ip]
                     if ip == my_ip then

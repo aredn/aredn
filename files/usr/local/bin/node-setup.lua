@@ -112,7 +112,7 @@ do
 end
 
 if cfg.wifi_enable == "1" then
-    cfg.wifi_intf = "wlan" .. aredn.hardware.get_iface_name("wifi"):match("wlan(.*)")
+    cfg.wifi_intf = aredn.hardware.get_board().network.wifi.ifname
 else
     cfg.wifi_intf = cfg.dtdlink_intf:match("([%w]*)") .. ".3975"
 end
