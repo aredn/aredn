@@ -41,21 +41,8 @@ local hardware = {}
 
 local radio_json = nil
 local board_json = nil
-local radio = nil
 
-local function get_radio_json()
-    if not radio_json then
-        local f = io.open("/etc/radios.json")
-        if not f then
-            return {}
-        end
-        radio_json = json.parse(f:read("*a"))
-        f:close()
-    end
-    return radio_json
-end
-
-local function get_board_json()
+function hardware.get_board()
     if not board_json then
         local f = io.open("/etc/board.json")
         if not f then
@@ -67,15 +54,21 @@ local function get_board_json()
     return board_json
 end
 
-local function get_radio()
-    if not radio then
-        radio = get_radio_json()[hardware.get_board_id()]
+function hardware.get_radio()
+    if not radio_json then
+        local f = io.open("/etc/radios.json")
+        if not f then
+            return {}
+        end
+        local radios = json.parse(f:read("*a"))
+        f:close()
+        radio_json = radios[hardware.get_board_id()]
     end
-    return radio
+    return radio_json
 end
 
 function hardware.wifi_maxpower(channel)
-    local radio = get_radio()
+    local radio = hardware.get_radio()
     if radio then
         if radio.chanpower then
             for k, v in pairs(radio.chanpower)
@@ -93,24 +86,24 @@ end
 
 function hardware.get_board_id()
     local name = ""
-    if get_board_json().model.name:match("^(%S*)") == "Ubiquiti" then
+    if hardware.get_board().model.name:match("^(%S*)") == "Ubiquiti" then
         name = read_all("/sys/devices/pci0000:00/0000:00:00.0/subsystem_device")
         if not name or name == "" or name == "0x0000" then
             name = "0x" .. capture([[dd if=/dev/mtd7 bs=1 skip=12 count=2 2>/dev/null | hexdump -v -n 4 -e '1/1 "%02x"']])
         end
     end
     if not name or name == "" or name == "0x0000" then
-        name = get_board_json().model.name
+        name = hardware.get_board().model.name
     end
     return name
 end
 
 function hardware.get_board_type()
-    return get_board_json().model.id
+    return hardware.get_board().model.id
 end
 
 function hardware.get_type()
-    local id = get_board_json().model.id
+    local id = hardware.get_board().model.id
     local type = id:match(",(.*)")
     if type then
         return type
@@ -119,7 +112,7 @@ function hardware.get_type()
 end
 
 function hardware.get_manufacturer()
-    local name = get_board_json().model.name
+    local name = hardware.get_board().model.name
     local man = name:match("(%S*)%s")
     if man then
         return man
@@ -137,11 +130,11 @@ function hardware.get_iface_name(name)
     if intfname then
         return intfname
     end
-    return get_board_json().network[name].ifname
+    return hardware.get_board().network[name].ifname
 end
 
 function hardware.get_link_led()
-    local board = get_board_json()
+    local board = hardware.get_board()
     if board.led then
         return "/sys/class/leds/" .. board.led.rssilow.sysfs
     else
@@ -151,20 +144,20 @@ end
 
 function hardware.has_poe()
     return xpcall(
-        function() return get_board_json().gpioswitch.poe_passthrough.pin or true end,
+        function() return hardware.get_board().gpioswitch.poe_passthrough.pin or true end,
         function() return false end
     )
 end
 
 function hardware.has_usb()
     return xpcall(
-        function() return get_board_json().gpioswitch.usb_power_switch.pin or true end,
+        function() return hardware.get_board().gpioswitch.usb_power_switch.pin or true end,
         function() return false end
     )
 end
 
 function hardware.get_rfband()
-    local radio = get_radio()
+    local radio = hardware.get_radio()
     if radio then
         return radio.rfband
     else
@@ -173,7 +166,7 @@ function hardware.get_rfband()
 end
 
 function hardware.get_default_channel()
-    local radio = get_radio()
+    local radio = hardware.get_radio()
     if radio.rfband == "900" then
         return { channel = 5, bandwidth = 5 }
     elseif radio.rfband == "2400" then
@@ -188,7 +181,7 @@ function hardware.get_default_channel()
 end
 
 function hardware.supported()
-    local radio = get_radio()
+    local radio = hardware.get_radio()
     if radio then
         return tonumber(radio.supported)
     else
@@ -209,6 +202,7 @@ function hardware.get_interface_ip4(intf)
         end
         f:close()
     end
+    return "none"
 end
 
 function hardware.get_interface_mac(intf)
