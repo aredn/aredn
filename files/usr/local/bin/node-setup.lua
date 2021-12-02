@@ -40,10 +40,6 @@ require("aredn.utils")
 local aredn_info = require('aredn.info')
 require("aredn.hardware")
 
--- suffix to add to various file and directories while debugging this
--- to avoid blowing away the real config
-local suffix = "" -- ".alt" 
-
 -- helpers start
 
 function is_null(v)
@@ -256,17 +252,17 @@ if do_basic then
     end
 
     -- make it official
-    for file in nixio.fs.glob("/etc/config/*" .. suffix)
+    for file in nixio.fs.glob("/etc/config/*")
     do
         nixio.fs.remove(file)
     end
     for file in nixio.fs.glob("/tmp/new_config/*")
     do
-        filecopy(file, "/etc/config/" .. nixio.fs.basename(file) .. suffix)
+        filecopy(file, "/etc/config/" .. nixio.fs.basename(file))
         nixio.fs.remove(file)
     end
     nixio.fs.rmdir("/etc/new_config")
-    filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
+    filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user")
 
     aredn_info.set_nvram("config", "mesh")
     aredn_info.set_nvram("node", node)
@@ -275,8 +271,8 @@ end
 
 -- generate the system files
 
-local h = io.open("/etc/hosts" .. suffix, "w")
-local e = io.open("/etc/ethers" .. suffix, "w")
+local h = io.open("/etc/hosts", "w")
+local e = io.open("/etc/ethers", "w")
 if h and e then
     h:write("# automatically generated file - do not edit\n")
     h:write("# use /etc/hosts.user for custom entries\n")
@@ -348,15 +344,15 @@ if h and e then
 end
 
 if not do_basic then
-    filecopy("/etc/config.mesh/firewall", "/etc/config/firewall" .. suffix)
-    filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user" .. suffix)
+    filecopy("/etc/config.mesh/firewall", "/etc/config/firewall")
+    filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user")
 end
 
 -- for all the uci changes
 local c = uci.cursor()
 
 -- append to firewall
-local fw = io.open("/etc/config/firewall" .. suffix, "a")
+local fw = io.open("/etc/config/firewall", "a")
 if fw then
     if not is_null(cfg.dmz_mode) then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   lan\n")
@@ -418,7 +414,7 @@ end
 
 -- generate the services file
 
-local sf = io.open("/etc/config/services" .. suffix, "w")
+local sf = io.open("/etc/config/services", "w")
 if sf then
     for line in io.lines(servfile)
     do
@@ -431,14 +427,14 @@ if sf then
                 if link == "" then
                     port = "0"
                 end
-                sf:write(string.format("%s://%s:%s/%s|tcp|%s\n", proto, host, port, suffix, name))
+                sf:write(string.format("%s://%s:%s/%s|tcp|%s\n", proto, host, port, sffx, name))
             end
         end
     end
     sf:close()
 end
 
-local sf = io.open("/etc/local/services" .. suffix, "w")
+local sf = io.open("/etc/local/services", "w")
 if sf then
     sf:write("#!/bin/sh\n")
     if cfg.wifi_proto ~= "disabled" then
@@ -457,13 +453,13 @@ if sf then
         end
     end
     sf:close()
-    nixio.fs.chmod("/etc/local/services" .. suffix, "777")
+    nixio.fs.chmod("/etc/local/services", "777")
 end
 
 -- generate olsrd.conf
 
 if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
-    local of = io.open("/etc/config/olsrd" .. suffix, "w")
+    local of = io.open("/etc/config/olsrd", "w")
     if of then
         for line in io.lines("/etc/config.mesh/olsrd")
         do
