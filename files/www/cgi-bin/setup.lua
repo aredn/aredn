@@ -198,17 +198,11 @@ function out(str)
 end
 
 function is_channel_valid(channel)
-    if channel then
-        local f = io.popen("iwinfo " .. aredn.hardware.get_iface_name("wifi") .. " freqlist")
-        if f then
-            for line in f:lines()
-            do
-                if line:match("Channel " .. channel) and not line:match("%[restricted%]") then
-                    f:close()
-                    return true
-                end
-            end
-            f:close()
+    local list = rf_channels_list(aredn.hardware.get_iface_name("wifi"))
+    for _, c in ipairs(list)
+    do
+        if c.number == channel then
+            return true
         end
     end
     return false
