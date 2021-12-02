@@ -114,7 +114,7 @@ end
 if cfg.wifi_enable == "1" then
     cfg.wifi_intf = "wlan" .. aredn.hardware.get_iface_name("wifi"):match("wlan(.*)")
 else
-    cfg.wifi_intf = lanintf:match("([%w]*)") .. ".3975"
+    cfg.wifi_intf = cfg.dtdlink_intf:match("([%w]*)") .. ".3975"
 end
 
 -- delete some config lines if necessary
