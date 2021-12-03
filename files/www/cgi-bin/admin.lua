@@ -71,7 +71,7 @@ function firmware_list_gen()
 end
 
 local tunnel_active = false
-if nixio.fs.stat("/usr/sbin/vtund") then
+if nixio.fs.stat("/usr/sbin/vtund") and nixio.fs.stat("/etc/config/vtun") then
     for line in io.lines("/etc/config/vtun")
     do
         if line:match("option enabled '1'") then

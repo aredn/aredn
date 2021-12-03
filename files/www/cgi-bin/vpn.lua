@@ -201,18 +201,21 @@ end
 local gci_vars = { "enabled", "name", "passwd", "netip", "contact" }
 function get_client_info()
     local c = 0
-    for _, myclient in pairs(cursor:get_all("vtun"))
-    do
-        if myclient[".type"] == "client" then
-            for _, var in ipairs(gci_vars)
-            do
-                local key = "client" .. c .. "_" .. var
-                parms[key] = myclient[var]
-                if not parms[key] then
-                    parms[key] = ""
+    local all = cursor:get_all("vtun")
+    if all then
+        for _, myclient in pairs(all)
+        do
+            if myclient[".type"] == "client" then
+                for _, var in ipairs(gci_vars)
+                do
+                    local key = "client" .. c .. "_" .. var
+                    parms[key] = myclient[var]
+                    if not parms[key] then
+                        parms[key] = ""
+                    end
                 end
+                c = c + 1
             end
-            c = c + 1
         end
     end
     parms.client_num = c
