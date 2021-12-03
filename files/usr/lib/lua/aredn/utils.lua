@@ -552,7 +552,7 @@ function validate_ip_netmask(ip, mask)
 end
 
 function validate_fqdn(name)
-	return name:match('^[%d%a_.-]+$') ~= nil and name:sub(0, 1) ~= '.' and name:sub(-1) ~= '.' and name:find('%.%.') == nil
+	return name and name:match('^[%d%a_.-]+$') ~= nil and name:sub(0, 1) ~= '.' and name:sub(-1) ~= '.' and name:find('%.%.') == nil
 end
 
 function validate_hostname(name)
