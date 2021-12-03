@@ -72,7 +72,7 @@ end
 
 local tunnel_active = false
 if nixio.fs.stat("/usr/sbin/vtund") then
-    for line in io.liness("/etc/config/vtun")
+    for line in io.lines("/etc/config/vtun")
     do
         if line:match("option enabled '1'") then
             tunnel_active = true
