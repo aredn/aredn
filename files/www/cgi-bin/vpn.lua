@@ -137,7 +137,8 @@ function get_server_network_address()
 end
 
 function get_server_dns()
-    return cursor:get("vtun", "@network[0]", "dns")
+    local dns = cursor:get("vtun", "@network[0]", "dns")
+    return dns and dns or ""
 end
 
 function install_vtun()
@@ -487,10 +488,7 @@ if config == "mesh" then
     html.print("<table cellpadding=0 cellspacing=0>")
     
     html.print("<br /><tr class=tun_network_row><td colspan=6 align=center valign=top>Tunnel Server Network: ")
-    html.print(netw[1] .. "." .. netw[2] .. ".")
-    html.print("<input type='text' name='server_net1' size='3' maxlen='3' value='" .. netw[3] .. "' onChange='form.submit()' title='from 0-255' >")
-    html.print(".")
-    html.print("<input type='text' name='server_net2' size='3' maxlen='3' value='" .. netw[4] .. "' onChange='form.submit()' title='from 0-255 in multiples of 4. (ie. 0,4,8,12,16...252)' >")
+    html.print(netw[1] .. "." .. netw[2] .. ".<input type='text' name='server_net1' size='3' maxlen='3' value='" .. netw[3] .. "' onChange='form.submit()' title='from 0-255' >.<input type='text' name='server_net2' size='3' maxlen='3' value='" .. netw[4] .. "' onChange='form.submit()' title='from 0-255 in multiples of 4. (ie. 0,4,8,12,16...252)' >")
 
     html.print("<br /><hr>Tunnel Server DNS Name: ")
     html.print("<input type='text' name='dns' size='30' value='" .. dns .. "' onChange='form.submit()' ></td></tr>")

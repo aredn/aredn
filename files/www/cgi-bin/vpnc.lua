@@ -185,17 +185,20 @@ end
 local gci_vars = { "enabled", "host", "passwd", "netip", "contact" }
 function get_connection_info()
     local c = 0
-    for _, myconn in pairs(cursor:get_all("vtun", "server"))
-    do
-        for _, var in ipairs(gci_vars)
+    local conns = cursor:get_all("vtun", "server")
+    if conns then
+        for _, myconn in pairs(conns)
         do
-            local key = "conn" .. c .. "_" .. var
-            parms[key] = myconn[var]
-            if not parms[key] then
-                parms[key] = ""
+            for _, var in ipairs(gci_vars)
+            do
+                local key = "conn" .. c .. "_" .. var
+                parms[key] = myconn[var]
+                if not parms[key] then
+                    parms[key] = ""
+                end
             end
+            c = c + 1
         end
-        c = c + 1
     end
     parms.conn_num = c
 end
@@ -365,6 +368,7 @@ end
 parms.conn_num = conn_num
 
 -- save the connections
+local enabled_count = 0
 for i = 0,parms.conn_num-1
 do
     local connx_ = "conn" .. i .. "_"
@@ -536,7 +540,7 @@ if config == "mesh" then
         html.print("></td>")
         -- contact info for this tunnel
         html.print("</tr>")
-        html.print("<tr class='tun_client_list1 tun_client_row tun_loading_css_comment'><td colspan='3' align='right'>Contact Info/Comment (Optional): <input type=text maxlength='50' size=40 name=conn" .. val .. "_contact value='$contact'")
+        html.print("<tr class='tun_client_list1 tun_client_row tun_loading_css_comment'><td colspan='3' align='right'>Contact Info/Comment (Optional): <input type=text maxlength='50' size=40 name=conn" .. val .. "_contact value='" .. contact .. "'")
         if val == "_add" or val == "" then
             html.print(" onChange='form.submit()'")
         end
