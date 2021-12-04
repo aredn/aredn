@@ -282,7 +282,7 @@ end
 if parms.button_uploaddata then
     local si = capture("curl 'http://localnode:8080/cgi-bin/sysinfo.json?hosts=1' 2>/dev/null"):chomp()
     -- strip closing }
-    si = si.sub(1, #sub - 1)
+    si = si.sub(1, #si - 1)
 
     -- get olsrd topo information
     local topo = capture("url 'http://localnode:9090/links' 2>/dev/null"):chomp()
@@ -444,9 +444,9 @@ if (parms.button_apply or parms.button_save) and wifi_enable == "1" and phy then
     os.execute("iw dev " .. wifiintf .. " set tx power fixed " .. wifi_txpower .. "00 >/dev/null 2>&1")
 end
 
-if parms.button_upodatelocation then
+if parms.button_updatelocation then
     -- process gridsquare
-    if parms.gridsquare then
+    if parms.gridsquare ~= "" then
         if parms.gridsquare:match("^[A-Z][A-Z]%d%d[a-z][a-z]$") then
             cursor_set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
             out("Gridsquare updated.")
@@ -459,9 +459,9 @@ if parms.button_upodatelocation then
     end
 
     -- process lat/lng
-    if parms.latitude and parms.longitude then
+    if parms.latitude ~= "" and parms.longitude ~= "" then
         if parms.latitude:match("^[-+]?%d%d?%.%d+$") and parms.longitude:match("^[-+]?%d%d?%d?%.%d+$") then
-            if tonumnber(parms.latitude) >= -90 and tonumber(parms.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
+            if tonumber(parms.latitude) >= -90 and tonumber(parms.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
                 cursor_set("aredn", "@location[0]", "lat", parms.latitude)
                 cursor_set("aredn", "@location[0]", "lon", parms.longitude)
                 out("Lat/lon updated.")
