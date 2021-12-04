@@ -4,6 +4,7 @@
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
 	Copyright (C) 2021 Tim Wilkinson
 	Original Perl Copyright (C) 2019 Joe Ayers AE6XE
+	Original Perl Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -154,8 +155,8 @@ function reboot()
         fromlan = validate_same_subnet(browser, lanip, lanmask)
         if fromlan then
             lanmask = ip_to_decimal(lanmask)
-            local cfgip = cursor_get("network", "lan", "ipaddr")
-            local cfgmask = ip_to_decimal(cursor_get("network", "lan", "netmask"))
+            local cfgip = cursor:get("network", "lan", "ipaddr")
+            local cfgmask = ip_to_decimal(cursor:get("network", "lan", "netmask"))
             if lanmask ~= cfgmask or decimal_to_ip(nixio.bit.band(ip_to_decimal(ip), lanmask)) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
                 subnet_change = true
             end
@@ -245,17 +246,11 @@ local phy = iwinfo.nl80211.phyname(wifiintf)
 local phycount = tonumber(capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp())
 
 -- uci cursor
-local cursora = uci:cursor()
-local cursorb = uci:cursor("/etc/config.mesh")
-function cursor_set(a, b, c, d)
-    cursora:set(a, b, c, d)
-    cursorb:set(a, b, c, d)
-    cursora:commit(a)
-    cursorb:commit(a)
-end
+local cursor = uci:cursor()
 
-function cursor_get(a, b, c)
-    return cursora:get(a, b, c)
+function aredn_clone()
+    cursor:commit("aredn")
+    filecopy("/etc/config/aredn", "/etc/config.mesh/aredn")
 end
 
 -- post_data
@@ -378,7 +373,9 @@ local lan_proto = "static"
 
 -- enforce direct mode settings
 -- (formerly known as dmz mode)
-local dmz_mode = cursor_get("aredn", "@dmz[0]", "mode")
+if not dmz_mode then
+    dmz_mode = cursor:get("aredn", "@dmz[0]", "mode")
+end
 dmz_mode = tonumber(dmz_mode)
 if not dmz_mode or (dmz_mode ~= 0 and dmz_mode < 2) then
     dmz_mode = 2
@@ -448,13 +445,13 @@ if parms.button_updatelocation then
     -- process gridsquare
     if parms.gridsquare ~= "" then
         if parms.gridsquare:match("^[A-Z][A-Z]%d%d[a-z][a-z]$") then
-            cursor_set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
+            cursor:set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
             out("Gridsquare updated.")
         else
             err("ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)")
         end
     else
-        cursor_set("aredn", "@location[0]", "gridsquare", "")
+        cursor:set("aredn", "@location[0]", "gridsquare", "")
         out("Gridsquare purged.")
     end
 
@@ -462,8 +459,8 @@ if parms.button_updatelocation then
     if parms.latitude ~= "" and parms.longitude ~= "" then
         if parms.latitude:match("^[-+]?%d%d?%.%d+$") and parms.longitude:match("^[-+]?%d%d?%d?%.%d+$") then
             if tonumber(parms.latitude) >= -90 and tonumber(parms.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
-                cursor_set("aredn", "@location[0]", "lat", parms.latitude)
-                cursor_set("aredn", "@location[0]", "lon", parms.longitude)
+                cursor:set("aredn", "@location[0]", "lat", parms.latitude)
+                cursor:set("aredn", "@location[0]", "lon", parms.longitude)
                 out("Lat/lon updated.")
             else
                 err("ERROR: Lat/lon values must be between -90/90 and -180/180, respectively.")
@@ -472,22 +469,23 @@ if parms.button_updatelocation then
             err("ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154).")
         end
     else
-        cursor_set("aredn", "@location[0]", "lat", "")
-        cursor_set("aredn", "@location[0]", "lon", "")
+        cursor:set("aredn", "@location[0]", "lat", "")
+        cursor:set("aredn", "@location[0]", "lon", "")
         out("Lat/lon purged.")
     end
+    aredn_clone()
 end
 
 -- retrieve location data
-lat = cursor_get("aredn", "@location[0]", "lat")
+lat = cursor:get("aredn", "@location[0]", "lat")
 if not lat then
     lat = ""
 end
-lon = cursor_get("aredn", "@location[0]", "lon")
+lon = cursor:get("aredn", "@location[0]", "lon")
 if not lon then
     lon = ""
 end
-gridsquare = cursor_get("aredn", "@location[0]", "gridsquare")
+gridsquare = cursor:get("aredn", "@location[0]", "gridsquare")
 if not gridsquare then
     gridsquare = ""
 end
@@ -720,19 +718,19 @@ if parms.button_reboot then
     reboot()
 end
 
-local desc = cursor_get("system", "@system[0]", "description")
+local desc = cursor:get("system", "@system[0]", "description")
 if not desc then
     desc = ""
 end
-local maptiles = cursor_get("aredn", "@map[0]", "maptiles")
+local maptiles = cursor:get("aredn", "@map[0]", "maptiles")
 if not maptiles then
     maptiles = ""
 end
-local leafletcss = cursor_get("aredn", "@map[0]", "leafletcss")
+local leafletcss = cursor:get("aredn", "@map[0]", "leafletcss")
 if not leafletcss then
     leafletcss = ""
 end
-local leafletjs = cursor_get("aredn", "@map[0]", "leafletjs")
+local leafletjs = cursor:get("aredn", "@map[0]", "leafletjs")
 if not leafletjs then
     leafletjs = ""
 end
