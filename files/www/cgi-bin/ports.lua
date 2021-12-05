@@ -785,10 +785,10 @@ parms.serv_num = serv_num
 
 -- save configuration
 if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or #serv_err > 0 or #alias_err > 0) then
-    os.execute("cp -f " .. tmpdir .. "/ports " .. portfile)
-    os.execute("cp -f " .. tmpdir .. "/dhcp " .. dhcpfile)
-    os.execute("cp -f " .. tmpdir .. "/services " .. servfile)
-    os.execute("cp -f " .. tmpdir .. "/aliases " .. aliasfile)
+    filecopy(tmpdir .. "/ports", portfile)
+    filecopy(tmpdir .. "/dhcp", dhcpfile)
+    filecopy(tmpdir .. "/services", servfile)
+    filecopy(tmpdir .. "/aliases", aliasfile)
     
     if os.execute("/usr/local/bin/node-setup.lua -a -p mesh") ~= 0 then
         err("problem with configuration")
