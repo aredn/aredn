@@ -322,7 +322,7 @@ if f then
 
             local continue = false
             if val == "_add" then
-                if not ( (_out ~= "" or _ip ~= "" or _in ~= "") and (parms.port_add or parms.button_save)) then
+                if not ((_out ~= "" or _ip ~= "" or _in ~= "") and (parms.port_add or parms.button_save)) then
                     break
                 end
             else
@@ -608,7 +608,7 @@ do
         local foundhost = false
         local host = parms["alias" .. val .. "_host"]
         local ip = parms["alias" .. val .. "_ip"]
-        -- if adding alaises check the name is not already in use,
+        -- if adding aliases check the name is not already in use,
         -- also check that it dos not contain anything that will be weird on the mesh
         -- for instance: supercoolservice.kg6wxc-host.local.mesh is certainly a valid host name, but it won't work for the mesh.
         if val == "_add" then

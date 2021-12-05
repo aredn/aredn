@@ -51,8 +51,7 @@ function html.header(title, close)
     if not nixio.fs.stat("/tmp/web") then
         nixio.fs.mkdir("/tmp/web")
     end
-    local css = nixio.fs.stat("/tmp/web/style.css", "type")
-    if not (css and css == "lnk") then
+    if not nixio.fs.readlink("/tmp/web/style.css") then
         nixio.fs.symlink("/www/aredn.css", "/tmp/web/style.css")
     end
     html.print("<link id='stylesheet_css' rel=StyleSheet href='/style.css?" .. os.time() .. "' type='text/css'>")

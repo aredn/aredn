@@ -193,10 +193,9 @@ else
 end
 
 -- check for old aliases file, copy it to .dmz and create symlink
--- just in case anyone is already using the fule for some script or something
-local astat = nixio.fs.stat("/etc/config.mesh/aliases", "type")
-if not (astat and astat == "lnk") then
-    if astat then
+-- just in case anyone is already using the file for some script or something
+if not nixio.fs.readlink("/etc/config.mesh/aliases") then
+    if nixio.fs.stat("/etc/config.mesh/aliases") then
         filecopy("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
         os.remove("/etc/config.mesh/aliases")
     else
