@@ -42,7 +42,7 @@ local logfile = "/tmp/olsrd.log"
 function olsrd_restart()
     -- print "olsrd_restart"
 
-    os.execute("/etc/init.d/olsrd restart")
+    luci.sys.init.restart("olsrd")
 
     if nixio.fs.stat(logfile) then
         local lines = read_all(logfile):splitNewLine()

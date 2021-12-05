@@ -45,6 +45,7 @@ require("iwinfo")
 require("aredn.http")
 require("aredn.hardware")
 require("aredn.log")
+require("luci.sys")
 
 -- aggressive gc on low memory devices
 if aredn_info.getFreeMemory().totalram < 32768 then
