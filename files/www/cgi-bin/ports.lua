@@ -42,7 +42,6 @@ require("aredn.utils")
 aredn.html = require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
-require("ubus")
 require("luci.sys")
 
 local html = aredn.html
@@ -794,13 +793,13 @@ if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or 
     if os.execute("/usr/local/bin/node-setup.lua -a -p mesh") ~= 0 then
         err("problem with configuration")
     end
-    if os.execute("/etc/init.d/dnsmasq reload") ~= 0 then
+    if not luci.sys.init.reload("dnsmasq") then
         err("problem with dnsmasq")
     end
-    if os.execute("/etc/init.d/firewall reload") ~= 0 then
+    if not luci.sys.init.reload("firewall") then
         err("problem with port setup")
     end
-    if os.execute("/etc/init.d/olsrd restart") ~= 0 then
+    if not luci.sys.init.restart("olsrd") then
         err("problem with olsr setup")
     end
 end
