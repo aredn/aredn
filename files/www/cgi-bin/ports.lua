@@ -437,6 +437,9 @@ do
         local ip = parms["dhcp" .. val .. "_ip"]
         local mac = parms["dhcp" .. val .. "_mac"]
         local noprop = parms["dhcp" .. val .. "_noprop"]
+        if not noprop then
+            noprop = ""
+        end
 
         local foundhost = false
         if val == "_add" then
