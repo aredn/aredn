@@ -351,13 +351,13 @@ end
 local c = uci.cursor()
 
 -- append to firewall
+local add_masq = false
 local fw = io.open("/etc/config/firewall", "a")
 if fw then
     if not is_null(cfg.dmz_mode) then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   lan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   lan\n")
-        c:set("firewall", "@zone[2]", "masq", "0")
-        c:commit("firewall")
+        add_masq = true
     else
         fw:write("\nconfig 'include'\n        option 'path' '/etc/firewall.natmode'\n        option 'reload' '1'\n")
     end
@@ -376,12 +376,12 @@ if fw then
                 fw:write("\nconfig redirect\n        option src    wifi\n        option proto  udp\n        option src_dip " .. cfg.wifi_ip .. "\n        option dest_ip " .. dip .. "\n")
             else
                 local intf, type, oport, host, iport, enable = line:match("(.*):(.*):(.*):(.*):(.*):(.*)")
-                if enable then
-                    local match = "option src_dport " .. oport .. "\n"
+                if enable == "1" then
+                    local match = "        option src_dport " .. oport .. "\n"
                     if type == "tcp" then
-                        match = match .. "option proto tcp\n"
+                        match = match .. "        option proto tcp\n"
                     elseif type == "udp" then
-                        match = match .. "option proto udp\n"
+                        match = match .. "        option proto udp\n"
                     end
                     -- uci the host and then
                     -- set the inside port unless the rule uses an outside port range
@@ -409,6 +409,10 @@ if fw then
     end
 
     fw:close();
+end
+if add_masq then
+    c:set("firewall", "@zone[2]", "masq", "0")
+    c:commit("firewall")
 end
 
 -- generate the services file
