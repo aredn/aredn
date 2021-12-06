@@ -87,6 +87,30 @@ function navbar()
     html.print("</tr></table><hr>")
 end
 
+function validate_service_name(name)
+    if not name or name == "" or name:match("[:-\"|]") then
+        return false
+    else
+        return true
+    end
+end
+
+function validate_service_protocol(proto)
+    if not name or name == "" or name:match("[:-\"|]") or not name:match("^%w+") then
+        return false
+    else
+        return true
+    end
+end
+
+function validate_service_suffix(suffix)
+    if not suffix or suffix:match("[:-\"|]") or not name:match("^[%w/?._=#-]*$") then
+        return false
+    else
+        return true
+    end
+end
+
 local serv_err = {}
 function serverr(msg)
     serv_err[#serv_err + 1] = msg
@@ -678,6 +702,7 @@ local serv_num = 0
 hosts[""] = true
 hosts[node] = true
 usedports[""] = true
+local servicenames = {}
 
 local vars = { "name", "proto", "host", "port", "suffix" }
 local vars2 = { "name", "link", "proto", "host", "port", "suffix" }
@@ -705,13 +730,13 @@ if f then
             end
 
             -- remove services that have had their host or port deleted
-            if val ~= "_add" and not (dmz_mode == 0 and true or hosts[hosts]) then
+            if val ~= "_add" and not (dmz_mode == 0 and true or hosts[host]) then
                 break
             end
 
             local link = parms["serv" .. val .. "_link"]
             if not link then
-                link = 0
+                link = "0"
             end
 
             if val == "_add" then
@@ -1106,19 +1131,19 @@ function print_services()
         if val ~= "_add" then
             html.print(" onChange='form.submit()'")
         end
-        if _link then
+        if _link ~= "0" then
             html.print(" checked")
         end
         html.print(" title='create a clickable link for this service'>")
         html.print("<input type=text size=2 name=serv" .. val .. "_proto value='" .. _proto .. "' title='URL Protocol'")
-        if val ~= "_add" and not link then
+        if val ~= "_add" and _link ~= "1" then
             html.print(" disabled")
         end
         html.print("></nobr></td>")
 
         if dmz_mode ~= 0 then
             html.print("<td><nobr><b>:</b>//<select name=serv" .. val .. "_host")
-            if val ~= "_add" and not link then
+            if val ~= "_add" and _link ~= "1" then
                 html.print(" disabled")
             end
             html.print(">")
@@ -1137,12 +1162,12 @@ function print_services()
         end
 
         html.print("<b>:</b><input type=text size=2 name=serv" .. val .. "_port value='" .. _port .. "' title='port number'")
-        if val ~= "_add" and not link then
+        if val ~= "_add" and _link ~= "1" then
             html.print(" disabled")
         end
         html.print("> / <input type=text size=6 name=serv" .. val .. "_suffix value='" .. _suffix .. "' ")
         html.print("title='leave blank unless the URL needs a more specific path'")
-        if val ~= "_add" and not link then
+        if val ~= "_add" and _link ~= "1" then
             html.print(" disabled")
         end
         html.print("></nobr></td>")
@@ -1162,11 +1187,11 @@ function print_services()
             table.remove(serv_err, 1)
         end
 
-        if not (link or val == "_add") then
-            hide("<input type=hidden name=serv" .. val .. "_proto  value='$proto'>")
-            hide("<input type=hidden name=serv" .. val .. "_host   value='$host'>")
-            hide("<input type=hidden name=serv" .. val .. "_port   value='$port'>")
-            hide("<input type=hidden name=serv" .. val .. "_suffix value='$suffix'>")
+        if _link ~= "1" and val ~= "_add" then
+            hide("<input type=hidden name=serv" .. val .. "_proto  value='" .. _proto .. "'>")
+            hide("<input type=hidden name=serv" .. val .. "_host   value='" .. _host .. "'>")
+            hide("<input type=hidden name=serv" .. val .. "_port   value='" .. _port .. "'>")
+            hide("<input type=hidden name=serv" .. val .. "_suffix value='" .. _suffix .. "'>")
         end
 
         html.print("<tr><td colspan=4 height=4></td></tr>")
