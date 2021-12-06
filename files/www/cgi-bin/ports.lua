@@ -242,7 +242,7 @@ if parms.button_reset or not parms.reload then
     for line in io.lines(servfile)
     do
         if not (line:match("^%s*#") or line:match("^%s*$")) then
-            local a, b, c, d, x = line:match("(.*)|(.*)|(.*)|(.*)|(.*)")
+            local a, b, c, d, x = line:match("([^|]*)|([^|]*)|([^|]*)|([^|]*)|(.*)")
             if x then
                 local e, f = x:match("(.*)|(.*)")
                 if not e then
