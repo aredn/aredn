@@ -369,7 +369,7 @@ do
         if name then
             local protocol, host, port, path = url:match("^([%w][%w%+%-%.]+)%://(.+):(%d+)/(.*)")
             if path then
-                local name, originator = name:match("(.*)%s*#(.*)")
+                local name, originator = name:match("(.*%S)%s*#(.*)")
                 if originator == " my own service" or (hosts[originator] and hosts[originator].name) then
                     if not host:match("%.") then
                         host = host .. ".local.mesh"
