@@ -197,16 +197,15 @@ if parms.button_reset or not parms.reload then
             if v then
                 parms[k] = v
             else
-                local inf, type, out, ip, _in, enable = line:match("(.*):(.*):(.*):(.*):(.*):(.*)")
-                if inf then
+                local intf, type, out, ip, _in, enable = line:match("(.*):(.*):(.*):(.*):(.*):(.*)")
+                if intf then
                     i = i + 1
-                    local prefix = "port" .. i .. "_"
-                    parms[prefix .. "inf"] = inf
-                    parms[prefix .. "type"] = type
-                    parms[prefix .. "out"] = out
-                    parms[prefix .. "ip"] = ip
-                    parms[prefix .. "in"] = _in
-                    parms[prefix .. "enable"] = enable
+                    parms["port" .. i .. "_intf"] = intf
+                    parms["port" .. i .. "_type"] = type
+                    parms["port" .. i .. "_out"] = out
+                    parms["port" .. i .. "_ip"] = ip
+                    parms["port" .. i .. "_in"] = _in
+                    parms["port" .. i .. "_enable"] = enable
                 end
             end
         end
@@ -335,12 +334,12 @@ if f then
             end
             local varname = "port" .. val .. "_enable"
             if not parms[varname] then
-                parms[varname] = 0
+                parms[varname] = "0"
             end
             _enable = parms[varname]
 
             if val == "_add" then
-                _enable = 1
+                _enable = "1"
             end
 
             local continue = false
@@ -393,11 +392,11 @@ if f then
                 _type = "both"
             end
 
-            f:write(_intf .. ":" .. _type .. ":" .. _out .. ":" .. _ip .. ":" .. _in .. ":" .. enable .. "\n")
+            f:write(_intf .. ":" .. _type .. ":" .. _out .. ":" .. _ip .. ":" .. _in .. ":" .. _enable .. "\n")
             
             for _, var in ipairs(vars)
             do
-                parms["port" .. port_num .. "_" .. var] = _G[var]
+                parms["port" .. port_num .. var] = _G[var]
             end
 
             if val == "_add" then
@@ -409,7 +408,7 @@ if f then
         end
     end
 
-    if parms.dmz_ip then
+    if parm.dmz_ip and parms.dmz_ip ~= "" then
         f:write("dmz_ip = " .. parms.dmz_ip .. "\n")
         if not validate_ip(parms.dmz_ip) then
             dmzerr(parms.dmz_ip .. " is not a valid address")
@@ -1001,11 +1000,11 @@ function print_forwarding()
         -- port forwarding settings
         html.print("<td align=center valign=top><select name=port" .. val .. "_intf title='forward inbound packets from this interface'>")
         if dmz_mode == 0 then
-            html.print("<option " .. (_inntf == "wifi" and "selected" or "") .. " value='wifi'>WiFi</option>")
-            html.print("<option " .. (_inntf == "wab" and "selected" or "") .. " value='wan'>WAN</option>")
-            html.print("<option " .. (_inntf == "both" and "selected" or "") .. " value='both'>Both</option>")
+            html.print("<option " .. (_intf == "wifi" and "selected" or "") .. " value='wifi'>WiFi</option>")
+            html.print("<option " .. (_intf == "wan" and "selected" or "") .. " value='wan'>WAN</option>")
+            html.print("<option " .. (_intf == "both" and "selected" or "") .. " value='both'>Both</option>")
         else
-            html.print("<option " .. (_inntf == "wan" and "selected" or "") .. " value='wan'>WAN</option>")
+            html.print("<option " .. (_intf == "wan" and "selected" or "") .. " value='wan'>WAN</option>")
         end
         html.print("</select></td>")
 
