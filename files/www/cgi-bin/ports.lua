@@ -408,7 +408,7 @@ if f then
         end
     end
 
-    if parm.dmz_ip and parms.dmz_ip ~= "" then
+    if parms.dmz_ip and parms.dmz_ip ~= "" then
         f:write("dmz_ip = " .. parms.dmz_ip .. "\n")
         if not validate_ip(parms.dmz_ip) then
             dmzerr(parms.dmz_ip .. " is not a valid address")
