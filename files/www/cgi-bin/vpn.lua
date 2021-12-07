@@ -444,7 +444,7 @@ local active_tun = get_active_tun()
 -- generate the page
 
 http_header()
-html.header(node .. "setup", true)
+html.header(node .. " setup", true)
 html.print("<body><center>")
 html.alert_banner()
 html.print("<form id=vpn method=post action=/cgi-bin/vpn enctype='multipart/form-data'>")

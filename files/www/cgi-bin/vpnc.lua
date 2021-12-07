@@ -412,7 +412,7 @@ local active_tun = get_active_tun()
 
 -- generate page
 http_header()
-html.header(node .. "setup", true)
+html.header(node .. " setup", true)
 
 html.print("<body><center>")
 html.alert_banner()
