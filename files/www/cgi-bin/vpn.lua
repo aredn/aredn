@@ -316,60 +316,63 @@ local vars = { "enabled", "name", "passwd", "netip", "contact" }
 local vars2 = { "net", "enabled", "name", "passwd", "netip", "contact" }
 for _, val in ipairs(list)
 do
-    for _, var in ipairs(vars)
+    for _ = 1,1
     do
-        local varname = "client" .. val .. "_" .. var
-        if val == "enabled" and parms[varname] == "" then
-            parms[varname] = "0"
-        elseif not parms[varname] then
-            parms[varname] = ""
-        else
-            parms[varname] = parms[varname]:gsub("^%s+", ""):gsub("%s+$", "")
+        for _, var in ipairs(vars)
+        do
+            local varname = "client" .. val .. "_" .. var
+            if var == "enabled" and not parms[varname] then
+                parms[varname] = "0"
+            elseif not parms[varname] then
+                parms[varname] = ""
+            else
+                parms[varname] = parms[varname]:gsub("^%s+", ""):gsub("%s+$", "")
+            end
+            if val ~= "_add" and parms[varname] == "" and var == "enabled" then
+                parms[varname] = "0"
+            end
+            _G[var] = parms[varname]
         end
-        if val ~= "_add" and parms[varname] == "" and var == "enabled" then
-            parms[varname] = "0"
-        end
-        _G[var] = parms[varname]
-    end
 
-    if val == "_add" and not ((enabled or name or passwd or contact) and (parms.client_add or parms.button_save)) then
-        -- continue
-    else
+        if val == "_add" and not ((enabled ~= "0" or name ~= "" or passwd ~= "" or contact ~= "") and (parms.client_add or parms.button_save)) then
+           break
+        end
+
         if val == "_add" and parms.button_save then
             err(val .. " this client must be added or cleared out before saving changes")
-            -- continue
-        else
-            if passwd:match("%W") then
-                err("The password cannot contain non-alphanumeric characters (#" .. client_num .. ")")
-            end
-            if not passwd:match("%a") then
-                err("The password must contain at least one alphabetic character (#" .. client_num .. ")")
-            end
-            if name == "" then
-                err("A client name is required")
-            end
-            if passwd == "" then
-                err("A client password is required")
-            end
+            break
+        end
+        if passwd:match("%W") then
+            err("The password cannot contain non-alphanumeric characters (#" .. client_num .. ")")
+        end
+        if not passwd:match("%a") then
+            err("The password must contain at least one alphabetic character (#" .. client_num .. ")")
+        end
+        if name == "" then
+            err("A client name is required")
+        end
+        if passwd == "" then
+            err("A client password is required")
+        end
 
-            if val == "_add" or #cli_err > 0 then
-                -- continue
-            else
-                parms["client" .. client_num .. "_enabled"] = enabled
-                parms["client" .. client_num .. "_name"] = name:upper()
-                parms["client" .. client_num .. "_passwd"] = passwd
-                parms["client" .. client_num .. "_netip"] = netip
+        if val == "_add" and #cli_err > 0 and cli_err[#cli_err]:match("^" .. val .. " ") then
+            break
+        end
 
-                -- commit the data from this client
-                client_num = client_num + 1
+        parms["client" .. client_num .. "_enabled"] = enabled
+        parms["client" .. client_num .. "_name"] = name:upper()
+        parms["client" .. client_num .. "_passwd"] = passwd
+        parms["client" .. client_num .. "_netip"] = netip
+        parms["client" .. client_num .. "_contact"] = contact
 
-                -- clear out the ADD values
-                if val == "_add" then
-                    for _, var in ipairs(vars2)
-                    do
-                        parms["client_add_" .. var] = ""
-                    end
-                end
+        -- commit the data from this client
+        client_num = client_num + 1
+
+        -- clear out the ADD values
+        if val == "_add" then
+            for _, var in ipairs(vars2)
+            do
+                parms["client_add_" .. var] = ""
             end
         end
     end
@@ -396,34 +399,36 @@ end
 if #cli_err == 0 then
     local net = "172.31." .. parms.server_net1 .. "." .. parms.server_net2
     cursor:set("vtun", "@network[0]", "start", net)
-    cursor.set("vtun", "@network[0]", "dns", dns)
+    cursor:set("vtun", "@network[0]", "dns", dns)
 end
 
 -- SAVE the clients
 local enabled_count = 0
 for i = 0,client_num-1
 do
-    local clientx_ = "client" .. i .. "_"
+    local clientx = "client" .. i
     local client_x = "client_" .. i
 
-    local net = parms[clientx_ .. "netip"]
-    local vtun_node_name = parms[clientx_ .. "name"]:sub(1,23) .. "-" .. net:gsub("%,", "-")
+    local net = parms[clientx .. "_netip"]
+    local vtun_node_name = parms[clientx .. "_name"]:sub(1,23) .. "-" .. net:gsub("%,", "-")
     local base = ip_to_decimal(net)
     local clientip = decimal_to_ip(base + 1)
     local serverip = decimal_to_ip(base + 2)
 
-    cursor:set("vtun", client_x)
+    if not cursor:get("vtun", client_x) then
+        cursor:set("vtun", client_x, 'client')
+    end
 
     cursor:set("vtun", client_x, "netip", net)
-    cursor:set("vtun", client_x, "enabled", parms[clientx_ .. "enabled"])
-    cursor:set("vtun", client_x, "name", parms[clientx_ .. "name"])
-    cursor:set("vtun", client_x, "contact", parms[clientx_ .. "contact"])
-    cursor:set("vtun", client_x, "passwd", parms[clientx_ .. "passwd"])
+    cursor:set("vtun", client_x, "enabled", parms[clientx .. "_enabled"])
+    cursor:set("vtun", client_x, "name", parms[clientx .. "_name"])
+    cursor:set("vtun", client_x, "contact", parms[clientx .. "_contact"])
+    cursor:set("vtun", client_x, "passwd", parms[clientx .. "_passwd"])
     cursor:set("vtun", client_x, "clientip", clientip)
     cursor:set("vtun", client_x, "serverip", serverip)
     cursor:set("vtun", client_x, "node", vtun_node_name)
 
-    if parms[clientx_ .. "enabled"] == "1" then
+    if parms[clientx .. "_enabled"] == "1" then
         enabled_count = enabled_count + 1
     end
 end
@@ -447,7 +452,7 @@ http_header()
 html.header(node .. " setup", true)
 html.print("<body><center>")
 html.alert_banner()
-html.print("<form id=vpn method=post action=/cgi-bin/vpn enctype='multipart/form-data'>")
+html.print("<form id=vpn method=post action=/cgi-bin/vpn.lua enctype='multipart/form-data'>")
 html.print("<form method=post action=test>")
 html.print("<table width=790>")
 
@@ -527,10 +532,6 @@ if config == "mesh" then
         end
         html.print("<tr class='tun_client_list2 tun_client_row'>")
         html.print("<td class='tun_client_center_item' rowspan='2'>")
-        -- required to be first, so the checkbox is cleared, a value with still POST
-        if val ~= "_add" then
-            html.print("<input type='hidden' name='client" .. val .. "_enabled' value='0'>")
-        end
         html.print("<input type='checkbox' name='client" .. val .. "_enabled' value='1'")
         if val ~= "_add" then
             html.print(" onChange='form.submit()'")
@@ -583,14 +584,10 @@ if config == "mesh" then
         html.print(" title='client contact info'></td></tr>")
 
         -- display any errors
-        if #cli_err > 0 then
-            for i, err in ipairs(cli_err)
-            do
-                if err:match("^" .. val .. " ") then
-                    html.print("<tr class=tun_client_error_row><th colspan=4>" .. err .. "</th></tr>")
-                    cli_err:remove(i)
-                end
-            end
+        while #cli_err > 0 and cli_err[1]:match("^" .. val .. " ")
+        do
+            html.print("<tr class=tun_client_error_row><th colspan=4>" .. err:gsub("^%S+ ", "") .. "</th></tr>")
+            cli_err:remove(1)
         end
 
         html.print("<tr><td colspan=4 height=4></td></tr>")

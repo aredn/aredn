@@ -185,19 +185,21 @@ end
 local gci_vars = { "enabled", "host", "passwd", "netip", "contact" }
 function get_connection_info()
     local c = 0
-    local conns = cursor:get_all("vtun", "server")
+    local conns = cursor:get_all("vtun")
     if conns then
         for _, myconn in pairs(conns)
         do
-            for _, var in ipairs(gci_vars)
-            do
-                local key = "conn" .. c .. "_" .. var
-                parms[key] = myconn[var]
-                if not parms[key] then
-                    parms[key] = ""
+            if myconn[".type"] == "server" then
+                for _, var in ipairs(gci_vars)
+                do
+                    local key = "conn" .. c .. "_" .. var
+                    parms[key] = myconn[var]
+                    if not parms[key] then
+                        parms[key] = ""
+                    end
                 end
+                c = c + 1
             end
-            c = c + 1
         end
     end
     parms.conn_num = c
@@ -268,16 +270,21 @@ if parms.button_reset then
 end
 
 -- handle connection deletes
+local do_delete = false
 for i = 0,9
 do
     local varname = "conn" .. i .. "_del"
     if parms[varname] then
+        do_delete = true
         cursor:delete("vtun", "server_" .. i)
         for x=i+1,9
         do
             cursor:rename("vtun", "server_" .. x, "server_" .. (x - 1))
         end
     end
+end
+if do_delete then
+    cursor:commit("vtun")
 end
 
 -- if RESET or FIRST TIME, load servers into parms
@@ -304,62 +311,65 @@ local conn_num = 0
 local vars = { "enabled", "host", "passwd", "netip", "contact" }
 for _, val in ipairs(list)
 do
-    for _, var in ipairs(vars)
+    for _ = 1, 1
     do
-        local varname = "conn" .. val .. "_" .. var
-        if val == "enabled" and parms[varname] == "" then
-            parms[varname] = "0"
-        elseif not parms[varname] then
-            parms[varname] = ""
-        else
-            parms[varname] = parms[varname]:gsub("^%s+", ""):gsub("%s+$", "")
+        for _, var in ipairs(vars)
+        do
+            local varname = "conn" .. val .. "_" .. var
+            if var == "enabled" and not parms[varname] then
+                parms[varname] = "0"
+            elseif not parms[varname] then
+                parms[varname] = ""
+            else
+                parms[varname] = parms[varname]:gsub("^%s+", ""):gsub("%s+$", "")
+            end
+            if val ~= "_add" and parms[varname] == "" and var == "enabled" then
+                parms[varname] = "0"
+            end
+            _G[var] = parms[varname]
         end
-        if val ~= "_add" and parms[varname] == "" and var == "enabled" then
-            parms[varname] = "0"
-        end
-        _G[var] = parms[varname]
-    end
 
-    if val == "_add" and not ((enabled or host or passwd or netip or contact) and (parms.conn_add or parms.button_save)) then
-        -- continue
-    elseif val ~= "_add" and parms["conn" .. val .. "_del"] then
-        --continue
-    else
+        if val == "_add" then
+            if not ((enabled ~= "0" or host ~= "" or passwd ~= "" or netip ~= "" or contact ~= "") and (parms.conn_add or parms.button_save)) then
+                break
+            end
+        elseif parms["conn" .. val .. "_del"] then
+            break
+        end
         if val == "_add" and parms.button_save then
             err(val .. " this connection must be added or cleared out before saving changes")
-            -- continue
-        else
-            if passwd:match("%W") then
-                err("The password cannot contain non-alphanumeric characters (#" .. conn_num .. ")")
-            end
-            if host == "" then
-                err("A connection server is required")
-            end
-            if passwd == "" then
-                err("A connection password is required")
-            end
-            if netip == "" then
-                err("A connection network IP is required")
-            end
+            break
+        end
+        if passwd:match("%W") then
+            err("The password cannot contain non-alphanumeric characters (#" .. conn_num .. ")")
+        end
+        if host == "" then
+            err("A connection server is required")
+        end
+        if passwd == "" then
+            err("A connection password is required")
+        end
+        if netip == "" then
+            err("A connection network IP is required")
+        end
 
-            if val == "_add" or #conn_err > 0 then
-                -- continue
-            else
-                parms["conn" .. conn_num .. "_enabled"] = enabled
-                parms["conn" .. conn_num .. "_host"] = host
-                parms["conn" .. conn_num .. "_passwd"] = passwd
-                parms["conn" .. conn_num .. "_netip"] = netip
-                parms["conn" .. conn_num .. "_contact"] = contact
+        if val == "_add" and #conn_err > 0 and conn_err[#conn_err]:match("^" .. val .. " ") then
+            break
+        end
 
-                conn_num = conn_num + 1
+        parms["conn" .. conn_num .. "_enabled"] = enabled
+        parms["conn" .. conn_num .. "_host"] = host
+        parms["conn" .. conn_num .. "_passwd"] = passwd
+        parms["conn" .. conn_num .. "_netip"] = netip
+        parms["conn" .. conn_num .. "_contact"] = contact
 
-                -- clear out the ADD values
-                if val == "_add" then
-                    for _, var in ipairs(vars)
-                    do
-                        parms["conn_add_" .. var] = ""
-                    end
-                end
+        conn_num = conn_num + 1
+
+        -- clear out the ADD values
+        if val == "_add" then
+            for _, var in ipairs(vars)
+            do
+                parms["conn_add_" .. var] = ""
             end
         end
     end
@@ -380,7 +390,9 @@ do
     local clientip = decimal_to_ip(base + 2)
     local serverip = decimal_to_ip(base + 1)
 
-    cursor:add("vtun", conn_x)
+    if not cursor:get("vtun", conn_x) then
+        cursor:set("vtun", conn_x, "server")
+    end
 
     cursor:set("vtun", conn_x, "clientip", clientip)
     cursor:set("vtun", conn_x, "serverip", serverip)
@@ -486,10 +498,6 @@ if config == "mesh" then
         html.print("<tr class='tun_client_list2 tun_client_row'>")
         html.print("<td class='tun_client_center_item' rowspan='2'>")
 
-        -- Required to be first, so, if the checkbox is cleared, a value will still POST
-        if val ~= "_add" then
-            html.print("<input type='hidden' name='conn" .. val .. "_enabled' value='0'>")
-        end
         html.print("<input type='checkbox' name='conn" .. val .. "_enabled' value='1'")
         if val ~= "_add" then
             html.print(" onChange='form.submit()'")
@@ -549,14 +557,10 @@ if config == "mesh" then
         html.print("</tr>")
 
         -- display any errors
-        if #conn_err > 0 then
-            for i, err in ipairs(conn_err)
-            do
-                if err:match("^" .. val .. " ") then
-                    html.print("<tr><th colspan=4>" .. err .. "</th></tr>")
-                    conn_err:remove(i)
-                end
-            end
+        while #conn_err > 0 and conn_err[1]:match("^" .. val .. " ")
+        do
+            html.print("<tr><th colspan=4>" .. err:gsub("^%S+ ", "") .. "</th></tr>")
+            conn_err:remove(i)
         end
 
         html.print("<tr><td colspan=6 height=4></td></tr>")
