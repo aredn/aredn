@@ -359,10 +359,11 @@ col2[#col2 + 1] = "<th align=right>system time</th><td>" .. os.date("%a %b %e %Y
 local sysinfo = nixio.sysinfo()
 local uptime = string.format("%d:%02d", math.floor(sysinfo.uptime / 3600) % 60, math.floor(sysinfo.uptime / 60) % 60)
 if sysinfo.uptime >= 172800 then
-    uptime =  math.floor(uptime / 86400) .. " days, "
+    uptime = math.floor(sysinfo.uptime / 86400) .. " days, " .. uptime
 elseif sysinfo.uptime >= 86400 then
     uptime = "1 day, " .. uptime
 end
+
 col2[#col2 + 1] = "<th align=right>uptime<br>load average</th><td>" .. uptime .. "<br>" .. string.format("%.2f, %.2f, %.2f", sysinfo.loads[1], sysinfo.loads[2], sysinfo.loads[3]) .. "</td>";
 local vfs = nixio.fs.statvfs("/overlay")
 local fspace = vfs.bfree * vfs.bsize / 1024
