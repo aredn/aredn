@@ -115,7 +115,7 @@ function run_monitor()
                 -- overly attenuated chain suspected
                 local msg = string.format("Attenuated Suspect %s [%d] %f %f", mac, info.Hrssi, rssih.ave_h, rssih.sd_h)
                 if multiple_ant then
-                    msg = msg .. string.format(" [%d] %f %f", mac, info.Vrssi, rssih.ave_v, rssih.sd_v)
+                    msg = msg .. string.format(" [%d] %f %f", info.Vrssi, rssih.ave_v, rssih.sd_v)
                 end
                 if not amac or rssi[amac].Hrssi < info.Hrssi then
                     amac = mac
@@ -183,8 +183,6 @@ function run_monitor()
             if rssih.num < 60 then
                 rssih.num = rssih.num + 1
             end
-            rssi.last = now + 5
-            log:write(string.format("%s Possible valid data point, adding to statistics", amac))
         end
     end
 
