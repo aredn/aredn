@@ -134,12 +134,12 @@ function hardware.get_iface_name(name)
 end
 
 function hardware.get_link_led()
-    local board = hardware.get_board()
-    if board.led then
-        return "/sys/class/leds/" .. board.led.rssilow.sysfs
-    else
-        return nil
-    end
+    local led = xpcall(
+        function() return "/sys/class/leds/" .. hardware.get_board().led.rssilow.sysfs end,
+        function()
+            return nil
+        end
+    )
 end
 
 function hardware.has_poe()
