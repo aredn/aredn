@@ -184,9 +184,11 @@ local olsr_total = 0
 local olsr_nodes = 0
 for i, node in ipairs(olsr_routes)
 do
-    olsr_total = olsr_total + 1
-    if node.genmask ~= 32 then
-        olsr_nodes = olsr_nodes + 1
+    if node.genmask ~= 0 then -- don't count default route
+        olsr_total = olsr_total + 1
+        if node.genmask ~= 32 then
+            olsr_nodes = olsr_nodes + 1
+        end
     end
 end
 
