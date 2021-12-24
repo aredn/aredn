@@ -65,11 +65,13 @@ end
 -- get list of files from /tmp/snrlog
 local snrfiles = {}
 local devfound = false
-for filename in nixio.fs.dir("/tmp/snrlog")
-do
-    snrfiles[#snrfiles + 1] = filename
-    if device == filename then
-        devfound = true
+if nixio.fs.stat("/tmp/snrlog") then
+    for filename in nixio.fs.dir("/tmp/snrlog")
+    do
+        snrfiles[#snrfiles + 1] = filename
+        if device == filename then
+            devfound = true
+        end
     end
 end
 if not devfound then
