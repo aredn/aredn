@@ -391,11 +391,13 @@ do
 end
 
 -- load the node history
-for line in io.lines("/tmp/node.history")
-do
-    local ip, age, host = line:match("^(.*) (.*) (.*)")
-    if age then
-        history[ip] = { age = age, host = host:gsub("/", " / ") }
+if nixio.fs.stat("/tmp/node.history") then
+    for line in io.lines("/tmp/node.history")
+    do
+        local ip, age, host = line:match("^(.*) (.*) (.*)")
+        if age then
+            history[ip] = { age = age, host = host:gsub("/", " / ") }
+        end
     end
 end
 
