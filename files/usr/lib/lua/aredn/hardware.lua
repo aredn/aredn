@@ -95,7 +95,7 @@ function hardware.get_board_id()
     if not name or name == "" or name == "0x0000" then
         name = hardware.get_board().model.name
     end
-    return name
+    return name:chomp()
 end
 
 function hardware.get_board_type()
