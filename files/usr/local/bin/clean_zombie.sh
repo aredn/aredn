@@ -37,7 +37,7 @@ LICENSE
 # when available memory is low. 
 
 # if Mesh RF is disabled, then nothing to do
-iface=$(uci -q get 'network.wifi.device')                              
+iface=$(uci -q get network.@device[2].name)                              
 if [ "$iface" = "${iface##wlan*}" ]; then
   exit             
 fi

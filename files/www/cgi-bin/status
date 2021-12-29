@@ -190,7 +190,7 @@ push @col1, $str;
 
 # find out if the browser is on this node's lan
 # if not, hide the local network details
-($ip, $mask, $bcast, $net, $cidr) = get_ip4_network(get_interface("lan"));
+($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("br-lan");
 if($ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/)
 {
     $browser_ip = $1;
@@ -201,13 +201,11 @@ if($ip =~ /^10\./ or not $hide_local)
 {
     $cidr = "/ $cidr" if $cidr;
     $str  = "<th align=right><nobr>LAN address</nobr></th><td>$ip <small>$cidr</small><br>";
-    # $str .= "<small><nobr>" . get_ip6_addr(get_interface("lan")) . "</nobr></small></td>";
+    # $str .= "<small><nobr>" . get_ip6_addr("br-lan") . "</nobr></small></td>";
     push @col1, $str;
-}
 
-{
     my $wanintf = get_interface("wan");
-    if(not $hide_local and not system "ifconfig $wanintf >/dev/null 2>&1")
+    if(not system "ifconfig $wanintf >/dev/null 2>&1")
     {
         ($ip, $mask, $bcast, $net, $cidr) = get_ip4_network("$wanintf");
         $cidr = "/ $cidr" if $cidr;

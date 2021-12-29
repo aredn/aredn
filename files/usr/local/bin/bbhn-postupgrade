@@ -19,8 +19,8 @@ if ($config ne "mesh")
 
 #Prep some variables
 $node = nvram_get("node");
-$mac2 = mac2ip(get_mac(get_interface("wifi")), 0);
-$dtdmac = mac2ip(get_mac(get_interface("lan")), 0);
+$mac2 = mac2ip(get_mac("wlan0"), 0);
+$dtdmac = mac2ip(get_mac(`cat /etc/aredn_include/lan.config.network | head -1 | cut -f3 -d' ' | sed -e "s/'//g"`), 0);
 
 $cfg = ();
 $defaultcfg = ();

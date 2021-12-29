@@ -1,0 +1,192 @@
+From 6801b827e41dead8fe2e77654f4309ff7fcd47fa Mon Sep 17 00:00:00 2001
+From: Roger Pueyo Centelles <roger.pueyo@guifi.net>
+Date: Wed, 27 Oct 2021 19:40:45 +0200
+Subject: [PATCH] ath79: mikrotik: enable SFP on RB921GS-5HPacD (mANTBox 15s)
+
+This patch enables the SFP cage on the MikroTik RouterBOARD 921GS-5HPacD
+(mANTBox 15s).
+
+The RB922UAGS-5HPacD had it already working, so the support code is
+moved to the common DTSI file both devices share.
+
+Tested on a RouterBOARD 921GS-5HPacD with a MikroTik S-53LC20D module.
+
+Signed-off-by: Roger Pueyo Centelles <roger.pueyo@guifi.net>
+---
+ ...58_mikrotik_routerboard-922uags-5hpacd.dts | 48 -------------------
+ .../dts/qca9558_mikrotik_routerboard-92x.dtsi | 48 +++++++++++++++++++
+ target/linux/ath79/image/mikrotik.mk          |  3 +-
+ .../base-files/etc/board.d/02_network         |  3 +-
+ 4 files changed, 51 insertions(+), 51 deletions(-)
+
+diff --git a/target/linux/ath79/dts/qca9558_mikrotik_routerboard-922uags-5hpacd.dts b/target/linux/ath79/dts/qca9558_mikrotik_routerboard-922uags-5hpacd.dts
+index 36979bbd3356..8ad834fe61a7 100644
+--- a/target/linux/ath79/dts/qca9558_mikrotik_routerboard-922uags-5hpacd.dts
++++ b/target/linux/ath79/dts/qca9558_mikrotik_routerboard-922uags-5hpacd.dts
+@@ -23,27 +23,6 @@
+ 			gpios = <&gpio 13 GPIO_ACTIVE_HIGH>;
+ 		};
+ 	};
+-
+-	i2c: i2c {
+-		compatible = "i2c-gpio";
+-
+-		sda-gpios = <&gpio 18 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+-		scl-gpios = <&gpio 19 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+-		i2c-gpio,delay-us = <5>;
+-		i2c-gpio,timeout-ms = <1>;
+-	};
+-
+-	sfp1: sfp {
+-		compatible = "sff,sfp";
+-
+-		i2c-bus = <&i2c>;
+-		maximum-power-milliwatt = <1000>;
+-		los-gpios = <&gpio 21 GPIO_ACTIVE_HIGH>;
+-		mod-def0-gpios = <&gpio 17 GPIO_ACTIVE_LOW>;
+-		tx-disable-gpios = <&gpio 16 GPIO_ACTIVE_HIGH>;
+-		// Toggling GPIO16 actually enables/disables the transmitter,
+-		// but the SFP driver does not seem to be using it.
+-		};
+ };
+ 
+ &pcie0 {
+@@ -76,30 +55,3 @@
+ &usb_phy1 {
+ 	status = "okay";
+ };
+-
+-&mdio1 {
+-	status = "okay";
+-
+-	phy_sfp: ethernet-phy@0 {
+-		reg = <0>;
+-		phy-mode = "sgmii";
+-		sfp = <&sfp1>;
+-	};
+-};
+-
+-&eth1 {
+-	status = "okay";
+-
+-	phy-handle = <&phy_sfp>;
+-	pll-data = <0x03000000 0x00000101 0x00001616>;
+-	qca955x-sgmii-fixup;
+-
+-	gmac-config {
+-		device = <&gmac>;
+-	};
+-
+-	fixed-link {
+-		speed = <1000>;
+-		full-duplex;
+-	};
+-};
+diff --git a/target/linux/ath79/dts/qca9558_mikrotik_routerboard-92x.dtsi b/target/linux/ath79/dts/qca9558_mikrotik_routerboard-92x.dtsi
+index 5e919856a55d..d71c12c1fd73 100644
+--- a/target/linux/ath79/dts/qca9558_mikrotik_routerboard-92x.dtsi
++++ b/target/linux/ath79/dts/qca9558_mikrotik_routerboard-92x.dtsi
+@@ -42,6 +42,27 @@
+ 			gpios = <&gpio 23 GPIO_ACTIVE_LOW>;
+ 		};
+ 	};
++
++	i2c: i2c {
++		compatible = "i2c-gpio";
++
++		sda-gpios = <&gpio 18 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
++		scl-gpios = <&gpio 19 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
++		i2c-gpio,delay-us = <5>;
++		i2c-gpio,timeout-ms = <1>;
++	};
++
++	sfp1: sfp {
++		compatible = "sff,sfp";
++
++		i2c-bus = <&i2c>;
++		maximum-power-milliwatt = <1000>;
++		los-gpios = <&gpio 21 GPIO_ACTIVE_HIGH>;
++		mod-def0-gpios = <&gpio 17 GPIO_ACTIVE_LOW>;
++		tx-disable-gpios = <&gpio 16 GPIO_ACTIVE_HIGH>;
++		// Toggling GPIO16 actually enables/disables the transmitter,
++		// but the SFP driver does not seem to be using it.
++	};
+ };
+ 
+ &mdio0 {
+@@ -64,6 +85,33 @@
+ 	};
+ };
+ 
++&mdio1 {
++	status = "okay";
++
++	phy_sfp: ethernet-phy@0 {
++		reg = <0>;
++		phy-mode = "sgmii";
++		sfp = <&sfp1>;
++	};
++};
++
++&eth1 {
++	status = "okay";
++
++	phy-handle = <&phy_sfp>;
++	pll-data = <0x03000000 0x00000101 0x00001616>;
++	qca955x-sgmii-fixup;
++
++	gmac-config {
++		device = <&gmac>;
++	};
++
++	fixed-link {
++		speed = <1000>;
++		full-duplex;
++	};
++};
++
+ &spi {
+ 	status = "okay";
+ 
+diff --git a/target/linux/ath79/image/mikrotik.mk b/target/linux/ath79/image/mikrotik.mk
+index 4256f773792b..2324ecc195d6 100644
+--- a/target/linux/ath79/image/mikrotik.mk
++++ b/target/linux/ath79/image/mikrotik.mk
+@@ -22,7 +22,8 @@ define Device/mikrotik_routerboard-921gs-5hpacd-15s
+   $(Device/mikrotik_nand)
+   SOC := qca9558
+   DEVICE_MODEL := RouterBOARD 921GS-5HPacD-15s (mANTBox 15s)
+-  DEVICE_PACKAGES += kmod-ath10k-ct ath10k-firmware-qca988x-ct
++  DEVICE_PACKAGES += kmod-ath10k-ct ath10k-firmware-qca988x-ct kmod-i2c-gpio \
++	kmod-sfp
+   SUPPORTED_DEVICES += rb-921gs-5hpacd-r2
+ endef
+ TARGET_DEVICES += mikrotik_routerboard-921gs-5hpacd-15s
+diff --git a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
+index d4a32c1e1aab..40587421332d 100644
+--- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
+@@ -15,7 +15,6 @@ ath79_setup_interfaces()
+ 			"0@eth1" "1:lan:4" "2:lan:1" "3:lan:2" "4:lan:3"
+ 		;;
+ 	mikrotik,routerboard-912uag-2hpnd|\
+-	mikrotik,routerboard-921gs-5hpacd-15s|\
+ 	mikrotik,routerboard-lhg-2nd|\
+ 	mikrotik,routerboard-sxt-5nd-r2|\
+ 	mikrotik,routerboard-wap-g-5hact2hnd|\
+@@ -38,7 +37,6 @@ ath79_setup_macs()
+ 
+ 	case "$board" in
+ 	mikrotik,routerboard-912uag-2hpnd|\
+-	mikrotik,routerboard-921gs-5hpacd-15s|\
+ 	mikrotik,routerboard-lhg-2nd|\
+ 	mikrotik,routerboard-sxt-5nd-r2|\
+ 	mikrotik,routerboard-wap-g-5hact2hnd|\
+@@ -46,6 +44,7 @@ ath79_setup_macs()
+ 		label_mac="$mac_base"
+ 		lan_mac="$mac_base"
+ 		;;
++	mikrotik,routerboard-921gs-5hpacd-15s|\
+ 	mikrotik,routerboard-922uags-5hpacd)
+ 		label_mac="$mac_base"
+ 		lan_mac="$mac_base"

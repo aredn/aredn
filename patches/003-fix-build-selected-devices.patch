@@ -1,0 +1,51 @@
+Openwrt build defect when configured to create images for selected devices.
+If a mix of ath10k-ct and ath10k-ct-smallbuffers, the build fails.
+This is the same package with different build options, but is
+trying to overwrite the same destination.   Also, these devices
+should probably all have the smallbuffer option anyway. This doesn't fix
+the build system, rather pushes all relevant devices to use
+ath10k-ct-smallbuffers.
+author: Joe AE6XE <ae6xe@arrl.net>
+
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image/generic-ubnt.mk
+@@ -316,7 +316,7 @@ define Device/ubnt_powerbeam-5ac-500
+   SOC := qca9558
+   DEVICE_MODEL := PowerBeam 5AC
+   DEVICE_VARIANT := 500
+-  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct
++  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct
+ endef
+ TARGET_DEVICES += ubnt_powerbeam-5ac-500
+ 
+@@ -342,7 +342,7 @@ define Device/ubnt_rocket-5ac-lite
+   SOC := qca9558
+   DEVICE_MODEL := Rocket 5AC
+   DEVICE_VARIANT := Lite
+-  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct
++  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct
+ endef
+ TARGET_DEVICES += ubnt_rocket-5ac-lite
+ 
+--- a/target/linux/ath79/image/generic.mk
++++ b/target/linux/ath79/image/generic.mk
+@@ -1192,7 +1192,7 @@ define Device/glinet_gl-ar750
+   SOC := qca9531
+   DEVICE_VENDOR := GL.iNet
+   DEVICE_MODEL := GL-AR750
+-  DEVICE_PACKAGES := kmod-usb2 kmod-ath10k-ct ath10k-firmware-qca9887-ct
++  DEVICE_PACKAGES := kmod-usb2 kmod-ath10k-ct-smallbuffers ath10k-firmware-qca9887-ct
+   IMAGE_SIZE := 16000k
+   SUPPORTED_DEVICES += gl-ar750
+ endef
+--- a/target/linux/ipq40xx/image/mikrotik.mk
++++ b/target/linux/ipq40xx/image/mikrotik.mk
+@@ -23,6 +23,7 @@ define Device/mikrotik_sxtsq-5-ac
+ 	$(call Device/mikrotik_nor)
+ 	DEVICE_MODEL := SXTsq 5 ac (RBSXTsqG-5acD)
+ 	SOC := qcom-ipq4018
+-	DEVICE_PACKAGES := ipq-wifi-mikrotik_sxtsq-5-ac rssileds
++	DEVICE_PACKAGES := ipq-wifi-mikrotik_sxtsq-5-ac rssileds \
++		-kmod-ath10k-ct kmod-ath10k-ct-smallbuffer
+ endef
+ TARGET_DEVICES += mikrotik_sxtsq-5-ac

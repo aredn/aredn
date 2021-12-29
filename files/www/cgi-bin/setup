@@ -51,14 +51,20 @@ $pingOk=is_online();
 
 @output = ();
 @errors = ();
+$M39model = `/usr/local/bin/get_boardid | grep -E "0xe1b9|0xe035|0xe1c3|0xe243|0xe239|0xe1b9|0xe009"`;
+
+$wifiintf = get_interface("wifi");
+$phy = get_wlan2phy("$wifiintf");
+chomp ($phycount = `ls -1d /sys/class/ieee80211/* | wc -l`);
 
 read_postdata();
 
 my $tz_db_strings = tz_names_hash();
 my $tz_db_names = tz_names_array();
-$wifiintf = get_interface("wifi");
-$phy = get_wlan2phy("$wifiintf");
-chomp ($phycount = `ls -1d /sys/class/ieee80211/* | wc -l`);
+
+$rc1 = system("iw phy $phy info | grep -q '5180 MHz' > /dev/null");
+if ( $rc1 ) {$wifi_hwmode="11g";} else {$wifi_hwmode="11a";}
+$orig_wifi_hwmode = $wifi_hwmode;
 
 my @ctwo=(1,2,3,4,5,6,7,8,9,10,11);
 my @cfive=(36,40,44,48,149,153,157,161,165);
@@ -307,11 +313,6 @@ if($parms{button_save})
 
     push (@errors, "invalid Mesh RF SSID") unless length $wifi_ssid <= 32;
 
-    if ( is_channel_valid($wifi_channel) != 1 )
-    {
-        push (@errors, "invalid Mesh RF channel")
-    }
-
     if ( !is_wifi_chanbw_valid($wifi_chanbw,$wifi_ssid) )
     {
         push (@errors, "Invalid Mesh RF channel width");
@@ -465,32 +466,36 @@ if($parms{button_save})
 	push (@errors, "The WAN Wifi Client password and ssid may not contain a single quote character");
     }
 
-    if ( $wifi2_channel < 30 and "$wifi2_hwmode" eq "11a" )
+    if ( $wifi2_channel < 30 and "$wifi2_hwmode" eq "11a" and $wifi2_enable == 0 )
     {
         push (@errors, "Changed to 5GHz Mesh LAN AP, please review channel selection");
     }
-    if ( $wifi2_channel > 30 and "$wifi2_hwmode" eq "11g" )
+    if ( $wifi2_channel > 30 and "$wifi2_hwmode" eq "11g" and $wifi2_enable == 0 )
     {
-        push (@errors, "Changed to 2GHz Mesh LAN AP, please review channel slection");
+        push (@errors, "Changed to 2GHz Mesh LAN AP, please review channel slection and save again!");
     }
-    if ( $phycount > 1 and $wifi_enable and $wifi2_channel < 36 and $wifi2_enable )
+    if ( ($phycount == 1 and (( $wifi_enable  and ($wifi2_enable or $wifi3_enable )) or
+                              ( $wifi2_enable and ($wifi_enable  or $wifi3_enable )) or
+	                      ( $wifi3_enable and ($wifi_enable  or $wifi2_enable )))) or
+	 ($phycount >  1 and $wifi_enable  and  $wifi2_enable and $wifi3_enable ) )
     {
-	push (@errors, "Mesh RF and LAN Access Point can not both use the same wireless card, review LAN AP settings");
+	push (@errors, "Not enough wireless cards available for the options enabled, please review and disable an option.");
     }
-    if ( $phycount > 1 and ! $wifi_enable and $wifi2_hwmode eq $wifi3_hwmode )
+    if ( $phycount > 1 and (($wifi_enable  and $wifi2_enable and $wifi_hwmode  eq $wifi2_hwmode) or
+			    ($wifi_enable  and $wifi3_enable and $wifi_hwmode  eq $wifi3_hwmode) or
+                            ($wifi2_enable and $wifi3_enable and $wifi2_hwmode eq $wifi3_hwmode)))
     {
-	push (@errors, "Some settings auto updated to avoid conflicts, please review and save one more time");
+	push (@errors, "Two options enabled can not use the same wireless card, review band selections.");
     }
-    if ( $wifi_enable and $wifi2_enable and $wifi3_enable )
+
+    if ( $wifi_enable and $wifi_hwmode eq "11a" and $wifi_channel < 36 )
     {
-	push (@errors, "Can not enable Mesh RF, LAN AP, and WAN Wifi Client with only 2 wireless cards, WAN Wifi Client turned off");
-	$wifi3_enable = 0;
+	push (@errors, "Mesh RF Band changed to 5GHz, please review channel and other settings for new band.");
     }
-    if ( $phycount == 1 and $wifi_enable and ($wifi2_enable or $wifi3_enable ))
+
+    if ( $wifi_enable and $wifi_hwmode eq "11g" and $wifi_channel > 35 )
     {
-	push (@errors, "Can not enable Mesh RF along with LAN AP or WAN Wifi Client. Only Mesh RF enabled now, please review settings.");
-	$wifi2_enable = 0;
-	$wifi3_enable = 0;
+	push (@errors, "Mesh RF Band changed to 2GHz, please review channel and other settings for new band.");
     }
 
     if($debug == 3) # don't save the config, just validate it
@@ -507,8 +512,17 @@ if($parms{button_save})
 	$parms{wifi2_ssid} =~ s/(.)/sprintf("%x",ord($1))/eg;
 	$parms{wifi3_key} =~ s/(.)/sprintf("%x",ord($1))/eg;
 	$parms{wifi3_ssid} =~ s/(.)/sprintf("%x",ord($1))/eg;
+
+	if ( $wifi_enable ) {
+	    $wifiintf = ("$wifi_hwmode" eq "11g") ? "wlan1" : "wlan0";
+	    $phy = get_wlan2phy("$wifiintf");
+	    $rc = &uci_set_named_option("network","wifi","device",$wifiintf);
+	    $rc = &uci_commit("network");
+        }
+
 	$rc = save_setup("/etc/config.mesh/_setup");
 	$rc2 = &uci_commit("system");
+
 	if(-s "/tmp/web/save/node-setup.out")
 	{
 	    push @errors, `cat /tmp/web/save/node-setup.out`;
@@ -725,14 +739,7 @@ print "<table cellpadding=5 border=1 width=100%><tr><td valign=top width=33%>\n"
 #
 
 print "<table width=100% style='border-collapse: collapse;'>";
-if ( $phycount > 1 )
-    {
-	print " <tr><th colspan=2>Mesh RF (2GHz)</th></tr>";
-    }
-    else
-    {
-        print " <tr><th colspan=2>Mesh RF</th></tr>";
-    }
+print " <tr><th colspan=2>Mesh RF</th></tr>";
 
 push @hidden, "<input type=hidden name=wifi_proto value='static'>";
 
@@ -743,6 +750,40 @@ print "\n<tr><td>Enable</td>";
 print "<td><input type=checkbox name=wifi_enable value=1";
 print " checked" if $wifi_enable;
 print "></td></tr>\n";
+
+print "<tr><td>Mesh RF Band</td>\n";
+
+print "<td><select name=wifi_hwmode>\n";
+if ($phycount == 1 )
+{
+    if ($wifi_hwmode eq "11a" )
+    { 
+	if ( $M39model ne "")
+	{
+	    selopt("3GHz", "11a", $wifi_hwmode);
+	}
+	else
+	{ 
+	    selopt("5GHz", "11a", $wifi_hwmode);
+	}
+    }
+    else
+    {
+	if ( $M39model ne "")
+	{
+	    selopt(".9GHz", "11g", $wifi_hwmode);
+	}
+	else
+	{ 
+	    selopt(".9GHz", "11g", $wifi_hwmode);
+	}
+    }
+}
+else {
+    selopt("2GHz", "11g", $wifi_hwmode);
+    selopt("5GHz", "11a", $wifi_hwmode);
+}
+print "</select></td></tr>\n";
 
 print "<tr><td><nobr>IP Address</nobr></td>\n";
 print "<td><input type=text size=15 name=wifi_ip value='$wifi_ip'></td></tr>\n";
@@ -766,7 +807,16 @@ if ( ${wifi_enable} )
 
     print "<tr><td>Channel</td>\n";
     print "<td><select name=wifi_channel>\n";
-    my $rfchannels=rf_channels_list();
+    
+    if ($M39model ne "") {
+        $rfchannels=rf_channels_list();
+    }
+    else 
+    {
+	$chanband = ( $wifi_hwmode eq "11a" ) ? "5800ubntus" :  "2400" ; 
+	$rfchannels=rf_channel_map($chanband);
+    }
+
     foreach  $channelnumber (sort {$a <=> $b} keys %{$rfchannels} )
     {
         selopt($rfchannels->{$channelnumber}, $channelnumber, $wifi_channel);
@@ -778,6 +828,7 @@ if ( ${wifi_enable} )
     selopt("20 MHz","20",$wifi_chanbw);
     selopt("10 MHz","10",$wifi_chanbw);
     selopt("5 MHz","5",$wifi_chanbw);
+
     print "</select></td></tr>\n";
 
     push (@hidden, "<input type=hidden name=wifi_country value='HX'>");
@@ -909,10 +960,7 @@ else
 
 print "<tr><td colspan=2><hr></hr></td></tr>";
 
-$M39model = `/usr/local/bin/get_model | grep -e "M[39]"`;
-if ( ($phycount >  1 and (! $wifi_enable or  ! $wifi3_enable))
-  or ($phycount == 1 and  ! $wifi_enable and ! $wifi3_enable )
- and ! $M39model )
+if ( $M39model eq "" )
 {
     # LAN AP shows as an option 
 
@@ -937,27 +985,20 @@ if ( ($phycount >  1 and (! $wifi_enable or  ! $wifi3_enable))
     else
     {
 	# 2 band device
-	if ( $wifi_enable == 1 )
+        if ( ! $wifi2_enable and $wifi3_enable and $wifi3_hwmode eq "11a" ) { $wifi2_hwmode = "11g"; }
+	if ( ! $wifi2_enable and $wifi3_enable and $wifi3_hwmode eq "11g" ) { $wifi2_hwmode = "11a"; }
+        if ( ! $wifi2_enable and $wifi_enable and $wifi_hwmode eq "11a" ) { $wifi2_hwmode = "11g"; }
+	if ( ! $wifi2_enable and $wifi_enable and $wifi_hwmode eq "11g" ) { $wifi2_hwmode = "11a"; }
+	if ( $wifi2_hwmode eq "11a" )
 	{
-	    $wifi2_hwmode="11a";
 	    if ( $wifi2_channel < 36 ) { $wifi2_channel = 36; }
-	    @chan=@cfive;
+	        @chan=@cfive;
 	}
 	else
 	{
-	    if ( ! $wifi2_enable and $wifi3_enable and $wifi3_hwmode eq "11a" ) { $wifi2_hwmode = "11g"; }
-	    if ( ! $wifi2_enable and $wifi3_enable and $wifi3_hwmode eq "11g" ) { $wifi2_hwmode = "11a"; }
-	    if ( $wifi2_hwmode eq "11a" )
-	    {
-		if ( $wifi2_channel < 36 ) { $wifi2_channel = 36; }
-	        @chan=@cfive;
-	    }
-	    else
-	    {
-		if ( $wifi2_channel > 14  ) { $wifi2_channel = 1; }
-		@chan=@ctwo;
-	    }
-	}
+	    if ( $wifi2_channel > 14  ) { $wifi2_channel = 1; }
+                @chan=@ctwo;
+	 }
     }
 
     print "<tr><th colspan=2>LAN Access Point</th></tr>";
@@ -965,21 +1006,26 @@ if ( ($phycount >  1 and (! $wifi_enable or  ! $wifi3_enable))
     print "<td><input type=checkbox name=wifi2_enable value=1";
     print " checked" if $wifi2_enable;
     print "></td></tr>\n";
+    print "<tr><td>AP band</td>\n";
+    print "<td><select name=wifi2_hwmode>\n";
 
     if ( $phycount > 1 ) {
-	print "<tr><td>AP band</td>\n";
-	print "<td><select name=wifi2_hwmode>\n";
-	if ( ! $wifi_enable ) {
-	    selopt("2GHz", "11g", $wifi2_hwmode);
-	}
+	selopt("2GHz", "11g", $wifi2_hwmode);
 	selopt("5GHz", "11a", $wifi2_hwmode);
-	print "</select></td></tr>\n";
     }
     else
     {
-	push @hidden, "<input type=hidden name=wifi2_hwmode  value='$wifi2_hwmode'>";
+	if ( $rc3 ) {
+	    selopt("2GHz", "11g", $wifi2_hwmode); 
+	    $wifi2_channel = 1;
+	}
+	else {
+	    selopt("5GHz", "11a", $wifi2_hwmode); 
+	    $wifi2_channel = 36;
+	}
     }
 
+    print "</select></td></tr>\n";
     print "<tr><td>SSID</td>\n";
     print "<td><input type=text size=15 name=wifi2_ssid value='$wifi2_ssid'></td></tr>\n";
 
@@ -1076,64 +1122,35 @@ print "></td></tr>\n";
 
 # WAN wifi Client
 
-if ( ($phycount >  1 and (! $wifi_enable or  ! $wifi2_enable))
-  or ($phycount == 1 and  ! $wifi_enable and ! $wifi2_enable )
- and ! $M39model )
+if ( $M39model eq "" )
 {
 
     # Wifi Client shows as an option 
-
-    # Determine hardware options and set band accordingly
-
-    if ($phycount == 1)
-    {
-	$rc3 = system("iw phy phy0 info | grep -q '5180 MHz' > /dev/null");
-	if ( $rc3 ) { $wifi3_hwmode="11g"; }
-	else { $wifi3_hwmode="11a"; }
-    }
-    else
-    {
-	# 2 band device
-	if ( $wifi_enable ) { $wifi3_hwmode="11a"; }
-	else
-	{
-	    if ( $wifi2_hwmode eq "11g" and $wifi2_enable )
-	    {
-		$wifi3_hwmode = "11a";
-	    }
-	    if ( $wifi2_hwmode eq "11a" and $wifi2_enable )
-	    {
-		$wifi3_hwmode="11g";
-	    }
-	}
-    }
-
     print "<tr><td colspan=2><hr></td></tr>\n";
     print "<tr><th colspan=2>WAN Wifi Client</th></tr>";
     print "<tr><td>Enable</td>";
     print "<td><input type=checkbox name=wifi3_enable value=1";
     print " checked" if $wifi3_enable;
     print "></td></tr>\n";
+    print "<tr><td>WAN Wifi Client band</td>\n";
+    print "<td><select name=wifi3_hwmode>\n";
 
-    if ( ! $wifi_enable and ! $wifi2_enable and $phycount > 1)
-    {
-	print "<tr><td>WAN Wifi Client band</td>\n";
-	print "<td><select name=wifi3_hwmode>\n";
+    if ( $phycount > 1 ) {
 	selopt("2GHz", "11g", $wifi3_hwmode);
 	selopt("5GHz", "11a", $wifi3_hwmode);
-	print "</select></td></tr>\n";
     }
     else
     {
-	push @hidden, "<input type=hidden name=wifi3_hwmode value='$wifi3_hwmode'>"; 
+	if ( $rc3 ) {
+	    selopt("2GHz", "11g", $wifi3_hwmode); 
+	    $wifi2_channel = 1;
+	}
+	else {
+	    selopt("5GHz", "11a", $wifi3_hwmode); 
+	    $wifi2_channel = 36;
+	}
     }
-
-#    for (my $i=0; $i<5; $i++)
-#    {
-#       @wan_ssids=`iw dev wlan0 scan passive | egrep  "SSID:\\s\\S+" | cut -f 2 -d\\ | sort -u`;
-#       last if @wan_ssids;
-#       sleep 1;
-#    }
+    print "</select></td></tr>\n";
 
     print "<tr><td>SSID</td>\n";
     print "<td><input type=text name=wifi3_ssid size=15 value='$wifi3_ssid'>\n";
@@ -1142,7 +1159,6 @@ if ( ($phycount >  1 and (! $wifi_enable or  ! $wifi2_enable))
     print "<tr><td>Password</td>\n";
     print "<td><input type=password size=15 name=wifi3_key value='$wifi3_key'>";
     print "</td></tr>\n";
-
 }
 else
 {

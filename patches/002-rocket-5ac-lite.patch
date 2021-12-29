@@ -1,0 +1,117 @@
+From 3e0387b3db86b35e101b147692d0af04c5083ca9 Mon Sep 17 00:00:00 2001
+From: Nick Hainke <vincent@systemli.org>
+Date: Sun, 25 Apr 2021 22:41:46 +0200
+Subject: [PATCH] ath79: Support for Ubiquiti Rocket 5AC Lite
+
+The Ubiquiti Rocket 5AC Lite (R5AC-Lite) is an outdoor router.
+
+Specifications:
+ - SoC: Qualcomm Atheros QCA9558
+ - RAM: 128 MB
+ - Flash: 16 MB SPI
+ - Ethernet: 1x 10/100/1000 Mbps
+ - WiFi 5 GHz: QCA988x
+ - Buttons: 1x (reset)
+ - LEDs: 1x power, 1x Ethernet, 4x RSSI
+
+Installation:
+- Instructions for XC-type Ubiquiti:
+  https://openwrt.org/toh/ubiquiti/common
+
+Signed-off-by: Nick Hainke <vincent@systemli.org>
+---
+ .../dts/qca9558_ubnt_rocket-5ac-lite.dts      | 38 +++++++++++++++++++
+ .../generic/base-files/etc/board.d/02_network |  1 +
+ .../etc/hotplug.d/firmware/11-ath10k-caldata  |  1 +
+ target/linux/ath79/image/generic-ubnt.mk      |  9 +++++
+ 4 files changed, 49 insertions(+)
+ create mode 100644 target/linux/ath79/dts/qca9558_ubnt_rocket-5ac-lite.dts
+
+diff --git a/target/linux/ath79/dts/qca9558_ubnt_rocket-5ac-lite.dts b/target/linux/ath79/dts/qca9558_ubnt_rocket-5ac-lite.dts
+new file mode 100644
+index 000000000000..e8e2322c568d
+--- /dev/null
++++ b/target/linux/ath79/dts/qca9558_ubnt_rocket-5ac-lite.dts
+@@ -0,0 +1,38 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "qca955x_ubnt_xc.dtsi"
++
++/ {
++	compatible = "ubnt,rocket-5ac-lite", "ubnt,xc", "qca,qca9558";
++	model = "Ubiquiti Rocket 5AC Lite";
++
++	keys {
++		compatible = "gpio-keys";
++
++		reset {
++			label = "Reset button";
++			linux,code = <KEY_RESTART>;
++			gpios = <&gpio 19 GPIO_ACTIVE_LOW>;
++			debounce-interval = <60>;
++		};
++	};
++};
++
++&mdio0 {
++	status = "okay";
++
++	phy-mask = <4>;
++	phy4: ethernet-phy@4 {
++		phy-mode = "sgmii";
++		reg = <4>;
++		at803x-override-sgmii-link-check;
++	};
++};
++
++&eth0 {
++	status = "okay";
++
++	mtd-mac-address = <&art 0x0>;
++	phy-mode = "sgmii";
++	phy-handle = <&phy4>;
++};
+diff --git a/target/linux/ath79/generic/base-files/etc/board.d/02_network b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+index f07c08697782..c1ba76018243 100644
+--- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+@@ -86,6 +86,7 @@ ath79_setup_interfaces()
+ 	ubnt,powerbeam-5ac-500|\
+ 	ubnt,powerbeam-5ac-gen2|\
+ 	ubnt,powerbridge-m|\
++	ubnt,rocket-5ac-lite|\
+ 	ubnt,rocket-m|\
+ 	ubnt,unifiac-lite|\
+ 	ubnt,unifiac-lr|\
+diff --git a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+index feb9a5186e89..8d070cba2733 100644
+--- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -43,6 +43,7 @@ case "$FIRMWARE" in
+ 	ubnt,nanostation-ac-loco|\
+ 	ubnt,powerbeam-5ac-500|\
+ 	ubnt,powerbeam-5ac-gen2|\
++	ubnt,rocket-5ac-lite|\
+ 	ubnt,unifiac-pro|\
+ 	yuncore,a770)
+ 		caldata_extract "art" 0x5000 0x844
+diff --git a/target/linux/ath79/image/generic-ubnt.mk b/target/linux/ath79/image/generic-ubnt.mk
+index 733d803d7ab6..f8e1d1e43251 100644
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image/generic-ubnt.mk
+@@ -337,6 +337,15 @@ define Device/ubnt_powerbridge-m
+ endef
+ TARGET_DEVICES += ubnt_powerbridge-m
+ 
++define Device/ubnt_rocket-5ac-lite
++  $(Device/ubnt-xc)
++  SOC := qca9558
++  DEVICE_MODEL := Rocket 5AC
++  DEVICE_VARIANT := Lite
++  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct
++endef
++TARGET_DEVICES += ubnt_rocket-5ac-lite
++
+ define Device/ubnt_rocket-m
+   $(Device/ubnt-xm)
+   SOC := ar7241

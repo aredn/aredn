@@ -36,7 +36,7 @@
 
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
-chomp (${wifiif}=`uci -q get 'network.wifi.device'`);
+chomp (${wifiif}=`uci -q get network.@device[2].name`);
 $phy=get_wlan2phy("${wifiif}");
 
 

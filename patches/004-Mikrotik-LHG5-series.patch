@@ -1,0 +1,285 @@
+From 48774decea9b42e97edd53ce33e574de7d85f3df Mon Sep 17 00:00:00 2001
+From: "Jakob (Jack/XDjackieXD)" <jakob@chaosfield.at>
+Date: Sun, 7 Nov 2021 01:08:25 +0100
+Subject: [PATCH] ath79: add support for Mikrotik LHG 5
+
+The MikroTik LHG 5 series (product codes RBLHG-5nD, RBLHG-5HPnD and
+RBLHG-5HPnD-XL) devices are an outdoor 5GHz CPE with a 24.5dBi or 27dBi
+integrated antenna built around the Atheros AR9344 SoC.
+It is very similar to the SXT Lite5 series which this patch is based
+upon.
+
+Specifications:
+ - SoC: Atheros AR9344
+ - RAM: 64 MB
+ - Storage: 16 MB SPI NOR
+ - Wireless: Atheros AR9340 (SoC) 802.11a/n 2x2:2
+ - Ethernet: Atheros AR8229 switch (SoC), 1x 10/100 port,
+    8-32 Vdc PoE in
+ - 8 user-controllable LEDs:
+  - 1x power (blue)
+  - 1x user (white)
+  - 1x ethernet (green)
+  - 5x rssi (green)
+
+ See https://mikrotik.com/product/RBLHG-5nD for more details.
+
+Notes:
+ The device was already supported in the ar71xx target.
+
+Flashing:
+ TFTP boot initramfs image and then perform a sysupgrade. Follow common
+ MikroTik procedure as in https://openwrt.org/toh/mikrotik/common.
+
+Signed-off-by: Jakob (Jack/XDjackieXD) <jakob@chaosfield.at>
+---
+ .../ar9344_mikrotik_routerboard-16m-nor.dtsi  | 65 +++++++++++++
+ .../ar9344_mikrotik_routerboard-lhg-5nd.dts   | 91 +++++++++++++++++++
+ target/linux/ath79/image/mikrotik.mk          |  9 ++
+ .../mikrotik/base-files/etc/board.d/01_leds   |  9 ++
+ .../base-files/etc/board.d/02_network         |  2 +
+ .../etc/hotplug.d/firmware/10-ath9k-eeprom    |  1 +
+ 6 files changed, 177 insertions(+)
+ create mode 100644 target/linux/ath79/dts/ar9344_mikrotik_routerboard-16m-nor.dtsi
+ create mode 100644 target/linux/ath79/dts/ar9344_mikrotik_routerboard-lhg-5nd.dts
+
+diff --git a/target/linux/ath79/dts/ar9344_mikrotik_routerboard-16m-nor.dtsi b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-16m-nor.dtsi
+new file mode 100644
+index 000000000000..4bf0731b1afe
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-16m-nor.dtsi
+@@ -0,0 +1,65 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++#include "ar9344.dtsi"
++
++&spi {
++	status = "okay";
++
++	flash@0 {
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <40000000>;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "RouterBoot";
++				reg = <0x0 0x20000>;
++				read-only;
++				compatible = "mikrotik,routerboot-partitions";
++				#address-cells = <1>;
++				#size-cells = <1>;
++
++				partition@0 {
++					label = "bootloader1";
++					reg = <0x0 0x0>;
++					read-only;
++				};
++
++				hard_config: hard_config {
++					read-only;
++				};
++
++				bios {
++					size = <0x1000>;
++					read-only;
++				};
++
++				partition@10000 {
++					label = "bootloader2";
++					reg = <0x10000 0x0>;
++					read-only;
++				};
++
++				soft_config {
++					label = "soft_config";
++				};
++			};
++
++			partition@20000 {
++				compatible = "mikrotik,minor";
++				label = "firmware";
++				reg = <0x020000 0xfe0000>;
++			};
++		};
++	};
++};
++
++&wmac {
++	status = "okay";
++
++	qca,no-eeprom;
++};
+diff --git a/target/linux/ath79/dts/ar9344_mikrotik_routerboard-lhg-5nd.dts b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-lhg-5nd.dts
+new file mode 100644
+index 000000000000..e49eb9ab9d8f
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-lhg-5nd.dts
+@@ -0,0 +1,91 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++#include "ar9344_mikrotik_routerboard-16m-nor.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++
++/ {
++	compatible = "mikrotik,routerboard-lhg-5nd", "qca,ar9344";
++	model = "MikroTik LHG 5nD platform";
++
++	aliases {
++		led-boot = &led_user;
++		led-failsafe = &led_user;
++		led-running = &led_user;
++		led-upgrade = &led_user;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		power {
++			label = "blue:power";
++			gpios = <&gpio 11 GPIO_ACTIVE_HIGH>;
++			default-state = "on";
++		};
++
++		rssilow {
++			label = "green:rssilow";
++			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
++		};
++
++		rssimediumlow {
++			label = "green:rssimediumlow";
++			gpios = <&gpio 12 GPIO_ACTIVE_LOW>;
++		};
++
++		rssimedium {
++			label = "green:rssimedium";
++			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
++		};
++
++		rssimediumhigh {
++			label = "green:rssimediumhigh";
++			gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
++		};
++
++		rssihigh {
++			label = "green:rssihigh";
++			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
++		};
++
++		led_user: user {
++			label = "white:user";
++			gpios = <&gpio 20 GPIO_ACTIVE_LOW>;
++		};
++
++		lan {
++			label = "green:lan";
++			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	keys {
++		compatible = "gpio-keys";
++
++		reset {
++			label = "reset";
++			linux,code = <KEY_RESTART>;
++			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
++			debounce-interval = <60>;
++		};
++	};
++};
++
++&eth0 {
++	status = "okay";
++
++	phy-handle = <&swphy0>;
++
++	gmac-config {
++		device = <&gmac>;
++		switch-phy-swap = <1>;
++	};
++};
++
++&eth1 {
++	status = "okay";
++
++	compatible = "syscon", "simple-mfd";
++};
+diff --git a/target/linux/ath79/image/mikrotik.mk b/target/linux/ath79/image/mikrotik.mk
+index 095a1cbc84f8..ff3604f2fa1d 100644
+--- a/target/linux/ath79/image/mikrotik.mk
++++ b/target/linux/ath79/image/mikrotik.mk
+@@ -46,6 +46,15 @@ define Device/mikrotik_routerboard-lhg-2nd
+ endef
+ TARGET_DEVICES += mikrotik_routerboard-lhg-2nd
+ 
++define Device/mikrotik_routerboard-lhg-5nd
++  $(Device/mikrotik_nor)
++  SOC := ar9344
++  DEVICE_MODEL := RouterBOARD LHG 5nD (LHG 5)
++  DEVICE_PACKAGES += rssileds
++  IMAGE_SIZE := 16256k
++endef
++TARGET_DEVICES += mikrotik_routerboard-lhg-5nd
++
+ define Device/mikrotik_routerboard-sxt-5nd-r2
+   $(Device/mikrotik_nand)
+   SOC := ar9344
+diff --git a/target/linux/ath79/mikrotik/base-files/etc/board.d/01_leds b/target/linux/ath79/mikrotik/base-files/etc/board.d/01_leds
+index 39e527e82423..25c0184568c5 100644
+--- a/target/linux/ath79/mikrotik/base-files/etc/board.d/01_leds
++++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/01_leds
+@@ -9,6 +9,15 @@ case "$board" in
+ mikrotik,routerboard-lhg-2nd)
+ 	ucidef_set_led_netdev "lan" "lan" "green:lan" "eth0"
+ 	;;
++mikrotik,routerboard-lhg-5nd)
++	ucidef_set_led_netdev "lan" "lan" "green:lan" "eth0"
++	ucidef_set_rssimon "wlan0" "200000" "1"
++	ucidef_set_led_rssi "rssilow" "rssilow" "green:rssilow" "wlan0" "1" "100"
++	ucidef_set_led_rssi "rssimediumlow" "rssimediumlow" "green:rssimediumlow" "wlan0" "20" "100"
++	ucidef_set_led_rssi "rssimedium" "rssimedium" "green:rssimedium" "wlan0" "40" "100"
++	ucidef_set_led_rssi "rssimediumhigh" "rssimediumhigh" "green:rssimediumhigh" "wlan0" "60" "100"
++	ucidef_set_led_rssi "rssihigh" "rssihigh" "green:rssihigh" "wlan0" "80" "100"
++	;;
+ mikrotik,routerboard-wapr-2nd)
+ 	ucidef_set_rssimon "wlan0" "200000" "1"
+ 	ucidef_set_led_rssi "rssilow" "rssilow" "green:rssilow" "wlan0" "1" "100"
+diff --git a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
+index 40587421332d..1a205e439caf 100644
+--- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
+@@ -16,6 +16,7 @@ ath79_setup_interfaces()
+ 		;;
+ 	mikrotik,routerboard-912uag-2hpnd|\
+ 	mikrotik,routerboard-lhg-2nd|\
++	mikrotik,routerboard-lhg-5nd|\
+ 	mikrotik,routerboard-sxt-5nd-r2|\
+ 	mikrotik,routerboard-wap-g-5hact2hnd|\
+ 	mikrotik,routerboard-wapr-2nd)
+@@ -38,6 +39,7 @@ ath79_setup_macs()
+ 	case "$board" in
+ 	mikrotik,routerboard-912uag-2hpnd|\
+ 	mikrotik,routerboard-lhg-2nd|\
++	mikrotik,routerboard-lhg-5nd|\
+ 	mikrotik,routerboard-sxt-5nd-r2|\
+ 	mikrotik,routerboard-wap-g-5hact2hnd|\
+ 	mikrotik,routerboard-wapr-2nd)
+diff --git a/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom b/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
+index 78aa35dc6973..abdabfb7c8a6 100644
+--- a/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
++++ b/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
+@@ -25,6 +25,7 @@ case "$FIRMWARE" in
+ 	case $board in
+ 	mikrotik,routerboard-912uag-2hpnd|\
+ 	mikrotik,routerboard-lhg-2nd|\
++	mikrotik,routerboard-lhg-5nd|\
+ 	mikrotik,routerboard-sxt-5nd-r2|\
+ 	mikrotik,routerboard-wapr-2nd)
+ 		caldata_mikrotik_ath9k 0x1000 0x440 $(macaddr_add "$mac_base" 1)

@@ -1,0 +1,666 @@
+From 3ad229db0b0ed8538eadcdc2a1c3faf964f239be Mon Sep 17 00:00:00 2001
+From: Robert Marko <robimarko@gmail.com>
+Date: Sat, 9 Oct 2021 20:13:25 +0200
+Subject: [PATCH] ipq40xx: add support for MikroTik hAP ac3
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This adds support for the MikroTik RouterBOARD RBD53iG-5HacD2HnD
+(hAP ac³), a  indoor dual band, dual-radio 802.11ac
+wireless AP with external omnidirectional antennae, USB port, five
+10/100/1000 Mbps Ethernet ports and PoE passthrough.
+
+See https://mikrotik.com/product/hap_ac3 for more info.
+
+Specifications:
+ - SoC: Qualcomm Atheros IPQ4019
+ - RAM: 256 MB
+ - Storage: 16 MB NOR + 128 MB NAND
+ - Wireless:
+   · Built-in IPQ4019 (SoC) 802.11b/g/n 2x2:2, 3 dBi antennae
+   · Built-in IPQ4019 (SoC) 802.11a/n/ac 2x2:2, 5.5 dBi antennae
+ - Ethernet: Built-in IPQ4019 (SoC, QCA8075) , 5x 1000/100/10 port,
+             passive PoE in, PoE passtrough on port 5
+- 1x USB Type A port
+
+Installation:
+1. Boot the initramfs image via TFTP
+2. Run "cat /proc/mtd" and look for "ubi" partition mtd device number, ex. "mtd1"
+3. Use ubiformat to remove MikroTik specific UBI volumes
+* Detach the UBI partition by running: "ubidetach -d 0"
+* Format the partition by running: "ubiformat /dev/mtdN -y"
+Replace mtdN with the correct mtd index from step 2.
+3. Flash the sysupgrade image using "sysupgrade -n"
+
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+Tested-by: Mark Birss <markbirss@gmail.com>
+Tested-by: Michael Büchler <michael.buechler@posteo.net>
+Tested-by: Alex Tomkins <tomkins@darkzone.net>
+---
+ package/firmware/ipq-wifi/Makefile            |   2 +
+ .../ipq-wifi/board-mikrotik_hap-ac3.qca4019   | Bin 0 -> 24324 bytes
+ .../ipq40xx/base-files/etc/board.d/01_leds    |   8 +
+ .../ipq40xx/base-files/etc/board.d/02_network |   4 +-
+ .../base-files/etc/board.d/03_gpio_switches   |   3 +
+ .../etc/hotplug.d/firmware/11-ath10k-caldata  |   6 +-
+ .../base-files/lib/upgrade/platform.sh        |  21 ++
+ .../arm/boot/dts/qcom-ipq4019-hap-ac3.dts     | 328 ++++++++++++++++++
+ target/linux/ipq40xx/image/mikrotik.mk        |  21 ++
+ .../901-arm-boot-add-dts-files.patch          |   3 +-
+ .../901-arm-boot-add-dts-files.patch          |   3 +-
+ 11 files changed, 394 insertions(+), 5 deletions(-)
+ create mode 100644 package/firmware/ipq-wifi/board-mikrotik_hap-ac3.qca4019
+ create mode 100644 target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-hap-ac3.dts
+
+diff --git a/package/firmware/ipq-wifi/Makefile b/package/firmware/ipq-wifi/Makefile
+index da0949b887bc..6835363cb6df 100644
+--- a/package/firmware/ipq-wifi/Makefile
++++ b/package/firmware/ipq-wifi/Makefile
+@@ -44,6 +44,7 @@ ALLWIFIBOARDS:= \
+ 	linksys_mr8300-v0 \
+ 	luma_wrtq-329acn \
+ 	mikrotik_hap-ac2 \
++	mikrotik_hap-ac3 \
+ 	mikrotik_sxtsq-5-ac \
+ 	mobipromo_cm520-79f \
+ 	nec_wg2600hp3 \
+@@ -130,6 +131,7 @@ $(eval $(call generate-ipq-wifi-package,linksys_ea8300,Linksys EA8300))
+ $(eval $(call generate-ipq-wifi-package,linksys_mr8300-v0,Linksys MR8300))
+ $(eval $(call generate-ipq-wifi-package,luma_wrtq-329acn,Luma WRTQ-329ACN))
+ $(eval $(call generate-ipq-wifi-package,mikrotik_hap-ac2,Mikrotik hAP ac2))
++$(eval $(call generate-ipq-wifi-package,mikrotik_hap-ac3,Mikrotik hAP ac3))
+ $(eval $(call generate-ipq-wifi-package,mikrotik_sxtsq-5-ac,MikroTik SXTsq 5 ac))
+ $(eval $(call generate-ipq-wifi-package,mobipromo_cm520-79f,MobiPromo CM520-79F))
+ $(eval $(call generate-ipq-wifi-package,nec_wg2600hp3,NEC Platforms WG2600HP3))
+diff --git a/package/firmware/ipq-wifi/board-mikrotik_hap-ac3.qca4019 b/package/firmware/ipq-wifi/board-mikrotik_hap-ac3.qca4019
+new file mode 100644
+index 0000000000000000000000000000000000000000..a97a20217c5209186efeae72ef56b9fad54093d9
+GIT binary patch
+literal 24324
+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
+C$1HCE
+
+literal 0
+HcmV?d00001
+
+diff --git a/target/linux/ipq40xx/base-files/etc/board.d/01_leds b/target/linux/ipq40xx/base-files/etc/board.d/01_leds
+index b2545f41e179..8942ad20005b 100644
+--- a/target/linux/ipq40xx/base-files/etc/board.d/01_leds
++++ b/target/linux/ipq40xx/base-files/etc/board.d/01_leds
+@@ -45,6 +45,14 @@ engenius,ens620ext)
+ 	ucidef_set_led_netdev "lan1" "LAN1" "green:lan1" "eth0"
+ 	ucidef_set_led_netdev "lan2" "LAN2" "green:lan2" "eth1"
+ 	;;
++mikrotik,hap-ac3)
++	ucidef_set_led_netdev "wan" "WAN" "green:wan" "eth1"
++	ucidef_set_led_switch "lan1" "LAN1" "green:lan1" "switch0" "0x10"
++	ucidef_set_led_switch "lan2" "LAN2" "green:lan2" "switch0" "0x08"
++	ucidef_set_led_switch "lan3" "LAN3" "green:lan3" "switch0" "0x04"
++	ucidef_set_led_switch "lan4" "LAN4" "green:lan4" "switch0" "0x02"
++	ucidef_set_led_gpio "poe" "POE" "red:poe" "452" "0"
++	;;
+ mikrotik,sxtsq-5-ac)
+ 	ucidef_set_rssimon "wlan0" "200000" "1"
+ 	ucidef_set_led_rssi "rssilow" "rssilow" "green:rssilow" "wlan0" "1" "100"
+diff --git a/target/linux/ipq40xx/base-files/etc/board.d/02_network b/target/linux/ipq40xx/base-files/etc/board.d/02_network
+index 5d123109a2f8..7ccdf97a60ff 100644
+--- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
++++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
+@@ -50,6 +50,7 @@ ipq40xx_setup_interfaces()
+ 		;;
+ 	asus,rt-ac58u|\
+ 	mikrotik,hap-ac2|\
++	mikrotik,hap-ac3|\
+ 	p2w,r619ac-64m|\
+ 	p2w,r619ac-128m|\
+ 	zyxel,nbg6617)
+@@ -182,7 +183,8 @@ ipq40xx_setup_macs()
+ 		wan_mac=$(mtd_get_mac_ascii devinfo hw_mac_addr)
+ 		lan_mac=$(macaddr_add "$wan_mac" 1)
+ 		;;
+-	mikrotik,hap-ac2)
++	mikrotik,hap-ac2|\
++	mikrotik,hap-ac3)
+ 		wan_mac=$(cat /sys/firmware/mikrotik/hard_config/mac_base)
+ 		lan_mac=$(macaddr_add $wan_mac 1)
+ 		label_mac="$wan_mac"
+diff --git a/target/linux/ipq40xx/base-files/etc/board.d/03_gpio_switches b/target/linux/ipq40xx/base-files/etc/board.d/03_gpio_switches
+index 9029eb3a8286..4036e5356f75 100644
+--- a/target/linux/ipq40xx/base-files/etc/board.d/03_gpio_switches
++++ b/target/linux/ipq40xx/base-files/etc/board.d/03_gpio_switches
+@@ -18,6 +18,9 @@ cilab,meshpoint-one)
+ compex,wpj428)
+ 	ucidef_add_gpio_switch "sim_card_select" "SIM card select" "3" "0"
+ 	;;
++mikrotik,hap-ac3)
++	ucidef_add_gpio_switch "poe_passtrough" "PoE Passthrough" "452" "0"
++	;;
+ esac
+ 
+ board_config_flush
+diff --git a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+index f90c55801533..1e1b44592428 100644
+--- a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -149,7 +149,8 @@ case "$FIRMWARE" in
+ 		caldata_valid "202f" || caldata_extract "ART" 0x1000 0x2f20
+ 		ath10k_patch_mac $(macaddr_add $(get_mac_binary "/sys/bus/i2c/devices/0-0050/eeprom" 0x66) 2)
+ 		;;
+-	mikrotik,hap-ac2)
++	mikrotik,hap-ac2 |\
++	mikrotik,hap-ac3)
+ 		wlan_data="/sys/firmware/mikrotik/hard_config/wlan_data"
+ 		( [ -f "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data" 0x0 0x2f20 ) || \
+ 		( [ -d "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data/data_0" 0x0 0x2f20 )
+@@ -266,7 +267,8 @@ case "$FIRMWARE" in
+ 		caldata_valid "202f" || caldata_extract "ART" 0x5000 0x2f20
+ 		ath10k_patch_mac $(macaddr_add $(get_mac_binary "/sys/bus/i2c/devices/0-0050/eeprom" 0x66) 3)
+ 		;;
+-	mikrotik,hap-ac2|\
++	mikrotik,hap-ac2 |\
++	mikrotik,hap-ac3 |\
+ 	mikrotik,sxtsq-5-ac)
+ 		wlan_data="/sys/firmware/mikrotik/hard_config/wlan_data"
+ 		( [ -f "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data" 0x8000 0x2f20 ) || \
+diff --git a/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh b/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
+index 605b1e78819e..02833ebc3d54 100644
+--- a/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
++++ b/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
+@@ -55,6 +55,24 @@ zyxel_do_upgrade() {
+ 	fi
+ }
+ 
++platform_do_upgrade_mikrotik_nand() {
++	local fw_mtd=$(find_mtd_part kernel)
++	fw_mtd="${fw_mtd/block/}"
++	[ -n "$fw_mtd" ] || return
++
++	local board_dir=$(tar tf "$1" | grep -m 1 '^sysupgrade-.*/$')
++	board_dir=${board_dir%/}
++	[ -n "$board_dir" ] || return
++
++	local kernel_len=$(tar xf "$1" ${board_dir}/kernel -O | wc -c)
++	[ -n "$kernel_len" ] || return
++
++	tar xf "$1" ${board_dir}/kernel -O | ubiformat "$fw_mtd" -y -S $kernel_len -f -
++
++	CI_KERNPART="none"
++	nand_do_upgrade "$1"
++}
++
+ platform_do_upgrade() {
+ 	case "$(board_name)" in
+ 	8dev,jalapeno |\
+@@ -119,6 +137,9 @@ platform_do_upgrade() {
+ 		[ "$(rootfs_type)" = "tmpfs" ] && mtd erase firmware
+ 		default_do_upgrade "$1"
+ 		;;
++	mikrotik,hap-ac3)
++		platform_do_upgrade_mikrotik_nand "$1"
++		;;
+ 	netgear,rbr50 |\
+ 	netgear,rbs50 |\
+ 	netgear,srr60 |\
+diff --git a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-hap-ac3.dts b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-hap-ac3.dts
+new file mode 100644
+index 000000000000..9aa58ffcb460
+--- /dev/null
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-hap-ac3.dts
+@@ -0,0 +1,328 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++/* Copyright (c) 2021, Robert Marko <robimarko@gmail.com> */
++
++#include "qcom-ipq4019.dtsi"
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/soc/qcom,tcsr.h>
++
++/ {
++	model = "MikroTik hAP ac3";
++	compatible = "mikrotik,hap-ac3";
++
++	memory {
++		device_type = "memory";
++		reg = <0x80000000 0x10000000>;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	aliases {
++		led-boot = &led_status_blue;
++		led-failsafe = &led_status_red;
++		led-running = &led_status_blue;
++		led-upgrade = &led_status_red;
++	};
++
++	soc {
++		rng@22000 {
++			status = "okay";
++		};
++
++		counter@4a1000 {
++			compatible = "qcom,qca-gcnt";
++			reg = <0x4a1000 0x4>;
++		};
++
++		tcsr@1949000 {
++			compatible = "qcom,tcsr";
++			reg = <0x1949000 0x100>;
++			qcom,wifi_glb_cfg = <TCSR_WIFI_GLB_CFG>;
++		};
++
++		tcsr@194b000 {
++			/* select hostmode */
++			compatible = "qcom,tcsr";
++			reg = <0x194b000 0x100>;
++			qcom,usb-hsphy-mode-select = <TCSR_USB_HSPHY_HOST_MODE>;
++			status = "okay";
++		};
++
++		ess_tcsr@1953000 {
++			compatible = "qcom,tcsr";
++			reg = <0x1953000 0x1000>;
++			qcom,ess-interface-select = <TCSR_ESS_PSGMII>;
++		};
++
++		tcsr@1957000 {
++			compatible = "qcom,tcsr";
++			reg = <0x1957000 0x100>;
++			qcom,wifi_noc_memtype_m0_m2 = <TCSR_WIFI_NOC_MEMTYPE_M0_M2>;
++		};
++
++		usb2: usb2@60f8800 {
++			status = "okay";
++		};
++
++		crypto@8e3a000 {
++			status = "okay";
++		};
++
++		watchdog@b017000 {
++			status = "okay";
++		};
++
++		ess-switch@c000000 {
++			status = "okay";
++		};
++
++		edma@c080000 {
++			status = "okay";
++		};
++	};
++
++	keys {
++		compatible = "gpio-keys";
++
++		reset {
++			label = "reset";
++			gpios = <&tlmm 5 GPIO_ACTIVE_LOW>;
++			linux,code = <KEY_RESTART>;
++		};
++
++		mode {
++			label = "mode";
++			gpios = <&tlmm 4 GPIO_ACTIVE_LOW>;
++			linux,code = <KEY_RFKILL>;
++		};
++
++		led {
++			label = "led";
++			gpios = <&tlmm 42 GPIO_ACTIVE_LOW>;
++			linux,code = <KEY_WPS_BUTTON>;
++		};
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led_status_blue: status-blue {
++			label = "blue:status";
++			gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
++		};
++
++		led_status_red: status-red {
++			label = "red:status";
++			gpios = <&tlmm 1 GPIO_ACTIVE_HIGH>;
++			panic-indicator;
++		};
++
++		led_status_green: status-green {
++			label = "green:status";
++			gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>;
++		};
++
++		wlan {
++			label = "green:wlan";
++			gpios = <&tlmm 23 GPIO_ACTIVE_HIGH>;
++		};
++
++		ethernet {
++			label = "green:ethernet";
++			gpios = <&tlmm 22 GPIO_ACTIVE_HIGH>;
++		};
++
++		wan {
++			label = "green:wan";
++			gpios = <&tlmm 28 GPIO_ACTIVE_HIGH>;
++		};
++
++		lan1 {
++			label = "green:lan1";
++			gpios = <&tlmm 29 GPIO_ACTIVE_HIGH>;
++		};
++
++		lan2 {
++			label = "green:lan2";
++			gpios = <&tlmm 30 GPIO_ACTIVE_HIGH>;
++		};
++
++		lan3 {
++			label = "green:lan3";
++			gpios = <&tlmm 31 GPIO_ACTIVE_HIGH>;
++		};
++
++		lan4 {
++			label = "green:lan4";
++			gpios = <&tlmm 32 GPIO_ACTIVE_HIGH>;
++		};
++
++		poe {
++			label = "red:poe";
++			gpios = <&tlmm 36 GPIO_ACTIVE_HIGH>;
++		};
++	};
++};
++
++&tlmm {
++	serial_pins: serial_pinmux {
++		mux {
++			pins = "gpio16", "gpio17";
++			function = "blsp_uart0";
++			bias-disable;
++		};
++	};
++
++	spi_0_pins: spi_0_pinmux {
++		pin {
++			function = "blsp_spi0";
++			pins = "gpio13", "gpio14", "gpio15";
++			drive-strength = <12>;
++			bias-disable;
++		};
++
++		pin_cs {
++			function = "gpio";
++			pins = "gpio12";
++			drive-strength = <2>;
++			bias-disable;
++			output-high;
++		};
++	};
++
++	nand_pins: nand_pins {
++		pullups {
++			pins = "gpio53", "gpio58", "gpio59";
++			function = "qpic";
++			bias-pull-up;
++		};
++
++		pulldowns {
++			pins = "gpio55", "gpio56", "gpio57", "gpio60",
++				   "gpio62", "gpio63", "gpio64", "gpio65",
++				   "gpio66", "gpio67", "gpio68", "gpio69";
++			function = "qpic";
++			bias-pull-down;
++		};
++	};
++
++	enable-usb-power {
++		gpio-hog;
++		gpios = <44 GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "enable USB power";
++	};
++};
++
++&blsp_dma {
++	status = "okay";
++};
++
++&blsp1_spi1 {
++	status = "okay";
++
++	pinctrl-0 = <&spi_0_pins>;
++	pinctrl-names = "default";
++	cs-gpios = <&tlmm 12 GPIO_ACTIVE_HIGH>;
++
++	flash@0 {
++		reg = <0>;
++		compatible = "jedec,spi-nor";
++		spi-max-frequency = <40000000>;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "Qualcomm";
++				reg = <0x0 0x80000>;
++				read-only;
++			};
++
++			partition@80000 {
++				compatible = "mikrotik,routerboot-partitions";
++				#address-cells = <1>;
++				#size-cells = <1>;
++				label = "RouterBoot";
++				reg = <0x80000 0x80000>;
++				read-only;
++
++				hard_config {
++					read-only;
++					size = <0x2000>;
++				};
++
++				dtb_config {
++					read-only;
++				};
++
++				soft_config {
++				};
++			};
++		};
++	};
++};
++
++&qpic_bam {
++	status = "okay";
++};
++
++&nand {
++	status = "okay";
++
++	pinctrl-0 = <&nand_pins>;
++	pinctrl-names = "default";
++
++	nand@0 {
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "kernel";
++				reg = <0x0 0xa00000>;
++			};
++
++			partition@a00000 {
++				label = "ubi";
++				reg = <0xa00000 0x7600000>;
++			};
++		};
++	};
++};
++
++&blsp1_uart1 {
++	status = "okay";
++
++	pinctrl-0 = <&serial_pins>;
++	pinctrl-names = "default";
++};
++
++&cryptobam {
++	status = "okay";
++};
++
++&usb2_hs_phy {
++	status = "okay";
++};
++
++&mdio {
++	status = "okay";
++};
++
++&wifi0 {
++	status = "okay";
++
++	qcom,ath10k-calibration-variant = "MikroTik-hAP-ac3";
++};
++
++&wifi1 {
++	status = "okay";
++
++	qcom,ath10k-calibration-variant = "MikroTik-hAP-ac3";
++};
+diff --git a/target/linux/ipq40xx/image/mikrotik.mk b/target/linux/ipq40xx/image/mikrotik.mk
+index 31497608bed9..bfff58597f9d 100644
+--- a/target/linux/ipq40xx/image/mikrotik.mk
++++ b/target/linux/ipq40xx/image/mikrotik.mk
+@@ -10,6 +10,16 @@ define Device/mikrotik_nor
+ 		check-size | append-metadata
+ endef
+ 
++define Device/mikrotik_nand
++	DEVICE_VENDOR := MikroTik
++	KERNEL_NAME := vmlinux
++	KERNEL_INITRAMFS := kernel-bin | append-dtb-elf
++	KERNEL := kernel-bin | append-dtb-elf | package-kernel-ubifs | \
++		ubinize-kernel
++	IMAGES := nand-sysupgrade.bin
++	IMAGE/nand-sysupgrade.bin := sysupgrade-tar | append-metadata
++endef
++
+ define Device/mikrotik_hap-ac2
+ 	$(call Device/mikrotik_nor)
+ 	DEVICE_MODEL := hAP ac2
+@@ -19,6 +29,17 @@ define Device/mikrotik_hap-ac2
+ endef
+ TARGET_DEVICES += mikrotik_hap-ac2
+ 
++define Device/mikrotik_hap-ac3
++	$(call Device/mikrotik_nand)
++	DEVICE_MODEL := hAP ac3
++	SOC := qcom-ipq4019
++	BLOCKSIZE := 128k
++	PAGESIZE := 2048
++	KERNEL_UBIFS_OPTS = -m $$(PAGESIZE) -e 124KiB -c $$(PAGESIZE) -x none
++	DEVICE_PACKAGES := kmod-ledtrig-gpio ipq-wifi-mikrotik_hap-ac3
++endef
++TARGET_DEVICES += mikrotik_hap-ac3
++
+ define Device/mikrotik_sxtsq-5-ac
+ 	$(call Device/mikrotik_nor)
+ 	DEVICE_MODEL := SXTsq 5 ac (RBSXTsqG-5acD)
+diff --git a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
+index 436f5a74f55d..69ba9e4a431f 100644
+--- a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
++++ b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
+@@ -10,7 +10,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
+ 
+ --- a/arch/arm/boot/dts/Makefile
+ +++ b/arch/arm/boot/dts/Makefile
+-@@ -902,11 +902,67 @@ dtb-$(CONFIG_ARCH_QCOM) += \
++@@ -902,11 +902,68 @@ dtb-$(CONFIG_ARCH_QCOM) += \
+  	qcom-apq8074-dragonboard.dtb \
+  	qcom-apq8084-ifc6540.dtb \
+  	qcom-apq8084-mtp.dtb \
+@@ -55,6 +55,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
+ +	qcom-ipq4019-fritzrepeater-1200.dtb \
+ +	qcom-ipq4019-fritzrepeater-3000.dtb \
+ +	qcom-ipq4019-habanero-dvk.dtb \
+++	qcom-ipq4019-hap-ac3.dtb \
+ +	qcom-ipq4019-map-ac2200.dtb \
+ +	qcom-ipq4019-mr8300.dtb \
+ +	qcom-ipq4019-pa2200.dtb \
+diff --git a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
+index bb63c1c4fb49..0846c6668c91 100644
+--- a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
++++ b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
+@@ -10,7 +10,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
+ 
+ --- a/arch/arm/boot/dts/Makefile
+ +++ b/arch/arm/boot/dts/Makefile
+-@@ -837,11 +837,65 @@ dtb-$(CONFIG_ARCH_QCOM) += \
++@@ -837,11 +837,66 @@ dtb-$(CONFIG_ARCH_QCOM) += \
+  	qcom-apq8074-dragonboard.dtb \
+  	qcom-apq8084-ifc6540.dtb \
+  	qcom-apq8084-mtp.dtb \
+@@ -52,6 +52,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
+ +	qcom-ipq4019-fritzbox-7530.dtb \
+ +	qcom-ipq4019-fritzrepeater-1200.dtb \
+ +	qcom-ipq4019-fritzrepeater-3000.dtb \
+++	qcom-ipq4019-hap-ac3.dtb \
+ +	qcom-ipq4019-map-ac2200.dtb \
+ +	qcom-ipq4019-mr8300.dtb \
+ +	qcom-ipq4019-e2600ac-c1.dtb \

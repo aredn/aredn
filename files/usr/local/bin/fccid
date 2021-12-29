@@ -37,7 +37,7 @@ LICENSE
 
 [ -f /etc/config/run-fccid ] || exit
 
-wifiif=$(uci -q get 'network.wifi.device')
+wifiif=$(uci -q get network.@device[2].name)
 
 # stagger the beacons between nodes
 N=$(ifconfig "$wifiif" | grep "inet addr" | cut -f4 -d. | cut -c1-3)

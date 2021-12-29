@@ -1,10 +1,12 @@
 #!/bin/sh
 # extract auto-generated first boot switch config settings
 # and store them for future use
-if [ ! -f /etc/aredn_include/swconfig ]
+ainclude="/etc/aredn_include"
+mkdir -p $ainclude
+
+if [ ! -f $ainclude/swconfig ]
 then
-  mkdir -p /etc/aredn_include
-  touch /etc/aredn_include/swconfig
+  touch $ainclude/swconfig
   i=0
   while true; do
     uci -q get network.\@switch\[$i\] > /dev/null
@@ -13,11 +15,11 @@ then
     then
       break
     fi
-    echo "config switch" >> /etc/aredn_include/swconfig
-    echo "    option name '`uci -q get network.\@switch\[$i\].name`'" >> /etc/aredn_include/swconfig
-    echo "    option reset '`uci -q get network.\@switch\[$i\].reset`'" >> /etc/aredn_include/swconfig
-    echo "    option enable_vlan '`uci -q get network.\@switch\[$i\].enable_vlan`'" >> /etc/aredn_include/swconfig
-    echo "" >> /etc/aredn_include/swconfig
+    echo "config switch" >> $ainclude/swconfig
+    echo "    option name '`uci -q get network.\@switch\[$i\].name`'" >> $ainclude/swconfig
+    echo "    option reset '`uci -q get network.\@switch\[$i\].reset`'" >> $ainclude/swconfig
+    echo "    option enable_vlan '`uci -q get network.\@switch\[$i\].enable_vlan`'" >> $ainclude/swconfig
+    echo "" >> $ainclude/swconfig
     let i++
   done
 
@@ -29,11 +31,11 @@ then
     then
       break
     fi
-    echo "config switch_vlan" >> /etc/aredn_include/swconfig
-    echo "	option device '`uci -q get network.\@switch_vlan\[$i\].device`'" >> /etc/aredn_include/swconfig
-    echo "	option vlan '`uci -q get network.\@switch_vlan\[$i\].vlan`'" >> /etc/aredn_include/swconfig
-    echo "	option ports '`uci -q get network.\@switch_vlan\[$i\].ports`'" >> /etc/aredn_include/swconfig
-    echo "" >> /etc/aredn_include/swconfig
+    echo "config switch_vlan" >> $ainclude/swconfig
+    echo "	option device '`uci -q get network.\@switch_vlan\[$i\].device`'" >> $ainclude/swconfig
+    echo "	option vlan '`uci -q get network.\@switch_vlan\[$i\].vlan`'" >> $ainclude/swconfig
+    echo "	option ports '`uci -q get network.\@switch_vlan\[$i\].ports`'" >> $ainclude/swconfig
+    echo "" >> $ainclude/swconfig
     let i++
   done
 
@@ -45,29 +47,60 @@ then
     then
       break
     fi
-    echo "config switch_port" >> /etc/aredn_include/swconfig
-    echo "	option device '`uci -q get network.\@switch_port\[$i\].device`'" >> /etc/aredn_include/swconfig
-    echo "	option port '`uci -q get network.\@switch_port\[$i\].port`'" >> /etc/aredn_include/swconfig
-    echo "	option pvid '`uci -q get network.\@switch_port\[$i\].pvid`'" >> /etc/aredn_include/swconfig
-    echo "" >> /etc/aredn_include/swconfig
+    echo "config switch_port" >> $ainclude/swconfig
+    echo "	option device '`uci -q get network.\@switch_port\[$i\].device`'" >> $ainclude/swconfig
+    echo "	option port '`uci -q get network.\@switch_port\[$i\].port`'" >> $ainclude/swconfig
+    echo "	option pvid '`uci -q get network.\@switch_port\[$i\].pvid`'" >> $ainclude/swconfig
+    echo "" >> $ainclude/swconfig
     let i++
   done
 
 fi
 
+# extract and store lan, wan, and dtdlink interfaces
+rm -f $ainclude/*.network.config
+for i in lan wan dtdlink
+do
+    #is 1 or 2+ devices (1 device has 'option device', multiple has 'list ports' in board.json)?
+    device=`jsonfilter -i /etc/board.json -e @.network.$i.device 2>/dev/null`
+    if [ $? -eq 0 ]; then
+	echo "	list ports '$device'" > $ainclude/$i.network.config 
+    else
+	ports=`jsonfilter -q -i /etc/board.json -e @.network.$i.ports`
+	if [ $? -eq 0 ]; then
+	    for j in `echo $ports | grep -o "[a-z]\+[0-9\.]\+" 2>/dev/null`
+	    do
+		echo "	list ports '$j'" >> $ainclude/$i.network.config 
+	    done
+	fi
+    fi
+
+done
+#if unable to create *.network.config includes, put in a default in hopes the device ports
+#will function.  The correction to board.json is made in the image, in 02_networks
+#
+if [ ! -f $ainclude/lan.network.config ]; then
+	echo "	list ports 'eth0'" > $ainclude/lan.network.config 
+fi
+if [ ! -f $ainclude/wan.network.config ]; then
+	echo "	list ports 'eth0.1'" > $ainclude/wan.network.config 
+fi
+if [ ! -f $ainclude/dtdlink.network.config ]; then
+	echo "	list ports 'eth0.2'" > $ainclude/dtdlink.network.config 
+fi
+
 # Save system NET  LED settings
-if [ ! -f /etc/aredn_include/system_netled ]
+if [ ! -f $ainclude/system_netled ]
 then
-  mkdir -p /etc/aredn_include
-  touch /etc/aredn_include/system_netled
+  touch $ainclude/system_netled
 
-CFG=/etc/board.json
+  CFG=/etc/board.json
 
-. /usr/share/libubox/jshn.sh
+  . /usr/share/libubox/jshn.sh
 
-[ -s $CFG ] || /bin/board_detect || exit 1
+  [ -s $CFG ] || /bin/board_detect || exit 1
 
-generate_led() {
+  generate_led() {
 	local key="$1"
 	local cfg="led_$key"
 
@@ -85,13 +118,13 @@ generate_led() {
 		netdev)
 			local device mode
 			json_get_vars device mode
-    			echo "config led 'led_$1'" >> /etc/aredn_include/system_netled
-    			echo "    option name '$name'" >> /etc/aredn_include/system_netled
-    			echo "    option sysfs '$sysfs'" >> /etc/aredn_include/system_netled
-    			echo "    option trigger 'netdev'" >> /etc/aredn_include/system_netled
-    			echo "    option mode '$mode'" >> /etc/aredn_include/system_netled
-    			echo "    option dev '$device'" >> /etc/aredn_include/system_netled
-    			echo "" >> /etc/aredn_include/system_netled
+    			echo "config led 'led_$1'" >> $ainclude/system_netled
+    			echo "    option name '$name'" >> $ainclude/system_netled
+    			echo "    option sysfs '$sysfs'" >> $ainclude/system_netled
+    			echo "    option trigger 'netdev'" >> $ainclude/system_netled
+    			echo "    option mode '$mode'" >> $ainclude/system_netled
+    			echo "    option dev '$device'" >> $ainclude/system_netled
+    			echo "" >> $ainclude/system_netled
 		;;
 
 		usb)
@@ -112,12 +145,12 @@ generate_led() {
 		switch)
 			local port_mask speed_mask
 			json_get_vars port_mask speed_mask
-    			echo "config led 'led_$1'" >> /etc/aredn_include/system_netled
-    			echo "    option name '$name'" >> /etc/aredn_include/system_netled
-    			echo "    option sysfs '$sysfs'" >> /etc/aredn_include/system_netled
-    			echo "    option trigger '$trigger'" >> /etc/aredn_include/system_netled
-    			echo "    option port_mask '$port_mask'" >> /etc/aredn_include/system_netled
-    			echo "" >> /etc/aredn_include/system_netled
+    			echo "config led 'led_$1'" >> $ainclude/system_netled
+    			echo "    option name '$name'" >> $ainclude/system_netled
+    			echo "    option sysfs '$sysfs'" >> $ainclude/system_netled
+    			echo "    option trigger '$trigger'" >> $ainclude/system_netled
+    			echo "    option port_mask '$port_mask'" >> $ainclude/system_netled
+    			echo "" >> $ainclude/system_netled
 		;;
 
 		portstate)
@@ -133,25 +166,19 @@ generate_led() {
 
 	json_select ..
 	json_select ..
-}
+  }
 
 
-json_init
-json_load "$(cat ${CFG})"
+  json_init
+  json_load "$(cat ${CFG})"
 
 
-if [ ! -s /etc/aredn_include/system_netled ]; then
-	touch /etc/aredn_include/system_netled
+  if [ ! -s $ainclude/system_netled ]; then
+	touch $ainclude/system_netled
 
 	json_get_keys keys led
 	for key in $keys; do generate_led $key; done
-fi
-fi
-
-hwtype="$('/usr/local/bin/get_hardwaretype')"
-touch /etc/aredn_include/bridge_ports
-if [ "$hwtype" = "nanostation-m" -o "$hwtype" = "cpe220-v2" -o "$hwtype" = "cpe220-v3" -o "$hwtype" = "cpe210-v1" -o "$hwtype" = "cpe510-v1" -o "$hwtype" = "wbs210-v1" -o "$hwtype" = "wbs210-v2" -o "$hwtype" = "wbs510-v1" -o "$hwtype" = "wbs510-v2" ]; then
-	echo "	option	type	'bridge'" > /etc/aredn_include/bridge_ports
+  fi
 fi
 
 exit 0

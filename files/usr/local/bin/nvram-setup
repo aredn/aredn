@@ -66,7 +66,8 @@ sub get_wlan2phy
 }
 
 $commit = 0;
-$wifiif = `uci -q get network.wifi.device`;
+# always use wlan0 to derive IP address of node
+$wifiif = "wlan0";
 $phy = get_wlan2phy("$wifiif");
 
 # Added new wifimac parm, the radio* wont startup without it, use the path location in wifi config

@@ -7,27 +7,36 @@ config interface loopback
 
 
 #### LAN configuration
-config interface lan
-	option device	"<lan_intf>"
+config device
+	option name	"br-lan"
 	option type	"bridge"
+include /etc/aredn_include/lan.network.config
+
+config interface lan
+	option device	"br-lan"
 	option proto	<lan_proto>
 	option ipaddr	<lan_ip>
 	option netmask	<lan_mask>
 	option dns	"<wan_dns1> <wan_dns2>"
 	option gateway	<lan_gw>
-include /etc/aredn_include/ethmacfixup
 
 #### WAN configuration
+config device
+	option name 	"br-wan"
+	option type	"bridge"
+include /etc/aredn_include/wan.network.config
+
 config interface wan
-	option device	"<wan_intf>"
-include /etc/aredn_include/bridge_ports
+	option device	"br-wan"
 	option proto	<wan_proto>
 	option ipaddr	<wan_ip>
 	option netmask	<wan_mask>
 	option gateway  <wan_gw>
 	
-	
 #### WIFI configuration
+config device
+	option name	"<wifi_intf>"
+
 config interface wifi
 	option device	"<wifi_intf>"
 	option proto	<wifi_proto>
@@ -35,9 +44,13 @@ config interface wifi
 	option netmask	<wifi_mask>
 
 #### device to device configuration
+config device
+	option name 	"br-dtdlink"
+	option type	"bridge"
+include /etc/aredn_include/dtdlink.network.config
+
 config interface dtdlink
-        option device   "<dtdlink_intf>"
-include /etc/aredn_include/bridge_ports
+        option device   "br-dtdlink"
         option proto    static
         option ipaddr   <dtdlink_ip>
         option netmask  255.0.0.0

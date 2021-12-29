@@ -190,43 +190,6 @@ sub rf_channel_map
     }
 }
 
-sub is_channel_valid
-{
-    my ($channel) = @_;
-
-    if ( !defined($channel) ) {
-        return -1;
-    }
-
-    $boardinfo=hardware_info();
-    #We know about the band so lets use it
-    if ( exists($boardinfo->{'rfband'}))
-    {
-        $validchannels=rf_channel_map($boardinfo->{'rfband'});
-
-        if ( exists($validchannels->{$channel}) )
-        {
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-    # We don't have the device band in the data file so lets fall back to checking manually
-    else {
-        my $channelok=0;
-        my $wifiintf = get_interface("wifi");
-        foreach (`iwinfo $wifiintf freqlist`)
-        {
-            next unless /Channel $channel/;
-            next if /\[restricted\]/;
-            $channelok=1;
-        }
-        return $channelok;
-    }
-
-}
-
-
 sub rf_channels_list
 {
 

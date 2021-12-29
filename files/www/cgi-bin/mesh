@@ -40,6 +40,7 @@ $debug = 0;
 
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
+use ucifunc;
 
 %rateL = (
 	'1.0M' => '1',   # CCP LP
@@ -90,14 +91,17 @@ $tactical = nvram_get("tactical");
 $config = nvram_get("config");
 $config = "not set" if $config eq "" or not -d "/etc/config.mesh";
 ($my_ip) = get_ip4_network(get_interface("wifi"));
-${wifiif} = `uci -q get 'network.wifi.device'`;
+${wifiif} = `uci -q get network.@device[2].name`;
 chomp ${wifiif};
 $phy = get_wlan2phy("${wifiif}");
 
-chomp ($chanbw = `cat /sys/kernel/debug/ieee80211/${phy}/ath9k/chanbw`);
-if    ($chanbw eq "0x00000005") {$chanbw = 4;}
-elsif ($chanbw eq "0x0000000a") {$chanbw = 2;}
-  else   			{$chanbw = 1;}
+$radio = "radio".substr($phy, -1);
+($junk, $chanbw) = &uci_get_named_option("wireless", "$radio", "chanbw");
+chomp $chanbw;
+
+if    ($chanbw eq "5")  {$chanbw = 4;}
+elsif ($chanbw eq "10") {$chanbw = 2;}
+else   			{$chanbw = 1;}
 
 read_postdata();
 
