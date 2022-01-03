@@ -40,6 +40,7 @@ $debug = 0;
 
 BEGIN {push @INC, '/www/cgi-bin'};
 use perlfunc;
+use ucifunc;
 
 %rateL = (
 	'1.0M' => '1',   # CCP LP
@@ -123,11 +124,11 @@ system "touch /tmp/web/automesh" if $parms{auto};
 system "rm -f /tmp/web/automesh" if $parms{stop};
 
 #get location info if available
-open my $rcgood, '<', '/etc/latlon';
-if ($rcgood)
+$lat=&uci_get_indexed_option("aredn","location",0,"lat");
+$lon=&uci_get_indexed_option("aredn","location",0,"lon");
+if($lat ne "" and $lon ne "")
 {
-    $lat_lon = "<center><strong>Location: </strong> " . <$rcgood> . <$rcgood> . "</center>";
-    close $rcgood;
+    $lat_lon = "<center><strong>Location: </strong> $lat $lon</center>";
 }
 else
 {
