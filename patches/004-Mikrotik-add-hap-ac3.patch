@@ -1,3 +1,7 @@
+This AREDN patch consists of several upstream patches from openwrt master.
+Some patches were altered to apply to the 21.02.1 branch
+by Joe AE6XE <ae6xe@arrl.net>. 
+
 From 3ad229db0b0ed8538eadcdc2a1c3faf964f239be Mon Sep 17 00:00:00 2001
 From: Robert Marko <robimarko@gmail.com>
 Date: Sat, 9 Oct 2021 20:13:25 +0200
@@ -37,9 +41,39 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
 Tested-by: Mark Birss <markbirss@gmail.com>
 Tested-by: Michael Büchler <michael.buechler@posteo.net>
 Tested-by: Alex Tomkins <tomkins@darkzone.net>
+
+From f2c4064ecb76bca69d4ce3fbc52209992f2334dc Mon Sep 17 00:00:00 2001
+From: Robert Marko <robimarko@gmail.com>
+Date: Mon, 20 Sep 2021 19:13:43 +0200
+Subject: [PATCH] base-files: dont always create kernel UBI volume
+
+Currently nand_upgrade_tar() will pass the kernel length
+to nand_upgrade_prepare_ubi() in all cases except for when
+the kernel is to be installed in a separate partition as a
+binary with the MTD tool.
+
+While this is fine for almost all cases newer MikroTik NAND
+devices like hAP ac3 require the kernel to be installed as a
+UBIFS packed UBI volume in its own partition.
+
+So, since we have a custom recipe to use ubiformat to flash
+the kernel in its partition it makes no sense for sysupgrade
+to also install the kernel as a UBI volume in the "ubi"
+partition as it only wastes space and will never be used.
+
+So, simply check whether CI_KERNPART is set to "none" and
+if so unset the "has_kernel" variable which will in turn
+prevent the kernel length from being passed on and then
+the kernel UBI volume wont be created for no usefull purpose.
+
+The ath79 MikroTik NAND target has been setting CI_KERNPART
+to "none" for a while now altough that was not preventing
+the kernel to be installed as UBI volume as well.
+
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+
 ---
  package/firmware/ipq-wifi/Makefile            |   2 +
- .../ipq-wifi/board-mikrotik_hap-ac3.qca4019   | Bin 0 -> 24324 bytes
  .../ipq40xx/base-files/etc/board.d/01_leds    |   8 +
  .../ipq40xx/base-files/etc/board.d/02_network |   4 +-
  .../base-files/etc/board.d/03_gpio_switches   |   3 +
@@ -48,13 +82,10 @@ Tested-by: Alex Tomkins <tomkins@darkzone.net>
  .../arm/boot/dts/qcom-ipq4019-hap-ac3.dts     | 328 ++++++++++++++++++
  target/linux/ipq40xx/image/mikrotik.mk        |  21 ++
  .../901-arm-boot-add-dts-files.patch          |   3 +-
- .../901-arm-boot-add-dts-files.patch          |   3 +-
- 11 files changed, 394 insertions(+), 5 deletions(-)
+ 9 files changed, 391 insertions(+), 5 deletions(-)
  create mode 100644 package/firmware/ipq-wifi/board-mikrotik_hap-ac3.qca4019
  create mode 100644 target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-hap-ac3.dts
 
-diff --git a/package/firmware/ipq-wifi/Makefile b/package/firmware/ipq-wifi/Makefile
-index da0949b887bc..6835363cb6df 100644
 --- a/package/firmware/ipq-wifi/Makefile
 +++ b/package/firmware/ipq-wifi/Makefile
 @@ -44,6 +44,7 @@ ALLWIFIBOARDS:= \
@@ -73,64 +104,6 @@ index da0949b887bc..6835363cb6df 100644
  $(eval $(call generate-ipq-wifi-package,mikrotik_sxtsq-5-ac,MikroTik SXTsq 5 ac))
  $(eval $(call generate-ipq-wifi-package,mobipromo_cm520-79f,MobiPromo CM520-79F))
  $(eval $(call generate-ipq-wifi-package,nec_wg2600hp3,NEC Platforms WG2600HP3))
-diff --git a/package/firmware/ipq-wifi/board-mikrotik_hap-ac3.qca4019 b/package/firmware/ipq-wifi/board-mikrotik_hap-ac3.qca4019
-new file mode 100644
-index 0000000000000000000000000000000000000000..a97a20217c5209186efeae72ef56b9fad54093d9
-GIT binary patch
-literal 24324
-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
-C$1HCE
-
-literal 0
-HcmV?d00001
-
 diff --git a/target/linux/ipq40xx/base-files/etc/board.d/01_leds b/target/linux/ipq40xx/base-files/etc/board.d/01_leds
 index b2545f41e179..8942ad20005b 100644
 --- a/target/linux/ipq40xx/base-files/etc/board.d/01_leds
@@ -159,9 +132,9 @@ index 5d123109a2f8..7ccdf97a60ff 100644
  	asus,rt-ac58u|\
  	mikrotik,hap-ac2|\
 +	mikrotik,hap-ac3|\
- 	p2w,r619ac-64m|\
- 	p2w,r619ac-128m|\
  	zyxel,nbg6617)
+		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+		ucidef_add_switch "switch0" \
 @@ -182,7 +183,8 @@ ipq40xx_setup_macs()
  		wan_mac=$(mtd_get_mac_ascii devinfo hw_mac_addr)
  		lan_mac=$(macaddr_add "$wan_mac" 1)
@@ -246,9 +219,9 @@ index 605b1e78819e..02833ebc3d54 100644
 +	mikrotik,hap-ac3)
 +		platform_do_upgrade_mikrotik_nand "$1"
 +		;;
- 	netgear,rbr50 |\
- 	netgear,rbs50 |\
- 	netgear,srr60 |\
+	openmesh,a42 |\
+	openmesh,a62 |\
+	plasmacloud,pa1200 |\
 diff --git a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-hap-ac3.dts b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-hap-ac3.dts
 new file mode 100644
 index 000000000000..9aa58ffcb460
@@ -622,45 +595,112 @@ index 31497608bed9..bfff58597f9d 100644
  define Device/mikrotik_sxtsq-5-ac
  	$(call Device/mikrotik_nor)
  	DEVICE_MODEL := SXTsq 5 ac (RBSXTsqG-5acD)
-diff --git a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
-index 436f5a74f55d..69ba9e4a431f 100644
 --- a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
 +++ b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
 @@ -10,7 +10,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  
  --- a/arch/arm/boot/dts/Makefile
  +++ b/arch/arm/boot/dts/Makefile
--@@ -902,11 +902,67 @@ dtb-$(CONFIG_ARCH_QCOM) += \
-+@@ -902,11 +902,68 @@ dtb-$(CONFIG_ARCH_QCOM) += \
+-@@ -837,11 +837,60 @@ dtb-$(CONFIG_ARCH_QCOM) += \
++@@ -837,11 +837,61 @@ dtb-$(CONFIG_ARCH_QCOM) += \
   	qcom-apq8074-dragonboard.dtb \
   	qcom-apq8084-ifc6540.dtb \
   	qcom-apq8084-mtp.dtb \
 @@ -55,6 +55,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
- +	qcom-ipq4019-fritzrepeater-1200.dtb \
- +	qcom-ipq4019-fritzrepeater-3000.dtb \
+ +	qcom-ipq4019-e2600ac-c1.dtb \
+ +	qcom-ipq4019-e2600ac-c2.dtb \
  +	qcom-ipq4019-habanero-dvk.dtb \
 ++	qcom-ipq4019-hap-ac3.dtb \
- +	qcom-ipq4019-map-ac2200.dtb \
- +	qcom-ipq4019-mr8300.dtb \
  +	qcom-ipq4019-pa2200.dtb \
-diff --git a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
-index bb63c1c4fb49..0846c6668c91 100644
---- a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
-+++ b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
-@@ -10,7 +10,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
+ +	qcom-ipq4019-rtl30vw.dtb \
+ +	qcom-ipq4019-u4019-32m.dtb \
+diff --git a/package/base-files/files/lib/upgrade/nand.sh
+b/package/base-files/files/lib/upgrade/nand.sh
+index faeb3d6fc1d6..9b29266479e3 100644
+--- a/package/base-files/files/lib/upgrade/nand.sh
++++ b/package/base-files/files/lib/upgrade/nand.sh
+@@ -296,6 +296,7 @@ nand_upgrade_tar() {
+ 		tar xf "$tar_file" ${board_dir}/kernel -O | mtd write - $CI_KERNPART
+ 	}
+ 	[ "$kernel_length" = 0 -o ! -z "$kernel_mtd" ] && has_kernel=0
++	[ "$CI_KERNPART" = "none" ] && has_kernel=
  
- --- a/arch/arm/boot/dts/Makefile
- +++ b/arch/arm/boot/dts/Makefile
--@@ -837,11 +837,65 @@ dtb-$(CONFIG_ARCH_QCOM) += \
-+@@ -837,11 +837,66 @@ dtb-$(CONFIG_ARCH_QCOM) += \
-  	qcom-apq8074-dragonboard.dtb \
-  	qcom-apq8084-ifc6540.dtb \
-  	qcom-apq8084-mtp.dtb \
-@@ -52,6 +52,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
- +	qcom-ipq4019-fritzbox-7530.dtb \
- +	qcom-ipq4019-fritzrepeater-1200.dtb \
- +	qcom-ipq4019-fritzrepeater-3000.dtb \
-++	qcom-ipq4019-hap-ac3.dtb \
- +	qcom-ipq4019-map-ac2200.dtb \
- +	qcom-ipq4019-mr8300.dtb \
- +	qcom-ipq4019-e2600ac-c1.dtb \
+ 	nand_upgrade_prepare_ubi "$rootfs_length" "$rootfs_type" "${has_kernel:+$kernel_length}" "$has_env"
+
+From da3261e57cf33d6804222c614c77e13fdb32cf95 Mon Sep 17 00:00:00 2001
+From: Robert Marko <robimarko@gmail.com>
+Date: Sun, 18 Apr 2021 19:05:47 +0200
+Subject: [PATCH] build: image: add UBIFS kernel packer
+
+This allows packing the kernel into UBIFS like newer
+MikroTik NAND devices require.
+
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ include/image-commands.mk | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/include/image-commands.mk b/include/image-commands.mk
+index 91865e1e7eb1..23c7bd6133df 100644
+--- a/include/image-commands.mk
++++ b/include/image-commands.mk
+@@ -27,6 +27,15 @@ define Build/append-kernel
+ 	dd if=$(IMAGE_KERNEL) >> $@
+ endef
+ 
++define Build/package-kernel-ubifs
++	mkdir $@.kernelubifs
++	cp $@ $@.kernelubifs/kernel
++	$(STAGING_DIR_HOST)/bin/mkfs.ubifs \
++		$(KERNEL_UBIFS_OPTS) \
++		-r $@.kernelubifs $@
++	rm -r $@.kernelubifs
++endef
++
+ compat_version=$(if $(DEVICE_COMPAT_VERSION),$(DEVICE_COMPAT_VERSION),1.0)
+ json_quote=$(subst ','\'',$(subst ",\",$(1)))
+ #")')
+
+From 1fbc9c5e4dea7311236c8f74d6093bc968a710da Mon Sep 17 00:00:00 2001
+From: Robert Marko <robimarko@gmail.com>
+Date: Mon, 20 Sep 2021 12:19:37 +0200
+Subject: [PATCH] build: image: add command to ubinize the kernel image
+
+Newer NAND devices from MikroTik like the hAP ac3
+require the kernel to be packed into UBIFS and then
+ubinized.
+
+So, since the ubinize-image.sh script can now ubinize
+kernel only as well lets add a command for it.
+
+This now allows calling ubinize-kernel in the kernel
+packaging at then end.
+
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ include/image-commands.mk | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/include/image-commands.mk b/include/image-commands.mk
+index 4b5ff36ebeeb..f0557936c9d7 100644
+--- a/include/image-commands.mk
++++ b/include/image-commands.mk
+@@ -122,6 +122,18 @@ define Build/append-ubi
+ 	rm $@.tmp
+ endef
+ 
++define Build/ubinize-kernel
++	cp $@ $@.tmp
++	sh $(TOPDIR)/scripts/ubinize-image.sh \
++		--kernel $@.tmp \
++		$@ \
++		-p $(BLOCKSIZE:%k=%KiB) -m $(PAGESIZE) \
++		$(if $(SUBPAGESIZE),-s $(SUBPAGESIZE)) \
++		$(if $(VID_HDR_OFFSET),-O $(VID_HDR_OFFSET)) \
++		$(UBINIZE_OPTS)
++	rm $@.tmp
++endef
++
+ define Build/append-uboot
+ 	dd if=$(UBOOT_PATH) >> $@
+ endef

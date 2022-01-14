@@ -13,6 +13,12 @@ boot() {
     local lanmac=`ifconfig $lanintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
     local wifimac=`ifconfig $wifiintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
 
+    if [ "$wifiiintf" = "" ]
+    then
+	#if we can't figure out the wifi mac, then force a change
+	#of the lan mac, to avoid conflict, can be the same on some devices
+	wifimac=$lanmac;
+    fi
     local intlanmac=${lanmac//:/}
     local intwanmac=${wifimac//:/}
     local macdelta=$((0x$intwanmac - 0x$intlanmac))

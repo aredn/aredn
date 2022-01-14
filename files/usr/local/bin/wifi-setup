@@ -60,8 +60,8 @@ if [ $wifi3_enable -eq 1 ]; then
     # switch WAN network config from Ethernet to Wireless interface
     for i in `cat /etc/aredn_include/wan.network.config | cut -f3 -d' ' | sed -e "s/'//g"`; do
 	uci -q del_list network.@device[1].ports=$i
-	uci -q delete   network.@device[1].type
     done
+    uci -q delete   network.@device[1].type
     # adding the wireless interface done later-below
     uci -q commit network
 fi

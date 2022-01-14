@@ -1,5 +1,7 @@
---- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
-+++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
+Index: openwrt/target/linux/ipq40xx/base-files/etc/board.d/02_network
+===================================================================
+--- openwrt.orig/target/linux/ipq40xx/base-files/etc/board.d/02_network
++++ openwrt/target/linux/ipq40xx/base-files/etc/board.d/02_network
 @@ -33,7 +33,9 @@ ipq40xx_setup_interfaces()
  	netgear,ex6100v2|\
  	netgear,ex6150v2|\
@@ -11,15 +13,29 @@
  		;;
  	aruba,ap-303h)
  		ucidef_set_interfaces_lan_wan "eth0" "eth1"
-@@ -51,9 +53,9 @@ ipq40xx_setup_interfaces()
+@@ -51,9 +53,10 @@ ipq40xx_setup_interfaces()
  	asus,rt-ac58u|\
  	mikrotik,hap-ac2|\
  	zyxel,nbg6617)
 -		ucidef_set_interfaces_lan_wan "eth0" "eth1"
-+		ucidef_set_interface_wan "eth1"
++		ucidef_set_interfaces_lan_wan "eth0.3" "eth1"
  		ucidef_add_switch "switch0" \
 -			"0u@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
-+			"0u@eth0" "1:lan" "2:lan" "3:lan" "4t:dummy" "4t:dtdlink"
++			"0@eth0" "1t:wan" "1t:dtdlink" "2:lan" "3:lan" "4:lan"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
  		;;
  	avm,fritzbox-4040|\
  	linksys,ea6350v3|\
+Index: openwrt/target/linux/ath79/nand/base-files/etc/board.d/02_network
+===================================================================
+--- openwrt.orig/target/linux/ath79/nand/base-files/etc/board.d/02_network
++++ openwrt/target/linux/ath79/nand/base-files/etc/board.d/02_network
+@@ -22,7 +22,7 @@ ath79_setup_interfaces()
+ 	glinet,gl-ar750s-nor-nand)
+ 		ucidef_add_switch "switch0" \
+ 			"0@eth0" "1:wan" "3t:dtdlink" "2:lan"
+-		ucidef_set_interface "wifi" device "wlan1" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
+ 		;;
+ 	netgear,wndr3700-v4|\
+ 	netgear,wndr4300|\

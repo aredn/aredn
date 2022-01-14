@@ -1006,6 +1006,14 @@ sub hardware_info
       'pwroffset'       => '0',
       'usechains'       => 1,
     },
+    'GL.iNet GL-AR750S (NOR/NAND)' => {
+      'name'            => 'GL.iNet GL-AR750S (NOR/NAND)',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '23',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+    },
     'TP-Link CPE210 v1' => {
       'name'            => 'TP-Link CPE210 v1',
       'comment'         => '',
@@ -1158,6 +1166,14 @@ sub hardware_info
     },
     'MikroTik RouterBOARD RB952Ui-5ac2nD' => {
       'name'            => 'MikroTik RouterBOARD RB952Ui-5ac2nD',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '22',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
+    },
+    'MikroTik hAP ac2' => {
+      'name'            => 'MikroTik hAP ac2 (RBD52G-5HacD2HnD-TC)',
       'comment'         => '',
       'supported'       => '1',
       'maxpower'        => '22',
@@ -1938,11 +1954,13 @@ sub get_interface
   }
 
   # check for wan wifi client
-  my $is_bridge = `uci -q get network.\@device[1].type`;
-  if ( $is_bridge eq "" ) {
-    my $gi_wanintf=`uci -q get network.wan.device`;
-    chomp $gi_wanintf;
-    return $gi_wanintf;
+  if ( $intf eq "wan" ) {
+    my $is_bridge = `uci -q get network.\@device[1].type`;
+    if ( $is_bridge eq "" ) {
+      my $gi_wanintf=`uci -q get network.wan.device`;
+      chomp $gi_wanintf;
+      return $gi_wanintf;
+    }
   }
 
   # all other situations are bridged interfaces

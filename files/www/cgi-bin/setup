@@ -466,14 +466,6 @@ if($parms{button_save})
 	push (@errors, "The WAN Wifi Client password and ssid may not contain a single quote character");
     }
 
-    if ( $wifi2_channel < 30 and "$wifi2_hwmode" eq "11a" and $wifi2_enable == 0 )
-    {
-        push (@errors, "Changed to 5GHz Mesh LAN AP, please review channel selection");
-    }
-    if ( $wifi2_channel > 30 and "$wifi2_hwmode" eq "11g" and $wifi2_enable == 0 )
-    {
-        push (@errors, "Changed to 2GHz Mesh LAN AP, please review channel slection and save again!");
-    }
     if ( ($phycount == 1 and (( $wifi_enable  and ($wifi2_enable or $wifi3_enable )) or
                               ( $wifi2_enable and ($wifi_enable  or $wifi3_enable )) or
 	                      ( $wifi3_enable and ($wifi_enable  or $wifi2_enable )))) or
@@ -498,6 +490,16 @@ if($parms{button_save})
 	push (@errors, "Mesh RF Band changed to 2GHz, please review channel and other settings for new band.");
     }
 
+    if ( $wifi2_enable and $wifi2_hwmode eq "11a" and $wifi2_channel < 36 )
+    {
+	push (@errors, "LAN AP Band changed to 5GHz, please review channel and other settings for new band.");
+    }
+
+    if ( $wifi2_enable and $wifi2_hwmode eq "11g" and $wifi2_channel > 35 )
+    {
+	push (@errors, "LAN AP Band changed to 2GHz, please review channel and other settings for new band.");
+    }
+
     if($debug == 3) # don't save the config, just validate it
     {
 	push (@errors, "OK") unless @errors;
@@ -514,7 +516,14 @@ if($parms{button_save})
 	$parms{wifi3_ssid} =~ s/(.)/sprintf("%x",ord($1))/eg;
 
 	if ( $wifi_enable ) {
-	    $wifiintf = ("$wifi_hwmode" eq "11g") ? "wlan1" : "wlan0";
+	    # which interface is it? Assumes device is 1 or 2 interfaces
+	    $rc1 = system("iw phy phy0 info | grep -q '5180 MHz' > /dev/null");
+	    if    ( ($rc1 && $wifi_hwmode eq "11g" ) || ( ! $rc1 && $wifi_hwmode eq "11a")) {
+	        $wifiintf="wlan0";
+	    }
+	    else {
+		$wifiintf="wlan1";
+	    }
 	    $phy = get_wlan2phy("$wifiintf");
 	    $rc = &uci_set_named_option("network","wifi","device",$wifiintf);
 	    $rc = &uci_commit("network");
@@ -775,7 +784,7 @@ if ($phycount == 1 )
 	}
 	else
 	{ 
-	    selopt(".9GHz", "11g", $wifi_hwmode);
+	    selopt("2GHz", "11g", $wifi_hwmode);
 	}
     }
 }

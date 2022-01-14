@@ -11,7 +11,7 @@ GIT_COMMIT=$(shell git rev-parse --short HEAD)
 # set dir and file names
 TOP_DIR=$(shell pwd)
 OPENWRT_DIR=$(TOP_DIR)/openwrt
-TARGET_CONFIG=$(TOP_DIR)/configs/common.config $(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET).config
+TARGET_CONFIG=$(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET).config
 UMASK=umask 022
 
 # set variables based on private or CircleCI build
@@ -76,6 +76,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 .stamp-feeds-updated: $(OPENWRT_DIR)/feeds.conf
 	cd $(OPENWRT_DIR); ./scripts/feeds uninstall -a
 	cd $(OPENWRT_DIR); ./scripts/feeds update -a
+	cd $(OPENWRT_DIR); ./scripts/feeds install libpam
 	cd $(OPENWRT_DIR); ./scripts/feeds install libcap
 	cd $(OPENWRT_DIR); ./scripts/feeds install jansson
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn2
@@ -84,7 +85,6 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn
 	cd $(OPENWRT_DIR); ./scripts/feeds install libopenldap
 	cd $(OPENWRT_DIR); ./scripts/feeds install libgnutls
-	cd $(OPENWRT_DIR); ./scripts/feeds install libpam
 	cd $(OPENWRT_DIR); ./scripts/feeds install libnetsnmp
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages olsrd
 	cd $(OPENWRT_DIR); ./scripts/feeds install perl
@@ -147,7 +147,7 @@ compile: stamp-clean-compiled .stamp-compiled
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
 	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -path "*packages" -prune -o \( -type f -a \
 	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin" -o -name "*initramfs.elf" -o \
-	  -name "*kernel.bin" -o -name sha256sums -o -name "*.buildinfo" \) \
+	  -name "*kernel.bin" -o -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
 	done;
 	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -type f -a \
@@ -159,6 +159,9 @@ compile: stamp-clean-compiled .stamp-compiled
 	  \) -print`; do \
 	  NEWNAME="$${FILE/generic-/}"; \
 	  NEWNAME="$${NEWNAME/squashfs-/}"; \
+	  NEWNAME="$${NEWNAME/-nand-glinet/}"; \
+	  NEWNAME="$${NEWNAME/-ath79-mikrotik/}"; \
+	  NEWNAME="$${NEWNAME/_routerboard/}"; \
 	  mv "$$FILE" "$$NEWNAME"; \
 	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh
