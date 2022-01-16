@@ -621,41 +621,7 @@ system "rm -rf /tmp/web/upload $tmpdir" unless $debug;
 #
 
 http_header();
-html_header("$node administration", 0);
-print <<EOF;
-    <script>
-    function validateFirmwareFilename(elem){
-        var hwmfg = "$mfgprefix";
-        var hwtype = "${hardwaretypev}";
-        var searchstring = "";
-        var efn = "";
-        if(hwmfg != "cpe"){
-            if (hwmfg == "wbs") {
-                searchstring= ".*wbs" + hwtype + ".*-sysupgrade.bin$\";
-                efn = "aredn-$fw_version-$mfgprefix${hardwaretypev}.*-sysupgrade.bin";
-            } else {
-                searchstring= ".*(-|_)" + hwtype + ".*-sysupgrade.bin$\";
-                efn = "aredn-$fw_version-$mfgprefix-${hardwaretypev}.*-sysupgrade.bin";
-            }
-        } else {
-            searchstring= ".*cpe" + hwtype + ".*-sysupgrade.bin$\";
-            efn = "aredn-$fw_version-$mfgprefix${hardwaretypev}.*-sysupgrade.bin";
-        }
-        var re = new RegExp(searchstring,"g");   
-        if(elem.value.match(re)){
-            return true;
-        }else{
-            if (confirm('This filename is NOT appropriate for this device!\\n\\nThis device expects a file such as: ' + efn + ' \\n\\n\\nClick OK to continue if you are CERTAIN that the file is correct.')) {
-                return true;
-            } else {
-                elem.value="";
-                return false;
-            }
-        }
-    }
-    </script>
-EOF
-print "</head>";
+html_header("$node administration", 1);
 print "<body><center>\n";
 alert_banner();
 print "<form method=post action=admin enctype='multipart/form-data'>\n";
@@ -689,7 +655,7 @@ print "<tr><td align=center colspan=3>current version: $fw_version</td></tr>\n";
 print "<tr><td align=center colspan=3>hardware type: (${targettype}) $mfgprefix (${hardwaretype})</td></tr>\n";
 print "<tr>\n";
 print "<td>Upload Firmware</td>\n";
-print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin' onchange='validateFirmwareFilename(this)'></td>\n";
+print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin'></td>\n";
 print "<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'";
 if($tunnel_active) { 
     print " disabled><br><small>Disabled: Tunnels enabled</small>";
