@@ -37,7 +37,6 @@
 
 local nxo = require("nixio")
 local ipc = require("luci.ip")
-local posix = require("posix.unistd")
 local auci = require("aredn.uci")
 require("uci")
 
@@ -89,7 +88,7 @@ function setContains(set, key)
 end
 
 function sleep(n)  -- seconds
-	posix.sleep(n)
+	nxo.nanosleep(n, 0)
 end
 
 function get_ip_type(ip)
@@ -384,6 +383,60 @@ function capture(cmd)
 	return(result)
 end
 
+-- copy a file
+function filecopy(from, to)
+	local f = io.open(from, "r")
+	if not f then
+		return false
+	end
+	local t = io.open(to, "w")
+	if not t then
+		f:close()
+		return false
+	end
+	-- not great on memory usage
+	t:write(f:read("*a"))
+	t:close()
+	f:close()
+	return true
+end
+
+-- remove all files (including recursively into directories)
+function remove_all(name)
+    local type = nixio.fs.stat(name, "type")
+    if type then
+        if type == "dir" then
+            for subname in nixio.fs.dir(name)
+            do
+                remove_all(name .. "/" .. subname)
+            end
+            nixio.fs.rmdir(name)
+        else
+            nixio.fs.remove(name)
+        end
+    end
+end
+
+-- write all data to a file in one go
+function write_all(filename, data)
+    local f = io.open(filename, "w")
+    if f then
+        f:write(data)
+        f:close()
+    end
+end
+
+-- read all data from file in one go
+function read_all(filename)
+	local f = io.open(filename, "r")
+	local data
+	if f then
+		data = f:read("*a")
+		f:close()
+	end
+	return data
+end
+
 -- Return list of MAC to Hostname files
 function mac2host(dir)
 	dir = dir or "/tmp/snrlog"
@@ -395,6 +448,154 @@ function mac2host(dir)
 	end
 	pfile:close()
 	return list
+end
+
+function mac_to_ip(mac, shift)
+    local a, b, c = mac:match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
+    return string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
+end
+
+function decimal_to_ip(val)
+    return (math.floor(val / 16777216) % 256) .. "." .. (math.floor(val / 65536) % 256) .. "." .. (math.floor(val / 256) % 256) .. "." .. (val % 256)
+end
+
+function ip_to_decimal(ip)
+    local a, b, c, d = ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
+    if a then
+        return ((a * 256 + b) * 256 + c) * 256 + d
+    end
+    return 0
+end
+
+function netmask_to_cidr(mask)
+	local v = ip_to_decimal(mask)
+	cidr = 0
+	while v ~= 0
+	do
+		cidr = cidr + 1
+		v = (v * 2) % 0x100000000
+	end
+	return cidr
+end
+
+function validate_same_subnet(ip1, ip2, mask)
+    ip1 = ip_to_decimal(ip1)
+    ip2 = ip_to_decimal(ip2)
+    mask = ip_to_decimal(mask)
+    if nixio.bit.band(ip1, mask) == nixio.bit.band(ip2, mask) then
+        return true
+    else
+        return false
+    end
+end
+
+
+function validate_ip(ip)
+    ip = ip:gsub("%s", "")
+    if ip == "0.0.0.0" or ip == "255.255.255.255" then
+        return false
+    end
+    local a, b, c, d = ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+    if not a then
+        return false
+    end
+    if tonumber(a) > 255 or tonumber(b) > 255 or tonumber(c) > 255 or tonumber(d) > 255 then
+        return false
+    end
+    return true
+end
+
+function validate_netmask(mask)
+    mask = mask:gsub("%s", "")
+    if mask == "0.0.0.0" then
+        return false
+    end
+    local a, b, c, d = mask:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+    if not a then
+        return false
+    end
+    if a == "255" then
+        if b == "255" then
+            if c == "255" then
+                a = d
+            elseif d ~= "0" then
+                return false
+            else
+                a = c
+            end
+        elseif not (c == "0" and d == "0") then
+            return false
+        else
+            a = b
+        end
+    elseif not (b == "0" and c == "0" and d == "0") then
+        return false
+    end
+    if a == "0" or a == "128" or a == "192" or a == "224" or a == "240" or a == "248" or a == "252" or a == "254" or a == "255" then
+        return true
+    else
+        return false
+    end
+end
+
+function validate_ip_netmask(ip, mask)
+    if not (validate_ip(ip) and validate_netmask(mask)) then
+        return false
+    end
+    ip = ip_to_decimal(ip)
+    mask = ip_to_decimal(mask)
+    local notmask = 0xffffffff - mask
+    if nixio.bit.band(ip, notmask) == 0 or nixio.bit.band(ip, notmask) == notmask then
+        return false
+    end
+    return true
+end
+
+function validate_fqdn(name)
+	return name and name:match('^[%d%a_.-]+$') ~= nil and name:sub(0, 1) ~= '.' and name:sub(-1) ~= '.' and name:find('%.%.') == nil
+end
+
+function validate_hostname(name)
+	if not name then
+		return false
+	end
+	name = name:gsub("^%s+", ""):gsub("%s+$", "")
+	if name:match("_") or not name:match("^[%w%-]+$") then
+		return false
+	end
+	return true
+end
+
+function validate_port(port)
+	if not port then
+		return false
+	end
+	port = port:gsub("^%s+", ""):gsub("%s+$", "")
+	if port == "" or port:match("%D") then
+		return false
+	end
+	port = tonumber(port)
+	if port < 1 or port > 65535 then
+		return false
+	end
+	return true
+end
+
+function validate_port_range(range)
+	if not range then
+		return false
+	end
+	local port1, port2 = range:match("^%s*(%d+)%s*-%s*(%d+)%s*$")
+	if not port2 then
+		return false
+	end
+	if not validate_port(port1) or not validate_port(port2) then
+		return false
+	end
+	if tonumber(port2) > tonumber(port1) then
+		return false
+	end
+	return true
 end
 
 --[[
