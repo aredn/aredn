@@ -122,54 +122,6 @@ if($mfg=~ /Ubiquiti/i)
     $mfgprefix="cpe";
 }
 
-if(${hardwaretype} eq "nanostation-m")
-{
-    ${hardwaretypev}="nano-m"; # Nano XM
-} elsif(${hardwaretype} eq "nanostation-m-xw") {
-    ${hardwaretypev}= "nano-m-xw" ; # Nano XW
-} elsif(${hardwaretype} eq "rb-952ui-5ac2nd") {
-    ${hardwaretypev}= "rb-nor-flash-16M-ac" ;    # hAP AC Lite
-} elsif(${hardwaretype} =~ /rb-911g-[25]hpnd/i or
-	${hardwaretype} =~ /rb-912uag-[25]hpnd/i ) {
-    ${hardwaretypev}= "nand-large" ;    # Basebox 2/5 and QRT 2/5
-} elsif(${hardwaretype} =~ /rb-l[dfhg]+-[25]nd/i or
-	${hardwaretype} =~ /rb-lhg-[25]hpnd/i ) {
-    ${hardwaretypev}= "rb-nor-flash-16M" ;    # LHGs & LDFs
-} elsif($mfgprefix eq "cpe" ) {
-    $hwmodel = `/usr/local/bin/get_model`;
-    chomp($hwmodel);
-    if($hwmodel =~ /CPE210 v1\.[01]/i)
-    {
-        ${hardwaretypev}= "210-220-v1" ;      # v1.0/v1.1
-    } elsif($hwmodel =~ /CPE210 v2\.0/i) {
-        ${hardwaretypev}= "210-v2" ;          # v2.0
-    } elsif($hwmodel =~ /CPE210 v3\.0/i) {
-        ${hardwaretypev}= "210-v3" ;          # v3.0
-    } elsif($hwmodel =~ /CPE220 v2\.0/i) {
-        ${hardwaretypev}= "220-v2" ;          # v3.0
-    } elsif($hwmodel =~ /CPE220 v3\.0/i) {
-        ${hardwaretypev}= "220-v3" ;          # v3.0
-    } elsif($hwmodel =~ /CPE510 v2\.0/i) {
-        ${hardwaretypev}= "510-v2" ;          # v2.0
-    } elsif($hwmodel =~ /CPE510 v3\.0/i) {
-        ${hardwaretypev}= "510-v3" ;          # v3.0
-    } elsif($hwmodel =~ /CPE510/i) {
-        ${hardwaretypev}= "510-520-v1" ;      # CPE510 V1.0/v1.1
-    } elsif($hwmodel =~ /CPE610 v2\.0/i) {
-        ${hardwaretypev}= "610-v2" ;     	    # CPE610 V2.0
-    } elsif($hwmodel =~ /CPE610/i) {
-        ${hardwaretypev}= "610-v1" ;     	    # CPE610 V1.0
-    } elsif($hwmodel =~ /WBS510 v2\.0/i) {
-        $mfgprefix="wbs";
-        ${hardwaretypev}= "510-v2" ;          # WBS510 v2.0
-    } elsif($hwmodel =~ /WBS210 v1\.[012]/i) {
-        $mfgprefix="wbs";
-        ${hardwaretypev}= "210-v1" ;      # WBS210 v1.0/v1.1 
-    }
-} else {
-    ${hardwaretypev}=${hardwaretype};
-}
-
 # refresh fw
 if($parms{button_refresh_fw})
 {
@@ -621,41 +573,7 @@ system "rm -rf /tmp/web/upload $tmpdir" unless $debug;
 #
 
 http_header();
-html_header("$node administration", 0);
-print <<EOF;
-    <script>
-    function validateFirmwareFilename(elem){
-        var hwmfg = "$mfgprefix";
-        var hwtype = "${hardwaretypev}";
-        var searchstring = "";
-        var efn = "";
-        if(hwmfg != "cpe"){
-            if (hwmfg == "wbs") {
-                searchstring= ".*wbs" + hwtype + ".*-sysupgrade.bin$\";
-                efn = "aredn-$fw_version-$mfgprefix${hardwaretypev}.*-sysupgrade.bin";
-            } else {
-                searchstring= ".*(-|_)" + hwtype + ".*-sysupgrade.bin$\";
-                efn = "aredn-$fw_version-$mfgprefix-${hardwaretypev}.*-sysupgrade.bin";
-            }
-        } else {
-            searchstring= ".*cpe" + hwtype + ".*-sysupgrade.bin$\";
-            efn = "aredn-$fw_version-$mfgprefix${hardwaretypev}.*-sysupgrade.bin";
-        }
-        var re = new RegExp(searchstring,"g");   
-        if(elem.value.match(re)){
-            return true;
-        }else{
-            if (confirm('This filename is NOT appropriate for this device!\\n\\nThis device expects a file such as: ' + efn + ' \\n\\n\\nClick OK to continue if you are CERTAIN that the file is correct.')) {
-                return true;
-            } else {
-                elem.value="";
-                return false;
-            }
-        }
-    }
-    </script>
-EOF
-print "</head>";
+html_header("$node administration", 1);
 print "<body><center>\n";
 alert_banner();
 print "<form method=post action=admin enctype='multipart/form-data'>\n";
@@ -689,7 +607,7 @@ print "<tr><td align=center colspan=3>current version: $fw_version</td></tr>\n";
 print "<tr><td align=center colspan=3>hardware type: (${targettype}) $mfgprefix (${hardwaretype})</td></tr>\n";
 print "<tr>\n";
 print "<td>Upload Firmware</td>\n";
-print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin' onchange='validateFirmwareFilename(this)'></td>\n";
+print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin'></td>\n";
 print "<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'";
 if($tunnel_active) { 
     print " disabled><br><small>Disabled: Tunnels enabled</small>";

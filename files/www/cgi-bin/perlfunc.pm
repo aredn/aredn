@@ -2202,7 +2202,7 @@ sub getRelease {
 #  my $target = getDistTarget();
 #  my $release = getRelease();
 #  if ($release !~ /\./) {
-#    return "http://downloads.arednmesh.org/snapshots/trunk/" . $target;
+#    return "http://downloads.arednmesh.org/snapshots/" . $target;
 #  } else {
 #    return "http://downloads.arednmesh.org/firmware";
 #  }
@@ -2222,7 +2222,7 @@ sub defaultPackageRepos {
     $urlprefix .= "/releases/" . $nums[0] . "/" . $nums[1] . "/" . $release . "/";
   } else {
     #nightly build or self built firmware
-    $urlprefix .= "/snapshots/trunk/";
+    $urlprefix .= "/snapshots/";
   }
   # have prefix (hopefully), now finish the rest of the url
   if ($repo =~ "aredn_core") {
