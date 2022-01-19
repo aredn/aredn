@@ -1,98 +1,262 @@
-#!/usr/bin/perl
-=for comment
+#!/usr/bin/lua
+--[[
 
-  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
-   See Contributors file for additional contributors
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2021 Tim Wilkinson
+	Original Perl Copyright (C) 2015 Conrad Lara
+	See Contributors file for additional contributors
 
-  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation version 3 of the License.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	Additional Terms:
 
-  Additional Terms:
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
 
-  Additional use restrictions exist on the AREDN(TM) trademark and logo.
-    See AREDNLicense.txt for more info.
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
 
-  Attributions to the AREDN Project must be retained in the source code.
-  If importing this code into a new or existing project attribution
-  to the AREDN project must be added to the source code.
+	You must not misrepresent the origin of the material contained within.
 
-  You must not misrepresent the origin of the material contained within.
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
 
-  Modified versions must be modified to attribute to the original source
-  and be marked in reasonable ways as differentiate it from the original
-  version.
+--]]
 
-=cut
+require("aredn.http")
+require("aredn.hardware")
+local html = require("aredn.html")
+local aredn_info = require("aredn.info")
 
-$debug = 0;
+local node = aredn_info.get_nvram("node")
+if not node then
+    node = "NOCALL"
+end
+local wifiiface = aredn.hardware.get_iface_name("wifi")
 
-BEGIN {push @INC, '/www/cgi-bin'};
-use perlfunc;
+if not nixio.fs.stat("/tmp/web") then
+    nixio.fs.mkdir("/tmp/web")
+end
 
-# collect some variables
-$node = nvram_get("node");
-$node = "NOCALL" if $node eq "";
+-- scan start
 
-read_postdata();
+local scanned = {}
+local f = io.popen("iw dev " .. wifiiface .. " scan passive")
+if f then
+    local scan
+    for line in f:lines()
+    do
+        local m = line:match("^BSS ([%da-fA-F:]+)")
+        if m then
+            scan = {
+                mac = m,
+                mode = "AP",
+                ssid = "",
+                signal = 0,
+                freq = 0,
+                key = ""
+            }
+            scanned[m] = scan
+            if line:match("joined") then
+                scan.mode = "My Ad-Hoc Network"
+            end
+        end
+        m = line:match("freq: (%d+)")
+        if m then
+            scan.freq = tonumber(m)
+        end
+        m = line:match("SSID: (.+)")
+        if m then
+            scan.ssid = m
+        end
+        m = line:match("signal: ([%d-]+)")
+        if m then
+            scan.signal = tonumber(m)
+        end
+        m = line:match("Group cipher: (.+)")
+        if m then
+            scan.key = m
+        end
+        if line:match("capability: IBSS") and scan.mode == "AP" then
+            scan.mode = "Foreign Ad-Hoc Network"
+        end
+    end
+    if scan then
+        scanned[#scanned + 1] = scan
+    end
+    f:close()
+end
+local f = io.popen("iw dev " .. wifiiface .. " station dump")
+if f then
+    local scan
+    local myssid = aredn_info.getSSID()
+    local myfreq = tonumber(aredn_info.getFreq())
+    for line in f:lines()
+    do
+        local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")
+        if m then
+            scan = scanned[m]
+            if not scan then
+                scan = {
+                    mac = m,
+                    mode = "Connected Ad-Hoc Station",
+                    ssid = myssid,
+                    signal = 0,
+                    freq = myfreq,
+                    key = ""
+                }
+                scanned[m] = scan
+            else
+                scan.mode = "Connected Ad-Hoc Station"
+                scan.ssid = myssid
+                scan.key = ""
+                scan.freq = myfreq
+            end
+        end
+        m = line:match("signal avg:%s+([%d-]+)")
+        if m then
+            scan.signal = tonumber(m)
+        end
+    end
+    f:close()
+end
 
-system "mkdir -p /tmp/web";
-system "/usr/local/bin/wscan -w > /tmp/web/wscan.next" unless $parms{stop};
-system "touch /tmp/web/autoscan" if $parms{auto};
-system "rm -f /tmp/web/autoscan" if $parms{stop};
-system "mv /tmp/web/wscan.next /tmp/web/wscan" unless $parms{stop};
+-- scan end
 
-# generate the page
-http_header();
-html_header("$node WiFi scan", 0);
-print "<meta http-equiv='refresh' content='5;url=/cgi-bin/scan'>\n" if -f "/tmp/web/autoscan";
-print "<script src=\"/js/sorttable-min.js\"></script>";
-print "<style>                                                   
-table.sortable thead {                                          
-    background-color:#eee;                                     
-    color:#666666;                            
-    font-weight: bold;
-    cursor: default;                                               
-}                                                                      
-</style>";
-print "</head>\n";
-print "<body><form method=post action=/cgi-bin/scan enctype='multipart/form-data'>\n";
-print "<center>\n";
-alert_banner();
-print "<h1>$node WiFi scan</h1><hr>\n";
+if os.getenv("REQUEST_METHOD") == "POST" then
+    require('luci.http')
+    require('luci.sys')
+    local request = luci.http.Request(luci.sys.getenv(),
+      function()
+        local v = io.read(1024)
+        if not v then
+            io.close()
+        end
+        return v
+      end
+    )
+    if request:formvalue("auto") then
+        io.open("/tmp/web/autoscan", "w"):close()
+    end
+    if request:formvalue("stop") then
+        os.remove("/tmp/web/autoscan")
+    end
+end
 
-if(-f "/tmp/web/autoscan")
-{
-    print "<input type=submit name=stop value=Stop title='Abort continuous scan'>\n";
-}
+-- generate page
+http_header()
+html.header(node .. " WiFi scan", false)
+local autoscan = nixio.fs.stat("/tmp/web/autoscan");
+if autoscan then
+    html.print("<meta http-equiv='refresh' content='5;url=/cgi-bin/scan'>")
+end
+html.print([[
+    <script src=\"/js/sorttable-min.js\"></script>
+    <style>
+    table.sortable thead {                                          
+        background-color:#eee;                                     
+        color:#666666;                            
+        font-weight: bold;
+        cursor: default;                                               
+    }                                                                      
+    </style>
+    </head>
+    <body><form method=post action=/cgi-bin/scan enctype='multipart/form-data'>
+    <center>
+]])
+
+html.alert_banner()
+html.print("<h1>" .. node .. " WiFi scan</h1><hr>")
+
+if autoscan then
+    html.print("<input type=submit name=stop value=Stop title='Abort continuous scan'>")
 else
-{
-    print "<input type=submit name=refresh value=Refresh title='Refresh this page'>\n";
-    print "&nbsp;&nbsp;&nbsp;\n";
-    print "<input type=submit name=auto value=Auto title='Begin continuous scan'>\n";
-}
+    html.print("<input type=submit name=refresh value=Refresh title='Refresh this page'>")
+    html.print("&nbsp;&nbsp;&nbsp;")
+    html.print("<input type=submit name=auto value=Auto title='Begin continuous scan'>")
+end
 
-print "&nbsp;&nbsp;&nbsp;\n";
-print "<button type=button onClick='window.location=\"status\"' title='Return to status page'>Quit</button><br><br>\n";
-system "cat /tmp/web/wscan";
-print "<br>";
-print "</center>\n";
-print "</form>\n";
+html.print("&nbsp;&nbsp;&nbsp;")
+html.print("<button type=button onClick='window.location=\"status\"' title='Return to status page'>Quit</button><br><br>")
 
-show_debug_info();
-show_parse_errors();
+-- display scan
+html.print("<table class=sortable border=1 cellpadding=5>")
+html.print("<tr><th>Sig</th><th>Chan</th><th>Enc</th><th>SSID</th><th>Hostname</th><th>MAC/BSSID</th><th>802.11 Mode</th></tr>")
 
-page_footer();
-print "</body>\n";
-print "</html>\n";
+-- load arp cache
+local arpcache = {}
+arptable(function(a)
+    arpcache[a["HW address"]] = a["IP address"]
+end)
+
+local scanlist = {}
+for _, v in pairs(scanned)
+do
+    if v.signal ~= 0 then
+        scanlist[#scanlist + 1] = v
+    end
+end
+table.sort(scanlist, function(a, b) return a.signal > b.signal end)
+for _, scan in ipairs(scanlist)
+do
+    -- freq to chan
+    local chan = scan.freq
+    if chan < 256 then
+    elseif chan == 2484 then
+        chan = 14
+    elseif chan == 2407 then
+        chan = 0
+    elseif chan < 2484 then
+        chan = (chan - 2407) / 5
+    elseif chan < 5000 then
+    elseif chan < 5380 then
+        chan = (chan - 5000) / 5
+    elseif chan < 5500 then
+        chan = chan - 2000
+    elseif chan < 6000 then
+        chan = (chan - 5000) / 5
+    end
+    -- ip lookup then host lookup
+    local ip = arpcache[scan.mac]
+    if ip then
+        hostname = ip
+        local f = io.popen("nslookup " .. ip)
+        if f then
+            for line in f:lines()
+            do
+                local m = line:match("name = (.*)%.local%.mesh")
+                if m then
+                    hostname = m
+                    break
+                end
+            end
+            f:close()
+        end
+    else
+        hostname = "N/A"
+    end
+    if scan.ssid:match("^AREDN-") then
+        html.print("<tr class=\"wscan-row-node\">")
+    else
+        html.print("<tr>")
+    end
+    html.print("<td>" .. scan.signal .. "</td><td>" .. chan .. "</td><td>" .. scan.key .. "</td><td>" .. scan.ssid .. "</td><td align=center>" .. hostname .. "</td><td>" .. scan.mac:upper() .. "</td><td>" .. scan.mode .. "</td>")
+    html.print("</tr>")
+end
+
+html.print("</table><br></center></form>")
+
+html.footer()
+html.print("</body></html>")
