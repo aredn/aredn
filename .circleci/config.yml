@@ -101,6 +101,14 @@ jobs:
           name: Move README.md
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/README.md ${NIGHTLY_DIR}/readme.md'"
 
+  afs_collector:
+    machine:
+      enabled: true
+    steps:
+      - run:
+          name: Run AFS collector
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c '${DOWNLOADS_DOCROOT}/afs/misc/collect.py --image-url http://downloads.arednmesh.org/{base}/{target} ${DOWNLOADS_DOCROOT} ${DOWNLOADS_DOCROOT}/afs/www'"
+      
 ######################################
 # Workflows
 ######################################
@@ -136,6 +144,12 @@ workflows:
               only:
                 - main
       - changelog_nightly:
+          requires:
+            - process_artifacts_nightly
+          filters:
+            branches:
+              only: main
+      - afs_collector:
           requires:
             - process_artifacts_nightly
           filters:
