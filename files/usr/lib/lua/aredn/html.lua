@@ -80,10 +80,10 @@ function html.alert_banner()
         html.print("<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo.lua\">!!!! UNTESTED HARDWARE !!!!</a></div>")
     end
 
-    if aredn_message then
+    if aredn_message and #aredn_message > 0 then
         html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">" .. aredn_message .. "</div></div>")
     end
-    if local_message then
+    if local_message and #local_message > 0 then
         html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">" .. local_message .. "</div></div>")
     end
 
