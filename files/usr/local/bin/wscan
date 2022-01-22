@@ -142,7 +142,7 @@ $iters = 0;     # number of iterations
 
 $mychan = `iwinfo $iface info | grep -i channel`;
 $mychan =~ /Channel:\s+(-*\d+)/;
-$mychan = ( ! defined $1 || ! int($1) || ! ($1 >= -2 && $1 <= 185) ) ? 0 : $1;
+$mychan = ( ! defined $1 || ! int($1) || ! ($1 >= -4 && $1 <= 185) ) ? 0 : $1;
 
 # ch 76 - 99 are 3ghz since no part 15 usage (5ghz board with -2ghz transverter)
 if ($mychan >= 76 and $mychan <= 99)
