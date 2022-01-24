@@ -134,26 +134,59 @@ function hardware.get_iface_name(name)
 end
 
 function hardware.get_link_led()
-    local led = xpcall(
-        function() return "/sys/class/leds/" .. hardware.get_board().led.rssilow.sysfs end,
+    local err, result = xpcall(
+        function()
+            local led = hardware.get_board().led
+            if led then
+                if led.rssilow and led.rssilow.sysfs then
+                    return "/sys/class/leds/" .. led.rssilow.sysfs
+                end
+                if led.user and led.user.sysfs then
+                    return "/sys/class/leds/" .. led.user.sysfs
+                end
+            end
+            -- Exceptions -
+            -- This is here to handle poor board definitions. We can remove these when board definitions are updated
+            local board_type = aredn.hardware.get_type()
+            if board_type == "airrouter" then
+                return "/sys/class/leds/ubnt:green:globe"
+            elseif board_type == "gl-ar150" then
+                return "/sys/class/leds/gl-ar150:orange:wlan"
+            elseif board_type == "gl-ar300m" then
+                return "/sys/class/leds/gl-ar300m:green:wlan"
+            elseif board_type == "gl-usb150" then
+                return "/sys/class/leds/gl-usb150:green:wlan"
+            elseif board_type == "gl-ar750" then
+                return "/sys/class/leds/gl-ar750:white:wlan5g"
+            elseif board_type == "rb-912uag-5hpnd" or board_type == "rb-911g-5hpnd" then
+                return "/sys/class/leds/rb:green:led1"
+            elseif board_type == "rb-lhg-5nd" or "rb-lhg-5hpnd" or "rb-lhg-5hpnd-xl" or "rb-ldf-5nd" then
+                return "/sys/class/leds/rb:green:rssi0"
+            end
+            --
+            return nil
+        end,
         function()
             return nil
         end
     )
+    return result
 end
 
 function hardware.has_poe()
-    return xpcall(
+    local err, result = xpcall(
         function() return hardware.get_board().gpioswitch.poe_passthrough.pin or true end,
         function() return false end
     )
+    return result
 end
 
 function hardware.has_usb()
-    return xpcall(
+    local err, result = xpcall(
         function() return hardware.get_board().gpioswitch.usb_power_switch.pin or true end,
         function() return false end
     )
+    return result
 end
 
 function hardware.get_rfband()
