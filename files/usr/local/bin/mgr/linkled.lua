@@ -43,17 +43,25 @@ function linkled()
     else
         -- Reset leds
         write_all(link .. "/trigger", "none")
-        write_all(link .. "/brightness", "0")
+        write_all(link .. "/brightness", "1")
+
+		-- Wait for 2 minutes before monitoring status. During this time the led is on
+		wait_for_ticks(120)
 
         while true
         do
             local nei = fetch_json("http://127.0.0.1:9090/neighbors")
             if nei and #nei.neighbors > 0 then
+				-- Led on when link established. Retest every 10 seconds
                 write_all(link .. "/brightness", "1")
+				wait_for_ticks(10)
             else
+				-- Flash led slowly - off 3 seconds, on 3 seconds - when no links
                 write_all(link .. "/brightness", "0")
+				wait_for_ticks(3)
+				write_all(link .. "/brightness", "1")
+				wait_for_ticks(3)
             end
-            wait_for_ticks(11)
         end
     end
 end
