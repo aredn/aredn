@@ -187,13 +187,15 @@ local olsr_nodes = 0
 local olsr_routes = 0
 for i, node in ipairs(aredn.olsr.getOLSRRoutes())
 do
-    olsr_total = olsr_total + 1
-    if node.genmask ~= 32 then
-        olsr_nodes = olsr_nodes + 1
-    end
-    if node.etx <= 50 then
-        routes[node.destination] = { etx = node.etx }
-        olsr_routes = olsr_routes + 1
+    if node.genmask ~= 0 then -- don't count default route
+        olsr_total = olsr_total + 1
+        if node.genmask ~= 32 then
+            olsr_nodes = olsr_nodes + 1
+        end
+        if node.etx <= 50 then
+            routes[node.destination] = { etx = node.etx }
+            olsr_routes = olsr_routes + 1
+        end
     end
 end
 -- low memory route reduction
