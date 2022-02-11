@@ -73,11 +73,11 @@ function html.alert_banner()
 
     local supported = aredn.hardware.supported()
     if supported == 0 then
-        html.print("<div style=\"padding:5px;background-color:#FF4719;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo.lua\">!!!! UNSUPPORTED DEVICE !!!!</a></div>")
+        html.print("<div style=\"padding:5px;background-color:#FF4719;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNSUPPORTED DEVICE !!!!</a></div>")
     elseif supported == -2 then
-        html.print("<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo.lua\"> !!!! THIS DEVICE IS STILL BEING TESTED !!!!</a></div>")
+        html.print("<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\"> !!!! THIS DEVICE IS STILL BEING TESTED !!!!</a></div>")
     elseif supported ~= 1 then
-        html.print("<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo.lua\">!!!! UNTESTED HARDWARE !!!!</a></div>")
+        html.print("<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>")
     end
 
     if aredn_message and #aredn_message > 0 then
