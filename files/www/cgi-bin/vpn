@@ -57,7 +57,7 @@ sub save_clients()
         my $net = $parms{"client${i}_netip"};
 
         $rc=&uci_add_named_section("vtun","client_$i","client");
-        
+
         # generate the clientip and serverip
         my ($clientip, $serverip) = &generate_ips($net);
 
@@ -89,7 +89,7 @@ sub save_clients()
         $rc=&uci_set_named_option("vtun","client_$i","node",$vtun_node_name);
         push(@cli_err,"Problem saving UCI vtun client name (#$i): $rc") if $rc;
 
-        $enabled_count++ if $parms{"client${i}_enabled"};    
+        $enabled_count++ if $parms{"client${i}_enabled"};
     }
 
     my $maxclients = &get_tunnel_maxclients();
@@ -119,12 +119,12 @@ sub save_network()
 if($parms{button_reboot})
 {
     system "/sbin/reboot";
-} 
+}
 
 if($parms{button_install})
 {
     install_vtun();
-} 
+}
 
 reboot_required() if($config eq "" or -e "/tmp/reboot-required");
 &vpn_setup_required("vpn") unless(-e "/usr/sbin/vtund" );
@@ -162,7 +162,7 @@ if($parms{button_reset} or not $parms{reload})
     $parms{server_net2}=$netw[3];
 
     $parms{dns}=$dns;
-    
+
     # initialize the "add" entries to clear them
     foreach $var (qw(client_add_enabled client_add_name client_add_passwd))
     {
@@ -192,14 +192,14 @@ foreach $val (@list)
         {
             if($parms{$varname} eq "" and ($var eq "enabled"))
             {
-                $parms{$varname} = "0"; 
+                $parms{$varname} = "0";
             }
         }
         eval sprintf("\$%s = \$parms{%s}", $var, $varname);
     }
 
 
-    # Validate ADDed values    
+    # Validate ADDed values
     if($val eq "_add")
     {
         # skip any null values on add or save
@@ -212,7 +212,7 @@ foreach $val (@list)
         push @cli_err, "$val this client must be added or cleared out before saving changes";
         next;
     }
-        
+
     # password MUST be alphanumeric (no special chars)
     push @cli_err, "The password cannot contain non-alphanumeric characters (#$client_num)" if ($passwd =~ m/[^a-zA-Z0-9@]/);
     push @cli_err, "The password must contain at least one alphabetic character (#$client_num)" if ($passwd !~ /\D/);
@@ -229,14 +229,14 @@ foreach $val (@list)
 
     # Commit the data for this client
     $client_num++;
-    
+
     # Clear out the ADD values
     if($val eq "_add")
     {
         foreach $var (qw(net enabled name passwd netip contact))
             {
                 $parms{"client_add_${var}"} = "";
-            }   
+            }
     }
 }
 
@@ -342,10 +342,10 @@ if($parms{button_save})
 # everything else
 #################
 if($config eq "mesh")
-{  
+{
     print "<tr><td align=center valign=top>\n";
     &print_vpn_clients();
-    print "</td></tr>\n";   
+    print "</td></tr>\n";
     print "<tr><td><hr></td></tr>\n";
 }
 print "</table>\n";
@@ -381,14 +381,14 @@ exit;
 sub print_vpn_clients()
 {
     print "<table cellpadding=0 cellspacing=0>";
-    
-    print "<br /><tr class=tun_network_row><td colspan=6 align=center valign=top>Tunnel Server Network: ";   
+
+    print "<br /><tr class=tun_network_row><td colspan=6 align=center valign=top>Tunnel Server Network: ";
     printf("%d.%d.",$netw[0],$netw[1]);
     print "<input type='text' name='server_net1' size='3' maxlen='3' value='$netw[2]' onChange='form.submit()' title='from 0-255' >";
     print ".";
     print "<input type='text' name='server_net2' size='3' maxlen='3' value='$netw[3]' onChange='form.submit()' title='from 0-255 in multiples of 4. (ie. 0,4,8,12,16...252)' >";
 
-    print "<br /><hr>Tunnel Server DNS Name: ";   
+    print "<br /><hr>Tunnel Server DNS Name: ";
     print "<input type='text' name='dns' size='30' value='$dns' onChange='form.submit()' ></td></tr>";
 
     print "</table>";
@@ -399,7 +399,7 @@ sub print_vpn_clients()
     print "<tr><th colspan=6>Allow the following clients to connect to this server:</th></tr>\n";
     print "<tr><th colspan=6><hr></th></tr>\n";
     print "<tr><th>Enabled?</th><th>Client</th><th>Pwd</th><th>Net</th><th>Active&nbsp;</td><th>Action</th></tr>\n";
-    
+
     for($i = 0, @list = (); $i < $parms{client_num}; ++$i) { push @list, $i };
 
     push @list, "_add" unless($parms{client_num} >= &get_tunnel_maxclients());
@@ -422,7 +422,7 @@ sub print_vpn_clients()
         print " onChange='form.submit()'" unless $val eq "_add";
         print " checked='checked'" if $enabled;
         print " title='enable this client'></td>";
- 
+
         print "<td><input type=text size=40 name=client${val}_name value='$name'";
 		print " onChange='form.submit()'" unless $val eq "_add";
         # print " disabled" unless $val eq "_add";
@@ -443,13 +443,13 @@ sub print_vpn_clients()
         } else {
             $net=$cnum;
         }
-        
+
         if($val eq "_add") { $lastnet=$netw[3]+(($net) * 4); }
         else { $lastnet=$netw[3]+($net * 4); }
         $fullnet=sprintf("%d.%d.%d.%d",$netw[0],$netw[1],$netw[2],$lastnet);
         print "<td rowspan='2' class='tun_client_center_item'>&nbsp;$fullnet";
-        print "<input type=hidden name=client${val}_netip value='$fullnet'/></td>";       
-        print "<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;"; 
+        print "<input type=hidden name=client${val}_netip value='$fullnet'/></td>";
+        print "<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;";
         if (&is_tunnel_active($fullnet,@active_tun) && ($val ne "_add")) {
             print "<img class='tun_client_active_img' src='/connected.png' title='Connected' />";
         } else {
@@ -458,7 +458,7 @@ sub print_vpn_clients()
         print "</td>";
         print "<td rowspan='2' class='tun_client_center_item'><input type=submit name=client_add value=Add title='Add this client'>" if($val eq "_add");
         print "</td>";
-        print "<td rowspan='2' class='tun_client_center_item tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$passwd%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20$dns'><img class='tun_client_mailto_img' src='/email.png' title='Email details' /></a></td>" unless($val eq "_add");
+        print "<td rowspan='2' class='tun_client_center_item tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20$name%0D%0APassword:%20$passwd%0D%0ANetwork:%20$fullnet%0D%0AServer%20address:%20$dns' target='_blank'><img class='tun_client_mailto_img' src='/email.png' title='Email details' /></a></td>" unless($val eq "_add");
 
 	#contact info for the tunnel
         print "</tr>";
@@ -477,7 +477,7 @@ sub print_vpn_clients()
         }
 
         #push @hidden, "<input type='hidden' name='client${val}_enable' value='0'>" unless($val eq "_add");
-        
+
         print "<tr><td colspan=4 height=4></td></tr>\n";
 		$cnum++;
     }
