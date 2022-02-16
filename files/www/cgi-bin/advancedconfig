@@ -612,7 +612,7 @@ html.print([[
 
 for i, setting in ipairs(settings)
 do
-    if not setting.condition or loadstring(setting.condition)() then
+    if not setting.condition or loadstring("return " .. setting.condition)() then
         local a, b, c = setting.key:match("(.+)%.(.+)%.(.*)")
         local sval = cursor_get(a, b, c)
         if not sval then
