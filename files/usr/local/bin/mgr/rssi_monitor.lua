@@ -57,7 +57,7 @@ end
 local wifiiface = get_ifname("wifi")
 
 local multiple_ant = false
-if read_all("sys/kernel/debug/ieee80211/" .. iwinfo.nl80211.phyname(wifiiface) .. "/ath9k/tx_chainmask"):chomp() ~= "1" then
+if read_all("/sys/kernel/debug/ieee80211/" .. iwinfo.nl80211.phyname(wifiiface) .. "/ath9k/tx_chainmask"):chomp() ~= "1" then
     multiple_ant = true
 end
 
