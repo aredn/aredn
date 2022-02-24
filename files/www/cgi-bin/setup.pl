@@ -685,7 +685,7 @@ print "</head>";
 print "<body><center>\n";
 
 alert_banner();
-print "<form onSubmit='doSubmit();' name='mainForm' method=post action=/cgi-bin/setup enctype='multipart/form-data'>\n" unless $debug == 2;
+print "<form onSubmit='doSubmit();' name='mainForm' method=post action=/cgi-bin/setup.pl enctype='multipart/form-data'>\n" unless $debug == 2;
 print "<form method=post action=test>\n" if $debug == 2;
 
 print "<table width=790>\n";
