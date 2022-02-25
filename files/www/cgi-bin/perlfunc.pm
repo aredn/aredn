@@ -609,7 +609,7 @@ sub save_setup
   # generate the system config files
 
   system "mkdir -p /tmp/web/save";
-  $rc =  system "/usr/local/bin/node-setup.pl -a $parms{config} >/tmp/web/save/node-setup.out 2>&1";
+  $rc =  system "/usr/local/bin/node-setup -a $parms{config} >/tmp/web/save/node-setup.out 2>&1";
   return 0 if $rc or -s "/tmp/web/save/node-setup.out";
   system "rm -rf /tmp/web/save";
 

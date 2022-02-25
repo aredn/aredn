@@ -130,20 +130,6 @@ function hardware.get_iface_name(name)
     if intfname then
         return intfname
     end
-    -- Now we guess
-    if name == "lan" then
-        return "eth0"
-    end
-    if name == "wan" then
-        return "eth0.1"
-    end
-    if name == "wifi" then
-        return "wlan0"
-    end
-    if name == "dtdlink" then
-        return "eth0.2"
-    end
-    -- Maybe the board knows
     return hardware.get_board().network[name].ifname
 end
 
