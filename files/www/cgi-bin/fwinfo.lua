@@ -37,9 +37,9 @@
 print("Content-type:text\r\n\r")
 
 local f = io.popen("opkg list-installed blockknownencryption|wc -l")
-ispermitencblock = f:read()
+ispermitencblock = tonumber(f:read())
 
-if ispermitencblock > "0" then
+if ispermitencblock > 0 then
     print("Encrypted Tlaffic: Blocked")
 else
     print("Encrypted Traffic: Allowed")
