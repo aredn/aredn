@@ -294,14 +294,16 @@ if h and e then
 
     local netaddr = nixio.bit.band(ip_to_decimal(cfg.lan_ip), ip_to_decimal(cfg.lan_mask))
 
-    for line in io.lines(dhcpfile)
-    do
-        if not (line:match("^%s*#") or line:match("^%s*$")) then
-            local mac, ip, host, noprop = line:match("(.*)%s+(.*)%s+(.*)%s+(.*)")
-            ip = decimal_to_ip(netaddr + ip)
-            if validate_same_subnet(ip, cfg.lan_ip, cfg.lan_mask) and validate_ip_netmask(ip, cfg.lan_mask) then
-                h:write(ip .. "\t" .. host .. " " .. noprop .. "\n")
-                e:write(mac .. "\t" .. ip .. " " .. noprop .. "\n")
+    if nixio.fs.access(dhcpfile) then
+        for line in io.lines(dhcpfile)
+        do
+            if not (line:match("^%s*#") or line:match("^%s*$")) then
+                local mac, ip, host, noprop = line:match("(.*)%s+(.*)%s+(.*)%s+(.*)")
+                ip = decimal_to_ip(netaddr + ip)
+                if validate_same_subnet(ip, cfg.lan_ip, cfg.lan_mask) and validate_ip_netmask(ip, cfg.lan_mask) then
+                    h:write(ip .. "\t" .. host .. " " .. noprop .. "\n")
+                    e:write(mac .. "\t" .. ip .. " " .. noprop .. "\n")
+                end
             end
         end
     end
@@ -367,41 +369,43 @@ if fw then
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   wan\n")
     end
 
-    for line in io.lines(portfile)
-    do
-        if not (line:match("^%s*#") or line:match("^%s*$")) then
-            local dip = line:match("dmz_ip = (%w+)")
-            if dip and cfg.dmz_mode ~= 0 then
-                fw:write("\nconfig redirect\n        option src    wifi\n        option proto  tcp\n        option src_dip " .. cfg.wifi_ip .. "\n        option dest_ip " .. dip .. "\n")
-                fw:write("\nconfig redirect\n        option src    wifi\n        option proto  udp\n        option src_dip " .. cfg.wifi_ip .. "\n        option dest_ip " .. dip .. "\n")
-            else
-                local intf, type, oport, host, iport, enable = line:match("(.*):(.*):(.*):(.*):(.*):(.*)")
-                if enable == "1" then
-                    local match = "        option src_dport " .. oport .. "\n"
-                    if type == "tcp" then
-                        match = match .. "        option proto tcp\n"
-                    elseif type == "udp" then
-                        match = match .. "        option proto udp\n"
-                    end
-                    -- uci the host and then
-                    -- set the inside port unless the rule uses an outside port range
-                    host = "option dest_ip    " .. host .. "\n"
-                    if oport:match("-") then
-                        host = host .. "        option dest_port " .. iport .. "\n"
-                    end
-                    if not is_null(cfg.dmz_mode) and intf == "both" then
-                        intf = "wan"
-                    end
-                    if intf == "both" then
-                        fw:write("\nconfig redirect\n        option src  wifi\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                        fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                        fw:write("config redirect\n        option src wan\n        " .. match .. "        " .. host .. "\n")
-                    elseif intf == "wifi" and is_null(cfg.dmz_mode) then
-                        fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                        fw:write("\nconfig redirect\n        option src wifi\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                    elseif intf == "wan" then
-                        fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                        fw:write("config redirect\n        option src wan\n        " .. match .. "        " .. host .. "\n")
+    if nixio.fs.access(portfile) then
+        for line in io.lines(portfile)
+        do
+            if not (line:match("^%s*#") or line:match("^%s*$")) then
+                local dip = line:match("dmz_ip = (%w+)")
+                if dip and cfg.dmz_mode ~= 0 then
+                    fw:write("\nconfig redirect\n        option src    wifi\n        option proto  tcp\n        option src_dip " .. cfg.wifi_ip .. "\n        option dest_ip " .. dip .. "\n")
+                    fw:write("\nconfig redirect\n        option src    wifi\n        option proto  udp\n        option src_dip " .. cfg.wifi_ip .. "\n        option dest_ip " .. dip .. "\n")
+                else
+                    local intf, type, oport, host, iport, enable = line:match("(.*):(.*):(.*):(.*):(.*):(.*)")
+                    if enable == "1" then
+                        local match = "        option src_dport " .. oport .. "\n"
+                        if type == "tcp" then
+                            match = match .. "        option proto tcp\n"
+                        elseif type == "udp" then
+                            match = match .. "        option proto udp\n"
+                        end
+                        -- uci the host and then
+                        -- set the inside port unless the rule uses an outside port range
+                        host = "option dest_ip    " .. host .. "\n"
+                        if oport:match("-") then
+                            host = host .. "        option dest_port " .. iport .. "\n"
+                        end
+                        if not is_null(cfg.dmz_mode) and intf == "both" then
+                            intf = "wan"
+                        end
+                        if intf == "both" then
+                            fw:write("\nconfig redirect\n        option src  wifi\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            fw:write("config redirect\n        option src wan\n        " .. match .. "        " .. host .. "\n")
+                        elseif intf == "wifi" and is_null(cfg.dmz_mode) then
+                            fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            fw:write("\nconfig redirect\n        option src wifi\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                        elseif intf == "wan" then
+                            fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            fw:write("config redirect\n        option src wan\n        " .. match .. "        " .. host .. "\n")
+                        end
                     end
                 end
             end
@@ -419,18 +423,20 @@ end
 
 local sf = io.open("/etc/config/services", "w")
 if sf then
-    for line in io.lines(servfile)
-    do
-        if not (line:match("^%s*#") or line:match("^%s*$")) then
-            local name, link, proto, host, port, sffx = line:match("(.*)|(.*)|(.*)|(.*)|(.*)|(.*)")
-            if name and name ~= "" and host ~= "" then
-                if proto == "" then
-                    proto = "http"
+    if nixio.fs.access(servfile) then
+        for line in io.lines(servfile)
+        do
+            if not (line:match("^%s*#") or line:match("^%s*$")) then
+                local name, link, proto, host, port, sffx = line:match("(.*)|(.*)|(.*)|(.*)|(.*)|(.*)")
+                if name and name ~= "" and host ~= "" then
+                    if proto == "" then
+                        proto = "http"
+                    end
+                    if link == "" then
+                        port = "0"
+                    end
+                    sf:write(string.format("%s://%s:%s/%s|tcp|%s\n", proto, host, port, sffx, name))
                 end
-                if link == "" then
-                    port = "0"
-                end
-                sf:write(string.format("%s://%s:%s/%s|tcp|%s\n", proto, host, port, sffx, name))
             end
         end
     end
@@ -464,32 +470,33 @@ end
 if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
     local of = io.open("/etc/config/olsrd", "w")
     if of then
-        for line in io.lines("/etc/config.mesh/olsrd")
-        do
-            if line:match("<olsrd_bridge>") then
-                if is_null(cfg.olsrd_bridge) then
-                    line = line:gsub("<olsrd_bridge>", '"wifi" "lan"')
-                else
-                    line = line:gsub("<olsrd_bridge>", '"lan"')
+        if nixio.fs.access("/etc/config.mesh/olsrd") then
+            for line in io.lines("/etc/config.mesh/olsrd")
+            do
+                if line:match("<olsrd_bridge>") then
+                    if is_null(cfg.olsrd_bridge) then
+                        line = line:gsub("<olsrd_bridge>", '"wifi" "lan"')
+                    else
+                        line = line:gsub("<olsrd_bridge>", '"lan"')
+                    end
+                elseif line:match("^[^#]") then
+                    for parm in line:gmatch("<([^%s]*)>")
+                    do
+                        line = line:gsub("<" .. parm .. ">", cfg[parm])
+                    end
                 end
-            elseif line:match("^[^#]") then
-                for parm in line:gmatch("<([^%s]*)>")
-                do
-                    line = line:gsub("<" .. parm .. ">", cfg[parm])
-                end
+                of:write(line .. "\n")
             end
-            of:write(line .. "\n")
-        end
 
-        if not is_null(cfg.dmz_mode) then
-            local a, b, c, d = cfg.dmz_lan_ip:match("(.*)%.(.*)%.(.*)%.(.*)")
-            of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%s.%d\n\toption netmask 255.255.255.%d\n\n", a, b, c, d - 1, nixio.bit.band(255 * 2 ^ cfg.dmz_mode, 255)))
+            if not is_null(cfg.dmz_mode) then
+                local a, b, c, d = cfg.dmz_lan_ip:match("(.*)%.(.*)%.(.*)%.(.*)")
+                of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%s.%d\n\toption netmask 255.255.255.%d\n\n", a, b, c, d - 1, nixio.bit.band(255 * 2 ^ cfg.dmz_mode, 255)))
+            end
+        
+            if not is_null(cfg.olsrd_gw) then
+                of:write("config LoadPlugin\n\toption library 'olsrd_dyn_gw.so.0.5'\n\toption Interval '60'\n\tlist Ping '8.8.8.8'\n\tlist Ping '8.8.4.4'\n\n\n")
+            end
         end
-    
-        if not is_null(cfg.olsrd_gw) then
-            of:write("config LoadPlugin\n\toption library 'olsrd_dyn_gw.so.0.5'\n\toption Interval '60'\n\tlist Ping '8.8.8.8'\n\tlist Ping '8.8.4.4'\n\n\n")
-        end
-
         of:close()
     end
 
