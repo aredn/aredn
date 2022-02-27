@@ -43,7 +43,7 @@ require("aredn.hardware")
 -- helpers start
 
 function is_null(v)
-    if not v or v == "" or v == 0 then
+    if not v or v == "" or v == 0 or v == "0" then
         return true
     else
         return false
@@ -124,7 +124,7 @@ if cfg.wan_proto == "dhcp" then
     deleteme.wan_gw = true
     deleteme.wan_mask = true
 end
-if cfg.dmz_mode == "1" or cfg.wan_proto ~= "disabled" then
+if not is_null(cfg.dmz_mode) or cfg.wan_proto ~= "disabled" then
     deleteme.lan_gw = true
 end
 
@@ -163,7 +163,7 @@ end
 
 -- sensible dmz_mode default
 if is_null(cfg.dmz_mode) then
-    cfg.dmz_mode = 0
+    cfg.dmz_mode = "0"
 end
 
 -- switch to dmz values if needed
@@ -180,7 +180,7 @@ local portfile  = "/etc/config.mesh/_setup.ports"
 local dhcpfile  = "/etc/config.mesh/_setup.dhcp"
 local aliasfile = "/etc/config.mesh/aliases"
 local servfile = "/etc/config.mesh/_setup.services"
-if cfg.dmz_mode == 0 then
+if is_null(cfg.dmz_mode) then
     portfile = portfile .. ".nat"
     dhcpfile = dhcpfile .. ".nat"
     aliasfile = aliasfile .. ".nat"
@@ -517,8 +517,8 @@ if not is_null(cfg.lan_dhcp_noroute) then
     })
 else
     c:set("dhcp", "@dhcp[0]", "dhcp_option", {
-        "121,10.0.0.0/8" .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg/lan_ip,
-        "249,10.0.0.0/8" .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg/lan_ip
+        "121,10.0.0.0/8" .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip,
+        "249,10.0.0.0/8" .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip
     })
 end
 c:commit("dhcp")
