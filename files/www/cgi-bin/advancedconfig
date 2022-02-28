@@ -244,6 +244,34 @@ function msg(m)
     msgs[#msgs + 1] = m
 end
 
+-- uci cursor
+local cursora = uci:cursor()
+local cursorb = uci:cursor("/etc/config.mesh")
+function cursor_set(a, b, c, d)
+    cursora:set(a, b, c, d)
+    cursorb:set(a, b, c, d)
+    cursora:commit(a)
+    cursorb:commit(a)
+end
+
+function cursor_add(a, b, c)
+    cursora:set(a, b, c)
+    cursorb:set(a, b, c)
+    cursora:commit(a)
+    cursorb:commit(a)
+end
+
+function cursor_delete(a, b)
+    cursora:delete(a, b)
+    cursorb:delete(a, b)
+    cursora:commit(a)
+    cursorb:commit(a)
+end
+
+function cursor_get(a, b, c)
+    return cursora:get(a, b, c)
+end
+
 function reboot()
     local node = aredn.info.get_nvram("node")
     if node == "" then
@@ -263,7 +291,7 @@ function reboot()
             lanmask = ip_to_decimal(lanmask)
             local cfgip = cursor_get("network", "lan", "ipaddr")
             local cfgmask = ip_to_decimal(cursor_get("network", "lan", "netmask"))
-            if lanmask ~= cfgmask or decimal_to_ip(nixio.bit.band(ip_to_decimal(ip), lanmask)) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
+            if lanmask ~= cfgmask or decimal_to_ip(nixio.bit.band(ip_to_decimal(lanip), lanmask)) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
                 subnet_change = true
             end
         end
@@ -294,34 +322,6 @@ function reboot()
     http_footer()
     luci.sys.reboot()
     os.exit()
-end
-
--- uci cursor
-local cursora = uci:cursor()
-local cursorb = uci:cursor("/etc/config.mesh")
-function cursor_set(a, b, c, d)
-    cursora:set(a, b, c, d)
-    cursorb:set(a, b, c, d)
-    cursora:commit(a)
-    cursorb:commit(a)
-end
-
-function cursor_add(a, b, c)
-    cursora:set(a, b, c)
-    cursorb:set(a, b, c)
-    cursora:commit(a)
-    cursorb:commit(a)
-end
-
-function cursor_delete(a, b)
-    cursora:delete(a, b)
-    cursorb:delete(a, b)
-    cursora:commit(a)
-    cursorb:commit(a)
-end
-
-function cursor_get(a, b, c)
-    return cursora:get(a, b, c)
 end
 
 -- conditionals
