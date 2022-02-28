@@ -517,8 +517,8 @@ if not is_null(cfg.lan_dhcp_noroute) then
     })
 else
     c:set("dhcp", "@dhcp[0]", "dhcp_option", {
-        "121,10.0.0.0/8" .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip,
-        "249,10.0.0.0/8" .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip
+        "121,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip,
+        "249,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip
     })
 end
 c:commit("dhcp")
