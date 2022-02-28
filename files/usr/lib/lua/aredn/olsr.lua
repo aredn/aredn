@@ -43,22 +43,22 @@ local model = {}
 
 function model.getOLSRLinks()
   local links=fetch_json("http://127.0.0.1:9090/links")
-  return links['links']
+  return links and links['links'] or {}
 end
 
 function model.getOLSRRoutes()
   local routes=fetch_json("http://127.0.0.1:9090/routes")
-  return routes['routes']
+  return routes and routes['routes'] or {}
 end
 
 function model.getOLSRHNA()
   local hna=fetch_json("http://127.0.0.1:9090/hna")
-  return hna['hna']
+  return hna and hna['hna'] or {}
 end
 
 function model.getOLSRMid()
   local mid=fetch_json("http://127.0.0.1:9090/mid")
-  return mid['mid']
+  return mid and mid['mid'] or {}
 end
 
 function model.getOLSRInterfaceType(iface)
