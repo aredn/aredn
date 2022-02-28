@@ -1,0 +1,7 @@
+#!/bin/sh
+
+INET_IFACE=$(uci get network.wan.ifname 2>/dev/null)
+
+iptables -A FORWARD -o $INET_IFACE -d 10.0.0.0/8 -j REJECT
+iptables -A FORWARD -o $INET_IFACE -d 172.16.0.0/12 -j REJECT
+iptables -A FORWARD -o $INET_IFACE -d 192.168.0.0/16 -j REJECT
