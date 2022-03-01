@@ -230,14 +230,15 @@ if capture_and_match("ping -W1 -c1 8.8.8.8", "1 packets received") then
     pingOK = true
 end
 
-local dmz_lan_ip = ""
-local dmz_lan_mask = ""
-local lan_gw = ""
-local wan_ip = ""
-local wan_mask = ""
-local wan_gw = ""
-local passwd1 = ""
-local passwd2 = ""
+-- must be global not local
+dmz_lan_ip = ""
+dmz_lan_mask = ""
+lan_gw = ""
+wan_ip = ""
+wan_mask = ""
+wan_gw = ""
+passwd1 = ""
+passwd2 = ""
 
 local ctwo = { 1,2,3,4,5,6,7,8,9,10,11 }
 local cfive = { 36,40,44,48,149,153,157,161,165 }
@@ -316,9 +317,13 @@ else
         end
     end
     if parms.button_reset or not has_parms then
+        local node = aredn_info.get_nvram("node")
+        local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
+        local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
         for line in io.lines("/etc/config.mesh/_setup")
         do
             if not (line:match("^%s*#") or line:match("^%s*$")) then
+                line = line:gsub("<NODE>", node):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
                 local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
                 _G[k] = v
             end
@@ -328,7 +333,12 @@ else
             if hex then
                 for i = 1,#hex,2
                 do
-                    s = s .. string.char(tonumber(hex:sub(i, i+1), 16))
+                    local p = hex:sub(i, i+1)
+                    if p:match("[0-9a-f][0-9a-f]") then
+                        s = s .. string.char(tonumber(p, 16))
+                    else
+                        s = s .. p
+                    end
                 end
             end
             return s
@@ -701,7 +711,7 @@ if parms.button_save then
             remove_all("/tmp/web/save")
             -- set password
             if passwd1 ~= "" then
-                local pw = passwd1.gsub("'", "\\'")
+                local pw = passwd1:gsub("'", "\\'")
                 local f = io.popen("{ echo '" .. pw .. "'; sleep 1; echo '" .. pw .. "'; } | passwd")
                 f:read("*a")
                 f:close()
