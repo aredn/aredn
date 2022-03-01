@@ -1,0 +1,56 @@
+--- a/target/linux/ar71xx/base-files/etc/board.d/01_leds
++++ b/target/linux/ar71xx/base-files/etc/board.d/01_leds
+@@ -18,6 +18,9 @@ a60)
+ 	ucidef_set_led_default "status-red" "Status (red)" "a60:red:status" "0"
+ 	ucidef_set_led_default "status-blue" "Status (blue)" "a60:blue:status" "0"
+ 	;;
++airrouter)
++	ucidef_set_led_timer "user" "USER" "ubnt:green:globe" "1000" "1000"
++	;;
+ airgateway|\
+ airgatewaypro)
+ 	ucidef_set_led_wlan "wlan" "WLAN" "ubnt:blue:wlan" "phy0tpt"
+@@ -93,7 +96,7 @@ ap531b0|\
+ gl-usb150|\
+ sc1750|\
+ sc450)
+-	ucidef_set_led_wlan "wlan" "WLAN" "$board:green:wlan" "phy0tpt"
++	ucidef_set_led_timer "user" "USER" "$board:green:wlan" "1000" "1000"
+ 	;;
+ ap91-5g|\
+ n5q)
+@@ -425,12 +428,12 @@ fritz450e)
+ 	ucidef_set_led_wlan "wlan" "WLAN" "$board:green:wlan" "phy0tpt"
+ 	;;
+ gl-ar300m)
+-	ucidef_set_led_wlan "wlan" "WLAN" "$board:red:wlan" "phy0tpt"
+ 	ucidef_set_led_netdev "lan" "LAN" "$board:green:lan" "eth1"
++	ucidef_set_led_timer "user" "USER" "$board:red:wlan" "1000" "1000"
+ 	;;
+ gl-ar750)
+ 	ucidef_set_led_wlan "wlan2g" "WLAN2G" "$board:white:wlan2g" "phy1tpt"
+-	ucidef_set_led_wlan "wlan5g" "WLAN5G" "$board:white:wlan5g" "phy0tpt"
++	ucidef_set_led_timer "user" "USER" "$board:white:wlan5g" "1000" "1000"
+ 	;;
+ gl-ar750s)
+ 	ucidef_set_led_wlan "wlan2g" "WLAN2G" "$board:green:wlan2g" "phy1tpt"
+@@ -443,7 +446,7 @@ gl-mifi)
+ 	ucidef_set_led_netdev "3gnet" "3GNET" "$board:green:net" "3g-wan"
+ 	;;
+ gl-ar150)
+-	ucidef_set_led_wlan "wlan" "WLAN" "$board:orange:wlan" "phy0tpt"
++	ucidef_set_led_timer "user" "USER" "$board:orange:wlan" "1000" "1000"
+ 	ucidef_set_led_netdev "wan" "WAN" "$board:green:lan" "eth0"
+ 	ucidef_set_led_netdev "lan" "LAN" "$board:green:wan" "eth1"
+ 	;;
+@@ -661,6 +664,10 @@ rb-911-2hn|\
+ rb-911-5hn)
+ 	ucidef_set_led_netdev "eth" "ETH" "rb:green:eth" "eth0"
+ 	;;
++rb-911g-5hpnd|\
++rb-912uag-5hpnd)
++	ucidef_set_led_timer "user" "USER" "rb:green:user" "1000" "1000"
++	;;
+ rb-931-2nd|\
+ rb-941-2nd)
+ 	ucidef_set_led_timer "user" "USR/ACT" "rb:green:user" "1000" "1000"

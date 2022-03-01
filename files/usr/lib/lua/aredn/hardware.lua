@@ -159,25 +159,6 @@ function hardware.get_link_led()
                     return "/sys/class/leds/" .. led.user.sysfs
                 end
             end
-            -- Exceptions -
-            -- This is here to handle poor board definitions. We can remove these when board definitions are updated
-            local board_type = aredn.hardware.get_type()
-            if board_type == "airrouter" then
-                return "/sys/class/leds/ubnt:green:globe"
-            elseif board_type == "gl-ar150" then
-                return "/sys/class/leds/gl-ar150:orange:wlan"
-            elseif board_type == "gl-ar300m" then
-                return "/sys/class/leds/gl-ar300m:green:wlan"
-            elseif board_type == "gl-usb150" then
-                return "/sys/class/leds/gl-usb150:green:wlan"
-            elseif board_type == "gl-ar750" then
-                return "/sys/class/leds/gl-ar750:white:wlan5g"
-            elseif board_type == "rb-912uag-5hpnd" or board_type == "rb-911g-5hpnd" then
-                return "/sys/class/leds/rb:green:led1"
-            elseif board_type == "rb-lhg-5nd" or "rb-lhg-5hpnd" or "rb-lhg-5hpnd-xl" or "rb-ldf-5nd" then
-                return "/sys/class/leds/rb:green:rssi0"
-            end
-            --
             return nil
         end,
         function()
