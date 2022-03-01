@@ -559,8 +559,8 @@ do
         local found = false
         for k, v in pairs(parms)
         do
-            if not k:match("dhcp%d+_mac") then
-                if v == parms["leases" .. n .. "_mac"] then
+            if k:match("dhcp%d+_mac") then
+                if v == parms["lease" .. n .. "_mac"] then
                     found = true
                     break
                 end
@@ -568,7 +568,7 @@ do
         end
         if not found then
             dhcp_num = dhcp_num + 1
-            local prefix1 = "leases" .. n .. "_"
+            local prefix1 = "lease" .. n .. "_"
             local prefix2 = "dhcp" .. dhcp_num .. "_"
             local host = parms[prefix1 .. "host"]
             local ip = parms[prefix1 .. "ip"]
@@ -578,7 +578,7 @@ do
             parms[prefix2 .. "host"] = host
             parms[prefix2 .. "ip"] = ip
             parms[prefix2 .. "mac"] = mac
-            parms[prefix2 .. "noprop"] = noprop
+            parms[prefix2 .. "noprop"] = noprop and noprop or "0"
             local lhost = host:lower()
             if lhost == node:lower() or lhost == tactical:lower() then
                 dhcperr(dhcp_num .. " hostname '" .. host .. "' is already in use")
