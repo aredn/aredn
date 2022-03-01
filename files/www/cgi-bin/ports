@@ -718,8 +718,7 @@ hosts[node] = true
 usedports[""] = true
 local servicenames = {}
 
-local vars = { "name", "proto", "host", "port", "suffix" }
-local vars2 = { "name", "link", "proto", "host", "port", "suffix" }
+local vars = { "name", "link", "proto", "host", "port", "suffix" }
 local f = io.open(tmpdir .. "/services", "w")
 if f then
     for _, val in ipairs(list)
@@ -739,6 +738,10 @@ if f then
                 _G[var] = v
             end
 
+            if link == "" then
+                link = "0"
+            end
+
             if dmz_mode == 0 then
                 host = node
             end
@@ -746,11 +749,6 @@ if f then
             -- remove services that have had their host or port deleted
             if val ~= "_add" and not (dmz_mode == 0 and true or hosts[host]) then
                 break
-            end
-
-            local link = parms["serv" .. val .. "_link"]
-            if not link then
-                link = "0"
             end
 
             if val == "_add" then
@@ -776,11 +774,14 @@ if f then
                 serverr(val .. " the name '" .. name .. "' is already in use")
             end
 
-            if link then
-                parms["serv" .. val .. "_proto"] = (proto and proto or "http")
+            if link == "1" then
+                if proto == "" then
+                    proto = "http"
+                end
+                parms["serv" .. val .. "_proto"] = proto
                 if not validate_service_protocol(proto) then
                     serverr(val .. " '" .. proto .. "' is not a valid protocol")
-                elseif proto == "" then
+                elseif port == "" then
                     serverr(val .. " a port number is required")
                 elseif not validate_port(port) then
                     serverr(val .. " '" .. port .. "' is not a valid port")
@@ -803,7 +804,7 @@ if f then
 
             f:write(name .. "|" .. link .. "|" .. proto .. "|" .. host .. "|" .. port .. "|" .. suffix .. "\n")
 
-            for _, var in ipairs(vars2)
+            for _, var in ipairs(vars)
             do
                 parms["serv" .. serv_num .. "_" .. var] = _G[var]
             end
@@ -1147,7 +1148,7 @@ function print_services()
         if val ~= "_add" then
             html.print(" onChange='form.submit()'")
         end
-        if _link ~= "0" then
+        if _link == "1" then
             html.print(" checked")
         end
         html.print(" title='create a clickable link for this service'>")
