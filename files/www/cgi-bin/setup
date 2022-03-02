@@ -220,8 +220,8 @@ end
 local tz_db_names = {}
 for line in io.lines("/etc/zoneinfo")
 do
-    local name, _ = line:match("^(.*)\t")
-    tz_db_names[#tz_db_names + 1] = { tz = name, name = name }
+    local name, tz = line:match("^(.*)\t(.*)")
+    tz_db_names[#tz_db_names + 1] = { name = name, tz = tz }
 end
 
 -- online ping
@@ -505,8 +505,8 @@ end
 if parms.button_save then
     for _,zone in ipairs(tz_db_names)
     do
-        if zone.tz == time_zone_name then
-            parms.time_zone = zone.name
+        if zone.name == time_zone_name then
+            parms.time_zone = zone.tz
             break
         end
     end
@@ -1305,7 +1305,7 @@ html.print("</td><tr><td align=left>Longitude</td><td><input type=text name=long
 html.print("<tr><td>Timezone</td><td><select name=time_zone_name tabindex=10>")
 for _,zone in ipairs(tz_db_names)
 do
-    html.print("<option value='" .. zone.tz .. "'".. (zone.tz == time_zone_name and " selected" or "") .. ">" .. zone.name .. "</option>")
+    html.print("<option value='" .. zone.name .. "'".. (zone.name == time_zone_name and " selected" or "") .. ">" .. zone.name .. "</option>")
 end
 html.print("</select></td><td align=left>NTP Server</td><td><input type=text name=ntp_server size=20 value='" .. ntp_server .. "'></td></table></td></tr></table>")
 
