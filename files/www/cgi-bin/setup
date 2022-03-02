@@ -574,7 +574,7 @@ if parms.button_save then
     if wan_proto == "static" then
         if not validate_netmask(wan_mask) then
             err("invalid WAN netmask")
-        elseif validate_ip_netmask(wan_ip, wan_mask) then
+        elseif not validate_ip_netmask(wan_ip, wan_mask) then
             err("invalid WAN IP address")
         elseif not (validate_ip_netmask(wan_gw, wan_mask) and validate_same_subnet(wan_ip, wan_gw, wan_mask)) then
             err("invalid WAN gateway")
