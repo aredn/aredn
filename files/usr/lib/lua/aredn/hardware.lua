@@ -144,7 +144,7 @@ function hardware.get_iface_name(name)
         return "eth0.2"
     end
     -- Maybe the board knows
-    return hardware.get_board().network[name].ifname
+    return hardware.get_board().network[name].ifname:match("^(%S+)")
 end
 
 function hardware.get_link_led()
