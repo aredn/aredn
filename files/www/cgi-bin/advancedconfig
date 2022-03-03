@@ -248,7 +248,13 @@ end
 local cursora = uci:cursor()
 local cursorb = uci:cursor("/etc/config.mesh")
 function cursor_set(a, b, c, d)
+    if not cursora:get(a, b) and b:match("@(.+)%[0%]") then
+        cursora:add(a, b:match("@(.+)%[0%]"))
+    end
     cursora:set(a, b, c, d)
+    if not cursorb:get(a, b) and b:match("@(.+)%[0%]") then
+        cursorb:add(a, b:match("@(.+)%[0%]"))
+    end
     cursorb:set(a, b, c, d)
     cursora:commit(a)
     cursorb:commit(a)
@@ -375,9 +381,11 @@ function alert_purge()
 end
 
 function writePackageRepo(repo)
-    local uciurl = cursor_get("aredn", "@downloads[0]", "pkgs_" .. repo):chomp()
-    local disturl = capture("grep aredn_" .. repo .. " /etc/opkg/distfeeds.conf | cut -d' ' -f3"):chomp()
-    os.execute("sed -i 's|" .. disturl .. "|" .. uciurl .. "|g' /etc/opkg/distfeeds.conf")
+    local uciurl = cursor_get("aredn", "@downloads[0]", "pkgs_" .. repo)
+    local disturl = capture("grep aredn_" .. repo .. " /etc/opkg/distfeeds.conf | cut -d' ' -f3")
+    if uciurl and disturl ~= "" then
+        os.execute("sed -i 's|" .. disturl:chomp() .. "|" .. uciurl:chomp() .. "|g' /etc/opkg/distfeeds.conf")
+    end
 end
 
 function restrictTunnelLimitToValidRange()
@@ -409,11 +417,11 @@ end
 function adjustTunnelInterfaceCount()
     local tunnel_if_count = 0
     cursora:foreach('network_tun', 'interface', function(s) tunnel_if_count = tunnel_if_count + 1 end)
-    local maxclients = cursor_get("aredn", "tunnel", "maxclients")
+    local maxclients = cursor_get("aredn", "@tunnel[0]", "maxclients")
     if not maxclients then
         maxclients = 10
     end
-    local maxservers = cursor_get("aredn", "tunnel", "maxservers")
+    local maxservers = cursor_get("aredn", "@tunnel[0]", "maxservers")
     if not maxservers then
         maxservers = 10
     end
@@ -615,9 +623,7 @@ do
     if not setting.condition or loadstring("return " .. setting.condition)() then
         local a, b, c = setting.key:match("(.+)%.(.+)%.(.*)")
         local sval = cursor_get(a, b, c)
-        if not sval then
-            sval = ""
-        end
+        sval = sval and tostring(sval) or ""
         html.print([[<tr><td align="center"><span title="]] .. setting.desc .. [["><img src="/qmark.png" /></span></td><td>]] .. setting.key .. [[</td><td>]])
         if setting.type == "string" then
             html.print("<input type='text' id='field_" .. i .. "' name='newval_" .. i .. "' size='65' value='" .. sval .. "'>")
