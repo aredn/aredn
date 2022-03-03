@@ -298,11 +298,13 @@ if h and e then
         for line in io.lines(dhcpfile)
         do
             if not (line:match("^%s*#") or line:match("^%s*$")) then
-                local mac, ip, host, noprop = line:match("(.*)%s+(.*)%s+(.*)%s+(.*)")
-                ip = decimal_to_ip(netaddr + ip)
-                if validate_same_subnet(ip, cfg.lan_ip, cfg.lan_mask) and validate_ip_netmask(ip, cfg.lan_mask) then
-                    h:write(ip .. "\t" .. host .. " " .. noprop .. "\n")
-                    e:write(mac .. "\t" .. ip .. " " .. noprop .. "\n")
+                local mac, ip, host, noprop = line:match("(%S+)%s+(%S+)%s+(%S+)%s*(%S*)")
+                if mac and ip and host and noprop then
+                    ip = decimal_to_ip(netaddr + ip)
+                    if validate_same_subnet(ip, cfg.lan_ip, cfg.lan_mask) and validate_ip_netmask(ip, cfg.lan_mask) then
+                        h:write(ip .. "\t" .. host .. " " .. noprop .. "\n")
+                        e:write(mac .. "\t" .. ip .. " " .. noprop .. "\n")
+                    end
                 end
             end
         end
@@ -316,7 +318,7 @@ if h and e then
         for line in f:lines()
         do
             if not (line:match("^%s*#") or line:match("^%s*$")) then
-                local ip, host = line:match("(.*)%s+(.*)")
+                local ip, host = line:match("(%S+)%s+(%S+)")
                 if ip then
                     h:write(ip .. "\t" .. host .. " #ALIAS\n")
                 end
