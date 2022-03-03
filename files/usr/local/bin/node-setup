@@ -450,9 +450,9 @@ if sf then
         if is_null(cfg.wifi_txpower) or tonumber(cfg.wifi_txpower) > aredn.hardware.wifi_maxpower(cfg.wifi_channel) then
             cfg.wifi_txpower = aredn.hardware.wifi_maxpower(cfg.wifi_channel)
         elseif tonumber(cfg.wifi_txpower) < 1 then
-            cgs.wifi_txpower = 1
+            cfg.wifi_txpower = 1
         end
-        if cfg.wifi_enable == 1 then
+        if cfg.wifi_enable == "1" then
             sf:write("/usr/sbin/iw dev " .. cfg.wifi_intf .. " set txpower fixed " .. cfg.wifi_txpower .. "00\n")
         end
         if not is_null(cfg.aprs_lat) and not is_null(cfg.aprs_lon) then
