@@ -671,7 +671,7 @@ if parms.button_save then
         parms.node = node
         parms.tactical = tactical
         if nixio.fs.stat("/etc/config/unconfigured") then
-            os.remove("/etc/config/unconfigured")
+            io.open("/tmp/unconfigured", "w"):close()
         end
         local function s2h(str)
             local h = ""
