@@ -245,8 +245,8 @@ function msg(m)
 end
 
 -- uci cursor
-local cursora = uci:cursor()
-local cursorb = uci:cursor("/etc/config.mesh")
+local cursora = uci.cursor()
+local cursorb = uci.cursor("/etc/config.mesh")
 function cursor_set(a, b, c, d)
     if not cursora:get(a, b) and b:match("@(.+)%[0%]") then
         cursora:add(a, b:match("@(.+)%[0%]"))
