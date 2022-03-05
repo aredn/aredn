@@ -66,7 +66,7 @@ for i = 4,7
 do
     rf_channel_map["900"][i - 3] = { label = i .. " (" .. (887 + i * 5) .. ")", number = i, frequency = 887 + i * 5 }
 end
-for i = -2,11
+for i = -4,11
 do
     rf_channel_map["2400"][i + (i <= 0 and 3 or 2)] = { label = i .. " (" .. (2407 + i * 5) .. ")", number = i, frequency = 2407 + i * 5 }
 end
@@ -1030,7 +1030,7 @@ if wifi_enable == "1" then
     do
         html.print("<option value='" .. chan.number .. "' ".. (chan.number == tonumber(wifi_channel) and " selected" or "") .. ">" .. chan.label .. "</option>")
     end
-    html.print("</select></td></tr>")
+    html.print("</select>&nbsp;&nbsp;<a href=\"/help.html#channel\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
 
     html.print("<tr><td>Channel Width</td><td><select name=wifi_chanbw>")
     html.print("<option value='20'".. (wifi_chanbw == "20" and " selected" or "") .. ">20 MHz</option>")
