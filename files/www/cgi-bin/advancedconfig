@@ -163,7 +163,7 @@ local settings = {
     {
         key = "aredn.@poe[0].passthrough",
         type = "boolean",
-        desc = "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports.",
+        desc = "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports).",
         default = "0",
         condition = "hasPOE()",
         postcallback = "setPOEOutput()"
@@ -171,7 +171,7 @@ local settings = {
     {
         key = "aredn.@usb[0].passthrough",
         type = "boolean",
-        desc = "Specifies whether the USB port should be on or off.  (Not all devices have USB powered ports.",
+        desc = "Specifies whether the USB port should be on or off.  (Not all devices have USB powered ports).",
         default = "1",
         postcallback = "setUSBOutput()",
         condition = "hasUSB()"
@@ -472,7 +472,11 @@ for i, setting in ipairs(settings)
 do
     if parms["button_save_" .. i] then
         newval = parms["newval_" .. i]
-        newval = newval:gsub("^%s+", ""):gsub("%s+$", "")
+        if not newval then
+            newval = ""
+        else
+            newval = newval:gsub("^%s+", ""):gsub("%s+$", "")
+        end
         if setting.type == "boolean" then
             if newval == "1" or newval == "true" then
                 newval = "1"
