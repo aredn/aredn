@@ -615,7 +615,7 @@ if parms.button_save then
         tactical = ""
         if node == "" then
             err("you must set the node name")
-        end 
+        end
     end
     if node ~= "" and node:match("[^%w-]") or node:match("_") then
         err("invalid node name")
@@ -703,7 +703,7 @@ if parms.button_save then
         aredn_info.set_nvram("node", parms.node);
         aredn_info.set_nvram("tactical", parms.tactical)
         aredn_info.set_nvram("config", parms.config)
-        
+
         if not nixio.fs.stat("/tmp/web/save") then
             nixio.fs.mkdir("/tmp/web/save")
         end
@@ -718,7 +718,7 @@ if parms.button_save then
                 local f = io.popen("{ echo '" .. pw .. "'; sleep 1; echo '" .. pw .. "'; } | passwd")
                 f:read("*a")
                 f:close()
-            end 
+            end
             io.open("/tmp/reboot-required", "w"):close()
         end
         if nixio.fs.stat("/tmp/unconfigured") and #errors == 0 then
@@ -766,7 +766,7 @@ function loadCSS(url, callback) {
    stylesheet.onload = callback;
 
    head.appendChild(stylesheet);
-}  
+}
 
 function loadScript(url, callback) {
    var head = document.getElementsByTagName('head')[0];
@@ -967,7 +967,7 @@ if #errors == 0 and nixio.fs.stat("/tmp/reboot-required") then
     html.print("<tr><td align=center><h3>Reboot is required for changes to take effect</h3></td></tr>")
 end
 
--- note name and type, password
+-- node name and type, password
 
 html.print([[
 <tr><td align=center>
@@ -1045,7 +1045,7 @@ if wifi_enable == "1" then
     local txpoweroffset = wifi_txpoweroffset(wifiintf)
     for i = aredn.hardware.wifi_maxpower(wifi_channel),1,-1
     do
-        html.print("<option value='" .. i .. "'".. (i == tonumber(wifi_txpower) and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>") 
+        html.print("<option value='" .. i .. "'".. (i == tonumber(wifi_txpower) and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>")
     end
     html.print("</select>&nbsp;&nbsp;<a href=\"/help.html#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
     html.print("<tr id='dist' class='dist-norm'><td>Distance to<br/>FARTHEST Neighbor<br/><h3>'0' is auto</h3></td>")
@@ -1233,11 +1233,11 @@ html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan
 
 html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>Advanced WAN Access</th></tr>")
 if wan_proto ~= "disabled" then
-    html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "0" and " checked" or "") .. "></td></tr>")
+    html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wansettings\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
 else
     hidden[#hidden + 1] = "<input type=hidden name=olsrd_gw value='0'>"
 end
-html.print("<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td><td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'" .. (lan_dhcp_noroute ~= "0" and " checked" or "") .. "></td></tr>")
+html.print("<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td><td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'" .. (lan_dhcp_noroute ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wansettings\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
 
 -- wan wifi client
 if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1") and not M390model then
@@ -1266,7 +1266,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
         end
     end
 
-    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>WAN Wifi Client</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. "></td></tr>")
+    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>WAN Wifi Client</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wanclient\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
 
     if wifi_enable ~= "1" and wifi2_enable ~= "1" and phycount > 1 then
         html.print("<tr><td>WAN Wifi Client band</td><td><select name=wifi3_hwmode>")
