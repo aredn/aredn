@@ -68,7 +68,7 @@ function defaultPackageRepos(repo)
             urlprefix = urlprefix .. "/releases/" .. a .. "/" .. b .. "/" .. release
         else
             -- nightly
-            urlprefix = urlprefix .. "/snapshots/trunk"
+            urlprefix = urlprefix .. "/snapshots"
         end
     end
     if repo:match("aredn_core") then
@@ -159,7 +159,7 @@ local settings = {
         default = defaultPackageRepos('freifunk'),
         postcallback = "writePackageRepo('freifunk')"
     },
-        
+
     {
         key = "aredn.@poe[0].passthrough",
         type = "boolean",
@@ -177,19 +177,19 @@ local settings = {
         condition = "hasUSB()"
     },
     {
-        key = "aredn.@tunnel[0].maxclients", 
-        type = "string", 
-        desc = "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].  (Only applies if tunnel software is installed)", 
-        default = "10", 
+        key = "aredn.@tunnel[0].maxclients",
+        type = "string",
+        desc = "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].  (Only applies if tunnel software is installed)",
+        default = "10",
         condition = "hasTunnelSoftware()",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
     },
     {
-        key = "aredn.@tunnel[0].maxservers", 
-        type = "string", 
-        desc = "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].  (Only applies if tunnel software is installed)", 
-        default = "10", 
+        key = "aredn.@tunnel[0].maxservers",
+        type = "string",
+        desc = "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].  (Only applies if tunnel software is installed)",
+        default = "10",
         condition = "hasTunnelSoftware()",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
@@ -440,7 +440,7 @@ function adjustTunnelInterfaceCount()
             deleteTunnelInterface("network", tunnum)
         end
         -- can't clone network because it contains macros; re-edit it instead
-        os.execute("sed -i -e '$r /etc/config.mesh/network_tun' -e '/interface.*tun',$d' /etc/config.mesh/network") 
+        os.execute("sed -i -e '$r /etc/config.mesh/network_tun' -e '/interface.*tun',$d' /etc/config.mesh/network")
     end
 end
 
