@@ -68,7 +68,7 @@ if f then
                 freq = 0,
                 key = ""
             }
-            scanned[m] = scan
+            scanned[#scanned + 1] = scan
             if line:match("joined") then
                 scan.mode = "My Ad-Hoc Network"
             end
@@ -93,9 +93,6 @@ if f then
             scan.mode = "Foreign Ad-Hoc Network"
         end
     end
-    if scan then
-        scanned[#scanned + 1] = scan
-    end
     f:close()
 end
 local f = io.popen("iw dev " .. wifiiface .. " station dump")
@@ -107,23 +104,15 @@ if f then
     do
         local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")
         if m then
-            scan = scanned[m]
-            if not scan then
-                scan = {
-                    mac = m,
-                    mode = "Connected Ad-Hoc Station",
-                    ssid = myssid,
-                    signal = 0,
-                    freq = myfreq,
-                    key = ""
-                }
-                scanned[m] = scan
-            else
-                scan.mode = "Connected Ad-Hoc Station"
-                scan.ssid = myssid
-                scan.key = ""
-                scan.freq = myfreq
-            end
+            scan = {
+                mac = m,
+                mode = "Connected Ad-Hoc Station",
+                ssid = myssid,
+                signal = 0,
+                freq = myfreq,
+                key = ""
+            }
+            scanned[#scanned + 1] = scan
         end
         m = line:match("signal avg:%s+([%d-]+)")
         if m then
@@ -202,7 +191,7 @@ arptable(function(a)
 end)
 
 local scanlist = {}
-for _, v in pairs(scanned)
+for _, v in ipairs(scanned)
 do
     if v.signal ~= 0 then
         scanlist[#scanlist + 1] = v
