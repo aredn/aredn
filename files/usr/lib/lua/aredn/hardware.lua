@@ -170,7 +170,6 @@ end
 
 function hardware.get_bridge_iface_names(name)
     local cursor = uci.cursor()
-    local btype = cursor:get("network", name, "type")
     local intfnames = cursor:get("network", name, "ifname")
     if intfnames then
         return intfnames
