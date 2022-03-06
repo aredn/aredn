@@ -91,7 +91,7 @@ local deleteme = {}
 local cfg = {
     lan_intf = lanintf,
     wan_intf = "dummy",
-    dtdlink_intf = aredn.hardware.get_iface_name('dtdlink')
+    dtdlink_intf = aredn.hardware.get_bridge_iface_names('dtdlink')
 }
 
 if not auto then
@@ -114,7 +114,7 @@ end
 if cfg.wifi_enable == "1" then
     cfg.wifi_intf = aredn.hardware.get_board().network.wifi.ifname:match("^(%S+)")
 else
-    cfg.wifi_intf = cfg.dtdlink_intf:match("([%w]*)") .. ".3975"
+    cfg.wifi_intf = lanintf:match("^([^%.%s]+).*$") .. ".3975"
 end
 
 -- delete some config lines if necessary

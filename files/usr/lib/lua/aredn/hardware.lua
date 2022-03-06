@@ -149,7 +149,7 @@ function hardware.get_iface_name(name)
     end
     local intfname = cursor:get("network", name, "ifname")
     if intfname then
-        return intfname
+        return intfname:match("^(%S+)")
     end
     -- Now we guess
     if name == "lan" then
@@ -166,6 +166,30 @@ function hardware.get_iface_name(name)
     end
     -- Maybe the board knows
     return hardware.get_board().network[name].ifname:match("^(%S+)")
+end
+
+function hardware.get_bridge_iface_names(name)
+    local cursor = uci.cursor()
+    local btype = cursor:get("network", name, "type")
+    local intfnames = cursor:get("network", name, "ifname")
+    if intfnames then
+        return intfnames
+    end
+    -- Now we guess
+    if name == "lan" then
+        return "eth0"
+    end
+    if name == "wan" then
+        return "eth0.1"
+    end
+    if name == "wifi" then
+        return "wlan0"
+    end
+    if name == "dtdlink" then
+        return "eth0.2"
+    end
+    -- Maybe the board knows
+    return hardware.get_board().network[name].ifname
 end
 
 function hardware.get_link_led()
@@ -256,7 +280,7 @@ end
 function hardware.get_interface_mac(intf)
     local mac = ""
     if intf then
-        local f = io.popen("ifconfig " .. intf)
+        local f = io.popen("ifconfig " .. intf .. " 2>/dev/null")
         for line in f:lines()
         do
             local m = line:match("HWaddr ([%w:]+)")
