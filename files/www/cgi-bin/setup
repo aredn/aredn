@@ -133,14 +133,6 @@ function rf_channels_list(wifiintf)
     return channels
 end
 
-function wifi_txpoweroffset(wifiintf)
-    local doesiwoffset = capture_and_match("iwinfo " .. wifiintf .. " info", "TX power offset: (%d+)")
-    if doesiwoffset then
-        return tonumber(doesiwoffset)
-    end
-    return 0
-end
-
 function reboot()
     local node = aredn_info.get_nvram("node")
     if node == "" then
@@ -1042,7 +1034,7 @@ if wifi_enable == "1" then
 
     html.print("<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>")
     html.print("<tr><td><nobr>Tx Power</nobr></td><td><select name=wifi_txpower>")
-    local txpoweroffset = wifi_txpoweroffset(wifiintf)
+    local txpoweroffset = aredn.hardware.wifi_poweroffset(wifiintf)
     for i = aredn.hardware.wifi_maxpower(wifi_channel),1,-1
     do
         html.print("<option value='" .. i .. "'".. (i == tonumber(wifi_txpower) and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>") 

@@ -84,6 +84,27 @@ function hardware.wifi_maxpower(channel)
     return 27 -- if all else fails
 end
 
+function hardware.wifi_poweroffset(wifiintf)
+    local doesiwoffset = nil
+    local f = io.popen("iwinfo " .. wifiintf .. " info")
+    if f then
+        for line in f:lines()
+        do
+            doesiwoffset = tonumber(line:match("TX power offset: (%d+)"))
+            if doesiwoffset then
+                f:close()
+                return doesiwoffset
+            end
+        end
+        f:close()
+    end
+    local radio = hardware.get_radio()
+    if radio and tonumber(radio.pwroffset) then
+         return tonumber(radio.pwroffset)
+    end
+    return 0 -- if all else fails
+end
+
 function hardware.get_board_id()
     local name = ""
     if hardware.get_board().model.name:match("^(%S*)") == "Ubiquiti" then
