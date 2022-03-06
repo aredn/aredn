@@ -452,6 +452,9 @@ end
 
 function mac_to_ip(mac, shift)
     local a, b, c = mac:match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
+	if not a then
+		return "0.0.0"
+	end
     return string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
 end
 
