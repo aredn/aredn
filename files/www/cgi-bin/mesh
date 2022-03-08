@@ -231,7 +231,7 @@ do
             do
                 local gi, rate, ewma = line:match("^[^,]*,([^,]*),[^,]*,A[^,]*,([^,%s]*)%s*,[^,]*,[^,]*,[^,]*,[^,]*,([^,]*),")
                 ewma = tonumber(ewma)
-                if gi then
+                if gi and ewma then
                     -- 802.11b/n
                     if gi == "SGI" then
                         links[node.remoteIP].mbps = string.format("%.1f", rateS[rate] * ewma / 100 / chanbw)
