@@ -106,7 +106,7 @@ function get_active_tun()
     if f then
         for line in f:lines()
         do
-            local m = line:match(".*:.*-(172-31-.*)%stun%stun.*")
+            local m = line:match(".*:.*-(172%-31%-.*)%stun%stun.*")
             if m then
                 tuns[#tuns + 1] = m:gsub("-", ".")
             end
