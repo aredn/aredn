@@ -396,8 +396,8 @@ do
     local net = parms[connx_ .. "netip"]
     local vtun_node_name = (node .. "-" .. net:gsub("%.", "-")):upper()
     local base = ip_to_decimal(net)
-    local clientip = decimal_to_ip(base + 2)
-    local serverip = decimal_to_ip(base + 1)
+    local clientip = decimal_to_ip(base + 1)
+    local serverip = decimal_to_ip(base + 2)
 
     if not cursor:get("vtun", conn_x) then
         cursor:set("vtun", conn_x, "server")
