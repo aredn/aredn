@@ -230,18 +230,21 @@ do
             for line in f:lines()
             do
                 local gi, rate, ewma = line:match("^[^,]*,([^,]*),[^,]*,A[^,]*,([^,%s]*)%s*,[^,]*,[^,]*,[^,]*,[^,]*,([^,]*),")
-                if gi then
+                ewma = tonumber(ewma)
+                if gi and ewma then
                     -- 802.11b/n
                     if gi == "SGI" then
-                        links[node.remoteIP].mbps = string.format("%.1f", rateS[rate] * tonumber(ewma) / 100 / chanbw)
+                        links[node.remoteIP].mbps = string.format("%.1f", rateS[rate] * ewma / 100 / chanbw)
                     else
-                        links[node.remoteIP].mbps = string.format("%.1f", rateL[rate] * tonumber(ewma) / 100 / chanbw)
+                        links[node.remoteIP].mbps = string.format("%.1f", rateL[rate] * ewma / 100 / chanbw)
                     end
                 else
                     rate, ewma = line:match("^A[^,]*,([^,]*),[^,]*,[^,]*,([^,]*,)")
-                    if rate then
+                    rate = tonumber(rate)
+                    ewma = tonumber(ewma)
+                    if rate and ewma then
                         -- 802.11a/b/g
-                        links[node.remoteIP].mbps = string.format("%.1f", tonumber(rate) * tonumber(ewma) / 100 / chanbw)
+                        links[node.remoteIP].mbps = string.format("%.1f", rate * ewma / 100 / chanbw)
                     end
                 end
             end
