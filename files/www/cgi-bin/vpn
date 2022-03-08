@@ -77,6 +77,10 @@ local cli_err = {}
 function err(msg)
     cli_err[#cli_err + 1] = msg
 end
+local errors = {}
+function err2(msg)
+    errors[#errors + 1] = msg
+end
 
 local hidden = {}
 function hide(inp)
@@ -451,10 +455,10 @@ if parms.button_save and #cli_err == 0 then
     cursor:commit("vtun")
     write_all("/etc/config.mesh/vtun", read_all("/etc/config/vtun"))
     if os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1") ~= 0 then
-      err("Problem restarting olsrd")
+      err2("Problem restarting olsrd")
     end
     if os.execute("/etc/init.d/vtundsrv restart > /dev/null 2>&1") ~= 0 then
-      err("Problem restaring vtundsrv")
+      err2("Problem restaring vtundsrv")
     end
 end
 
@@ -497,6 +501,11 @@ end
 if parms.button_save then
     if #cli_err > 0 then
         html.print("<tr><td align=center><b>Configuration NOT saved!</b></td></tr>")
+        for _,msg in ipairs(errors)
+        do
+            html.print(msg .. "<br>")
+        end
+	    html.print("</b></td></tr>")
     else
         html.print("<tr><td align=center><b>Configuration saved and is now active.</b></td></tr>")
     end
