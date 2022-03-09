@@ -67,7 +67,8 @@ local tasks = {
 	{ app = require("mgr.namechange") },
 	{ app = require("mgr.watchdog") },
 	{ app = require("mgr.fccid") },
-	{ app = require("mgr.snrlog") }
+	{ app = require("mgr.snrlog") },
+	{ app = require("mgr.aredn_message") }
 }
 
 local log = aredn.log.open("/tmp/manager.log", 8000)
