@@ -1,206 +1,192 @@
-#!/usr/bin/perl
-=for comment
+#!/usr/bin/lua
+--[[
 
-  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
-   See Contributors file for additional contributors
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2021 Tim Wilkinson
+	Original Perl Copyright (C) 2015 Conrad Lara
+	See Contributors file for additional contributors
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation version 3 of the License.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  Additional Terms:
+	Additional Terms:
 
-  Additional use restrictions exist on the AREDN(TM) trademark and logo.
-    See AREDNLicense.txt for more info.
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
 
-  Attributions to the AREDN Project must be retained in the source code.
-  If importing this code into a new or existing project attribution
-  to the AREDN project must be added to the source code.
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
 
-  You must not misrepresent the origin of the material contained within.
+	You must not misrepresent the origin of the material contained within.
 
-  Modified versions must be modified to attribute to the original source
-  and be marked in reasonable ways as differentiate it from the original
-  version.
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
 
-=cut
+--]]
 
-BEGIN {push @INC, '/www/cgi-bin'};
-use perlfunc;
-chomp (${wifiif}=`uci -q get 'network.wifi.ifname'`);
-$phy=get_wlan2phy("${wifiif}");
-
-
-@files = ( "/etc/config/",
-           "/etc/config.mesh/",
-           "/etc/local/",
-           "/etc/mesh-release",
-           "/tmp/etc/",
-           "/var/run/hosts_olsr",
-           "/tmp/rssi.dat",
-           "/tmp/rssi.log",
-           "/tmp/zombie.log",
-           "/tmp/olsrd.log",
-           "/tmp/manager.log",
-           "/tmp/manager.log.0",
-	   "/tmp/AutoDistReset.log",
-	   "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
-	   "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
-	   "/etc/board.json"
-            );
-
-@sensitive = ( "/etc/config/vtun",
-               "/etc/config.mesh/vtun",
-               "/etc/httpd.conf",
-             );
+require("nixio")
+require("aredn.utils")
+require("uci")
+require("iwinfo")
 
 
+local wifiif = uci.cursor():get("network", "wifi", "ifname")
+local phy = iwinfo.nl80211.phyname(wifiif)
+local mfg = capture("/usr/local/bin/get_hardware_mfg"):chomp()
 
-@cmds = ( "cat /proc/cpuinfo",
-          "cat /proc/meminfo",
-          "df -k",
-          "dmesg",
-          "ifconfig",
-          "iptables -t filter -L -v",
-          "iptables -t nat -L -v",
-          "iptables -t mangle -L -v",
-          "ip route list",
-          "ip route list table 29",
-          "ip route list table 30",
-          "ip route list table 31",
-          "ip route list table main",
-          "ip route list table default",
-          "ip rule list",
-          "iwinfo",
-          "iwinfo ${wifiif} assoclist",
-          "iw phy ${phy} info",
-          "iw dev ${wifiif} info",
-          "iw dev ${wifiif} scan",
-          "iw dev ${wifiif} station dump",
-          "logread",
-          "md5sum /www/cgi-bin/*",
-          "echo /all | nc 127.0.0.1 2006",
-          "opkg list-installed",
-          "ps -w",
-          "/usr/local/bin/get_hardwaretype",
-          "/usr/local/bin/get_boardid",
-          "/usr/local/bin/get_model",
-          "/usr/local/bin/get_hardware_mfg",
-         );
 
-@cmds_ubnt = (
-          "cat /dev/mtd0|grep 'U-Boot'|head -n1",
-         );
-
-$FREE_SPACE_TMP=get_free_space("/tmp");
-
-$mfg = `/usr/local/bin/get_hardware_mfg`;
-chomp($mfg);
-
-if ($FREE_SPACE_TMP eq "N/A" || $FREE_SPACE_TMP <= 2*1024) {
-   exit 1;
+local files = {
+    "/etc/config/",
+    "/etc/config.mesh/",
+    "/etc/local/",
+    "/etc/mesh-release",
+    "/tmp/etc/",
+    "/var/run/hosts_olsr",
+    "/tmp/rssi.dat",
+    "/tmp/rssi.log",
+    "/tmp/zombie.log",
+    "/tmp/olsrd.log",
+    "/tmp/manager.log",
+    "/tmp/manager.log.0",
+    "/tmp/AutoDistReset.log",
+    "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
+    "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
+    "/etc/board.json"
+}
+local sensitive = {
+    "/etc/config/vtun",
+    "/etc/config.mesh/vtun",
+    "/etc/httpd.conf"
+}
+local cmds = {
+    "cat /proc/cpuinfo",
+    "cat /proc/meminfo",
+    "df -k",
+    "dmesg",
+    "ifconfig",
+    "iptables -t filter -L -v",
+    "iptables -t nat -L -v",
+    "iptables -t mangle -L -v",
+    "ip route list",
+    "ip route list table 29",
+    "ip route list table 30",
+    "ip route list table 31",
+    "ip route list table main",
+    "ip route list table default",
+    "ip rule list",
+    "iwinfo",
+    "iwinfo " .. wifiif .. " assoclist",
+    "iw phy " .. phy .. " info",
+    "iw dev " .. wifiif .. " info",
+    "iw dev " .. wifiif .. " scan",
+    "iw dev " .. wifiif .. " station dump",
+    "logread",
+    "md5sum /www/cgi-bin/*",
+    "echo /all | nc 127.0.0.1 2006",
+    "opkg list-installed",
+    "ps -w",
+    "/usr/local/bin/get_hardwaretype",
+    "/usr/local/bin/get_boardid",
+    "/usr/local/bin/get_model",
+    "/usr/local/bin/get_hardware_mfg",
+}
+local cmds_ubnt = {
+    "cat /dev/mtd0|grep 'U-Boot'|head -n1"
 }
 
-system ("rm", "-r", "-f", "/tmp/sd");
+-- need space for this
+local vfs = nixio.fs.statvfs("/tmp")
+local fspace = vfs.bfree * vfs.bsize / 1024
+if fspace < 2048 then
+    os.exit(1)
+end
 
-foreach $path (@files) { 
+remove_all("/tmp/sd")
 
-  next if (! -e $path and ! -d $path);
+for _, path in ipairs(files)
+do
+    if nixio.fs.stat(path) then
+        local m = path:match("^/(.*/).*/$")
+        if m then
+            os.execute("mkdir -p /tmp/sd/" .. m);
+            os.execute("cp -r -p " .. path .. " /tmp/sd/" .. m)
+        else
+            m = path:match("^/(.*/).*")
+            os.execute("mkdir -p /tmp/sd/" .. m);
+            os.execute("cp -r -p " .. path .. " /tmp/sd/" .. m)
+        end
+    end
+end
 
-  if ( $path =~ /^\/(.*\/).*\/$/ ) {
-    my $rpath = $1;
-    system("mkdir", "-p", "/tmp/sd/$rpath");
-    system("cp","-r","-p","$path","/tmp/sd/$rpath");
-  } else {
-    $path =~ /^(.*\/).*/;
-    my $sourcepath = $1;
-    system("mkdir", "-p", "/tmp/sd/$sourcepath");
-    system("cp","-r","-p","$path","/tmp/sd/$path");
-  }
+-- remove sensitive files
+for _, path in ipairs(sensitive)
+do
+    local m = path:match("^/(.*)")
+    if m then
+        remove_all("/tmp/sd/" .. m)
+    end
+end
 
-}
+-- remove passwords from config file
+os.execute("sed -i -e 's/ key.*$/ key ******/' /tmp/sd/etc/config/wireless")
+os.execute("sed -i -e 's/_key =.*$/_key =/' /tmp/sd/etc/config.mesh/_setup")
 
-#Remove sensitive files
-foreach $path (@sensitive) {
-  if ( $path =~ /^\/(.*)/ ) {
-    my $sourcepath = $1;
-    system("rm", "-r", "-f", "/tmp/sd/$sourcepath");
-  }
-}
+local f = io.open("/tmp/sd/data.txt", "w")
+if f then
+    for _, cmd in ipairs(cmds)
+    do
+        local p = io.popen(cmd)
+        if p then
+            f:write("========== " .. cmd .. " ==========\n")
+            f:write(p:read("*a"))
+            p:close()
+        end
+    end
 
-#Remove passwords from config files
-system ("cat /tmp/sd/etc/config/wireless | sed -e 's/ key.*\$/ key \*\*\*\*\*\*/' > /tmp/sd/etc/config/wireless.sav");
-unlink "rm /tmp/sd/etc/config/wireless";
-rename "/tmp/sd/etc/config/wireless.sav", "/tmp/sd/etc/config/wireless";
-system ("cat /tmp/sd/etc/config.mesh/_setup | sed -e 's/_key =.*\$/_key =/' > /tmp/sd/etc/config.mesh/_setup.sav");
-unlink "/tmp/sd/etc/config.mesh/_setup";
-rename "/tmp/sd/etc/config.mesh/_setup.sav", "/tmp/sd/etc/config.mesh/_setup";
+    if mfg == "Ubiquiti" then
+        for _, cmd in ipairs(cmds_ubnt)
+        do
+            local p = io.popen(cmd)
+            if p then
+                f:write("========== " .. cmd .. " (UBNT only) ==========\n")
+                f:write(p:read("*a"))
+                p:close()
+            end
+        end
+    end
 
+    f:close()
+end
 
-system("touch","/tmp/sd/data.txt");
-open (my $CMDS_OUT, '>', '/tmp/sd/data.txt') or die "Could not open dump file";
-foreach $cmd (@cmds) {
-  print $CMDS_OUT "========== $cmd ==========\n";
-  open(my $CMD_PIPE, "-|", $cmd ) or next;
-  while (<$CMD_PIPE>) {
-        print { $CMDS_OUT } $_;
-  } 
-}
+os.execute("tar -zcf /tmp/supportdata.tgz -C /tmp/sd ./")
+-- cleaup the temp files
+remove_all("/tmp/sd")
 
-if ( $mfg eq "Ubiquiti" ) {
-  foreach $cmd (@cmds_ubnt) {
-    print $CMDS_OUT "========== $cmd (UBNT only) ==========\n";
-    open(my $CMD_PIPE, "-|", $cmd ) or next;
-    while (<$CMD_PIPE>) {
-          print { $CMDS_OUT } $_;
-    }
-  }
-}
+local nodename = capture("uname -n"):chomp()
+local tstamp = capture("date +%Y%m%d%H%M"):chomp()
 
-close ($CMDS_OUT);
-
-system("tar", "-zcf", "/tmp/supportdata.tgz", "-C", "/tmp/sd", "./");
-
-# Cleanup the temp files
-system ("rm", "-r", "-f", "/tmp/sd");
-
-$nodename=`uname -n`;
-chomp($nodename);
-$tstamp=`date +%Y%m%d%H%M`;
-chomp($tstamp);
-
-open(my $SDFH, '<', "/tmp/supportdata.tgz") or exit(1);
-binmode $SDFH;
-
-if (exists $ENV{GATEWAY_INTERFACE}) {
-  print "Content-type: application/x-gzip\r\n";
-  print "Content-Disposition: attachment; filename=supportdata-$nodename-$tstamp.tgz\r\n";
-  print "\r\n";
-
-  print while <$SDFH>;
-  undef ($SDFH);
-
-  unlink("/tmp/supportdata.tgz");
-
-} else {
-  undef ($SDFH);
-  unlink ("/tmp/supportdata-$nodename-$tstamp.tgz"); # Shouldn't exist but lets be sure
-  system ("mv", "/tmp/supportdata.tgz", "/tmp/supportdata-$nodename-$tstamp.tgz");
-  if ($? != 0) {
-    print "Failed to rename the support data file.\n It may be present at /tmp/supportdata.tgz\n";
-    exit(1);
-  } else {
-    print "File created: /tmp/supportdata-$nodename-$tstamp.tgz\n";
-    print "Please copy this file and remove from the node\n";
-    print "to free up resources.\n"
-  }
-}
+if os.getenv("GATEWAY_INTERFACE") ~= "" then
+    local fn = "supportdata-" .. nodename .. "-" .. tstamp .. ".tgz"
+    print("Content-type: application/x-gzip\r")
+    print("Content-Disposition: attachment; filename=" .. fn .. "\r")
+    print("\r")
+    io.write(read_all("/tmp/supportdata.tgz"))
+else
+    local fn = "/tmp/supportdata-" .. nodename .. "-" .. tstamp .. ".tgz"
+    nixio.fs.remove(fn)
+    nixio.fs.rename("/tmp/supportdata.tgz", fn)
+    print("File created: " .. fn)
+    print("Please copy this file and remove from the node")
+    print("to free up resources.")
+end
