@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Alphabetical except where noted below
-# log needs to start before cron (and maybe others) to be detected for logging.
-serviceslist="log cron dropbear snmpd vtund vtundsrv xinetd"
+# log needs to start first to be detected for logging.
+serviceslist="log dropbear snmpd vtund vtundsrv xinetd"
 
 start_upgrade_mode() {
 
@@ -17,9 +17,6 @@ start_upgrade_mode() {
     do
         "/etc/init.d/${name}" stop
     done
-
-    # Switch to a limited crontab list
-    /usr/sbin/crond -b -c /etc/crontabs.upgrademode -l 5
 
     # Some services need to kill the last remaining processes
     killall -9 dropbear
@@ -38,7 +35,6 @@ remove_opkg_lists() {
 
 return_to_operating_mode() {
 
-    killall -9 crond
 
     # If anything goes wrong after this point return the error code to the calling process
     # as we could be in an unstable state.
