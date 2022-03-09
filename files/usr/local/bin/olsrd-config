@@ -1,163 +1,201 @@
-#!/usr/bin/perl -w -I/www/cgi-bin
-=for comment
+#! /usr/bin/lua
+--[[
 
-  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
-   See Contributors file for additional contributors
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2021 Tim Wilkinson
+	Original Perl Copyright (C) 2015 Conrad Lara
+	See Contributors file for additional contributors
 
-  Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation version 3 of the License.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	Additional Terms:
 
-  Additional Terms:
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
 
-  Additional use restrictions exist on the AREDN(TM) trademark and logo.
-    See AREDNLicense.txt for more info.
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
 
-  Attributions to the AREDN Project must be retained in the source code.
-  If importing this code into a new or existing project attribution
-  to the AREDN project must be added to the source code.
+	You must not misrepresent the origin of the material contained within.
 
-  You must not misrepresent the origin of the material contained within.
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
 
-  Modified versions must be modified to attribute to the original source
-  and be marked in reasonable ways as differentiate it from the original
-  version.
+--]]
 
-=cut
+require("nixio")
+require("aredn.utils")
+require("aredn.hardware")
+aredn.info = require('aredn.info')
+require("uci")
 
-# this script generates the olsrd config file
-# static part comes from /etc/config/olsrd.conf
-# dynamic part depends on the node configuration
+-- check what config gile we are building for
+local uci_conf_file
+if #arg == 0 then
+    uci_conf_file = "olsrd"
+else
+    uci_conf_file = arg[1]
+end
 
-use perlfunc;
-use ucifunc;
-use tunfunc;
+if uci_conf_file == "olsrd6" then
+    -- we only generate entries for IPv4 at the moment
+    os.exit(0)
+end
 
-#Check what config file we are building for
-if ( !$ARGV[0] ) {
-  $UCI_CONF_FILE="olsrd";
-} else {
-  $UCI_CONF_FILE=$ARGV[0];
-}
+local cursor = uci.cursor()
 
-if ( $UCI_CONF_FILE eq "olsrd6" ) {
-  # We only generate entries for IPv4 at moment"
-  exit 0;
-}
+local names = {}
+local hosts = {}
+local services = {}
+local tunnels = {}
 
-@names = @hosts = @services = @tunnels = ();
+function ip_to_hostname(ip)
+    if ip and ip ~= "" and ip ~= "none" then
+        local a, b, c, d = ip:match("(.*)%.(.*)%.(.*)%.(.*)")
+        local revip = d .. "." .. c .. "." .. b .. "." .. a
+        local f = io.popen("nslookup " .. ip)
+        if f then
+            local pattern = "^" .. revip .. "%.in-addr%.arpa%s+name%s+=%s+(%S+)%.local%.mesh"
+            for line in f:lines()
+            do
+                local host = line:match(pattern)
+                if host then
+                    f:close()
+                    return host
+                end
+            end
+            f:close()
+        end
+    end
+    return ""
+end
 
-# canonical names for this node
-# (they show up in reverse order, make the "official" name last)
-push @names, $name if ($name = nvram_get("tactical"));
-push @names, $name if ($name = nvram_get("node"));
+-- canonical names for this node
+-- (they should up in reverse order, make the official name last)
+local name = aredn.info.get_nvram("tactical")
+if name ~= "" then
+    names[#names + 1] = name
+end
+name = aredn.info.get_nvram("node")
+if name ~= "" then
+    names[#names + 1] = name
+end
 
-# load the dhcp reservations when in dmz mode
-chomp(my $dmz_mode = `/sbin/uci -q get aredn.\@dmz[0].mode`);
-if($dmz_mode ne "0")
-{
-  # add DNS aliases first
-  # (see above comment about "tactical" names)
-  foreach(`cat /etc/config.mesh/aliases.dmz`) {
-    next unless ($ip, $host) = split ' ', $_;
-    push @hosts, qq("$ip" "$host");
-  }
-  #($lanip, $lanmask, $lanbcast, $lannet) = get_ip4_network("eth0.0");
-  foreach(`cat /etc/ethers`)
-  {
-    #stop certain IP's from getting propagated over the mesh
-    ($junk, $junk, $noprop) = split ' ', $_;
-    next if $noprop eq "#NOPROP";
+local dmz_mode = cursor:get("aredn", "@dmz[0]", "mode")
+if dmz_mode ~= "0" then
+    if nixio.fs.stat("/etc/config.mesh/aliases.dmz") then
+        for line in io.lines("/etc/config.mesh/aliases.dmz")
+        do
+            local ip, host = line:match("(.*) (.*)")
+            if host then
+                hosts[#hosts + 1] = { ip = ip, host = host }
+            end
+        end
+    end
+    if nixio.fs.stat("/etc/ethers") then
+        for line in io.lines("/etc/ethers")
+        do
+            local noprop = line:match(".* .*( .*)")
+            if noprop ~= " #NOPROP" then
+                local ip = line:match("[0-9a-fA-F:]+%s+([%d%.]+)")
+                if ip then
+                    local host = ip_to_hostname(ip)
+                    if host then
+                        hosts[#hosts + 1] = { ip = ip, host = host }
+                    end
+                end
+            end
+        end
+    end
+end
 
-    next unless ($ip) = /[0-9a-f:]+\s+([\d\.]+)/i;
-    next unless $host = ip2hostname($ip);
-    push @hosts, qq("$ip" "$host");
-  }
-}
+-- add a name for the dtdlink interface
+if name then
+    local dtdip = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("dtdlink"))
+    hosts[#hosts + 1] = { ip = dtdip, host = "dtdlink." .. name .. ".local.mesh" }
+end
 
-# Add a name for the dtdlink interface.
-if ($name = nvram_get("node"))
-{
-  my ($dtdip,$dtdmask,$dtdbcast,$dtdnet);
-  ($dtdip, $dtdmask, $dtdbcast, $dtdnet) = get_ip4_network(get_interface("dtdlink"));
-  push @hosts, qq("$dtdip" "dtdlink.$name.local.mesh");
-}
+-- load the services
+if nixio.fs.stat("/etc/config/services") then
+    for line in io.lines("/etc/config/services")
+    do
+        if line:match("^%w+://[%w%-%.]+:%d+(/[^|]*)?|[tu][cd]p|%w") then
+            services[#services + 1] = line
+        end
+    end
+end
 
-# load the services
-foreach(`cat /etc/config/services 2>/dev/null`)
-{
-  next unless /^\w+:\/\/[\w\-\.]+:\d+(\/[^\|]*)?\|(tcp|udp)\|\w/;
-  chomp;
-  push @services, $_;
-}
+-- load the tunnels
+if nixio.fs.stat("/etc/local/mesh-firewall/02-vtund") then
+    local tunnum = 50
+    cursor:foreach("vtun", "client",
+        function(section)
+            if section.enabled == "1" then
+                tunnels[#tunnels + 1] = "tun" .. tunnum
+                tunnum = tunnum + 1
+            end
+        end
+    )
+    local maxclients = cursor:get("aredn", "@tunnel[0]", "maxclients")
+    if not maxclients then
+        maxclients = 10
+    end
+    tunnum = 50 + maxclients
+    cursor:foreach("vtun", "server",
+        function(section)
+            if section.enabled == "1" then
+                tunnels[#tunnels + 1] = "tun" .. tunnum
+                tunnum = tunnum + 1
+            end
+        end
+    )
+end
 
-# load the tunnels
-my @tunnelnames = @section = ();
+-- add the nameservice plugin
+print()
+print([[LoadPlugin "olsrd_nameservice.so.0.4"]])
+print([[{]])
+print([[    PlParam "sighup-pid-file" "/var/run/dnsmasq/dnsmasq.pid"]])
+print([[    PlParam "interval" "30"]])
+print([[    PlParam "timeout" "300"]])
+print([[    PlParam "name-change-script" "touch /tmp/namechange"]])
+for _, name in ipairs(names)
+do
+    print([[    PlParam "name" "]] .. name .. [["]])
+end
+for _, host in ipairs(hosts)
+do
+    print([[    PlParam "]] .. host.ip .. [[" "]] .. host.host .. [["]])
+end
+for _, service in ipairs(services)
+do
+    print([[    PlParam "service" "]] .. service .. [["]])
+end
+print([[}]])
 
-if (-e "/etc/local/mesh-firewall/02-vtund")
-{
-  $tunnum=50;
-  push(@tunnelnames, &uci_get_names_by_sectiontype("vtun","client"));
-  foreach (@tunnelnames)
-  {
-    $section=&uci_get_named_section("vtun",$_);
-    if ($section->{enabled} eq 1)
-    {
-      push(@tunnels,"tun${tunnum}");
-      $tunnum++;
-    }
-  }
-
-  $tunnum=50 + &get_tunnel_maxclients();
-  @tunnelnames=&uci_get_names_by_sectiontype("vtun","server");
-  foreach (@tunnelnames)
-  {
-    $section=&uci_get_named_section("vtun",$_);
-    if ($section->{enabled} eq 1)
-    {
-      push(@tunnels,"tun${tunnum}");
-      $tunnum++;
-    }
-  }
-}
-
-# add the nameservice plugin
-push @file, qq(\nLoadPlugin "olsrd_nameservice.so.0.4"\n);
-push @file, qq({\n);
-push @file, qq(    PlParam "sighup-pid-file" "/var/run/dnsmasq/dnsmasq.pid"\n);
-push @file, qq(    PlParam "interval" "30"\n);
-push @file, qq(    PlParam "timeout" "300"\n);
-push @file, qq(    PlParam "name-change-script" "touch /tmp/namechange"\n);
-#push @file, qq(    PlParam "lat" "1"\n);
-#push @file, qq(    PlParam "lon" "2"\n);
-#push @file, qq(    PlParam "laton-file" "/var/run/latlon.js"\n);
-#push @file, qq(    PlParam "laton-infile" "/tmp/latlon.txt"\n);
-foreach(@names)    { push @file, qq(    PlParam "name" "$_"\n) }
-foreach(@hosts)    { push @file, qq(    PlParam $_\n) }
-foreach(@services) { push @file, qq(    PlParam "service" "$_"\n) }
-push @file, qq(}\n);
-
-# add the ACTIVE tunnel interfaces
-if ( @tunnels )
-{
-  push @file, qq(\nInterface );
-  foreach(@tunnels) { push @file, qq("$_" ) }
-  push @file, qq(\n{\n);
-  push @file, qq(     Ip4Broadcast 255.255.255.255\n);
-  push @file, qq(     Mode \"ether\"\n);
-  push @file, qq(}\n);
-}
-
-# write the file
-print @file;
+-- add the ACTIVE tunnel interfaces
+if #tunnels > 0 then
+    local tuns = ""
+    for _, tunnel in ipairs(tunnels)
+    do
+        tuns = tuns .. " \"" .. tunnel .. "\""
+    end
+    print()
+    print([[Interface]] .. tuns)
+    print([[{]])
+    print([[     Ip4Broadcast 255.255.255.255]])
+    print([[     Mode "ether"]])
+    print([[}]])
+end
