@@ -129,7 +129,7 @@ end
 function get_server_network_address()
     local server_net = cursor:get("vtun", "@network[0]", "start")
     if not server_net then
-        local mac = aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan"))
+        local mac = aredn.hardware.get_interface_mac("eth0")
         local a, b = mac:match("^..:..:..:..:(..):(..)$")
         server_net = "172.31." .. tonumber(b, 16) .. "." .. ((tonumber(a, 16) * 4) % 256)
         cursor:set("vtun", "@network[0]", "start", server_net)
