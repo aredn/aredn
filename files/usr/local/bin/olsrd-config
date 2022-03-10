@@ -67,7 +67,7 @@ function ip_to_hostname(ip)
         local revip = d .. "." .. c .. "." .. b .. "." .. a
         local f = io.popen("nslookup " .. ip)
         if f then
-            local pattern = "^" .. revip .. "%.in-addr%.arpa%s+name%s+=%s+(%S+)%.local%.mesh"
+            local pattern = "^" .. revip .. "%.in%-addr%.arpa%s+name%s+=%s+(%S+)%.local%.mesh"
             for line in f:lines()
             do
                 local host = line:match(pattern)
