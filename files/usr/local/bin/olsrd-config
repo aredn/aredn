@@ -131,7 +131,7 @@ end
 if nixio.fs.stat("/etc/config/services") then
     for line in io.lines("/etc/config/services")
     do
-        if line:match("^%w+://[%w%-%.]+:%d+(/[^|]*)?|[tu][cd]p|%w") then
+        if line:match("^%w+://[%w%-%.]+:%d+.*|tcp|[^|]+$") or line:match("^%w+://[%w%-%.]+:%d+.*|udp|[^|]+$")
             services[#services + 1] = line
         end
     end
