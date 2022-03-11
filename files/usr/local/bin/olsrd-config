@@ -107,8 +107,8 @@ if dmz_mode ~= "0" then
     if nixio.fs.stat("/etc/ethers") then
         for line in io.lines("/etc/ethers")
         do
-            local noprop = line:match(".* .*( .*)")
-            if noprop ~= " #NOPROP" then
+            local noprop = line:match(".*%s+.*%s+#NOPROP")
+            if not noprop then
                 local ip = line:match("[0-9a-fA-F:]+%s+([%d%.]+)")
                 if ip then
                     local host = ip_to_hostname(ip)
