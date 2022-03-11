@@ -194,23 +194,19 @@ end
 local gci_vars = { "enabled", "host", "passwd", "netip", "contact" }
 function get_connection_info()
     local c = 0
-    local conns = cursor:get_all("vtun")
-    if conns then
-        for _, myconn in pairs(conns)
-        do
-            if myconn[".type"] == "server" then
-                for _, var in ipairs(gci_vars)
-                do
-                    local key = "conn" .. c .. "_" .. var
-                    parms[key] = myconn[var]
-                    if not parms[key] then
-                        parms[key] = ""
-                    end
+    cursor:foreach("vtun", "server",
+        function(section)
+            for _, var in ipairs(gci_vars)
+            do
+                local key = "conn" .. c .. "_" .. var
+                parms[key] = section[var]
+                if not parms[key] then
+                    parms[key] = ""
                 end
-                c = c + 1
             end
+            c = c + 1
         end
-    end
+    )
     parms.conn_num = c
 end
 
