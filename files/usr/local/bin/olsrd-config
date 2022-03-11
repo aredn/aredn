@@ -67,7 +67,7 @@ function ip_to_hostname(ip)
         local revip = d .. "." .. c .. "." .. b .. "." .. a
         local f = io.popen("nslookup " .. ip)
         if f then
-            local pattern = "^" .. revip .. "%.in-addr%.arpa%s+name%s+=%s+(%S+)%.local%.mesh"
+            local pattern = "^" .. revip .. "%.in%-addr%.arpa%s+name%s+=%s+(%S+)%.local%.mesh"
             for line in f:lines()
             do
                 local host = line:match(pattern)
@@ -131,7 +131,7 @@ end
 if nixio.fs.stat("/etc/config/services") then
     for line in io.lines("/etc/config/services")
     do
-        if line:match("^%w+://[%w%-%.]+:%d+(/[^|]*)?|[tu][cd]p|%w") then
+        if line:match("^%w+://[%w%-%.]+:%d+.*|tcp|[^|]+$") or line:match("^%w+://[%w%-%.]+:%d+.*|udp|[^|]+$") then
             services[#services + 1] = line
         end
     end
