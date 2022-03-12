@@ -43,6 +43,9 @@ require("iwinfo")
 
 local wifiif = uci.cursor():get("network", "wifi", "ifname")
 local phy = iwinfo.nl80211.phyname(wifiif)
+if not phy then
+    phy = "phy0"
+end
 local mfg = capture("/usr/local/bin/get_hardware_mfg"):chomp()
 
 
