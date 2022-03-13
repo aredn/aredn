@@ -873,8 +873,9 @@ function calcDistance(x) {
 
 function doSubmit() {
     var desc_text = document.mainForm.description_node.value;
-    var singleLine = desc_text.replace(new RegExp( "\\n", "g" ), " ");
+    var singleLine = desc_text.replace(new RegExp( "\\n", "g" ), " ").replace(new RegExp( "'", "g" ), "");
     document.mainForm.description_node.value = singleLine;
+    document.mainForm.nodetac.value = document.mainForm.nodetac.value.replace(new RegExp( "'", "g" ), "");
     return true;
 }
 
