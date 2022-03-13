@@ -242,7 +242,7 @@ if config == "" or nixio.fs.stat("/tmp/reboot-required") then
     html.alert_banner()
     html.print("<table width=790><tr><td>")
     navbar();
-    hrml.print("</td></tr><tr><td align=center><br>")
+    html.print("</td></tr><tr><td align=center><br>")
     if config == "" then
         html.print("<b>This page is not available until the configuration has been set.</b>")
     else
@@ -330,6 +330,8 @@ do
                 parms[varname] = "0"
             elseif not parms[varname] then
                 parms[varname] = ""
+            elseif var == "contact" then
+                parms[varname] = parms[varname]:gsub("^%s+", ""):gsub("%s+$", ""):sub(1,210):gsub('"',"&quot;"):gsub("'","&apos;"):gsub("<","&lt;"):gsub(">","&gt;")
             else
                 parms[varname] = parms[varname]:gsub("^%s+", ""):gsub("%s+$", "")
             end

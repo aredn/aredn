@@ -681,6 +681,9 @@ if parms.button_save then
         parms.wifi3_key = s2h(wifi3_key)
         parms.wifi3_ssid = s2h(wifi3_ssid)
 
+        -- escape and limit description
+        parms.description_node = parms.description_node:sub(1,210):gsub('"',"&quot;"):gsub("'","&apos;"):gsub("<","&lt;"):gsub(">","&gt;")
+
         -- save_setup
         local f = io.open("/etc/config.mesh/_setup", "w")
         if f then
