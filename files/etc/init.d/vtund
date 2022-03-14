@@ -7,8 +7,8 @@ STOP=85
 CLIENT_CONF=/tmp/vtun/vtund.conf
 
 # Starting tun interface is tun50
-TUNNUM=$((50 + `uci get aredn.@tunnel[0].maxclients`))
-MAXTUNNUM=$(($TUNNUM + `uci get aredn.@tunnel[0].maxservers` - 1))
+TUNNUM=$((`uci get aredn.@tunnel[0].maxclients 2> /dev/null` + 50))
+MAXTUNNUM=$((`uci get aredn.@tunnel[0].maxservers 2> /dev/null` + $TUNNUM - 1))
 
 ######### UTILITY FUNCTIONS ###########
 # return the number of "type" sections

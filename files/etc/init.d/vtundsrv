@@ -7,7 +7,7 @@ STOP=83
 SERVER_CONF=/tmp/vtun/vtundsrv.conf
 # Starting tun interface is tun50
 TUNNUM=50
-MAXTUNNUM=$(($TUNNUM + `uci get aredn.@tunnel[0].maxclients` - 1))
+MAXTUNNUM=$((`uci get aredn.@tunnel[0].maxclients 2>/dev/null` + $TUNNUM - 1))
 
 network_config() {
 	local cfg="$1"
