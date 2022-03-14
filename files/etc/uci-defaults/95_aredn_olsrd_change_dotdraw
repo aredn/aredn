@@ -1,0 +1,7 @@
+#!/bin/sh
+# Migrate the old OLSRD configuration form the old local-only + xinetd proxy for access, to general access
+if [ "$(/sbin/uci -q get 'olsrd.@LoadPlugin[3].port')" = "2003" ]; then
+    /sbin/uci -q set 'olsrd.@LoadPlugin[3].port=2004'
+    /sbin/uci -q set 'olsrd.@LoadPlugin[3].accept=0.0.0.0'
+    /sbin/uci commit olsrd
+fi
