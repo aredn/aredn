@@ -545,6 +545,7 @@ end
 -- upload package
 if parms.button_ul_pkg and nixio.fs.stat("/tmp/web/upload/file") then
     os.execute("mv -f /tmp/web/upload/file /tmp/web/upload/newpkg.ipk")
+    os.execute("/usr/local/bin/uploadctlservices opkginstall > /dev/null 2>&1")
     pkgout(capture("opkg -force-overwrite install /tmp/web/upload/newpkg.ipk 2>&1"))
     os.execute("rm -rf /tmp/opkg-*")
     nixio.fs.remove("/tmp/web/upload/newpkg.ipk")
