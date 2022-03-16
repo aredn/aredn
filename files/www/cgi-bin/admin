@@ -391,7 +391,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
             nixio.fs.remove(tmpdir .. "/wget.err")
             -- check md5sum
             local fw = parms.dl_fw
-            if os.execute("echo '" .. fw_md5[fw] .. "  " .. tmpdir .. "/firmware' | md5sum -cs") ~= 0 then
+            if os.execute("echo '" .. (fw_md5[fw] or "error") .. "  " .. tmpdir .. "/firmware' | md5sum -cs") ~= 0 then
                 fwout("Firmware CANNOT be updated")
                 fwout("firmware file is not valid")
                 fw_install = false
@@ -409,7 +409,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
             nixio.fs.remove(tmpdir .. "/wget.err")
             -- check md5sum
             local fw = parms.dl_fw
-            if os.execute("echo '" .. fw_md5[fw] .. "  firmware' | md5sum -cs") ~= 0 then
+            if os.execute("echo '" .. (fw_md5[fw] or "error") .. "  firmware' | md5sum -cs") ~= 0 then
                 fwout("Firmware CANNOT be updated")
                 fwout("patch file is not valid")
                 patch_install = false
@@ -443,10 +443,10 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
     html.print("<meta http-equiv='cache-control' content='no-cache'>")
     html.print("<meta http-equiv='pragma' content='no-cache'>")
     html.print("<meta name='robots' content='noindex'>")
-    if not nixio.fs.stat("/tmp/web") then
-        nixio.fs.mkdir("/tmp/web")
-    end
     if not nixio.fs.readlink("/tmp/web/style.css") then
+        if not nixio.fs.stat("/tmp/web") then
+            nixio.fs.mkdir("/tmp/web")
+        end
         nixio.fs.symlink("/www/aredn.css", "/tmp/web/style.css")
     end
     html.print("<style>")
