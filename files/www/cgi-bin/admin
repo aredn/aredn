@@ -434,8 +434,24 @@ end
 
 -- install fw
 if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
-    http_header(true) -- no compression (gzip will be killed)
-    html.header("FIRMWARE UPDATE IN PROGRESS", false)
+    http_header()
+    html.print("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">")
+    html.print("<html>")
+    html.print("<head>")
+    html.print("<title>FIRMWARE UPDATE IN PROGRESS</title>")
+    html.print("<meta http-equiv='expires' content='0'>")
+    html.print("<meta http-equiv='cache-control' content='no-cache'>")
+    html.print("<meta http-equiv='pragma' content='no-cache'>")
+    html.print("<meta name='robots' content='noindex'>")
+    if not nixio.fs.stat("/tmp/web") then
+        nixio.fs.mkdir("/tmp/web")
+    end
+    if not nixio.fs.readlink("/tmp/web/style.css") then
+        nixio.fs.symlink("/www/aredn.css", "/tmp/web/style.css")
+    end
+    html.print("<style>")
+    html.print(read_all("/tmp/web/style.css"))
+    html.print("</style>")
     html.print("<meta http-equiv='refresh' content='180;URL=http://" .. node .. ".local.mesh:8080'>")
     html.print("</head>")
     html.print("<body><center>")
@@ -516,8 +532,6 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
         upgradecmd = "/sbin/sysupgrade -q -n " .. tmpdir .. "/firmware 2>&1 &"
     end
     if upgradecmd then
-        -- Give the page a moment to fetch any styles before shutting down http and starting the upgrade
-        nixio.nanosleep(2, 0)
         os.execute("killall -KILL uhttpd ; /etc/init.d/uhttpd stop")
         os.execute(upgradecmd)
     end
