@@ -442,9 +442,8 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
     html.print("<h2>The firmware is being updated.</h2>")
     html.print("<h1>DO NOT REMOVE POWER UNTIL UPDATE IS FINISHED</h1>")
     html.print("</center><br>")
-    -- drop page cache to take pressure of tmps for the upgrade process
-    write_all("/proc/sys/vm/drop_caches", "3")
-    os.execute("/usr/local/bin/upgrade_kill_prep > /dev/null 2>&1")
+    local upgradecmd = nil
+    os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
     if parms.checkbox_keep_settings then
         local fin = io.open("/etc/arednsysupgrade.conf", "r")
         if fin then
@@ -484,23 +483,22 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                     ]])
                     http_footer()
                     nixio.fs.remove("/tmp/sysupgradefilelist")
-                    os.execute("/usr/local/bin/spawn_sysupgrade " .. tmpdir .. "/firmware 2>&1 &")
+                    upgradecmd = "/sbin/sysupgrade -f /tmp/arednsysupgradebackup.tgz -q " .. tmpdir .. "/firmware 2>&1 &"
                 end
-                os.exit()
             else
                 fin:close()
             end
+        else
+            html.print([[
+                <center><h2>ERROR: Failed to create backup.</h2>
+                <h3>An error occured trying to backup the file system. Node will now reboot.
+                </center>
+            ]])
+            html.footer()
+            html.print("</body></html>")
+            http_footer()
+            luci.sys.reboot()
         end
-        html.print([[
-            <center><h2>ERROR: Failed to create backup.</h2>
-            <h3>An error occured trying to backup the file system. Node will now reboot.
-            </center>
-        ]])
-        html.footer()
-        html.print("</body></html>")
-        http_footer()
-        luci.sys.reboot()
-        os.exit()
     else
         html.print([[
             <center><h2>Firmware will be written in the background.</h2>
@@ -515,9 +513,14 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
             </center></body></html>
         ]])
         http_footer()
-        os.execute("/sbin/sysupgrade -n " .. tmpdir .. "/firmware 2>&1 &")
+        upgradecmd = "/sbin/sysupgrade -q -n " .. tmpdir .. "/firmware 2>&1 &"
     end
-    os.execute("killall uhttpd &")
+    if upgradecmd then
+        -- Give the page a moment to fetch any styles before shutting down http and starting the upgrade
+        nixio.nanosleep(2, 0)
+        os.execute("killall -KILL uhttpd ; /etc/init.d/uhttpd stop")
+        os.execute(upgradecmd)
+    end
     os.exit()
 end
 
