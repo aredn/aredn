@@ -48,13 +48,15 @@ function html.header(title, close)
     html.print("<meta name='robots' content='noindex'>")
 
     -- set up the style sheet
-    if not nixio.fs.stat("/tmp/web") then
-        nixio.fs.mkdir("/tmp/web")
+    local link = nixio.fs.readlink("/tmp/web/style.css")
+    if not link then
+        if not nixio.fs.stat("/tmp/web") then
+            nixio.fs.mkdir("/tmp/web")
+        end
+        link = "/www/aredn.css"
+        nixio.fs.symlink(link, "/tmp/web/style.css")
     end
-    if not nixio.fs.readlink("/tmp/web/style.css") then
-        nixio.fs.symlink("/www/aredn.css", "/tmp/web/style.css")
-    end
-    html.print("<link id='stylesheet_css' rel=StyleSheet href='/style.css?" .. os.time() .. "' type='text/css'>")
+    html.print("<link id='stylesheet_css' rel=StyleSheet href='/style.css?_=" .. link .. "' type='text/css'>")
     if close then
         html.print("</head>")
     end
