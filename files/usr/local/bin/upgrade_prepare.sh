@@ -37,7 +37,7 @@ LICENSE
 # ServiceName[:ServiceDaemon] pairs.
 # If ServiceDaemon is omitted, we wont first kill the daemon
 #
-SERVICES="olsrd:olsrd vtund:vtund vtundsrv:vtund dnsmasq:dnsmasq udhcpc:udhcpc dropbear:dropbear ntpclient:ntpclient urngd:urngd rpcd:rpcd telnet:telnetd udhcpc:udhcpc manager:manager.lua network:netifd log:logd"
+SERVICES="dnsmasq:dnsmasq dropbear:dropbear ntpclient:ntpclient urngd:urngd rpcd:rpcd telnet:telnetd manager:manager.lua log:logd"
 
 #
 # We unceremoniously kill services, and then stop them to prevent

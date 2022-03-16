@@ -219,6 +219,10 @@ if os.getenv("REQUEST_METHOD") == "POST" then
                 if not fp then
                     if meta and meta.file then
                         firmfile = meta.file
+                        if firmfile:match("sysupgrade%.bin$") then
+                            -- Uploading a system upgrade - clear out memory early
+                            os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
+                        end
                     end
                     nixio.fs.mkdir("/tmp/web/upload")
                     fp = io.open("/tmp/web/upload/file", "w")
@@ -373,6 +377,11 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
     if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
         nixio.fs.remove(tmpdir .. "/firmware")
         os.execute("/usr/local/bin/uploadctlservices update > /dev/null 2>&1")
+        if parms.dl_fw:match("sysupgrade%.bin$") then
+            -- Downloading a system upgrade - clear out memory early
+            os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
+        end
+
         local ok = false
         for _, serverpath in ipairs(serverpaths)
         do
@@ -397,8 +406,9 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
                 fw_install = false
                 nixio.fs.remove(tmpdir .. "/firmware")
                 if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
-                    fwout("Failed to restart all services, please reboot this node.")
+                    fwout("Failed to restart all services.")
                 end
+                fwout("Please reboot this node.")
             end
         elseif parms.dl_fw:match("^patch%S+%.tgz$") then -- firmware patch
             patch_install = true
@@ -459,7 +469,6 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
     html.print("<h1>DO NOT REMOVE POWER UNTIL UPDATE IS FINISHED</h1>")
     html.print("</center><br>")
     local upgradecmd = nil
-    os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
     if parms.checkbox_keep_settings then
         local fin = io.open("/etc/arednsysupgrade.conf", "r")
         if fin then
@@ -532,7 +541,6 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
         upgradecmd = "/sbin/sysupgrade -q -n " .. tmpdir .. "/firmware 2>&1 &"
     end
     if upgradecmd then
-        os.execute("killall -KILL uhttpd ; /etc/init.d/uhttpd stop")
         os.execute(upgradecmd)
     end
     os.exit()
