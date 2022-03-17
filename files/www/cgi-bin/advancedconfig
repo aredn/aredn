@@ -181,7 +181,6 @@ local settings = {
         type = "string",
         desc = "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].  (Only applies if tunnel software is installed)",
         default = "10",
-        condition = "hasTunnelSoftware()",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
     },
@@ -190,7 +189,6 @@ local settings = {
         type = "string",
         desc = "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].  (Only applies if tunnel software is installed)",
         default = "10",
-        condition = "hasTunnelSoftware()",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
     },
@@ -344,14 +342,6 @@ end
 
 function hasUSB()
     return aredn.hardware.has_usb()
-end
-
-function hasTunnelSoftware()
-    if nixio.fs.stat("/usr/sbin/vtund") then
-        return true
-    else
-        return false
-    end
 end
 
 -- callbacks
