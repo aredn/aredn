@@ -183,6 +183,7 @@ function install_vtun()
     cursor:add("vtun", "options")
     cursor:add("vtun", "network")
     cursor:commit("vtun")
+    write_all("/etc/config.mesh/vtun", read_all("/etc/config/vtun"))
 
     http_header()
     html.header("TUNNEL INSTALLATION IN PROGRESS", true)
