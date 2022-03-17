@@ -199,7 +199,7 @@ if not nixio.fs.readlink("/etc/config.mesh/aliases") then
         filecopy("/etc/config.mesh/aliases", "/etc/config.mesh/aliases.dmz")
         os.remove("/etc/config.mesh/aliases")
     else
-        io.open("/etc/config.mesh/aliases.dmz", "w"):close()
+        io.open("/etc/config.mesh/aliases.dmz", "a"):close()
     end
     nixio.fs.symlink("aliases.dmz", "/etc/config.mesh/aliases")
 end
