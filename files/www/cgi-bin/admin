@@ -219,6 +219,10 @@ if os.getenv("REQUEST_METHOD") == "POST" then
                 if not fp then
                     if meta and meta.file then
                         firmfile = meta.file
+                        if firmfile:match("sysupgrade%.bin$") then
+                            -- Uploading a system upgrade - clear out memory early
+                            os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
+                        end
                     end
                     nixio.fs.mkdir("/tmp/web/upload")
                     fp = io.open("/tmp/web/upload/file", "w")
@@ -373,6 +377,11 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
     if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
         nixio.fs.remove(tmpdir .. "/firmware")
         os.execute("/usr/local/bin/uploadctlservices update > /dev/null 2>&1")
+        if parms.dl_fw:match("sysupgrade%.bin$") then
+            -- Downloading a system upgrade - clear out memory early
+            os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
+        end
+
         local ok = false
         for _, serverpath in ipairs(serverpaths)
         do
@@ -391,14 +400,15 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
             nixio.fs.remove(tmpdir .. "/wget.err")
             -- check md5sum
             local fw = parms.dl_fw
-            if os.execute("echo '" .. fw_md5[fw] .. "  " .. tmpdir .. "/firmware' | md5sum -cs") ~= 0 then
+            if os.execute("echo '" .. (fw_md5[fw] or "error") .. "  " .. tmpdir .. "/firmware' | md5sum -cs") ~= 0 then
                 fwout("Firmware CANNOT be updated")
                 fwout("firmware file is not valid")
                 fw_install = false
                 nixio.fs.remove(tmpdir .. "/firmware")
                 if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
-                    fwout("Failed to restart all services, please reboot this node.")
+                    fwout("Failed to restart all services.")
                 end
+                fwout("Please reboot this node.")
             end
         elseif parms.dl_fw:match("^patch%S+%.tgz$") then -- firmware patch
             patch_install = true
@@ -409,7 +419,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
             nixio.fs.remove(tmpdir .. "/wget.err")
             -- check md5sum
             local fw = parms.dl_fw
-            if os.execute("echo '" .. fw_md5[fw] .. "  firmware' | md5sum -cs") ~= 0 then
+            if os.execute("echo '" .. (fw_md5[fw] or "error") .. "  firmware' | md5sum -cs") ~= 0 then
                 fwout("Firmware CANNOT be updated")
                 fwout("patch file is not valid")
                 patch_install = false
@@ -434,17 +444,31 @@ end
 
 -- install fw
 if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
-    http_header(true) -- no compression (gzip will be killed)
-    html.header("FIRMWARE UPDATE IN PROGRESS", false)
+    http_header()
+    html.print("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">")
+    html.print("<html>")
+    html.print("<head>")
+    html.print("<title>FIRMWARE UPDATE IN PROGRESS</title>")
+    html.print("<meta http-equiv='expires' content='0'>")
+    html.print("<meta http-equiv='cache-control' content='no-cache'>")
+    html.print("<meta http-equiv='pragma' content='no-cache'>")
+    html.print("<meta name='robots' content='noindex'>")
+    if not nixio.fs.readlink("/tmp/web/style.css") then
+        if not nixio.fs.stat("/tmp/web") then
+            nixio.fs.mkdir("/tmp/web")
+        end
+        nixio.fs.symlink("/www/aredn.css", "/tmp/web/style.css")
+    end
+    html.print("<style>")
+    html.print(read_all("/tmp/web/style.css"))
+    html.print("</style>")
     html.print("<meta http-equiv='refresh' content='180;URL=http://" .. node .. ".local.mesh:8080'>")
     html.print("</head>")
     html.print("<body><center>")
     html.print("<h2>The firmware is being updated.</h2>")
     html.print("<h1>DO NOT REMOVE POWER UNTIL UPDATE IS FINISHED</h1>")
     html.print("</center><br>")
-    -- drop page cache to take pressure of tmps for the upgrade process
-    write_all("/proc/sys/vm/drop_caches", "3")
-    os.execute("/usr/local/bin/upgrade_kill_prep > /dev/null 2>&1")
+    local upgradecmd = nil
     if parms.checkbox_keep_settings then
         local fin = io.open("/etc/arednsysupgrade.conf", "r")
         if fin then
@@ -484,23 +508,22 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                     ]])
                     http_footer()
                     nixio.fs.remove("/tmp/sysupgradefilelist")
-                    os.execute("/usr/local/bin/spawn_sysupgrade " .. tmpdir .. "/firmware 2>&1 &")
+                    upgradecmd = "/sbin/sysupgrade -f /tmp/arednsysupgradebackup.tgz -q " .. tmpdir .. "/firmware 2>&1 &"
                 end
-                os.exit()
             else
                 fin:close()
             end
+        else
+            html.print([[
+                <center><h2>ERROR: Failed to create backup.</h2>
+                <h3>An error occured trying to backup the file system. Node will now reboot.
+                </center>
+            ]])
+            html.footer()
+            html.print("</body></html>")
+            http_footer()
+            luci.sys.reboot()
         end
-        html.print([[
-            <center><h2>ERROR: Failed to create backup.</h2>
-            <h3>An error occured trying to backup the file system. Node will now reboot.
-            </center>
-        ]])
-        html.footer()
-        html.print("</body></html>")
-        http_footer()
-        luci.sys.reboot()
-        os.exit()
     else
         html.print([[
             <center><h2>Firmware will be written in the background.</h2>
@@ -515,9 +538,11 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
             </center></body></html>
         ]])
         http_footer()
-        os.execute("/sbin/sysupgrade -n " .. tmpdir .. "/firmware 2>&1 &")
+        upgradecmd = "/sbin/sysupgrade -q -n " .. tmpdir .. "/firmware 2>&1 &"
     end
-    os.execute("killall uhttpd &")
+    if upgradecmd then
+        os.execute(upgradecmd)
+    end
     os.exit()
 end
 
