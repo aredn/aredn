@@ -55,7 +55,7 @@ end
 info={}
 
 -- API version
-info['api_version']="1.9"
+info['api_version']="1.10"
 
 
 -- NODE name
@@ -100,12 +100,6 @@ end
 
 -- Tunnel info
 info['tunnels']={}
--- Tunnel Installed
-local tunnel_installed=false
-if file_exists("/usr/sbin/vtund") then
-	tunnel_installed="true"
-end
-info['tunnels']['tunnel_installed']=tunnel_installed
 -- ACTIVE TUNNELS
 local atc=""
 atc=os.capture("ifconfig|grep tun|wc -l")
