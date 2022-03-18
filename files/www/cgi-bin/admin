@@ -592,7 +592,14 @@ end
 if parms.button_dl_pkg and parms.dl_pkg ~= "default" then
     if get_default_gw() ~= "none" or meshpkgs ~= "" then
         os.execute("/usr/local/bin/uploadctlservices opkginstall > /dev/null 2>&1")
-        pkgout(capture("opkg -force-overwrite install " .. parms.dl_pkg .. " 2>&1"))
+        local result = capture("opkg -force-overwrite install " .. parms.dl_pkg .. " 2>&1")
+        if result:match("satisfy_dependencies_for:") then
+            -- dependency failure - silently update dependencies and try again
+            os.execute("opkg update > /dev/null 2>&1")
+            os.execute("opkg list | grep -v '^ ' | cut -f1,3 -d' ' | gzip -c > /etc/opkg.list.gz")
+            result = capture("opkg -force-overwrite install " .. parms.dl_pkg .. " 2>&1")
+        end
+        pkgout(result)
         if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
             pkgout("Failed to restart all services, please reboot this node.")
         end
