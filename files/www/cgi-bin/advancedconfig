@@ -179,7 +179,7 @@ local settings = {
     {
         key = "aredn.@tunnel[0].maxclients",
         type = "string",
-        desc = "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].  (Only applies if tunnel software is installed)",
+        desc = "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].",
         default = "10",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
@@ -187,10 +187,16 @@ local settings = {
     {
         key = "aredn.@tunnel[0].maxservers",
         type = "string",
-        desc = "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].  (Only applies if tunnel software is installed)",
+        desc = "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].",
         default = "10",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
+    },
+    {
+        key = "aredn.@tunnel[0].wanonly",
+        type = "boolean",
+        desc = "Prevents tunnel traffic from being routed over the mesh network itself.",
+        default = "1"
     },
     {
         key = "aredn.@meshstatus[0].lowmem",
