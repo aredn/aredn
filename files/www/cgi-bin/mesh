@@ -399,8 +399,8 @@ end
 if nixio.fs.stat("/tmp/node.history") then
     for line in io.lines("/tmp/node.history")
     do
-        local ip, age, host = line:match("^(.*) (.*) (.*)")
-        if age then
+        local ip, age, host = line:match("^(.+) (%d+) (.*)")
+        if ip and age and host then
             history[ip] = { age = age, host = host:gsub("/", " / ") }
         end
     end
