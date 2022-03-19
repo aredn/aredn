@@ -265,10 +265,10 @@ end
 if parms.button_uploaddata then
     local si = capture("curl 'http://localnode:8080/cgi-bin/sysinfo.json?hosts=1' 2>/dev/null"):chomp()
     -- strip closing }
-    si = si.sub(1, #si - 1)
+    si = si:sub(1, #si - 1)
 
     -- get olsrd topo information
-    local topo = capture("url 'http://localnode:9090/links' 2>/dev/null"):chomp()
+    local topo = capture("curl 'http://localnode:9090/links' 2>/dev/null"):chomp()
 
     -- add topo subdoc and close root doc
     local newsi = string.format("%s,\"olsr\": %s}", si, topo)
