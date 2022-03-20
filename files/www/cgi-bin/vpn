@@ -258,7 +258,7 @@ do
             err(val .. " this client must be added or cleared out before saving changes")
             break
         end
-        if passwd:match("%W") then
+        if passwd:match("[^%w@]") then
             err("The password cannot contain non-alphanumeric characters (#" .. client_num .. ")")
         end
         if not passwd:match("%a") then

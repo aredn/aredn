@@ -256,7 +256,7 @@ do
             err(val .. " this connection must be added or cleared out before saving changes")
             break
         end
-        if passwd:match("%W") then
+        if passwd:match("[^%w@]") then
             err("The password cannot contain non-alphanumeric characters (#" .. conn_num .. ")")
         end
         if host == "" then
