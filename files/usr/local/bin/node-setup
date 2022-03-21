@@ -449,8 +449,9 @@ local sf = io.open("/etc/local/services", "w")
 if sf then
     sf:write("#!/bin/sh\n")
     if cfg.wifi_proto ~= "disabled" then
-        if is_null(cfg.wifi_txpower) or tonumber(cfg.wifi_txpower) > aredn.hardware.wifi_maxpower(cfg.wifi_channel) then
-            cfg.wifi_txpower = aredn.hardware.wifi_maxpower(cfg.wifi_channel)
+        local wifi_channel = tonumber(cfg.wifi_channel)
+        if is_null(cfg.wifi_txpower) or tonumber(cfg.wifi_txpower) > aredn.hardware.wifi_maxpower(wifi_channel) then
+            cfg.wifi_txpower = aredn.hardware.wifi_maxpower(wifi_channel)
         elseif tonumber(cfg.wifi_txpower) < 1 then
             cfg.wifi_txpower = 1
         end
