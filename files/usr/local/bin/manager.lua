@@ -68,7 +68,8 @@ local tasks = {
 	{ app = require("mgr.watchdog") },
 	{ app = require("mgr.fccid") },
 	{ app = require("mgr.snrlog") },
-	{ app = require("mgr.aredn_message") }
+	{ app = require("mgr.aredn_message") },
+	{ app = require("mgr.periodic") }
 }
 
 local log = aredn.log.open("/tmp/manager.log", 8000)
