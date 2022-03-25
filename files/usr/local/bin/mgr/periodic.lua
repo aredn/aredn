@@ -1,8 +1,7 @@
 --[[
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2021 Tim Wilkinson
-	Original Shell Copyright (C) 2015 Conrad Lara
+	Copyright (C) 2022 Tim Wilkinson
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
