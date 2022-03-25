@@ -1,7 +1,11 @@
-#! /bin/sh
+#!/bin/sh
 true <<'LICENSE'
+
+  On boot, and every 24 hours, update the clock from the first
+  available NTP server we find on the network.
+
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2022 Tim Wilkinson 2022
+  Copyright (C) 2022 Tim Wilkinson KN6PLV
   See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
@@ -33,29 +37,25 @@ true <<'LICENSE'
 
 LICENSE
 
-#
-# ServiceName[:ServiceDaemon] pairs.
-# If ServiceDaemon is omitted, we wont first kill the daemon
-#
-SERVICES="dnsmasq:dnsmasq dropbear:dropbear urngd:urngd rpcd:rpcd telnet:telnetd manager:manager.lua log:logd"
+exec 2> /dev/null
 
-#
-# We unceremoniously kill services, and then stop them to prevent
-# procd restarting them again
-#
-for S in ${SERVICES}
-do
-    srv=$(echo ${S} | cut -d: -f1)
-    daemon=$(echo ${S} | cut -d: -f2 -s)
-    if [ "${daemon}" != "" ]; then
-        killall -KILL ${daemon}
+candidate=$(uci -q get system.ntp.server)
+if [ "${candidate}" != "" ]; then
+    if $(ntpd -n -q -p ${candidate}); then
+        logger -p notice -t update-time "Update clock from ${candidate}"
+        exit 0
     fi
-    if [ -x /etc/init.d/${srv} ]; then
-        /etc/init.d/${srv} stop
+fi
+
+# NTP servers tend to be poorly advertised, so we have to use a bit of
+# heuristics to find them
+for candidate in $(grep -i ntp /var/run/services_olsr | sed "s/^http:\/\/\(.*\):.*$/\1/")
+do
+    if $(ntpd -n -q -p ${candidate}); then
+        logger -p notice -t update-time "Update clock from ${candidate}"
+        exit 0
     fi
 done
 
-#
-# Drop page cache to take pressure of tmps
-#
-echo 3 > /proc/sys/vm/drop_caches
+logger -p notice -t update-time "Failed to update clock: No reachable ntpd servers."
+exit 1
