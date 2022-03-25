@@ -60,17 +60,15 @@ function exit_app()
 	coroutine.yield('exit')
 end
 
--- Define the list of management task
-local tasks = {
-	{ app = require("mgr.rssi_monitor") },
-	{ app = require("mgr.linkled") },
-	{ app = require("mgr.namechange") },
-	{ app = require("mgr.watchdog") },
-	{ app = require("mgr.fccid") },
-	{ app = require("mgr.snrlog") },
-	{ app = require("mgr.aredn_message") },
-	{ app = require("mgr.periodic") }
-}
+-- Load management tasks
+local tasks = {}
+for name in nixio.fs.dir("/usr/local/bin/mgr")
+do
+	local task = name:match("^(.+)%.lua$")
+	if task then
+		tasks[#tasks + 1] = { app = require("mgr." .. task) }
+	end
+end
 
 local log = aredn.log.open("/tmp/manager.log", 8000)
 
