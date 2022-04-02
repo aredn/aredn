@@ -93,15 +93,9 @@ function do_namechange()
     if nixio.fs.stat("/tmp/node.history") then
         for line in io.lines("/tmp/node.history")
         do
-            local v = line:splitWhiteSpace()
-            local ip = v[1]
-            local age = 0
-            if v[2] then
-                age = math.floor(v[2])
-            end
-            local name = v[3]
-            if age and not history[ip] and uptime - age < 86400 then
-                history[ip] = { age = age, name = name or "" }
+            local ip, age, name = line:match("^(%S*) (%d+) +(.*)$")
+            if ip and age and not history[ip] and uptime - tonumber(age) < 86400 then
+                history[ip] = { age = age, name = name }
             end
         end
     end
@@ -111,7 +105,7 @@ function do_namechange()
     if f then
         for k,v in pairs(history)
         do
-            f:write(string.format("%s %d %s\n", k, v.age, v.name))
+            f:write(k .. " " .. v.age .. " " .. v.name .. "\n")
         end
         f:close()
     end
