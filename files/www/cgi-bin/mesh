@@ -729,7 +729,7 @@ do
     if not (links[ip] or links[ipalias[ip]]) then
         local age = uptime - tonumber(node.age)
         local host = node.host
-        if not host then
+        if host == "" then
             host = ip
         else
             host = host:gsub("^mid%d+%.", ""):gsub("^dtdlink%.", "")
