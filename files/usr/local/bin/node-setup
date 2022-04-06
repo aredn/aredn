@@ -495,6 +495,14 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
                 local a, b, c, d = cfg.dmz_lan_ip:match("(.*)%.(.*)%.(.*)%.(.*)")
                 of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%s.%d\n\toption netmask 255.255.255.%d\n\n", a, b, c, d - 1, nixio.bit.band(255 * 2 ^ cfg.dmz_mode, 255)))
             end
+
+            if cfg.wifi_enable ~= "1" and not is_null(cfg.wifi_ip) then
+                local cwan = aredn.hardware.get_iface_name("wan"):match("^([^%.%s]+)")
+                local cdtd = aredn.hardware.get_iface_name("dtdlink"):match("^([^%.%s]+)")
+                if cwan ~= cdtd then
+                    of:write(string.format("config Hna4\n\toption netaddr %s\n\toption netmask 255.255.255.255\n\n", cfg.wifi_ip))
+                end
+            end
         
             if not is_null(cfg.olsrd_gw) then
                 of:write("config LoadPlugin\n\toption library 'olsrd_dyn_gw.so.0.5'\n\toption Interval '60'\n\tlist Ping '8.8.8.8'\n\tlist Ping '8.8.4.4'\n\n\n")
