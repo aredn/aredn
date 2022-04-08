@@ -1077,6 +1077,7 @@ function print_forwarding()
         html.print("<td colspan=3><select name=dmz_ip onChange='form.submit()' ")
         html.print("title='Send all other inbound traffic to this host'>")
         html.print("<option value=''>None</option>")
+        local lanlimit = nixio.bit.lshift(1, 32 - netmask_to_cidr(lanmask)) - 2
         for i = 1,lanlimit
         do
             local selip = decimal_to_ip(lannet_d + i)
