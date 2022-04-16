@@ -90,7 +90,7 @@ local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(lanintf:match("^(%S+)"
 local deleteme = {}
 local cfg = {
     lan_intf = lanintf,
-    wan_intf = "dummy",
+    wan_intf = aredn.hardware.get_board().network.wan.ifname,
     dtdlink_intf = aredn.hardware.get_bridge_iface_names('dtdlink')
 }
 

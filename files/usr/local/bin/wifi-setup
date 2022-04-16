@@ -55,14 +55,6 @@ done < $configfile
 meshif="$(uci -q get network.wifi.ifname)"
 meshphy="phy${meshif#wlan}"
 
-# set physical wan interface in network
-
-wan_intf=`cat /etc/board.json|jsonfilter -e '@.network.wan.ifname'`
-uci -c ${dropdir} -q batch > /dev/null <<-EOF
-set network.wan.ifname="$wan_intf"
-EOF
-uci -c ${dropdir} -q commit network
-
 rm -f "${dropdir}/wireless" 
 touch "${dropdir}/wireless"
 
