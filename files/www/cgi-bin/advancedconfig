@@ -196,7 +196,8 @@ local settings = {
         key = "aredn.@tunnel[0].wanonly",
         type = "boolean",
         desc = "Prevents tunnel traffic from being routed over the mesh network itself.",
-        default = "1"
+        default = "1",
+        needreboot= true
     },
     {
         key = "aredn.@meshstatus[0].lowmem",
@@ -209,6 +210,14 @@ local settings = {
         type = "string",
         desc = "When low memory is detected, limit the number of routes shown on the mesh status page",
         default = "1000"
+    },
+    {
+        key = "network.wan.ifname",
+        type = "string",
+        desc = "Specify WAN interface VLAN #. MUST be entered as ethX.YY where X is the interface (usually '0') and YY is the VLAN # to use.",
+        default = "",
+        postcallback = "postChangeWANVLAN()",
+        needreboot = true
     },
     {
         key = "aredn.olsr.restart",
@@ -234,7 +243,8 @@ local settings = {
         key = "aredn.@alerts[0].pollrate",
         type = "string",
         desc = "Specifies how many hours to wait between polling for new AREDN Alerts.",
-        default = "12"
+        default = "12",
+        needreboot = true
     },
     {
         key = "aredn.aam.purge",
@@ -446,6 +456,28 @@ function adjustTunnelInterfaceCount()
     end
 end
 
+function postChangeWANVLAN()
+    local lines = {}
+    for line in io.lines("/etc/config.mesh/_setup")
+    do
+        if not line:match("^wan_intf = ") then
+            lines[#lines + 1] = line
+        end
+    end
+    if newval ~= "" then
+        lines[#lines + 1] = "wan_intf = " .. newval
+    end
+    local f = io.open("/etc/config.mesh/_setup", "w")
+    if f then
+        for _, line in ipairs(lines)
+        do
+            f:write(line .. "\n")
+        end
+        f:close()
+    end
+    os.execute("/usr/local/bin/node-setup -a mesh")
+end
+
 -- read_postdata
 local parms = {}
 if os.getenv("REQUEST_METHOD") == "POST" then
@@ -495,6 +527,9 @@ do
         msg("Changed " .. key)
         if setting.postcallback then
             loadstring(setting.postcallback)()
+        end
+        if setting.needreboot then
+            io.open("/tmp/reboot-required", "w"):close()
         end
         break
     end
@@ -604,6 +639,10 @@ html.print("</tr></table><hr>")
 html.print("</td></tr>")
 
 html.print("<tr><td align=center><a href='/help.html#advancedconfig' target='_blank'>Help</a>&nbsp;&nbsp;<input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>&nbsp;&nbsp;<input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'></td></tr>")
+
+if nixio.fs.stat("/tmp/reboot-required") then
+    html.print("<tr><td align=center><h3>Reboot is required for changes to take effect</h3></td></tr>")
+end
 
 for _, m in ipairs(msgs)
 do
