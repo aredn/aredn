@@ -216,6 +216,7 @@ local settings = {
         type = "string",
         desc = "Specify WAN interface VLAN #. MUST be entered as ethX.YY where X is the interface (usually '0') and YY is the VLAN # to use.",
         default = "",
+        condition = "supportsVLANChange()",
         postcallback = "postChangeWANVLAN()",
         needreboot = true
     },
@@ -358,6 +359,12 @@ end
 
 function hasUSB()
     return aredn.hardware.has_usb()
+end
+
+function supportsVLANChange()
+    -- We dont currently support VLAN changes on devices with switch chips
+    local stat = nixio.fs.stat("/etc/aredn_include/swconfig")
+    return not (stat and stat.size > 0)
 end
 
 -- callbacks
