@@ -212,12 +212,13 @@ local settings = {
         default = "1000"
     },
     {
-        key = "network.wan.ifname",
+        key = "aredn.wan.vlanid",
         type = "string",
-        desc = "Specify WAN interface VLAN #. MUST be entered as ethX.YY where X is the interface (usually '0') and YY is the VLAN # to use.",
+        desc = "Specify WAN VLAN #",
         default = "",
         condition = "supportsVLANChange()",
-        postcallback = "postChangeWANVLAN()",
+        current = "currentWANVLAN()",
+        postcallback = "changeWANVLAN()",
         needreboot = true
     },
     {
@@ -463,7 +464,22 @@ function adjustTunnelInterfaceCount()
     end
 end
 
-function postChangeWANVLAN()
+function currentWANVLAN()
+    for line in io.lines("/etc/config.mesh/_setup")
+    do
+        local vlan = line:match("^wan_intf = %w+%d+%.(%d+)")
+        if vlan then
+            return vlan
+        end
+    end
+    local vlan = aredn.hardware.get_board().network.wan.ifname:match("^%w+%.(%d+)")
+    if vlan then
+        return vlan
+    end
+    return ""
+end
+
+function changeWANVLAN()
     local lines = {}
     for line in io.lines("/etc/config.mesh/_setup")
     do
@@ -472,7 +488,14 @@ function postChangeWANVLAN()
         end
     end
     if newval ~= "" then
-        lines[#lines + 1] = "wan_intf = " .. newval
+        local wan_intf = ""
+        for dev in aredn.hardware.get_board().network.wan.ifname:gmatch("%S+")
+        do
+            wan_intf = wan_intf .. " " .. dev:match("^([^%.]+)") .. "." .. newval
+        end
+        if wan_intf ~= "" then
+            lines[#lines + 1] = "wan_intf =" .. wan_intf
+        end
     end
     local f = io.open("/etc/config.mesh/_setup", "w")
     if f then
@@ -674,8 +697,13 @@ html.print([[
 for i, setting in ipairs(settings)
 do
     if not setting.condition or loadstring("return " .. setting.condition)() then
-        local a, b, c = setting.key:match("(.+)%.(.+)%.(.*)")
-        local sval = cursor_get(a, b, c)
+        local sval
+        if setting.current then
+            sval = loadstring("return " .. setting.current)()
+        else
+            local a, b, c = setting.key:match("(.+)%.(.+)%.(.*)")
+            sval = cursor_get(a, b, c)
+        end
         sval = sval and tostring(sval) or ""
         html.print([[<tr><td align="center"><span title="]] .. setting.desc .. [["><img src="/qmark.png" /></span></td><td>]] .. setting.key .. [[</td><td>]])
         if setting.type == "string" then
