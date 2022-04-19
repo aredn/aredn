@@ -81,7 +81,7 @@ function do_namechange()
 
     -- Find the current neighbors
     local links = fetch_json("http://127.0.0.1:9090/links")
-    if #links.links == 0 then
+    if not (links and links.links and #links.links > 0) then
         return
     end
     for i, link in ipairs(links.links)
