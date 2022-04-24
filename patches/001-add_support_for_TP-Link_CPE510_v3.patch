@@ -1,7 +1,5 @@
-Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/01_leds
-+++ openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
+--- a/target/linux/ar71xx/base-files/etc/board.d/01_leds
++++ b/target/linux/ar71xx/base-files/etc/board.d/01_leds
 @@ -257,6 +257,7 @@ cpe210-v3|\
  cpe220-v3|\
  cpe510|\
@@ -20,10 +18,8 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
  		ucidef_set_led_netdev "lan" "LAN" "tp-link:green:lan0" "eth0"
  		;;
  	*)
-Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/02_network
-+++ openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
+--- a/target/linux/ar71xx/base-files/etc/board.d/02_network
++++ b/target/linux/ar71xx/base-files/etc/board.d/02_network
 @@ -78,6 +78,7 @@ ar71xx_setup_interfaces()
  	cpe210-v2|\
  	cpe210-v3|\
@@ -32,11 +28,9 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  	dr342|\
  	eap120|\
  	eap300v2|\
-Index: openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/lib/ar71xx.sh
-+++ openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
-@@ -773,6 +773,10 @@ ar71xx_board_detect() {
+--- a/target/linux/ar71xx/base-files/lib/ar71xx.sh
++++ b/target/linux/ar71xx/base-files/lib/ar71xx.sh
+@@ -774,6 +774,10 @@ ar71xx_board_detect() {
  		name="cpe510-v2"
  		tplink_pharos_board_detect "$(tplink_pharos_v2_get_model_string)"
  		;;
@@ -47,10 +41,8 @@ Index: openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
  	*"CPE610")
  		name="cpe610"
  		tplink_pharos_board_detect "$(tplink_pharos_v2_get_model_string)"
-Index: openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
-+++ openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
+--- a/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
++++ b/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
 @@ -600,7 +600,8 @@ platform_check_image() {
  		return 1
  		;;
@@ -61,10 +53,8 @@ Index: openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
  		tplink_pharos_check_image "$1" "7f454c46" "$(tplink_pharos_v2_get_model_string)" '\0\xff\r' && return 0
  		return 1
  		;;
-Index: openwrt/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
-===================================================================
---- openwrt.orig/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
-+++ openwrt/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
+--- a/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
++++ b/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
 @@ -337,6 +337,9 @@ MIPS_MACHINE(ATH79_MACH_CPE210_V3, "CPE2
  MIPS_MACHINE(ATH79_MACH_CPE220_V3, "CPE220V3", "TP-LINK CPE220 v3",
  	     cpe220_v3_setup);
@@ -75,10 +65,8 @@ Index: openwrt/target/linux/ar71xx/files/arch/mips/ath79/mach-cpe510.c
  MIPS_MACHINE(ATH79_MACH_CPE510, "CPE510", "TP-LINK CPE510/520",
  	     cpe510_setup);
  
-Index: openwrt/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
-===================================================================
---- openwrt.orig/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
-+++ openwrt/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
+--- a/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
++++ b/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
 @@ -81,6 +81,7 @@ enum ath79_mach_type {
  	ATH79_MACH_CPE505N,			/* P&W CPE505N */
  	ATH79_MACH_CPE510,			/* TP-LINK CPE510 */
@@ -87,10 +75,8 @@ Index: openwrt/target/linux/ar71xx/files/arch/mips/ath79/machtypes.h
  	ATH79_MACH_CPE610,			/* TP-LINK CPE610 */
  	ATH79_MACH_CPE830,			/* YunCore CPE830 */
  	ATH79_MACH_CPE870,			/* YunCore CPE870 */
-Index: openwrt/target/linux/ar71xx/image/generic-tp-link.mk
-===================================================================
---- openwrt.orig/target/linux/ar71xx/image/generic-tp-link.mk
-+++ openwrt/target/linux/ar71xx/image/generic-tp-link.mk
+--- a/target/linux/ar71xx/image/generic-tp-link.mk
++++ b/target/linux/ar71xx/image/generic-tp-link.mk
 @@ -185,6 +185,14 @@ define Device/cpe510-v2
  endef
  TARGET_DEVICES += cpe510-v2
@@ -106,11 +92,9 @@ Index: openwrt/target/linux/ar71xx/image/generic-tp-link.mk
  define Device/cpe210-220-v1
    $(Device/cpe510-520-v1)
    DEVICE_TITLE := TP-LINK CPE210/220 v1
-Index: openwrt/tools/firmware-utils/src/tplink-safeloader.c
-===================================================================
---- openwrt.orig/tools/firmware-utils/src/tplink-safeloader.c
-+++ openwrt/tools/firmware-utils/src/tplink-safeloader.c
-@@ -409,7 +409,17 @@ static struct device_info boards[] = {
+--- a/tools/firmware-utils/src/tplink-safeloader.c
++++ b/tools/firmware-utils/src/tplink-safeloader.c
+@@ -375,7 +375,17 @@ static struct device_info boards[] = {
  			"CPE510(TP-LINK|US|N300-5|55530000):2.0\r\n"
  			"CPE510(TP-LINK|UN|N300-5):2.0\r\n"
  			"CPE510(TP-LINK|EU|N300-5):2.0\r\n"

@@ -1,16 +1,14 @@
-Index: openwrt/target/linux/ath79/base-files/etc/board.d/02_network
-===================================================================
---- openwrt.orig/target/linux/ath79/base-files/etc/board.d/02_network
-+++ openwrt/target/linux/ath79/base-files/etc/board.d/02_network
-@@ -40,6 +40,7 @@ ath79_setup_interfaces()
- 	ubnt,nanostation-ac-loco|\
+--- a/target/linux/ath79/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/base-files/etc/board.d/02_network
+@@ -58,6 +58,7 @@ ath79_setup_interfaces()
  	ubnt,nanostation-loco-m|\
+ 	ubnt,nanostation-loco-m-xw|\
  	ubnt,picostation-m|\
 +	ubnt,nanostation-m-xw|\
  	ubnt,rocket-m|\
  	ubnt,unifiac-lite|\
  	ubnt,unifiac-lr|\
-@@ -47,7 +48,9 @@ ath79_setup_interfaces()
+@@ -65,7 +66,9 @@ ath79_setup_interfaces()
  	ubnt,unifi|\
  	wd,mynet-wifi-rangeextender|\
  	winchannel,wb2000)
@@ -21,8 +19,8 @@ Index: openwrt/target/linux/ath79/base-files/etc/board.d/02_network
  		;;
  	avm,fritz4020|\
  	pcs,cr3000|\
-@@ -84,8 +87,9 @@ ath79_setup_interfaces()
- 	tplink,tl-wr842n-v3|\
+@@ -110,8 +113,9 @@ ath79_setup_interfaces()
+ 	tplink,tl-wr941nd-v6|\
  	ubnt,airrouter)
  		ucidef_set_interface_wan "eth1"
 +		ucidef_set_interface "wifi" "ifname" "wlan0" "protocol" "static"
@@ -32,7 +30,7 @@ Index: openwrt/target/linux/ath79/base-files/etc/board.d/02_network
  		;;
  	buffalo,wzr-hp-g302h-a1a0)
  		ucidef_add_switch "switch0" \
-@@ -96,7 +100,10 @@ ath79_setup_interfaces()
+@@ -129,7 +133,10 @@ ath79_setup_interfaces()
  	tplink,cpe220-v3|\
  	ubnt,nanostation-m|\
  	ubnt,routerstation)
@@ -44,7 +42,7 @@ Index: openwrt/target/linux/ath79/base-files/etc/board.d/02_network
  		;;
  	devolo,dvl1200e|\
  	devolo,dvl1750e|\
-@@ -257,18 +264,21 @@ ath79_setup_interfaces()
+@@ -287,18 +294,21 @@ ath79_setup_interfaces()
  		ucidef_add_switch "switch0" \
  			"0@eth1" "2:lan:3" "3:lan:2" "4:lan:1"
  		;;
