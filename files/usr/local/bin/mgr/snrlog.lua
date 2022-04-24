@@ -190,7 +190,7 @@ function run_snrlog()
                     -- Write a null to the log file
                     local f, err = assert(io.open(logdatafile, "a"),"Cannot open file ("..logdatafile..") for appending!")
                     if f then
-                        f:write(string.format("%s,%s,%s,%s,%s,%s,%s\n", os.date("%m/%d %H:%M:%S", os.time()), 'null', nf, '0', '0', '0', '0'))
+                        f:write(string.format("%s,%s,%s,%s,%s,%s,%s\n", os.date("%m/%d/%Y %H:%M:%S", os.time()), 'null', nf, '0', '0', '0', '0'))
                         f:close()
                         nulledout[mac] = "true"
                     else
