@@ -1,7 +1,5 @@
-Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/01_leds
-+++ openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
+--- a/target/linux/ar71xx/base-files/etc/board.d/01_leds
++++ b/target/linux/ar71xx/base-files/etc/board.d/01_leds
 @@ -693,6 +693,7 @@ rb-2011uias-2hnd-r2)
  	ucidef_set_led_switch "eth10" "ETH10" "rb:green:eth10" "switch1" "0x02"
  	;;
@@ -10,10 +8,8 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/01_leds
  rb-lhg-5hpnd-xl|\
  rb-ldf-5nd)
  	ucidef_set_led_netdev "lan" "LAN" "rb:green:eth" "eth0"
-Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/etc/board.d/02_network
-+++ openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
+--- a/target/linux/ar71xx/base-files/etc/board.d/02_network
++++ b/target/linux/ar71xx/base-files/etc/board.d/02_network
 @@ -114,6 +114,7 @@ ar71xx_setup_interfaces()
  	rb-921gs-5hpacd-r2|\
  	rb-922uags-5hpacd|\
@@ -22,10 +18,8 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/board.d/02_network
  	rb-lhg-5hpnd-xl|\
  	rb-ldf-5nd|\
  	rb-mapl-2nd|\
-Index: openwrt/target/linux/ar71xx/base-files/etc/diag.sh
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/etc/diag.sh
-+++ openwrt/target/linux/ar71xx/base-files/etc/diag.sh
+--- a/target/linux/ar71xx/base-files/etc/diag.sh
++++ b/target/linux/ar71xx/base-files/etc/diag.sh
 @@ -379,6 +379,7 @@ get_status_led() {
  	rb-952ui-5ac2nd|\
  	rb-962uigs-5hact2hnt|\
@@ -34,10 +28,8 @@ Index: openwrt/target/linux/ar71xx/base-files/etc/diag.sh
  	rb-lhg-5hpnd-xl|\
  	rb-ldf-5nd|\
  	rb-map-2nd|\
-Index: openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/lib/ar71xx.sh
-+++ openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
+--- a/target/linux/ar71xx/base-files/lib/ar71xx.sh
++++ b/target/linux/ar71xx/base-files/lib/ar71xx.sh
 @@ -525,9 +525,13 @@ mikrotik_board_detect() {
  	*"962UiGS-5HacT2HnT")
  		name="rb-962uigs-5hact2hnt"
@@ -52,7 +44,7 @@ Index: openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
  	*"LHG 5HPnD-XL")
  		name="rb-lhg-5hpnd-xl"
  		;;
-@@ -565,6 +569,12 @@ mikrotik_board_detect() {
+@@ -566,6 +570,12 @@ mikrotik_board_detect() {
  	*"wAPG-5HacT2HnD")
  		name="rb-wapg-5hact2hnd"
  		;;
@@ -65,10 +57,8 @@ Index: openwrt/target/linux/ar71xx/base-files/lib/ar71xx.sh
  	esac
  
  	echo "$name"
-Index: openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
-===================================================================
---- openwrt.orig/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
-+++ openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
+--- a/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
++++ b/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
 @@ -728,6 +728,7 @@ platform_check_image() {
  	rb-952ui-5ac2nd|\
  	rb-962uigs-5hact2hnt|\
@@ -77,10 +67,8 @@ Index: openwrt/target/linux/ar71xx/base-files/lib/upgrade/platform.sh
  	rb-lhg-5hpnd-xl|\
  	rb-ldf-5nd|\
  	rb-map-2nd|\
-Index: openwrt/target/linux/ar71xx/image/mikrotik.mk
-===================================================================
---- openwrt.orig/target/linux/ar71xx/image/mikrotik.mk
-+++ openwrt/target/linux/ar71xx/image/mikrotik.mk
+--- a/target/linux/ar71xx/image/mikrotik.mk
++++ b/target/linux/ar71xx/image/mikrotik.mk
 @@ -46,7 +46,7 @@ define Device/rb-nor-flash-16M
    DEVICE_PACKAGES := rbcfg rssileds -nand-utils kmod-ledtrig-gpio
    IMAGE_SIZE := 16000k

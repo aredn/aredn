@@ -1,7 +1,5 @@
-Index: openwrt/package/kernel/mac80211/patches/569-ath9k-dynack-set-max-timeout.patch
-===================================================================
 --- /dev/null
-+++ openwrt/package/kernel/mac80211/patches/569-ath9k-dynack-set-max-timeout.patch
++++ b/package/kernel/mac80211/patches/569-ath9k-dynack-set-max-timeout.patch
 @@ -0,0 +1,36 @@
 +--- a/drivers/net/wireless/ath/ath9k/dynack.c
 ++++ b/drivers/net/wireless/ath/ath9k/dynack.c
@@ -39,11 +37,9 @@ Index: openwrt/package/kernel/mac80211/patches/569-ath9k-dynack-set-max-timeout.
 + 	struct ath_dynack *da = &ah->dynack;
 + 
 + 	da->lto = jiffies;
-Index: openwrt/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
-===================================================================
---- openwrt.orig/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
-+++ openwrt/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
-@@ -769,7 +769,11 @@ drv_mac80211_setup() {
+--- a/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
++++ b/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
+@@ -770,7 +770,11 @@ drv_mac80211_setup() {
  
  	iw phy "$phy" set antenna $txantenna $rxantenna >/dev/null 2>&1
  	iw phy "$phy" set antenna_gain $antenna_gain
@@ -56,10 +52,8 @@ Index: openwrt/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
  
  	[ -n "$frag" ] && iw phy "$phy" set frag "${frag%%.*}"
  	[ -n "$rts" ] && iw phy "$phy" set rts "${rts%%.*}"
-Index: openwrt/package/kernel/mac80211/patches/568-ath-dynack-set-max-timeout-according-to-clockrate.patch
-===================================================================
 --- /dev/null
-+++ openwrt/package/kernel/mac80211/patches/568-ath-dynack-set-max-timeout-according-to-clockrate.patch
++++ b/package/kernel/mac80211/patches/568-ath-dynack-set-max-timeout-according-to-clockrate.patch
 @@ -0,0 +1,93 @@
 +From 72f4ba6f6b6021fcc48d07d03407c2fdb16a46c5 Mon Sep 17 00:00:00 2001
 +Message-Id: <72f4ba6f6b6021fcc48d07d03407c2fdb16a46c5.1554035972.git.lorenzo@kernel.org>
