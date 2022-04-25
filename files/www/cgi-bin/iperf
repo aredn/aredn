@@ -39,17 +39,19 @@ require("aredn.http")
 require("luci.sys")
 require("aredn.html")
 
-local server = (os.getenv("QUERY_STRING") or ""):match("server=(.*)")
+local q = os.getenv("QUERY_STRING") or ""
+local server = q:match("server=([^&]*)")
+local protocol = q:match("protocol=([^&]*)") or "tcp"
 http_header()
 if uci.cursor():get("aredn", "@iperf[0]", "enable") == "0" then
     aredn.html.print("<html><head></head><body><pre>iperf is disabled</pre></body></html>")
 elseif not server then
-    aredn.html.print("<html><head></head><body><pre>Provide a server name to run a test between this client and a server [/cgi-bin/iperf?server=&lt;ServerName&gt;]</pre></body></html>")
+    aredn.html.print("<html><head></head><body><pre>Provide a server name to run a test between this client and a server [/cgi-bin/iperf?server=&lt;ServerName&gt;&amp;protocol=&lt;udp|tcp&gt;]</pre></body></html>")
 elseif server == "" then
     os.execute("killall iperf3; iperf3 -s -D -1")
     aredn.html.print("<html><head></head><body><pre>iperf server running (one time)</pre></body></html>")
 else
     luci.sys.httpget("http://" .. server .. ":8080/cgi-bin/iperf?server=")
-    aredn.html.print("<html><head><title>iperf</title></head><body><body><pre>" .. io.popen("/usr/bin/iperf3 -c " .. server .. " 2>&1"):read("*a") .. "</pre></body></html>")
+    aredn.html.print("<html><head><title>iperf</title></head><body><body><pre>" .. io.popen("/usr/bin/iperf3 -b 0 -c " .. server .. (protocol == "udp" and " -u" or "") .. " 2>&1"):read("*a") .. "</pre></body></html>")
 end
 http_footer()
