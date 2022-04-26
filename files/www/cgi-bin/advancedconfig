@@ -249,6 +249,14 @@ local settings = {
         needreboot = true
     },
     {
+        key = "aredn.@lqm[0].enable",
+        type = "boolean",
+        desc = "Enable experimental link quality management",
+        default = "0",
+        postcallback = "lqm_defaults()",
+        needreboot = true
+    },
+    {
         key = "aredn.aam.purge",
         type = "none",
         desc = "Immediately purge/delete all AREDN (and local) Alerts from this node.",
@@ -404,6 +412,14 @@ end
 function alert_purge()
     os.remove("/tmp/aredn_message")
     os.remove("/tmp/local_message")
+end
+
+function lqm_defaults()
+    cursor_set("aredn", "@lqm[0]", "low", "15")
+    cursor_set("aredn", "@lqm[0]", "margin", "2")
+    cursor_set("aredn", "@lqm[0]", "min_distance", "0")
+    cursor_set("aredn", "@lqm[0]", "max_distance", "114750")
+    cursor_set("aredn", "@lqm[0]", "user_blocks", "")
 end
 
 function writePackageRepo(repo)
