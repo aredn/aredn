@@ -190,7 +190,7 @@ function lqm()
                     track.ip = entry["IP address"]
                     local a, b, c = track.ip:match("^(%d+%.)(%d+)(%.%d+%.%d+)$")
                     local dtd = arps[string.format("%s%d%s", a, tonumber(b) + 1, c)]
-                    if dtd and dtd.Device:match("%.2$") then
+                    if dtd and dtd.Device:match("%.2$") and dtd["HW address"] ~= "00:00:00:00:00:00" then
                         macdtd = true
                     end
                     track.hostname = (nixio.getnameinfo(track.ip) or ""):match("^(.*)%.local%.mesh$")
