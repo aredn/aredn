@@ -8,6 +8,7 @@ SERVER_CONF=/tmp/vtun/vtundsrv.conf
 # Starting tun interface is tun50
 TUNNUM=50
 MAXTUNNUM=$((`uci get aredn.@tunnel[0].maxclients 2>/dev/null` + $TUNNUM - 1))
+STUNNUM=${TUNNUM}
 
 network_config() {
 	local cfg="$1"
@@ -121,8 +122,11 @@ start() {
 		config_foreach options_config options "$SERVER_CONF"
 		config_foreach allowed_client_config client "$SERVER_CONF"
 
-		# START SERVER LISTENER
-		/usr/sbin/vtund -s -f $SERVER_CONF
+		# START SERVER LISTENER IF NECESSARY
+		if [ "${TUNNUM}" != "${STUNNUM}" ]
+		then
+			/usr/sbin/vtund -s -f $SERVER_CONF
+		fi
 	fi
 }
 
