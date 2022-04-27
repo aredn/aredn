@@ -1,0 +1,62 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2022 Tim Wilkinson
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("uci")
+require("aredn.http")
+require("luci.sys")
+require("aredn.html")
+
+local q = os.getenv("QUERY_STRING") or ""
+local server = q:match("server=([^&]*)")
+local protocol = q:match("protocol=([^&]*)") or "tcp"
+http_header(true)
+if uci.cursor():get("aredn", "@iperf[0]", "enable") == "0" then
+    aredn.html.print("<html><head></head><body><pre>iperf is disabled</pre></body></html>")
+elseif not server then
+    aredn.html.print("<html><head></head><body><pre>Provide a server name to run a test between this client and a server [/cgi-bin/iperf?server=&lt;ServerName&gt;&amp;protocol=&lt;udp|tcp&gt;]</pre></body></html>")
+elseif server == "" then
+    os.execute("killall iperf3; iperf3 -s -D -1")
+    aredn.html.print("<html><head></head><body><pre>iperf server running (one time)</pre></body></html>")
+elseif server:match("[^%w-%.]") then
+    aredn.html.print("<html><head></head><body><pre>Illegal server name</pre></body></html>")
+else
+    if not server:match("%.") then
+      server = server .. ".local.mesh"
+    end
+    luci.sys.httpget("http://" .. server .. ":8080/cgi-bin/iperf?server=")
+    aredn.html.print("<html><head><title>iperf</title></head><body><body><pre>" .. io.popen("/usr/bin/iperf3 -b 0 -c " .. server .. (protocol == "udp" and " -u" or "") .. " 2>&1"):read("*a") .. "</pre></body></html>")
+end
+http_footer()
