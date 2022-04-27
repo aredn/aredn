@@ -35,12 +35,15 @@
 --]]
 
 function rssi_monitor()
-    while true
-    do
-        if not string.match(get_ifname("wifi"), "^eth.") and nixio.sysinfo().uptime > 119 then
+    if string.match(get_ifname("wifi"), "^eth.") then
+        exit_app()
+    else
+        wait_for_ticks(math.max(1, 120 - nixio.sysinfo().uptime))
+        while true
+        do
             run_monitor()
+            wait_for_ticks(60) -- 1 minute
         end
-        wait_for_ticks(60) -- 1 minute
     end
 end
 
