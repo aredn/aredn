@@ -1310,7 +1310,9 @@ html.print("</select></td><td align=left>NTP Server</td><td><input type=text nam
 
 hidden[#hidden + 1] = "<input type=hidden name=reload value=1>"
 hidden[#hidden + 1] = "<input type=hidden name=dtdlink_ip value='" .. dtdlink_ip .. "'>"
-hidden[#hidden + 1] = "<input type=hidden name=wan_intf value='" .. (wan_intf or "") .. "'>"
+if wan_intf then
+    hidden[#hidden + 1] = "<input type=hidden name=wan_intf value='" .. wan_intf .. "'>"
+end
 
 for _,hid in ipairs(hidden)
 do
