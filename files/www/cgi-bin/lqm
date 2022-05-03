@@ -35,176 +35,117 @@
 
 require("aredn.http")
 require("aredn.info")
+require("aredn.hardware")
 local html = require("aredn.html")
 local info = require("aredn.info")
-local json = require("luci.jsonc")
 
-local node = info.get_nvram("node")
-local data = io.popen("/www/cgi-bin/lqm-api inline"):read("*a")
 
 http_header()
-html.header(node .. " Link Quality Manager", true)
-if uci.cursor():get("aredn", "@lqm[0]", "enable") ~= "1" then
-    html.print("<body>Disabled</body></html>")
-else
-    html.print(string.format([[
-    <body>
-        <style>
-            body {
-                font-size: 14px;
-                padding: 16px;
-            }
-            .title {
-                font-size: 24px;
-            }
-            .lt {
-                font-weight: bold;
-                padding: 12px 0 4px 0;
-            }
-            #links {
-                padding-bottom: 16px;
-            }
-            #links > div {
-                padding: 2px 0;
-            }
-            .m, .b {
-                display: inline-block;
-                width: 250px;
-            }
-            .s {
-                display: inline-block;
-                width: 70px;
-            }
-            .p {
-                display: inline-block;
-                width: 120px;
-            }
-            .x {
-                display: inline-block;
-                width: 75px;
-            }
-            input {
-                font-size: 14px;
-                width: 40px;
-            }
-        </style>
+html.header(info.get_nvram("node") .. " Link Quality Manager", true)
+html.print("<body>")
+html.alert_banner()
+html.print([[
+    <style>
+        body {
+            font-size: 14px;
+            padding: 16px;
+        }
+        .title {
+            font-size: 20px;
+            padding-top: 20px;
+        }
+        .lt {
+            font-weight: bold;
+            padding: 12px 0 4px 0;
+        }
+        #links {
+            padding-bottom: 16px;
+            min-height: 400px;
+        }
+        #links > div {
+            padding: 2px 0;
+        }
+        .m, .b {
+            display: inline-block;
+            width: 190px;
+        }
+        .s {
+            display: inline-block;
+            width: 80px;
+        }
+        .p {
+            display: inline-block;
+            width: 120px;
+        }
+    </style>
+    <center><table width=790><tr><td>
         <div class="title">Link Quality Manager</div>
         <div class="lt">
-            <span class="m">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Error</span><span class="p">TX</span><span class="x">Block</span><span class="b">Status</span>
+            <span class="m">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Error</span><span class="p">TX</span><span class="b">Status</span>
         </div>
         <div id="links"></div>
-        <div id="ctrl">
-            <span>SNR</span>
-            <span>Minimum <input id="low" type="number" min="0" max="95"></span>
-            <span>Margin <input id="margin" type="number" min="0" max="95"></span>
-        </div>
-        <div id="ctrl">
-            <span>Distance </span>
-            <span>Minimum <input id="min_distance" type="number" min="0" max="71.30" style="width:65px"></span>
-            <span>Maximum <input id="max_distance" type="number" min="0" max="71.30" style="width:65px"> miles</span>
-        </div>
-        <script>
-            const meters_to_miles = 0.000621371;
-            const wifi_scale = 0.2;
-            let d = %s;
-            const margin = document.getElementById("margin");
-            const low = document.getElementById("low");
-            const min_distance = document.getElementById("min_distance");
-            const max_distance = document.getElementById("max_distance");
-            margin.value = d.config.margin;
-            low.value = d.config.low;
-            min_distance.value = (d.config.min_distance * meters_to_miles).toFixed(2);
-            max_distance.value = (d.config.max_distance * meters_to_miles).toFixed(2);
-            const status = track => {
-                if (track.blocked) {
-                    if (track.blocks.user) {
-                        return "blocked - user";
-                    }
-                    if (track.blocks.dtd) {
-                        return "blocked - dtd";
-                    }
-                    if (track.blocks.signal) {
-                        return "blocked - low signal";
-                    }
-                    if (track.blocks.distance) {
-                        return "blocked - too distant";
-                    }
-                    return "blocked";
+    </td></tr></table></center>
+    <script>
+        const meters_to_miles = 0.000621371;
+        const wifi_scale = 0.2;
+        const status = track => {
+            if (track.blocked) {
+                if (track.blocks.user) {
+                    return "blocked - user";
                 }
-                if (track.pending) {
-                    return "pending";
+                if (track.blocks.dtd) {
+                    return "blocked - dtd";
                 }
-                if (track.routable) {
-                    return "active";
+                if (track.blocks.signal) {
+                    return "blocked - signal";
                 }
-                return "idle";
+                if (track.blocks.distance) {
+                    return "blocked - distance";
+                }
+                if (track.blocks.dup) {
+                    return "blocked - dup";
+                }
+                return "blocked";
             }
-            const name = track => {
-                if (track.hostname || track.ip) {
-                    return `<a href="http://${track.hostname || track.ip}">${track.hostname || track.ip}</a>`;
-                }
-                return track.mac || "-";
+            if (track.pending) {
+                return "pending";
             }
-            const onChange = () => {
-                const user_blocks = d.config.user_blocks.length ? d.config.user_blocks.split(",") : [];
-                const trackers = Object.values(d.info.trackers);
-                const c = document.querySelectorAll(".x input");
-                for (let i = 0; i < c.length; i++) {
-                    const mac = trackers[i].mac;
-                    const idx = user_blocks.indexOf(mac);
-                    if (c[i].checked &&  idx === -1) {
-                        user_blocks.push(mac)
-                    }
-                    else if (!c[i].checked && idx !== -1) {
-                        user_blocks.splice(idx, 1);
-                    }
-                }
-                fetch("/cgi-bin/lqm-api", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    },
-                    body: `margin=${Math.max(0, margin.value)}&low=${Math.max(0, low.value)}&min_distance=${Math.round(min_distance.value / meters_to_miles)}&max_distance=${Math.round(max_distance.value / meters_to_miles)}&user_blocks=${user_blocks.join(",")}`
-                });
+            if (track.routable) {
+                return "active";
             }
-            const update = data => {
-                d = data;
-                let links = "";
-                const user_blocks = d.config.user_blocks.length ? d.config.user_blocks.split(",") : [];
-                for (let mac in data.info.trackers) {
-                    const track = data.info.trackers[mac];
-                    let txspeed = "-";
-                    let txsuccess = "-";
-                    if (!track.blocked && track.station.tx_packets > 0) {
-                        txsuccess = Math.max(0, (track.station.tx_packets - track.station.tx_retries - track.station.tx_fail) / track.station.tx_packets);
-                        txspeed = (track.station.tx_rate * wifi_scale * txsuccess).toFixed(2) + " Mb/s";
-                        txsuccess = (100 - Math.round(txsuccess * 100)) + "%%";
-                    }
-                    links += `<div><span class="m">${name(track)}</span><span class="s">${track.station.signal - track.station.noise}</span><span class="p">${"distance" in track ? (meters_to_miles * track.distance).toFixed(2) + " miles" : "-"}</span><span class="s">${txsuccess}</span><span class="p">${txspeed}</span><span class="x"><input type="checkbox" ${user_blocks.indexOf(track.mac) !== -1 ? "checked" : ""}></span><span class="b">${status(track)}</span></div>`;
-                }
-                document.getElementById("links").innerHTML = links;
-                const c = document.querySelectorAll(".x input");
-                for (let i = 0; i < c.length; i++) {
-                    c[i].addEventListener("change", onChange);
-                }
+            return "idle";
+        }
+        const name = track => {
+            if (track.hostname || track.ip) {
+                return `<a href="http://${track.hostname || track.ip}:8080">${track.hostname || track.ip}</a>`;
             }
-            
-            margin.addEventListener("change", onChange);
-            low.addEventListener("change", onChange);
-            min_distance.addEventListener("change", onChange);
-            max_distance.addEventListener("change", onChange);
-            const fetchAndUpdate = () => {
-                fetch("/cgi-bin/lqm-api").then(r => r.json()).then(data => {
-                    update(data);
-                    setTimeout(fetchAndUpdate, 60000);
-                }).catch(_ => {
-                    setTimeout(fetchAndUpdate, 30000);
-                });
+            return track.mac || "-";
+        }
+        const update = data => {
+            let links = "";
+            for (let mac in data.info.trackers) {
+                const track = data.info.trackers[mac];
+                let txspeed = "-";
+                let txsuccess = "-";
+                if (!track.blocked && track.station.tx_packets > 0) {
+                    txsuccess = Math.max(0, (track.station.tx_packets - track.station.tx_retries - track.station.tx_fail) / track.station.tx_packets);
+                    txspeed = (track.station.tx_rate * wifi_scale * txsuccess).toFixed(2) + " Mb/s";
+                    txsuccess = (100 - Math.round(txsuccess * 100)) + "%";
+                }
+                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${"distance" in track ? (meters_to_miles * track.distance).toFixed(2) + " miles" : "-"}</span><span class="s">${txsuccess}</span><span class="p">${txspeed}</span><span class="b">${status(track)}</span></div>`;
             }
-            update(d);
-            fetchAndUpdate();
-        </script>
-    </body>
-    </html>]], data))
-end
+            document.getElementById("links").innerHTML = links;
+        }
+        const fetchAndUpdate = () => {
+            fetch("/cgi-bin/sysinfo.json?lqm=1").then(r => r.json()).then(data => {
+                update(data.lqm);
+                setTimeout(fetchAndUpdate, 60000);
+            }).catch(_ => {
+                setTimeout(fetchAndUpdate, 30000);
+            });
+        }
+        fetchAndUpdate();
+    </script>]])
+html.footer()
+html.print("</body></html>")
 http_footer()

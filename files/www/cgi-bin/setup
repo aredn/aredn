@@ -409,6 +409,12 @@ if not parms.reload then
     end
 end
 
+-- lqm
+local lqm_mode = false
+if cursor:get("aredn", "@lqm[0]", "enable") == "1" then
+    lqm_mode = true
+end
+
 -- sanitize the active settings
 if not wifi_txpower or wifi_txpower > aredn.hardware.wifi_maxpower(wifi_channel) then
     wifi_txpower = aredn.hardware.wifi_maxpower(wifi_channel)
@@ -430,10 +436,19 @@ parms.wifi_txpower = wifi_txpower
 
 -- apply the wifi settings
 if (parms.button_apply or parms.button_save) and wifi_enable == "1" and phy then
-    if wifi_distance == 0 then
-        os.execute("iw phy " .. phy .. " set distance auto >/dev/null 2>&1")
+    if not lqm_mode then
+        if wifi_distance == 0 then
+            os.execute("iw phy " .. phy .. " set distance auto >/dev/null 2>&1")
+        else
+            os.execute("iw phy " .. phy .. " set distance " .. wifi_distance .. " >/dev/null 2>&1")
+        end
     else
-        os.execute("iw phy " .. phy .. " set distance " .. wifi_distance .. " >/dev/null 2>&1")
+        local cursora = uci.cursor();
+        local cursorb = uci.cursor("/etc/config.mesh")
+        cursora:set("aredn", "@lqm[0]", "low_snr", parms.lqm_min_snr)
+        cursora:set("aredn", "@lqm[0]", "max_distance", math.floor(parms.lqm_max_distance * 1609.344))
+        cursora:commit("aredn")
+        cursorb:commit("aredn")
     end
     os.execute("iw dev " .. wifiintf .. " set txpower fixed " .. wifi_txpower .. "00 >/dev/null 2>&1")
 end
@@ -1043,18 +1058,25 @@ if wifi_enable == "1" then
         html.print("<option value='" .. i .. "'".. (i == tonumber(wifi_txpower) and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>")
     end
     html.print("</select>&nbsp;&nbsp;<a href=\"/help.html#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
-    html.print("<tr id='dist' class='dist-norm'><td>Distance to<br/>FARTHEST Neighbor<br/><h3>'0' is auto</h3></td>")
+    if lqm_mode then
+        local lqm_max_distance = tonumber(cursor:get("aredn", "@lqm[0]", "max_distance")) or 114750
+        local lqm_min_snr = cursor:get("aredn", "@lqm[0]", "low_snr") or "15"
+        html.print("<tr><td>Max Distance</td><td><input type=text size=4 name='lqm_max_distance' value='" .. string.format("%.1f", lqm_max_distance / 1609.344) .. "' title='Maximum distance to a neighbor before it will be ignored'>&nbsp;miles</td></tr>")
+        html.print("<tr><td>Minimum SNR</td><td><input type=text size=4 name='lqm_min_snr' value='" .. lqm_min_snr .. "' title='Minimum acceptable SNR of neighbor before it will be accepted'></td></tr>")
+        html.print("<tr><td colspan=2 style='padding:2px 0'><a href='lqm' target='_blank'>Neighbor status</a></td></tr>")
+    else
+        html.print("<tr id='dist' class='dist-norm'><td>Distance to<br/>FARTHEST Neighbor<br/><h3>'0' is auto</h3></td>")
 
-    local wifi_distance = math.floor(tonumber(wifi_distance))
-    local wifi_distance_disp_km = math.floor(wifi_distance / 1000)
-    local wifi_distance_disp_miles = string.format("%.2f", wifi_distance_disp_km * 0.621371192)
-    html.print("<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='" .. wifi_distance_disp_miles .. "' title='Distance to the farthest neighbor'>&nbsp;mi<br />")
-    html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_km' value='" .. wifi_distance_disp_km .. "' title='Distance to the farthest neighbor'>&nbsp;km<br />")
-    html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_meters' value='" .. wifi_distance .."' title='Distance to the farthest neighbor'>&nbsp;m<br />")
-    html.print("<input id='distance_slider' type='range' min='0' max='150' step='1' value='" .. wifi_distance_disp_km .."' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />")
-    html.print("<input type='hidden' size='6' name='wifi_distance' value='" .. wifi_distance .. "' />")
-    html.print("</td></tr>")
-
+        local wifi_distance = math.floor(tonumber(wifi_distance))
+        local wifi_distance_disp_km = math.floor(wifi_distance / 1000)
+        local wifi_distance_disp_miles = string.format("%.2f", wifi_distance_disp_km * 0.621371192)
+        html.print("<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='" .. wifi_distance_disp_miles .. "' title='Distance to the farthest neighbor'>&nbsp;mi<br />")
+        html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_km' value='" .. wifi_distance_disp_km .. "' title='Distance to the farthest neighbor'>&nbsp;km<br />")
+        html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_meters' value='" .. wifi_distance .."' title='Distance to the farthest neighbor'>&nbsp;m<br />")
+        html.print("<input id='distance_slider' type='range' min='0' max='150' step='1' value='" .. wifi_distance_disp_km .."' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />")
+        html.print("<input type='hidden' size='6' name='wifi_distance' value='" .. wifi_distance .. "' />")
+        html.print("</td></tr>")
+    end
     html.print("<tr><td></td><td><input type=submit name=button_apply value=Apply title='Immediately use these active settings'></td></tr>")
 else
     hidden[#hidden + 1] = "<input type=hidden name=wifi_ssid value='" .. wifi_ssid .."'>"

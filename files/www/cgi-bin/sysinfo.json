@@ -164,6 +164,26 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"link_info=1") then
 	info['link_info']=aredn_olsr.getCurrentNeighbors(true)
 end
 
+-- LQM INFO
+if string.find(nixio.getenv("QUERY_STRING"):lower(),"lqm=1") then
+	local lqm = { enabled = false }
+	if ctx:get("aredn", "@lqm[0]", "enable") == "1" then
+		lqm.enabled = true
+		lqm.config = {
+			low_snr = tonumber(ctx:get("aredn", "@lqm[0]", "low_snr")),
+			margin_snr = tonumber(ctx:get("aredn", "@lqm[0]", "margin_snr")),
+			min_distance = tonumber(ctx:get("aredn", "@lqm[0]", "min_distance")),
+			max_distance = tonumber(ctx:get("aredn", "@lqm[0]", "max_distance")),
+			user_blocks = ctx:get("aredn", "@lqm[0]", "user_blocks") or {}
+		}
+		lqm.info = {}
+		if nixio.fs.stat("/tmp/lqm.info") then
+			lqm.info = json.parse(io.open("/tmp/lqm.info", "r"):read("*a"))
+		end
+	end
+	info['lqm']=lqm
+end
+
 -- Output the HTTP header for JSON
 json_header()
 
