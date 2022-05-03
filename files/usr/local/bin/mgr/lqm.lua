@@ -39,6 +39,7 @@ local info = require("aredn.info")
 local refresh_timeout = 15 * 60 -- refresh high cost data every 15 minutes
 local wait_timeout = 5 * 60 -- wait 5 minutes after node is first seen before blocking
 local lastseen_timeout = 5 * 60 -- age out nodes we've not seen 5 minutes
+local snr_run_avg = 0.8 -- snr running average
 
 local myhostname = (info.get_nvram("node") or "localnode"):lower()
 
@@ -187,7 +188,7 @@ function lqm()
                         },
                         blocked = false,
                         pending = true,
-                        snr = 0,
+                        snr = snr,
                         rev_snr = nil,
                         avg_snr = 0,
                         links = {}
@@ -216,9 +217,13 @@ function lqm()
                     track.blocks.dtd = false
                 end
 
-                track.snr = snr
+                track.snr = math.ceil(snr_run_avg * track.snr + (1 - snr_run_avg) * snr)
                 if station.ack_signal then
-                    track.rev_snr = snr
+                    if not track.rev_snr then
+                        track.rev_snr = station.ack_signal
+                    else
+                        track.rev_snr = math.ceil(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * station.ack_signal)
+                    end
                 end
 
                 track.lastseen = now
@@ -259,7 +264,6 @@ function lqm()
                             end
                         end
                         track.links = {}
-                        track.rev_snr = nil
                         for ip, link in pairs(info.link_info)
                         do
                             if link.hostname then
@@ -275,11 +279,19 @@ function lqm()
                                         }
                                     end
                                     if myhostname == hostname then
-                                        track.rev_snr = snr
+                                        if not track.rev_snr then
+                                            track.rev_snr = snr
+                                        else
+                                            track.rev_snr = math.ceil(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * snr)
+                                        end
                                     end
                                 end
                             end
                         end
+                    else
+                        -- Clear these if we cannot talk to the other end, so we dont use stale values
+                        track.distance = nil
+                        track.rev_snr = nil
                     end
                 end
             end
