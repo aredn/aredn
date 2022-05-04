@@ -70,6 +70,8 @@ end
 function module:GET()
   local res={}
   res['errors'] = {}
+  res['debug'] = {}
+  res['debug'] = self.req
   res['success']=true
   return res
 end
