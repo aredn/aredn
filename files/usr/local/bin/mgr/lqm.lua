@@ -224,7 +224,7 @@ function lqm()
                 if track.station then
                     local tx_packets = station.tx_packets - track.station.tx_packets
                     local tx_errors = (station.tx_fail + station.tx_retries) - (track.station.tx_fail + track.station.tx_retries)
-                    track.tx_errors = tx_packets <= 0 and tx_errors <= 0 and nil or math.min(100, math.max(0, math.floor(100 * tx_errors / tx_packets)))
+                    track.tx_errors = tx_packets + tx_errors <= 0 and nil or math.min(100, math.max(0, math.floor(100 * tx_errors / (tx_packets + tx_errors))))
                 end
                 track.station = station
                 track.lastseen = now
