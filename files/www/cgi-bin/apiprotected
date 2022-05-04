@@ -91,6 +91,11 @@ request['query_string'] = addQueryStringData(qs, qsset)
 -- ADD additional elements by METHOD type
 if method=='GET' then			-- READ	
 	topic=request['query_string']['params']['topic']
+elseif method=='OPTIONS' then			-- OPTIONS
+	request['content_length']=nixio.getenv("CONTENT_LENGTH")
+	rawcontent=io.read("*all")
+	request['content']=json.parse(rawcontent)
+	topic = request['content']['topic']
 elseif method=='POST' then		-- UPDATE
 	request['content_length']=nixio.getenv("CONTENT_LENGTH")
 	rawcontent=io.read("*all")
