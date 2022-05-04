@@ -595,6 +595,42 @@ function model.getMeshGatewaySetting()
 end
 
 -------------------------------------
+-- Returns LAN Mode (dmz_mode)
+-------------------------------------
+function model.getLANMode()
+	lm=os.capture("cat /etc/config.mesh/_setup|grep dmz_mode|cut -d'=' -f2|tr -d ' ' ")
+	lm=lm:chomp()
+	return lm
+end
+
+-------------------------------------
+-- is LAN DHCP enabled
+-------------------------------------
+function model.isLANDHCPEnabled()
+	r=os.capture("cat /etc/config.mesh/_setup|grep lan_dhcp|cut -d'=' -f2|tr -d ' ' ")
+	r=r:chomp()
+	if r=="0" then
+		return false
+	else
+		return true
+	end
+end
+
+-------------------------------------
+-- is Mesh olsr gateway enabled
+-------------------------------------
+function model.isMeshGatewayEnabled()
+	r=os.capture("cat /etc/config.mesh/_setup|grep olsrd_gw|cut -d'=' -f2|tr -d ' ' ")
+	r=r:chomp()
+	if r=="0" then
+		return false
+	else
+		return true
+	end
+end
+
+
+-------------------------------------
 -- Get and set NVRAM values
 -------------------------------------
 function model.get_nvram(var)

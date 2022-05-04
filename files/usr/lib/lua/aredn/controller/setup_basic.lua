@@ -86,8 +86,8 @@ function module:GET()
 
   -- LAN
   data['lan'] = {}
-  -- data['lan']['mode'] = aredn_info.getLANMode()
-  -- data['lan']['dhcp'] = aredn_info.isLANDHCPEnabled()
+  data['lan']['mode'] = aredn_info.getLANMode()
+  data['lan']['dhcp'] = aredn_info.isLANDHCPEnabled()
   -- lan_ip, lan_mask, dhcp_start, dhcp_end
 
   -- LANAP
@@ -98,7 +98,7 @@ function module:GET()
 
   -- WAN Advanced
   data['wanadv'] = {}
-  -- data['wanadv']['meshgw']=aredn_info.isMeshGatewayEnabled()
+  data['wanadv']['meshgw']=aredn_info.isMeshGatewayEnabled()
   -- lan_no_wan (lan_dhcp_noroute)
 
   -- WAN Wifi Client
