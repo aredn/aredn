@@ -133,13 +133,7 @@ function lqm()
             ["tx packets:"] = "tx_packets",
             ["tx retries:"] = "tx_retries",
             ["tx failed:"] = "tx_fail",
-            ["tx bitrate:"] = "tx_rate",
-            ["tx bitrate:.+MCS"] = "tx_mcs",
-            ["rx packets:"] = "rx_packets",
-            ["rx drop misc:"] = "rx_drop",
-            ["rx bitrate:"] = "rx_rate",
-            ["rx bitrate:.+MCS"] = "rx_mcs",
-            ["expected throughput:"] = "thru"
+            ["tx bitrate:"] = "tx_rate"
         }
         local stations = {}
         local station = {}
@@ -191,7 +185,8 @@ function lqm()
                         snr = snr,
                         rev_snr = nil,
                         avg_snr = 0,
-                        links = {}
+                        links = {},
+                        tx_errors = nil
                     }
                 end
                 local track = tracker[mac]
@@ -226,8 +221,13 @@ function lqm()
                     end
                 end
 
-                track.lastseen = now
+                if track.station then
+                    local tx_packets = station.tx_packets - track.station.tx_packets
+                    local tx_errors = (station.tx_fail + station.tx_retries) - (track.station.tx_fail + track.station.tx_retries)
+                    track.tx_errors = tx_packets <= 0 and tx_errors <= 0 and nil or math.min(100, math.max(0, math.floor(100 * tx_errors / tx_packets)))
+                end
                 track.station = station
+                track.lastseen = now
             end
         end
 
@@ -318,7 +318,7 @@ function lqm()
                 end 
             -- when blocked link becomes (low+margin) again, unblock
             else
-                if track.snr >= config.low + config.margin and (track.rev_snr and track.rev_snr >= config.low + config.margin) then
+                if track.snr >= config.low + config.margin and (not track.rev_snr or track.rev_snr >= config.low + config.margin) then
                     track.blocks.signal = false
                 end 
             end
