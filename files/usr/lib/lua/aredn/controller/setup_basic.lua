@@ -41,6 +41,7 @@ require("aredn.utils")
 -- -------------------------------------
 local module = {}
 
+-- Class constructor (NEW method)
 function module:new(req)
   self.req = req
   return self
