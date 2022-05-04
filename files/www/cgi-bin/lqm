@@ -41,7 +41,7 @@ local info = require("aredn.info")
 
 
 http_header()
-html.header(info.get_nvram("node") .. " Neighbor Link Status", true)
+html.header(info.get_nvram("node") .. " Neighbor Link Status")
 html.print("<body>")
 html.alert_banner()
 html.print([[
@@ -52,7 +52,8 @@ html.print([[
         }
         .title {
             font-size: 20px;
-            padding-top: 20px;
+            padding: 20px 0;
+            text-align: center;
         }
         .lt {
             font-weight: bold;
@@ -60,7 +61,7 @@ html.print([[
         }
         #links {
             padding-bottom: 16px;
-            min-height: 400px;
+            min-height: 300px;
         }
         #links > div {
             padding: 2px 0;
@@ -78,13 +79,28 @@ html.print([[
             width: 120px;
         }
     </style>
-    <center><table width=790><tr><td>
-        <div class="title">Neighbor Link Status</div>
-        <div class="lt">
-            <span class="m">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Error</span><span class="p">TX</span><span class="b">Status</span>
-        </div>
-        <div id="links"></div>
-    </td></tr></table></center>
+    <center>
+        <table width=790>
+            <tr><td>
+            <hr><table cellpadding=5 border=0 width=100%><tr>
+            <td align=center width=15%><a href='status'>Node Status</a></td>
+            <td align=center width=15%><a href='setup'>Basic Setup</a></td>
+            <td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>
+            <td align=center width=15%><a href='vpn'>Tunnel<br>Server</a></td>
+            <td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>
+            <td align=center width=15%><a href='admin'>Administration</a></td>
+            <td align=center width=15%><a href='advancedconfig'>Advanced<br>Configuration</a></td>
+            </tr></table><hr>
+            </td></tr>
+            <tr><td>
+                <div class="title">Neighbor Link Status</div>
+                <div class="lt">
+                    <span class="m">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Error</span><span class="p">TX</span><span class="b">Status</span>
+                </div>
+                <div id="links"></div>
+                </td></tr>
+            </table>
+    </center>
     <script>
         const meters_to_miles = 0.000621371;
         const wifi_scale = 0.2;
