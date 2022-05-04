@@ -34,6 +34,7 @@
 
 --]]
 local aredn_info = require("aredn.info")
+local aredn_hardware = require("aredn.hardware")
 require("aredn.utils")
 
 -- -------------------------------------
@@ -83,12 +84,17 @@ function module:GET()
   data['meshrf']['bw'] = aredn_info.getChannelBW(radio)
   data['meshrf']['channel'] = aredn_info.getChannel(radio)
   data['meshrf']['power'] = aredn_info.getTXPower()
+  data['meshrf']['maxpower'] = aredn_hardware.wifi_maxpower(data['meshrf']['channel'])
+
 
   -- LAN
   data['lan'] = {}
   data['lan']['mode'] = aredn_info.getLANMode()
   data['lan']['dhcp'] = aredn_info.isLANDHCPEnabled()
-  -- lan_ip, lan_mask, dhcp_start, dhcp_end
+  data['lan']['ip'] = aredn_info.getInterfaceIPAddress("lan")
+  data['lan']['netmask'] = aredn_info.getInterfaceNetmask("lan")
+  -- dhcp_start
+  -- dhcp_end
 
   -- LANAP
   data['lanap'] = {}

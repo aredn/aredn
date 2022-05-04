@@ -52,12 +52,8 @@ function module:process()
   
   if self.req['method']=="GET" then
     res = module:GET()
-  elseif self.req['method']=="DELETE" then
-    res = module:DELETE()
   elseif self.req['method']=="POST" then
     res = module:POST()
-  elseif self.req['method']=="OPTION" then
-    res = module:OPTION()
   else
     msg="unsupported http method: " .. self.req['method']
     res['msg']=msg
@@ -76,14 +72,6 @@ function module:GET()
   return res
 end
 
--- LOGOUT
-function module:DELETE()
-  local res={}
-  res['errors'] = {}
-  res['success']=true
-  return res
-end
-
 -- LOGIN
 function module:POST()
   local res={}
@@ -91,13 +79,5 @@ function module:POST()
   res['success']=true
   return res
 end
-
-function module:OPTION()
-  local res={}
-  res['errors'] = {}
-  res['success']=true
-  return res
-end
-
 
 return module
