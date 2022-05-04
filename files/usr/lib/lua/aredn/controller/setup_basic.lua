@@ -76,13 +76,13 @@ function module:GET()
   data['meshrf']['ssid_full'] = aredn_info.getSSID()
   data['meshrf']['ssid_prefix'] = data['meshrf']['ssid_full']:split("-")[1]
   radio = aredn_info.getMeshRadioDevice()
-  -- data['meshrf']['enabled'] = aredn_info.isMeshRadioEnabled(radio)
+  data['meshrf']['enabled'] = aredn_info.isMeshRadioEnabled(radio)
   data['meshrf']['ip'] = aredn_info.getInterfaceIPAddress("wifi")
-  -- data['meshrf']['netmask'] = aredn_info.getInterfaceNetmask("wifi")
-  -- data['meshrf']['distance'] = aredn_info.getMeshRadioDistance(radio)
+  data['meshrf']['netmask'] = aredn_info.getInterfaceNetmask("wifi")
+  data['meshrf']['distance'] = aredn_info.getMeshRadioDistance(radio)
   data['meshrf']['bw'] = aredn_info.getChannelBW(radio)
   data['meshrf']['channel'] = aredn_info.getChannel(radio)
-  -- data['meshrf']['power'] = aredn_info.getTXPower()
+  data['meshrf']['power'] = aredn_info.getTXPower()
 
   -- LAN
   data['lan'] = {}

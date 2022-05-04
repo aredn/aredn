@@ -212,10 +212,53 @@ function model.getMeshRadioDevice()
 end
 
 -------------------------------------
+-- Determine if Radio Device for Mesh is enabled
+-------------------------------------
+function model.isMeshRadioEnabled(radio)
+	local wifidevice=aredn_uci.getUciConfType("wireless","wifi-device")
+	for pos,i in pairs(wifidevice) do
+		if wifidevice[pos]['.name']==radio then
+			disabled=wifidevice[pos]['disabled']
+		end
+	end
+	
+	if disabled == "0" then
+		return true
+	else
+		return false
+	end
+end
+
+-------------------------------------
+-- Determine distance value for Mesh radio
+-------------------------------------
+function model.getMeshRadioDistance(radio)
+	local distance = ""
+	local wifidevice=aredn_uci.getUciConfType("wireless","wifi-device")
+	for pos,i in pairs(wifidevice) do
+		if wifidevice[pos]['.name']==radio then
+			distance=wifidevice[pos]['distance']
+		end
+	end
+	return distance
+end
+
+-------------------------------------
 -- TODO: Return Band
 -------------------------------------
 function model.getBand(radio)
 	return ""
+end
+
+-------------------------------------
+-- Return TX Power
+-------------------------------------
+function model.getTXPower()
+	local wlanInf=get_ifname('wifi')
+	local api=iwinfo.type(wlanInf)
+	local iw = iwinfo[api]
+	local power = iw.txpower(wlanInf)
+	return tostring(power)
 end
 
 -------------------------------------
@@ -468,6 +511,18 @@ function model.getInterfaceIPAddress(interface)
 	end
 
 	return aredn_uci.getUciConfSectionOption("network",interface,"ipaddr")
+end
+
+-------------------------------------
+-- Returns Interface Netmask
+-- @param interface name of interface 'wifi' | 'lan' | 'wan'
+-------------------------------------
+function model.getInterfaceNetmask(interface)
+	-- special case
+	-- if interface == "wan" then
+	-- 	return getWAN()
+	-- end
+	return aredn_uci.getUciConfSectionOption("network",interface,"netmask")
 end
 
 -------------------------------------
