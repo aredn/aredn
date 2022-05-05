@@ -192,24 +192,13 @@ function lqm()
                 local track = tracker[mac]
 
                 -- If we have a direct dtd connection to this device, make sure we use that
-                local macdtd = false
                 local entry = arps[mac]
                 if entry then
                     track.ip = entry["IP address"]
-                    local a, b, c = track.ip:match("^(%d+%.)(%d+)(%.%d+%.%d+)$")
-                    local dtd = arps[string.format("%s%d%s", a, tonumber(b) + 1, c)]
-                    if dtd and dtd.Device:match("%.2$") and dtd["HW address"] ~= "00:00:00:00:00:00" then
-                        macdtd = true
-                    end
                     local hostname = nixio.getnameinfo(track.ip)
                     if hostname then
                         track.hostname = hostname:lower():match("^(.*)%.local%.mesh$")
                     end
-                end
-                if macdtd and not track.dtd then
-                    track.blocks.dtd = true
-                elseif not macdtd and track.dtd then
-                    track.blocks.dtd = false
                 end
 
                 track.snr = math.ceil(snr_run_avg * track.snr + (1 - snr_run_avg) * snr)
@@ -311,6 +300,13 @@ function lqm()
         -- Work out what to block and unblock
         for _, track in pairs(tracker)
         do
+            -- Block devices with DtD links back to me
+            if track.links[myhostname] and track.links[myhostname].type == "DTD" then
+                track.blocks.dtd = true
+            else
+                track.blocks.dtd = false
+            end
+
             -- When unblocked link signal becomes too low, block
             if not track.blocks.signal then
                 if track.snr < config.low or (track.rev_snr and track.rev_snr < config.low) then
