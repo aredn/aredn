@@ -124,16 +124,20 @@ function module:POST()
   -- STORE DATA --
   -- node name (to uci)
   local nodename = self.req['content']['data']['nodename']
+  local description = self.req['content']['data']['description']
+  local passwd = self.req['content']['data']['password']
+  
+  -- PERFORM any CROSS-VALUE validation
+  -- (ie. if 2Ghz radio is configured for MESH, don't allow 2Ghz radio for AP Client, etc)
+
+
   e = module:save_nodename(nodename)
   if next(e)~=nil then table.insert(errors, e) end
   
-  -- node description
-  local description = self.req['content']['data']['description']
   e = module:save_description(description)
   if next(e)~=nil then table.insert(errors, e) end
   
   -- password
-  local passwd = self.req['content']['data']['password']
   e = module:save_password(passwd)
   if next(e)~=nil then table.insert(errors, e) end
   
@@ -154,6 +158,9 @@ function module:POST()
   return res
 end
 
+-- ---------------
+-- SAVE FUNCTIONS
+-- ---------------
 function module:save_nodename(nodename)
   local e = {}
   -- validations
@@ -161,6 +168,10 @@ function module:save_nodename(nodename)
     e.name = "nodename"
     e.msg = "field cannot be empty"
   else
+    -- change to:
+    -- local cursor = uci.cursor()
+    -- local x = cursor:save("hsmmmesh", "settings", "node", nodename)
+    
     local rc = os.execute("uci -q -c /etc/local/uci/ set hsmmmesh.settings.node='" .. nodename .. "'")
     if (rc ~= 0) then
       e.name="nodename"
