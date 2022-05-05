@@ -67,7 +67,7 @@ end
 -- ==== MAIN =====
 local request={}
 local response={}
-local topic=""
+local topic=nil
 
 -- PRE-PROCESS INCOMING REQUEST
 local qsset={}
@@ -92,10 +92,7 @@ request['query_string'] = addQueryStringData(qs, qsset)
 if method=='GET' then			-- READ	
 	topic=request['query_string']['params']['topic']
 elseif method=='OPTIONS' then			-- OPTIONS
-	request['content_length']=nixio.getenv("CONTENT_LENGTH")
-	rawcontent=io.read("*all")
-	request['content']=json.parse(rawcontent)
-	topic = request['content']['topic']
+	-- skip
 elseif method=='POST' then		-- UPDATE
 	request['content_length']=nixio.getenv("CONTENT_LENGTH")
 	rawcontent=io.read("*all")
@@ -117,8 +114,8 @@ end
 function getController(t, req)
 	cname = "aredn.controller." .. t
 	-- TODO: need to catch errors on non-existent controllers below
-	c = require(cname)
-	if c then
+	local status, c = pcall(require, cname)
+	if (status) then
 		return c:new(req)
 	else
 		return nil
@@ -127,8 +124,15 @@ end
 
 
 -- determine the proper controller
-local controller = getController(topic, request)	-- setup.basic, setup.meshrf, etc
-response=controller:process()
+if topic then
+	local controller = getController(topic, request)	-- setup.basic, setup.meshrf, etc
+	if (controller) then
+		response=controller:process()
+	else
+		response['error']="Controller '" .. topic .. "' not found"
+		response['success']=false
+	end
+end
 
 -- Output the HTTP header for JSON
 -- json_header()
