@@ -44,7 +44,7 @@ require("nixio")
 local json = require("luci.jsonc")
 require("iwinfo")
 
-local API_VERSION="1.4"
+local API_VERSION="1.5"
 
 -- Function extensions
 os.capture = capture
@@ -96,6 +96,14 @@ function getStatusIp()
 	info['wifi']=aredn_info.getInterfaceIPAddress('wifi')
 	info['lan']=aredn_info.getInterfaceIPAddress('lan')
 	info['wan']=aredn_info.getInterfaceIPAddress('wan')
+	return info
+end
+
+function getStatusIfname()
+	local info={}
+	info['wifi_ifn']=get_ifname('wifi')
+	info['lan_ifn']=get_ifname('lan')
+	info['wan_ifn']=get_ifname('wan')
 	return info
 end
 
@@ -353,6 +361,8 @@ for page, comps in pairs(qsset) do
 				info['pages'][page][comp]=getStatusMeshRF()
 			elseif comp=="ip" then
 				info['pages'][page][comp]=getStatusIp()
+			elseif comp=="ifname" then
+				info['pages'][page][comp]=getStatusIfname()
 			elseif comp=="sysinfo" then
 				info['pages'][page][comp]=getSysinfo()
 			elseif comp=="memory" then
