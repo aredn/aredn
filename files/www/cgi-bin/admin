@@ -332,6 +332,15 @@ end
 -- and set fw_version
 firmware_list_gen()
 
+-- sideload fw
+if parms.button_apply_fw and nixio.fs.stat("/tmp/web/sideload_firmware.bin") then
+    nixio.fs.mkdir("/tmp/web/upload")
+    os.execute("mv -f /tmp/web/sideload_firmware.bin /tmp/web/upload/file")
+    firmfile = "arednmesh-sideload-sysupgrade.bin"
+    parms.button_ul_fw = "Upload"
+    os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
+end
+
 -- upload fw
 if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
     os.execute("mv -f /tmp/web/upload/file " .. tmpdir .. "/firmware")
@@ -824,6 +833,11 @@ html.print("</select>")
 html.print("<input type=submit name=button_refresh_fw value=Refresh title='download the list of available firmware versions'>")
 html.print("<td align=center><input type=submit name=button_dl_fw value=Download title='install the firmware'></td>")
 html.print("<td align=right><input type=checkbox name=checkbox_keep_settings checked>Keep Settings</td>")
+html.print("</tr>")
+html.print("<tr>")
+html.print("<td>Sideload Firmware</td>")
+html.print("<td><input type=submit name=button_apply_fw value='Apply Sideloaded Firmware' title='Apply previously loaded firmware' " .. (nixio.fs.stat("/tmp/web/sideload_firmware.bin") and "" or "disabled") .. ">")
+html.print("<small>/tmp/web/sideload_firmware.bin</small></td>")
 html.print("</tr>")
 
 html.print("</table></td></tr>")
