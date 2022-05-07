@@ -33,11 +33,19 @@
 
 --]]
 
+require("uci")
 require("aredn.http")
-require("aredn.info")
 require("aredn.hardware")
 local html = require("aredn.html")
 local info = require("aredn.info")
+
+if uci.cursor():get("aredn", "@lqm[0]", "enable") ~= "1" then
+    print "Content-type: text/text\r"
+    print "Cache-Control: no-store\r"
+    print "\r"
+    print "Disabled"
+    os.exit()
+end
 
 
 http_header()
@@ -95,7 +103,7 @@ html.print([[
             <tr><td>
                 <div class="title">Neighbor Link Status</div>
                 <div class="lt">
-                    <span class="m">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Retries</span><span class="p">TX Estimate</span><span class="b">Status</span>
+                    <span class="m">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">TX Estimate</span><span class="b">Status</span>
                 </div>
                 <div id="links"></div>
                 </td></tr>
@@ -142,14 +150,14 @@ html.print([[
             for (let mac in data.info.trackers) {
                 const track = data.info.trackers[mac];
                 let txspeed = "-";
-                let txerrors = "-";
+                let txquality = "-";
                 if (!track.blocked) {
                     txspeed = (track.station.tx_rate * wifi_scale).toFixed(2) + " Mb/s";
                 }
-                if (typeof track.tx_errors === "number") {
-                    txerrors = track.tx_errors + "%";
+                if (typeof track.tx_quality === "number") {
+                    txquality = track.tx_quality + "%";
                 }
-                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${"distance" in track ? (meters_to_miles * track.distance).toFixed(2) + " miles" : "-"}</span><span class="s">${txerrors}</span><span class="p">${txspeed}</span><span class="b">${status(track)}</span></div>`;
+                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${"distance" in track ? (meters_to_miles * track.distance).toFixed(2) + " miles" : "-"}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="b">${status(track)}</span></div>`;
             }
             document.getElementById("links").innerHTML = links;
         }

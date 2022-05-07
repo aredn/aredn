@@ -122,7 +122,6 @@ function lqm()
         local arps = {}
         arptable(
             function (entry)
-                arps[entry["IP address"]] = entry
                 arps[entry["HW address"]:upper()] = entry
             end
         )
@@ -195,6 +194,11 @@ function lqm()
                 local entry = arps[mac]
                 if entry then
                     track.ip = entry["IP address"]
+                    local a, b, c = mac:match("^(..:..:..:)(..)(:..:..)$")
+                    local dtd = arps[string.format("%s%02x%s", a, tonumber(b, 16) + 1, c):upper()]
+                    if dtd and dtd.Device:match("%.2$") then
+                        track.blocks.dtd = true
+                    end
                     local hostname = nixio.getnameinfo(track.ip)
                     if hostname then
                         track.hostname = hostname:lower():match("^(.*)%.local%.mesh$")
@@ -213,7 +217,12 @@ function lqm()
                 if track.station then
                     local tx_packets = station.tx_packets - track.station.tx_packets
                     local tx_errors = (station.tx_fail + station.tx_retries) - (track.station.tx_fail + track.station.tx_retries)
-                    track.tx_errors = tx_packets + tx_errors <= 0 and nil or math.min(100, math.max(0, math.floor(100 * tx_errors / (tx_packets + tx_errors))))
+                    -- Make sure we have some data to estimate quality
+                    if tx_packets + tx_errors <= 10 then
+                        track.tx_quality = nil
+                    else
+                        track.tx_quality = math.min(100, math.max(0, math.floor(100 * tx_packets / (tx_packets + tx_errors))))
+                    end
                 end
                 track.station = station
                 track.lastseen = now
@@ -300,13 +309,6 @@ function lqm()
         -- Work out what to block and unblock
         for _, track in pairs(tracker)
         do
-            -- Block devices with DtD links back to me
-            if track.links[myhostname] and track.links[myhostname].type == "DTD" then
-                track.blocks.dtd = true
-            else
-                track.blocks.dtd = false
-            end
-
             -- When unblocked link signal becomes too low, block
             if not track.blocks.signal then
                 if track.snr < config.low or (track.rev_snr and track.rev_snr < config.low) then
