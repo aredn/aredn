@@ -80,30 +80,35 @@ end
 
 local settings = {
     {
+        category = "Map Paths",
         key = "aredn.@map[0].maptiles",
         type = "string",
         desc = "Specifies the URL of the location to access map tiles",
         default = "http://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg"
     },
     {
+        category = "Map Paths",
         key = "aredn.@map[0].leafletcss",
         type = "string",
         desc = "Specifies the URL of the leaflet.css file",
         default = "http://unpkg.com/leaflet@0.7.7/dist/leaflet.css"
     },
     {
+        category = "Map Paths",
         key = "aredn.@map[0].leafletjs",
         type = "string",
         desc = "Specifies the URL of the leaflet.js file",
         default = "http://unpkg.com/leaflet@0.7.7/dist/leaflet.js"
     },
     {
+        category = "Firmware Paths",
         key = "aredn.@downloads[0].firmwarepath",
         type = "string",
         desc = "Specifies the URL of the location from which firmware files will be downloaded.",
         default = "http://downloads.arednmesh.org/firmware"
     },
     {
+        category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_core",
         type = "string",
         desc = "Specifies the URL for the 'core' packages: kernel modules and the like",
@@ -111,6 +116,7 @@ local settings = {
         postcallback = "writePackageRepo('core')"
     },
     {
+        category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_base",
         type = "string",
         desc = "Specifies the URL for the 'base' packages: libraries, shells, etc.",
@@ -118,6 +124,7 @@ local settings = {
         postcallback = "writePackageRepo('base')"
     },
     {
+        category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_arednpackages",
         type = "string",
         desc = "Specifies the URL for the 'arednpackages' packages: vtun, etc.",
@@ -125,6 +132,7 @@ local settings = {
         postcallback = "writePackageRepo('arednpackages')"
     },
     {
+        category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_luci",
         type = "string",
         desc = "Specifies the URL for the 'luci' packages: luci and things needed for luci.",
@@ -132,6 +140,7 @@ local settings = {
         postcallback = "writePackageRepo('luci')"
     },
     {
+        category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_packages",
         type = "string",
         desc = "Specifies the URL for the 'packages' packages: everything not included in the other dirs.",
@@ -139,6 +148,7 @@ local settings = {
         postcallback = "writePackageRepo('packages')"
     },
     {
+        category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_routing",
         type = "string",
         desc = "Specifies the URL for the 'routing' packages: olsr, etc.",
@@ -146,6 +156,7 @@ local settings = {
         postcallback = "writePackageRepo('routing')"
     },
     {
+        category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_telephony",
         type = "string",
         desc = "Specifies the URL for the 'telephony' packages.",
@@ -153,6 +164,7 @@ local settings = {
         postcallback = "writePackageRepo('telephony')"
     },
     {
+        category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_freifunk",
         type = "string",
         desc = "Specifies the URL for the 'freifunk' packages.",
@@ -161,6 +173,7 @@ local settings = {
     },
 
     {
+        category = "Power Options",
         key = "aredn.@poe[0].passthrough",
         type = "boolean",
         desc = "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports).",
@@ -169,6 +182,7 @@ local settings = {
         postcallback = "setPOEOutput()"
     },
     {
+        category = "Power Options",
         key = "aredn.@usb[0].passthrough",
         type = "boolean",
         desc = "Specifies whether the USB port should be on or off.  (Not all devices have USB powered ports).",
@@ -177,6 +191,7 @@ local settings = {
         condition = "hasUSB()"
     },
     {
+        category = "Tunnel Options",
         key = "aredn.@tunnel[0].maxclients",
         type = "string",
         desc = "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].",
@@ -185,6 +200,7 @@ local settings = {
         postcallback = "adjustTunnelInterfaceCount()"
     },
     {
+        category = "Tunnel Options",
         key = "aredn.@tunnel[0].maxservers",
         type = "string",
         desc = "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].",
@@ -193,6 +209,7 @@ local settings = {
         postcallback = "adjustTunnelInterfaceCount()"
     },
     {
+        category = "Tunnel Options",
         key = "aredn.@tunnel[0].wanonly",
         type = "boolean",
         desc = "Prevents tunnel traffic from being routed over the mesh network itself.",
@@ -200,18 +217,21 @@ local settings = {
         needreboot= true
     },
     {
+        category = "Memory",
         key = "aredn.@meshstatus[0].lowmem",
         type = "string",
         desc = "Specifies the low memory threshold (in KB) when we will truncate the mesh status page",
         default = "10000"
     },
     {
+        category = "Memory",
         key = "aredn.@meshstatus[0].lowroutes",
         type = "string",
         desc = "When low memory is detected, limit the number of routes shown on the mesh status page",
         default = "1000"
     },
     {
+        category = "WAN",
         key = "aredn.wan.vlanid",
         type = "string",
         desc = "Specify WAN VLAN #",
@@ -222,6 +242,7 @@ local settings = {
         needreboot = true
     },
     {
+        category = "OLSR",
         key = "aredn.olsr.restart",
         type = "none",
         desc = "Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
@@ -229,6 +250,7 @@ local settings = {
         postcallback = "olsr_restart()"
     },
     {
+        category = "AREDN Alerts",
         key = "aredn.aam.refresh",
         type = "none",
         desc = "Attempt to pull any AREDN Alert messages.",
@@ -236,12 +258,14 @@ local settings = {
         postcallback = "aam_refresh()"
     },
     {
+        category = "AREDN Alerts",
         key = "aredn.@alerts[0].localpath",
         type = "string",
         desc = "Specifies the URL of the location from which local AREDN Alerts can be downloaded.",
         default = ""
     },
     {
+        category = "AREDN Alerts",
         key = "aredn.@alerts[0].pollrate",
         type = "string",
         desc = "Specifies how many hours to wait between polling for new AREDN Alerts.",
@@ -249,6 +273,7 @@ local settings = {
         needreboot = true
     },
     {
+        category = "AREDN Alerts",
         key = "aredn.aam.purge",
         type = "none",
         desc = "Immediately purge/delete all AREDN (and local) Alerts from this node.",
@@ -256,6 +281,7 @@ local settings = {
         postcallback = "alert_purge()"
     },
     {
+        category = "iPerf",
         key = "aredn.@iperf[0].enable",
         type = "boolean",
         desc = "Enable the included iperf3 client/server support",
@@ -754,6 +780,7 @@ html.print([[
 ]])
 
 -- settings
+local prior_category = ""
 
 for i, setting in ipairs(settings)
 do
@@ -766,6 +793,10 @@ do
             sval = cursor_get(a, b, c)
         end
         sval = sval and tostring(sval) or ""
+        if setting.category ~= prior_category then
+            html.print([[<tr class="wscan-row-node"><td align="center" colspan="4"><b>]] .. setting.category .. [[</b></td></tr>]])
+            prior_category = setting.category
+        end
         html.print([[<tr><td align="center"><span title="]] .. setting.desc .. [["><img src="/qmark.png" /></span></td><td>]] .. setting.key .. [[</td><td>]])
         if setting.type == "string" then
             html.print("<input type='text' id='field_" .. i .. "' name='newval_" .. i .. "' size='65' value='" .. sval .. "'>")
