@@ -1,0 +1,15 @@
+#!/bin/sh
+for c in /etc/config /etc/config.mesh
+do
+    if [ "$(/sbin/uci -c $c -q get aredn.@lqm[0].enable)" = "" ]; then
+        /sbin/uci -c $c -m import aredn <<__EOF__
+    config lqm
+        option enable '1'
+        option low_snr '15'
+        option margin_snr '1'
+        option min_distance '0'
+        option max_distance '48280'
+__EOF__
+        /sbin/uci -c $c commit aredn
+    fi
+done
