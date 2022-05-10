@@ -58,8 +58,8 @@ function module:process()
     res = module:POST()
   else
     msg="unsupported http method: " .. self.req['method']
-    res['msg']=msg
-    res['success']=false
+    res.msg=msg
+    res.success = false
   end
   return res
 end
@@ -67,52 +67,52 @@ end
 function module:GET()
   local res={}
   local data={}
-  data['basic'] = {}
-  data['basic']['nodename']=aredn_info.getNodeName()
-  data['basic']['description']=aredn_info.getNodeDescription()
-  -- data['password']="WE CANNOT RETRIEVE THE PASSWORD"
+  data.basic = {}
+  data.basic.nodename = aredn_info.getNodeName()
+  data.basic.description = aredn_info.getNodeDescription()
+  -- password :: "WE CANNOT RETRIEVE THE PASSWORD"
 
   -- MESHRF
-  data['meshrf'] = {}
-  data['meshrf']['ssid_full'] = aredn_info.getSSID()
-  data['meshrf']['ssid_prefix'] = data['meshrf']['ssid_full']:split("-")[1]
   radio = aredn_info.getMeshRadioDevice()
-  data['meshrf']['enabled'] = aredn_info.isMeshRadioEnabled(radio)
-  data['meshrf']['ip'] = aredn_info.getInterfaceIPAddress("wifi")
-  data['meshrf']['netmask'] = aredn_info.getInterfaceNetmask("wifi")
-  data['meshrf']['distance'] = aredn_info.getMeshRadioDistance(radio)
-  data['meshrf']['bw'] = aredn_info.getChannelBW(radio)
-  data['meshrf']['channel'] = aredn_info.getChannel(radio)
-  data['meshrf']['power'] = aredn_info.getTXPower()
-  data['meshrf']['maxpower'] = aredn_hardware.wifi_maxpower(data['meshrf']['channel'])
-
+  data.meshrf = {}
+  data.meshrf.ssid_full = aredn_info.getSSID()
+  data.meshrf.ssid_prefix = data['meshrf']['ssid_full']:split("-")[1]
+  data.meshrf.enabled = aredn_info.isMeshRadioEnabled(radio)
+  data.meshrf.ip = aredn_info.getInterfaceIPAddress("wifi")
+  data.meshrf.netmask = aredn_info.getInterfaceNetmask("wifi")
+  data.meshrf.distance = aredn_info.getMeshRadioDistance(radio)
+  data.meshrf.bw = aredn_info.getChannelBW(radio)
+  data.meshrf.channel = aredn_info.getChannel(radio)
+  data.meshrf.power = aredn_info.getTXPower()
+  data.meshrf.maxpower = aredn_hardware.wifi_maxpower(data['meshrf']['channel'])
+  
 
   -- LAN
-  data['lan'] = {}
-  data['lan']['mode'] = aredn_info.getLANMode()
-  data['lan']['dhcp'] = aredn_info.isLANDHCPEnabled()
-  data['lan']['ip'] = aredn_info.getInterfaceIPAddress("lan")
-  data['lan']['netmask'] = aredn_info.getInterfaceNetmask("lan")
+  data.lan = {}
+  data.lan.mode = aredn_info.getLANMode()
+  data.lan.dhcp = aredn_info.isLANDHCPEnabled()
+  data.lan.ip = aredn_info.getInterfaceIPAddress("lan")
+  data.lan.netmask = aredn_info.getInterfaceNetmask("lan")
   -- dhcp_start
   -- dhcp_end
 
   -- LANAP
-  data['lanap'] = {}
+  data.lanap = {}
 
   -- WAN
-  data['wan'] = {}
+  data.wan = {}
 
   -- WAN Advanced
-  data['wanadv'] = {}
-  data['wanadv']['meshgw']=aredn_info.isMeshGatewayEnabled()
+  data.wanadv = {}
+  data.wanadv.meshgw = aredn_info.isMeshGatewayEnabled()
   -- lan_no_wan (lan_dhcp_noroute)
 
   -- WAN Wifi Client
-  data['wanclient'] = {}
+  data.wanclient = {}
 
-  res['data']=data
-  res['errors'] = {}
-  res['success']=true
+  res.data=data
+  res.errors = {}
+  res.success = true
   return res
 end
 
@@ -123,10 +123,12 @@ function module:POST()
   
   -- STORE DATA --
   -- node name (to uci)
-  local nodename = self.req['content']['data']['nodename']
-  local description = self.req['content']['data']['description']
-  local passwd = self.req['content']['data']['password']
-  
+  local nodename = self.req.content.data.nodename
+  local description = self.req.content.data.description
+  local passwd = self.req.content.data.password
+
+  local cursor = uci.cursor()
+
   -- PERFORM any CROSS-VALUE validation
   -- (ie. if 2Ghz radio is configured for MESH, don't allow 2Ghz radio for AP Client, etc)
 
@@ -143,6 +145,9 @@ function module:POST()
   
   -- -- UCI commit
   if #errors==0 then
+    -- TODO: change to optimal commit
+    -- cursor:commit("hsmmmesh")
+    -- cursor:commit("system")
     rc = os.execute("uci -q -c /etc/local/uci/ commit")
     if (rc ~= 0) then
       e = {}
@@ -152,9 +157,9 @@ function module:POST()
     end
   end
 
-  res['errors'] = errors
-  res['success']= (#errors==0 and true or false)
-  if res['success'] then res['restart'] = true end
+  res.errors = errors
+  res.success = (#errors==0 and true or false)
+  if res.success then res.restart = true end
   return res
 end
 
@@ -168,15 +173,14 @@ function module:save_nodename(nodename)
     e.name = "nodename"
     e.msg = "field cannot be empty"
   else
-    -- change to:
     -- local cursor = uci.cursor()
-    -- local x = cursor:save("hsmmmesh", "settings", "node", nodename)
+    cursor:set("hsmmmesh", "settings", "node", nodename)
     
-    local rc = os.execute("uci -q -c /etc/local/uci/ set hsmmmesh.settings.node='" .. nodename .. "'")
-    if (rc ~= 0) then
-      e.name="nodename"
-      e.msg="error setting uci value"
-    end
+    -- local rc = os.execute("uci -q -c /etc/local/uci/ set hsmmmesh.settings.node='" .. nodename .. "'")
+    --if (rc ~= 0) then
+    --  e.name="nodename"
+    --  e.msg="error setting uci value"
+    --end
   end
   return e
 end
