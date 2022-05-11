@@ -171,8 +171,12 @@ html.print([[
                 setTimeout(fetchAndUpdate, 30000);
             });
         }
-        fetchAndUpdate();
-    </script>]])
+        setTimeout(fetchAndUpdate, 30000);
+    ]])
+if nixio.fs.stat("/tmp/lqm.info") then
+    html.print("update({info:" .. io.open("/tmp/lqm.info"):read("*a") .. "})")
+end
+html.print([[</script>]])
 html.footer()
 html.print("</body></html>")
 http_footer()
