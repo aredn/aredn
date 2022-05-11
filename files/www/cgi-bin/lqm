@@ -173,7 +173,8 @@ html.print([[
         }
         setTimeout(fetchAndUpdate, 30000);
     ]])
-if nixio.fs.stat("/tmp/lqm.info") then
+local ls = nixio.fs.stat("/tmp/lqm.info")
+if ls and ls.size > 0 then
     html.print("update({info:" .. io.open("/tmp/lqm.info"):read("*a") .. "})")
 end
 html.print([[</script>]])
