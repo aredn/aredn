@@ -86,13 +86,13 @@ html.print([[
         }
         .p {
             display: inline-block;
-            width: 120px;
+            width: 130px;
         }
     </style>
     <center>
         <h1>]] .. node .. [[ neighbor status</h1>]] .. lat_lon .. [[<table id='node_description_display'><tr><td>]] .. node_desc .. [[</td></tr></table>
         <hr>
-        <table width=790>
+        <table width=750>
         <tr><td>
         <center>
             <button type=button onClick='window.location.reload()' title='Refresh this page'>Refresh</button>
@@ -102,7 +102,7 @@ html.print([[
         </td></tr>
         <tr><td>
             <div class="lt">
-                <span class="m">Neighbor</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">TX Estimate</span><span class="b">Status</span>
+                <span class="m">Neighbor</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">TX Estimate</span><span class="p">Status</span>
             </div>
             <div id="links"></div>
             </td></tr>
@@ -154,12 +154,12 @@ html.print([[
                 let txspeed = "-";
                 let txquality = "-";
                 if (!track.blocked) {
-                    txspeed = (track.station.tx_rate * wifi_scale).toFixed(2) + " Mb/s";
+                    txspeed = (track.station.tx_rate * wifi_scale).toFixed(2) + " Mbps";
                 }
                 if (typeof track.tx_quality === "number") {
                     txquality = track.tx_quality + "%";
                 }
-                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${"distance" in track ? (meters_to_miles * track.distance).toFixed(2) + " miles" : "-"}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="b">${status(track)}</span></div>`;
+                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${"distance" in track ? (meters_to_miles * track.distance).toFixed(2) + " miles" : "-"}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="p">${status(track)}</span></div>`;
             }
             document.getElementById("links").innerHTML = links;
         }
