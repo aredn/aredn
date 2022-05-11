@@ -40,6 +40,8 @@ local refresh_timeout = 15 * 60 -- refresh high cost data every 15 minutes
 local wait_timeout = 5 * 60 -- wait 5 minutes after node is first seen before blocking
 local lastseen_timeout = 5 * 60 -- age out nodes we've not seen 5 minutes
 local snr_run_avg = 0.8 -- snr running average
+local min_tx_packets = 1000 -- minimum number of tx packets before we can safely calculate the link quality
+local quality_injection_max = 100 -- number of packets to inject into poor links to update quality
 
 local myhostname = (info.get_nvram("node") or "localnode"):lower()
 
@@ -96,13 +98,21 @@ function lqm()
         exit_app()
     end
 
+    wait_for_ticks(math.max(1, 120 - nixio.sysinfo().uptime))
+
     -- Create filters (cannot create during install as they disappear on reboot)
     os.execute("/usr/sbin/iptables -F input_lqm 2> /dev/null")
     os.execute("/usr/sbin/iptables -X input_lqm 2> /dev/null")
     os.execute("/usr/sbin/iptables -N input_lqm 2> /dev/null")
     os.execute("/usr/sbin/iptables -D INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null")
     os.execute("/usr/sbin/iptables -I INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null")
-    
+
+    -- Create socket we use to inject traffic into degraded links to measure quality
+    -- This is setup so it ignores routing and will always send to the correct wifi station
+    local sigsock = nixio.socket("inet", "dgram")
+    sigsock:setopt("socket", "bindtodevice", get_ifname("wifi"))
+    sigsock:setopt("socket", "dontroute", 1)
+
     local tracker = {}
     local last_distance = -1
     while true
@@ -113,6 +123,8 @@ function lqm()
             low = tonumber(c:get("aredn", "@lqm[0]", "low_snr")),
             min_distance = tonumber(c:get("aredn", "@lqm[0]", "min_distance")),
             max_distance = tonumber(c:get("aredn", "@lqm[0]", "max_distance")),
+            min_quality = tonumber(c:get("aredn", "@lqm[0]", "min_quality")),
+            margin_quality = tonumber(c:get("aredn", "@lqm[0]", "margin_quality")),
             user_blocks = c:get("aredn", "@lqm[0]", "user_blocks") or ""
         }
 
@@ -177,15 +189,15 @@ function lqm()
                             dtd = false,
                             signal = false,
                             distance = false,
-                            pair = false
+                            pair = false,
+                            quality = false
                         },
                         blocked = false,
                         pending = true,
                         snr = snr,
                         rev_snr = nil,
                         avg_snr = 0,
-                        links = {},
-                        tx_errors = nil
+                        links = {}
                     }
                 end
                 local track = tracker[mac]
@@ -214,16 +226,13 @@ function lqm()
                     end
                 end
 
-                if track.station then
-                    local tx_packets = station.tx_packets - track.station.tx_packets
-                    local tx_errors = (station.tx_fail + station.tx_retries) - (track.station.tx_fail + track.station.tx_retries)
-                    -- Make sure we have some data to estimate quality
-                    if tx_packets + tx_errors <= 10 then
-                        track.tx_quality = nil
-                    else
-                        track.tx_quality = math.min(100, math.max(0, math.floor(100 * tx_packets / (tx_packets + tx_errors))))
-                    end
+                -- Make sure we have some data to estimate quality
+                if station.tx_packets + station.tx_fail + station.tx_retries <= min_tx_packets then
+                    track.tx_quality = nil
+                else
+                    track.tx_quality = math.floor(100 * station.tx_packets / (station.tx_packets + station.tx_fail + station.tx_retries))
                 end
+
                 track.station = station
                 track.lastseen = now
             end
@@ -240,9 +249,10 @@ function lqm()
                 track.pending = false
             end
 
-            -- Clear signal when we've not seen the node
+            -- Clear snr when we've not seen the node
             if track.lastseen < now then
-                track.station.signal = track.station.noise
+                track.snr = 0
+                track.rev_snr = nil
             end
 
             -- Only refesh certain attributes periodically
@@ -253,7 +263,6 @@ function lqm()
                 if track.ip then
                     local info = json.parse(luci.sys.httpget("http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1"))
                     if info then
-                        track.distance = nil
                         if tonumber(info.lat) and tonumber(info.lon) then
                             track.lat = tonumber(info.lat)
                             track.lon = tonumber(info.lon)
@@ -261,7 +270,9 @@ function lqm()
                                 track.distance = calcDistance(lat, lon, track.lat, track.lon)
                             end
                         end
+                        local old_rev_snr = track.rev_snr
                         track.links = {}
+                        track.rev_snr = nil
                         for ip, link in pairs(info.link_info)
                         do
                             if link.hostname then
@@ -277,10 +288,10 @@ function lqm()
                                         }
                                     end
                                     if myhostname == hostname then
-                                        if not track.rev_snr then
+                                        if not old_rev_snr then
                                             track.rev_snr = snr
                                         else
-                                            track.rev_snr = math.ceil(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * snr)
+                                            track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * snr)
                                         end
                                     end
                                 end
@@ -288,7 +299,7 @@ function lqm()
                         end
                     else
                         -- Clear these if we cannot talk to the other end, so we dont use stale values
-                        track.distance = nil
+                        track.links = {}
                         track.rev_snr = nil
                     end
                 end
@@ -304,9 +315,19 @@ function lqm()
             else
                 track.routable = false
             end
+
+            -- Inject traffic into links with poor quality
+            -- We do this so we can keep measuring the current link quality otherwise, once it becomes
+            -- bad, it wont be used and we can never tell if it becomes good again
+            if track.ip and (not track.tx_quality or track.blocks.quality) then
+                for _ = 1,quality_injection_max
+                do
+                    sigsock:sendto("", track.ip, 8080)
+                end
+            end
         end
 
-        -- Work out what to block and unblock
+        -- Work out what to block, unblock and limit
         for _, track in pairs(tracker)
         do
             -- When unblocked link signal becomes too low, block
@@ -335,6 +356,15 @@ function lqm()
                 if val == track.mac then
                     track.blocks.user = true
                     break
+                end
+            end
+
+            -- Block if quality is poor
+            if track.tx_quality then
+                if not track.blocks.quality and track.tx_quality < config.min_quality then
+                    track.blocks.quality = true
+                elseif track.blocks.quality and track.tx_quality >= config.min_quality + config.margin_quality then
+                    track.blocks.quality = false
                 end
             end
         end

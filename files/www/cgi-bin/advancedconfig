@@ -330,6 +330,22 @@ local settings = {
     },
     {
         category = "Link Quality",
+        key = "aredn.@lqm[0].min_quality",
+        type = "string",
+        desc = "Quality neighbor must be over to be acceptable",
+        default = "75",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality",
+        key = "aredn.@lqm[0].margin_quality",
+        type = "string",
+        desc = "Quality increase before neighbor can be re-accepted",
+        default = "5",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality",
         key = "aredn.@lqm[0].user_blocks",
         type = "string",
         desc = "Comma separated list of blocked MACs",
@@ -491,6 +507,8 @@ function lqm_defaults()
     cursor_set("aredn", "@lqm[0]", "min_distance", "0")
     cursor_set("aredn", "@lqm[0]", "max_distance", "48280")
     cursor_set("aredn", "@lqm[0]", "user_blocks", "")
+    cursor_set("aredn", "@lqm[0]", "min_quality", "75")
+    cursor_set("aredn", "@lqm[0]", "margin_quality", "3")
 end
 
 function writePackageRepo(repo)

@@ -39,7 +39,9 @@ require("aredn.hardware")
 local html = require("aredn.html")
 local info = require("aredn.info")
 
-if uci.cursor():get("aredn", "@lqm[0]", "enable") ~= "1" then
+local cursor = uci.cursor()
+
+if cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
     print "Content-type: text/text\r"
     print "Cache-Control: no-store\r"
     print "\r"
@@ -48,24 +50,24 @@ if uci.cursor():get("aredn", "@lqm[0]", "enable") ~= "1" then
 end
 
 
+local node = info.get_nvram("node")
+local node_desc = cursor:get("system", "@system[0]", "description") or ""
+local lat_lon = "<strong>Location Not Available</strong>"
+local lat = cursor:get("aredn", "@location[0]", "lat")
+local lon = cursor:get("aredn", "@location[0]", "lon")
+if lat and lon then
+    lat_lon = string.format("<center><strong>Location: </strong> %s %s</center>", lat, lon)
+end
+
 http_header()
-html.header(info.get_nvram("node") .. " Neighbor Link Status")
+html.header(node .. " Neighbor Status")
 html.print("<body>")
 html.alert_banner()
 html.print([[
     <style>
-        body {
-            font-size: 14px;
-            padding: 16px;
-        }
-        .title {
-            font-size: 20px;
-            padding: 20px 0;
-            text-align: center;
-        }
         .lt {
             font-weight: bold;
-            padding: 12px 0 4px 0;
+            padding: 30px 0 4px 0;
         }
         #links {
             padding-bottom: 16px;
@@ -88,26 +90,23 @@ html.print([[
         }
     </style>
     <center>
+        <h1>]] .. node .. [[ neighbor status</h1>]] .. lat_lon .. [[<table id='node_description_display'><tr><td>]] .. node_desc .. [[</td></tr></table>
+        <hr>
         <table width=790>
-            <tr><td>
-            <hr><table cellpadding=5 border=0 width=100%><tr>
-            <td align=center width=15%><a href='status'>Node Status</a></td>
-            <td align=center width=15%><a href='setup'>Basic Setup</a></td>
-            <td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>
-            <td align=center width=15%><a href='vpn'>Tunnel<br>Server</a></td>
-            <td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>
-            <td align=center width=15%><a href='admin'>Administration</a></td>
-            <td align=center width=15%><a href='advancedconfig'>Advanced<br>Configuration</a></td>
-            </tr></table><hr>
+        <tr><td>
+        <center>
+            <button type=button onClick='window.location.reload()' title='Refresh this page'>Refresh</button>
+            &nbsp;&nbsp;
+            <button type=button onClick='window.location="status"' title='Return to the status page'>Quit</button>
+        </center>
+        </td></tr>
+        <tr><td>
+            <div class="lt">
+                <span class="m">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">TX Estimate</span><span class="b">Status</span>
+            </div>
+            <div id="links"></div>
             </td></tr>
-            <tr><td>
-                <div class="title">Neighbor Link Status</div>
-                <div class="lt">
-                    <span class="m">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">TX Estimate</span><span class="b">Status</span>
-                </div>
-                <div id="links"></div>
-                </td></tr>
-            </table>
+        </table>
     </center>
     <script>
         const meters_to_miles = 0.000621371;
@@ -128,6 +127,9 @@ html.print([[
                 }
                 if (track.blocks.dup) {
                     return "blocked - dup";
+                }
+                if (track.blocks.quality) {
+                    return "blocked - quality";
                 }
                 return "blocked";
             }
