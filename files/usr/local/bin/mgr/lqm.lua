@@ -124,10 +124,6 @@ local wlan = get_ifname("wifi")
 
 function lqm()
 
-    if cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
-        exit_app()
-    end
-
     -- Let things startup for a while before we begin
     wait_for_ticks(math.max(1, 30 - nixio.sysinfo().uptime))
 
@@ -251,17 +247,13 @@ function lqm()
                 if not track.last_tx then
                     track.last_tx = tx
                     track.last_tx_total = tx_total
-                    track.tx_quality = nil
+                    track.tx_quality = 100
                 elseif tx_total >= track.last_tx_total + quality_min_packets then
                     local tx_quality = 100 * (tx - track.last_tx) / (tx_total - track.last_tx_total)
                     track.last_tx = tx
                     track.last_tx_total = tx_total
                     track.last_quality = tx_quality
-                    if track.tx_quality then
-                        track.tx_quality = math.ceil(quality_run_avg * track.tx_quality + (1 - quality_run_avg) * tx_quality)
-                    else
-                        track.tx_quality = math.ceil(tx_quality)
-                    end
+                    track.tx_quality = math.ceil(quality_run_avg * track.tx_quality + (1 - quality_run_avg) * tx_quality)
                 end
 
                 track.tx_rate = station.tx_rate
@@ -295,17 +287,10 @@ function lqm()
                             track.distance = calcDistance(lat, lon, track.lat, track.lon)
                         end
                     end
-                    if not info.lqm then
-                        -- Non-integrated API
-                        info.lqm = json.parse(luci.sys.httpget("http://" .. track.ip .. ":8080/cgi-bin/lqm-api"))
-                        if info.lqm then
-                            info.lqm.enabled = true
-                        end
-                    end
                     local old_rev_snr = track.rev_snr
                     track.links = {}
-                    -- If we find no lqm information for ourself, then the remote node has no link
-                    track.rev_snr = 0
+                    -- Note: We cannot assume a missing link means no wifi connection
+                    track.rev_snr = null
                     if info.lqm and info.lqm.enabled then
                         for _, rtrack in pairs(info.lqm.info.trackers)
                         do
@@ -332,8 +317,6 @@ function lqm()
                         end
                     else
                         -- If there's no LQM information we fallback on using link information.
-                        -- Note: We cannot assume a missing link means no wifi connection
-                        track.rev_snr = null
                         for ip, link in pairs(info.link_info)
                         do
                             if link.hostname then
