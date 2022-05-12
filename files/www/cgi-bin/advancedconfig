@@ -333,7 +333,7 @@ local settings = {
         key = "aredn.@lqm[0].min_quality",
         type = "string",
         desc = "Quality neighbor must be over to be acceptable",
-        default = "75",
+        default = "50",
         condition = "lqm_enabled()"
     },
     {
@@ -341,7 +341,7 @@ local settings = {
         key = "aredn.@lqm[0].margin_quality",
         type = "string",
         desc = "Quality increase before neighbor can be re-accepted",
-        default = "5",
+        default = "1",
         condition = "lqm_enabled()"
     },
     {
@@ -507,8 +507,8 @@ function lqm_defaults()
     cursor_set("aredn", "@lqm[0]", "min_distance", "0")
     cursor_set("aredn", "@lqm[0]", "max_distance", "48280")
     cursor_set("aredn", "@lqm[0]", "user_blocks", "")
-    cursor_set("aredn", "@lqm[0]", "min_quality", "75")
-    cursor_set("aredn", "@lqm[0]", "margin_quality", "3")
+    cursor_set("aredn", "@lqm[0]", "min_quality", "50")
+    cursor_set("aredn", "@lqm[0]", "margin_quality", "1")
 end
 
 function writePackageRepo(repo)
