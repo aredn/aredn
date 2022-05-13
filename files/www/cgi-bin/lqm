@@ -157,7 +157,7 @@ html.print([[
                     txspeed = (track.tx_rate * wifi_scale).toFixed(2) + " Mbps";
                 }
                 if (typeof track.tx_quality === "number" && (!track.blocked || (track.blocks.quality && !(track.blocks.dtd || track.blocks.signal || track.blocks.distance || track.blocks.user || track.blocks.dup)))) {
-                    txquality = track.tx_quality + "%%";
+                    txquality = track.tx_quality + "%";
                 }
                 links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${"distance" in track ? (meters_to_miles * track.distance).toFixed(2) + " miles" : "-"}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="p">${status(track, data)}</span></div>`;
             }
