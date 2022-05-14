@@ -169,13 +169,14 @@ function lqm()
         }
         local stations = {}
         local station = {}
+        local noise = iwinfo.nl80211.noise(wlan) or -95
         for line in io.popen("iw " .. wlan .. " station dump"):lines()
         do
             local mac = line:match("^Station ([0-9a-f:]+) ")
             if mac then
                 station = {
                     signal = 0,
-                    noise = -95,
+                    noise = noise,
                 }
                 stations[mac:upper()] = station
             else
