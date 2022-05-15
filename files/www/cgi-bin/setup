@@ -448,12 +448,21 @@ if (parms.button_apply or parms.button_save) and wifi_enable == "1" then
         -- validate values
         local lqm_min_snr = tonumber(parms.lqm_min_snr)
         local lqm_max_distance = tonumber(parms.lqm_max_distance)
+        local lqm_distance_unit = parms.lqm_distance_unit or "mile"
         local lqm_min_quality = tonumber(parms.lqm_min_quality)
         if not lqm_min_snr or lqm_min_snr < 0 or lqm_min_snr > 95 then
             err("ERROR: Minimum SNR out of range (0-95)")
         end
-        if not lqm_max_distance or lqm_max_distance < 0 or lqm_max_distance > 71 then
-            err("ERROR: Maximum Distance out of range (0-71)")
+        local distance_scale = 1000
+        if lqm_distance_unit == "mile" then
+            distance_scale = 1609.344
+            if not lqm_max_distance or lqm_max_distance < 0 or lqm_max_distance > 71 then
+                err("ERROR: Maximum Distance out of range (0-71)")
+            end
+        else
+            if not lqm_max_distance or lqm_max_distance < 0 or lqm_max_distance > 114 then
+                err("ERROR: Maximum Distance out of range (0-114)")
+            end
         end
         if not lqm_min_quality or lqm_min_quality < 0 or lqm_min_quality > 100 then
             err("ERROR: Minimum Quality out of range (0-100)")
@@ -462,8 +471,8 @@ if (parms.button_apply or parms.button_save) and wifi_enable == "1" then
             local cursorb = uci.cursor("/etc/config.mesh")
             cursor:set("aredn", "@lqm[0]", "min_snr", parms.lqm_min_snr)
             cursorb:set("aredn", "@lqm[0]", "min_snr", parms.lqm_min_snr)
-            cursor:set("aredn", "@lqm[0]", "max_distance", math.floor(parms.lqm_max_distance * 1609.344))
-            cursorb:set("aredn", "@lqm[0]", "max_distance", math.floor(parms.lqm_max_distance * 1609.344))
+            cursor:set("aredn", "@lqm[0]", "max_distance", math.floor(parms.lqm_max_distance * distance_scale))
+            cursorb:set("aredn", "@lqm[0]", "max_distance", math.floor(parms.lqm_max_distance * distance_scale))
             cursor:set("aredn", "@lqm[0]", "min_quality", parms.lqm_min_quality)
             cursorb:set("aredn", "@lqm[0]", "min_quality", parms.lqm_min_quality)
             cursor:commit("aredn")
@@ -1082,7 +1091,22 @@ if wifi_enable == "1" then
         local lqm_max_distance = tonumber(cursor:get("aredn", "@lqm[0]", "max_distance")) or 114750
         local lqm_min_snr = cursor:get("aredn", "@lqm[0]", "min_snr") or "15"
         local lqm_min_quality = cursor:get("aredn", "@lqm[0]", "min_quality") or "50"
-        html.print("<tr><td>Max Distance</td><td><input type=text size=4 name='lqm_max_distance' value='" .. string.format("%.1f", lqm_max_distance / 1609.344) .. "' title='Maximum distance to a neighbor before it will be ignored'>&nbsp;miles</td></tr>")
+        html.print([[
+            <tr><td>Max Distance</td><td>
+            <script>
+                var dm = ]] .. lqm_max_distance .. [[;
+                switch (navigator.language.split("-")[1] || "unknown") {
+                    case "US":
+                    case "GB":
+                        document.write("<input type=hidden name='lqm_distance_unit' value='mile'><input type=text size=4 name='lqm_max_distance' value='" + (dm / 1609.344).toFixed(1) + "' title='Maximum distance to a neighbor before it will be ignored'>&nbsp;miles")
+                        break;
+                    default:
+                        document.write("<input type=hidden name='lqm_distance_unit' value='kilometer'><input type=text size=4 name='lqm_max_distance' value='" + (dm / 1000).toFixed(1) + "' title='Maximum distance to a neighbor before it will be ignored'>&nbsp;kilometers")
+                        break;
+                }
+            </script>
+            </td></tr>
+        ]])
         html.print("<tr><td>Min SNR</td><td><input type=text size=4 name='lqm_min_snr' value='" .. lqm_min_snr .. "' title='Minimum SNR of neighbor before it will be accepted'></td></tr>")
         html.print("<tr><td>Min Quality</td><td><input type=text size=4 name='lqm_min_quality' value='" .. lqm_min_quality .. "' title='Minimum acceptable link quality'>&nbsp;%</td></tr>")
     else
