@@ -43,6 +43,8 @@ local snr_run_avg = 0.8 -- snr running average
 local quality_min_packets = 100 -- minimum number of tx packets before we can safely calculate the link quality
 local quality_injection_max = 10 -- number of packets to inject into poor links to update quality
 local quality_run_avg = 0.8 -- quality running average
+local ping_timeout = 1.0 -- timeout before ping gives a qualtiy penalty
+local ping_penalty_factor = 0.25 -- decrease quality by this penalty when ping fails
 
 local myhostname = (info.get_nvram("node") or "localnode"):lower()
 local now = 0
@@ -133,12 +135,6 @@ function lqm()
     os.execute("/usr/sbin/iptables -N input_lqm 2> /dev/null")
     os.execute("/usr/sbin/iptables -D INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null")
     os.execute("/usr/sbin/iptables -I INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null")
-
-    -- Create socket we use to inject traffic into degraded links to measure quality
-    -- This is setup so it ignores routing and will always send to the correct wifi station
-    local sigsock = nixio.socket("inet", "dgram")
-    sigsock:setopt("socket", "bindtodevice", wlan)
-    sigsock:setopt("socket", "dontroute", 1)
 
     -- We dont know any distances yet
     os.execute("iw " .. phy .. " set distance auto")
@@ -361,16 +357,27 @@ function lqm()
                 track.routable = false
             end
 
+            -- Ping routable addresses and penalize quality for excessively slow links
+            if track.routable and not track.blocked and os.execute("/bin/ping -c 1 -W " .. ping_timeout .. " " .. track.ip .. " > /dev/null") ~= 0 then
+                track.tx_quality = math.max(0, math.ceil(track.tx_quality - ping_penalty_factor * (100 - config.min_quality)))
+            end
+
             -- Inject traffic into links with poor quality
             -- We do this so we can keep measuring the current link quality otherwise, once it becomes
             -- bad, it wont be used and we can never tell if it becomes good again. Beware injecting too
             -- much traffic because, on very poor links, this can generate multiple retries per packet, flooding
             -- the wifi channel
             if track.ip and only_quality_block(track) then
+                -- Create socket we use to inject traffic into degraded links
+                -- This is setup so it ignores routing and will always send to the correct wifi station
+                local sigsock = nixio.socket("inet", "dgram")
+                sigsock:setopt("socket", "bindtodevice", wlan)
+                sigsock:setopt("socket", "dontroute", 1)
                 for _ = 1,quality_injection_max
                 do
                     sigsock:sendto("", track.ip, 8080)
                 end
+                sigsock:close()
             end
         end
 
