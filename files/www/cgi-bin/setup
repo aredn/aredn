@@ -460,8 +460,8 @@ if (parms.button_apply or parms.button_save) and wifi_enable == "1" then
         end
         if #errors == 0 then
             local cursorb = uci.cursor("/etc/config.mesh")
-            cursor:set("aredn", "@lqm[0]", "low_snr", parms.lqm_min_snr)
-            cursorb:set("aredn", "@lqm[0]", "low_snr", parms.lqm_min_snr)
+            cursor:set("aredn", "@lqm[0]", "min_snr", parms.lqm_min_snr)
+            cursorb:set("aredn", "@lqm[0]", "min_snr", parms.lqm_min_snr)
             cursor:set("aredn", "@lqm[0]", "max_distance", math.floor(parms.lqm_max_distance * 1609.344))
             cursorb:set("aredn", "@lqm[0]", "max_distance", math.floor(parms.lqm_max_distance * 1609.344))
             cursor:set("aredn", "@lqm[0]", "min_quality", parms.lqm_min_quality)
@@ -1080,7 +1080,7 @@ if wifi_enable == "1" then
     html.print("</select>&nbsp;&nbsp;<a href=\"/help.html#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
     if lqm_mode then
         local lqm_max_distance = tonumber(cursor:get("aredn", "@lqm[0]", "max_distance")) or 114750
-        local lqm_min_snr = cursor:get("aredn", "@lqm[0]", "low_snr") or "15"
+        local lqm_min_snr = cursor:get("aredn", "@lqm[0]", "min_snr") or "15"
         local lqm_min_quality = cursor:get("aredn", "@lqm[0]", "min_quality") or "50"
         html.print("<tr><td>Max Distance</td><td><input type=text size=4 name='lqm_max_distance' value='" .. string.format("%.1f", lqm_max_distance / 1609.344) .. "' title='Maximum distance to a neighbor before it will be ignored'>&nbsp;miles</td></tr>")
         html.print("<tr><td>Min SNR</td><td><input type=text size=4 name='lqm_min_snr' value='" .. lqm_min_snr .. "' title='Minimum SNR of neighbor before it will be accepted'></td></tr>")

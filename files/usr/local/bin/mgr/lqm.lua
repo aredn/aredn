@@ -51,7 +51,7 @@ function get_config()
     local c = uci.cursor() -- each time as /etc/config/aredn may have changed
     return {
         margin = tonumber(c:get("aredn", "@lqm[0]", "margin_snr")),
-        low = tonumber(c:get("aredn", "@lqm[0]", "low_snr")),
+        low = tonumber(c:get("aredn", "@lqm[0]", "min_snr")),
         min_distance = tonumber(c:get("aredn", "@lqm[0]", "min_distance")),
         max_distance = tonumber(c:get("aredn", "@lqm[0]", "max_distance")),
         min_quality = tonumber(c:get("aredn", "@lqm[0]", "min_quality")),
