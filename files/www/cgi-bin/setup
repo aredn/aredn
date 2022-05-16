@@ -1080,9 +1080,9 @@ if wifi_enable == "1" then
     hidden[#hidden + 1] = "<input type=hidden name=wifi_country value='HX'>"
 
     if lqm_mode then
-        html.print("<tr><td colspan=2 align=center><hr><small>Link Quality &amp; Power</small></td></tr>")
+        html.print("<tr><th colspan=2 align=center><hr><small>Power &amp; Link Quality</small></th></tr>")
     else
-        html.print("<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>")
+        html.print("<tr><th colspan=2 align=center><hr><small>Power &amp; Distance</small></th></tr>")
     end
     html.print("<tr><td><nobr>Tx Power</nobr></td><td><select name=wifi_txpower>")
     local txpoweroffset = aredn.hardware.wifi_poweroffset(wifiintf)
@@ -1243,7 +1243,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount =
             end
         end
     end
-    html.print("<tr><th colspan=2>LAN Access Point</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi2_enable value=1" .. (wifi2_enable == "1" and " checked" or "") .. "></td></tr>")
+    html.print("<tr><th colspan=2><small>LAN Access Point</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi2_enable value=1" .. (wifi2_enable == "1" and " checked" or "") .. "></td></tr>")
     if phycount > 1 then
         html.print("<tr><td>AP band</td><td><select name=wifi2_hwmode>")
         if wifi_enable ~= "1" then
@@ -1298,7 +1298,7 @@ end
 html.print("<tr><td><nobr>DNS 1</nobr></td><td><input type=text size=15 name=wan_dns1 value='" .. wan_dns1 .. "'></td></tr>")
 html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan_dns2 value='" .. wan_dns2 .. "'></td></tr>")
 
-html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>Advanced WAN Access</th></tr>")
+html.print("<tr><th colspan=2><hr></td></tr><tr><th colspan=2><small>Advanced WAN Access</small></th></tr>")
 if wan_proto ~= "disabled" then
     html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wansettings\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
 else
@@ -1333,7 +1333,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
         end
     end
 
-    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>WAN Wifi Client</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wanclient\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
+    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2><small>WAN Wifi Client</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wanclient\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
 
     if wifi_enable ~= "1" and wifi2_enable ~= "1" and phycount > 1 then
         html.print("<tr><td>WAN Wifi Client band</td><td><select name=wifi3_hwmode>")
