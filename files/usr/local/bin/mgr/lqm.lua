@@ -358,8 +358,19 @@ function lqm()
             end
 
             -- Ping routable addresses and penalize quality for excessively slow links
-            if track.routable and not track.blocked and os.execute("/bin/ping -c 1 -W " .. ping_timeout .. " " .. track.ip .. " > /dev/null") ~= 0 then
-                track.tx_quality = math.max(0, math.ceil(track.tx_quality - ping_penalty_factor * (100 - config.min_quality)))
+            if track.routable and not track.blocked then
+                local sigsock = nixio.socket("inet", "dgram")
+                sigsock:setopt("socket", "bindtodevice", wlan)
+                sigsock:setopt("socket", "dontroute", 1)
+                sigsock:setopt("socket", "rcvtimeo", ping_timeout)
+                sigsock:connect(track.ip, 8080)
+                sigsock:send("")
+                -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
+                -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
+                if sigsock:recv(0) == false then
+                    track.tx_quality = math.max(0, math.ceil(track.tx_quality - ping_penalty_factor * (100 - config.min_quality)))
+                end
+                sigsock:close()
             end
 
             -- Inject traffic into links with poor quality
