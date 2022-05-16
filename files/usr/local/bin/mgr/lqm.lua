@@ -44,7 +44,6 @@ local quality_min_packets = 100 -- minimum number of tx packets before we can sa
 local quality_injection_max = 10 -- number of packets to inject into poor links to update quality
 local quality_run_avg = 0.8 -- quality running average
 local ping_timeout = 1.0 -- timeout before ping gives a qualtiy penalty
-local ping_penalty_factor = 0.25 -- decrease quality by this penalty when ping fails
 
 local myhostname = (info.get_nvram("node") or "localnode"):lower()
 local now = 0
@@ -58,6 +57,7 @@ function get_config()
         max_distance = tonumber(c:get("aredn", "@lqm[0]", "max_distance")),
         min_quality = tonumber(c:get("aredn", "@lqm[0]", "min_quality")),
         margin_quality = tonumber(c:get("aredn", "@lqm[0]", "margin_quality")),
+        ping_penalty = tonumber(c:get("aredn", "@lqm[0]", "ping_penalty")),
         user_blocks = c:get("aredn", "@lqm[0]", "user_blocks") or ""
     }
 end
@@ -368,7 +368,7 @@ function lqm()
                 -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
                 -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
                 if sigsock:recv(0) == false then
-                    track.tx_quality = math.max(0, math.ceil(track.tx_quality - ping_penalty_factor * (100 - config.min_quality)))
+                    track.tx_quality = math.max(0, math.ceil(track.tx_quality - config.ping_penalty))
                 end
                 sigsock:close()
             end
@@ -404,6 +404,11 @@ function lqm()
             else
                 if track.snr >= config.low + config.margin and (not track.rev_snr or track.rev_snr >= config.low + config.margin) then
                     track.blocks.signal = false
+                    -- When signal is good enough to unblock a link but the quality is low, artificially bump
+                    -- it up to give the link chance to recover
+                    if track.blocks.quality then
+                        track.tx_quality = config.min_quality + config.margin_quality
+                    end
                 end 
             end
 
