@@ -1079,7 +1079,11 @@ if wifi_enable == "1" then
 
     hidden[#hidden + 1] = "<input type=hidden name=wifi_country value='HX'>"
 
-    html.print("<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>")
+    if lqm_mode then
+        html.print("<tr><td colspan=2 align=center><hr><small>Link Quality &amp; Power</small></td></tr>")
+    else
+        html.print("<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>")
+    end
     html.print("<tr><td><nobr>Tx Power</nobr></td><td><select name=wifi_txpower>")
     local txpoweroffset = aredn.hardware.wifi_poweroffset(wifiintf)
     for i = aredn.hardware.wifi_maxpower(wifi_channel),1,-1
