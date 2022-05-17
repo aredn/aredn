@@ -113,6 +113,7 @@ html.print([[<hr>
     </center>
     <script>
         const meters_to_miles = 0.000621371;
+        const meters_to_km = 0.001;
         const wifi_scale = 0.2;
         const status = (track, data) => {
             if (track.blocked) {
@@ -150,19 +151,32 @@ html.print([[<hr>
             }
             return track.mac || "-";
         }
+        let convertd = (d) => (meters_to_km * d).toFixed(2) + " km";
+        switch (navigator.language.split("-")[1] || "unknown") {
+            case "US":
+            case "GB":
+                convertd = (d) => (meters_to_miles * d).toFixed(2) + " miles";
+                break;
+            default:
+                break;
+        }
         const update = data => {
             let links = "";
             for (let mac in data.info.trackers) {
                 const track = data.info.trackers[mac];
                 let txspeed = "-";
                 let txquality = "-";
+                let distance = "-";
                 if (!track.blocked) {
                     txspeed = (track.tx_rate * wifi_scale).toFixed(2) + " Mbps";
                 }
                 if (typeof track.tx_quality === "number" && (!track.blocked || (track.blocks.quality && !(track.blocks.dtd || track.blocks.signal || track.blocks.distance || track.blocks.user || track.blocks.dup)))) {
                     txquality = track.tx_quality + "%";
                 }
-                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${"distance" in track ? (meters_to_miles * track.distance).toFixed(2) + " miles" : "-"}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="p">${status(track, data)}</span></div>`;
+                if (typeof track.distance === "number") {
+                    distance = convertd(track.distance);
+                }
+                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="p">${status(track, data)}</span></div>`;
             }
             document.getElementById("links").innerHTML = links;
         }
