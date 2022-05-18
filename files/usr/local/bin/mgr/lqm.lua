@@ -67,7 +67,7 @@ function should_block(track)
     if now > track.pending then
         return track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.dup or track.blocks.quality
     else
-        return track.blocks.dtd or track.blocks.distance or track.blocks.user
+        return track.blocks.dtd or track.blocks.user
     end
 end
 
