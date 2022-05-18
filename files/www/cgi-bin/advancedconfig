@@ -286,7 +286,56 @@ local settings = {
         type = "boolean",
         desc = "Enable the included iperf3 client/server support",
         default = "1"
-    }
+    },
+    {
+        category = "Link Quality",
+        key = "aredn.@lqm[0].enable",
+        type = "boolean",
+        desc = "Enable experimental link quality management",
+        default = "0",
+        postcallback = "lqm_defaults()",
+        needreboot = true
+    },
+    {
+        category = "Link Quality",
+        key = "aredn.@lqm[0].margin_snr",
+        type = "string",
+        desc = "Margin above minimim SNR a signal must reach to become acceptable",
+        default = "1",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality",
+        key = "aredn.@lqm[0].min_distance",
+        type = "string",
+        desc = "Distance neightbor must be over to be acceptable",
+        default = "0",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality",
+        key = "aredn.@lqm[0].margin_quality",
+        type = "string",
+        desc = "Quality increase before neighbor can be re-accepted",
+        default = "1",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality",
+        key = "aredn.@lqm[0].ping_penalty",
+        type = "string",
+        desc = "Quality penalty when neighbor cannot be pinged",
+        default = "10",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality",
+        key = "aredn.@lqm[0].user_blocks",
+        type = "string",
+        desc = "Comma separated list of blocked MACs",
+        default = "",
+        condition = "lqm_enabled()"
+    }     
 }
 
 local msgs = {}
@@ -430,6 +479,20 @@ end
 function alert_purge()
     os.remove("/tmp/aredn_message")
     os.remove("/tmp/local_message")
+end
+
+function lqm_enabled()
+    return cursor_get("aredn", "@lqm[0]", "enable") == "1"
+end
+
+function lqm_defaults()
+    cursor_set("aredn", "@lqm[0]", "min_snr", "15")
+    cursor_set("aredn", "@lqm[0]", "margin_snr", "1")
+    cursor_set("aredn", "@lqm[0]", "min_distance", "0")
+    cursor_set("aredn", "@lqm[0]", "max_distance", "80467")
+    cursor_set("aredn", "@lqm[0]", "min_quality", "50")
+    cursor_set("aredn", "@lqm[0]", "ping_penalty", "10")
+    cursor_set("aredn", "@lqm[0]", "margin_quality", "1")
 end
 
 function writePackageRepo(repo)

@@ -409,6 +409,12 @@ if not parms.reload then
     end
 end
 
+-- lqm
+local lqm_mode = false
+if cursor:get("aredn", "@lqm[0]", "enable") == "1" then
+    lqm_mode = true
+end
+
 -- sanitize the active settings
 if not wifi_txpower or wifi_txpower > aredn.hardware.wifi_maxpower(wifi_channel) then
     wifi_txpower = aredn.hardware.wifi_maxpower(wifi_channel)
@@ -429,11 +435,49 @@ parms.wifi_distance = wifi_distance
 parms.wifi_txpower = wifi_txpower
 
 -- apply the wifi settings
-if (parms.button_apply or parms.button_save) and wifi_enable == "1" and phy then
-    if wifi_distance == 0 then
-        os.execute("iw phy " .. phy .. " set distance auto >/dev/null 2>&1")
+if (parms.button_apply or parms.button_save) and wifi_enable == "1" then
+    if not lqm_mode then
+        if phy then
+            if wifi_distance == 0 then
+                os.execute("iw phy " .. phy .. " set distance auto >/dev/null 2>&1")
+            else
+                os.execute("iw phy " .. phy .. " set distance " .. wifi_distance .. " >/dev/null 2>&1")
+            end
+        end
     else
-        os.execute("iw phy " .. phy .. " set distance " .. wifi_distance .. " >/dev/null 2>&1")
+        -- validate values
+        local lqm_min_snr = tonumber(parms.lqm_min_snr)
+        local lqm_max_distance = tonumber(parms.lqm_max_distance)
+        local lqm_distance_unit = parms.lqm_distance_unit or "mile"
+        local lqm_min_quality = tonumber(parms.lqm_min_quality)
+        if not lqm_min_snr or lqm_min_snr < 0 or lqm_min_snr > 95 then
+            err("ERROR: Minimum SNR out of range (0-95)")
+        end
+        local distance_scale = 1000
+        if lqm_distance_unit == "mile" then
+            distance_scale = 1609.344
+            if not lqm_max_distance or lqm_max_distance < 0 or lqm_max_distance > 71 then
+                err("ERROR: Maximum Distance out of range (0-71)")
+            end
+        else
+            if not lqm_max_distance or lqm_max_distance < 0 or lqm_max_distance > 114 then
+                err("ERROR: Maximum Distance out of range (0-114)")
+            end
+        end
+        if not lqm_min_quality or lqm_min_quality < 0 or lqm_min_quality > 100 then
+            err("ERROR: Minimum Quality out of range (0-100)")
+        end
+        if #errors == 0 then
+            local cursorb = uci.cursor("/etc/config.mesh")
+            cursor:set("aredn", "@lqm[0]", "min_snr", parms.lqm_min_snr)
+            cursorb:set("aredn", "@lqm[0]", "min_snr", parms.lqm_min_snr)
+            cursor:set("aredn", "@lqm[0]", "max_distance", math.floor(parms.lqm_max_distance * distance_scale))
+            cursorb:set("aredn", "@lqm[0]", "max_distance", math.floor(parms.lqm_max_distance * distance_scale))
+            cursor:set("aredn", "@lqm[0]", "min_quality", parms.lqm_min_quality)
+            cursorb:set("aredn", "@lqm[0]", "min_quality", parms.lqm_min_quality)
+            cursor:commit("aredn")
+            cursorb:commit("aredn")
+        end
     end
     os.execute("iw dev " .. wifiintf .. " set txpower fixed " .. wifi_txpower .. "00 >/dev/null 2>&1")
 end
@@ -1035,7 +1079,11 @@ if wifi_enable == "1" then
 
     hidden[#hidden + 1] = "<input type=hidden name=wifi_country value='HX'>"
 
-    html.print("<tr><td colspan=2 align=center><hr><small>Active Settings</small></td></tr>")
+    if lqm_mode then
+        html.print("<tr><th colspan=2 align=center><hr><small>Power &amp; Link Quality</small></th></tr>")
+    else
+        html.print("<tr><th colspan=2 align=center><hr><small>Power &amp; Distance</small></th></tr>")
+    end
     html.print("<tr><td><nobr>Tx Power</nobr></td><td><select name=wifi_txpower>")
     local txpoweroffset = aredn.hardware.wifi_poweroffset(wifiintf)
     for i = aredn.hardware.wifi_maxpower(wifi_channel),1,-1
@@ -1043,18 +1091,41 @@ if wifi_enable == "1" then
         html.print("<option value='" .. i .. "'".. (i == tonumber(wifi_txpower) and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>")
     end
     html.print("</select>&nbsp;&nbsp;<a href=\"/help.html#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
-    html.print("<tr id='dist' class='dist-norm'><td>Distance to<br/>FARTHEST Neighbor<br/><h3>'0' is auto</h3></td>")
+    if lqm_mode then
+        local lqm_max_distance = tonumber(cursor:get("aredn", "@lqm[0]", "max_distance")) or 114750
+        local lqm_min_snr = cursor:get("aredn", "@lqm[0]", "min_snr") or "15"
+        local lqm_min_quality = cursor:get("aredn", "@lqm[0]", "min_quality") or "50"
+        html.print([[
+            <tr><td>Max Distance</td><td>
+            <script>
+                var dm = ]] .. lqm_max_distance .. [[;
+                switch (navigator.language.split("-")[1] || "unknown") {
+                    case "US":
+                    case "GB":
+                        document.write("<input type=hidden name='lqm_distance_unit' value='mile'><input type=text size=4 name='lqm_max_distance' value='" + (dm / 1609.344).toFixed(1) + "' title='Maximum distance to a neighbor before it will be ignored'>&nbsp;miles")
+                        break;
+                    default:
+                        document.write("<input type=hidden name='lqm_distance_unit' value='kilometer'><input type=text size=4 name='lqm_max_distance' value='" + (dm / 1000).toFixed(1) + "' title='Maximum distance to a neighbor before it will be ignored'>&nbsp;km")
+                        break;
+                }
+            </script>
+            </td></tr>
+        ]])
+        html.print("<tr><td>Min SNR</td><td><input type=text size=4 name='lqm_min_snr' value='" .. lqm_min_snr .. "' title='Minimum SNR of neighbor before it will be accepted'></td></tr>")
+        html.print("<tr><td>Min Quality</td><td><input type=text size=4 name='lqm_min_quality' value='" .. lqm_min_quality .. "' title='Minimum acceptable link quality'>&nbsp;%</td></tr>")
+    else
+        html.print("<tr id='dist' class='dist-norm'><td>Distance to<br/>FARTHEST Neighbor<br/><h3>'0' is auto</h3></td>")
 
-    local wifi_distance = math.floor(tonumber(wifi_distance))
-    local wifi_distance_disp_km = math.floor(wifi_distance / 1000)
-    local wifi_distance_disp_miles = string.format("%.2f", wifi_distance_disp_km * 0.621371192)
-    html.print("<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='" .. wifi_distance_disp_miles .. "' title='Distance to the farthest neighbor'>&nbsp;mi<br />")
-    html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_km' value='" .. wifi_distance_disp_km .. "' title='Distance to the farthest neighbor'>&nbsp;km<br />")
-    html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_meters' value='" .. wifi_distance .."' title='Distance to the farthest neighbor'>&nbsp;m<br />")
-    html.print("<input id='distance_slider' type='range' min='0' max='150' step='1' value='" .. wifi_distance_disp_km .."' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />")
-    html.print("<input type='hidden' size='6' name='wifi_distance' value='" .. wifi_distance .. "' />")
-    html.print("</td></tr>")
-
+        local wifi_distance = math.floor(tonumber(wifi_distance))
+        local wifi_distance_disp_km = math.floor(wifi_distance / 1000)
+        local wifi_distance_disp_miles = string.format("%.2f", wifi_distance_disp_km * 0.621371192)
+        html.print("<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='" .. wifi_distance_disp_miles .. "' title='Distance to the farthest neighbor'>&nbsp;mi<br />")
+        html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_km' value='" .. wifi_distance_disp_km .. "' title='Distance to the farthest neighbor'>&nbsp;km<br />")
+        html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_meters' value='" .. wifi_distance .."' title='Distance to the farthest neighbor'>&nbsp;m<br />")
+        html.print("<input id='distance_slider' type='range' min='0' max='150' step='1' value='" .. wifi_distance_disp_km .."' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />")
+        html.print("<input type='hidden' size='6' name='wifi_distance' value='" .. wifi_distance .. "' />")
+        html.print("</td></tr>")
+    end
     html.print("<tr><td></td><td><input type=submit name=button_apply value=Apply title='Immediately use these active settings'></td></tr>")
 else
     hidden[#hidden + 1] = "<input type=hidden name=wifi_ssid value='" .. wifi_ssid .."'>"
@@ -1172,7 +1243,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount =
             end
         end
     end
-    html.print("<tr><th colspan=2>LAN Access Point</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi2_enable value=1" .. (wifi2_enable == "1" and " checked" or "") .. "></td></tr>")
+    html.print("<tr><th colspan=2><small>LAN Access Point</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi2_enable value=1" .. (wifi2_enable == "1" and " checked" or "") .. "></td></tr>")
     if phycount > 1 then
         html.print("<tr><td>AP band</td><td><select name=wifi2_hwmode>")
         if wifi_enable ~= "1" then
@@ -1227,7 +1298,7 @@ end
 html.print("<tr><td><nobr>DNS 1</nobr></td><td><input type=text size=15 name=wan_dns1 value='" .. wan_dns1 .. "'></td></tr>")
 html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan_dns2 value='" .. wan_dns2 .. "'></td></tr>")
 
-html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>Advanced WAN Access</th></tr>")
+html.print("<tr><th colspan=2><hr></td></tr><tr><th colspan=2><small>Advanced WAN Access</small></th></tr>")
 if wan_proto ~= "disabled" then
     html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wansettings\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
 else
@@ -1262,7 +1333,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
         end
     end
 
-    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2>WAN Wifi Client</th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wanclient\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
+    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2><small>WAN Wifi Client</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wanclient\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
 
     if wifi_enable ~= "1" and wifi2_enable ~= "1" and phycount > 1 then
         html.print("<tr><td>WAN Wifi Client band</td><td><select name=wifi3_hwmode>")

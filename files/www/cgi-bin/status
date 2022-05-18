@@ -242,6 +242,10 @@ html.print("<input type=submit name=refresh value=Refresh title='Refresh this pa
 if config == "mesh" then
     html.print("&nbsp;&nbsp;")
     html.print("<button type=button onClick='window.location=\"mesh\"' title='See what is on the mesh'>Mesh Status</button>")
+    if cursor:get("aredn", "@lqm[0]", "enable") == "1" then
+        html.print("&nbsp;&nbsp;")
+        html.print("<button type=button onClick='window.location=\"lqm\"' title='See the link status to our neighbors'>Neighbor Status</button>")
+    end
     if not wifi_disabled then
         html.print("&nbsp;&nbsp;")
         html.print("<button type=button onClick='window.location=\"scan\"' title='See what wireless networks are nearby'>WiFi Scan</button>")

@@ -49,6 +49,7 @@ local tmpdir = "/tmp/snrlog"
 local lastdat = "/tmp/snr.dat"
 local autolog = "/tmp/AutoDistReset.log"
 local defnoise = -95
+local cursor = uci.cursor()
 
 -- create tmp dir if needed
 nixio.fs.mkdir(tmpdir)
@@ -220,7 +221,7 @@ function run_snrlog()
     f:close()
 
     -- trigger auto distancing if necessary
-    if trigger_auto_distance then
+    if trigger_auto_distance and cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
         reset_auto_distance()
         file_trim(autolog, MAXLINES)
         f, err = assert(io.open(autolog, "a"),"Cannot open file (autolog) to write!")
