@@ -115,7 +115,10 @@ html.print([[<hr>
         const meters_to_miles = 0.000621371;
         const meters_to_km = 0.001;
         const wifi_scale = 0.2;
-        const status = (track, data) => {
+        const get_status = (track, data) => {
+            if (track.pending > data.info.now) {
+                return "pending";
+            }
             if (track.blocked) {
                 if (track.blocks.user) {
                     return "blocked - user";
@@ -123,11 +126,12 @@ html.print([[<hr>
                 if (track.blocks.dtd) {
                     return "blocked - dtd";
                 }
-                if (track.blocks.signal) {
-                    return "blocked - signal";
-                }
                 if (track.blocks.distance) {
                     return "blocked - distance";
+                }
+                
+                if (track.blocks.signal) {
+                    return "blocked - signal";
                 }
                 if (track.blocks.dup) {
                     return "blocked - dup";
@@ -136,9 +140,6 @@ html.print([[<hr>
                     return "blocked - quality";
                 }
                 return "blocked";
-            }
-            if (track.pending > data.info.now) {
-                return "pending";
             }
             if (track.routable) {
                 return "active";
@@ -151,11 +152,11 @@ html.print([[<hr>
             }
             return track.mac || "-";
         }
-        let convertd = (d) => (meters_to_km * d).toFixed(2) + " km";
+        let convertd = (d) => (meters_to_km * d).toFixed(1) + " km";
         switch (navigator.language.split("-")[1] || "unknown") {
             case "US":
             case "GB":
-                convertd = (d) => (meters_to_miles * d).toFixed(2) + " miles";
+                convertd = (d) => (meters_to_miles * d).toFixed(1) + " miles";
                 break;
             default:
                 break;
@@ -167,16 +168,17 @@ html.print([[<hr>
                 let txspeed = "-";
                 let txquality = "-";
                 let distance = "-";
-                if (!track.blocked) {
+                let status = get_status(track, data);
+                if (status === "pending" || !track.blocked) {
                     txspeed = (track.tx_rate * wifi_scale).toFixed(2) + " Mbps";
                 }
-                if (typeof track.tx_quality === "number" && (!track.blocked || (track.blocks.quality && !(track.blocks.dtd || track.blocks.signal || track.blocks.distance || track.blocks.user || track.blocks.dup)))) {
+                if (typeof track.tx_quality === "number" && (status === "pending" || !track.blocked || (track.blocks.quality && !(track.blocks.dtd || track.blocks.signal || track.blocks.distance || track.blocks.user || track.blocks.dup)))) {
                     txquality = track.tx_quality + "%";
                 }
                 if (typeof track.distance === "number") {
                     distance = convertd(track.distance);
                 }
-                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="p">${status(track, data)}</span></div>`;
+                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="p">${status}</span></div>`;
             }
             document.getElementById("links").innerHTML = links;
         }
