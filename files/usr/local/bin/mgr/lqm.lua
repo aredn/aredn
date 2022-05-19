@@ -366,8 +366,7 @@ function lqm()
             end
 
             -- Ping addresses and penalize quality for excessively slow links
-            -- Dont ping if the snr is too low to avoid penalizing node which are rebooting
-            if track.ip and not track.blocked and track.snr >= config.low then
+            if track.ip and not track.blocked then
                 local sigsock = nixio.socket("inet", "dgram")
                 sigsock:setopt("socket", "bindtodevice", wlan)
                 sigsock:setopt("socket", "dontroute", 1)
