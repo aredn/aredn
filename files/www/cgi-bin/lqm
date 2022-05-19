@@ -147,8 +147,11 @@ html.print([[<hr>
             return "idle";
         }
         const name = track => {
-            if (track.hostname || track.ip) {
-                return `<a href="http://${track.hostname || track.ip}:8080">${track.hostname || track.ip}</a>`;
+            if (track.hostname) {
+                return `<a href="http://${track.hostname}.local.mesh:8080">${track.hostname}</a>`;
+            }
+            if (track.ip) {
+                return `<a href="http://${track.ip}:8080">${track.ip}</a>`;
             }
             return track.mac || "-";
         }
