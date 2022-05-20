@@ -89,6 +89,14 @@ function only_quality_block(track)
     )
 end
 
+function should_ping(track)
+    if track.ip and is_connected(track) and not (track.blocks.dtd or track.blocks.distance or track.blocks.user) then
+        return true
+    else
+        return false
+    end
+end
+
 function update_block(track)
     if should_block(track) then
         if not track.blocked then
@@ -378,7 +386,7 @@ function lqm()
             end
 
             -- Ping addresses and penalize quality for excessively slow links
-            if track.ip and is_connected(track) then
+            if should_ping(track) then
                 -- Make an arp request to the target ip to see if we get a timely reply. By using ARP we avoid any
                 -- potential routing issues and avoid any firewall blocks on the other end.
                 -- Take a penalty if we fail
