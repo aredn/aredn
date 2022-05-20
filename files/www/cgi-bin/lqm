@@ -105,7 +105,7 @@ html.print([[<hr>
         </td></tr>
         <tr><td>
             <div class="lt">
-                <span class="m">Neighbor</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">TX Estimate</span><span class="p">Status</span>
+                <span class="m">RF Neighbor</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">TX Estimate</span><span class="p">Status</span>
             </div>
             <div id="links"></div>
             </td></tr>
@@ -183,7 +183,12 @@ html.print([[<hr>
                 }
                 links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="p">${status}</span></div>`;
             }
-            document.getElementById("links").innerHTML = links;
+            if (links.length) {
+                document.getElementById("links").innerHTML = links;
+            }
+            else {
+                document.getElementById("links").innerHTML = `<div><span>Currently no RF neighbor data available</span></div>`
+            }
         }
         const fetchAndUpdate = () => {
             fetch("/cgi-bin/sysinfo.json?lqm=1").then(r => r.json()).then(data => {

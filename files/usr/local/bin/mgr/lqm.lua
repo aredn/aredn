@@ -366,7 +366,7 @@ function lqm()
             end
 
             -- Ping addresses and penalize quality for excessively slow links
-            if track.ip and (not track.blocked or only_quality_block(track)) then
+            if track.ip and not track.blocked then
                 local sigsock = nixio.socket("inet", "dgram")
                 sigsock:setopt("socket", "bindtodevice", wlan)
                 sigsock:setopt("socket", "dontroute", 1)
