@@ -63,6 +63,14 @@ function get_config()
     }
 end
 
+function is_connected(track)
+    if track.lastseen >= now then
+        return true
+    else
+        return false
+    end
+end
+
 function should_block(track)
     if now > track.pending then
         return track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.dup or track.blocks.quality
@@ -79,6 +87,14 @@ function only_quality_block(track)
     return track.blocked and track.blocks.quality and not (
         track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.dup
     )
+end
+
+function should_ping(track)
+    if track.ip and is_connected(track) and not (track.blocks.dtd or track.blocks.distance or track.blocks.user) then
+        return true
+    else
+        return false
+    end
 end
 
 function update_block(track)
@@ -217,7 +233,7 @@ function lqm()
                             quality = false
                         },
                         blocked = false,
-                        snr = snr,
+                        snr = 0,
                         rev_snr = nil,
                         avg_snr = 0,
                         links = {},
@@ -244,7 +260,11 @@ function lqm()
                 end
 
                 -- Running average SNR
-                track.snr = math.ceil(snr_run_avg * track.snr + (1 - snr_run_avg) * snr)
+                if track.snr == 0 then
+                    track.snr = snr
+                else
+                    track.snr = math.ceil(snr_run_avg * track.snr + (1 - snr_run_avg) * snr)
+                end
 
                 -- Running average estimate of link quality
                 local tx = station.tx_packets
@@ -274,12 +294,6 @@ function lqm()
         -- Update link tracking state
         for _, track in pairs(tracker)
         do
-            -- Clear snr when we've not seen the node this time (disconnected)
-            if track.lastseen < now then
-                track.snr = 0
-                track.rev_snr = nil
-            end
-
             -- Only refresh remote attributes periodically
             if track.ip and (now > track.refresh or track.pending > now) then
                 track.refresh = now + refresh_timeout
@@ -354,31 +368,31 @@ function lqm()
                 end
             end
 
-            -- Update avg snr using both ends (if we have them)
-            track.avg_snr = (track.snr + (track.rev_snr or track.snr)) / 2
-
-            -- Routable
-            local rt = track.ip and ip.route(track.ip) or nil
-            if rt and tostring(rt.gw) == track.ip then
-                track.routable = true
+            if is_connected(track) then
+                -- Update avg snr using both ends (if we have them)
+                track.avg_snr = (track.snr + (track.rev_snr or track.snr)) / 2
+                -- Routable
+                local rt = track.ip and ip.route(track.ip) or nil
+                if rt and tostring(rt.gw) == track.ip then
+                    track.routable = true
+                else
+                    track.routable = false
+                end
             else
+                -- Clear snr when we've not seen the node this time (disconnected)
+                track.snr = 0
+                track.rev_snr = nil
                 track.routable = false
             end
 
             -- Ping addresses and penalize quality for excessively slow links
-            if track.ip and not track.blocked then
-                local sigsock = nixio.socket("inet", "dgram")
-                sigsock:setopt("socket", "bindtodevice", wlan)
-                sigsock:setopt("socket", "dontroute", 1)
-                sigsock:setopt("socket", "rcvtimeo", ping_timeout)
-                sigsock:connect(track.ip, 8080)
-                sigsock:send("")
-                -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
-                -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
-                if sigsock:recv(0) == false then
+            if should_ping(track) then
+                -- Make an arp request to the target ip to see if we get a timely reply. By using ARP we avoid any
+                -- potential routing issues and avoid any firewall blocks on the other end.
+                -- Take a penalty if we fail
+                if os.execute("/usr/sbin/arping -f -w " .. ping_timeout .. " -I " .. wlan .. " " .. track.ip .. " >/dev/null") ~= 0 then
                     track.tx_quality = math.max(0, math.ceil(track.tx_quality - config.ping_penalty))
                 end
-                sigsock:close()
             end
 
             -- Inject traffic into links with poor quality
