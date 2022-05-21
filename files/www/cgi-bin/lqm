@@ -119,6 +119,9 @@ html.print([[<hr>
             if (track.pending > data.info.now) {
                 return "pending";
             }
+            if (track.lastseen < data.info.now) {
+                return "disconnected";
+            }
             if (track.blocked) {
                 if (track.blocks.user) {
                     return "blocked - user";
@@ -172,14 +175,16 @@ html.print([[<hr>
                 let txquality = "-";
                 let distance = "-";
                 let status = get_status(track, data);
-                if (status === "pending" || !track.blocked) {
-                    txspeed = (track.tx_rate * wifi_scale).toFixed(2) + " Mbps";
-                }
-                if (typeof track.tx_quality === "number" && (status === "pending" || !track.blocked || (track.blocks.quality && !(track.blocks.dtd || track.blocks.signal || track.blocks.distance || track.blocks.user || track.blocks.dup)))) {
-                    txquality = track.tx_quality + "%";
-                }
-                if (typeof track.distance === "number") {
-                    distance = convertd(track.distance);
+                if (status !== "disconnected") {
+                    if (status === "pending" || !track.blocked) {
+                        txspeed = (track.tx_rate * wifi_scale).toFixed(2) + " Mbps";
+                    }
+                    if (typeof track.tx_quality === "number" && (status === "pending" || !track.blocked || (track.blocks.quality && !(track.blocks.dtd || track.blocks.signal || track.blocks.distance || track.blocks.user || track.blocks.dup)))) {
+                        txquality = track.tx_quality + "%";
+                    }
+                    if (typeof track.distance === "number") {
+                        distance = convertd(track.distance);
+                    }
                 }
                 links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="p">${status}</span></div>`;
             }
