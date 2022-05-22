@@ -1069,7 +1069,7 @@ if wifi_enable == "1" then
     do
         html.print("<option value='" .. chan.number .. "' ".. (chan.number == tonumber(wifi_channel) and " selected" or "") .. ">" .. chan.label .. "</option>")
     end
-    html.print("</select>&nbsp;&nbsp;<a href=\"/help.html#channel\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
+    html.print("</select>&nbsp;&nbsp;<a href='/help.html#channel' target='_blank'><img src='/qmark.png'></a></td></tr>")
 
     html.print("<tr><td>Channel Width</td><td><select name=wifi_chanbw>")
     html.print("<option value='20'".. (wifi_chanbw == "20" and " selected" or "") .. ">20 MHz</option>")
@@ -1090,7 +1090,7 @@ if wifi_enable == "1" then
     do
         html.print("<option value='" .. i .. "'".. (i == tonumber(wifi_txpower) and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>")
     end
-    html.print("</select>&nbsp;&nbsp;<a href=\"/help.html#power\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
+    html.print("</select>&nbsp;&nbsp;<a href='/help.html#power' target='_blank'><img src='/qmark.png'></a></td></tr>")
     if lqm_mode then
         local lqm_max_distance = tonumber(cursor:get("aredn", "@lqm[0]", "max_distance")) or 114750
         local lqm_min_snr = cursor:get("aredn", "@lqm[0]", "min_snr") or "15"
@@ -1105,10 +1105,11 @@ if wifi_enable == "1" then
                         document.write("<input type=hidden name='lqm_distance_unit' value='mile'><input type=text size=4 name='lqm_max_distance' value='" + (dm / 1609.344).toFixed(1) + "' title='Maximum distance to a neighbor before it will be ignored'>&nbsp;miles")
                         break;
                     default:
-                        document.write("<input type=hidden name='lqm_distance_unit' value='kilometer'><input type=text size=4 name='lqm_max_distance' value='" + (dm / 1000).toFixed(1) + "' title='Maximum distance to a neighbor before it will be ignored'>&nbsp;km")
+                        document.write("<input type=hidden name='lqm_distance_unit' value='kilometer'><input type=text size=4 name='lqm_max_distance' value='" + (dm / 1000).toFixed(1) + "' title='Maximum distance to a neighbor before it will be blocked'>&nbsp;km")
                         break;
                 }
             </script>
+						&nbsp;&nbsp;<a href='/help.html#linkqual' target='_blank'><img src='/qmark.png'></a>
             </td></tr>
         ]])
         html.print("<tr><td>Min SNR</td><td><input type=text size=4 name='lqm_min_snr' value='" .. lqm_min_snr .. "' title='Minimum SNR of neighbor before it will be accepted'></td></tr>")
@@ -1119,7 +1120,7 @@ if wifi_enable == "1" then
         local wifi_distance = math.floor(tonumber(wifi_distance))
         local wifi_distance_disp_km = math.floor(wifi_distance / 1000)
         local wifi_distance_disp_miles = string.format("%.2f", wifi_distance_disp_km * 0.621371192)
-        html.print("<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='" .. wifi_distance_disp_miles .. "' title='Distance to the farthest neighbor'>&nbsp;mi<br />")
+        html.print("<td><input disabled size=6 type=text name='wifi_distance_disp_miles' value='" .. wifi_distance_disp_miles .. "' title='Distance to the farthest neighbor'>&nbsp;mi&nbsp;&nbsp;<a href='/help.html#distance' target='_blank'><img src='/qmark.png'></a><br />")
         html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_km' value='" .. wifi_distance_disp_km .. "' title='Distance to the farthest neighbor'>&nbsp;km<br />")
         html.print("<input disabled size=6 type=text size=4 name='wifi_distance_disp_meters' value='" .. wifi_distance .."' title='Distance to the farthest neighbor'>&nbsp;m<br />")
         html.print("<input id='distance_slider' type='range' min='0' max='150' step='1' value='" .. wifi_distance_disp_km .."' oninput='updDist(this.value)' onchange='updDist(this.value)' /><br />")
@@ -1153,7 +1154,7 @@ html.print("<option value='2'".. (dmz_mode == 2 and " selected" or "") .. ">1 ho
 html.print("<option value='3'".. (dmz_mode == 3 and " selected" or "") .. ">5 host Direct</option>")
 html.print("<option value='4'".. (dmz_mode == 4 and " selected" or "") .. ">13 host Direct</option>")
 html.print("<option value='5'".. (dmz_mode == 5 and " selected" or "") .. ">29 host Direct</option>")
-html.print("</select></td></tr>")
+html.print("</select>&nbsp;&nbsp;<a href='/help.html#lanmode' target='_blank'><img src='/qmark.png'></a></td></tr>")
 hidden[#hidden + 1] = "<input type=hidden name=lan_proto value='static'>"
 
 if dmz_mode ~= 0 then
@@ -1243,7 +1244,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount =
             end
         end
     end
-    html.print("<tr><th colspan=2><small>LAN Access Point</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi2_enable value=1" .. (wifi2_enable == "1" and " checked" or "") .. "></td></tr>")
+    html.print("<tr><th colspan=2><small>LAN Access Point</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi2_enable value=1" .. (wifi2_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#lanap' target='_blank'><img src='/qmark.png'></a></td></tr>")
     if phycount > 1 then
         html.print("<tr><td>AP band</td><td><select name=wifi2_hwmode>")
         if wifi_enable ~= "1" then
@@ -1300,11 +1301,11 @@ html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan
 
 html.print("<tr><th colspan=2><hr></td></tr><tr><th colspan=2><small>Advanced WAN Access</small></th></tr>")
 if wan_proto ~= "disabled" then
-    html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wansettings\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
+    html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#allowwan' target='_blank'><img src='/qmark.png'></a></td></tr>")
 else
     hidden[#hidden + 1] = "<input type=hidden name=olsrd_gw value='0'>"
 end
-html.print("<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td><td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'" .. (lan_dhcp_noroute ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wansettings\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
+html.print("<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td><td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'" .. (lan_dhcp_noroute ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#preventwan' target='_blank'><img src='/qmark.png'></a></td></tr>")
 
 -- wan wifi client
 if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1") and not M390model then
@@ -1333,7 +1334,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
         end
     end
 
-    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2><small>WAN Wifi Client</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href=\"/help.html#wanclient\" target=\"_blank\"><img src=\"/qmark.png\"></a></td></tr>")
+    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2><small>WAN Wifi Client</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#wanclient' target='_blank'><img src='/qmark.png'></a></td></tr>")
 
     if wifi_enable ~= "1" and wifi2_enable ~= "1" and phycount > 1 then
         html.print("<tr><td>WAN Wifi Client band</td><td><select name=wifi3_hwmode>")
