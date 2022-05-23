@@ -63,6 +63,7 @@ function get_config()
     }
 end
 
+-- Connected if we have tracked this link recently
 function is_connected(track)
     if track.lastseen >= now then
         return true
@@ -71,11 +72,20 @@ function is_connected(track)
     end
 end
 
-function should_block(track)
-    if now > track.pending then
-        return track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.dup or track.blocks.quality
+-- Pending if this link is too new
+function is_pending(track)
+    if track.pending > now then
+        return true
     else
+        return false
+    end
+end
+
+function should_block(track)
+    if is_pending(track) then
         return track.blocks.dtd or track.blocks.user
+    else
+        return track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.dup or track.blocks.quality
     end
 end
 
@@ -115,7 +125,8 @@ function update_block(track)
     return "unchanged"
 end
 
-function calcDistance(lat1, lon1, lat2, lon2)
+-- Distance in meters between two points
+function calc_distance(lat1, lon1, lat2, lon2)
     local r2 = 12742000 -- diameter earth (meters)
     local p = 0.017453292519943295 --  Math.PI / 180
     local v = 0.5 - math.cos((lat2 - lat1) * p) / 2 + math.cos(lat1 * p) * math.cos(lat2 * p) * (1 - math.cos((lon2 - lon1) * p)) / 2
@@ -278,7 +289,7 @@ function lqm()
                     track.last_tx = tx
                     track.last_tx_total = tx_total
                     track.last_quality = tx_quality
-                    track.tx_quality = math.ceil(quality_run_avg * track.tx_quality + (1 - quality_run_avg) * tx_quality)
+                    track.tx_quality = math.min(100, math.max(0, math.ceil(quality_run_avg * track.tx_quality + (1 - quality_run_avg) * tx_quality)))
                 end
 
                 track.tx_rate = station.tx_rate
@@ -295,7 +306,7 @@ function lqm()
         for _, track in pairs(tracker)
         do
             -- Only refresh remote attributes periodically
-            if track.ip and (now > track.refresh or track.pending > now) then
+            if track.ip and (now > track.refresh or is_pending(track)) then
                 track.refresh = now + refresh_timeout
                 local info = json.parse(luci.sys.httpget("http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1"))
                 if info then
@@ -303,7 +314,7 @@ function lqm()
                         track.lat = tonumber(info.lat)
                         track.lon = tonumber(info.lon)
                         if lat and lon then
-                            track.distance = calcDistance(lat, lon, track.lat, track.lon)
+                            track.distance = calc_distance(lat, lon, track.lat, track.lon)
                         end
                     end
                     local old_rev_snr = track.rev_snr
@@ -391,7 +402,7 @@ function lqm()
                 -- potential routing issues and avoid any firewall blocks on the other end.
                 -- Take a penalty if we fail
                 if os.execute("/usr/sbin/arping -f -w " .. ping_timeout .. " -I " .. wlan .. " " .. track.ip .. " >/dev/null") ~= 0 then
-                    track.tx_quality = math.max(0, math.ceil(track.tx_quality - config.ping_penalty))
+                    track.tx_quality = math.min(100, math.max(0, math.ceil(track.tx_quality - config.ping_penalty)))
                 end
             end
 
@@ -557,26 +568,28 @@ function lqm()
         -- Update the block state and calculate the routable distance
         for _, track in pairs(tracker)
         do
-            if update_block(track) == "unblocked" then
-                -- If the link becomes unblocked, return it to pending state
-                track.pending = now + pending_timeout
-            end
+            if is_connected(track) then 
+                if update_block(track) == "unblocked" then
+                    -- If the link becomes unblocked, return it to pending state
+                    track.pending = now + pending_timeout
+                end
 
-             -- Find the most distant, unblocked, routable, node
-            if not track.blocked and track.distance then
-                if now > track.pending and track.routable then
-                    if track.distance > distance then 
-                        distance = track.distance
-                    end
-                else
-                    if track.distance > alt_distance then
-                        alt_distance = track.distance
+                -- Find the most distant, unblocked, routable, node
+                if not track.blocked and track.distance then
+                    if not is_pending(track) and track.routable then
+                        if track.distance > distance then 
+                            distance = track.distance
+                        end
+                    else
+                        if track.distance > alt_distance then
+                            alt_distance = track.distance
+                        end
                     end
                 end
             end
 
-            -- Remove any trackers which are too old
-            if now > track.lastseen + lastseen_timeout then
+            -- Remove any trackers which are too old or if they disconnect while still pending
+            if ((now > track.lastseen + lastseen_timeout) or (not is_connected(track) and is_pending(track))) then
                 track.blocked = true;
                 track.blocks = {}
                 update_block(track)
