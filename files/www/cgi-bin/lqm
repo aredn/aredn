@@ -172,18 +172,27 @@ html.print([[<hr>
             const trackers = Object.values(data.info.trackers);
             trackers.sort((a, b) => name(a).localeCompare(name(b)));
             trackers.forEach(track => {
-                let txquality = "-";
+                let quality = "-";
                 let distance = "-";
                 let status = get_status(track, data);
-                if (status !== "disconnected") {
-                    if (typeof track.tx_quality === "number" && (status === "pending" || !track.blocked || (track.blocks.quality && !(track.blocks.dtd || track.blocks.signal || track.blocks.distance || track.blocks.user || track.blocks.dup)))) {
-                        txquality = track.tx_quality + "%";
-                    }
-                    if (typeof track.distance === "number") {
-                        distance = convertd(track.distance);
-                    }
+                switch (status) {
+                    case "disconnected":
+                        break;
+                    case "pending":
+                    case "active":
+                    case "idle":
+                    case "blocked - quality":
+                        if (typeof track.quality === "number") {
+                            quality = track.quality + "%";
+                        }
+                        // Fall through
+                    default:
+                        if (typeof track.distance === "number") {
+                            distance = convertd(track.distance);
+                        }
+                        break;
                 }
-                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${txquality}</span><span class="p">${status}</span></div>`;
+                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${quality}</span><span class="p">${status}</span></div>`;
             });
             if (links.length) {
                 document.getElementById("links").innerHTML = links;
