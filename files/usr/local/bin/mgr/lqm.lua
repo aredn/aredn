@@ -232,6 +232,8 @@ function lqm()
                 local snr = station.signal - station.noise
                 if not tracker[mac] then
                     tracker[mac] = {
+                        firstseen = now,
+                        lastseen = now,
                         pending = now + pending_timeout,
                         refresh = 0,
                         mac = mac,
@@ -410,6 +412,8 @@ function lqm()
             elseif should_ping(track) then
                 -- Make an arp request to the target ip to see if we get a timely reply. By using ARP we avoid any
                 -- potential routing issues and avoid any firewall blocks on the other end.
+                -- As the request is broadcast, we avoid any potential distance/scope timing issues as we dont wait for the
+                -- packet to be acked. The reply will be unicast to us, and our ack to that is unimportant to the latency test.
                 local success = 100
                 if os.execute("/usr/sbin/arping -f -w " .. ping_timeout .. " -I " .. wlan .. " " .. track.ip .. " >/dev/null") ~= 0 then
                     success = 0
@@ -603,8 +607,8 @@ function lqm()
                 end
             end
 
-            -- Remove any trackers which are too old or if they disconnect while still pending
-            if ((now > track.lastseen + lastseen_timeout) or (not is_connected(track) and is_pending(track))) then
+            -- Remove any trackers which are too old or if they disconnect when first seen
+            if ((now > track.lastseen + lastseen_timeout) or (not is_connected(track) and track.firstseen + pending_timeout > now)) then
                 track.blocked = true;
                 track.blocks = {}
                 update_block(track)
