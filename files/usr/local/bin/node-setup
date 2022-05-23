@@ -391,7 +391,7 @@ if fw then
                         -- uci the host and then
                         -- set the inside port unless the rule uses an outside port range
                         host = "option dest_ip    " .. host .. "\n"
-                        if oport:match("-") then
+                        if not oport:match("-") then
                             host = host .. "        option dest_port " .. iport .. "\n"
                         end
                         if not is_null(cfg.dmz_mode) and intf == "both" then
