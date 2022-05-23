@@ -154,6 +154,11 @@ local wlan = get_ifname("wifi")
 
 function lqm()
 
+    if cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
+        exit_app()
+        return
+    end
+
     -- Let things startup for a while before we begin
     wait_for_ticks(math.max(1, 30 - nixio.sysinfo().uptime))
 
