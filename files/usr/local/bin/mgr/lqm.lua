@@ -335,7 +335,7 @@ function lqm()
                         for _, rtrack in pairs(info.lqm.info.trackers)
                         do
                             if rtrack.hostname then
-                                local hostname = rtrack.hostname:lower():gsub("^dtdlink%.","")
+                                local hostname = rtrack.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")
                                 track.links[hostname] = {
                                     type = "RF",
                                     snr = rtrack.snr
@@ -360,7 +360,7 @@ function lqm()
                         for ip, link in pairs(info.link_info)
                         do
                             if link.hostname then
-                                local hostname = link.hostname:lower():gsub("^dtdlink%.","")
+                                local hostname = link.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")
                                 if link.linkType == "DTD" then
                                     track.links[hostname] = { type = link.linkType }
                                 elseif link.linkType == "RF" and link.signal and link.noise then
