@@ -140,7 +140,12 @@ html.print([[<hr>
                     return "blocked - dup";
                 }
                 if (track.blocks.quality) {
-                    return "blocked - quality";
+                    if (track.tx_quality < track.ping_quality) {
+                        return "blocked - retries";
+                    }
+                    else {
+                        return "blocked - latency";
+                    }
                 }
                 return "blocked";
             }
@@ -181,7 +186,8 @@ html.print([[<hr>
                     case "pending":
                     case "active":
                     case "idle":
-                    case "blocked - quality":
+                    case "blocked - retries":
+                    case "blocked - latency":
                         if (typeof track.quality === "number") {
                             quality = track.quality + "%";
                         }
