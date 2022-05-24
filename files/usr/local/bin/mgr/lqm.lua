@@ -43,7 +43,7 @@ local lastseen_timeout = 60 * 60 -- age out nodes we've not seen for 1 hour
 local snr_run_avg = 0.8 -- snr running average
 local quality_min_packets = 100 -- minimum number of tx packets before we can safely calculate the link quality
 local quality_injection_max = 10 -- number of packets to inject into poor links to update quality
-local quality_run_avg = 0.8 -- quality running average
+local tx_quality_run_avg = 0.8 -- tx quality running average
 local ping_timeout = 1.0 -- timeout before ping gives a qualtiy penalty
 
 local myhostname = (info.get_nvram("node") or "localnode"):lower()
@@ -232,6 +232,8 @@ function lqm()
                 local snr = station.signal - station.noise
                 if not tracker[mac] then
                     tracker[mac] = {
+                        firstseen = now,
+                        lastseen = now,
                         pending = now + pending_timeout,
                         refresh = 0,
                         mac = mac,
@@ -255,7 +257,10 @@ function lqm()
                         links = {},
                         tx_rate = 0,
                         last_tx = nil,
-                        last_tx_total = nil
+                        last_tx_total = nil,
+                        tx_quality = 100,
+                        ping_quality = 100,
+                        quality = 100
                     }
                 end
                 local track = tracker[mac]
@@ -294,7 +299,7 @@ function lqm()
                     track.last_tx = tx
                     track.last_tx_total = tx_total
                     track.last_quality = tx_quality
-                    track.tx_quality = math.min(100, math.max(0, math.ceil(quality_run_avg * track.tx_quality + (1 - quality_run_avg) * tx_quality)))
+                    track.tx_quality = math.min(100, math.max(0, math.ceil(tx_quality_run_avg * track.tx_quality + (1 - tx_quality_run_avg) * tx_quality)))
                 end
 
                 track.tx_rate = station.tx_rate
@@ -330,7 +335,7 @@ function lqm()
                         for _, rtrack in pairs(info.lqm.info.trackers)
                         do
                             if rtrack.hostname then
-                                local hostname = rtrack.hostname:lower():gsub("^dtdlink%.","")
+                                local hostname = rtrack.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")
                                 track.links[hostname] = {
                                     type = "RF",
                                     snr = rtrack.snr
@@ -355,7 +360,7 @@ function lqm()
                         for ip, link in pairs(info.link_info)
                         do
                             if link.hostname then
-                                local hostname = link.hostname:lower():gsub("^dtdlink%.","")
+                                local hostname = link.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")
                                 if link.linkType == "DTD" then
                                     track.links[hostname] = { type = link.linkType }
                                 elseif link.linkType == "RF" and link.signal and link.noise then
@@ -402,14 +407,23 @@ function lqm()
             end
 
             -- Ping addresses and penalize quality for excessively slow links
-            if should_ping(track) then
+            if config.ping_penalty <= 0 then
+                track.ping_quality = 100
+            elseif should_ping(track) then
                 -- Make an arp request to the target ip to see if we get a timely reply. By using ARP we avoid any
                 -- potential routing issues and avoid any firewall blocks on the other end.
-                -- Take a penalty if we fail
+                -- As the request is broadcast, we avoid any potential distance/scope timing issues as we dont wait for the
+                -- packet to be acked. The reply will be unicast to us, and our ack to that is unimportant to the latency test.
+                local success = 100
                 if os.execute("/usr/sbin/arping -f -w " .. ping_timeout .. " -I " .. wlan .. " " .. track.ip .. " >/dev/null") ~= 0 then
-                    track.tx_quality = math.min(100, math.max(0, math.ceil(track.tx_quality - config.ping_penalty)))
+                    success = 0
                 end
+                local ping_loss_run_avg = 1 - config.ping_penalty / 100
+                track.ping_quality = math.ceil(ping_loss_run_avg * track.ping_quality + (1 - ping_loss_run_avg) * success)
             end
+
+            -- Calculate overall link quality
+            track.quality = math.ceil((track.tx_quality + track.ping_quality) / 2)
 
             -- Inject traffic into links with poor quality
             -- We do this so we can keep measuring the current link quality otherwise, once it becomes
@@ -438,7 +452,7 @@ function lqm()
             local changes = {
                 snr = -1,
                 distance = nil,
-                tx_quality = nil
+                quality = nil
             }
             -- Scan through the list of nodes we're tracking and select the node with the best SNR then
             -- adjust our settings so that this node is valid
@@ -451,7 +465,7 @@ function lqm()
                 if snr > changes.snr then
                     changes.snr = snr
                     changes.distance = track.distance
-                    changes.tx_quality = track.tx_quality
+                    changes.quality = track.quality
                 end
             end
             local cursorb = uci.cursor("/etc/config.mesh")
@@ -464,9 +478,9 @@ function lqm()
                     cursor:set("aredn", "@lqm[0]", "max_distance", changes.distance)
                     cursorb:set("aredn", "@lqm[0]", "max_distance", changes.distance)
                 end
-                if changes.tx_quality and changes.tx_quality < config.min_quality then
-                    cursor:set("aredn", "@lqm[0]", "min_quality", math.max(0, math.floor(changes.tx_quality - 20)))
-                    cursorb:set("aredn", "@lqm[0]", "min_quality", math.max(0, math.floor(changes.tx_quality - 20)))
+                if changes.quality and changes.quality < config.min_quality then
+                    cursor:set("aredn", "@lqm[0]", "min_quality", math.max(0, math.floor(changes.quality - 20)))
+                    cursorb:set("aredn", "@lqm[0]", "min_quality", math.max(0, math.floor(changes.quality - 20)))
                 end
             end
             cursor:set("aredn", "@lqm[0]", "first_run", "0")
@@ -491,7 +505,7 @@ function lqm()
                     -- When signal is good enough to unblock a link but the quality is low, artificially bump
                     -- it up to give the link chance to recover
                     if track.blocks.quality then
-                        track.tx_quality = config.min_quality + config.margin_quality
+                        track.quality = config.min_quality + config.margin_quality
                     end
                 end 
             end
@@ -514,10 +528,10 @@ function lqm()
             end
 
             -- Block if quality is poor
-            if track.tx_quality then
-                if not track.blocks.quality and track.tx_quality < config.min_quality then
+            if track.quality then
+                if not track.blocks.quality and track.quality < config.min_quality then
                     track.blocks.quality = true
-                elseif track.blocks.quality and track.tx_quality >= config.min_quality + config.margin_quality then
+                elseif track.blocks.quality and track.quality >= config.min_quality + config.margin_quality then
                     track.blocks.quality = false
                 end
             end
@@ -593,8 +607,8 @@ function lqm()
                 end
             end
 
-            -- Remove any trackers which are too old or if they disconnect while still pending
-            if ((now > track.lastseen + lastseen_timeout) or (not is_connected(track) and is_pending(track))) then
+            -- Remove any trackers which are too old or if they disconnect when first seen
+            if ((now > track.lastseen + lastseen_timeout) or (not is_connected(track) and track.firstseen + pending_timeout > now)) then
                 track.blocked = true;
                 track.blocks = {}
                 update_block(track)

@@ -76,17 +76,17 @@ html.print([[
         #links > div {
             padding: 2px 0;
         }
-        .m, .b {
+        .m {
             display: inline-block;
-            width: 190px;
+            width: 220px;
         }
         .s {
             display: inline-block;
-            width: 80px;
+            width: 90px;
         }
         .p {
             display: inline-block;
-            width: 130px;
+            width: 110px;
         }
     </style>
     <center>
@@ -95,7 +95,7 @@ if node_desc ~= "" then
     html.print([[<table id='node_description_display'><tr><td>]] .. node_desc .. [[</td></tr></table>]])
 end
 html.print([[<hr>
-        <table width=750>
+        <table>
         <tr><td>
         <center>
             <button type=button onClick='window.location.reload()' title='Refresh this page'>Refresh</button>
@@ -105,7 +105,7 @@ html.print([[<hr>
         </td></tr>
         <tr><td>
             <div class="lt">
-                <span class="m">RF Neighbor</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">TX Estimate</span><span class="p">Status</span>
+                <span class="m">RF Neighbor</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">Status</span>
             </div>
             <div id="links"></div>
             </td></tr>
@@ -140,7 +140,12 @@ html.print([[<hr>
                     return "blocked - dup";
                 }
                 if (track.blocks.quality) {
-                    return "blocked - quality";
+                    if (track.tx_quality < track.ping_quality) {
+                        return "blocked - retries";
+                    }
+                    else {
+                        return "blocked - latency";
+                    }
                 }
                 return "blocked";
             }
@@ -169,25 +174,32 @@ html.print([[<hr>
         }
         const update = data => {
             let links = "";
-            for (let mac in data.info.trackers) {
-                const track = data.info.trackers[mac];
-                let txspeed = "-";
-                let txquality = "-";
+            const trackers = Object.values(data.info.trackers);
+            trackers.sort((a, b) => name(a).localeCompare(name(b)));
+            trackers.forEach(track => {
+                let quality = "-";
                 let distance = "-";
                 let status = get_status(track, data);
-                if (status !== "disconnected") {
-                    if (status === "pending" || !track.blocked) {
-                        txspeed = (track.tx_rate * wifi_scale).toFixed(2) + " Mbps";
-                    }
-                    if (typeof track.tx_quality === "number" && (status === "pending" || !track.blocked || (track.blocks.quality && !(track.blocks.dtd || track.blocks.signal || track.blocks.distance || track.blocks.user || track.blocks.dup)))) {
-                        txquality = track.tx_quality + "%";
-                    }
-                    if (typeof track.distance === "number") {
-                        distance = convertd(track.distance);
-                    }
+                switch (status) {
+                    case "disconnected":
+                        break;
+                    case "pending":
+                    case "active":
+                    case "idle":
+                    case "blocked - retries":
+                    case "blocked - latency":
+                        if (typeof track.quality === "number") {
+                            quality = track.quality + "%";
+                        }
+                        // Fall through
+                    default:
+                        if (typeof track.distance === "number") {
+                            distance = convertd(track.distance);
+                        }
+                        break;
                 }
-                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${txquality}</span><span class="p">${txspeed}</span><span class="p">${status}</span></div>`;
-            }
+                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${quality}</span><span class="p">${status}</span></div>`;
+            });
             if (links.length) {
                 document.getElementById("links").innerHTML = links;
             }
