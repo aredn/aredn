@@ -71,7 +71,22 @@ buttons may not be available depending on the current configuration of your node
 
 <li><strong>Mesh Status</strong> takes you to a page which shows the Neighbor and Remote nodes as well as what services are being provided through those nodes.<br><br></li>
 
-<li><strong>Neighbor Status</strong> If you have Link Quality Manager (LQM) enabled, you will see a button that takes you to the Neighbor Status page which displays a table of RF neighbor nodes, their link quality metrics, and any actions that Link Quality Manager has taken to improve the communication between nodes. The Signal-to-Noise ratio in dB is shown for both sides of the radio link, as well as the distance between your node and the neighbor node. The distance is calculated based on the GPS coordinates (Lat/Lon) entered on each node. If no GPS coordinates were entered, then the distance cannot be calculated and that metric will not be considered in the LQM improvement process. The Link Quality is expressed as a percent and is calculated as the moving average of total sent packets over total sent packets plus retransmissions. The estimated throughput that can be expected is also displayed, along with the current status of each radio link. See the AREDN&#174; online documentation for a full description of Link Quality Manager.<br><br></li>
+<li><strong>Neighbor Status</strong> If you have Link Quality Manager (LQM) enabled, you will see a button that takes you to the Neighbor Status page. See the AREDN&#174; online documentation for a full description of Link Quality Manager. This page displays a table of RF neighbor nodes, their link quality metrics, and any actions that Link Quality Manager has taken to improve the communication between nodes. The Signal-to-Noise ratio in dB is shown for both sides of the radio link, as well as the distance between your node and the neighbor node. The distance is calculated based on the GPS coordinates (Lat/Lon) entered on each node. If no GPS coordinates were entered, then the distance cannot be calculated and that metric will not be considered in the LQM improvement process. The Link Quality is expressed as a percent and is calculated as the moving average of total sent packets over total sent packets plus retransmissions. The current status of each radio link is displayed, and the meanings of each status is shown below.
+<ul>
+<li>pending: LQM is collecting data and evaluating the link.</li>
+<li>active: the link is viable and can be used.</li>
+<li>idle: the link is usable and would be <em>active</em> but the node routing table does not yet have a route for sending traffic across the link.</li>
+<li>blocked: the link is unusable and is blocked from use.</li>
+<li>blocked - distance: the remote node is either too close or too distant, based on the LQM Min and Max Distance settings.</li>
+<li>blocked - signal: the SNR on the link is too low to reliably pass data, based on the LQM Min SNR setting.</li>
+<li>blocked - retries: the retransmission rate is too high to reliably pass data.</li>
+<li>blocked - latency: the link latency is to high to reliably pass data.</li>
+<li>blocked - dtd: LQM blocks the RF interface of any nodes to which a DtD link also exists.</li>
+<li>blocked - dup: LQM blocks a link in cases when your node has an RF link to other nodes which themselves connect to each other via DtD. This can occur when there are multiple radios at a site using the same channel. The best remote node is chosen as the RF link for your node but the other possible RF connections are blocked as duplicates.</li>
+<li>blocked - user: LQM blocks any node which you enter in the <em>User Blocked Nodes</em> field in the Advanced Configuration section.
+<li>disconnected: the RF Neighbor is no longer online.</li>
+</ul>
+<br></li>
 
 <li><strong>WiFi Scan</strong> Displays a list of other 802.11 signals that your
 node can see. The 802.11 signals may include Access Points, neighbor nodes, and
