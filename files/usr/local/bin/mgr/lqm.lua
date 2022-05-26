@@ -355,7 +355,7 @@ function lqm()
                                 track.links[link.hostname:lower()] = { type = "DTD" }
                             end
                         end
-                    else
+                    elseif info.link_info then
                         -- If there's no LQM information we fallback on using link information.
                         for ip, link in pairs(info.link_info)
                         do
