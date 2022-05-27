@@ -45,6 +45,7 @@ local quality_min_packets = 100 -- minimum number of tx packets before we can sa
 local quality_injection_max = 10 -- number of packets to inject into poor links to update quality
 local tx_quality_run_avg = 0.8 -- tx quality running average
 local ping_timeout = 1.0 -- timeout before ping gives a qualtiy penalty
+local dtd_distance = 50 -- distance (meters) after which nodes connected with DtD links are considered different sites
 
 local myhostname = (info.get_nvram("node") or "localnode"):lower()
 local now = 0
@@ -135,7 +136,7 @@ end
 
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
-f:write("{}")
+f:write('{"trackers":{}}')
 f:close()
 
 local cursor = uci.cursor()
@@ -549,7 +550,9 @@ function lqm()
                     if track ~= track2 and track2.hostname and not should_nonpair_block(track2) then
                         local connection = track.links[track2.hostname]
                         if connection and connection.type == "DTD" then
-                            tracklist[#tracklist + 1] = track2
+                            if not (track.lat and track.lon and track2.lat and track2.lon) or calc_distance(track.lat, track.lon, track2.lat, track2.lon) < dtd_distance then
+                                tracklist[#tracklist + 1] = track2
+                            end
                         end
                     end
                 end
