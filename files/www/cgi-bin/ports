@@ -839,6 +839,9 @@ if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or 
     if not luci.sys.init.reload("firewall") then
         err("problem with port setup")
     end
+    if os.execute("/etc/init.d/manager restart") ~= 0 then
+        err("problem with manager")
+    end
     -- This "luci.sys.init.restart("olsrd")" doesnt do the same thing so we have to call restart directly
     if os.execute("/etc/init.d/olsrd restart") ~= 0 then
         err("problem with olsr setup")
