@@ -110,15 +110,14 @@ end
 
 function update_block(track)
     if should_block(track) then
-        if not track.blocked then
-            track.blocked = true
-            os.execute("/usr/sbin/iptables -D input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null")
+        track.blocked = true
+        if os.execute("/usr/sbin/iptables -C input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null") ~= 0 then
             os.execute("/usr/sbin/iptables -I input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null")
             return "blocked"
         end
     else
-        if track.blocked then
-            track.blocked = false
+        track.blocked = false
+        if os.execute("/usr/sbin/iptables -C input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null") == 0 then
             os.execute("/usr/sbin/iptables -D input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null")
             return "unblocked"
         end
