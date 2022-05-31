@@ -126,6 +126,11 @@ function update_block(track)
     return "unchanged"
 end
 
+function force_remove_block(track)
+    track.blocked = false
+    os.execute("/usr/sbin/iptables -D input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null")
+end
+
 -- Distance in meters between two points
 function calc_distance(lat1, lon1, lat2, lon2)
     local r2 = 12742000 -- diameter earth (meters)
@@ -522,7 +527,7 @@ function lqm()
             track.blocks.user = false
             for val in string.gmatch(config.user_blocks, "([^,]+)")
             do
-                if val == track.mac then
+                if val:gsub("%s+", ""):gsub("-", ":"):upper() == track.mac then
                     track.blocks.user = true
                     break
                 end
@@ -612,9 +617,7 @@ function lqm()
 
             -- Remove any trackers which are too old or if they disconnect when first seen
             if ((now > track.lastseen + lastseen_timeout) or (not is_connected(track) and track.firstseen + pending_timeout > now)) then
-                track.blocked = true;
-                track.blocks = {}
-                update_block(track)
+                force_remove_block(track)
                 tracker[track.mac] = nil
             end
         end
