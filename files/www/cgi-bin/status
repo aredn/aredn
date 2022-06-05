@@ -354,13 +354,12 @@ if config == "mesh" and not wifi_disabled then
     if s == "N/A" then
         col2[#col2] = col2[#col2] .. "N/A"
     else
-        col2[#col2] = col2[#col2] .. "<big><b>" .. s .. " / " .. n .. " / " .. (s - n) .. " dB</b></big>"
+        col2[#col2] = col2[#col2] .. "<big><b>" .. s .. " / " .. n .. " / " .. math.abs(s - n) .. " dB</b></big>"
     end
     col2[#col2] = col2[#col2] .. "&nbsp;&nbsp;&nbsp;<button type=button onClick='window.location=\"signal?realtime=1\"' title='Display continuous or archived signal strength on a chart'>Charts</button></nobr></td>"
 end
 
-col2[#col2 + 1] = "<th align=right><nobr>firmware version</nobr></th><td>" .. read_all("/etc/mesh-release") .. "</td>";
-col2[#col2 + 1] = "<th align=right>system time</th><td>" .. os.date("%a %b %e %Y") .. "<br>" .. os.date("%T %Z") .. "</td>";
+col2[#col2 + 1] = "<th align=right><nobr>firmware version</nobr><br><nobr>hardware type</nobr></th><td>" .. read_all("/etc/mesh-release") .. "<br>" .. aredn.hardware.get_type() .. "</td>";
 
 local sysinfo = nixio.sysinfo()
 local uptime = string.format("%d:%02d", math.floor(sysinfo.uptime / 3600) % 24, math.floor(sysinfo.uptime / 60) % 60)
@@ -369,8 +368,8 @@ if sysinfo.uptime >= 172800 then
 elseif sysinfo.uptime >= 86400 then
     uptime = "1 day, " .. uptime
 end
+col2[#col2 + 1] = "<th align=right><nobr>system time</nobr><br>uptime</th><td>" .. os.date("%a %b %e %Y") .. "&nbsp;" .. os.date("%T %Z") .. "<br>" .. uptime .. "</td>";
 
-col2[#col2 + 1] = "<th align=right>uptime<br>load average</th><td>" .. uptime .. "<br>" .. string.format("%.2f, %.2f, %.2f", sysinfo.loads[1], sysinfo.loads[2], sysinfo.loads[3]) .. "</td>";
 local vfs = nixio.fs.statvfs("/overlay")
 local fspace = vfs.bfree * vfs.bsize / 1024
 if fspace < 100 then
@@ -391,8 +390,9 @@ if rspace < 500 then
 else
     rspace = rspace .. " KB"
 end
-col2[#col2 + 1] = "<th align=right>free space</th><td><nobr>flash = " .. fspace .. "</nobr><br><nobr>/tmp = " .. tspace .. "</nobr><br><nobr>memory = " .. rspace .. "</nobr></td>"
-col2[#col2 + 1] = "<th align='right'>OLSR Entries</th><td><nobr>Total = " .. olsr_total .. "<nobr><br><nobr>Nodes = " .. olsr_nodes .. "<nobr></td>"
+
+col2[#col2 + 1] = "<th align=right valign=top><nobr>load average</nobr><br><nobr>free space</nobr></th><td>" .. string.format("%.2f, %.2f, %.2f", sysinfo.loads[1], sysinfo.loads[2], sysinfo.loads[3]) .. "<br><nobr>flash = " .. fspace .. "</nobr><br><nobr>/tmp = " .. tspace .. "</nobr><br><nobr>memory = " .. rspace .. "</nobr></td>";
+col2[#col2 + 1] = "<th align=right valign=top>OLSR Entries</th><td><nobr>Total = " .. olsr_total .. "<nobr><br><nobr>Nodes = " .. olsr_nodes .. "<nobr></td>"
 
 -- now print the tables
 
