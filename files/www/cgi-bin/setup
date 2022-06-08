@@ -1196,14 +1196,13 @@ end
 
 html.print("<tr><td colspan=2><hr></hr></td></tr>")
 
--- $M39model = `/usr/local/bin/get_model | grep -e "M[39]"`;
-local M39model
+local M39model = aredn.hardware.get_board_id():match("M[39]")
 if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi3_enable ~= "1") and not M39model then
     -- lan ap shows as an option
     -- determine hardware options and set band ahd channels accordingly
     if phycount == 1 then
-        -- rc3 = -- system("iw phy phy0 info | grep -q '5180 MHz' > /dev/null");
-        if rc3 ~= "" then
+        local rc3 = os.execute("iw phy phy0 info | grep -q '5180 MHz' > /dev/null")
+        if rc3 ~= 0 then
             wifi2_hwmode = "11g"
             if wifi2_channel > 14 then
                 wifi2_channel = 1
@@ -1313,9 +1312,8 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
     -- determine hardware options and set band accordingly
 
     if phycount == 1 then
-        -- $rc3 = system("iw phy phy0 info | grep -q '5180 MHz' > /dev/null");
-        local rc3
-        if rc3 ~= "" then
+        local rc3 = os.execute("iw phy phy0 info | grep -q '5180 MHz' > /dev/null")
+        if rc3 ~= 0 then
             wifi3_hwmode = "11g"
         else
             wifi3_hwmode = "11a"
