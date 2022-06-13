@@ -177,7 +177,8 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"lqm=1") then
 			min_quality = tonumber(ctx:get("aredn", "@lqm[0]", "min_quality")),
 			margin_quality = tonumber(ctx:get("aredn", "@lqm[0]", "margin_quality")),
 			ping_penalty = tonumber(ctx:get("aredn", "@lqm[0]", "ping_penalty")),
-			user_blocks = ctx:get("aredn", "@lqm[0]", "user_blocks") or {}
+			user_blocks = ctx:get("aredn", "@lqm[0]", "user_blocks"),
+			user_allows = ctx:get("aredn", "@lqm[0]", "user_allows")
 		}
 		lqm.info = {}
 		if nixio.fs.stat("/tmp/lqm.info") then

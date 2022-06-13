@@ -64,7 +64,8 @@ function get_config()
         min_quality = tonumber(c:get("aredn", "@lqm[0]", "min_quality")),
         margin_quality = tonumber(c:get("aredn", "@lqm[0]", "margin_quality")),
         ping_penalty = tonumber(c:get("aredn", "@lqm[0]", "ping_penalty")),
-        user_blocks = c:get("aredn", "@lqm[0]", "user_blocks") or ""
+        user_blocks = c:get("aredn", "@lqm[0]", "user_blocks") or "",
+        user_allows = c:get("aredn", "@lqm[0]", "user_allows") or ""
     }
 end
 
@@ -87,7 +88,9 @@ function is_pending(track)
 end
 
 function should_block(track)
-    if is_pending(track) then
+    if track.user_allow then
+        return false
+    elseif is_pending(track) then
         return track.blocks.dtd or track.blocks.user
     else
         return track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.dup or track.blocks.quality
@@ -633,6 +636,16 @@ function lqm()
                     track.blocks.quality = true
                 elseif track.blocks.quality and track.quality >= config.min_quality + config.margin_quality then
                     track.blocks.quality = false
+                end
+            end
+
+            -- Always allow if user requested it
+            track.user_allow = false;
+            for val in string.gmatch(config.user_allows, "([^,]+)")
+            do
+                if val:gsub("%s+", ""):gsub("-", ":"):upper() == track.mac then
+                    track.user_allow = true
+                    break
                 end
             end
         end
