@@ -588,7 +588,7 @@ function lqm()
                 -- If we have a direct dtd connection to this device, make sure we use that
                 local a, b, c = track.mac:match("^(..:..:..:)(..)(:..:..)$")
                 local dtd = tracker[string.format("%s%02X%s", a, tonumber(b, 16) + 1, c)]
-                if dtd and dtd.type == "DtD" then
+                if dtd and dtd.type == "DtD" and track.distance < dtd_distance then
                     track.blocks.dtd = true
                 else
                     track.blocks.dtd = false
