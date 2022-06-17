@@ -444,7 +444,7 @@ if (parms.button_apply or parms.button_save) and wifi_enable == "1" then
                 os.execute("iw phy " .. phy .. " set distance " .. wifi_distance .. " >/dev/null 2>&1")
             end
         end
-    else
+    elseif parms.lqm_min_snr ~= nil then
         -- validate values
         local lqm_min_snr = tonumber(parms.lqm_min_snr)
         local lqm_max_distance = tonumber(parms.lqm_max_distance)
