@@ -222,7 +222,9 @@ function lqm()
         local arps = {}
         arptable(
             function (entry)
-                arps[entry["HW address"]:upper()] = entry
+                if entry["Flags"] ~= "0x0" then
+                    arps[entry["HW address"]:upper()] = entry
+                end
             end
         )
 
@@ -303,7 +305,7 @@ function lqm()
         -- DtD
         for mac, entry in pairs(arps)
         do
-            if entry.Device:match("%.2$") and entry["Flags"] ~= "0x0" then
+            if entry.Device:match("%.2$") then
                 stations[#stations + 1] = {
                     type = "DtD",
                     device = entry.Device,
@@ -632,7 +634,7 @@ function lqm()
 
             -- Block if quality is poor
             if track.quality then
-                if not track.blocks.quality and track.quality < config.min_quality then
+                if not track.blocks.quality and track.quality < config.min_quality and (track.type ~= "DtD" or (track.distance and track.distance >= dtd_distance)) then
                     track.blocks.quality = true
                 elseif track.blocks.quality and track.quality >= config.min_quality + config.margin_quality then
                     track.blocks.quality = false
