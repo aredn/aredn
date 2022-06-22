@@ -274,11 +274,11 @@ if parms.button_uploaddata then
     local newsi = string.format("%s,\"olsr\": %s}", si, topo)
 
     -- PUT it to the server
-    local upcurl = os.execute("curl -H 'Accept: application/json' -X PUT -d '" .. newsi .. "' http://data.arednmesh.org/sysinfo >/dev/null 2>&1")
+    local upcurl = os.execute("curl -f -H 'Accept: application/json' -X PUT -d '" .. newsi .. "' http://data.arednmesh.org/sysinfo >/dev/null 2>&1")
     if upcurl == 0 then
         out("AREDN online map updated")
     else
-        err("ERROR: Cannot update online map. Please ensure this node has access to the internet.");
+        err("ERROR: Cannot update online map.");
     end
 end
 
