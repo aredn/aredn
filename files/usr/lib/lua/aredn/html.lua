@@ -103,6 +103,14 @@ function html.print(line)
     end
 end
 
+function html.write(str)
+    if http_output then
+        http_output:write(str)
+    else
+        io.write(str)
+    end
+end
+
 if not aredn then
     aredn = {}
 end

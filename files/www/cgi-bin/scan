@@ -45,6 +45,8 @@ if not node then
     node = "NOCALL"
 end
 local wifiiface = aredn.hardware.get_iface_name("wifi")
+local phy = iwinfo.nl80211.phyname(wifiiface)
+local rfband = aredn.hardware.get_rfband()
 
 if not nixio.fs.stat("/tmp/web") then
     nixio.fs.mkdir("/tmp/web")
@@ -53,6 +55,7 @@ end
 -- scan start
 
 local scanned = {}
+os.execute("echo 'chanscan' > /sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/spectral_scan_ctl")
 local f = io.popen("iw dev " .. wifiiface .. " scan passive")
 if f then
     local scan
@@ -95,6 +98,10 @@ if f then
     end
     f:close()
 end
+
+local samples = io.open("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/spectral_scan0", "rb"):read("*a")
+os.execute("echo 'disable' > /sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/spectral_scan_ctl")
+
 local f = io.popen("iw dev " .. wifiiface .. " station dump")
 if f then
     local scan
@@ -245,7 +252,178 @@ do
     html.print("</tr>")
 end
 
-html.print("</table><br></center></form>")
+html.print("</table><br></center>")
+
+-- Spectral information
+local cwidth = 800;
+local cheight = 400;
+html.print([[
+    <center style="font-family: Arial">
+    <div style="padding:8px">Spectral View</div>
+    <div style="position:relative;display:inline-block"><div style="position:absolute;left:-34px;top:-200px;transform:rotate(-90deg)">Signal</div></div>
+    <canvas id="spectral" width="]] .. cwidth .. [[" height="]] .. cheight .. [[" style="border:1px solid grey;background-color:white"></canvas>
+    <div style="padding:4px">Channel</div>
+    </center>
+    <script>
+        const canvas = document.getElementById("spectral");
+        const ctx = canvas.getContext("2d");
+]]);
+
+function u8tos8(b)
+    return b >= 128 and b - 256 or b
+end
+
+local nf = iwinfo.nl80211.noise(wifiiface) or -95
+local start_freq
+if rfband == "900" then
+    start_freq = 902
+    html.print("const freq2chan = (f) => (f - 887) / 5;");
+elseif rfband == "2400" then
+    start_freq = 2377
+    html.print("const freq2chan = (f) => (f - 2407) / 5;");
+elseif rfband == "3400" then
+    start_freq = 3375
+    html.print("const freq2chan = (f) => (f - 3000) / 5;");
+else
+    start_freq = 5650
+    html.print("const freq2chan = (f) => (f - 5000) / 5;");
+end
+local bw
+for line in io.lines("/etc/config.mesh/_setup")
+do
+    bw = line:match("^wifi_chanbw%s=%s(%d+)")
+    if bw then
+        break
+    end
+end
+bw = tonumber(bw) or 10
+
+local min_freq = math.huge
+local max_freq = 0
+local min_sig = nf
+local max_sig = -60
+local i = 1
+while i < #samples
+do
+    local t = samples:byte(i)
+    local l = samples:byte(i + 1) * 256 + samples:byte(i + 2)
+    if t == 1 then
+        local freq = samples:byte(i + 4) * 256 + samples:byte(i + 5)
+        if freq >= start_freq then
+            if freq < min_freq then
+                min_freq = freq
+            elseif freq > max_freq then
+                max_freq = freq 
+            end
+        end
+    end
+    i = i + 3 + l
+end
+html.write("const p = [")
+i = 1
+while i < #samples
+do
+    local t = samples:byte(i)
+    local l = samples:byte(i + 1) * 256 + samples:byte(i + 2)
+    if t == 1 then
+        local max_exp = samples:byte(i + 3)
+        local freq = samples:byte(i + 4) * 256 + samples:byte(i + 5) - bw / 2
+        if freq >= start_freq then
+            local rssi = u8tos8(samples:byte(i + 6))
+            local noise = u8tos8(samples:byte(i + 7))
+            local datasqsum = 0
+            local dlen = l - 18
+            local v = {}
+            for dptr = 0, dlen - 1
+            do
+                local data = nixio.bit.lshift(samples:byte(dptr + i + 20), max_exp)
+                if data == 0 then
+                    data = 1
+                end
+                datasqsum = datasqsum + data * data
+                v[dptr] = data
+            end
+            datasqsum = math.log10(datasqsum) * 10
+            for dptr = 0, dlen - 1
+            do
+                local data = v[dptr]
+                local sig = noise + rssi + 20 * math.log10(data) - datasqsum
+                local fr = freq - min_freq + (bw * dptr / dlen)
+                if sig >= -125 then
+                    if sig < min_sig then
+                        min_sig = sig
+                    end
+                    if sig > max_sig then
+                        max_sig = sig
+                    end
+                    html.write(math.floor(fr) .. "," .. math.floor(-sig * 4) .. ",")
+                end
+            end
+        end
+    end
+    i = i + 3 + l
+end
+html.print("-1,-1];");
+html.print("const xscale = " .. (cwidth / (max_freq - min_freq)) .. ";")
+html.print("const yscale = " .. (-cheight / (max_sig - min_sig) / 4) .. ";")
+html.print("const ytran = " .. (-max_sig * 4) .. ";")
+html.print([[
+    const img = ctx.createImageData(]] .. cwidth .. [[,]] .. cheight ..[[);
+    const d = img.data;
+    for (let i = 0; i < p.length; i += 2) {
+        const sig = p[i+1];
+        const idx = 4 * (Math.floor(xscale * p[i]) + ]] .. cwidth .. [[ * Math.floor(yscale * (ytran - sig)));
+        if (sig < ]] .. (-4 * nf) .. [[) {
+            d[idx] = 0;
+            d[idx+1] = 0;
+            d[idx+2] = 255;
+            d[idx+4] = 0;
+            d[idx+5] = 0;
+            d[idx+6] = 255;
+        }
+        else {
+            d[idx] = 128;
+            d[idx+1] = 128;
+            d[idx+2] = 128;
+            d[idx+4] = 128;
+            d[idx+5] = 128;
+            d[idx+6] = 128;
+        }
+        d[idx+3] = 255;
+        d[idx+7] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    ctx.strokeStyle = "lightgrey";
+    ctx.fillStyle = "black";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "center";
+    ctx.beginPath()
+    for (let f = ]] .. start_freq .. [[; f < ]] .. (max_freq + bw) .. [[; f += 10) {
+        const x = Math.floor((f - ]] .. min_freq .. [[) * xscale);
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, ]] .. (cheight - 20) .. [[);
+        ctx.fillText("" + freq2chan(f), x, ]] .. cheight - 4 .. [[);
+    }
+    ctx.stroke();
+    ctx.textAlign = "left";
+    ctx.strokeStyle = "lightblue";
+    ctx.beginPath();
+    for (let signal = -30; signal >= -120; signal -= 10) {
+        const y = Math.floor(yscale * (ytran + signal * 4));
+        ctx.moveTo(30, y);
+        ctx.lineTo(]] .. cwidth .. [[, y);
+        ctx.fillText("" + signal, 2, y);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = "blue";
+    ctx.beginPath();
+    const y = Math.floor(yscale * (]] .. (nf * 4) .. [[ + ytran));
+    ctx.moveTo(30, y);
+    ctx.lineTo(]] .. cwidth .. [[, y);
+    ctx.fillText("NF", 4, y);
+    ctx.stroke();
+    </script></form>
+]])
 
 html.footer()
 html.print("</body></html>")
