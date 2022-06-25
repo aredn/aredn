@@ -275,17 +275,23 @@ end
 
 local nf = iwinfo.nl80211.noise(wifiiface) or -95
 local start_freq
+local end_freq
 if rfband == "900" then
     start_freq = 902
+    end_freq = 925
     html.print("const freq2chan = (f) => (f - 887) / 5;");
 elseif rfband == "2400" then
     start_freq = 2377
+    end_freq = 2477
     html.print("const freq2chan = (f) => (f - 2407) / 5;");
 elseif rfband == "3400" then
-    start_freq = 3375
-    html.print("const freq2chan = (f) => (f - 3000) / 5;");
+    -- transverted
+    start_freq = 5370
+    end_freq = 5505
+    html.print("const freq2chan = (f) => (f - 5000) / 5;");
 else
     start_freq = 5650
+    end_freq = 5925
     html.print("const freq2chan = (f) => (f - 5000) / 5;");
 end
 local bw
@@ -298,37 +304,19 @@ do
 end
 bw = tonumber(bw) or 10
 
-local min_freq = math.huge
-local max_freq = 0
+local xscale = cwidth / (end_freq - start_freq)
 local min_sig = nf
 local max_sig = -60
 local i = 1
-while i < #samples
-do
-    local t = samples:byte(i)
-    local l = samples:byte(i + 1) * 256 + samples:byte(i + 2)
-    if t == 1 then
-        local freq = samples:byte(i + 4) * 256 + samples:byte(i + 5)
-        if freq >= start_freq then
-            if freq < min_freq then
-                min_freq = freq
-            elseif freq > max_freq then
-                max_freq = freq 
-            end
-        end
-    end
-    i = i + 3 + l
-end
 html.write("const p = [")
-i = 1
 while i < #samples
 do
     local t = samples:byte(i)
     local l = samples:byte(i + 1) * 256 + samples:byte(i + 2)
     if t == 1 then
         local max_exp = samples:byte(i + 3)
-        local freq = samples:byte(i + 4) * 256 + samples:byte(i + 5) - bw / 2
-        if freq >= start_freq then
+        local freq = samples:byte(i + 4) * 256 + samples:byte(i + 5)
+        if freq >= start_freq and freq <= end_freq then
             local rssi = u8tos8(samples:byte(i + 6))
             local noise = u8tos8(samples:byte(i + 7))
             local datasqsum = 0
@@ -348,7 +336,7 @@ do
             do
                 local data = v[dptr]
                 local sig = noise + rssi + 20 * math.log10(data) - datasqsum
-                local fr = freq - min_freq + (bw * dptr / dlen)
+                local fr = freq + bw * (dptr / dlen - 0.5) - start_freq
                 if sig >= -125 then
                     if sig < min_sig then
                         min_sig = sig
@@ -356,7 +344,7 @@ do
                     if sig > max_sig then
                         max_sig = sig
                     end
-                    html.write(math.floor(fr) .. "," .. math.floor(-sig * 4) .. ",")
+                    html.write(math.floor(fr * xscale) .. "," .. math.floor(-sig * 4) .. ",")
                 end
             end
         end
@@ -364,7 +352,6 @@ do
     i = i + 3 + l
 end
 html.print("-1,-1];");
-html.print("const xscale = " .. (cwidth / (max_freq - min_freq)) .. ";")
 html.print("const yscale = " .. (-cheight / (max_sig - min_sig) / 4) .. ";")
 html.print("const ytran = " .. (-max_sig * 4) .. ";")
 html.print([[
@@ -372,7 +359,7 @@ html.print([[
     const d = img.data;
     for (let i = 0; i < p.length; i += 2) {
         const sig = p[i+1];
-        const idx = 4 * (Math.floor(xscale * p[i]) + ]] .. cwidth .. [[ * Math.floor(yscale * (ytran - sig)));
+        const idx = 4 * (p[i] + ]] .. cwidth .. [[ * Math.floor(yscale * (ytran - sig)));
         if (sig < ]] .. (-4 * nf) .. [[) {
             d[idx] = 0;
             d[idx+1] = 0;
@@ -398,8 +385,8 @@ html.print([[
     ctx.font = "12px Arial";
     ctx.textAlign = "center";
     ctx.beginPath()
-    for (let f = ]] .. start_freq .. [[; f < ]] .. (max_freq + bw) .. [[; f += 10) {
-        const x = Math.floor((f - ]] .. min_freq .. [[) * xscale);
+    for (let f = ]] .. start_freq .. [[; f < ]] .. end_freq .. [[; f += 10) {
+        const x = Math.floor((f - ]] .. start_freq .. [[) * ]] .. xscale .. [[);
         ctx.moveTo(x, 0);
         ctx.lineTo(x, ]] .. (cheight - 20) .. [[);
         ctx.fillText("" + freq2chan(f), x, ]] .. cheight - 4 .. [[);
