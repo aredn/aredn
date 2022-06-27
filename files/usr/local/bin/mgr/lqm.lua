@@ -61,6 +61,7 @@ function get_config()
         low = tonumber(c:get("aredn", "@lqm[0]", "min_snr")),
         min_distance = tonumber(c:get("aredn", "@lqm[0]", "min_distance")),
         max_distance = tonumber(c:get("aredn", "@lqm[0]", "max_distance")),
+        auto_distance = tonumber(c:get("aredn", "@lqm[0]", "auto_distance") or "0"),
         min_quality = tonumber(c:get("aredn", "@lqm[0]", "min_quality")),
         margin_quality = tonumber(c:get("aredn", "@lqm[0]", "margin_quality")),
         ping_penalty = tonumber(c:get("aredn", "@lqm[0]", "ping_penalty")),
@@ -740,6 +741,8 @@ function lqm()
         elseif alt_distance > 1 then
             coverage = math.min(255, math.floor((alt_distance * 2 * 0.0033) / 3))
             os.execute(IW .. " " .. phy .. " set coverage " .. coverage)
+        elseif config.auto_distance > 0 then
+            os.execute(IW .. " " .. phy .. " set distance " .. config.auto_distance)
         else
             os.execute(IW .. " " .. phy .. " set distance auto")
         end
