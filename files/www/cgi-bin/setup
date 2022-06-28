@@ -1265,12 +1265,12 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount =
     html.print("<option value='psk'".. (wifi2_encryption == "psk" and " selected" or "") .. ">WPA PSK</option>")
     html.print("</select></td></tr><tr><td>Password</td><td><input type=password size=15 name=wifi2_key value='" .. wifi2_key .. "'></td></tr>")
 else
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_enable     value='" .. wifi2_enable .. "'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_ssid       value='" .. wifi2_ssid .. "'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_key        value='" .. wifi2_key .. "'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_channel    value='" .. wifi2_channel .."'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_encryption value='" .. wifi2_encryption .. "'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_hwmode     value='" .. wifi2_hwmode .."'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_enable     value='" .. (wifi2_enable or "") .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_ssid       value='" .. (wifi2_ssid or "") .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_key        value='" .. (wifi2_key or "") .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_channel    value='" .. (wifi2_channel or "") .."'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_encryption value='" .. (wifi2_encryption or "") .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_hwmode     value='" .. (wifi2_hwmode or "") .."'>"
 end
 
 html.print("</table></td>")
