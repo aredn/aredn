@@ -292,7 +292,7 @@ elseif rfband == "3400" then
     html.print("const freq2chan = (f) => (f - 5000) / 5;");
 else
     start_freq = 5650
-    end_freq = 5925
+    end_freq = 5920
     html.print("const freq2chan = (f) => (f - 5000) / 5;");
 end
 local bw
@@ -304,12 +304,22 @@ do
     end
 end
 bw = tonumber(bw) or 10
+if bw == 10 then
+    cnf = cnf - 3
+elseif bw == 5 then
+    cnf = cnf - 6
+end
+
+local fbuckets = {}
+for freq = 1, (end_freq - start_freq + bw) * 56 / bw
+do
+    fbuckets[math.floor(freq)] = {}
+end
 
 local xscale = cwidth / (end_freq - start_freq)
-local min_sig = cnf
+local min_sig = -125
 local max_sig = -60
 local i = 1
-html.write("const p = [")
 while i < #samples
 do
     local t = samples:byte(i)
@@ -334,15 +344,13 @@ do
                 local datasq = v[dptr]
                 if datasq ~= 0 then
                     local sig = noise + rssi + 10 * math.log10(datasq / datasqsum)
-                    local fr = freq + bw * (dptr / 56 - 0.5) - start_freq
-                    if sig >= -125 then
-                        if sig < min_sig then
-                            min_sig = sig
-                        end
+                    if sig >= min_sig then
                         if sig > max_sig then
                             max_sig = sig
                         end
-                        html.write(math.floor(fr * xscale) .. "," .. math.floor(-sig * 4) .. ",")
+                        local bidx = math.floor((freq - start_freq) / bw * 56 + dptr - 28)
+                        local bucket = fbuckets[bidx]
+                        bucket[#bucket + 1] = math.floor((sig - min_sig) * 4)
                     end
                 end
             end
@@ -350,41 +358,64 @@ do
     end
     i = i + 3 + l
 end
-html.print("-1,-1];");
+
+local max_fsize = 0
+for _, b in ipairs(fbuckets)
+do
+    table.sort(b)
+    if #b > max_fsize then
+        max_fsize = #b
+    end
+end
+html.print("const n = null;")
+html.write("const p=[")
+local sizes = { 0.20, 0.30, 0.40, 0.50, 0.60 }
+for _, b in ipairs(fbuckets)
+do
+    local len = #b
+    local last = 0
+    for _, size in ipairs(sizes)
+    do
+        local max = math.floor(size * max_fsize)
+        if len >= max then
+            html.write((b[max] - last) .. ",")
+            last = b[max]
+        end
+    end
+    if len > 0 and b[#b] ~= last then
+        html.write((b[#b] - last) .. ",")
+    end
+    html.write("n,")
+end
+html.print("-1];")
+
 html.print("const yscale = " .. (-cheight / (max_sig - min_sig) / 4) .. ";")
-html.print("const ytran = " .. (-max_sig * 4) .. ";")
 html.print([[
-    const img = ctx.createImageData(]] .. cwidth .. [[,]] .. cheight ..[[);
-    const d = img.data;
-    for (let i = 0; i < p.length; i += 2) {
-        const sig = p[i+1];
-        const idx = 4 * (p[i] + ]] .. cwidth .. [[ * Math.floor(yscale * (ytran - sig)));
-        if (sig < ]] .. (-4 * cnf) .. [[) {
-            d[idx] = 0;
-            d[idx+1] = 0;
-            d[idx+2] = 255;
-            d[idx+4] = 0;
-            d[idx+5] = 0;
-            d[idx+6] = 255;
+    const bcolors = [ "red", "yellow", "green", "cyan", "blue", "purple" ];
+    let xcursor = 0;
+    let ycursor = 0;
+    let ccursor = 0;
+    for (let i = 0; i < p.length; i++) {
+        let v = p[i];
+        if (v === null) {
+            xcursor += ]] .. (xscale * bw / 56) .. [[;
+            ycursor = 0;
+            ccursor = 0;
         }
         else {
-            d[idx] = 128;
-            d[idx+1] = 128;
-            d[idx+2] = 128;
-            d[idx+4] = 128;
-            d[idx+5] = 128;
-            d[idx+6] = 128;
+            v *= yscale;
+            ycursor += v;
+            ctx.fillStyle = bcolors[ccursor];
+            ctx.fillRect(xcursor, ]] .. cheight .. [[ + ycursor, ]] .. (xscale * bw / 56) .. [[, -v);
+            ccursor++;
         }
-        d[idx+3] = 255;
-        d[idx+7] = 255;
     }
-    ctx.putImageData(img, 0, 0);
-    ctx.strokeStyle = "lightgrey";
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
     ctx.fillStyle = "black";
-    ctx.font = "12px Arial";
+    ctx.font = "bold 12px Arial";
     ctx.textAlign = "center";
     ctx.beginPath()
-    for (let f = ]] .. start_freq .. [[; f < ]] .. end_freq .. [[; f += 10) {
+    for (let f = ]] .. start_freq .. [[; f <= ]] .. end_freq .. [[; f += 10) {
         const x = Math.floor((f - ]] .. start_freq .. [[) * ]] .. xscale .. [[);
         ctx.moveTo(x, 0);
         ctx.lineTo(x, ]] .. (cheight - 20) .. [[);
@@ -392,20 +423,14 @@ html.print([[
     }
     ctx.stroke();
     ctx.textAlign = "left";
-    ctx.strokeStyle = "lightblue";
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
     ctx.beginPath();
     for (let snr = 60; snr >= 0; snr -= 10) {
-        const y = Math.floor(yscale * (ytran + ]] .. (cnf * 4) .. [[ + snr * 4));
+        const y = ]] .. cheight .. [[ + yscale * (snr - ]] .. (min_sig - cnf) .. [[) * 4;
         ctx.moveTo(20, y);
         ctx.lineTo(]] .. cwidth .. [[, y);
         ctx.fillText("" + snr, 2, y);
     }
-    ctx.stroke();
-    ctx.strokeStyle = "blue";
-    ctx.beginPath();
-    const y = Math.floor(yscale * (]] .. (cnf * 4) .. [[ + ytran));
-    ctx.moveTo(30, y);
-    ctx.lineTo(]] .. cwidth .. [[, y);
     ctx.stroke();
     </script></form>
 ]])
