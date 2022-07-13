@@ -306,7 +306,7 @@ function lqm()
         -- DtD
         for mac, entry in pairs(arps)
         do
-            if entry.Device:match("%.2$") then
+            if entry.Device:match("%.2$") or entry.Device == "br-dtdlink" then
                 stations[#stations + 1] = {
                     type = "DtD",
                     device = entry.Device,
