@@ -2,7 +2,7 @@
 --[[
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2019 Darryl Quinn
+	Copyright (C) 2021 Darryl Quinn
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -47,44 +47,90 @@ require("iwinfo")
 -- Function extensions
 os.capture = capture
 
+
+_G.switch = function(param, case_table)
+    local case = case_table[param]
+    if case then return case() end
+    local def = case_table['default']
+    return def and def() or nil
+end
+
+function addQueryStringData(qs, qsset)
+	local res = {}
+	res['raw'] = qs
+	if res['raw'] ~= nil then
+		res['params'] = qsset
+	end
+	return res	
+end
+
 -- ==== MAIN =====
-ctx = uci.cursor()
-if not ctx then
-	error("Failed to get uci cursor")
-end
+local request={}
+local response={}
+local topic=nil
 
-info={}
-
--- get/process query string
+-- PRE-PROCESS INCOMING REQUEST
 local qsset={}
-if (arg[1]==nil and arg[2]==nil) then
+local qs=""
+local method=""
+
+if (arg[1]==nil) then			-- FROM CGI
+	method=nixio.getenv("REQUEST_METHOD")
 	qs=nixio.getenv("QUERY_STRING")
-	if qs~="" then
-		qsset=parseQueryString(qs)
-	else
-		-- maybe default to a help page
-		qsset["apiprotected"]="help"
-	end
-else
-	qsset[arg[1]]=arg[2]
+	qsset=parseQueryString(qs)
+else 							-- FROM CMDLINE: ./apiprotected GET topic=setup_basic
+	method=arg[1]
+	qsset=parseQueryString(arg[2])
 end
 
-info['topics']={}
+request['method']=method
+request['authorization']=nixio.getenv("HTTP_AUTHORIZATION")
+request['content_type']=nixio.getenv("CONTENT_TYPE")
+request['query_string'] = addQueryStringData(qs, qsset)
 
-for topic, comps in pairs(qsset) do
-	if not setContains(info['topics'],topic) then
-		info['topics'][topic]={}
+-- ADD additional elements by METHOD type
+if method=='GET' then			-- READ	
+	topic=request['query_string']['params']['topic']
+elseif method=='OPTIONS' then			-- OPTIONS
+	-- skip
+elseif method=='POST' then		-- UPDATE
+	request['content_length']=nixio.getenv("CONTENT_LENGTH")
+	rawcontent=io.read("*all")
+	request['content']=json.parse(rawcontent)
+	topic = request['content']['topic']
+elseif method=='PUT' then		-- CREATE
+	request['content_length']=nixio.getenv("CONTENT_LENGTH")
+	request['content']=io.read("*all")
+elseif method=='DELETE' then	-- DELETE
+	local x=true
+else
+	request['content_length']=nixio.getenv("CONTENT_LENGTH")
+	request['content']=io.read("*all")
+end
+
+
+
+-- -------------------------------------------------
+function getController(t, req)
+	cname = "aredn.controller." .. t
+	-- TODO: need to catch errors on non-existent controllers below
+	local status, c = pcall(require, cname)
+	if (status) then
+		return c:new(req)
+	else
+		return nil
 	end
+end
 
-	if topic=="apiprotected" then
-		info['topics'][topic]=nil
-		info['api_help']="AREDN Protected API. This API's primary function is to be used by the Web UI and calls are protected via uhttpd"
-	elseif page=="dhcp" then
-		for i,comp in pairs(comps:split(',')) do
-			if comp=="currentleases" then
-				info['topics'][topic][comp]=aredn_info.getCurrentDHCPLeases()
-			end
-		end
+
+-- determine the proper controller
+if topic then
+	local controller = getController(topic, request)	-- setup.basic, setup.meshrf, etc
+	if (controller) then
+		response=controller:process()
+	else
+		response['error']="Controller '" .. topic .. "' not found"
+		response['success']=false
 	end
 end
 
@@ -93,4 +139,4 @@ end
 json_header()
 
 -- Output the info table as json
-print(json.stringify(info,true))
+print(json.stringify(response,true))

@@ -212,10 +212,53 @@ function model.getMeshRadioDevice()
 end
 
 -------------------------------------
+-- Determine if Radio Device for Mesh is enabled
+-------------------------------------
+function model.isMeshRadioEnabled(radio)
+	local wifidevice=aredn_uci.getUciConfType("wireless","wifi-device")
+	for pos,i in pairs(wifidevice) do
+		if wifidevice[pos]['.name']==radio then
+			disabled=wifidevice[pos]['disabled']
+		end
+	end
+	
+	if disabled == "0" then
+		return true
+	else
+		return false
+	end
+end
+
+-------------------------------------
+-- Determine distance value for Mesh radio
+-------------------------------------
+function model.getMeshRadioDistance(radio)
+	local distance = ""
+	local wifidevice=aredn_uci.getUciConfType("wireless","wifi-device")
+	for pos,i in pairs(wifidevice) do
+		if wifidevice[pos]['.name']==radio then
+			distance=wifidevice[pos]['distance']
+		end
+	end
+	return distance
+end
+
+-------------------------------------
 -- TODO: Return Band
 -------------------------------------
 function model.getBand(radio)
 	return ""
+end
+
+-------------------------------------
+-- Return TX Power
+-------------------------------------
+function model.getTXPower()
+	local wlanInf=get_ifname('wifi')
+	local api=iwinfo.type(wlanInf)
+	local iw = iwinfo[api]
+	local power = iw.txpower(wlanInf)
+	return tostring(power)
 end
 
 -------------------------------------
@@ -479,6 +522,18 @@ function model.getInterfaceIPAddress(interface)
 end
 
 -------------------------------------
+-- Returns Interface Netmask
+-- @param interface name of interface 'wifi' | 'lan' | 'wan'
+-------------------------------------
+function model.getInterfaceNetmask(interface)
+	-- special case
+	-- if interface == "wan" then
+	-- 	return getWAN()
+	-- end
+	return aredn_uci.getUciConfSectionOption("network",interface,"netmask")
+end
+
+-------------------------------------
 -- Returns Default Gateway
 -------------------------------------
 function model.getDefaultGW()
@@ -546,6 +601,42 @@ function model.getMeshGatewaySetting()
 	gw=gw:chomp()
 	return gw
 end
+
+-------------------------------------
+-- Returns LAN Mode (dmz_mode)
+-------------------------------------
+function model.getLANMode()
+	lm=os.capture("cat /etc/config.mesh/_setup|grep dmz_mode|cut -d'=' -f2|tr -d ' ' ")
+	lm=lm:chomp()
+	return lm
+end
+
+-------------------------------------
+-- is LAN DHCP enabled
+-------------------------------------
+function model.isLANDHCPEnabled()
+	r=os.capture("cat /etc/config.mesh/_setup|grep lan_dhcp|cut -d'=' -f2|tr -d ' ' ")
+	r=r:chomp()
+	if r=="0" then
+		return false
+	else
+		return true
+	end
+end
+
+-------------------------------------
+-- is Mesh olsr gateway enabled
+-------------------------------------
+function model.isMeshGatewayEnabled()
+	r=os.capture("cat /etc/config.mesh/_setup|grep olsrd_gw|cut -d'=' -f2|tr -d ' ' ")
+	r=r:chomp()
+	if r=="0" then
+		return false
+	else
+		return true
+	end
+end
+
 
 -------------------------------------
 -- Get and set NVRAM values
