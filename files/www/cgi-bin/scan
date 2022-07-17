@@ -310,7 +310,7 @@ end
 local bw = 10
 
 local fbuckets = {}
-for freq = 1, (end_freq - start_freq + bw) * 56 / bw
+for freq = 1, (end_freq - start_freq + bw) * 64 / bw
 do
     fbuckets[math.floor(freq)] = {}
 end
@@ -347,7 +347,10 @@ do
                         if sig > max_sig then
                             max_sig = sig
                         end
-                        local bidx = math.floor((freq - start_freq) / bw * 56 + dptr - 28)
+                        local bidx = math.floor((freq - start_freq) / bw * 64) + dptr - 28
+                        if dptr > 28 then
+                            bidx = bidx + 1
+                        end
                         local bucket = fbuckets[bidx]
                         if bucket then
                             bucket[#bucket + 1] = math.floor((sig - min_sig) * 4)
@@ -388,7 +391,7 @@ html.print([[
     for (let i = 0; i < p.length; i++) {
         let v = p[i];
         if (v === null) {
-            xcursor += ]] .. (xscale * bw / 56) .. [[;
+            xcursor += ]] .. (xscale * bw / 64) .. [[;
             ycursor = 0;
             ccursor = 0;
         }
@@ -396,7 +399,7 @@ html.print([[
             v *= yscale;
             ycursor += v;
             ctx.fillStyle = bcolors[ccursor];
-            // ctx.fillRect(xcursor, ]] .. cheight .. [[ + ycursor, ]] .. (xscale * bw / 56) .. [[, -v);
+            // ctx.fillRect(xcursor, ]] .. cheight .. [[ + ycursor, ]] .. (xscale * bw / 64) .. [[, -v);
             ctx.fillRect(xcursor, ]] .. cheight .. [[ + ycursor, 1, -v);
             ccursor++;
         }
