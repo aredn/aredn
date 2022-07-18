@@ -88,7 +88,7 @@ function navbar()
 end
 
 function validate_service_name(name)
-    if not name or name == "" or name:match("[:-\"|]") then
+    if not name or name == "" or name:match("[:-\"|<>]") then
         return false
     else
         return true
@@ -96,7 +96,7 @@ function validate_service_name(name)
 end
 
 function validate_service_protocol(proto)
-    if not proto or proto == "" or proto:match("[:-\"|]") or not proto:match("^%w+") then
+    if not proto or proto == "" or proto:match("[:-\"|<>]") or not proto:match("^%w+") then
         return false
     else
         return true
@@ -104,7 +104,7 @@ function validate_service_protocol(proto)
 end
 
 function validate_service_suffix(suffix)
-    if not suffix or suffix:match("[:-\"|]") or not suffix:match("^[%w/?._=#-]*$") then
+    if not suffix or suffix:match("[:-\"|<>]") or not suffix:match("^[%w/?._=#-]*$") then
         return false
     else
         return true
@@ -113,7 +113,7 @@ end
 
 local serv_err = {}
 function serverr(msg)
-    serv_err[#serv_err + 1] = msg
+    serv_err[#serv_err + 1] = msg:gsub(">", "&gt;"):gsub("<", "&lt;")
 end
 local port_err = {}
 function porterr(msg)
