@@ -781,7 +781,7 @@ html.print([[
     <body><center>
 ]])
 html.alert_banner()
-html.print("<form method=post action=admin enctype='multipart/form-data'><table width=790><tr><td>")
+html.print("<form method=post action=admin enctype='multipart/form-data'><table width=850><tr><td>")
 -- nav
 html.print("<hr><table cellpadding=5 border=0 width=100%><tr>")
 html.print("<td align=center width=15%><a href='status'>Node Status</a></td>")
@@ -798,13 +798,14 @@ html.print("<tr><td align=center><a href='/help.html#admin' target='_blank'>Help
 html.print("<input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>")
 html.print("</td></tr>")
 html.print("<tr><td align=center>")
-html.print("<table cellspacing=10>")
+
+html.print("<table cellspacing=10 width=100%>")
 
 -- firmware
 
 html.print("<tr><td align=center>")
-html.print("<table cellspacing=10>")
-html.print("<tr><th colspan=3>Firmware Update</th></tr>")
+html.print("<table cellspacing=10 width=100%>")
+html.print("<tr><th colspan=3 style=background-color:lightseagreen>Firmware Update</th></tr>")
 
 if #fw_output > 0 then
     html.print("<tr><td colspan=3 align=center><table><tr><td><b>")
@@ -812,13 +813,13 @@ if #fw_output > 0 then
     html.print("</b></td></tr></table></td></tr>")
 end
 
-html.print("<tr><td align=center colspan=3>current version: " .. fw_version .. "</td></tr>")
-html.print("<tr><td align=center colspan=3>hardware type: (" .. targettype .. ") " .. mfgprefix .. " (" .. hardwaretype .. ")</td></tr>")
+html.print("<tr><td align=center colspan=3><b>Current Version:</b> " .. fw_version .. "&nbsp; &nbsp; &nbsp; <b>Hardware Type:</b> (" .. targettype .. ") " .. mfgprefix .. " (" .. hardwaretype .. ")</td></tr>")
+html.print("<tr><td align=center colspan=3>Keep Existing Configuration Settings <input type=checkbox name=checkbox_keep_settings checked title='keep existing configuration settings'></td></tr>")
+
 html.print("<tr>")
 html.print("<td>Upload Firmware</td>")
 html.print("<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin' onchange='validateFirmwareFilename(this)'></td>")
-html.print("<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'>")
-html.print("</td>")
+html.print("<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'></td>")
 html.print("</tr>")
 
 html.print("<tr>")
@@ -832,22 +833,23 @@ end
 html.print("</select>")
 html.print("<input type=submit name=button_refresh_fw value=Refresh title='download the list of available firmware versions'>")
 html.print("<td align=center><input type=submit name=button_dl_fw value=Download title='install the firmware'></td>")
-html.print("<td align=right><input type=checkbox name=checkbox_keep_settings checked>Keep Settings</td>")
 html.print("</tr>")
+
 html.print("<tr>")
 html.print("<td>Load Local Firmware</td>")
-html.print("<td><input type=submit name=button_apply_fw value='Apply Local Firmware' title='Apply previously loaded firmware' " .. (nixio.fs.stat("/tmp/web/local_firmware.bin") and "" or "disabled") .. ">")
-html.print("<small>/tmp/web/local_firmware.bin</small></td>")
+html.print("<td style='font-family:monospace'>")
+html.print("<input type=submit name=button_apply_fw value='Apply Local Firmware' title='apply firmware previously uploaded to this node and named as shown' " .. (nixio.fs.stat("/tmp/web/local_firmware.bin") and "" or "disabled") .. ">")
+html.print(" /tmp/web/local_firmware.bin</td>")
 html.print("</tr>")
 
 html.print("</table></td></tr>")
-html.print("<tr><td colspan=3><hr></td></tr>")
+html.print("<tr><td colspan=3></td></tr>")
 
 -- packages
 
 html.print("<tr><td align=center>")
-html.print("<table cellspacing=10>")
-html.print("<tr><th colspan=3>Package Management</th></tr>")
+html.print("<table cellspacing=10 width=100%>")
+html.print("<tr><th colspan=3 style=background-color:lightseagreen>Package Management</th></tr>")
 
 if #pkg_output > 0 then
     -- opkg can produce duplicate first lines, remove them here
@@ -894,12 +896,12 @@ html.print("</tr>")
 
 html.print("</table></td></tr>")
 
-html.print("<tr><td colspan=3><hr></td></tr>")
+html.print("<tr><td colspan=3></td></tr>")
 
 -- ssh keys
 html.print("<tr><td align=center>")
-html.print("<table cellspacing=10>")
-html.print("<tr><th colspan=3>Authorized SSH Keys</th></tr>")
+html.print("<table cellspacing=10 width=100%>")
+html.print("<tr><th colspan=3 style=background-color:lightseagreen>Authorized SSH Keys</th></tr>")
 
 if #key_output > 0 then
     html.print("<tr><td colspan=3 align=center><table><tr><td><b><pre>")
@@ -928,12 +930,12 @@ html.print("</tr>")
 
 html.print("</table></td></tr>")
 
-html.print("<tr><td colspan=3><hr></td></tr>")
+html.print("<tr><td colspan=3></td></tr>")
 
-html.print("<tr><th colspan=3>Support Data</th></tr>")
+html.print("<tr><th colspan=3 style=background-color:lightseagreen>Support Data</th></tr>")
 html.print("<tr><td colspan=3 align=center><a href=/cgi-bin/supporttool>Download Support Data</a></td></tr>")
 
-html.print("<tr><td colspan=3><hr></td></tr>")
+html.print("<tr><td colspan=3></td></tr>")
 
 html.print("</table>")
 html.print("</td></tr>")
