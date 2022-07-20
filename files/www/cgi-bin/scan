@@ -45,8 +45,6 @@ if not node then
     node = "NOCALL"
 end
 local wifiiface = aredn.hardware.get_iface_name("wifi")
-local phy = iwinfo.nl80211.phyname(wifiiface)
-local rfband = aredn.hardware.get_rfband()
 local nf = iwinfo.nl80211.noise(wifiiface) or -95
 
 if not nixio.fs.stat("/tmp/web") then
@@ -56,7 +54,6 @@ end
 -- scan start
 
 local scanned = {}
-os.execute("echo 'chanscan' > /sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/spectral_scan_ctl")
 local f = io.popen("iw dev " .. wifiiface .. " scan passive")
 if f then
     local scan
@@ -99,9 +96,6 @@ if f then
     end
     f:close()
 end
-
-local samples = io.open("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/spectral_scan0", "rb"):read("*a")
-os.execute("echo 'disable' > /sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/spectral_scan_ctl")
 
 local f = io.popen("iw dev " .. wifiiface .. " station dump")
 if f then
@@ -254,177 +248,5 @@ do
 end
 
 html.print("</table><br></center>")
-
--- Spectral information
-local cwidth = 800;
-local cheight = 400;
-html.print([[
-    <center style="font-family: Arial">
-    <div style="padding:8px">Spectral View</div>
-    <div style="position:relative;display:inline-block">
-      <div style="position:absolute;top:200px;left:-35px;transform:rotate(-90deg)">SNR</div>
-      <canvas id="spectral" width="]] .. cwidth .. [[" height="]] .. cheight .. [[" style="border:1px solid grey;background-color:white"></canvas>
-      <div style="position:absolute;display:inline-block;vertical-align:top;text-align:left;top:6px;left:35px;background-color:white;border:solid 1px grey;padding:10px;font-size:12px;line-height:16px">
-        <div><span style="background-color:mediumpurple">&nbsp;&nbsp;&nbsp;</span> 5% of traffic</div>
-        <div><span style="background-color:yellow">&nbsp;&nbsp;&nbsp;</span> 95% of traffic</div>
-        <div><span style="background-color:red">&nbsp;&nbsp;&nbsp;</span> Ambient noise</div>
-      </div>
-    </div>
-    <div style="padding:4px">Channel</div>
-    </center>
-    <script>
-        const canvas = document.getElementById("spectral");
-        const ctx = canvas.getContext("2d");
-]]);
-
-function u8tos8(b)
-    return b >= 128 and b - 256 or b
-end
-
-local cnf = nf - 17.5 -- sub-carrier noise floor
-if bw == 10 then
-    cnf = cnf - 3
-elseif bw == 5 then
-    cnf = cnf - 6
-end
-local start_freq
-local end_freq
-if rfband == "900" then
-    start_freq = 902
-    end_freq = 925
-    html.print("const freq2chan = (f) => (f - 887) / 5;");
-elseif rfband == "2400" then
-    start_freq = 2377
-    end_freq = 2477
-    html.print("const freq2chan = (f) => (f - 2407) / 5;");
-elseif rfband == "3400" then
-    -- transverted
-    start_freq = 5370
-    end_freq = 5505
-    html.print("const freq2chan = (f) => (f - 5000) / 5;");
-else
-    start_freq = 5650
-    end_freq = 5920
-    html.print("const freq2chan = (f) => (f - 5000) / 5;");
-end
-local bw = 10
-
-local fbuckets = {}
-for freq = 1, (end_freq - start_freq + bw) * 56 / bw
-do
-    fbuckets[math.floor(freq)] = {}
-end
-
-local xscale = cwidth / (end_freq - start_freq)
-local min_sig = -125
-local max_sig = -60
-local i = 1
-while i < #samples
-do
-    local t = samples:byte(i)
-    local l = samples:byte(i + 1) * 256 + samples:byte(i + 2)
-    if t == 1 then
-        local max_exp = samples:byte(i + 3)
-        local freq = samples:byte(i + 4) * 256 + samples:byte(i + 5)
-        if freq >= start_freq and freq <= end_freq then
-            local rssi = u8tos8(samples:byte(i + 6))
-            local noise = u8tos8(samples:byte(i + 7))
-            local datasqsum = 0
-            local v = {}
-            for dptr = 1,56
-            do
-                local data = nixio.bit.lshift(samples:byte(dptr + i + 19), max_exp)
-                data = data * data
-                datasqsum = datasqsum + data
-                v[dptr] = data
-            end
-            for dptr = 1,56
-            do
-                local datasq = v[dptr]
-                if datasq ~= 0 then
-                    local sig = noise + rssi + 10 * math.log10(datasq / datasqsum)
-                    if sig >= min_sig then
-                        if sig > max_sig then
-                            max_sig = sig
-                        end
-                        local bidx = math.floor((freq - start_freq) / bw * 56 + dptr - 28)
-                        local bucket = fbuckets[bidx]
-                        if bucket then
-                            bucket[#bucket + 1] = math.floor((sig - min_sig) * 4)
-                        end
-                    end
-                end
-            end
-        end
-    end
-    i = i + 3 + l
-end
-
-for _, b in ipairs(fbuckets)
-do
-    table.sort(b)
-end
-
-html.print("const n = null;")
-html.write("const p=[")
-for _, b in ipairs(fbuckets)
-do
-    if #b > 0 then
-        local l = b[1 + math.floor(#b * 0.50)]
-        local m = b[1 + math.floor(#b * 0.95)]
-        local h = b[#b]
-        html.write(l .. "," .. (m-l) .. "," .. (h-m) .. ",")
-    end
-    html.write("n,")
-end
-html.print("n];")
-
-html.print("const yscale = " .. (-cheight / (max_sig - min_sig) / 4) .. ";")
-html.print([[
-    const bcolors = [ "red", "yellow", "mediumpurple" ];
-    let xcursor = 0;
-    let ycursor = 0;
-    let ccursor = 0;
-    for (let i = 0; i < p.length; i++) {
-        let v = p[i];
-        if (v === null) {
-            xcursor += ]] .. (xscale * bw / 56) .. [[;
-            ycursor = 0;
-            ccursor = 0;
-        }
-        else {
-            v *= yscale;
-            ycursor += v;
-            ctx.fillStyle = bcolors[ccursor];
-            // ctx.fillRect(xcursor, ]] .. cheight .. [[ + ycursor, ]] .. (xscale * bw / 56) .. [[, -v);
-            ctx.fillRect(xcursor, ]] .. cheight .. [[ + ycursor, 1, -v);
-            ccursor++;
-        }
-    }
-    ctx.strokeStyle = "rgba(0,0,0,0.5)";
-    ctx.fillStyle = "black";
-    ctx.font = "bold 12px Arial";
-    ctx.textAlign = "center";
-    ctx.beginPath()
-    for (let f = ]] .. start_freq .. [[; f <= ]] .. end_freq .. [[; f += 10) {
-        const x = Math.floor((f - ]] .. start_freq .. [[) * ]] .. xscale .. [[);
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, ]] .. (cheight - 20) .. [[);
-        ctx.fillText("" + freq2chan(f), x, ]] .. cheight - 4 .. [[);
-    }
-    ctx.stroke();
-    ctx.textAlign = "left";
-    ctx.strokeStyle = "rgba(0,0,0,0.5)";
-    ctx.beginPath();
-    for (let snr = 60; snr >= 0; snr -= 10) {
-        const y = ]] .. cheight .. [[ + yscale * (snr - ]] .. (min_sig - cnf) .. [[) * 4;
-        ctx.moveTo(20, y);
-        ctx.lineTo(]] .. cwidth .. [[, y);
-        ctx.fillText("" + snr, 2, y);
-    }
-    ctx.stroke();
-    </script></form>
-]])
-
 html.footer()
 html.print("</body></html>")
