@@ -304,6 +304,42 @@ function getTraceroute(target)
 	return routes
 end
 
+-------------------------------------
+-- Returns traceroute
+-------------------------------------
+function getPing(target)
+	local pings = {}
+	local summary = { tx = -1, rx = -1, lossPercentage = -1, ip = "not found", minMs = -1, maxMs = -1, avgMs = -1 }
+	local output = capture("/bin/ping -w 10 " .. target)
+	local foundip = "unknown"
+	for _, line in ipairs(output:splitNewLine())
+	do
+		local ip = line:match("^PING %S+ %(([%d%.]+)%):")
+		if ip then
+			summary.ip = ip
+		else
+			local ip, seq, ttl, time = line:match("bytes from ([%d%.]+): seq=(%d+) ttl=(%d+) time=(%S+) ms")
+			if ip then
+				pings[#pings + 1] = { ip = ip, seq = seq, ttl = ttl, timeMs = time }
+			else
+				local tx, rx, loss = line:match("^(%d+) packets transmitted, (%d+) packets received, (%d+)%% packet loss")
+				if tx then
+					summary.tx = tx
+					summary.rx = rx
+					summary.lossPercentage = loss
+				else
+					local min, avg, max = line:match("min/avg/max = ([%d%.]+)/([%d%.]+)/([%d%.]+) ms")
+					if min then
+						summary.minMs = min
+						summary.maxMs = max
+						summary.avgMs = avg
+					end
+				end
+			end
+		end
+	end
+	return { summary = summary, pings = pings }
+end
 
 function file_trim(filename, maxl)
 	local lines={}

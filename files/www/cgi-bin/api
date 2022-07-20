@@ -44,7 +44,7 @@ require("nixio")
 local json = require("luci.jsonc")
 require("iwinfo")
 
-local API_VERSION="1.4"
+local API_VERSION="1.5"
 
 -- Function extensions
 os.capture = capture
@@ -374,6 +374,15 @@ for page, comps in pairs(qsset) do
 			-- Validate that input as ip or hostname inside the mesh
 			if tonode:match("^[%d%.]+$") or tonode:match("^[%d%a%-%.%_]+$") then
 				info['pages'][page][tonode]=getTraceroute(tonode)
+			else
+				info['pages'][page][tonode]="Invalid input!"
+			end
+		end
+	elseif page=="ping" then
+		for i,tonode in pairs(comps:split(',')) do
+			-- Validate that input as ip or hostname inside the mesh
+			if tonode:match("^[%d%.]+$") or tonode:match("^[%d%a%-%.%_]+$") then
+				info['pages'][page][tonode]=getPing(tonode)
 			else
 				info['pages'][page][tonode]="Invalid input!"
 			end
