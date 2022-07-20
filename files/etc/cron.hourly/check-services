@@ -1,0 +1,109 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2022 Tim Wilkinson
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+local olsrd_conf = "/tmp/etc/olsrd.conf"
+
+-- Load olsrd.conf
+local lines = {}
+for line in io.lines(olsrd_conf)
+do
+    lines[#lines + 1] = line
+end
+
+-- Generate validated name services
+local ns = {}
+for line in io.popen("/usr/local/bin/olsrd-config olsrd validate"):lines()
+do
+    ns[#ns + 1] = line
+end
+table.remove(ns, 1) -- strip first line which is blank
+
+-- Locate merge point, then merge new validated services
+local change = false
+local i = 1
+while true
+do
+    if lines[i] == 'LoadPlugin "olsrd_nameservice.so.0.4"' then
+        local n = 1
+        while i <= #lines and n <= #ns
+        do
+            if lines[i] ~= ns[n] then
+                lines[i] = ns[n]
+                change = true
+            end
+            i = i + 1
+            n = n + 1
+        end
+        if i <= #lines then
+            -- truncated
+            while i <= #lines
+            do
+                table.remove(lines, #lines)
+            end
+            change = true
+        end
+        if n <= #ns then
+            -- append
+            while n <= #ns
+            do
+                lines[#lines + 1] = ns[n]
+                n = n + 1
+            end
+            change = true
+        end
+        break
+    end
+    i = i + 1
+end
+
+-- If services have changed we need to update and restart olsrd
+if change then
+    print("Change")
+    local f = io.open(olsrd_conf, "w")
+    if f then
+        for _, line in ipairs(lines)
+        do
+            f:write(line .. "\n")
+        end
+        f:close()
+        -- We use 'killall' to restart olsrd to stop if from regenerating the olsrd.conf file we
+        -- just changed. We dont want to modify the standard process so these changes wont persist
+        -- across restarts/reconfigurations but will only be applied daily when poor services are detected
+        os.execute("/usr/bin/killall olsrd > /dev/null 2>&1")
+    end
+else
+    print("Unchange")
+end
