@@ -387,6 +387,18 @@ for page, comps in pairs(qsset) do
 				info['pages'][page][tonode]="Invalid input!"
 			end
 		end
+	elseif page=="iperf3" then
+		local protocol = "tcp"
+		for i,tonode in pairs(comps:split(',')) do
+			-- Validate that input as ip or hostname inside the mesh
+			if tonode == "tcp" or tonode == "udp" then
+				protocol = tonode
+			elseif tonode:match("^[%d%.]+$") or tonode:match("^[%d%a%-%.%_]+$") then
+				info['pages'][page][tonode]=getIperf3(tonode, protocol)
+			else
+				info['pages'][page][tonode]="Invalid input!"
+			end
+		end
 	elseif page=="mesh" then
 		for i,comp in pairs(comps:split(',')) do
 			if comp=="sysinfo" then
