@@ -1,0 +1,121 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2022 Tim Wilkinson
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("nixio")
+require("uci")
+
+local cursor = uci.cursor()
+
+local hosts = {}
+local services = {}
+
+function ip_to_hostname(ip)
+    if ip and ip ~= "" and ip ~= "none" then
+        local a, b, c, d = ip:match("(.*)%.(.*)%.(.*)%.(.*)")
+        local revip = d .. "." .. c .. "." .. b .. "." .. a
+        local f = io.popen("nslookup " .. ip)
+        if f then
+            local pattern = "^" .. revip .. "%.in%-addr%.arpa%s+name%s+=%s+(%S+)%.local%.mesh"
+            for line in f:lines()
+            do
+                local host = line:match(pattern)
+                if host then
+                    f:close()
+                    return host
+                end
+            end
+            f:close()
+        end
+    end
+    return ""
+end
+
+-- Load all the hosts we want to publish
+local dmz_mode = cursor:get("aredn", "@dmz[0]", "mode")
+if dmz_mode ~= "0" then
+    if nixio.fs.stat("/etc/config.mesh/aliases.dmz") then
+        for line in io.lines("/etc/config.mesh/aliases.dmz")
+        do
+            local ip, host = line:match("(.*) (.*)")
+            if host then
+                hosts[#hosts + 1] = { ip = ip, host = host }
+            end
+        end
+    end
+    if nixio.fs.stat("/etc/ethers") then
+        local noprop_ip = {}
+        if nixio.fs.stat("/etc/hosts") then
+            for line in io.lines("/etc/hosts")
+            do
+                local ip = line:match("^(%S+)%s.*#NOPROP$")
+                if ip then
+                    noprop_ip[ip] = true
+                end
+            end
+        end
+        for line in io.lines("/etc/ethers")
+        do
+            local ip = line:match("[0-9a-fA-F:]+%s+([%d%.]+)")
+            if ip and not noprop_ip[ip] then
+                local host = ip_to_hostname(ip)
+                if host then
+                    hosts[#hosts + 1] = { ip = ip, host = host }
+                end
+            end
+        end
+    end
+end
+
+-- Load all the services we want to publish
+if nixio.fs.stat("/etc/config/services") then
+    for line in io.lines("/etc/config/services")
+    do
+        if line:match("^%w+://[%w%-%.]+:%d+.*|tcp|[^|]+$") or line:match("^%w+://[%w%-%.]+:%d+.*|udp|[^|]+$") then
+            services[#services + 1] = line
+        end
+    end
+end
+
+-- Check we can reach all the IP addresses
+for _, host in ipairs(hosts)
+do
+
+end
+
+-- Check all the services have a valid host
+
+-- For service links, make sure they return a 200 status
+
