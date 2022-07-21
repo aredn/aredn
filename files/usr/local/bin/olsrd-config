@@ -171,14 +171,39 @@ if validate then
     do
         local proto, hostname, port, path = service:match("^(%w+)://([%w%-%.]+):(%d+)(.*)|...|[^|]+$")
         if valid_hosts[hostname:lower()] then
-            if port == "0" or proto ~= "http" then
-                -- no port or not http, so not a link - we can only check the hostname
+            if port == "0" then
+                -- no port so not a link - we can only check the hostname so have to assume the service is good
                 valid_services[#valid_services + 1] = service
-            else
-                -- http and a port, so looks like a link. http check it
+            elseif proto == "http" then
+                -- http so looks like a link. http check it
                 local status = io.popen("/usr/bin/curl --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --location --write-out '%{http_code}' " .. "http://" .. hostname .. ":" .. port .. path):read("*a")
                 if status == "200" then
                     valid_services[#valid_services + 1] = service
+                end
+            else
+                -- valid port, but we dont know the protocol (we cannot trust the one defined in the services file because the UI wont set
+                -- anything but 'tcp'). Check both tcp and udp and assume valid it either is okay
+                -- tcp
+                local s = nixio.socket("inet", "stream")
+                s:setopt("socket", "sndtimeo", 2)
+                local r = s:connect(hostname, tonumber(port))
+                s:close()
+                if r == true then
+                    -- tcp connection succeeded
+                    valid_services[#valid_services + 1] = service
+                else
+                    -- udp
+                    s = nixio.socket("inet", "dgram")
+                    s:setopt("socket", "rcvtimeo", 2)
+                    s:connect(hostname, tonumber(port))
+                    s:send("")
+                    r = s:recv(0)
+                    s:close()
+                    if r ~= nil then
+                        -- A nil response is an explicity rejection of the udp request. Otherwise we have
+                        -- to assume the service is valid
+                        valid_services[#valid_services + 1] = service
+                    end
                 end
             end
         end
