@@ -643,7 +643,14 @@ if parms.button_save then
 
     if nodetac:match("/") then
         node, tactical = nodetac:match("^%s*([%w-]+)%s*/%s*([%w-]*)%s*$")
-        if tactical == "" then
+        if not node then
+            err("invalid node/tactical name")
+            node = nodetac:match("^([^/%s]*)")
+            tactical = ""
+            if node == "" then
+                err("you must set the node name")
+            end
+        elseif tactical == "" then
             err("invalid node/tactical name")
         end
     else
