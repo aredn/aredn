@@ -37,6 +37,9 @@
 require("uci")
 require("luci.sys")
 require("nixio")
+local info = require("aredn.info")
+
+local node = info.get_nvram("node")
 
 local q = os.getenv("QUERY_STRING") or ""
 local server = q:match("server=([^&]*)")
@@ -51,7 +54,7 @@ if uci.cursor():get("aredn", "@iperf[0]", "enable") == "0" then
 elseif not server then
     print("<html><head></head><body><pre>Provide a server name to run a test between this client and a server [/cgi-bin/iperf?server=&lt;ServerName&gt;&amp;protocol=&lt;udp|tcp&gt;]</pre></body></html>")
 elseif server == "" then
-    os.execute("killall iperf3; iperf3 -s -D -1")
+    os.execute("killall iperf3; iperf3 -s -D -1 -B " .. node)
 	for _ = 1,5
 	do
 		if io.popen("netstat -ln | grep 0.0.0.0:5201"):read("*a") ~= "" then
