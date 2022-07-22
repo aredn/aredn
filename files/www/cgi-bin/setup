@@ -209,14 +209,14 @@ function is_wifi_chanbw_valid(wifi_chanbw, wifi_ssid)
 end
 
 function validate_hostname(raw_name, name_type)
-    trimmed_name = raw_name:match("^%s*(.-)%s*$")
+    local trimmed_name = raw_name:match("^%s*(.-)%s*$")
     if trimmed_name == "" then
         if name_type == "node" then
             err("you must set the node name")
         end
         -- A missing tactical name is not an error
     else
-        hostname = trimmed_name:match("^%f[%w]([-%w]+)%f[%W]$") -- RFC 1123 + RFC 952
+        local hostname = trimmed_name:match("^%f[%w]([-%w]+)%f[%W]$") -- RFC 1123 + RFC 952
         if not hostname then
             err(string.format('"%s" is not a valid %s name; only alphanumerics and internal hyphens are allowed', trimmed_name, name_type))
         elseif string.len(hostname) > 63 then
@@ -661,7 +661,7 @@ if parms.button_save then
         err("password must be changed during initial configuration")
     end
 
-    raw_node, raw_tactical = nodetac:match("^([^/]*)(.*)$")
+    local raw_node, raw_tactical = nodetac:match("^([^/]*)(.*)$")
     node = validate_hostname(raw_node, "node")
     tactical = raw_tactical ~= "" and validate_hostname(string.sub(raw_tactical, 2), "tactical") or ""
 
