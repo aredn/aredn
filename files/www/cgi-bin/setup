@@ -208,6 +208,26 @@ function is_wifi_chanbw_valid(wifi_chanbw, wifi_ssid)
     return true -- always true
 end
 
+function validate_hostname(raw_name, name_type)
+    local trimmed_name = raw_name:match("^%s*(.-)%s*$")
+    if trimmed_name == "" then
+        if name_type == "node" then
+            err("you must set the node name")
+        end
+        -- A missing tactical name is not an error
+    else
+        local hostname = trimmed_name:match("^%f[%w]([-%w]+)%f[%W]$") -- RFC 1123 + RFC 952
+        if not hostname then
+            err(string.format('"%s" is not a valid %s name; only alphanumerics and internal hyphens are allowed', trimmed_name, name_type))
+        elseif string.len(hostname) > 63 then
+            err(string.format('%s name "%s" exceeds 63 characters', name_type, hostname)) -- RFC 2181
+        else
+            return hostname
+        end
+    end
+    return ""
+end
+
 -- helper end
 
 -- timezones
@@ -641,31 +661,9 @@ if parms.button_save then
         err("password must be changed during initial configuration")
     end
 
-    if nodetac:match("/") then
-        node, tactical = nodetac:match("^%s*([%w-]+)%s*/%s*([%w-]*)%s*$")
-        if not node then
-            err("invalid node/tactical name")
-            node = nodetac:match("^([^/%s]*)")
-            tactical = ""
-            if node == "" then
-                err("you must set the node name")
-            end
-        elseif tactical == "" then
-            err("invalid node/tactical name")
-        end
-    else
-        node = nodetac
-        tactical = ""
-        if node == "" then
-            err("you must set the node name")
-        end
-    end
-    if node ~= "" and node:match("[^%w-]") or node:match("_") then
-        err("invalid node name")
-    end
-    if tactical:match("[^%w-]") or tactical:match("_") then
-        err("invalid tactical name")
-    end
+    local raw_node, raw_tactical = nodetac:match("^([^/]*)(.*)$")
+    node = validate_hostname(raw_node, "node")
+    tactical = raw_tactical ~= "" and validate_hostname(string.sub(raw_tactical, 2), "tactical") or ""
 
     if not validate_fqdn(ntp_server) then
         err("invalid ntp server")
