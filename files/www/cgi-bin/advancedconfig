@@ -465,8 +465,9 @@ function supportsVLANChange()
     if not (stat and stat.size > 0) then
         return true
     end
-    -- We also support VLAN changing on hAPs as WAN is on it's own ethernet port
-    if aredn.hardware.get_type() == "rb-952ui-5ac2nd" then
+    -- We also support VLAN changing on hAP, A750 and AR150 as WAN is on it's own ethernet port
+    local type = aredn.hardware.get_type()
+    if type == "rb-952ui-5ac2nd" or type == "gl-ar750" then
         return true
     end
     -- Otherwise
