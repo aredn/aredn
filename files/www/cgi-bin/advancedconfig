@@ -460,9 +460,17 @@ function hasUSB()
 end
 
 function supportsVLANChange()
-    -- We dont currently support VLAN changes on devices with switch chips
     local stat = nixio.fs.stat("/etc/aredn_include/swconfig")
-    return not (stat and stat.size > 0)
+    -- We always support VLAN changing on devices without switches
+    if not (stat and stat.size > 0) then
+        return true
+    end
+    -- We also support VLAN changing on hAPs as WAN is on it's own ethernet port
+    if aredn.hardware.get_type() == "rb-952ui-5ac2nd" then
+        return true
+    end
+    -- Otherwise
+    return false
 end
 
 -- callbacks
