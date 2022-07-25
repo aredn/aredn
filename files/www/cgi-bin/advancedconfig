@@ -242,12 +242,19 @@ local settings = {
         needreboot = true
     },
     {
-        category = "OLSR",
+        category = "Network Tools",
         key = "aredn.olsr.restart",
         type = "none",
         desc = "Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
         default = "0",
         postcallback = "olsr_restart()"
+    },
+    {
+        category = "Network Tools",
+        key = "aredn.@iperf[0].enable",
+        type = "boolean",
+        desc = "Enable the included iperf3 client/server support",
+        default = "1"
     },
     {
         category = "AREDN Alerts",
@@ -279,13 +286,6 @@ local settings = {
         desc = "Immediately purge/delete all AREDN (and local) Alerts from this node.",
         default = "",
         postcallback = "alert_purge()"
-    },
-    {
-        category = "iPerf",
-        key = "aredn.@iperf[0].enable",
-        type = "boolean",
-        desc = "Enable the included iperf3 client/server support",
-        default = "1"
     },
     {
         category = "Link Quality",
@@ -819,7 +819,7 @@ do
         end
         sval = sval and tostring(sval) or ""
         if setting.category ~= prior_category then
-            html.print([[<tr class="wscan-row-node"><td align="center" colspan="4"><b>]] .. setting.category .. [[</b></td></tr>]])
+            html.print([[<tr style=background-color:lightseagreen><td align="center" colspan="4"><b>]] .. setting.category .. [[</b></td></tr>]])
             prior_category = setting.category
         end
         html.print([[<tr><td align="center"><span title="]] .. setting.desc .. [["><img src="/qmark.png" /></span></td><td>]] .. setting.key .. [[</td><td>]])
