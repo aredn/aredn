@@ -567,6 +567,14 @@ end
 
 local meshpkgs = capture("grep -q \".local.mesh\" /etc/opkg/distfeeds.conf"):chomp()
 
+function update_advertised_services()
+    local script = "/etc/cron.hourly/check-services"
+    local stat = nixio.fs.stat(script)
+    if stat.type == "reg" and nixio.bit.band(tonumber(stat.modedec, 8), tonumber(111, 8)) ~= 0 then
+        os.execute("(cd /tmp;" .. script .. " 2>&1 | logger -p daemon.debug -t " .. script .. ")&")
+    end
+end
+
 -- upload package
 if parms.button_ul_pkg and nixio.fs.stat("/tmp/web/upload/file") then
     os.execute("mv -f /tmp/web/upload/file /tmp/web/upload/newpkg.ipk")
@@ -583,6 +591,8 @@ if parms.button_ul_pkg and nixio.fs.stat("/tmp/web/upload/file") then
     nixio.fs.remove("/tmp/web/upload/newpkg.ipk")
     if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
         pkgout("Failed to restart all services, please reboot this node.")
+    else
+        update_advertised_services()
     end
 end
 
@@ -600,6 +610,8 @@ if parms.button_dl_pkg and parms.dl_pkg ~= "default" then
         pkgout(result)
         if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
             pkgout("Failed to restart all services, please reboot this node.")
+        else
+            update_advertised_services()
         end
     else
         pkgout("Error: no route to Host")
@@ -622,6 +634,7 @@ if parms.button_rm_pkg and parms.rm_pkg ~= "default" and not permpkg[parms.rm_pk
     pkgout(output)
     if not output:match("No packages removed") then
         pkgout("Package removed successfully")
+        update_advertised_services()
     end
 end
 
