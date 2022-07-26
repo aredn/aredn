@@ -152,6 +152,7 @@ end
 
 -- validation
 if validate then
+    local laniface = aredn.hardware.get_iface_name("lan")
     local valid_hosts = {}
     -- Add in local names so services checks pass
     for _, name in ipairs(names)
@@ -162,6 +163,8 @@ if validate then
     for _, host in ipairs(hosts)
     do
         if os.execute("/bin/ping -q -c 1 -W 1 " .. host.ip .. " > /dev/null 2>&1") == 0 then
+            valid_hosts[host.host:lower()] = host
+        elseif os.execute("/usr/sbin/arping -q -f -c 1 -w 1 -I " .. laniface .. " " .. host.ip .. " > /dev/null 2>&1") == 0 then
             valid_hosts[host.host:lower()] = host
         end
     end
