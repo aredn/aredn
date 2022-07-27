@@ -1100,6 +1100,17 @@ function print_forwarding()
 end
 
 function print_services()
+    local activesvc = nil
+    if nixio.fs.stat("/var/etc/olsrd.conf") then
+        activesvc = {}
+        for line in io.lines("/var/etc/olsrd.conf")
+        do
+            local plparam = line:match([[^%s*(PlParam "service" ".*")%s*$]])
+            if plparam then
+                activesvc[plparam] = true
+            end
+        end
+    end
     html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>Advertised Services</th></tr>")
     if not (dmz_mode ~= 0 or parms.port_num ~= 0 or parms.dmz_ip) then
         if dmz_mode ~= 0 then
@@ -1192,11 +1203,15 @@ function print_services()
 
         html.print("<td><nobr>&nbsp;<input type=submit name=")
         if val == "_add" then
-            html.print("serv_add       value=Add title='Add this as a service'")
+            html.print("serv_add       value=Add title='Add this as a service'>")
         else
-            html.print("serv" .. val .. "_del value=Del title='Remove this service'")
+            html.print("serv" .. val .. "_del value=Del title='Remove this service'>")
         end
-        html.print("></nobr></td></tr>")
+        local svc = string.format([[PlParam "service" "%s://%s:%s/%s|tcp|%s"]], _proto, _host, (_link == "1" and _port or "0"), _suffix, _name)
+        if val ~= "_add" and activesvc and not activesvc[svc] then
+            html.print("<img style='vertical-align:middle' src='/dot.png' title='Service is not being advertised'>")
+        end
+        html.print("</nobr></td></tr>")
 
         -- display any errors
         while #serv_err > 0 and serv_err[1]:match("^" .. val .. " ")
