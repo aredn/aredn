@@ -1207,7 +1207,7 @@ function print_services()
         else
             html.print("serv" .. val .. "_del value=Del title='Remove this service'>")
         end
-        local svc = string.format([[PlParam "service" "%s://%s:%s/%s|tcp|%s"]], _proto, _host, (_link == "1" and _port or "0"), _suffix, _name)
+        local svc = string.format([[PlParam "service" "%s://%s:%s/%s|tcp|%s"]], (_link == "1" and _proto or "http"), _host, (_link == "1" and _port or "0"), _suffix, _name)
         if val ~= "_add" and activesvc and not activesvc[svc] then
             html.print("<img style='vertical-align:middle' src='/dot.png' title='Service is not being advertised'>")
         end
