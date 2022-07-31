@@ -471,7 +471,7 @@ downloads seamlessly.</p>
 
 <p>When you want to let others know about services you are providing, the
 Advertised Services you create will appear on the <em>Mesh Status</em> page of all other nodes. All advertised services need a name, and no services can be
-advertised until at least one port forwarding rule or a DMZ server has been
+advertised in NAT Mode until at least one port forwarding rule or a DMZ server has been
 defined.</p>
 
 <p>If your service is accessible via web browser, such as from a web or ftp server, you can make the name appear as a clickable link by checking the <em>Link</em> box. All links need two parameters: a protocol and a port number.
@@ -480,6 +480,8 @@ services may use other protocols. The port number should be the one used as
 the Outside Port in the forwarding rule through which the service can be
 accessed. In the last field you can enter an optional link suffix to a more specific path if needed, such as the name of a specific page on a
 web server or a directory or file on an ftp server.</p>
+
+<p>OLSR propagates service entries to other nodes across the network. Once every hour your node will verify that its own service entries are valid. Your node will not propagate entries across the network if it determines that the host is unpingable, or that there is no service listening on the specified port, or if the HTTP link does not return a <em>success</em> status code. It also will not advertise a service that depends on a package which has not yet been installed. The node's Advertised Services list will still show the defined service (with a gray dot and hover text marking it as non-advertised), but your node will not actually advertise that service to the network. If the service URL becomes reachable in the future, then your node will resume advertising it across the network.</p>
 
 <p><strong>DHCP Address Reservations</strong></p>
 
