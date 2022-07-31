@@ -360,7 +360,7 @@ if f then
                     break
                 end
             end
-            
+
             if val == "_add" and parms.button_save then
                 porterr(val .. " this rule must be added or cleared out before saving changes")
                 break
@@ -401,7 +401,7 @@ if f then
             end
 
             f:write(_intf .. ":" .. _type .. ":" .. _out .. ":" .. _ip .. ":" .. _in .. ":" .. _enable .. "\n")
-            
+
             for _, var in ipairs(vars)
             do
                 parms["port" .. port_num .. var] = _G[var]
@@ -829,7 +829,7 @@ if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or 
     filecopy(tmpdir .. "/dhcp", dhcpfile)
     filecopy(tmpdir .. "/services", servfile)
     filecopy(tmpdir .. "/aliases", aliasfile)
-    
+
     if os.execute("/usr/local/bin/node-setup -a -p mesh") ~= 0 then
         err("problem with configuration")
     end
@@ -891,7 +891,7 @@ function print_reservations()
     html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>DHCP Address Reservations</th></tr>")
     html.print("<tr><td colspan=4 height=5></td></tr>")
     html.print("<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td>")
-    
+
     if dmz_mode ~= 0 then
         html.print("<td align=center style='font-size:10px;'>Do Not<br>Propagate</td><td></td></tr>")
     else
@@ -1209,7 +1209,7 @@ function print_services()
         end
         local svc = string.format([[PlParam "service" "%s://%s:%s/%s|tcp|%s"]], (_link == "1" and _proto or "http"), _host, (_link == "1" and _port or "0"), _suffix, _name)
         if val ~= "_add" and activesvc and not activesvc[svc] then
-            html.print("<img style='vertical-align:middle' src='/dot.png' title='Service is not being advertised'>")
+            html.print("<img style='vertical-align:middle' src='/alert-circle-outline.png' title='Service is not being advertised'>")
         end
         html.print("</nobr></td></tr>")
 
@@ -1298,7 +1298,7 @@ print_services()
 html.print("</td>")
 html.print("</tr></table></td></tr>")
 html.print("<tr><td>&nbsp;</td></tr>")
-html.print("<tr><td><hr></td></tr>")  
+html.print("<tr><td><hr></td></tr>")
 html.print("</table><table width=790>")
 html.print("<tr><td align=center valign=top>")
 if dmz_mode ~= 0 then
