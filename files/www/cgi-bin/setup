@@ -1020,7 +1020,7 @@ html.print([[
 <td>Node Name</td>
 <td><input type=text name=nodetac value=']] .. nodetac .. [[' tabindex=1 size='50'></td>
 <td align=right>Password</td>
-<td><input type=password name=passwd1 value=']] .. passwd1 .. [[' size=8 tabindex=2></td>
+<td><input class='password-input' type=password name=passwd1 value=']] .. passwd1 .. [[' size=8 tabindex=2><i class='password-toggle'></i></td>
 ]])
 html.print([[
 </tr>
@@ -1031,7 +1031,7 @@ html.print([[
 hidden[#hidden + 1] = "<input type=hidden name=config value='mesh'>"
 html.print([[
 <td>Verify Password</td>
-<td><input type=password name=passwd2 value=']] .. passwd2 .. [[' size=8 tabindex=3></td>
+<td><input class='password-input' type=password name=passwd2 value=']] .. passwd2 .. [[' size=8 tabindex=3><i class='password-toggle'></i></td>
 </tr>
 </table>
 </td></tr>
@@ -1268,7 +1268,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount =
     html.print("<tr><td>Encryption</td><td><select name=wifi2_encryption>")
     html.print("<option value='psk2'".. (wifi2_encryption == "psk2" and " selected" or "") .. ">WPA2 PSK</option>")
     html.print("<option value='psk'".. (wifi2_encryption == "psk" and " selected" or "") .. ">WPA PSK</option>")
-    html.print("</select></td></tr><tr><td>Password</td><td><input type=password size=15 name=wifi2_key value='" .. wifi2_key .. "'></td></tr>")
+    html.print("</select></td></tr><tr><td>Password</td><td><input class='password-input' type=password size=15 name=wifi2_key value='" .. wifi2_key .. "'><i class='password-toggle'></i></td></tr>")
 else
     hidden[#hidden + 1] = "<input type=hidden name=wifi2_enable     value='" .. (wifi2_enable or "") .. "'>"
     hidden[#hidden + 1] = "<input type=hidden name=wifi2_ssid       value='" .. (wifi2_ssid or "") .. "'>"
@@ -1349,7 +1349,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
     end
 
     html.print("<tr><td>SSID</td><td><input type=text name=wifi3_ssid size=15 value='" .. wifi3_ssid .."'></select></td></tr>")
-    html.print("<tr><td>Password</td><td><input type=password size=15 name=wifi3_key value='" .. wifi3_key .. "'></td></tr>")
+    html.print("<tr><td>Password</td><td><input class='password-input' type=password size=15 name=wifi3_key value='" .. wifi3_key .. "'><i class='password-toggle'></i></td></tr>")
 else
     hidden[#hidden + 1] = "<input type=hidden name=wifi3_enable     value='" .. wifi3_enable .. "'>"
     hidden[#hidden + 1] = "<input type=hidden name=wifi3_ssid       value='" .. wifi3_ssid .. "'>"
@@ -1395,6 +1395,36 @@ do
 end
 
 html.print("</form></center>")
+html.print([[<style>
+.password-input {
+padding-right: 21px;
+}
+.password-toggle {
+display: inline-block;
+width: 21px;
+height: 15px;
+margin-left: -24px;
+cursor: pointer;
+background-image: url(/viz.png);
+background-size: contain;
+vertical-align: text-bottom;
+}
+</style>
+<script>
+function togglePassword(e) {
+    var target = e.target.previousSibling;
+    if (target.type === "password") {
+        target.type = "text";
+    }
+    else {
+        target.type = "password";
+    }
+}
+var fields = document.querySelectorAll(".password-toggle");
+for (var i = 0; i < fields.length; i++) {
+    fields[i].addEventListener("click", togglePassword);
+}
+</script>]])
 html.footer()
 html.print("</body></html>")
 http_footer()
