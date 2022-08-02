@@ -1337,7 +1337,22 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
         end
     end
 
-    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2><small>WAN Wifi Client</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#wanclient' target='_blank'><img src='/qmark.png'></a></td></tr>")
+    local connected = "/notdone.png"
+    local cmessage = "Not connected."
+    local wanintf = aredn.hardware.get_iface_name("wan")
+    local essid = capture_and_match("iwinfo " .. wanintf .. " info", 'ESSID: "(.+)"')
+    if essid == wifi3_ssid then
+        if pingOK then
+            connected = "/donedone.png"
+            cmessage = "Connected to Wifi and Internet."
+        else
+            connected = "/done.png"
+            cmessage = "Connected to Wifi. Not connected to Internet."
+        end
+    end
+
+    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2><small>WAN Wifi Client&nbsp;<img style='vertical-align:text-bottom' src='" .. connected .. "' title='" .. cmessage .. "'></small></th></tr>")
+    html.print("<tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#wanclient' target='_blank'><img src='/qmark.png'></a></td></tr>")
 
     if wifi_enable ~= "1" and wifi2_enable ~= "1" and phycount > 1 then
         html.print("<tr><td>WAN Wifi Client band</td><td><select name=wifi3_hwmode>")
