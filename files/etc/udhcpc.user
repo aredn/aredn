@@ -35,14 +35,16 @@ LICENSE
 
 case "${INTERFACE}@$1@${router}" in
     #
-    # If the WAN is a 10-net address, we remove the network route and leave just
-    # the default route to the specific gateway in place. This reduces the likelyhood
-    # of an IP class to a single address - no worse than your average new node on the
-    # network.
+    # If the WAN is a 10-net address, we remove the 10-network routes and leave just
+    # the default route to the specific gateway in place.
     #
     wan@bound@10\.*)
+        sleep 10 # Need to wait a moment for the wifi to we can remove its route
         eval "$(/bin/ipcalc.sh ${ip}/${mask})"
         /sbin/ip route del ${NETWORK}/${mask}
+        /sbin/ip route del 10.0.0.0/8 dev $(uci get network.wifi.ifname)
+        /sbin/ip route del 10.0.0.0/8 dev eth1.2
+        /sbin/ip route add default via ${route} dev ${interface}
         ;;
     *)
         ;;
