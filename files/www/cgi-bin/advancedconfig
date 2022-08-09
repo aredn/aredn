@@ -80,6 +80,155 @@ end
 
 local settings = {
     {
+        category = "Link Quality Settings",
+        key = "aredn.@lqm[0].enable",
+        type = "boolean",
+        desc = "Enable experimental link quality management",
+        default = "1",
+        postcallback = "lqm_defaults()",
+        needreboot = true
+    },
+    {
+        category = "Link Quality Settings",
+        key = "aredn.@lqm[0].margin_snr",
+        type = "string",
+        desc = "Margin above minimim SNR a signal must reach to become acceptable",
+        default = "1",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality Settings",
+        key = "aredn.@lqm[0].min_distance",
+        type = "string",
+        desc = "Distance neightbor must be over to be acceptable",
+        default = "0",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality Settings",
+        key = "aredn.@lqm[0].auto_distance",
+        type = "string",
+        desc = "Distance to use when actual distance cannot be calculated. 0 for auto",
+        default = "0",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality Settings",
+        key = "aredn.@lqm[0].margin_quality",
+        type = "string",
+        desc = "Quality increase before neighbor can be re-accepted",
+        default = "1",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality Settings",
+        key = "aredn.@lqm[0].ping_penalty",
+        type = "string",
+        desc = "Quality penalty when neighbor cannot be pinged",
+        default = "5",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality Settings",
+        key = "aredn.@lqm[0].user_blocks",
+        type = "string",
+        desc = "Comma separated list of blocked MACs",
+        default = "",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "Link Quality Settings",
+        key = "aredn.@lqm[0].user_allows",
+        type = "string",
+        desc = "Comma separated list of always allowed MACs",
+        default = "",
+        condition = "lqm_enabled()"
+    },
+    {
+        category = "WAN Settings",
+        key = "aredn.wan.vlanid",
+        type = "string",
+        desc = "Specify WAN VLAN #",
+        default = "",
+        condition = "supportsVLANChange()",
+        current = "currentWANVLAN()",
+        postcallback = "changeWANVLAN()",
+        needreboot = true
+    },
+    {
+        category = "Power Options",
+        key = "aredn.@poe[0].passthrough",
+        type = "boolean",
+        desc = "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports).",
+        default = "0",
+        condition = "hasPOE()",
+        postcallback = "setPOEOutput()"
+    },
+    {
+        category = "Power Options",
+        key = "aredn.@usb[0].passthrough",
+        type = "boolean",
+        desc = "Specifies whether the USB port should be on or off.  (Not all devices have USB powered ports).",
+        default = "1",
+        postcallback = "setUSBOutput()",
+        condition = "hasUSB()"
+    },
+    {
+        category = "Tunnel Options",
+        key = "aredn.@tunnel[0].maxclients",
+        type = "string",
+        desc = "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].",
+        default = "10",
+        precallback = "restrictTunnelLimitToValidRange()",
+        postcallback = "adjustTunnelInterfaceCount()"
+    },
+    {
+        category = "Tunnel Options",
+        key = "aredn.@tunnel[0].maxservers",
+        type = "string",
+        desc = "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].",
+        default = "10",
+        precallback = "restrictTunnelLimitToValidRange()",
+        postcallback = "adjustTunnelInterfaceCount()"
+    },
+    {
+        category = "Tunnel Options",
+        key = "aredn.@tunnel[0].wanonly",
+        type = "boolean",
+        desc = "Prevents tunnel traffic from being routed over the mesh network itself.",
+        default = "1",
+        needreboot= true
+    },
+    {
+        category = "Memory Settings",
+        key = "aredn.@meshstatus[0].lowmem",
+        type = "string",
+        desc = "Specifies the low memory threshold (in KB) when we will truncate the mesh status page",
+        default = "10000"
+    },
+    {
+        category = "Memory Settings",
+        key = "aredn.@meshstatus[0].lowroutes",
+        type = "string",
+        desc = "When low memory is detected, limit the number of routes shown on the mesh status page",
+        default = "1000"
+    },
+    {
+        category = "Network Tools",
+        key = "aredn.olsr.restart",
+        type = "none",
+        desc = "Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
+        default = "0",
+        postcallback = "olsr_restart()"
+    },
+    {
+        category = "Network Tools",
+        key = "aredn.@iperf[0].enable",
+        type = "boolean",
+        desc = "Enable the included iperf3 client/server support",
+        default = "1"
+    },
+    {
         category = "Map Paths",
         key = "aredn.@map[0].maptiles",
         type = "string",
@@ -171,93 +320,8 @@ local settings = {
         default = defaultPackageRepos('freifunk'),
         postcallback = "writePackageRepo('freifunk')"
     },
-
     {
-        category = "Power Options",
-        key = "aredn.@poe[0].passthrough",
-        type = "boolean",
-        desc = "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports).",
-        default = "0",
-        condition = "hasPOE()",
-        postcallback = "setPOEOutput()"
-    },
-    {
-        category = "Power Options",
-        key = "aredn.@usb[0].passthrough",
-        type = "boolean",
-        desc = "Specifies whether the USB port should be on or off.  (Not all devices have USB powered ports).",
-        default = "1",
-        postcallback = "setUSBOutput()",
-        condition = "hasUSB()"
-    },
-    {
-        category = "Tunnel Options",
-        key = "aredn.@tunnel[0].maxclients",
-        type = "string",
-        desc = "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].",
-        default = "10",
-        precallback = "restrictTunnelLimitToValidRange()",
-        postcallback = "adjustTunnelInterfaceCount()"
-    },
-    {
-        category = "Tunnel Options",
-        key = "aredn.@tunnel[0].maxservers",
-        type = "string",
-        desc = "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].",
-        default = "10",
-        precallback = "restrictTunnelLimitToValidRange()",
-        postcallback = "adjustTunnelInterfaceCount()"
-    },
-    {
-        category = "Tunnel Options",
-        key = "aredn.@tunnel[0].wanonly",
-        type = "boolean",
-        desc = "Prevents tunnel traffic from being routed over the mesh network itself.",
-        default = "1",
-        needreboot= true
-    },
-    {
-        category = "Memory",
-        key = "aredn.@meshstatus[0].lowmem",
-        type = "string",
-        desc = "Specifies the low memory threshold (in KB) when we will truncate the mesh status page",
-        default = "10000"
-    },
-    {
-        category = "Memory",
-        key = "aredn.@meshstatus[0].lowroutes",
-        type = "string",
-        desc = "When low memory is detected, limit the number of routes shown on the mesh status page",
-        default = "1000"
-    },
-    {
-        category = "WAN",
-        key = "aredn.wan.vlanid",
-        type = "string",
-        desc = "Specify WAN VLAN #",
-        default = "",
-        condition = "supportsVLANChange()",
-        current = "currentWANVLAN()",
-        postcallback = "changeWANVLAN()",
-        needreboot = true
-    },
-    {
-        category = "Network Tools",
-        key = "aredn.olsr.restart",
-        type = "none",
-        desc = "Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
-        default = "0",
-        postcallback = "olsr_restart()"
-    },
-    {
-        category = "Network Tools",
-        key = "aredn.@iperf[0].enable",
-        type = "boolean",
-        desc = "Enable the included iperf3 client/server support",
-        default = "1"
-    },
-    {
-        category = "AREDN Alerts",
+        category = "AREDN Alert Settings",
         key = "aredn.aam.refresh",
         type = "none",
         desc = "Attempt to pull any AREDN Alert messages.",
@@ -265,14 +329,14 @@ local settings = {
         postcallback = "aam_refresh()"
     },
     {
-        category = "AREDN Alerts",
+        category = "AREDN Alert Settings",
         key = "aredn.@alerts[0].localpath",
         type = "string",
         desc = "Specifies the URL of the location from which local AREDN Alerts can be downloaded.",
         default = ""
     },
     {
-        category = "AREDN Alerts",
+        category = "AREDN Alert Settings",
         key = "aredn.@alerts[0].pollrate",
         type = "string",
         desc = "Specifies how many hours to wait between polling for new AREDN Alerts.",
@@ -280,77 +344,12 @@ local settings = {
         needreboot = true
     },
     {
-        category = "AREDN Alerts",
+        category = "AREDN Alert Settings",
         key = "aredn.aam.purge",
         type = "none",
         desc = "Immediately purge/delete all AREDN (and local) Alerts from this node.",
         default = "",
         postcallback = "alert_purge()"
-    },
-    {
-        category = "Link Quality",
-        key = "aredn.@lqm[0].enable",
-        type = "boolean",
-        desc = "Enable experimental link quality management",
-        default = "1",
-        postcallback = "lqm_defaults()",
-        needreboot = true
-    },
-    {
-        category = "Link Quality",
-        key = "aredn.@lqm[0].margin_snr",
-        type = "string",
-        desc = "Margin above minimim SNR a signal must reach to become acceptable",
-        default = "1",
-        condition = "lqm_enabled()"
-    },
-    {
-        category = "Link Quality",
-        key = "aredn.@lqm[0].min_distance",
-        type = "string",
-        desc = "Distance neightbor must be over to be acceptable",
-        default = "0",
-        condition = "lqm_enabled()"
-    },
-    {
-        category = "Link Quality",
-        key = "aredn.@lqm[0].auto_distance",
-        type = "string",
-        desc = "Distance to use when actual distance cannot be calculated. 0 for auto",
-        default = "0",
-        condition = "lqm_enabled()"
-    },
-    {
-        category = "Link Quality",
-        key = "aredn.@lqm[0].margin_quality",
-        type = "string",
-        desc = "Quality increase before neighbor can be re-accepted",
-        default = "1",
-        condition = "lqm_enabled()"
-    },
-    {
-        category = "Link Quality",
-        key = "aredn.@lqm[0].ping_penalty",
-        type = "string",
-        desc = "Quality penalty when neighbor cannot be pinged",
-        default = "5",
-        condition = "lqm_enabled()"
-    },
-    {
-        category = "Link Quality",
-        key = "aredn.@lqm[0].user_blocks",
-        type = "string",
-        desc = "Comma separated list of blocked MACs",
-        default = "",
-        condition = "lqm_enabled()"
-    },
-    {
-        category = "Link Quality",
-        key = "aredn.@lqm[0].user_allows",
-        type = "string",
-        desc = "Comma separated list of always allowed MACs",
-        default = "",
-        condition = "lqm_enabled()"
     }
 }
 
