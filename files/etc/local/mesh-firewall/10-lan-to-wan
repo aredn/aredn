@@ -42,6 +42,13 @@ case "${noroute}" in
     ;;
 *)
     # LAN to WAN forwarding is disabled
+    # Inserted in reverse order
+    # Block traffic forwarding between LAN and local WAN (need this rule if WAN happens to be 10.X or 172.16.X)
+    # Allow traffic for mesh-IPs and tun-IPs
+    # Block traffic to all other IPs
+    iptables -I zone_lan_forward -j REJECT
+    iptables -I zone_lan_forward -d 172.16.0.0/12 -j ACCEPT
+    iptables -I zone_lan_forward -d 10.0.0.0/8 -j ACCEPT
     iptables -I zone_lan_forward -o ${wan} -j REJECT
     ;;
 esac
