@@ -38,6 +38,7 @@ require("aredn.utils")
 local aredn_info = require("aredn.info")
 require("aredn.hardware")
 require("luci.sys")
+require("uci")
 
 local needsrun = aredn_info.get_nvram("nodeupgraded")
 if needsrun == "" or needsrun == "0" then
@@ -86,7 +87,9 @@ end
 
 -- set variables in special conditions
 if cfg.dmz_mode == "0" or cfg.wan_proto == "disabled" then
-    cfg.olsrd_gw = "0"
+    local c = uci.cursor("/etc/config.mesh")
+    c:set("aredn", "@wan[0]", "olsrd_gw", "0")
+    c:commit("aredn")
 end
 -- end special condition overrides
 

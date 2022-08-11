@@ -46,7 +46,7 @@ fi
 
 #Is this node a meshgw
 export MESHFW_MESHGW
-MESHFW_MESHGW=$(grep -i olsrd_gw /etc/config.mesh/_setup|cut -d ' ' -f 3)
+MESHFW_MESHGW=$(/sbin/uci -q get aredn.@wan[0].olsrd_gw)
 
 # Are tunnels 'enabled'
 if [ -x "/usr/sbin/vtund" ]

@@ -105,7 +105,6 @@ function module:GET()
   -- WAN Advanced
   data.wanadv = {}
   data.wanadv.meshgw = aredn_info.isMeshGatewayEnabled()
-  -- lan_no_wan (lan_dhcp_noroute)
 
   -- WAN Wifi Client
   data.wanclient = {}

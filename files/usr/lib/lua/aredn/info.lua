@@ -597,9 +597,7 @@ end
 -- Returns Mesh gateway setting
 -------------------------------------
 function model.getMeshGatewaySetting()
-	gw=os.capture("cat /etc/config.mesh/_setup|grep olsrd_gw|cut -d'=' -f2|tr -d ' ' ")
-	gw=gw:chomp()
-	return gw
+	return uci.cursor():get("aredn", "@wan[0]", "olsrd_gw") or ""
 end
 
 -------------------------------------
@@ -628,8 +626,7 @@ end
 -- is Mesh olsr gateway enabled
 -------------------------------------
 function model.isMeshGatewayEnabled()
-	r=os.capture("cat /etc/config.mesh/_setup|grep olsrd_gw|cut -d'=' -f2|tr -d ' ' ")
-	r=r:chomp()
+	local r = model.getMeshGatewaySetting()
 	if r=="0" then
 		return false
 	else

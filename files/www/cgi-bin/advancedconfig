@@ -146,6 +146,31 @@ local settings = {
     },
     {
         category = "WAN Settings",
+        key = "aredn.@wan[0].olsrd_gw",
+        type = "string",
+        desc = "Allow others to use my WAN",
+        default = "0",
+        postcallback = "changeWANGW()",
+        needreboot = true
+    },
+    {
+        category = "WAN Settings",
+        key = "aredn.@wan[0].lan_dhcp_route",
+        type = "string",
+        desc = "Allow LAN devices to accessing WAN",
+        default = "1",
+        needreboot = true
+    },
+    {
+        category = "WAN Settings",
+        key = "aredn.@wan[0].lan_dhcp_defaultroute",
+        type = "string",
+        desc = "Provide default route to LAN devices when WAN access is disabled",
+        default = "0",
+        needreboot = true
+    },
+    {
+        category = "WAN Settings",
         key = "aredn.wan.vlanid",
         type = "string",
         desc = "Specify WAN VLAN #",
@@ -625,6 +650,10 @@ function changeWANVLAN()
         end
         f:close()
     end
+    os.execute("/usr/local/bin/node-setup -a mesh")
+end
+
+function changeWANGW()
     os.execute("/usr/local/bin/node-setup -a mesh")
 end
 
