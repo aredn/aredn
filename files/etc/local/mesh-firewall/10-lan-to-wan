@@ -33,14 +33,11 @@
 
 LICENSE
 
-noroute=$(grep "lan_dhcp_noroute" /etc/config.mesh/_setup | sed s/^lan_dhcp_noroute\ =\ //)
+lan_dhcp_route=$(/sbin/uci -q get aredn.@wan[0].lan_dhcp_route)
 wan=$(grep "wan_intf" /etc/config.mesh/_setup | sed s/^wan_intf\ =\ //)
 
-case "${noroute}" in
-0)
-    # LAN to WAN okay
-    ;;
-*)
+case "${lan_dhcp_route}" in
+  0)
     # LAN to WAN forwarding is disabled
     # Inserted in reverse order
     # Block traffic forwarding between LAN and local WAN (need this rule if WAN happens to be 10.X or 172.16.X)
@@ -50,5 +47,8 @@ case "${noroute}" in
     iptables -I zone_lan_forward -d 172.16.0.0/12 -j ACCEPT
     iptables -I zone_lan_forward -d 10.0.0.0/8 -j ACCEPT
     iptables -I zone_lan_forward -o ${wan} -j REJECT
+    ;;
+  *)
+    # LAN to WAN okay
     ;;
 esac

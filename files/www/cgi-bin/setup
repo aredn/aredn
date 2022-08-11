@@ -357,7 +357,7 @@ else
 end
 
 -- make sure everything we need is initialized
-local d0 = { "lan_dhcp", "olsrd_bridge", "olsrd_gw", "wifi2_enable", "lan_dhcp_noroute", "wifi_enable", "wifi3_enable", "dhcp_start", "dhcp_end" }
+local d0 = { "lan_dhcp", "olsrd_bridge", "wifi2_enable", "wifi_enable", "wifi3_enable", "dhcp_start", "dhcp_end" }
 for _, k in ipairs(d0)
 do
     if not parms[k] then
@@ -1303,13 +1303,7 @@ end
 html.print("<tr><td><nobr>DNS 1</nobr></td><td><input type=text size=15 name=wan_dns1 value='" .. wan_dns1 .. "'></td></tr>")
 html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan_dns2 value='" .. wan_dns2 .. "'></td></tr>")
 
-html.print("<tr><th colspan=2><hr></td></tr><tr><th colspan=2><small>Advanced WAN Access</small></th></tr>")
-if wan_proto ~= "disabled" then
-    html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#allowwan' target='_blank'><img src='/qmark.png'></a></td></tr>")
-else
-    hidden[#hidden + 1] = "<input type=hidden name=olsrd_gw value='0'>"
-end
-html.print("<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td><td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'" .. (lan_dhcp_noroute ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#preventwan' target='_blank'><img src='/qmark.png'></a></td></tr>")
+html.print("<tr><th colspan=2><hr></td></tr>")
 
 -- wan wifi client
 if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1") and not M39model then
@@ -1351,7 +1345,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
         end
     end
 
-    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2><small>WAN Wifi Client&nbsp;<img style='vertical-align:text-bottom' src='" .. connected .. "' title='" .. cmessage .. "'></small></th></tr>")
+    html.print("<tr><th colspan=2><small>WAN Wifi Client&nbsp;<img style='vertical-align:text-bottom' src='" .. connected .. "' title='" .. cmessage .. "'></small></th></tr>")
     html.print("<tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#wanclient' target='_blank'><img src='/qmark.png'></a></td></tr>")
 
     if wifi_enable ~= "1" and wifi2_enable ~= "1" and phycount > 1 then

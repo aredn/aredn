@@ -366,7 +366,7 @@ if fw then
         fw:write("\nconfig 'include'\n        option 'path' '/etc/firewall.natmode'\n        option 'reload' '1'\n")
     end
 
-    if not is_null(cfg.olsrd_gw) then
+    if c:get("aredn", "@wan[0]", "olsrd_gw") == "1" then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   wan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   wan\n")
     end
@@ -504,7 +504,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
                 end
             end
         
-            if not is_null(cfg.olsrd_gw) then
+            if c:get("aredn", "@wan[0]", "olsrd_gw") == "1" then
                 of:write("config LoadPlugin\n\toption library 'olsrd_dyn_gw.so.0.5'\n\toption Interval '60'\n\tlist Ping '8.8.8.8'\n\tlist Ping '8.8.4.4'\n\n\n")
             end
         end
@@ -520,16 +520,19 @@ c:commit("aredn")
 
 -- setup node lan dhcp
 
-if not is_null(cfg.lan_dhcp_noroute) then
+if c:get("aredn", "@wan[0]", "lan_dhcp_route") == "1" or c:get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" then
+    -- Provide stateless routes and default route
+    c:set("dhcp", "@dhcp[0]", "dhcp_option", {
+        "121,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip,
+        "249,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip
+    })
+else
+    -- Provide stateless routes to the mesh, and a blank default route (option 3 has no values) to
+    -- surpress default route being sent
     c:set("dhcp", "@dhcp[0]", "dhcp_option", {
         "121,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip,
         "249,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip,
         "3"
-    })
-else
-    c:set("dhcp", "@dhcp[0]", "dhcp_option", {
-        "121,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip,
-        "249,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip
     })
 end
 c:commit("dhcp")

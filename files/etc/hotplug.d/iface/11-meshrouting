@@ -42,7 +42,7 @@ fi
 
 if [ "$ACTION" = "ifup" ] ; then
 
-  is_olsrgw=$(cat /etc/config.mesh/_setup|grep -i olsrd_gw|cut -d ' ' -f 3)
+  is_olsrgw=$(/sbin/uci -q get aredn.@wan[0].olsrd_gw)
 
   # Set routes for wifi or device to device linking
   # unreachable rule is needed  to ensure packets do not traverse a rule later that considers routing to another network.
