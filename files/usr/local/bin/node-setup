@@ -523,15 +523,15 @@ c:commit("aredn")
 if c:get("aredn", "@wan[0]", "lan_dhcp_route") == "1" or c:get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" then
     -- Provide stateless routes and default route
     c:set("dhcp", "@dhcp[0]", "dhcp_option", {
-        "121,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip,
-        "249,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip
+        "121,10.0.0.0/8," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip,
+        "249,10.0.0.0/8," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip
     })
 else
     -- Provide stateless routes to the mesh, and a blank default route (option 3 has no values) to
     -- surpress default route being sent
     c:set("dhcp", "@dhcp[0]", "dhcp_option", {
-        "121,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip,
-        "249,10.0.0.0/8," .. cfg.lan_ip .. ",172.16.0.0/12," .. cfg.lan_ip,
+        "121,10.0.0.0/8," .. cfg.lan_ip,
+        "249,10.0.0.0/8," .. cfg.lan_ip,
         "3"
     })
 end
