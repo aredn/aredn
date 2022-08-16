@@ -1,6 +1,10 @@
 #!/bin/sh
 # extract auto-generated first boot switch config settings
-# and store them for future use
+# and store them for future use. Support advanced user overrides.
+if [ -f /etc/aredn_include/swconfig.user ]
+then
+	cp /etc/aredn_include/swconfig.user /etc/aredn_include/swconfig
+fi
 if [ ! -f /etc/aredn_include/swconfig ]
 then
   mkdir -p /etc/aredn_include
