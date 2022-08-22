@@ -173,7 +173,7 @@ if validate then
     for _, service in ipairs(services)
     do
         local proto, hostname, port, path = service:match("^(%w+)://([%w%-%.]+):(%d+)(.*)|...|[^|]+$")
-        if valid_hosts[hostname:lower()] then
+        if valid_hosts[hostname:lower()] or dmz_mode == "0" then
             if port == "0" then
                 -- no port so not a link - we can only check the hostname so have to assume the service is good
                 valid_services[#valid_services + 1] = service
