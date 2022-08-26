@@ -220,9 +220,11 @@ if do_basic then
                     local out = true
                     local inc = line:match("^include%s+(.*)%s*")
                     if inc then
-                        for iline in io.lines(inc)
-                        do
-                            f:write(iline .. "\n")
+                        if nixio.fs.stat(inc) then
+                            for iline in io.lines(inc)
+                            do
+                                f:write(iline .. "\n")
+                            end
                         end
                         out = false
                     elseif line:match("^[^#]") then
