@@ -453,8 +453,8 @@ do
         if val == "_add" then
             if host ~= "" then
                 local pattern = "%s" .. host .. "%s"
-                if nixio.fs.stat("/var/run/hosts_olsr") then
-                    for line in io.lines("/var/run/hosts_olsr")
+                if nixio.fs.stat("/var/run/hosts_olsr.stable") then
+                    for line in io.lines("/var/run/hosts_olsr.stable")
                     do
                         if line:lower():match(pattern) then
                             foundhost = true
@@ -649,8 +649,8 @@ do
         if val == "_add" then
             if host ~= "" then
                 local pattern = "%s" .. host .. "%s"
-                if nixio.fs.stat("/var/run/hosts_olsr") then
-                    for line in io.lines("/var/run/hosts_olsr")
+                if nixio.fs.stat("/var/run/hosts_olsr.stable") then
+                    for line in io.lines("/var/run/hosts_olsr.stable")
                     do
                         if line:lower():match(pattern) then
                             foundhost = true
