@@ -638,6 +638,11 @@ if parms.button_rm_pkg and parms.rm_pkg ~= "default" and not permpkg[parms.rm_pk
     end
 end
 
+-- generate support data file
+if parms.button_support_data then
+    os.execute("/www/cgi-bin/supporttool")
+end
+
 -- generate data structures
 
 local pkgs = {}
@@ -946,7 +951,7 @@ html.print("</table></td></tr>")
 html.print("<tr><td colspan=3></td></tr>")
 
 html.print("<tr><th colspan=3 style=background-color:lightseagreen>Support Data</th></tr>")
-html.print("<tr><td colspan=3 align=center><a href=/cgi-bin/supporttool>Download Support Data</a></td></tr>")
+html.print("<tr><td colspan=3 align=center><input type=submit name=button_support_data value='Download Support Data' title='Download a Support Data file'></td></tr>")
 
 html.print("<tr><td colspan=3></td></tr>")
 
