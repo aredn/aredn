@@ -92,7 +92,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].margin_snr",
         type = "string",
-        desc = "Margin above minimim SNR a signal must reach to become acceptable",
+        desc = "Margin in dB above minimum SNR a signal must reach to be re-activated",
         default = "1",
         condition = "lqm_enabled()"
     },
@@ -100,7 +100,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].min_distance",
         type = "string",
-        desc = "Distance neightbor must be over to be acceptable",
+        desc = "Distance in meters neighbor must be over to be activated",
         default = "0",
         condition = "lqm_enabled()"
     },
@@ -108,7 +108,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].auto_distance",
         type = "string",
-        desc = "Distance to use when actual distance cannot be calculated. 0 for auto",
+        desc = "Distance in meters to use when actual distance cannot be calculated",
         default = "0",
         condition = "lqm_enabled()"
     },
@@ -116,7 +116,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].margin_quality",
         type = "string",
-        desc = "Quality increase before neighbor can be re-accepted",
+        desc = "Quality percentage increase before neighbor can be re-activated",
         default = "1",
         condition = "lqm_enabled()"
     },
@@ -124,7 +124,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].ping_penalty",
         type = "string",
-        desc = "Quality penalty when neighbor cannot be pinged",
+        desc = "Quality percentage penalty to add when neighbor cannot be pinged",
         default = "5",
         condition = "lqm_enabled()"
     },
@@ -175,7 +175,7 @@ local settings = {
         category = "WAN Settings",
         key = "aredn.wan.vlanid",
         type = "string",
-        desc = "Specify WAN VLAN #",
+        desc = "Specify WAN VLAN number; must be an integer in the range [1,4094]",
         default = "",
         condition = "supportsVLANChange()",
         current = "currentWANVLAN()",
@@ -186,7 +186,7 @@ local settings = {
         category = "Power Options",
         key = "aredn.@poe[0].passthrough",
         type = "boolean",
-        desc = "Specifies whether a PoE passthrough port should be on or off.  (Not all devices have PoE passthrough ports).",
+        desc = "Specifies whether PoE power passthrough should be on or off (Not all devices have PoE passthrough ports)",
         default = "0",
         condition = "hasPOE()",
         postcallback = "setPOEOutput()"
@@ -195,7 +195,7 @@ local settings = {
         category = "Power Options",
         key = "aredn.@usb[0].passthrough",
         type = "boolean",
-        desc = "Specifies whether the USB port should be on or off.  (Not all devices have USB powered ports).",
+        desc = "Specifies whether USB power passthrough should be on or off (Not all devices have USB powered ports)",
         default = "1",
         postcallback = "setUSBOutput()",
         condition = "hasUSB()"
@@ -230,21 +230,21 @@ local settings = {
         category = "Memory Settings",
         key = "aredn.@meshstatus[0].lowmem",
         type = "string",
-        desc = "Specifies the low memory threshold (in KB) when we will truncate the mesh status page",
+        desc = "Specifies the low memory threshold in KB when the mesh status page will be truncated",
         default = "10000"
     },
     {
         category = "Memory Settings",
         key = "aredn.@meshstatus[0].lowroutes",
         type = "string",
-        desc = "When low memory is detected, limit the number of routes shown on the mesh status page",
+        desc = "The maximum number of routes that will be shown on the mesh status page when low memory is detected",
         default = "1000"
     },
     {
         category = "Network Tools",
         key = "aredn.olsr.restart",
         type = "none",
-        desc = "Will restart OLSR when saving setting -- wait up to 2 or 3 minutes to receive response.",
+        desc = "Will restart OLSR when executed; wait up to 2 or 3 minutes to receive response",
         default = "0",
         postcallback = "olsr_restart()"
     },
@@ -280,14 +280,14 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].firmwarepath",
         type = "string",
-        desc = "Specifies the URL of the location from which firmware files will be downloaded.",
+        desc = "Specifies the URL of the location from which firmware files will be downloaded",
         default = "http://downloads.arednmesh.org/firmware"
     },
     {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_core",
         type = "string",
-        desc = "Specifies the URL for the 'core' packages: kernel modules and the like",
+        desc = "Specifies the URL for the 'core' packages such as kernel modules",
         default = defaultPackageRepos('aredn_core'),
         postcallback = "writePackageRepo('core')"
     },
@@ -351,7 +351,7 @@ local settings = {
         category = "AREDN Alert Settings",
         key = "aredn.aam.refresh",
         type = "none",
-        desc = "Attempt to pull any AREDN Alert messages.",
+        desc = "Execute to pull any AREDN Alert messages",
         default = "0",
         postcallback = "aam_refresh()"
     },
@@ -359,14 +359,14 @@ local settings = {
         category = "AREDN Alert Settings",
         key = "aredn.@alerts[0].localpath",
         type = "string",
-        desc = "Specifies the URL of the location from which local AREDN Alerts can be downloaded.",
+        desc = "Specifies the URL of the location from which local AREDN Alerts can be downloaded",
         default = ""
     },
     {
         category = "AREDN Alert Settings",
         key = "aredn.@alerts[0].pollrate",
         type = "string",
-        desc = "Specifies how many hours to wait between polling for new AREDN Alerts.",
+        desc = "Specifies how many hours to wait between polling for new AREDN Alerts",
         default = "12",
         needreboot = true
     },
@@ -374,7 +374,7 @@ local settings = {
         category = "AREDN Alert Settings",
         key = "aredn.aam.purge",
         type = "none",
-        desc = "Immediately purge/delete all AREDN (and local) Alerts from this node.",
+        desc = "Execute to immediately delete all AREDN (and local) Alerts from this node",
         default = "",
         postcallback = "alert_purge()"
     }
