@@ -262,7 +262,7 @@ print([[{]])
 print([[    PlParam "sighup-pid-file" "/var/run/dnsmasq/dnsmasq.pid"]])
 print([[    PlParam "interval" "30"]])
 print([[    PlParam "timeout" "300"]])
-print([[    PlParam "name-change-script" "touch /tmp/namechange"]])
+print([[    PlParam "name-change-script" "touch /tmp/namechange; cp /var/run/hosts_olsr /var/run/hosts_olsr.snapshot; mv -f /var/run/hosts_olsr.snapshot /var/run/hosts_olsr.stable"]])
 for _, name in ipairs(names)
 do
     print([[    PlParam "name" "]] .. name .. [["]])

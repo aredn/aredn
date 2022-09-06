@@ -145,7 +145,7 @@ function getRemoteNodes()
 	do
 		routeetx[v.destination] = string.format("%.2f", v.etx)
 	end
-	for line in io.lines("/var/run/hosts_olsr")
+	for line in io.lines("/var/run/hosts_olsr.stable")
 	do
 		local ip, hostname = line:match("^(%d+%.%d+%.%d+%.%d+)%s+(%S+)%s+#.*$")
 		if ip and not neighbors[ip] and not (hostname:match("^dtdlink%.") or hostname:match("^mid%d+%.")) then

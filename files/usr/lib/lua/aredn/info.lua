@@ -355,7 +355,7 @@ function model.all_hosts()
 	local hosts={}
 	local lines={}
 	local pos, val
-	local hfile=io.open("/var/run/hosts_olsr","r")
+	local hfile=io.open("/var/run/hosts_olsr.stable","r")
 	if hfile~=nil then
 		for line in hfile:lines() do
 			table.insert(lines,line)
@@ -571,7 +571,7 @@ end
 -------------------------------------
 function model.getLocalHosts()
   local localhosts = {}
-  myhosts=os.capture('/bin/grep "# myself" /var/run/hosts_olsr|grep -v dtdlink')
+  myhosts=os.capture('/bin/grep "# myself" /var/run/hosts_olsr.stable|grep -v dtdlink')
   local lines = myhosts:splitNewLine()
   data = {}
   for k,v in pairs(lines) do

@@ -317,7 +317,7 @@ do
 end
 
 -- load the olsr hosts file
-for line in io.lines("/var/run/hosts_olsr")
+for line in io.lines("/var/run/hosts_olsr.stable")
 do
     local ip, name, originator = line:match("^([%d%.]+)%s+(%S+)%s+%S+%s+(%S+)")
     if ip and originator and originator ~= "myself" and (routes[ip] or routes[originator]) then
