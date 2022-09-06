@@ -611,8 +611,8 @@ if parms.button_save then
             err("invalid LAN IP address")
         else
             if lan_dhcp ~= "" then
-                local start_addr = lan_ip:match("^(.*%.)%d$") .. dhcp_start
-                local end_addr = lan_ip:match("^(.*%.)%d$") .. dhcp_end
+                local start_addr = lan_ip:match("^(.*%.)%d+$") .. dhcp_start
+                local end_addr = lan_ip:match("^(.*%.)%d+$") .. dhcp_end
 
                 if not (validate_ip_netmask(start_addr, lan_mask) and validate_same_subnet(start_addr, lan_ip, lan_mask)) then
                     err("invalid DHCP start address")
