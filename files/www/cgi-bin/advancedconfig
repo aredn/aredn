@@ -83,7 +83,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].enable",
         type = "boolean",
-        desc = "Enable Link Quality Management",
+        desc = "Enable <b>Link Quality Management</b>",
         default = "1",
         postcallback = "lqm_defaults()",
         needreboot = true
@@ -92,7 +92,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].margin_snr",
         type = "string",
-        desc = "SNR Margin in dB above Min SNR a signal must reach to be re-activated",
+        desc = "<b>SNR Margin</b> in dB above Min SNR a signal must reach to be re-activated",
         default = "1",
         condition = "lqm_enabled()"
     },
@@ -100,7 +100,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].min_distance",
         type = "string",
-        desc = "Min Distance in meters neighbor must be over to be activated",
+        desc = "<b>Min Distance</b> in meters neighbor must be over to be activated",
         default = "0",
         condition = "lqm_enabled()"
     },
@@ -108,7 +108,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].auto_distance",
         type = "string",
-        desc = "Default Distance in meters to use when actual distance cannot be calculated",
+        desc = "<b>Default Distance</b> in meters to use when actual distance cannot be calculated",
         default = "0",
         condition = "lqm_enabled()"
     },
@@ -116,7 +116,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].margin_quality",
         type = "string",
-        desc = "Quality Margin percentage increase before neighbor can be re-activated",
+        desc = "<b>Quality Margin</b> percentage increase before neighbor can be re-activated",
         default = "1",
         condition = "lqm_enabled()"
     },
@@ -124,7 +124,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].ping_penalty",
         type = "string",
-        desc = "Ping Penalty quality percentage penalty to add when neighbor cannot be pinged",
+        desc = "<b>Ping Penalty</b> quality percentage penalty to add when neighbor cannot be pinged",
         default = "5",
         condition = "lqm_enabled()"
     },
@@ -132,7 +132,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].user_blocks",
         type = "string",
-        desc = "User Blocked comma-separated list of blocked MACs",
+        desc = "<b>User Blocked</b> comma-separated list of blocked MACs",
         default = "",
         condition = "lqm_enabled()"
     },
@@ -140,7 +140,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].user_allows",
         type = "string",
-        desc = "User Allowed comma-separated list of always allowed MACs",
+        desc = "<b>User Allowed</b> comma-separated list of always allowed MACs",
         default = "",
         condition = "lqm_enabled()"
     },
@@ -148,7 +148,7 @@ local settings = {
         category = "WAN Settings",
         key = "aredn.@wan[0].olsrd_gw",
         type = "boolean",
-        desc = "Allow other MESH nodes to use my WAN - not recommended and OFF by default",
+        desc = "<b>Allow other MESH nodes to use my WAN</b> - not recommended and OFF by default",
         default = "0",
         postcallback = "changeWANGW()",
         needreboot = true
@@ -157,7 +157,7 @@ local settings = {
         category = "WAN Settings",
         key = "aredn.@wan[0].lan_dhcp_route",
         type = "boolean",
-        desc = "Allow my LAN devices to access my WAN - ON by default",
+        desc = "<b>Allow my LAN devices to access my WAN</b> - ON by default",
         default = "1",
         postcallback = "changeWANGW()",
         needreboot = true
@@ -166,7 +166,7 @@ local settings = {
         category = "WAN Settings",
         key = "aredn.@wan[0].lan_dhcp_defaultroute",
         type = "boolean",
-        desc = "Provide default route to LAN devices even when WAN access is disabled",
+        desc = "<b>Provide default route to LAN devices</b> even when WAN access is disabled",
         default = "0",
         postcallback = "changeWANGW()",
         needreboot = true
@@ -175,7 +175,7 @@ local settings = {
         category = "WAN Settings",
         key = "aredn.wan.vlanid",
         type = "string",
-        desc = "WAN VLAN number; must be an integer in the range [1,4094]",
+        desc = "<b>WAN VLAN Number</b> - must be an integer in the range [1,4094]",
         default = "",
         condition = "supportsVLANChange()",
         current = "currentWANVLAN()",
@@ -186,7 +186,7 @@ local settings = {
         category = "Power Options",
         key = "aredn.@poe[0].passthrough",
         type = "boolean",
-        desc = "PoE Passthrough specifies whether PoE power should be on or off (Not all devices have PoE passthrough ports)",
+        desc = "<b>PoE Passthrough</b> specifies whether PoE power should be on or off (Not all devices have PoE passthrough ports)",
         default = "0",
         condition = "hasPOE()",
         postcallback = "setPOEOutput()"
@@ -195,7 +195,7 @@ local settings = {
         category = "Power Options",
         key = "aredn.@usb[0].passthrough",
         type = "boolean",
-        desc = "USB Power Passthrough specifies whether USB power should be on or off (Not all devices have USB powered ports)",
+        desc = "<b>USB Power Passthrough</b> specifies whether USB power should be on or off (Not all devices have USB powered ports)",
         default = "1",
         postcallback = "setUSBOutput()",
         condition = "hasUSB()"
@@ -204,7 +204,7 @@ local settings = {
         category = "Tunnel Options",
         key = "aredn.@tunnel[0].maxclients",
         type = "string",
-        desc = "Tunnel Maxclients specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].",
+        desc = "<b>Tunnel Maxclients</b> specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].",
         default = "10",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
@@ -213,7 +213,7 @@ local settings = {
         category = "Tunnel Options",
         key = "aredn.@tunnel[0].maxservers",
         type = "string",
-        desc = "Tunnel Maxservers specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].",
+        desc = "<b>Tunnel Maxservers</b> specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].",
         default = "10",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
@@ -222,7 +222,7 @@ local settings = {
         category = "Tunnel Options",
         key = "aredn.@tunnel[0].wanonly",
         type = "boolean",
-        desc = "WAN-Only tunnel prevents tunnel traffic from being routed over the mesh network itself",
+        desc = "<b>WAN-Only Tunnel</b> prevents tunnel traffic from being routed over the mesh network itself",
         default = "1",
         needreboot= true
     },
@@ -230,21 +230,21 @@ local settings = {
         category = "Memory Settings",
         key = "aredn.@meshstatus[0].lowmem",
         type = "string",
-        desc = "Low Memory Threshold in KB when the Mesh Status page will be truncated",
+        desc = "<b>Low Memory Threshold</b> in KB when the Mesh Status page will be truncated",
         default = "10000"
     },
     {
         category = "Memory Settings",
         key = "aredn.@meshstatus[0].lowroutes",
         type = "string",
-        desc = "Low Memory Max Routes is the maximum number of routes shown on the Mesh Status page when low memory is detected",
+        desc = "<b>Low Memory Max Routes</b> is the maximum number of routes shown on the Mesh Status page when low memory is detected",
         default = "1000"
     },
     {
         category = "Network Tools",
         key = "aredn.olsr.restart",
         type = "none",
-        desc = "OLSR Restart will restart OLSR when executed; wait up to 2 or 3 minutes to receive response",
+        desc = "<b>OLSR Restart</b> will restart OLSR when executed; wait up to 2 or 3 minutes to receive response",
         default = "0",
         postcallback = "olsr_restart()"
     },
@@ -252,42 +252,42 @@ local settings = {
         category = "Network Tools",
         key = "aredn.@iperf[0].enable",
         type = "boolean",
-        desc = "IPERF Enable allows the included iperf3 client/server",
+        desc = "<b>IPERF Enable</b> allows the included iperf3 client/server",
         default = "1"
     },
     {
         category = "Map Paths",
         key = "aredn.@map[0].maptiles",
         type = "string",
-        desc = "Map Tiles URL",
+        desc = "<b>Map Tiles URL</b>",
         default = "http://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg"
     },
     {
         category = "Map Paths",
         key = "aredn.@map[0].leafletcss",
         type = "string",
-        desc = "Leaflet.css URL",
+        desc = "<b>Leaflet.css URL</b>",
         default = "http://unpkg.com/leaflet@0.7.7/dist/leaflet.css"
     },
     {
         category = "Map Paths",
         key = "aredn.@map[0].leafletjs",
         type = "string",
-        desc = "Leaflet.js URL",
+        desc = "<b>Leaflet.js URL</b>",
         default = "http://unpkg.com/leaflet@0.7.7/dist/leaflet.js"
     },
     {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].firmwarepath",
         type = "string",
-        desc = "Firmware Download URL",
+        desc = "<b>Firmware Download URL</b>",
         default = "http://downloads.arednmesh.org/firmware"
     },
     {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_core",
         type = "string",
-        desc = "Core Packages Download URL",
+        desc = "<b>Core Packages Download URL</b>",
         default = defaultPackageRepos('aredn_core'),
         postcallback = "writePackageRepo('core')"
     },
@@ -295,7 +295,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_base",
         type = "string",
-        desc = "Base Packages URL",
+        desc = "<b>Base Packages URL</b>",
         default = defaultPackageRepos('base'),
         postcallback = "writePackageRepo('base')"
     },
@@ -303,7 +303,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_arednpackages",
         type = "string",
-        desc = "AREDN Packages URL",
+        desc = "<b>AREDN Packages URL</b>",
         default = defaultPackageRepos('arednpackages'),
         postcallback = "writePackageRepo('arednpackages')"
     },
@@ -311,7 +311,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_luci",
         type = "string",
-        desc = "Luci Packages URL",
+        desc = "<b>Luci Packages URL</b>",
         default = defaultPackageRepos('luci'),
         postcallback = "writePackageRepo('luci')"
     },
@@ -319,7 +319,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_packages",
         type = "string",
-        desc = "Package Download URL for packages not included in the other sections",
+        desc = "<b>Package Download URL</b> for packages not included in the other sections",
         default = defaultPackageRepos('packages'),
         postcallback = "writePackageRepo('packages')"
     },
@@ -327,7 +327,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_routing",
         type = "string",
-        desc = "Routing Packages URL",
+        desc = "<b>Routing Packages URL</b>",
         default = defaultPackageRepos('routing'),
         postcallback = "writePackageRepo('routing')"
     },
@@ -335,7 +335,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_telephony",
         type = "string",
-        desc = "Telephony Packages URL",
+        desc = "<b>Telephony Packages URL</b>",
         default = defaultPackageRepos('telephony'),
         postcallback = "writePackageRepo('telephony')"
     },
@@ -343,7 +343,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_freifunk",
         type = "string",
-        desc = "Freifunk Packages URL",
+        desc = "<b>Freifunk Packages URL</b>",
         default = defaultPackageRepos('freifunk'),
         postcallback = "writePackageRepo('freifunk')"
     },
@@ -351,7 +351,7 @@ local settings = {
         category = "AREDN Alert Settings",
         key = "aredn.aam.refresh",
         type = "none",
-        desc = "Alert Message Refresh - Execute to pull any AREDN Alert messages",
+        desc = "<b>Alert Message Refresh</b> - Execute to pull any AREDN Alert messages",
         default = "0",
         postcallback = "aam_refresh()"
     },
@@ -359,14 +359,14 @@ local settings = {
         category = "AREDN Alert Settings",
         key = "aredn.@alerts[0].localpath",
         type = "string",
-        desc = "Alert Message Local URL - location from which local AREDN Alerts can be downloaded",
+        desc = "<b>Alert Message Local URL</b> - location from which local AREDN Alerts can be downloaded",
         default = ""
     },
     {
         category = "AREDN Alert Settings",
         key = "aredn.@alerts[0].pollrate",
         type = "string",
-        desc = "Alert Message Pollrate - how many hours to wait between polling for new AREDN Alerts",
+        desc = "<b>Alert Message Pollrate</b> - how many hours to wait between polling for new AREDN Alerts",
         default = "12",
         needreboot = true
     },
@@ -374,7 +374,7 @@ local settings = {
         category = "AREDN Alert Settings",
         key = "aredn.aam.purge",
         type = "none",
-        desc = "Alert Message Purge - execute to immediately delete all alerts from this node",
+        desc = "<b>Alert Message Purge</b> - execute to immediately delete all alerts from this node",
         default = "",
         postcallback = "alert_purge()"
     }
