@@ -83,7 +83,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].enable",
         type = "boolean",
-        desc = "Enable experimental link quality management",
+        desc = "Enable <b>Link Quality Management</b><br><br><small>aredn.@lqm[0].enable</small>",
         default = "1",
         postcallback = "lqm_defaults()",
         needreboot = true
@@ -92,7 +92,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].margin_snr",
         type = "string",
-        desc = "Margin in dB above minimum SNR a signal must reach to be re-activated",
+        desc = "<b>SNR Margin</b> in dB above Min SNR a signal must reach to be re-activated<br><br><small>aredn.@lqm[0].margin_snr</small>",
         default = "1",
         condition = "lqm_enabled()"
     },
@@ -100,7 +100,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].min_distance",
         type = "string",
-        desc = "Distance in meters neighbor must be over to be activated",
+        desc = "<b>Min Distance</b> in meters beyond which a neighbor RF link is allowed<br><br><small>aredn.@lqm[0].min_distance</small>",
         default = "0",
         condition = "lqm_enabled()"
     },
@@ -108,7 +108,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].auto_distance",
         type = "string",
-        desc = "Distance in meters to use when actual distance cannot be calculated",
+        desc = "<b>Default Distance</b> in meters to use when actual distance cannot be calculated<br><br><small>aredn.@lqm[0].auto_distance</small>",
         default = "0",
         condition = "lqm_enabled()"
     },
@@ -116,7 +116,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].margin_quality",
         type = "string",
-        desc = "Quality percentage increase before neighbor can be re-activated",
+        desc = "<b>Quality Margin</b> percentage increase before neighbor can be re-activated<br><br><small>aredn.@lqm[0].margin_quality</small>",
         default = "1",
         condition = "lqm_enabled()"
     },
@@ -124,7 +124,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].ping_penalty",
         type = "string",
-        desc = "Quality percentage penalty to add when neighbor cannot be pinged",
+        desc = "<b>Ping Penalty</b> quality percentage to add when neighbor cannot be pinged<br><br><small>aredn.@lqm[0].ping_penalty</small>",
         default = "5",
         condition = "lqm_enabled()"
     },
@@ -132,7 +132,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].user_blocks",
         type = "string",
-        desc = "Comma separated list of blocked MACs",
+        desc = "<b>User Blocked</b> comma-separated list of blocked MACs<br><br><small>aredn.@lqm[0].user_blocks</small>",
         default = "",
         condition = "lqm_enabled()"
     },
@@ -140,7 +140,7 @@ local settings = {
         category = "Link Quality Settings",
         key = "aredn.@lqm[0].user_allows",
         type = "string",
-        desc = "Comma separated list of always allowed MACs",
+        desc = "<b>User Allowed</b> comma-separated list of always allowed MACs<br><br><small>aredn.@lqm[0].user_allows</small>",
         default = "",
         condition = "lqm_enabled()"
     },
@@ -148,7 +148,7 @@ local settings = {
         category = "WAN Settings",
         key = "aredn.@wan[0].olsrd_gw",
         type = "boolean",
-        desc = "Allow other MESH nodes to use my WAN - not recommended and OFF by default",
+        desc = "<b>Allow other MESH nodes to use my WAN</b> - not recommended and OFF by default<br><br><small>aredn.@wan[0].olsrd_gw</small>",
         default = "0",
         postcallback = "changeWANGW()",
         needreboot = true
@@ -157,7 +157,7 @@ local settings = {
         category = "WAN Settings",
         key = "aredn.@wan[0].lan_dhcp_route",
         type = "boolean",
-        desc = "Allow my LAN devices to access my WAN - ON by default",
+        desc = "<b>Allow my LAN devices to access my WAN</b> - ON by default<br><br><small>aredn.@wan[0].lan_dhcp_route</small>",
         default = "1",
         postcallback = "changeWANGW()",
         needreboot = true
@@ -166,7 +166,7 @@ local settings = {
         category = "WAN Settings",
         key = "aredn.@wan[0].lan_dhcp_defaultroute",
         type = "boolean",
-        desc = "Provide default route to LAN devices even when WAN access is disabled",
+        desc = "<b>Provide default route to LAN devices</b> even when WAN access is disabled<br><br><small>aredn.@wan[0].lan_dhcp_defaultroute</small>",
         default = "0",
         postcallback = "changeWANGW()",
         needreboot = true
@@ -175,7 +175,7 @@ local settings = {
         category = "WAN Settings",
         key = "aredn.wan.vlanid",
         type = "string",
-        desc = "Specify WAN VLAN number; must be an integer in the range [1,4094]",
+        desc = "<b>WAN VLAN Number</b> - must be an integer in the range [1,4094]<br><br><small>aredn.wan.vlanid</small>",
         default = "",
         condition = "supportsVLANChange()",
         current = "currentWANVLAN()",
@@ -186,7 +186,7 @@ local settings = {
         category = "Power Options",
         key = "aredn.@poe[0].passthrough",
         type = "boolean",
-        desc = "Specifies whether PoE power passthrough should be on or off (Not all devices have PoE passthrough ports)",
+        desc = "<b>PoE Passthrough</b> specifies whether PoE power should be enabled (Not all devices have PoE passthrough ports)<br><br><small>aredn.@poe[0].passthrough</small>",
         default = "0",
         condition = "hasPOE()",
         postcallback = "setPOEOutput()"
@@ -195,7 +195,7 @@ local settings = {
         category = "Power Options",
         key = "aredn.@usb[0].passthrough",
         type = "boolean",
-        desc = "Specifies whether USB power passthrough should be on or off (Not all devices have USB powered ports)",
+        desc = "<b>USB Power Passthrough</b> specifies whether USB power should be enabled (Not all devices have USB powered ports)<br><br><small>aredn.@usb[0].passthrough</small>",
         default = "1",
         postcallback = "setUSBOutput()",
         condition = "hasUSB()"
@@ -204,7 +204,7 @@ local settings = {
         category = "Tunnel Options",
         key = "aredn.@tunnel[0].maxclients",
         type = "string",
-        desc = "Specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].",
+        desc = "<b>Tunnel Maxclients</b> specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].<br><br><small>aredn.@tunnel[0].maxclients</small>",
         default = "10",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
@@ -213,7 +213,7 @@ local settings = {
         category = "Tunnel Options",
         key = "aredn.@tunnel[0].maxservers",
         type = "string",
-        desc = "Specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].",
+        desc = "<b>Tunnel Maxservers</b> specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].<br><br><small>aredn.@tunnel[0].maxservers</small>",
         default = "10",
         precallback = "restrictTunnelLimitToValidRange()",
         postcallback = "adjustTunnelInterfaceCount()"
@@ -222,7 +222,7 @@ local settings = {
         category = "Tunnel Options",
         key = "aredn.@tunnel[0].wanonly",
         type = "boolean",
-        desc = "Prevents tunnel traffic from being routed over the mesh network itself.",
+        desc = "<b>WAN-Only Tunnel</b> prevents tunnel traffic from being routed over the Mesh network itself<br><br><small>aredn.@tunnel[0].wanonly</small>",
         default = "1",
         needreboot= true
     },
@@ -230,21 +230,21 @@ local settings = {
         category = "Memory Settings",
         key = "aredn.@meshstatus[0].lowmem",
         type = "string",
-        desc = "Specifies the low memory threshold in KB when the mesh status page will be truncated",
+        desc = "<b>Low Memory Threshold</b> in KB when the Mesh Status page will be truncated<br><br><small>aredn.@meshstatus[0].lowmem</small>",
         default = "10000"
     },
     {
         category = "Memory Settings",
         key = "aredn.@meshstatus[0].lowroutes",
         type = "string",
-        desc = "The maximum number of routes that will be shown on the mesh status page when low memory is detected",
+        desc = "<b>Low Memory Max Routes</b> is the maximum number of routes shown on the Mesh Status page when low memory is detected<br><br><small>aredn.@meshstatus[0].lowroutes</small>",
         default = "1000"
     },
     {
         category = "Network Tools",
         key = "aredn.olsr.restart",
         type = "none",
-        desc = "Will restart OLSR when executed; wait up to 2 or 3 minutes to receive response",
+        desc = "<b>OLSR Restart</b> will restart OLSR when executed; wait up to 2 or 3 minutes to receive response<br><br><small>aredn.olsr.restart</small>",
         default = "0",
         postcallback = "olsr_restart()"
     },
@@ -252,42 +252,42 @@ local settings = {
         category = "Network Tools",
         key = "aredn.@iperf[0].enable",
         type = "boolean",
-        desc = "Enable the included iperf3 client/server support",
+        desc = "<b>IPERF Enable</b> allows the included iperf3 client/server<br><br><small>aredn.@iperf[0].enable</small>",
         default = "1"
     },
     {
         category = "Map Paths",
         key = "aredn.@map[0].maptiles",
         type = "string",
-        desc = "Specifies the URL of the location to access map tiles",
+        desc = "<b>Map Tiles URL</b><br><br><small>aredn.@map[0].maptiles</small>",
         default = "http://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg"
     },
     {
         category = "Map Paths",
         key = "aredn.@map[0].leafletcss",
         type = "string",
-        desc = "Specifies the URL of the leaflet.css file",
+        desc = "<b>Leaflet.css URL</b><br><br><small>aredn.@map[0].leafletcss</small>",
         default = "http://unpkg.com/leaflet@0.7.7/dist/leaflet.css"
     },
     {
         category = "Map Paths",
         key = "aredn.@map[0].leafletjs",
         type = "string",
-        desc = "Specifies the URL of the leaflet.js file",
+        desc = "<b>Leaflet.js URL</b><br><br><small>aredn.@map[0].leafletjs</small>",
         default = "http://unpkg.com/leaflet@0.7.7/dist/leaflet.js"
     },
     {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].firmwarepath",
         type = "string",
-        desc = "Specifies the URL of the location from which firmware files will be downloaded",
+        desc = "<b>Firmware Download URL</b><br><br><small>aredn.@downloads[0].firmwarepath</small>",
         default = "http://downloads.arednmesh.org/firmware"
     },
     {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_core",
         type = "string",
-        desc = "Specifies the URL for the 'core' packages such as kernel modules",
+        desc = "<b>Core Packages Download URL</b><br><br><small>aredn.@downloads[0].pkgs_core</small>",
         default = defaultPackageRepos('aredn_core'),
         postcallback = "writePackageRepo('core')"
     },
@@ -295,7 +295,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_base",
         type = "string",
-        desc = "Specifies the URL for the 'base' packages: libraries, shells, etc.",
+        desc = "<b>Base Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_base</small>",
         default = defaultPackageRepos('base'),
         postcallback = "writePackageRepo('base')"
     },
@@ -303,7 +303,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_arednpackages",
         type = "string",
-        desc = "Specifies the URL for the 'arednpackages' packages: vtun, etc.",
+        desc = "<b>AREDN Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_arednpackages</small>",
         default = defaultPackageRepos('arednpackages'),
         postcallback = "writePackageRepo('arednpackages')"
     },
@@ -311,7 +311,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_luci",
         type = "string",
-        desc = "Specifies the URL for the 'luci' packages: luci and things needed for luci.",
+        desc = "<b>Luci Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_luci</small>",
         default = defaultPackageRepos('luci'),
         postcallback = "writePackageRepo('luci')"
     },
@@ -319,7 +319,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_packages",
         type = "string",
-        desc = "Specifies the URL for the 'packages' packages: everything not included in the other dirs.",
+        desc = "<b>Package Download URL</b> for packages not included in the other sections<br><br><small>aredn.@downloads[0].pkgs_packages</small>",
         default = defaultPackageRepos('packages'),
         postcallback = "writePackageRepo('packages')"
     },
@@ -327,7 +327,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_routing",
         type = "string",
-        desc = "Specifies the URL for the 'routing' packages: olsr, etc.",
+        desc = "<b>Routing Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_routing</small>",
         default = defaultPackageRepos('routing'),
         postcallback = "writePackageRepo('routing')"
     },
@@ -335,7 +335,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_telephony",
         type = "string",
-        desc = "Specifies the URL for the 'telephony' packages.",
+        desc = "<b>Telephony Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_telephony</small>",
         default = defaultPackageRepos('telephony'),
         postcallback = "writePackageRepo('telephony')"
     },
@@ -343,7 +343,7 @@ local settings = {
         category = "Firmware Paths",
         key = "aredn.@downloads[0].pkgs_freifunk",
         type = "string",
-        desc = "Specifies the URL for the 'freifunk' packages.",
+        desc = "<b>Freifunk Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_freifunk</small>",
         default = defaultPackageRepos('freifunk'),
         postcallback = "writePackageRepo('freifunk')"
     },
@@ -351,7 +351,7 @@ local settings = {
         category = "AREDN Alert Settings",
         key = "aredn.aam.refresh",
         type = "none",
-        desc = "Execute to pull any AREDN Alert messages",
+        desc = "<b>Alert Message Refresh</b> - Execute to pull any AREDN Alert messages<br><br><small>aredn.aam.refresh</small>",
         default = "0",
         postcallback = "aam_refresh()"
     },
@@ -359,14 +359,14 @@ local settings = {
         category = "AREDN Alert Settings",
         key = "aredn.@alerts[0].localpath",
         type = "string",
-        desc = "Specifies the URL of the location from which local AREDN Alerts can be downloaded",
+        desc = "<b>Alert Message Local URL</b> - location from which local AREDN Alerts can be downloaded<br><br><small>aredn.@alerts[0].localpath</small>",
         default = ""
     },
     {
         category = "AREDN Alert Settings",
         key = "aredn.@alerts[0].pollrate",
         type = "string",
-        desc = "Specifies how many hours to wait between polling for new AREDN Alerts",
+        desc = "<b>Alert Message Pollrate</b> - how many hours to wait between polling for new AREDN Alerts<br><br><small>aredn.@alerts[0].pollrate</small>",
         default = "12",
         needreboot = true
     },
@@ -374,7 +374,7 @@ local settings = {
         category = "AREDN Alert Settings",
         key = "aredn.aam.purge",
         type = "none",
-        desc = "Execute to immediately delete all AREDN (and local) Alerts from this node",
+        desc = "<b>Alert Message Purge</b> - execute to immediately delete all alerts from this node<br><br><small>aredn.aam.purge</small>",
         default = "",
         postcallback = "alert_purge()"
     }
@@ -805,38 +805,46 @@ function toggleDefault(fname, defval) {
 
 html.print("<body><center>")
 html.alert_banner();
-html.print("<div style=\"padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;\"><strong>WARNING:</strong> Changing advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></div><form method=post action=advancedconfig enctype='multipart/form-data'><table width=790><tr><td>")
+html.print("<div style=\"padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;\">")
+html.print("<strong>WARNING:</strong> Changing advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></div>")
+html.print("<form method=post action=advancedconfig enctype='multipart/form-data'>")
 
 -- navbar
-html.print("<hr><table cellpadding=5 border=0 width=100%><tr>")
-html.print("<td align=center width=15%><a href='status'>Node Status</a></td>")
-html.print("<td align=center width=15%><a href='setup'>Basic Setup</a></td>")
-html.print("<td align=center width=15%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
-html.print("<td align=center width=15%><a href='vpn'>Tunnel<br>Server</a></td>")
-html.print("<td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>")
-html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
-html.print("<td align=center width=15% class=navbar_select><a href='advancedconfig'>Advanced<br>Configuration</a></td>")
-html.print("</tr></table><hr>")
-html.print("</td></tr>")
+html.print("<hr style='width:800px'><table cellpadding=5 border=0 width=840px><tr align=center>")
+html.print("<td width=14%><a href='status'>Node Status</a></td>")
+html.print("<td width=14%><a href='setup'>Basic Setup</a></td>")
+html.print("<td width=14%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
+html.print("<td width=14%><a href='vpn'>Tunnel<br>Server</a></td>")
+html.print("<td width=14%><a href='vpnc'>Tunnel<br>Client</a></td>")
+html.print("<td width=14%><a href='admin'>Administration</a></td>")
+html.print("<td width=14%><a href='advancedconfig'>Advanced<br>Configuration</a></td>")
+html.print("</tr></table><hr style='width:800px'>")
 
-html.print("<tr><td align=center><a href='/help.html#advancedconfig' target='_blank'>Help</a>&nbsp;&nbsp;<input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>&nbsp;&nbsp;<input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'></td></tr>")
+-- help link and buttons table
+html.print("<table width=750px><tr align=center>")
+html.print("<td width=33%><a href='/help.html#advancedconfig' target='_blank'><strong>Help</strong></a></td>")
+html.print("<td width=33%><input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'></td>")
+html.print("<td width=33%><input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'></td>")
+html.print("</tr></table>")
 
+-- messages table
+html.print("<table width=800px>")
 if nixio.fs.stat("/tmp/reboot-required") then
-    html.print("<tr><td align=center><h3>Reboot is required for changes to take effect</h3></td></tr>")
+    html.print("<tr align=center><td width=100%><h3>Reboot is required for changes to take effect</h3></td></tr>")
 end
 
 for _, m in ipairs(msgs)
 do
-    html.print("<tr><td align='center'><strong>" .. m .. "</strong></td></tr>")
+    html.print("<tr align=center><td width=100%><strong>" .. m .. "</strong></td></tr>")
 end
+html.print("</table><br />")
 
+-- advanced configuration settings table
 html.print([[
-<tr><td align=center>
-<table border=1>
+<table border=1 width=800px>
 <thead>
-    <tr>
-    <th>Help<br><small>(hover)</small></th>
-    <th>Config Setting</th>
+    <tr align=center>
+    <th>Setting</th>
     <th>Value</th>
     <th>Actions</th>
     </tr>
@@ -844,6 +852,7 @@ html.print([[
 ]])
 
 -- settings
+html.print("<tbody>")
 local prior_category = ""
 
 for i, setting in ipairs(settings)
@@ -858,12 +867,13 @@ do
         end
         sval = sval and tostring(sval) or ""
         if setting.category ~= prior_category then
-            html.print([[<tr style=background-color:lightseagreen><td align="center" colspan="4"><b>]] .. setting.category .. [[</b></td></tr>]])
+            html.print([[<tr align=center style=background-color:lightseagreen><td colspan=3><b>]] .. setting.category .. [[</b></td></tr>]])
             prior_category = setting.category
         end
-        html.print([[<tr><td align="center"><span title="]] .. setting.desc .. [["><img src="/qmark.png" /></span></td><td>]] .. setting.key .. [[</td><td>]])
+        html.print("<tr><td width=40%>" .. setting.desc .. "</td>")
+        html.print("<td width=45%>")
         if setting.type == "string" then
-            html.print("<input type='text' id='field_" .. i .. "' name='newval_" .. i .. "' size='65' value='" .. sval .. "'>")
+            html.print("<input type='text' id='field_" .. i .. "' name='newval_" .. i .. "' style='width:100%' value='" .. sval .. "'>")
         elseif setting.type == "boolean" then
             if sval == "" then
                 sval = setting.default
@@ -878,9 +888,9 @@ do
         end
         html.print("</td>")
         if setting.type ~= "none" then
-            html.print("<td align='center'><input type='submit' name='button_save_" .. i .. "' value='Save Setting' /><br><br>")
+            html.print("<td align='center' width=15%><input type='submit' name='button_save_" .. i .. "' value='Save Setting' /><br><br>")
         else
-            html.print("<td align='center'><input type='submit' name='button_save_" .. i .. "' value='Execute' /><br><br>")
+            html.print("<td align='center' width=15%><input type='submit' name='button_save_" .. i .. "' value='Execute' /><br><br>")
         end
         if setting.type == "string" then
             html.print("<input value='Set to Default' type='button' onclick=\"document.getElementById('field_" .. i .. "').value='" .. setting.default .. "';\">")
@@ -891,7 +901,7 @@ do
     end
 end
 
-html.print("</table></td></tr></table></form></center>")
+html.print("</tbody></table></form></center>")
 html.footer()
 html.print("</body></html>")
 http_footer()
