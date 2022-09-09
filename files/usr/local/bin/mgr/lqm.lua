@@ -34,6 +34,7 @@
 
 local json = require("luci.jsonc")
 local ip = require("luci.ip")
+local sys = require("luci.sys")
 local info = require("aredn.info")
 
 local refresh_timeout = 15 * 60 -- refresh high cost data every 15 minutes
@@ -229,6 +230,16 @@ function lqm()
             end
         )
 
+        -- Know our macs so we can exclude them
+        local our_macs = {}
+        for _, devname in ipairs(sys.net.devices())
+        do
+            local info = ip.link(devname)
+            if info and info.mac then
+                our_macs[tostring(info.mac)] = true
+            end
+        end
+
         local stations = {}
 
         -- RF
@@ -322,7 +333,7 @@ function lqm()
 
         for _, station in ipairs(stations)
         do
-            if station.signal ~= 0 then
+            if station.signal ~= 0 and not our_macs[station.mac] then
                 if not tracker[station.mac] then
                     tracker[station.mac] = {
                         type = station.type,
