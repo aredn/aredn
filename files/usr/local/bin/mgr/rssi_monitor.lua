@@ -58,6 +58,7 @@ if not file_exists(logfile) then
 end
 
 local multiple_ant = false
+local last_station_count = 0
 
 local log = aredn.log.open(logfile, 16000)
 
@@ -101,9 +102,11 @@ function run_monitor()
         os.execute("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
     end
 
+    local station_count = 0
     local rssi = get_rssi(wifiiface)
     for mac, info in pairs(rssi)
     do
+        station_count = station_count + 1
         local rssih = rssi_hist[mac]
         if rssih and now - rssih.last < 3600 then
             local hit = 0
@@ -188,7 +191,13 @@ function run_monitor()
                 rssih.num = rssih.num + 1
             end
         end
+    elseif station_count == 0 and last_station_count ~= 0 then
+         -- reset
+         os.execute("/usr/sbin/iw " .. wifiiface .. " scan freq " .. aredn_info.getFreq() .. " passive")
+         wait_for_ticks(5)
+         log:write("No stations detected")
     end
+    last_station_count = station_count
 
     local f = io.open(datfile, "w")
     if f then
