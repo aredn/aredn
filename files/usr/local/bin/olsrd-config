@@ -180,10 +180,10 @@ if validate then
             elseif proto == "http" then
                 -- http so looks like a link. http check it
                 local status, effective_url = io.popen("/usr/bin/curl --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --location --write-out '%{http_code} %{url_effective}' " .. "http://" .. hostname .. ":" .. port .. path):read("*a"):match("^(%d+) (.*)")
-                if status == "200" then
+                if status == "200" or status == "401" then
                     valid_services[#valid_services + 1] = service
-                elseif status == "301" or status == "302" or status == "308" then
-		    -- Ended at a redirect rather than an actual page.
+                elseif status == "301" or status == "302" or status == "303" or status == "307" or status == "308" then
+		            -- Ended at a redirect rather than an actual page.
                     if effective_url:match("^https:") then
                         -- We cannot validate https: links so we just assume they're okay
                         valid_services[#valid_services + 1] = service
