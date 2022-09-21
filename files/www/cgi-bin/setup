@@ -685,6 +685,8 @@ if parms.button_save then
                 err("update-clock script not found")
             end
         end
+    else
+        err("ntp_period not set")
     end
 
     if wifi2_enable == "1" then
@@ -1410,7 +1412,11 @@ do
 end
 html.print("</select></td>")
 html.print("<td align=center>NTP Server <input type=text name=ntp_server size=20 value='" .. ntp_server .. "'></td>")
-html.print("<td>NTP Update <select name=ntp_period><option value='daily' selected>daily</option><option value='hourly'>hourly</option></select></td></table></td></tr></table>")
+if ntp_period == "daily" then
+    html.print("<td>NTP Update <select name=ntp_period><option value='daily' selected>daily</option><option value='hourly'>hourly</option></select></td></table></td></tr></table>")
+elseif ntp_period == "hourly" then
+    html.print("<td>NTP Update <select name=ntp_period><option value='daily'>daily</option><option value='hourly' selected>hourly</option></select></td></table></td></tr></table>")
+end
 
 hidden[#hidden + 1] = "<input type=hidden name=reload value=1>"
 hidden[#hidden + 1] = "<input type=hidden name=dtdlink_ip value='" .. dtdlink_ip .. "'>"
