@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Alphabetical except where noted below
-# log needs to start before cron (and maybe others) to be detected for logging.
-serviceslist="log cron dropbear linkled snmpd vtund vtundsrv xinetd"
+# log needs to start first to be detected for logging.
+serviceslist="log dropbear manager vtund vtundsrv"
 
 start_upgrade_mode() {
 
@@ -18,9 +18,6 @@ start_upgrade_mode() {
         "/etc/init.d/${name}" stop
     done
 
-    # Switch to a limited crontab list
-    /usr/sbin/crond -b -c /etc/crontabs.upgrademode -l 5
-
     # Some services need to kill the last remaining processes
     killall -9 dropbear
 
@@ -28,7 +25,7 @@ start_upgrade_mode() {
     /usr/local/bin/linkled upgrade
 
     # Purge the /tmp/ filesystem of unneeded files.
-    rm -Rf /tmp/node.history /tmp/olsrd.log /tmp/olsrd.watchdog /tmp/snrlog/ /tmp/snr.dat /tmp/web/firmware.list /tmp/.uci
+    rm -Rf /tmp/node.history /tmp/olsrd.log /tmp/olsrd.watchdog /tmp/snrlog/ /tmp/snr.dat /tmp/web/firmware.list /tmp/.uci /tmp/manager.log
 
 }
 
@@ -38,7 +35,6 @@ remove_opkg_lists() {
 
 return_to_operating_mode() {
 
-    killall -9 crond
 
     # If anything goes wrong after this point return the error code to the calling process
     # as we could be in an unstable state.
@@ -50,7 +46,7 @@ return_to_operating_mode() {
         "/etc/init.d/${name}" start
     done
 
-    rm /tmp/.upgrade_mode
+    rm -f /tmp/.upgrade_mode
 
 }
 
@@ -58,7 +54,7 @@ return_to_operating_mode() {
 case $1 in
     "upgrade" )
         start_upgrade_mode
-	remove_opkg_lists
+	    remove_opkg_lists
         ;;
     "opkginstall" )
         start_upgrade_mode

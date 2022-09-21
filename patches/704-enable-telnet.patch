@@ -52,10 +52,8 @@ Index: openwrt/package/utils/busybox/Config-defaults.in
  config BUSYBOX_DEFAULT_FEATURE_TELNETD_INETD_WAIT
  	bool
  	default n
-Index: openwrt/package/utils/busybox/Makefile
-===================================================================
---- openwrt.orig/package/utils/busybox/Makefile
-+++ openwrt/package/utils/busybox/Makefile
+--- a/package/utils/busybox/Makefile
++++ b/package/utils/busybox/Makefile
 @@ -110,6 +110,8 @@ define Package/busybox/install
  ifneq ($(CONFIG_BUSYBOX_$(BUSYBOX_SYM)_CROND),)
  	$(INSTALL_BIN) ./files/cron $(1)/etc/init.d/cron
@@ -65,10 +63,8 @@ Index: openwrt/package/utils/busybox/Makefile
  ifneq ($(CONFIG_BUSYBOX_$(BUSYBOX_SYM)_NTPD),)
  	$(INSTALL_BIN) ./files/sysntpd $(1)/etc/init.d/sysntpd
  	$(INSTALL_BIN) ./files/ntpd-hotplug $(1)/usr/sbin/ntpd-hotplug
-Index: openwrt/package/utils/busybox/files/telnet
-===================================================================
 --- /dev/null
-+++ openwrt/package/utils/busybox/files/telnet
++++ b/package/utils/busybox/files/telnet
 @@ -0,0 +1,33 @@
 +#!/bin/sh /etc/rc.common
 +# Copyright (C) 2006-2011 OpenWrt.org
@@ -103,10 +99,8 @@ Index: openwrt/package/utils/busybox/files/telnet
 +		procd_set_param command "$PROG" -F -l /bin/login.sh
 +		procd_close_instance
 +}
-Index: openwrt/package/utils/busybox/files/login.sh
-===================================================================
 --- /dev/null
-+++ openwrt/package/utils/busybox/files/login.sh
++++ b/package/utils/busybox/files/login.sh
 @@ -0,0 +1,19 @@
 +#!/bin/sh
 +# Copyright (C) 2006-2011 OpenWrt.org

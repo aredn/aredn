@@ -122,7 +122,7 @@ The standard Ethernet port of an AREDN device uses the following vlan tags.  An 
 switch is necessary to utilize the vlan tagged networks:
 
 * untagged:  LAN devices - laptop, ipcam, voip phone, etc.
-* vlan 1:  WAN - gateway to connect AREDN network to home network and/or internet
+* vlan 1:  WAN - gateway to connect AREDN network to home network and/or internet (some devices support changing this vlan to an alternate value)
 * vlan 2:  DtDLink (device to device) - AREDN network routing between nodes, typically cross band
 
 The following devices have enhanced Ethernet port usage.  A single cat5 to the device

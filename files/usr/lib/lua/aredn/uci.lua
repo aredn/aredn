@@ -50,4 +50,12 @@ function api.getUciConfSectionOption(conf,sect,option)
    return curs:get(conf,sect,option)
 end
 
+
+function api.getNonStandardUciConfType(dir, conf,type)
+   local curs=uci.cursor(dir)
+   local ifce={}
+   curs:foreach(conf,type,function(s) table.insert(ifce,s) end)
+   return ifce
+end
+
 return api

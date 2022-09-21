@@ -47,7 +47,7 @@ boot() {
   fi
 
 
-  [ -x /usr/local/bin/bbhn-postupgrade ] && /usr/local/bin/bbhn-postupgrade
+  [ -x /usr/local/bin/aredn_postupgrade ] && /usr/local/bin/aredn_postupgrade
 
   # setup nvram variables
   [ -x /usr/local/bin/nvram-setup ] &&  /usr/local/bin/nvram-setup
@@ -100,9 +100,7 @@ boot() {
     shift
   done
 
-  # set local alerts if available
-  local alertslocalpath=$(uci -q get aredn.@alerts[0].localpath)
-  if [ -z "$alertslocalpath" ]; then
+  if [ -z "$(uci -q get aredn.@alerts[0])" ]; then
       uci -q add aredn alerts
       uci -q commit aredn
   fi

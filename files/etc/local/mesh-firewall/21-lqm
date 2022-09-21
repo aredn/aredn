@@ -1,8 +1,8 @@
 #!/bin/sh
-true <<'LICENSE'
+<<'LICENSE'
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2019 Joe Ayers AE6XE
-  See Contributors file for additional contributors
+  Copyright (C) 2022 Tim Wilkinson
+   See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,43 +33,8 @@ true <<'LICENSE'
 
 LICENSE
 
-pidfile="/var/run/olsrd.pid"
-logfile="/tmp/olsrd.log"
-
-olsrd_restart()
-{
-  uptime=$(cut -d' ' -f1 < /proc/uptime)
-  date=$(date)
-  echo "$uptime $date" >> $logfile
-  /etc/init.d/olsrd restart
-
-  # keep file size in check
-  if [ $(wc -l $logfile | cut -d\  -f1 ) -gt 300 ] ; then
-    cp  $logfile $logfile.tmp
-    tail -275 $logfile.tmp > $logfile
-    rm -f $logfile.tmp
-  fi
-} 
- 
-touch $logfile
-
-while true
-do
-
-  sleep 21
-
-  if [ -f $pidfile -a -d "/proc/$(cat $pidfile 2>/dev/null)" ] ; then
-    if [ -f /tmp/olsrd.watchdog ] ; then
-      rm -f /tmp/olsrd.watchdog
-    else
-      # olsrd is running, but not processing events
-      olsrd_restart
-    fi
-  else
-    olsr_pid=$(ps | grep /usr/sbin/olsrd | grep -v grep | sed -e "s/^ //" | cut -d\  -f1 )
-    [ ! $olsr_pid ] && olsr_pid=0
-    [ ! -f $pidfile -a $olsr_pid -gt 1 ]  &&  echo -n "$olsr_pid" > $pidfile
-  fi
-
-done
-
+/usr/sbin/iptables -F input_lqm 2> /dev/null
+/usr/sbin/iptables -X input_lqm 2> /dev/null
+/usr/sbin/iptables -N input_lqm 2> /dev/null
+/usr/sbin/iptables -D INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null
+/usr/sbin/iptables -I INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null
