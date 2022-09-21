@@ -80,7 +80,7 @@
  		;;
  	iodata,etg3-r|\
  	iodata,wn-ac1167dgr|\
-@@ -298,15 +310,14 @@ ath79_setup_interfaces()
+@@ -298,20 +310,19 @@ ath79_setup_interfaces()
  	tplink,tl-wdr4300-v1-il|\
  	tplink,tl-wdr4310-v1)
  		ucidef_add_switch "switch0" \
@@ -88,6 +88,11 @@
 +			"0@eth0" "1:wan" "5t:wan" "5t:dtdlink" "2:lan" "3:lan" "4:lan"
 +                ucidef_set_interface "wifi" device "wlan0" protocol "static"
  		;;
+	nec,wf1200cr)
+		ucidef_set_interface_wan "eth1"
+		ucidef_add_switch "switch0" \
+			"0@eth0" "1:lan"
+		;;
  	nec,wg1200cr|\
  	qxwlan,e1700ac-v2-8m|\
  	qxwlan,e1700ac-v2-16m|\
@@ -96,7 +101,7 @@
 -	ubnt,nanobeam-ac-gen2|\
 -	ubnt,nanostation-ac|\
  	yuncore,a782|\
- 	yuncore,xd4200)
+ 	yuncore,xd3200|\
  		ucidef_add_switch "switch0" \
 @@ -421,30 +432,38 @@ ath79_setup_interfaces()
  	ubnt,edgeswitch-5xp)
@@ -164,19 +169,25 @@
  }
 --- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
-@@ -21,10 +21,19 @@ ath79_setup_interfaces()
- 	mikrotik,routerboard-sxt-5nd-r2|\
+@@ -22,8 +22,15 @@
+ 	mikrotik,routerboard-wap-2nd|\
  	mikrotik,routerboard-wap-g-5hact2hnd|\
  	mikrotik,routerboard-wapr-2nd)
 -		ucidef_set_interface_lan "eth0"
 +		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
 +		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
-+		;;
+ 		;;
 +	mikrotik,routerboard-922uags-5hpacd)
 +		ucidef_set_interfaces_lan_wan "eth0 eth1" "eth0.1 eth1.1"
 +		ucidef_set_interface "dtdlink" device "eth0.2 eth1.2" protocol "static"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
++ 		;;
+ 	mikrotik,routerboard-951ui-2nd|\
+ 	mikrotik,routerboard-952ui-5ac2nd)
+ 		ucidef_set_interface_wan "eth1"
+@@ -38,7 +45,9 @@
+ 			"0@eth0" "2:lan" "3:lan" "4:lan" "5:lan" "1:wan"
  		;;
  	*)
 -		ucidef_set_interfaces_lan_wan "eth0" "eth1"

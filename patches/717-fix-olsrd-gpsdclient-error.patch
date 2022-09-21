@@ -1,0 +1,29 @@
+--- /dev/null
++++ openwrt/feeds/arednpackages/net/olsrd/patches/014-fix-gpsd_compile.patch
+@@ -0,0 +1,26 @@
++diff -Naur a/lib/pud/nmealib/Makefile.inc b/lib/pud/nmealib/Makefile.inc
++--- a/lib/pud/nmealib/Makefile.inc	2017-06-06 11:17:26.000000000 +0100
+++++ b/lib/pud/nmealib/Makefile.inc	2022-09-03 17:19:20.618461094 +0100
++@@ -63,7 +63,7 @@
++                 -Wmissing-format-attribute -Wno-multichar -Wno-deprecated-declarations -Wendif-labels -Wwrite-strings \
++                 -Wbad-function-cast -Wpointer-arith -Wcast-qual -Wshadow -Wformat -Wsequence-point -Wcast-align \
++                 -Wnested-externs -Winline -Wdisabled-optimization -funit-at-a-time -fPIC -ggdb -Wformat=2 -Winit-self \
++-                -Wswitch-default -Wswitch-enum -Wconversion -Wdouble-promotion \
+++                -Wswitch-default -Wswitch-enum -Wno-narrowing -Wdouble-promotion \
++                 -Werror=format-security -Wformat-security -Wformat-y2k -Wredundant-decls -Wundef -Wunreachable-code \
++                 -Wunused-parameter
++ 
++diff -Naur a/lib/pud/src/gpsdclient.c b/lib/pud/src/gpsdclient.c
++--- a/lib/pud/src/gpsdclient.c	2022-09-03 17:12:42.966455073 +0100
+++++ b/lib/pud/src/gpsdclient.c	2022-09-03 17:21:15.766462838 +0100
++@@ -370,10 +370,6 @@
++           );
++ 
++   gpsdata->set &= ~STATUS_SET; /* always valid */
++-  if (gpsdata-> fix.status == STATUS_NO_FIX) {
++-    nmeaInfoClear(info);
++-    return;
++-  }
++ 
++   if (!gpsdata->set) {
++     return;
