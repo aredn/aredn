@@ -181,7 +181,7 @@ do
     end
 end
 local phy = "phy" .. radioname:match("radio(%d+)")
-local wlan = cursor:get("network", "wifi", "ifname")
+local wlan = aredn.hardware.get_board_network_ifname("wifi")
 
 function lqm()
 
