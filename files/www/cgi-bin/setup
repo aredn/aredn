@@ -669,7 +669,8 @@ if parms.button_save then
         err("invalid ntp server")
     end
 
-    if ntp_period == "daily" then
+    -- move update-clock to correct location if necessary
+    if parms.ntp_period == "daily" then
         if not nixio.fs.stat("/etc/cron.daily/update-clock") then
             if nixio.fs.stat("/etc/cron.hourly/update-clock") then
                 os.execute("mv /etc/cron.hourly/update-clock /etc/cron.daily/update-clock")
@@ -677,7 +678,7 @@ if parms.button_save then
                 err("update-clock script not found")
             end
         end
-    elseif ntp_period == "hourly" then
+    elseif parms.ntp_period == "hourly" then
         if not nixio.fs.stat("/etc/cron.hourly/update-clock") then
             if nixio.fs.stat("/etc/cron.daily/update-clock") then
                 os.execute("mv /etc/cron.daily/update-clock /etc/cron.hourly/update-clock")
@@ -764,6 +765,14 @@ if parms.button_save then
             end
             f:close()
         end
+
+        -- commit new ntp_period value
+        local cursorm = uci.cursor("/etc/config.mesh")
+        if parms.ntp_period ~= cursorm:get("aredn", "@ntp[0]", "period") then
+            cursorm:set("aredn", "@ntp[0]", "period", parms.ntp_period)
+            cursorm:commit("aredn")
+        end
+
         aredn_info.set_nvram("node", parms.node);
         aredn_info.set_nvram("tactical", parms.tactical)
         aredn_info.set_nvram("config", parms.config)
@@ -1411,11 +1420,11 @@ do
     html.print("<option value='" .. zone.name .. "'".. (zone.name == time_zone_name and " selected" or "") .. ">" .. zone.name .. "</option>")
 end
 html.print("</select></td>")
-html.print("<td align=center>NTP Server <input type=text name=ntp_server size=20 value='" .. ntp_server .. "'></td>")
+html.print("<td align=center>NTP Server &nbsp; <input type=text name=ntp_server size=20 value='" .. ntp_server .. "'></td>")
 if ntp_period == "daily" or not ntp_period then
-    html.print("<td>NTP Update <select name=ntp_period><option value='daily' selected>daily</option><option value='hourly'>hourly</option></select></td></table></td></tr></table>")
+    html.print("<td>NTP Updates &nbsp; <select name=ntp_period><option value='daily' selected>daily</option><option value='hourly'>hourly</option></select></td></table></td></tr></table>")
 elseif ntp_period == "hourly" then
-    html.print("<td>NTP Update <select name=ntp_period><option value='daily'>daily</option><option value='hourly' selected>hourly</option></select></td></table></td></tr></table>")
+    html.print("<td>NTP Updates &nbsp; <select name=ntp_period><option value='daily'>daily</option><option value='hourly' selected>hourly</option></select></td></table></td></tr></table>")
 end
 
 hidden[#hidden + 1] = "<input type=hidden name=reload value=1>"
