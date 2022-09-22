@@ -63,8 +63,8 @@ function defaultPackageRepos(repo)
                 target = m
             end
         end
-        if release:match("%.") then
-            local a, b = release:match("^(%d+)%.(%d+)%.")
+        local a, b = release:match("^(%d+)%.(%d+)%.")
+        if a and b then
             urlprefix = urlprefix .. "/releases/" .. a .. "/" .. b .. "/" .. release
         else
             -- nightly
@@ -619,7 +619,8 @@ function currentWANVLAN()
             return vlan
         end
     end
-    local vlan = aredn.hardware.get_board().network.wan.ifname:match("^%w+%.(%d+)")
+    local wanifname = aredn.hardware.get_board().network.wan.ifname or aredn.hardware.get_board().network.wan.ports[1]
+    local vlan = wanifname:match("^%w+%.(%d+)")
     if vlan then
         return vlan
     end
@@ -636,9 +637,16 @@ function changeWANVLAN()
     end
     if newval ~= "" then
         local wan_intf = ""
-        for dev in aredn.hardware.get_board().network.wan.ifname:gmatch("%S+")
-        do
-            wan_intf = wan_intf .. " " .. dev:match("^([^%.]+)") .. "." .. newval
+        if aredn.hardware.get_board().network.wan.ifname then
+            for dev in aredn.hardware.get_board().network.wan.ifname:gmatch("%S+")
+            do
+                wan_intf = wan_intf .. " " .. dev:match("^([^%.]+)") .. "." .. newval
+            end
+        elseif aredn.hardware.get_board().network.wan.ports then
+            for _, dev in ipairs(aredn.hardware.get_board().network.wan.ports)
+            do
+                wan_intf = wan_intf .. " " .. dev:match("^([^%.]+)") .. "." .. newval
+            end
         end
         if wan_intf ~= "" then
             lines[#lines + 1] = "wan_intf =" .. wan_intf

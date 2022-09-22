@@ -151,6 +151,10 @@ function hardware.get_iface_name(name)
     if intfname then
         return intfname:match("^(%S+)")
     end
+    local device = cursor:get("network", name, "device")
+    if device then
+        return device
+    end
     -- Now we guess
     if name == "lan" then
         return "eth0"
