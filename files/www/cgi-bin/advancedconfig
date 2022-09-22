@@ -619,8 +619,7 @@ function currentWANVLAN()
             return vlan
         end
     end
-    local wanifname = aredn.hardware.get_board().network.wan.ifname or aredn.hardware.get_board().network.wan.ports[1]
-    local vlan = wanifname:match("^%w+%.(%d+)")
+    local vlan = aredn.hardware.get_board_network_ifname("wan"):match("^%w+%.(%d+)")
     if vlan then
         return vlan
     end
@@ -637,16 +636,9 @@ function changeWANVLAN()
     end
     if newval ~= "" then
         local wan_intf = ""
-        if aredn.hardware.get_board().network.wan.ifname then
-            for dev in aredn.hardware.get_board().network.wan.ifname:gmatch("%S+")
-            do
-                wan_intf = wan_intf .. " " .. dev:match("^([^%.]+)") .. "." .. newval
-            end
-        elseif aredn.hardware.get_board().network.wan.ports then
-            for _, dev in ipairs(aredn.hardware.get_board().network.wan.ports)
-            do
-                wan_intf = wan_intf .. " " .. dev:match("^([^%.]+)") .. "." .. newval
-            end
+        for dev in aredn.hardware.get_board_network_ifname("wan"):gmatch("%S+")
+        do
+            wan_intf = wan_intf .. " " .. dev:match("^([^%.]+)") .. "." .. newval
         end
         if wan_intf ~= "" then
             lines[#lines + 1] = "wan_intf =" .. wan_intf

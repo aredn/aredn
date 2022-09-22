@@ -123,6 +123,22 @@ function hardware.get_board_type()
     return hardware.get_board().model.id
 end
 
+function hardware.get_board_network_ifname(type)
+    local network = hardware.get_board().network[type]
+    if network then
+        if network.ifname then
+            return network.ifname
+        end
+        if network.device then
+            return network.device
+        end
+        if network.ports then
+            return table.concat(network.ports, " ")
+        end
+    end
+    return ""
+end
+
 function hardware.get_type()
     local id = hardware.get_board().model.id
     local type = id:match(",(.*)")
