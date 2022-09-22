@@ -67,12 +67,8 @@ function html.footer()
 end
 
 function html.alert_banner()
-    local aredn_message = read_all("/tmp/aredn_message")
-    local local_message = read_all("/tmp/local_message")
-
     html.print("<div class=\"TopBanner\">")
     html.print("<div class=\"LogoDiv\"><a href=\"http://localnode.local.mesh:8080\" title=\"Go to localnode\"><img src=\"/AREDN.png\" class=\"AREDNLogo\"></img></a></div>")
-
     local supported = aredn.hardware.supported()
     if supported == 0 then
         html.print("<div style=\"padding:5px;background-color:#FF4719;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNSUPPORTED DEVICE !!!!</a></div>")
@@ -81,14 +77,19 @@ function html.alert_banner()
     elseif supported ~= 1 then
         html.print("<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>")
     end
+    html.print("</div>")
+end
 
+function html.msg_banner()
+    html.print("<div class=\"TopBanner\">")
+    local aredn_message = read_all("/tmp/aredn_message")
+    local local_message = read_all("/tmp/local_message")
     if aredn_message and #aredn_message > 0 then
-        html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">" .. aredn_message .. "</div></div>")
+        html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Messages:</strong><br /><div style=\"text-align:left;\">" .. aredn_message .. "</div></div>")
     end
     if local_message and #local_message > 0 then
-        html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">" .. local_message .. "</div></div>")
+        html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Messages:</strong><br /><div style=\"text-align:left;\">" .. local_message .. "</div></div>")
     end
-
     html.print("</div>")
 end
 
@@ -99,6 +100,14 @@ function html.print(line)
         http_output:write(line .. "\n")
     else
         print(line)
+    end
+end
+
+function html.write(str)
+    if http_output then
+        http_output:write(str)
+    else
+        io.write(str)
     end
 end
 

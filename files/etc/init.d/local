@@ -26,7 +26,8 @@ boot() {
     # Deal with lan and wifi having same mac address (common on TP-Link)
     # Deal with lan mac + ~10 = wifi mac address (common on Microtik and
     # breaks OLSR if using derived IP addresses)
-    if [ $macdelta -le 10 ]
+    # Deal with lan on AR300M always having the same mac address.
+    if [ $macdelta -le 10 -o $lanmac = "00:03:7F:11:23:C6" ]
     then
       local wifimacdigit=`printf "%X" $(((0x${wifimac:9:2} + 1) % 256))`
       local newmac=${wifimac:0:9}${wifimacdigit}${wifimac:11}

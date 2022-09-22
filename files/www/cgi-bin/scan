@@ -45,6 +45,7 @@ if not node then
     node = "NOCALL"
 end
 local wifiiface = aredn.hardware.get_iface_name("wifi")
+local nf = iwinfo.nl80211.noise(wifiiface) or -95
 
 if not nixio.fs.stat("/tmp/web") then
     nixio.fs.mkdir("/tmp/web")
@@ -95,6 +96,7 @@ if f then
     end
     f:close()
 end
+
 local f = io.popen("iw dev " .. wifiiface .. " station dump")
 if f then
     local scan
@@ -182,7 +184,7 @@ html.print("<button type=button onClick='window.location=\"status\"' title='Retu
 
 -- display scan
 html.print("<table class=sortable border=1 cellpadding=5>")
-html.print("<tr><th>Sig</th><th>Chan</th><th>Enc</th><th>SSID</th><th>Hostname</th><th>MAC/BSSID</th><th>802.11 Mode</th></tr>")
+html.print("<tr><th>SNR</th><th>Signal</th><th>Chan</th><th>Enc</th><th>SSID</th><th>Hostname</th><th>MAC/BSSID</th><th>802.11 Mode</th></tr>")
 
 -- load arp cache
 local arpcache = {}
@@ -241,11 +243,10 @@ do
     else
         html.print("<tr>")
     end
-    html.print("<td>" .. scan.signal .. "</td><td>" .. chan .. "</td><td>" .. scan.key .. "</td><td>" .. scan.ssid .. "</td><td align=center>" .. hostname .. "</td><td>" .. scan.mac:upper() .. "</td><td>" .. scan.mode .. "</td>")
+    html.print("<td>" .. (scan.signal - nf) .. "</td><td>" .. scan.signal .. "</td><td>" .. chan .. "</td><td>" .. scan.key .. "</td><td>" .. scan.ssid .. "</td><td align=center>" .. hostname .. "</td><td>" .. scan.mac:upper() .. "</td><td>" .. scan.mode .. "</td>")
     html.print("</tr>")
 end
 
-html.print("</table><br></center></form>")
-
+html.print("</table><br></center>")
 html.footer()
 html.print("</body></html>")

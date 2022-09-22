@@ -76,16 +76,16 @@ html.print([[
         #links > div {
             padding: 2px 0;
         }
-        .m {
+        span {
             display: inline-block;
+        }
+        .m {
             width: 220px;
         }
         .s {
-            display: inline-block;
             width: 90px;
         }
         .p {
-            display: inline-block;
             width: 110px;
         }
     </style>
@@ -105,7 +105,7 @@ html.print([[<hr>
         </td></tr>
         <tr><td>
             <div class="lt">
-                <span class="m">RF Neighbor</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">Status</span>
+                <span class="m">Neighbor</span><span class="s">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">Status &nbsp;<a href='/help.html#lqmstatus' target='_blank'><img src='/qmark.png'></a></span>
             </div>
             <div id="links"></div>
             </td></tr>
@@ -132,7 +132,7 @@ html.print([[<hr>
                 if (track.blocks.distance) {
                     return "blocked - distance";
                 }
-                
+
                 if (track.blocks.signal) {
                     return "blocked - signal";
                 }
@@ -153,6 +153,9 @@ html.print([[<hr>
                 return "active";
             }
             return "idle";
+        }
+        const get_snr = track => {
+            return track.snr <= 0 ? "-" : track.snr + ("rev_snr" in track ? "/" + track.rev_snr : "");
         }
         const name = track => {
             if (track.hostname) {
@@ -198,13 +201,13 @@ html.print([[<hr>
                         }
                         break;
                 }
-                links += `<div><span class="m">${name(track)}</span><span class="s">${track.snr}${"rev_snr" in track ? "/" + track.rev_snr : ""}</span><span class="p">${distance}</span><span class="s">${quality}</span><span class="p">${status}</span></div>`;
+                links += `<div><span class="m">${name(track)}</span><span class="s">${track.type}</span><span class="s">${get_snr(track)}</span><span class="p">${distance}</span><span class="s">${quality}</span><span class="p">${status}</span></div>`;
             });
             if (links.length) {
                 document.getElementById("links").innerHTML = links;
             }
             else {
-                document.getElementById("links").innerHTML = `<div><span>Currently no RF neighbor data available</span></div>`
+                document.getElementById("links").innerHTML = `<div><span>Currently no neighbor data available</span></div>`
             }
         }
         const fetchAndUpdate = () => {

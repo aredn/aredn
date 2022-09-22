@@ -46,6 +46,7 @@ turned into a release.
 Please refer to https://github.com/aredn/aredn/issues
 for a list of outstanding defects.
 
+
 ### Images built
 
 Device | target | Image to Use | RAM | Stability
@@ -251,6 +252,12 @@ You need approximately 10GB of space for the build.
 
 Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn" command above:
+
+AREDN release 3.22.6.0
+
+```
+git checkout 3.22.6.0
+```
 
 AREDN release 3.21.4.0
 

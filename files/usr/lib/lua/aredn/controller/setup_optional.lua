@@ -1,8 +1,9 @@
-#!/bin/sh
-<<'LICENSE'
+#!/usr/bin/lua
+--[[
+
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
-   See Contributors file for additional contributors
+  Copyright (C) 2021 Darryl Quinn
+  See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,37 +32,64 @@
   and be marked in reasonable ways as differentiate it from the original
   version.
 
-LICENSE
+--]]
+
+require("aredn.utils")
+
+-- -------------------------------------
+-- -- Public API is attached to table
+-- -------------------------------------
+local module = {}
+
+-- Class constructor (NEW method)
+function module:new(req)
+  self.req = req
+  return self
+end
+
+-- Class methods
+function module:process()
+  local res={}
+  
+  if self.req['method']=="GET" then
+    res = module:GET()
+  elseif self.req['method']=="POST" then
+    res = module:POST()
+  end
+  return res
+end
 
 
-### Lets export some variables to help other scripts we call later.
+function module:GET()
+  local res={}
+  msg="SetupOptional:GET()"
+  res['msg']=msg
+  res['success']=true
+  return res
+end
 
-#Are we in NAT mode
-if [ "$(/sbin/uci -q get aredn.@dmz[0].mode)" != "0" ]
-then
-  export MESHFW_NATLAN=0
-else
-  export MESHFW_NATLAN=1
-fi
+function module:POST()
+  local res={}
+  msg="SetupOptional:POST()"
+  res['msg']=msg
+  res['success']=true
+  return res
+end
 
-#Is this node a meshgw
-export MESHFW_MESHGW
-MESHFW_MESHGW=$(/sbin/uci -q get aredn.@wan[0].olsrd_gw)
+function module:PUT()
+  local res={}
+  msg="unsupported method"
+  res['msg']=msg
+  res['success']=false
+  return res
+end
 
-# Are tunnels 'enabled'
-if [ -x "/usr/sbin/vtund" ]
-then
-  export MESHFW_TUNNELS_ENABLED=1
-else
-  export MESHFW_TUNNELS_ENABLED=0
-fi
+function module:DELETE()
+  local res={}
+  msg="unsupported method"
+  res['msg']=msg
+  res['success']=false
+  return res
+end
 
-# Lets execute each include file
-
-for file in /etc/local/mesh-firewall/*
-do
-  if ( [ -x "$file" ] && [ -f "$file" ] ); then
-    echo "mesh-firewall: Executing $file"
-    $file
-  fi
-done
+return module

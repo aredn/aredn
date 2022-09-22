@@ -71,7 +71,23 @@ buttons may not be available depending on the current configuration of your node
 
 <li><strong>Mesh Status</strong> takes you to a page which shows the Neighbor and Remote nodes as well as what services are being provided through those nodes.<br><br></li>
 
-<li><strong>Neighbor Status</strong> If you have Link Quality Manager (LQM) enabled, you will see a button that takes you to the Neighbor Status page which displays a table of RF neighbor nodes, their link quality metrics, and any actions that Link Quality Manager has taken to improve the communication between nodes. The Signal-to-Noise ratio in dB is shown for both sides of the radio link, as well as the distance between your node and the neighbor node. The distance is calculated based on the GPS coordinates (Lat/Lon) entered on each node. If no GPS coordinates were entered, then the distance cannot be calculated and that metric will not be considered in the LQM improvement process. The Link Quality is expressed as a percent and is calculated as the moving average of total sent packets over total sent packets plus retransmissions. The estimated throughput that can be expected is also displayed, along with the current status of each radio link. See the AREDN&#174; online documentation for a full description of Link Quality Manager.<br><br></li>
+<li><strong>Neighbor Status</strong> If you have Link Quality Manager (LQM) enabled, you will see a button that takes you to the Neighbor Status page. See the AREDN&#174; online documentation for a full description of Link Quality Manager. This page displays a table of RF neighbor nodes, their link quality metrics, and any actions that Link Quality Manager has taken to improve the communication between nodes. The Signal-to-Noise ratio in dB is shown for both sides of the radio link, as well as the distance between your node and the neighbor node. The distance is calculated based on the GPS coordinates (Lat/Lon) entered on each node. If no GPS coordinates were entered, then the distance cannot be calculated and that metric will not be considered in the LQM improvement process. The Link Quality is expressed as a percent and is calculated as the moving average of total sent packets over total sent packets plus retransmissions. The current status of each radio link is displayed, and the meaning of each status is shown below.
+<a name=lqmstatus></a>
+<ul>
+<li>pending: LQM is collecting data and evaluating the link.</li>
+<li>active: the link is viable and can be used.</li>
+<li>idle: the link is usable and would be <em>active</em> but the node routing table does not yet have a route for sending traffic across the link.</li>
+<li>blocked: the link is unusable and is blocked from use.</li>
+<li>blocked - distance: the remote node is either too close or too distant, based on the LQM Min and Max Distance settings.</li>
+<li>blocked - signal: the SNR on the link is too low to reliably pass data, based on the LQM Min SNR setting.</li>
+<li>blocked - retries: the retransmission rate is too high to reliably pass data.</li>
+<li>blocked - latency: the link latency is too high to reliably pass data.</li>
+<li>blocked - dtd: LQM blocks the RF interface of any nodes to which a DtD link also exists.</li>
+<li>blocked - dup: LQM blocks a link in cases when your node has an RF link to other nodes which themselves connect to each other via DtD. This can occur when there are multiple radios at a site using the same channel. The best remote node is chosen as the RF link for your node but the other possible RF connections are blocked as duplicates.</li>
+<li>blocked - user: LQM blocks any node which you enter in the <em>User Blocked Nodes</em> field in the Advanced Configuration section.
+<li>disconnected: the RF Neighbor is no longer online.</li>
+</ul>
+<br></li>
 
 <li><strong>WiFi Scan</strong> Displays a list of other 802.11 signals that your
 node can see. The 802.11 signals may include Access Points, neighbor nodes, and
@@ -350,13 +366,6 @@ incorrectly type a URL or if the host you are trying to reach no longer
 exists. The proper behavior is for your browser to detect these
 error conditions itself and report them accordingly. Google follows the rules and allows for the proper operation of the network.</p>
 
-<p><b>Advanced WAN Access</b></p>
-
-<p><a name=allowwan></a><b>Allow others to use my WAN</b>: When a node has Internet access from either its WAN or LAN, that access is available to the node itself and to any computer connected to the LAN network. When this option is enabled the node will also route traffic from its Mesh RF interface onto its WAN and typically out to the Internet. By default this is disabled since it is not a good practice to allow every remote mesh device to obtain Internet access through your node. If you choose to enable this option be aware that your node is transmitting as an FCC Part 97 amateur radio, so make sure that any Internet traffic sent over the radio complies with FCC Part 97 rules. If you simply want local wireless Internet access at a location, consider using a separate standard Part 15 access point instead of enabling this option on your node.</p>
-
-<p><a name=preventwan></a><b>Prevent LAN devices from accessing WAN</b>: Normally any devices connected to the node's LAN network will also have access to its WAN. Enabling this option will cause the node <em>not</em> to give LAN devices access to the WAN. This means that computers on this node's LAN
-will only use the 10.0.0.0/8 and 172.16.0.0/12 mesh network ranges. With this setting enabled you will not be able to access the Internet, even if your node has Internet available on its WAN port. This also applies to Internet available over the mesh. Use this only if your node needs to be connected to two networks at once, such as wired to the mesh as well as WiFi to a local served agency network.</p>
-
 <p><a name=wanclient><b>WAN Wifi Client</b></a></p>
 
 <p>The WAN Wifi Client feature allows you to connect an unused radio on your node to a local Wifi AP that can provide Internet access or some other type of network access. This can be useful in situations when you have no way to cable your node to a local router for WAN Internet access. Enabling the WAN Wifi Client will disable the WAN vlan which prevents your node from using its physical Ethernet port for WAN access.</p>
@@ -455,7 +464,7 @@ downloads seamlessly.</p>
 
 <p>When you want to let others know about services you are providing, the
 Advertised Services you create will appear on the <em>Mesh Status</em> page of all other nodes. All advertised services need a name, and no services can be
-advertised until at least one port forwarding rule or a DMZ server has been
+advertised in NAT Mode until at least one port forwarding rule or a DMZ server has been
 defined.</p>
 
 <p>If your service is accessible via web browser, such as from a web or ftp server, you can make the name appear as a clickable link by checking the <em>Link</em> box. All links need two parameters: a protocol and a port number.
@@ -464,6 +473,8 @@ services may use other protocols. The port number should be the one used as
 the Outside Port in the forwarding rule through which the service can be
 accessed. In the last field you can enter an optional link suffix to a more specific path if needed, such as the name of a specific page on a
 web server or a directory or file on an ftp server.</p>
+
+<p>OLSR propagates service entries to other nodes across the network. Once every hour your node will verify that its own service entries are valid. Your node will not propagate entries across the network if it determines that the host is unpingable, or that there is no service listening on the specified port, or if the HTTP link does not return a <em>success</em> status code. It also will not advertise a service that depends on a package which has not yet been installed. The node's Advertised Services list will still show the defined service (with a gray dot and hover text marking it as non-advertised), but your node will not actually advertise that service to the network. If the service URL becomes reachable in the future, then your node will resume advertising it across the network.</p>
 
 <p><strong>DHCP Address Reservations</strong></p>
 
@@ -591,7 +602,7 @@ click the <em>Remove</em> button. The AREDN&#174; documentation online describes
 <p><b>WARNING:</b> Changing advanced settings can be harmful to the stability, security, and performance of the node and potentially the entire mesh network.
 You should only continue if you are sure of what you are doing.</p>
 
-<p>For specific guidance, hover over the help icon for each setting on the page.</p>
+<p>The <b>Setting</b> column describes each setting. For additional information see the AREDN&#174; online documentation.</p>
 
 <hr><a name=failsafe><h2>Failsafe Feature</h2></a>
 

@@ -1,8 +1,9 @@
-#!/bin/sh
-<<'LICENSE'
+#!/usr/bin/lua
+--[[
+
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
-   See Contributors file for additional contributors
+  Copyright (C) 2021 Darryl Quinn
+  See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,37 +32,52 @@
   and be marked in reasonable ways as differentiate it from the original
   version.
 
-LICENSE
+--]]
+local aredn_info = require("aredn.info")
+require("aredn.utils")
 
+-- -------------------------------------
+-- -- Public API is attached to table
+-- -------------------------------------
+local module = {}
 
-### Lets export some variables to help other scripts we call later.
+function module:new(req)
+  self.req = req
+  return self
+end
 
-#Are we in NAT mode
-if [ "$(/sbin/uci -q get aredn.@dmz[0].mode)" != "0" ]
-then
-  export MESHFW_NATLAN=0
-else
-  export MESHFW_NATLAN=1
-fi
+-- Class methods
+function module:process()
+  local res={}
+  
+  if self.req['method']=="GET" then
+    res = module:GET()
+  elseif self.req['method']=="POST" then
+    res = module:POST()
+  else
+    msg="unsupported http method: " .. self.req['method']
+    res['msg']=msg
+    res['success']=false
+  end
+  return res
+end
 
-#Is this node a meshgw
-export MESHFW_MESHGW
-MESHFW_MESHGW=$(/sbin/uci -q get aredn.@wan[0].olsrd_gw)
+-- IS LOGGED IN
+function module:GET()
+  local res={}
+  res['errors'] = {}
+  -- res['debug'] = {}
+  -- res['debug'] = self.req
+  res['success']=true
+  return res
+end
 
-# Are tunnels 'enabled'
-if [ -x "/usr/sbin/vtund" ]
-then
-  export MESHFW_TUNNELS_ENABLED=1
-else
-  export MESHFW_TUNNELS_ENABLED=0
-fi
+-- LOGIN
+function module:POST()
+  local res={}
+  res['errors'] = {}
+  res['success']=true
+  return res
+end
 
-# Lets execute each include file
-
-for file in /etc/local/mesh-firewall/*
-do
-  if ( [ -x "$file" ] && [ -f "$file" ] ); then
-    echo "mesh-firewall: Executing $file"
-    $file
-  fi
-done
+return module

@@ -63,7 +63,7 @@ function do_namechange()
     local history = {}
 
     -- Load the hosts file
-    for line in io.lines("/var/run/hosts_olsr")
+    for line in io.lines("/var/run/hosts_olsr.stable")
     do
         local v = line:splitWhiteSpace()
         local ip = v[1]

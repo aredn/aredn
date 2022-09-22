@@ -39,6 +39,7 @@ local nxo = require("nixio")
 local ipc = require("luci.ip")
 local auci = require("aredn.uci")
 require("uci")
+require("luci.sys")
 
 function round2(num, idp)
   return tonumber(string.format("%." .. (idp or 0) .. "f", num))
@@ -304,6 +305,101 @@ function getTraceroute(target)
 	return routes
 end
 
+-------------------------------------
+-- Returns ping
+-------------------------------------
+function getPing(target)
+	local pings = {}
+	local summary = { tx = -1, rx = -1, lossPercentage = -1, ip = "not found", minMs = -1, maxMs = -1, avgMs = -1 }
+	local output = capture("/bin/ping -w 10 " .. target)
+	local foundip = "unknown"
+	for _, line in ipairs(output:splitNewLine())
+	do
+		local ip = line:match("^PING %S+ %(([%d%.]+)%):")
+		if ip then
+			summary.ip = ip
+		else
+			local ip, seq, ttl, time = line:match("bytes from ([%d%.]+): seq=(%d+) ttl=(%d+) time=(%S+) ms")
+			if ip then
+				pings[#pings + 1] = { ip = ip, seq = tonumber(seq), ttl = tonumber(ttl), timeMs = tonumber(time) }
+			else
+				local tx, rx, loss = line:match("^(%d+) packets transmitted, (%d+) packets received, (%d+)%% packet loss")
+				if tx then
+					summary.tx = tonumber(tx)
+					summary.rx = tonumber(rx)
+					summary.lossPercentage = tonumber(loss)
+				else
+					local min, avg, max = line:match("min/avg/max = ([%d%.]+)/([%d%.]+)/([%d%.]+) ms")
+					if min then
+						summary.minMs = tonumber(min)
+						summary.maxMs = tonumber(max)
+						summary.avgMs = tonumber(avg)
+					end
+				end
+			end
+		end
+	end
+	return { summary = summary, pings = pings }
+end
+
+-------------------------------------
+-- Returns iperf3
+-------------------------------------
+function getIperf3(target, protocol)
+	if protocol ~= "udp" then
+		protocol = "tcp"
+	end
+	function toK(value, unit)
+		return tonumber(value) * (unit == "M" and 1024 or 1)
+	end
+	function toM(value, unit)
+		return tonumber(value) / (unit == "K" and 1024 or 1)
+	end
+	local summary = { protocol = protocol, client = {}, server = {}, sender = {}, receiver = {} }
+	local trace = {}
+	-- start remote server
+	luci.sys.httpget("http://" .. target .. ":8080/cgi-bin/iperf?server=")
+	local output = capture("/usr/bin/iperf3 -b 0 -c " .. target .. (protocol == "udp" and " -u" or "") .. " 2>&1")
+	for _, line in ipairs(output:splitNewLine())
+	do
+		local chost, cport, shost, sport = line:match("local ([%d%.]+) port (%d+) connected to ([%d%.]+) port (%d+)")
+		if chost then
+			summary.client = { host = chost, port = tonumber(cport) }
+			summary.server = { host = shost, port = tonumber(sport) }
+		else
+			local from, to, transfer, tu, bitrate, bu, retr = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)%s+sender")
+			if from then
+				summary.sender = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), retr = tonumber(retr) }
+			else
+				local from, to, transfer, tu, bitrate, bu = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+receiver")
+				if from then
+					summary.receiver = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu) }
+				else
+					local from, to, transfer, tu, bitrate, bu, jitter, lost, total, percent = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+([%d%.]+) ms%s+(%d+)/(%d+) %(([%d%.]+)%%%)%s+sender")
+					if from then
+						summary.sender = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), jitterMs = tonumber(jitter), lostDgrams = tonumber(lost), totalDgrams = tonumber(total), lossPercentage = tonumber(precent) }
+					else
+						local from, to, transfer, tu, bitrate, bu, jitter, lost, total, percent = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+([%d%.]+) ms%s+(%d+)/(%d+) %(([%d%.]+)%%%)%s+receiver")
+						if from then
+							summary.receiver = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), jitterMs = tonumber(jitter), lostDgrams = tonumber(lost), totalDgrams = tonumber(total), lossPercentage = tonumber(precent) }
+						else
+							local from, to, transfer, tu, bitrate, bu, retr, cwnd, cu = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)%s+([%d%.]+) ([KM])Bytes")
+							if from then
+								trace[#trace + 1] = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, by), retr = tonumber(retr), cwndKB = toK(cwnd, cu) }
+							else
+								local from, to, transfer, tu, bitrate, bu, dgrams = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)")
+								if from then
+									trace[#trace + 1] = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), dgrams = tonumber(dgrams) }
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	return { summary = summary, trace = trace }
+end
 
 function file_trim(filename, maxl)
 	local lines={}

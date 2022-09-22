@@ -41,12 +41,18 @@ require("aredn.hardware")
 aredn.info = require('aredn.info')
 require("uci")
 
+-- Whether to validate hosts and services before publishing
+local validate = false
+
 -- check what config gile we are building for
 local uci_conf_file
 if #arg == 0 then
     uci_conf_file = "olsrd"
 else
     uci_conf_file = arg[1]
+    if #arg == 2 and arg[2] == "validate" then
+        validate = true
+    end
 end
 
 if uci_conf_file == "olsrd6" then
@@ -105,16 +111,23 @@ if dmz_mode ~= "0" then
         end
     end
     if nixio.fs.stat("/etc/ethers") then
+        local noprop_ip = {}
+        if nixio.fs.stat("/etc/hosts") then
+            for line in io.lines("/etc/hosts")
+            do
+                local ip = line:match("^(%S+)%s.*#NOPROP$")
+                if ip then
+                    noprop_ip[ip] = true
+                end
+            end
+        end
         for line in io.lines("/etc/ethers")
         do
-            local noprop = line:match(".*%s+.*%s+#NOPROP")
-            if not noprop then
-                local ip = line:match("[0-9a-fA-F:]+%s+([%d%.]+)")
-                if ip then
-                    local host = ip_to_hostname(ip)
-                    if host then
-                        hosts[#hosts + 1] = { ip = ip, host = host }
-                    end
+            local ip = line:match("[0-9a-fA-F:]+%s+([%d%.]+)")
+            if ip and not noprop_ip[ip] then
+                local host = ip_to_hostname(ip)
+                if host then
+                    hosts[#hosts + 1] = { ip = ip, host = host }
                 end
             end
         end
@@ -136,6 +149,85 @@ if nixio.fs.stat("/etc/config/services") then
         end
     end
 end
+
+-- validation
+if validate then
+    local laniface = aredn.hardware.get_iface_name("lan")
+    local valid_hosts = {}
+    -- Add in local names so services checks pass
+    for _, name in ipairs(names)
+    do
+        valid_hosts[name:lower()] = { host = name, ip = nil }
+    end
+    -- Check we can reach all the IP addresses
+    for _, host in ipairs(hosts)
+    do
+        if os.execute("/bin/ping -q -c 1 -W 1 " .. host.ip .. " > /dev/null 2>&1") == 0 then
+            valid_hosts[host.host:lower()] = host
+        elseif os.execute("/usr/sbin/arping -q -f -c 1 -w 1 -I " .. laniface .. " " .. host.ip .. " > /dev/null 2>&1") == 0 then
+            valid_hosts[host.host:lower()] = host
+        end
+    end
+    -- Check all the services have a valid host
+    local valid_services = {}
+    for _, service in ipairs(services)
+    do
+        local proto, hostname, port, path = service:match("^(%w+)://([%w%-%.]+):(%d+)(.*)|...|[^|]+$")
+        if valid_hosts[hostname:lower()] or dmz_mode == "0" then
+            if port == "0" then
+                -- no port so not a link - we can only check the hostname so have to assume the service is good
+                valid_services[#valid_services + 1] = service
+            elseif proto == "http" then
+                -- http so looks like a link. http check it
+                local status, effective_url = io.popen("/usr/bin/curl --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --location --write-out '%{http_code} %{url_effective}' " .. "http://" .. hostname .. ":" .. port .. path):read("*a"):match("^(%d+) (.*)")
+                if status == "200" or status == "401" then
+                    valid_services[#valid_services + 1] = service
+                elseif status == "301" or status == "302" or status == "303" or status == "307" or status == "308" then
+		            -- Ended at a redirect rather than an actual page.
+                    if effective_url:match("^https:") then
+                        -- We cannot validate https: links so we just assume they're okay
+                        valid_services[#valid_services + 1] = service
+                    end
+                end
+            else
+                -- valid port, but we dont know the protocol (we cannot trust the one defined in the services file because the UI wont set
+                -- anything but 'tcp'). Check both tcp and udp and assume valid it either is okay
+                -- tcp
+                local s = nixio.socket("inet", "stream")
+                s:setopt("socket", "sndtimeo", 2)
+                local r = s:connect(hostname, tonumber(port))
+                s:close()
+                if r == true then
+                    -- tcp connection succeeded
+                    valid_services[#valid_services + 1] = service
+                else
+                    -- udp
+                    s = nixio.socket("inet", "dgram")
+                    s:setopt("socket", "rcvtimeo", 2)
+                    s:connect(hostname, tonumber(port))
+                    s:send("")
+                    r = s:recv(0)
+                    s:close()
+                    if r ~= nil then
+                        -- A nil response is an explicity rejection of the udp request. Otherwise we have
+                        -- to assume the service is valid
+                        valid_services[#valid_services + 1] = service
+                    end
+                end
+            end
+        end
+    end
+    local old_hosts = hosts
+    hosts = {}
+    for _, host in ipairs(old_hosts)
+    do
+        if valid_hosts[host.host:lower()] then
+            hosts[#hosts + 1] = host
+        end
+    end
+    services = valid_services
+end
+-- end validation
 
 -- load the tunnels
 if nixio.fs.stat("/etc/local/mesh-firewall/02-vtund") then
@@ -170,7 +262,7 @@ print([[{]])
 print([[    PlParam "sighup-pid-file" "/var/run/dnsmasq/dnsmasq.pid"]])
 print([[    PlParam "interval" "30"]])
 print([[    PlParam "timeout" "300"]])
-print([[    PlParam "name-change-script" "touch /tmp/namechange"]])
+print([[    PlParam "name-change-script" "touch /tmp/namechange; cp /var/run/hosts_olsr /var/run/hosts_olsr.snapshot; mv -f /var/run/hosts_olsr.snapshot /var/run/hosts_olsr.stable"]])
 for _, name in ipairs(names)
 do
     print([[    PlParam "name" "]] .. name .. [["]])

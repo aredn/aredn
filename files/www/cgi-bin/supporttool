@@ -53,6 +53,7 @@ local files = {
     "/etc/mesh-release",
     "/tmp/etc/",
     "/var/run/hosts_olsr",
+    "/var/run/hosts_olsr.stable",
     "/var/run/services_olsr",
     "/tmp/rssi.dat",
     "/tmp/rssi.log",
@@ -172,7 +173,7 @@ if f then
     f:close()
 end
 
-os.execute("tar -zcf /tmp/supportdata.tgz -C /tmp/sd ./")
+os.execute("tar -zcf /tmp/supportdata.gz -C /tmp/sd ./")
 -- cleaup the temp files
 remove_all("/tmp/sd")
 
@@ -180,15 +181,15 @@ local nodename = capture("uname -n"):chomp()
 local tstamp = capture("date +%Y%m%d%H%M"):chomp()
 
 if os.getenv("GATEWAY_INTERFACE") ~= "" then
-    local fn = "supportdata-" .. nodename .. "-" .. tstamp .. ".tgz"
+    local fn = "supportdata-" .. nodename .. "-" .. tstamp .. ".gz"
     print("Content-type: application/x-gzip\r")
     print("Content-Disposition: attachment; filename=" .. fn .. "\r")
     print("\r")
-    io.write(read_all("/tmp/supportdata.tgz"))
+    io.write(read_all("/tmp/supportdata.gz"))
 else
-    local fn = "/tmp/supportdata-" .. nodename .. "-" .. tstamp .. ".tgz"
+    local fn = "/tmp/supportdata-" .. nodename .. "-" .. tstamp .. ".gz"
     nixio.fs.remove(fn)
-    nixio.fs.rename("/tmp/supportdata.tgz", fn)
+    nixio.fs.rename("/tmp/supportdata.gz", fn)
     print("File created: " .. fn)
     print("Please copy this file and remove from the node")
     print("to free up resources.")

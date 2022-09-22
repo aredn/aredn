@@ -68,7 +68,7 @@ do
 end
 for i = -4,11
 do
-    rf_channel_map["2400"][i + (i <= 0 and 3 or 2)] = { label = i .. " (" .. (2407 + i * 5) .. ")", number = i, frequency = 2407 + i * 5 }
+    rf_channel_map["2400"][i + (i <= 0 and 5 or 4)] = { label = i .. " (" .. (2407 + i * 5) .. ")", number = i, frequency = 2407 + i * 5 }
 end
 for i = 76,99
 do
@@ -208,6 +208,26 @@ function is_wifi_chanbw_valid(wifi_chanbw, wifi_ssid)
     return true -- always true
 end
 
+function validate_hostname(raw_name, name_type)
+    local trimmed_name = raw_name:match("^%s*(.-)%s*$")
+    if trimmed_name == "" then
+        if name_type == "node" then
+            err("you must set the node name")
+        end
+        -- A missing tactical name is not an error
+    else
+        local hostname = trimmed_name:match("^%f[%w]([-%w]+)%f[%W]$") -- RFC 1123 + RFC 952
+        if not hostname then
+            err(string.format('"%s" is not a valid %s name; only alphanumerics and internal hyphens are allowed', trimmed_name, name_type))
+        elseif string.len(hostname) > 63 then
+            err(string.format('%s name "%s" exceeds 63 characters', name_type, hostname)) -- RFC 2181
+        else
+            return hostname
+        end
+    end
+    return ""
+end
+
 -- helper end
 
 -- timezones
@@ -274,11 +294,11 @@ if parms.button_uploaddata then
     local newsi = string.format("%s,\"olsr\": %s}", si, topo)
 
     -- PUT it to the server
-    local upcurl = os.execute("curl -H 'Accept: application/json' -X PUT -d '" .. newsi .. "' http://data.arednmesh.org/sysinfo >/dev/null 2>&1")
+    local upcurl = os.execute("curl -f -H 'Accept: application/json' -X PUT -d '" .. newsi .. "' http://data.arednmesh.org/sysinfo >/dev/null 2>&1")
     if upcurl == 0 then
         out("AREDN online map updated")
     else
-        err("ERROR: Cannot update online map. Please ensure this node has access to the internet.");
+        err("ERROR: Cannot update online map.");
     end
 end
 
@@ -337,7 +357,7 @@ else
 end
 
 -- make sure everything we need is initialized
-local d0 = { "lan_dhcp", "olsrd_bridge", "olsrd_gw", "wifi2_enable", "lan_dhcp_noroute", "wifi_enable", "wifi3_enable" }
+local d0 = { "lan_dhcp", "olsrd_bridge", "wifi2_enable", "wifi_enable", "wifi3_enable", "dhcp_start", "dhcp_end" }
 for _, k in ipairs(d0)
 do
     if not parms[k] then
@@ -444,7 +464,7 @@ if (parms.button_apply or parms.button_save) and wifi_enable == "1" then
                 os.execute("iw phy " .. phy .. " set distance " .. wifi_distance .. " >/dev/null 2>&1")
             end
         end
-    else
+    elseif parms.lqm_min_snr ~= nil then
         -- validate values
         local lqm_min_snr = tonumber(parms.lqm_min_snr)
         local lqm_max_distance = tonumber(parms.lqm_max_distance)
@@ -591,8 +611,8 @@ if parms.button_save then
             err("invalid LAN IP address")
         else
             if lan_dhcp ~= "" then
-                local start_addr = lan_ip:match("^(.*%.)%d$") .. dhcp_start
-                local end_addr = lan_ip:match("^(.*%.)%d$") .. dhcp_end
+                local start_addr = lan_ip:match("^(.*%.)%d+$") .. dhcp_start
+                local end_addr = lan_ip:match("^(.*%.)%d+$") .. dhcp_end
 
                 if not (validate_ip_netmask(start_addr, lan_mask) and validate_same_subnet(start_addr, lan_ip, lan_mask)) then
                     err("invalid DHCP start address")
@@ -641,24 +661,9 @@ if parms.button_save then
         err("password must be changed during initial configuration")
     end
 
-    if nodetac:match("/") then
-        node, tactical = nodetac:match("^%s*([%w-]+)%s*/%s*([%w-])%s*$")
-        if tactical == "" then
-            err("invalid node/tactical name")
-        end
-    else
-        node = nodetac
-        tactical = ""
-        if node == "" then
-            err("you must set the node name")
-        end
-    end
-    if node ~= "" and node:match("[^%w-]") or node:match("_") then
-        err("invalid node name")
-    end
-    if tactical:match("[^%w-]") or tactical:match("_") then
-        err("invalid tactical name")
-    end
+    local raw_node, raw_tactical = nodetac:match("^([^/]*)(.*)$")
+    node = validate_hostname(raw_node, "node")
+    tactical = raw_tactical ~= "" and validate_hostname(string.sub(raw_tactical, 2), "tactical") or ""
 
     if not validate_fqdn(ntp_server) then
         err("invalid ntp server")
@@ -682,7 +687,7 @@ if parms.button_save then
         end
     end
     if wifi3_enable == "1" then
-        if #wifi3_key < 8 or #wifi3_key > 64 then
+        if #wifi3_key ~= 0 and (#wifi3_key < 8 or #wifi3_key > 64) then
             err("WAN Wifi Client Password must be between 8 and 64 characters")
         end
         if wifi3_key:match("'") or wifi3_ssid:match("'") then
@@ -1015,7 +1020,7 @@ html.print([[
 <td>Node Name</td>
 <td><input type=text name=nodetac value=']] .. nodetac .. [[' tabindex=1 size='50'></td>
 <td align=right>Password</td>
-<td><input type=password name=passwd1 value=']] .. passwd1 .. [[' size=8 tabindex=2></td>
+<td><input class='password-input' type=password name=passwd1 value=']] .. passwd1 .. [[' size=8 tabindex=2><i class='password-toggle'></i></td>
 ]])
 html.print([[
 </tr>
@@ -1026,7 +1031,7 @@ html.print([[
 hidden[#hidden + 1] = "<input type=hidden name=config value='mesh'>"
 html.print([[
 <td>Verify Password</td>
-<td><input type=password name=passwd2 value=']] .. passwd2 .. [[' size=8 tabindex=3></td>
+<td><input class='password-input' type=password name=passwd2 value=']] .. passwd2 .. [[' size=8 tabindex=3><i class='password-toggle'></i></td>
 </tr>
 </table>
 </td></tr>
@@ -1056,7 +1061,7 @@ html.print("<tr><td><nobr>IP Address</nobr></td><td><input type=text size=15 nam
 if nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset then
     local defaultwifi = aredn.hardware.get_default_channel()
     wifi_channel = defaultwifi.channel
-    wifi_chanbw = defaultwifi.bandwidth
+    wifi_chanbw = tostring(defaultwifi.bandwidth)
 end
 
 if wifi_enable == "1" then
@@ -1112,7 +1117,7 @@ if wifi_enable == "1" then
 						&nbsp;&nbsp;<a href='/help.html#linkqual' target='_blank'><img src='/qmark.png'></a>
             </td></tr>
         ]])
-        html.print("<tr><td>Min SNR</td><td><input type=text size=4 name='lqm_min_snr' value='" .. lqm_min_snr .. "' title='Minimum SNR of neighbor before it will be accepted'></td></tr>")
+        html.print("<tr><td>Min SNR</td><td><input type=text size=4 name='lqm_min_snr' value='" .. lqm_min_snr .. "' title='Minimum SNR of neighbor before it will be accepted'>&nbsp;dB</td></tr>")
         html.print("<tr><td>Min Quality</td><td><input type=text size=4 name='lqm_min_quality' value='" .. lqm_min_quality .. "' title='Minimum acceptable link quality'>&nbsp;%</td></tr>")
     else
         html.print("<tr id='dist' class='dist-norm'><td>Distance to<br/>FARTHEST Neighbor<br/><h3>'0' is auto</h3></td>")
@@ -1196,14 +1201,13 @@ end
 
 html.print("<tr><td colspan=2><hr></hr></td></tr>")
 
--- $M39model = `/usr/local/bin/get_model | grep -e "M[39]"`;
-local M39model
+local M39model = aredn.hardware.get_board_id():match("M[39]")
 if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi3_enable ~= "1") and not M39model then
     -- lan ap shows as an option
     -- determine hardware options and set band ahd channels accordingly
     if phycount == 1 then
-        -- rc3 = -- system("iw phy phy0 info | grep -q '5180 MHz' > /dev/null");
-        if rc3 ~= "" then
+        local rc3 = os.execute("iw phy phy0 info | grep -q '5180 MHz' > /dev/null")
+        if rc3 ~= 0 then
             wifi2_hwmode = "11g"
             if wifi2_channel > 14 then
                 wifi2_channel = 1
@@ -1264,14 +1268,14 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount =
     html.print("<tr><td>Encryption</td><td><select name=wifi2_encryption>")
     html.print("<option value='psk2'".. (wifi2_encryption == "psk2" and " selected" or "") .. ">WPA2 PSK</option>")
     html.print("<option value='psk'".. (wifi2_encryption == "psk" and " selected" or "") .. ">WPA PSK</option>")
-    html.print("</select></td></tr><tr><td>Password</td><td><input type=password size=15 name=wifi2_key value='" .. wifi2_key .. "'></td></tr>")
+    html.print("</select></td></tr><tr><td>Password</td><td><input class='password-input' type=password size=15 name=wifi2_key value='" .. wifi2_key .. "'><i class='password-toggle'></i></td></tr>")
 else
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_enable     value='" .. wifi2_enable .. "'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_ssid       value='" .. wifi2_ssid .. "'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_key        value='" .. wifi2_key .. "'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_channel    value='" .. wifi2_channel .."'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_encryption value='" .. wifi2_encryption .. "'>"
-    hidden[#hidden + 1] = "<input type=hidden name=wifi2_hwmode     value='" .. wifi2_hwmode .."'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_enable     value='" .. (wifi2_enable or "") .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_ssid       value='" .. (wifi2_ssid or "") .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_key        value='" .. (wifi2_key or "") .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_channel    value='" .. (wifi2_channel or "") .."'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_encryption value='" .. (wifi2_encryption or "") .. "'>"
+    hidden[#hidden + 1] = "<input type=hidden name=wifi2_hwmode     value='" .. (wifi2_hwmode or "") .."'>"
 end
 
 html.print("</table></td>")
@@ -1299,23 +1303,16 @@ end
 html.print("<tr><td><nobr>DNS 1</nobr></td><td><input type=text size=15 name=wan_dns1 value='" .. wan_dns1 .. "'></td></tr>")
 html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan_dns2 value='" .. wan_dns2 .. "'></td></tr>")
 
-html.print("<tr><th colspan=2><hr></td></tr><tr><th colspan=2><small>Advanced WAN Access</small></th></tr>")
-if wan_proto ~= "disabled" then
-    html.print("<tr><td><nobr>Allow others to<br>use my WAN</td><td><input type=checkbox name=olsrd_gw value=1 title='Allow this node to provide internet access to other mesh users'" .. (olsrd_gw ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#allowwan' target='_blank'><img src='/qmark.png'></a></td></tr>")
-else
-    hidden[#hidden + 1] = "<input type=hidden name=olsrd_gw value='0'>"
-end
-html.print("<tr><td><nobr>Prevent LAN devices<br>from accessing WAN</td><td><input type=checkbox name=lan_dhcp_noroute value=1 title='Disable LAN devices to access the internet'" .. (lan_dhcp_noroute ~= "0" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#preventwan' target='_blank'><img src='/qmark.png'></a></td></tr>")
+html.print("<tr><th colspan=2><hr></td></tr>")
 
 -- wan wifi client
-if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1") and not M390model then
+if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1") and not M39model then
     -- wifi client shows as an option
     -- determine hardware options and set band accordingly
 
     if phycount == 1 then
-        -- $rc3 = system("iw phy phy0 info | grep -q '5180 MHz' > /dev/null");
-        local rc3
-        if rc3 ~= "" then
+        local rc3 = os.execute("iw phy phy0 info | grep -q '5180 MHz' > /dev/null")
+        if rc3 ~= 0 then
             wifi3_hwmode = "11g"
         else
             wifi3_hwmode = "11a"
@@ -1334,7 +1331,22 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
         end
     end
 
-    html.print("<tr><td colspan=2><hr></td></tr><tr><th colspan=2><small>WAN Wifi Client</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#wanclient' target='_blank'><img src='/qmark.png'></a></td></tr>")
+    local connected = "/notdone.png"
+    local cmessage = "Not connected."
+    local wanintf = aredn.hardware.get_iface_name("wan")
+    local essid = capture_and_match("iwinfo " .. wanintf .. " info", 'ESSID: "(.+)"')
+    if essid == wifi3_ssid then
+        if pingOK then
+            connected = "/donedone.png"
+            cmessage = "Connected to Wifi and Internet."
+        else
+            connected = "/done.png"
+            cmessage = "Connected to Wifi. Not connected to Internet."
+        end
+    end
+
+    html.print("<tr><th colspan=2><small>WAN Wifi Client&nbsp;<img style='vertical-align:text-bottom' src='" .. connected .. "' title='" .. cmessage .. "'></small></th></tr>")
+    html.print("<tr><td>Enable</td><td><input type=checkbox name=wifi3_enable value=1" .. (wifi3_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#wanclient' target='_blank'><img src='/qmark.png'></a></td></tr>")
 
     if wifi_enable ~= "1" and wifi2_enable ~= "1" and phycount > 1 then
         html.print("<tr><td>WAN Wifi Client band</td><td><select name=wifi3_hwmode>")
@@ -1346,7 +1358,7 @@ if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount =
     end
 
     html.print("<tr><td>SSID</td><td><input type=text name=wifi3_ssid size=15 value='" .. wifi3_ssid .."'></select></td></tr>")
-    html.print("<tr><td>Password</td><td><input type=password size=15 name=wifi3_key value='" .. wifi3_key .. "'></td></tr>")
+    html.print("<tr><td>Password</td><td><input class='password-input' type=password size=15 name=wifi3_key value='" .. wifi3_key .. "'><i class='password-toggle'></i></td></tr>")
 else
     hidden[#hidden + 1] = "<input type=hidden name=wifi3_enable     value='" .. wifi3_enable .. "'>"
     hidden[#hidden + 1] = "<input type=hidden name=wifi3_ssid       value='" .. wifi3_ssid .. "'>"
@@ -1392,6 +1404,36 @@ do
 end
 
 html.print("</form></center>")
+html.print([[<style>
+.password-input {
+padding-right: 21px;
+}
+.password-toggle {
+display: inline-block;
+width: 21px;
+height: 15px;
+margin-left: -24px;
+cursor: pointer;
+background-image: url(/viz.png);
+background-size: contain;
+vertical-align: text-bottom;
+}
+</style>
+<script>
+function togglePassword(e) {
+    var target = e.target.previousSibling;
+    if (target.type === "password") {
+        target.type = "text";
+    }
+    else {
+        target.type = "password";
+    }
+}
+var fields = document.querySelectorAll(".password-toggle");
+for (var i = 0; i < fields.length; i++) {
+    fields[i].addEventListener("click", togglePassword);
+}
+</script>]])
 html.footer()
 html.print("</body></html>")
 http_footer()

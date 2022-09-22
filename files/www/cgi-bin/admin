@@ -567,6 +567,14 @@ end
 
 local meshpkgs = capture("grep -q \".local.mesh\" /etc/opkg/distfeeds.conf"):chomp()
 
+function update_advertised_services()
+    local script = "/etc/cron.hourly/check-services"
+    local stat = nixio.fs.stat(script)
+    if stat.type == "reg" and nixio.bit.band(tonumber(stat.modedec, 8), tonumber(111, 8)) ~= 0 then
+        os.execute("(cd /tmp;" .. script .. " 2>&1 | logger -p daemon.debug -t " .. script .. ")&")
+    end
+end
+
 -- upload package
 if parms.button_ul_pkg and nixio.fs.stat("/tmp/web/upload/file") then
     os.execute("mv -f /tmp/web/upload/file /tmp/web/upload/newpkg.ipk")
@@ -583,6 +591,8 @@ if parms.button_ul_pkg and nixio.fs.stat("/tmp/web/upload/file") then
     nixio.fs.remove("/tmp/web/upload/newpkg.ipk")
     if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
         pkgout("Failed to restart all services, please reboot this node.")
+    else
+        update_advertised_services()
     end
 end
 
@@ -600,6 +610,8 @@ if parms.button_dl_pkg and parms.dl_pkg ~= "default" then
         pkgout(result)
         if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
             pkgout("Failed to restart all services, please reboot this node.")
+        else
+            update_advertised_services()
         end
     else
         pkgout("Error: no route to Host")
@@ -622,7 +634,13 @@ if parms.button_rm_pkg and parms.rm_pkg ~= "default" and not permpkg[parms.rm_pk
     pkgout(output)
     if not output:match("No packages removed") then
         pkgout("Package removed successfully")
+        update_advertised_services()
     end
+end
+
+-- generate support data file
+if parms.button_support_data then
+    os.execute("/www/cgi-bin/supporttool")
 end
 
 -- generate data structures
@@ -764,7 +782,7 @@ html.print([[
             searchstring= ".*cpe" + hwtype + ".*-sysupgrade.bin$\";
             efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. hardwaretypev .. ".*-sysupgrade.bin";
         }
-        var re = new RegExp(searchstring,"g");   
+        var re = new RegExp(searchstring,"g");
         if(elem.value.match(re)){
             return true;
         }else{
@@ -781,7 +799,7 @@ html.print([[
     <body><center>
 ]])
 html.alert_banner()
-html.print("<form method=post action=admin enctype='multipart/form-data'><table width=790><tr><td>")
+html.print("<form method=post action=admin enctype='multipart/form-data'><table width=850><tr><td>")
 -- nav
 html.print("<hr><table cellpadding=5 border=0 width=100%><tr>")
 html.print("<td align=center width=15%><a href='status'>Node Status</a></td>")
@@ -798,13 +816,14 @@ html.print("<tr><td align=center><a href='/help.html#admin' target='_blank'>Help
 html.print("<input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>")
 html.print("</td></tr>")
 html.print("<tr><td align=center>")
-html.print("<table cellspacing=10>")
+
+html.print("<table cellspacing=10 width=100%>")
 
 -- firmware
 
 html.print("<tr><td align=center>")
-html.print("<table cellspacing=10>")
-html.print("<tr><th colspan=3>Firmware Update</th></tr>")
+html.print("<table cellspacing=10 width=100%>")
+html.print("<tr><th colspan=3 style=background-color:lightseagreen>Firmware Update</th></tr>")
 
 if #fw_output > 0 then
     html.print("<tr><td colspan=3 align=center><table><tr><td><b>")
@@ -812,13 +831,13 @@ if #fw_output > 0 then
     html.print("</b></td></tr></table></td></tr>")
 end
 
-html.print("<tr><td align=center colspan=3>current version: " .. fw_version .. "</td></tr>")
-html.print("<tr><td align=center colspan=3>hardware type: (" .. targettype .. ") " .. mfgprefix .. " (" .. hardwaretype .. ")</td></tr>")
+html.print("<tr><td align=center colspan=3><b>Current Version:</b> " .. fw_version .. "&nbsp; &nbsp; &nbsp; <b>Hardware Type:</b> (" .. targettype .. ") " .. mfgprefix .. " (" .. hardwaretype .. ")</td></tr>")
+html.print("<tr><td align=center colspan=3>Keep Existing Configuration Settings <input type=checkbox name=checkbox_keep_settings checked title='keep existing configuration settings'></td></tr>")
+
 html.print("<tr>")
 html.print("<td>Upload Firmware</td>")
-html.print("<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin' onchange='validateFirmwareFilename(this)'></td>")
-html.print("<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'>")
-html.print("</td>")
+html.print("<td><input style='width:100%' type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin' onchange='validateFirmwareFilename(this)'></td>")
+html.print("<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'></td>")
 html.print("</tr>")
 
 html.print("<tr>")
@@ -832,22 +851,23 @@ end
 html.print("</select>")
 html.print("<input type=submit name=button_refresh_fw value=Refresh title='download the list of available firmware versions'>")
 html.print("<td align=center><input type=submit name=button_dl_fw value=Download title='install the firmware'></td>")
-html.print("<td align=right><input type=checkbox name=checkbox_keep_settings checked>Keep Settings</td>")
 html.print("</tr>")
+
 html.print("<tr>")
 html.print("<td>Load Local Firmware</td>")
-html.print("<td><input type=submit name=button_apply_fw value='Apply Local Firmware' title='Apply previously loaded firmware' " .. (nixio.fs.stat("/tmp/web/local_firmware.bin") and "" or "disabled") .. ">")
-html.print("<small>/tmp/web/local_firmware.bin</small></td>")
+html.print("<td style='font-family:monospace'>")
+html.print("<input type=submit name=button_apply_fw value='Apply Local Firmware' title='apply firmware previously uploaded to this node and named as shown' " .. (nixio.fs.stat("/tmp/web/local_firmware.bin") and "" or "disabled") .. ">")
+html.print(" /tmp/web/local_firmware.bin</td>")
 html.print("</tr>")
 
 html.print("</table></td></tr>")
-html.print("<tr><td colspan=3><hr></td></tr>")
+html.print("<tr><td colspan=3></td></tr>")
 
 -- packages
 
 html.print("<tr><td align=center>")
-html.print("<table cellspacing=10>")
-html.print("<tr><th colspan=3>Package Management</th></tr>")
+html.print("<table cellspacing=10 width=100%>")
+html.print("<tr><th colspan=3 style=background-color:lightseagreen>Package Management</th></tr>")
 
 if #pkg_output > 0 then
     -- opkg can produce duplicate first lines, remove them here
@@ -862,7 +882,7 @@ end
 
 html.print("<tr>")
 html.print("<td>Upload Package</td>")
-html.print("<td><input type=file name=ul_pkg title='choose the .ipk file to install from your hard drive'> </td>")
+html.print("<td><input style='width:100%' type=file name=ul_pkg title='choose the .ipk file to install from your hard drive'> </td>")
 html.print("<td align=center><input type=submit name=button_ul_pkg value=Upload title='install the package'>")
 html.print("</td>")
 html.print("</tr>")
@@ -894,12 +914,12 @@ html.print("</tr>")
 
 html.print("</table></td></tr>")
 
-html.print("<tr><td colspan=3><hr></td></tr>")
+html.print("<tr><td colspan=3></td></tr>")
 
 -- ssh keys
 html.print("<tr><td align=center>")
-html.print("<table cellspacing=10>")
-html.print("<tr><th colspan=3>Authorized SSH Keys</th></tr>")
+html.print("<table cellspacing=10 width=100%>")
+html.print("<tr><th colspan=3 style=background-color:lightseagreen>Authorized SSH Keys</th></tr>")
 
 if #key_output > 0 then
     html.print("<tr><td colspan=3 align=center><table><tr><td><b><pre>")
@@ -909,7 +929,7 @@ end
 
 html.print("<tr>")
 html.print("<td>Upload Key</td>")
-html.print("<td><input type=file name=sshkey title='choose the id_rsa.pub file to install from your hard drive'></td>")
+html.print("<td><input style='width:100%' type=file name=sshkey title='choose the id_rsa.pub file to install from your hard drive'></td>")
 html.print("<td align=center><input type=submit name=button_ul_key value=Upload title='install the key'")
 html.print("></td>")
 html.print("</tr>")
@@ -928,12 +948,12 @@ html.print("</tr>")
 
 html.print("</table></td></tr>")
 
-html.print("<tr><td colspan=3><hr></td></tr>")
+html.print("<tr><td colspan=3></td></tr>")
 
-html.print("<tr><th colspan=3>Support Data</th></tr>")
-html.print("<tr><td colspan=3 align=center><a href=/cgi-bin/supporttool>Download Support Data</a></td></tr>")
+html.print("<tr><th colspan=3 style=background-color:lightseagreen>Support Data</th></tr>")
+html.print("<tr><td colspan=3 align=center><input type=submit name=button_support_data value='Download Support Data' title='Download a Support Data file'></td></tr>")
 
-html.print("<tr><td colspan=3><hr></td></tr>")
+html.print("<tr><td colspan=3></td></tr>")
 
 html.print("</table>")
 html.print("</td></tr>")
