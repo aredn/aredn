@@ -1,0 +1,59 @@
+--- a/package/feeds/arednpackages/olsrd/Makefile
++++ b/package/feeds/arednpackages/olsrd/Makefile
+@@ -107,12 +107,6 @@ define Package/olsrd-mod-pgraph
+   TITLE:=output network topology for pgraph
+ endef
+ 
+-define Package/olsrd-mod-pud
+-  $(call Package/olsrd/template)
+-  DEPENDS:=olsrd +libgps
+-  TITLE:=Position Update Distribution plugin
+-endef
+-
+ define Package/olsrd-mod-quagga
+   $(call Package/olsrd/template)
+   DEPENDS:=olsrd
+@@ -143,10 +137,6 @@ define Package/olsrd-mod-watchdog
+   TITLE:=Watchdog plugin
+ endef
+ 
+-define Package/olsrd-mod-pud/conffiles
+-/etc/olsrd.d/olsrd.pud.position.conf
+-endef
+-
+ define Package/olsrd-mod-secure/conffiles
+ /etc/olsrd.d/olsrd_secure_key
+ endef
+@@ -161,7 +151,7 @@ MAKE_FLAGS+= \
+ 	DESTDIR="$(PKG_INSTALL_DIR)" \
+ 	STRIP="true" \
+ 	INSTALL_LIB="true" \
+-	SUBDIRS="arprefresh bmf dot_draw dyn_gw dyn_gw_plain httpinfo jsoninfo mdns nameservice p2pd pgraph pud quagga secure sgwdynspeed txtinfo watchdog"
++	SUBDIRS="arprefresh bmf dot_draw dyn_gw dyn_gw_plain httpinfo jsoninfo mdns nameservice p2pd pgraph quagga secure sgwdynspeed txtinfo watchdog"
+ 
+ define Build/Compile
+ 	$(call Build/Compile/Default,all)
+@@ -238,15 +228,6 @@ define Package/olsrd-mod-pgraph/install
+ 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/lib/pgraph/olsrd_pgraph.so.* $(1)/usr/lib/
+ endef
+ 
+-define Package/olsrd-mod-pud/install
+-	$(INSTALL_DIR) $(1)/etc/olsrd.d
+-	$(CP) ./files/olsrd.pud.position.conf $(1)/etc/olsrd.d/
+-	$(INSTALL_DIR) $(1)/usr/lib
+-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/lib/pud/nmealib/lib/libnmea.so $(1)/usr/lib/
+-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/lib/pud/wireformat/lib/libOlsrdPudWireFormat.so $(1)/usr/lib/
+-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/lib/pud/olsrd_pud.so.* $(1)/usr/lib/
+-endef
+-
+ define Package/olsrd-mod-quagga/install
+ 	$(INSTALL_DIR) $(1)/usr/lib
+ 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/lib/quagga/olsrd_quagga.so.* $(1)/usr/lib/
+@@ -288,7 +269,6 @@ $(eval $(call BuildPackage,olsrd-mod-mdn
+ $(eval $(call BuildPackage,olsrd-mod-nameservice))
+ $(eval $(call BuildPackage,olsrd-mod-p2pd))
+ $(eval $(call BuildPackage,olsrd-mod-pgraph))
+-$(eval $(call BuildPackage,olsrd-mod-pud))
+ $(eval $(call BuildPackage,olsrd-mod-quagga))
+ $(eval $(call BuildPackage,olsrd-mod-secure))
+ $(eval $(call BuildPackage,olsrd-mod-sgwdynspeed))

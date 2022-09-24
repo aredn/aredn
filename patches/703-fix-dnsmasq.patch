@@ -1,18 +1,14 @@
-Index: openwrt/package/base-files/files/etc/rc.local
-===================================================================
---- openwrt.orig/package/base-files/files/etc/rc.local
-+++ openwrt/package/base-files/files/etc/rc.local
+--- a/package/base-files/files/etc/rc.local
++++ b/package/base-files/files/etc/rc.local
 @@ -1,4 +1,4 @@
  # Put your custom commands here that should be executed once
  # the system init finished. By default this file does nothing.
 -
 +/etc/init.d/dnsmasq start
  exit 0
-Index: openwrt/package/network/services/dnsmasq/Makefile
-===================================================================
---- openwrt.orig/package/network/services/dnsmasq/Makefile
-+++ openwrt/package/network/services/dnsmasq/Makefile
-@@ -165,7 +165,7 @@ define Package/dnsmasq/install
+--- a/package/network/services/dnsmasq/Makefile
++++ b/package/network/services/dnsmasq/Makefile
+@@ -167,7 +167,7 @@ define Package/dnsmasq/install
  	$(INSTALL_CONF) ./files/dhcp.conf $(1)/etc/config/dhcp
  	$(INSTALL_CONF) ./files/dnsmasq.conf $(1)/etc/dnsmasq.conf
  	$(INSTALL_DIR) $(1)/etc/init.d
@@ -21,10 +17,8 @@ Index: openwrt/package/network/services/dnsmasq/Makefile
  	$(INSTALL_DIR) $(1)/etc/hotplug.d/dhcp
  	$(INSTALL_DIR) $(1)/etc/hotplug.d/neigh
  	$(INSTALL_DIR) $(1)/etc/hotplug.d/ntp
-Index: openwrt/package/network/services/dnsmasq/files/dnsmasq.init.aredn
-===================================================================
 --- /dev/null
-+++ openwrt/package/network/services/dnsmasq/files/dnsmasq.init.aredn
++++ b/package/network/services/dnsmasq/files/dnsmasq.init.aredn
 @@ -0,0 +1,640 @@
 +#!/bin/sh /etc/rc.common
 +# Copyright (C) 2007-2012 OpenWrt.org
