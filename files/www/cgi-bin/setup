@@ -669,6 +669,27 @@ if parms.button_save then
         err("invalid ntp server")
     end
 
+    -- move update-clock to correct location if necessary
+    if parms.ntp_period == "daily" then
+        if not nixio.fs.stat("/etc/cron.daily/update-clock") then
+            if nixio.fs.stat("/etc/cron.hourly/update-clock") then
+                os.execute("mv /etc/cron.hourly/update-clock /etc/cron.daily/update-clock")
+            else
+                err("update-clock script not found")
+            end
+        end
+    elseif parms.ntp_period == "hourly" then
+        if not nixio.fs.stat("/etc/cron.hourly/update-clock") then
+            if nixio.fs.stat("/etc/cron.daily/update-clock") then
+                os.execute("mv /etc/cron.daily/update-clock /etc/cron.hourly/update-clock")
+            else
+                err("update-clock script not found")
+            end
+        end
+    else
+        err("ntp_period not set")
+    end
+
     if wifi2_enable == "1" then
         if #wifi2_ssid > 32 then
             err("LAN Access Point SSID musr be 32 or less characters")
@@ -744,6 +765,14 @@ if parms.button_save then
             end
             f:close()
         end
+
+        -- commit new ntp_period value
+        local cursorm = uci.cursor("/etc/config.mesh")
+        if parms.ntp_period ~= cursorm:get("aredn", "@ntp[0]", "period") then
+            cursorm:set("aredn", "@ntp[0]", "period", parms.ntp_period)
+            cursorm:commit("aredn")
+        end
+
         aredn_info.set_nvram("node", parms.node);
         aredn_info.set_nvram("tactical", parms.tactical)
         aredn_info.set_nvram("config", parms.config)
@@ -1384,13 +1413,19 @@ else
     html.print("<button disabled type='button' title='Only available if this node has internet access'>Upload data to AREDN Servers</button>&nbsp;")
 end
 
-html.print("</td><tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='" .. lon .. "' title='Longitude value (in decimal) (ie. -95.334454)' /></td><td align=left>Grid Square</td><td align='left'><input type=text name=gridsquare maxlength=6 size=6 value='" .. gridsquare .. "' title='Gridsquare value (ie. AB12cd)' /></td></tr><tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr><tr><td colspan=4><hr /></td></tr>")
-html.print("<tr><td>Timezone</td><td><select name=time_zone_name tabindex=10>")
+html.print("</td><tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='" .. lon .. "' title='Longitude value (in decimal) (ie. -95.334454)' /></td><td align=left>Grid Square <input type=text name=gridsquare maxlength=6 size=6 value='" .. gridsquare .. "' title='Gridsquare value (ie. AB12cd)' /></td></tr><tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr><tr><td colspan=4><hr /></td></tr>")
+html.print("<tr><td>Timezone </td><td><select name=time_zone_name tabindex=10>")
 for _,zone in ipairs(tz_db_names)
 do
     html.print("<option value='" .. zone.name .. "'".. (zone.name == time_zone_name and " selected" or "") .. ">" .. zone.name .. "</option>")
 end
-html.print("</select></td><td align=left>NTP Server</td><td><input type=text name=ntp_server size=20 value='" .. ntp_server .. "'></td></table></td></tr></table>")
+html.print("</select></td>")
+html.print("<td align=center>NTP Server &nbsp; <input type=text name=ntp_server size=20 value='" .. ntp_server .. "'></td>")
+if ntp_period == "daily" or not ntp_period then
+    html.print("<td>NTP Updates &nbsp; <select name=ntp_period><option value='daily' selected>daily</option><option value='hourly'>hourly</option></select></td></table></td></tr></table>")
+elseif ntp_period == "hourly" then
+    html.print("<td>NTP Updates &nbsp; <select name=ntp_period><option value='daily'>daily</option><option value='hourly' selected>hourly</option></select></td></table></td></tr></table>")
+end
 
 hidden[#hidden + 1] = "<input type=hidden name=reload value=1>"
 hidden[#hidden + 1] = "<input type=hidden name=dtdlink_ip value='" .. dtdlink_ip .. "'>"
