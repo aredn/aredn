@@ -291,3 +291,30 @@ if #tunnels > 0 then
     print([[     Mode "ether"]])
     print([[}]])
 end
+
+-- add the XLINK interfaces
+if nixio.fs.stat("/etc/config.mesh/xlink") then
+    uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
+        function(section)
+            print()
+            print([[Interface "]] .. section.ifname .. [["]])
+            print([[{]])
+            if section.peer then
+                print([[     Ip4Broadcast ]] .. section.peer)
+            else
+                print([[     Ip4Broadcast 255.255.255.255]])
+            end
+            local weight = tonumber(section.weight)
+            if weight then
+                if weight > 1 then
+                    print([[     LinkQualityMult default ]] .. (1 / weight))
+                elseif weight < 1 then
+                    print([[     Mode "ether"]])
+                end
+            else
+                print([[     Mode "ether"]])
+            end
+            print([[}]])
+        end
+    )
+end
