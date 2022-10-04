@@ -1,8 +1,8 @@
 #!/bin/sh
 <<'LICENSE'
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2015 Conrad Lara
-   See Contributors file for additional contributors
+  Copyright (C) 2022 Conrad Lara
+  See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,21 +18,22 @@
 
 LICENSE
 
-DHCPLANSECTION=$(uci show dhcp|grep interface=lan|sed "s/dhcp.\@dhcp\[\(.*\)\].interface=lan/\1/")
+DHCPLANSECTION=$(uci show dhcp|grep interface=\'lan\'|sed "s/dhcp.\@dhcp\[\(.*\)\].interface=\'lan\'/\1/")
 
-logger "AREDN(TM) Recovery: Reseting root password to: hsmm"
+logger "Recovery Mode: Resetting root password to: hsmm"
 /usr/local/bin/setpasswd hsmm
 
-logger "AREDN(TM) Recovery: Restarting uhttpd" 
+logger "Recovery Mode: Restarting uhttpd"
 /etc/init.d/uhttpd restart
 
-if [ "$DHCPLANSECTION" != "" ]
-  then
-    logger "AREDN(TM) Recovery: Enable DHCP on lan interface"
-    uci set "dhcp.@dhcp\[$DHCPLANSECTION\].ignore=0"
-    uci -q commit
+if [ -n "$DHCPLANSECTION" ] ; then
+    logger "Recovery Mode: Enabling DHCP on lan interface"
+    /sbin/uci -c /etc/config.mesh -q set dhcp.@dhcp[$DHCPLANSECTION].ignore=0
+    uci -c /etc/config.mesh -q commit dhcp
 
-    logger "AREDN(TM) Recovery: Restart dnsmasq"
+    logger "Recovery Mode: Restarting dnsmasq"
+    if [ ! -d "/tmp/hosts" ] ; then
+        mkdir /tmp/hosts
+    fi
     /etc/init.d/dnsmasq restart
 fi
-
