@@ -4,6 +4,7 @@ configmode=$(uci -q -c /etc/local/uci/ get hsmmmesh.settings.config)
 
 if [ "$configmode" != "mesh" ] ; then exit 0; fi
 
+xlink=$(uci -q -c /etc/config.mesh/ show xlink | grep "ifname='${DEVICE}'")
 
 # This section will generate rtnetlink errors when the rule doesn't exist.
 # This will be most common in the case of ifup.
@@ -16,7 +17,7 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
 
   echo "Deleting specific routing rules that may exist."
 
-  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] ; then
+  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:3}" == "tun" ] || [ "$xlink" != "" ] ; then
     ip rule del pref 20010 iif $DEVICE lookup 29
     ip rule del pref 20020 iif $DEVICE lookup 30
     ip rule del pref 20080 iif $DEVICE lookup 31
@@ -49,7 +50,7 @@ if [ "$ACTION" = "ifup" ] ; then
 
   echo "Setting routing rules."
 
-  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ]; then
+  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:3}" = "tun" ] || [ "$xlink" != "" ]; then
     if [ "$(/sbin/uci -q get aredn.@dmz[0].mode)" != "0" ] ; then 
       ip rule add pref 20010 iif $DEVICE lookup 29
     fi
