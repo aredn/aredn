@@ -102,6 +102,10 @@ do
 	table.sort(tasks, function(a,b) return a.time < b.time end)
 	local delay = tasks[1].time - os.time()
 	if delay > 0 then
-		nixio.nanosleep(delay, 0)
+		collectgarbage("collect")
+		delay = tasks[1].time - os.time()
+		if delay > 0 then
+			nixio.nanosleep(delay, 0)
+		end
 	end
 end
