@@ -182,8 +182,7 @@ local host_total = 0
 local host_nodes = 0
 for line in io.lines("/var/run/hosts_olsr.stable")
 do
-    local host = line:match("^10%.")
-    if host then
+    if line:match("^10%.") and not line:match("%smid%d+%.") then
         host_total = host_total + 1
         local host = line:match("^10%..+%sdtdlink%.")
         if host then
