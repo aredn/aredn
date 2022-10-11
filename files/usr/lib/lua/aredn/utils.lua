@@ -697,6 +697,22 @@ function validate_port_range(range)
 	return true
 end
 
+-- test whether free memory is low
+function isFreeMemoryLow()
+    -- get low memory threshold
+    local u=uci.cursor()
+    local lowmemory = u:get("aredn", "@meshstatus[0]", "lowmem")
+    if not lowmemory then 
+        lowmemory = 10000 
+    end
+    lowmemory = 1024 * tonumber(lowmemory)   -- convert to bytes
+    if nixio.sysinfo().freeram < lowmemory then 
+        return true 
+    else 
+        return false 
+    end
+end
+
 --[[
 LuCI - System library
 

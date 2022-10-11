@@ -555,13 +555,7 @@ function pkgout(msg)
     pkg_output[#pkg_output + 1] = msg
 end
 
--- get low memory threshold
-local lowmemory = cursor:get("aredn", "@meshstatus[0]", "lowmem")
-if not lowmemory then
-    lowmemory = 10000
-end
-lowmemory = 1024 * tonumber(lowmemory)   -- convert to bytes
-if nixio.sysinfo().freeram < lowmemory then
+if isFreeMemoryLow() then
     pkgout("WARNING: this node has low free memory and may not be stable with extra packages installed!")
 end
 
