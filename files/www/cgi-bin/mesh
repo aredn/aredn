@@ -159,9 +159,8 @@ end
 local lowmemory = cursor:get("aredn", "@meshstatus[0]", "lowmem")
 if not lowmemory then
     lowmemory = 10000
-else
-    lowmemory = tonumber(lowmemory)
 end
+lowmemory = 1024 * tonumber(lowmemory)
 local lowroutes = cursor:get("aredn", "@meshstatus[0]", "lowroutes")
 if not lowroutes then
     lowroutes = 1000
@@ -208,7 +207,7 @@ if olsr_routes > lowroutes and nixio.sysinfo().freeram < lowmemory then
     table.sort(list, function (a, b) return a.etx < b.etx end)
     for i = lowroutes,olsr_routes
     do
-        table.remove(routes, list[i].key)
+        routes[list[i].key] = nil
     end
 end
 
