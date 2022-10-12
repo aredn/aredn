@@ -788,9 +788,11 @@ html.print("<tr><th align='left'>OLSR Entries</th></tr>")
 html.print("<tr><td colspan=7><hr></td></tr>")
 html.print("<tr><td>Total</td><td>&nbsp;</td><td align='right'>" .. olsr_total .. "</td></tr>")
 html.print("<tr><td>Nodes</td><td>&nbsp;</td><td align='right'>" .. olsr_nodes .. "</td></tr>")
+if nixio.sysinfo().freeram < lowmemory then
+    html.print("<tr><td colspan=7><span style=background-color:cyan;>&nbsp;NOTE: Counts are correct but page may be truncated to save node memory&nbsp;</span></td></tr>")
+end
 html.print("</table></td></tr></table>")
 
---  end
 html.print("</center>")
 html.print("</form>")
 

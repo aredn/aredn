@@ -697,6 +697,15 @@ function validate_port_range(range)
 	return true
 end
 
+-- return true if 32mb node
+function isLowMemNode()
+    totalmem = nixio.sysinfo().totalram
+    if totalmem <= 33554432 then
+        return true
+    end
+    return false
+end
+
 --[[
 LuCI - System library
 
