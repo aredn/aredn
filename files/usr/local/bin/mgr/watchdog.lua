@@ -42,12 +42,11 @@ local logfile = "/tmp/olsrd.log"
 function olsrd_restart()
     -- print "olsrd_restart"
 
-    -- This "luci.sys.init.restart("olsrd")" doesnt do the same thing so we have to call restart directly
     os.execute("/etc/init.d/olsrd restart")
 
     if nixio.fs.stat(logfile) then
         local lines = read_all(logfile):splitNewLine()
-        lines[#lines + 1] = aredn_info.getUptime() .. " " .. os.date()
+        lines[#lines + 1] = secondsToClock(nixio.sysinfo().uptime) .. " " .. os.date()
         local start = 1
         if #lines > 300 then
             start = #lines - 275

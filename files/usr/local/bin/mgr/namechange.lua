@@ -80,7 +80,9 @@ function do_namechange()
     end
 
     -- Find the current neighbors
-    local links = fetch_json("http://127.0.0.1:9090/links")
+    local raw = io.popen("/usr/bin/wget -O - http://127.0.0.1:9090/links 2> /dev/null")
+    local links = luci.jsonc.parse(raw:read("*a"))
+    raw:close()
     if not (links and links.links and #links.links > 0) then
         return
     end

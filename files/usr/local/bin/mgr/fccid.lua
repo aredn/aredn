@@ -34,9 +34,11 @@
 
 --]]
 
+local socket = require("socket")
+
 function fccid()
     local id = string.format("ID: %s", capture("uname -n"))
-    local ip = aredn_info.getInterfaceIPAddress("wifi")
+	local ip = uci.cursor():get("network", "wifi", "ipaddr")
     local udp = socket.udp()
     udp:setoption("broadcast", true)
     udp:setsockname(ip, 4919)
