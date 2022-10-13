@@ -83,7 +83,15 @@ function run_snrlog()
     end)
 
     -- get the current bandwidth setting
-    local bandwidth = aredn_info.getChannelBW(aredn_info.getMeshRadioDevice())
+    local radio = "radio0"
+    cursor:foreach("wireless", "wifi-iface",
+        function(i)
+            if i.mode == "adhoc" then
+                radio = i.device
+            end
+        end
+    )
+    local bandwidth = cursor:get("wireless", radio, "chanbw")
 
     -- load the lasttime table
     local lasttime = {}

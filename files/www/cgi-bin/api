@@ -43,6 +43,7 @@ local aredn_info = require("aredn.info")
 require("nixio")
 local json = require("luci.jsonc")
 require("iwinfo")
+local nettools = require("aredn.nettools")
 
 local API_VERSION="1.5"
 
@@ -373,7 +374,7 @@ for page, comps in pairs(qsset) do
 		for i,tonode in pairs(comps:split(',')) do
 			-- Validate that input as ip or hostname inside the mesh
 			if tonode:match("^[%d%.]+$") or tonode:match("^[%d%a%-%.%_]+$") then
-				info['pages'][page][tonode]=getTraceroute(tonode)
+				info['pages'][page][tonode]=nettools.getTraceroute(tonode)
 			else
 				info['pages'][page][tonode]="Invalid input!"
 			end
@@ -382,7 +383,7 @@ for page, comps in pairs(qsset) do
 		for i,tonode in pairs(comps:split(',')) do
 			-- Validate that input as ip or hostname inside the mesh
 			if tonode:match("^[%d%.]+$") or tonode:match("^[%d%a%-%.%_]+$") then
-				info['pages'][page][tonode]=getPing(tonode)
+				info['pages'][page][tonode]=nettools.getPing(tonode)
 			else
 				info['pages'][page][tonode]="Invalid input!"
 			end
@@ -394,7 +395,7 @@ for page, comps in pairs(qsset) do
 			if tonode == "tcp" or tonode == "udp" then
 				protocol = tonode
 			elseif tonode:match("^[%d%.]+$") or tonode:match("^[%d%a%-%.%_]+$") then
-				info['pages'][page][tonode]=getIperf3(tonode, protocol)
+				info['pages'][page][tonode]=nettools.getIperf3(tonode, protocol)
 			else
 				info['pages'][page][tonode]="Invalid input!"
 			end

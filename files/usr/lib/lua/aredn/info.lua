@@ -38,7 +38,6 @@ require("uci")
 local aredn_uci = require("aredn.uci")
 require("aredn.utils")
 
--- require("aredn.http")
 local lip=require("luci.ip")
 require("nixio")
 require("ubus")
