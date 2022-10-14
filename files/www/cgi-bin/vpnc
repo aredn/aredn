@@ -371,6 +371,11 @@ html.print("<input type=submit name=button_refresh value='Refresh' title='Refres
 html.print("<tr><td>&nbsp;</td></tr>")
 hide("<input type=hidden name=reload value=1></td></tr>")
 
+-- low memory warning
+if isLowMemNode() then
+    html.print("<tr><td align=center><span style=background-color:cyan;font-size:140%;>&nbsp; Recommend not to use tunneling due to low memory on this node &nbsp;</span></td></tr>")
+end
+
 -- messages
 if #conn_err > 0 then
     html.print("<tr><td align=center><b>ERROR:<br>")

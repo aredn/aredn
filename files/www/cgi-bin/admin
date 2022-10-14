@@ -869,6 +869,11 @@ html.print("<tr><td align=center>")
 html.print("<table cellspacing=10 width=100%>")
 html.print("<tr><th colspan=3 style=background-color:lightseagreen>Package Management</th></tr>")
 
+-- low memory warning
+if isLowMemNode() then
+    html.print("<tr><td align=center colspan=3><span style=background-color:cyan;font-size:140%;>&nbsp; Recommend not to install extra packages due to low memory on this node &nbsp;</span></td></tr>")
+end
+
 if #pkg_output > 0 then
     -- opkg can produce duplicate first lines, remove them here
     while pkg_output[2] and pkg_output[1] == pkg_output[2]
