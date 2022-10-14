@@ -231,7 +231,7 @@ function lqm()
         -- Know our macs so we can exclude them
         local our_macs = {}
         for _, i in ipairs(nixio.getifaddrs()) do
-            if i.family == "packet" then
+            if i.family == "packet" and i.addr then
                 our_macs[i.addr] = true
             end
         end
