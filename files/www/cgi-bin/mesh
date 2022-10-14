@@ -316,49 +316,51 @@ do
 end
 
 -- load the olsr hosts file
-for line in io.lines("/var/run/hosts_olsr.stable")
-do
-    local ip, name, originator = line:match("^([%d%.]+)%s+(%S+)%s+%S+%s+(%S+)")
-    if ip and originator and originator ~= "myself" and (routes[ip] or routes[originator]) then
-        local etx = routes[ip]
-        if not etx then
-            etx = routes[originator]
-        end
-        etx = etx.etx
-        if not name:match("%.") or name:match("^mid%.[^%.]*$") then
-            name = name .. ".local.mesh"
-        end
-        if ip == originator then
-            if not hosts[originator] then
-                hosts[originator] = { hosts = {} }
+if nixio.fs.stat("/var/run/hosts_olsr.stable") then
+    for line in io.lines("/var/run/hosts_olsr.stable")
+    do
+        local ip, name, originator = line:match("^([%d%.]+)%s+(%S+)%s+%S+%s+(%S+)")
+        if ip and originator and originator ~= "myself" and (routes[ip] or routes[originator]) then
+            local etx = routes[ip]
+            if not etx then
+                etx = routes[originator]
             end
-            local host = hosts[originator]
-            if host.name then
-                host.tactical = name
+            etx = etx.etx
+            if not name:match("%.") or name:match("^mid%.[^%.]*$") then
+                name = name .. ".local.mesh"
+            end
+            if ip == originator then
+                if not hosts[originator] then
+                    hosts[originator] = { hosts = {} }
+                end
+                local host = hosts[originator]
+                if host.name then
+                    host.tactical = name
+                else
+                    host.name = name
+                    host.etx = etx
+                end
+            elseif name:match("^dtdlink%.") then
+                dtd[originator] = true
+                if links[ip] then
+                    links[ip].dtd = true
+                end
+            elseif name:match("^mid%d+%.") then
+                if not midcount[originator] then
+                    midcount[originator] = 1
+                else
+                    midcount[originator] = midcount[originator] + 1
+                end
+                if links[ip] then
+                    links[ip].tun = true
+                end
             else
-                host.name = name
-                host.etx = etx
+                if not hosts[originator] then
+                    hosts[originator] = { hosts = {} }
+                end
+                local host = hosts[originator]
+                host.hosts[#host.hosts + 1] = name
             end
-        elseif name:match("^dtdlink%.") then
-            dtd[originator] = true
-            if links[ip] then
-                links[ip].dtd = true
-            end
-        elseif name:match("^mid%d+%.") then
-            if not midcount[originator] then
-                midcount[originator] = 1
-            else
-                midcount[originator] = midcount[originator] + 1
-            end
-            if links[ip] then
-                links[ip].tun = true
-            end
-        else
-            if not hosts[originator] then
-                hosts[originator] = { hosts = {} }
-            end
-            local host = hosts[originator]
-            host.hosts[#host.hosts + 1] = name
         end
     end
 end
