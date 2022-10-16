@@ -16,6 +16,10 @@ if [ "${noroute}" != "" ]; then
     /sbin/uci -c /etc/config.mesh set aredn.@wan[0].lan_dhcp_defaultroute=0
     /sbin/uci -c /etc/config.mesh commit aredn
     sed -i /^lan_dhcp_noroute\ =/d /etc/config.mesh/_setup
+elif [ "$(/sbin/uci -c /etc/config.mesh -q get aredn.@wan[0].lan_dhcp_route)" = "" ]; then
+    /sbin/uci -c /etc/config.mesh set aredn.@wan[0].lan_dhcp_route=1
+    /sbin/uci -c /etc/config.mesh set aredn.@wan[0].lan_dhcp_defaultroute=0
+    /sbin/uci -c /etc/config.mesh commit aredn
 fi
 
 if [ "${olsrd_gw}" != "" ]; then
