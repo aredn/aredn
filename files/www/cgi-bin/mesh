@@ -437,13 +437,17 @@ html.print([[
         font-weight:bold;
         background-color:lightseagreen;
         white-space:nowrap;
+        vertical-align:middle;
         padding:5px;
+    }
+    input.search {
+        width:150px;
     }
     </style>
 ]])
 html.print("</head>")
 
-html.print("<body><form method=post action=/cgi-bin/mesh enctype='multipart/form-data'>")
+html.print("<body><form method=post action=/cgi-bin/mesh accept-charset=utf-8 enctype='multipart/form-data'>")
 html.print("<input type=hidden name=reload value=1>")
 html.print("<center>")
 html.alert_banner()
@@ -639,13 +643,13 @@ html.print("</table></td></tr>")
 ---------------------------
 html.print("<tr><td colspan=3>")
 
--- get search string if any
-html.print("<br>")
-html.print("<input type=text id='cInput' onkeyup=nSearch('cInput','cTable') style='width:200px' placeholder='Search for Current Neighbors'>")
-
 -- show current neighbors table
-html.print("<table id='cTable'>")
-html.print("<tr><th>Current Neighbor</th><th>LAN Hostname</th><th>LQ</th><th>NLQ</th><th>TxMbps</th><th>Service Name</th></tr>")
+html.print("<br><table id='cTable'><tr>")
+html.print("<th><input class=search type=text id='inCN' onkeyup=nSearch('inCN','cTable',0) placeholder='Current Neighbor'></th>")
+html.print("<th><input class=search type=text id='inCH' onkeyup=nSearch('inCH','cTable',1) placeholder='Lan Hostname'></th>")
+html.print("<th>LQ</th><th>NLQ</th><th>TxMbps</th>")
+html.print("<th>Service Name</th>")
+html.print("</tr>")
 
 local rows = {}
 local neighservices = {}
@@ -748,13 +752,14 @@ html.print("</table></td></tr>")
 ---------------------------
 html.print("<tr><td colspan=3>")
 
--- get search string if any
-html.print("<br>")
-html.print("<input type=text id='rInput' onkeyup=nSearch('rInput','rTable') style='width:200px'  placeholder='Search for Remote Nodes'>")
-
 -- show remote node table
-html.print("<table id='rTable'>")
-html.print("<tr><th>Remote Node</th><th>LAN Hostname</th><th>ETX</th><th>Service Name</th></tr>")
+html.print("<br><table id='rTable'><tr>")
+html.print("<th><input class=search type=text id='inRN' onkeyup=nSearch('inRN','rTable',0) placeholder='Remote Nodes'></th>")
+html.print("<th><input class=search type=text id='inRH' onkeyup=nSearch('inRH','rTable',1) placeholder='LAN Hostname'</th>")
+html.print("<th>ETX</th>")
+html.print("<th><input class=search type=text id='inRS' onkeyup=nSearch('inRS','rTable',3) placeholder='Service Name'</th>")
+html.print("</tr>")
+
 
 local rows = {}
 for ip, host in pairs(hosts)
@@ -856,14 +861,14 @@ html.print("</form>")
 
 html.print([[
     <script>
-    function nSearch(inputId,tableId) {
+    function nSearch(inputId,tableId,colId) {
         var input, filter, table, tr, td, i, txtval;
         input = document.getElementById(inputId);
         filter = input.value.toUpperCase();
         table = document.getElementById(tableId);
         tr = table.getElementsByTagName("tr");
         for (i=0; i < tr.length; i++) {
-            td = tr[i].getElementsByTagName("td")[0];
+            td = tr[i].getElementsByTagName("td")[colId];
             if (td) {
                 txtval = td.textContent || td.innerText;
                 if (txtval.toUpperCase().indexOf(filter) > -1 ) {
