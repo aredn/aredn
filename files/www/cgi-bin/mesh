@@ -407,23 +407,47 @@ if nixio.fs.stat("/tmp/node.history") then
     end
 end
 
+------------------
+-- generate page
+------------------
 http_header()
 html.header(node .. " mesh status", false)
 local automesh = nixio.fs.stat("/tmp/web/automesh");
 if automesh then
     html.print("<meta http-equiv='refresh' content='10;url=/cgi-bin/mesh'>")
 end
+html.print([[
+    <style>
+    table {
+        cellspacing:5px;
+        width:100%;
+        border-collapse:collapse;
+    }
+    table.main {
+        width:80%;
+    }
+    tr {
+        vertical-align:top;
+        text-align:left;
+    }
+    tr.spaceUnder>td {
+        padding-bottom:2em;
+    }
+    th {
+        font-weight:bold;
+        background-color:lightseagreen;
+        white-space:nowrap;
+        padding:5px;
+    }
+    </style>
+]])
 html.print("</head>")
 
 html.print("<body><form method=post action=/cgi-bin/mesh enctype='multipart/form-data'>")
 html.print("<input type=hidden name=reload value=1>")
 html.print("<center>")
-
 html.alert_banner()
-html.msg_banner()
-
 html.print("<h1>" .. node .. " mesh status</h1>")
-
 html.print(lat_lon)
 if node_desc then
     html.print("<table id='node_description_display'><tr><td>" .. node_desc .. "</td></tr></table>")
@@ -442,7 +466,6 @@ end
 
 html.print("&nbsp;&nbsp;")
 html.print("<button type=button onClick='window.location=\"status\"' title='Return to the status page'>Quit</button>")
-
 html.print("</nobr><br><br>")
 
 if not next(localhosts) and not next(links) then
@@ -453,12 +476,15 @@ if not next(localhosts) and not next(links) then
     os.exit(0)
 end
 
-html.print("<table><tr><td valign=top><table>")
+-- main for page formatting
+html.print("<table class=main>")
 
--- show local hosts
+-- start main table row 1 left cell
+html.print("<tr><td>")
 
-html.print("<tr><th colspan=4 align=left><nobr>Local Hosts</nobr></th><th align=left>Services</th></tr>")
-html.print("<tr><td colspan=5><hr></td></tr>")
+-- show local hosts table
+html.print("<table>")
+html.print("<tr><th>This Node</th><th>LAN Hostname</th><th>Service Name</th></tr>")
 
 if next(localhosts) then
     local rows = {}
@@ -469,18 +495,19 @@ if next(localhosts) then
         if host.tactical ~= "" then
             tactical = " / " .. host.tactical
         end
-        local row = "<tr><td valign=top><nobr>" .. localpart .. tactical .. "</nobr>"
+        local row = "<tr><td>" .. localpart .. tactical
         if wangateway[ip] then
             row = row .. " &nbsp; <small>(wan)</small>"
         end
-        row = row .. "</td><td colspan=3>&nbsp;</td><td>"
+        row = row .. "</td><td></td><td>"
         if services[host.name] then
             for n, v in pairs(services[host.name])
             do
-                row = row .. "<nobr>" .. v .. "</nobr><br>"
+                row = row .. v .. "<br>"
             end
         end
         row = row .. "</td></tr>"
+
         -- add locally advertised dmz hosts
         for i, dmzhost in ipairs(host.hosts)
         do
@@ -502,17 +529,17 @@ if next(localhosts) then
             end
             local localpart = dmzhost:match("(.*)%.local%.mesh")
             if not nopropd and not aliased then
-                row = row .. "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>" .. localpart .. "</nobr></td>"
+                row = row .. "<tr><td></td><td>" .. localpart .. "</td>"
             elseif aliased then
-                row = row .. "<tr><td class=aliased-hosts valign=top title='Aliased Host'><nobr>&nbsp;<img src='/dot.png'>" .. localpart .. "</nobr></td>"
+                row = row .. "<tr><td></td><td class=aliased-hosts title='Aliased Host'>" .. localpart .. "</td>"
             else
-                row = row .. "<tr><td class=hidden-hosts valign=top title='Non Propagated Host'><nobr>&nbsp;<img src='/dot.png'>" .. localpart .."</nobr></td>"
+                row = row .. "<tr><td></td><td class=hidden-hosts title='Non Propagated Host'>" .. localpart .."</td>"
             end
             if services[dmzhost] then
-                row = row .. "<td colspan=3>&nbsp;</td><td>"
+                row = row .. "</td><td>"
                 for n, v in pairs(services[dmzhost])
                 do
-                    row = row .. "<nobr>" .. v .. "</nobr><br>"
+                    row = row .. v .. "<br>"
                 end
             end
             row = row .. "</td></tr>"
@@ -533,73 +560,65 @@ end
 -- discard
 localhosts = nil
 
--- show remote nodes
+--end row 1 left cell
+html.print("</table></td>")
 
-html.print("<tr><td>&nbsp;</td></tr>")
-html.print("<tr><th align=left><nobr>Remote Nodes</nobr></th><th>&nbsp;&nbsp;</th><th>ETX</th><th>&nbsp;&nbsp;</th><th align=left>Services</th></tr>")
-html.print("<tr><td colspan=5><hr></td></tr>")
+-- insert center margin cell
+html.print("<td width=10px></td>")
+
+-- start main table row1 right cell
+html.print("<td>")
+
+-- show OLSR entries row
+html.print("<table>")
+html.print("<tr><th colspan=2>OLSR Entries</th></tr>")
+html.print("<tr class=spaceUnder><td><strong>Nodes:</strong> " .. olsr_nodes .. "</td><td><strong>Total:</strong> " .. olsr_total .. "</td></tr>")
+if nixio.sysinfo().freeram < lowmemory then
+    html.print("<tr class=spaceUnder><td colspan=2><strong>NOTE:</strong> Counts are correct but page may be truncated on this low memory node</td></tr>")
+end
+
+-- show previous neighbors
+html.print("<tr><th colspan=2>Previous Neighbors</th></tr>")
 
 local rows = {}
-for ip, host in pairs(hosts)
+local uptime = nixio.sysinfo().uptime
+for ip, node in pairs(history)
 do
-    if not neighbor[ip] and host.name then
-        local localpart = host.name:match("(.*)%.local%.mesh")
-        local tactical = ""
-        if host.tactical then
-            tactical = " / " .. host.tactical
+    if not (links[ip] or links[ipalias[ip]]) then
+        local age = uptime - tonumber(node.age)
+        local host = node.host
+        if host == "" then
+            host = ip
+        else
+            host = host:gsub("^mid%d+%.", ""):gsub("^dtdlink%.", "")
         end
-        local etx = string.format("%.2f", host.etx)
-        local row = "<tr><td valign=top><nobr><a href='http://" .. host.name .. ":8080/'>" .. localpart .. tactical .. "</a>"
-        local nodeiface
-        local mycount = 0
-        if midcount[ip] then
-            mycount = midcount[ip]
-        end
-        if dtd[ip] then
-            mycount = mycount - 1
-        end
-        if hosts[ip].tactical then
-            mycount = mycount - 1
-        end
-        if mycount > 0 then
-            nodeiface = "tun*" .. mycount
-        end
-        if wangateway[ip] then
-            if nodeiface then
-                nodeiface = nodeiface .. ",wan"
-            else
-                nodeiface = "wan"
+        local row = "<tr><td>" .. host
+        if hosts[ip] and hosts[ip].hosts then
+            for _, v in ipairs(hosts[ip].hosts)
+            do
+                row = row .. "<br>" .. v
             end
         end
-        if nodeiface then
-            row = row .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
-        end
-        row = row .. "</nobr></td><td></td><td align=right valign=top>" .. etx .. "</td><td></td><td>"
-        if services[host.name] then
-            for _, v in pairs(services[host.name])
-            do
-                row = row .. "<nobr>" .. v .. "</nobr><br>"
+        row = row .. "</td><td>"
+        if age < 3600 then
+            local val = math.floor(age / 60)
+            if val == 1 then
+                row = row .. "1 minute ago"
+            else
+                row = row .. val .. " minutes ago"
+            end
+        else
+            local val = string.format("%.1f", age / 3600)
+            if val == "1.0" then
+                row = row .. "1 hour ago"
+            else
+                row = row .. val .. " hours ago"
             end
         end
         row = row .. "</td></tr>"
-        -- add locally advertised dmz hosts
-        for _, dmzhost in ipairs(host.hosts)
-        do
-            local localpart = dmzhost:match("(.*)%.local%.mesh")
-            row = row .. "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>" .. localpart .. "</nobr></td>"
-	        row = row .. "<td colspan=3></td><td>"
-            if services[dmzhost] then
-                for _, v in pairs(services[dmzhost])
-                do
-                    row = row .. "<nobr>" .. v .. "</nobr><br>"
-                end
-            end
-            row = row .. "</td></tr>"
-        end
-        rows[#rows + 1] = { key = host.etx, row = row }
+        rows[#rows + 1] = { key = age, row = row }
     end
 end
-
 if #rows > 0 then
     table.sort(rows, function(a,b) return a.key < b.key end)
     for _, row in ipairs(rows)
@@ -612,17 +631,21 @@ else
     html.print("<tr><td>none</td></tr>")
 end
 
--- discard
-neighbor = nil
-dtd = nil
-midcount = nil
+-- end row 1 right table and cell
+html.print("</table></td></tr>")
 
-html.print("</table></td><td width=20>&nbsp;</td><td valign=top><table>")
+---------------------------
+-- start main table row 2
+---------------------------
+html.print("<tr><td colspan=3>")
 
--- show current neighbors
+-- get search string if any
+html.print("<br>")
+html.print("<input type=text id='cInput' onkeyup=nSearch('cInput','cTable') style='width:200px' placeholder='Search for Current Neighbors'>")
 
-html.print("<tr><th align=left><nobr>Current Neighbors</nobr></th><th>&nbsp;&nbsp;</th><th>LQ</th><th>NLQ</th><th>TxMbps</th><th>&nbsp;&nbsp;</th><th align=left>Services</th></tr>")
-html.print("<tr><td colspan=7><hr></td></tr>")
+-- show current neighbors table
+html.print("<table id='cTable'>")
+html.print("<tr><th>Current Neighbor</th><th>LAN Hostname</th><th>LQ</th><th>NLQ</th><th>TxMbps</th><th>Service Name</th></tr>")
 
 local rows = {}
 local neighservices = {}
@@ -652,7 +675,7 @@ do
         name = name .. " " -- avoid collision 2 links to same host {rf, dtd}
     end
     local no_space_host = name:match("(.*%S)%s*$")
-    local row = "<tr><td valign=top><nobr><a href='http://" .. no_space_host .. ":8080/'>" .. localpart .. tactical .. "</a>"
+    local row = "<tr><td><a href='http://" .. no_space_host .. ":8080/'>" .. localpart .. tactical .. "</a>"
     local nodeiface
     if ipmain ~= ip then
         if links[ip].dtd then
@@ -673,24 +696,25 @@ do
     if nodeiface then
         row = row .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
     end
-    row = row .. string.format("</nobr></td><td></td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%.0f%%</td><td align=right valign=top>%s</td><td></td><td>\n", 100 * link.lq, 100 * link.nlq, link.mbps)
+    row = row .. string.format("</td><td></td><td>%.0f%%</td><td>%.0f%%</td><td>%s</td><td>\n", 100 * link.lq, 100 * link.nlq, link.mbps)
 
     if not neighservices[name] then
         neighservices[name] = true
         if services[name] then
             for _, v in pairs(services[name])
             do
-                row = row .. "<nobr>" .. v .. "</nobr><br>"
+                row = row .. v .. "<br>"
             end
         end
         row = row .. "</td></tr>"
+
         -- add advertised dmz hosts
         if host then
             for _, dmzhost in ipairs(host.hosts)
             do
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
-                row = row .. "<tr><td valign=top><nobr>&nbsp;<img src='/dot.png'>" .. localpart .. "</nobr></td>"
-                row = row .. "<td colspan=5></td><td>"
+                row = row .. "<tr><td></td><td>" .. localpart .. "</td>"
+                row = row .. "<td colspan=3></td><td>"
                 if services[dmzhost] then
                     for _, v in pairs(services[dmzhost])
                     do
@@ -716,55 +740,84 @@ else
     html.print("<tr><td>none</td></tr>")
 end
 
--- discard
-wangateway = nil
-services = nil
+-- end row 2 table and cell
+html.print("</table></td></tr>")
 
--- show previous neighbors
+---------------------------
+-- start main table row 3
+---------------------------
+html.print("<tr><td colspan=3>")
 
-html.print("<tr><td>&nbsp;</td></tr>")
-html.print("<tr><th colspan=6 align=left><nobr>Previous Neighbors</nobr></th><th align=left>When</th></tr>")
-html.print("<tr><td colspan=7><hr></td></tr>")
+-- get search string if any
+html.print("<br>")
+html.print("<input type=text id='rInput' onkeyup=nSearch('rInput','rTable') style='width:200px'  placeholder='Search for Remote Nodes'>")
+
+-- show remote node table
+html.print("<table id='rTable'>")
+html.print("<tr><th>Remote Node</th><th>LAN Hostname</th><th>ETX</th><th>Service Name</th></tr>")
 
 local rows = {}
-local uptime = nixio.sysinfo().uptime
-for ip, node in pairs(history)
+for ip, host in pairs(hosts)
 do
-    if not (links[ip] or links[ipalias[ip]]) then
-        local age = uptime - tonumber(node.age)
-        local host = node.host
-        if host == "" then
-            host = ip
-        else
-            host = host:gsub("^mid%d+%.", ""):gsub("^dtdlink%.", "")
+    if not neighbor[ip] and host.name then
+        local localpart = host.name:match("(.*)%.local%.mesh")
+        local tactical = ""
+        if host.tactical then
+            tactical = " / " .. host.tactical
         end
-        local row = "<tr><td colspan=6><nobr>" .. host .. "</nobr>"
-        if hosts[ip] and hosts[ip].hosts then
-            for _, v in ipairs(hosts[ip].hosts)
+        local etx = string.format("%.2f", host.etx)
+        local row = "<tr><td><a href='http://" .. host.name .. ":8080/'>" .. localpart .. tactical .. "</a>"
+        local nodeiface
+        local mycount = 0
+        if midcount[ip] then
+            mycount = midcount[ip]
+        end
+        if dtd[ip] then
+            mycount = mycount - 1
+        end
+        if hosts[ip].tactical then
+            mycount = mycount - 1
+        end
+        if mycount > 0 then
+            nodeiface = "tun*" .. mycount
+        end
+        if wangateway[ip] then
+            if nodeiface then
+                nodeiface = nodeiface .. ",wan"
+            else
+                nodeiface = "wan"
+            end
+        end
+        if nodeiface then
+            row = row .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
+        end
+        row = row .. "</td><td></td><td>" .. etx .. "</td><td>"
+        if services[host.name] then
+            for _, v in pairs(services[host.name])
             do
-                row = row .. "<br><nobr><img src='/dot.png'>" .. v .. "</nobr>"
+                row = row .. v .. "<br>"
             end
         end
-        row = row .. "</td><td valign=top><nobr>"
-        if age < 3600 then
-            local val = math.floor(age / 60)
-            if val == 1 then
-                row = row .. "1 minute ago"
-            else
-                row = row .. val .. " minutes ago"
+        row = row .. "</td></tr>"
+
+        -- add locally advertised dmz hosts
+        for _, dmzhost in ipairs(host.hosts)
+        do
+            local localpart = dmzhost:match("(.*)%.local%.mesh")
+            row = row .. "<tr><td></td><td>" .. localpart .. "</td><td></td><td>"
+            if services[dmzhost] then
+                for _, v in pairs(services[dmzhost])
+                do
+                    row = row .. v .. "<br>"
+                end
             end
-        else
-            local val = string.format("%.1f", age / 3600)
-            if val == "1.0" then
-                row = row .. "1 hour ago"
-            else
-                row = row .. val .. " hours ago"
-            end
-            row = row .. "</nobr></td></tr>"
+            row = row .. "</td></tr>"
         end
-        rows[#rows + 1] = { key = age, row = row }
+
+        rows[#rows + 1] = { key = host.etx, row = row }
     end
 end
+
 if #rows > 0 then
     table.sort(rows, function(a,b) return a.key < b.key end)
     for _, row in ipairs(rows)
@@ -776,6 +829,15 @@ if #rows > 0 then
 else
     html.print("<tr><td>none</td></tr>")
 end
+-- discard
+neighbor = nil
+dtd = nil
+midcount = nil
+wangateway = nil
+services = nil
+
+-- end bottom left table cell
+html.print("</table></td></tr>")
 
 -- discard
 links = nil
@@ -783,21 +845,37 @@ ipalias = nil
 hosts = nil
 history = nil
 
--- footer
+-- end row3 table and cell
+html.print("</table></td></tr>")
 
-html.print("<tr><td>&nbsp;</td></tr>")
-html.print("<tr><th align='left'>OLSR Entries</th></tr>")
-html.print("<tr><td colspan=7><hr></td></tr>")
-html.print("<tr><td>Total</td><td>&nbsp;</td><td align='right'>" .. olsr_total .. "</td></tr>")
-html.print("<tr><td>Nodes</td><td>&nbsp;</td><td align='right'>" .. olsr_nodes .. "</td></tr>")
-if nixio.sysinfo().freeram < lowmemory then
-    html.print("<tr><td colspan=7><span style=background-color:cyan;>&nbsp;NOTE: Counts are correct but page may be truncated to save node memory&nbsp;</span></td></tr>")
-end
-html.print("</table></td></tr></table>")
+--end page format table
+html.print("</table>")
 
 html.print("</center>")
 html.print("</form>")
 
+html.print([[
+    <script>
+    function nSearch(inputId,tableId) {
+        var input, filter, table, tr, td, i, txtval;
+        input = document.getElementById(inputId);
+        filter = input.value.toUpperCase();
+        table = document.getElementById(tableId);
+        tr = table.getElementsByTagName("tr");
+        for (i=0; i < tr.length; i++) {
+            td = tr[i].getElementsByTagName("td")[0];
+            if (td) {
+                txtval = td.textContent || td.innerText;
+                if (txtval.toUpperCase().indexOf(filter) > -1 ) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+    </script>
+]])
 html.footer();
 html.print("</body>")
 html.print("</html>")
