@@ -560,6 +560,13 @@ if not gridsquare then
     gridsquare = ""
 end
 
+-- retrieve ntp_period
+local cm = uci.cursor("/etc/config.mesh")
+ntp_period = cm:get("aredn", "@ntp[0]", "period")
+if not ntp_period then
+    ntp_period = "daily"
+end
+
 -- validate and save configuration
 if parms.button_save then
     for _,zone in ipairs(tz_db_names)
@@ -767,10 +774,10 @@ if parms.button_save then
         end
 
         -- commit new ntp_period value
-        local cursorm = uci.cursor("/etc/config.mesh")
-        if parms.ntp_period ~= cursorm:get("aredn", "@ntp[0]", "period") then
-            cursorm:set("aredn", "@ntp[0]", "period", parms.ntp_period)
-            cursorm:commit("aredn")
+        local cm = uci.cursor("/etc/config.mesh")
+        if parms.ntp_period ~= cm:get("aredn", "@ntp[0]", "period") then
+            cm:set("aredn", "@ntp[0]", "period", parms.ntp_period)
+            cm:commit("aredn")
         end
 
         aredn_info.set_nvram("node", parms.node);

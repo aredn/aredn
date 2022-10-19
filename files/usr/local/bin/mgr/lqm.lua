@@ -32,9 +32,7 @@
 
 --]]
 
-local json = require("luci.jsonc")
 local ip = require("luci.ip")
-local sys = require("luci.sys")
 local info = require("aredn.info")
 
 local refresh_timeout = 15 * 60 -- refresh high cost data every 15 minutes
@@ -232,11 +230,9 @@ function lqm()
 
         -- Know our macs so we can exclude them
         local our_macs = {}
-        for _, devname in ipairs(sys.net.devices())
-        do
-            local info = ip.link(devname)
-            if info and info.mac then
-                our_macs[tostring(info.mac)] = true
+        for _, i in ipairs(nixio.getifaddrs()) do
+            if i.family == "packet" and i.addr then
+                our_macs[i.addr] = true
             end
         end
 
@@ -425,7 +421,9 @@ function lqm()
                 track.rev_snr = null
                 dtdlinks[track.mac] = {}
 
-                local info = json.parse(luci.sys.httpget("http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1"))
+                local raw = io.popen("/usr/bin/wget -O - 'http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1' 2>/dev/null")
+                local info = luci.jsonc.parse(raw:read("*a"))
+                raw:close()
                 if info then
                     if tonumber(info.lat) and tonumber(info.lon) then
                         track.lat = tonumber(info.lat)
@@ -761,7 +759,7 @@ function lqm()
         -- Save this for the UI
         f = io.open("/tmp/lqm.info", "w")
         if f then
-            f:write(json.stringify({
+            f:write(luci.jsonc.stringify({
                 now = now,
                 trackers = tracker,
                 distance = distance,

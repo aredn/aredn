@@ -37,9 +37,7 @@
 
 local nxo = require("nixio")
 local ipc = require("luci.ip")
-local auci = require("aredn.uci")
 require("uci")
-require("luci.sys")
 
 function round2(num, idp)
   return tonumber(string.format("%." .. (idp or 0) .. "f", num))
@@ -56,15 +54,6 @@ function adjust_rate(r,b)
 	end
 	return ar
 end
-
-function starts_with(str, start)
-   return str:sub(1, #start) == start
-end
-
-function ends_with(str, ending)
-   return ending == "" or str:sub(-#ending) == ending
-end
-
 
 function string:split(delim)
 	local t = {}
@@ -124,12 +113,15 @@ end
 -- Returns name of the radio (radio0 or radio1) for the selected wifi interface (wifi or lan)
 -------------------------------------
 function get_radio(ifn)
-	local interfaces=auci.getUciConfType("wireless", "wifi-iface")
-	for n, i in ipairs(interfaces) do
-		if i.network==ifn then
-			return i.device
+	local device = nil
+	uci.cursor():foreach("wireless", "wifi-iface",
+		function(s)
+			if s.network == ifn then
+				device = s.device
+			end
 		end
-	end
+	)
+	return device
 end
 
 -------------------------------------
@@ -163,14 +155,14 @@ end
 
 function get_ifname(ifn)
 	local u=uci.cursor()
-	iface=u:get("network",ifn,"device")
+	local iface=u:get("network",ifn,"ifname")
 	return iface
 end
 
 -- Copyright 2009-2015 Jo-Philipp Wich <jow@openwrt.org>
 -- Licensed to the public under the Apache License 2.0.
 function get_interfaces()
-	_interfaces={}
+	local _interfaces={}
 	local n, i
 	for n, i in ipairs(nxo.getifaddrs()) do
 		local name = i.name:match("[^:]+")
@@ -271,136 +263,6 @@ function iplookup(host)
 	return ip
 end
 
-
--------------------------------------
--- Returns traceroute
--------------------------------------
-function getTraceroute(target)
-	local info={}
-	local routes={}
-	trall=capture('/bin/traceroute -q1 ' .. target )
-	local lines = trall:splitNewLine()
-
-	table.remove(lines, 1)	-- remove heading
-	table.remove(lines, #lines) -- remove blank last line
-
-	data = {}
-	priortime = 0
-	for i,v in pairs(lines) do
-		data = v:splitWhiteSpace()
-		entry = {}
-		if data[2] ~= "*" then
-			node = data[2]:gsub("^mid[0-9]*%.","") 	-- strip midXX.
-			node = node:gsub("^dtdlink%.","")		-- strip dtdlink.
-			node = node:gsub("%.local%.mesh$","")	-- strip .local.mesh
-			entry['nodename'] = node
-			ip = data[3]:match("%((.*)%)")
-			entry['ip'] = ip
-			entry['timeto'] = round2(data[4])
-			entry['timedelta'] = math.abs(round2(data[4] - priortime))
-			priortime = round2(data[4])
-			table.insert(routes, entry)
-		end
-	end
-	return routes
-end
-
--------------------------------------
--- Returns ping
--------------------------------------
-function getPing(target)
-	local pings = {}
-	local summary = { tx = -1, rx = -1, lossPercentage = -1, ip = "not found", minMs = -1, maxMs = -1, avgMs = -1 }
-	local output = capture("/bin/ping -w 10 " .. target)
-	local foundip = "unknown"
-	for _, line in ipairs(output:splitNewLine())
-	do
-		local ip = line:match("^PING %S+ %(([%d%.]+)%):")
-		if ip then
-			summary.ip = ip
-		else
-			local ip, seq, ttl, time = line:match("bytes from ([%d%.]+): seq=(%d+) ttl=(%d+) time=(%S+) ms")
-			if ip then
-				pings[#pings + 1] = { ip = ip, seq = tonumber(seq), ttl = tonumber(ttl), timeMs = tonumber(time) }
-			else
-				local tx, rx, loss = line:match("^(%d+) packets transmitted, (%d+) packets received, (%d+)%% packet loss")
-				if tx then
-					summary.tx = tonumber(tx)
-					summary.rx = tonumber(rx)
-					summary.lossPercentage = tonumber(loss)
-				else
-					local min, avg, max = line:match("min/avg/max = ([%d%.]+)/([%d%.]+)/([%d%.]+) ms")
-					if min then
-						summary.minMs = tonumber(min)
-						summary.maxMs = tonumber(max)
-						summary.avgMs = tonumber(avg)
-					end
-				end
-			end
-		end
-	end
-	return { summary = summary, pings = pings }
-end
-
--------------------------------------
--- Returns iperf3
--------------------------------------
-function getIperf3(target, protocol)
-	if protocol ~= "udp" then
-		protocol = "tcp"
-	end
-	function toK(value, unit)
-		return tonumber(value) * (unit == "M" and 1024 or 1)
-	end
-	function toM(value, unit)
-		return tonumber(value) / (unit == "K" and 1024 or 1)
-	end
-	local summary = { protocol = protocol, client = {}, server = {}, sender = {}, receiver = {} }
-	local trace = {}
-	-- start remote server
-	luci.sys.httpget("http://" .. target .. ":8080/cgi-bin/iperf?server=")
-	local output = capture("/usr/bin/iperf3 -b 0 -c " .. target .. (protocol == "udp" and " -u" or "") .. " 2>&1")
-	for _, line in ipairs(output:splitNewLine())
-	do
-		local chost, cport, shost, sport = line:match("local ([%d%.]+) port (%d+) connected to ([%d%.]+) port (%d+)")
-		if chost then
-			summary.client = { host = chost, port = tonumber(cport) }
-			summary.server = { host = shost, port = tonumber(sport) }
-		else
-			local from, to, transfer, tu, bitrate, bu, retr = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)%s+sender")
-			if from then
-				summary.sender = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), retr = tonumber(retr) }
-			else
-				local from, to, transfer, tu, bitrate, bu = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+receiver")
-				if from then
-					summary.receiver = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu) }
-				else
-					local from, to, transfer, tu, bitrate, bu, jitter, lost, total, percent = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+([%d%.]+) ms%s+(%d+)/(%d+) %(([%d%.]+)%%%)%s+sender")
-					if from then
-						summary.sender = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), jitterMs = tonumber(jitter), lostDgrams = tonumber(lost), totalDgrams = tonumber(total), lossPercentage = tonumber(precent) }
-					else
-						local from, to, transfer, tu, bitrate, bu, jitter, lost, total, percent = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+([%d%.]+) ms%s+(%d+)/(%d+) %(([%d%.]+)%%%)%s+receiver")
-						if from then
-							summary.receiver = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), jitterMs = tonumber(jitter), lostDgrams = tonumber(lost), totalDgrams = tonumber(total), lossPercentage = tonumber(precent) }
-						else
-							local from, to, transfer, tu, bitrate, bu, retr, cwnd, cu = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)%s+([%d%.]+) ([KM])Bytes")
-							if from then
-								trace[#trace + 1] = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, by), retr = tonumber(retr), cwndKB = toK(cwnd, cu) }
-							else
-								local from, to, transfer, tu, bitrate, bu, dgrams = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)")
-								if from then
-									trace[#trace + 1] = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), dgrams = tonumber(dgrams) }
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-	return { summary = summary, trace = trace }
-end
-
 function file_trim(filename, maxl)
 	local lines={}
 	local tmpfilename=filename..".tmp"
@@ -434,41 +296,6 @@ function secondsToClock(seconds)
 		secs = string.format("%02d", math.floor(math.mod(seconds,60)));
 		return days.." days, "..hours..":"..mins..":"..secs
 	end
-end
-
--- table.print = pretty prints a table
-function print_r(t)
-	local print_r_cache={}
-	local function sub_print_r(t,indent)
-			if (print_r_cache[tostring(t)]) then
-					print(indent.."*"..tostring(t))
-			else
-					print_r_cache[tostring(t)]=true
-					if (type(t)=="table") then
-							for pos,val in pairs(t) do
-									if (type(val)=="table") then
-											print(indent.."["..pos.."] => "..tostring(t).." {")
-											sub_print_r(val,indent..string.rep(" ",string.len(pos)+8))
-											print(indent..string.rep(" ",string.len(pos)+6).."}")
-									elseif (type(val)=="string") then
-											print(indent.."["..pos..'] => "'..val..'"')
-									else
-											print(indent.."["..pos.."] => "..tostring(val))
-									end
-							end
-					else
-							print(indent..tostring(t))
-					end
-			end
-	end
-	if (type(t)=="table") then
-			print(tostring(t).." {")
-			sub_print_r(t,"  ")
-			print("}")
-	else
-			sub_print_r(t,"  ")
-	end
-	print()
 end
 
 -- os.capture = captures output from a shell command
@@ -695,6 +522,15 @@ function validate_port_range(range)
 		return false
 	end
 	return true
+end
+
+-- return true if 32mb node
+function isLowMemNode()
+    totalmem = nixio.sysinfo().totalram
+    if totalmem <= 33554432 then
+        return true
+    end
+    return false
 end
 
 --[[

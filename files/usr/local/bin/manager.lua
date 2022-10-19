@@ -38,17 +38,14 @@ package.path = package.path .. ";/usr/local/bin/?.lua"
 
 require("uci")
 require("nixio")
-socket = require("socket")
 require("aredn.utils")
-aredn_info = require("aredn.info")
 require("iwinfo")
-require("aredn.http")
 require("aredn.hardware")
 require("aredn.log")
-require("luci.sys")
+require("luci.jsonc")
 
 -- aggressive gc on low memory devices
-if aredn_info.getFreeMemory().totalram < 32768 then
+if nixio.sysinfo().totalram < 32 * 1024 * 1024 then
 	collectgarbage("setstepmul", 1000)
 end
 
@@ -102,6 +99,10 @@ do
 	table.sort(tasks, function(a,b) return a.time < b.time end)
 	local delay = tasks[1].time - os.time()
 	if delay > 0 then
-		nixio.nanosleep(delay, 0)
+		collectgarbage("collect")
+		delay = tasks[1].time - os.time()
+		if delay > 0 then
+			nixio.nanosleep(delay, 0)
+		end
 	end
 end

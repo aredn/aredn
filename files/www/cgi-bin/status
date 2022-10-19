@@ -42,7 +42,6 @@ require("aredn.utils")
 local html = require("aredn.html")
 require("uci")
 local aredn_info = require("aredn.info")
-local olsr = require("aredn.olsr")
 
 -- helpers start
 
@@ -59,11 +58,13 @@ function mesh_ip_to_hostnames(ip)
         end
     end
     local hosts = ""
-    for line in io.lines("/var/run/hosts_olsr.stable")
-    do
-        local host = line:match(pattern)
-        if host then
-            hosts = hosts .. " / " .. host
+    if nixio.fs.stat("/var/run/hosts_olsr.stable") then
+        for line in io.lines("/var/run/hosts_olsr.stable")
+        do
+            local host = line:match(pattern)
+            if host then
+                hosts = hosts .. " / " .. host
+            end
         end
     end
     return hosts:sub(4, #hosts)
@@ -179,15 +180,17 @@ if lat and lon then
     lat_lon = string.format("<center><strong>Location: </strong> %s %s</center>", lat, lon)
 end
 
-local olsr_routes = olsr.getOLSRRoutes()
-local olsr_total = 0
-local olsr_nodes = 0
-for i, node in ipairs(olsr_routes)
-do
-    if node.genmask ~= 0 then -- don't count default route
-        olsr_total = olsr_total + 1
-        if node.genmask ~= 32 then
-            olsr_nodes = olsr_nodes + 1
+local host_total = 0
+local host_nodes = 0
+if nixio.fs.stat("/var/run/hosts_olsr.stable") then
+    for line in io.lines("/var/run/hosts_olsr.stable")
+    do
+        if line:match("^10%.") and not line:match("%smid%d+%.") then
+            host_total = host_total + 1
+            local host = line:match("^10%..+%sdtdlink%.")
+            if host then
+                host_nodes = host_nodes + 1
+            end
         end
     end
 end
@@ -397,7 +400,7 @@ else
 end
 
 col2[#col2 + 1] = "<th align=right valign=top><nobr>load average</nobr><br><nobr>free space</nobr></th><td>" .. string.format("%.2f, %.2f, %.2f", sysinfo.loads[1], sysinfo.loads[2], sysinfo.loads[3]) .. "<br><nobr>flash = " .. fspace .. "</nobr><br><nobr>/tmp = " .. tspace .. "</nobr><br><nobr>memory = " .. rspace .. "</nobr></td>";
-col2[#col2 + 1] = "<th align=right valign=top>OLSR Entries</th><td><nobr>Total = " .. olsr_total .. "<nobr><br><nobr>Nodes = " .. olsr_nodes .. "<nobr></td>"
+col2[#col2 + 1] = "<th align=right valign=top>Host Entries</th><td><nobr>Total = " .. host_total .. "<nobr><br><nobr>Nodes = " .. host_nodes .. "<nobr></td>"
 
 -- now print the tables
 

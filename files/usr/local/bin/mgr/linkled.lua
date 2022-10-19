@@ -50,7 +50,9 @@ function linkled()
 
         while true
         do
-            local nei = fetch_json("http://127.0.0.1:9090/neighbors")
+			local raw = io.popen("/usr/bin/wget -O - http://127.0.0.1:9090/neighbors 2> /dev/null")
+			local nei = luci.jsonc.parse(raw:read("*a"))
+			raw:close()
             if nei and #nei.neighbors > 0 then
 				-- Led on when link established. Retest every 10 seconds
                 write_all(link .. "/brightness", "1")
