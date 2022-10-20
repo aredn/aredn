@@ -495,60 +495,64 @@ if next(localhosts) then
     for ip, host in pairs(localhosts)
     do
         local localpart = host.name:match("([^.]*)%.")
-        local tactical = ""
-        if host.tactical ~= "" then
-            tactical = " / " .. host.tactical
-        end
-        local row = "<tr><td>" .. localpart .. tactical
-        if wangateway[ip] then
-            row = row .. " &nbsp; <small>(wan)</small>"
-        end
-        row = row .. "</td><td></td><td>"
-        if services[host.name] then
-            for n, v in pairs(services[host.name])
-            do
-                row = row .. v .. "<br>"
+        if localpart then
+            local tactical = ""
+            if host.tactical ~= "" then
+                tactical = " / " .. host.tactical
             end
-        end
-        row = row .. "</td></tr>"
-
-        -- add locally advertised dmz hosts
-        for i, dmzhost in ipairs(host.hosts)
-        do
-            local nopropd = false
-            local aliased = false
-            for _, v in ipairs(host.noprops)
-            do
-                if v == dmzhost then
-                    nopropd = true;
-                    break
-                end
+            local row = "<tr><td>" .. localpart .. tactical
+            if wangateway[ip] then
+                row = row .. " &nbsp; <small>(wan)</small>"
             end
-            for _, v in ipairs(host.aliases)
-            do
-                if v == dmzhost then
-                    aliased = true;
-                    break
-                end
-            end
-            local localpart = dmzhost:match("(.*)%.local%.mesh")
-            if not nopropd and not aliased then
-                row = row .. "<tr><td></td><td>" .. localpart .. "</td>"
-            elseif aliased then
-                row = row .. "<tr><td></td><td class=aliased-hosts title='Aliased Host'>" .. localpart .. "</td>"
-            else
-                row = row .. "<tr><td></td><td class=hidden-hosts title='Non Propagated Host'>" .. localpart .."</td>"
-            end
-            if services[dmzhost] then
-                row = row .. "</td><td>"
-                for n, v in pairs(services[dmzhost])
+            row = row .. "</td><td></td><td>"
+            if services[host.name] then
+                for n, v in pairs(services[host.name])
                 do
                     row = row .. v .. "<br>"
                 end
             end
             row = row .. "</td></tr>"
+
+            -- add locally advertised dmz hosts
+            for i, dmzhost in ipairs(host.hosts)
+            do
+                local nopropd = false
+                local aliased = false
+                for _, v in ipairs(host.noprops)
+                do
+                    if v == dmzhost then
+                        nopropd = true;
+                        break
+                    end
+                end
+                for _, v in ipairs(host.aliases)
+                do
+                    if v == dmzhost then
+                        aliased = true;
+                        break
+                    end
+                end
+                local localpart = dmzhost:match("(.*)%.local%.mesh")
+                if localpart then
+                    if not nopropd and not aliased then
+                        row = row .. "<tr><td></td><td>" .. localpart .. "</td>"
+                    elseif aliased then
+                        row = row .. "<tr><td></td><td class=aliased-hosts title='Aliased Host'>" .. localpart .. "</td>"
+                    else
+                        row = row .. "<tr><td></td><td class=hidden-hosts title='Non Propagated Host'>" .. localpart .."</td>"
+                    end
+                    if services[dmzhost] then
+                        row = row .. "</td><td>"
+                        for n, v in pairs(services[dmzhost])
+                        do
+                            row = row .. v .. "<br>"
+                        end
+                    end
+                    row = row .. "</td></tr>"
+                end
+            end
+            rows[#rows + 1] = { key = host.name, row = row }
         end
-        rows[#rows + 1] = { key = host.name, row = row }
     end
     table.sort(rows, function(a,b) return a.key < b.key end)
     for _, row in ipairs(rows)
@@ -717,15 +721,17 @@ do
             for _, dmzhost in ipairs(host.hosts)
             do
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
-                row = row .. "<tr><td></td><td>" .. localpart .. "</td>"
-                row = row .. "<td colspan=3></td><td>"
-                if services[dmzhost] then
-                    for _, v in pairs(services[dmzhost])
-                    do
-                        row = row .. v .. "<br>"
+                if localpart then
+                    row = row .. "<tr><td></td><td>" .. localpart .. "</td>"
+                    row = row .. "<td colspan=3></td><td>"
+                    if services[dmzhost] then
+                        for _, v in pairs(services[dmzhost])
+                        do
+                            row = row .. v .. "<br>"
+                        end
                     end
+                    row = row .. "</td></tr>"
                 end
-                row = row .. "</td></tr>"
             end
         end
     end
@@ -766,60 +772,64 @@ for ip, host in pairs(hosts)
 do
     if not neighbor[ip] and host.name then
         local localpart = host.name:match("(.*)%.local%.mesh")
-        local tactical = ""
-        if host.tactical then
-            tactical = " / " .. host.tactical
-        end
-        local etx = string.format("%.2f", host.etx)
-        local row = "<tr><td><a href='http://" .. host.name .. ":8080/'>" .. localpart .. tactical .. "</a>"
-        local nodeiface
-        local mycount = 0
-        if midcount[ip] then
-            mycount = midcount[ip]
-        end
-        if dtd[ip] then
-            mycount = mycount - 1
-        end
-        if hosts[ip].tactical then
-            mycount = mycount - 1
-        end
-        if mycount > 0 then
-            nodeiface = "tun*" .. mycount
-        end
-        if wangateway[ip] then
+        if localpart then
+            local tactical = ""
+            if host.tactical then
+                tactical = " / " .. host.tactical
+            end
+            local etx = string.format("%.2f", host.etx)
+            local row = "<tr><td><a href='http://" .. host.name .. ":8080/'>" .. localpart .. tactical .. "</a>"
+            local nodeiface
+            local mycount = 0
+            if midcount[ip] then
+                mycount = midcount[ip]
+            end
+            if dtd[ip] then
+                mycount = mycount - 1
+            end
+            if hosts[ip].tactical then
+                mycount = mycount - 1
+            end
+            if mycount > 0 then
+                nodeiface = "tun*" .. mycount
+            end
+            if wangateway[ip] then
+                if nodeiface then
+                    nodeiface = nodeiface .. ",wan"
+                else
+                    nodeiface = "wan"
+                end
+            end
             if nodeiface then
-                nodeiface = nodeiface .. ",wan"
-            else
-                nodeiface = "wan"
+                row = row .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
             end
-        end
-        if nodeiface then
-            row = row .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
-        end
-        row = row .. "</td><td></td><td>" .. etx .. "</td><td>"
-        if services[host.name] then
-            for _, v in pairs(services[host.name])
-            do
-                row = row .. v .. "<br>"
-            end
-        end
-        row = row .. "</td></tr>"
-
-        -- add locally advertised dmz hosts
-        for _, dmzhost in ipairs(host.hosts)
-        do
-            local localpart = dmzhost:match("(.*)%.local%.mesh")
-            row = row .. "<tr><td></td><td>" .. localpart .. "</td><td></td><td>"
-            if services[dmzhost] then
-                for _, v in pairs(services[dmzhost])
+            row = row .. "</td><td></td><td>" .. etx .. "</td><td>"
+            if services[host.name] then
+                for _, v in pairs(services[host.name])
                 do
                     row = row .. v .. "<br>"
                 end
             end
             row = row .. "</td></tr>"
-        end
 
-        rows[#rows + 1] = { key = host.etx, row = row }
+            -- add locally advertised dmz hosts
+            for _, dmzhost in ipairs(host.hosts)
+            do
+                local localpart = dmzhost:match("(.*)%.local%.mesh")
+                if localpart then
+                    row = row .. "<tr><td></td><td>" .. localpart .. "</td><td></td><td>"
+                    if services[dmzhost] then
+                        for _, v in pairs(services[dmzhost])
+                        do
+                            row = row .. v .. "<br>"
+                        end
+                    end
+                    row = row .. "</td></tr>"
+                end
+            end
+
+            rows[#rows + 1] = { key = host.etx, row = row }
+        end
     end
 end
 
