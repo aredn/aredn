@@ -400,13 +400,6 @@ if fspace < 100 then
 else
     fspace = fspace .. " KB"
 end
-vfs = nixio.fs.statvfs("/tmp")
-local tspace = vfs.bfree * vfs.bsize / 1024
-if tspace < 3000 then
-    tspace = "<blink><b>" .. tspace .. " KB</b></blink>"
-else
-    tspace = tspace .. " KB"
-end
 local rspace = sysinfo.freeram / 1024
 if rspace < 500 then
     rspace = "<blink><b>" .. rspace .. " KB</b></blink>"
@@ -424,7 +417,7 @@ else
     mavail = "unknown"
 end
 
-col2[#col2 + 1] = "<th align=right valign=top><nobr>load average</nobr><br><nobr>available space</nobr></th><td>" .. string.format("%.2f, %.2f, %.2f", sysinfo.loads[1], sysinfo.loads[2], sysinfo.loads[3]) .. "<br><nobr>flash = " .. fspace .. "</nobr><br><nobr>/tmp = " .. tspace .. "</nobr><br><nobr>memory = " .. rspace .. "</nobr><br><nobr>kmemavail = " .. mavail .. "</nobr></td>";
+col2[#col2 + 1] = "<th align=right valign=top><nobr>load average</nobr><br><nobr>available space</nobr></th><td>" .. string.format("%.2f, %.2f, %.2f", sysinfo.loads[1], sysinfo.loads[2], sysinfo.loads[3]) .. "<br><nobr>flash = " .. fspace .. "</nobr><br><nobr>memory = " .. rspace .. "</nobr><br><nobr>kmemavail = " .. mavail .. "</nobr></td>";
 col2[#col2 + 1] = "<th align=right valign=top>Host Entries</th><td><nobr>Total = " .. host_total .. "</nobr><br><nobr>Nodes = " .. host_nodes .. "<nobr></td>"
 
 -- now print the tables
