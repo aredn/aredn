@@ -103,15 +103,16 @@ end
 function get_memavail()
     local f = io.open("/proc/meminfo", "r")
     if f then
-      for line in f:lines()
-      do
-        local memavail = line:match("^MemAvailable:%s+(%d+)%s+kB")
-        if memavail then
-          f:close()
-          return tonumber(memavail)
+        for line in f:lines()
+        do
+            local memavail = line:match("^MemAvailable:%s+(%d+)%s+kB")
+            if memavail then
+                f:close()
+                return memavail
+            end
         end
-      end
     end
+    f:close()
 end
 
 function get_wifi_signal(wifiif)
@@ -413,10 +414,14 @@ else
     rspace = rspace .. " KB"
 end
 local mavail = get_memavail()
-if mavail < 500 then
-    mavail = "<blink><b>" .. mavail .. " KB</b></blink>"
+if mavail then
+    if tonumber(mavail) < 500 then
+        mavail = "<blink><b>" .. mavail .. " KB</b></blink>"
+    else
+        mavail = mavail .. " KB"
+    end
 else
-    mavail = mavail .. " KB"
+    mavail = "unknown"
 end
 
 col2[#col2 + 1] = "<th align=right valign=top><nobr>load average</nobr><br><nobr>available space</nobr></th><td>" .. string.format("%.2f, %.2f, %.2f", sysinfo.loads[1], sysinfo.loads[2], sysinfo.loads[3]) .. "<br><nobr>flash = " .. fspace .. "</nobr><br><nobr>/tmp = " .. tspace .. "</nobr><br><nobr>memory = " .. rspace .. "</nobr><br><nobr>kmemavail = " .. mavail .. "</nobr></td>";
