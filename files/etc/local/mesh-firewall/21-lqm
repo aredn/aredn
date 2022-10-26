@@ -33,8 +33,11 @@
 
 LICENSE
 
-/usr/sbin/iptables -F input_lqm 2> /dev/null
-/usr/sbin/iptables -X input_lqm 2> /dev/null
-/usr/sbin/iptables -N input_lqm 2> /dev/null
-/usr/sbin/iptables -D INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null
-/usr/sbin/iptables -I INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null
+nft flush chain inet fw4 input_lqm 2> /dev/null
+nft delete chain inet fw4 input_lqm 2> /dev/null
+nft add chain inet fw4 input_lqm 2> /dev/null
+handle=$(nft -n -a list chain inet fw4 input | grep "jump input_lqm" | sed "s/^.* handle //")
+if [ "$handle" != "" ]; then
+  nft delete rule inet fw4 input handle $handle 2> /dev/null
+fi
+nft insert rule inet fw4 input counter jump input_lqm comment \"block low quality links\" 2> /dev/null

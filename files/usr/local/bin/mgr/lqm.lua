@@ -46,7 +46,7 @@ local tx_quality_run_avg = 0.8 -- tx quality running average
 local ping_timeout = 1.0 -- timeout before ping gives a qualtiy penalty
 local dtd_distance = 50 -- distance (meters) after which nodes connected with DtD links are considered different sites
 
-local IPTABLES = "/usr/sbin/iptables"
+local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
 local ARPING = "/usr/sbin/arping"
 
@@ -115,30 +115,43 @@ function should_ping(track)
     end
 end
 
+function nft_handle(list, query)
+    for line in io.popen(NFT .. " -a list chain inet fw4 " .. list):lines()
+    do
+        local handle = line:match(query .. "%s*# handle (%d+)")
+        if handle then
+            return handle
+        end
+    end
+    return nil
+end
+
 function update_block(track)
     if should_block(track) then
         track.blocked = true
         if track.type == "Tunnel" then
-            if os.execute(IPTABLES .. " -C input_lqm -p udp --destination-port 698  --in-interface " .. track.device .. " -j DROP 2> /dev/null") ~= 0 then
-                os.execute(IPTABLES .. " -I input_lqm -p udp --destination-port 698  --in-interface " .. track.device .. " -j DROP 2> /dev/null")
+            if not nft_handle("input_lqm", "iifname \\\"" .. trace.device .. "\\\" udp dport 698 .* drop") then
+                os.execute(NFT .. " insert rule inet fw4 input_lqm iifname \\\"" .. trace.device .. "\\\" udp dport 698 counter drop 2> /dev/null")
                 return "blocked"
             end
         else
-            if os.execute(IPTABLES .. " -C input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null") ~= 0 then
-                os.execute(IPTABLES .. " -I input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null")
+            if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") then
+                os.execute(NFT .. " insert rule inet fw4 input_lqm udp dport 698 ether saddr " .. track.mac .. " counter drop 2> /dev/null")
                 return "blocked"
             end
         end
     else
         track.blocked = false
         if track.type == "Tunnel" then
-            if os.execute(IPTABLES .. " -C input_lqm -p udp --destination-port 698  --in-interface " .. track.device .. " -j DROP 2> /dev/null") == 0 then
-                os.execute(IPTABLES .. " -D input_lqm -p udp --destination-port 698  --in-interface " .. track.device .. " -j DROP 2> /dev/null")
-                return "blocked"
+            local handle = nft_handle("input_lqm", "iifname \\\"" .. trace.device .. "\\\" udp dport 698 .* drop")
+            if handle then
+                os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
+                return "unblocked"
             end
         else
-            if os.execute(IPTABLES .. " -C input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null") == 0 then
-                os.execute(IPTABLES .. " -D input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null")
+            local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") 
+            if handle then
+                os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
                 return "unblocked"
             end
         end
@@ -148,8 +161,14 @@ end
 
 function force_remove_block(track)
     track.blocked = false
-    os.execute(IPTABLES .. " -D input_lqm -p udp --destination-port 698 -m mac --mac-source " .. track.mac .. " -j DROP 2> /dev/null")
-    os.execute(IPTABLES .. " -D input_lqm -p udp --destination-port 698  --in-interface " .. track.device .. " -j DROP 2> /dev/null")
+    local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") 
+    if handle then
+        os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
+    end
+    handle = nft_handle("input_lqm", "iifname \\\"" .. trace.device .. "\\\" udp dport 698 .* drop")
+    if handle then
+        os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
+    end
 end
 
 -- Distance in meters between two points
@@ -192,11 +211,14 @@ function lqm()
     wait_for_ticks(math.max(1, 30 - nixio.sysinfo().uptime))
 
     -- Create filters (cannot create during install as they disappear on reboot)
-    os.execute(IPTABLES .. " -F input_lqm 2> /dev/null")
-    os.execute(IPTABLES .. " -X input_lqm 2> /dev/null")
-    os.execute(IPTABLES .. " -N input_lqm 2> /dev/null")
-    os.execute(IPTABLES .. " -D INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null")
-    os.execute(IPTABLES .. " -I INPUT -j input_lqm -m comment --comment 'block low quality links' 2> /dev/null")
+    os.execute(NFT .. " flush chain inet fw4 input_lqm")
+    os.execute(NFT .. " delete chain inet fw4 input_lqm")
+    os.execute(NFT .. " add chain inet fw4 input_lqm")
+    local handle = nft_handle("input", "jump input_lqm comment \\\"block low quality links\\\"")
+    if handle then
+        os.execute(NFT .. " delete rule inet fw4 input handle " .. handle)
+    end
+    os.execute(NFT .. " insert rule inet fw4 input counter jump input_lqm comment \\\"block low quality links\\\"")
 
     -- We dont know any distances yet
     os.execute(IW .. " " .. phy .. " set distance auto")
