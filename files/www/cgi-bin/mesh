@@ -443,6 +443,43 @@ html.print([[
     input.search {
         width:150px;
     }
+    #nSubTable {
+      width: 80%
+    }
+    #nTable th:nth-child(1) {
+      width: 31.5%;
+    }
+    #nTable th:nth-child(2) {
+      width: 25%;
+    }
+    #nTable td:nth-child(2) {
+      width: 43.5%;
+      padding-left: 5px;
+    }
+    #nTable td:nth-child(3) {
+      padding-left: 5px;
+    }
+    #cTable th:nth-child(1), #rTable th:nth-child(1) {
+      width: 25%;
+    }
+    #cTable th:nth-child(2), #rTable th:nth-child(2) {
+      width: 20%;
+    }
+    #cTable td:nth-child(2), #rTable td:nth-child(2) {
+      padding-left: 8px;
+    }
+    #cTable th:nth-child(3), #cTable th:nth-child(4), #cTable th:nth-child(5) {
+      width: 5%;
+    }
+    #cTable td:last-child {
+      padding-left: 5px;
+    }
+    #rTable th:nth-child(3) {
+      width: 15%;
+    }
+    #rTable td:nth-child(4) {
+      padding-left: 8px;
+    }
     </style>
 ]])
 html.print("</head>")
@@ -484,10 +521,10 @@ end
 html.print("<table class=main>")
 
 -- start main table row 1 left cell
-html.print("<tr><td>")
+html.print("<tr><td id=nSubTable>")
 
 -- show local hosts table
-html.print("<table>")
+html.print("<table id=nTable>")
 html.print("<tr><th>This Node</th><th>LAN Hostname</th><th>Service Name</th></tr>")
 
 if next(localhosts) then
