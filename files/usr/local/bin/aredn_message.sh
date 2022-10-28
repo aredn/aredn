@@ -41,7 +41,7 @@ ping -q -W10 -c1 downloads.arednmesh.org > /dev/null &&
 
 nodename=$(echo "$HOSTNAME" | tr 'A-Z' 'a-z')
 
-if [ $online = "true" ]
+if [ "$online" = "true" ]
 then
   # fetch node specific message file
   wget -q -O aredn_message -P /tmp http://downloads.arednmesh.org/messages/"${nodename}".txt &&

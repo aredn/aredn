@@ -37,7 +37,8 @@ function aredn_message()
     while true
     do
         os.execute("/usr/local/bin/aredn_message.sh")
-        local pollrate = tonumber(uci.cursor():get("aredn", "@alerts[0]", "pollrate"))
+		local pollrate = uci.cursor():get("aredn", "@alerts[0]", "pollrate")
+        pollrate = tonumber(pollrate)
         if not pollrate or pollrate <= 0 then
             pollrate = 12 -- 12 hour default
         end

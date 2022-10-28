@@ -211,10 +211,10 @@ function lqm()
     wait_for_ticks(math.max(1, 30 - nixio.sysinfo().uptime))
 
     -- Create filters (cannot create during install as they disappear on reboot)
-    os.execute(NFT .. " flush chain inet fw4 input_lqm")
-    os.execute(NFT .. " delete chain inet fw4 input_lqm")
-    os.execute(NFT .. " add chain inet fw4 input_lqm")
-    local handle = nft_handle("input", "jump input_lqm comment \\\"block low quality links\\\"")
+    os.execute(NFT .. " flush chain inet fw4 input_lqm 2> /dev/null")
+    os.execute(NFT .. " delete chain inet fw4 input_lqm 2> /dev/null")
+    os.execute(NFT .. " add chain inet fw4 input_lqm 2> /dev/null")
+    local handle = nft_handle("input", "jump input_lqm comment")
     if handle then
         os.execute(NFT .. " delete rule inet fw4 input handle " .. handle)
     end
@@ -238,8 +238,10 @@ function lqm()
 
         local config = get_config()
 
-        local lat = tonumber(cursor:get("aredn", "@location[0]", "lat"))
-        local lon = tonumber(cursor:get("aredn", "@location[0]", "lon"))
+        local lat = cursor:get("aredn", "@location[0]", "lat")
+        local lon = cursor:get("aredn", "@location[0]", "lon")
+        lat = tonumber(lat)
+        lon = tonumber(lon)
 
         local arps = {}
         arptable(

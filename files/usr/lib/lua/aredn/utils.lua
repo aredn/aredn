@@ -156,6 +156,9 @@ end
 function get_ifname(ifn)
 	local u=uci.cursor()
 	local iface=u:get("network",ifn,"ifname")
+	if not iface then
+		iface=u:get("network",ifn,"device")
+	end
 	return iface
 end
 

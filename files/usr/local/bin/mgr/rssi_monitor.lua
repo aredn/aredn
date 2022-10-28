@@ -67,8 +67,15 @@ function run_monitor()
     local now = nixio.sysinfo().uptime
 
     local wifiiface = get_ifname("wifi")
+    local phy = iwinfo.nl80211.phyname(wifiiface)
 
-    if read_all("/sys/kernel/debug/ieee80211/" .. iwinfo.nl80211.phyname(wifiiface) .. "/ath9k/tx_chainmask"):chomp() ~= "1" then
+    -- Not supported on ath10k
+    if nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k") then
+        exit_app()
+        return
+    end
+
+    if read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/tx_chainmask"):chomp() ~= "1" then
         multiple_ant = true
     end
 
@@ -87,7 +94,7 @@ function run_monitor()
     end
 
     local ofdm_level = 0
-    for i, line in ipairs(read_all("/sys/kernel/debug/ieee80211/" .. iwinfo.nl80211.phyname(wifiiface) .. "/ath9k/ani"):splitNewLine())
+    for i, line in ipairs(read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/ani"):splitNewLine())
     do
         ofdm_level = tonumber(string.match(line, "OFDM LEVEL: (.*)"))
         if ofdm_level then
