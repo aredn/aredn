@@ -15,9 +15,9 @@ boot() {
 
     if [ "$wifiiintf" = "" ]
     then
-	#if we can't figure out the wifi mac, then force a change
-	#of the lan mac, to avoid conflict, can be the same on some devices
-	wifimac=$lanmac;
+      #if we can't figure out the wifi mac, then force a change
+      #of the lan mac, to avoid conflict, can be the same on some devices
+      wifimac=$lanmac;
     fi
     local intlanmac=${lanmac//:/}
     local intwanmac=${wifimac//:/}
@@ -44,6 +44,7 @@ boot() {
       uci commit
       /etc/init.d/network reload
       /etc/init.d/network restart
+      sleep 10
     fi
   fi
 
