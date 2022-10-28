@@ -11,7 +11,7 @@ GIT_COMMIT=$(shell git rev-parse --short HEAD)
 # set dir and file names
 TOP_DIR=$(shell pwd)
 OPENWRT_DIR=$(TOP_DIR)/openwrt
-TARGET_CONFIG=$(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET).config
+TARGET_CONFIG=$(TOP_DIR)/configs/common.config $(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET).config
 UMASK=umask 022
 
 # set variables based on private or CircleCI build
