@@ -706,7 +706,6 @@ else
 end
 
 --add previous neighbors
-html.print("<tr><td style='color:sienna;font-weight:bold'>Previous Neighbors</td></tr>")
 local rows = {}
 local uptime = nixio.sysinfo().uptime
 for ip, node in pairs(history)
@@ -747,6 +746,7 @@ do
     end
 end
 if #rows > 0 then
+    html.print("<tr><td style='color:sienna;font-weight:bold'>Previous Neighbors</td></tr>")
     table.sort(rows, function(a,b) return a.key < b.key end)
     for _, row in ipairs(rows)
     do
@@ -754,8 +754,6 @@ if #rows > 0 then
     end
     -- discard
     rows = nil
-else
-    html.print("<tr><td style='color:sienna;'>none</td></tr>")
 end
 
 -- end current neighbors table
