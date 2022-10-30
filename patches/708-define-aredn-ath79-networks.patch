@@ -188,7 +188,7 @@
  		ucidef_set_interface_wan "eth1"
 --- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
-@@ -22,7 +22,9 @@ ath79_setup_interfaces()
+@@ -22,14 +22,21 @@
  	mikrotik,routerboard-wap-2nd|\
  	mikrotik,routerboard-wap-g-5hact2hnd|\
  	mikrotik,routerboard-wapr-2nd)
@@ -197,8 +197,22 @@
 +		ucidef_set_interface "dtdlink" device "eth0.2 eth1.2" protocol "static"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
  		;;
- 	mikrotik,routerboard-951ui-2nd|\
- 	mikrotik,routerboard-952ui-5ac2nd)
+-	mikrotik,routerboard-951ui-2nd|\
+-	mikrotik,routerboard-952ui-5ac2nd)
++	mikrotik,routerboard-951ui-2nd)
+ 		ucidef_set_interface_wan "eth1"
+ 		ucidef_add_switch "switch0" \
+ 			"0@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
+ 		;;
++	mikrotik,routerboard-952ui-5ac2nd)
++		ucidef_set_interface_wan "eth1"
++		ucidef_set_interface "wifi" device "wlan1" protocol "static"
++		ucidef_add_switch "switch0" \
++			"0@eth0" "4:lan:2" "3:lan:3" "2:lan:4" "1t:dtdlink:5"
++		;;
+ 	mikrotik,routerboard-map-2nd)
+ 		ucidef_set_interface_lan "eth0 eth1"
+ 		;;
 @@ -35,7 +37,9 @@ ath79_setup_interfaces()
  			"0@eth0" "2:lan" "3:lan" "4:lan" "5:lan" "1:wan"
  		;;
