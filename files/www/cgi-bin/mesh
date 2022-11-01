@@ -420,11 +420,11 @@ html.print([[
     <style>
     table {
         cellspacing:5px;
-        width:100%;
+        width:80%;
         border-collapse:collapse;
     }
-    table.main {
-        width:80%;
+    td {
+        padding-left:5px;
     }
     tr {
         vertical-align:top;
@@ -432,6 +432,9 @@ html.print([[
     }
     tr.spaceUnder>td {
         padding-bottom:2em;
+    }
+    tr:hover {
+        background-color:gainsboro;
     }
     th {
         font-weight:bold;
@@ -443,42 +446,33 @@ html.print([[
     input.search {
         width:150px;
     }
-    #nSubTable {
-      width: 80%
-    }
+    // table header alignment
     #nTable th:nth-child(1) {
-      width: 31.5%;
-    }
-    #nTable th:nth-child(2) {
       width: 25%;
     }
-    #nTable td:nth-child(2) {
-      width: 43.5%;
-      padding-left: 5px;
+    #nTable th:nth-child(2) {
+      width: 45%;
     }
-    #nTable td:nth-child(3) {
-      padding-left: 5px;
+    #nTable th:nth-child(3)
+      width: 30%;
     }
     #cTable th:nth-child(1), #rTable th:nth-child(1) {
       width: 25%;
     }
     #cTable th:nth-child(2), #rTable th:nth-child(2) {
-      width: 20%;
+      width: 25%;
     }
-    #cTable td:nth-child(2), #rTable td:nth-child(2) {
-      padding-left: 8px;
+    #cTable th:nth-child(3), #cTable th:nth-child(4) {
+      width: 6%;
     }
-    #cTable th:nth-child(3), #cTable th:nth-child(4), #cTable th:nth-child(5) {
-      width: 5%;
-    }
-    #cTable td:last-child {
-      padding-left: 5px;
+    #cTable th:nth-child(5) {
+      width: 8%;
     }
     #rTable th:nth-child(3) {
-      width: 15%;
+      width: 20%;
     }
-    #rTable td:nth-child(4) {
-      padding-left: 8px;
+    #rTable th:nth-child(4) {
+      width: 30%;
     }
     </style>
 ]])
@@ -517,15 +511,13 @@ if not next(localhosts) and not next(links) then
     os.exit(0)
 end
 
--- main for page formatting
-html.print("<table class=main>")
-
--- start main table row 1 left cell
-html.print("<tr><td id=nSubTable>")
-
--- show local hosts table
+-- show local node table
 html.print("<table id=nTable>")
-html.print("<tr><th>This Node</th><th>LAN Hostname</th><th>Service Name</th></tr>")
+html.print("<tr>")
+html.print("<th width=25%><input class=search type=text id='inNN' onkeyup=nSearch('inNN','nTable',0) placeholder='Node Name'></th>")
+html.print("<th><input class=search type=text id='inNH' onkeyup=nSearch('inNH','nTable',1) placeholder='Lan Hostname'></th>")
+html.print("<th><input class=search type=text id='inNS' onkeyup=nSearch('inNS','nTable',2) placeholder='Service Name'></th>")
+html.print("</tr>")
 
 if next(localhosts) then
     local rows = {}
@@ -605,91 +597,16 @@ end
 -- discard
 localhosts = nil
 
---end row 1 left cell
-html.print("</table></td>")
-
--- insert center margin cell
-html.print("<td width=10px></td>")
-
--- start main table row1 right cell
-html.print("<td>")
-
--- show OLSR entries row
-html.print("<table>")
-html.print("<tr><th colspan=2>OLSR Entries</th></tr>")
-html.print("<tr class=spaceUnder><td><strong>Nodes:</strong> " .. olsr_nodes .. "</td><td><strong>Total:</strong> " .. olsr_total .. "</td></tr>")
-if nixio.sysinfo().freeram < lowmemory then
-    html.print("<tr class=spaceUnder><td colspan=2><strong>NOTE:</strong> Counts are correct but page may be truncated on this low memory node</td></tr>")
-end
-
--- show previous neighbors
-html.print("<tr><th colspan=2>Previous Neighbors</th></tr>")
-
-local rows = {}
-local uptime = nixio.sysinfo().uptime
-for ip, node in pairs(history)
-do
-    if not (links[ip] or links[ipalias[ip]]) then
-        local age = uptime - tonumber(node.age)
-        local host = node.host
-        if host == "" then
-            host = ip
-        else
-            host = host:gsub("^mid%d+%.", ""):gsub("^dtdlink%.", "")
-        end
-        local row = "<tr><td>" .. host
-        if hosts[ip] and hosts[ip].hosts then
-            for _, v in ipairs(hosts[ip].hosts)
-            do
-                row = row .. "<br>" .. v
-            end
-        end
-        row = row .. "</td><td>"
-        if age < 3600 then
-            local val = math.floor(age / 60)
-            if val == 1 then
-                row = row .. "1 minute ago"
-            else
-                row = row .. val .. " minutes ago"
-            end
-        else
-            local val = string.format("%.1f", age / 3600)
-            if val == "1.0" then
-                row = row .. "1 hour ago"
-            else
-                row = row .. val .. " hours ago"
-            end
-        end
-        row = row .. "</td></tr>"
-        rows[#rows + 1] = { key = age, row = row }
-    end
-end
-if #rows > 0 then
-    table.sort(rows, function(a,b) return a.key < b.key end)
-    for _, row in ipairs(rows)
-    do
-        html.print(row.row)
-    end
-    -- discard
-    rows = nil
-else
-    html.print("<tr><td>none</td></tr>")
-end
-
--- end row 1 right table and cell
-html.print("</table></td></tr>")
-
----------------------------
--- start main table row 2
----------------------------
-html.print("<tr><td colspan=3>")
+-- end local node table
+html.print("</table>")
 
 -- show current neighbors table
 html.print("<br><table id='cTable'><tr>")
-html.print("<th><input class=search type=text id='inCN' onkeyup=nSearch('inCN','cTable',0) placeholder='Current Neighbor'></th>")
+html.print("<th width=25%><input class=search type=text id='inCN' onkeyup=nSearch('inCN','cTable',0) placeholder='Current Neighbor'></th>")
 html.print("<th><input class=search type=text id='inCH' onkeyup=nSearch('inCH','cTable',1) placeholder='Lan Hostname'></th>")
 html.print("<th>LQ</th><th>NLQ</th><th>TxMbps</th>")
-html.print("<th>Service Name</th>")
+--html.print("<th>Service Name</th>")
+html.print("<th><input class=search type=text id='inCS' onkeyup=nSearch('inCS','cTable',5) placeholder='Service Name'></th>")
 html.print("</tr>")
 
 local rows = {}
@@ -741,10 +658,11 @@ do
     if nodeiface then
         row = row .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
     end
-    row = row .. string.format("</td><td></td><td>%.0f%%</td><td>%.0f%%</td><td>%s</td><td>\n", 100 * link.lq, 100 * link.nlq, link.mbps)
+    row = row .. string.format("</td><td></td><td>%.0f%%</td><td>%.0f%%</td><td>%s</td>", 100 * link.lq, 100 * link.nlq, link.mbps)
 
     if not neighservices[name] then
         neighservices[name] = true
+        row = row .. "<td>"
         if services[name] then
             for _, v in pairs(services[name])
             do
@@ -760,7 +678,7 @@ do
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
                 if localpart then
                     row = row .. "<tr><td></td><td>" .. localpart .. "</td>"
-                    row = row .. "<td colspan=3></td><td>"
+                    row = row .. "<td></td><td></td><td></td><td>"
                     if services[dmzhost] then
                         for _, v in pairs(services[dmzhost])
                         do
@@ -787,17 +705,63 @@ else
     html.print("<tr><td>none</td></tr>")
 end
 
--- end row 2 table and cell
-html.print("</table></td></tr>")
+--add previous neighbors
+local rows = {}
+local uptime = nixio.sysinfo().uptime
+for ip, node in pairs(history)
+do
+    if not (links[ip] or links[ipalias[ip]]) then
+        local age = uptime - tonumber(node.age)
+        local host = node.host
+        if host == "" then
+            host = ip
+        else
+            host = host:gsub("^mid%d+%.", ""):gsub("^dtdlink%.", "")
+        end
+        local row = "<tr><td style='color:sienna;'>" .. host
+        if hosts[ip] and hosts[ip].hosts then
+            for _, v in ipairs(hosts[ip].hosts)
+            do
+                row = row .. "<br>" .. v
+            end
+        end
+        row = row .. "</td><td style='color:sienna;'>"
+        if age < 3600 then
+            local val = math.floor(age / 60)
+            if val == 1 then
+                row = row .. "1 minute ago"
+            else
+                row = row .. val .. " minutes ago"
+            end
+        else
+            local val = string.format("%.1f", age / 3600)
+            if val == "1.0" then
+                row = row .. "1 hour ago"
+            else
+                row = row .. val .. " hours ago"
+            end
+        end
+        row = row .. "</td></tr>"
+        rows[#rows + 1] = { key = age, row = row }
+    end
+end
+if #rows > 0 then
+    html.print("<tr><td style='color:sienna;font-weight:bold'>Previous Neighbors</td></tr>")
+    table.sort(rows, function(a,b) return a.key < b.key end)
+    for _, row in ipairs(rows)
+    do
+        html.print(row.row)
+    end
+    -- discard
+    rows = nil
+end
 
----------------------------
--- start main table row 3
----------------------------
-html.print("<tr><td colspan=3>")
+-- end current neighbors table
+html.print("</table>")
 
 -- show remote node table
 html.print("<br><table id='rTable'><tr>")
-html.print("<th><input class=search type=text id='inRN' onkeyup=nSearch('inRN','rTable',0) placeholder='Remote Nodes'></th>")
+html.print("<th width=25%><input class=search type=text id='inRN' onkeyup=nSearch('inRN','rTable',0) placeholder='Remote Nodes'></th>")
 html.print("<th><input class=search type=text id='inRH' onkeyup=nSearch('inRH','rTable',1) placeholder='LAN Hostname'</th>")
 html.print("<th>ETX</th>")
 html.print("<th><input class=search type=text id='inRS' onkeyup=nSearch('inRS','rTable',3) placeholder='Service Name'</th>")
@@ -888,19 +852,13 @@ midcount = nil
 wangateway = nil
 services = nil
 
--- end bottom left table cell
-html.print("</table></td></tr>")
-
 -- discard
 links = nil
 ipalias = nil
 hosts = nil
 history = nil
 
--- end row3 table and cell
-html.print("</table></td></tr>")
-
---end page format table
+-- end remote nodes table
 html.print("</table>")
 
 html.print("</center>")
@@ -931,3 +889,4 @@ html.print([[
 html.footer();
 html.print("</body>")
 html.print("</html>")
+
