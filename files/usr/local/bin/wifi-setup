@@ -174,11 +174,12 @@ EOF
     set wireless.${radio}.htmode=${htmode}
     ${dev_id}
     add wireless wifi-iface
-    set wireless.@wifi-iface[${ifacenum}].device=${radio}         
-    set wireless.@wifi-iface[${ifacenum}].network=${network}      
-    set wireless.@wifi-iface[${ifacenum}].mode=${mode}            
-    set wireless.@wifi-iface[${ifacenum}].ssid="${ssid}"               
-    set wireless.@wifi-iface[${ifacenum}].encryption=${encryption}       
+    set wireless.@wifi-iface[${ifacenum}].ifname=${wlan}
+    set wireless.@wifi-iface[${ifacenum}].device=${radio}
+    set wireless.@wifi-iface[${ifacenum}].network=${network}
+    set wireless.@wifi-iface[${ifacenum}].mode=${mode}
+    set wireless.@wifi-iface[${ifacenum}].ssid="${ssid}"
+    set wireless.@wifi-iface[${ifacenum}].encryption=${encryption}
     set wireless.@wifi-iface[${ifacenum}].key="${key}"
 EOF
   uci -c ${dropdir} -q commit wireless
@@ -188,6 +189,7 @@ EOF
     ifacenum=$((ifacenum + 1))
     uci -c ${dropdir} -q batch > /dev/null <<-EOF
       add wireless wifi-iface
+      set wireless.@wifi-iface[${ifacenum}].ifname=${wlan}-1
       set wireless.@wifi-iface[${ifacenum}].device=${radio}
       set wireless.@wifi-iface[${ifacenum}].network=wifi_mon
       set wireless.@wifi-iface[${ifacenum}].mode=monitor
