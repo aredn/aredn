@@ -161,7 +161,7 @@ if not wifi_disabled then
     if wifi_channel >= 76 and wifi_channel <= 99 then
         wifi_channel = wifi_channel * 5 + 3000
     end
-    wifi_chanbw = cursor:get("wireless", radio, "chanbw")
+    wifi_chanbw = cursor:get("wireless", radio, "chanbw") or "20"
     wifi_ssid = "N/A"
     cursor:foreach("wireless", "wifi-iface",
         function (section)
@@ -200,8 +200,7 @@ end
 
 if os.getenv("REQUEST_METHOD") == "POST" then
     require('luci.http')
-    require('luci.sys')
-    local request = luci.http.Request(luci.sys.getenv(),
+    local request = luci.http.Request(nixio.getenv(),
       function()
         local v = io.read(1024)
         if not v then

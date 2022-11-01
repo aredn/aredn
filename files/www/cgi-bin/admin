@@ -43,7 +43,6 @@ aredn.html = require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
 require("ubus")
-require("luci.sys")
 
 local html = aredn.html
 
@@ -160,7 +159,7 @@ function reboot()
     end
     html.print("</center></body></html>")
     http_footer()
-    luci.sys.reboot()
+    os.execute("reboot >/dev/null 2>&1")
     os.exit()
 end
 
@@ -191,7 +190,7 @@ local parms = {}
 local firmfile = ""
 if os.getenv("REQUEST_METHOD") == "POST" then
     require('luci.http')
-    local request = luci.http.Request(luci.sys.getenv(),
+    local request = luci.http.Request(nixio.getenv(),
       function()
         local v = io.read(1024)
         if not v then
@@ -491,7 +490,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                     html.print("</body></html>")
                     http_footer()
                     aredn.info.set_nvram("nodeupgraded", "0")
-                    luci.sys.reboot()
+                    os.execute("reboot >/dev/null 2>&1")
                 else
                     html.print([[
                         <center><h2>Firmware will be written in the background.</h2>
@@ -520,7 +519,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
             html.footer()
             html.print("</body></html>")
             http_footer()
-            luci.sys.reboot()
+            os.execute("reboot >/dev/null 2>&1")
         end
     else
         html.print([[

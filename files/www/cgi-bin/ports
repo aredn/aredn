@@ -42,7 +42,6 @@ require("aredn.utils")
 aredn.html = require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
-require("luci.sys")
 
 local html = aredn.html
 
@@ -62,7 +61,7 @@ end
 local parms = {}
 if os.getenv("REQUEST_METHOD") == "POST" then
     require('luci.http')
-    local request = luci.http.Request(luci.sys.getenv(),
+    local request = luci.http.Request(nixio.getenv(),
       function()
         local v = io.read(1024)
         if not v then
@@ -833,13 +832,12 @@ if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or 
     if os.execute("/usr/local/bin/node-setup -a -p mesh") ~= 0 then
         err("problem with configuration")
     end
-    if not luci.sys.init.reload("dnsmasq") then
+    if os.execute("/etc/init.d/dnsmasq restart") ~= 0 then
         err("problem with dnsmasq")
     end
-    if not luci.sys.init.reload("firewall") then
+    if os.execute("/etc/init.d/firewall restart") ~= 0 then
         err("problem with port setup")
     end
-    -- This "luci.sys.init.restart("olsrd")" doesnt do the same thing so we have to call restart directly
     if os.execute("/etc/init.d/olsrd restart") ~= 0 then
         err("problem with olsr setup")
     end

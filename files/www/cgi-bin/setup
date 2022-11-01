@@ -42,7 +42,6 @@ require("aredn.utils")
 require("aredn.hardware")
 require("uci")
 require('luci.http')
-require('luci.sys')
 local html = require("aredn.html")
 local aredn_info = require("aredn.info")
 
@@ -181,7 +180,7 @@ function reboot()
     end
     html.print("</center></body></html>")
     http_footer()
-    luci.sys.reboot()
+    os.execute("reboot >/dev/null 2>&1")
     os.exit()
 end
 
@@ -265,7 +264,7 @@ local phycount = tonumber(capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp
 local parms = {}
 local has_parms = false
 if os.getenv("REQUEST_METHOD") == "POST" then
-    local request = luci.http.Request(luci.sys.getenv(),
+    local request = luci.http.Request(nixio.getenv(),
       function()
         local v = io.read(1024)
         if not v then
@@ -766,7 +765,7 @@ if parms.button_save then
         if f then
             for k, v in pairs(parms)
             do
-                if k:match("^aprs_") or k:match("^dhcp_") or k:match("^dmz_") or k:match("^lan_") or k:match("^olsrd_") or k:match("^wan_") or k:match("^wifi_") or k:match("^wifi2_") or k:match("^wifi3_") or k:match("^dtdlink_") or k:match("^ntp_") or k:match("^time_") or k:match("^description_") then
+                if k:match("^aprs_") or k:match("^dhcp_") or k:match("^dmz_") or k:match("^lan_") or k:match("^olsrd_") or k:match("^wan_") or k:match("^wifi_") or k:match("^wifi2_") or k:match("^wifi3_") or k:match("^dtdlink_") or k:match("^ntp_") or k:match("^time_") or k:match("^description_") or k:match("^compat_version") then
                     f:write(k .. " = " .. v .. "\n")
                 end
             end
@@ -1065,6 +1064,7 @@ html.print([[
 <td><textarea rows='2' cols='60' wrap='soft' maxlength='210' id='node_description_entry' name='description_node' tabindex='4'>]] .. desc .. [[</textarea></td>
 ]])
 hidden[#hidden + 1] = "<input type=hidden name=config value='mesh'>"
+hidden[#hidden + 1] = "<input type=hidden name=compat_version value='" .. compat_version .. "'>"
 html.print([[
 <td>Verify Password</td>
 <td><input class='password-input' type=password name=passwd2 value=']] .. passwd2 .. [[' size=8 tabindex=3><i class='password-toggle'></i></td>
