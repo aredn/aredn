@@ -721,6 +721,17 @@ http_header()
 html.header(node .. " Advanced Configuration", false)
 html.print([[
 <style>
+th {
+    padding:5px;
+}
+.brsm {
+    display:block;
+    margin-top:0.5em;
+    margin-bottom:0.5em;
+}
+#settings tr:hover {
+    background-color:gainsboro;
+}
 /* The switch - the box around the slider */
 .switch {
     position: relative;
@@ -804,12 +815,13 @@ function toggleDefault(fname, defval) {
 
 html.print("<body><center>")
 html.alert_banner();
-html.print("<div style=\"padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;\">")
+html.print("<div style='padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;'>")
 html.print("<strong>WARNING:</strong> Changing advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></div>")
 html.print("<form method=post action=advancedconfig enctype='multipart/form-data'>")
 
 -- navbar
-html.print("<hr style='width:800px'><table cellpadding=5 border=0 width=840px><tr align=center>")
+html.print("<hr style='width:800px'>")
+html.print("<table cellpadding=5 border=0 width=840px><tr align=center>")
 html.print("<td width=14%><a href='status'>Node Status</a></td>")
 html.print("<td width=14%><a href='setup'>Basic Setup</a></td>")
 html.print("<td width=14%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
@@ -820,11 +832,11 @@ html.print("<td width=14%><a href='advancedconfig'>Advanced<br>Configuration</a>
 html.print("</tr></table><hr style='width:800px'>")
 
 -- help link and buttons table
-html.print("<table width=750px><tr align=center>")
-html.print("<td width=33%><a href='/help.html#advancedconfig' target='_blank'>Help</a></td>")
-html.print("<td width=33%><input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'></td>")
-html.print("<td width=33%><input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'></td>")
-html.print("</tr></table>")
+html.print("<table width=800px><tr align=center><td>")
+html.print("<a href='/help.html#advancedconfig' target='_blank'>Help</a>")
+html.print("&nbsp; &nbsp; <input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>")
+html.print("&nbsp; &nbsp; <input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'>")
+html.print("</td></tr></table>")
 
 -- messages table
 html.print("<table width=800px>")
@@ -840,7 +852,7 @@ html.print("</table><br />")
 
 -- advanced configuration settings table
 html.print([[
-<table border=1 width=800px>
+<table id=settings border=1 style='border-collapse:collapse;' width=800px>
 <thead>
     <tr align=center>
     <th>Setting</th>
@@ -887,9 +899,9 @@ do
         end
         html.print("</td>")
         if setting.type ~= "none" then
-            html.print("<td align='center' width=15%><input type='submit' name='button_save_" .. i .. "' value='Save Setting' /><br><br>")
+            html.print("<td align='center' width=15%><span class=brsm /><input type='submit' name='button_save_" .. i .. "' value='Save Setting' /><br><span class=brsm />")
         else
-            html.print("<td align='center' width=15%><input type='submit' name='button_save_" .. i .. "' value='Execute' /><br><br>")
+            html.print("<td align='center' width=15%><span style='vertical-align:middle;'><input type='submit' name='button_save_" .. i .. "' value='Execute' /><span>")
         end
         if setting.type == "string" then
             html.print("<input value='Set to Default' type='button' onclick=\"document.getElementById('field_" .. i .. "').value='" .. setting.default .. "';\">")
