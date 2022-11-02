@@ -41,7 +41,7 @@ require("uci")
 require("iwinfo")
 
 
-local wifiif = uci.cursor():get("network", "wifi", "ifname")
+local wifiif = uci.cursor():get("network", "wifi", "device")
 local phy = iwinfo.nl80211.phyname(wifiif)
 local mfg = capture("/usr/local/bin/get_hardware_mfg"):chomp()
 
