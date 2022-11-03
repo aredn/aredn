@@ -1,0 +1,21 @@
+#!/bin/sh
+# Fix mac addresses as necessary
+
+fix=""
+case "$(/usr/local/bin/get_boardid)" in
+    MikroTik\ hAP\ ac2)
+        fix="lan wan dtdlink"
+        ;;
+    *)
+        ;;
+esac
+
+mkdir -p /etc/aredn_include
+
+for i in $fix
+do
+    if [ ! -s /etc/aredn_include/fixedmac.$i ]; then
+        mac=$(hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/random)
+        echo -e "\toption\tmacaddr\t$mac" > /etc/aredn_include/fixedmac.$i
+    fi
+done

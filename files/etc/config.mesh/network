@@ -10,6 +10,7 @@ config interface loopback
 config device
 	option name	"br-lan"
 	option type	"bridge"
+include /etc/aredn_include/fixedmac.lan
 include /etc/aredn_include/lan.network.config
 
 config interface lan
@@ -24,6 +25,7 @@ config interface lan
 config device
 	option name 	"br-wan"
 	option type	"bridge"
+include /etc/aredn_include/fixedmac.wan
 include /etc/aredn_include/wan.network.config
 
 config interface wan
@@ -47,13 +49,14 @@ config interface wifi
 config device
 	option name 	"br-dtdlink"
 	option type	"bridge"
+include /etc/aredn_include/fixedmac.dtdlink
 include /etc/aredn_include/dtdlink.network.config
 
 config interface dtdlink
-        option device   "br-dtdlink"
-        option proto    static
-        option ipaddr   <dtdlink_ip>
-        option netmask  255.0.0.0
+		option device   "br-dtdlink"
+		option proto    static
+		option ipaddr   <dtdlink_ip>
+		option netmask  255.0.0.0
 
 config interface wifi_mon
         option proto 	none
