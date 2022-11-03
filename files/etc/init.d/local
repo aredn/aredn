@@ -41,13 +41,12 @@ boot() {
       uci set "network.setethmac.device=$lanintf"
       uci set "network.setethmac.proto=none"
       uci set "network.setethmac.macaddr=$newmac"
-      uci commit
+      uci commit network
       /etc/init.d/network reload
       /etc/init.d/network restart
       sleep 10
     fi
   fi
-
 
   [ -x /usr/local/bin/aredn_postupgrade ] && /usr/local/bin/aredn_postupgrade
 
