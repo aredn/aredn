@@ -57,6 +57,7 @@ openwrt-clean: stamp-clean-openwrt-cleaned .stamp-openwrt-cleaned
 	ln -sf $(TOP_DIR)/patches $(OPENWRT_DIR)/
 	ln -sf $(TOP_DIR)/files   $(OPENWRT_DIR)/
 	sed -i "s/^.*freifunk.*$$//" $(OPENWRT_DIR)/feeds.conf.default
+	sed -i "s/luci.git$$/luci.git;openwrt-22.03/" $(OPENWRT_DIR)/feeds.conf.default
 	touch $@
 
 # update openwrt and checkout specified commit
