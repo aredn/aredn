@@ -2,13 +2,12 @@
 # Fix mac addresses as necessary
 
 fix=""
-case "$(/usr/local/bin/get_boardid)" in
-    MikroTik\ hAP\ ac2)
-        fix="lan wan dtdlink"
-        ;;
-    *)
-        ;;
-esac
+
+eth0=$(ifconfig eth0 2> /dev/null | grep HWaddr | sed s/^.*HWaddr\ //)
+wlan0=$(ifconfig wlan0 2> /dev/null | grep HWaddr | sed s/^.*HWaddr\ //)
+if [ "$eth0" = "$wlan0" -a "$eth0" != "" ]; then
+    fix="lan wan dtdlink"
+fi
 
 mkdir -p /etc/aredn_include
 
