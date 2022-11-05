@@ -147,7 +147,7 @@ local macs = {}
 if config ~= "mesh" or nixio.fs.stat("/tmp/reboot-required") then
     http_header()
     html.header(node .. " setup", true)
-    html.print("<body><center><table width=790><tr><td>")
+    html.print("<body><center><table width=820><tr><td>")
     html.alert_banner()
     navbar()
     html.print("</td></tr><tr><td align=center><br><b>")
@@ -850,9 +850,9 @@ html.header(node .. " setup", true)
 html.print("<body><center>")
 html.alert_banner()
 html.print("<form method=post action=/cgi-bin/ports enctype='multipart/form-data'>")
-html.print("<table width=790>")
+html.print("<table width=820>")
 html.print("<tr><td>")
-navbar();
+navbar()
 html.print("</td></tr>")
 
 -- control buttons
@@ -914,7 +914,7 @@ function print_reservations()
         if val == "_add" and #list > 1 then
             html.print("<tr><td colspan=4 height=10></td></tr>")
         end
-	    html.print("<tr><td><input type=text name=dhcp" .. val .. "_host value='" .. host .. "' size=10></td>")
+        html.print("<tr><td><input style='width=180;' type=text name=dhcp" .. val .. "_host value='" .. host .. "'></td>")
         html.print("<td align=center><select name=dhcp" .. val .. "_ip>")
         if val == "_add" then
 	        html.print("<option value=''>- IP Address -</option>\n")
@@ -931,7 +931,7 @@ function print_reservations()
             end
         end
         html.print("</select></td>")
-        html.print("<td><input type=text name=dhcp" .. val .. "_mac value='" .. mac .. "' size=16></td>")
+        html.print("<td><input style='width:120;' type=text name=dhcp" .. val .. "_mac value='" .. mac .. "'></td>")
         if dmz_mode ~= 0 then
             if noprop == "#NOPROP" then
                 html.print("<td align=center><input type=checkbox id=dhcp" .. val .. "_noprop name=dhcp" .. val .. "_noprop value='#NOPROP' checked></td>")
@@ -987,10 +987,14 @@ function print_reservations()
 end
 
 function print_forwarding()
-    html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=7>Port Forwarding</th></tr>")
-    html.print("<tr><td>&nbsp;</td><td align=center>Interface</td><td align=center>Type</td>")
-    html.print("<td align=center>Outside<br>Port</td><td align=center>LAN IP</td>")
-    html.print("<td align=center width=1>LAN<br>Port</td><td>&nbsp;</td></tr>")
+    html.print("<table cellpadding=0 cellspacing=0>")
+    html.print("<tr><th colspan=6>Port Forwarding</th></tr>")
+    html.print("<tr><td colspan=6 height=5></td></tr>")
+
+    html.print("<tr><td align=center>Interface</td><td align=center>Type</td>")
+    html.print("<td align=center>Outside Port</td><td align=center>LAN IP</td>")
+    html.print("<td align=center>LAN Port</td><td>&nbsp;</td></tr>")
+    html.print("<tr><td colspan=6 height=5></td></tr>")
 
     local list = {}
     for i = 1,parms.port_num
@@ -1007,11 +1011,11 @@ function print_forwarding()
         end
 
         if val == "_add" and #list > 1 then
-            html.print("<tr><td colspan=7 height=10></td></tr>")
+            html.print("<tr><td colspan=6 height=10></td></tr>")
         end
 
-        html.print("<tr><td>&nbsp;</td>")
-	    hide("<input type=hidden name=port" .. val .. "_enable value=1>")
+        html.print("<tr>")
+        hide("<input style='width:90;' type=hidden name=port" .. val .. "_enable value=1>")
 
         -- port forwarding settings
         html.print("<td align=center valign=top><select name=port" .. val .. "_intf title='forward inbound packets from this interface'>")
@@ -1030,7 +1034,7 @@ function print_forwarding()
         html.print("<option " .. (_type == "both" and "selected" or "") .. " value='both'>Both</option>")
         html.print("</select></td>")
 
-        html.print("<td align=center valign=top><input type=text name=port" .. val .. "_out value='" .. _out .. "' size=8></td>")
+        html.print("<td align=center valign=top><input style='width:90;' type=text name=port" .. val .. "_out value='" .. _out .. "'></td>")
         html.print("<td align=center valign=top><select name=port" .. val .. "_ip>")
         if val == "_add" then
             html.print("<option value=''>- IP Address -</option>")
@@ -1047,8 +1051,8 @@ function print_forwarding()
         end
         html.print("</select></td>")
 
-        html.print("<td align=left valign=top><input type=text name=port" .. val .. "_in value='" .. _in .. "' size=4></td>")
-	    html.print("<td><nobr>&nbsp;<input type=submit name=")
+        html.print("<td align=left valign=top><input style='width:90;' type=text name=port" .. val .. "_in value='" .. _in .. "'></td>")
+        html.print("<td><nobr>&nbsp;<input type=submit name=")
 
         if val == "_add" then
             html.print("port_add value=Add title='Add this as a port forwarding rule'")
@@ -1065,7 +1069,7 @@ function print_forwarding()
             table.remove(port_err, 1)
         end
 
-        html.print("<tr><td colspan=7 height=5></td></tr>")
+        html.print("<tr><td colspan=6 height=5></td></tr>")
     end
 
     -- dmz server for nat mode
@@ -1152,7 +1156,7 @@ function print_services()
             html.print("<tr><td colspan=4 height=10></td></tr>")
         end
         html.print("<tr>")
-        html.print("<td><input type=text size=6 name=serv" .. val .. "_name value='" .. _name .. "' title='what to call this service'></td>")
+        html.print("<td><input type=text style='width:120;' name=serv" .. val .. "_name value='" .. _name .. "' title='what to call this service'></td>")
 
         html.print("<td><nobr><input type=checkbox name=serv" .. val .. "_link value=1")
         if val ~= "_add" then
@@ -1162,7 +1166,7 @@ function print_services()
             html.print(" checked")
         end
         html.print(" title='create a clickable link for this service'>")
-        html.print("<input type=text size=2 name=serv" .. val .. "_proto value='" .. _proto .. "' title='URL Protocol'")
+        html.print("<input type=text style='width:40;' name=serv" .. val .. "_proto value='" .. _proto .. "' title='URL Protocol'")
         if val ~= "_add" and _link ~= "1" then
             html.print(" disabled")
         end
@@ -1188,11 +1192,11 @@ function print_services()
 	        html.print("<td><nobr><b>:</b>//<small>" .. _host .. "</small>")
         end
 
-        html.print("<b>:</b><input type=text size=2 name=serv" .. val .. "_port value='" .. _port .. "' title='port number'")
+        html.print("<b>:</b><input type=text style='width:40;' name=serv" .. val .. "_port value='" .. _port .. "' title='port number'")
         if val ~= "_add" and _link ~= "1" then
             html.print(" disabled")
         end
-        html.print("> / <input type=text size=6 name=serv" .. val .. "_suffix value='" .. _suffix .. "' ")
+        html.print("> / <input type=text style='width:80;' name=serv" .. val .. "_suffix value='" .. _suffix .. "' ")
         html.print("title='leave blank unless the URL needs a more specific path'")
         if val ~= "_add" and _link ~= "1" then
             html.print(" disabled")
@@ -1283,21 +1287,20 @@ function print_aliases()
     html.print("</table>")
 end
 
-html.print("<tr><td align=center><table width=100%>")
-html.print("<tr><td width=1 align=center valign=top>")
+html.print("<tr><td align=center>")
+html.print("<table width=100%><tr><td align=center valign=top>")
 if dmz_mode ~= 0 then
     print_reservations()
 else
     print_forwarding()
 end
 html.print("</td>")
-html.print("<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td align=center valign=top>")
+html.print("<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>")
+html.print("<td align=center valign=top>")
 print_services()
 html.print("</td>")
-html.print("</tr></table></td></tr>")
-html.print("<tr><td>&nbsp;</td></tr>")
-html.print("<tr><td><hr></td></tr>")
-html.print("</table><table width=790>")
+html.print("</tr>")
+html.print("<tr><td colspan=3><hr></td></tr>")
 html.print("<tr><td align=center valign=top>")
 if dmz_mode ~= 0 then
     print_forwarding()
@@ -1306,10 +1309,10 @@ else
 end
 html.print("</td>")
 html.print("<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>")
-html.print("<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>")
 html.print("<td align=center valign=top>")
 print_aliases()
-html.print("</td></tr></table>")
+html.print("</td></tr>")
+html.print("</table>")
 
 hide("<input type=hidden name=port_num value=" .. parms.port_num .. ">")
 hide("<input type=hidden name=dhcp_num value=" .. parms.dhcp_num .. ">")
@@ -1321,7 +1324,9 @@ do
     html.print(h)
 end
 
-html.print("</form></center>")
+html.print("<tr><td>")
 html.footer()
+html.print(" </td></tr>")
+html.print("</form></center></table>")
 html.print("</body></html>")
 http_footer()
