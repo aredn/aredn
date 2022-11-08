@@ -42,29 +42,23 @@ if nixio.fs.stat("/etc/config.mesh/xlink") then
     uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
         function(section)
             local ifname = section.ifname
-            os.execute("/usr/sbin/iptables -D FORWARD -i " .. ifname .. " -j zone_vpn_forward 2>/dev/null")
-            os.execute("/usr/sbin/iptables -D INPUT -i " .. ifname .. " -j zone_vpn_input 2>/dev/null")
-            os.execute("/usr/sbin/iptables -D OUTPUT -o " .. ifname .. " -j zone_vpn_ACCEPT 2>/dev/null")
-            os.execute("/usr/sbin/iptables -D zone_vpn_ACCEPT -o " .. ifname .. " -j ACCEPT")
-            os.execute("/usr/sbin/iptables -D zone_vpn_ACCEPT -i " .. ifname .. " -j ACCEPT")
-            os.execute("/usr/sbin/iptables -D zone_vpn_REJECT -o " .. ifname .. " -j reject")
-            os.execute("/usr/sbin/iptables -D zone_vpn_REJECT -i " .. ifname .. " -j reject")
-            os.execute("/usr/sbin/iptables -D zone_vpn_dest_ACCEPT -o " .. ifname .. " -j ACCEPT")
-            os.execute("/usr/sbin/iptables -D zone_vpn_dest_REJECT -o " .. ifname .. " -j reject")
+            os.execute("/usr/sbin/iptables -D FORWARD -i " .. ifname .. " -j zone_dtdlink_forward")
+            os.execute("/usr/sbin/iptables -D INPUT -i " .. ifname .. " -j zone_dtdlink_input")
+            os.execute("/usr/sbin/iptables -D OUTPUT -o " .. ifname .. " -j zone_dtdlink_output")
+            os.execute("/usr/sbin/iptables -D zone_dtdlink_dest_ACCEPT -o " .. ifname .. " -j ACCEPT")
+            os.execute("/usr/sbin/iptables -D zone_dtdlink_dest_REJECT -o " .. ifname .. " -j reject")
+            os.execute("/usr/sbin/iptables -D zone_dtdlink_src_REJECT -i " .. ifname .. " -j reject")
         end
     )
     uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
         function(section)
             local ifname = section.ifname
-            os.execute("/usr/sbin/iptables -I FORWARD -i " .. ifname .. " -j zone_vpn_forward")
-            os.execute("/usr/sbin/iptables -I INPUT -i " .. ifname .. " -j zone_vpn_input")
-            os.execute("/usr/sbin/iptables -I OUTPUT -o " .. ifname .. " -j zone_vpn_ACCEPT")
-            os.execute("/usr/sbin/iptables -A zone_vpn_ACCEPT -o " .. ifname .. " -j ACCEPT")
-            os.execute("/usr/sbin/iptables -A zone_vpn_ACCEPT -i " .. ifname .. " -j ACCEPT")
-            os.execute("/usr/sbin/iptables -A zone_vpn_REJECT -o " .. ifname .. " -j reject")
-            os.execute("/usr/sbin/iptables -A zone_vpn_REJECT -i " .. ifname .. " -j reject")
-            os.execute("/usr/sbin/iptables -A zone_vpn_dest_ACCEPT -o " .. ifname .. " -j ACCEPT")
-            os.execute("/usr/sbin/iptables -A zone_vpn_dest_REJECT -o " .. ifname .. " -j reject")
+            os.execute("/usr/sbin/iptables -I FORWARD -i " .. ifname .. " -j zone_dtdlink_forward")
+            os.execute("/usr/sbin/iptables -A INPUT -i " .. ifname .. " -j zone_dtdlink_input")
+            os.execute("/usr/sbin/iptables -A OUTPUT -o " .. ifname .. " -j zone_dtdlink_output")
+            os.execute("/usr/sbin/iptables -A zone_dtdlink_dest_ACCEPT -o " .. ifname .. " -j ACCEPT")
+            os.execute("/usr/sbin/iptables -A zone_dtdlink_dest_REJECT -o " .. ifname .. " -j reject")
+            os.execute("/usr/sbin/iptables -A zone_dtdlink_src_REJECT -i " .. ifname .. " -j reject")
         end
     )
 end
