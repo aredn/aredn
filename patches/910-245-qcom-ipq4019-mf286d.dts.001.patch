@@ -1,0 +1,41 @@
+--- a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-mf286d.dts
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-mf286d.dts
+@@ -319,6 +325,36 @@
+ 	status = "okay";
+ };
+ 
++&switch {
++	status = "okay";
++};
++
++&swport2 {
++	status = "okay";
++
++	label = "lan4";
++};
++
++&swport3 {
++	status = "okay";
++
++	label = "lan3";
++};
++
++&swport4 {
++	status = "okay";
++
++	label = "lan2";
++};
++
++&swport5 {
++	status = "okay";
++
++	nvmem-cell-names = "mac-address";
++	nvmem-cells = <&macaddr_config_0>;
++	mac-address-increment = <1>;
++};
++
+ &tlmm {
+ 	i2c_0_pins: i2c_0_pinmux {
+ 		mux {
+diff --git a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-r619ac.dtsi b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-r619ac.dtsi
+index f66c9c86ea39f..d7a987f98dbc1 100644

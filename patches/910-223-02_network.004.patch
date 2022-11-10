@@ -1,0 +1,20 @@
+--- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
++++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
+@@ -114,17 +114,11 @@ ipq40xx_setup_interfaces()
+ 			"0u@eth0" "2:lan:3" "3:lan:2" "4:lan:1" "0u@eth1" "5:wan"
+ 		;;
+ 	glinet,gl-ap1300 |\
+-	glinet,gl-b1300 |\
+ 	glinet,gl-s1300)
+ 		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+ 		ucidef_add_switch "switch0" \
+ 			"0u@eth0" "3:lan" "4:lan"
+ 		;;
+-	glinet,gl-b2200)
+-		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+-		ucidef_add_switch "switch0" \
+-			"0u@eth0" "1:lan" "2:lan" "3:lan" "5:lan" "0u@eth1" "4:wan"
+-		;;
+ 	mobipromo,cm520-79f)
+ 		ucidef_add_switch "switch0" \
+ 			"0u@eth0" "3:lan:2" "4:lan:1"

@@ -1,0 +1,41 @@
+--- a/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
++++ b/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
+@@ -559,28 +544,17 @@ static int qca807x_read_fiber_status(struct phy_device *phydev, bool combo_port)
+ 
+ static int qca807x_read_status(struct phy_device *phydev)
+ {
+-	int val;
+-
+-	/* Check for Combo port */
+-	if (phy_read(phydev, QCA807X_CHIP_CONFIGURATION)) {
+-		/* Check for fiber mode first */
+-		if (linkmode_test_bit(ETHTOOL_LINK_MODE_FIBRE_BIT, phydev->supported)) {
+-			/* Check for actual detected media */
+-			val = phy_read(phydev, QCA807X_MEDIA_SELECT_STATUS);
+-			if (val & QCA807X_MEDIA_DETECTED_COPPER) {
+-				qca807x_read_copper_status(phydev, true);
+-			} else if ((val & QCA807X_MEDIA_DETECTED_1000_BASE_X) ||
+-				   (val & QCA807X_MEDIA_DETECTED_100_BASE_FX)) {
+-				qca807x_read_fiber_status(phydev, true);
+-			}
+-		} else {
+-			qca807x_read_copper_status(phydev, true);
++	if (linkmode_test_bit(ETHTOOL_LINK_MODE_FIBRE_BIT, phydev->supported)) {
++		switch (phydev->port) {
++		case PORT_FIBRE:
++			return qca807x_read_fiber_status(phydev);
++		case PORT_TP:
++			return qca807x_read_copper_status(phydev);
++		default:
++			return -EINVAL;
+ 		}
+-	} else {
+-		qca807x_read_copper_status(phydev, false);
+-	}
+-
+-	return 0;
++	} else
++		return qca807x_read_copper_status(phydev);
+ }
+ 
+ static int qca807x_config_intr(struct phy_device *phydev)

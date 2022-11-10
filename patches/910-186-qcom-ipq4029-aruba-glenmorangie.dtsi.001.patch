@@ -1,0 +1,62 @@
+--- a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4029-aruba-glenmorangie.dtsi
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4029-aruba-glenmorangie.dtsi
+@@ -221,6 +214,30 @@
+ 	};
+ };
+ 
++&ethphy0 {
++	status = "disabled";
++};
++
++&ethphy1 {
++	status = "disabled";
++};
++
++&ethphy2 {
++	status = "disabled";
++};
++
++&ethphy3 {
++	status = "disabled";
++};
++
++&ethphy4 {
++	status = "disabled";
++};
++
++&psgmiiphy {
++	status = "disabled";
++};
++
+ &wifi0 {
+ 	status = "okay";
+ 	nvmem-cell-names = "pre-calibration", "mac-address";
+
+From 46f37cadae005b0b3c4c7901d76e5d579eac0757 Mon Sep 17 00:00:00 2001
+From: Robert Marko <robert.marko@sartura.hr>
+Date: Mon, 1 Nov 2021 12:32:34 +0100
+Subject: [PATCH 05/19] ipq40xx: add shinfo based DSA tag driver
+
+IPQ40xx requires a special DSA tag driver despite using the QCA8337N
+switch.
+However they have changed the header format and the existing QCA tag
+driver cannot be reused.
+
+For details on how it actually works and else read the patch commit
+description.
+
+Signed-off-by: Robert Marko <robert.marko@sartura.hr>
+---
+ ...pecific-data-to-struct-skb_shared_in.patch |  43 ++++
+ ...019-add-shinfo-based-tagging-driver-.patch | 188 ++++++++++++++++++
+ ...pecific-data-to-struct-skb_shared_in.patch |  43 ++++
+ ...019-add-shinfo-based-tagging-driver-.patch | 187 +++++++++++++++++
+ 4 files changed, 461 insertions(+)
+ create mode 100644 target/linux/ipq40xx/patches-5.10/700-skbuff-add-DSA-specific-data-to-struct-skb_shared_in.patch
+ create mode 100644 target/linux/ipq40xx/patches-5.10/701-net-dsa-tag_ipq4019-add-shinfo-based-tagging-driver-.patch
+ create mode 100644 target/linux/ipq40xx/patches-5.15/700-skbuff-add-DSA-specific-data-to-struct-skb_shared_in.patch
+ create mode 100644 target/linux/ipq40xx/patches-5.15/701-net-dsa-tag_ipq4019-add-shinfo-based-tagging-driver-.patch
+
+diff --git a/target/linux/ipq40xx/patches-5.10/700-skbuff-add-DSA-specific-data-to-struct-skb_shared_in.patch b/target/linux/ipq40xx/patches-5.10/700-skbuff-add-DSA-specific-data-to-struct-skb_shared_in.patch
+new file mode 100644
+index 0000000000000..7cad65aa0aa22

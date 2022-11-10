@@ -1,0 +1,14 @@
+--- a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
++++ b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
+@@ -627,9 +626,10 @@ static int psgmii_vco_calibrate(struct dsa_switch *ds)
+ 					10000, 1000000,
+ 					false);
+ 	if (ret) {
+-		dev_err(ds->dev, "QCA807x PSGMII VCO calibration PLL not ready\n");
++		dev_err(priv->dev, "QCA807x PSGMII VCO calibration PLL not ready\n");
+ 		return ret;
+ 	}
++	mdelay(50);
+ 
+ 	/* Freeze PSGMII RX CDR */
+ 	ret = phy_write(priv->psgmii_ethphy, MII_RESV2, 0x2230);

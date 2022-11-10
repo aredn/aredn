@@ -1,0 +1,66 @@
+--- a/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
++++ b/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
+@@ -683,9 +657,63 @@ static int qca807x_led_config(struct phy_device *phydev)
+ 		return 0;
+ }
+ 
++static int qca807x_sfp_insert(void *upstream, const struct sfp_eeprom_id *id)
++{
++	struct phy_device *phydev = upstream;
++	__ETHTOOL_DECLARE_LINK_MODE_MASK(support) = { 0, };
++	phy_interface_t iface;
++	int ret;
++
++	sfp_parse_support(phydev->sfp_bus, id, support);
++	iface = sfp_select_interface(phydev->sfp_bus, support);
++
++	dev_info(&phydev->mdio.dev, "%s SFP module inserted\n", phy_modes(iface));
++
++	switch (iface) {
++	case PHY_INTERFACE_MODE_1000BASEX:
++	case PHY_INTERFACE_MODE_100BASEX:
++		/* Set PHY mode to PSGMII combo (1/4 copper + combo ports) mode */
++		ret = phy_modify(phydev,
++				 QCA807X_CHIP_CONFIGURATION,
++				 QCA807X_CHIP_CONFIGURATION_MODE_CFG_MASK,
++				 QCA807X_CHIP_CONFIGURATION_MODE_PSGMII_FIBER);
++		/* Enable fiber mode autodection (1000Base-X or 100Base-FX) */
++		ret = phy_set_bits_mmd(phydev,
++				       MDIO_MMD_AN,
++				       QCA807X_MMD7_FIBER_MODE_AUTO_DETECTION,
++				       QCA807X_MMD7_FIBER_MODE_AUTO_DETECTION_EN);
++		/* Select fiber page */
++		ret = phy_clear_bits(phydev,
++				     QCA807X_CHIP_CONFIGURATION,
++				     QCA807X_BT_BX_REG_SEL);
++
++		phydev->port = PORT_FIBRE;
++		break;
++	default:
++		dev_err(&phydev->mdio.dev, "Incompatible SFP module inserted\n");
++		return -EINVAL;
++	}
++
++	return ret;
++}
++
++static void qca807x_sfp_remove(void *upstream)
++{
++	struct phy_device *phydev = upstream;
++
++	/* Select copper page */
++	phy_set_bits(phydev,
++		     QCA807X_CHIP_CONFIGURATION,
++		     QCA807X_BT_BX_REG_SEL);
++
++	phydev->port = PORT_TP;
++}
++
+ static const struct sfp_upstream_ops qca807x_sfp_ops = {
+ 	.attach = phy_sfp_attach,
+ 	.detach = phy_sfp_detach,
++	.module_insert = qca807x_sfp_insert,
++	.module_remove = qca807x_sfp_remove,
+ };
+ 
+ static int qca807x_config(struct phy_device *phydev)

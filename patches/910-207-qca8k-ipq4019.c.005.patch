@@ -1,0 +1,48 @@
+--- a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
++++ b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
+@@ -1075,40 +520,14 @@ static int
+ qca8k_setup(struct dsa_switch *ds)
+ {
+ 	struct qca8k_priv *priv = (struct qca8k_priv *)ds->priv;
+-	int cpu_port, ret, i;
+-	u32 mask;
++	int ret, i;
+ 
+-	cpu_port = qca8k_find_cpu_port(ds);
+-	if (cpu_port < 0) {
+-		dev_err(priv->dev, "No cpu port configured in both cpu port0 and port6");
+-		return cpu_port;
++	/* Make sure that port 0 is the cpu port */
++	if (!dsa_is_cpu_port(ds, 0)) {
++		dev_err(priv->dev, "port 0 is not the CPU port");
++		return -EINVAL;
+ 	}
+ 
+-	/* Parse CPU port config to be later used in phy_link mac_config */
+-	ret = qca8k_parse_port_config(priv);
+-	if (ret)
+-		return ret;
+-
+-	mutex_init(&priv->reg_mutex);
+-
+-	/* Start by setting up the register mapping */
+-	priv->regmap = devm_regmap_init(ds->dev, NULL, priv,
+-					&qca8k_regmap_config);
+-	if (IS_ERR(priv->regmap))
+-		dev_warn(priv->dev, "regmap initialization failed");
+-
+-	ret = qca8k_setup_mdio_bus(priv);
+-	if (ret)
+-		return ret;
+-
+-	ret = qca8k_setup_of_pws_reg(priv);
+-	if (ret)
+-		return ret;
+-
+-	ret = qca8k_setup_mac_pwr_sel(priv);
+-	if (ret)
+-		return ret;
+-
+ 	/* Enable CPU Port */
+ 	ret = qca8k_reg_set(priv, QCA8K_REG_GLOBAL_FW_CTRL0,
+ 			    QCA8K_GLOBAL_FW_CTRL0_CPU_PORT_EN);

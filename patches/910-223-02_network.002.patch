@@ -1,0 +1,41 @@
+--- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
++++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
+@@ -53,37 +81,11 @@ ipq40xx_setup_interfaces()
+ 	openmesh,a62)
+ 		ucidef_set_interfaces_lan_wan "eth1" "eth0"
+ 		;;
+-	mikrotik,cap-ac)
+-		ucidef_add_switch "switch0" \
+-			"0t@eth0" "4:lan" "5:wan"
+-		;;
+-	asus,rt-ac42u|\
+-	asus,rt-ac58u|\
+-	mikrotik,hap-ac2|\
+-	mikrotik,hap-ac3|\
+-	p2w,r619ac-64m|\
+-	p2w,r619ac-128m|\
+-	zyxel,nbg6617)
++	asus,rt-ac42u)
+ 		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+ 		ucidef_add_switch "switch0" \
+ 			"0u@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
+ 		;;
+-	avm,fritzbox-4040|\
+-	linksys,ea6350v3|\
+-	linksys,ea8300)
+-		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+-		ucidef_add_switch "switch0" \
+-			"0u@eth0" "1:lan" "2:lan" "3:lan" "4:lan"
+-		;;
+-	linksys,mr8300)
+-		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+-		ucidef_add_switch "switch0" \
+-			"0u@eth0" "1:lan" "2:lan" "3:lan" "4:lan" "0u@eth1" "5:wan"
+-		;;
+-	avm,fritzbox-7530)
+-		ucidef_add_switch "switch0" \
+-			"0u@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
+-		;;
+ 	avm,fritzrepeater-3000|\
+ 	linksys,whw01-v1)
+ 		ucidef_add_switch "switch0" \

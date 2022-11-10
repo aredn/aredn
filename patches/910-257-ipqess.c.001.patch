@@ -1,0 +1,14 @@
+--- a/target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/ipqess.c
++++ b/target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/ipqess.c
+@@ -556,10 +556,10 @@ static irqreturn_t ipqess_interrupt_rx(int irq, void *priv)
+ 	struct ipqess_rx_ring *rx_ring = (struct ipqess_rx_ring *) priv;
+ 
+ 	if (likely(napi_schedule_prep(&rx_ring->napi_rx))) {
+-		__napi_schedule(&rx_ring->napi_rx);
+ 		ipqess_w32(rx_ring->ess,
+ 			 IPQESS_REG_RX_INT_MASK_Q(rx_ring->idx),
+ 			 0x0);
++		__napi_schedule(&rx_ring->napi_rx);
+ 	}
+ 
+ 	return IRQ_HANDLED;

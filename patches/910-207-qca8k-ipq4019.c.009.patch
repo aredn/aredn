@@ -1,0 +1,84 @@
+--- a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
++++ b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
+@@ -1469,59 +723,49 @@ qca8k_phylink_validate(struct dsa_switch *ds, int port,
+ 	__ETHTOOL_DECLARE_LINK_MODE_MASK(mask) = { 0, };
+ 
+ 	switch (port) {
+-	case 0: /* 1st CPU port */
+-		if (state->interface != PHY_INTERFACE_MODE_NA &&
+-		    state->interface != PHY_INTERFACE_MODE_RGMII &&
+-		    state->interface != PHY_INTERFACE_MODE_RGMII_ID &&
+-		    state->interface != PHY_INTERFACE_MODE_RGMII_TXID &&
+-		    state->interface != PHY_INTERFACE_MODE_RGMII_RXID &&
+-		    state->interface != PHY_INTERFACE_MODE_SGMII)
++	case 0: /* CPU port */
++		if (state->interface != PHY_INTERFACE_MODE_INTERNAL)
+ 			goto unsupported;
+ 		break;
+ 	case 1:
+ 	case 2:
+ 	case 3:
+-	case 4:
+-	case 5:
+-		/* Internal PHY */
+-		if (state->interface != PHY_INTERFACE_MODE_NA &&
+-		    state->interface != PHY_INTERFACE_MODE_GMII &&
+-		    state->interface != PHY_INTERFACE_MODE_INTERNAL)
++		/* Only PSGMII mode is supported */
++		if (state->interface != PHY_INTERFACE_MODE_PSGMII)
+ 			goto unsupported;
+ 		break;
+-	case 6: /* 2nd CPU port / external PHY */
+-		if (state->interface != PHY_INTERFACE_MODE_NA &&
++	case 4:
++	case 5:
++		/* PSGMII and RGMII modes are supported */
++		if (state->interface != PHY_INTERFACE_MODE_PSGMII &&
+ 		    state->interface != PHY_INTERFACE_MODE_RGMII &&
+ 		    state->interface != PHY_INTERFACE_MODE_RGMII_ID &&
+-		    state->interface != PHY_INTERFACE_MODE_RGMII_TXID &&
+ 		    state->interface != PHY_INTERFACE_MODE_RGMII_RXID &&
+-		    state->interface != PHY_INTERFACE_MODE_SGMII &&
+-		    state->interface != PHY_INTERFACE_MODE_1000BASEX)
++		    state->interface != PHY_INTERFACE_MODE_RGMII_TXID)
+ 			goto unsupported;
+ 		break;
+ 	default:
+ unsupported:
++		dev_warn(ds->dev, "interface '%s' (%d) on port %d is not supported\n",
++			 phy_modes(state->interface), state->interface, port);
+ 		linkmode_zero(supported);
+ 		return;
+ 	}
+ 
+-	phylink_set_port_modes(mask);
+-	phylink_set(mask, Autoneg);
+-
+-	phylink_set(mask, 1000baseT_Full);
+-	phylink_set(mask, 10baseT_Half);
+-	phylink_set(mask, 10baseT_Full);
+-	phylink_set(mask, 100baseT_Half);
+-	phylink_set(mask, 100baseT_Full);
++	if (port == 0) {
++		phylink_set_port_modes(mask);
+ 
+-	if (state->interface == PHY_INTERFACE_MODE_1000BASEX)
+-		phylink_set(mask, 1000baseX_Full);
++		phylink_set(mask, 1000baseT_Full);
+ 
+-	phylink_set(mask, Pause);
+-	phylink_set(mask, Asym_Pause);
++		phylink_set(mask, Pause);
++		phylink_set(mask, Asym_Pause);
+ 
+-	linkmode_and(supported, supported, mask);
+-	linkmode_and(state->advertising, state->advertising, mask);
++		linkmode_and(supported, supported, mask);
++		linkmode_and(state->advertising, state->advertising, mask);
++	} else {
++		/* Simply copy what PHYs tell us */
++		linkmode_copy(state->advertising, supported);
++	}
+ }
+ 
+ static int

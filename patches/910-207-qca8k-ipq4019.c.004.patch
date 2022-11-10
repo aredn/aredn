@@ -1,0 +1,506 @@
+--- a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
++++ b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
+@@ -605,467 +461,56 @@ qca8k_port_set_status(struct qca8k_priv *priv, int port, int enable)
+ 		qca8k_reg_clear(priv, QCA8K_REG_PORT_STATUS(port), mask);
+ }
+ 
+-static u32
+-qca8k_port_to_phy(int port)
+-{
+-	/* From Andrew Lunn:
+-	 * Port 0 has no internal phy.
+-	 * Port 1 has an internal PHY at MDIO address 0.
+-	 * Port 2 has an internal PHY at MDIO address 1.
+-	 * ...
+-	 * Port 5 has an internal PHY at MDIO address 4.
+-	 * Port 6 has no internal PHY.
+-	 */
+-
+-	return port - 1;
+-}
+-
+-static int
+-qca8k_mdio_busy_wait(struct mii_bus *bus, u32 reg, u32 mask)
+-{
+-	u16 r1, r2, page;
+-	u32 val;
+-	int ret, ret1;
+-
+-	qca8k_split_addr(reg, &r1, &r2, &page);
+-
+-	ret = read_poll_timeout(qca8k_mii_read32, ret1, !(val & mask), 0,
+-				QCA8K_BUSY_WAIT_TIMEOUT * USEC_PER_MSEC, false,
+-				bus, 0x10 | r2, r1, &val);
+-
+-	/* Check if qca8k_read has failed for a different reason
+-	 * before returnting -ETIMEDOUT
+-	 */
+-	if (ret < 0 && ret1 < 0)
+-		return ret1;
+-
+-	return ret;
+-}
+-
+-static int
+-qca8k_mdio_write(struct mii_bus *bus, int phy, int regnum, u16 data)
+-{
+-	u16 r1, r2, page;
+-	u32 val;
+-	int ret;
+-
+-	if (regnum >= QCA8K_MDIO_MASTER_MAX_REG)
+-		return -EINVAL;
+-
+-	val = QCA8K_MDIO_MASTER_BUSY | QCA8K_MDIO_MASTER_EN |
+-	      QCA8K_MDIO_MASTER_WRITE | QCA8K_MDIO_MASTER_PHY_ADDR(phy) |
+-	      QCA8K_MDIO_MASTER_REG_ADDR(regnum) |
+-	      QCA8K_MDIO_MASTER_DATA(data);
+-
+-	qca8k_split_addr(QCA8K_MDIO_MASTER_CTRL, &r1, &r2, &page);
+-
+-	mutex_lock_nested(&bus->mdio_lock, MDIO_MUTEX_NESTED);
+-
+-	ret = qca8k_set_page(bus, page);
+-	if (ret)
+-		goto exit;
+-
+-	qca8k_mii_write32(bus, 0x10 | r2, r1, val);
+-
+-	ret = qca8k_mdio_busy_wait(bus, QCA8K_MDIO_MASTER_CTRL,
+-				   QCA8K_MDIO_MASTER_BUSY);
+-
+-exit:
+-	/* even if the busy_wait timeouts try to clear the MASTER_EN */
+-	qca8k_mii_write32(bus, 0x10 | r2, r1, 0);
+-
+-	mutex_unlock(&bus->mdio_lock);
+-
+-	return ret;
+-}
+-
+-static int
+-qca8k_mdio_read(struct mii_bus *bus, int phy, int regnum)
+-{
+-	u16 r1, r2, page;
+-	u32 val;
+-	int ret;
+-
+-	if (regnum >= QCA8K_MDIO_MASTER_MAX_REG)
+-		return -EINVAL;
+-
+-	val = QCA8K_MDIO_MASTER_BUSY | QCA8K_MDIO_MASTER_EN |
+-	      QCA8K_MDIO_MASTER_READ | QCA8K_MDIO_MASTER_PHY_ADDR(phy) |
+-	      QCA8K_MDIO_MASTER_REG_ADDR(regnum);
+-
+-	qca8k_split_addr(QCA8K_MDIO_MASTER_CTRL, &r1, &r2, &page);
+-
+-	mutex_lock_nested(&bus->mdio_lock, MDIO_MUTEX_NESTED);
+-
+-	ret = qca8k_set_page(bus, page);
+-	if (ret)
+-		goto exit;
+-
+-	qca8k_mii_write32(bus, 0x10 | r2, r1, val);
+-
+-	ret = qca8k_mdio_busy_wait(bus, QCA8K_MDIO_MASTER_CTRL,
+-				   QCA8K_MDIO_MASTER_BUSY);
+-	if (ret)
+-		goto exit;
+-
+-	ret = qca8k_mii_read32(bus, 0x10 | r2, r1, &val);
+-
+-exit:
+-	/* even if the busy_wait timeouts try to clear the MASTER_EN */
+-	qca8k_mii_write32(bus, 0x10 | r2, r1, 0);
+-
+-	mutex_unlock(&bus->mdio_lock);
+-
+-	if (ret >= 0)
+-		ret = val & QCA8K_MDIO_MASTER_DATA_MASK;
+-
+-	return ret;
+-}
+-
+-static int
+-qca8k_internal_mdio_write(struct mii_bus *slave_bus, int phy, int regnum, u16 data)
+-{
+-	struct qca8k_priv *priv = slave_bus->priv;
+-	struct mii_bus *bus = priv->bus;
+-
+-	return qca8k_mdio_write(bus, phy, regnum, data);
+-}
+-
+-static int
+-qca8k_internal_mdio_read(struct mii_bus *slave_bus, int phy, int regnum)
+-{
+-	struct qca8k_priv *priv = slave_bus->priv;
+-	struct mii_bus *bus = priv->bus;
+-
+-	return qca8k_mdio_read(bus, phy, regnum);
+-}
+-
+-static int
+-qca8k_phy_write(struct dsa_switch *ds, int port, int regnum, u16 data)
+-{
+-	struct qca8k_priv *priv = ds->priv;
+-
+-	/* Check if the legacy mapping should be used and the
+-	 * port is not correctly mapped to the right PHY in the
+-	 * devicetree
+-	 */
+-	if (priv->legacy_phy_port_mapping)
+-		port = qca8k_port_to_phy(port) % PHY_MAX_ADDR;
+-
+-	return qca8k_mdio_write(priv->bus, port, regnum, data);
+-}
+-
+ static int
+-qca8k_phy_read(struct dsa_switch *ds, int port, int regnum)
++qca8k_setup_port(struct dsa_switch *ds, int port)
+ {
+-	struct qca8k_priv *priv = ds->priv;
+-	int ret;
+-
+-	/* Check if the legacy mapping should be used and the
+-	 * port is not correctly mapped to the right PHY in the
+-	 * devicetree
+-	 */
+-	if (priv->legacy_phy_port_mapping)
+-		port = qca8k_port_to_phy(port) % PHY_MAX_ADDR;
+-
+-	ret = qca8k_mdio_read(priv->bus, port, regnum);
+-
+-	if (ret < 0)
+-		return 0xffff;
+-
+-	return ret;
+-}
+-
+-static int
+-qca8k_mdio_register(struct qca8k_priv *priv, struct device_node *mdio)
+-{
+-	struct dsa_switch *ds = priv->ds;
+-	struct mii_bus *bus;
+-
+-	bus = devm_mdiobus_alloc(ds->dev);
+-
+-	if (!bus)
+-		return -ENOMEM;
+-
+-	bus->priv = (void *)priv;
+-	bus->name = "qca8k slave mii";
+-	bus->read = qca8k_internal_mdio_read;
+-	bus->write = qca8k_internal_mdio_write;
+-	snprintf(bus->id, MII_BUS_ID_SIZE, "qca8k-%d",
+-		 ds->index);
+-
+-	bus->parent = ds->dev;
+-	bus->phy_mask = ~ds->phys_mii_mask;
+-
+-	ds->slave_mii_bus = bus;
+-
+-	return devm_of_mdiobus_register(priv->dev, bus, mdio);
+-}
+-
+-static int
+-qca8k_setup_mdio_bus(struct qca8k_priv *priv)
+-{
+-	u32 internal_mdio_mask = 0, external_mdio_mask = 0, reg;
+-	struct device_node *ports, *port, *mdio;
+-	phy_interface_t mode;
+-	int err;
+-
+-	ports = of_get_child_by_name(priv->dev->of_node, "ports");
+-	if (!ports)
+-		ports = of_get_child_by_name(priv->dev->of_node, "ethernet-ports");
+-
+-	if (!ports)
+-		return -EINVAL;
+-
+-	for_each_available_child_of_node(ports, port) {
+-		err = of_property_read_u32(port, "reg", &reg);
+-		if (err) {
+-			of_node_put(port);
+-			of_node_put(ports);
+-			return err;
+-		}
+-
+-		if (!dsa_is_user_port(priv->ds, reg))
+-			continue;
+-
+-		of_get_phy_mode(port, &mode);
+-
+-		if (of_property_read_bool(port, "phy-handle") &&
+-		    mode != PHY_INTERFACE_MODE_INTERNAL)
+-			external_mdio_mask |= BIT(reg);
+-		else
+-			internal_mdio_mask |= BIT(reg);
+-	}
+-
+-	of_node_put(ports);
+-	if (!external_mdio_mask && !internal_mdio_mask) {
+-		dev_err(priv->dev, "no PHYs are defined.\n");
+-		return -EINVAL;
+-	}
+-
+-	/* The QCA8K_MDIO_MASTER_EN Bit, which grants access to PHYs through
+-	 * the MDIO_MASTER register also _disconnects_ the external MDC
+-	 * passthrough to the internal PHYs. It's not possible to use both
+-	 * configurations at the same time!
+-	 *
+-	 * Because this came up during the review process:
+-	 * If the external mdio-bus driver is capable magically disabling
+-	 * the QCA8K_MDIO_MASTER_EN and mutex/spin-locking out the qca8k's
+-	 * accessors for the time being, it would be possible to pull this
+-	 * off.
+-	 */
+-	if (!!external_mdio_mask && !!internal_mdio_mask) {
+-		dev_err(priv->dev, "either internal or external mdio bus configuration is supported.\n");
+-		return -EINVAL;
+-	}
+-
+-	if (external_mdio_mask) {
+-		/* Make sure to disable the internal mdio bus in cases
+-		 * a dt-overlay and driver reload changed the configuration
+-		 */
+-
+-		return qca8k_reg_clear(priv, QCA8K_MDIO_MASTER_CTRL,
+-				       QCA8K_MDIO_MASTER_EN);
+-	}
+-
+-	/* Check if the devicetree declare the port:phy mapping */
+-	mdio = of_get_child_by_name(priv->dev->of_node, "mdio");
+-	if (of_device_is_available(mdio)) {
+-		err = qca8k_mdio_register(priv, mdio);
+-		if (err)
+-			of_node_put(mdio);
+-
+-		return err;
+-	}
+-
+-	/* If a mapping can't be found the legacy mapping is used,
+-	 * using the qca8k_port_to_phy function
+-	 */
+-	priv->legacy_phy_port_mapping = true;
+-	priv->ops.phy_read = qca8k_phy_read;
+-	priv->ops.phy_write = qca8k_phy_write;
+-
+-	return 0;
+-}
+-
+-static int
+-qca8k_setup_mac_pwr_sel(struct qca8k_priv *priv)
+-{
+-	u32 mask = 0;
+-	int ret = 0;
+-
+-	/* SoC specific settings for ipq8064.
+-	 * If more device require this consider adding
+-	 * a dedicated binding.
+-	 */
+-	if (of_machine_is_compatible("qcom,ipq8064"))
+-		mask |= QCA8K_MAC_PWR_RGMII0_1_8V;
+-
+-	/* SoC specific settings for ipq8065 */
+-	if (of_machine_is_compatible("qcom,ipq8065"))
+-		mask |= QCA8K_MAC_PWR_RGMII1_1_8V;
+-
+-	if (mask) {
+-		ret = qca8k_rmw(priv, QCA8K_REG_MAC_PWR_SEL,
+-				QCA8K_MAC_PWR_RGMII0_1_8V |
+-				QCA8K_MAC_PWR_RGMII1_1_8V,
+-				mask);
+-	}
+-
+-	return ret;
+-}
+-
+-static int qca8k_find_cpu_port(struct dsa_switch *ds)
+-{
+-	struct qca8k_priv *priv = ds->priv;
+-
+-	/* Find the connected cpu port. Valid port are 0 or 6 */
+-	if (dsa_is_cpu_port(ds, 0))
+-		return 0;
+-
+-	dev_dbg(priv->dev, "port 0 is not the CPU port. Checking port 6");
+-
+-	if (dsa_is_cpu_port(ds, 6))
+-		return 6;
+-
+-	return -EINVAL;
+-}
+-
+-static int
+-qca8k_setup_of_pws_reg(struct qca8k_priv *priv)
+-{
+-	struct device_node *node = priv->dev->of_node;
+-	const struct qca8k_match_data *data;
+-	u32 val = 0;
++	struct qca8k_priv *priv = (struct qca8k_priv *)ds->priv;
+ 	int ret;
+ 
+-	/* QCA8327 require to set to the correct mode.
+-	 * His bigger brother QCA8328 have the 172 pin layout.
+-	 * Should be applied by default but we set this just to make sure.
+-	 */
+-	if (priv->switch_id == QCA8K_ID_QCA8327) {
+-		data = of_device_get_match_data(priv->dev);
+-
+-		/* Set the correct package of 148 pin for QCA8327 */
+-		if (data->reduced_package)
+-			val |= QCA8327_PWS_PACKAGE148_EN;
+-
+-		ret = qca8k_rmw(priv, QCA8K_REG_PWS, QCA8327_PWS_PACKAGE148_EN,
+-				val);
++	/* CPU port gets connected to all user ports of the switch */
++	if (dsa_is_cpu_port(ds, port)) {
++		ret = qca8k_rmw(priv, QCA8K_PORT_LOOKUP_CTRL(QCA8K_CPU_PORT),
++				QCA8K_PORT_LOOKUP_MEMBER, dsa_user_ports(ds));
+ 		if (ret)
+ 			return ret;
+-	}
+-
+-	if (of_property_read_bool(node, "qca,ignore-power-on-sel"))
+-		val |= QCA8K_PWS_POWER_ON_SEL;
+-
+-	if (of_property_read_bool(node, "qca,led-open-drain")) {
+-		if (!(val & QCA8K_PWS_POWER_ON_SEL)) {
+-			dev_err(priv->dev, "qca,led-open-drain require qca,ignore-power-on-sel to be set.");
+-			return -EINVAL;
+-		}
+ 
+-		val |= QCA8K_PWS_LED_OPEN_EN_CSR;
++		/* Disable CPU ARP Auto-learning by default */
++		ret = qca8k_reg_clear(priv, QCA8K_PORT_LOOKUP_CTRL(QCA8K_CPU_PORT),
++				      QCA8K_PORT_LOOKUP_LEARN);
++		if (ret)
++			return ret;
+ 	}
+ 
+-	return qca8k_rmw(priv, QCA8K_REG_PWS,
+-			QCA8K_PWS_LED_OPEN_EN_CSR | QCA8K_PWS_POWER_ON_SEL,
+-			val);
+-}
+-
+-static int
+-qca8k_parse_port_config(struct qca8k_priv *priv)
+-{
+-	int port, cpu_port_index = -1, ret;
+-	struct device_node *port_dn;
+-	phy_interface_t mode;
+-	struct dsa_port *dp;
+-	u32 delay;
+-
+-	/* We have 2 CPU port. Check them */
+-	for (port = 0; port < QCA8K_NUM_PORTS && cpu_port_index < QCA8K_NUM_CPU_PORTS; port++) {
+-		/* Skip every other port */
+-		if (port != 0 && port != 6)
+-			continue;
+-
+-		dp = dsa_to_port(priv->ds, port);
+-		port_dn = dp->dn;
+-		cpu_port_index++;
++	/* Individual user ports get connected to CPU port only */
++	if (dsa_is_user_port(ds, port)) {
++		int shift = 16 * (port % 2);
+ 
+-		if (!of_device_is_available(port_dn))
+-			continue;
++		ret = qca8k_rmw(priv, QCA8K_PORT_LOOKUP_CTRL(port),
++				QCA8K_PORT_LOOKUP_MEMBER,
++				BIT(QCA8K_CPU_PORT));
++		if (ret)
++			return ret;
+ 
+-		ret = of_get_phy_mode(port_dn, &mode);
++		/* Enable ARP Auto-learning by default */
++		ret = qca8k_reg_set(priv, QCA8K_PORT_LOOKUP_CTRL(port),
++				    QCA8K_PORT_LOOKUP_LEARN);
+ 		if (ret)
+-			continue;
++			return ret;
+ 
+-		switch (mode) {
+-		case PHY_INTERFACE_MODE_RGMII:
+-		case PHY_INTERFACE_MODE_RGMII_ID:
+-		case PHY_INTERFACE_MODE_RGMII_TXID:
+-		case PHY_INTERFACE_MODE_RGMII_RXID:
+-		case PHY_INTERFACE_MODE_SGMII:
+-			delay = 0;
+-
+-			if (!of_property_read_u32(port_dn, "tx-internal-delay-ps", &delay))
+-				/* Switch regs accept value in ns, convert ps to ns */
+-				delay = delay / 1000;
+-			else if (mode == PHY_INTERFACE_MODE_RGMII_ID ||
+-				 mode == PHY_INTERFACE_MODE_RGMII_TXID)
+-				delay = 1;
+-
+-			if (delay > QCA8K_MAX_DELAY) {
+-				dev_err(priv->dev, "rgmii tx delay is limited to a max value of 3ns, setting to the max value");
+-				delay = 3;
+-			}
+-
+-			priv->ports_config.rgmii_tx_delay[cpu_port_index] = delay;
+-
+-			delay = 0;
+-
+-			if (!of_property_read_u32(port_dn, "rx-internal-delay-ps", &delay))
+-				/* Switch regs accept value in ns, convert ps to ns */
+-				delay = delay / 1000;
+-			else if (mode == PHY_INTERFACE_MODE_RGMII_ID ||
+-				 mode == PHY_INTERFACE_MODE_RGMII_RXID)
+-				delay = 2;
+-
+-			if (delay > QCA8K_MAX_DELAY) {
+-				dev_err(priv->dev, "rgmii rx delay is limited to a max value of 3ns, setting to the max value");
+-				delay = 3;
+-			}
+-
+-			priv->ports_config.rgmii_rx_delay[cpu_port_index] = delay;
+-
+-			/* Skip sgmii parsing for rgmii* mode */
+-			if (mode == PHY_INTERFACE_MODE_RGMII ||
+-			    mode == PHY_INTERFACE_MODE_RGMII_ID ||
+-			    mode == PHY_INTERFACE_MODE_RGMII_TXID ||
+-			    mode == PHY_INTERFACE_MODE_RGMII_RXID)
+-				break;
+-
+-			if (of_property_read_bool(port_dn, "qca,sgmii-txclk-falling-edge"))
+-				priv->ports_config.sgmii_tx_clk_falling_edge = true;
+-
+-			if (of_property_read_bool(port_dn, "qca,sgmii-rxclk-falling-edge"))
+-				priv->ports_config.sgmii_rx_clk_falling_edge = true;
+-
+-			if (of_property_read_bool(port_dn, "qca,sgmii-enable-pll")) {
+-				priv->ports_config.sgmii_enable_pll = true;
+-
+-				if (priv->switch_id == QCA8K_ID_QCA8327) {
+-					dev_err(priv->dev, "SGMII PLL should NOT be enabled for qca8327. Aborting enabling");
+-					priv->ports_config.sgmii_enable_pll = false;
+-				}
+-
+-				if (priv->switch_revision < 2)
+-					dev_warn(priv->dev, "SGMII PLL should NOT be enabled for qca8337 with revision 2 or more.");
+-			}
++		/* For port based vlans to work we need to set the
++		 * default egress vid
++		 */
++		ret = qca8k_rmw(priv, QCA8K_EGRESS_VLAN(port),
++				0xfff << shift,
++				QCA8K_PORT_VID_DEF << shift);
++		if (ret)
++			return ret;
+ 
+-			break;
+-		default:
+-			continue;
+-		}
++		ret = qca8k_write(priv, QCA8K_REG_PORT_VLAN_CTRL0(port),
++				  QCA8K_PORT_VLAN_CVID(QCA8K_PORT_VID_DEF) |
++				  QCA8K_PORT_VLAN_SVID(QCA8K_PORT_VID_DEF));
++		if (ret)
++			return ret;
+ 	}
+ 
+ 	return 0;

@@ -1,0 +1,27 @@
+--- a/target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/ipqess.c
++++ b/target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/ipqess.c
+@@ -1269,6 +1269,8 @@ static int ipqess_axi_probe(struct platform_device *pdev)
+ 	if (err)
+ 		goto err_out;
+ 
++	dev_set_threaded(netdev, true);
++
+ 	for (i = 0; i < IPQESS_NETDEV_QUEUES; i++) {
+ 		int qid;
+ 
+
+From 007ff2ceb33d3100933e62f02b55fe58911f43a5 Mon Sep 17 00:00:00 2001
+From: Robert Marko <robert.marko@sartura.hr>
+Date: Wed, 7 Sep 2022 12:06:47 +0200
+Subject: [PATCH 19/19] ipq40xx: remove non-converted network configs
+
+Remove networking configs for non DSA converted boards in ipq40xx.
+Currently, they are just causing clutter.
+
+Signed-off-by: Robert Marko <robert.marko@sartura.hr>
+---
+ .../ipq40xx/base-files/etc/board.d/02_network | 95 -------------------
+ 1 file changed, 95 deletions(-)
+
+diff --git a/target/linux/ipq40xx/base-files/etc/board.d/02_network b/target/linux/ipq40xx/base-files/etc/board.d/02_network
+index cc2f992c111bc..c32a56d1ea9fd 100644

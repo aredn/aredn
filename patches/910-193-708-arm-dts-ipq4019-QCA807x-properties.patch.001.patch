@@ -1,0 +1,42 @@
+--- a/target/linux/ipq40xx/patches-5.15/708-arm-dts-ipq4019-QCA807x-properties.patch
++++ b/target/linux/ipq40xx/patches-5.15/708-arm-dts-ipq4019-QCA807x-properties.patch
+@@ -56,7 +56,6 @@ Signed-off-by: Robert Marko <robert.marko@sartura.hr>
+ +				reg = <5>;
+ +
+ +				qcom,tx-driver-strength = <PSGMII_QSGMII_TX_DRIVER_300MV>;
+-+				qcom,psgmii-az;
+  			};
+  		};
+  
+
+From 28fccf1c257a46f44f3f647276bf5108230143f1 Mon Sep 17 00:00:00 2001
+From: Robert Marko <robert.marko@sartura.hr>
+Date: Wed, 15 Dec 2021 21:09:38 +0100
+Subject: [PATCH 07/19] ipq40xx: add IPQESS ethernet driver
+
+IPQESS is the EDMA replacement driver for the IPQ40xx SoC built-in
+ethernet controller.
+
+Unlike EDMA it is Phylink based and doesnt touch PHY-s directly.
+
+Signed-off-by: Robert Marko <robert.marko@sartura.hr>
+---
+ .../net/ethernet/qualcomm/ipqess/Makefile     |    8 +
+ .../net/ethernet/qualcomm/ipqess/ipqess.c     | 1334 +++++++++++++++++
+ .../net/ethernet/qualcomm/ipqess/ipqess.h     |  530 +++++++
+ .../ethernet/qualcomm/ipqess/ipqess_ethtool.c |  175 +++
+ ...ethernet-qualcomm-add-IPQESS-support.patch |   43 +
+ ...4019-add-ethernet-controller-DT-node.patch |   81 +
+ ...8-arm-dts-ipq4019-QCA807x-properties.patch |    2 +-
+ ...ethernet-qualcomm-add-IPQESS-support.patch |   43 +
+ ...4019-add-ethernet-controller-DT-node.patch |   81 +
+ 9 files changed, 2296 insertions(+), 1 deletion(-)
+ create mode 100644 target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/Makefile
+ create mode 100644 target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/ipqess.c
+ create mode 100644 target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/ipqess.h
+ create mode 100644 target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/ipqess_ethtool.c
+ create mode 100644 target/linux/ipq40xx/patches-5.10/702-net-ethernet-qualcomm-add-IPQESS-support.patch
+ create mode 100644 target/linux/ipq40xx/patches-5.10/703-arm-dts-ipq4019-add-ethernet-controller-DT-node.patch
+ create mode 100644 target/linux/ipq40xx/patches-5.15/702-net-ethernet-qualcomm-add-IPQESS-support.patch
+ create mode 100644 target/linux/ipq40xx/patches-5.15/703-arm-dts-ipq4019-add-ethernet-controller-DT-node.patch
+

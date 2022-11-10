@@ -1,0 +1,40 @@
+--- a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
++++ b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
+@@ -1,25 +1,28 @@
+ // SPDX-License-Identifier: GPL-2.0
+ /*
+  * Copyright (C) 2009 Felix Fietkau <nbd@nbd.name>
+- * Copyright (C) 2011-2012 Gabor Juhos <juhosg@openwrt.org>
++ * Copyright (C) 2011-2012, 2020-2021 Gabor Juhos <juhosg@openwrt.org>
+  * Copyright (c) 2015, 2019, The Linux Foundation. All rights reserved.
+  * Copyright (c) 2016 John Crispin <john@phrozen.org>
++ * Copyright (c) 2021 Robert Marko <robert.marko@sartura.hr>
+  */
+ 
++#include <linux/version.h>
++#include <linux/etherdevice.h>
++#include <linux/if_bridge.h>
++#include <linux/mdio.h>
++#include <linux/mfd/syscon.h>
+ #include <linux/module.h>
+-#include <linux/phy.h>
+ #include <linux/netdevice.h>
+-#include <net/dsa.h>
+-#include <linux/of_net.h>
+ #include <linux/of_mdio.h>
++#include <linux/of_net.h>
+ #include <linux/of_platform.h>
+-#include <linux/if_bridge.h>
+-#include <linux/mdio.h>
++#include <linux/phy.h>
+ #include <linux/phylink.h>
+-#include <linux/gpio/consumer.h>
+-#include <linux/etherdevice.h>
++#include <linux/reset.h>
++#include <net/dsa.h>
+ 
+-#include "qca8k.h"
++#include "qca8k-ipq4019.h"
+ 
+ #define MIB_DESC(_s, _o, _n)	\
+ 	{			\

@@ -1,0 +1,23 @@
+--- /dev/null
++++ b/target/linux/ipq40xx/base-files/etc/board.d/05_compat-version
+@@ -0,0 +1,18 @@
++#
++# Copyright (C) 2022 OpenWrt.org
++#
++
++. /lib/functions.sh
++. /lib/functions/uci-defaults.sh
++
++board_config_update
++
++case "$(board_name)" in
++	*)
++		ucidef_set_compat_version "1.1"
++		;;
++esac
++
++board_config_flush
++
++exit 0
+diff --git a/target/linux/ipq40xx/base-files/lib/preinit/05_set_iface_mac_ipq40xx.sh b/target/linux/ipq40xx/base-files/lib/preinit/05_set_iface_mac_ipq40xx.sh
+index 940af0528d513..3c247ae6aa184 100644

@@ -1,0 +1,30 @@
+--- a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-sxtsq-5-ac.dts
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-sxtsq-5-ac.dts
+@@ -49,7 +49,7 @@
+ 		ess_tcsr@1953000 {
+ 			compatible = "qcom,tcsr";
+ 			reg = <0x1953000 0x1000>;
+-			qcom,ess-interface-select = <TCSR_ESS_PSGMII>;
++			qcom,ess-interface-select = <TCSR_ESS_PSGMII_RGMII4>;
+ 		};
+ 
+ 		tcsr@1957000 {
+
+From d58b61051a6654666244ddee5d2fd9e1b76a765b Mon Sep 17 00:00:00 2001
+From: Serhii Serhieiev <adron@mstnt.com>
+Date: Sun, 20 Mar 2022 19:26:32 +0100
+Subject: [PATCH 13/19] ipq40xx: qca807x: add suspend and resume ops
+
+Currently, suspend and resume ops are not present, this means that if user
+disables a DSA interface that the PHY-s remain alive and the link is up.
+
+Fix it by using generic PHY suspend and resume ops.
+
+Signed-off-by: Serhii Serhieiev <adron@mstnt.com>
+Signed-off-by: Robert Marko <robert.marko@sartura.hr>
+---
+ target/linux/ipq40xx/files/drivers/net/phy/qca807x.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c b/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
+index 2a2d19d6db19a..94d5b83a7c908 100644

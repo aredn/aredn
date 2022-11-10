@@ -1,0 +1,16 @@
+--- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
++++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
+@@ -210,7 +202,9 @@ ipq40xx_setup_macs()
+ 	ezviz,cs-w3-wd1200g-eup)
+ 		label_mac=$(mtd_get_mac_binary "ART" 0x6)
+ 		;;
+-	linksys,ea6350v3)
++	linksys,ea6350v3|\
++	linksys,ea8300  |\
++	linksys,mr8300)
+ 		wan_mac=$(mtd_get_mac_ascii devinfo hw_mac_addr)
+ 		lan_mac=$(macaddr_add "$wan_mac" 1)
+ 		;;
+diff --git a/target/linux/ipq40xx/base-files/etc/board.d/05_compat-version b/target/linux/ipq40xx/base-files/etc/board.d/05_compat-version
+new file mode 100644
+index 0000000000000..70272f99ed5d8

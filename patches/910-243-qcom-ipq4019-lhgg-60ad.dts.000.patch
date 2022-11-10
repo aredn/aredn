@@ -1,0 +1,26 @@
+--- a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-lhgg-60ad.dts
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-lhgg-60ad.dts
+@@ -261,3 +261,21 @@
+ &psgmiiphy {
+ 	status = "disabled";
+ };
++
++&gmac {
++	status = "okay";
++};
++
++&switch {
++	status = "okay";
++
++	/delete-property/ psgmii-ethphy;
++};
++
++&swport5 {
++	status = "okay";
++
++	label = "lan";
++	phy-handle = <&ethphy0>;
++	phy-mode = "rgmii-id";
++};
+diff --git a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-map-ac2200.dts b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4019-map-ac2200.dts
+index 94e94beb81e28..32f0473fb169a 100644

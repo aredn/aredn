@@ -1,24 +1,15 @@
 --- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
 +++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
-@@ -25,7 +25,9 @@
+@@ -61,9 +61,9 @@
+ 	p2w,r619ac-64m|\
  	p2w,r619ac-128m|\
- 	pakedge,wr-1|\
  	zyxel,nbg6617)
--		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "wan"
+-		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+-		ucidef_add_switch "switch0" \
+-			"0u@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
 +		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
 +		ucidef_set_interface "dtdlink" device "lan4.2" protocol "static"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
  		;;
- 	8dev,jalapeno|\
- 	alfa-network,ap120c-ac|\
---- a/target/linux/ath79/nand/base-files/etc/board.d/02_network
-+++ b/target/linux/ath79/nand/base-files/etc/board.d/02_network
-@@ -26,7 +26,7 @@ ath79_setup_interfaces()
- 	glinet,gl-ar750s-nor-nand)
- 		ucidef_add_switch "switch0" \
- 			"0@eth0" "1:wan" "3t:dtdlink" "2:lan"
--		ucidef_set_interface "wifi" device "wlan1" protocol "static"
-+		ucidef_set_interface "wifi" device "wlan0" protocol "static"
- 		;;
- 	glinet,gl-xe300)
- 		ucidef_set_interface_wan "eth1"
+ 	avm,fritzbox-4040|\
+ 	linksys,ea6350v3|\

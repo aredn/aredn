@@ -1,0 +1,32 @@
+--- a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
++++ b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
+@@ -602,24 +602,23 @@ qca8k_setup(struct dsa_switch *ds)
+ 	return 0;
+ }
+ 
+-static int psgmii_vco_calibrate(struct dsa_switch *ds)
++static int psgmii_vco_calibrate(struct qca8k_priv *priv)
+ {
+-	struct qca8k_priv *priv = ds->priv;
+ 	int val, ret;
+ 
+ 	if (!priv->psgmii_ethphy) {
+-		dev_err(ds->dev, "PSGMII eth PHY missing, calibration failed!\n");
++		dev_err(priv->dev, "PSGMII eth PHY missing, calibration failed!\n");
+ 		return -ENODEV;
+ 	}
+ 
+ 	/* Fix PSGMII RX 20bit */
+ 	ret = phy_write(priv->psgmii_ethphy, MII_BMCR, 0x5b);
+-	/* Reset PSGMII PHY */
++	/* Reset PHY PSGMII */
+ 	ret = phy_write(priv->psgmii_ethphy, MII_BMCR, 0x1b);
+-	/* Release reset */
++	/* Release PHY PSGMII reset */
+ 	ret = phy_write(priv->psgmii_ethphy, MII_BMCR, 0x5b);
+ 
+-	/* Poll for VCO PLL calibration finish */
++	/* Poll for VCO PLL calibration finish - Malibu(QCA8075) */
+ 	ret = phy_read_mmd_poll_timeout(priv->psgmii_ethphy,
+ 					MDIO_MMD_PMAPMD,
+ 					0x28, val,

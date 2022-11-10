@@ -1,0 +1,42 @@
+--- a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4029-ws-ap3915i.dts
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4029-ws-ap3915i.dts
+@@ -262,11 +246,3 @@
+ 		};
+ 	};
+ };
+-
+-&gmac0 {
+-	qcom,phy_mdio_addr = <4>;
+-	qcom,poll_required = <1>;
+-	qcom,forced_speed = <1000>;
+-	qcom,forced_duplex = <1>;
+-	vlan_tag = <1 0x20>;
+-};
+
+From c2e28c18b30a89e4f772be715bef0003695e4935 Mon Sep 17 00:00:00 2001
+From: Robert Marko <robert.marko@sartura.hr>
+Date: Mon, 25 Oct 2021 18:30:00 +0200
+Subject: [PATCH 03/19] ipq40xx: qca807x: add SFP improvements
+
+Currently, QCA807x doesnt do any kind of validation to see whether it
+actually supports the inserted module.
+
+So lets add checks to allow only 1000BaseX and 100BaseFX based modules.
+
+While adding validation, move fiber configuration to insert/remove events
+instead of always doing it at config time.
+This allows getting rid of the DT property for fiber enable and now only
+the upstream sfp phandle is required.
+
+Since we are refactoring fiber related code, lets heavily simplify the
+status polling as the current logic is overcomplicated due to previous
+wish to support non standard SFP cages that dont have pins properly
+connected, that is removed now and only proper SFP cages will work.
+
+Signed-off-by: Robert Marko <robert.marko@sartura.hr>
+---
+ .../ipq40xx/files/drivers/net/phy/qca807x.c   | 140 +++++++++---------
+ 1 file changed, 74 insertions(+), 66 deletions(-)
+
+diff --git a/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c b/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
+index 8d523548e52fc..d56e9f9cda8b7 100644

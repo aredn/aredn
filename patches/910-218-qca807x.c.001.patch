@@ -1,0 +1,27 @@
+--- a/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
++++ b/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
+@@ -844,6 +846,8 @@ static struct phy_driver qca807x_drivers[] = {
+ 		.soft_reset	= genphy_soft_reset,
+ 		.get_tunable	= qca807x_get_tunable,
+ 		.set_tunable	= qca807x_set_tunable,
++		.resume		= genphy_resume,
++		.suspend	= genphy_suspend,
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,8,0)
+ 		.cable_test_start	= qca807x_cable_test_start,
+ 		.cable_test_get_status	= qca807x_cable_test_get_status,
+
+From 3155b54a9328e0dbe325f50f16792e19f7672587 Mon Sep 17 00:00:00 2001
+From: Robert Marko <robert.marko@sartura.hr>
+Date: Sun, 20 Mar 2022 19:34:18 +0100
+Subject: [PATCH 14/19] ipq40xx: qca807x: drop kernel version checks
+
+Since kernel 5.4 has been droppped from IPQ40xx, there is no need to keep
+the version checks for kernels older than 5.10.
+
+Signed-off-by: Robert Marko <robert.marko@sartura.hr>
+---
+ .../ipq40xx/files/drivers/net/phy/qca807x.c      | 16 ----------------
+ 1 file changed, 16 deletions(-)
+
+diff --git a/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c b/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
+index 94d5b83a7c908..28e0e6bc8e8e2 100644

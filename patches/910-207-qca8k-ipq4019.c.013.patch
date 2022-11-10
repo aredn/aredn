@@ -1,0 +1,12 @@
+--- a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
++++ b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
+@@ -2011,7 +1281,9 @@ static const struct dsa_switch_ops qca8k_switch_ops = {
+ 	.port_fdb_del		= qca8k_port_fdb_del,
+ 	.port_fdb_dump		= qca8k_port_fdb_dump,
+ 	.port_vlan_filtering	= qca8k_port_vlan_filtering,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5,12,0)
+ 	.port_vlan_prepare	= qca8k_port_vlan_prepare,
++#endif
+ 	.port_vlan_add		= qca8k_port_vlan_add,
+ 	.port_vlan_del		= qca8k_port_vlan_del,
+ 	.phylink_validate	= qca8k_phylink_validate,

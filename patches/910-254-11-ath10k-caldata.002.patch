@@ -1,0 +1,12 @@
+--- a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -207,7 +205,6 @@ case "$FIRMWARE" in
+ 	meraki,mr74)
+ 		caldata_extract_ubi "ART" 0x5000 0x2f20
+ 		caldata_valid "202f" || caldata_extract "ART" 0x5000 0x2f20
+-		ath10k_patch_mac $(macaddr_add $(get_mac_binary "/sys/bus/i2c/devices/0-0050/eeprom" 0x66) 3)
+ 		;;
+ 	mikrotik,cap-ac |\
+ 	mikrotik,hap-ac2 |\
+diff --git a/target/linux/ipq40xx/base-files/lib/preinit/05_set_iface_mac_ipq40xx.sh b/target/linux/ipq40xx/base-files/lib/preinit/05_set_iface_mac_ipq40xx.sh
+index 3c247ae6aa184..18c24e0511593 100644

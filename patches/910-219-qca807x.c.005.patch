@@ -1,0 +1,35 @@
+--- a/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
++++ b/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
+@@ -848,10 +834,8 @@ static struct phy_driver qca807x_drivers[] = {
+ 		.set_tunable	= qca807x_set_tunable,
+ 		.resume		= genphy_resume,
+ 		.suspend	= genphy_suspend,
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,8,0)
+ 		.cable_test_start	= qca807x_cable_test_start,
+ 		.cable_test_get_status	= qca807x_cable_test_get_status,
+-#endif
+ 	},
+ 	{
+ 		PHY_ID_MATCH_EXACT(PHY_ID_QCA807X_PSGMII),
+
+From bd375e002e81a2370fed41d5c3c53e31b3454034 Mon Sep 17 00:00:00 2001
+From: Serhii Serhieiev <adron@mstnt.com>
+Date: Mon, 25 Apr 2022 15:09:43 +0200
+Subject: [PATCH 15/19] ipq40xx: qca8k: introduce proper PSGMII calibration
+
+Serhii and others have experienced PSGMII link degradation up to point
+that it actually does not pass packets at all or packets arrive as zeros.
+This usually happened after a couple of hot reboots.
+
+Serhii has managed to track it down to PSGMII calibration not being done
+properly and has fixed it, so all of the code is Serhii-s work.
+
+Signed-off-by: Serhii Serhieiev <adron@mstnt.com>
+Signed-off-by: Robert Marko <robert.marko@sartura.hr>
+---
+ .../files/drivers/net/dsa/qca/qca8k-ipq4019.c | 320 +++++++++++++++++-
+ .../files/drivers/net/dsa/qca/qca8k-ipq4019.h |  23 ++
+ 2 files changed, 331 insertions(+), 12 deletions(-)
+
+diff --git a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
+index 4d794262055da..a8c3a20406ac9 100644

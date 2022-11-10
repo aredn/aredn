@@ -1,0 +1,121 @@
+--- a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
++++ b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.c
+@@ -1273,48 +596,87 @@ qca8k_setup(struct dsa_switch *ds)
+ 	/* We don't have interrupts for link changes, so we need to poll */
+ 	ds->pcs_poll = true;
+ 
++	/* CPU port HW learning doesnt work correctly, so let DSA handle it */
++	ds->assisted_learning_on_cpu_port = true;
++
+ 	return 0;
+ }
+ 
+-static void
+-qca8k_mac_config_setup_internal_delay(struct qca8k_priv *priv, int cpu_port_index,
+-				      u32 reg)
++static int psgmii_vco_calibrate(struct dsa_switch *ds)
+ {
+-	u32 delay, val = 0;
+-	int ret;
++	struct qca8k_priv *priv = ds->priv;
++	int val, ret;
+ 
+-	/* Delay can be declared in 3 different way.
+-	 * Mode to rgmii and internal-delay standard binding defined
+-	 * rgmii-id or rgmii-tx/rx phy mode set.
+-	 * The parse logic set a delay different than 0 only when one
+-	 * of the 3 different way is used. In all other case delay is
+-	 * not enabled. With ID or TX/RXID delay is enabled and set
+-	 * to the default and recommended value.
+-	 */
+-	if (priv->ports_config.rgmii_tx_delay[cpu_port_index]) {
+-		delay = priv->ports_config.rgmii_tx_delay[cpu_port_index];
++	if (!priv->psgmii_ethphy) {
++		dev_err(ds->dev, "PSGMII eth PHY missing, calibration failed!\n");
++		return -ENODEV;
++	}
+ 
+-		val |= QCA8K_PORT_PAD_RGMII_TX_DELAY(delay) |
+-			QCA8K_PORT_PAD_RGMII_TX_DELAY_EN;
++	/* Fix PSGMII RX 20bit */
++	ret = phy_write(priv->psgmii_ethphy, MII_BMCR, 0x5b);
++	/* Reset PSGMII PHY */
++	ret = phy_write(priv->psgmii_ethphy, MII_BMCR, 0x1b);
++	/* Release reset */
++	ret = phy_write(priv->psgmii_ethphy, MII_BMCR, 0x5b);
++
++	/* Poll for VCO PLL calibration finish */
++	ret = phy_read_mmd_poll_timeout(priv->psgmii_ethphy,
++					MDIO_MMD_PMAPMD,
++					0x28, val,
++					(val & BIT(0)),
++					10000, 1000000,
++					false);
++	if (ret) {
++		dev_err(ds->dev, "QCA807x PSGMII VCO calibration PLL not ready\n");
++		return ret;
+ 	}
+ 
+-	if (priv->ports_config.rgmii_rx_delay[cpu_port_index]) {
+-		delay = priv->ports_config.rgmii_rx_delay[cpu_port_index];
++	/* Freeze PSGMII RX CDR */
++	ret = phy_write(priv->psgmii_ethphy, MII_RESV2, 0x2230);
+ 
+-		val |= QCA8K_PORT_PAD_RGMII_RX_DELAY(delay) |
+-			QCA8K_PORT_PAD_RGMII_RX_DELAY_EN;
++	/* Start PSGMIIPHY VCO PLL calibration */
++	ret = regmap_set_bits(priv->psgmii,
++			PSGMIIPHY_VCO_CALIBRATION_CONTROL_REGISTER_1,
++			PSGMIIPHY_REG_PLL_VCO_CALIB_RESTART);
++
++	/* Poll for PSGMIIPHY PLL calibration finish */
++	ret = regmap_read_poll_timeout(priv->psgmii,
++				       PSGMIIPHY_VCO_CALIBRATION_CONTROL_REGISTER_2,
++				       val, val & PSGMIIPHY_REG_PLL_VCO_CALIB_READY,
++				       10000, 1000000);
++	if (ret) {
++		dev_err(ds->dev, "PSGMIIPHY VCO calibration PLL not ready\n");
++		return ret;
+ 	}
+ 
+-	/* Set RGMII delay based on the selected values */
+-	ret = qca8k_rmw(priv, reg,
+-			QCA8K_PORT_PAD_RGMII_TX_DELAY_MASK |
+-			QCA8K_PORT_PAD_RGMII_RX_DELAY_MASK |
+-			QCA8K_PORT_PAD_RGMII_TX_DELAY_EN |
+-			QCA8K_PORT_PAD_RGMII_RX_DELAY_EN,
+-			val);
+-	if (ret)
+-		dev_err(priv->dev, "Failed to set internal delay for CPU port%d",
+-			cpu_port_index == QCA8K_CPU_PORT0 ? 0 : 6);
++	/* Release PSGMII RX CDR */
++	ret = phy_write(priv->psgmii_ethphy, MII_RESV2, 0x3230);
++
++	/* Release PSGMII RX 20bit */
++	ret = phy_write(priv->psgmii_ethphy, MII_BMCR, 0x5f);
++
++	return ret;
++}
++
++static int ipq4019_psgmii_configure(struct dsa_switch *ds)
++{
++	struct qca8k_priv *priv = ds->priv;
++	int ret;
++
++	if (!priv->psgmii_calibrated) {
++		ret = psgmii_vco_calibrate(ds);
++
++		ret = regmap_clear_bits(priv->psgmii, PSGMIIPHY_MODE_CONTROL,
++					PSGMIIPHY_MODE_ATHR_CSCO_MODE_25M);
++		ret = regmap_write(priv->psgmii, PSGMIIPHY_TX_CONTROL,
++				   PSGMIIPHY_TX_CONTROL_MAGIC_VALUE);
++
++		priv->psgmii_calibrated = true;
++
++		return ret;
++	}
++
++	return 0;
+ }
+ 
+ static void

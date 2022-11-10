@@ -1,0 +1,47 @@
+--- a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-magic-2-wifi-next.dts
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-magic-2-wifi-next.dts
+@@ -41,42 +37,6 @@
+ 			status = "okay";
+ 		};
+ 
+-		ess-switch@c000000 {
+-			status = "okay";
+-			switch_lan_bmp = <0x3e>;
+-			switch_wan_bmp = <0x0>;
+-		};
+-
+-		edma@c080000 {
+-			status = "okay";
+-			qcom,num_gmac = <3>;
+-
+-			gmac0 {
+-				qcom,phy_mdio_addr = <3>;
+-				qcom,poll_required = <1>;
+-				/delete-property/ qcom,forced_speed;
+-				/delete-property/ qcom,forced_duplex;
+-				vlan_tag = <1 0x10>;
+-			};
+-
+-			gmac1 {
+-				qcom,phy_mdio_addr = <2>;
+-				qcom,poll_required = <1>;
+-				/delete-property/ qcom,forced_speed;
+-				/delete-property/ qcom,forced_duplex;
+-				vlan_tag = <1 0x08>;
+-			};
+-
+-			gmac2 {
+-				local-mac-address = [00 00 00 00 00 00];
+-				qcom,phy_mdio_addr = <4>;
+-				qcom,poll_required = <1>;
+-				/delete-property/ qcom,forced_speed;
+-				/delete-property/ qcom,forced_duplex;
+-				vlan_tag = <1 0x20>;
+-			};
+-		};
+-
+ 		gpio_export {
+ 			compatible = "gpio-export";
+ 			#size-cells = <0>;
+diff --git a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-nbg6617.dts b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-nbg6617.dts
+index caafc1beb44d5..492293869292d 100644

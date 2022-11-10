@@ -1,0 +1,30 @@
+--- a/target/linux/ipq40xx/image/Makefile
++++ b/target/linux/ipq40xx/image/Makefile
+@@ -10,6 +10,8 @@ define Device/Default
+ 	IMAGES := sysupgrade.bin
+ 	IMAGE/sysupgrade.bin = sysupgrade-tar | append-metadata
+ 	IMAGE/sysupgrade.bin/squashfs :=
++	DEVICE_COMPAT_VERSION := 1.1
++	DEVICE_COMPAT_MESSAGE := Config cannot be migrated from swconfig to DSA
+ endef
+ 
+ include $(SUBTARGET).mk
+
+From e19d5f6ecdf7bd15ea07e0570476d74bcab67a75 Mon Sep 17 00:00:00 2001
+From: Lech Perczak <lech.perczak@gmail.com>
+Date: Wed, 15 Dec 2021 21:10:11 +0100
+Subject: [PATCH 17/19] ipq40xx: Meraki MR33: convert MAC addresses to nvmem
+
+This fixes assigning random MAC to br-lan interface upon boot.
+While at that, rename at24@50 node to eeprom@50, to align with upstream
+device tree style.
+
+Signed-off-by: Lech Perczak <lech.perczak@gmail.com>
+---
+ .../etc/hotplug.d/firmware/11-ath10k-caldata  |  3 ---
+ .../lib/preinit/05_set_iface_mac_ipq40xx.sh   |  5 -----
+ .../boot/dts/qcom-ipq4029-insect-common.dtsi  | 20 ++++++++++++++++++-
+ 3 files changed, 19 insertions(+), 9 deletions(-)
+
+diff --git a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+index a0280b7f225a9..7d109bcc5248a 100644

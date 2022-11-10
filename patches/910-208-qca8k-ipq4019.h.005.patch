@@ -1,0 +1,19 @@
+--- a/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.h
++++ b/target/linux/ipq40xx/files/drivers/net/dsa/qca/qca8k-ipq4019.h
+@@ -290,8 +242,12 @@ struct qca8k_priv {
+ 	struct mutex reg_mutex;
+ 	struct device *dev;
+ 	struct dsa_switch_ops ops;
+-	struct gpio_desc *reset_gpio;
+ 	unsigned int port_mtu[QCA8K_NUM_PORTS];
++
++	/* IPQ4019 specific */
++	struct regmap *psgmii;
++	bool psgmii_calibrated;
++	struct phy_device *psgmii_ethphy;
+ };
+ 
+ struct qca8k_mib_desc {
+diff --git a/target/linux/ipq40xx/patches-5.10/705-net-dsa-add-Qualcomm-IPQ4019-built-in-switch-support.patch b/target/linux/ipq40xx/patches-5.10/705-net-dsa-add-Qualcomm-IPQ4019-built-in-switch-support.patch
+new file mode 100644
+index 0000000000000..ed201b7c588fd
