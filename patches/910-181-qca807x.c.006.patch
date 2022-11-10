@@ -15,22 +15,3 @@
  
  	return ret;
 
-From ca13e784b96def06d4bc5f3dddce8f53fd033c0c Mon Sep 17 00:00:00 2001
-From: Robert Marko <robert.marko@sartura.hr>
-Date: Wed, 8 Dec 2021 14:44:05 +0100
-Subject: [PATCH 04/19] ipq40xx: disable nodes instead of deleting them
-
-There is no reason to delete the DT PHY nodes
-as you can just disable them.
-
-Signed-off-by: Robert Marko <robert.marko@sartura.hr>
----
- .../dts/qcom-ipq4018-magic-2-wifi-next.dts    | 11 +++++--
- .../arm/boot/dts/qcom-ipq4018-wrtq-329acn.dts | 16 +++++++---
- .../dts/qcom-ipq4019-fritzrepeater-1200.dts   | 30 ++++++++++++++----
- .../arm/boot/dts/qcom-ipq4019-lhgg-60ad.dts   | 26 ++++++++++++----
- .../dts/qcom-ipq4029-aruba-glenmorangie.dtsi  | 31 ++++++++++++++-----
- 5 files changed, 88 insertions(+), 26 deletions(-)
-
-diff --git a/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-magic-2-wifi-next.dts b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-magic-2-wifi-next.dts
-index f1bd88f942942..29d51aa9e1c57 100644

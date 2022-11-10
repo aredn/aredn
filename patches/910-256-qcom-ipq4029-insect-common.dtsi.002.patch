@@ -25,19 +25,3 @@
  
  &switch {
 
-From 0b60d3edc15fb437ff0e553abd6c2829d2bf37d8 Mon Sep 17 00:00:00 2001
-From: Robert Marko <robert.marko@sartura.hr>
-Date: Mon, 27 Jun 2022 14:40:43 +0200
-Subject: [PATCH 18/19] ipq40xx: ipqess: enable threaded NAPI
-
-Enable threaded NAPI by default in IPQESS driver as it significantly
-improves network perfromance, in my testing about 100+ Mbps in WAN-LAN
-routing.
-
-Signed-off-by: Robert Marko <robert.marko@sartura.hr>
----
- .../files/drivers/net/ethernet/qualcomm/ipqess/ipqess.c     | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
-
-diff --git a/target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/ipqess.c b/target/linux/ipq40xx/files/drivers/net/ethernet/qualcomm/ipqess/ipqess.c
-index 7b83950a21b3d..ee33bb01667f5 100644

@@ -189,25 +189,3 @@
 ++
 ++module_dsa_tag_driver(ipq4019_sh_tag_dsa_ops);
 
-From 7917360c4228da8d2458435bec9fee1eab3a3db6 Mon Sep 17 00:00:00 2001
-From: Robert Marko <robert.marko@sartura.hr>
-Date: Mon, 8 Nov 2021 23:06:02 +0100
-Subject: [PATCH 06/19] ipq40xx: qca807x: always set PSGMII AZ WAR
-
-There is no point in using a DT property to trigger setting the PSGMII
-PHY AZ transmitting ability.
-Especially since EEE can be disabled using ethtool anyway.
-
-Fixup the mask for setting the workaround as only BIT(0) is actually being
-changed and use the phy_clear_bits_mmd helper instead of reading, then
-clearing the bit and writing back as it does everything for us.
-
-Signed-off-by: Robert Marko <robert.marko@sartura.hr>
----
- .../linux/ipq40xx/files/drivers/net/phy/qca807x.c | 15 ++++++---------
- .../708-arm-dts-ipq4019-QCA807x-properties.patch  |  1 -
- .../708-arm-dts-ipq4019-QCA807x-properties.patch  |  3 +--
- 3 files changed, 7 insertions(+), 12 deletions(-)
-
-diff --git a/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c b/target/linux/ipq40xx/files/drivers/net/phy/qca807x.c
-index d56e9f9cda8b7..2a2d19d6db19a 100644
