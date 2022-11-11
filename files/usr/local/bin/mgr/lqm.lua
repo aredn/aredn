@@ -131,7 +131,7 @@ function update_block(track)
         track.blocked = true
         if track.type == "Tunnel" then
             if not nft_handle("input_lqm", "iifname \\\"" .. trace.device .. "\\\" udp dport 698 .* drop") then
-                os.execute(NFT .. " insert rule inet fw4 input_lqm iifname \\\"" .. trace.device .. "\\\" udp dport 698 counter drop 2> /dev/null")
+                os.execute(NFT .. " insert rule inet fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 counter drop 2> /dev/null")
                 return "blocked"
             end
         else
@@ -143,7 +143,7 @@ function update_block(track)
     else
         track.blocked = false
         if track.type == "Tunnel" then
-            local handle = nft_handle("input_lqm", "iifname \\\"" .. trace.device .. "\\\" udp dport 698 .* drop")
+            local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 .* drop")
             if handle then
                 os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
                 return "unblocked"
@@ -165,7 +165,7 @@ function force_remove_block(track)
     if handle then
         os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
     end
-    handle = nft_handle("input_lqm", "iifname \\\"" .. trace.device .. "\\\" udp dport 698 .* drop")
+    handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 .* drop")
     if handle then
         os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
     end
