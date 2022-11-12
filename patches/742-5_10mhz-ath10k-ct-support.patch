@@ -1,0 +1,1226 @@
+--- /dev/null
++++ a/package/kernel/ath10k-ct/extra/ath.patch
+@@ -0,0 +1,10 @@
++--- a/ath.h
+++++ b/ath.h
++@@ -149,6 +149,7 @@
++ 	int debug_mask;
++ 	enum ath_device_state state;
++ 	unsigned long op_flags;
+++	u32 pll_div;
++ 	u32 chan_bw;
++ 
++ 	struct ath_ani ani;
+--- a/package/kernel/ath10k-ct/Makefile
++++ b/package/kernel/ath10k-ct/Makefile
+@@ -104,6 +104,7 @@
+ 
+ define Build/Configure
+ 	cp $(STAGING_DIR)/usr/include/mac80211/ath/*.h $(PKG_BUILD_DIR)
++	cat extra/ath.patch | (cd $(PKG_BUILD_DIR); patch)
+ endef
+ 
+ ifneq ($(findstring c,$(OPENWRT_VERBOSE)),)
+--- /dev/null
++++ b/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
+@@ -0,0 +1,1200 @@
++diff --git a/ath10k-5.15/core.h b/ath10k-5.15/core.h
++index 40ece28..bc5ac98 100644
++--- a/ath10k-5.15/core.h
+++++ b/ath10k-5.15/core.h
++@@ -1304,6 +1304,8 @@ struct ath10k {
++ 
++ 	bool nlo_enabled;
++ 	bool p2p;
+++	u8 ready;
+++	u8 slottime;
++ 	bool ct_all_pkts_htt; /* CT firmware only: native-wifi for all pkts */
++ 
++ 	bool hif_running; /* Should we be processing IRQs or not? */
++@@ -1608,11 +1610,18 @@ struct ath10k {
++ 		/* writing also protected by data_lock */
++ 		s16 coverage_class;
++ 
+++		u32 reg_macclk;
++ 		u32 reg_phyclk;
++ 		u32 reg_slottime_conf;
+++		u32 reg_eifstime_conf;
++ 		u32 reg_slottime_orig;
+++		u32 reg_eifstime_orig;
++ 		u32 reg_ack_cts_timeout_conf;
++ 		u32 reg_ack_cts_timeout_orig;
+++
+++		u32 reg_slottime_conf2;
+++		u32 reg_ack_cts_timeout_conf2;
+++		u32 ack;
++ 	} fw_coverage;
++ 
++ 	u32 ampdu_reference;
++diff --git a/ath10k-5.15/debug.c b/ath10k-5.15/debug.c
++index af84012..341618b 100644
++--- a/ath10k-5.15/debug.c
+++++ b/ath10k-5.15/debug.c
++@@ -4403,6 +4403,101 @@ static const struct file_operations fops_reset_htt_stats = {
++ 	.llseek = default_llseek,
++ };
++ 
+++static ssize_t read_file_chan_bw(struct file *file, char __user *user_buf,
+++			     size_t count, loff_t *ppos)
+++{
+++	struct ath10k *ar = file->private_data;
+++	struct ath_common *common = &ar->ath_common;
+++	char buf[32];
+++	unsigned int len;
+++
+++	len = sprintf(buf, "0x%08x\n", common->chan_bw);
+++	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
+++}
+++
+++int ath10k_update_channel_list(struct ath10k *ar);
+++
+++static ssize_t write_file_chan_bw(struct file *file, const char __user *user_buf,
+++			     size_t count, loff_t *ppos)
+++{
+++	struct ath10k *ar = file->private_data;
+++	struct ath_common *common = &ar->ath_common;
+++	unsigned long chan_bw;
+++	int ret;
+++	char buf[32];
+++	ssize_t len;
+++
+++	len = min(count, sizeof(buf) - 1);
+++	if (copy_from_user(buf, user_buf, len))
+++		return -EFAULT;
+++
+++	buf[len] = '\0';
+++	if (kstrtoul(buf, 0, &chan_bw))
+++		return -EINVAL;
+++
+++	common->chan_bw = chan_bw;
+++	ret = ath10k_update_channel_list(ar);
+++	if (ret)
+++		ath10k_warn(ar, "failed to update channel list: %d\n", ret);
+++
+++	return count;
+++}
+++
+++static const struct file_operations fops_chanbw = {
+++	.read = read_file_chan_bw,
+++	.write = write_file_chan_bw,
+++	.open = simple_open,
+++	.owner = THIS_MODULE,
+++	.llseek = default_llseek,
+++};
+++
+++
+++static ssize_t read_file_pll_div(struct file *file, char __user *user_buf,
+++			     size_t count, loff_t *ppos)
+++{
+++	struct ath10k *ar = file->private_data;
+++	struct ath_common *common = &ar->ath_common;
+++	char buf[32];
+++	unsigned int len;
+++
+++	len = sprintf(buf, "0x%08x\n", common->pll_div);
+++	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
+++}
+++
+++
+++static ssize_t write_file_pll_div(struct file *file, const char __user *user_buf,
+++			     size_t count, loff_t *ppos)
+++{
+++	struct ath10k *ar = file->private_data;
+++	struct ath_common *common = &ar->ath_common;
+++	unsigned long pll_div;
+++	int ret;
+++	char buf[32];
+++	ssize_t len;
+++
+++	len = min(count, sizeof(buf) - 1);
+++	if (copy_from_user(buf, user_buf, len))
+++		return -EFAULT;
+++
+++	buf[len] = '\0';
+++	if (kstrtoul(buf, 0, &pll_div))
+++		return -EINVAL;
+++
+++	common->pll_div = pll_div;
+++	if (ret)
+++		ath10k_warn(ar, "failed to update channel list: %d\n", ret);
+++
+++	return count;
+++}
+++
+++static const struct file_operations fops_plldiv = {
+++	.read = read_file_pll_div,
+++	.write = write_file_pll_div,
+++	.open = simple_open,
+++	.owner = THIS_MODULE,
+++	.llseek = default_llseek,
+++};
+++
++ int ath10k_debug_create(struct ath10k *ar)
++ {
++ 	ar->debug.cal_data = vzalloc(ATH10K_DEBUG_CAL_DATA_LEN);
++@@ -4450,6 +4545,12 @@ int ath10k_debug_register(struct ath10k *ar)
++ 	init_completion(&ar->debug.fw_stats_complete);
++ 	init_completion(&ar->debug.ratepwr_tbl_complete);
++ 	init_completion(&ar->debug.powerctl_tbl_complete);
+++	
+++	debugfs_create_file("chanbw", S_IRUSR | S_IWUSR, ar->debug.debugfs_phy,
+++			    ar, &fops_chanbw);
+++
+++	debugfs_create_file("plldiv", S_IRUSR | S_IWUSR, ar->debug.debugfs_phy,
+++			    ar, &fops_plldiv);
++ 
++ 	debugfs_create_file("fw_stats", 0400, ar->debug.debugfs_phy, ar,
++ 			    &fops_fw_stats);
++diff --git a/ath10k-5.15/hw.c b/ath10k-5.15/hw.c
++index 93c3e30..1bf2b67 100644
++--- a/ath10k-5.15/hw.c
+++++ b/ath10k-5.15/hw.c
++@@ -17,6 +17,7 @@ const struct ath10k_hw_regs qca988x_regs = {
++ 	.rtc_wmac_base_address		= 0x00005000,
++ 	.soc_core_base_address		= 0x00009000,
++ 	.wlan_mac_base_address		= 0x00020000,
+++	.wlan_analog_intf_base_address  = 0x0001c000,
++ 	.ce_wrapper_base_address	= 0x00057000,
++ 	.ce0_base_address		= 0x00057400,
++ 	.ce1_base_address		= 0x00057800,
++@@ -71,7 +72,7 @@ const struct ath10k_hw_regs qca6174_regs = {
++ 
++ const struct ath10k_hw_regs qca99x0_regs = {
++ 	.rtc_soc_base_address			= 0x00080000,
++-	.rtc_wmac_base_address			= 0x00000000,
+++	.rtc_wmac_base_address			= 0x00045000,
++ 	.soc_core_base_address			= 0x00082000,
++ 	.wlan_mac_base_address			= 0x00030000,
++ 	.ce_wrapper_base_address		= 0x0004d000,
++@@ -587,53 +588,70 @@ void ath10k_hw_fill_survey_time(struct ath10k *ar, struct survey_info *survey,
++ /* The stock firmware does not support setting the coverage class. Instead this
++  * function monitors and modifies the corresponding MAC registers.
++  */
++-static void ath10k_hw_qca988x_set_coverage_class(struct ath10k *ar,
++-						 s16 value)
++-{
++-	u32 slottime_reg;
++-	u32 slottime;
++-	u32 timeout_reg;
++-	u32 ack_timeout;
++-	u32 cts_timeout;
++-	u32 phyclk_reg;
++-	u32 phyclk;
++-	u64 fw_dbglog_mask;
++-	u32 fw_dbglog_level;
++-
++-	mutex_lock(&ar->conf_mutex);
++-
++-	/* Only modify registers if the core is started. */
++-	if ((ar->state != ATH10K_STATE_ON) &&
++-	    (ar->state != ATH10K_STATE_RESTARTED)) {
++-		spin_lock_bh(&ar->data_lock);
++-		/* Store config value for when radio boots up */
++-		ar->fw_coverage.coverage_class = value;
++-		spin_unlock_bh(&ar->data_lock);
++-		goto unlock;
++-	}
++-
++-	/* Retrieve the current values of the two registers that need to be
++-	 * adjusted.
++-	 */
++-	slottime_reg = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS +
++-					     WAVE1_PCU_GBL_IFS_SLOT);
++-	timeout_reg = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS +
++-					    WAVE1_PCU_ACK_CTS_TIMEOUT);
++-	phyclk_reg = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS +
++-					   WAVE1_PHYCLK);
++-	phyclk = MS(phyclk_reg, WAVE1_PHYCLK_USEC) + 1;
++-
+++static void ath10k_98xx_set_pdev_coverage_class(struct ath10k *ar, s16 value)
+++ {
+++ 	u32 slottime_reg;
+++	u32 eifstime_reg;
+++ 	u32 timeout_reg;
+++	u32 timeout;
+++	u32 sifs = 16;
+++	u32 pllctl;
+++	u32 filter;
+++	u32 filtermask;
+++	u32 filterunmask;
+++	u32 bbmode;
+++	u32 latency;
+++	u32 rx_lat;
+++	u32 tx_lat;
+++	u8 reset = 0;
+++	u8 delay = 25;
+++	u8 phyclk = 88;
+++ 
+++	/* chipset not yet ready. so store the value of a new coverage class setting bevor any check */
++ 	if (value < 0)
++ 		value = ar->fw_coverage.coverage_class;
++-
++-	/* Break out if the coverage class and registers have the expected
++-	 * value.
+++	if (!value)
+++		return;
+++ 
+++	if (ar->fw_coverage.coverage_class != value)
+++		reset = 1;
+++	ar->fw_coverage.coverage_class = value;	// save value 
+++
+++	if (!ar->ready || !(ar->ready & 2))
+++		return;
+++
+++	if (ar->state != ATH10K_STATE_ON && ar->state != ATH10K_STATE_UTF) {
+++		return;
+++ 	}
+++ 
+++	/* As the firmware does not support this we need to override card
+++	 * registers to implement this feature.
+++	 *
+++	 * The following HW registers are relevant:
+++	 *   0x1070: Slottime
+++	 *   0x1030: SIFS minus card delays (delay is seen to be 2us)
+++	 *   0x8014: Timeout register for CTS and ACK
+++	 *       0 - 14: ACK timeout
+++	 *      16 - 30: CTS timeout
+++	 *
+++	 * These registers are multiplied with the clock frequency in MHz.
+++	 *
+++	 * We do not need to modify the SIFS register.
++ 	 */
++-	if (value == ar->fw_coverage.coverage_class &&
++-	    slottime_reg == ar->fw_coverage.reg_slottime_conf &&
++-	    timeout_reg == ar->fw_coverage.reg_ack_cts_timeout_conf &&
++-	    phyclk_reg == ar->fw_coverage.reg_phyclk)
++-		goto unlock;
+++
+++ 	/* Retrieve the current values of the two registers that need to be
+++ 	 * adjusted.
+++ 	 */
+++	slottime_reg = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_DCU_GBL_IFS_SLOT);
+++	eifstime_reg = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_DCU_GBL_IFS_EIFS_DURATION);
+++	timeout_reg = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_DCU_ACK_CTS_TIMEOUT);
+++	mutex_lock(&ar->conf_mutex);
+++ 
+++ 	/* Break out if the coverage class and registers have the expected
+++ 	 * value.
+++ 	 */
+++	if (!reset && (!value || (slottime_reg == ar->fw_coverage.reg_slottime_conf && timeout_reg == ar->fw_coverage.reg_ack_cts_timeout_conf && eifstime_reg == ar->fw_coverage.reg_eifstime_conf)))
+++ 		goto unlock;
++ 
++ 	{
++ 		static int did_once = 0;
++@@ -643,66 +661,63 @@ static void ath10k_hw_qca988x_set_coverage_class(struct ath10k *ar,
++ 		}
++ 	}
++ 
++-
++-	/* Store new initial register values from the firmware. */
++-	if (slottime_reg != ar->fw_coverage.reg_slottime_conf)
++-		ar->fw_coverage.reg_slottime_orig = slottime_reg;
++-	if (timeout_reg != ar->fw_coverage.reg_ack_cts_timeout_conf)
++-		ar->fw_coverage.reg_ack_cts_timeout_orig = timeout_reg;
++-	ar->fw_coverage.reg_phyclk = phyclk_reg;
++-
++-	/* Calculate new value based on the (original) firmware calculation. */
++-	slottime_reg = ar->fw_coverage.reg_slottime_orig;
++-	timeout_reg = ar->fw_coverage.reg_ack_cts_timeout_orig;
++-
++-	/* Do some sanity checks on the slottime register. */
++-	if (slottime_reg % phyclk) {
++-		ath10k_warn(ar,
++-			    "failed to set coverage class: expected integer microsecond value in register\n");
++-
++-		goto store_regs;
+++	phyclk = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_PHYCLK) + 1;
+++	if (ar->fw_coverage.reg_macclk != phyclk) {
+++		ath10k_info(ar, "Mac CLK %d\n", phyclk);
+++		ar->fw_coverage.reg_macclk = phyclk;
++ 	}
++ 
++-	slottime = MS(slottime_reg, WAVE1_PCU_GBL_IFS_SLOT);
++-	slottime = slottime / phyclk;
++-	if (slottime != 9 && slottime != 20) {
++-		ath10k_warn(ar,
++-			    "failed to set coverage class: expected slot time of 9 or 20us in HW register. It is %uus.\n",
++-			    slottime);
++-
++-		goto store_regs;
+++	if (ar->rx_channel && ar->rx_channel->band == NL80211_BAND_2GHZ) {
+++		sifs = 10 * phyclk;
+++		delay = 34 * phyclk;
+++		if (ar->slottime == WMI_VDEV_SLOT_TIME_SHORT) {
+++			slottime_reg = 9 * phyclk;
+++		} else {
+++			slottime_reg = 20 * phyclk;
+++		}
+++	} else {
+++		slottime_reg = 9 * phyclk;
+++		sifs = 16 * phyclk;
+++		delay = 25 * phyclk;
++ 	}
++ 
++ 	/* Recalculate the register values by adding the additional propagation
++ 	 * delay (3us per coverage class).
++ 	 */
+++	rx_lat = 37;
+++	tx_lat = 54;
+++	if (ar->ath_common.chan_bw == 5) {
+++		phyclk = 22;
+++		slottime_reg = 21 * phyclk;
+++		sifs = 64 * phyclk;
+++		rx_lat = (rx_lat * 4) - 1;
+++		tx_lat *= 4;
+++	}
+++	if (ar->ath_common.chan_bw == 10) {
+++		phyclk = 44;
+++		slottime_reg = 13 * phyclk;
+++		sifs = 32 * phyclk;
+++		rx_lat *= 2;
+++		tx_lat *= 2;
+++	}
+++
+++	eifstime_reg = sifs + (slottime_reg * 2);
+++	slottime_reg += value * 3 * phyclk;
+++	eifstime_reg += value * 3 * phyclk;
+++
+++	/* Update lower halfword. */
+++	timeout = sifs + (slottime_reg * 2) + delay;
+++	timeout = timeout > WAVE1_DCU_ACK_CTS_TIMEOUT_MAX ? WAVE1_DCU_ACK_CTS_TIMEOUT_MAX : timeout;
+++	timeout_reg = (timeout_reg & WAVE1_DCU_ACK_CTS_TIMEOUT_CTS_MASK) | timeout;
+++
+++	/* Update upper halfward. */
+++	timeout = sifs + (slottime_reg * 2) + delay;
+++	timeout = timeout > WAVE1_DCU_ACK_CTS_TIMEOUT_MAX ? WAVE1_DCU_ACK_CTS_TIMEOUT_MAX : timeout;
++ 
++-	slottime = MS(slottime_reg, WAVE1_PCU_GBL_IFS_SLOT);
++-	slottime += value * 3 * phyclk;
++-	slottime = min_t(u32, slottime, WAVE1_PCU_GBL_IFS_SLOT_MAX);
++-	slottime = SM(slottime, WAVE1_PCU_GBL_IFS_SLOT);
++-	slottime_reg = (slottime_reg & ~WAVE1_PCU_GBL_IFS_SLOT_MASK) | slottime;
++-
++-	/* Update ack timeout (lower halfword). */
++-	ack_timeout = MS(timeout_reg, WAVE1_PCU_ACK_CTS_TIMEOUT_ACK);
++-	ack_timeout += 3 * value * phyclk;
++-	ack_timeout = min_t(u32, ack_timeout, WAVE1_PCU_ACK_CTS_TIMEOUT_MAX);
++-	ack_timeout = SM(ack_timeout, WAVE1_PCU_ACK_CTS_TIMEOUT_ACK);
++-
++-	/* Update cts timeout (upper halfword). */
++-	cts_timeout = MS(timeout_reg, WAVE1_PCU_ACK_CTS_TIMEOUT_CTS);
++-	cts_timeout += 3 * value * phyclk;
++-	cts_timeout = min_t(u32, cts_timeout, WAVE1_PCU_ACK_CTS_TIMEOUT_MAX);
++-	cts_timeout = SM(cts_timeout, WAVE1_PCU_ACK_CTS_TIMEOUT_CTS);
++-
++-	timeout_reg = ack_timeout | cts_timeout;
++-
++-	ath10k_hif_write32(ar,
++-			   WLAN_MAC_BASE_ADDRESS + WAVE1_PCU_GBL_IFS_SLOT,
++-			   slottime_reg);
++-	ath10k_hif_write32(ar,
++-			   WLAN_MAC_BASE_ADDRESS + WAVE1_PCU_ACK_CTS_TIMEOUT,
++-			   timeout_reg);
+++	timeout_reg = (timeout << WAVE1_DCU_ACK_CTS_TIMEOUT_CTS_LSB) | (timeout_reg & WAVE1_DCU_ACK_CTS_TIMEOUT_ACK_MASK);
+++	ath10k_hif_write32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_DCU_GBL_IFS_SLOT, slottime_reg);	//ifs_slot
+++	ath10k_hif_write32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_DCU_GBL_IFS_EIFS_DURATION, eifstime_reg);	//ifs_eifs       
+++	ath10k_hif_write32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_DCU_ACK_CTS_TIMEOUT, timeout_reg);
++ 
++ 	if (test_bit(ATH10K_FW_FEATURE_SET_SPECIAL_CT,
++ 		     ar->running_fw->fw_file.fw_features)) {
++@@ -720,29 +735,125 @@ static void ath10k_hw_qca988x_set_coverage_class(struct ath10k *ar,
++ 		ar->eeprom_overrides.coverage_already_set = true;
++ 	}
++ 
++-	/* Ensure we have a debug level of WARN set for the case that the
++-	 * coverage class is larger than 0. This is important as we need to
++-	 * set the registers again if the firmware does an internal reset and
++-	 * this way we will be notified of the event.
++-	 */
++-	fw_dbglog_mask = ath10k_debug_get_fw_dbglog_mask(ar);
++-	fw_dbglog_level = ath10k_debug_get_fw_dbglog_level(ar);
+++	/*
+++	 * the original qca firmare missed to set the correct pll values for half and quarter channels. this turns the original
+++	 * half and quarter implementation into a non working state. basicly the fw support is broken for full half and quarter support
+++	 * so we check if register reprogramming is required and just do it. in addition its possible to manually override the 
+++	 * pll registers using sysfs for diagnostic reasons.
+++	 * in addition we correct the analog filter configuration for 5 and 10 mhz bandwidth support, since the qca firmware
+++	 * resets them into a non working state after calibration (fun fact. just sometimes. not always)
+++ 	 */
+++	if ((ar->ath_common.chan_bw == 5 || ar->ath_common.chan_bw == 10)) {
+++		u32 pllcfg_5mhz;
+++		u32 pllcfg_10mhz;
+++		pllcfg_5mhz = 17 << WAVE1_WLAN_PLL_CONTROL_DIV_LSB;
+++		pllcfg_5mhz |= 0x2 << WAVE1_WLAN_PLL_CONTROL_CLK_SEL_LSB;
+++		pllcfg_5mhz |= 0x1 << WAVE1_WLAN_PLL_CONTROL_REFDIV_LSB;
+++
+++		pllcfg_10mhz = 17 << WAVE1_WLAN_PLL_CONTROL_DIV_LSB;
+++		pllcfg_10mhz |= 0x1 << WAVE1_WLAN_PLL_CONTROL_CLK_SEL_LSB;
+++		pllcfg_10mhz |= 0x1 << WAVE1_WLAN_PLL_CONTROL_REFDIV_LSB;
+++
+++		pllctl = ath10k_hif_read32(ar, RTC_WMAC_BASE_ADDRESS + WAVE1_WLAN_PLL_CONTROL);
+++
+++//              framectl = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS + 0xa238);
+++//              framectl |= 0x3;
+++//              ath10k_hif_write32(ar, WLAN_MAC_BASE_ADDRESS + 0xa238, framectl);
+++	    
+++		if (ar->ath_common.chan_bw == 5 && ((!ar->ath_common.pll_div && pllctl != pllcfg_5mhz) || (ar->ath_common.pll_div && pllctl != ar->ath_common.pll_div))) {
+++			ath10k_info(ar, "adjust rtc_wmac clock to 5 mhz\n");
+++			if (ar->ath_common.pll_div)
+++				ath10k_hif_write32(ar, RTC_WMAC_BASE_ADDRESS + WAVE1_WLAN_PLL_CONTROL, ar->ath_common.pll_div);
+++			else
+++				ath10k_hif_write32(ar, RTC_WMAC_BASE_ADDRESS + WAVE1_WLAN_PLL_CONTROL, pllcfg_5mhz);
+++		}
+++		if (ar->ath_common.chan_bw == 10 && ((!ar->ath_common.pll_div && pllctl != pllcfg_10mhz) || (ar->ath_common.pll_div && pllctl != ar->ath_common.pll_div))) {
+++			ath10k_info(ar, "adjust rtc_wmac clock to 10 mhz\n");
+++			if (ar->ath_common.pll_div)
+++				ath10k_hif_write32(ar, RTC_WMAC_BASE_ADDRESS + WAVE1_WLAN_PLL_CONTROL, ar->ath_common.pll_div);
+++			else
+++				ath10k_hif_write32(ar, RTC_WMAC_BASE_ADDRESS + WAVE1_WLAN_PLL_CONTROL, pllcfg_10mhz);
+++		}
+++		/* program analog filters */
+++		filterunmask = ~(0x1 << WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_OVR_LSB | WAVE1_PHY_ANALOG_RXTX_RXTX2_SEL_5MHZ << WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_LSB | 1 << WAVE1_PHY_ANALOG_RXTX_RXTX2_LOFORCEDON_LSB);
+++		if (ar->ath_common.chan_bw == 5) {
+++			filter = ath10k_hif_read32(ar, WLAN_ANALOG_INTF_BASE_ADDRESS + WAVE1_PHY_ANALOG_RXTX_B0_RXTX2_ADDRESS);
+++
+++			filtermask = 0x1 << WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_OVR_LSB;
+++			filtermask |= WAVE1_PHY_ANALOG_RXTX_RXTX2_SEL_5MHZ << WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_LSB;
+++			filtermask |= 1 << WAVE1_PHY_ANALOG_RXTX_RXTX2_LOFORCEDON_LSB;
+++
+++			filter &= filterunmask;
+++			filter |= filtermask;
+++			ath10k_hif_write32(ar, WLAN_ANALOG_INTF_BASE_ADDRESS + WAVE1_PHY_ANALOG_RXTX_B0_RXTX2_ADDRESS, filter);
+++		}
+++		if (ar->ath_common.chan_bw == 10) {
+++			filter = ath10k_hif_read32(ar, WLAN_ANALOG_INTF_BASE_ADDRESS + WAVE1_PHY_ANALOG_RXTX_B0_RXTX2_ADDRESS);
+++			filtermask = 0x1 << WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_OVR_LSB;
+++			filtermask |= WAVE1_PHY_ANALOG_RXTX_RXTX2_SEL_10MHZ << WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_LSB;
+++			filtermask |= 1 << WAVE1_PHY_ANALOG_RXTX_RXTX2_LOFORCEDON_LSB;
+++
+++			filter &= filterunmask;
+++			filter |= filtermask;
+++			ath10k_hif_write32(ar, WLAN_ANALOG_INTF_BASE_ADDRESS + WAVE1_PHY_ANALOG_RXTX_B0_RXTX2_ADDRESS, filter);
+++		}
++ 
++-	if (value > 0) {
++-		if (fw_dbglog_level > ATH10K_DBGLOG_LEVEL_WARN)
++-			fw_dbglog_level = ATH10K_DBGLOG_LEVEL_WARN;
++-		fw_dbglog_mask = ~0;
+++		if (ar->num_rf_chains > 1) {
+++			filter = ath10k_hif_read32(ar, WLAN_ANALOG_INTF_BASE_ADDRESS + WAVE1_PHY_ANALOG_RXTX_B1_RXTX2_ADDRESS);
+++			filter &= filterunmask;
+++			filter |= filtermask;
+++			ath10k_hif_write32(ar, WLAN_ANALOG_INTF_BASE_ADDRESS + WAVE1_PHY_ANALOG_RXTX_B1_RXTX2_ADDRESS, filter);
+++		}
+++		if (ar->num_rf_chains > 2) {
+++			filter = ath10k_hif_read32(ar, WLAN_ANALOG_INTF_BASE_ADDRESS + WAVE1_PHY_ANALOG_RXTX_B2_RXTX2_ADDRESS);
+++			filter &= filterunmask;
+++			filter |= filtermask;
+++			ath10k_hif_write32(ar, WLAN_ANALOG_INTF_BASE_ADDRESS + WAVE1_PHY_ANALOG_RXTX_B2_RXTX2_ADDRESS, filter);
+++		}
++ 	}
++ 
++-	ath10k_wmi_dbglog_cfg(ar, fw_dbglog_mask, fw_dbglog_level);
+++	/*
+++	 * the original qca firmare does only program the baseband registers for 5 ghz configurations. 2.4 is ignored.
+++	 * and does ignore the rx and tx latency in all cases.
+++	 * the following code deals with it and programs the correct baseband mode and latency values
+++	 */
+++
+++	if ((ar->ath_common.chan_bw == 5 || ar->ath_common.chan_bw == 10)) {
+++		/* set base band mode to enable 2.4 ghz half/quarter support */
+++		bbmode = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_PHY_BB_MODES_SELECT_ADDRESS);	// bbmode
+++		latency = ath10k_hif_read32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_MAC_PCU_USEC_LATENCY_ADDRESS);	// latency
+++		if (ar->ath_common.chan_bw == 5 && !((bbmode & WAVE1_PHY_BB_MODES_SELECT_QUARTER_RATE_MODE_MASK) && ((latency & WAVE1_MAC_PCU_USEC_LATENCY_USEC_MASK) == 21))) {
+++			bbmode &= ~WAVE1_PHY_BB_MODES_SELECT_HALF_RATE_MODE_MASK;
+++			bbmode &= ~WAVE1_PHY_BB_MODES_SELECT_QUARTER_RATE_MODE_MASK;
+++			bbmode |= 1 << WAVE1_PHY_BB_MODES_SELECT_QUARTER_RATE_MODE_LSB;	// quarter mode mask
+++			latency = 21 << WAVE1_MAC_PCU_USEC_LATENCY_USEC_LSB;	//(22 mhz - 1)
+++			/* rx latency register may overrun, but this is correct */
+++			latency |= (rx_lat << WAVE1_MAC_PCU_USEC_LATENCY_RX_LATENCY_LSB) & WAVE1_MAC_PCU_USEC_LATENCY_RX_LATENCY_MASK;
+++			latency |= (tx_lat << WAVE1_MAC_PCU_USEC_LATENCY_TX_LATENCY_LSB) & WAVE1_MAC_PCU_USEC_LATENCY_TX_LATENCY_MASK;
+++			ath10k_hif_write32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_MAC_PCU_USEC_LATENCY_ADDRESS, latency);
+++			ath10k_info(ar, "fix baseband for 5 mhz, latency register 0x%08X\n", latency);
+++			ath10k_hif_write32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_PHY_BB_MODES_SELECT_ADDRESS, bbmode);
+++		}
+++
+++		if (ar->ath_common.chan_bw == 10 && !((bbmode & WAVE1_PHY_BB_MODES_SELECT_HALF_RATE_MODE_MASK) && ((latency & WAVE1_MAC_PCU_USEC_LATENCY_USEC_MASK) == 43))) {
+++			bbmode &= ~WAVE1_PHY_BB_MODES_SELECT_HALF_RATE_MODE_MASK;
+++			bbmode &= ~WAVE1_PHY_BB_MODES_SELECT_QUARTER_RATE_MODE_MASK;
+++			bbmode |= 1 << WAVE1_PHY_BB_MODES_SELECT_HALF_RATE_MODE_LSB;	// half mode mask
+++			latency = 43 << WAVE1_MAC_PCU_USEC_LATENCY_USEC_LSB;	//(44 mhz - 1)
+++			/*  rx latency register may overrun, but this is correct */
+++			latency |= (rx_lat << WAVE1_MAC_PCU_USEC_LATENCY_RX_LATENCY_LSB) & WAVE1_MAC_PCU_USEC_LATENCY_RX_LATENCY_MASK;
+++			latency |= (tx_lat << WAVE1_MAC_PCU_USEC_LATENCY_TX_LATENCY_LSB) & WAVE1_MAC_PCU_USEC_LATENCY_TX_LATENCY_MASK;
+++			ath10k_hif_write32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_MAC_PCU_USEC_LATENCY_ADDRESS, latency);
+++			ath10k_info(ar, "fix baseband for 10 mhz, latency register 0x%08X\n", latency);
+++
+++			ath10k_hif_write32(ar, WLAN_MAC_BASE_ADDRESS + WAVE1_PHY_BB_MODES_SELECT_ADDRESS, bbmode);
+++		}
+++	}
++ 
++-store_regs:
++ 	/* After an error we will not retry setting the coverage class. */
++-	spin_lock_bh(&ar->data_lock);
++ 	ar->fw_coverage.coverage_class = value;
++-	spin_unlock_bh(&ar->data_lock);
++-
++ 	ar->fw_coverage.reg_slottime_conf = slottime_reg;
+++	ar->fw_coverage.reg_eifstime_conf = eifstime_reg;
++ 	ar->fw_coverage.reg_ack_cts_timeout_conf = timeout_reg;
++ 
++ unlock:
++@@ -1155,7 +1266,7 @@ static int ath10k_get_htt_tx_data_rssi_pad(struct htt_resp *resp)
++ }
++ 
++ const struct ath10k_hw_ops qca988x_ops = {
++-	.set_coverage_class = ath10k_hw_qca988x_set_coverage_class,
+++	.set_coverage_class = ath10k_98xx_set_pdev_coverage_class,
++ 	.is_rssi_enable = ath10k_htt_tx_rssi_enable,
++ };
++ 
++@@ -1178,7 +1289,7 @@ const struct ath10k_hw_ops qca99x0_ops = {
++ };
++ 
++ const struct ath10k_hw_ops qca6174_ops = {
++-	.set_coverage_class = ath10k_hw_qca988x_set_coverage_class,
+++	.set_coverage_class = ath10k_98xx_set_pdev_coverage_class,
++ 	.enable_pll_clk = ath10k_hw_qca6174_enable_pll_clock,
++ 	.is_rssi_enable = ath10k_htt_tx_rssi_enable,
++ };
++diff --git a/ath10k-5.15/hw.h b/ath10k-5.15/hw.h
++index 8441c80..6252125 100644
++--- a/ath10k-5.15/hw.h
+++++ b/ath10k-5.15/hw.h
++@@ -251,6 +251,7 @@ struct ath10k_hw_regs {
++ 	u32 rtc_wmac_base_address;
++ 	u32 soc_core_base_address;
++ 	u32 wlan_mac_base_address;
+++	u32 wlan_analog_intf_base_address;
++ 	u32 ce_wrapper_base_address;
++ 	u32 ce0_base_address;
++ 	u32 ce1_base_address;
++@@ -912,7 +913,7 @@ ath10k_is_rssi_enable(struct ath10k_hw_params *hw,
++ #define WLAN_UART_BASE_ADDRESS			0x0000c000
++ #define WLAN_SI_BASE_ADDRESS			0x00010000
++ #define WLAN_GPIO_BASE_ADDRESS			0x00014000
++-#define WLAN_ANALOG_INTF_BASE_ADDRESS		0x0001c000
+++#define WLAN_ANALOG_INTF_BASE_ADDRESS		ar->regs->wlan_analog_intf_base_address
++ #define WLAN_MAC_BASE_ADDRESS			ar->regs->wlan_mac_base_address
++ #define EFUSE_BASE_ADDRESS			0x00030000
++ #define FPGA_REG_BASE_ADDRESS			0x00039000
++@@ -1180,18 +1181,61 @@ ath10k_is_rssi_enable(struct ath10k_hw_params *hw,
++  * These registers are usually managed by the ath10k firmware. However by
++  * overriding them it is possible to support coverage class modifications.
++  */
++-#define WAVE1_PCU_ACK_CTS_TIMEOUT		0x8014
++-#define WAVE1_PCU_ACK_CTS_TIMEOUT_MAX		0x00003FFF
++-#define WAVE1_PCU_ACK_CTS_TIMEOUT_ACK_MASK	0x00003FFF
++-#define WAVE1_PCU_ACK_CTS_TIMEOUT_ACK_LSB	0
++-#define WAVE1_PCU_ACK_CTS_TIMEOUT_CTS_MASK	0x3FFF0000
++-#define WAVE1_PCU_ACK_CTS_TIMEOUT_CTS_LSB	16
++-
++-#define WAVE1_PCU_GBL_IFS_SLOT			0x1070
++-#define WAVE1_PCU_GBL_IFS_SLOT_MASK		0x0000FFFF
++-#define WAVE1_PCU_GBL_IFS_SLOT_MAX		0x0000FFFF
++-#define WAVE1_PCU_GBL_IFS_SLOT_LSB		0
++-#define WAVE1_PCU_GBL_IFS_SLOT_RESV0		0xFFFF0000
+++#define WAVE1_PHY_ANALOG_RXTX_B0_RXTX2_ADDRESS			0x00000104
+++#define WAVE1_PHY_ANALOG_RXTX_B1_RXTX2_ADDRESS			0x00000504
+++#define WAVE1_PHY_ANALOG_RXTX_B2_RXTX2_ADDRESS			0x00000904
+++
+++#define WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_LSB			16
+++#define WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_MASK			0x00070000
+++#define WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_OVR_LSB		19
+++#define WAVE1_PHY_ANALOG_RXTX_RXTX2_BW_ST_OVR_MASK		0x00080000
+++#define WAVE1_PHY_ANALOG_RXTX_RXTX2_LOFORCEDON_LSB		1
+++#define WAVE1_PHY_ANALOG_RXTX_RXTX2_LOFORCEDON_MASK		0x00000002
+++
+++#define WAVE1_PHY_ANALOG_RXTX_RXTX2_SEL_5MHZ	0x7
+++#define WAVE1_PHY_ANALOG_RXTX_RXTX2_SEL_10MHZ	0x6
+++
+++#define WAVE1_MAC_PCU_USEC_LATENCY_RX_LATENCY_LSB		23
+++#define WAVE1_MAC_PCU_USEC_LATENCY_RX_LATENCY_MASK		0x1f800000
+++#define WAVE1_MAC_PCU_USEC_LATENCY_RX_LATENCY_MAX		63
+++#define WAVE1_MAC_PCU_USEC_LATENCY_TX_LATENCY_LSB		14
+++#define WAVE1_MAC_PCU_USEC_LATENCY_TX_LATENCY_MASK		0x007fc000
+++#define WAVE1_MAC_PCU_USEC_LATENCY_TX_LATENCY_MAX		511
+++#define WAVE1_MAC_PCU_USEC_LATENCY_USEC_LSB			0
+++#define WAVE1_MAC_PCU_USEC_LATENCY_USEC_MASK			0x000000ff
+++#define WAVE1_MAC_PCU_USEC_LATENCY_ADDRESS			0x801c
+++
+++#define WAVE1_PHY_BB_MODES_SELECT_ADDRESS	0xa208
+++#define WAVE1_PHY_BB_MODES_SELECT_HALF_RATE_MODE_LSB		5
+++#define WAVE1_PHY_BB_MODES_SELECT_HALF_RATE_MODE_MASK		0x00000020
+++#define WAVE1_PHY_BB_MODES_SELECT_QUARTER_RATE_MODE_LSB		6
+++#define WAVE1_PHY_BB_MODES_SELECT_QUARTER_RATE_MODE_MASK	0x00000040
+++
+++#define WAVE1_WLAN_PLL_CONTROL			0x14
+++#define WAVE1_WLAN_PLL_CONTROL_CLK_SEL_LSB	14
+++#define WAVE1_WLAN_PLL_CONTROL_CLK_SEL_MASK	0x0000c000
+++#define WAVE1_WLAN_PLL_CONTROL_REFDIV_LSB	10
+++#define WAVE1_WLAN_PLL_CONTROL_REFDIV_MASK	0x00003c00
+++#define WAVE1_WLAN_PLL_CONTROL_DIV_LSB		0
+++#define WAVE1_WLAN_PLL_CONTROL_DIV_MASK		0x000003ff
+++
+++#define WAVE1_DCU_GBL_IFS_EIFS_DURATION		0x10b0
+++#define WAVE1_DCU_GBL_IFS_EIFS_DURATION_MASK	0x0000FFFF
+++#define WAVE1_DCU_GBL_IFS_EIFS_DURATION_MAX	0x0000FFFF
+++#define WAVE1_DCU_GBL_IFS_EIFS_DURATION_LSB	0
+++
+++#define WAVE1_DCU_ACK_CTS_TIMEOUT		0x8014
+++#define WAVE1_DCU_ACK_CTS_TIMEOUT_MAX		0x00003FFF
+++#define WAVE1_DCU_ACK_CTS_TIMEOUT_ACK_MASK	0x00003FFF
+++#define WAVE1_DCU_ACK_CTS_TIMEOUT_ACK_LSB	0
+++#define WAVE1_DCU_ACK_CTS_TIMEOUT_CTS_MASK	0x3FFF0000
+++#define WAVE1_DCU_ACK_CTS_TIMEOUT_CTS_LSB	16
+++
+++#define WAVE1_DCU_GBL_IFS_SLOT			0x1070
+++#define WAVE1_DCU_GBL_IFS_SLOT_MASK		0x0000FFFF
+++#define WAVE1_DCU_GBL_IFS_SLOT_MAX		0x0000FFFF
+++#define WAVE1_DCU_GBL_IFS_SLOT_LSB		0
+++#define WAVE1_DCU_GBL_IFS_SLOT_RESV0		0xFFFF0000
++ 
++ #define WAVE1_PHYCLK				0x801C
++ #define WAVE1_PHYCLK_USEC_MASK			0x0000007F
++diff --git a/ath10k-5.15/mac.c b/ath10k-5.15/mac.c
++index bbc1e96..ea3a6ea 100644
++--- a/ath10k-5.15/mac.c
+++++ b/ath10k-5.15/mac.c
++@@ -697,6 +697,8 @@ chan_to_phymode(const struct cfg80211_chan_def *chandef)
++ 	switch (chandef->chan->band) {
++ 	case NL80211_BAND_2GHZ:
++ 		switch (chandef->width) {
+++		case NL80211_CHAN_WIDTH_5:
+++		case NL80211_CHAN_WIDTH_10:
++ 		case NL80211_CHAN_WIDTH_20_NOHT:
++ 			if (chandef->chan->flags & IEEE80211_CHAN_NO_OFDM)
++ 				phymode = MODE_11B;
++@@ -716,6 +718,8 @@ chan_to_phymode(const struct cfg80211_chan_def *chandef)
++ 		break;
++ 	case NL80211_BAND_5GHZ:
++ 		switch (chandef->width) {
+++		case NL80211_CHAN_WIDTH_5:
+++		case NL80211_CHAN_WIDTH_10:
++ 		case NL80211_CHAN_WIDTH_20_NOHT:
++ 			phymode = MODE_11A;
++ 			break;
++@@ -1311,6 +1315,16 @@ static int ath10k_monitor_vdev_start(struct ath10k *ar, int vdev_id)
++ 	arg.channel.max_reg_power = channel->max_reg_power * 2;
++ 	arg.channel.max_antenna_gain = ath10k_get_max_antenna_gain(ar,
++ 						channel->max_antenna_gain);
+++	arg.channel.quarter = false;
+++	arg.channel.half = false;
+++	if (ar->ath_common.chan_bw == 5)
+++		arg.channel.quarter = true;
+++	else if (ar->ath_common.chan_bw == 10)
+++		arg.channel.half = true;
+++	else if (chandef->width == NL80211_CHAN_WIDTH_5)
+++		arg.channel.quarter = true;
+++	else if (chandef->width == NL80211_CHAN_WIDTH_10)
+++		arg.channel.half = true;
++ 
++ 	reinit_completion(&ar->vdev_setup_done);
++ 	reinit_completion(&ar->vdev_delete_done);
++@@ -1740,6 +1754,21 @@ static int ath10k_vdev_start_restart(struct ath10k_vif *arvif,
++ 	arg.channel.max_antenna_gain = ath10k_get_max_antenna_gain(ar,
++ 					chandef->chan->max_antenna_gain);
++ 
+++	arg.channel.quarter = false;
+++	arg.channel.half = false;
+++	if (ar->ath_common.chan_bw == 5)
+++		arg.channel.quarter = true;
+++	else if (ar->ath_common.chan_bw == 10)
+++		arg.channel.half = true;
+++	else if (chandef->width == NL80211_CHAN_WIDTH_5) {
+++		arg.channel.quarter = true;
+++		ar->ath_common.chan_bw = 5;
+++	}
+++	else if (chandef->width == NL80211_CHAN_WIDTH_10) {
+++		arg.channel.half = true;
+++		ar->ath_common.chan_bw = 10;
+++	}
+++
++ 	/* CT Firmware can support 32+ VDEVS, but can only support
++ 	 * beacon-ing devs with dev ids 0 - 31 due to firmware limitations.
++ 	 * Create VAPs first and all should be well...likely most people
++@@ -4064,7 +4093,7 @@ static int ath10k_station_assoc(struct ath10k *ar,
++ 	return ath10k_new_peer_tid_config(ar, sta, arvif);
++ }
++ 
++-static int ath10k_station_disassoc(struct ath10k *ar,
+++int ath10k_station_disassoc(struct ath10k *ar,
++ 				   struct ieee80211_vif *vif,
++ 				   struct ieee80211_sta *sta)
++ {
++@@ -4097,7 +4126,7 @@ static int ath10k_station_disassoc(struct ath10k *ar,
++ /* Regulatory */
++ /**************/
++ 
++-static int ath10k_update_channel_list(struct ath10k *ar)
+++int ath10k_update_channel_list(struct ath10k *ar)
++ {
++ 	struct ieee80211_hw *hw = ar->hw;
++ 	struct ieee80211_supported_band **bands;
++@@ -4174,6 +4203,12 @@ static int ath10k_update_channel_list(struct ath10k *ar)
++ 			ch->max_antenna_gain = ath10k_get_max_antenna_gain(ar,
++ 						channel->max_antenna_gain);
++ 			ch->reg_class_id = 0; /* FIXME */
+++			ch->half = false;
+++			ch->quarter = false;
+++			if (ar->ath_common.chan_bw == 5)
+++			    ch->quarter = true;
+++			else if (ar->ath_common.chan_bw == 10)
+++			    ch->half = true;
++ 
++ 			/* FIXME: why use only legacy modes, why not any
++ 			 * HT/VHT modes? Would that even make any
++@@ -7180,6 +7215,7 @@ static void ath10k_mac_op_set_coverage_class(struct ieee80211_hw *hw, s16 value)
++ 		ar->eeprom_overrides.coverage_already_set = false; /* value is being changed */
++ 	mutex_unlock(&ar->conf_mutex);
++ 
+++	ar->ready |=2;
++ 	ar->hw_params.hw_ops->set_coverage_class(ar, value);
++ }
++ 
++@@ -7319,6 +7355,11 @@ static int ath10k_hw_scan(struct ieee80211_hw *hw,
++ 		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
++ 	}
++ 
+++	if (ar->ath_common.chan_bw == 5)
+++		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_QUARTER_RATE_SUPPORT;
+++	else if (ar->ath_common.chan_bw == 10)
+++		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_HALF_RATE_SUPPORT;
+++
++ 	if (req->flags & NL80211_SCAN_FLAG_RANDOM_ADDR) {
++ 		arg.scan_ctrl_flags |=  WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
++ 		ether_addr_copy(arg.mac_addr.addr, req->mac_addr);
++@@ -8849,6 +8890,10 @@ static int ath10k_remain_on_channel(struct ieee80211_hw *hw,
++ 	arg.scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
++ 	arg.scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
++ 	arg.burst_duration_ms = duration;
+++	if (ar->ath_common.chan_bw == 5)
+++		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_QUARTER_RATE_SUPPORT;
+++	else if (ar->ath_common.chan_bw == 10)
+++		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_HALF_RATE_SUPPORT;
++ 
++ 	if (ath10k_mac_vif_has_any_cck(ar, vif, (1 << chan->band)))
++ 		arg.scan_ctrl_flags |= WMI_SCAN_ADD_CCK_RATES;
++@@ -11341,6 +11386,7 @@ int ath10k_mac_register(struct ath10k *ar)
++ 			ieee80211_hw_set(ar->hw, TDLS_WIDER_BW);
++ 	}
++ 
+++	ar->hw->wiphy->flags |= WIPHY_FLAG_SUPPORTS_5_10_MHZ;
++ 	if (test_bit(WMI_SERVICE_TDLS_UAPSD_BUFFER_STA, ar->wmi.svc_map))
++ 		ieee80211_hw_set(ar->hw, SUPPORTS_TDLS_BUFFER_STA);
++ 
++diff --git a/ath10k-5.15/spectral.c b/ath10k-5.15/spectral.c
++index 23013ac..6d83049 100644
++--- a/ath10k-5.15/spectral.c
+++++ b/ath10k-5.15/spectral.c
++@@ -90,6 +90,12 @@ int ath10k_spectral_process_fft(struct ath10k *ar,
++ 	 * but the results/plots suggest that its actually 22/44/88 MHz.
++ 	 */
++ 	switch (phyerr->chan_width_mhz) {
+++	case 5:
+++		fft_sample->chan_width_mhz = 5;
+++		break;
+++	case 10:
+++		fft_sample->chan_width_mhz = 11;
+++		break;
++ 	case 20:
++ 		fft_sample->chan_width_mhz = 22;
++ 		break;
++diff --git a/ath10k-5.15/wmi.c b/ath10k-5.15/wmi.c
++index 9d26c74..114e7b9 100644
++--- a/ath10k-5.15/wmi.c
+++++ b/ath10k-5.15/wmi.c
++@@ -1786,6 +1786,11 @@ void ath10k_wmi_put_wmi_channel(struct ath10k *ar,
++ 		flags |= WMI_CHAN_FLAG_HT40_PLUS;
++ 	if (arg->chan_radar)
++ 		flags |= WMI_CHAN_FLAG_DFS;
+++	if (arg->quarter)
+++		flags |= WMI_CHAN_FLAG_QUARTER;
+++	else if (arg->half)
+++		flags |= WMI_CHAN_FLAG_HALF;
+++ 
++ 
++ 	ch->band_center_freq2 = 0;
++ 
++@@ -6427,6 +6432,7 @@ static void ath10k_wmi_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ {
++ 	struct wmi_cmd_hdr *cmd_hdr;
++ 	enum wmi_event_id id;
+++	u8 nevent = 0;
++ 
++ 	cmd_hdr = (struct wmi_cmd_hdr *)skb->data;
++ 	id = MS(__le32_to_cpu(cmd_hdr->cmd_id), WMI_CMD_HDR_CMD_ID);
++@@ -6443,28 +6449,25 @@ static void ath10k_wmi_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		return;
++ 	case WMI_SCAN_EVENTID:
++ 		ath10k_wmi_event_scan(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_CHAN_INFO_EVENTID:
++ 		ath10k_wmi_event_chan_info(ar, skb);
++ 		break;
++ 	case WMI_ECHO_EVENTID:
+++		nevent = 1;
++ 		ath10k_wmi_event_echo(ar, skb);
++ 		break;
++ 	case WMI_DEBUG_MESG_EVENTID:
++ 		ath10k_wmi_event_debug_mesg(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_UPDATE_STATS_EVENTID:
++ 		ath10k_wmi_event_update_stats(ar, skb);
++ 		break;
++ 	case WMI_VDEV_START_RESP_EVENTID:
++ 		ath10k_wmi_event_vdev_start_resp(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_VDEV_STOPPED_EVENTID:
++ 		ath10k_wmi_event_vdev_stopped(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_PEER_STA_KICKOUT_EVENTID:
++ 		ath10k_wmi_event_peer_sta_kickout(ar, skb);
++@@ -6480,14 +6483,12 @@ static void ath10k_wmi_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		break;
++ 	case WMI_ROAM_EVENTID:
++ 		ath10k_wmi_event_roam(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_PROFILE_MATCH:
++ 		ath10k_wmi_event_profile_match(ar, skb);
++ 		break;
++ 	case WMI_DEBUG_PRINT_EVENTID:
++ 		ath10k_wmi_event_debug_print(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_PDEV_QVIT_EVENTID:
++ 		ath10k_wmi_event_pdev_qvit(ar, skb);
++@@ -6535,8 +6536,9 @@ static void ath10k_wmi_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		ath10k_wmi_event_service_ready(ar, skb);
++ 		return;
++ 	case WMI_READY_EVENTID:
+++		nevent = 1;
+++		ar->ready |= 1;
++ 		ath10k_wmi_event_ready(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_SERVICE_AVAILABLE_EVENTID:
++ 		ath10k_wmi_event_service_available(ar, skb);
++@@ -6546,6 +6548,13 @@ static void ath10k_wmi_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		break;
++ 	}
++ 
+++	/* Check and possibly reset the coverage class configuration override.
+++	 * There are many conditions (in particular internal card resets) that
+++	 * can cause the registers to be re-initialized. */
+++	if (!nevent && ar->ready) {
+++		ath10k_wmi_queue_set_coverage_class_work(ar);
+++	}
+++
++ out:
++ 	dev_kfree_skb(skb);
++ }
++@@ -6555,6 +6564,7 @@ static void ath10k_wmi_10_1_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 	struct wmi_cmd_hdr *cmd_hdr;
++ 	enum wmi_10x_event_id id;
++ 	bool consumed;
+++	u8 nevent = 0;
++ 
++ 	cmd_hdr = (struct wmi_cmd_hdr *)skb->data;
++ 	id = MS(__le32_to_cpu(cmd_hdr->cmd_id), WMI_CMD_HDR_CMD_ID);
++@@ -6583,28 +6593,25 @@ static void ath10k_wmi_10_1_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		return;
++ 	case WMI_10X_SCAN_EVENTID:
++ 		ath10k_wmi_event_scan(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10X_CHAN_INFO_EVENTID:
++ 		ath10k_wmi_event_chan_info(ar, skb);
++ 		break;
++ 	case WMI_10X_ECHO_EVENTID:
+++		nevent = 1;
++ 		ath10k_wmi_event_echo(ar, skb);
++ 		break;
++ 	case WMI_10X_DEBUG_MESG_EVENTID:
++ 		ath10k_wmi_event_debug_mesg(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10X_UPDATE_STATS_EVENTID:
++ 		ath10k_wmi_event_update_stats(ar, skb);
++ 		break;
++ 	case WMI_10X_VDEV_START_RESP_EVENTID:
++ 		ath10k_wmi_event_vdev_start_resp(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10X_VDEV_STOPPED_EVENTID:
++ 		ath10k_wmi_event_vdev_stopped(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10X_PEER_STA_KICKOUT_EVENTID:
++ 		ath10k_wmi_event_peer_sta_kickout(ar, skb);
++@@ -6616,18 +6623,17 @@ static void ath10k_wmi_10_1_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		ath10k_wmi_event_tbttoffset_update(ar, skb);
++ 		break;
++ 	case WMI_10X_PHYERR_EVENTID:
+++		nevent = 1;
++ 		ath10k_wmi_event_phyerr(ar, skb);
++ 		break;
++ 	case WMI_10X_ROAM_EVENTID:
++ 		ath10k_wmi_event_roam(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10X_PROFILE_MATCH:
++ 		ath10k_wmi_event_profile_match(ar, skb);
++ 		break;
++ 	case WMI_10X_DEBUG_PRINT_EVENTID:
++ 		ath10k_wmi_event_debug_print(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10X_PDEV_QVIT_EVENTID:
++ 		ath10k_wmi_event_pdev_qvit(ar, skb);
++@@ -6666,8 +6672,9 @@ static void ath10k_wmi_10_1_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		ath10k_wmi_event_service_ready(ar, skb);
++ 		return;
++ 	case WMI_10X_READY_EVENTID:
+++		ar->ready |= 1;
+++		nevent = 1;
++ 		ath10k_wmi_event_ready(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10X_PDEV_UTF_EVENTID:
++ 		/* ignore utf events */
++@@ -6689,6 +6696,13 @@ static void ath10k_wmi_10_1_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		break;
++ 	}
++ 
+++	if (!nevent && ar->ready) {
+++		/* Check and possibly reset the coverage class configuration override.
+++		 * There are many conditions (in particular internal card resets) that
+++		 * can cause the registers to be re-initialized. */
+++		ath10k_wmi_queue_set_coverage_class_work(ar);
+++	}
+++
++ out:
++ 	dev_kfree_skb(skb);
++ }
++@@ -6698,6 +6712,7 @@ static void ath10k_wmi_10_2_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 	struct wmi_cmd_hdr *cmd_hdr;
++ 	enum wmi_10_2_event_id id;
++ 	bool consumed;
+++	u8 nevent = 0;
++ 
++ 	cmd_hdr = (struct wmi_cmd_hdr *)skb->data;
++ 	id = MS(__le32_to_cpu(cmd_hdr->cmd_id), WMI_CMD_HDR_CMD_ID);
++@@ -6726,28 +6741,25 @@ static void ath10k_wmi_10_2_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		return;
++ 	case WMI_10_2_SCAN_EVENTID:
++ 		ath10k_wmi_event_scan(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_2_CHAN_INFO_EVENTID:
++ 		ath10k_wmi_event_chan_info(ar, skb);
++ 		break;
++ 	case WMI_10_2_ECHO_EVENTID:
+++		nevent = 1;
++ 		ath10k_wmi_event_echo(ar, skb);
++ 		break;
++ 	case WMI_10_2_DEBUG_MESG_EVENTID:
++ 		ath10k_wmi_event_debug_mesg(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_2_UPDATE_STATS_EVENTID:
++ 		ath10k_wmi_event_update_stats(ar, skb);
++ 		break;
++ 	case WMI_10_2_VDEV_START_RESP_EVENTID:
++ 		ath10k_wmi_event_vdev_start_resp(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_2_VDEV_STOPPED_EVENTID:
++ 		ath10k_wmi_event_vdev_stopped(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_2_PEER_STA_KICKOUT_EVENTID:
++ 		ath10k_wmi_event_peer_sta_kickout(ar, skb);
++@@ -6759,18 +6771,17 @@ static void ath10k_wmi_10_2_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		ath10k_wmi_event_tbttoffset_update(ar, skb);
++ 		break;
++ 	case WMI_10_2_PHYERR_EVENTID:
+++		nevent = 1;
++ 		ath10k_wmi_event_phyerr(ar, skb);
++ 		break;
++ 	case WMI_10_2_ROAM_EVENTID:
++ 		ath10k_wmi_event_roam(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_2_PROFILE_MATCH:
++ 		ath10k_wmi_event_profile_match(ar, skb);
++ 		break;
++ 	case WMI_10_2_DEBUG_PRINT_EVENTID:
++ 		ath10k_wmi_event_debug_print(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_2_PDEV_QVIT_EVENTID:
++ 		ath10k_wmi_event_pdev_qvit(ar, skb);
++@@ -6801,18 +6812,17 @@ static void ath10k_wmi_10_2_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		break;
++ 	case WMI_10_2_VDEV_STANDBY_REQ_EVENTID:
++ 		ath10k_wmi_event_vdev_standby_req(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_2_VDEV_RESUME_REQ_EVENTID:
++ 		ath10k_wmi_event_vdev_resume_req(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_2_SERVICE_READY_EVENTID:
++ 		ath10k_wmi_event_service_ready(ar, skb);
++ 		return;
++ 	case WMI_10_2_READY_EVENTID:
+++		nevent = 1;
+++		ar->ready |= 1;
++ 		ath10k_wmi_event_ready(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_2_PDEV_TEMPERATURE_EVENTID:
++ 		ath10k_wmi_event_temperature(ar, skb);
++@@ -6838,6 +6848,13 @@ static void ath10k_wmi_10_2_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		break;
++ 	}
++ 
+++	if (!nevent && ar->ready) {
+++		/* Check and possibly reset the coverage class configuration override.
+++		 * There are many conditions (in particular internal card resets) that
+++		 * can cause the registers to be re-initialized. */
+++		ath10k_wmi_queue_set_coverage_class_work(ar);
+++	}
+++
++ out:
++ 	dev_kfree_skb(skb);
++ }
++@@ -6847,6 +6864,7 @@ static void ath10k_wmi_10_4_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 	struct wmi_cmd_hdr *cmd_hdr;
++ 	enum wmi_10_4_event_id id;
++ 	bool consumed;
+++	u8 nevent = 0;
++ 
++ 	cmd_hdr = (struct wmi_cmd_hdr *)skb->data;
++ 	id = MS(__le32_to_cpu(cmd_hdr->cmd_id), WMI_CMD_HDR_CMD_ID);
++@@ -6874,35 +6892,36 @@ static void ath10k_wmi_10_4_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		/* mgmt_rx() owns the skb now! */
++ 		return;
++ 	case WMI_10_4_ECHO_EVENTID:
+++		nevent = 1;
++ 		ath10k_wmi_event_echo(ar, skb);
++ 		break;
++ 	case WMI_10_4_DEBUG_MESG_EVENTID:
++ 		ath10k_wmi_event_debug_mesg(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_4_SERVICE_READY_EVENTID:
++ 		ath10k_wmi_event_service_ready(ar, skb);
++ 		return;
++ 	case WMI_10_4_SCAN_EVENTID:
++ 		ath10k_wmi_event_scan(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_4_CHAN_INFO_EVENTID:
+++		nevent = 1;
++ 		ath10k_wmi_event_chan_info(ar, skb);
++ 		break;
++ 	case WMI_10_4_PHYERR_EVENTID:
+++		nevent = 1;
++ 		ath10k_wmi_event_phyerr(ar, skb);
++ 		break;
++ 	case WMI_10_4_READY_EVENTID:
+++		ar->ready |= 1;
+++		nevent = 1;
++ 		ath10k_wmi_event_ready(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_4_PEER_STA_KICKOUT_EVENTID:
++ 		ath10k_wmi_event_peer_sta_kickout(ar, skb);
++ 		break;
++ 	case WMI_10_4_ROAM_EVENTID:
++ 		ath10k_wmi_event_roam(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_4_HOST_SWBA_EVENTID:
++ 		ath10k_wmi_event_host_swba(ar, skb);
++@@ -6912,15 +6931,12 @@ static void ath10k_wmi_10_4_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		break;
++ 	case WMI_10_4_DEBUG_PRINT_EVENTID:
++ 		ath10k_wmi_event_debug_print(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_4_VDEV_START_RESP_EVENTID:
++ 		ath10k_wmi_event_vdev_start_resp(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_4_VDEV_STOPPED_EVENTID:
++ 		ath10k_wmi_event_vdev_stopped(ar, skb);
++-		ath10k_wmi_queue_set_coverage_class_work(ar);
++ 		break;
++ 	case WMI_10_4_WOW_WAKEUP_HOST_EVENTID:
++ 	case WMI_10_4_PEER_RATECODE_LIST_EVENTID:
++@@ -6967,6 +6983,13 @@ static void ath10k_wmi_10_4_op_rx(struct ath10k *ar, struct sk_buff *skb)
++ 		break;
++ 	}
++ 
+++	if (!nevent && ar->ready) {
+++		/* Check and possibly reset the coverage class configuration override.
+++		 * There are many conditions (in particular internal card resets) that
+++		 * can cause the registers to be re-initialized. */
+++		ath10k_wmi_queue_set_coverage_class_work(ar);
+++	}
+++
++ out:
++ 	dev_kfree_skb(skb);
++ }
++@@ -8546,6 +8569,12 @@ ath10k_wmi_op_gen_scan_chan_list(struct ath10k *ar,
++ 	for (i = 0; i < arg->n_channels; i++) {
++ 		ch = &arg->channels[i];
++ 		ci = &cmd->chan_info[i];
+++		ch->quarter = false;
+++		ch->half = false;
+++		if (ar->ath_common.chan_bw == 5)
+++			ch->quarter = true;
+++		else if (ar->ath_common.chan_bw == 10)
+++			ch->half = true;
++ 
++ 		ath10k_wmi_put_wmi_channel(ar, ci, ch, -1);
++ 	}
++diff --git a/ath10k-5.15/wmi.h b/ath10k-5.15/wmi.h
++index 2a056a3..d88320b 100644
++--- a/ath10k-5.15/wmi.h
+++++ b/ath10k-5.15/wmi.h
++@@ -2146,6 +2146,8 @@ struct wmi_channel_arg {
++ 	bool allow_ht;
++ 	bool allow_vht;
++ 	bool ht40plus;
+++	bool quarter;
+++	bool half;
++ 	bool chan_radar;
++ 	/* note: power unit is 0.5 dBm */
++ 	u32 min_power;
++@@ -3435,6 +3437,18 @@ struct wmi_start_scan_arg {
++  * Allow the driver to have influence over that.
++  */
++ #define WMI_SCAN_CONTINUE_ON_ERROR 0x80
+++/** set scan with promiscous mode */
+++#define WMI_SCAN_PROMISCOUS_MODE    0x80
+++/** allow capture ppdu with phy errrors */
+++#define WMI_SCAN_CAPTURE_PHY_ERROR  0x100
+++/** always do passive scan on passive channels */
+++#define WMI_SCAN_FLAG_STRICT_PASSIVE_ON_PCHN 0x200
+++/** set HALF (10MHz) rate support */
+++#define WMI_SCAN_FLAG_HALF_RATE_SUPPORT    0x20000
+++/** set Quarter (5MHz) rate support */
+++#define WMI_SCAN_FLAG_QUARTER_RATE_SUPPORT 0x40000
+++/** WMI_SCAN_CLASS_MASK must be the same value as IEEE80211_SCAN_CLASS_MASK */
+++#define WMI_SCAN_CLASS_MASK 0xFF000000
++ 
++ /* Use random MAC address for TA for Probe Request frame and add
++  * OUI specified by WMI_SCAN_PROB_REQ_OUI_CMDID to the Probe Request frame.
