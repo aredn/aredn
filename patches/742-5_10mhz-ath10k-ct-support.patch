@@ -23,7 +23,7 @@
  ifneq ($(findstring c,$(OPENWRT_VERBOSE)),)
 --- /dev/null
 +++ b/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
-@@ -0,0 +1,1200 @@
+@@ -0,0 +1,1211 @@
 +diff --git a/ath10k-5.15/core.h b/ath10k-5.15/core.h
 +index 40ece28..bc5ac98 100644
 +--- a/ath10k-5.15/core.h
@@ -1224,3 +1224,14 @@
 + 
 + /* Use random MAC address for TA for Probe Request frame and add
 +  * OUI specified by WMI_SCAN_PROB_REQ_OUI_CMDID to the Probe Request frame.
++--- a/ath10k-5.15/wmi.c
+++++ b/ath10k-5.15/wmi.c
++@@ -2712,7 +2712,7 @@
++ 	 * MODE_11B. This means phy_mode is not a reliable source for the band
++ 	 * of mgmt rx.
++ 	 */
++-	if (channel >= 1 && channel <= 14) {
+++	if ((channel >= 1 && channel <= 14) || (channel >= 0xFFFFFFFC && channel <= 0xFFFFFFFF)) {
++ 		status->band = NL80211_BAND_2GHZ;
++ 	} else if (channel >= 36 && channel <= ATH10K_MAX_5G_CHAN) {
++ 		status->band = NL80211_BAND_5GHZ;
