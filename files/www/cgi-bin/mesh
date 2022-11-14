@@ -511,6 +511,7 @@ if not next(localhosts) and not next(links) then
 end
 
 -- show local node table
+
 html.print("<table id=nTable>")
 html.print("<tr>")
 html.print("<th width=25%><input class=search type=text id='inNN' onkeyup=nSearch('inNN','nTable',0) placeholder='Node Name'></th>")
@@ -522,24 +523,37 @@ if next(localhosts) then
     local rows = {}
     for ip, host in pairs(localhosts)
     do
+        local c1, c2, c3
         local localpart = host.name:match("([^.]*)%.")
         if localpart then
             local tactical = ""
             if host.tactical ~= "" then
                 tactical = " / " .. host.tactical
             end
-            local row = "<tr><td>" .. localpart .. tactical
+            c1 = localpart .. tactical
             if wangateway[ip] then
-                row = row .. " &nbsp; <small>(wan)</small>"
+                c1 = c1 .. " &nbsp; <small>(wan)</small>"
             end
-            row = row .. "</td><td></td><td>"
+            c2 =  "<br>"
             if services[host.name] then
-                for n, v in pairs(services[host.name])
+                local i=1
+                for _, v in pairs(services[host.name])
                 do
-                    row = row .. v .. "<br>"
+                    if c3 then
+                        c3 = c3 .. v .. "<br>"
+                    else
+                        c3 =  v .. "<br>"
+                    end
+                    if i > 1 then c2 = c2 .. "<br>" end
+                    i=i+1
+                end
+            else
+                if c3 then
+                    c3 = c3 .. "<br>"
+                else
+                    c3 = "<br>"
                 end
             end
-            row = row .. "</td></tr>"
 
             -- add locally advertised dmz hosts
             for i, dmzhost in ipairs(host.hosts)
@@ -563,22 +577,29 @@ if next(localhosts) then
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
                 if localpart then
                     if not nopropd and not aliased then
-                        row = row .. "<tr><td></td><td>" .. localpart .. "</td>"
+                        c2 = c2 .. localpart .. "<br>"
                     elseif aliased then
-                        row = row .. "<tr><td></td><td class=aliased-hosts title='Aliased Host'>" .. localpart .. "</td>"
+                        c2 = c2 .. "<span class=aliased-hosts>" .. localpart .. "</span><br>"
                     else
-                        row = row .. "<tr><td></td><td class=hidden-hosts title='Non Propagated Host'>" .. localpart .."</td>"
+                        c2 = c2 .. "<span class=hidden-hosts>" .. localpart .. "</span><br>"
                     end
                     if services[dmzhost] then
-                        row = row .. "</td><td>"
+                        local i=1
                         for n, v in pairs(services[dmzhost])
                         do
-                            row = row .. v .. "<br>"
+                            if c3 then
+                                c3 = c3 .. v .. "<br>"
+                            else
+                                c3 = v .. "<br>"
+                            end
+                            if i > 1 then c2 = c2 .. "<br>" end
+                            i=i+1
                         end
                     end
-                    row = row .. "</td></tr>"
                 end
             end
+            -- Build this row
+            local row = "<tr><td>" .. c1 .. "</td><td>" .. c2 .. "</td><td>" .. c3 .. "</td></tr>"
             rows[#rows + 1] = { key = host.name, row = row }
         end
     end
@@ -595,16 +616,15 @@ end
 
 -- discard
 localhosts = nil
-
 -- end local node table
 html.print("</table>")
 
 -- show current neighbors table
+
 html.print("<br><table id='cTable'><tr>")
 html.print("<th width=25%><input class=search type=text id='inCN' onkeyup=nSearch('inCN','cTable',0) placeholder='Current Neighbor'></th>")
 html.print("<th><input class=search type=text id='inCH' onkeyup=nSearch('inCH','cTable',1) placeholder='Lan Hostname'></th>")
 html.print("<th>LQ</th><th>NLQ</th><th>TxMbps</th>")
---html.print("<th>Service Name</th>")
 html.print("<th><input class=search type=text id='inCS' onkeyup=nSearch('inCS','cTable',5) placeholder='Service Name'></th>")
 html.print("</tr>")
 
@@ -612,6 +632,7 @@ local rows = {}
 local neighservices = {}
 for ip, link in pairs(links)
 do
+    local c1,c2,c3,c4,c5,c6
     local ipmain = ipalias[ip]
     if not ipmain then
         ipmain = ip
@@ -636,7 +657,7 @@ do
         name = name .. " " -- avoid collision 2 links to same host {rf, dtd}
     end
     local no_space_host = name:match("(.*%S)%s*$")
-    local row = "<tr><td><a href='http://" .. no_space_host .. ":8080/'>" .. localpart .. tactical .. "</a>"
+    c1 = "<a href='http://" .. no_space_host .. ":8080/'>" .. localpart .. tactical .. "</a>"
     local nodeiface
     if ipmain ~= ip then
         if links[ip].dtd then
@@ -655,20 +676,35 @@ do
         end
     end
     if nodeiface then
-        row = row .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
+        c1 = c1 .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
     end
-    row = row .. string.format("</td><td></td><td>%.0f%%</td><td>%.0f%%</td><td>%s</td>", 100 * link.lq, 100 * link.nlq, link.mbps)
+    c2 = "<br>"
+    c3 = string.format("%.0f%%", 100 * link.lq)
+    c4 = string.format("%.0f%%", 100 * link.nlq)
+    c5 = string.format("%s", link.mbps)
 
+    -- print node services if any
     if not neighservices[name] then
         neighservices[name] = true
-        row = row .. "<td>"
         if services[name] then
+            local i=1
             for _, v in pairs(services[name])
             do
-                row = row .. v .. "<br>"
+                if c6 then
+                    c6 = c6 .. v .. "<br>"
+                else
+                    c6 = v .. "<br>"
+                end
+                if i > 1 then c2 = c2 .. "<br>" end
+                i=i+1
+            end
+        else
+            if c6 then
+                c6 = c6 .. "<br>"
+            else
+                c6 = "<br>"
             end
         end
-        row = row .. "</td></tr>"
 
         -- add advertised dmz hosts
         if host then
@@ -676,20 +712,32 @@ do
             do
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
                 if localpart then
-                    row = row .. "<tr><td></td><td>" .. localpart .. "</td>"
-                    row = row .. "<td></td><td></td><td></td><td>"
+                    c2 = c2 .. localpart .. "<br>"
                     if services[dmzhost] then
+                        local i=1
                         for _, v in pairs(services[dmzhost])
                         do
-                            row = row .. v .. "<br>"
+                            if c6 then
+                                c6 = c6 .. v .. "<br>"
+                            else
+                                c6 = v .. "<br>"
+                            end
+                            if i > 1 then c2 = c2 .. "<br>" end
+                            i=i+1
+                        end
+                    else
+                        if c6 then
+                            c6 = c6 .. "<br>"
+                        else
+                            c6 = "<br>"
                         end
                     end
-                    row = row .. "</td></tr>"
                 end
             end
         end
     end
-
+    -- Build this row
+    local row = "<tr><td>" .. c1 .. "</td><td>" .. c2 .. "</td><td>" .. c3 .. "</td><td>" .. c4 .. "</td><td>" .. c5 .. "</td><td>" .. c6 .. "</td></tr>"
     rows[#rows + 1] = { key = name, row = row }
 end
 if #rows > 0 then
@@ -745,7 +793,7 @@ do
     end
 end
 if #rows > 0 then
-    html.print("<tr><td style='color:sienna;font-weight:bold'>Previous Neighbors</td></tr>")
+    html.print("<tr><td style='color:sienna;font-weight:bold;padding-top:10px;'>Previous Neighbors</td></tr>")
     table.sort(rows, function(a,b) return a.key < b.key end)
     for _, row in ipairs(rows)
     do
@@ -754,11 +802,11 @@ if #rows > 0 then
     -- discard
     rows = nil
 end
-
 -- end current neighbors table
 html.print("</table>")
 
 -- show remote node table
+
 html.print("<br><table id='rTable'><tr>")
 html.print("<th width=25%><input class=search type=text id='inRN' onkeyup=nSearch('inRN','rTable',0) placeholder='Remote Nodes'></th>")
 html.print("<th><input class=search type=text id='inRH' onkeyup=nSearch('inRH','rTable',1) placeholder='LAN Hostname'</th>")
@@ -766,10 +814,10 @@ html.print("<th>ETX</th>")
 html.print("<th><input class=search type=text id='inRS' onkeyup=nSearch('inRS','rTable',3) placeholder='Service Name'</th>")
 html.print("</tr>")
 
-
 local rows = {}
 for ip, host in pairs(hosts)
 do
+    local c1,c2,c3,c4
     if not neighbor[ip] and host.name then
         local localpart = host.name:match("(.*)%.local%.mesh")
         if localpart then
@@ -778,7 +826,7 @@ do
                 tactical = " / " .. host.tactical
             end
             local etx = string.format("%.2f", host.etx)
-            local row = "<tr><td><a href='http://" .. host.name .. ":8080/'>" .. localpart .. tactical .. "</a>"
+            c1 = "<a href='http://" .. host.name .. ":8080/'>" .. localpart .. tactical .. "</a>"
             local nodeiface
             local mycount = 0
             if midcount[ip] then
@@ -801,33 +849,61 @@ do
                 end
             end
             if nodeiface then
-                row = row .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
+                c1 = c1 .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
             end
-            row = row .. "</td><td></td><td>" .. etx .. "</td><td>"
+            c2 = "<br>"
+            c3 = string.format("%s", etx)
+
+            -- print node services if any
             if services[host.name] then
+                local i=1
                 for _, v in pairs(services[host.name])
                 do
-                    row = row .. v .. "<br>"
+                    if c4 then
+                        c4 = c4 .. v .. "<br>"
+                    else
+                        c4 = v .. "<br>"
+                    end
+                    if i > 1 then c2 = c2 .. "<br>" end
+                    i=i+1
+                end
+            else
+                if c4 then
+                    c4 = c4 .. "<br>"
+                else
+                    c4 = "<br>"
                 end
             end
-            row = row .. "</td></tr>"
 
             -- add locally advertised dmz hosts
             for _, dmzhost in ipairs(host.hosts)
             do
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
                 if localpart then
-                    row = row .. "<tr><td></td><td>" .. localpart .. "</td><td></td><td>"
+                    c2 = c2 .. localpart .. "<br>"
                     if services[dmzhost] then
+                        local i=1
                         for _, v in pairs(services[dmzhost])
                         do
-                            row = row .. v .. "<br>"
+                            if c4 then
+                                c4 = c4 .. v .. "<br>"
+                            else
+                                c4 = v .. "<br>"
+                            end
+                            if i > 1 then c2 = c2 .. "<br>" end
+                            i=i+1
+                        end
+                    else
+                        if c4 then
+                            c4 = c4 .. "<br>"
+                        else
+                            c4 = "<br>"
                         end
                     end
-                    row = row .. "</td></tr>"
                 end
             end
-
+            -- Build this row
+            local row = "<tr><td>" .. c1 .. "</td><td>" .. c2 .. "</td><td>" .. c3 .. "</td><td>" .. c4 .. "</td></tr>"
             rows[#rows + 1] = { key = host.etx, row = row }
         end
     end
@@ -856,7 +932,6 @@ links = nil
 ipalias = nil
 hosts = nil
 history = nil
-
 -- end remote nodes table
 html.print("</table>")
 
@@ -888,4 +963,3 @@ html.print([[
 html.footer();
 html.print("</body>")
 html.print("</html>")
-
