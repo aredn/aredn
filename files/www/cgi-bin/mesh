@@ -344,6 +344,11 @@ if nixio.fs.stat("/var/run/hosts_olsr.stable") then
                 if links[ip] then
                     links[ip].dtd = true
                 end
+            elseif name:match("^xlink%d+%.") then
+                dtd[originator] = true
+                if links[ip] then
+                    links[ip].xlink = true
+                end
             elseif name:match("^mid%d+%.") then
                 if not midcount[originator] then
                     midcount[originator] = 1
@@ -662,6 +667,8 @@ do
     if ipmain ~= ip then
         if links[ip].dtd then
             nodeiface = "dtd"
+        elseif links[ip].xlink then
+            nodeiface = "xlink"
         elseif links[ip].tun then
             nodeiface = "tun"
         else

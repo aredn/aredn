@@ -351,6 +351,36 @@ function lqm()
             end
         end
 
+        -- Xlink
+        if nixio.fs.stat("/etc/config.mesh/xlink") then
+            uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
+                function(section)
+                    if section.peer and section.ifname then
+                        local foundmac
+                        for mac, entry in pairs(arps)
+                        do
+                            if entry["IP address"] == section.peer then
+                                foundmac = mac
+                                break
+                            end
+                        end
+                        if foundmac then
+                            stations[#stations + 1] = {
+                                type = "Xlink",
+                                device = section.ifname,
+                                signal = nil,
+                                ip = section.peer,
+                                mac = foundmac,
+                                tx_packets = 0,
+                                tx_fail = 0,
+                                tx_retries = 0
+                            }
+                        end
+                    end
+                end
+            )
+        end
+
         for _, station in ipairs(stations)
         do
             if station.signal ~= 0 and not our_macs[station.mac] then
@@ -397,7 +427,7 @@ function lqm()
                 if not track.hostname and track.ip then
                     local hostname = nixio.getnameinfo(track.ip)
                     if hostname then
-                        track.hostname = hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("%.local%.mesh$", "")
+                        track.hostname = hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("%.local%.mesh$", "")
                     end
                 end
 
