@@ -311,9 +311,9 @@ local col2 = {}
 local ip = cursor:get("network", "wifi", "ipaddr")
 local cidr = netmask_to_cidr(cursor:get("network", "wifi", "netmask"))
 if wifi_disabled then
-    col1[#col1 + 1] = "<th align=right><nobr>Primary address</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
+    col1[#col1 + 1] = "<th align=right><nobr>primary address</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
 else
-    col1[#col1 + 1] = "<th align=right><nobr>Mesh RF address</nobr><br>SSID<br>channel<br><nobr>channel width</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. "</td>"
+    col1[#col1 + 1] = "<th align=right><nobr>mesh RF address</nobr><br>SSID<br>channel<br><nobr>channel width</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. "</td>"
 end
 
 ip = cursor:get("network", "lan", "ipaddr")
@@ -368,7 +368,7 @@ end
 -- right column - system info
 
 if config == "mesh" and not wifi_disabled then
-    col2[#col2 + 1] = "<th align=right valign=middle><nobr>Signal/Noise/Ratio</nobr></th><td valign=middle><nobr>"
+    col2[#col2 + 1] = "<th align=right valign=middle><nobr>signal/noise/ratio</nobr></th><td valign=middle><nobr>"
     local s, n = get_wifi_signal(wifi_iface)
     if s == "N/A" then
         col2[#col2] = col2[#col2] .. "N/A"
