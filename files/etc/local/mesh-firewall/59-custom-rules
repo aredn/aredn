@@ -8,6 +8,6 @@
 # on home network use the IP address of the WAN assigned to the mesh node
 # to access the ipcam, e.g.  http://192.168.1.59:8082
 
-#nft add rule inet fw4 prerouting_wan                                     tcp dport 8082 counter dnat to <IP address of ipcam>
-#nft add rule inet fw4 postrouting_wan     ip daddr <IP address of ipcam> tcp dport 80   counter snat to <IP wifi on this node>    comment \"my mesh ipCam\"
-#nft add rule inet fw4 postrouting_dtdlink ip daddr <IP address of ipcam> tcp dport 80   counter snat to <IP dtdlink on this node> comment \"my mesh ipCam\"
+#nft add rule ip fw4 prerouting_wan                                     tcp dport 8082 counter dnat to <IP address of ipcam>
+#nft add rule ip fw4 postrouting_wan     ip daddr <IP address of ipcam> tcp dport 80   counter snat to <IP wifi on this node>    comment \"my mesh ipCam\"
+#nft add rule ip fw4 postrouting_dtdlink ip daddr <IP address of ipcam> tcp dport 80   counter snat to <IP dtdlink on this node> comment \"my mesh ipCam\"

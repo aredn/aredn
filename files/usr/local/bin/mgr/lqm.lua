@@ -116,7 +116,7 @@ function should_ping(track)
 end
 
 function nft_handle(list, query)
-    for line in io.popen(NFT .. " -a list chain inet fw4 " .. list):lines()
+    for line in io.popen(NFT .. " -a list chain ip fw4 " .. list):lines()
     do
         local handle = line:match(query .. "%s*# handle (%d+)")
         if handle then
@@ -131,12 +131,12 @@ function update_block(track)
         track.blocked = true
         if track.type == "Tunnel" then
             if not nft_handle("input_lqm", "iifname \\\"" .. trace.device .. "\\\" udp dport 698 .* drop") then
-                os.execute(NFT .. " insert rule inet fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 counter drop 2> /dev/null")
+                os.execute(NFT .. " insert rule ip fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 counter drop 2> /dev/null")
                 return "blocked"
             end
         else
             if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") then
-                os.execute(NFT .. " insert rule inet fw4 input_lqm udp dport 698 ether saddr " .. track.mac .. " counter drop 2> /dev/null")
+                os.execute(NFT .. " insert rule ip fw4 input_lqm udp dport 698 ether saddr " .. track.mac .. " counter drop 2> /dev/null")
                 return "blocked"
             end
         end
@@ -145,13 +145,13 @@ function update_block(track)
         if track.type == "Tunnel" then
             local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 .* drop")
             if handle then
-                os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
+                os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
                 return "unblocked"
             end
         else
             local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") 
             if handle then
-                os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
+                os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
                 return "unblocked"
             end
         end
@@ -163,11 +163,11 @@ function force_remove_block(track)
     track.blocked = false
     local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") 
     if handle then
-        os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
+        os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
     end
     handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 .* drop")
     if handle then
-        os.execute(NFT .. " delete rule inet fw4 input_lqm handle " .. handle)
+        os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
     end
 end
 
@@ -211,14 +211,14 @@ function lqm()
     wait_for_ticks(math.max(1, 30 - nixio.sysinfo().uptime))
 
     -- Create filters (cannot create during install as they disappear on reboot)
-    os.execute(NFT .. " flush chain inet fw4 input_lqm 2> /dev/null")
-    os.execute(NFT .. " delete chain inet fw4 input_lqm 2> /dev/null")
-    os.execute(NFT .. " add chain inet fw4 input_lqm 2> /dev/null")
+    os.execute(NFT .. " flush chain ip fw4 input_lqm 2> /dev/null")
+    os.execute(NFT .. " delete chain ip fw4 input_lqm 2> /dev/null")
+    os.execute(NFT .. " add chain ip fw4 input_lqm 2> /dev/null")
     local handle = nft_handle("input", "jump input_lqm comment")
     if handle then
-        os.execute(NFT .. " delete rule inet fw4 input handle " .. handle)
+        os.execute(NFT .. " delete rule ip fw4 input handle " .. handle)
     end
-    os.execute(NFT .. " insert rule inet fw4 input counter jump input_lqm comment \\\"block low quality links\\\"")
+    os.execute(NFT .. " insert rule ip fw4 input counter jump input_lqm comment \\\"block low quality links\\\"")
 
     -- We dont know any distances yet
     os.execute(IW .. " " .. phy .. " set distance auto")
