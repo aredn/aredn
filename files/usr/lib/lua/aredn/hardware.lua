@@ -42,6 +42,8 @@ local hardware = {}
 local radio_json = nil
 local board_json = nil
 
+local rf_channel_map = nil
+
 function hardware.get_board()
     if not board_json then
         local f = io.open("/etc/board.json")
@@ -286,6 +288,69 @@ function hardware.get_default_channel()
     else
         return nil
     end
+end
+
+function hardware.rf_channels(wifiintf)
+    if not rf_channel_map then
+        rf_channel_map = {
+            ["900"] = {},
+            ["2400"] = {},
+            ["3400"] = {},
+            ["5500"] = {},
+            ["5800ubntus"] = {}
+        }
+        for i = 4,7
+        do
+            rf_channel_map["900"][i - 3] = { label = i .. " (" .. (887 + i * 5) .. ")", number = i, frequency = 887 + i * 5 }
+        end
+        for i = -4,11
+        do
+            rf_channel_map["2400"][i + (i <= 0 and 5 or 4)] = { label = i .. " (" .. (2407 + i * 5) .. ")", number = i, frequency = 2407 + i * 5 }
+        end
+        for i = 76,99
+        do
+            rf_channel_map["3400"][i - 75] = { label = i .. " (" .. (3000 + i * 5) .. ")", number = i, frequency = 3000 + i * 5 }
+        end
+        for i = 36,64,4
+        do
+            rf_channel_map["5500"][(i - 32) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
+        end
+        for i = 100,140,4
+        do
+            rf_channel_map["5500"][(i - 64) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
+        end
+        for i = 149,165,4
+        do
+            rf_channel_map["5500"][(i - 69) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
+        end
+        for i = 131,184
+        do
+            rf_channel_map["5800ubntus"][i - 130] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
+        end
+    end
+    local rfband = hardware.get_rfband()
+    if rfband and rf_channel_map[rfband] then
+        return rf_channel_map[rfband]
+    end
+    local channels = {}
+    local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
+    if f then
+        for line in f:lines()
+        do
+            local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%d+)%)")
+            if freq and not line:match("restricted") then
+                freq = freq:gsub("%.", "")
+                num = num:gsub("^0+", "")
+                channels[#channels + 1] = {
+                    label = num .. " (" .. freq .. ")",
+                    number = tonumber(num),
+                    frequency = freq
+                }
+            end
+        end
+        f:close()
+    end
+    return channels
 end
 
 function hardware.supported()
