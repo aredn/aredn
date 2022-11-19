@@ -280,7 +280,13 @@ function hardware.get_default_channel()
     end
     local width = w[10] and 10 or w[5] and 5 or 20
     if radio.rfband == "2400" then
-        return { channel = -2, bandwidth = width }
+        local c = {}
+        for _, chan in ipairs(hardware.get_rfchannels())
+        do
+            c[chan.number] = chan
+        end
+        local chan = c[-2] and -2 or 1
+        return { channel = chan, bandwidth = width }
     elseif radio.rfband == "3400" then
         return { channel = 84, bandwidth = width }
     elseif radio.rfband == "5800ubntus" then
@@ -328,27 +334,41 @@ function hardware.get_rfchannels(wifiintf)
             rf_channel_map["5800ubntus"][i - 130] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
         end
     end
+    local channels = {}
     local rfband = hardware.get_rfband()
     if rfband and rf_channel_map[rfband] then
-        return rf_channel_map[rfband]
+        channels = rf_channel_map[rfband]
+    else
+        local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
+        if f then
+            for line in f:lines()
+            do
+                local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%d+)%)")
+                if freq and not line:match("restricted") then
+                    freq = freq:gsub("%.", "")
+                    num = num:gsub("^0+", "")
+                    channels[#channels + 1] = {
+                        label = num .. " (" .. freq .. ")",
+                        number = tonumber(num),
+                        frequency = freq
+                    }
+                end
+            end
+            f:close()
+        end
     end
-    local channels = {}
-    local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
-    if f then
-        for line in f:lines()
+    local radio = hardware.get_radio()
+    if radio.rfblocked then
+        for _, chan in ipairs(radio.rfblocked)
         do
-            local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%d+)%)")
-            if freq and not line:match("restricted") then
-                freq = freq:gsub("%.", "")
-                num = num:gsub("^0+", "")
-                channels[#channels + 1] = {
-                    label = num .. " (" .. freq .. ")",
-                    number = tonumber(num),
-                    frequency = freq
-                }
+            for idx, channel in ipairs(channels)
+            do
+                if channel.number == chan then
+                    table.remove(channels, idx)
+                    break
+                end
             end
         end
-        f:close()
     end
     return channels
 end
