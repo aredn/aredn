@@ -130,7 +130,7 @@ function out(str)
 end
 
 function is_channel_valid(channel)
-    local list = aredn.hardware.rf_channels(aredn.hardware.get_iface_name("wifi"))
+    local list = aredn.hardware.get_rfchannels(aredn.hardware.get_iface_name("wifi"))
     for _, c in ipairs(list)
     do
         if c.number == channel then
@@ -1041,7 +1041,7 @@ if wifi_enable == "1" then
     html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi_ssid value='" .. wifi_ssid .. "'>-" .. wifi_chanbw .. "-v3</td></tr>")
     hidden[#hidden + 1] = "<input type=hidden name=wifi_mode value='" .. wifi_mode .. "'>"
     html.print("<tr><td>Channel</td><td><select name=wifi_channel>")
-    local rfchannels = aredn.hardware.rf_channels(wifiintf)
+    local rfchannels = aredn.hardware.get_rfchannels(wifiintf)
     table.sort(rfchannels, function(a, b) return a.number < b.number end)
     for _, chan in ipairs(rfchannels)
     do

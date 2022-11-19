@@ -290,7 +290,7 @@ function hardware.get_default_channel()
     end
 end
 
-function hardware.rf_channels(wifiintf)
+function hardware.get_rfchannels(wifiintf)
     if not rf_channel_map then
         rf_channel_map = {
             ["900"] = {},
