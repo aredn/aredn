@@ -257,16 +257,32 @@ function hardware.get_rfband()
     end
 end
 
+function hardware.get_rfbandwidths()
+    local radio = hardware.get_radio()
+    if radio.rfbandwidths then
+        return radio.rfbandwidths
+    else
+        return { 5, 10, 20 }
+    end
+end
+
 function hardware.get_default_channel()
     local radio = hardware.get_radio()
     if radio.rfband == "900" then
         return { channel = 5, bandwidth = 5 }
-    elseif radio.rfband == "2400" then
-        return { channel = -2, bandwidth = 10 }
+    end
+    local w = {}
+    for _, width in ipairs(hardware.get_rfbandwidths())
+    do
+        w[width] = true
+    end
+    local width = w[10] and 10 or w[5] and 5 or 20
+    if radio.rfband == "2400" then
+        return { channel = -2, bandwidth = width }
     elseif radio.rfband == "3400" then
-        return { channel = 84, bandwidth = 10 }
+        return { channel = 84, bandwidth = width }
     elseif radio.rfband == "5800ubntus" then
-        return { channel = 149, bandwidth = 10 }
+        return { channel = 149, bandwidth = width }
     else
         return nil
     end

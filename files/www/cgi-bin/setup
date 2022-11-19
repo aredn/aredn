@@ -1113,9 +1113,10 @@ if wifi_enable == "1" then
     html.print("</select>&nbsp;&nbsp;<a href='/help.html#channel' target='_blank'><img src='/qmark.png'></a></td></tr>")
 
     html.print("<tr><td>Channel Width</td><td><select name=wifi_chanbw>")
-    html.print("<option value='20'".. (wifi_chanbw == "20" and " selected" or "") .. ">20 MHz</option>")
-    html.print("<option value='10'".. (wifi_chanbw == "10" and " selected" or "") .. ">10 MHz</option>")
-    html.print("<option value='5'".. (wifi_chanbw == "5" and " selected" or "") .. ">5 MHz</option>")
+    for _, width in ipairs(aredn.hardware.get_rfbandwidths())
+    do
+        html.print("<option value='" .. width .. "'".. (wifi_chanbw == tostring(width) and " selected" or "") .. ">" .. width .. " MHz</option>")
+    end
     html.print("</select></td></tr>")
 
     hidden[#hidden + 1] = "<input type=hidden name=wifi_country value='HX'>"
