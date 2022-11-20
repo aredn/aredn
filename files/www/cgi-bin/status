@@ -283,8 +283,20 @@ html.print("<input type=hidden name=reload value=reload>")
 
 if config == "not set" then
     html.print("<b><br><br>This node is not yet configured.<br>")
-    html.print("Go to the setup page and set your node name and password.<br>")
-    html.print("Click Save Changes, <u>even if you didn't make any changes</u>, then the node will reboot.</b>")
+    local overlay = false
+    for line in io.lines("/proc/mounts")
+    do
+        if line:match("overlay") then
+            overlay = true
+            break
+        end
+    end
+    if overlay then
+        html.print("Go to the <a href='setup'>setup page</a> and set your node name and password.<br>")
+        html.print("Click Save Changes, <u>even if you didn't make any changes</u>, then the node will reboot.</b>")
+    else
+        html.print("Go the the <a href='admin'>administration page</a> and upload new firmware.<br>")
+    end
     html.print("<br><br>")
     html.print("<div style='max-width:540px; text-align:left'>")
     html.print("<p>This device can be configured to either permit or prohibit known encrypted traffic on its RF link. It is up to the user to decide which is appropriate based on how it will be used and the license under which it will be operated. These rules vary by country, frequency, and intended use. You are encouraged to read and understand these rules before going further.</p>")
