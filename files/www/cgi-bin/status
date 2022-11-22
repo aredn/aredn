@@ -157,6 +157,8 @@ local config = aredn_info.get_nvram("config")
 if config == "" or nixio.fs.stat("/etc/config.mesh", "type") ~= "dir" then
     config = "not set"
 end
+
+-- get wifi interface info
 local wifi_iface = aredn.hardware.get_iface_name("wifi")
 local wifi_nr = wifi_iface:match("wlan(%d+)")
 local wifi_disabled = true
@@ -166,11 +168,15 @@ if wifi_nr then
     radio = "radio" .. wifi_nr
 end
 
+-- get wan interface info
+local wan_iface = aredn.hardware.get_iface_name("wan")
+
 local cursor = uci.cursor()
 
 local wifi_channel
 local wifi_chanbw
 local wifi_ssid
+local wan_wifi_ssid
 if not wifi_disabled then
     wifi_channel = tonumber(cursor:get("wireless", radio, "channel"))
     if wifi_channel >= 76 and wifi_channel <= 99 then
@@ -182,6 +188,10 @@ if not wifi_disabled then
         function (section)
             if section.network == "wifi" then
                 wifi_ssid = section.ssid
+                return false
+            end
+            if section.network == "wan" then
+                wan_wifi_ssid = section.ssid
                 return false
             end
         end
@@ -336,18 +346,29 @@ if ip:match("^10%.") or not hide_local then
     col1[#col1 + 1] = "<th align=right><nobr>LAN address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
 end
 
-local wan_iface = aredn.hardware.get_iface_name("wan")
 if not hide_local and wan_iface then
     local ip, bcast, mask = aredn.hardware.get_interface_ip4(wan_iface)
     local wprefix = ""
+    local wan_wifi_snr
     if wan_iface:match("^wlan%d+$") then
-        wprefix = "WiFi "
+        wprefix = "wifi "
+        local s, n = get_wifi_signal(wan_iface)
+        wan_wifi_snr = math.abs(s - n)
     end
+
     if ip then
         cidr = netmask_to_cidr(mask)
-        col1[#col1 + 1] = "<th align=right><nobr>" .. wprefix .. "WAN address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
+        if wprefix == "" then
+            col1[#col1 + 1] = "<th align=right><nobr>WAN address:</nobr><br><nobr>" .. "</th><td>" .. ip .. " <small>/ " .. cidr .. "</small></td>"
+        else
+            if wan_wifi_ssid and wan_wifi_snr then
+                col1[#col1 + 1] = "<th align=right><nobr>" .. wprefix .. "WAN address:</nobr><br><nobr>" .. wprefix .. "WAN SSID / SNR:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br><nobr>" .. wan_wifi_ssid .. " / " .. wan_wifi_snr .. " dB</td>"
+            else
+                col1[#col1 + 1] = "<th align=right><nobr>" .. wprefix .. "WAN address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small></td>"
+            end
+        end
     else
-        col1[#col1 + 1] = "<th align=right><nobr>" .. wprefix .. "WAN address:</nobr></th><td>none</small><br>"
+        col1[#col1 + 1] = "<th align=right><nobr>WAN address:</nobr></th><td>none</small></td>"
     end
 end
 
@@ -368,7 +389,7 @@ end
 -- right column - system info
 
 if config == "mesh" and not wifi_disabled then
-    col2[#col2 + 1] = "<th align=right valign=middle><nobr>signal / noise / ratio:</nobr></th><td valign=middle><nobr>"
+    col2[#col2 + 1] = "<th align=right valign=middle><nobr>signal / noise / SNR:</nobr></th><td valign=middle><nobr>"
     local s, n = get_wifi_signal(wifi_iface)
     if s == "N/A" then
         col2[#col2] = col2[#col2] .. "no RF links"
