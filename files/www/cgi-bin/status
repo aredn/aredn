@@ -193,7 +193,7 @@ if not wifi_disabled then
     )
 end
 
-local wan_wifi_ssid = "none"
+local wan_wifi_ssid
 cursor:foreach("wireless", "wifi-iface",
     function (section)
         if section.network == "wan" then
@@ -202,6 +202,7 @@ cursor:foreach("wireless", "wifi-iface",
         end
     end
 )
+if not wan_wifi_ssid then wan_wifi_ssid = "none" end
 
 local node_desc = cursor:get("system", "@system[0]", "description")
 local lat_lon = "<strong>Location Not Available</strong>"
