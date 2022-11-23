@@ -176,7 +176,6 @@ local cursor = uci.cursor()
 local wifi_channel
 local wifi_chanbw
 local wifi_ssid
-local wan_wifi_ssid
 if not wifi_disabled then
     wifi_channel = tonumber(cursor:get("wireless", radio, "channel"))
     if wifi_channel >= 76 and wifi_channel <= 99 then
@@ -190,22 +189,19 @@ if not wifi_disabled then
                 wifi_ssid = section.ssid
                 return false
             end
-            if section.network == "wan" then
-                wan_wifi_ssid = section.ssid
-                return false
-            end
-        end
-    )
-else
-    cursor:foreach("wireless", "wifi-iface",
-        function (section)
-            if section.network == "wan" then
-                wan_wifi_ssid = section.ssid
-                return false
-            end
         end
     )
 end
+
+local wan_wifi_ssid
+cursor:foreach("wireless", "wifi-iface",
+    function (section)
+        if section.network == "wan" then
+            wan_wifi_ssid = section.ssid
+            return false
+        end
+    end
+)
 
 local node_desc = cursor:get("system", "@system[0]", "description")
 local lat_lon = "<strong>Location Not Available</strong>"
