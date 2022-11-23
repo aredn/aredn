@@ -129,7 +129,7 @@ function get_wifi_signal(wifiif)
         end
     end
     if signal == -1000 or noise == -1000 then
-        return "N/A", "N/A"
+        return "none", "none"
     else
         return signal, noise
     end
@@ -182,7 +182,7 @@ if not wifi_disabled then
         wifi_channel = wifi_channel * 5 + 3000
     end
     wifi_chanbw = cursor:get("wireless", radio, "chanbw")
-    wifi_ssid = "N/A"
+    wifi_ssid = "none"
     cursor:foreach("wireless", "wifi-iface",
         function (section)
             if section.network == "wifi" then
@@ -193,7 +193,7 @@ if not wifi_disabled then
     )
 end
 
-local wan_wifi_ssid
+local wan_wifi_ssid = "none"
 cursor:foreach("wireless", "wifi-iface",
     function (section)
         if section.network == "wan" then
@@ -354,11 +354,13 @@ end
 if not hide_local and wan_iface then
     local ip, bcast, mask = aredn.hardware.get_interface_ip4(wan_iface)
     local wprefix = ""
-    local wan_wifi_snr
+    local wan_wifi_snr = "none"
     if wan_iface:match("^wlan%d+$") then
         wprefix = "wifi "
         local s, n = get_wifi_signal(wan_iface)
-        wan_wifi_snr = math.abs(s - n)
+        if s ~= "none" and n ~= "none" then
+            wan_wifi_snr = math.abs(s - n)
+        end
     end
 
     if ip then
@@ -366,7 +368,7 @@ if not hide_local and wan_iface then
         if wprefix == "" then
             col1[#col1 + 1] = "<th align=right><nobr>WAN address:</nobr><br><nobr>" .. "</th><td>" .. ip .. " <small>/ " .. cidr .. "</small></td>"
         else
-            if wan_wifi_ssid and wan_wifi_snr then
+            if wan_wifi_ssid ~= "none" and wan_wifi_snr ~= "none" then
                 col1[#col1 + 1] = "<th align=right><nobr>" .. wprefix .. "WAN address:</nobr><br><nobr>" .. wprefix .. "WAN SSID / SNR:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br><nobr>" .. wan_wifi_ssid .. " / " .. wan_wifi_snr .. " dB</td>"
             else
                 col1[#col1 + 1] = "<th align=right><nobr>" .. wprefix .. "WAN address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small></td>"
@@ -396,7 +398,7 @@ end
 if config == "mesh" and not wifi_disabled then
     col2[#col2 + 1] = "<th align=right valign=middle><nobr>signal / noise / SNR:</nobr></th><td valign=middle><nobr>"
     local s, n = get_wifi_signal(wifi_iface)
-    if s == "N/A" then
+    if s == "none" then
         col2[#col2] = col2[#col2] .. "no RF links"
     else
         col2[#col2] = col2[#col2] .. "<big><b>" .. s .. " / " .. n .. " / " .. math.abs(s - n) .. " dB</b></big>"
