@@ -196,6 +196,15 @@ if not wifi_disabled then
             end
         end
     )
+else
+    cursor:foreach("wireless", "wifi-iface",
+        function (section)
+            if section.network == "wan" then
+                wan_wifi_ssid = section.ssid
+                return false
+            end
+        end
+    )
 end
 
 local node_desc = cursor:get("system", "@system[0]", "description")
