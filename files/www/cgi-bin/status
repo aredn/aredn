@@ -131,6 +131,12 @@ function get_wifi_signal(wifiif)
     if signal == -1000 or noise == -1000 then
         return "none", "none"
     else
+        if signal > 0 then
+            signal = (0 - signal)
+        end
+        if noise > 0 then
+            noise = (0 - noise)
+        end
         return signal, noise
     end
 end
@@ -337,16 +343,19 @@ if ip:match("^10%.") or not hide_local then
     col1[#col1 + 1] = "<th align=right><nobr>LAN address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
 end
 
--- process wan interface
 local wan_iface = aredn.hardware.get_iface_name("wan")
 if not hide_local and wan_iface then
     local ip, bcast, mask = aredn.hardware.get_interface_ip4(wan_iface)
     local wprefix = ""
+    local wan_wifi_sig = "none"
+    local wan_wifi_noi = "none"
     local wan_wifi_snr = "none"
     if wan_iface:match("^wlan%d+$") then
         wprefix = "wifi "
         local s, n = get_wifi_signal(wan_iface)
         if s ~= "none" and n ~= "none" then
+            wan_wifi_sig = s
+            wan_wifi_noi = n
             wan_wifi_snr = math.abs(s - n)
         end
     end
@@ -359,8 +368,9 @@ if not hide_local and wan_iface then
             end
         end
     )
-    if not wan_wifi_ssid then wan_wifi_ssid = "none" end
-
+    if not wan_wifi_ssid then     -- if still nil then set default
+        wan_wifi_ssid = "none"
+    end
 
     if ip then
         cidr = netmask_to_cidr(mask)
