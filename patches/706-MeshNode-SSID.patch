@@ -1,6 +1,6 @@
 --- a/package/kernel/mac80211/files/lib/wifi/mac80211.sh
 +++ b/package/kernel/mac80211/files/lib/wifi/mac80211.sh
-@@ -167,6 +167,12 @@ detect_mac80211() {
+@@ -167,6 +167,12 @@
  			dev_id="set wireless.radio${devidx}.macaddr=$(cat /sys/class/ieee80211/${dev}/macaddress)"
  		fi
  
@@ -13,6 +13,7 @@
  		uci -q batch <<-EOF
  			set wireless.radio${devidx}=wifi-device
  			set wireless.radio${devidx}.type=mac80211
+@@ -180,7 +186,7 @@
  			set wireless.default_radio${devidx}.device=radio${devidx}
  			set wireless.default_radio${devidx}.network=lan
  			set wireless.default_radio${devidx}.mode=ap
