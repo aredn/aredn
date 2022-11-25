@@ -49,7 +49,8 @@ function mesh_ip_to_hostnames(ip)
     if not ip or ip == "" or ip == "none" then
         return ""
     end
-    local pattern = "^" .. ip .. "%s+([%w%-]+)"
+    local pattern = "^" .. ip .. "%s+([%w%-%.]+)"
+    local host = "none"
     for line in io.lines("/etc/hosts")
     do
         local host = line:match(pattern)
@@ -57,35 +58,34 @@ function mesh_ip_to_hostnames(ip)
             return host.gsub("%s+", " / ")
         end
     end
-    local hosts = ""
     if nixio.fs.stat("/var/run/hosts_olsr.stable") then
         for line in io.lines("/var/run/hosts_olsr.stable")
         do
             local host = line:match(pattern)
             if host then
-                hosts = hosts .. " / " .. host
+                host = host:gsub("^dtdlink%.","")
+                host = host:gsub("^mid[0-9]*%.","")
+                host = host:gsub("%.local.mesh$","")
+                return host
             end
         end
     end
-    return hosts:sub(4, #hosts)
+    return host
 end
 
-function get_default_gw()
-    -- a node with a wired default gw will route via this
-    local p = io.popen("ip route list table 254")
-    if p then
-        for line in p:lines()
-        do
-            local gw = line:match("^default%svia%s([%d%.]+)")
-            if gw then
-                p:close()
-                return gw
-            end
-        end
-        p:close()
+function get_default_gw(iface)
+    -- wan will route via table 254 default gw
+    -- wifi will route via OLSR table 31 default gw
+    local rtable = ""
+    if iface == "wan" then
+        rtable = "ip route list table 254"
+    elseif iface == "wifi" then
+        rtable = "ip route list table 31"
+    else
+        return "none"
     end
-    -- table 31 is populated by OLSR
-    p = io.popen("ip route list table 31")
+
+    local p = io.popen(rtable)
     if p then
         for line in p:lines()
         do
@@ -320,7 +320,8 @@ local cidr = netmask_to_cidr(cursor:get("network", "wifi", "netmask"))
 if wifi_disabled then
     col1[#col1 + 1] = "<th align=right><nobr>primary address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
 else
-    col1[#col1 + 1] = "<th align=right><nobr>mesh RF address:</nobr><br>SSID:<br>channel:<br><nobr>channel width:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. " MHz</td>"
+    wifi_gw = get_default_gw("wifi")
+    col1[#col1 + 1] = "<th align=right>--- Mesh RF ---<br><nobr>IP address:</nobr><br><nobr>gateway:</nobr><br><br>SSID:<br>channel:<br><nobr>channel width:</nobr></th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_gw .. "<br>" .. mesh_ip_to_hostnames(wifi_gw) .. "<br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. " MHz</td>"
 end
 
 ip = cursor:get("network", "lan", "ipaddr")
@@ -337,80 +338,84 @@ if remote_ip then
         hide_local = true
     end
 end
-
 if ip:match("^10%.") or not hide_local then
     cidr = netmask_to_cidr(mask)
-    col1[#col1 + 1] = "<th align=right><nobr>LAN address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
+    col1[#col1 + 1] = "<th align=right><nobr>LAN address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small></td>"
 end
 
 local wan_iface = aredn.hardware.get_iface_name("wan")
-if not hide_local and wan_iface then
+if wan_iface and not hide_local then
     local ip, bcast, mask = aredn.hardware.get_interface_ip4(wan_iface)
-    local wprefix = ""
-    local wan_wifi_sig = "none"
-    local wan_wifi_noi = "none"
-    local wan_wifi_snr = "none"
-    if wan_iface:match("^wlan%d+$") then
-        wprefix = "wifi "
-        local s, n = get_wifi_signal(wan_iface)
-        if s ~= "none" and n ~= "none" then
-            wan_wifi_sig = s
-            wan_wifi_noi = n
-            wan_wifi_snr = math.abs(s - n)
-        end
-    end
-    local wan_wifi_ssid
-    cursor:foreach("wireless", "wifi-iface",
-        function (section)
-            if section.network == "wan" then
-                wan_wifi_ssid = section.ssid
-                return false
-            end
-        end
-    )
-    if not wan_wifi_ssid then     -- if still nil then set default
-        wan_wifi_ssid = "none"
-    end
-
-    if ip then
-        cidr = netmask_to_cidr(mask)
-        if wprefix == "" then
-            col1[#col1 + 1] = "<th align=right><nobr>WAN address:</nobr><br><nobr>" .. "</th><td>" .. ip .. " <small>/ " .. cidr .. "</small></td>"
-        else
-            if wan_wifi_ssid ~= "none" and wan_wifi_snr ~= "none" then
-                col1[#col1 + 1] = "<th align=right><nobr>" .. wprefix .. "WAN address:</nobr><br><nobr>" .. wprefix .. "WAN SSID / SNR:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br><nobr>" .. wan_wifi_ssid .. " / " .. wan_wifi_snr .. " dB</td>"
-            else
-                col1[#col1 + 1] = "<th align=right><nobr>" .. wprefix .. "WAN address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small></td>"
-            end
-        end
+    if not ip then
+        col1[#col1 + 1] = "<th align=right valign=top><nobr>WAN address:</nobr><br><nobr>default gateway:</nobr></th><td>none<br>" .. wifi_gw .. "<br>" .. mesh_ip_to_hostnames(wifi_gw) .. "</td>"
     else
-        col1[#col1 + 1] = "<th align=right><nobr>WAN address:</nobr></th><td>none</small></td>"
-    end
-end
+        local wprefix = ""
+        local wan_wifi_snr = "none"
+        local wan_wifi_ssid
+        if wan_iface:match("^wlan%d+$") then
+            wprefix = "wifi "
+            local s, n = get_wifi_signal(wan_iface)
+            if s ~= "none" and n ~= "none" then
+                wan_wifi_snr = math.abs(s - n)
+            end
+            cursor:foreach("wireless", "wifi-iface",
+                function (section)
+                    if section.network == "wan" then
+                        wan_wifi_ssid = section.ssid
+                        return false
+                    end
+                end
+            )
+            if not wan_wifi_ssid then     -- if still nil then set default
+                wan_wifi_ssid = "none"
+            end
+        end
 
-ip = get_default_gw()
-if ip:match("^10%.") or not hide_local then
-    col1[#col1 + 1] = "<th align=right valign=top><nobr>default gateway:</nobr></th><td>" .. ip
-    if ip:match("^10%.") then
-        col1[#col1] = col1[#col1] .. "<br><nobr>" ..  mesh_ip_to_hostnames(ip) .. "</nobr>"
+        cidr = netmask_to_cidr(mask)
+        wan_gw = get_default_gw("wan")
+        if wprefix == "" then     -- no wifi wan
+            if wan_gw:match("^10%.") or not hide_local then
+                if wan_gw:match("^10%.") then
+                    col1[#col1 + 1] = "<th align=right><nobr>--- WAN info ---</nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "<br><nobr>" .. mesh_ip_to_hostnames(wan_gw) .. "</nobr></td>"
+                else
+                    col1[#col1 + 1] = "<th align=right><nobr>--- WAN info ---</nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "</td>"
+                end
+            end
+        else     -- with wifi wan
+            if wan_wifi_ssid ~= "none" and wan_wifi_snr ~= "none" then
+                if wan_gw:match("^10%.") or not hide_local then
+                    if wan_gw:match("^10%.") then
+                        col1[#col1 + 1] = "<th align=right><nobr>--- " .. wprefix .. "WAN info ---</nobr><br><nobr>IP address:</nobr><br><nobr>SSID | SNR:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br><nobr>" .. wan_wifi_ssid .. " | " .. wan_wifi_snr .. " dB<br>" .. wan_gw .. "<br><nobr>" .. mesh_ip_to_hostnames(wan_gw) .. "</nobr></td>"
+                    else
+                        col1[#col1 + 1] = "<th align=right><nobr>--- " .. wprefix .. "WAN info ---</nobr><br><nobr>IP address:</nobr><br><nobr>SSID | SNR:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br><nobr>" .. wan_wifi_ssid .. " | " .. wan_wifi_snr .. " dB<br>" .. wan_gw .. "</td>"
+                    end
+                end
+            else
+                if wan_gw:match("^10%.") or not hide_local then
+                    if wan_gw:match("^10%.") then
+                        col1[#col1 + 1] = "<th align=right><nobr>--- " .. wprefix .. "WAN info ---</nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "<br><nobr>" .. mesh_ip_to_hostnames(wan_gw) .. "</nobr></td>"
+                    else
+                        col1[#col1 + 1] = "<th align=right><nobr>--- " .. wprefix .. "WAN info ---</nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "</td>"
+                    end
+                end
+            end
+        end
     end
-    col1[#col1] = col1[#col1] .. "</td>"
 end
 
 if browser_ip then
     col1[#col1 + 1] = "<th align=right><nobr>your address:</nobr></th><td>" .. browser_ip .. "<br><nobr>" ..  mesh_ip_to_hostnames(browser_ip) .. "</nobr></td>"
 end
 
-
 -- right column - system info
 
 if config == "mesh" and not wifi_disabled then
-    col2[#col2 + 1] = "<th align=right valign=middle><nobr>signal / noise / SNR:</nobr></th><td valign=middle><nobr>"
+    col2[#col2 + 1] = "<th align=right valign=middle><nobr>signal|noise|SNR:</nobr></th><td valign=middle><nobr>"
     local s, n = get_wifi_signal(wifi_iface)
     if s == "none" then
         col2[#col2] = col2[#col2] .. "no RF links"
     else
-        col2[#col2] = col2[#col2] .. "<big><b>" .. s .. " / " .. n .. " / " .. math.abs(s - n) .. " dB</b></big>"
+        col2[#col2] = col2[#col2] .. "<b>" .. s .. " | " .. n .. " | " .. math.abs(s - n) .. " dB</b>"
         col2[#col2] = col2[#col2] .. "&nbsp;&nbsp;&nbsp;<button type=button onClick='window.location=\"signal?realtime=1\"' title='Display continuous or archived signal strength on a chart'>Charts</button></nobr></td>"
     end
 end
