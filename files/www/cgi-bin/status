@@ -321,7 +321,7 @@ if wifi_disabled then
     col1[#col1 + 1] = "<th align=right><nobr>primary address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
 else
     wifi_gw = get_default_gw("wifi")
-    col1[#col1 + 1] = "<th align=right>--- Mesh RF ---<br><nobr>IP address:</nobr><br><nobr>gateway:</nobr><br><br>SSID:<br>channel:<br><nobr>channel width:</nobr></th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_gw .. "<br>" .. mesh_ip_to_hostnames(wifi_gw) .. "<br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. " MHz</td>"
+    col1[#col1 + 1] = "<th align=right><span style=text-decoration:underline;'>Mesh RF</span><br><nobr>IP address:</nobr><br><nobr>gateway:</nobr><br><br>SSID:<br>channel:<br><nobr>channel width:</nobr></th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_gw .. "<br>" .. mesh_ip_to_hostnames(wifi_gw) .. "<br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. " MHz</td>"
 end
 
 ip = cursor:get("network", "lan", "ipaddr")
@@ -376,26 +376,26 @@ if wan_iface and not hide_local then
         if wprefix == "" then     -- no wifi wan
             if wan_gw:match("^10%.") or not hide_local then
                 if wan_gw:match("^10%.") then
-                    col1[#col1 + 1] = "<th align=right><nobr>--- WAN info ---</nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "<br><nobr>" .. mesh_ip_to_hostnames(wan_gw) .. "</nobr></td>"
+                    col1[#col1 + 1] = "<th align=right><nobr><span style='text-decoration:underline;'>WAN info</span></nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "<br><nobr>" .. mesh_ip_to_hostnames(wan_gw) .. "</nobr></td>"
                 else
-                    col1[#col1 + 1] = "<th align=right><nobr>--- WAN info ---</nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "</td>"
+                    col1[#col1 + 1] = "<th align=right><nobr><span style='text-decoration:underline;'>WAN info</span></nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "</td>"
                 end
             end
         else     -- with wifi wan
             if wan_wifi_ssid ~= "none" and wan_wifi_snr ~= "none" then
                 if wan_gw:match("^10%.") or not hide_local then
                     if wan_gw:match("^10%.") then
-                        col1[#col1 + 1] = "<th align=right><nobr>--- " .. wprefix .. "WAN info ---</nobr><br><nobr>IP address:</nobr><br><nobr>SSID | SNR:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br><nobr>" .. wan_wifi_ssid .. " | " .. wan_wifi_snr .. " dB<br>" .. wan_gw .. "<br><nobr>" .. mesh_ip_to_hostnames(wan_gw) .. "</nobr></td>"
+                        col1[#col1 + 1] = "<th align=right><nobr><span style='text-decoration:underline;'>" .. wprefix .. "WAN info</span></nobr><br><nobr>IP address:</nobr><br><nobr>SSID | SNR:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br><nobr>" .. wan_wifi_ssid .. " | " .. wan_wifi_snr .. " dB<br>" .. wan_gw .. "<br><nobr>" .. mesh_ip_to_hostnames(wan_gw) .. "</nobr></td>"
                     else
-                        col1[#col1 + 1] = "<th align=right><nobr>--- " .. wprefix .. "WAN info ---</nobr><br><nobr>IP address:</nobr><br><nobr>SSID | SNR:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br><nobr>" .. wan_wifi_ssid .. " | " .. wan_wifi_snr .. " dB<br>" .. wan_gw .. "</td>"
+                        col1[#col1 + 1] = "<th align=right><nobr><span style='text-decoration:underline;'>" .. wprefix .. "WAN info</span></nobr><br><nobr>IP address:</nobr><br><nobr>SSID | SNR:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br><nobr>" .. wan_wifi_ssid .. " | " .. wan_wifi_snr .. " dB<br>" .. wan_gw .. "</td>"
                     end
                 end
             else
                 if wan_gw:match("^10%.") or not hide_local then
                     if wan_gw:match("^10%.") then
-                        col1[#col1 + 1] = "<th align=right><nobr>--- " .. wprefix .. "WAN info ---</nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "<br><nobr>" .. mesh_ip_to_hostnames(wan_gw) .. "</nobr></td>"
+                        col1[#col1 + 1] = "<th align=right><nobr><span style='text-decoration:underline;'>" .. wprefix .. "WAN info</span></nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "<br><nobr>" .. mesh_ip_to_hostnames(wan_gw) .. "</nobr></td>"
                     else
-                        col1[#col1 + 1] = "<th align=right><nobr>--- " .. wprefix .. "WAN info ---</nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "</td>"
+                        col1[#col1 + 1] = "<th align=right><nobr><span style='text-decoration:underline;'>" .. wprefix .. "WAN info</span></nobr><br><nobr>IP address:</nobr><br>gateway:</th><td><br>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wan_gw .. "</td>"
                     end
                 end
             end
