@@ -165,7 +165,7 @@ compile: stamp-clean-compiled .stamp-compiled
 	  NEWNAME="$${NEWNAME/-nand-glinet/}"; \
 	  NEWNAME="$${NEWNAME/-ath79-mikrotik/}"; \
 	  NEWNAME="$${NEWNAME/_routerboard/}"; \
-	  mv "$$FILE" "$$NEWNAME"; \
+	  [ "$$FILE" = "$$NEWNAME" ] || mv "$$FILE" "$$NEWNAME"; \
 	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh
 
