@@ -154,10 +154,10 @@ compile: stamp-clean-compiled .stamp-compiled
 	  -print \)`; do rm $$FILE; \
 	done;
 	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -type f -a \
-	  \( -name "*ar71xx-generic-*" \
-	  -o -name "*ath79-generic-*" \
+	  \( -name "*ath79-generic-*" \
+	  -o -name "*ath79-tiny-*" \
+	  -o -name "*ath79-mikrotik-*" \
 	  -o -name "*ath79-nand-*" \
-	  -o -name "*ar71xx-mikrotik*squashfs*" \
 	  -o -name "*ipq40xx-mikrotik*squashfs*" \
 	  \) -print`; do \
 	  NEWNAME="$${FILE/generic-/}"; \
