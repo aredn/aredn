@@ -137,17 +137,19 @@ end
 -- add a name for the dtdlink and xlink interfaces
 if name then
     local dtdip = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("dtdlink"))
-    hosts[#hosts + 1] = { ip = dtdip, host = "dtdlink." .. name .. ".local.mesh" }
-    if nixio.fs.stat("/etc/config.mesh/xlink") then
-        local count = 0
-        uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
-            function(section)
-                if section.ipaddr then
-                    hosts[#hosts + 1] = { ip = section.ipaddr, host = "xlink" .. count .. "." .. name .. ".local.mesh" }
-                    count = count + 1
+    if dtdip then
+        hosts[#hosts + 1] = { ip = dtdip, host = "dtdlink." .. name .. ".local.mesh" }
+        if nixio.fs.stat("/etc/config.mesh/xlink") then
+            local count = 0
+            uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
+                function(section)
+                    if section.ipaddr then
+                        hosts[#hosts + 1] = { ip = section.ipaddr, host = "xlink" .. count .. "." .. name .. ".local.mesh" }
+                        count = count + 1
+                    end
                 end
-            end
-        )
+            )
+        end
     end
 end
 
