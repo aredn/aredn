@@ -1,9 +1,12 @@
+Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
+===================================================================
 --- /dev/null
-+++ b/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
-@@ -0,0 +1,318 @@
-+--- a/ath10k-5.15/debug.c
-++++ b/ath10k-5.15/debug.c
-+@@ -4403,6 +4403,101 @@ static const struct file_operations fops
++++ openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
+@@ -0,0 +1,272 @@
++diff -urpN a/ath10k-5.15/debug.c b/ath10k-5.15/debug.c
++--- a/ath10k-5.15/debug.c	2022-05-13 22:42:36.000000000 +0100
+++++ b/ath10k-5.15/debug.c	2022-11-29 12:22:12.836789627 +0000
++@@ -4403,6 +4403,54 @@ static const struct file_operations fops
 + 	.llseek = default_llseek,
 + };
 + 
@@ -55,71 +58,22 @@
 ++	.llseek = default_llseek,
 ++};
 ++
-++
-++//static ssize_t read_file_pll_div(struct file *file, char __user *user_buf,
-++//			     size_t count, loff_t *ppos)
-++//{
-++//	struct ath10k *ar = file->private_data;
-++//	struct ath_common *common = &ar->ath_common;
-++//	char buf[32];
-++//	unsigned int len;
-++//
-++//	len = sprintf(buf, "0x%08x\n", common->pll_div);
-++//	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
-++//}
-++//
-++//
-++//static ssize_t write_file_pll_div(struct file *file, const char __user *user_buf,
-++//			     size_t count, loff_t *ppos)
-++//{
-++//	struct ath10k *ar = file->private_data;
-++//	struct ath_common *common = &ar->ath_common;
-++//	unsigned long pll_div;
-++//	int ret;
-++//	char buf[32];
-++//	ssize_t len;
-++//
-++//	len = min(count, sizeof(buf) - 1);
-++//	if (copy_from_user(buf, user_buf, len))
-++//		return -EFAULT;
-++//
-++//	buf[len] = '\0';
-++//	if (kstrtoul(buf, 0, &pll_div))
-++//		return -EINVAL;
-++//
-++//	common->pll_div = pll_div;
-++//	if (ret)
-++//		ath10k_warn(ar, "failed to update channel list: %d\n", ret);
-++//
-++//	return count;
-++//}
-++//
-++//static const struct file_operations fops_plldiv = {
-++//	.read = read_file_pll_div,
-++//	.write = write_file_pll_div,
-++//	.open = simple_open,
-++//	.owner = THIS_MODULE,
-++//	.llseek = default_llseek,
-++//};
-++//
 + int ath10k_debug_create(struct ath10k *ar)
 + {
 + 	ar->debug.cal_data = vzalloc(ATH10K_DEBUG_CAL_DATA_LEN);
-+@@ -4451,6 +4546,12 @@ int ath10k_debug_register(struct ath10k
++@@ -4451,6 +4499,9 @@ int ath10k_debug_register(struct ath10k
 + 	init_completion(&ar->debug.ratepwr_tbl_complete);
 + 	init_completion(&ar->debug.powerctl_tbl_complete);
 + 
 ++	debugfs_create_file("chanbw", S_IRUSR | S_IWUSR, ar->debug.debugfs_phy,
 ++			    ar, &fops_chanbw);
 ++
-++//	debugfs_create_file("plldiv", S_IRUSR | S_IWUSR, ar->debug.debugfs_phy,
-++//			    ar, &fops_plldiv);
-++//
 + 	debugfs_create_file("fw_stats", 0400, ar->debug.debugfs_phy, ar,
 + 			    &fops_fw_stats);
 + 
-+--- a/ath10k-5.15/mac.c
-++++ b/ath10k-5.15/mac.c
++diff -urpN a/ath10k-5.15/mac.c b/ath10k-5.15/mac.c
++--- a/ath10k-5.15/mac.c	2022-11-29 12:18:41.281151667 +0000
+++++ b/ath10k-5.15/mac.c	2022-11-29 12:21:15.199940728 +0000
 +@@ -697,6 +697,8 @@ chan_to_phymode(const struct cfg80211_ch
 + 	switch (chandef->chan->band) {
 + 	case NL80211_BAND_2GHZ:
@@ -247,8 +201,9 @@
 + 	if (test_bit(WMI_SERVICE_TDLS_UAPSD_BUFFER_STA, ar->wmi.svc_map))
 + 		ieee80211_hw_set(ar->hw, SUPPORTS_TDLS_BUFFER_STA);
 + 
-+--- a/ath10k-5.15/spectral.c
-++++ b/ath10k-5.15/spectral.c
++diff -urpN a/ath10k-5.15/spectral.c b/ath10k-5.15/spectral.c
++--- a/ath10k-5.15/spectral.c	2022-11-29 12:18:41.285151725 +0000
+++++ b/ath10k-5.15/spectral.c	2022-11-29 12:21:15.199940728 +0000
 +@@ -90,6 +90,12 @@ int ath10k_spectral_process_fft(struct a
 + 	 * but the results/plots suggest that its actually 22/44/88 MHz.
 + 	 */
@@ -263,8 +218,8 @@
 + 		fft_sample->chan_width_mhz = 22;
 + 		break;
 +diff -urpN a/ath10k-5.15/wmi.c b/ath10k-5.15/wmi.c
-+--- a/ath10k-5.15/wmi.c	2022-10-26 09:23:56.096409848 +0100
-++++ b/ath10k-5.15/wmi.c	2022-10-25 17:15:24.485333875 +0100
++--- a/ath10k-5.15/wmi.c	2022-11-29 12:18:41.277151608 +0000
+++++ b/ath10k-5.15/wmi.c	2022-11-29 12:21:15.203940797 +0000
 +@@ -1786,6 +1786,10 @@ void ath10k_wmi_put_wmi_channel(struct a
 + 		flags |= WMI_CHAN_FLAG_HT40_PLUS;
 + 	if (arg->chan_radar)
@@ -276,7 +231,7 @@
 + 
 + 	ch->band_center_freq2 = 0;
 + 
-+@@ -8546,6 +8569,12 @@ ath10k_wmi_op_gen_scan_chan_list(struct
++@@ -8546,6 +8550,12 @@ ath10k_wmi_op_gen_scan_chan_list(struct
 + 	for (i = 0; i < arg->n_channels; i++) {
 + 		ch = &arg->channels[i];
 + 		ci = &cmd->chan_info[i];
@@ -289,8 +244,9 @@
 + 
 + 		ath10k_wmi_put_wmi_channel(ar, ci, ch, -1);
 + 	}
-+--- a/ath10k-5.15/wmi.h
-++++ b/ath10k-5.15/wmi.h
++diff -urpN a/ath10k-5.15/wmi.h b/ath10k-5.15/wmi.h
++--- a/ath10k-5.15/wmi.h	2022-11-29 12:18:41.277151608 +0000
+++++ b/ath10k-5.15/wmi.h	2022-11-29 12:21:15.207940866 +0000
 +@@ -2146,6 +2146,8 @@ struct wmi_channel_arg {
 + 	bool allow_ht;
 + 	bool allow_vht;
