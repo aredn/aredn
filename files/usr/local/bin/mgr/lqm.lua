@@ -230,6 +230,7 @@ function lqm()
         first_run_timeout = first_run_timeout + nixio.sysinfo().uptime
     end
 
+    local noise = iwinfo.nl80211.noise(wlan) or -95
     local tracker = {}
     local dtdlinks = {}
     while true
@@ -271,7 +272,10 @@ function lqm()
                 ["tx failed:"] = "tx_fail"
             }
             local station = {}
-            local noise = iwinfo.nl80211.noise(wlan) or -95
+            local cnoise = iwinfo.nl80211.noise(wlan)
+            if cnoise then
+                noise = math.ceil(noise * 0.9 + cnoise * 0.1)
+            end
             for line in io.popen(IW .. " " .. wlan .. " station dump"):lines()
             do
                 local mac = line:match("^Station ([0-9a-f:]+) ")
