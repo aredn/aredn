@@ -63,7 +63,7 @@ for name in nixio.fs.dir("/usr/local/bin/mgr")
 do
 	local task = name:match("^(.+)%.lua$")
 	if task then
-		tasks[#tasks + 1] = { app = require("mgr." .. task) }
+		tasks[#tasks + 1] = { name = task, app = require("mgr." .. task) }
 	end
 end
 
@@ -82,6 +82,7 @@ do
 		if task.time <= os.time() then
 			local status, newdelay = coroutine.resume(task.routine)
 			if not status then
+				log:write("Manager task error: " .. task.name)
 				log:write(newdelay) -- error message
 				log:flush()
 				task.routine = coroutine.create(task.app)
@@ -91,6 +92,8 @@ do
 			elseif newdelay == "exit" then
 				task.routine = null
 				task.time = math.huge
+				log:write("Terminating manager task: " .. task.name)
+				log:flush()
 			else
 				task.time = newdelay + os.time()
 			end
