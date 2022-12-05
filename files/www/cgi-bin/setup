@@ -763,15 +763,13 @@ if parms.button_save then
             if vtun_name and parms.node and (vtun_name:upper() ~= parms.node:upper()) then
                 cursor:foreach("vtun", "server",
                     function(section)
-                        local servnum
                         for k,v in pairs(section) do
                             if k == ".name" then
-                                servnum = "@" .. v:gsub("%_","%[") .. "]"
+                                local servnum = "@" .. v:gsub("%_","%[") .. "]"
+                                local newname = parms.node .. "-" .. section.netip:gsub("%.", "%-")
+                                cursor:set("vtun", servnum, "node", newname)
+                                break
                             end
-                        end
-                        local newname = parms.node .. "-" .. section.netip:gsub("%.", "%-")
-                        if newname and servnum then
-                            cursor:set("vtun", servnum, "node", newname)
                         end
                     end
                 )
