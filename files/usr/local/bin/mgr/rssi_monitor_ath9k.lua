@@ -69,8 +69,8 @@ function run_monitor()
     local wifiiface = get_ifname("wifi")
     local phy = iwinfo.nl80211.phyname(wifiiface)
 
-    -- Not supported on ath10k
-    if nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k") then
+    -- Supports ath9k
+    if not nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k") then
         exit_app()
         return
     end
