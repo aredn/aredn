@@ -16,6 +16,8 @@ elif [ "$brlan" = "00:03:7F:11:23:C6" ]; then # Fix AR300M
     fix="lan"
 elif [ "$boardid" = "MikroTik hAP ac2" ]; then
     fix="lan wan dtdlink"
+elif [ "$boardid" = "MikroTik RouterBOARD 952Ui-5ac2nD (hAP ac lite)" ]; then
+    fix="lan wan dtdlink"
 else
     delta=$((0x${wlan0//:/} - 0x${brlan//:/}))
     if [ $delta -ge -10 -a $delta -le 10 ]; then # Fix some Mikrotik
