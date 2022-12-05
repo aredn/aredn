@@ -57,6 +57,18 @@ boot() {
     shift
   done
 
+  # did the ethernet come up? we get one reboot to try to fix it.
+  lan=$(uci -q get network.lan.ifname)
+  if [ "$lan" = "" ]; then
+    lan=$(uci -q get network.lan.device)
+  fi
+  packets=$(ifconfig "$lan" | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
+  if [ ! -f /did_ether_reboot -a "$lan" != "" -a "$packets" = "0" ]; then
+    touch /did_ether_reboot
+    reboot
+  fi
+  rm -f /did_ether_reboot
+
   if [ -z "$(uci -q get aredn.@alerts[0])" ]; then
       uci -q add aredn alerts
       uci -q commit aredn
