@@ -58,8 +58,10 @@ boot() {
   done
 
   # did the ethernet come up? we get one reboot to try to fix it.
-  packets=$(ifconfig eth0 | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
-  if [ ! -f /did_ether_reboot -a "$lan" != "" -a "$packets" = "0" ]; then
+  packets0=$(ifconfig br-lan | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
+  packets1=$(ifconfig br-dtdlink | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
+  packets2=$(ifconfig br-wan | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
+  if [ ! -f /did_ether_reboot -a "$packets0" = "0" -a "$packets1" = "0" -a "$packets2" = "0" ]; then
     touch /did_ether_reboot
     reboot
     exit
