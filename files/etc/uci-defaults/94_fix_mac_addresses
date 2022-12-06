@@ -14,23 +14,27 @@ elif [ "$wlan0" = "" ]; then
     fix="lan"
 elif [ "$brlan" = "00:03:7F:11:23:C6" ]; then # Fix AR300M
     fix="lan"
-elif [ "$boardid" = "MikroTik hAP ac2" ]; then
+elif [[ "$boardid" = "^MikroTik.*" ]]; then # Fix all MikroTiks
     fix="lan wan dtdlink"
-elif [ "$boardid" = "MikroTik RouterBOARD 952Ui-5ac2nD (hAP ac lite)" ]; then
-    fix="lan wan dtdlink"
-else
-    delta=$((0x${wlan0//:/} - 0x${brlan//:/}))
-    if [ $delta -ge -10 -a $delta -le 10 ]; then # Fix some Mikrotik
-        fix="lan"
-    fi
 fi
 
 mkdir -p /etc/aredn_include
 
+list=""
 for i in $fix
 do
     if [ ! -s /etc/aredn_include/fixedmac.$i ]; then
-        mac=$(hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/random)
+        # Some mac addresses are stored in /etc/board.json
+        mac=$(jsonfilter -i /etc/board.json -e @.network.$i.macaddr 2> /dev/null | awk '{print toupper($0)}')
+        if [[ "$list" =~ "#$mac#" ]]; then
+            # Dont allow reuse
+            mac=""
+        fi
+        if [ "$mac" = "" ]; then
+            # Generate a safe mac address
+            mac=$(hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/random)
+        fi
         echo -e "\toption\tmacaddr\t$mac" > /etc/aredn_include/fixedmac.$i
+        list="$list#$mac#"
     fi
 done
