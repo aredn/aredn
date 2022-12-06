@@ -360,7 +360,7 @@ local wan_iface = aredn.hardware.get_iface_name("wan")
 if wan_iface and not hide_local then
     local ip, bcast, mask = aredn.hardware.get_interface_ip4(wan_iface)
     if not ip then
-        if not wifi_gw then
+        if not wifi_gw or wifi_gw == "none" then
             col1[#col1 + 1] = "<th align=right valign=top><nobr>WAN address:</nobr><br><nobr>default gateway:</nobr></th><td valign=top>none<br>none</td>"
         else
             col1[#col1 + 1] = "<th align=right valign=top><nobr>WAN address:</nobr><br><nobr>default gateway:</nobr><br><nobr>gateway node:</nobr></th><td valign=top>none<br>" .. wifi_gw .. "<br>" .. mesh_ip_to_hostnames(wifi_gw) .. "</td>"
