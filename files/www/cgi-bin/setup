@@ -1172,7 +1172,8 @@ end
 html.print("<tr><td colspan=2><hr></hr></td></tr>")
 
 local M39model = aredn.hardware.get_board_id():match("M[39]")
-if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi3_enable ~= "1") and not M39model then
+local APokay = nixio.fs.stat("/usr/sbin/wpad")
+if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi3_enable ~= "1") and not M39model) then
     -- lan ap shows as an option
     -- determine hardware options and set band ahd channels accordingly
     if phycount == 1 then
@@ -1276,7 +1277,7 @@ html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan
 html.print("<tr><th colspan=2><hr></td></tr>")
 
 -- wan wifi client
-if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1") and not M39model then
+if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1")) and not M39model then
     -- wifi client shows as an option
     -- determine hardware options and set band accordingly
 
