@@ -57,6 +57,8 @@ function exit_app()
 	coroutine.yield('exit')
 end
 
+mainlog = aredn.log.open("/tmp/manager.log", 8000)
+
 -- Load management tasks
 local tasks = {}
 for name in nixio.fs.dir("/usr/local/bin/mgr")
@@ -66,8 +68,6 @@ do
 		tasks[#tasks + 1] = { name = task, app = require("mgr." .. task) }
 	end
 end
-
-local log = aredn.log.open("/tmp/manager.log", 8000)
 
 for i, task in ipairs(tasks)
 do
@@ -80,11 +80,11 @@ do
 	for i, task in ipairs(tasks)
 	do
 		if task.time <= os.time() then
+			mainlog:prefix = task.name
 			local status, newdelay = coroutine.resume(task.routine)
 			if not status then
-				log:write("Manager task error: " .. task.name)
-				log:write(newdelay) -- error message
-				log:flush()
+				mainlog:write(newdelay) -- error message
+				mainlog:flush()
 				task.routine = coroutine.create(task.app)
 				task.time = 120 + os.time() -- 2 minute restart delay
 			elseif not newdelay then
@@ -92,11 +92,12 @@ do
 			elseif newdelay == "exit" then
 				task.routine = null
 				task.time = math.huge
-				log:write("Terminating manager task: " .. task.name)
-				log:flush()
+				mainlog:write("Terminating manager task: " .. task.name)
+				mainlog:flush()
 			else
 				task.time = newdelay + os.time()
 			end
+			mainlog:prefix = nil
 		end
 	end
 	table.sort(tasks, function(a,b) return a.time < b.time end)
