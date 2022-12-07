@@ -34,14 +34,32 @@
 
 --]]
 
-function rssi_monitor()
+local wifiiface
+local phy
+local multiple_ant = false
+
+function rssi_monitor_9k()
     if string.match(get_ifname("wifi"), "^eth.") then
         exit_app()
     else
         wait_for_ticks(math.max(1, 120 - nixio.sysinfo().uptime))
+
+        wifiiface = get_ifname("wifi")
+        phy = iwinfo.nl80211.phyname(wifiiface)
+    
+        -- Supports ath9k
+        if not nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k") then
+            exit_app()
+            return
+        end
+
+        if read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/tx_chainmask"):chomp() ~= "1" then
+            multiple_ant = true
+        end
+
         while true
         do
-            run_monitor()
+            run_monitor_9k()
             wait_for_ticks(60) -- 1 minute
         end
     end
@@ -57,27 +75,12 @@ if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
 
-local multiple_ant = false
 local last_station_count = 0
-
 local log = aredn.log.open(logfile, 16000)
 
-function run_monitor()
+function run_monitor_9k()
 
     local now = nixio.sysinfo().uptime
-
-    local wifiiface = get_ifname("wifi")
-    local phy = iwinfo.nl80211.phyname(wifiiface)
-
-    -- Supports ath9k
-    if not nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k") then
-        exit_app()
-        return
-    end
-
-    if read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/tx_chainmask"):chomp() ~= "1" then
-        multiple_ant = true
-    end
 
     -- load history
     local rssi_hist = {}
@@ -106,7 +109,7 @@ function run_monitor()
     -- avoid node going deaf while trying to obtain 'normal' statistics of neighbor strength
     -- in first few minutes after boot
     if now > 119 and now < 750 then
-        os.execute("/usr/sbin/iw " .. wifiiface .. " scan")
+        os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
     end
 
     local station_count = 0
@@ -164,7 +167,7 @@ function run_monitor()
 
     if amac then
         -- reset
-        os.execute("/usr/sbin/iw " .. wifiiface .. " scan")
+        os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
         wait_for_ticks(5)
         -- update time
         now = nixio.sysinfo().uptime
@@ -200,7 +203,7 @@ function run_monitor()
         end
     elseif station_count == 0 and last_station_count ~= 0 then
          -- reset
-         os.execute("/usr/sbin/iw " .. wifiiface .. " scan")
+         os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
          wait_for_ticks(5)
          log:write("No stations detected")
     end
@@ -260,4 +263,4 @@ function get_rssi(wifiiface)
     end
 end
 
-return rssi_monitor
+return rssi_monitor_9k

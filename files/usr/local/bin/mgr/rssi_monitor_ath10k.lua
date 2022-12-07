@@ -33,14 +33,26 @@
 
 --]]
 
-function rssi_monitor()
+local wifiiface
+
+function rssi_monitor_10k()
     if string.match(get_ifname("wifi"), "^eth.") then
         exit_app()
     else
         wait_for_ticks(math.max(1, 120 - nixio.sysinfo().uptime))
+
+        wifiiface = get_ifname("wifi")
+
+        -- ath10k only
+        local phy = iwinfo.nl80211.phyname(wifiiface)
+        if not nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k") then
+            exit_app()
+            return
+        end
+
         while true
         do
-            run_monitor()
+            run_monitor_10k()
             wait_for_ticks(60) -- 1 minute
         end
     end
@@ -53,19 +65,9 @@ if not file_exists(logfile) then
 end
 
 local last_station_count = 0
-
-local wifiiface = get_ifname("wifi")
-local phy = iwinfo.nl80211.phyname(wifiiface)
-
 local log = aredn.log.open(logfile, 16000)
 
-function run_monitor()
-
-    -- ath10k only
-    if not nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k") then
-        exit_app()
-        return
-    end
+function run_monitor_10k()
 
     local station_count = 0
     local stations = iwinfo.nl80211.assoclist(wifiiface)
@@ -76,7 +78,7 @@ function run_monitor()
 
     if station_count == 0 and last_station_count ~= 0 then
          -- reset
-         os.execute("/usr/sbin/iw " .. wifiiface .. " scan")
+         os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
          wait_for_ticks(5)
          log:write("No stations detected")
          log:flush()
@@ -84,4 +86,4 @@ function run_monitor()
     last_station_count = station_count
 end
 
-return rssi_monitor
+return rssi_monitor_10k
