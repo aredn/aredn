@@ -68,12 +68,12 @@ NanoBridge M9 | ath79 | - | 32MB | untested
 NanoStation Loco M2/M5/M9 XM | ath79 | - | 32MB | untested
 NanoStation Loco M2 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | untested
 NanoStation Loco M5 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | stable
-NanoStation  M2/M3/M5 XM | ath79 | nanostation-m | 32MB | stable
-NanoStation  M2/M5 XW | ath79 | nanostation-m-xw | 64MB | stable
+NanoStation  M2/M3/M5 XM | ath79 | ubnt_nanostation-m | 32MB | stable
+NanoStation  M2/M5 XW | ath79 | ubnt_nanostation-m-xw | 64MB | stable
 PicoStation M2 | ath79 | - | 32MB | untested
-PowerBeam-M2-400 | ath79 | - | 64MB | stable
+PowerBeam-M2-400 | ath79 | ubnt_powerbeam-m2-xw | 64MB | untested
 PowerBeam-M5-300 | ath79 | ubnt_powerbeam-m5-300 | 64MB | stable
-PowerBeam-M5-400/400ISO/620 | ath79 | - | 64MB | stable
+PowerBeam-M5-400/400ISO/620 | ath79 | ubnt_powerbeam-m5-xw | 64MB | stable
 PowerBridge | ath79 | - | 64MB | untested
 Rocket AC Lite 5 | ath79 | ubnt_rocket-5ac-lite | 128MB | new
 Rocket M9/M2/M3/M5/M5GPS XM | ath79 | ubnt_rocket-m | 64MB | stable
@@ -83,8 +83,8 @@ Rocket M5 XW | ath79 | ubnt_rocket-m-xw | 64MB | stable
 Rocket M2 Titanium TI | ath79 | - | 64MB | untested
 Rocket M2 Titanium XW | ath79 | - | 64MB | untested
 Rocket M5 Titanium TI | ath79 | - | 64MB | untested
-Rocket M5 Titanium XW | ath79 | -| 64MB | stable
-TPLink CPE210 v1.0/v1.1 | ath79 | cpe210-v1 | 64MB | stable
+Rocket M5 Titanium XW | ath79 | ubnt_rocket-m-xw | 64MB | stable
+TPLink CPE210 v1.0/v1.1 | ath79 | tplink_cpe210-v1 | 64MB | stable
 TPLink CPE210 v2.0 | ath79 | tplink_cpe210-v2 | 64MB | stable
 TPLink CPE210 v3.0 | ath79 | tplink_cpe210-v3 | 64MB | untested
 TPLink CPE220 v2.0 | ath79 | tplink_cpe220-v2 | 64MB | untested
@@ -100,7 +100,7 @@ TPLink WBS210 v1.0 | ath79 | tplink_wbs210-v1 | 64MB | untested
 TPLink WBS210 v2.0 | ath79 | tplink_wbs210-v2 | 64MB | untested
 TPLink WBS510 v1.0 | ath79 | tplink_wbs510-v1 | 64MB | untested
 TPLink WBS510 v2.0 | ath79 | tplink_wbs510-v2 | 64MB | untested
-Mikrotik Basebox RB912UAG-5HPnD/2HPnD | ath79 | mikrotik-nand-large | 64MB | untested
+Mikrotik Basebox RB912UAG-5HPnD/2HPnD | ath79 | - | 64MB | untested
 Mikrotik hAP ac lite 952Ui-5ac2nD | ath79 | mikrotik_routerboard-952ui-5ac2nd | 64MB | stable
 Mikrotik RBLHG-2nD | ath79 | mikrotik_routerboard-lhg-2nd | 64MB | stable
 Mikrotik RBLHG-5nD | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
