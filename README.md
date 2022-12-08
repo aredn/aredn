@@ -51,68 +51,72 @@ for a list of outstanding defects.
 
 Device | target | Image to Use | RAM | Stability
 ------ | ------ | ------------ | --- | ---------
-AirGrid XM | ar71xx | bullet-m | 32Mb | stable
-AirGrid XW | ar71xx | loco-m-xw | 32Mb | stable
-AirRouter  | ath79 | airrouter | 32Mb | stable
-AirRouter HP | ath79 | airrouter | 32Mb | stable
-Bullet M2Ti/M5/M5Ti | ar71xx | bullet-m | 32Mb | stable
+AirGrid XM | ar71xx | bullet-m | 32Mb | untested
+AirGrid XW | ar71xx | loco-m-xw | 32Mb | untested
+AirRouter  | ath79 | airrouter | 32Mb | untested
+AirRouter HP | ath79 | airrouter | 32Mb | untested
+Bullet M2Ti/M5/M5Ti | ar71xx | bullet-m | 32Mb | untested
 Bullet M2 | ath79 | bullet-m | 32Mb | stable
-Bullet M2 XW | ath79 | bullet-m-xw | 64Mb | stable
-LiteBeam M5 | ar71xx | lbe-m5 | 64Mb | stable
-NanoBeam M2-13/M5-16/M5-19 | ar71xx | loco-m-xw | 32Mb | stable
-NanoBridge 2G18 | ar71xx | bullet-m | 32Mb | stable
-NanoBridge 5G22/25 | ar71xx | bullet-m | 32Mb | stable
-NanoBridge M9 | ar71xx | bullet-m | 32Mb | stable
-NanoStation Loco M2/M5/M9 XM | ar71xx | bullet-m | 32Mb | stable
+Bullet M2 XW | ath79 | bullet-m-xw | 64Mb | untested
+LiteBeam AC5 Gen2 | ath79 | ubnt_litebeam-ac-gen2 | ?MB | new
+LiteBeam M5 | ar71xx | lbe-m5 | 64Mb | untested
+NanoBeam AC5 Gen 2 | ath79 | ubnt_nanobeam-ac-gen2 | ?MB | new
+NanoBeam M2-13/M5-16/M5-19 | ar71xx | loco-m-xw | 32Mb | untested
+NanoBridge 2G18 | ar71xx | bullet-m | 32Mb | untested
+NanoBridge 5G22/25 | ar71xx | bullet-m | 32Mb | untested
+NanoBridge M9 | ar71xx | bullet-m | 32Mb | untested
+NanoStation Loco M2/M5/M9 XM | ar71xx | bullet-m | 32Mb | untested
 NanoStation Loco M2 XW | ar71xx | loco-m-xw | 64Mb | stable
-NanoStation Loco M5 XW with test date before ~Nov 2017| ar71xx | loco-m-xw | 64Mb | stable
-NanoStation Loco M5 XW with test date on or after ~Nov 2017 | ar71xx | rocket-m-xw | 64Mb | stable
+NanoStation Loco M5 XW | ar71xx | loco-m-xw | 64Mb | stable
 NanoStation  M2/M3/M5 XM | ath79 | nanostation-m | 32Mb | stable
 NanoStation  M2/M5 XW | ath79 | nanostation-m-xw | 64Mb | stable
-PicoStation M2 | ar71xx | bullet-m | 32Mb | stable
+PicoStation M2 | ar71xx | bullet-m | 32Mb | untested
 PowerBeam-M2-400 | ar71xx | loco-m-xw | 64Mb | stable
 PowerBeam-M5-300 | ar71xx | loco-m-xw | 64Mb | stable
 PowerBeam-M5-400/400ISO/620 | ar71xx | rocket-m-xw | 64Mb | stable
-PowerBridge | ar71xx | nano-m  | 64Mb | stable
+PowerBridge | ar71xx | nano-m  | 64Mb | untested
+Rocket AC Lite 5 | ath79 | ubnt_rocket-5ac-lite | 128MB | new
 Rocket M9/M2/M3/M5/M5GPS XM | ath79 | rocket-m | 64Mb | stable
 Rocket M2/M5 XM with USB port | ar71xx | rocket-m | 64Mb | stable
 Rocket M2 XW | ar71xx | loco-m-xw | 64Mb | stable
 Rocket M5 XW | ar71xx | rocket-m-xw | 64Mb | stable
-Rocket M2 Titanium TI | ar71xx | rocket-m-ti | 64Mb | unknown
-Rocket M2 Titanium XW | ar71xx | rocket-m-xw | 64Mb | unknown
-Rocket M5 Titanium TI | ar71xx | rocket-m-ti | 64Mb | stable
+Rocket M2 Titanium TI | ar71xx | rocket-m-ti | 64Mb | untested
+Rocket M2 Titanium XW | ar71xx | rocket-m-xw | 64Mb | untested
+Rocket M5 Titanium TI | ar71xx | rocket-m-ti | 64Mb | untested
 Rocket M5 Titanium XW | ar71xx | rocket-m-xw | 64Mb | stable
 TPLink CPE210 v1.0/v1.1 | ath79  | cpe210-v1 | 64Mb | stable
 TPLink CPE210 v2.0 | ath79 | cpe210-v2 | 64Mb | stable
-TPLink CPE210 v3.0 | ath79 | cpe210-v3 | 64Mb | stable
-TPLink CPE220 v2.0 | ath79 | cpe220-v2 | 64Mb | stable
-TPLink CPE220 v3.0 | ath79  | cpe220-v3 | 64Mb | stable
-TPLink CPE510 v1.0/v1.1 | ath79  | cpe510-v1 | 64Mb | stable
+TPLink CPE210 v3.0 | ath79 | cpe210-v3 | 64Mb | untested
+TPLink CPE220 v2.0 | ath79 | cpe220-v2 | 64Mb | untested
+TPLink CPE220 v3.0 | ath79  | cpe220-v3 | 64Mb | untested
+TPLink CPE510 v1.0/v1.1 | ath79  | cpe510-v1 | 64Mb | untested
 TPLink CPE510 v2.0 | ath79  | cpe510-v2 | 64Mb | stable
 TPLink CPE510 v3.0 | ath79  | cpe510-v3 | 64Mb | stable
-TPLink CPE605 v1.0 | ath79  | cpe605-v1 | 64Mb | stable
-TPLink CPE610 v1.0 | ath79  | cpe610-v1 | 64Mb | stable
-TPLink CPE610 v2.0 | ath79  | cpe610-v2 | 64Mb | stable
-TPLink CPE710 v1.0 | ath79  | cpe710-v1 | 128Mb | stable
-TPLink WBS210 v1.0 | ath79  | wbs210-v1 | 64mb | stable
-TPLink WBS210 v2.0 | ath79  | wbs210-v2 | 64mb | stable
-TPLink WBS510 v1.0 | ath79  | wbs510-v1 | 64mb | stable
-TPLink WBS510 v2.0 | ath79  | wbs510-v2 | 64mb | stable
-Mikrotik Basebox RB912UAG-5HPnD/2HPnD | ar71xx | mikrotik-nand-large | 64Mb | stable
+TPLink CPE605 v1.0 | ath79  | cpe605-v1 | 64Mb | untested
+TPLink CPE610 v1.0 | ath79  | cpe610-v1 | 64Mb | untested
+TPLink CPE610 v2.0 | ath79  | cpe610-v2 | 64Mb | untested
+TPLink CPE710 v1.0 | ath79  | cpe710-v1 | 128Mb | new
+TPLink WBS210 v1.0 | ath79  | wbs210-v1 | 64mb | untested
+TPLink WBS210 v2.0 | ath79  | wbs210-v2 | 64mb | untested
+TPLink WBS510 v1.0 | ath79  | wbs510-v1 | 64mb | untested
+TPLink WBS510 v2.0 | ath79  | wbs510-v2 | 64mb | untested
+Mikrotik Basebox RB912UAG-5HPnD/2HPnD | ar71xx | mikrotik-nand-large | 64Mb | untested
 Mikrotik hAP ac lite 952Ui-5ac2nD | ar71xx | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
 Mikrotik RBLHG-2nD/5nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLHG-5HPnD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
 Mikrotik RBLHG-2nD-XL/5HPnD-XL | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
-Mikrotik RBLDF-2nD/5nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
-Mikrotik QRT5 RB911G-5HPnD-QRT | ar71xx | mikrotik-nand-large | 64Mb | stable
-Mikrotik mAntbox RB911G-2HPnD/5HPnD | ar71xx | mikrotik-nand-large | 64Mb | stable
+Mikrotik RBLDF-2nD/5nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | untested
+Mikrotik QRT5 RB911G-5HPnD-QRT | ar71xx | mikrotik-nand-large | 64Mb | untested
+Mikrotik mAntbox RB911G-2HPnD/5HPnD | ar71xx | mikrotik-nand-large | 64Mb | untested
 Mikrotik SXTsq 5HPnD/5nD/2nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
+MikroTik RouterBOARD D52G-5HacD2HnD | ipq40xx | mikrotik_hap-ac2 | 128MB | new
+MikroTik RouterBOARD SXTsqG-5acD | ipq40xx | mikrotik_sxtsq-5-ac | 256MB | new
 GL.iNet GL-AR150 | ath79 | gl-ar150 | 64Mb | stable
 GL.iNet GL-USB150 | ar71xx | gl-usb150 | 64Mb | stable
 GL.iNet GL-AR300M16 | ar71xx | gl-ar300m | 64Mb | stable
 GL.iNet GL-AR300M w/ 128Mb NAND | None | None | 64Mb | Not compatible
 GL.iNet GL-AR750 | ar71xx | gl-ar750 | 128Mb | stable
-Meraki MR-16 | ar71xx | mr16 | 64mb | stable
+Meraki MR-16 | ar71xx | mr16 | 64mb | untested
 
 The 'target' is a directory to find the image on at http://downloads.arednmesh.org
 
