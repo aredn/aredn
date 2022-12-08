@@ -503,6 +503,15 @@ if not ntp_period then
     ntp_period = "daily"
 end
 
+function is_vtun_client()
+    for line in io.lines("/etc/config/vtun") do
+        if line:match("^config server") then
+            return true
+        end
+    end
+    return false
+end
+
 -- validate and save configuration
 if parms.button_save then
     for _,zone in ipairs(tz_db_names)
@@ -678,6 +687,32 @@ if parms.button_save then
     if #errors == 0 then
         parms.node = node
         parms.tactical = tactical
+
+        if is_vtun_client() then
+            local vtun_name
+            cursor:foreach("vtun", "server",
+                function(section)
+                    vtun_name = section.node:sub(1, #section.node - (#section.netip + 1) )
+                end
+            )
+            if vtun_name and parms.node and (vtun_name:upper() ~= parms.node:upper()) then
+                cursor:foreach("vtun", "server",
+                    function(section)
+                        for k,v in pairs(section) do
+                            if k == ".name" then
+                                local servnum = "@" .. v:gsub("%_","%[") .. "]"
+                                local newname = parms.node .. "-" .. section.netip:gsub("%.", "%-")
+                                cursor:set("vtun", servnum, "node", newname)
+                                break
+                            end
+                        end
+                    end
+                )
+                cursor:commit("vtun")
+                write_all("/etc/config.mesh/vtun", read_all("/etc/config/vtun"))
+            end
+        end
+
         if nixio.fs.stat("/etc/config/unconfigured") then
             io.open("/tmp/unconfigured", "w"):close()
         end
