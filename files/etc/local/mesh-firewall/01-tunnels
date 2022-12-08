@@ -39,62 +39,59 @@ if [ "$MESHFW_TUNNELS_ENABLED" != "1" ]; then
 fi
 
 # In all cases - restart, flush, clear -- it is necessary to clean up any remenant rules to ensure chain order is correct
-
-iptables -D FORWARD -i tun+ -j zone_vpn_forward 2>/dev/null
-iptables -D INPUT -i tun+ -j zone_vpn_input 2>/dev/null
-iptables -D OUTPUT -o tun+ -j zone_vpn_ACCEPT 2>/dev/null
-iptables -F forwarding_vpn_rule 2>/dev/null
-iptables -F zone_vpn_input 2>/dev/null
-iptables -F zone_vpn_ACCEPT 2>/dev/null
-iptables -F zone_vpn_REJECT 2>/dev/null
-iptables -F zone_vpn_forward 2>/dev/null
-iptables -F zone_vpn_dest_ACCEPT 2>/dev/null
-iptables -F zone_vpn_dest_REJECT 2>/dev/null
-iptables -X forwarding_vpn_rule 2>/dev/null
-iptables -X zone_vpn_input 2>/dev/null
-iptables -X zone_vpn_ACCEPT  2>/dev/null
-iptables -X zone_vpn_REJECT 2>/dev/null
-iptables -X zone_vpn_forward 2>/dev/null
-iptables -X zone_vpn_dest_ACCEPT 2>/dev/null
-iptables -X zone_vpn_dest_REJECT 2>/dev/null
+nft flush chain ip fw4 forwarding_vpn_rule 2>/dev/null
+nft flush chain ip fw4 input_vpn 2>/dev/null
+nft flush chain ip fw4 accept_vpn 2>/dev/null
+nft flush chain ip fw4 reject_vpn 2>/dev/null
+nft flush chain ip fw4 forward_vpn 2>/dev/null
+nft flush chain ip fw4 accept_to_vpn 2>/dev/null
+nft flush chain ip fw4 reject_to_vpn 2>/dev/null
+nft delete chain ip fw4 forwarding_vpn_rule 2>/dev/null
+nft delete chain ip fw4 input_vpn 2>/dev/null
+nft delete chain ip fw4 accept_vpn  2>/dev/null
+nft delete chain ip fw4 reject_vpn 2>/dev/null
+nft delete chain ip fw4 forward_vpn 2>/dev/null
+nft delete chain ip fw4 accept_to_vpn 2>/dev/null
+nft delete chain ip fw4 reject_to_vpn 2>/dev/null
 
 echo " * Adding vtun firewall rules..."
-iptables -N forwarding_vpn_rule
-iptables -N zone_vpn_input
-iptables -N zone_vpn_ACCEPT
-iptables -N zone_vpn_REJECT
-iptables -N zone_vpn_forward
-iptables -N zone_vpn_dest_ACCEPT
-iptables -N zone_vpn_dest_REJECT
-iptables -I FORWARD 3 -i tun+ -j zone_vpn_forward
-iptables -I INPUT 5 -i tun+ -j zone_vpn_input
-iptables -I OUTPUT 4 -o tun+ -j zone_vpn_ACCEPT # instead of creating a zone_vpn_output chain
-iptables -A zone_vpn_input -p icmp -m icmp --icmp-type 8 -j ACCEPT
-iptables -A zone_vpn_input -p tcp -m tcp --dport 2222 -j ACCEPT
-iptables -A zone_vpn_input -p tcp -m tcp --dport 8080 -j ACCEPT
-iptables -A zone_vpn_input -p tcp -m tcp --dport 80 -j ACCEPT
-iptables -A zone_vpn_input -p udp -m udp --dport 698 -j ACCEPT
-iptables -A zone_vpn_input -p tcp -m tcp --dport 23 -j ACCEPT
-iptables -A zone_vpn_input -p tcp -m tcp --dport 9090 -j ACCEPT
-iptables -A zone_vpn_input -p udp -m udp --dport 161 -j ACCEPT
-iptables -A zone_vpn_input -m conntrack --ctstate DNAT -m comment --comment "!vtun: Accept port redirections" -j ACCEPT
-iptables -A zone_vpn_input -j zone_vpn_REJECT
-iptables -I zone_vpn_forward -j forwarding_vpn_rule
-iptables -A zone_vpn_forward -j zone_vpn_dest_ACCEPT 
-if [ "$MESHFW_MESHGW" -eq 1 ] ; then
-        iptables -I zone_vpn_forward -j zone_wan_dest_ACCEPT
+nft add chain ip fw4 forwarding_vpn_rule
+nft add chain ip fw4 input_vpn
+nft add chain ip fw4 accept_vpn
+nft add chain ip fw4 reject_vpn
+nft add chain ip fw4 forward_vpn
+nft add chain ip fw4 accept_to_vpn
+nft add chain ip fw4 reject_to_vpn
+
+nft insert rule ip fw4 forward iifname "tun*" counter jump forward_vpn
+nft insert rule ip fw4 input iifname "tun*" counter jump input_vpn
+nft insert rule ip fw4 output oifname "tun*" counter jump accept_vpn # instead of creating a output_vpn chain
+nft add rule ip fw4 input_vpn icmp type echo-request counter accept
+nft add rule ip fw4 input_vpn tcp dport 2222 counter accept
+nft add rule ip fw4 input_vpn tcp dport 8080 counter accept
+nft add rule ip fw4 input_vpn tcp dport 80 counter accept
+nft add rule ip fw4 input_vpn udp dport 698 counter accept
+nft add rule ip fw4 input_vpn tcp dport 23 counter accept
+nft add rule ip fw4 input_vpn tcp dport 9090 counter accept
+nft add rule ip fw4 input_vpn udp dport 161 counter accept
+nft add rule ip fw4 input_vpn ct status dnat counter accept comment \"!vtun: Accept port redirections\"
+nft add rule ip fw4 input_vpn counter jump reject_vpn
+nft insert rule ip fw4 forward_vpn counter jump forwarding_vpn_rule
+nft add rule ip fw4 forward_vpn counter jump accept_to_vpn
+if [ "$MESHFW_MESHGW" = "1" ] ; then
+  nft insert rule ip fw4 forward_vpn counter jump accept_to_wan
 fi
-iptables -A zone_vpn_forward -m conntrack --ctstate DNAT -m comment --comment "!vtun: Accept port forwards" -j ACCEPT
-iptables -A zone_vpn_forward -j zone_dtdlink_dest_ACCEPT
-iptables -A zone_vpn_forward -j zone_lan_dest_ACCEPT
-iptables -A zone_vpn_forward -j zone_wifi_dest_ACCEPT
-iptables -A zone_vpn_forward -j zone_vpn_dest_REJECT
-iptables -A zone_vpn_ACCEPT -o tun+ -j ACCEPT
-iptables -A zone_vpn_ACCEPT -i tun+ -j ACCEPT
-iptables -A zone_vpn_REJECT -o tun+ -j reject
-iptables -A zone_vpn_REJECT -i tun+ -j reject
-iptables -A zone_vpn_dest_ACCEPT -o tun+ -j ACCEPT
-iptables -A zone_vpn_dest_REJECT -o tun+ -j reject
-iptables -I zone_dtdlink_forward 5 -j zone_vpn_dest_ACCEPT
-iptables -I zone_wifi_forward 6 -j zone_vpn_dest_ACCEPT
-iptables -I zone_lan_forward 5 -j zone_vpn_dest_ACCEPT
+nft add rule ip fw4 forward_vpn ct status dnat counter accept comment \"!vtun: Accept port forwards\"
+nft add rule ip fw4 forward_vpn counter jump accept_to_dtdlink
+nft add rule ip fw4 forward_vpn counter jump accept_to_lan
+nft add rule ip fw4 forward_vpn counter jump accept_to_wifi
+nft add rule ip fw4 forward_vpn counter jump reject_to_vpn
+nft add rule ip fw4 accept_vpn oifname "tun*" counter accept
+nft add rule ip fw4 accept_vpn iifname "tun*" counter accept
+nft add rule ip fw4 reject_vpn oifname "tun*" counter reject
+nft add rule ip fw4 reject_vpn iifname "tun*" counter reject
+nft add rule ip fw4 accept_to_vpn oifname "tun*" counter accept
+nft add rule ip fw4 reject_to_vpn oifname "tun*" counter reject
+nft insert rule ip fw4 forward_dtdlink counter jump accept_to_vpn
+nft insert rule ip fw4 forward_wifi counter jump accept_to_vpn
+nft insert rule ip fw4 forward_lan counter jump accept_to_vpn

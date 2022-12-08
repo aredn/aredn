@@ -35,7 +35,6 @@
 --]]
 
 require("aredn.utils")
-require("luci.sys")
 
 local tools = {}
 
@@ -125,7 +124,7 @@ function tools.getIperf3(target, protocol)
 	local summary = { protocol = protocol, client = {}, server = {}, sender = {}, receiver = {} }
 	local trace = {}
 	-- start remote server
-	luci.sys.httpget("http://" .. target .. ":8080/cgi-bin/iperf?server=")
+	os.execute("wget -q 'http://" .. target .. ":8080/cgi-bin/iperf?server=' > /dev/null 2>&1")
 	local output = capture("/usr/bin/iperf3 -b 0 -c " .. target .. (protocol == "udp" and " -u" or "") .. " 2>&1")
 	for _, line in ipairs(output:splitNewLine())
 	do

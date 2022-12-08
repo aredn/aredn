@@ -1,0 +1,16 @@
+How to update AREDN config files
+
+1) do (or start) an AREDN build, e.g. "make MAINTARGET=ipq40xx SUBTARGET=mikrotik"
+2) from ./openwrt directory, "make menuconfig"
+3) update config options via the menu and save
+4) capture the updated config, from ./openwrt directory, e.g.:
+    "./scripts/diffconfig.sh > ../configs/ipq40xx-mikrotik.config"
+
+Notes:
+1) adding the same option to every MAINTARGET-SUBTARGET.config file is
+    done one at a time.
+2) It can be very difficult to manually determine compatible dependencies
+    of config options.
+3) Not recommended to manually update the MAINTARGET-SUBTARGET.config
+    file.  If you do, append the setting at the end (will take 
+    precendent).  

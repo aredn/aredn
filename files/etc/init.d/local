@@ -4,45 +4,6 @@
 START=99
 boot() {
 
-  if [ ! -f /etc/aredn_include/ethmacfixup ]
-  then
-    mkdir -p /etc/aredn_include
-    touch /etc/aredn_include/ethmacfixup
-    local lanintf="$(uci -q get 'network.lan.ifname')"
-    lanintf=${lanintf%% *}
-    local wifiintf="$(uci -q get 'network.wifi.ifname')"
-    local lanmac=`ifconfig $lanintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
-    local wifimac=`ifconfig $wifiintf | grep -o -E '([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}'`
-
-    local intlanmac=${lanmac//:/}
-    local intwanmac=${wifimac//:/}
-    local macdelta=$((0x$intwanmac - 0x$intlanmac))
-
-    # Deal with lan and wifi having same mac address (common on TP-Link)
-    # Deal with lan mac + ~10 = wifi mac address (common on Microtik and
-    # breaks OLSR if using derived IP addresses)
-    # Deal with lan on AR300M always having the same mac address.
-    if [ $macdelta -le 10 -o $lanmac = "00:03:7F:11:23:C6" ]
-    then
-      local wifimacdigit=`printf "%X" $(((0x${wifimac:9:2} + 1) % 256))`
-      local newmac=${wifimac:0:9}${wifimacdigit}${wifimac:11}
-      lanintf=${lanintf%%.*}
-      echo "" > /etc/aredn_include/ethmacfixup
-      echo "config interface 'setethmac'" >> /etc/aredn_include/ethmacfixup
-      echo -e "\toption\tifname\t'$lanintf'" >> /etc/aredn_include/ethmacfixup
-      echo -e "\toption\tproto\t'none'" >> /etc/aredn_include/ethmacfixup
-      echo -e "\toption\tmacaddr\t$newmac" >> /etc/aredn_include/ethmacfixup
-      uci set "network.setethmac=interface"
-      uci set "network.setethmac.ifname=$lanintf"
-      uci set "network.setethmac.proto=none"
-      uci set "network.setethmac.macaddr=$newmac"
-      uci commit
-      /etc/init.d/network reload
-      /etc/init.d/network restart
-    fi
-  fi
-
-
   [ -x /usr/local/bin/aredn_postupgrade ] && /usr/local/bin/aredn_postupgrade
 
   # setup nvram variables
@@ -95,6 +56,17 @@ boot() {
     fi
     shift
   done
+
+  # did the ethernet come up? we get one reboot to try to fix it.
+  packets0=$(ifconfig br-lan | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
+  packets1=$(ifconfig br-dtdlink | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
+  packets2=$(ifconfig br-wan | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
+  if [ ! -f /did_ether_reboot -a "$packets0" = "0" -a "$packets1" = "0" -a "$packets2" = "0" ]; then
+    touch /did_ether_reboot
+    reboot
+    exit
+  fi
+  rm -f /did_ether_reboot
 
   if [ -z "$(uci -q get aredn.@alerts[0])" ]; then
       uci -q add aredn alerts

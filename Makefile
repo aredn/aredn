@@ -57,6 +57,7 @@ openwrt-clean: stamp-clean-openwrt-cleaned .stamp-openwrt-cleaned
 	ln -sf $(TOP_DIR)/patches $(OPENWRT_DIR)/
 	ln -sf $(TOP_DIR)/files   $(OPENWRT_DIR)/
 	sed -i "s/^.*freifunk.*$$//" $(OPENWRT_DIR)/feeds.conf.default
+	sed -i "s/luci.git$$/luci.git;openwrt-22.03/" $(OPENWRT_DIR)/feeds.conf.default
 	touch $@
 
 # update openwrt and checkout specified commit
@@ -76,6 +77,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 .stamp-feeds-updated: $(OPENWRT_DIR)/feeds.conf
 	cd $(OPENWRT_DIR); ./scripts/feeds uninstall -a
 	cd $(OPENWRT_DIR); ./scripts/feeds update -a
+	cd $(OPENWRT_DIR); ./scripts/feeds install libpam
 	cd $(OPENWRT_DIR); ./scripts/feeds install libcap
 	cd $(OPENWRT_DIR); ./scripts/feeds install jansson
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn2
@@ -84,11 +86,11 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn
 	cd $(OPENWRT_DIR); ./scripts/feeds install libopenldap
 	cd $(OPENWRT_DIR); ./scripts/feeds install libgnutls
-	cd $(OPENWRT_DIR); ./scripts/feeds install libpam
 	cd $(OPENWRT_DIR); ./scripts/feeds install libnetsnmp
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages olsrd
 	cd $(OPENWRT_DIR); ./scripts/feeds install perl
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages vtun
+	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages dd-wrt-ath10k-firmware
 	cd $(OPENWRT_DIR); ./scripts/feeds install -a -p arednpackages
 	cd $(OPENWRT_DIR); ./scripts/feeds install snmpd
 	cd $(OPENWRT_DIR); ./scripts/feeds install ntpclient
@@ -100,6 +102,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-jsonc
 	cd $(OPENWRT_DIR); ./scripts/feeds install luaposix
 	cd $(OPENWRT_DIR); ./scripts/feeds install luasocket
+	cd $(OPENWRT_DIR); ./scripts/feeds install iperf3
 	cd $(OPENWRT_DIR); ./scripts/feeds install mmc-utils
 	touch $@
 
@@ -145,10 +148,24 @@ compile: stamp-clean-compiled .stamp-compiled
 	$(TOP_DIR)/scripts/tests-prebuild.sh
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
-	for FILE in `find $(TOP_DIR)/firmware/targets/ -path "*packages" -prune -o \( -type f -a \
+	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -path "*packages" -prune -o \( -type f -a \
 	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin" -o -name "*initramfs.elf" -o \
-	  -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
+	  -name "*kernel.bin" -o -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
+	done;
+	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -type f -a \
+	  \( -name "*ath79-generic-*" \
+	  -o -name "*ath79-tiny-*" \
+	  -o -name "*ath79-mikrotik-*" \
+	  -o -name "*ath79-nand-*" \
+	  -o -name "*ipq40xx-mikrotik*squashfs*" \
+	  \) -print`; do \
+	  NEWNAME="$${FILE/generic-/}"; \
+	  NEWNAME="$${NEWNAME/squashfs-/}"; \
+	  NEWNAME="$${NEWNAME/-nand-glinet/}"; \
+	  NEWNAME="$${NEWNAME/-ath79-mikrotik/}"; \
+	  NEWNAME="$${NEWNAME/_routerboard/}"; \
+	  [ "$$FILE" = "$$NEWNAME" ] || mv "$$FILE" "$$NEWNAME"; \
 	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh
 
