@@ -200,30 +200,28 @@ if os.getenv("REQUEST_METHOD") == "POST" then
       end
     )
     -- only allow file uploading without active tunnels
-    if not active_tunnel then
-        local fp
-        request:setfilehandler(
-            function(meta, chunk, eof)
-                if not fp then
-                    if meta and meta.file then
-                        firmfile = meta.file
-                        if firmfile:match("sysupgrade%.bin$") then
-                            -- Uploading a system upgrade - clear out memory early
-                            os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
-                        end
+    local fp
+    request:setfilehandler(
+        function(meta, chunk, eof)
+            if not fp then
+                if meta and meta.file then
+                    firmfile = meta.file
+                    if firmfile:match("sysupgrade%.bin$") then
+                        -- Uploading a system upgrade - clear out memory early
+                        os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
                     end
-                    nixio.fs.mkdir("/tmp/web/upload")
-                    fp = io.open("/tmp/web/upload/file", "w")
-                 end
-                 if chunk then
-                    fp:write(chunk)
-                 end
-                 if eof then
-                    fp:close()
-                 end
+                end
+                nixio.fs.mkdir("/tmp/web/upload")
+                fp = io.open("/tmp/web/upload/file", "w")
             end
-        )
-    end
+            if chunk then
+                fp:write(chunk)
+            end
+            if eof then
+                fp:close()
+            end
+        end
+    )
     parms = request:formvalue()
 end
 
