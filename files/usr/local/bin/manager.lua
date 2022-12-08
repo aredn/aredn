@@ -80,7 +80,7 @@ do
 	for i, task in ipairs(tasks)
 	do
 		if task.time <= os.time() then
-			mainlog:prefix = task.name
+			mainlog.prefix = task.name
 			local status, newdelay = coroutine.resume(task.routine)
 			if not status then
 				mainlog:write(newdelay) -- error message
@@ -97,7 +97,7 @@ do
 			else
 				task.time = newdelay + os.time()
 			end
-			mainlog:prefix = nil
+			mainlog.prefix = nil
 		end
 	end
 	table.sort(tasks, function(a,b) return a.time < b.time end)
