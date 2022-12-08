@@ -273,7 +273,7 @@ function lqm()
             }
             local station = {}
             local cnoise = iwinfo.nl80211.noise(wlan)
-            if cnoise then
+            if cnoise and cnoise < -70 then
                 noise = math.ceil(noise * 0.9 + cnoise * 0.1)
             end
             for line in io.popen(IW .. " " .. wlan .. " station dump"):lines()
