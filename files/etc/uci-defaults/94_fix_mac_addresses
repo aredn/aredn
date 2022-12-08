@@ -7,6 +7,7 @@ eth0=$(ifconfig eth0 2> /dev/null | grep HWaddr | sed s/^.*HWaddr\ // | sed s/\ 
 wlan0=$(ifconfig wlan0 2> /dev/null | grep HWaddr | sed s/^.*HWaddr\ // | sed s/\ //g)
 brlan=$(ifconfig br-lan 2> /dev/null | grep HWaddr | sed s/^.*HWaddr\ // | sed s/\ //g)
 boardid=$(/usr/local/bin/get_boardid)
+mfg=$(/usr/local/bin/get_hardware_mfg)
 
 if [ "$eth0" = "$wlan0" -a "$eth0" != "" ]; then
     fix="lan wan dtdlink"
@@ -14,7 +15,7 @@ elif [ "$wlan0" = "" ]; then
     fix="lan"
 elif [ "$brlan" = "00:03:7F:11:23:C6" ]; then # Fix AR300M
     fix="lan"
-elif [[ "$boardid" = "^MikroTik.*" ]]; then # Fix all MikroTiks
+elif [ "$mfg" = "MikroTik" ]; then # Fix all MikroTiks
     fix="lan wan dtdlink"
 fi
 
