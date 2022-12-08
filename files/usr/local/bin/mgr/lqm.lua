@@ -491,7 +491,7 @@ function lqm()
                         end
                     end
                     if track.type == "RF" then
-                        if info.lqm and info.lqm.enabled then
+                        if info.lqm and info.lqm.enabled and info.lqm.info.trackers then
                             for _, rtrack in pairs(info.lqm.info.trackers)
                             do
                                 if myhostname == rtrack.hostname and (not rtrack.type or rtrack.type == "RF") then
