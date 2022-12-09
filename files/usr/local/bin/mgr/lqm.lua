@@ -230,7 +230,7 @@ function lqm()
         first_run_timeout = first_run_timeout + nixio.sysinfo().uptime
     end
 
-    local noise = iwinfo.nl80211.noise(wlan) or -95
+    local noise = -95
     local tracker = {}
     local dtdlinks = {}
     while true
