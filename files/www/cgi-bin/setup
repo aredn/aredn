@@ -568,9 +568,11 @@ if not ntp_period then
 end
 
 function is_vtun_client()
-    for line in io.lines("/etc/config/vtun") do
-        if line:match("^config server") then
-            return true
+    if nixio.fs.stat("/etc/config/vtun") then
+        for line in io.lines("/etc/config/vtun") do
+            if line:match("^config server") then
+                return true
+            end
         end
     end
     return false
