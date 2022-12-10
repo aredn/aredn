@@ -370,8 +370,12 @@ html.print("<input type=button name=button_refresh value='Refresh' title='Refres
 html.print("<tr><td>&nbsp;</td></tr>")
 hide("<input type=hidden name=reload value=1></td></tr>")
 
+local notunnels = not nixio.fs.stat("/etc/sbin/vtund")
+if notunnels then
+    html.print("<tr><td align=center><span style=background-color:cyan;font-size:140%;>&nbsp; Tunnels are no longer supported on this hardware &nbsp;</span></td></tr>")
+    config = "notunnels"
 -- low memory warning
-if isLowMemNode() then
+elseif isLowMemNode() then
     html.print("<tr><td align=center><span style=background-color:cyan;font-size:140%;>&nbsp; Recommend not to use tunneling due to low memory on this node &nbsp;</span></td></tr>")
 end
 

@@ -1206,8 +1206,8 @@ end
 
 html.print("<tr><td colspan=2><hr></hr></td></tr>")
 
+local APokay = nixio.fs.stat("/usr/sbin/wpad")
 local M39model = aredn.hardware.get_board_id():match("M[39]")
-local APokay = nixio.fs.stat("/etc/rc.d/S19wpad")
 if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi3_enable ~= "1") and not M39model) then
     -- lan ap shows as an option
     -- determine hardware options and set band ahd channels accordingly
