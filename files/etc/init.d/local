@@ -62,7 +62,7 @@ boot() {
   pkt_dtd=$(ifconfig br-dtdlink | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
   pkt_wan=$(ifconfig br-wan | grep "RX packets" | sed "s/^.*RX packets:\(\d*\).*$/\1/")
   if [ "$pkt_lan" = "0" -a "$pkt_dtd" = "0" -a "$pkt_wan" = "0" ]; then
-    /bin/ubus call network
+    /bin/ubus call network restart
   fi
 
   if [ -z "$(uci -q get aredn.@alerts[0])" ]; then
