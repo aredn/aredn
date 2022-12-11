@@ -1,0 +1,112 @@
+diff --git a/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx.h b/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx.h
+index 1955cd288f..0773f1a5af 100644
+--- a/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx.h
++++ b/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx.h
+@@ -65,7 +65,7 @@
+ #define AG71XX_TX_RING_SIZE_DEFAULT	128
+ #define AG71XX_RX_RING_SIZE_DEFAULT	256
+ 
+-#define AG71XX_TX_RING_SIZE_MAX		128
++#define AG71XX_TX_RING_SIZE_MAX		256
+ #define AG71XX_RX_RING_SIZE_MAX		256
+ 
+ #ifdef CONFIG_AG71XX_DEBUG
+diff --git a/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx_main.c b/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx_main.c
+index 2fc18d5979..d553c62401 100644
+--- a/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx_main.c
++++ b/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx_main.c
+@@ -34,7 +34,7 @@ MODULE_PARM_DESC(msg_level, "Message level (-1=defaults,0=none,...,16=all)");
+ 
+ #define ETH_SWITCH_HEADER_LEN	2
+ 
+-static int ag71xx_tx_packets(struct ag71xx *ag, bool flush);
++static int ag71xx_tx_packets(struct ag71xx *ag, bool flush, int budget);
+ 
+ static inline unsigned int ag71xx_max_frame_len(unsigned int mtu)
+ {
+@@ -478,7 +478,7 @@ static void ag71xx_fast_reset(struct ag71xx *ag)
+ 	mii_reg = ag71xx_rr(ag, AG71XX_REG_MII_CFG);
+ 	rx_ds = ag71xx_rr(ag, AG71XX_REG_RX_DESC);
+ 
+-	ag71xx_tx_packets(ag, true);
++	ag71xx_tx_packets(ag, true, 0);
+ 
+ 	reset_control_assert(ag->mac_reset);
+ 	udelay(10);
+@@ -1245,7 +1245,7 @@ static bool ag71xx_check_dma_stuck(struct ag71xx *ag)
+ 	return false;
+ }
+ 
+-static int ag71xx_tx_packets(struct ag71xx *ag, bool flush)
++static int ag71xx_tx_packets(struct ag71xx *ag, bool flush, int budget)
+ {
+ 	struct ag71xx_ring *ring = &ag->tx_ring;
+ 	bool dma_stuck = false;
+@@ -1278,7 +1278,7 @@ static int ag71xx_tx_packets(struct ag71xx *ag, bool flush)
+ 		if (!skb)
+ 			continue;
+ 
+-		dev_kfree_skb_any(skb);
++		napi_consume_skb(skb, budget);
+ 		ring->buf[i].skb = NULL;
+ 
+ 		bytes_compl += ring->buf[i].len;
+@@ -1352,7 +1352,11 @@ static int ag71xx_rx_packets(struct ag71xx *ag, int limit)
+ 		dev->stats.rx_packets++;
+ 		dev->stats.rx_bytes += pktlen;
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5,12,0)
+ 		skb = build_skb(ring->buf[i].rx_buf, ag71xx_buffer_size(ag));
++#else
++		skb = napi_build_skb(ring->buf[i].rx_buf, ag71xx_buffer_size(ag));
++#endif
+ 		if (!skb) {
+ 			skb_free_frag(ring->buf[i].rx_buf);
+ 			goto next;
+@@ -1400,7 +1404,7 @@ static int ag71xx_poll(struct napi_struct *napi, int limit)
+ 	int tx_done;
+ 	int rx_done;
+ 
+-	tx_done = ag71xx_tx_packets(ag, false);
++	tx_done = ag71xx_tx_packets(ag, false, limit);
+ 
+ 	DBG("%s: processing RX ring\n", dev->name);
+ 	rx_done = ag71xx_rx_packets(ag, limit);
+diff --git a/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx_mdio.c b/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx_mdio.c
+index a58ee3346b..fd05dbd0ca 100644
+--- a/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx_mdio.c
++++ b/target/linux/ath79/files/drivers/net/ethernet/atheros/ag71xx/ag71xx_mdio.c
+@@ -201,10 +201,6 @@ static int ag71xx_mdio_probe(struct platform_device *pdev)
+ 	mii_bus->parent = amdev;
+ 	snprintf(mii_bus->id, MII_BUS_ID_SIZE, "%s.%d", np->name, bus_count++);
+ 
+-	if (!builtin_switch &&
+-	    of_property_read_u32(np, "phy-mask", &mii_bus->phy_mask))
+-		mii_bus->phy_mask = 0;
+-
+ 	for (i = 0; i < PHY_MAX_ADDR; i++)
+ 		mii_bus->irq[i] = PHY_POLL;
+ 
+--- a/target/linux/ath79/dts/qca9558_ubnt_rocket-5ac-lite.dts
++++ b/target/linux/ath79/dts/qca9558_ubnt_rocket-5ac-lite.dts
+@@ -21,7 +21,6 @@
+ &mdio0 {
+ 	status = "okay";
+ 
+-	phy-mask = <4>;
+ 	phy4: ethernet-phy@4 {
+ 		phy-mode = "sgmii";
+ 		reg = <4>;
+@@ -36,6 +35,12 @@
+ 	nvmem-cell-names = "mac-address";
+ 	phy-mode = "sgmii";
+ 	phy-handle = <&phy4>;
++
++	qca955x-sgmii-fixup;
++
++	gmac-config {
++		device = <&gmac>;
++	};
+ };
+ 
+ &art {
