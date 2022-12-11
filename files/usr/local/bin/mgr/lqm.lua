@@ -221,7 +221,7 @@ function lqm()
     os.execute(NFT .. " insert rule ip fw4 input counter jump input_lqm comment \\\"block low quality links\\\"")
 
     -- We dont know any distances yet
-    os.execute(IW .. " " .. phy .. " set distance auto")
+    os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
 
     -- Setup a first_run timeout if this is our first every run
     if cursor:get("aredn", "@lqm[0]", "first_run") == "0" then
@@ -804,14 +804,14 @@ function lqm()
         -- Update the wifi distance
         if distance > 0 then
             coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3)) -- airtime
-            os.execute(IW .. " " .. phy .. " set coverage " .. coverage)
+            os.execute(IW .. " " .. phy .. " set coverage " .. coverage .. " > /dev/null 2>&1")
         elseif alt_distance > 1 then
             coverage = math.min(255, math.floor((alt_distance * 2 * 0.0033) / 3))
-            os.execute(IW .. " " .. phy .. " set coverage " .. coverage)
+            os.execute(IW .. " " .. phy .. " set coverage " .. coverage .. " > /dev/null 2>&1")
         elseif config.auto_distance > 0 then
-            os.execute(IW .. " " .. phy .. " set distance " .. config.auto_distance)
+            os.execute(IW .. " " .. phy .. " set distance " .. config.auto_distance .. " > /dev/null 2>&1")
         else
-            os.execute(IW .. " " .. phy .. " set distance auto")
+            os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
         end
 
         -- Save this for the UI
