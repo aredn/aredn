@@ -58,9 +58,9 @@ AirRouter HP | ath79 | - | 32MB | untested eol
 Bullet M2Ti/M5/M5Ti | ath79 | - | 32MB | untested eol
 Bullet M2 | ath79 | ubnt_bullet-m-ar7241 | 32MB | stable eol
 Bullet M2 XW | ath79 | - | 64MB | untested
-LiteBeam AC5 Gen2 | ath79 | ubnt_litebeam-ac-gen2 | ?MB | new
+LiteBeam AC5 Gen2 | ath79 | ubnt_litebeam-ac-gen2 | 64MB | new
 LiteBeam M5 | ath79 | - | 64MB | untested
-NanoBeam AC5 Gen 2 | ath79 | ubnt_nanobeam-ac-gen2 | ?MB | new
+NanoBeam 5AC Gen 2 | ath79 | ubnt_nanobeam-ac-gen2 | 128MB | new
 NanoBeam M2-13/M5-16/M5-19 | ath79 | - | 32MB | untested eol
 NanoBridge 2G18 | ath79 | - | 32MB | untested eol
 NanoBridge 5G22/25 | ath79 | - | 32MB | untested eol
@@ -89,7 +89,7 @@ TPLink CPE210 v2.0 | ath79 | tplink_cpe210-v2 | 64MB | stable
 TPLink CPE210 v3.0 | ath79 | tplink_cpe210-v3 | 64MB | untested
 TPLink CPE220 v2.0 | ath79 | tplink_cpe220-v2 | 64MB | untested
 TPLink CPE220 v3.0 | ath79 | tplink_cpe220-v3 | 64MB | untested
-TPLink CPE510 v1.0/v1.1 | ath79 | tplink_cpe510-v1 | 64MB | untested
+TPLink CPE510 v1.X | ath79 | tplink_cpe510-v1 | 64MB | untested
 TPLink CPE510 v2.0 | ath79 | tplink_cpe510-v2 | 64MB | stable
 TPLink CPE510 v3.0 | ath79 | tplink_cpe510-v3 | 64MB | stable
 TPLink CPE605 v1.0 | ath79 | tplink_cpe605-v1 | 64MB | untested
@@ -100,16 +100,23 @@ TPLink WBS210 v1.0 | ath79 | tplink_wbs210-v1 | 64MB | untested
 TPLink WBS210 v2.0 | ath79 | tplink_wbs210-v2 | 64MB | untested
 TPLink WBS510 v1.0 | ath79 | tplink_wbs510-v1 | 64MB | untested
 TPLink WBS510 v2.0 | ath79 | tplink_wbs510-v2 | 64MB | untested
-Mikrotik Basebox RB912UAG-5HPnD/2HPnD | ath79 | mikrotik_routerboard-912uag-2hpnd | 64MB | untested
+Mikrotik Basebox RB912UAG-2HPnD | ath79 | mikrotik_routerboard-912uag-2hpnd | 64MB | untested
+Mikrotik Basebox RB912UAG-5HPnD | ath79 | - | 64MB | untested
 Mikrotik hAP ac lite 952Ui-5ac2nD | ath79 | mikrotik_routerboard-952ui-5ac2nd | 64MB | stable
 Mikrotik RBLHG-2nD | ath79 | mikrotik_routerboard-lhg-2nd | 64MB | stable
 Mikrotik RBLHG-5nD | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
 Mikrotik RBLHG-5HPnD | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
 Mikrotik RBLHG-2nD-XL | ath79 | mikrotik_routerboard-lhg-2nd | 64MB | stable
 Mikrotik RBLHG-5HPnD-XL | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
-Mikrotik RBLDF-2nD/5nD | ath79 | - | 64MB | untested
+Mikrotik RBLDF-2nD | ath79 | - | 64MB | untested
+Mikrotik RBLDF-5nD | ath79 | - | 64MB | untested
 Mikrotik QRT5 RB911G-5HPnD-QRT | ath79 | - | 64MB | untested
-Mikrotik mAntbox RB911G-2HPnD/5HPnD | ath79 | - | 64MB | untested
+Mikrotik mANTBox RB911G-2HPnD | ath79 | - | 64MB | untested
+Mikrotik mANTBox RB911G-5HPnD | ath79 | - | 64MB | untested
+Mikrotik mANTBox RB912UAG-2HPnD | ath79 | mikrotik_routerboard-912uag-2hpnd | 128MB | untested
+Mikrotik mANTBox RB912UAG-5HPnD | ath79 | - | 128MB | untested
+Mikrotik mANTBox RB921GS-5HPacD 15s | ath79 | mikrotik_routerboard-921gs-5hpacd-15s | 128MB | untested new
+Mikrotik mANTBox RB921GS-5HPacD 19s | ath79 | - | 128MB | untested new
 Mikrotik SXTsq 5HPnD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 5nD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 2nD | ath79 | - | 64MB | untested
@@ -261,6 +268,18 @@ You need approximately 10GB of space for the build.
 
 Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn" command above:
+
+AREDN release 3.22.12.0
+
+```
+git checkout 3.22.12.0
+```
+
+AREDN release 3.22.8.0
+
+```
+git checkout 3.22.8.0
+```
 
 AREDN release 3.22.6.0
 
