@@ -103,6 +103,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install luaposix
 	cd $(OPENWRT_DIR); ./scripts/feeds install luasocket
 	cd $(OPENWRT_DIR); ./scripts/feeds install iperf3
+	cd $(OPENWRT_DIR); ./scripts/feeds install mii-tool
 	cd $(OPENWRT_DIR); ./scripts/feeds install mmc-utils
 	touch $@
 
