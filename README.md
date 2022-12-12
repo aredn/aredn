@@ -60,16 +60,18 @@ Bullet M2 | ath79 | ubnt_bullet-m-ar7241 | 32MB | stable eol
 Bullet M2 XW | ath79 | - | 64MB | untested
 LiteBeam AC5 Gen2 | ath79 | ubnt_litebeam-ac-gen2 | 64MB | new
 LiteBeam M5 | ath79 | - | 64MB | untested
-NanoBeam 5AC Gen 2 | ath79 | ubnt_nanobeam-ac-gen2 | 128MB | new
+NanoBeam AC 5 | ath79 | ubnt_nanobeam-ac | 64MB | untested new
+NanoBeam AC 5 Gen 2 | ath79 | ubnt_nanobeam-ac-gen2 | 128MB | new
 NanoBeam M2-13/M5-16/M5-19 | ath79 | - | 32MB | untested eol
 NanoBridge 2G18 | ath79 | - | 32MB | untested eol
 NanoBridge 5G22/25 | ath79 | - | 32MB | untested eol
 NanoBridge M9 | ath79 | - | 32MB | untested eol
+NanoStation AC 5 | ath79 | ubnt_nanostation-ac | 64MB | untested new
 NanoStation Loco M2/M5/M9 XM | ath79 | - | 32MB | untested eol
 NanoStation Loco M2 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | untested
 NanoStation Loco M5 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | stable
-NanoStation  M2/M3/M5 XM | ath79 | ubnt_nanostation-m | 32MB | stable eol
-NanoStation  M2/M5 XW | ath79 | ubnt_nanostation-m-xw | 64MB | stable
+NanoStation M2/M3/M5 XM | ath79 | ubnt_nanostation-m | 32MB | stable eol
+NanoStation M2/M5 XW | ath79 | ubnt_nanostation-m-xw | 64MB | stable
 PicoStation M2 | ath79 | ubnt_picostation-m | 32MB | untested eol
 PowerBeam-M2-400 | ath79 | ubnt_powerbeam-m2-xw | 64MB | untested
 PowerBeam-M5-300 | ath79 | ubnt_powerbeam-m5-300 | 64MB | stable
