@@ -235,19 +235,27 @@ function hardware.get_link_led()
 end
 
 function hardware.has_poe()
-    local err, result = xpcall(
-        function() return hardware.get_board().gpioswitch.poe_passthrough.pin or true end,
-        function() return false end
-    )
-    return result
+    local board = hardware.get_board()
+    if board and board.gpioswitch and board.gpioswitch.poe_passthrough and board.gpioswitch.poe_passthrough.pin then
+        return true
+    end
+    local _, count = nixio.fs.glob("/sys/class/gpio/enable-poe:*")
+    if count > 0 then
+        return true
+    end
+    return false
 end
 
 function hardware.has_usb()
-    local err, result = xpcall(
-        function() return hardware.get_board().gpioswitch.usb_power_switch.pin or true end,
-        function() return false end
-    )
-    return result
+    local board = hardware.get_board()
+    if board and board.gpioswitch and board.gpioswitch.usb_power_switch and board.gpioswitch.usb_power_switch.pin then
+        return true
+    end
+    local _, count = nixio.fs.glob("/sys/class/gpio/usb-power")
+    if count > 0 then
+        return true
+    end
+    return false
 end
 
 function hardware.get_rfband()
