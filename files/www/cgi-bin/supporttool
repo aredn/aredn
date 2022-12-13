@@ -41,7 +41,7 @@ require("uci")
 require("iwinfo")
 
 
-local wifiif = uci.cursor():get("network", "wifi", "ifname")
+local wifiif = uci.cursor():get("network", "wifi", "device")
 local phy = iwinfo.nl80211.phyname(wifiif)
 local mfg = capture("/usr/local/bin/get_hardware_mfg"):chomp()
 
@@ -51,13 +51,14 @@ local files = {
     "/etc/config.mesh/",
     "/etc/local/",
     "/etc/mesh-release",
+    "/etc/os-release",
     "/tmp/etc/",
     "/var/run/hosts_olsr",
     "/var/run/hosts_olsr.stable",
     "/var/run/services_olsr",
     "/tmp/rssi.dat",
     "/tmp/rssi.log",
-    "/tmp/zombie.log",
+    "/tmp/rssi_ath10k.log",
     "/tmp/olsrd.log",
     "/tmp/manager.log",
     "/tmp/manager.log.0",
@@ -78,9 +79,9 @@ local cmds = {
     "df -k",
     "dmesg",
     "ifconfig",
-    "iptables -t filter -L -v",
-    "iptables -t nat -L -v",
-    "iptables -t mangle -L -v",
+    "ethtool eth0",
+    "ethtool eth1",
+    "nft list ruleset",
     "ip route list",
     "ip route list table 29",
     "ip route list table 30",

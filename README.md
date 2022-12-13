@@ -19,7 +19,7 @@ to no pre-planning or IT expertise.  A user can deploy a 'node' anywhere
 to connect in and extend an AREDN network.  Device hardware options exist to
 provide sector coverage, build point-to-point links, and connect end
 point services to the network. High speed link rates are routinely achieved
-over long distances, e.g. 60Mbps+ on 10MHz channels over 80km links. 
+over long distances, e.g. 60MBps+ on 10MHz channels over 80km links. 
 
 For further information on obtaining an Amateur Radio Technician Class
 license, please refer to http://www.arrl.org/getting-your-technician-license
@@ -51,66 +51,85 @@ for a list of outstanding defects.
 
 Device | target | Image to Use | RAM | Stability
 ------ | ------ | ------------ | --- | ---------
-AirGrid XM | ar71xx | bullet-m | 32Mb | stable
-AirGrid XW | ar71xx | loco-m-xw | 32Mb | stable
-AirRouter  | ath79 | airrouter | 32Mb | stable
-AirRouter HP | ath79 | airrouter | 32Mb | stable
-Bullet M2Ti/M5/M5Ti | ar71xx | bullet-m | 32Mb | stable
-Bullet M2 | ath79 | bullet-m | 32Mb | stable
-Bullet M2 XW | ath79 | bullet-m-xw | 64Mb | stable
-LiteBeam M5 | ar71xx | lbe-m5 | 64Mb | stable
-NanoBeam M2-13/M5-16/M5-19 | ar71xx | loco-m-xw | 32Mb | stable
-NanoBridge 2G18 | ar71xx | bullet-m | 32Mb | stable
-NanoBridge 5G22/25 | ar71xx | bullet-m | 32Mb | stable
-NanoBridge M9 | ar71xx | bullet-m | 32Mb | stable
-NanoStation Loco M2/M5/M9 XM | ar71xx | bullet-m | 32Mb | stable
-NanoStation Loco M2 XW | ar71xx | loco-m-xw | 64Mb | stable
-NanoStation Loco M5 XW with test date before ~Nov 2017| ar71xx | loco-m-xw | 64Mb | stable
-NanoStation Loco M5 XW with test date on or after ~Nov 2017 | ar71xx | rocket-m-xw | 64Mb | stable
-NanoStation  M2/M3/M5 XM | ath79 | nanostation-m | 32Mb | stable
-NanoStation  M2/M5 XW | ath79 | nanostation-m-xw | 64Mb | stable
-PicoStation M2 | ar71xx | bullet-m | 32Mb | stable
-PowerBeam-M2-400 | ar71xx | loco-m-xw | 64Mb | stable
-PowerBeam-M5-300 | ar71xx | loco-m-xw | 64Mb | stable
-PowerBeam-M5-400/400ISO/620 | ar71xx | rocket-m-xw | 64Mb | stable
-PowerBridge | ar71xx | nano-m  | 64Mb | stable
-Rocket M9/M2/M3/M5/M5GPS XM | ath79 | rocket-m | 64Mb | stable
-Rocket M2/M5 XM with USB port | ar71xx | rocket-m | 64Mb | stable
-Rocket M2 XW | ar71xx | loco-m-xw | 64Mb | stable
-Rocket M5 XW | ar71xx | rocket-m-xw | 64Mb | stable
-Rocket M2 Titanium TI | ar71xx | rocket-m-ti | 64Mb | unknown
-Rocket M2 Titanium XW | ar71xx | rocket-m-xw | 64Mb | unknown
-Rocket M5 Titanium TI | ar71xx | rocket-m-ti | 64Mb | stable
-Rocket M5 Titanium XW | ar71xx | rocket-m-xw | 64Mb | stable
-TPLink CPE210 v1.0/v1.1 | ath79  | cpe210-v1 | 64Mb | stable
-TPLink CPE210 v2.0 | ath79 | cpe210-v2 | 64Mb | stable
-TPLink CPE210 v3.0 | ath79 | cpe210-v3 | 64Mb | stable
-TPLink CPE220 v2.0 | ath79 | cpe220-v2 | 64Mb | stable
-TPLink CPE220 v3.0 | ath79  | cpe220-v3 | 64Mb | stable
-TPLink CPE510 v1.0/v1.1 | ath79  | cpe510-v1 | 64Mb | stable
-TPLink CPE510 v2.0 | ath79  | cpe510-v2 | 64Mb | stable
-TPLink CPE510 v3.0 | ath79  | cpe510-v3 | 64Mb | stable
-TPLink CPE610 v1.0 | ath79  | cpe610-v1 | 64Mb | stable
-TPLink CPE610 v2.0 | ath79  | cpe610-v2 | 64Mb | stable
-TPLink WBS210 v1.0 | ath79  | wbs210-v1 | 64mb | stable
-TPLink WBS210 v2.0 | ath79  | wbs210-v2 | 64mb | stable
-TPLink WBS510 v1.0 | ath79  | wbs510-v1 | 64mb | stable
-TPLink WBS510 v2.0 | ath79  | wbs510-v2 | 64mb | stable
-Mikrotik Basebox RB912UAG-5HPnD/2HPnD | ar71xx | mikrotik-nand-large | 64Mb | stable
-Mikrotik hAP ac lite 952Ui-5ac2nD | ar71xx | mikrotik-rb-nor-flash-16M-ac | 64Mb | stable
-Mikrotik RBLHG-2nD/5nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
-Mikrotik RBLHG-5HPnD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
-Mikrotik RBLHG-2nD-XL/5HPnD-XL | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
-Mikrotik RBLDF-2nD/5nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
-Mikrotik QRT5 RB911G-5HPnD-QRT | ar71xx | mikrotik-nand-large | 64Mb | stable
-Mikrotik mAntbox RB911G-2HPnD/5HPnD | ar71xx | mikrotik-nand-large | 64Mb | stable
-Mikrotik SXTsq 5HPnD/5nD/2nD | ar71xx | mikrotik-rb-nor-flash-16M | 64Mb | stable
-GL.iNet GL-AR150 | ath79 | gl-ar150 | 64Mb | stable
-GL.iNet GL-USB150 | ar71xx | gl-usb150 | 64Mb | stable
-GL.iNet GL-AR300M16 | ar71xx | gl-ar300m | 64Mb | stable
-GL.iNet GL-AR300M w/ 128Mb NAND | None | None | 64Mb | Not compatible
-GL.iNet GL-AR750 | ar71xx | gl-ar750 | 128Mb | stable
-Meraki MR-16 | ar71xx | mr16 | 64mb | stable
+AirGrid XM | ath79 | - | 32MB | untested eol
+AirGrid XW | ath79 | - | 32MB | untested eol
+AirRouter  | ath79 | - | 32MB | untested eol
+AirRouter HP | ath79 | - | 32MB | untested eol
+Bullet M2Ti/M5/M5Ti | ath79 | - | 32MB | untested eol
+Bullet M2 | ath79 | ubnt_bullet-m-ar7241 | 32MB | stable eol
+Bullet M2 XW | ath79 | - | 64MB | untested
+LiteBeam AC5 Gen2 | ath79 | ubnt_litebeam-ac-gen2 | 64MB | new
+LiteBeam M5 | ath79 | - | 64MB | untested
+NanoBeam AC 5 | ath79 | ubnt_nanobeam-ac | 64MB | untested new
+NanoBeam AC 5 Gen 2 | ath79 | ubnt_nanobeam-ac-gen2 | 128MB | new
+NanoBeam M2-13/M5-16/M5-19 | ath79 | - | 32MB | untested eol
+NanoBridge 2G18 | ath79 | - | 32MB | untested eol
+NanoBridge 5G22/25 | ath79 | - | 32MB | untested eol
+NanoBridge M9 | ath79 | - | 32MB | untested eol
+NanoStation AC 5 | ath79 | ubnt_nanostation-ac | 64MB | untested new
+NanoStation Loco M2/M5/M9 XM | ath79 | - | 32MB | untested eol
+NanoStation Loco M2 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | untested
+NanoStation Loco M5 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | stable
+NanoStation M2/M3/M5 XM | ath79 | ubnt_nanostation-m | 32MB | stable eol
+NanoStation M2/M5 XW | ath79 | ubnt_nanostation-m-xw | 64MB | stable
+PicoStation M2 | ath79 | ubnt_picostation-m | 32MB | untested eol
+PowerBeam-M2-400 | ath79 | ubnt_powerbeam-m2-xw | 64MB | untested
+PowerBeam-M5-300 | ath79 | ubnt_powerbeam-m5-300 | 64MB | stable
+PowerBeam-M5-400/400ISO/620 | ath79 | ubnt_powerbeam-m5-xw | 64MB | stable
+PowerBridge | ath79 | - | 64MB | untested
+Rocket AC Lite 5 | ath79 | ubnt_rocket-5ac-lite | 128MB | new
+Rocket M9/M2/M3/M5/M5GPS XM | ath79 | ubnt_rocket-m | 64MB | stable
+Rocket M2/M5 XM with USB port | ath79 | ubnt_rocket-m | 64MB | stable
+Rocket M2 XW | ath79 | ubnt_rocket-m-xw | 64MB | untested
+Rocket M5 XW | ath79 | ubnt_rocket-m-xw | 64MB | stable
+Rocket M2 Titanium TI | ath79 | - | 64MB | untested
+Rocket M2 Titanium XW | ath79 | ubnt_rocket-m-xw | 64MB | untested
+Rocket M5 Titanium TI | ath79 | - | 64MB | untested
+Rocket M5 Titanium XW | ath79 | ubnt_rocket-m-xw | 64MB | stable
+TPLink CPE210 v1.0/v1.1 | ath79 | tplink_cpe210-v1 | 64MB | stable
+TPLink CPE210 v2.0 | ath79 | tplink_cpe210-v2 | 64MB | stable
+TPLink CPE210 v3.0 | ath79 | tplink_cpe210-v3 | 64MB | untested
+TPLink CPE220 v2.0 | ath79 | tplink_cpe220-v2 | 64MB | untested
+TPLink CPE220 v3.0 | ath79 | tplink_cpe220-v3 | 64MB | untested
+TPLink CPE510 v1.X | ath79 | tplink_cpe510-v1 | 64MB | untested
+TPLink CPE510 v2.0 | ath79 | tplink_cpe510-v2 | 64MB | stable
+TPLink CPE510 v3.0 | ath79 | tplink_cpe510-v3 | 64MB | stable
+TPLink CPE605 v1.0 | ath79 | tplink_cpe605-v1 | 64MB | untested
+TPLink CPE610 v1.0 | ath79 | tplink_cpe610-v1 | 64MB | untested
+TPLink CPE610 v2.0 | ath79 | tplink_cpe610-v2 | 64MB | untested
+TPLink CPE710 v1.0 | ath79 | tplink_cpe710-v1 | 128MB | new
+TPLink WBS210 v1.0 | ath79 | tplink_wbs210-v1 | 64MB | untested
+TPLink WBS210 v2.0 | ath79 | tplink_wbs210-v2 | 64MB | untested
+TPLink WBS510 v1.0 | ath79 | tplink_wbs510-v1 | 64MB | untested
+TPLink WBS510 v2.0 | ath79 | tplink_wbs510-v2 | 64MB | untested
+Mikrotik Basebox RB912UAG-2HPnD | ath79 | mikrotik_routerboard-912uag-2hpnd | 64MB | untested
+Mikrotik Basebox RB912UAG-5HPnD | ath79 | - | 64MB | untested
+Mikrotik hAP ac lite 952Ui-5ac2nD | ath79 | mikrotik_routerboard-952ui-5ac2nd | 64MB | stable
+Mikrotik RBLHG-2nD | ath79 | mikrotik_routerboard-lhg-2nd | 64MB | stable
+Mikrotik RBLHG-5nD | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
+Mikrotik RBLHG-5HPnD | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
+Mikrotik RBLHG-2nD-XL | ath79 | mikrotik_routerboard-lhg-2nd | 64MB | stable
+Mikrotik RBLHG-5HPnD-XL | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
+Mikrotik RBLDF-2nD | ath79 | - | 64MB | untested
+Mikrotik RBLDF-5nD | ath79 | - | 64MB | untested
+Mikrotik QRT5 RB911G-5HPnD-QRT | ath79 | - | 64MB | untested
+Mikrotik mANTBox RB911G-2HPnD | ath79 | - | 64MB | untested
+Mikrotik mANTBox RB911G-5HPnD | ath79 | - | 64MB | untested
+Mikrotik mANTBox RB912UAG-2HPnD | ath79 | mikrotik_routerboard-912uag-2hpnd | 128MB | untested
+Mikrotik mANTBox RB912UAG-5HPnD | ath79 | - | 128MB | untested
+Mikrotik mANTBox RB921GS-5HPacD 15s | ath79 | mikrotik_routerboard-921gs-5hpacd-15s | 128MB | untested new
+Mikrotik mANTBox RB921GS-5HPacD 19s | ath79 | - | 128MB | untested new
+Mikrotik SXTsq 5HPnD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
+Mikrotik SXTsq 5nD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
+Mikrotik SXTsq 2nD | ath79 | - | 64MB | untested
+MikroTik RouterBOARD D52G-5HacD2HnD | ipq40xx | mikrotik_hap-ac2 | 128MB | new
+MikroTik RouterBOARD SXTsqG-5acD | ipq40xx | mikrotik_sxtsq-5-ac | 256MB | new
+GL.iNet GL-AR150 | ath79 | glinet_gl-ar150 | 64MB | stable
+GL.iNet GL-USB150 | ath79 | glinet_gl-usb150 | 64MB | stable
+GL.iNet GL-AR300M16 | ath79 | glinet_gl-ar300m | 64MB | stable
+GL.iNet GL-AR300M w/ 128MB NAND | ath79 | - | 64MB | untested
+GL.iNet GL-AR750 | ath79 | glinet_gl-ar750 | 128MB | stable
+Meraki MR-16 | ath79 | - | 64MB | untested
 
 The 'target' is a directory to find the image on at http://downloads.arednmesh.org
 
@@ -191,7 +210,7 @@ docker run -it --name builder arednmesh/builder
 
 To pull an image (or any other file) out of the docker container:
 ```
-docker cp builder:/opt/aredn/aredn/firmware/targets/ar71xx/generic/<image>.bin <local directory>
+docker cp builder:/opt/aredn/aredn/firmware/targets/ath79/generic/<image>.bin <local directory>
 ```
 
 ### Build Prerequisites
@@ -229,9 +248,9 @@ bash
 git clone https://github.com/aredn/aredn.git
 cd aredn
 vi config.mk # enter your callsign, etc.
-# build default legacy ar71xx target ubnt and tplink images
+# build default legacy ath79 target ubnt and tplink images
 make  
-# build and add legacy ar71xx target mikrotik images
+# build and add legacy ath79 target mikrotik images
 make SUBTARGET=mikrotik
 # build and add ath79 target (latest linux kernel) ubnt, tplink, and gl images
 make MAINTARGET=ath79
@@ -239,7 +258,7 @@ make MAINTARGET=ath79
 
 Building the images may take minutes or hours depending on the machine.
 For more details see [build options](https://openwrt.org/docs/guide-developer/build-system/use-buildsystem).  
-Review the build options in config.mk: `-j <number of cores + 1>`. 
+Review the build options in config.mk: `-j <nuMBer of cores + 1>`. 
 `V=s` will give more verbose error messages.
 
 An internet connection is required during the build process. A good internet
@@ -251,6 +270,18 @@ You need approximately 10GB of space for the build.
 
 Prior AREDN images can be rebuilt.  Replace one of the following after
 the "cd aredn" command above:
+
+AREDN release 3.22.12.0
+
+```
+git checkout 3.22.12.0
+```
+
+AREDN release 3.22.8.0
+
+```
+git checkout 3.22.8.0
+```
 
 AREDN release 3.22.6.0
 

@@ -35,7 +35,6 @@
 --]]
 
 require("uci")
-require("luci.sys")
 require("nixio")
 local info = require("aredn.info")
 
@@ -69,6 +68,6 @@ else
     if not server:match("%.") then
       server = server .. ".local.mesh"
     end
-    luci.sys.httpget("http://" .. server .. ":8080/cgi-bin/iperf?server=")
+	os.execute("wget -q 'http://" .. server .. ":8080/cgi-bin/iperf?server=' > /dev/null 2>&1")
     print("<html><head><title>iperf</title></head><body><pre>" .. io.popen("/usr/bin/iperf3 -b 0 -c " .. server .. (protocol == "udp" and " -u" or "") .. " 2>&1"):read("*a") .. "</pre></body></html>")
 end

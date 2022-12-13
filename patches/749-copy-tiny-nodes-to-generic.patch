@@ -1,0 +1,128 @@
+#
+# Migration our hardware from the ath79-tiny build as upgrades dont work in that mode :-(
+#
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image/generic-ubnt.mk
+@@ -295,3 +295,85 @@
+   SUPPORTED_DEVICES += uap-pro
+ endef
+ TARGET_DEVICES += ubnt_unifi-ap-pro
++
++define Device/ubnt_airrouter
++  $(Device/ubnt-xm)
++  SOC := ar7241
++  DEVICE_MODEL := AirRouter
++  SUPPORTED_DEVICES += airrouter
++endef
++TARGET_DEVICES += ubnt_airrouter
++
++define Device/ubnt_nanobridge-m
++  $(Device/ubnt-xm)
++  SOC := ar7241
++  DEVICE_MODEL := NanoBridge M
++  DEVICE_PACKAGES += rssileds
++  SUPPORTED_DEVICES += bullet-m
++endef
++TARGET_DEVICES += ubnt_nanobridge-m
++
++define Device/ubnt_bullet-m-ar7240
++  $(Device/ubnt-xm)
++  SOC := ar7240
++  DEVICE_MODEL := Bullet M
++  DEVICE_VARIANT := XM (AR7240)
++  DEVICE_PACKAGES += rssileds
++  SUPPORTED_DEVICES += bullet-m
++endef
++TARGET_DEVICES += ubnt_bullet-m-ar7240
++
++define Device/ubnt_bullet-m-ar7241
++  $(Device/ubnt-xm)
++  SOC := ar7241
++  DEVICE_MODEL := Bullet M
++  DEVICE_VARIANT := XM (AR7241)
++  DEVICE_PACKAGES += rssileds
++  SUPPORTED_DEVICES += bullet-m ubnt,bullet-m
++endef
++TARGET_DEVICES += ubnt_bullet-m-ar7241
++
++define Device/ubnt_picostation-m
++  $(Device/ubnt-xm)
++  SOC := ar7241
++  DEVICE_MODEL := Picostation M
++  DEVICE_PACKAGES += rssileds
++  SUPPORTED_DEVICES += bullet-m
++endef
++TARGET_DEVICES += ubnt_picostation-m
++
++define Device/ubnt_nanostation-m
++  $(Device/ubnt-xm)
++  SOC := ar7241
++  DEVICE_MODEL := Nanostation M
++  DEVICE_PACKAGES += rssileds
++  SUPPORTED_DEVICES += nanostation-m
++endef
++TARGET_DEVICES += ubnt_nanostation-m
++
++define Device/ubnt_nanostation-loco-m
++  $(Device/ubnt-xm)
++  SOC := ar7241
++  DEVICE_MODEL := Nanostation Loco M
++  DEVICE_PACKAGES += rssileds
++  SUPPORTED_DEVICES += bullet-m
++endef
++TARGET_DEVICES += ubnt_nanostation-loco-m
++
++define Device/ubnt_powerbridge-m
++  $(Device/ubnt-xm)
++  SOC := ar7241
++  DEVICE_MODEL := PowerBridge M
++  DEVICE_PACKAGES += rssileds
++  SUPPORTED_DEVICES += bullet-m
++endef
++TARGET_DEVICES += ubnt_powerbridge-m
++
++define Device/ubnt_rocket-m
++  $(Device/ubnt-xm)
++  SOC := ar7241
++  DEVICE_MODEL := Rocket M
++  DEVICE_PACKAGES += rssileds
++  SUPPORTED_DEVICES += rocket-m
++endef
++TARGET_DEVICES += ubnt_rocket-m
+--- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+@@ -536,6 +536,19 @@
+                 ucidef_set_interface "dtdlink" device "eth0.2 eth1.2" protocol "static"
+                 ucidef_set_interface "wifi" device "wlan0" protocol "static"
+                 ;;
++	ubnt,nanostation-m)
++		ucidef_set_interfaces_lan_wan "eth0 eth1" "eth0.1 eth1.1"
++		ucidef_set_interface "dtdlink" device "eth0.2 eth1.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
++		;;
++	ubnt,bullet-m-ar7241|\
++	ubnt,nanobridge-m|\
++	ubnt,rocket-m)
++		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
++		;;
++
+ 	*)
+ 		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
+ 		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
+--- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
++++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
+@@ -139,6 +139,12 @@
+ 		caldata_extract "art" 0x1000 0x1000
+ 		ath9k_patch_mac $(nvram get wl0_hwaddr)
+ 		;;
++	ubnt,nanostation-m|\
++	ubnt,bullet-m-ar7241|\
++	ubnt,nanobridge-m|\
++	ubnt,rocket-m)
++		caldata_extract "art" 0x1000 0x1000
++		;;
+ 	*)
+ 		caldata_die "board $board is not supported yet"
+ 		;;

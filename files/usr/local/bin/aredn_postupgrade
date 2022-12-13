@@ -37,7 +37,6 @@
 require("aredn.utils")
 local aredn_info = require("aredn.info")
 require("aredn.hardware")
-require("luci.sys")
 require("uci")
 
 local needsrun = aredn_info.get_nvram("nodeupgraded")
@@ -127,4 +126,4 @@ os.execute("/usr/local/bin/node-setup -a mesh")
 
 aredn_info.set_nvram("nodeupgraded", "0")
 print "Rebooting node"
-luci.sys.reboot()
+os.execute("reboot >/dev/null 2>&1")

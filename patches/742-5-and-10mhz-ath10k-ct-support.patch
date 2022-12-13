@@ -1,0 +1,277 @@
+Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
+===================================================================
+--- /dev/null
++++ openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
+@@ -0,0 +1,272 @@
++diff -urpN a/ath10k-5.15/debug.c b/ath10k-5.15/debug.c
++--- a/ath10k-5.15/debug.c	2022-05-13 22:42:36.000000000 +0100
+++++ b/ath10k-5.15/debug.c	2022-11-29 12:22:12.836789627 +0000
++@@ -4403,6 +4403,54 @@ static const struct file_operations fops
++ 	.llseek = default_llseek,
++ };
++ 
+++static ssize_t read_file_chan_bw(struct file *file, char __user *user_buf,
+++			     size_t count, loff_t *ppos)
+++{
+++	struct ath10k *ar = file->private_data;
+++	struct ath_common *common = &ar->ath_common;
+++	char buf[32];
+++	unsigned int len;
+++
+++	len = sprintf(buf, "0x%08x\n", common->chan_bw);
+++	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
+++}
+++
+++int ath10k_update_channel_list(struct ath10k *ar);
+++
+++static ssize_t write_file_chan_bw(struct file *file, const char __user *user_buf,
+++			     size_t count, loff_t *ppos)
+++{
+++	struct ath10k *ar = file->private_data;
+++	struct ath_common *common = &ar->ath_common;
+++	unsigned long chan_bw;
+++	int ret;
+++	char buf[32];
+++	ssize_t len;
+++
+++	len = min(count, sizeof(buf) - 1);
+++	if (copy_from_user(buf, user_buf, len))
+++		return -EFAULT;
+++
+++	buf[len] = '\0';
+++	if (kstrtoul(buf, 0, &chan_bw))
+++		return -EINVAL;
+++
+++	common->chan_bw = chan_bw;
+++	ret = ath10k_update_channel_list(ar);
+++	if (ret)
+++		ath10k_warn(ar, "failed to update channel list: %d\n", ret);
+++
+++	return count;
+++}
+++
+++static const struct file_operations fops_chanbw = {
+++	.read = read_file_chan_bw,
+++	.write = write_file_chan_bw,
+++	.open = simple_open,
+++	.owner = THIS_MODULE,
+++	.llseek = default_llseek,
+++};
+++
++ int ath10k_debug_create(struct ath10k *ar)
++ {
++ 	ar->debug.cal_data = vzalloc(ATH10K_DEBUG_CAL_DATA_LEN);
++@@ -4451,6 +4499,9 @@ int ath10k_debug_register(struct ath10k
++ 	init_completion(&ar->debug.ratepwr_tbl_complete);
++ 	init_completion(&ar->debug.powerctl_tbl_complete);
++ 
+++	debugfs_create_file("chanbw", S_IRUSR | S_IWUSR, ar->debug.debugfs_phy,
+++			    ar, &fops_chanbw);
+++
++ 	debugfs_create_file("fw_stats", 0400, ar->debug.debugfs_phy, ar,
++ 			    &fops_fw_stats);
++ 
++diff -urpN a/ath10k-5.15/mac.c b/ath10k-5.15/mac.c
++--- a/ath10k-5.15/mac.c	2022-11-29 12:18:41.281151667 +0000
+++++ b/ath10k-5.15/mac.c	2022-11-29 12:21:15.199940728 +0000
++@@ -697,6 +697,8 @@ chan_to_phymode(const struct cfg80211_ch
++ 	switch (chandef->chan->band) {
++ 	case NL80211_BAND_2GHZ:
++ 		switch (chandef->width) {
+++		case NL80211_CHAN_WIDTH_5:
+++		case NL80211_CHAN_WIDTH_10:
++ 		case NL80211_CHAN_WIDTH_20_NOHT:
++ 			if (chandef->chan->flags & IEEE80211_CHAN_NO_OFDM)
++ 				phymode = MODE_11B;
++@@ -716,6 +718,8 @@ chan_to_phymode(const struct cfg80211_ch
++ 		break;
++ 	case NL80211_BAND_5GHZ:
++ 		switch (chandef->width) {
+++		case NL80211_CHAN_WIDTH_5:
+++		case NL80211_CHAN_WIDTH_10:
++ 		case NL80211_CHAN_WIDTH_20_NOHT:
++ 			phymode = MODE_11A;
++ 			break;
++@@ -1311,6 +1315,16 @@ static int ath10k_monitor_vdev_start(str
++ 	arg.channel.max_reg_power = channel->max_reg_power * 2;
++ 	arg.channel.max_antenna_gain = ath10k_get_max_antenna_gain(ar,
++ 						channel->max_antenna_gain);
+++	arg.channel.quarter = false;
+++	arg.channel.half = false;
+++	if (ar->ath_common.chan_bw == 5)
+++		arg.channel.quarter = true;
+++	else if (ar->ath_common.chan_bw == 10)
+++		arg.channel.half = true;
+++	else if (chandef->width == NL80211_CHAN_WIDTH_5)
+++		arg.channel.quarter = true;
+++	else if (chandef->width == NL80211_CHAN_WIDTH_10)
+++		arg.channel.half = true;
++ 
++ 	reinit_completion(&ar->vdev_setup_done);
++ 	reinit_completion(&ar->vdev_delete_done);
++@@ -1756,6 +1770,21 @@ static int ath10k_vdev_start_restart(str
++ 		}
++ 	}
++ 
+++	arg.channel.quarter = false;
+++	arg.channel.half = false;
+++	if (ar->ath_common.chan_bw == 5)
+++		arg.channel.quarter = true;
+++	else if (ar->ath_common.chan_bw == 10)
+++		arg.channel.half = true;
+++	else if (chandef->width == NL80211_CHAN_WIDTH_5) {
+++		arg.channel.quarter = true;
+++		ar->ath_common.chan_bw = 5;
+++	}
+++	else if (chandef->width == NL80211_CHAN_WIDTH_10) {
+++		arg.channel.half = true;
+++		ar->ath_common.chan_bw = 10;
+++	}
+++
++ 	if (arvif->vdev_type == WMI_VDEV_TYPE_AP) {
++ 		arg.ssid = arvif->u.ap.ssid;
++ 		arg.ssid_len = arvif->u.ap.ssid_len;
++@@ -4097,7 +4126,7 @@ static int ath10k_station_disassoc(struc
++ /* Regulatory */
++ /**************/
++ 
++-static int ath10k_update_channel_list(struct ath10k *ar)
+++int ath10k_update_channel_list(struct ath10k *ar)
++ {
++ 	struct ieee80211_hw *hw = ar->hw;
++ 	struct ieee80211_supported_band **bands;
++@@ -4174,6 +4203,12 @@ static int ath10k_update_channel_list(st
++ 			ch->max_antenna_gain = ath10k_get_max_antenna_gain(ar,
++ 						channel->max_antenna_gain);
++ 			ch->reg_class_id = 0; /* FIXME */
+++			ch->half = false;
+++			ch->quarter = false;
+++			if (ar->ath_common.chan_bw == 5)
+++			    ch->quarter = true;
+++			else if (ar->ath_common.chan_bw == 10)
+++			    ch->half = true;
++ 
++ 			/* FIXME: why use only legacy modes, why not any
++ 			 * HT/VHT modes? Would that even make any
++@@ -5841,6 +5876,7 @@ static void ath10k_mac_setup_ht_vht_cap(
++ 	if (ar->phy_capability & WHAL_WLAN_11G_CAPABILITY) {
++ 		band = &ar->mac.sbands[NL80211_BAND_2GHZ];
++ 		band->ht_cap = ht_cap;
+++                band->vht_cap = vht_cap;
++ 
++ 		/* Enable the VHT support at 2.4 GHz */
++ 		band->vht_cap = vht_cap;
++@@ -7179,7 +7215,7 @@ static void ath10k_mac_op_set_coverage_c
++ 	if (value != ar->fw_coverage.coverage_class)
++ 		ar->eeprom_overrides.coverage_already_set = false; /* value is being changed */
++ 	mutex_unlock(&ar->conf_mutex);
++-
+++        
++ 	ar->hw_params.hw_ops->set_coverage_class(ar, value);
++ }
++ 
++@@ -7319,6 +7355,11 @@ static int ath10k_hw_scan(struct ieee802
++ 		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
++ 	}
++ 
+++	if (ar->ath_common.chan_bw == 5)
+++		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_QUARTER_RATE_SUPPORT;
+++	else if (ar->ath_common.chan_bw == 10)
+++		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_HALF_RATE_SUPPORT;
+++
++ 	if (req->flags & NL80211_SCAN_FLAG_RANDOM_ADDR) {
++ 		arg.scan_ctrl_flags |=  WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
++ 		ether_addr_copy(arg.mac_addr.addr, req->mac_addr);
++@@ -8849,6 +8890,10 @@ static int ath10k_remain_on_channel(stru
++ 	arg.scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
++ 	arg.scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
++ 	arg.burst_duration_ms = duration;
+++	if (ar->ath_common.chan_bw == 5)
+++		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_QUARTER_RATE_SUPPORT;
+++	else if (ar->ath_common.chan_bw == 10)
+++		arg.scan_ctrl_flags |= WMI_SCAN_FLAG_HALF_RATE_SUPPORT;
++ 
++ 	if (ath10k_mac_vif_has_any_cck(ar, vif, (1 << chan->band)))
++ 		arg.scan_ctrl_flags |= WMI_SCAN_ADD_CCK_RATES;
++@@ -11296,6 +11341,7 @@ int ath10k_mac_register(struct ath10k *a
++ 			ieee80211_hw_set(ar->hw, TDLS_WIDER_BW);
++ 	}
++ 
+++	ar->hw->wiphy->flags |= WIPHY_FLAG_SUPPORTS_5_10_MHZ;
++ 	if (test_bit(WMI_SERVICE_TDLS_UAPSD_BUFFER_STA, ar->wmi.svc_map))
++ 		ieee80211_hw_set(ar->hw, SUPPORTS_TDLS_BUFFER_STA);
++ 
++diff -urpN a/ath10k-5.15/spectral.c b/ath10k-5.15/spectral.c
++--- a/ath10k-5.15/spectral.c	2022-11-29 12:18:41.285151725 +0000
+++++ b/ath10k-5.15/spectral.c	2022-11-29 12:21:15.199940728 +0000
++@@ -90,6 +90,12 @@ int ath10k_spectral_process_fft(struct a
++ 	 * but the results/plots suggest that its actually 22/44/88 MHz.
++ 	 */
++ 	switch (phyerr->chan_width_mhz) {
+++	case 5:
+++		fft_sample->chan_width_mhz = 5;
+++		break;
+++	case 10:
+++		fft_sample->chan_width_mhz = 11;
+++		break;
++ 	case 20:
++ 		fft_sample->chan_width_mhz = 22;
++ 		break;
++diff -urpN a/ath10k-5.15/wmi.c b/ath10k-5.15/wmi.c
++--- a/ath10k-5.15/wmi.c	2022-11-29 12:18:41.277151608 +0000
+++++ b/ath10k-5.15/wmi.c	2022-11-29 12:21:15.203940797 +0000
++@@ -1786,6 +1786,10 @@ void ath10k_wmi_put_wmi_channel(struct a
++ 		flags |= WMI_CHAN_FLAG_HT40_PLUS;
++ 	if (arg->chan_radar)
++ 		flags |= WMI_CHAN_FLAG_DFS;
+++	if (arg->quarter)
+++		flags |= WMI_CHAN_FLAG_QUARTER;
+++	else if (arg->half)
+++		flags |= WMI_CHAN_FLAG_HALF;
++ 
++ 	ch->band_center_freq2 = 0;
++ 
++@@ -8546,6 +8550,12 @@ ath10k_wmi_op_gen_scan_chan_list(struct
++ 	for (i = 0; i < arg->n_channels; i++) {
++ 		ch = &arg->channels[i];
++ 		ci = &cmd->chan_info[i];
+++		ch->quarter = false;
+++		ch->half = false;
+++		if (ar->ath_common.chan_bw == 5)
+++			ch->quarter = true;
+++		else if (ar->ath_common.chan_bw == 10)
+++			ch->half = true;
++ 
++ 		ath10k_wmi_put_wmi_channel(ar, ci, ch, -1);
++ 	}
++diff -urpN a/ath10k-5.15/wmi.h b/ath10k-5.15/wmi.h
++--- a/ath10k-5.15/wmi.h	2022-11-29 12:18:41.277151608 +0000
+++++ b/ath10k-5.15/wmi.h	2022-11-29 12:21:15.207940866 +0000
++@@ -2146,6 +2146,8 @@ struct wmi_channel_arg {
++ 	bool allow_ht;
++ 	bool allow_vht;
++ 	bool ht40plus;
+++	bool quarter;
+++	bool half;
++ 	bool chan_radar;
++ 	/* note: power unit is 0.5 dBm */
++ 	u32 min_power;
++@@ -3431,6 +3433,18 @@ struct wmi_start_scan_arg {
++  * Allow the driver to have influence over that.
++  */
++ #define WMI_SCAN_CONTINUE_ON_ERROR 0x80
+++/** set scan with promiscous mode */
+++#define WMI_SCAN_PROMISCOUS_MODE    0x80
+++/** allow capture ppdu with phy errrors */
+++#define WMI_SCAN_CAPTURE_PHY_ERROR  0x100
+++/** always do passive scan on passive channels */
+++#define WMI_SCAN_FLAG_STRICT_PASSIVE_ON_PCHN 0x200
+++/** set HALF (10MHz) rate support */
+++#define WMI_SCAN_FLAG_HALF_RATE_SUPPORT    0x20000
+++/** set Quarter (5MHz) rate support */
+++#define WMI_SCAN_FLAG_QUARTER_RATE_SUPPORT 0x40000
+++/** WMI_SCAN_CLASS_MASK must be the same value as IEEE80211_SCAN_CLASS_MASK */
+++#define WMI_SCAN_CLASS_MASK 0xFF000000
++ 
++ /* Use random MAC address for TA for Probe Request frame and add
++  * OUI specified by WMI_SCAN_PROB_REQ_OUI_CMDID to the Probe Request frame.

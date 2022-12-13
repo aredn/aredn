@@ -43,7 +43,6 @@ aredn.html = require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
 require("ubus")
-require("luci.sys")
 
 local html = aredn.html
 
@@ -160,7 +159,7 @@ function reboot()
     end
     html.print("</center></body></html>")
     http_footer()
-    luci.sys.reboot()
+    os.execute("reboot >/dev/null 2>&1")
     os.exit()
 end
 
@@ -191,7 +190,7 @@ local parms = {}
 local firmfile = ""
 if os.getenv("REQUEST_METHOD") == "POST" then
     require('luci.http')
-    local request = luci.http.Request(luci.sys.getenv(),
+    local request = luci.http.Request(nixio.getenv(),
       function()
         local v = io.read(1024)
         if not v then
@@ -201,30 +200,28 @@ if os.getenv("REQUEST_METHOD") == "POST" then
       end
     )
     -- only allow file uploading without active tunnels
-    if not active_tunnel then
-        local fp
-        request:setfilehandler(
-            function(meta, chunk, eof)
-                if not fp then
-                    if meta and meta.file then
-                        firmfile = meta.file
-                        if firmfile:match("sysupgrade%.bin$") then
-                            -- Uploading a system upgrade - clear out memory early
-                            os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
-                        end
+    local fp
+    request:setfilehandler(
+        function(meta, chunk, eof)
+            if not fp then
+                if meta and meta.file then
+                    firmfile = meta.file
+                    if firmfile:match("sysupgrade%.bin$") then
+                        -- Uploading a system upgrade - clear out memory early
+                        os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
                     end
-                    nixio.fs.mkdir("/tmp/web/upload")
-                    fp = io.open("/tmp/web/upload/file", "w")
-                 end
-                 if chunk then
-                    fp:write(chunk)
-                 end
-                 if eof then
-                    fp:close()
-                 end
+                end
+                nixio.fs.mkdir("/tmp/web/upload")
+                fp = io.open("/tmp/web/upload/file", "w")
             end
-        )
-    end
+            if chunk then
+                fp:write(chunk)
+            end
+            if eof then
+                fp:close()
+            end
+        end
+    )
     parms = request:formvalue()
 end
 
@@ -289,6 +286,8 @@ elseif mfgprefix == "cpe" then
         hardwaretypev = "510-v3"           -- v3.0
     elseif hwmodel:match("CPE510") then
         hardwaretypev = "510-520-v1"       -- CPE510 V1.0/v1.1
+    elseif hwmodel:match("CPE605") then
+        hardwaretypev = "605-v1"      	    -- CPE605 V1.0
     elseif hwmodel:match("CPE610 v2%.0") then
         hardwaretypev = "610-v2"      	    -- CPE610 V2.0
     elseif hwmodel:match("CPE610") then
@@ -460,7 +459,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
     html.print("<style>")
     html.print(read_all("/tmp/web/style.css"))
     html.print("</style>")
-    html.print("<meta http-equiv='refresh' content='180;URL=http://" .. node .. ".local.mesh:8080'>")
+    html.print("<meta http-equiv='refresh' content='300;URL=http://" .. node .. ".local.mesh:8080'>")
     html.print("</head>")
     html.print("<body><center>")
     html.print("<h2>The firmware is being updated.</h2>")
@@ -491,7 +490,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                     html.print("</body></html>")
                     http_footer()
                     aredn.info.set_nvram("nodeupgraded", "0")
-                    luci.sys.reboot()
+                    os.execute("reboot >/dev/null 2>&1")
                 else
                     html.print([[
                         <center><h2>Firmware will be written in the background.</h2>
@@ -501,7 +500,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                         When the node has finished booting you should ensure your computer has<br>
                         received a new IP address and reconnect with<br>
                         <a href='http://]] .. node .. [[.local.mesh:8080/'>http://]] .. node .. [[.local.mesh:8080/</a><br>
-                        (This page will automatically reload in 3 minutes)</h3>
+                        (This page will automatically reload in 5 minutes)</h3>
                         </center></body></html>
                     ]])
                     http_footer()
@@ -520,7 +519,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
             html.footer()
             html.print("</body></html>")
             http_footer()
-            luci.sys.reboot()
+            os.execute("reboot >/dev/null 2>&1")
         end
     else
         html.print([[
@@ -532,7 +531,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
             received a new IP address and reconnect with<br>
             <a href='http://localnode.local.mesh:8080/'>http://192.168.1.1:8080/</a><br>
             and continue setup of the node in firstboot state.<br>
-            (This page will automatically reload in 3 minutes)</h3>
+            (This page will automatically reload in 5 minutes)</h3>
             </center></body></html>
         ]])
         http_footer()

@@ -42,7 +42,6 @@ require("aredn.utils")
 require("aredn.hardware")
 require("uci")
 require('luci.http')
-require('luci.sys')
 local html = require("aredn.html")
 local aredn_info = require("aredn.info")
 
@@ -54,42 +53,6 @@ local hidden = {}
 local cursor = uci.cursor()
 
 -- helpers start
-
-local rf_channel_map = {
-    ["900"] = {},
-    ["2400"] = {},
-    ["3400"] = {},
-    ["5500"] = {},
-    ["5800ubntus"] = {}
-}
-for i = 4,7
-do
-    rf_channel_map["900"][i - 3] = { label = i .. " (" .. (887 + i * 5) .. ")", number = i, frequency = 887 + i * 5 }
-end
-for i = -4,11
-do
-    rf_channel_map["2400"][i + (i <= 0 and 5 or 4)] = { label = i .. " (" .. (2407 + i * 5) .. ")", number = i, frequency = 2407 + i * 5 }
-end
-for i = 76,99
-do
-    rf_channel_map["3400"][i - 75] = { label = i .. " (" .. (3000 + i * 5) .. ")", number = i, frequency = 3000 + i * 5 }
-end
-for i = 36,64,4
-do
-    rf_channel_map["5500"][(i - 32) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
-end
-for i = 100,140,4
-do
-    rf_channel_map["5500"][(i - 64) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
-end
-for i = 149,165,4
-do
-    rf_channel_map["5500"][(i - 69) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
-end
-for i = 131,184
-do
-    rf_channel_map["5800ubntus"][i - 130] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
-end
 
 function capture_and_match(cmd, pattern)
     local f = io.popen(cmd)
@@ -104,33 +67,6 @@ function capture_and_match(cmd, pattern)
         end
         f:close()
     end
-end
-
-function rf_channels_list(wifiintf)
-    local channels = {}
-    local rfband = aredn.hardware.get_rfband()
-    if rfband and rf_channel_map[rfband] then
-        return rf_channel_map[rfband]
-    else
-        local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
-        if f then
-            for line in f:lines()
-            do
-                local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%d+)%)")
-                if freq and not line:match("restricted") then
-                    freq = freq:gsub("%.", "")
-                    num = num:gsub("^0+", "")
-                    channels[#channels + 1] = {
-                        label = num .. " (" .. freq .. ")",
-                        number = tonumber(num),
-                        frequency = freq
-                    }
-                end
-            end
-            f:close()
-        end
-    end
-    return channels
 end
 
 function reboot()
@@ -181,7 +117,7 @@ function reboot()
     end
     html.print("</center></body></html>")
     http_footer()
-    luci.sys.reboot()
+    os.execute("reboot >/dev/null 2>&1")
     os.exit()
 end
 
@@ -194,7 +130,7 @@ function out(str)
 end
 
 function is_channel_valid(channel)
-    local list = rf_channels_list(aredn.hardware.get_iface_name("wifi"))
+    local list = aredn.hardware.get_rfchannels(aredn.hardware.get_iface_name("wifi"))
     for _, c in ipairs(list)
     do
         if c.number == channel then
@@ -265,7 +201,7 @@ local phycount = tonumber(capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp
 local parms = {}
 local has_parms = false
 if os.getenv("REQUEST_METHOD") == "POST" then
-    local request = luci.http.Request(luci.sys.getenv(),
+    local request = luci.http.Request(nixio.getenv(),
       function()
         local v = io.read(1024)
         if not v then
@@ -803,7 +739,7 @@ if parms.button_save then
         if f then
             for k, v in pairs(parms)
             do
-                if k:match("^aprs_") or k:match("^dhcp_") or k:match("^dmz_") or k:match("^lan_") or k:match("^olsrd_") or k:match("^wan_") or k:match("^wifi_") or k:match("^wifi2_") or k:match("^wifi3_") or k:match("^dtdlink_") or k:match("^ntp_") or k:match("^time_") or k:match("^description_") then
+                if k:match("^aprs_") or k:match("^dhcp_") or k:match("^dmz_") or k:match("^lan_") or k:match("^olsrd_") or k:match("^wan_") or k:match("^wifi_") or k:match("^wifi2_") or k:match("^wifi3_") or k:match("^dtdlink_") or k:match("^ntp_") or k:match("^time_") or k:match("^description_") or k:match("^compat_version") then
                     f:write(k .. " = " .. v .. "\n")
                 end
             end
@@ -1102,6 +1038,7 @@ html.print([[
 <td><textarea rows='2' cols='60' wrap='soft' maxlength='210' id='node_description_entry' name='description_node' tabindex='4'>]] .. desc .. [[</textarea></td>
 ]])
 hidden[#hidden + 1] = "<input type=hidden name=config value='mesh'>"
+hidden[#hidden + 1] = "<input type=hidden name=compat_version value='" .. (compat_version or "") .. "'>"
 html.print([[
 <td>Verify Password</td>
 <td><input class='password-input' type=password name=passwd2 value=']] .. passwd2 .. [[' size=8 tabindex=3><i class='password-toggle'></i></td>
@@ -1114,11 +1051,7 @@ html.print([[
 
 -- mesh rf settings
 html.print("<table width=100% style='border-collapse: collapse;'>")
-if phycount > 1 then
-    html.print("<tr><th colspan=2>Mesh RF (2GHz)</th></tr>")
-else
-    html.print("<tr><th colspan=2>Mesh RF</th></tr>")
-end
+html.print("<tr><th colspan=2>Mesh RF</th></tr>")
 hidden[#hidden + 1] = "<input type=hidden name=wifi_proto value='static'>"
 
 -- add enable/disable
@@ -1141,7 +1074,7 @@ if wifi_enable == "1" then
     html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi_ssid value='" .. wifi_ssid .. "'>-" .. wifi_chanbw .. "-v3</td></tr>")
     hidden[#hidden + 1] = "<input type=hidden name=wifi_mode value='" .. wifi_mode .. "'>"
     html.print("<tr><td>Channel</td><td><select name=wifi_channel>")
-    local rfchannels = rf_channels_list(wifiintf)
+    local rfchannels = aredn.hardware.get_rfchannels(wifiintf)
     table.sort(rfchannels, function(a, b) return a.number < b.number end)
     for _, chan in ipairs(rfchannels)
     do
@@ -1150,9 +1083,10 @@ if wifi_enable == "1" then
     html.print("</select>&nbsp;&nbsp;<a href='/help.html#channel' target='_blank'><img src='/qmark.png'></a></td></tr>")
 
     html.print("<tr><td>Channel Width</td><td><select name=wifi_chanbw>")
-    html.print("<option value='20'".. (wifi_chanbw == "20" and " selected" or "") .. ">20 MHz</option>")
-    html.print("<option value='10'".. (wifi_chanbw == "10" and " selected" or "") .. ">10 MHz</option>")
-    html.print("<option value='5'".. (wifi_chanbw == "5" and " selected" or "") .. ">5 MHz</option>")
+    for _, width in ipairs(aredn.hardware.get_rfbandwidths())
+    do
+        html.print("<option value='" .. width .. "'".. (wifi_chanbw == tostring(width) and " selected" or "") .. ">" .. width .. " MHz</option>")
+    end
     html.print("</select></td></tr>")
 
     hidden[#hidden + 1] = "<input type=hidden name=wifi_country value='HX'>"
@@ -1274,8 +1208,9 @@ end
 
 html.print("<tr><td colspan=2><hr></hr></td></tr>")
 
+local APokay = nixio.fs.stat("/usr/sbin/wpad")
 local M39model = aredn.hardware.get_board_id():match("M[39]")
-if (phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi3_enable ~= "1") and not M39model then
+if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi3_enable ~= "1") and not M39model) then
     -- lan ap shows as an option
     -- determine hardware options and set band ahd channels accordingly
     if phycount == 1 then
@@ -1379,7 +1314,7 @@ html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan
 html.print("<tr><th colspan=2><hr></td></tr>")
 
 -- wan wifi client
-if (phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1") and not M39model then
+if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1")) and not M39model then
     -- wifi client shows as an option
     -- determine hardware options and set band accordingly
 
