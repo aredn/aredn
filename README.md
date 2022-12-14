@@ -45,7 +45,6 @@ turned into a release.
 
 Please refer to https://github.com/aredn/aredn/issues
 for a list of outstanding defects.
-This is the 3.22.12.0 release.
 
 
 ### Images built
