@@ -46,38 +46,37 @@ turned into a release.
 Please refer to https://github.com/aredn/aredn/issues
 for a list of outstanding defects.
 
-
 ### Images built
 
 Device | target | Image to Use | RAM | Stability
 ------ | ------ | ------------ | --- | ---------
-AirGrid XM | ath79 | - | 32MB | untested eol
-AirGrid XW | ath79 | - | 32MB | untested eol
-AirRouter  | ath79 | ubnt_airrouter | 32MB | untested eol
-AirRouter HP | ath79 | ubnt_airrouter | 32MB | untested eol
-Bullet M2Ti/M5/M5Ti | ath79 | - | 32MB | untested eol
-Bullet M2 | ath79 | ubnt_bullet-m-ar7241 | 32MB | stable eol
+AirGrid XM | ath79 | - | 32MB | untested sunset
+AirGrid XW | ath79 | - | 32MB | untested sunset
+AirRouter  | ath79 | ubnt_airrouter | 32MB | untested sunset
+AirRouter HP | ath79 | ubnt_airrouter | 32MB | untested sunset
+Bullet M2Ti/M5/M5Ti | ath79 | - | 32MB | untested sunset
+Bullet M2 | ath79 | ubnt_bullet-m-ar7241 | 32MB | stable sunset
 Bullet M2 XW | ath79 | ubnt_bullet-m-xw | 64MB | untested
-LiteBeam AC5 Gen2 | ath79 | ubnt_litebeam-ac-gen2 | 64MB | new
+LiteBeam AC5 Gen2 | ath79 | ubnt_litebeam-ac-gen2 | 64MB | stable new
 LiteBeam M5 | ath79 | - | 64MB | untested
 NanoBeam AC 5 | ath79 | ubnt_nanobeam-ac | 64MB | untested new
-NanoBeam AC 5 Gen 2 | ath79 | ubnt_nanobeam-ac-gen2 | 128MB | new
-NanoBeam M2-13/M5-16/M5-19 | ath79 | - | 32MB | untested eol
-NanoBridge 2G18 | ath79 | ubnt_nanobridge-m | 32MB | untested eol
-NanoBridge 5G22/25 | ath79 | ubnt_nanobridge-m | 32MB | untested eol
-NanoBridge M9 | ath79 | ubnt_nanobridge-m | 32MB | untested eol
+NanoBeam AC 5 Gen 2 | ath79 | ubnt_nanobeam-ac-gen2 | 128MB | stable new
+NanoBeam M2-13/M5-16/M5-19 | ath79 | - | 32MB | untested sunset
+NanoBridge 2G18 | ath79 | ubnt_nanobridge-m | 32MB | untested sunset
+NanoBridge 5G22/25 | ath79 | ubnt_nanobridge-m | 32MB | untested sunset
+NanoBridge M9 | ath79 | ubnt_nanobridge-m | 32MB | untested sunset
 NanoStation AC 5 | ath79 | ubnt_nanostation-ac | 64MB | untested new
-NanoStation Loco M2/M5/M9 XM | ath79 | ubnt_nanostation-loco-m | 32MB | untested eol
+NanoStation Loco M2/M5/M9 XM | ath79 | ubnt_nanostation-loco-m | 32MB | untested sunset
 NanoStation Loco M2 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | untested
 NanoStation Loco M5 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | stable
-NanoStation M2/M3/M5 XM | ath79 | ubnt_nanostation-m | 32MB | stable eol
+NanoStation M2/M3/M5 XM | ath79 | ubnt_nanostation-m | 32MB | stable sunset
 NanoStation M2/M5 XW | ath79 | ubnt_nanostation-m-xw | 64MB | stable
-PicoStation M2 | ath79 | ubnt_picostation-m | 32MB | untested eol
+PicoStation M2 | ath79 | ubnt_picostation-m | 32MB | untested sunset
 PowerBeam-M2-400 | ath79 | ubnt_powerbeam-m2-xw | 64MB | untested
 PowerBeam-M5-300 | ath79 | ubnt_powerbeam-m5-300 | 64MB | stable
 PowerBeam-M5-400/400ISO/620 | ath79 | ubnt_powerbeam-m5-xw | 64MB | stable
 PowerBridge | ath79 | ubnt_powerbridge-m | 64MB | untested
-Rocket AC Lite 5 | ath79 | ubnt_rocket-5ac-lite | 128MB | new
+Rocket AC Lite 5 | ath79 | ubnt_rocket-5ac-lite | 128MB | stable new
 Rocket M9/M2/M3/M5/M5GPS XM | ath79 | ubnt_rocket-m | 64MB | stable
 Rocket M2/M5 XM with USB port | ath79 | ubnt_rocket-m | 64MB | untested
 Rocket M2 XW | ath79 | ubnt_rocket-m-xw | 64MB | untested
@@ -97,7 +96,7 @@ TPLink CPE510 v3.0 | ath79 | tplink_cpe510-v3 | 64MB | stable
 TPLink CPE605 v1.0 | ath79 | tplink_cpe605-v1 | 64MB | untested
 TPLink CPE610 v1.0 | ath79 | tplink_cpe610-v1 | 64MB | untested
 TPLink CPE610 v2.0 | ath79 | tplink_cpe610-v2 | 64MB | untested
-TPLink CPE710 v1.0 | ath79 | tplink_cpe710-v1 | 128MB | new
+TPLink CPE710 v1.0 | ath79 | tplink_cpe710-v1 | 128MB | stable new
 TPLink WBS210 v1.0 | ath79 | tplink_wbs210-v1 | 64MB | untested
 TPLink WBS210 v2.0 | ath79 | tplink_wbs210-v2 | 64MB | untested
 TPLink WBS510 v1.0 | ath79 | tplink_wbs510-v1 | 64MB | untested
@@ -122,14 +121,21 @@ Mikrotik mANTBox RB921GS-5HPacD 19s | ath79 | - | 128MB | untested new
 Mikrotik SXTsq 5HPnD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 5nD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 2nD | ath79 | - | 64MB | untested
-MikroTik RouterBOARD D52G-5HacD2HnD | ipq40xx | mikrotik_hap-ac2 | 128MB | new
-MikroTik RouterBOARD SXTsqG-5acD | ipq40xx | mikrotik_sxtsq-5-ac | 256MB | new
+MikroTik RouterBOARD D52G-5HacD2HnD | ipq40xx | mikrotik_hap-ac2 | 128MB | stable new
+MikroTik RouterBOARD SXTsqG-5acD | ipq40xx | mikrotik_sxtsq-5-ac | 256MB | stable new
 GL.iNet GL-AR150 | ath79 | glinet_gl-ar150 | 64MB | stable
 GL.iNet GL-USB150 | ath79 | glinet_gl-usb150 | 64MB | stable
 GL.iNet GL-AR300M16 | ath79 | glinet_gl-ar300m | 64MB | stable
 GL.iNet GL-AR300M w/ 128MB NAND | ath79 | - | 64MB | untested
 GL.iNet GL-AR750 | ath79 | glinet_gl-ar750 | 128MB | stable
 Meraki MR-16 | ath79 | - | 64MB | untested
+
+#### Stability
+
+* *untested* - this image has not been tested on hardware. It may or may not work.
+* *stable* - this image has been tested on hardware. There may still be bugs.
+* *sunset* - this device has been sunsetted and support will be deprecated at some point.
+* *new* - this device is newly supported.
 
 The 'target' is a directory to find the image on at http://downloads.arednmesh.org
 
