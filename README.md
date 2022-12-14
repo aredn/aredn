@@ -53,21 +53,21 @@ Device | target | Image to Use | RAM | Stability
 ------ | ------ | ------------ | --- | ---------
 AirGrid XM | ath79 | - | 32MB | untested eol
 AirGrid XW | ath79 | - | 32MB | untested eol
-AirRouter  | ath79 | - | 32MB | untested eol
-AirRouter HP | ath79 | - | 32MB | untested eol
+AirRouter  | ath79 | ubnt_airrouter | 32MB | untested eol
+AirRouter HP | ath79 | ubnt_airrouter | 32MB | untested eol
 Bullet M2Ti/M5/M5Ti | ath79 | - | 32MB | untested eol
 Bullet M2 | ath79 | ubnt_bullet-m-ar7241 | 32MB | stable eol
-Bullet M2 XW | ath79 | - | 64MB | untested
+Bullet M2 XW | ath79 | ubnt_bullet-m-xw | 64MB | untested
 LiteBeam AC5 Gen2 | ath79 | ubnt_litebeam-ac-gen2 | 64MB | new
 LiteBeam M5 | ath79 | - | 64MB | untested
 NanoBeam AC 5 | ath79 | ubnt_nanobeam-ac | 64MB | untested new
 NanoBeam AC 5 Gen 2 | ath79 | ubnt_nanobeam-ac-gen2 | 128MB | new
 NanoBeam M2-13/M5-16/M5-19 | ath79 | - | 32MB | untested eol
-NanoBridge 2G18 | ath79 | - | 32MB | untested eol
-NanoBridge 5G22/25 | ath79 | - | 32MB | untested eol
-NanoBridge M9 | ath79 | - | 32MB | untested eol
+NanoBridge 2G18 | ath79 | ubnt_nanobridge-m | 32MB | untested eol
+NanoBridge 5G22/25 | ath79 | ubnt_nanobridge-m | 32MB | untested eol
+NanoBridge M9 | ath79 | ubnt_nanobridge-m | 32MB | untested eol
 NanoStation AC 5 | ath79 | ubnt_nanostation-ac | 64MB | untested new
-NanoStation Loco M2/M5/M9 XM | ath79 | - | 32MB | untested eol
+NanoStation Loco M2/M5/M9 XM | ath79 | ubnt_nanostation-loco-m | 32MB | untested eol
 NanoStation Loco M2 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | untested
 NanoStation Loco M5 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | stable
 NanoStation M2/M3/M5 XM | ath79 | ubnt_nanostation-m | 32MB | stable eol
@@ -76,7 +76,7 @@ PicoStation M2 | ath79 | ubnt_picostation-m | 32MB | untested eol
 PowerBeam-M2-400 | ath79 | ubnt_powerbeam-m2-xw | 64MB | untested
 PowerBeam-M5-300 | ath79 | ubnt_powerbeam-m5-300 | 64MB | stable
 PowerBeam-M5-400/400ISO/620 | ath79 | ubnt_powerbeam-m5-xw | 64MB | stable
-PowerBridge | ath79 | - | 64MB | untested
+PowerBridge | ath79 | ubnt_powerbridge-m | 64MB | untested
 Rocket AC Lite 5 | ath79 | ubnt_rocket-5ac-lite | 128MB | new
 Rocket M9/M2/M3/M5/M5GPS XM | ath79 | ubnt_rocket-m | 64MB | stable
 Rocket M2/M5 XM with USB port | ath79 | ubnt_rocket-m | 64MB | untested
@@ -86,7 +86,7 @@ Rocket M2 Titanium TI | ath79 | - | 64MB | untested
 Rocket M2 Titanium XW | ath79 | ubnt_rocket-m-xw | 64MB | untested
 Rocket M5 Titanium TI | ath79 | - | 64MB | untested
 Rocket M5 Titanium XW | ath79 | ubnt_rocket-m-xw | 64MB | stable
-TPLink CPE210 v1.0/v1.1 | ath79 | tplink_cpe210-v1 | 64MB | stable
+TPLink CPE210 v1.X | ath79 | tplink_cpe210-v1 | 64MB | stable
 TPLink CPE210 v2.0 | ath79 | tplink_cpe210-v2 | 64MB | stable
 TPLink CPE210 v3.0 | ath79 | tplink_cpe210-v3 | 64MB | untested
 TPLink CPE220 v2.0 | ath79 | tplink_cpe220-v2 | 64MB | untested
