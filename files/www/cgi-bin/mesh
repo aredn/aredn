@@ -217,6 +217,7 @@ arptable(function(a)
     arpcache[a["IP address"]] = a
 end)
 
+local iwrates
 local prefix = "/sys/kernel/debug/ieee80211/" .. phy .. "/netdev:" .. wifiif .. "/stations/"
 for i, node in ipairs(aredn.olsr.getOLSRLinks())
 do
@@ -248,6 +249,27 @@ do
                 end
             end
             f:close()
+        else -- fallback (rates without error accounting)
+            if not iwrates then
+                iwrates = {}
+                local station = {}
+                for line in io.popen("iw " .. wifiif .. " station dump"):lines()
+                do
+                    local mac = line:match("^Station (%S+) ")
+                    if mac then
+                        station = {}
+                        iwrates[mac] = station
+                    end
+                    local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
+                    if txbitrate then
+                        station.txbitrate = txbitrate
+                    end
+                end
+            end
+            local station = iwrates[mac["HW address"]]
+            if station then
+                links[node.remoteIP].mbps = string.format("%.1f", station.txbitrate)
+            end
         end
     end
 end
