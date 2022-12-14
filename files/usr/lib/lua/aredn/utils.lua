@@ -263,6 +263,9 @@ function iplookup(host)
 	end
 	local nso=capture("nslookup "..host)
 	local ip=nso:match("Address 1: (.*)%c")
+	if not ip then
+		ip=nso:match("Address: ([%d%.]+)")
+	end
 	return ip
 end
 
