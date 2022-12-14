@@ -72,6 +72,7 @@ NanoStation Loco M5 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | stable
 NanoStation M2/M3/M5 XM | ath79 | ubnt_nanostation-m | 32MB | stable sunset
 NanoStation M2/M5 XW | ath79 | ubnt_nanostation-m-xw | 64MB | stable
 PicoStation M2 | ath79 | ubnt_picostation-m | 32MB | untested sunset
+PowerBeam AC 5 500 | ath79 | powerbeam-5ac-500 | 128MB | stable new
 PowerBeam-M2-400 | ath79 | ubnt_powerbeam-m2-xw | 64MB | untested
 PowerBeam-M5-300 | ath79 | ubnt_powerbeam-m5-300 | 64MB | stable
 PowerBeam-M5-400/400ISO/620 | ath79 | ubnt_powerbeam-m5-xw | 64MB | stable
@@ -122,6 +123,7 @@ Mikrotik SXTsq 5HPnD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 5nD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 2nD | ath79 | - | 64MB | untested
 MikroTik RouterBOARD D52G-5HacD2HnD | ipq40xx | mikrotik_hap-ac2 | 128MB | stable new
+MikroTik RouterBOARD D53iG-5HacD2HnD | ipq40xx | mikrotik_hap-ac3 | 256MB | untested new
 MikroTik RouterBOARD SXTsqG-5acD | ipq40xx | mikrotik_sxtsq-5-ac | 256MB | stable new
 GL.iNet GL-AR150 | ath79 | glinet_gl-ar150 | 64MB | stable
 GL.iNet GL-USB150 | ath79 | glinet_gl-usb150 | 64MB | stable
