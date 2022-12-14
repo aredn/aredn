@@ -79,7 +79,7 @@ PowerBeam-M5-400/400ISO/620 | ath79 | ubnt_powerbeam-m5-xw | 64MB | stable
 PowerBridge | ath79 | - | 64MB | untested
 Rocket AC Lite 5 | ath79 | ubnt_rocket-5ac-lite | 128MB | new
 Rocket M9/M2/M3/M5/M5GPS XM | ath79 | ubnt_rocket-m | 64MB | stable
-Rocket M2/M5 XM with USB port | ath79 | ubnt_rocket-m | 64MB | stable
+Rocket M2/M5 XM with USB port | ath79 | ubnt_rocket-m | 64MB | untested
 Rocket M2 XW | ath79 | ubnt_rocket-m-xw | 64MB | untested
 Rocket M5 XW | ath79 | ubnt_rocket-m-xw | 64MB | stable
 Rocket M2 Titanium TI | ath79 | - | 64MB | untested
