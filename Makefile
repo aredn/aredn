@@ -88,19 +88,16 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install libgnutls
 	cd $(OPENWRT_DIR); ./scripts/feeds install libnetsnmp
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages olsrd
-	cd $(OPENWRT_DIR); ./scripts/feeds install perl
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages vtun
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages dd-wrt-ath10k-firmware
-	cd $(OPENWRT_DIR); ./scripts/feeds install -a -p arednpackages
 	cd $(OPENWRT_DIR); ./scripts/feeds install snmpd
+	cd $(OPENWRT_DIR); ./scripts/feeds install curl
 	cd $(OPENWRT_DIR); ./scripts/feeds install ntpclient
 	cd $(OPENWRT_DIR); ./scripts/feeds install socat
-	cd $(OPENWRT_DIR); ./scripts/feeds install xinetd
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-base
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-nixio
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-ip
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-jsonc
-	cd $(OPENWRT_DIR); ./scripts/feeds install luaposix
 	cd $(OPENWRT_DIR); ./scripts/feeds install luasocket
 	cd $(OPENWRT_DIR); ./scripts/feeds install iperf3
 	cd $(OPENWRT_DIR); ./scripts/feeds install mii-tool
