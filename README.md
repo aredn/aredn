@@ -105,11 +105,10 @@ TPLink WBS510 v2.0 | ath79 | tplink_wbs510-v2 | 64MB | untested
 Mikrotik Basebox RB912UAG-2HPnD | ath79 | mikrotik_routerboard-912uag-2hpnd | 64MB | untested
 Mikrotik Basebox RB912UAG-5HPnD | ath79 | - | 64MB | untested
 Mikrotik hAP ac lite 952Ui-5ac2nD | ath79 | mikrotik_routerboard-952ui-5ac2nd | 64MB | stable
-Mikrotik RBLHG-2nD | ath79 | mikrotik_routerboard-lhg-2nd | 64MB | stable
+Mikrotik RBLHG-2nD(-XL) | ath79 | mikrotik_routerboard-lhg-2nd | 64MB | stable
 Mikrotik RBLHG-5nD | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
-Mikrotik RBLHG-5HPnD | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
-Mikrotik RBLHG-2nD-XL | ath79 | mikrotik_routerboard-lhg-2nd | 64MB | stable
-Mikrotik RBLHG-5HPnD-XL | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
+Mikrotik RBLHG-5HPnD(-XL) | ath79 | mikrotik_routerboard-lhg-5nd | 64MB | stable
+MikroTik RBLHGG-5acD(-XL) | ipq40xx | mikrotik_lhgg-5acd | 256MB | untested new
 Mikrotik RBLDF-2nD | ath79 | - | 64MB | untested
 Mikrotik RBLDF-5nD | ath79 | - | 64MB | untested
 Mikrotik QRT5 RB911G-5HPnD-QRT | ath79 | - | 64MB | untested
