@@ -19,7 +19,7 @@ to no pre-planning or IT expertise.  A user can deploy a 'node' anywhere
 to connect in and extend an AREDN network.  Device hardware options exist to
 provide sector coverage, build point-to-point links, and connect end
 point services to the network. High speed link rates are routinely achieved
-over long distances, e.g. 60MBps+ on 10MHz channels over 80km links. 
+over long distances, e.g. 60Mbps+ on 10MHz channels over 80km links.
 
 For further information on obtaining an Amateur Radio Technician Class
 license, please refer to http://www.arrl.org/getting-your-technician-license
