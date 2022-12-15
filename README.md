@@ -72,7 +72,7 @@ NanoStation Loco M5 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | stable
 NanoStation M2/M3/M5 XM | ath79 | ubnt_nanostation-m | 32MB | stable sunset
 NanoStation M2/M5 XW | ath79 | ubnt_nanostation-m-xw | 64MB | stable
 PicoStation M2 | ath79 | ubnt_picostation-m | 32MB | untested sunset
-PowerBeam AC 5 500 | ath79 | powerbeam-5ac-500 | 128MB | stable new
+PowerBeam AC 5 500 | ath79 | ubnt_powerbeam-5ac-500 | 128MB | stable new
 PowerBeam-M2-400 | ath79 | ubnt_powerbeam-m2-xw | 64MB | untested
 PowerBeam-M5-300 | ath79 | ubnt_powerbeam-m5-300 | 64MB | stable
 PowerBeam-M5-400/400ISO/620 | ath79 | ubnt_powerbeam-m5-xw | 64MB | stable
