@@ -297,6 +297,12 @@ AREDN release 3.22.6.0
 git checkout 3.22.6.0
 ```
 
+AREDN release 3.22.1.0
+
+```
+git checkout 3.22.1.0
+```
+
 AREDN release 3.21.4.0
 
 ```
