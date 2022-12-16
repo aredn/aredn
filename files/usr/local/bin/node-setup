@@ -206,6 +206,15 @@ end
 
 -- basic configuration
 if do_basic then
+
+    -- support wan vlan override
+    local ports = ""
+    for _, port in ipairs(cfg.wan_intf:split(" "))
+    do
+        ports = ports .. "	list ports '" .. port .. "'\n"
+    end
+    write_all("/etc/aredn_include/wan.network.config", ports)
+
     remove_all("/tmp/new_config")
     nixio.fs.mkdir("/tmp/new_config")
 
