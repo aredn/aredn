@@ -81,7 +81,9 @@ local cmds = {
     "ifconfig",
     "ethtool eth0",
     "ethtool eth1",
-    "nft list ruleset",
+    "ip link",
+    "ip addr",
+    "ip neigh",
     "ip route list",
     "ip route list table 29",
     "ip route list table 30",
@@ -96,7 +98,7 @@ local cmds = {
     "iw dev " .. wifiif .. " info",
     "iw dev " .. wifiif .. " scan",
     "iw dev " .. wifiif .. " station dump",
-    "logread",
+    "nft list ruleset",
     "md5sum /www/cgi-bin/*",
     "echo /all | nc 127.0.0.1 2006",
     "opkg list-installed",
@@ -105,6 +107,7 @@ local cmds = {
     "/usr/local/bin/get_boardid",
     "/usr/local/bin/get_model",
     "/usr/local/bin/get_hardware_mfg",
+    "logread",
 }
 local cmds_ubnt = {
     "cat /dev/mtd0|grep 'U-Boot'|head -n1"
@@ -149,28 +152,26 @@ os.execute("sed -i -e 's/_key =.*$/_key =/' /tmp/sd/etc/config.mesh/_setup")
 
 local f = io.open("/tmp/sd/data.txt", "w")
 if f then
-    for _, cmd in ipairs(cmds)
-    do
-        local p = io.popen(cmd)
-        if p then
-            f:write("========== " .. cmd .. " ==========\n")
-            f:write(p:read("*a"))
-            p:close()
-        end
-    end
-
     if mfg == "Ubiquiti" then
         for _, cmd in ipairs(cmds_ubnt)
         do
             local p = io.popen(cmd)
             if p then
-                f:write("========== " .. cmd .. " (UBNT only) ==========\n")
+                f:write("\n========== " .. cmd .. " (UBNT only) ==========\n")
                 f:write(p:read("*a"))
                 p:close()
             end
         end
     end
-
+    for _, cmd in ipairs(cmds)
+    do
+        local p = io.popen(cmd)
+        if p then
+            f:write("\n========== " .. cmd .. " ==========\n")
+            f:write(p:read("*a"))
+            p:close()
+        end
+    end
     f:close()
 end
 
