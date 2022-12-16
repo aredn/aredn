@@ -40,10 +40,18 @@ if [ -z "$newval" ]; then
   exit 2
 fi
 
-pin=$(echo /sys/class/gpio/usb-powe*)
-if [ "${pin}" = "/sys/class/gpio/usb-powe*" ]; then
-  echo "There are NO controllable USB ports defined for this device"
-  exit 1
+pinnum=$(jsonfilter -e '@.gpioswitch.usb_power_switch.pin' < /etc/board.json)
+if [ "${pinnum}" != "" ]; then
+  pin="/sys/class/gpio/gpio${pinnum}"
+  if [ ! -d "${pin}" ]; then
+    echo "${pinnum}" > /sys/class/gpio/export
+  fi
+else
+  pin=$(echo /sys/class/gpio/usb-powe*)
+  if [ "${pin}" = "/sys/class/gpio/usb-powe*" ]; then
+    echo "There are NO controllable USB ports defined for this device"
+    exit 1
+  fi
 fi
 
 active_low=$(cat ${pin}/active_low)
@@ -51,5 +59,8 @@ if [ "${active_low}" = "1" ]; then
   newval=$((1 - ${newval}))
 fi
 
+if [ -e "${pin}/direction" ]; then
+  echo "out" > ${pin}/direction
+fi
 echo "${newval}" > ${pin}/value
 exit 0
