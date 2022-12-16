@@ -239,6 +239,10 @@ function hardware.has_poe()
     if board and board.gpioswitch and board.gpioswitch.poe_passthrough and board.gpioswitch.poe_passthrough.pin then
         return true
     end
+    -- Handle typo in various config files
+    if board and board.gpioswitch and board.gpioswitch.poe_passtrough and board.gpioswitch.poe_passtrough.pin then
+        return true
+    end
     local _, count = nixio.fs.glob("/sys/class/gpio/enable-poe:*")
     if count > 0 then
         return true
