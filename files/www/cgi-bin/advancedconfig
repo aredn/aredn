@@ -613,7 +613,7 @@ end
 function currentWANVLAN()
     for line in io.lines("/etc/config.mesh/_setup")
     do
-        local vlan = line:match("^wan_intf = %w+%d+%.(%d+)")
+        local vlan = line:match("^wan_intf = %w+%.(%d+)")
         if vlan then
             return vlan
         end
