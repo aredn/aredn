@@ -50,8 +50,8 @@ for a list of outstanding defects.
 
 Device | target | Image to Use | RAM | Stability
 ------ | ------ | ------------ | --- | ---------
-AirGrid XM | ath79 | - | 32MB | untested sunset
-AirGrid XW | ath79 | - | 32MB | untested sunset
+AirGrid XM | ath79 | ubnt_bullet-m-ar7241 | 32MB | untested sunset
+AirGrid XW | ath79 | ubnt_bullet-m-xw | 32MB | untested sunset
 AirRouter  | ath79 | ubnt_airrouter | 32MB | untested sunset
 AirRouter HP | ath79 | ubnt_airrouter | 32MB | untested sunset
 Bullet M2Ti/M5/M5Ti | ath79 | - | 32MB | untested sunset
