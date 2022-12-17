@@ -79,6 +79,15 @@ do
 		fi
     fi
 done
+
+#apply any user overrides
+for i in lan wan dtdlink
+do
+	if [ -f $ainclude/$i.network.user ]; then
+		cp $ainclude/$i.network.user $ainclude/$i.network.config
+	fi
+done
+
 #if unable to create *.network.config includes, put in a default in hopes the device ports
 #will function.  The correction to board.json is made in the image, in 02_networks
 #
