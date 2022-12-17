@@ -122,7 +122,7 @@ Mikrotik SXTsq 5HPnD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 5nD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 2nD | ath79 | - | 64MB | untested
 MikroTik RouterBOARD D52G-5HacD2HnD | ipq40xx | mikrotik_hap-ac2 | 128MB | stable new
-MikroTik RouterBOARD D53iG-5HacD2HnD | ipq40xx | mikrotik_hap-ac3 | 256MB | untested new
+MikroTik RouterBOARD D53iG-5HacD2HnD | ipq40xx | mikrotik_hap-ac3 | 256MB | stable new
 MikroTik RouterBOARD SXTsqG-5acD | ipq40xx | mikrotik_sxtsq-5-ac | 256MB | stable new
 GL.iNet GL-AR150 | ath79 | glinet_gl-ar150 | 64MB | stable
 GL.iNet GL-USB150 | ath79 | glinet_gl-usb150 | 64MB | stable
