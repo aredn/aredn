@@ -505,7 +505,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                     ]])
                     http_footer()
                     nixio.fs.remove("/tmp/sysupgradefilelist")
-                    upgradecmd = "/sbin/sysupgrade -f /tmp/arednsysupgradebackup.tgz -q " .. tmpdir .. "/firmware 2>&1 &"
+                    upgradecmd = "/usr/local/bin/aredn_sysupgrade -f /tmp/arednsysupgradebackup.tgz -q " .. tmpdir .. "/firmware 2>&1 &"
                 end
             else
                 fin:close()
@@ -535,7 +535,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
             </center></body></html>
         ]])
         http_footer()
-        upgradecmd = "/sbin/sysupgrade -q -n " .. tmpdir .. "/firmware 2>&1 &"
+        upgradecmd = "/usr/local/bin/aredn_sysupgrade -q -n " .. tmpdir .. "/firmware 2>&1 &"
     end
     if upgradecmd then
         os.execute(upgradecmd)
