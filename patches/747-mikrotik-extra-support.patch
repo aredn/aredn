@@ -405,7 +405,7 @@
  		( [ -f "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data" 0xaf20 0x2f20 ) || \
 --- a/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
 +++ b/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
-@@ -163,12 +163,18 @@
+@@ -163,12 +163,13 @@
  		;;
  	mikrotik,cap-ac|\
  	mikrotik,hap-ac2|\
@@ -416,11 +416,6 @@
  		default_do_upgrade "$1"
  		;;
  	mikrotik,hap-ac3)
-+		if [ "$(rootfs_type)" = "tmpfs" ]; then
-+			ubidetach -m 1
-+			ubiformat /dev/mtd1 -y
-+			ubiattach -m 1
-+		fi
  		platform_do_upgrade_mikrotik_nand "$1"
  		;;
  	netgear,rbr50 |\
