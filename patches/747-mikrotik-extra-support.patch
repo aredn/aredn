@@ -131,7 +131,7 @@
  	zyxel,wre6606)
  		ucidef_set_interface_lan "eth0"
  		;;
-+	mikrotik,lhgg-5-ac|\
++	mikrotik,lhgg-5acd|\
  	mikrotik,sxtsq-5-ac)
  		ucidef_set_interfaces_lan_wan "lan" "lan.1"
  		ucidef_set_interface "wifi" device "wlan0" protocol "static"
@@ -139,7 +139,7 @@
  		label_mac="$wan_mac"
  		;;
  	mikrotik,lhgg-60ad|\
-+	mikrotik,lhgg-5-ac|\
++	mikrotik,lhgg-5acd|\
  	mikrotik,sxtsq-5-ac)
  		lan_mac=$(cat /sys/firmware/mikrotik/hard_config/mac_base)
  		label_mac="$lan_mac"
@@ -156,7 +156,7 @@
 +
 +/ {
 +	model = "MikroTik LHG 5 ac (RBLHGG-5acD)";
-+	compatible = "mikrotik,lhgg-5-ac";
++	compatible = "mikrotik,lhgg-5acd";
 +
 +	memory {
 +		device_type = "memory";
@@ -362,7 +362,7 @@
 +&wifi1 {
 +	status = "okay";
 +
-+	qcom,ath10k-calibration-variant = "MikroTik-LHGG-5-ac";
++	qcom,ath10k-calibration-variant = "MikroTik-LHGG-5acD";
 +};
 +
 +&mdio {
@@ -385,3 +385,42 @@
 +       label = "lan";
 +       phy-mode = "rgmii";
 +};
+--- a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -197,6 +197,7 @@
+ 	mikrotik,cap-ac |\
+ 	mikrotik,hap-ac2 |\
+ 	mikrotik,hap-ac3 |\
++	mikrotik,lhgg-5acd |\
+ 	mikrotik,sxtsq-5-ac)
+ 		wlan_data="/sys/firmware/mikrotik/hard_config/wlan_data"
+ 		( [ -f "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data" 0x8000 0x2f20 ) || \
+@@ -236,6 +237,7 @@
+ 	mikrotik,cap-ac |\
+ 	mikrotik,hap-ac2 |\
+ 	mikrotik,hap-ac3 |\
++	mikrotik,lhgg-5acd |\
+ 	mikrotik,sxtsq-5-ac)
+ 		wlan_data="/sys/firmware/mikrotik/hard_config/wlan_data"
+ 		( [ -f "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data" 0xaf20 0x2f20 ) || \
+--- a/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
++++ b/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
+@@ -163,12 +163,18 @@
+ 		;;
+ 	mikrotik,cap-ac|\
+ 	mikrotik,hap-ac2|\
++	mikrotik,lhgg-5acd|\
+ 	mikrotik,lhgg-60ad|\
+ 	mikrotik,sxtsq-5-ac)
+ 		[ "$(rootfs_type)" = "tmpfs" ] && mtd erase firmware
+ 		default_do_upgrade "$1"
+ 		;;
+ 	mikrotik,hap-ac3)
++		if [ "$(rootfs_type)" = "tmpfs" ]; then
++			ubidetach -m 1
++			ubiformat /dev/mtd1 -y
++			ubiattach -m 1
++		fi
+ 		platform_do_upgrade_mikrotik_nand "$1"
+ 		;;
+ 	netgear,rbr50 |\
