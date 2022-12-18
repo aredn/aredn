@@ -161,6 +161,7 @@ compile: stamp-clean-compiled .stamp-compiled
 	  NEWNAME="$${FILE/generic-/}"; \
 	  NEWNAME="$${NEWNAME/squashfs-/}"; \
 	  NEWNAME="$${NEWNAME/-nand-glinet/}"; \
+	  NEWNAME="$${NEWNAME/-nand/}"; \
 	  NEWNAME="$${NEWNAME/-ath79-mikrotik/}"; \
 	  NEWNAME="$${NEWNAME/_routerboard/}"; \
 	  [ "$$FILE" = "$$NEWNAME" ] || mv "$$FILE" "$$NEWNAME"; \
