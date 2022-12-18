@@ -292,6 +292,7 @@ print([[}]])
 
 -- add the ACTIVE tunnel interfaces
 if #tunnels > 0 then
+    local tun_weight = tonumber(cursor:get("aredn", "@tunnel[0]", "weight"))
     local tuns = ""
     for _, tunnel in ipairs(tunnels)
     do
@@ -301,7 +302,11 @@ if #tunnels > 0 then
     print([[Interface]] .. tuns)
     print([[{]])
     print([[     Ip4Broadcast 255.255.255.255]])
-    print([[     Mode "ether"]])
+    if not tun_weight or tun_weight < 1 then
+        print([[     Mode "ether"]])
+    else
+        print([[     LinkQualityMult default ]] .. (1 / tun_weight))
+    end
     print([[}]])
 end
 
