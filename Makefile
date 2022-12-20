@@ -4,6 +4,7 @@ include openwrt.mk
 # get main- and subtarget name from TARGET
 MAINTARGET=$(word 1, $(subst -, ,$(TARGET)))
 SUBTARGET=$(word 2, $(subst -, ,$(TARGET)))
+ALTTARGET=$(word 3, $(subst -, ,$(TARGET)))
 
 GIT_BRANCH=$(shell git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
@@ -11,7 +12,7 @@ GIT_COMMIT=$(shell git rev-parse --short HEAD)
 # set dir and file names
 TOP_DIR=$(shell pwd)
 OPENWRT_DIR=$(TOP_DIR)/openwrt
-TARGET_CONFIG=$(TOP_DIR)/configs/common.config $(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET).config
+TARGET_CONFIG=$(TOP_DIR)/configs/common.config $(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET)$(patsubst %,-%,$(ALTTARGET)).config
 UMASK=umask 022
 
 # set variables based on private or CircleCI build

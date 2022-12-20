@@ -419,3 +419,82 @@
  		platform_do_upgrade_mikrotik_nand "$1"
  		;;
  	netgear,rbr50 |\
+--- a/target/linux/ath79/image/common-mikrotik.mk
++++ b/target/linux/ath79/image/common-mikrotik.mk
+@@ -17,5 +17,4 @@
+   IMAGE/sysupgrade.bin = append-kernel | kernel2minor -s 2048 -e -c | \
+ 	sysupgrade-tar kernel=$$$$@ | append-metadata
+   DEVICE_PACKAGES := nand-utils
+-  DEFAULT := n
+ endef
+--- a/target/linux/ath79/image/mikrotik.mk
++++ b/target/linux/ath79/image/mikrotik.mk
+@@ -28,6 +28,16 @@
+ endef
+ TARGET_DEVICES += mikrotik_routerboard-921gs-5hpacd-15s
+ 
++define Device/mikrotik_routerboard-921gs-5hpacd-19s
++  $(Device/mikrotik_nand)
++  SOC := qca9558
++  DEVICE_MODEL := RouterBOARD 921GS-5HPacD-19s (mANTBox 19s)
++  DEVICE_PACKAGES += kmod-ath10k-ct ath10k-firmware-qca988x-ct kmod-i2c-gpio \
++	kmod-sfp
++  SUPPORTED_DEVICES += rb-921gs-5hpacd-r2
++endef
++TARGET_DEVICES += mikrotik_routerboard-921gs-5hpacd-19s
++
+ define Device/mikrotik_routerboard-922uags-5hpacd
+   $(Device/mikrotik_nand)
+   SOC := qca9558
+--- /dev/null
++++ b/target/linux/ath79/dts/qca9558_mikrotik_routerboard-921gs-5hpacd-19s.dts
+@@ -0,0 +1,29 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++#include "qca9558_mikrotik_routerboard-92x.dtsi"
++
++/ {
++	compatible = "mikrotik,routerboard-921gs-5hpacd-19s", "qca,qca9558";
++	model = "MikroTik RouterBOARD 921GS-5HPacD-19s";
++
++	ath10k-leds {
++		compatible = "gpio-leds";
++
++		wlan5g {
++			label = "green:wlan5g";
++			gpios = <&ath10k 0 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "phy0tpt";
++		};
++	};
++};
++
++&pcie1 {
++	status = "okay";
++
++	ath10k: wifi@0,0 {
++		compatible = "qcom,ath10k";
++		reg = <0 0 0 0 0>;
++		#gpio-cells = <2>;
++		gpio-controller;
++	};
++};
+--- a/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -12,6 +12,7 @@
+ "ath10k/cal-pci-0000:00:00.0.bin")
+ 	case $board in
+ 	mikrotik,routerboard-921gs-5hpacd-15s|\
++	mikrotik,routerboard-921gs-5hpacd-19s|\
+ 	mikrotik,routerboard-951ui-2nd|\
+ 	mikrotik,routerboard-952ui-5ac2nd|\
+ 	mikrotik,routerboard-962uigs-5hact2hnt|\
+--- a/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
++++ b/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
+@@ -34,6 +34,7 @@
+ 	mikrotik,routerboard-493g|\
+ 	mikrotik,routerboard-912uag-2hpnd|\
+ 	mikrotik,routerboard-921gs-5hpacd-15s|\
++	mikrotik,routerboard-921gs-5hpacd-19s|\
+ 	mikrotik,routerboard-922uags-5hpacd|\
+ 	mikrotik,routerboard-sxt-5nd-r2)
+ 		platform_do_upgrade_mikrotik_nand "$1"

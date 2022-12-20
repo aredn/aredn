@@ -263,6 +263,22 @@
 
 --- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
+@@ -27,6 +27,12 @@
+ 		ucidef_set_interface "dtdlink" device "eth0.2 eth1.2" protocol "static"
+ 		ucidef_set_interface "wifi" device "wlan0" protocol "static"
+ 		;;
++	mikrotik,routerboard-921gs-5hpacd-15s|\
++	mikrotik,routerboard-921gs-5hpacd-19s)
++		ucidef_set_interfaces_lan_wan "eth0 eth1" "eth0.1 eth1.1"
++		ucidef_set_interface "dtdlink" device "eth0.2 eth1.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
++		;;
+ 	mikrotik,routerboard-951ui-2nd)
+ 		ucidef_set_interface_wan "eth1"
+ 		ucidef_add_switch "switch0" \
+
+--- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
 @@ -67,6 +68,7 @@
  	mikrotik,routerboard-map-2nd|\
  	mikrotik,routerboard-mapl-2nd|\
@@ -271,6 +287,17 @@
  	mikrotik,routerboard-wap-2nd|\
  	mikrotik,routerboard-wap-g-5hact2hnd|\
  	mikrotik,routerboard-wapr-2nd)
+
+--- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
+@@ -82,6 +82,7 @@
+ 		lan_mac="$mac_base"
+ 		;;
+ 	mikrotik,routerboard-921gs-5hpacd-15s|\
++	mikrotik,routerboard-921gs-5hpacd-19s|\
+ 	mikrotik,routerboard-922uags-5hpacd)
+ 		label_mac="$mac_base"
+ 		lan_mac="$mac_base"
 
 --- a/target/linux/ath79/tiny/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/tiny/base-files/etc/board.d/02_network

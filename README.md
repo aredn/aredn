@@ -48,8 +48,8 @@ for a list of outstanding defects.
 
 ### Images built
 
-Device | target | Image to Use | RAM | Stability
------- | ------ | ------------ | --- | ---------
+Device | Target | Image | RAM | Stability
+------ | ------ | ----- | --- | ---------
 AirGrid XM | ath79 | ubnt_bullet-m-ar7241 | 32MB | untested sunset
 AirGrid XW | ath79 | ubnt_bullet-m-xw | 32MB | untested sunset
 AirRouter  | ath79 | ubnt_airrouter | 32MB | untested sunset
@@ -116,8 +116,8 @@ Mikrotik mANTBox RB911G-2HPnD | ath79 | - | 64MB | untested
 Mikrotik mANTBox RB911G-5HPnD | ath79 | - | 64MB | untested
 Mikrotik mANTBox RB912UAG-2HPnD | ath79 | mikrotik_routerboard-912uag-2hpnd | 128MB | untested
 Mikrotik mANTBox RB912UAG-5HPnD | ath79 | - | 128MB | untested
-Mikrotik mANTBox RB921GS-5HPacD 15s | ath79 | mikrotik_routerboard-921gs-5hpacd-15s | 128MB | untested new
-Mikrotik mANTBox RB921GS-5HPacD 19s | ath79 | - | 128MB | untested new
+Mikrotik mANTBox RB921GS-5HPacD 15s | ath79 | mikrotik_routerboard-921gs-5hpacd-15s | 128MB | stable new
+Mikrotik mANTBox RB921GS-5HPacD 19s | ath79 | mikrotik_routerboard-921gs-5hpacd-19s | 128MB | stable new
 Mikrotik SXTsq 5HPnD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 5nD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
 Mikrotik SXTsq 2nD | ath79 | - | 64MB | untested
@@ -129,10 +129,11 @@ GL.iNet GL-USB150 | ath79 | glinet_gl-usb150 | 64MB | stable
 GL.iNet GL-AR300M16 | ath79 | glinet_gl-ar300m | 64MB | stable
 GL.iNet GL-AR300M w/ 128MB NAND | ath79 | - | 64MB | untested
 GL.iNet GL-AR750 | ath79 | glinet_gl-ar750 | 128MB | stable
-Meraki MR-16 | ath79 | - | 64MB | untested
+Meraki MR-16 | ath79 | - | 64MB | brick
 
 #### Stability
 
+* *brick* - this image has been tested and will currently brick your hardware. Avoid for now.
 * *untested* - this image has not been tested on hardware. It may or may not work.
 * *stable* - this image has been tested on hardware. There may still be bugs.
 * *sunset* - this device has been sunsetted and support will be deprecated at some point.
