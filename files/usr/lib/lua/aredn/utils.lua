@@ -511,14 +511,14 @@ function validate_port_range(range)
 	if not range then
 		return false
 	end
-	local port1, port2 = range:match("^%s*(%d+)%s*-%s*(%d+)%s*$")
+	local port1, port2 = range:match("^%s*(%d+)%s*%-%s*(%d+)%s*$")
 	if not port2 then
 		return false
 	end
 	if not validate_port(port1) or not validate_port(port2) then
 		return false
 	end
-	if tonumber(port2) > tonumber(port1) then
+	if tonumber(port1) > tonumber(port2) then
 		return false
 	end
 	return true
