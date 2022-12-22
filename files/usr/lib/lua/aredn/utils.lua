@@ -156,6 +156,9 @@ end
 function get_ifname(ifn)
 	local u=uci.cursor()
 	local iface=u:get("network",ifn,"ifname")
+	if not iface then
+		iface=u:get("network",ifn,"device")
+	end
 	return iface
 end
 
@@ -260,6 +263,9 @@ function iplookup(host)
 	end
 	local nso=capture("nslookup "..host)
 	local ip=nso:match("Address 1: (.*)%c")
+	if not ip then
+		ip=nso:match("Address: ([%d%.]+)")
+	end
 	return ip
 end
 

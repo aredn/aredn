@@ -189,6 +189,7 @@ function model.getSSID()
 	for pos, t in pairs(wif) do
 		if wif[pos]['network']=="wifi" then
 			myssid=wif[pos]['ssid']
+			break
 		end
 	end
 	return myssid
@@ -205,6 +206,7 @@ function model.getMeshRadioDevice()
 	for pos,i in pairs(wifiinterfaces) do
 		if wifiinterfaces[pos]['mode']=="adhoc" then
 			radio=wifiinterfaces[pos]['device']
+			break
 		end
 	end
 	return radio
@@ -218,6 +220,7 @@ function model.isMeshRadioEnabled(radio)
 	for pos,i in pairs(wifidevice) do
 		if wifidevice[pos]['.name']==radio then
 			disabled=wifidevice[pos]['disabled']
+			break
 		end
 	end
 	
@@ -237,6 +240,7 @@ function model.getMeshRadioDistance(radio)
 	for pos,i in pairs(wifidevice) do
 		if wifidevice[pos]['.name']==radio then
 			distance=wifidevice[pos]['distance']
+			break
 		end
 	end
 	return distance

@@ -34,24 +34,35 @@
 LICENSE
 
 export newval=$1
-if [ -z "$newval" ]; then
+if [ -z "${newval}" ]; then
   echo "Syntax:   $0 1 - turns POE on"
   echo "          $0 0 - turns POE off"
   exit 2
 fi
-
-export pinnum=$(jsonfilter -e '@.gpioswitch.poe_passthrough.pin' < /etc/board.json)
-if [ -z "$pinnum" ]; then
-  echo "There are NO PoE Passthrough ports defined for this device"
-  exit 1
-else
-  export pin="gpio${pinnum}"
-  if [ ! -d "/sys/class/gpio/${pin}" ]; then
+pinnum=$(jsonfilter -e '@.gpioswitch.poe_passthrough.pin' < /etc/board.json)
+if [ "${pinnum}" = "" ]; then
+  pinnum=$(jsonfilter -e '@.gpioswitch.poe_passtrough.pin' < /etc/board.json)
+fi
+if [ "${pinnum}" != "" ]; then
+  pin="/sys/class/gpio/gpio${pinnum}"
+  if [ ! -d "${pin}" ]; then
     echo "${pinnum}" > /sys/class/gpio/export
   fi
-  if [ -e "/sys/class/gpio/${pin}/direction" ]; then
-    echo "out" > /sys/class/gpio/${pin}/direction
+else
+  pin=$(echo /sys/class/gpio/enable-poe:*)
+  if [ "${pin}" = "/sys/class/gpio/enable-poe:*" ]; then
+    echo "There are NO PoE Passthrough ports defined for this device"
+    exit 1
   fi
-  echo "${newval}" > /sys/class/gpio/${pin}/value
-  exit 0
 fi
+
+active_low=$(cat ${pin}/active_low 2> /dev/null)
+if [ "${active_low}" = "1" ]; then
+  newval=$((1 - ${newval}))
+fi
+
+if [ -e "${pin}/direction" ]; then
+  echo "out" > ${pin}/direction
+fi
+echo "${newval}" > ${pin}/value
+exit 0

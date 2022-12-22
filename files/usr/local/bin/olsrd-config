@@ -137,17 +137,19 @@ end
 -- add a name for the dtdlink and xlink interfaces
 if name then
     local dtdip = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("dtdlink"))
-    hosts[#hosts + 1] = { ip = dtdip, host = "dtdlink." .. name .. ".local.mesh" }
-    if nixio.fs.stat("/etc/config.mesh/xlink") then
-        local count = 0
-        uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
-            function(section)
-                if section.ipaddr then
-                    hosts[#hosts + 1] = { ip = section.ipaddr, host = "xlink" .. count .. "." .. name .. ".local.mesh" }
-                    count = count + 1
+    if dtdip then
+        hosts[#hosts + 1] = { ip = dtdip, host = "dtdlink." .. name .. ".local.mesh" }
+        if nixio.fs.stat("/etc/config.mesh/xlink") then
+            local count = 0
+            uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
+                function(section)
+                    if section.ipaddr then
+                        hosts[#hosts + 1] = { ip = section.ipaddr, host = "xlink" .. count .. "." .. name .. ".local.mesh" }
+                        count = count + 1
+                    end
                 end
-            end
-        )
+            )
+        end
     end
 end
 
@@ -273,7 +275,7 @@ print([[{]])
 print([[    PlParam "sighup-pid-file" "/var/run/dnsmasq/dnsmasq.pid"]])
 print([[    PlParam "interval" "30"]])
 print([[    PlParam "timeout" "300"]])
-print([[    PlParam "name-change-script" "touch /tmp/namechange; cp /var/run/hosts_olsr /var/run/hosts_olsr.snapshot; mv -f /var/run/hosts_olsr.snapshot /var/run/hosts_olsr.stable"]])
+print([[    PlParam "name-change-script" "cp /var/run/hosts_olsr /var/run/hosts_olsr.snapshot; mv -f /var/run/hosts_olsr.snapshot /var/run/hosts_olsr.stable; touch /tmp/namechange /var/run/hosts_olsr.stable"]])
 for _, name in ipairs(names)
 do
     print([[    PlParam "name" "]] .. name .. [["]])
@@ -290,6 +292,7 @@ print([[}]])
 
 -- add the ACTIVE tunnel interfaces
 if #tunnels > 0 then
+    local tun_weight = tonumber(cursor:get("aredn", "@tunnel[0]", "weight"))
     local tuns = ""
     for _, tunnel in ipairs(tunnels)
     do
@@ -299,7 +302,11 @@ if #tunnels > 0 then
     print([[Interface]] .. tuns)
     print([[{]])
     print([[     Ip4Broadcast 255.255.255.255]])
-    print([[     Mode "ether"]])
+    if not tun_weight or tun_weight < 1 then
+        print([[     Mode "ether"]])
+    elseif tun_weight > 1 then
+        print([[     LinkQualityMult default ]] .. (1 / tun_weight))
+    end
     print([[}]])
 end
 

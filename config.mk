@@ -12,8 +12,8 @@ MAKE_ARGS=-j3
 # Where will the installed image find add-on Packages to download?
 # This URL must contain the packages from this build
 # downloading packages within the AREDN UI uses signatures 
-PRIVATE_BUILD_PACKAGES=http://downloads.arednmesh.org/releases/3/22/3.22.12.0
+PRIVATE_BUILD_PACKAGES=http://downloads.arednmesh.org/snapshots
 
 # These options are for more complex changes
 SHELL:=$(shell which bash)
-TARGET=ar71xx-generic
+TARGET=ath79-generic

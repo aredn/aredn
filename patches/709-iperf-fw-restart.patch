@@ -1,11 +1,11 @@
-Index: openwrt/package/network/utils/iperf3/Makefile
+Index: openwrt/feeds/packages/net/iperf3/Makefile
 ===================================================================
---- openwrt.orig/package/network/utils/iperf3/Makefile
-+++ openwrt/package/network/utils/iperf3/Makefile
+--- openwrt.orig/feeds/packages/net/iperf3/Makefile
++++ openwrt/feeds/packages/net/iperf3/Makefile
 @@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
  
  PKG_NAME:=iperf
- PKG_VERSION:=3.7
+ PKG_VERSION:=3.11
 -PKG_RELEASE:=1
 +PKG_RELEASE:=1AREDN
  
@@ -30,17 +30,17 @@ Index: openwrt/package/network/utils/iperf3/Makefile
  endef
  
  define Package/iperf3-ssl/install
-Index: openwrt/package/network/utils/iperf3/files/iperf.firewall
+Index: openwrt/feeds/packages/net/iperf3/files/iperf.firewall
 ===================================================================
 --- /dev/null
-+++ openwrt/package/network/utils/iperf3/files/iperf.firewall
++++ openwrt/feeds/packages/net/iperf3/files/iperf.firewall
 @@ -0,0 +1,9 @@
 +#!/bin/sh
-+iptables -I zone_wifi_input -p udp -m udp --dport 5201 -j ACCEPT
-+iptables -I zone_wifi_input -p tcp -m tcp --dport 5201 -j ACCEPT
-+iptables -I zone_dtdlink_input -p udp -m udp --dport 5201 -j ACCEPT
-+iptables -I zone_dtdlink_input -p tcp -m tcp --dport 5201 -j ACCEPT
++nft insert rule ip fw4 input_wifi udp dport 5201 counter accept
++nft insert rule ip fw4 input_wifi tcp dport 5201 counter accept
++nft insert rule ip fw4 input_dtdlink udp dport 5201 counter accept
++nft insert rule ip fw4 input_dtdlink tcp dport 5201 counter accept
 +if [ "$MESHFW_TUNNELS_ENABLED" == "1" ]; then
-+	 iptables -I zone_vpn_input -p udp -m udp --dport 5201 -j ACCEPT
-+	 iptables -I zone_vpn_input -p tcp -m tcp --dport 5201 -j ACCEPT
++	 nft insert rule ip fw4 input_vpn udp dport 5201 counter accept
++	 nft insert rule ip fw4 input_vpn tcp dport 5201 counter accept
 +fi

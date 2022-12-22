@@ -67,7 +67,8 @@ local rateL = {
 	MCS12 = 78,
 	MCS13 = 104,
 	MCS14 = 117,
-	MCS15 = 130
+	MCS15 = 130,
+    ["54.0M"] = 54
 }
 local rateS = {
     MCS0 = 7.2,
@@ -129,8 +130,7 @@ end
 
 if os.getenv("REQUEST_METHOD") == "POST" then
     require('luci.http')
-    require('luci.sys')
-    local request = luci.http.Request(luci.sys.getenv(),
+    local request = luci.http.Request(nixio.getenv(),
       function()
         local v = io.read(1024)
         if not v then
@@ -217,6 +217,7 @@ arptable(function(a)
     arpcache[a["IP address"]] = a
 end)
 
+local iwrates
 local prefix = "/sys/kernel/debug/ieee80211/" .. phy .. "/netdev:" .. wifiif .. "/stations/"
 for i, node in ipairs(aredn.olsr.getOLSRLinks())
 do
@@ -233,9 +234,9 @@ do
                 if gi and ewma then
                     -- 802.11b/n
                     if gi == "SGI" then
-                        links[node.remoteIP].mbps = string.format("%.1f", rateS[rate] * ewma / 100 / chanbw)
+                        links[node.remoteIP].mbps = string.format("%.1f", (rateS[rate] or 0) * ewma / 100 / chanbw)
                     else
-                        links[node.remoteIP].mbps = string.format("%.1f", rateL[rate] * ewma / 100 / chanbw)
+                        links[node.remoteIP].mbps = string.format("%.1f", (rateL[rate] or 0) * ewma / 100 / chanbw)
                     end
                 else
                     rate, ewma = line:match("^A[^,]*,([^,]*),[^,]*,[^,]*,([^,]*,)")
@@ -248,6 +249,27 @@ do
                 end
             end
             f:close()
+        else -- fallback (rates without error accounting)
+            if not iwrates then
+                iwrates = {}
+                local station = {}
+                for line in io.popen("iw " .. wifiif .. " station dump"):lines()
+                do
+                    local mac = line:match("^Station (%S+) ")
+                    if mac then
+                        station = {}
+                        iwrates[mac] = station
+                    end
+                    local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
+                    if txbitrate then
+                        station.txbitrate = txbitrate
+                    end
+                end
+            end
+            local station = iwrates[mac["HW address"]]
+            if station then
+                links[node.remoteIP].mbps = string.format("%.1f", station.txbitrate)
+            end
         end
     end
 end
@@ -499,7 +521,7 @@ html.print("<a href='/help.html#meshstatus' target='_blank'>Help</a> &nbsp;&nbsp
 if nixio.fs.stat("/tmp/web/automesh") then
     html.print("<input type=submit name=stop value=Stop title='Abort continuous status'>")
 else
-    html.print("<input type=submit name=refresh value=Refresh title='Refresh this page'>")
+    html.print("<input type=button name=refresh value=Refresh title='Refresh this page' onclick='window.location.reload();'>")
     html.print("&nbsp;&nbsp;")
     html.print("<input type=submit name=auto value=Auto title='Automatic page refresh'>")
 end

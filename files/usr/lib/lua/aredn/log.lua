@@ -42,6 +42,7 @@ function log.open(name, maxsize)
     l.logfile = name
     l.logmax = maxsize
     l.logf = nil
+    l.prefix = nil
     return l
 end
 
@@ -49,7 +50,11 @@ function log:write(str)
     if not self.logf then
         self.logf = io.open(self.logfile, "a")
     end
-    self.logf:write(string.format("%s: %s\n", os.date("%m/%d %H:%M:%S", os.time()), str))
+    local pstr = ""
+    if self.prefix then
+        pstr = self.prefix .. ": "
+    end
+    self.logf:write(string.format("%s: %s%s\n", os.date("%m/%d %H:%M:%S", os.time()), pstr, str))
     if self.logf:seek() > self.logmax then
         self:flush(true)
     end

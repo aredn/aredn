@@ -1,0 +1,46 @@
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9342_ubnt_powerbeam-m5-300.dts
+@@ -0,0 +1,26 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++#include "ar9342_ubnt_xw.dtsi"
++
++/ {
++	compatible = "ubnt,powerbeam-m5-300", "ubnt,xw", "qca,ar9342";
++	model = "Ubiquiti PowerBeam M5 300";
++};
++
++&mdio0 {
++	status = "okay";
++
++	phy-mask = <0x1>;
++
++	phy1: ethernet-phy@1 {
++		reg = <1>;
++		phy-mode = "mii";
++		reset-gpios = <&gpio 0 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&eth0 {
++	status = "okay";
++
++	phy-handle = <&phy1>;
++};
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image/generic-ubnt.mk
+@@ -157,6 +157,14 @@
+ endef
+ TARGET_DEVICES += ubnt_powerbeam-m5-xw
+ 
++define Device/ubnt_powerbeam-m5-300
++  $(Device/ubnt-xw)
++  DEVICE_MODEL := PowerBeam M5 300
++  DEVICE_PACKAGES += rssileds
++  SUPPORTED_DEVICES += loco-m-xw
++endef
++TARGET_DEVICES += ubnt_powerbeam-m5-300
++
+ define Device/ubnt_rocket-m-xw
+   $(Device/ubnt-xw)
+   DEVICE_MODEL := Rocket M XW

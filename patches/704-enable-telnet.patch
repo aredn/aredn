@@ -1,18 +1,25 @@
 --- a/package/base-files/files/lib/preinit/99_10_failsafe_login
 +++ b/package/base-files/files/lib/preinit/99_10_failsafe_login
-@@ -3,8 +3,7 @@
+@@ -1,6 +1,10 @@
+ # Copyright (C) 2006-2015 OpenWrt.org
  # Copyright (C) 2010 Vertical Communications
  
- failsafe_netlogin () {
--	dropbearkey -t rsa -s 1024 -f /tmp/dropbear_failsafe_host_key
--	dropbear -r /tmp/dropbear_failsafe_host_key <> /dev/null 2>&1
++failsafe_netlogin () {
 +	telnetd -l /bin/login.sh <> /dev/null 2>&1
++}
++
+ failsafe_shell() {
+ 	local console="$(sed -e 's/ /\n/g' /proc/cmdline | grep '^console=' | head -1 | sed -e 's/^console=//' -e 's/,.*//')"
+ 	[ -n "$console" ] || console=console
+@@ -11,4 +15,5 @@ failsafe_shell() {
+ 	done &
  }
  
- failsafe_shell() {
++boot_hook_add failsafe failsafe_netlogin
+ boot_hook_add failsafe failsafe_shell
 --- a/package/utils/busybox/Config-defaults.in
 +++ b/package/utils/busybox/Config-defaults.in
-@@ -2480,10 +2480,10 @@ config BUSYBOX_DEFAULT_UDPSVD
+@@ -2552,10 +2552,10 @@ config BUSYBOX_DEFAULT_UDPSVD
  	default n
  config BUSYBOX_DEFAULT_TELNET
  	bool
@@ -25,7 +32,7 @@
  config BUSYBOX_DEFAULT_FEATURE_TELNET_AUTOLOGIN
  	bool
  	default n
-@@ -2492,10 +2492,10 @@ config BUSYBOX_DEFAULT_FEATURE_TELNET_WI
+@@ -2564,10 +2564,10 @@ config BUSYBOX_DEFAULT_FEATURE_TELNET_WI
  	default n
  config BUSYBOX_DEFAULT_TELNETD
  	bool
@@ -35,14 +42,14 @@
  	bool
 -	default n
 +	default y
- config BUSYBOX_DEFAULT_FEATURE_TELNETD_INETD_WAIT
- 	bool
- 	default n
+ config BUSYBOX_DEFAULT_FEATURE_TELNETD_PORT_DEFAULT
+ 	int
+ 	default 23
 --- a/package/utils/busybox/Makefile
 +++ b/package/utils/busybox/Makefile
-@@ -110,6 +110,8 @@ define Package/busybox/install
- ifneq ($(CONFIG_BUSYBOX_$(BUSYBOX_SYM)_CROND),)
+@@ -148,6 +148,8 @@ ifneq ($(CONFIG_BUSYBOX_$(BUSYBOX_SYM)_C
  	$(INSTALL_BIN) ./files/cron $(1)/etc/init.d/cron
+ 	$(INSTALL_DIR) $(1)/etc/crontabs
  endif
 +	$(INSTALL_BIN) ./files/telnet $(1)/etc/init.d/telnet
 +	$(INSTALL_BIN) ./files/login.sh $(1)/bin/login.sh

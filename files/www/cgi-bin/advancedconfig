@@ -42,7 +42,6 @@ require("aredn.utils")
 aredn.html = require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
-require("luci.sys")
 
 local html = aredn.html
 
@@ -63,8 +62,8 @@ function defaultPackageRepos(repo)
                 target = m
             end
         end
-        if release:match("%.") then
-            local a, b = release:match("^(%d+)%.(%d+)%.")
+        local a, b = release:match("^(%d+)%.(%d+)%.")
+        if a and b then
             urlprefix = urlprefix .. "/releases/" .. a .. "/" .. b .. "/" .. release
         else
             -- nightly
@@ -471,7 +470,7 @@ function reboot()
     end
     html.print("</center></body></html>")
     http_footer()
-    luci.sys.reboot()
+    os.execute("reboot >/dev/null 2>&1")
     os.exit()
 end
 
@@ -614,12 +613,12 @@ end
 function currentWANVLAN()
     for line in io.lines("/etc/config.mesh/_setup")
     do
-        local vlan = line:match("^wan_intf = %w+%d+%.(%d+)")
+        local vlan = line:match("^wan_intf = %w+%.(%d+)")
         if vlan then
             return vlan
         end
     end
-    local vlan = aredn.hardware.get_board().network.wan.ifname:match("^%w+%.(%d+)")
+    local vlan = aredn.hardware.get_board_network_ifname("wan"):match("^%w+%.(%d+)")
     if vlan then
         return vlan
     end
@@ -636,7 +635,7 @@ function changeWANVLAN()
     end
     if newval ~= "" then
         local wan_intf = ""
-        for dev in aredn.hardware.get_board().network.wan.ifname:gmatch("%S+")
+        for dev in aredn.hardware.get_board_network_ifname("wan"):gmatch("%S+")
         do
             wan_intf = wan_intf .. " " .. dev:match("^([^%.]+)") .. "." .. newval
         end
@@ -663,7 +662,7 @@ end
 local parms = {}
 if os.getenv("REQUEST_METHOD") == "POST" then
     require('luci.http')
-    local request = luci.http.Request(luci.sys.getenv(),
+    local request = luci.http.Request(nixio.getenv(),
       function()
         local v = io.read(1024)
         if not v then
