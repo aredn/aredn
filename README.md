@@ -115,7 +115,7 @@ Mikrotik QRT5 RB911G-5HPnD-QRT | ath79 | - | 64MB | untested
 Mikrotik mANTBox RB911G-2HPnD | ath79 | - | 64MB | untested
 Mikrotik mANTBox RB911G-5HPnD | ath79 | - | 64MB | untested
 Mikrotik mANTBox RB912UAG-2HPnD | ath79 | mikrotik_routerboard-912uag-2hpnd | 128MB | untested
-Mikrotik mANTBox RB912UAG-5HPnD | ath79 | - | 128MB | untested
+Mikrotik mANTBox RB912UAG-5HPnD | ath79 | mikrotik_routerboard-912uag-5hpnd | 128MB | stable
 Mikrotik mANTBox RB921GS-5HPacD 15s | ath79 | mikrotik_routerboard-921gs-5hpacd-15s | 128MB | stable new
 Mikrotik mANTBox RB921GS-5HPacD 19s | ath79 | mikrotik_routerboard-921gs-5hpacd-19s | 128MB | stable new
 Mikrotik SXTsq 5HPnD | ath79 | mikrotik_routerboard-sxt-5nd | 64MB | stable
