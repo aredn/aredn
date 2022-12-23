@@ -45,7 +45,7 @@ function rssi_monitor_10k()
 
         -- ath10k only
         local phy = iwinfo.nl80211.phyname(wifiiface)
-        if not nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k") then
+        if not phy or not nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k") then
             exit_app()
             return
         end
