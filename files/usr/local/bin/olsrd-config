@@ -292,7 +292,8 @@ print([[}]])
 
 -- add the ACTIVE tunnel interfaces
 if #tunnels > 0 then
-    local tun_weight = tonumber(cursor:get("aredn", "@tunnel[0]", "weight"))
+    local tun_weight = cursor:get("aredn", "@tunnel[0]", "weight")
+    tun_weight = tonumber(tun_weight)
     local tuns = ""
     for _, tunnel in ipairs(tunnels)
     do
