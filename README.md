@@ -65,7 +65,7 @@ NanoBeam M2-13/M5-16/M5-19 | ath79 | - | 32MB | untested sunset
 NanoBridge 2G18 | ath79 | ubnt_nanobridge-m | 32MB | untested sunset
 NanoBridge 5G22/25 | ath79 | ubnt_nanobridge-m | 32MB | untested sunset
 NanoBridge M9 | ath79 | ubnt_nanobridge-m | 32MB | untested sunset
-NanoStation AC 5 | ath79 | ubnt_nanostation-ac | 64MB | untested new
+NanoStation AC 5 | ath79 | ubnt_nanostation-ac | 64MB | stable new
 NanoStation Loco M2/M5/M9 XM | ath79 | ubnt_nanostation-loco-m | 32MB | untested sunset
 NanoStation Loco M2 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | untested
 NanoStation Loco M5 XW | ath79 | ubnt_nanostation-loco-m-xw | 64MB | stable
