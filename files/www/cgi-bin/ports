@@ -829,16 +829,16 @@ if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or 
     filecopy(tmpdir .. "/services", servfile)
     filecopy(tmpdir .. "/aliases", aliasfile)
 
-    if os.execute("/usr/local/bin/node-setup -a -p mesh") ~= 0 then
+    if os.execute("/usr/local/bin/node-setup -a -p mesh > /dev/null 2>&1") ~= 0 then
         err("problem with configuration")
     end
-    if os.execute("/etc/init.d/dnsmasq restart") ~= 0 then
+    if os.execute("/etc/init.d/dnsmasq restart > /dev/null 2>&1") ~= 0 then
         err("problem with dnsmasq")
     end
-    if os.execute("/etc/init.d/firewall restart") ~= 0 then
+    if os.execute("/etc/init.d/firewall restart > /dev/null 2>&1") ~= 0 then
         err("problem with port setup")
     end
-    if os.execute("/etc/init.d/olsrd restart") ~= 0 then
+    if os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1") ~= 0 then
         err("problem with olsr setup")
     end
 end
