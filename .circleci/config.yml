@@ -117,6 +117,13 @@ jobs:
       - run:
           name: Move README.md
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/README.md ${NIGHTLY_DIR}/readme.md'"
+      - run:
+          name: Fetch SUPPORTED_DEVICES.md
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'wget https://raw.githubusercontent.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}/SUPPORTED_DEVICES.md'"
+      - run:
+          name: Move SUPPORTED_DEVICES.md
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/SUPPORTED_DEVICES.md ${NIGHTLY_DIR}/SUPPORTED_DEVICES.md'"
+
 
   afs_collector:
     machine:
