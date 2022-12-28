@@ -65,7 +65,7 @@ function model.getOLSRInterfaceType(iface)
   local it=""
   if string.match(iface,"wlan") then
     it="RF"
-  elseif string.match(iface,"eth") then
+  elseif string.match(iface,"eth") or string.match(iface, "dtdlink") then
     it="DTD"
   elseif string.match(iface,"tun") then
     it="TUN"
