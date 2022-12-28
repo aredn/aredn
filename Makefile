@@ -152,21 +152,6 @@ compile: stamp-clean-compiled .stamp-compiled
 	  -name "*kernel.bin" -o -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
 	done;
-	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -type f -a \
-	  \( -name "*ath79-generic-*" \
-	  -o -name "*ath79-tiny-*" \
-	  -o -name "*ath79-mikrotik-*" \
-	  -o -name "*ath79-nand-*" \
-	  -o -name "*ipq40xx-mikrotik*squashfs*" \
-	  \) -print`; do \
-	  NEWNAME="$${FILE/generic-/}"; \
-	  NEWNAME="$${NEWNAME/squashfs-/}"; \
-	  NEWNAME="$${NEWNAME/-nand-glinet/}"; \
-	  NEWNAME="$${NEWNAME/-nand/}"; \
-	  NEWNAME="$${NEWNAME/-ath79-mikrotik/}"; \
-	  NEWNAME="$${NEWNAME/_routerboard/}"; \
-	  [ "$$FILE" = "$$NEWNAME" ] || mv "$$FILE" "$$NEWNAME"; \
-	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh
 
 $(TOP_DIR)/firmware:
