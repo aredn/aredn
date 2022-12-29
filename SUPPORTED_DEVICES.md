@@ -30,8 +30,9 @@ MikroTik RouterBOARD SXTsqG-5acD | 5 | ipq40xx | mikrotik | mikrotik_sxtsq-5-ac 
 ## Ubiquiti
 Device | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-AirGrid XM || ath79 | tiny | ubnt_bullet-m-ar7241 | 32MB | unknown | sunset
-AirGrid XW || ath79 | generic | ubnt_bullet-m-xw | 32MB | unknown | sunset
+AirGrid M2 XM | 2 | ath79 | tiny | ubnt_bullet-m-ar7241 | 32MB | unknown | sunset
+AirGrid M5 XM | 5 | ath79 | tiny | ubnt_bullet-m-ar7241 | 32MB | unknown | sunset
+AirGrid M5 XW | 5 | ath79 | generic | ubnt_bullet-m-xw | 32MB | unknown | sunset
 AirRouter  | 2 | ath79 | tiny | ubnt_airrouter | 32MB | unknown | sunset
 AirRouter HP | 2 | ath79 | tiny | ubnt_airrouter | 32MB | unknown | sunset
 Bullet M2Ti | 2 | ath79 | - | - | 32MB | unknown | sunset
@@ -59,8 +60,8 @@ NanoStation Loco M5 XW | 5 | ath79 | generic | ubnt_nanostation-loco-m-xw | 64MB
 NanoStation M2 XM | 2 | ath79 | tiny | ubnt_nanostation-m | 32MB | stable | sunset
 NanoStation M3 XM | 3 | ath79 | tiny | ubnt_nanostation-m | 32MB | stable | sunset
 NanoStation M5 XM | 5 | ath79 | tiny | ubnt_nanostation-m | 32MB | stable | sunset
-NanoStation M2 XW | 2 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable
-NanoStation M5 XW | 5 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable
+NanoStation M2 XW | 2 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
+NanoStation M5 XW | 5 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 PicoStation M2 | 2 | ath79 | tiny | ubnt_picostation-m | 32MB | unknown | sunset
 PowerBeam AC 5 500 | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | new
 PowerBeam-M2-400 | 2 | ath79 | generic | ubnt_powerbeam-m2-xw | 64MB | unknown | released
@@ -109,13 +110,13 @@ TPLink WBS510 v2.0 | 5 | ath79 | generic | tplink_wbs510-v2 | 64MB | unknown | r
 ## GL.iNet
 Device | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-GL.iNet GL-AR150 || ath79 | generic | glinet_gl-ar150 | 64MB | stable | released
-GL.iNet GL-USB150 || ath79 | generic | glinet_gl-usb150 | 64MB | stable | released
-GL.iNet GL-AR300M16 || ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
-GL.iNet GL-AR300M w/ 128MB NAND || ath79 | nand | gl-ar300m | 64MB | unknown | released
-GL.iNet GL-AR750 (creta) || ath79 | generic | glinet_gl-ar750 | 128MB | stable | released
-GL.iNet GL-AR750s (slate) || ath79 | nand | gl-ar750s | 128MB | unknown | released
-GL.iNet GL-E750 || ath79 | nand | gl-e750 | 128MB | unknown | released
+GL.iNet GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released
+GL.iNet GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released
+GL.iNet GL-AR300M16 | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
+GL.iNet GL-AR300M w/ 128MB NAND | 2 | ath79 | nand | gl-ar300m | 64MB | unknown | released
+GL.iNet GL-AR750 (creta) | 2 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | released
+GL.iNet GL-AR750s (slate) | 2 | ath79 | nand | gl-ar750s | 128MB | unknown | released
+GL.iNet GL-E750 | 2 | ath79 | nand | gl-e750 | 128MB | unknown | released
 
 ## Others
 Device | Band | Target | Subtarget | Image | RAM | Stability | Status
