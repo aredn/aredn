@@ -40,10 +40,10 @@ Bullet M5 | 5 | ath79 | - | - | 32MB | unknown | sunset
 Bullet M5Ti | 5 | ath79 | - | - | 32MB | unknown | sunset
 Bullet M2 | 2 | ath79 | tiny | ubnt_bullet-m-ar7241 | 32MB | stable | sunset
 Bullet M2 XW | 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | unknown | released
-LiteBeam AC5 Gen2 | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | new
+LiteBeam AC5 Gen2 | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | nightly
 LiteBeam M5 | 5 | ath79 | - | - | 64MB | unknown | released
-NanoBeam AC 5 | 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | unknown | new
-NanoBeam AC 5 Gen 2 | 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | new
+NanoBeam AC 5 | 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | unknown | nightly
+NanoBeam AC 5 Gen 2 | 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | nightly
 NanoBeam M2-13 | 2 | ath79 | - | - | 32MB | unknown | sunset
 NanoBeam M5-16 | 5| ath79 | - | - | 32MB | unknown | sunset
 NanoBeam M5-19 | 5| ath79 | - | - | 32MB | unknown | sunset
@@ -51,7 +51,7 @@ NanoBridge 2G18 | 2 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
 NanoBridge 5G22 | 5 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
 NanoBridge 5G25 | 5 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
 NanoBridge M9 | 900 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
-NanoStation AC 5 | 5 | ath79 | generic | ubnt_nanostation-ac | 64MB | stable | new
+NanoStation AC 5 | 5 | ath79 | generic | ubnt_nanostation-ac | 64MB | stable | nightly
 NanoStation Loco M2 XM | 2 | ath79 | tiny | ubnt_nanostation-loco-m | 32MB | unknown | sunset
 NanoStation Loco M5 XM | 5 | ath79 | tiny | ubnt_nanostation-loco-m | 32MB | unknown | sunset
 NanoStation Loco M9 XM | 900 | ath79 | tiny | ubnt_nanostation-loco-m | 32MB | unknown | sunset
@@ -63,14 +63,14 @@ NanoStation M5 XM | 5 | ath79 | tiny | ubnt_nanostation-m | 32MB | stable | suns
 NanoStation M2 XW | 2 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 NanoStation M5 XW | 5 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 PicoStation M2 | 2 | ath79 | tiny | ubnt_picostation-m | 32MB | unknown | sunset
-PowerBeam AC 5 500 | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | new
+PowerBeam AC 5 500 | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | nightly
 PowerBeam-M2-400 | 2 | ath79 | generic | ubnt_powerbeam-m2-xw | 64MB | unknown | released
 PowerBeam-M5-300 | 5 | ath79 | generic | ubnt_powerbeam-m5-300 | 64MB | stable | released
 PowerBeam-M5-400 | 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
 PowerBeam-M5-400ISO | 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
 PowerBeam-M5-620 | 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
 PowerBridge || ath79 | generic | ubnt_powerbridge-m | 64MB | unknown | released
-Rocket AC Lite 5 | 5 | ath79 | generic | ubnt_rocket-5ac-lite | 128MB | stable | new
+Rocket AC Lite 5 | 5 | ath79 | generic | ubnt_rocket-5ac-lite | 128MB | stable | nightly
 Rocket M9 XM | 900 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
 Rocket M2 XM | 2 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
 Rocket M3 XM | 3 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
@@ -100,7 +100,7 @@ TPLink CPE510 v3.0 | 5 | ath79 | generic | tplink_cpe510-v3 | 64MB | stable | re
 TPLink CPE605 v1.0 | 5 | ath79 | generic | tplink_cpe605-v1 | 64MB | unknown | released
 TPLink CPE610 v1.0 | 5 | ath79 | generic | tplink_cpe610-v1 | 64MB | unknown | released
 TPLink CPE610 v2.0 | 5 | ath79 | generic | tplink_cpe610-v2 | 64MB | unknown | released
-TPLink CPE710 v1.0 | 5 | ath79 | generic | tplink_cpe710-v1 | 128MB | stable | new
+TPLink CPE710 v1.0 | 5 | ath79 | generic | tplink_cpe710-v1 | 128MB | stable | nightly
 TPLink WBS210 v1.0 | 2 | ath79 | generic | tplink_wbs210-v1 | 64MB | unknown | released
 TPLink WBS210 v2.0 | 2 | ath79 | generic | tplink_wbs210-v2 | 64MB | unknown | released
 TPLink WBS510 v1.0 | 5 | ath79 | generic | tplink_wbs510-v1 | 64MB | unknown | released
@@ -133,7 +133,7 @@ Meraki MR-16 || ath79 | - | - | 64MB | unsupported | **brick**
 * *released* - this image is in a production release of the AREDN firmware.
 * *brick* - this image has been tested and will currently brick your hardware. Avoid for now.
 * *sunset* - this device has been sunsetted and support will be deprecated at some point.
-* *new* - this device is newly supported.
+* *nightly* - this device is newly supported in the nightly builds (since the last release).
 
 The 'target' and 'subtarget' identify the directory to find the image on at http://downloads.arednmesh.org
 
