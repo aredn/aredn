@@ -37,6 +37,7 @@
 
 require("aredn.http")
 require("aredn.hardware")
+require("aredn.utils")
 local html = require("aredn.html")
 local aredn_info = require("aredn.info")
 
@@ -56,33 +57,42 @@ end
 local scanned = {}
 local f = io.popen("iw dev " .. wifiiface .. " scan passive")
 if f then
-    local scan
+    local scan = {}
     for line in f:lines()
     do
         local m = line:match("^BSS ([%da-fA-F:]+)")
         if m then
-            scan = {
-                mac = m,
-                mode = "AP",
-                ssid = "",
-                signal = 0,
-                freq = 0,
-                key = ""
-            }
-            scanned[#scanned + 1] = scan
+            scan = scanned[m]
+            if not scan then
+                scan = {
+                    mac = m,
+                    mode = "AP",
+                    ssid = "",
+                    signal = 0,
+                    freq = {},
+                    key = "",
+                    joined = false
+                }
+                scanned[m] = scan
+            elseif scan.joined then
+                scan = {
+                    freq = {}
+                }
+            end
             if line:match("joined") then
                 scan.mode = "My Ad-Hoc Network"
+                scan.joined = true
             end
         end
         m = line:match("freq: (%d+)")
         if m then
-            scan.freq = tonumber(m)
+            scan.freq[m] = true
         end
         m = line:match("SSID: (.+)")
         if m then
             scan.ssid = m
         end
-        m = line:match("signal: ([%d-]+)")
+        m = line:match("signal: ([%d%-]+)")
         if m then
             scan.signal = tonumber(m)
         end
@@ -99,24 +109,29 @@ end
 
 local f = io.popen("iw dev " .. wifiiface .. " station dump")
 if f then
-    local scan
+    local scan = {}
     local myssid = aredn_info.getSSID()
     local myfreq = tonumber(aredn_info.getFreq())
     for line in f:lines()
     do
         local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")
         if m then
-            scan = {
-                mac = m,
-                mode = "Connected Ad-Hoc Station",
-                ssid = myssid,
-                signal = 0,
-                freq = myfreq,
-                key = ""
-            }
-            scanned[#scanned + 1] = scan
+            scan = scanned[m]
+            if not scan then
+                scan = {
+                    mac = m,
+                    signal = 0,
+                    freq = {},
+                    key = "",
+                    joined = false
+                }
+                scanned[m] = scan
+            end
+            scan.mode = "Connected Ad-Hoc Station"
+            scan.ssid = myssid
+            scan.freq[myfreq] = true
         end
-        m = line:match("signal avg:%s+([%d-]+)")
+        m = line:match("signal avg:%s+([%d%-]+)")
         if m then
             scan.signal = tonumber(m)
         end
@@ -195,9 +210,9 @@ arptable(function(a)
 end)
 
 local scanlist = {}
-for _, v in ipairs(scanned)
+for _, v in pairs(scanned)
 do
-    if v.signal ~= 0 then
+    if v.signal ~= 0 or v.joined then
         scanlist[#scanlist + 1] = v
     end
 end
@@ -205,40 +220,50 @@ table.sort(scanlist, function(a, b) return a.signal > b.signal end)
 for _, scan in ipairs(scanlist)
 do
     -- freq to chan
-    local chan = scan.freq
-    if chan < 256 then
-    elseif chan == 2484 then
-        chan = 14
-    elseif chan == 2407 then
-        chan = 0
-    elseif chan < 2484 then
-        chan = (chan - 2407) / 5
-    elseif chan < 5000 then
-    elseif chan < 5380 then
-        chan = (chan - 5000) / 5
-    elseif chan < 5500 then
-        chan = chan - 2000
-    elseif chan < 6000 then
-        chan = (chan - 5000) / 5
-    end
-    -- ip lookup then host lookup
-    local ip = arpcache[scan.mac]
-    if ip then
-        hostname = ip
-        local f = io.popen("nslookup " .. ip)
-        if f then
-            for line in f:lines()
-            do
-                local m = line:match("name = (.*)%.local%.mesh")
-                if m then
-                    hostname = m
-                    break
-                end
-            end
-            f:close()
+    local chan = {}
+    for f, _ in pairs(scan.freq)
+    do
+        f = tonumber(f)
+        if f < 256 then
+        elseif f == 2484 then
+            chan[#chan + 1] = 14
+        elseif f == 2407 then
+            chan[#chan + 1] = 0
+        elseif f < 2484 then
+            chan[#chan + 1] = (f - 2407) / 5
+        elseif f < 5000 then
+        elseif f < 5380 then
+            chan[#chan + 1] = (f - 5000) / 5
+        elseif f < 5500 then
+            chan[#chan + 1] = f - 2000
+        elseif f < 6000 then
+            chan[#chan + 1] = (f - 5000) / 5
         end
+    end
+    table.sort(chan)
+    chan = table.concat(chan, " ")
+    if scan.joined then
+        hostname = node
     else
-        hostname = "N/A"
+        -- ip lookup then host lookup
+        local ip = arpcache[scan.mac]
+        if ip then
+            hostname = ip
+            local f = io.popen("nslookup " .. ip)
+            if f then
+                for line in f:lines()
+                do
+                    local m = line:match("name = (.*)%.local%.mesh")
+                    if m then
+                        hostname = m:gsub("^mid[0-9]*%.",""):gsub("^dtdlink%.",""):gsub("%.local%.mesh$","")
+                        break
+                    end
+                end
+                f:close()
+            end
+        else
+            hostname = "-"
+        end
     end
     if scan.ssid:match("^AREDN-") then
         html.print("<tr class=\"wscan-row-node\">")
