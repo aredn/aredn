@@ -1,0 +1,20 @@
+--- /dev/null
++++ b/package/kernel/mac80211/patches/ath/302-ibss-2g-fix.patch
+@@ -0,0 +1,17 @@
++--- a/net/mac80211/ibss.c
+++++ b/net/mac80211/ibss.c
++@@ -1197,6 +1197,14 @@
++ 		 (unsigned long long)(rx_timestamp - beacon_timestamp),
++ 		 jiffies);
++ 
+++	if (sdata->u.ibss.fixed_channel && 
+++		band == NL80211_BAND_2GHZ && 
+++		elems->ds_params && 
+++		channel->center_freq != ieee80211_channel_to_frequency(elems->ds_params[0], band)) {
+++          ibss_dbg(sdata, "Reject beacon: chan %d center_freq %d beacon_freq %d\n", elems->ds_params[0], channel->center_freq, ieee80211_channel_to_frequency(elems->ds_params[0], band));
+++			goto put_bss;
+++  }
+++
++ 	if (beacon_timestamp > rx_timestamp) {
++ 		ibss_dbg(sdata,
++ 			 "beacon TSF higher than local TSF - IBSS merge with BSSID %pM\n",
