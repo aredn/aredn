@@ -113,10 +113,10 @@ Device | Band | Target | Subtarget | Image | RAM | Stability | Status
 GL.iNet GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released
 GL.iNet GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released
 GL.iNet GL-AR300M16 | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
-GL.iNet GL-AR300M w/ 128MB NAND | 2 | ath79 | nand | gl-ar300m | 64MB | unknown | released
+GL.iNet GL-AR300M w/ 128MB NAND | 2 | ath79 | nand | gl-ar300m | 64MB | unknown | nightly
 GL.iNet GL-AR750 (creta) | 2 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | released
-GL.iNet GL-AR750s (slate) | 2 | ath79 | nand | gl-ar750s | 128MB | unknown | released
-GL.iNet GL-E750 | 2 | ath79 | nand | gl-e750 | 128MB | unknown | released
+GL.iNet GL-AR750s (slate) | 2 | ath79 | nand | gl-ar750s | 128MB | unknown | nightly
+GL.iNet GL-E750 | 2 | ath79 | nand | gl-e750 | 128MB | unknown | nightly
 
 ## Others
 Device | Band | Target | Subtarget | Image | RAM | Stability | Status
