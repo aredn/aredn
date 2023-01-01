@@ -1,8 +1,89 @@
 --- /dev/null
 +++ b/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
-@@ -0,0 +1,174 @@
-+Index: a/drivers/net/wireless/ath/ath9k/hw.h
-+===================================================================
+@@ -0,0 +1,157 @@
++--- a/drivers/net/wireless/ath/ath9k/common-init.c
+++++ b/drivers/net/wireless/ath/ath9k/common-init.c
++39a40,43
++> 	CHAN2G(2397, 38), /* Channel -4 */
++> 	CHAN2G(2397, 39), /* Channel -3 */
++> 	CHAN2G(2397, 40), /* Channel -2 */
++> 	CHAN2G(2402, 41), /* Channel -1 */
++70a73,99
++> 	/* _We_ claim this "For the HAMS" */
++> 	CHAN5G(5370, 42), /* Channel 74 */
++> 	CHAN5G(5375, 43), /* Channel 75 */
++> 	CHAN5G(5380, 44), /* Channel 76 */
++> 	CHAN5G(5385, 45), /* Channel 77 */
++> 	CHAN5G(5390, 46), /* Channel 78 */
++> 	CHAN5G(5395, 47), /* Channel 79 */
++> 	CHAN5G(5400, 48), /* Channel 80 */
++> 	CHAN5G(5405, 49), /* Channel 81 */
++> 	CHAN5G(5410, 50), /* Channel 82 */
++> 	CHAN5G(5415, 51), /* Channel 83 */
++> 	CHAN5G(5420, 52), /* Channel 84 */
++> 	CHAN5G(5425, 53), /* Channel 85 */
++> 	CHAN5G(5430, 54), /* Channel 86 */
++> 	CHAN5G(5435, 55), /* Channel 87 */
++> 	CHAN5G(5440, 56), /* Channel 88 */
++> 	CHAN5G(5445, 57), /* Channel 89 */
++> 	CHAN5G(5450, 58), /* Channel 90 */
++> 	CHAN5G(5455, 59), /* Channel 91 */
++> 	CHAN5G(5460, 60), /* Channel 92 */
++> 	CHAN5G(5465, 61), /* Channel 93 */
++> 	CHAN5G(5470, 62), /* Channel 94 */
++> 	CHAN5G(5475, 63), /* Channel 95 */
++> 	CHAN5G(5480, 64), /* Channel 96 */
++> 	CHAN5G(5485, 65), /* Channel 97 */
++> 	CHAN5G(5490, 66), /* Channel 98 */
++> 	CHAN5G(5495, 67), /* Channel 99 */
++88a118,164
++> 	/* _We_ claim this "For the HAMS" x2 */
++> 	CHAN5G(5655, 68), /* Channel 131 */
++> 	CHAN5G(5665, 69), /* Channel 133 */
++> 	CHAN5G(5670, 70), /* Channel 134 */
++> 	CHAN5G(5675, 71), /* Channel 135 */
++> 	CHAN5G(5685, 72), /* Channel 137 */
++> 	CHAN5G(5690, 73), /* Channel 138 */
++> 	CHAN5G(5695, 74), /* Channel 139 */
++> 	CHAN5G(5705, 75), /* Channel 141 */
++> 	CHAN5G(5710, 76), /* Channel 142 */
++> 	CHAN5G(5715, 77), /* Channel 143 */
++> 	CHAN5G(5720, 78), /* Channel 144 */
++> 	CHAN5G(5725, 79), /* Channel 145 */
++> 	CHAN5G(5730, 80), /* Channel 146 */
++> 	CHAN5G(5735, 81), /* Channel 147 */
++> 	CHAN5G(5740, 82), /* Channel 148 */
++> 	CHAN5G(5750, 83), /* Channel 150 */
++> 	CHAN5G(5755, 84), /* Channel 151 */
++> 	CHAN5G(5760, 85), /* Channel 152 */
++> 	CHAN5G(5770, 86), /* Channel 154 */
++> 	CHAN5G(5775, 87), /* Channel 155 */
++> 	CHAN5G(5780, 88), /* Channel 156 */
++> 	CHAN5G(5790, 89), /* Channel 158 */
++> 	CHAN5G(5795, 90), /* Channel 159 */
++> 	CHAN5G(5800, 91), /* Channel 160 */
++> 	CHAN5G(5810, 92), /* Channel 162 */
++> 	CHAN5G(5815, 93), /* Channel 163 */
++> 	CHAN5G(5820, 94), /* Channel 164 */
++> 	CHAN5G(5830, 95), /* Channel 166 */
++> 	CHAN5G(5835, 96), /* Channel 167 */
++> 	CHAN5G(5840, 97), /* Channel 168 */
++> 	CHAN5G(5845, 98), /* Channel 169 */
++> 	CHAN5G(5850, 99), /* Channel 170 */
++> 	CHAN5G(5855, 100), /* Channel 171 */
++> 	CHAN5G(5860, 101), /* Channel 172 */
++> 	CHAN5G(5865, 102), /* Channel 173 */
++> 	CHAN5G(5870, 103), /* Channel 174 */
++> 	CHAN5G(5875, 104), /* Channel 175 */
++> 	CHAN5G(5880, 105), /* Channel 176 */
++> 	CHAN5G(5885, 106), /* Channel 177 */
++> 	CHAN5G(5890, 107), /* Channel 178 */
++> 	CHAN5G(5895, 108), /* Channel 179 */
++> 	CHAN5G(5900, 109), /* Channel 180 */
++> 	CHAN5G(5905, 110), /* Channel 181 */
++> 	CHAN5G(5910, 111), /* Channel 182 */
++> 	CHAN5G(5915, 112), /* Channel 183 */
++> 	CHAN5G(5920, 113), /* Channel 184 */
 +--- a/drivers/net/wireless/ath/ath9k/hw.h
 ++++ b/drivers/net/wireless/ath/ath9k/hw.h
 +@@ -74,7 +74,7 @@
@@ -22,7 +103,7 @@
 +  */
 + 
 + /* Only these channels all allow active scan on all world regulatory domains */
-++#define ATH_2GHZ_CHNN4_00	REG_RULE(2387-10, 2407+10, 40, 0, 20, 0)
+++#define ATH_2GHZ_CHN02_00	REG_RULE(2387-10, 2407+10, 40, 0, 20, 0)
 + #define ATH_2GHZ_CH01_11	REG_RULE(2412-10, 2462+10, 40, 0, 20, 0)
 + 
 + /* We enable active scan on these a case by case basis by regulatory domain */
@@ -58,15 +139,21 @@
 +===================================================================
 +--- a/net/wireless/util.c
 ++++ b/net/wireless/util.c
-+@@ -76,13 +76,16 @@ int ieee80211_channel_to_frequency(int c
++@@ -80,13 +80,22 @@
 + 		return 0; /* not supported */
 + 	switch (band) {
 + 	case NL80211_BAND_2GHZ:
 ++		chan = (int)(unsigned char)chan;
 + 		if (chan == 14)
 + 			return MHZ_TO_KHZ(2484);
-++		else if (chan > 14)
-++			return MHZ_TO_KHZ(2402 - (255 - chan) * 5);
+++		else if (chan == 255)
+++			return MHZ_TO_KHZ(2402);
+++		else if (chan == 254)
+++			return MHZ_TO_KHZ(2397);
+++		else if (chan == 253)
+++			return MHZ_TO_KHZ(2392);
+++		else if (chan == 252)
+++			return MHZ_TO_KHZ(2387);
 + 		else if (chan < 14)
 + 			return MHZ_TO_KHZ(2407 + chan * 5);
 + 		break;
@@ -257,7 +344,7 @@
 ++		case 255:
 ++			snprintf(buf, sizeof(buf), "-1");
 ++			break;
-++       		default:
+++      default:
 ++			snprintf(buf, sizeof(buf), "%d", ch);
 ++			break;
 ++	}

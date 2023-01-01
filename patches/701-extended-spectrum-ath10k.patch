@@ -1,0 +1,136 @@
+--- /dev/null
++++ openwrt/package/kernel/ath10k-ct/patches/999-0004-ath10k-extend-spectrum.patch
+@@ -0,0 +1,120 @@
++--- a/ath10k-5.15/core.h
+++++ b/ath10k-5.15/core.h
++@@ -38,8 +38,8 @@
++ #define WMI_READY_TIMEOUT (5 * HZ)
++ #define ATH10K_FLUSH_TIMEOUT_HZ (5 * HZ)
++ #define ATH10K_CONNECTION_LOSS_HZ (3 * HZ)
++-#define ATH10K_NUM_CHANS 41
++-#define ATH10K_MAX_5G_CHAN 173
+++#define ATH10K_NUM_CHANS 114
+++#define ATH10K_MAX_5G_CHAN 184
++ 
++ /* Antenna noise floor */
++ #define ATH10K_DEFAULT_NOISE_FLOOR -95
++--- a/ath10k-5.15/mac.c
+++++ b/ath10k-5.15/mac.c
++@@ -10606,6 +10606,10 @@
++ }
++ 
++ static const struct ieee80211_channel ath10k_2ghz_channels[] = {
+++	CHAN2G(-4, 2387, 0),
+++	CHAN2G(-3, 2392, 0),
+++	CHAN2G(-2, 2397, 0),
+++	CHAN2G(-1, 2402, 0),
++ 	CHAN2G(1, 2412, 0),
++ 	CHAN2G(2, 2417, 0),
++ 	CHAN2G(3, 2422, 0),
++@@ -10631,6 +10635,32 @@
++ 	CHAN5G(56, 5280, 0),
++ 	CHAN5G(60, 5300, 0),
++ 	CHAN5G(64, 5320, 0),
+++	CHAN5G(74, 5370, 0), /* Channel 74 */
+++	CHAN5G(75, 5375, 0), /* Channel 75 */
+++	CHAN5G(76, 5380, 0), /* Channel 76 */
+++	CHAN5G(77, 5385, 0), /* Channel 77 */
+++	CHAN5G(78, 5390, 0), /* Channel 78 */
+++	CHAN5G(79, 5395, 0), /* Channel 79 */
+++	CHAN5G(80, 5400, 0), /* Channel 80 */
+++	CHAN5G(81, 5405, 0), /* Channel 81 */
+++	CHAN5G(82, 5410, 0), /* Channel 82 */
+++	CHAN5G(83, 5415, 0), /* Channel 83 */
+++	CHAN5G(84, 5420, 0), /* Channel 84 */
+++	CHAN5G(85, 5425, 0), /* Channel 85 */
+++	CHAN5G(86, 5430, 0), /* Channel 86 */
+++	CHAN5G(87, 5435, 0), /* Channel 87 */
+++	CHAN5G(88, 5440, 0), /* Channel 88 */
+++	CHAN5G(89, 5445, 0), /* Channel 89 */
+++	CHAN5G(90, 5450, 0), /* Channel 90 */
+++	CHAN5G(91, 5455, 0), /* Channel 91 */
+++	CHAN5G(92, 5460, 0), /* Channel 92 */
+++	CHAN5G(93, 5465, 0), /* Channel 93 */
+++	CHAN5G(94, 5470, 0), /* Channel 94 */
+++	CHAN5G(95, 5475, 0), /* Channel 95 */
+++	CHAN5G(96, 5480, 0), /* Channel 96 */
+++	CHAN5G(97, 5485, 0), /* Channel 97 */
+++	CHAN5G(98, 5490, 0), /* Channel 98 */
+++	CHAN5G(99, 5495, 0), /* Channel 99 */
++ 	CHAN5G(100, 5500, 0),
++ 	CHAN5G(104, 5520, 0),
++ 	CHAN5G(108, 5540, 0),
++@@ -10639,17 +10669,60 @@
++ 	CHAN5G(120, 5600, 0),
++ 	CHAN5G(124, 5620, 0),
++ 	CHAN5G(128, 5640, 0),
+++	CHAN5G(131, 5655, 0), /* Channel 131 */
++ 	CHAN5G(132, 5660, 0),
+++	CHAN5G(133, 5665, 0), /* Channel 133 */
+++	CHAN5G(134, 5670, 0), /* Channel 134 */
+++	CHAN5G(135, 5675, 0), /* Channel 135 */
++ 	CHAN5G(136, 5680, 0),
+++	CHAN5G(137, 5685, 0), /* Channel 137 */
+++	CHAN5G(138, 5690, 0), /* Channel 138 */
+++	CHAN5G(139, 5695, 0), /* Channel 139 */
++ 	CHAN5G(140, 5700, 0),
+++	CHAN5G(141, 5705, 0), /* Channel 141 */
+++	CHAN5G(142, 5710, 0), /* Channel 142 */
+++	CHAN5G(143, 5715, 0), /* Channel 143 */
++ 	CHAN5G(144, 5720, 0),
+++	CHAN5G(145, 5725, 0), /* Channel 145 */
+++	CHAN5G(146, 5730, 0), /* Channel 146 */
+++	CHAN5G(147, 5735, 0), /* Channel 147 */
+++	CHAN5G(148, 5740, 0), /* Channel 148 */
++ 	CHAN5G(149, 5745, 0),
+++	CHAN5G(150, 5750, 0), /* Channel 150 */
+++	CHAN5G(151, 5755, 0), /* Channel 151 */
+++	CHAN5G(152, 5760, 0), /* Channel 152 */
++ 	CHAN5G(153, 5765, 0),
+++	CHAN5G(154, 5770, 0), /* Channel 154 */
+++	CHAN5G(155, 5775, 0), /* Channel 155 */
+++	CHAN5G(156, 5780, 0), /* Channel 156 */
++ 	CHAN5G(157, 5785, 0),
+++	CHAN5G(158, 5790, 0), /* Channel 158 */
+++	CHAN5G(159, 5795, 0), /* Channel 159 */
+++	CHAN5G(160, 5800, 0), /* Channel 160 */
++ 	CHAN5G(161, 5805, 0),
+++	CHAN5G(162, 5810, 0), /* Channel 162 */
+++	CHAN5G(163, 5815, 0), /* Channel 163 */
+++	CHAN5G(164, 5820, 0), /* Channel 164 */
++ 	CHAN5G(165, 5825, 0),
+++	CHAN5G(166, 5830, 0), /* Channel 166 */
+++	CHAN5G(167, 5835, 0), /* Channel 167 */
+++	CHAN5G(168, 5840, 0), /* Channel 168 */
++ 	CHAN5G(169, 5845, 0),
+++	CHAN5G(170, 5850, 0), /* Channel 170 */
+++	CHAN5G(171, 5855, 0), /* Channel 171 */
+++	CHAN5G(172, 5860, 0), /* Channel 172 */
++ 	CHAN5G(173, 5865, 0),
+++	CHAN5G(174, 5870, 0), /* Channel 174 */
+++	CHAN5G(175, 5875, 0), /* Channel 175 */
+++	CHAN5G(176, 5880, 0), /* Channel 176 */
+++	CHAN5G(177, 5885, 0), /* Channel 177 */
+++	CHAN5G(178, 5890, 0), /* Channel 178 */
+++	CHAN5G(179, 5895, 0), /* Channel 179 */
+++	CHAN5G(180, 5900, 0), /* Channel 180 */
+++	CHAN5G(181, 5905, 0), /* Channel 181 */
+++	CHAN5G(182, 5910, 0), /* Channel 182 */
+++	CHAN5G(183, 5915, 0), /* Channel 183 */
+++	CHAN5G(184, 5920, 0), /* Channel 184 */
++ 	/* If you add more, you may need to change ATH10K_MAX_5G_CHAN */
++ 	/* And you will definitely need to change ATH10K_NUM_CHANS in core.h */
++ };
++--- a/ath10k-5.15/wmi.h
+++++ b/ath10k-5.15/wmi.h
++@@ -3355,6 +3355,10 @@
++ 
++ /* passively scan all channels including active channels */
++ #define WMI_SCAN_FLAG_PASSIVE        0x1
+++/** set HALF (10MHz) rate support */
+++#define WMI_SCAN_FLAG_HALF_RATE_SUPPORT    0x20000
+++/** set Quarter (5MHz) rate support */
+++#define WMI_SCAN_FLAG_QUARTER_RATE_SUPPORT 0x40000
++ /* add wild card ssid probe request even though ssid_list is specified. */
++ #define WMI_SCAN_ADD_BCAST_PROBE_REQ 0x2
++ /* add cck rates to rates/xrate ie for the generated probe request */
