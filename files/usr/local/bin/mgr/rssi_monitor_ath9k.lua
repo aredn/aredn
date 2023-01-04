@@ -168,6 +168,7 @@ function run_monitor_9k()
     if amac then
         -- reset
         os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
+        os.execute("/usr/sbin/iw " .. wifiiface .. " scan passive > /dev/null 2>&1")
         wait_for_ticks(5)
         -- update time
         now = nixio.sysinfo().uptime

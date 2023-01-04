@@ -33,7 +33,10 @@
 
 --]]
 
+local periodic_scan_time = 300 -- 5 minutes
+
 local wifiiface
+local last_scan_time = 0
 
 function rssi_monitor_10k()
     if string.match(get_ifname("wifi"), "^eth.") then
@@ -76,10 +79,11 @@ function run_monitor_10k()
         station_count = station_count + 1
     end
 
-    if station_count == 0 and last_station_count ~= 0 then
+    if station_count == 0 and (last_station_count ~= 0 or nixio.sysinfo().uptime > periodic_scan_time + last_scan_time) then
          -- reset
+         last_scan_time = nixio.sysinfo().uptime
          os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
-         wait_for_ticks(5)
+         os.execute("/usr/sbin/iw " .. wifiiface .. " scan passive > /dev/null 2>&1")
          log:write("No stations detected")
          log:flush()
     end
