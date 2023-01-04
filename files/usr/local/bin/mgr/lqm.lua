@@ -130,7 +130,7 @@ function update_block(track)
     if should_block(track) then
         track.blocked = true
         if track.type == "Tunnel" then
-            if not nft_handle("input_lqm", "iifname \\\"" .. trace.device .. "\\\" udp dport 698 .* drop") then
+            if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 .* drop") then
                 os.execute(NFT .. " insert rule ip fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 counter drop 2> /dev/null")
                 return "blocked"
             end
@@ -557,7 +557,6 @@ function lqm()
                     -- Tunnels have no MAC, so we can only use IP level pings.
                     local sigsock = nixio.socket("inet", "dgram")
                     sigsock:setopt("socket", "bindtodevice", track.device)
-                    sigsock:setopt("socket", "dontroute", 1)
                     sigsock:setopt("socket", "rcvtimeo", ping_timeout)
                     -- Must connect or we wont see the error
                     sigsock:connect(track.ip, 8080)
