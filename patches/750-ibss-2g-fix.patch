@@ -10,10 +10,10 @@
 ++	if (sdata->u.ibss.fixed_channel && 
 ++		band == NL80211_BAND_2GHZ && 
 ++		elems->ds_params && 
-++		channel->center_freq != ieee80211_channel_to_frequency(elems->ds_params[0], band)) {
-++          ibss_dbg(sdata, "Reject beacon: chan %d center_freq %d beacon_freq %d\n", elems->ds_params[0], channel->center_freq, ieee80211_channel_to_frequency(elems->ds_params[0], band));
+++		sdata->u.ibss.chandef.center_freq1 != ieee80211_channel_to_frequency(elems->ds_params[0], band)) {
+++			ibss_dbg(sdata, "Reject beacon: chan %d center_freq1 %d center_freq %d beacon_freq %d\n", elems->ds_params[0], sdata->u.ibss.chandef.center_freq1, channel->center_freq, ieee80211_channel_to_frequency(elems->ds_params[0], band));
 ++			goto put_bss;
-++  }
+++	}
 ++
 + 	if (beacon_timestamp > rx_timestamp) {
 + 		ibss_dbg(sdata,

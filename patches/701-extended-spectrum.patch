@@ -303,7 +303,7 @@
 + 
 --- /dev/null
 +++ b/package/kernel/ath10k-ct/patches/999-0000-ath10k-part97-chan-extend.patch
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,100 @@
 +--- a/ath10k-5.15/core.h
 ++++ b/ath10k-5.15/core.h
 +@@ -49,8 +49,8 @@
@@ -312,17 +312,19 @@
 + #define ATH10K_CONNECTION_LOSS_HZ (3 * HZ)
 +-#define ATH10K_NUM_CHANS 41
 +-#define ATH10K_MAX_5G_CHAN 173
-++#define ATH10K_NUM_CHANS 86 
+++#define ATH10K_NUM_CHANS 88 
 ++#define ATH10K_MAX_5G_CHAN 184
 + 
 + /* Antenna noise floor */
 + #define ATH10K_DEFAULT_NOISE_FLOOR -95
 +--- a/ath10k-5.15/mac.c
 ++++ b/ath10k-5.15/mac.c
-+@@ -9089,6 +9089,8 @@
++@@ -9089,6 +9089,10 @@
 + }
 + 
 + static const struct ieee80211_channel ath10k_2ghz_channels[] = {
+++	CHAN2G(252, 2387, 0),
+++	CHAN2G(253, 2392, 0),
 ++	CHAN2G(254, 2397, 0),
 ++	CHAN2G(255, 2402, 0),
 + 	CHAN2G(1, 2412, 0),
@@ -402,3 +404,25 @@
 + /* add wild card ssid probe request even though ssid_list is specified. */
 + #define WMI_SCAN_ADD_BCAST_PROBE_REQ 0x2
 + /* add cck rates to rates/xrate ie for the generated probe request */
+--- /dev/null
++++ b/package/kernel/ath10k-ct/patches/999-0001-ath10k-neg-chans.patch
+@@ -0,0 +1,19 @@
++--- a/ath10k-5.15/wmi.c
+++++ b/ath10k-5.15/wmi.c
++@@ -2709,13 +2709,15 @@
++ 	 */
++ 	if (channel >= 1 && channel <= 14) {
++ 		status->band = NL80211_BAND_2GHZ;
+++	} else if (channel >= -4 && channel <= -1) {
+++		status->band = NL80211_BAND_2GHZ;
++ 	} else if (channel >= 36 && channel <= ATH10K_MAX_5G_CHAN) {
++ 		status->band = NL80211_BAND_5GHZ;
++ 	} else {
++ 		/* Shouldn't happen unless list of advertised channels to
++ 		 * mac80211 has been changed.
++ 		 */
++-		WARN_ON_ONCE(1);
+++		WARN_ONCE(1, "Bad channel %d\n", channel);
++ 		dev_kfree_skb(skb);
++ 		return 0;
++ 	}
