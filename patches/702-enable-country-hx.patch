@@ -18,7 +18,7 @@ Index: openwrt/package/firmware/wireless-regdb/patches/999-add-country-hx.patch
 + 	(2402 - 2482 @ 20), (20)
 --- /dev/null
 +++ b/package/kernel/mac80211/patches/ath/302-add-country-hx.patch
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,45 @@
 +--- a/drivers/net/wireless/ath/regd_common.h
 ++++ b/drivers/net/wireless/ath/regd_common.h
 +@@ -498,6 +498,8 @@
@@ -53,3 +53,14 @@ Index: openwrt/package/firmware/wireless-regdb/patches/999-add-country-hx.patch
 + 	}
 + 
 + 	if (reg->country_code == CTRY_DEFAULT) {
++--- a/drivers/net/wireless/ath/regd.c
+++++ b/drivers/net/wireless/ath/regd.c
++@@ -803,6 +803,8 @@
++ 						 regulatory);
++ 	int r;
++ 
+++	reg->current_rd = 0; // Force HAM
+++
++ 	r = __ath_regd_init(reg);
++ 	if (r)
++ 		return r;
