@@ -45,6 +45,9 @@ local quality_injection_max = 10 -- number of packets to inject into poor links 
 local tx_quality_run_avg = 0.8 -- tx quality running average
 local ping_timeout = 1.0 -- timeout before ping gives a qualtiy penalty
 local dtd_distance = 50 -- distance (meters) after which nodes connected with DtD links are considered different sites
+local connect_timeout = 5 -- timeout (seconds) when fetching information from other nodes
+local speed_time = 10 --
+local speed_limit = 1000 -- close connection if it's too slow (< 1kB/s for 10 seconds)
 
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
@@ -479,7 +482,7 @@ function lqm()
                 track.rev_snr = null
                 dtdlinks[track.mac] = {}
 
-                local raw = io.popen("/usr/bin/wget -O - 'http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1' 2>/dev/null")
+                local raw = io.popen("/usr/bin/curl --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -sD - \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
                 local info = luci.jsonc.parse(raw:read("*a"))
                 raw:close()
                 if info then
