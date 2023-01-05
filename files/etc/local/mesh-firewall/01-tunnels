@@ -63,9 +63,9 @@ nft add chain ip fw4 forward_vpn
 nft add chain ip fw4 accept_to_vpn
 nft add chain ip fw4 reject_to_vpn
 
-nft insert rule ip fw4 forward iifname "tun*" counter jump forward_vpn
-nft insert rule ip fw4 input iifname "tun*" counter jump input_vpn
-nft insert rule ip fw4 output oifname "tun*" counter jump accept_vpn # instead of creating a output_vpn chain
+nft add rule ip fw4 forward iifname "tun*" counter jump forward_vpn
+nft add rule ip fw4 input iifname "tun*" counter jump input_vpn
+nft add rule ip fw4 output oifname "tun*" counter jump accept_vpn # instead of creating a output_vpn chain
 nft add rule ip fw4 input_vpn icmp type echo-request counter accept
 nft add rule ip fw4 input_vpn tcp dport 2222 counter accept
 nft add rule ip fw4 input_vpn tcp dport 8080 counter accept
