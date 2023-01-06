@@ -348,9 +348,10 @@ if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
         -- drop the page cache to take pressure off tmps when checking the firmware
         write_all("/proc/sys/vm/drop_caches", "3")
         -- check firmware header
-        if os.execute("/usr/local/bin/firmwarecheck.sh " .. tmpdir .. "/firmware > /dev/null 2>&1") ~= 0 then
+        local fcheck = capture("/usr/local/bin/firmwarecheck.sh " .. tmpdir .. "/firmware")
+        if fcheck ~= "" then
             fwout("Firmware CANNOT be updated")
-            fwout("firmware file is not valid")
+            fwout("firmware file is not valid: " .. fcheck)
             fw_install = false
             nixio.fs.remove(tmpdir .. "/firmware")
             if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
