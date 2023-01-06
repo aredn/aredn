@@ -4,7 +4,7 @@
 Device | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Mikrotik Basebox RB912UAG-2HPnD | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | unknown | released
-Mikrotik Basebox RB912UAG-5HPnD | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | unknown | released
+Mikrotik Basebox RB912UAG-5HPnD | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | reinstall
 Mikrotik hAP ac lite 952Ui-5ac2nD | 2 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
 Mikrotik RBLHG-2nD(-XL) | 2 | ath79 | mikrotik | mikrotik-lhg-2nd | 64MB | stable | released
 Mikrotik RBLHG-5nD | 5 | ath79 | mikrotik | mikrotik-lhg-5nd | 64MB | stable | released
@@ -134,6 +134,7 @@ Meraki MR-16 || ath79 | - | - | 64MB | unsupported | **brick**
 * *brick* - this image has been tested and will currently brick your hardware. Avoid for now.
 * *sunset* - this device has been sunsetted and support will be deprecated at some point.
 * *nightly* - this device is newly supported in the nightly builds (since the last release).
+* *reinstall* - this device is supported, but cannot be upgraded and must be reinstalled.
 
 The 'target' and 'subtarget' identify the directory to find the image on at http://downloads.arednmesh.org
 
