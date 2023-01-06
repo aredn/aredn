@@ -134,7 +134,7 @@ Meraki MR-16 || ath79 | - | - | 64MB | unsupported | **brick**
 * *brick* - this image has been tested and will currently brick your hardware. Avoid for now.
 * *sunset* - this device has been sunsetted and support will be deprecated at some point.
 * *nightly* - this device is newly supported in the nightly builds (since the last release).
-* *reinstall* - this device is supported, but cannot be upgraded and must be reinstalled.
+* *reinstall* - this device cannot be upgraded from 3.22.12.0 and must be reinstalled using the "First Install Process".
 
 The 'target' and 'subtarget' identify the directory to find the image on at http://downloads.arednmesh.org
 
