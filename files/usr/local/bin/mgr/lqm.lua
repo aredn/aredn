@@ -495,9 +495,7 @@ function lqm()
                             for _, rtrack in pairs(info.lqm.info.trackers)
                             do
                                 if not rtrack.type or rtrack.type == "RF" then
-                                    if not rtrack.blocked then
-                                        rflinks[track.mac][rtrack.ip] = true
-                                    end
+                                    rflinks[track.mac][rtrack.ip] = true
                                     if myhostname == rtrack.hostname then
                                         if not old_rev_snr or not rtrack.snr then
                                             track.rev_snr = rtrack.snr
