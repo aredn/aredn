@@ -60,6 +60,7 @@ function get_config()
     return {
         margin = tonumber(c:get("aredn", "@lqm[0]", "margin_snr")),
         low = tonumber(c:get("aredn", "@lqm[0]", "min_snr")),
+        rts_size = tonumber(c:get("aredn", "@lqm[0]", "rts_size") or "128"),
         min_distance = tonumber(c:get("aredn", "@lqm[0]", "min_distance")),
         max_distance = tonumber(c:get("aredn", "@lqm[0]", "max_distance")),
         auto_distance = tonumber(c:get("aredn", "@lqm[0]", "auto_distance") or "0"),
@@ -479,7 +480,7 @@ function lqm()
                 local info = luci.jsonc.parse(raw:read("*a"))
                 raw:close()
                 if info then
-                    rflinks[track.ip] = nil
+                    rflinks[track.mac] = nil
                     if tonumber(info.lat) and tonumber(info.lon) then
                         track.lat = tonumber(info.lat)
                         track.lon = tonumber(info.lon)
@@ -489,11 +490,13 @@ function lqm()
                     end
                     if track.type == "RF" then
                         if info.lqm and info.lqm.enabled and info.lqm.info.trackers then
-                            rflinks[track.ip] = {}
+                            rflinks[track.mac] = {}
                             for _, rtrack in pairs(info.lqm.info.trackers)
                             do
                                 if not rtrack.type or rtrack.type == "RF" then
-                                    rflinks[track.ip][rtrack.ip] = true
+                                    if not rtrack.blocked then
+                                        rflinks[track.mac][rtrack.ip] = true
+                                    end
                                     if myhostname == rtrack.hostname then
                                         if not old_rev_snr or not rtrack.snr then
                                             track.rev_snr = rtrack.snr
@@ -510,12 +513,12 @@ function lqm()
                                 end
                             end
                         elseif info.link_info then
-                            rflinks[track.ip] = {}
+                            rflinks[track.mac] = {}
                             -- If there's no LQM information we fallback on using link information.
                             for ip, link in pairs(info.link_info)
                             do
                                 if link.linkType == "RF" then
-                                    rflinks[track.ip][ip] = true
+                                    rflinks[track.mac][ip] = true
                                 end
                                 if link.hostname then
                                     local hostname = link.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")
@@ -772,15 +775,36 @@ function lqm()
         end
 
         -- Set the RTS/CTS state depending on whether everyone can see everyone
+        -- First build a list of all the nodes our neighbors can see
         local theres = {}
-        for _, nn in pairs(rflinks)
+        for mac, rfneighbor in pairs(rflinks)
         do
-            for nip, _ in pairs(nn)
-            do
-                theres[nip] = true
+            if tracker[mac] and not tracker[mac].blocked then
+                for nip, _ in pairs(rfneighbor)
+                do
+                    theres[nip] = true
+                end
             end
         end
-        
+        -- Remove all the nodes we can see from this set
+        for _, track in pairs(tracker)
+        do
+            if track.ip then
+                theres[track.ip] = nil
+            end
+        end
+        -- If there are any nodes left then we have a hidden node and should enable RTS/CTS
+        local hidden = false
+        for _, _ in pairs(theres)
+        do
+            hidden = true
+            break
+        end
+        if hidden and config.rts_size >= 0 and config.rts_size <= 2347 then
+            os.execute(IW .. " " .. phy .. " set rts " .. config.rts_size .. " > /dev/null 2>&1")
+        else
+            os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+        end
 
         -- Save this for the UI
         f = io.open("/tmp/lqm.info", "w")
@@ -789,7 +813,8 @@ function lqm()
                 now = now,
                 trackers = tracker,
                 distance = distance,
-                coverage = coverage
+                coverage = coverage,
+                hidden_nodes = hidden
             }, true))
             f:close()
         end
