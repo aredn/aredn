@@ -230,7 +230,7 @@ function lqm()
     local tracker = {}
     local dtdlinks = {}
     local rflinks = {}
-    local hidden_nodes = false
+    local hidden_nodes = -1
     while true
     do
         now = nixio.sysinfo().uptime
@@ -776,32 +776,32 @@ function lqm()
         end
 
         -- Set the RTS/CTS state depending on whether everyone can see everyone
-        -- First build a list of all the nodes our neighbors can see
-        local theres = {}
-        for mac, rfneighbor in pairs(rflinks)
-        do
-            if tracker[mac] and not tracker[mac].blocked then
-                for nip, _ in pairs(rfneighbor)
-                do
-                    theres[nip] = true
+        local hidden = false
+        if config.rts_theshold >= 0 and config.rts_theshold <= 2347 then
+            -- Build a list of all the nodes our neighbors can see
+            local theres = {}
+            for mac, rfneighbor in pairs(rflinks)
+            do
+                if tracker[mac] and not tracker[mac].blocked then
+                    for nip, _ in pairs(rfneighbor)
+                    do
+                        theres[nip] = true
+                    end
                 end
             end
-        end
-        -- Remove all the nodes we can see from this set
-        for _, track in pairs(tracker)
-        do
-            if track.ip then
-                theres[track.ip] = nil
+            -- Remove all the nodes we can see from this set
+            for _, track in pairs(tracker)
+            do
+                if track.ip then
+                    theres[track.ip] = nil
+                end
             end
-        end
-        -- If there are any nodes left then we have a hidden node and should enable RTS/CTS
-        local hidden = false
-        for _, _ in pairs(theres)
-        do
-            if config.rts_theshold >= 0 and config.rts_theshold <= 2347 then
+            -- If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
+            for _, _ in pairs(theres)
+            do
                 hidden = true
+                break
             end
-            break
         end
         if hidden ~= hidden_nodes then
             if hidden then
