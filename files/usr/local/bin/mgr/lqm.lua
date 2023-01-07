@@ -230,6 +230,7 @@ function lqm()
     local tracker = {}
     local dtdlinks = {}
     local rflinks = {}
+    local hidden_nodes = false
     while true
     do
         now = nixio.sysinfo().uptime
@@ -797,13 +798,18 @@ function lqm()
         local hidden = false
         for _, _ in pairs(theres)
         do
-            hidden = true
+            if config.rts_size >= 0 and config.rts_size <= 2347 then
+                hidden = true
+            end
             break
         end
-        if hidden and config.rts_size >= 0 and config.rts_size <= 2347 then
-            os.execute(IW .. " " .. phy .. " set rts " .. config.rts_size .. " > /dev/null 2>&1")
-        else
-            os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+        if hidden ~= hidden_nodes then
+            if hidden then
+                os.execute(IW .. " " .. phy .. " set rts " .. config.rts_size .. " > /dev/null 2>&1")
+            else
+                os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+            end
+            hidden_nodes = hidden
         end
 
         -- Save this for the UI
@@ -814,7 +820,7 @@ function lqm()
                 trackers = tracker,
                 distance = distance,
                 coverage = coverage,
-                hidden_nodes = hidden
+                hidden_nodes = hidden_nodes
             }, true))
             f:close()
         end
