@@ -228,6 +228,7 @@ function lqm()
     local noise = -95
     local tracker = {}
     local dtdlinks = {}
+    local rflinks = {}
     while true
     do
         now = nixio.sysinfo().uptime
@@ -478,6 +479,7 @@ function lqm()
                 local info = luci.jsonc.parse(raw:read("*a"))
                 raw:close()
                 if info then
+                    rflinks[track.ip] = nil
                     if tonumber(info.lat) and tonumber(info.lon) then
                         track.lat = tonumber(info.lat)
                         track.lon = tonumber(info.lon)
@@ -487,13 +489,17 @@ function lqm()
                     end
                     if track.type == "RF" then
                         if info.lqm and info.lqm.enabled and info.lqm.info.trackers then
+                            rflinks[track.ip] = {}
                             for _, rtrack in pairs(info.lqm.info.trackers)
                             do
-                                if myhostname == rtrack.hostname and (not rtrack.type or rtrack.type == "RF") then
-                                    if not old_rev_snr or not rtrack.snr then
-                                        track.rev_snr = rtrack.snr
-                                    else
-                                        track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * rtrack.snr)
+                                if not rtrack.type or rtrack.type == "RF" then
+                                    rflinks[track.ip][rtrack.ip] = true
+                                    if myhostname == rtrack.hostname then
+                                        if not old_rev_snr or not rtrack.snr then
+                                            track.rev_snr = rtrack.snr
+                                        else
+                                            track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * rtrack.snr)
+                                        end
                                     end
                                 end
                             end
@@ -504,9 +510,13 @@ function lqm()
                                 end
                             end
                         elseif info.link_info then
+                            rflinks[track.ip] = {}
                             -- If there's no LQM information we fallback on using link information.
                             for ip, link in pairs(info.link_info)
                             do
+                                if link.linkType == "RF" then
+                                    rflinks[track.ip][ip] = true
+                                end
                                 if link.hostname then
                                     local hostname = link.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")
                                     if link.linkType == "DTD" then
@@ -760,6 +770,17 @@ function lqm()
         else
             os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
         end
+
+        -- Set the RTS/CTS state depending on whether everyone can see everyone
+        local theres = {}
+        for _, nn in pairs(rflinks)
+        do
+            for nip, _ in pairs(nn)
+            do
+                theres[nip] = true
+            end
+        end
+        
 
         -- Save this for the UI
         f = io.open("/tmp/lqm.info", "w")
