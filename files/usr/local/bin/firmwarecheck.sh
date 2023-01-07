@@ -8,7 +8,7 @@ include /lib/upgrade/
 if $(platform_check_image "$*" > /dev/null 2>&1)
 then
 	json=$(/usr/libexec/validate_firmware_image "$*" 2> /dev/null)
-	if [ "$(echo "$json" | jsonfilter -e '@.value')" = "true" ]; then
+	if [ "$(echo "$json" | jsonfilter -e '@.valid')" = "true" ]; then
 		return 0;
 	fi
 	if [ "$(echo "$json" | jsonfilter -e '@.tests.fwtool_signature')" = "false" ]; then
