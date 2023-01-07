@@ -37,7 +37,6 @@ local info = require("aredn.info")
 
 local refresh_timeout = 15 * 60 -- refresh high cost data every 15 minutes
 local pending_timeout = 5 * 60 -- pending node wait 5 minutes before they are included
-local first_run_timeout = 4 * 60 -- first ever run can adjust the config to make sure we dont ignore evereyone
 local lastseen_timeout = 60 * 60 -- age out nodes we've not seen for 1 hour
 local snr_run_avg = 0.8 -- snr running average
 local quality_min_packets = 100 -- minimum number of tx packets before we can safely calculate the link quality
@@ -226,13 +225,6 @@ function lqm()
     -- We dont know any distances yet
     os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
 
-    -- Setup a first_run timeout if this is our first every run
-    if cursor:get("aredn", "@lqm[0]", "first_run") == "0" then
-        first_run_timeout = 0
-    else
-        first_run_timeout = first_run_timeout + nixio.sysinfo().uptime
-    end
-
     local noise = -95
     local tracker = {}
     local dtdlinks = {}
@@ -260,7 +252,7 @@ function lqm()
         local our_macs = {}
         for _, i in ipairs(nixio.getifaddrs()) do
             if i.family == "packet" and i.addr then
-                our_macs[i.addr] = true
+                our_macs[i.addr:upper()] = true
             end
         end
 
@@ -603,52 +595,6 @@ function lqm()
                 end
                 sigsock:close()
             end
-        end
-
-        -- First run handling (emergency node)
-        -- If this is the very first time this has even been run, either because this is an upgrade or a new install,
-        -- we make sure we can talk to *something* by adjusting config options so that's possible and we don't
-        -- accidentally isolate the node.
-        if first_run_timeout ~= 0 and now >= first_run_timeout then
-            local changes = {
-                snr = -1,
-                distance = nil,
-                quality = nil
-            }
-            -- Scan through the list of nodes we're tracking and select the node with the best SNR then
-            -- adjust our settings so that this node is valid
-            for _, track in pairs(tracker)
-            do
-                local snr = track.snr
-                if track.rev_snr and track.rev_snr ~= 0 and track.rev_snr < snr then
-                    snr = track.rev_snr
-                end
-                if snr > changes.snr then
-                    changes.snr = snr
-                    changes.distance = track.distance
-                    changes.quality = track.quality
-                end
-            end
-            local cursorb = uci.cursor("/etc/config.mesh")
-            if changes.snr > -1 then
-                if changes.snr < config.low then
-                    cursor:set("aredn", "@lqm[0]", "min_snr", math.max(1, changes.snr - 3))
-                    cursorb:set("aredn", "@lqm[0]", "min_snr", math.max(1, changes.snr - 3))
-                end
-                if changes.distance and changes.distance > config.max_distance then
-                    cursor:set("aredn", "@lqm[0]", "max_distance", changes.distance)
-                    cursorb:set("aredn", "@lqm[0]", "max_distance", changes.distance)
-                end
-                if changes.quality and changes.quality < config.min_quality then
-                    cursor:set("aredn", "@lqm[0]", "min_quality", math.max(0, math.floor(changes.quality - 20)))
-                    cursorb:set("aredn", "@lqm[0]", "min_quality", math.max(0, math.floor(changes.quality - 20)))
-                end
-            end
-            cursor:set("aredn", "@lqm[0]", "first_run", "0")
-            cursorb:set("aredn", "@lqm[0]", "first_run", "0")
-            cursor:commit("aredn")
-            cursorb:commit("aredn")
-            first_run_timeout = 0
         end
 
         -- Work out what to block, unblock and limit
