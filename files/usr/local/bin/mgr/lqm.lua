@@ -225,12 +225,14 @@ function lqm()
 
     -- We dont know any distances yet
     os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
+    -- Or any hidden nodes
+    os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
 
     local noise = -95
     local tracker = {}
     local dtdlinks = {}
     local rflinks = {}
-    local hidden_nodes = -1
+    local hidden_nodes = {}
     while true
     do
         now = nixio.sysinfo().uptime
@@ -495,7 +497,10 @@ function lqm()
                             for _, rtrack in pairs(info.lqm.info.trackers)
                             do
                                 if not rtrack.type or rtrack.type == "RF" then
-                                    rflinks[track.mac][rtrack.ip] = true
+                                    rflinks[track.mac][rtrack.ip] = {
+                                        ip = rtrack.ip,
+                                        hostname = rtrack.hostname
+                                    }
                                     if myhostname == rtrack.hostname then
                                         if not old_rev_snr or not rtrack.snr then
                                             track.rev_snr = rtrack.snr
@@ -517,7 +522,10 @@ function lqm()
                             for ip, link in pairs(info.link_info)
                             do
                                 if link.linkType == "RF" then
-                                    rflinks[track.mac][ip] = true
+                                    rflinks[track.mac][ip] = {
+                                        ip = ip,
+                                        hostname = link.hostname
+                                    }
                                 end
                                 if link.hostname then
                                     local hostname = link.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")
@@ -774,41 +782,38 @@ function lqm()
         end
 
         -- Set the RTS/CTS state depending on whether everyone can see everyone
-        local hidden = false
-        if config.rts_theshold >= 0 and config.rts_theshold <= 2347 then
-            -- Build a list of all the nodes our neighbors can see
-            local theres = {}
-            for mac, rfneighbor in pairs(rflinks)
-            do
-                if tracker[mac] and not tracker[mac].blocked then
-                    for nip, _ in pairs(rfneighbor)
-                    do
-                        theres[nip] = true
-                    end
+        -- Build a list of all the nodes our neighbors can see
+        local theres = {}
+        for mac, rfneighbor in pairs(rflinks)
+        do
+            if tracker[mac] and not tracker[mac].blocked then
+                for nip, ninfo in pairs(rfneighbor)
+                do
+                    theres[nip] = ninfo
                 end
-            end
-            -- Remove all the nodes we can see from this set
-            for _, track in pairs(tracker)
-            do
-                if track.ip then
-                    theres[track.ip] = nil
-                end
-            end
-            -- If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
-            for _, _ in pairs(theres)
-            do
-                hidden = true
-                break
             end
         end
-        if hidden ~= hidden_nodes then
-            if hidden then
+        -- Remove all the nodes we can see from this set
+        for _, track in pairs(tracker)
+        do
+            if track.ip then
+                theres[track.ip] = nil
+            end
+        end
+        -- If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
+        local hidden = {}
+        for _, ninfo in pairs(theres)
+        do
+            hidden[#hidden + 1] = ninfo
+        end
+        if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_theshold >= 0 and config.rts_theshold <= 2347 then
+            if #hidden > 0 then
                 os.execute(IW .. " " .. phy .. " set rts " .. config.rts_theshold .. " > /dev/null 2>&1")
             else
                 os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
             end
-            hidden_nodes = hidden
         end
+        hidden_nodes = hidden
 
         -- Save this for the UI
         f = io.open("/tmp/lqm.info", "w")
