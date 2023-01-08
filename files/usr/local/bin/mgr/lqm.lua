@@ -182,6 +182,14 @@ function calc_distance(lat1, lon1, lat2, lon2)
     return math.floor(r2 * math.asin(math.sqrt(v)))
 end
 
+-- Canonical hostname
+function canonical_hostname(hostname)
+    if hostname then
+        hostname = hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("%.local%.mesh$", "")
+    end
+    return hostname
+end
+
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
 f:write('{"trackers":{}}')
@@ -431,7 +439,7 @@ function lqm()
                 if not track.hostname and track.ip then
                     local hostname = nixio.getnameinfo(track.ip)
                     if hostname then
-                        track.hostname = hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("%.local%.mesh$", "")
+                        track.hostname = canonical_hostname(hostname)
                     end
                 end
 
@@ -513,7 +521,7 @@ function lqm()
                             for ip, link in pairs(info.link_info)
                             do
                                 if link.hostname and link.linkType == "DTD" then
-                                    dtdlinks[track.mac][link.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")] = true
+                                    dtdlinks[track.mac][canonical_hostname(link.hostname)] = true
                                 end
                             end
                         elseif info.link_info then
@@ -524,11 +532,11 @@ function lqm()
                                 if link.linkType == "RF" then
                                     rflinks[track.mac][ip] = {
                                         ip = ip,
-                                        hostname = link.hostname
+                                        hostname = canonical_hostname(link.hostname)
                                     }
                                 end
                                 if link.hostname then
-                                    local hostname = link.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")
+                                    local hostname = canonical_hostname(link.hostname)
                                     if link.linkType == "DTD" then
                                         dtdlinks[track.mac][hostname] = true
                                     elseif link.linkType == "RF" and link.signal and link.noise and myhostname == hostname then
@@ -786,7 +794,8 @@ function lqm()
         local theres = {}
         for mac, rfneighbor in pairs(rflinks)
         do
-            if tracker[mac] and not tracker[mac].blocked then
+            local track = tracker[mac]
+            if track and not track.blocked and track.routable then
                 for nip, ninfo in pairs(rfneighbor)
                 do
                     theres[nip] = ninfo
