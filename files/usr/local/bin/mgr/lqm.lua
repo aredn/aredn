@@ -551,7 +551,6 @@ function lqm()
                 if track.type == "Tunnel" then
                     -- Tunnels have no MAC, so we can only use IP level pings.
                     local sigsock = nixio.socket("inet", "dgram")
-                    sigsock:setopt("socket", "bindtodevice", track.device)
                     sigsock:setopt("socket", "rcvtimeo", ping_timeout)
                     -- Must connect or we wont see the error
                     sigsock:connect(track.ip, 8080)
