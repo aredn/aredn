@@ -153,6 +153,9 @@ html.print([[<hr>
             if (track.routable) {
                 return "active";
             }
+            if (track.hidden) {
+                return "hidden";
+            }
             return "idle";
         }
         const get_snr = track => {
@@ -179,6 +182,15 @@ html.print([[<hr>
         const update = data => {
             let links = "";
             const trackers = Object.values(data.info.trackers);
+            data.info.hidden_nodes.forEach(hidden => {
+                trackers.push({
+                    hostname: hidden.hostname,
+                    ip: hidden.ip,
+                    hidden: true,
+                    type: "-",
+                    snr: -1
+                });
+            });
             trackers.sort((a, b) => name(a).localeCompare(name(b)));
             trackers.forEach(track => {
                 let quality = "-";
