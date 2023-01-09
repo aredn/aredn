@@ -60,7 +60,7 @@ function get_config()
     return {
         margin = tonumber(c:get("aredn", "@lqm[0]", "margin_snr")),
         low = tonumber(c:get("aredn", "@lqm[0]", "min_snr")),
-        rts_theshold = tonumber(c:get("aredn", "@lqm[0]", "rts_theshold") or "256"),
+        rts_theshold = tonumber(c:get("aredn", "@lqm[0]", "rts_theshold") or "0"),
         min_distance = tonumber(c:get("aredn", "@lqm[0]", "min_distance")),
         max_distance = tonumber(c:get("aredn", "@lqm[0]", "max_distance")),
         auto_distance = tonumber(c:get("aredn", "@lqm[0]", "auto_distance") or "0"),
