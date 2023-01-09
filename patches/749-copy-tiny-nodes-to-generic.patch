@@ -91,7 +91,7 @@
 +TARGET_DEVICES += ubnt_rocket-m
 --- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
-@@ -536,6 +536,19 @@
+@@ -536,6 +536,20 @@
                  ucidef_set_interface "dtdlink" device "eth0.2 eth1.2" protocol "static"
                  ucidef_set_interface "wifi" device "wlan0" protocol "static"
                  ;;
@@ -102,6 +102,7 @@
 +		;;
 +	ubnt,bullet-m-ar7241|\
 +	ubnt,nanobridge-m|\
++	ubnt,powerbridge-m|\
 +	ubnt,rocket-m)
 +		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
 +		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
@@ -113,13 +114,14 @@
  		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
 --- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
 +++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
-@@ -139,6 +139,12 @@
+@@ -139,6 +139,13 @@
  		caldata_extract "art" 0x1000 0x1000
  		ath9k_patch_mac $(nvram get wl0_hwaddr)
  		;;
 +	ubnt,nanostation-m|\
 +	ubnt,bullet-m-ar7241|\
 +	ubnt,nanobridge-m|\
++	ubnt,powerbridge-m|\
 +	ubnt,rocket-m)
 +		caldata_extract "art" 0x1000 0x1000
 +		;;
