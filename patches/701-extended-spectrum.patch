@@ -228,7 +228,7 @@
 + 			return 5000 + chan * 5;
 --- /dev/null
 +++ b/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,65 @@
 +--- a/iwinfo_cli.c
 ++++ b/iwinfo_cli.c
 +@@ -48,10 +48,21 @@ static char * format_channel(int ch)
@@ -266,19 +266,15 @@
 + 
 + 	return format_channel(ch);
 + }
-+@@ -644,7 +655,7 @@ static void print_freqlist(const struct iwinfo_ops *iw, const char *ifname)
-+ 	}
-+ 
-+ 	if (iw->channel(ifname, &ch))
-+-		ch = -1;
-++		ch = 0;
-+ 
-+ 	for (i = 0; i < len; i += sizeof(struct iwinfo_freqlist_entry))
-+ 	{
 +--- a/iwinfo_nl80211.c	2019-05-25 14:36:00.660702602 -0500
 ++++ b/iwinfo_nl80211.c	2019-05-25 14:38:41.985324601 -0500
-+@@ -578,20 +578,22 @@
++@@ -709,13 +709,12 @@
++  */
++ static int nl80211_channel2freq(int channel, const char *band, bool ax)
 + {
++-	if (channel < 1)
++-		return 0;
++-
 + 	if (!band || band[0] != 'a')
 + 	{
 + 		if (channel == 14)
@@ -288,9 +284,7 @@
 + 		else if (channel < 14)
 + 			return (channel * 5) + 2407;
 + 	}
-+ 	else if ( strcmp(band, "ad") == 0)
-+ 	{
-+ 		return 56160 + 2160 * channel;
++@@ -733,7 +732,7 @@
 + 	}
 + 	else
 + 	{
@@ -299,8 +293,7 @@
 + 			return (channel * 5) + 4000;
 + 		else
 + 			return (channel * 5) + 5000;
-+ 	}
-+ 
++
 --- /dev/null
 +++ b/package/kernel/ath10k-ct/patches/999-0000-ath10k-part97-chan-extend.patch
 @@ -0,0 +1,100 @@
