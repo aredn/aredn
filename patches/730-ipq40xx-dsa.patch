@@ -12149,7 +12149,7 @@
 + 		spi1 = &blsp1_spi2;
 + 		i2c0 = &blsp1_i2c3;
 + 		i2c1 = &blsp1_i2c4;
-++		ethernet0 = &gmac;
+++		ethernet0 = &gmac0;
 + 	};
 + 
 + 	cpus {
@@ -12157,7 +12157,7 @@
 + 			status = "disabled";
 + 		};
 + 
-++		gmac: ethernet@c080000 {
+++		gmac0: ethernet@c080000 {
 ++			compatible = "qcom,ipq4019-ess-edma";
 ++			reg = <0xc080000 0x8000>;
 ++			resets = <&gcc ESS_RESET>;
@@ -12290,7 +12290,7 @@
 + 		spi1 = &blsp1_spi2;
 + 		i2c0 = &blsp1_i2c3;
 + 		i2c1 = &blsp1_i2c4;
-++		ethernet0 = &gmac;
+++		ethernet0 = &gmac0;
 + 	};
 + 
 + 	cpus {
@@ -12298,7 +12298,7 @@
 + 			status = "disabled";
 + 		};
 + 
-++		gmac: ethernet@c080000 {
+++		gmac0: ethernet@c080000 {
 ++			compatible = "qcom,ipq4019-ess-edma";
 ++			reg = <0xc080000 0x8000>;
 ++			resets = <&gcc ESS_RESET>;
@@ -17067,7 +17067,7 @@
 ++				port@0 { /* MAC0 */
 ++					reg = <0>;
 ++					label = "cpu";
-++					ethernet = <&gmac>;
+++					ethernet = <&gmac0>;
 ++					phy-mode = "internal";
 ++
 ++					fixed-link {
@@ -17125,7 +17125,7 @@
 ++			};
 ++		};
 ++
-+ 		gmac: ethernet@c080000 {
++ 		gmac0: ethernet@c080000 {
 + 			compatible = "qcom,ipq4019-ess-edma";
 + 			reg = <0xc080000 0x8000>;
 --- a/target/linux/ipq40xx/patches-5.10/708-arm-dts-ipq4019-QCA807x-properties.patch
@@ -17235,7 +17235,7 @@
 ++				port@0 { /* MAC0 */
 ++					reg = <0>;
 ++					label = "cpu";
-++					ethernet = <&gmac>;
+++					ethernet = <&gmac0>;
 ++					phy-mode = "internal";
 ++
 ++					fixed-link {
@@ -17293,7 +17293,7 @@
 ++			};
 ++		};
 ++
-+ 		gmac: ethernet@c080000 {
++ 		gmac0: ethernet@c080000 {
 + 			compatible = "qcom,ipq4019-ess-edma";
 + 			reg = <0xc080000 0x8000>;
 --- a/target/linux/ipq40xx/config-5.10
@@ -17987,7 +17987,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18014,7 +18014,7 @@
  	#gpio-cells = <2>;
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18041,7 +18041,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18079,7 +18079,7 @@
  		led-running = &led_power;
  		led-upgrade = &led_power;
 +		ethernet0 = &swport5;
-+		ethernet1 = &gmac;
++		ethernet1 = &gmac0;
  	};
  
  	chosen {
@@ -18089,7 +18089,7 @@
  	pinctrl-names = "default";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18116,7 +18116,7 @@
  	#gpio-cells = <2>;
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18153,7 +18153,7 @@
  	qcom,single-led-10;
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18207,7 +18207,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18234,7 +18234,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18279,7 +18279,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18317,7 +18317,7 @@
  	status = "okay";
  };
 +
-+&gmac {
++&gmac0 {
 +       status = "okay";
 +};
 +
@@ -18349,7 +18349,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18376,7 +18376,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18434,7 +18434,7 @@
 +	qcom,ath10k-calibration-variant = "AVM-FRITZRepeater-1200";
 +};
 +
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18472,7 +18472,7 @@
  	};
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18511,7 +18511,7 @@
  	};
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18548,7 +18548,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18590,7 +18590,7 @@
  	status = "disabled";
  };
 +
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18624,7 +18624,7 @@
  	status = "okay";
  };
 +
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18649,7 +18649,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +	nvmem-cell-names = "mac-address";
 +	nvmem-cells = <&macaddr_config_0>;
@@ -18703,7 +18703,7 @@
  	qcom,single-led-10;
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18749,7 +18749,7 @@
  	qcom,ath10k-calibration-variant = "cellc,rtl30vw";
  };
 +
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18786,7 +18786,7 @@
  	status = "okay";
  };
 +
-+&gmac {
++&gmac0 {
 +      status = "okay";
 +};
 +
@@ -18836,7 +18836,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18880,7 +18880,7 @@
  	};
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -18907,7 +18907,7 @@
  	status = "okay";
  };
  
-+&gmac {
++&gmac0 {
 +	status = "okay";
 +};
 +
@@ -19018,24 +19018,61 @@
 
 --- /dev/null
 +++ b/target/linux/ipq40xx/patches-5.10/903-dts-remove.patch
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,57 @@
 +--- a/arch/arm/boot/dts/Makefile
 ++++ b/arch/arm/boot/dts/Makefile
-+@@ -918,7 +918,6 @@
-+ 	qcom-ipq4018-ex6100v2.dtb \
++@@ -905,13 +905,11 @@
++ 	qcom-apq8084-ifc6540.dtb \
++ 	qcom-apq8084-mtp.dtb \
++ 	qcom-ipq4018-a42.dtb \
++-	qcom-ipq4018-ap120c-ac.dtb \
++ 	qcom-ipq4018-dap-2610.dtb \
++ 	qcom-ipq4018-cs-w3-wd1200g-eup.dtb \
++ 	qcom-ipq4018-magic-2-wifi-next.dtb \
++ 	qcom-ipq4018-ea6350v3.dtb \
++ 	qcom-ipq4018-eap1300.dtb \
++-	qcom-ipq4018-ecw5211.dtb \
++ 	qcom-ipq4018-emd1.dtb \
++ 	qcom-ipq4018-emr3500.dtb \
++ 	qcom-ipq4018-ens620ext.dtb \
++@@ -919,8 +917,6 @@
 + 	qcom-ipq4018-ex6150v2.dtb \
 + 	qcom-ipq4018-fritzbox-4040.dtb \
-+-	qcom-ipq4018-gl-ap1300.dtb \
-+ 	qcom-ipq4018-jalapeno.dtb \
-+ 	qcom-ipq4018-meshpoint-one.dtb \
++ 	qcom-ipq4018-gl-ap1300.dtb \
++-	qcom-ipq4018-jalapeno.dtb \
++-	qcom-ipq4018-meshpoint-one.dtb \
 + 	qcom-ipq4018-cap-ac.dtb \
-+--- a/arch/arm/boot/dts/Makefile
-++++ b/arch/arm/boot/dts/Makefile
-+@@ -971,7 +971,6 @@
++ 	qcom-ipq4018-hap-ac2.dtb \
++ 	qcom-ipq4018-sxtsq-5-ac.dtb \
++@@ -931,7 +927,6 @@
++ 	qcom-ipq4018-rutx10.dtb \
++ 	qcom-ipq4018-wac510.dtb \
++ 	qcom-ipq4018-wre6606.dtb \
++-	qcom-ipq4018-wrtq-329acn.dtb \
++ 	qcom-ipq4019-ap.dk01.1-c1.dtb \
++ 	qcom-ipq4019-ap.dk04.1-c1.dtb \
++ 	qcom-ipq4019-ap.dk04.1-c3.dtb \
++@@ -950,8 +945,6 @@
++ 	qcom-ipq4019-hap-ac3.dtb \
++ 	qcom-ipq4019-map-ac2200.dtb \
++ 	qcom-ipq4019-lhgg-60ad.dtb \
++-	qcom-ipq4019-mf286d.dtb \
++-	qcom-ipq4019-mf289f.dtb \
++ 	qcom-ipq4019-mr8300.dtb \
++ 	qcom-ipq4019-pa2200.dtb \
++ 	qcom-ipq4019-r619ac-64m.dtb \
++@@ -964,14 +957,9 @@
++ 	qcom-ipq4019-srs60.dtb \
++ 	qcom-ipq4019-x1pro.dtb \
++ 	qcom-ipq4019-u4019-32m.dtb \
++-	qcom-ipq4019-wpj419.dtb \
++ 	qcom-ipq4019-wtr-m2133hp.dtb \
++-	qcom-ipq4028-wpj428.dtb \
++-	qcom-ipq4029-ap-303.dtb \
++ 	qcom-ipq4029-ap-303h.dtb \
++-	qcom-ipq4029-ap-365.dtb \
 + 	qcom-ipq4029-gl-b1300.dtb \
-+ 	qcom-ipq4019-gl-b2200.dtb \
++-	qcom-ipq4019-gl-b2200.dtb \
 + 	qcom-ipq4029-gl-s1300.dtb \
-+-	qcom-ipq4029-mr33.dtb \
++ 	qcom-ipq4029-mr33.dtb \
 + 	qcom-ipq8064-ap148.dtb \
-+ 	qcom-ipq8064-rb3011.dtb \
-+ 	qcom-msm8660-surf.dtb \
