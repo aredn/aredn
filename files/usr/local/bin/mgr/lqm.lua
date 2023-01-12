@@ -52,7 +52,6 @@ local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
 local ARPING = "/usr/sbin/arping"
 
-local myhostname = (info.get_nvram("node") or "localnode"):lower()
 local now = 0
 
 function get_config()
@@ -190,12 +189,16 @@ function canonical_hostname(hostname)
     return hostname
 end
 
+local cursor = uci.cursor()
+
+
+local myhostname = canonical_hostname(info.get_nvram("node") or "localnode")
+local myip = cursor:get("network", "wifi", "ipaddr")
+
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
 f:write('{"trackers":{}}')
 f:close()
-
-local cursor = uci.cursor()
 
 -- Get radio
 local radioname = "radio0"
@@ -487,7 +490,7 @@ function lqm()
                 track.rev_snr = null
                 dtdlinks[track.mac] = {}
 
-                local raw = io.popen("/usr/bin/curl --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -sD - \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
+                local raw = io.popen("/usr/bin/curl --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
                 local info = luci.jsonc.parse(raw:read("*a"))
                 raw:close()
                 if info then
@@ -505,11 +508,17 @@ function lqm()
                             for _, rtrack in pairs(info.lqm.info.trackers)
                             do
                                 if not rtrack.type or rtrack.type == "RF" then
+                                    local rhostname = canonical_hostname(rtrack.hostname)
+                                    local rdistance = nil
+                                    if tonumber(rtrack.lat) and tonumber(rtrack.lon) and lat and lon then
+                                        rdistance = calc_distance(lat, lon, tonumber(rtrack.lat), tonumber(rtrack.lon))
+                                    end
                                     rflinks[track.mac][rtrack.ip] = {
                                         ip = rtrack.ip,
-                                        hostname = rtrack.hostname
+                                        hostname = rhostname,
+                                        distance = rdistance
                                     }
-                                    if myhostname == rtrack.hostname then
+                                    if myhostname == rhostname then
                                         if not old_rev_snr or not rtrack.snr then
                                             track.rev_snr = rtrack.snr
                                         else
@@ -809,6 +818,9 @@ function lqm()
                 theres[track.ip] = nil
             end
         end
+        -- Including ourself
+        theres[myip] = nil
+
         -- If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
         local hidden = {}
         for _, ninfo in pairs(theres)
