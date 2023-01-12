@@ -56,6 +56,16 @@ local fw_output = {}
 local fw_images = {}
 local fw_md5 = {}
 local fw_version = ""
+local blocked_fw = {
+    "^aredn%-3%.15",
+    "^aredn%-3%.16",
+    "^aredn%-3%.17",
+    "^aredn%-3%.18",
+    "^aredn%-3%.19",
+    "^aredn%-3%.20",
+    "^aredn%-3%.21",
+    "^aredn%-3%.22"
+}
 
 function fwout(msg)
     fw_output[#fw_output + 1] = msg
@@ -74,8 +84,19 @@ function firmware_list_gen()
         do
             local md5, fw, tag = line:match("^(%S+) (%S+) (.*)")
             if tag and tag ~= "none" and (tag == "all" or fw_version:match(tag)) then
-                fw_images[#fw_images + 1] = fw
-                fw_md5[fw] = md5
+                -- dont provide older firmwares at this point
+                local blocked = false
+                for _, m in ipairs(blocked_fw)
+                do
+                    if fw:match(m) then
+                        blocked = true
+                        break
+                    end
+                end
+                if not blocked then
+                    fw_images[#fw_images + 1] = fw
+                    fw_md5[fw] = md5
+                end
             end
         end
     end
