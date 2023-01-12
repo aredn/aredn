@@ -60,6 +60,7 @@ function get_config()
     return {
         margin = tonumber(c:get("aredn", "@lqm[0]", "margin_snr")),
         low = tonumber(c:get("aredn", "@lqm[0]", "min_snr")),
+        rts_theshold = tonumber(c:get("aredn", "@lqm[0]", "rts_theshold") or "-1"),
         min_distance = tonumber(c:get("aredn", "@lqm[0]", "min_distance")),
         max_distance = tonumber(c:get("aredn", "@lqm[0]", "max_distance")),
         auto_distance = tonumber(c:get("aredn", "@lqm[0]", "auto_distance") or "0"),
@@ -181,6 +182,14 @@ function calc_distance(lat1, lon1, lat2, lon2)
     return math.floor(r2 * math.asin(math.sqrt(v)))
 end
 
+-- Canonical hostname
+function canonical_hostname(hostname)
+    if hostname then
+        hostname = hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("%.local%.mesh$", "")
+    end
+    return hostname
+end
+
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
 f:write('{"trackers":{}}')
@@ -224,10 +233,14 @@ function lqm()
 
     -- We dont know any distances yet
     os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
+    -- Or any hidden nodes
+    os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
 
     local noise = -95
     local tracker = {}
     local dtdlinks = {}
+    local rflinks = {}
+    local hidden_nodes = {}
     while true
     do
         now = nixio.sysinfo().uptime
@@ -426,7 +439,7 @@ function lqm()
                 if not track.hostname and track.ip then
                     local hostname = nixio.getnameinfo(track.ip)
                     if hostname then
-                        track.hostname = hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("%.local%.mesh$", "")
+                        track.hostname = canonical_hostname(hostname)
                     end
                 end
 
@@ -478,6 +491,7 @@ function lqm()
                 local info = luci.jsonc.parse(raw:read("*a"))
                 raw:close()
                 if info then
+                    rflinks[track.mac] = nil
                     if tonumber(info.lat) and tonumber(info.lon) then
                         track.lat = tonumber(info.lat)
                         track.lon = tonumber(info.lon)
@@ -487,28 +501,42 @@ function lqm()
                     end
                     if track.type == "RF" then
                         if info.lqm and info.lqm.enabled and info.lqm.info.trackers then
+                            rflinks[track.mac] = {}
                             for _, rtrack in pairs(info.lqm.info.trackers)
                             do
-                                if myhostname == rtrack.hostname and (not rtrack.type or rtrack.type == "RF") then
-                                    if not old_rev_snr or not rtrack.snr then
-                                        track.rev_snr = rtrack.snr
-                                    else
-                                        track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * rtrack.snr)
+                                if not rtrack.type or rtrack.type == "RF" then
+                                    rflinks[track.mac][rtrack.ip] = {
+                                        ip = rtrack.ip,
+                                        hostname = rtrack.hostname
+                                    }
+                                    if myhostname == rtrack.hostname then
+                                        if not old_rev_snr or not rtrack.snr then
+                                            track.rev_snr = rtrack.snr
+                                        else
+                                            track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * rtrack.snr)
+                                        end
                                     end
                                 end
                             end
                             for ip, link in pairs(info.link_info)
                             do
                                 if link.hostname and link.linkType == "DTD" then
-                                    dtdlinks[track.mac][link.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")] = true
+                                    dtdlinks[track.mac][canonical_hostname(link.hostname)] = true
                                 end
                             end
                         elseif info.link_info then
+                            rflinks[track.mac] = {}
                             -- If there's no LQM information we fallback on using link information.
                             for ip, link in pairs(info.link_info)
                             do
+                                if link.linkType == "RF" then
+                                    rflinks[track.mac][ip] = {
+                                        ip = ip,
+                                        hostname = canonical_hostname(link.hostname)
+                                    }
+                                end
                                 if link.hostname then
-                                    local hostname = link.hostname:lower():gsub("^dtdlink%.",""):gsub("%.local%.mesh$", "")
+                                    local hostname = canonical_hostname(link.hostname)
                                     if link.linkType == "DTD" then
                                         dtdlinks[track.mac][hostname] = true
                                     elseif link.linkType == "RF" and link.signal and link.noise and myhostname == hostname then
@@ -761,6 +789,41 @@ function lqm()
             os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
         end
 
+        -- Set the RTS/CTS state depending on whether everyone can see everyone
+        -- Build a list of all the nodes our neighbors can see
+        local theres = {}
+        for mac, rfneighbor in pairs(rflinks)
+        do
+            local track = tracker[mac]
+            if track and not track.blocked and track.routable then
+                for nip, ninfo in pairs(rfneighbor)
+                do
+                    theres[nip] = ninfo
+                end
+            end
+        end
+        -- Remove all the nodes we can see from this set
+        for _, track in pairs(tracker)
+        do
+            if track.ip then
+                theres[track.ip] = nil
+            end
+        end
+        -- If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
+        local hidden = {}
+        for _, ninfo in pairs(theres)
+        do
+            hidden[#hidden + 1] = ninfo
+        end
+        if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_theshold >= 0 and config.rts_theshold <= 2347 then
+            if #hidden > 0 then
+                os.execute(IW .. " " .. phy .. " set rts " .. config.rts_theshold .. " > /dev/null 2>&1")
+            else
+                os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+            end
+        end
+        hidden_nodes = hidden
+
         -- Save this for the UI
         f = io.open("/tmp/lqm.info", "w")
         if f then
@@ -768,7 +831,8 @@ function lqm()
                 now = now,
                 trackers = tracker,
                 distance = distance,
-                coverage = coverage
+                coverage = coverage,
+                hidden_nodes = hidden_nodes
             }, true))
             f:close()
         end
