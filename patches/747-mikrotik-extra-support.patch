@@ -1,9 +1,18 @@
 --- a/target/linux/ath79/image/mikrotik.mk
 +++ a/target/linux/ath79/image/mikrotik.mk
-@@ -102,6 +102,15 @@
+@@ -102,6 +102,24 @@
  endef
  TARGET_DEVICES += mikrotik_routerboard-mapl-2nd
  
++define Device/mikrotik_routerboard-ldf-5nd
++  $(Device/mikrotik_nor)
++  SOC := ar9344
++  DEVICE_MODEL := RouterBOARD LDF 5nD
++  DEVICE_PACKAGES += rssileds
++  IMAGE_SIZE := 16256k
++endef
++TARGET_DEVICES += mikrotik_routerboard-ldf-5nd
++
 +define Device/mikrotik_routerboard-sxt-5nd
 +  $(Device/mikrotik_nor)
 +  SOC := ar9344
@@ -17,7 +26,101 @@
    $(Device/mikrotik_nand)
    SOC := ar9344
 
---- /dev/null	2022-10-26
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-ldf-5nd.dts
+@@ -0,0 +1,91 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++#include "ar9344_mikrotik_routerboard-16m-nor.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++
++/ {
++	compatible = "mikrotik,routerboard-ldf-5nd", "qca,ar9344";
++	model = "MikroTik RouterBOARD LDF 5nD";
++
++	aliases {
++		led-boot = &led_user;
++		led-failsafe = &led_user;
++		led-running = &led_user;
++		led-upgrade = &led_user;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		power {
++			label = "blue:power";
++			gpios = <&gpio 11 GPIO_ACTIVE_HIGH>;
++			default-state = "on";
++		};
++
++		rssilow {
++			label = "green:rssilow";
++			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
++		};
++
++		rssimediumlow {
++			label = "green:rssimediumlow";
++			gpios = <&gpio 12 GPIO_ACTIVE_LOW>;
++		};
++
++		rssimedium {
++			label = "green:rssimedium";
++			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
++		};
++
++		rssimediumhigh {
++			label = "green:rssimediumhigh";
++			gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
++		};
++
++		rssihigh {
++			label = "green:rssihigh";
++			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
++		};
++
++		led_user: user {
++			label = "white:user";
++			gpios = <&gpio 20 GPIO_ACTIVE_LOW>;
++		};
++
++		lan {
++			label = "green:lan";
++			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	keys {
++		compatible = "gpio-keys";
++
++		reset {
++			label = "reset";
++			linux,code = <KEY_RESTART>;
++			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
++			debounce-interval = <60>;
++		};
++	};
++};
++
++&eth0 {
++	status = "okay";
++
++	phy-handle = <&swphy0>;
++
++	gmac-config {
++		device = <&gmac>;
++		switch-phy-swap = <1>;
++	};
++};
++
++&eth1 {
++	status = "okay";
++
++	compatible = "syscon", "simple-mfd";
++};
+--- /dev/null
 +++ b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-sxt-5nd.dts
 @@ -0,0 +1,91 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
