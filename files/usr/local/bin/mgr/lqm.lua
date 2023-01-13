@@ -511,15 +511,17 @@ function lqm()
                             do
                                 if not rtrack.type or rtrack.type == "RF" then
                                     local rhostname = canonical_hostname(rtrack.hostname)
-                                    local rdistance = nil
-                                    if tonumber(rtrack.lat) and tonumber(rtrack.lon) and lat and lon then
-                                        rdistance = calc_distance(lat, lon, tonumber(rtrack.lat), tonumber(rtrack.lon))
+                                    if rtrack.ip then
+                                        local rdistance = nil
+                                        if tonumber(rtrack.lat) and tonumber(rtrack.lon) and lat and lon then
+                                            rdistance = calc_distance(lat, lon, tonumber(rtrack.lat), tonumber(rtrack.lon))
+                                        end
+                                        rflinks[track.mac][rtrack.ip] = {
+                                            ip = rtrack.ip,
+                                            hostname = rhostname,
+                                            distance = rdistance
+                                        }
                                     end
-                                    rflinks[track.mac][rtrack.ip] = {
-                                        ip = rtrack.ip,
-                                        hostname = rhostname,
-                                        distance = rdistance
-                                    }
                                     if myhostname == rhostname then
                                         if not old_rev_snr or not rtrack.snr then
                                             track.rev_snr = rtrack.snr
@@ -645,12 +647,15 @@ function lqm()
             if track.type == "RF" then
 
                 -- If we have a direct dtd connection to this device, make sure we use that
-                local a, b, c = track.mac:match("^(..:..:..:)(..)(:..:..)$")
-                local dtd = tracker[string.format("%s%02X%s", a, tonumber(b, 16) + 1, c)]
-                if dtd and dtd.type == "DtD" and dtd.distance and dtd.distance < dtd_distance then
-                    track.blocks.dtd = true
-                else
-                    track.blocks.dtd = false
+                for _, dtd in pairs(tracker) do
+                    if dtd.type == "DtD" and dtd.hostname == track.hostname then
+                        if dtd.distance and dtd.distance < dtd_distance then
+                            track.blocks.dtd = true
+                        else
+                            track.blocks.dtd = false
+                        end
+                        break
+                    end
                 end
 
                 -- When unblocked link signal becomes too low, block
