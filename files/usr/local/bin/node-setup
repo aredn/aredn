@@ -1,37 +1,37 @@
 #! /usr/bin/lua
 --[[
 
-	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2021 Tim Wilkinson
-	Orignal Perl Copyright (C) 2015 Conrad Lara
-	See Contributors file for additional contributors
+    Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+    Copyright (C) 2021 Tim Wilkinson
+    Orignal Perl Copyright (C) 2015 Conrad Lara
+    See Contributors file for additional contributors
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation version 3 of the License.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation version 3 of the License.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	Additional Terms:
+    Additional Terms:
 
-	Additional use restrictions exist on the AREDN(TM) trademark and logo.
-		See AREDNLicense.txt for more info.
+    Additional use restrictions exist on the AREDN(TM) trademark and logo.
+        See AREDNLicense.txt for more info.
 
-	Attributions to the AREDN Project must be retained in the source code.
-	If importing this code into a new or existing project attribution
-	to the AREDN project must be added to the source code.
+    Attributions to the AREDN Project must be retained in the source code.
+    If importing this code into a new or existing project attribution
+    to the AREDN project must be added to the source code.
 
-	You must not misrepresent the origin of the material contained within.
+    You must not misrepresent the origin of the material contained within.
 
-	Modified versions must be modified to attribute to the original source
-	and be marked in reasonable ways as differentiate it from the original
-	version
+    Modified versions must be modified to attribute to the original source
+    and be marked in reasonable ways as differentiate it from the original
+    version
 
 --]]
 
@@ -91,14 +91,10 @@ local deleteme = {}
 local cfg = {
     lan_intf = lanintf,
     wan_intf = aredn.hardware.get_board_network_ifname("wan"),
-    dtdlink_intf = "br-dtdlink"
+    lan_network_config = "",
+    wan_network_config = "",
+    dtdlink_network_config = ""
 }
-if aredn.hardware.has_dsa_network() then
-    local vlan = aredn.hardware.get_board_network_ifname("dtdlink"):match("%.(%d+)$")
-    if vlan then
-        cfg.dtdlink_intf = cfg.dtdlink_intf .. "." .. vlan
-    end
-end
 
 if not auto then
     -- Is this used now?
@@ -213,27 +209,89 @@ end
 -- basic configuration
 if do_basic then
 
-    -- support wan vlan override
-    if not nixio.fs.stat("/etc/aredn_include/wan.network.user") then
-        local config = ""
-        local ports = cfg.wan_intf:split(" ")
-        for _, port in ipairs(ports)
-        do
-            config = config .. "	list ports '" .. port:gsub("%..*", "") .. "'\n"
-        end
-        if aredn.hardware.has_dsa_network() then
-            config = config .. "\nconfig bridge-vlan\n	option device 'br-wan'\n"
-            local vlan = ports[1]:match("%.(.*)")
-            if vlan then
-                config = config .. "	option vlan '" .. vlan .. "'\n"
+    -- generate the configurations for lan, wan, and dtd
+    for _, net in ipairs({ "lan", "wan", "dtdlink" })
+    do
+        local config
+        -- user override
+        if nixio.fs.stat("/etc/aredn_include/" .. net .. ".network.user") then
+            config = read_all("/etc/aredn_include/" .. net .. ".network.user")
+        else
+            -- generate a complete config
+            config = "config device\n	option name 'br-" .. net .. "'\n	option type 'bridge'\n"
+            if nixio.fs.stat("/etc/aredn_include/fixedmac." .. net) then
+                config = config .. read_all("/etc/aredn_include/fixedmac." .. net)
+            end
+
+            local vlan = nil
+            local ports = aredn.hardware.get_board_network_ifname(net):split(" ")
+            if net == "wan" then
+                -- handle wan vlan override
+                for line in io.lines("/etc/config.mesh/_setup")
+                do
+                    local wport, wvlan = line:match("^wan_intf = (%w+%.)(%d+)")
+                    if wvlan then
+                        vlan = wvlan
+                        ports = { wport .. wvlan }
+                        break
+                    end
+                end
+            end
+            if not aredn.hardware.has_dsa_network() then
+                -- old school network configuration
                 for _, port in ipairs(ports)
                 do
-                    config = config .. "	list ports '" .. port:gsub("%..*", "") .. ":t'\n"
+                    config = config .. "	list ports '" .. port .. "'\n"
                 end
-                cfg.wan_intf = cfg.wan_intf .. "." .. vlan
+                config = config .. "\n"
+            else
+                -- new school dsa network configuration
+                if net == "dtdlink" then
+                    vlan = "2"
+                    cfg.dtdlink_proto = "static"
+                    cfg.dtdlink_mask = "255.0.0.0"
+                end
+                if not vlan then
+                    for _, port in ipairs(ports)
+                    do
+                        config = config .. "	list ports '" .. port .. "'\n"
+                    end
+                    config = config .. "\nconfig bridge-vlan\n	option device 'br-" .. net .. "'\n\n"
+                else
+                    config = config .. "\nconfig bridge-vlan\n	option device 'br-" .. net .. "'\n	option vlan '" .. vlan .. "'\n"
+                    for _, port in ipairs(ports)
+                    do
+                        config = config .. "	list ports '" .. port:gsub("%..*$", "") .. ":t'\n"
+                    end
+                    config = config .. "\n"
+                end
+            end
+
+            local proto = cfg[net .. "_proto"] or ""
+            local ipaddr = cfg[net .. "_ip"] or ""
+            local netmask = cfg[net .. "_mask"] or ""
+            local dns1 = cfg[net .. "_dns1"] or ""
+            local dns2 = cfg[net .. "_dns2"] or ""
+            local gateway = cfg[net .. "_gw"] or ""
+
+            config = config .. "config interface " .. net .. "\n	option device 'br-" .. net .. (vlan and ("." .. vlan) or "") .. "'\n"
+            if proto ~= "" then
+                config = config .. "	option proto '" .. proto .. "'\n"
+            end
+            if ipaddr ~= "" then
+                config = config .. "	option ipaddr '" .. ipaddr .. "'\n"
+            end
+            if netmask ~= "" then
+                config = config .. "	option netmask '" .. netmask .. "'\n"
+            end
+            if dns1 ~= "" or dns2 ~= "" then
+                config = config .. "	option dns '" .. (dns1 or "") .. (dns1 and dns2 and " " or "") .. (dns2 or "") .. "'\n"
+            end
+            if gateway ~= "" then
+                config = config .. "	option gateway '" .. gateway .. "'\n"
             end
         end
-        write_all("/etc/aredn_include/wan.network.config", config)
+        cfg[net .. "_network_config"] = config
     end
 
     remove_all("/tmp/new_config")
