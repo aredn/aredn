@@ -88,6 +88,9 @@ html.print([[
         .p {
             width: 110px;
         }
+        .i {
+            width: 160px;
+        }
     </style>
     <center>
         <h1>]] .. node .. [[ neighbor status</h1>]] .. lat_lon)
@@ -106,7 +109,7 @@ html.print([[<hr>
         </td></tr>
         <tr><td>
             <div class="lt">
-                <span class="m">Neighbor</span><span class="s">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="p">Status &nbsp;<a href='/help.html#lqmstatus' target='_blank'><img src='/qmark.png'></a></span>
+                <span class="m">Neighbor</span><span class="s">Link</span><span class="s">SNR</span><span class="p">Distance</span><span class="s">Quality</span><span class="i">Status &nbsp;<a href='/help.html#lqmstatus' target='_blank'><img src='/qmark.png'></a></span>
             </div>
             <div id="links"></div>
             </td></tr>
@@ -151,12 +154,12 @@ html.print([[<hr>
                 return "blocked";
             }
             if (track.routable) {
-                return "active";
+                return track.exposed ? "active - exposed" : "active";
             }
             if (track.hidden) {
                 return "hidden";
             }
-            return "idle";
+            return track.exposed ? "idle - exposed" : "idle";
         }
         const get_snr = track => {
             return track.snr <= 0 ? "-" : track.snr + ("rev_snr" in track ? "/" + track.rev_snr : "");
@@ -200,9 +203,11 @@ html.print([[<hr>
                 switch (status) {
                     case "disconnected":
                         break;
-                    case "pending":
                     case "active":
                     case "idle":
+                    case "active - exposed":
+                    case "idle - exposed":
+                    case "pending":
                     case "blocked - retries":
                     case "blocked - latency":
                         if (typeof track.quality === "number") {
@@ -215,7 +220,7 @@ html.print([[<hr>
                         }
                         break;
                 }
-                links += `<div><span class="m">${name(track)}</span><span class="s">${track.type}</span><span class="s">${get_snr(track)}</span><span class="p">${distance}</span><span class="s">${quality}</span><span class="p">${status}</span></div>`;
+                links += `<div><span class="m">${name(track)}</span><span class="s">${track.type}</span><span class="s">${get_snr(track)}</span><span class="p">${distance}</span><span class="s">${quality}</span><span class="i">${status}</span></div>`;
             });
             if (links.length) {
                 document.getElementById("links").innerHTML = links;

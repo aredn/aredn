@@ -197,7 +197,7 @@ local myip = cursor:get("network", "wifi", "ipaddr")
 
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
-f:write('{"trackers":{}}')
+f:write('{"trackers":{},"hidden_nodes":[]}')
 f:close()
 
 -- Get radio
@@ -429,7 +429,8 @@ function lqm()
                         last_tx_total = nil,
                         tx_quality = 100,
                         ping_quality = 100,
-                        quality = 100
+                        quality = 100,
+                        exposed = false
                     }
                 end
                 local track = tracker[station.mac]
@@ -489,6 +490,7 @@ function lqm()
                 local old_rev_snr = track.rev_snr
                 track.rev_snr = null
                 dtdlinks[track.mac] = {}
+                track.exposed = false
 
                 local raw = io.popen("/usr/bin/curl --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
                 local info = luci.jsonc.parse(raw:read("*a"))
@@ -524,6 +526,9 @@ function lqm()
                                         else
                                             track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * rtrack.snr)
                                         end
+                                    end
+                                    if not rtrack.blocked and not tracker[rtrack.mac] and not our_macs[rtrack.mac] then
+                                        track.exposed = true
                                     end
                                 end
                             end
