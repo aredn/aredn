@@ -190,27 +190,12 @@ function hardware.get_iface_name(name)
     return hardware.get_board().network[name].ifname:match("^(%S+)")
 end
 
-function hardware.get_bridge_iface_names(name)
-    local cursor = uci.cursor()
-    local intfnames = cursor:get("network", name, "ifname")
-    if intfnames then
-        return intfnames
+function hardware.has_dsa_network()
+    local id = hardware.get_board().model.id
+    if id == "mikrotik,hap-ac2" or "mikrotik,hap-ac3" or "mikrotik,sxtsq-5-ac" or "mikrotik,lhgg-5acd" then
+        return true
     end
-    -- Now we guess
-    if name == "lan" then
-        return "eth0"
-    end
-    if name == "wan" then
-        return "eth0.1"
-    end
-    if name == "wifi" then
-        return "wlan0"
-    end
-    if name == "dtdlink" then
-        return "eth0.2"
-    end
-    -- Maybe the board knows
-    return hardware.get_board().network[name].ifname
+    return false
 end
 
 function hardware.get_link_led()

@@ -91,8 +91,14 @@ local deleteme = {}
 local cfg = {
     lan_intf = lanintf,
     wan_intf = aredn.hardware.get_board_network_ifname("wan"),
-    dtdlink_intf = aredn.hardware.get_bridge_iface_names('dtdlink')
+    dtdlink_intf = "br-dtdlink"
 }
+if aredn.hardware.has_dsa_network() then
+    local vlan = aredn.hardware.get_board_network_ifname("dtdlink"):match("%.(%d+)$")
+    if vlan then
+        cfg.dtdlink_intf = cfg.dtdlink_intf .. "." .. vlan
+    end
+end
 
 if not auto then
     -- Is this used now?
@@ -209,12 +215,25 @@ if do_basic then
 
     -- support wan vlan override
     if not nixio.fs.stat("/etc/aredn_include/wan.network.user") then
-        local ports = ""
-        for _, port in ipairs(cfg.wan_intf:split(" "))
+        local config = ""
+        local ports = cfg.wan_intf:split(" ")
+        for _, port in ipairs(ports)
         do
-            ports = ports .. "	list ports '" .. port .. "'\n"
+            config = config .. "	list ports '" .. port:gsub("%..*", "") .. "'\n"
         end
-        write_all("/etc/aredn_include/wan.network.config", ports)
+        if aredn.hardware.has_dsa_network() then
+            config = config .. "\nconfig bridge-vlan\n	option device 'br-wan'\n"
+            local vlan = ports[1]:match("%.(.*)")
+            if vlan then
+                config = config .. "	option vlan '" .. vlan .. "'\n"
+                for _, port in ipairs(ports)
+                do
+                    config = config .. "	list ports '" .. port:gsub("%..*", "") .. ":t'\n"
+                end
+                cfg.wan_intf = cfg.wan_intf .. "." .. vlan
+            end
+        end
+        write_all("/etc/aredn_include/wan.network.config", config)
     end
 
     remove_all("/tmp/new_config")
