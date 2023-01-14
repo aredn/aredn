@@ -192,7 +192,10 @@ end
 
 function hardware.has_dsa_network()
     local id = hardware.get_board().model.id
-    if id == "mikrotik,hap-ac2" or "mikrotik,hap-ac3" or "mikrotik,sxtsq-5-ac" or "mikrotik,lhgg-5acd" then
+    if id == "mikrotik,hap-ac2" or
+       id == "mikrotik,hap-ac3" or
+       id == "mikrotik,sxtsq-5-ac" or
+       id == "mikrotik,lhgg-5acd" then
         return true
     end
     return false
