@@ -51,6 +51,22 @@ function is_null(v)
     end
 end
 
+local function h2s(hex)
+    local s = ""
+    if hex then
+        for i = 1,#hex,2
+        do
+            local p = hex:sub(i, i+1)
+            if p:match("[0-9a-f][0-9a-f]") then
+                s = s .. string.char(tonumber(p, 16))
+            else
+                s = s .. p
+            end
+        end
+    end
+    return s
+end
+
 -- helpers end
 
 -- validate args
@@ -82,6 +98,8 @@ if not (config == "mesh" and nixio.fs.access("/etc/config.mesh/_setup", "r")) th
     return -1
 end
 
+local ieee80211 = "/sys/class/ieee80211/"
+local dsa = aredn.hardware.has_dsa_network()
 local lanintf = aredn.hardware.get_board_network_ifname("lan")
 local node = aredn_info.get_nvram("node")
 local tactical = aredn_info.get_nvram("tactical")
@@ -95,7 +113,8 @@ local cfg = {
     bridge_network_config = "",
     lan_network_config = "",
     wan_network_config = "",
-    dtdlink_network_config = ""
+    dtdlink_network_config = "",
+    wifi_network_config = ""
 }
 
 if not auto then
@@ -118,7 +137,7 @@ end
 if cfg.wifi_enable == "1" then
     cfg.wifi_intf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
 else
-    cfg.wifi_intf = lanintf:match("^([^%.%s]+).*$") .. ".3975"
+    cfg.wifi_intf = "br-nomesh"
 end
 
 -- delete some config lines if necessary
@@ -211,8 +230,6 @@ end
 -- basic configuration
 if do_basic then
 
-    local dsa = aredn.hardware.has_dsa_network()
-
     -- generate the overall bridge configuration
     if nixio.fs.stat("/etc/aredn_include/bridge.network.user") then
         cfg.bridge_network_config = read_all("/etc/aredn_include/bridge.network.user")
@@ -237,8 +254,9 @@ if do_basic then
     end
 
     -- generate the configurations for lan, wan, and dtd
-    for _, net in ipairs({ "lan", "wan", "dtdlink" })
+    for _, net in ipairs({ "lan", "wan", "dtdlink", "wifi" })
     do
+        local wireless = false
         local config = ""
         -- user override
         if nixio.fs.stat("/etc/aredn_include/" .. net .. ".network.user") then
@@ -255,7 +273,19 @@ if do_basic then
             elseif net == "wan" then
                 if cfg.wifi3_enable == "1" then
                     -- WAN uses wifi
-                    ports = { "wlan0" } -- FIX ME
+                    wireless = true
+                    ports = { "wlan0" }
+                    for devname in nixio.fs.dir(ieee80211)
+                    do
+                        local hwmode = "11g"
+                        if iwinfo.nl80211.freqlist(devname)[1].mhz > 5000 then
+                            hwmode="11a"
+                        end
+                        if hwmode == cfg.wifi3_hwmode then
+                            ports = { "wlan" .. devname:match("^phy(%d+)$") }
+                            break
+                        end
+                    end
                 else
                     if dsa then
                         vlan = "1:u"
@@ -279,9 +309,12 @@ if do_basic then
                 vlan = "2:t"
                 cfg.dtdlink_proto = "static"
                 cfg.dtdlink_mask = "255.0.0.0"
+            elseif net == "wifi" then
+                wireless = true
+                ports = { cfg.wifi_intf }
             end
 
-            if dsa then
+            if dsa and vlan then
                 -- new school dsa vlan configuration
                 local v, t = vlan:match("(.*):(.*)")
                 config = config .. "\nconfig bridge-vlan\n	option device 'br0'\n	option vlan '" .. v .. "'\n"
@@ -296,21 +329,40 @@ if do_basic then
             local proto = cfg[net .. "_proto"] or ""
             local ipaddr = cfg[net .. "_ip"] or ""
             local netmask = cfg[net .. "_mask"] or ""
-            local dns1 = cfg[net .. "_dns1"] or ""
-            local dns2 = cfg[net .. "_dns2"] or ""
+            local dns1 = ""
+            local dns2 = ""
+            if net == "lan" then
+                dns1 = cfg.wan_dns1 or ""
+                dns2 = cfg.wan_dns2 or ""
+            end
             local gateway = cfg[net .. "_gw"] or ""
 
-            config = config .. "config device\n	option name 'br-" .. net .. "'\n	option type 'bridge'\n"
+            config = config .. "config device\n"
+            if not wireless then
+                config = config .. "	option name 'br-" .. net .. "'\n	option type 'bridge'\n"
+            end
             if nixio.fs.stat("/etc/aredn_include/fixedmac." .. net) then
                 config = config .. read_all("/etc/aredn_include/fixedmac." .. net)
             end
 
-            for _, port in ipairs(ports)
-            do
-                config = config .. "	list ports '" .. port .. "'\n"
+            if not wireless then
+                for _, port in ipairs(ports)
+                do
+                    config = config .. "	list ports '" .. port .. "'\n"
+                end
+            else
+                config = config .. "	option name '" .. ports[1] .. "'\n"
+                if not ports[1]:match("^wlan") then
+                    config = config .. "	option type 'bridge'\n	option bridge_empty '1'\n"
+                end
             end
 
-            config = config .. "\nconfig interface " .. net .. "\n	option device 'br-" .. net .. "'\n"
+            config = config .. "\nconfig interface " .. net .. "\n"
+            if wireless then
+                config = config .. "	option device '" .. ports[1] .. "'\n"
+            else
+                config = config .. "	option device 'br-" .. net .. "'\n"
+            end
             if proto ~= "" then
                 config = config .. "	option proto '" .. proto .. "'\n"
             end
@@ -665,7 +717,6 @@ c:commit("dhcp")
 
 -- generate the wireless config file
 local config = ""
-local ieee80211 = "/sys/class/ieee80211/"
 local ifacenum = 0
 local ifacecount = 0
 for devname in nixio.fs.dir(ieee80211)
@@ -712,18 +763,18 @@ do
     elseif cfg.wifi2_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi2_hwmode)) then
         -- lan AP interface
         channel = cfg.wifi2_channel
-        ssid = cfg.wifi2_ssid:gsub("(..)", "\\x%1"):gsub('"', '\\"')
+        ssid = h2s(cfg.wifi2_ssid)
         mode = "ap"
         encryption = cfg.wifi2_encryption
-        key = cfg.wifi2_key:gsub("(..)", "\\x%1"):gsub('"', '\\"')
+        key = h2s(cfg.wifi2_key)
         network = "lan"
     elseif cfg.wifi3_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi3_hwmode)) then
         -- wan client
-        ssid = cfg.wifi3_ssid:gsub("(..)", "\\x%1"):gsub('"', '\\"')
+        ssid = h2s(cfg.wifi3_ssid)
         mode = "sta"
-        if cfg.wifi3_key then
+        if cfg.wifi3_key and cfg.wifi3_key ~= "" then
             encryption = "psk2"
-            key = cfg.wifi3_key:gsub("(..)", "\\x%1"):gsub('"', '\\"')
+            key = h2s(cfg.wifi3_key)
         else
             enable = "none"
         end
