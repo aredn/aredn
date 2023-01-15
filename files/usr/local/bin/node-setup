@@ -116,6 +116,38 @@ local cfg = {
     wifi_network_config = ""
 }
 
+function expand_vars(lines)
+    local nlines = {}
+    for line in lines:gmatch("([^\n]*\n?)")
+    do
+        local inc = line:match("^include%s+(%S+)%s*")
+        if inc then
+            if nixio.fs.stat(inc) then
+                line = expand_vars(read_all(inc))
+            end
+        elseif line:match("^[^#]") then
+            for parm in line:gmatch("<([^%s]*)>")
+            do
+                if deleteme[parm] then
+                    line = nil
+                elseif parm == "NODE" then
+                    line = line:gsub("<NODE>", node)
+                elseif parm == "MAC2" then
+                    line = line:gsub("<MAC2>", mac2)
+                elseif parm == "DTDMAC" then
+                    line = line:gsub("<DTDMAC>", dtdmac)
+                else
+                    line = line:gsub("<" .. parm .. ">", cfg[parm])
+                end
+            end
+        end
+        if line then
+            nlines[#nlines + 1] = line
+        end
+    end
+    return table.concat(nlines, "")
+end
+
 if not auto then
     -- Is this used now?
     print "Non-auto mode no longer supported."
@@ -231,7 +263,7 @@ if do_basic then
 
     -- generate the new school bridge configuration
     if nixio.fs.stat("/etc/aredn_include/bridge.network.user") then
-        cfg.bridge_network_config = read_all("/etc/aredn_include/bridge.network.user")
+        cfg.bridge_network_config = expand_vars(read_all("/etc/aredn_include/bridge.network.user"))
     else
         local list = {}
         for _, net in ipairs({ "lan", "wan", "dtdlink" })
@@ -257,7 +289,7 @@ if do_basic then
         local config = ""
         -- user override
         if nixio.fs.stat("/etc/aredn_include/" .. net .. ".network.user") then
-            config = read_all("/etc/aredn_include/" .. net .. ".network.user")
+            config = expand_vars(read_all("/etc/aredn_include/" .. net .. ".network.user"))
         else
             -- generate a complete config
             local vlan = nil
@@ -395,38 +427,7 @@ if do_basic then
         if not (bfile:match("^_setup") or bfile:match("^firewall.user") or bfile:match("^olsrd")) then
             local f = io.open("/tmp/new_config/" .. bfile, "w")
             if f then
-                for line in io.lines(file)
-                do
-                    local out = true
-                    local inc = line:match("^include%s+(.*)%s*")
-                    if inc then
-                        if nixio.fs.stat(inc) then
-                            for iline in io.lines(inc)
-                            do
-                                f:write(iline .. "\n")
-                            end
-                        end
-                        out = false
-                    elseif line:match("^[^#]") then
-                        for parm in line:gmatch("<([^%s]*)>")
-                        do
-                            if deleteme[parm] then
-                                out = false
-                            elseif parm == "NODE" then
-                                line = line:gsub("<NODE>", node)
-                            elseif parm == "MAC2" then
-                                line = line:gsub("<MAC2>", mac2)
-                            elseif parm == "DTDMAC" then
-                                line = line:gsub("<DTDMAC>", dtdmac)
-                            else
-                                line = line:gsub("<" .. parm .. ">", cfg[parm])
-                            end
-                        end
-                    end
-                    if out then
-                        f:write(line .. "\n")
-                    end
-                end
+                f:write(expand_vars(read_all(file)))
                 f:close()
             end
         end
