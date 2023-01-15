@@ -480,6 +480,15 @@ function lqm()
         local alt_distance = -1
         local coverage = -1
 
+        -- Count the RF links we have
+        local rfcount = 0
+        for _, track in pairs(tracker)
+        do
+            if track.type == "RF" then
+                rfcount = rfcount + 1
+            end
+        end
+
         -- Update link tracking state
         for _, track in pairs(tracker)
         do
@@ -529,7 +538,7 @@ function lqm()
                                             track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * rtrack.snr)
                                         end
                                     end
-                                    if not rtrack.blocked and not tracker[rtrack.mac] and not our_macs[rtrack.mac] then
+                                    if not rtrack.blocked and not tracker[rtrack.mac] and not our_macs[rtrack.mac] and rfcount > 1 then
                                         track.exposed = true
                                     end
                                 end
