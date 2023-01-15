@@ -5,62 +5,25 @@ config interface loopback
 	option ipaddr	127.0.0.1
 	option netmask	255.0.0.0
 
-
-#### LAN configuration
-config device
-	option name	"br-lan"
-	option type	"bridge"
-include /etc/aredn_include/fixedmac.lan
-include /etc/aredn_include/lan.network.config
-
-config interface lan
-	option device	"br-lan"
-	option proto	<lan_proto>
-	option ipaddr	<lan_ip>
-	option netmask	<lan_mask>
-	option dns	"<wan_dns1> <wan_dns2>"
-	option gateway	<lan_gw>
-
-#### WAN configuration
-config device
-	option name 	"br-wan"
-	option type	"bridge"
-include /etc/aredn_include/fixedmac.wan
-include /etc/aredn_include/wan.network.config
-
-config interface wan
-	option device	"br-wan"
-	option proto	<wan_proto>
-	option ipaddr	<wan_ip>
-	option netmask	<wan_mask>
-	option gateway  <wan_gw>
-	
 #### WIFI configuration
-config device
-	option name	"<wifi_intf>"
-
-config interface wifi
-	option device	"<wifi_intf>"
-	option proto	<wifi_proto>
-	option ipaddr	<wifi_ip>
-	option netmask	<wifi_mask>
-
-#### device to device configuration
-config device
-	option name 	"br-dtdlink"
-	option type	"bridge"
-include /etc/aredn_include/fixedmac.dtdlink
-include /etc/aredn_include/dtdlink.network.config
-
-config interface dtdlink
-		option device   "br-dtdlink"
-		option proto    static
-		option ipaddr   <dtdlink_ip>
-		option netmask  255.0.0.0
+<wifi_network_config>
 
 config interface wifi_mon
-        option proto 	none
+	option proto 	none
 
+### Bridge configuration
+<bridge_network_config>
+
+#### LAN configuration
+<lan_network_config>
+
+#### WAN configuration
+<wan_network_config>
+
+#### DtD configuration
+<dtdlink_network_config>
+
+### Switch configuration
 include /etc/aredn_include/swconfig
 
 ### Static routes

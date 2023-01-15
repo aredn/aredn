@@ -1,37 +1,37 @@
 #! /usr/bin/lua
 --[[
 
-	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2021 Tim Wilkinson
-	Orignal Perl Copyright (C) 2015 Conrad Lara
-	See Contributors file for additional contributors
+    Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+    Copyright (C) 2021 Tim Wilkinson
+    Orignal Perl Copyright (C) 2015 Conrad Lara
+    See Contributors file for additional contributors
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation version 3 of the License.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation version 3 of the License.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	Additional Terms:
+    Additional Terms:
 
-	Additional use restrictions exist on the AREDN(TM) trademark and logo.
-		See AREDNLicense.txt for more info.
+    Additional use restrictions exist on the AREDN(TM) trademark and logo.
+        See AREDNLicense.txt for more info.
 
-	Attributions to the AREDN Project must be retained in the source code.
-	If importing this code into a new or existing project attribution
-	to the AREDN project must be added to the source code.
+    Attributions to the AREDN Project must be retained in the source code.
+    If importing this code into a new or existing project attribution
+    to the AREDN project must be added to the source code.
 
-	You must not misrepresent the origin of the material contained within.
+    You must not misrepresent the origin of the material contained within.
 
-	Modified versions must be modified to attribute to the original source
-	and be marked in reasonable ways as differentiate it from the original
-	version
+    Modified versions must be modified to attribute to the original source
+    and be marked in reasonable ways as differentiate it from the original
+    version
 
 --]]
 
@@ -39,6 +39,7 @@ require("nixio")
 require("aredn.utils")
 local aredn_info = require('aredn.info')
 require("aredn.hardware")
+require("iwinfo")
 
 -- helpers start
 
@@ -48,6 +49,22 @@ function is_null(v)
     else
         return false
     end
+end
+
+local function h2s(hex)
+    local s = ""
+    if hex then
+        for i = 1,#hex,2
+        do
+            local p = hex:sub(i, i+1)
+            if p:match("[0-9a-f][0-9a-f]") then
+                s = s .. string.char(tonumber(p, 16))
+            else
+                s = s .. p
+            end
+        end
+    end
+    return s
 end
 
 -- helpers end
@@ -81,6 +98,7 @@ if not (config == "mesh" and nixio.fs.access("/etc/config.mesh/_setup", "r")) th
     return -1
 end
 
+local ieee80211 = "/sys/class/ieee80211/"
 local lanintf = aredn.hardware.get_board_network_ifname("lan")
 local node = aredn_info.get_nvram("node")
 local tactical = aredn_info.get_nvram("tactical")
@@ -91,7 +109,11 @@ local deleteme = {}
 local cfg = {
     lan_intf = lanintf,
     wan_intf = aredn.hardware.get_board_network_ifname("wan"),
-    dtdlink_intf = aredn.hardware.get_bridge_iface_names('dtdlink')
+    bridge_network_config = "",
+    lan_network_config = "",
+    wan_network_config = "",
+    dtdlink_network_config = "",
+    wifi_network_config = ""
 }
 
 if not auto then
@@ -114,7 +136,7 @@ end
 if cfg.wifi_enable == "1" then
     cfg.wifi_intf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
 else
-    cfg.wifi_intf = lanintf:match("^([^%.%s]+).*$") .. ".3975"
+    cfg.wifi_intf = "br-nomesh"
 end
 
 -- delete some config lines if necessary
@@ -207,14 +229,161 @@ end
 -- basic configuration
 if do_basic then
 
-    -- support wan vlan override
-    if not nixio.fs.stat("/etc/aredn_include/wan.network.user") then
-        local ports = ""
-        for _, port in ipairs(cfg.wan_intf:split(" "))
+    -- generate the new school bridge configuration
+    if nixio.fs.stat("/etc/aredn_include/bridge.network.user") then
+        cfg.bridge_network_config = read_all("/etc/aredn_include/bridge.network.user")
+    else
+        local list = {}
+        for _, net in ipairs({ "lan", "wan", "dtdlink" })
         do
-            ports = ports .. "	list ports '" .. port .. "'\n"
+            local ports = aredn.hardware.get_board_network_ifname(net):split(" ")
+            for _, port in ipairs(ports)
+            do
+                list[port:gsub("%..*$", "")] = true
+            end
         end
-        write_all("/etc/aredn_include/wan.network.config", ports)
+        local config = "config device\n	option name 'br0'\n	option type 'bridge'\n"
+        for port, _ in pairs(list)
+        do
+            config = config .. "	list ports '" .. port .. "'\n"
+        end
+        cfg.bridge_network_config = config
+    end
+
+    -- generate the network configurations
+    for _, net in ipairs({ "lan", "wan", "dtdlink", "wifi" })
+    do
+        local wireless = false
+        local config = ""
+        -- user override
+        if nixio.fs.stat("/etc/aredn_include/" .. net .. ".network.user") then
+            config = read_all("/etc/aredn_include/" .. net .. ".network.user")
+        else
+            -- generate a complete config
+            local vlan = nil
+            local ports = aredn.hardware.get_board_network_ifname(net):split(" ")
+
+            if net == "lan" then
+                -- If the LAN has be given a vlan to use (usually by a switch) we use that here,
+                -- otherwise we just use '3'
+                local lvlan = ports[1]:match("%.(%d+)$")
+                if lvlan then
+                    vlan = lvlan .. ":t"
+                else
+                    vlan = "3:u"
+                end
+            elseif net == "wan" then
+                -- wifi can be used for the WAN (we become a wifi client)
+                if cfg.wifi3_enable == "1" then
+                    -- WAN uses wifi
+                    wireless = true
+                    ports = { "wlan0" }
+                    for devname in nixio.fs.dir(ieee80211)
+                    do
+                        local hwmode = "11g"
+                        if iwinfo.nl80211.freqlist(devname)[1].mhz > 5000 then
+                            hwmode="11a"
+                        end
+                        if hwmode == cfg.wifi3_hwmode then
+                            ports = { "wlan" .. devname:match("^phy(%d+)$") }
+                            break
+                        end
+                    end
+                else
+                    -- If the WAN has been given a vlan to use (usually 1) we use that here.
+                    local wvlan = ports[1]:match("%.(%d+)$")
+                    if wvlan then
+                        vlan = wvlan .. ":t"
+                    else
+                        vlan = "4:u"
+                    end
+                    -- handle wan vlan override
+                    for line in io.lines("/etc/config.mesh/_setup")
+                    do
+                        local wport, wvlan = line:match("^wan_intf = (%w+%.)(%d+)")
+                        if wvlan then
+                            vlan = wvlan .. ":t"
+                            ports = { wport .. wvlan }
+                            break
+                        end
+                    end
+                end
+            elseif net == "dtdlink" then
+                -- Always vlan 2
+                vlan = "2:t"
+                cfg.dtdlink_proto = "static"
+                cfg.dtdlink_mask = "255.0.0.0"
+            elseif net == "wifi" then
+                wireless = true
+                ports = { cfg.wifi_intf }
+            end
+
+            if vlan then
+                -- new school vlan configuration
+                local v, t = vlan:match("(.*):(.*)")
+                config = config .. "\nconfig bridge-vlan\n	option device 'br0'\n	option vlan '" .. v .. "'\n"
+                for _, port in ipairs(ports)
+                do
+                    config = config .. "	list ports '" .. port:gsub("%..*$", "") .. ":" .. t .. "'\n"
+                end
+                config = config .. "\n"
+                ports = { "br0." .. v }
+            end
+
+            local proto = cfg[net .. "_proto"] or ""
+            local ipaddr = cfg[net .. "_ip"] or ""
+            local netmask = cfg[net .. "_mask"] or ""
+            local dns1 = ""
+            local dns2 = ""
+            if net == "lan" then
+                dns1 = cfg.wan_dns1 or ""
+                dns2 = cfg.wan_dns2 or ""
+            end
+            local gateway = cfg[net .. "_gw"] or ""
+
+            config = config .. "config device\n"
+            if not wireless then
+                config = config .. "	option name 'br-" .. net .. "'\n	option type 'bridge'\n"
+            end
+            if nixio.fs.stat("/etc/aredn_include/fixedmac." .. net) then
+                config = config .. read_all("/etc/aredn_include/fixedmac." .. net)
+            end
+
+            if not wireless then
+                for _, port in ipairs(ports)
+                do
+                    config = config .. "	list ports '" .. port .. "'\n"
+                end
+            else
+                config = config .. "	option name '" .. ports[1] .. "'\n"
+                if not ports[1]:match("^wlan") then
+                    config = config .. "	option type 'bridge'\n	option bridge_empty '1'\n"
+                end
+            end
+
+            config = config .. "\nconfig interface " .. net .. "\n"
+            if wireless then
+                config = config .. "	option device '" .. ports[1] .. "'\n"
+            else
+                config = config .. "	option device 'br-" .. net .. "'\n"
+            end
+            if proto ~= "" then
+                config = config .. "	option proto '" .. proto .. "'\n"
+            end
+            if ipaddr ~= "" then
+                config = config .. "	option ipaddr '" .. ipaddr .. "'\n"
+            end
+            if netmask ~= "" then
+                config = config .. "	option netmask '" .. netmask .. "'\n"
+            end
+            if dns1 ~= "" or dns2 ~= "" then
+                config = config .. "	option dns '" .. (dns1 or "") .. (dns1 and dns2 and " " or "") .. (dns2 or "") .. "'\n"
+            end
+            if gateway ~= "" then
+                config = config .. "	option gateway '" .. gateway .. "'\n"
+            end
+        end
+        cfg[net .. "_network_config"] = config
     end
 
     remove_all("/tmp/new_config")
@@ -551,7 +720,124 @@ end
 c:commit("dhcp")
 
 -- generate the wireless config file
-os.execute("/usr/local/bin/wifi-setup")
+local config = ""
+local ifacenum = 0
+local ifacecount = 0
+for devname in nixio.fs.dir(ieee80211)
+do
+    ifacecount = ifacecount + 1
+end
+for devname in nixio.fs.dir(ieee80211)
+do
+    local dev = devname:match("^phy(%d+)$")
+    local radio = "radio" .. dev
+    local wlan = "wlan" .. dev
+    local devpath = nixio.fs.realpath(ieee80211 .. nixio.fs.readlink(ieee80211 .. devname)):match("^/sys/devices/(.*)/ieee802.*$")
+    if devpath:match("^platform.*/pci.*") then
+        devpath = devpath:match("^platform/(.*)")
+    end
+    local is_mesh_rf = false
+    local htmode = "HT20"
+    local disabled = "0"
+    local chanbw = nil
+    local country = nil
+    local channel = nil
+    local distance = nil
+    local hwmode = "11g"
+    if iwinfo.nl80211.freqlist(devname)[1].mhz > 5000 then
+        hwmode="11a"
+    end
+    local network = nil
+    local mode = nil
+    local ssid = nil
+    local encryption = nil
+    local key = nil
+
+    if wlan == cfg.wifi_intf then
+        -- mesh RF adhoc configuration
+        is_mesh_rf = true
+        channel = cfg.wifi_channel
+        chanbw = cfg.wifi_chanbw
+        country = "HX"
+        distance = cfg.wifi_distance
+        ssid = cfg.wifi_ssid .. "-" .. chanbw .. "-v3"
+        mode = "adhoc"
+        encryption = "none"
+        network = "wifi"
+    elseif cfg.wifi2_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi2_hwmode)) then
+        -- lan AP interface
+        channel = cfg.wifi2_channel
+        ssid = h2s(cfg.wifi2_ssid)
+        mode = "ap"
+        encryption = cfg.wifi2_encryption
+        key = h2s(cfg.wifi2_key)
+        network = "lan"
+    elseif cfg.wifi3_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi3_hwmode)) then
+        -- wan client
+        ssid = h2s(cfg.wifi3_ssid)
+        mode = "sta"
+        if cfg.wifi3_key and cfg.wifi3_key ~= "" then
+            encryption = "psk2"
+            key = h2s(cfg.wifi3_key)
+        else
+            enable = "none"
+        end
+        network = "wan"
+        htmode = nil
+    else
+        disabled = "1"
+    end
+
+    config = config .. "config	wifi-device '" .. radio .. "'\n	option type 'mac80211'\n"
+    config = config .. "	option disabled '" .. disabled .. "'\n"
+    if channel then
+        config = config .. "	option channel '" .. channel .. "'\n"
+    end
+    if chanbw then
+        config = config .. "	option chanbw '" .. chanbw .. "'\n"
+    end
+    if country then
+        config = config .. "	option country '" .. country .. "'\n"
+    end
+    if distance then
+        config = config .. "	option distance '" .. distance .. "'\n"
+    end
+    config = config .. "	option hwmode '" .. hwmode .. "'\n"
+    if htmode then
+        config = config .. "	option htmode '" .. htmode .. "'\n"
+    end
+    config = config .. "	option path '" .. devpath .. "'\n\n"
+
+    config = config .. "config	wifi-iface\n"
+    config = config .. "	option ifname '" .. wlan .. "'\n"
+    config = config .. "	option device '" .. radio .. "'\n"
+    if network then
+        config = config .. "	option network '" .. network .. "'\n"
+    end
+    if mode then
+        config = config .. "	option mode '" .. mode .. "'\n"
+    end
+    if ssid then
+        config = config .. "	option ssid '" .. ssid .. "'\n"
+    end
+    if encryption then
+        config = config .. "	option encryption '" .. encryption .. "'\n"
+    end
+    if key then
+        config = config .. "	option key '" .. key .. "'\n"
+    end
+    config = config .. "\n"
+
+    if is_mesh_rf then
+        config = config .. "config wifi-iface\n"
+        config = config .. "	option ifname '" .. wlan .. "-1'\n"
+        config = config .. "	option device '" .. radio .. "'\n"
+        config = config .. "	option network 'wifi_mon'\n	option mode 'monitor'\n\n"
+    end
+
+    ifacenum = ifacenum + 1
+end
+write_all("/etc/config/wireless", config)
 
 if not auto then
     print "configuration complete.";
