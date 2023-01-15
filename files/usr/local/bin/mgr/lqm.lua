@@ -647,12 +647,11 @@ function lqm()
             if track.type == "RF" then
 
                 -- If we have a direct dtd connection to this device, make sure we use that
+                track.blocks.dtd = false
                 for _, dtd in pairs(tracker) do
                     if dtd.type == "DtD" and dtd.hostname == track.hostname then
                         if dtd.distance and dtd.distance < dtd_distance then
                             track.blocks.dtd = true
-                        else
-                            track.blocks.dtd = false
                         end
                         break
                     end
