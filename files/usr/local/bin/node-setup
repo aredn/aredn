@@ -99,7 +99,7 @@ if not (config == "mesh" and nixio.fs.access("/etc/config.mesh/_setup", "r")) th
 end
 
 local ieee80211 = "/sys/class/ieee80211/"
-local dsa = aredn.hardware.has_dsa_network()
+local dsa = true -- aredn.hardware.has_dsa_network()
 local lanintf = aredn.hardware.get_board_network_ifname("lan")
 local node = aredn_info.get_nvram("node")
 local tactical = aredn_info.get_nvram("tactical")
@@ -230,7 +230,7 @@ end
 -- basic configuration
 if do_basic then
 
-    -- generate the overall bridge configuration
+    -- generate the new school dsa bridge configuration
     if nixio.fs.stat("/etc/aredn_include/bridge.network.user") then
         cfg.bridge_network_config = read_all("/etc/aredn_include/bridge.network.user")
     else
@@ -253,7 +253,7 @@ if do_basic then
         end
     end
 
-    -- generate the configurations for lan, wan, and dtd
+    -- generate the network configurations
     for _, net in ipairs({ "lan", "wan", "dtdlink", "wifi" })
     do
         local wireless = false
@@ -268,9 +268,17 @@ if do_basic then
 
             if net == "lan" then
                 if dsa then
-                    vlan = "3:u"
+                    -- If the LAN has be given a vlan to use (usually by a switch) we use that here,
+                    -- otherwise we just use '3'
+                    local lvlan = ports[1]:match("%.(%d+)$")
+                    if lvlan then
+                        vlan = lvlan .. ":t"
+                    else
+                        vlan = "3:u"
+                    end
                 end
             elseif net == "wan" then
+                -- wifi can be used for the WAN (we become a wifi client)
                 if cfg.wifi3_enable == "1" then
                     -- WAN uses wifi
                     wireless = true
@@ -287,17 +295,17 @@ if do_basic then
                         end
                     end
                 else
-                    if dsa then
-                        vlan = "1:u"
-                    end
-                    local wport, wvlan = ports[1]:match("(%w+%.)(%d+)")
+                    -- If the WAN has been given a vlan to use (usually 1) we use that here.
+                    local wvlan = ports[1]:match("%.(%d+)$")
                     if wvlan then
                         vlan = wvlan .. ":t"
+                    else
+                        vlan = "4:u"
                     end
                     -- handle wan vlan override
                     for line in io.lines("/etc/config.mesh/_setup")
                     do
-                        wport, wvlan = line:match("^wan_intf = (%w+%.)(%d+)")
+                        local wport, wvlan = line:match("^wan_intf = (%w+%.)(%d+)")
                         if wvlan then
                             vlan = wvlan .. ":t"
                             ports = { wport .. wvlan }
@@ -306,6 +314,7 @@ if do_basic then
                     end
                 end
             elseif net == "dtdlink" then
+                -- Always vlan 2
                 vlan = "2:t"
                 cfg.dtdlink_proto = "static"
                 cfg.dtdlink_mask = "255.0.0.0"
