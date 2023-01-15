@@ -124,6 +124,8 @@ function expand_vars(lines)
         if inc then
             if nixio.fs.stat(inc) then
                 line = expand_vars(read_all(inc))
+            else
+                line = nil
             end
         elseif line:match("^[^#]") then
             for parm in line:gmatch("<([^%s]*)>")
