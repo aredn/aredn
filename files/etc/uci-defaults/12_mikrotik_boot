@@ -1,0 +1,11 @@
+#! /bin/sh
+#
+# On Mikrotik devices, make sure the boot mode is 'flasheth' otherwise
+# the node can fail to boot.
+#
+if [ -f /sys/firmware/mikrotik/soft_config/boot_device ]; then
+    if [ "$(grep '\[flasheth\]' /sys/firmware/mikrotik/soft_config/boot_device)" = "" ]; then
+        echo "flasheth" > /sys/firmware/mikrotik/soft_config/boot_device
+        echo "1" > /sys/firmware/mikrotik/soft_config/commit
+    fi
+fi
