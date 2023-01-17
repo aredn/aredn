@@ -42,7 +42,8 @@ Bullet M2 | 2 | ath79 | tiny | ubnt_bullet-m-ar7241 | 32MB | stable | sunset
 Bullet M2 XW | 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | unknown | released
 LiteBeam AC5 Gen2 | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | nightly
 LiteBeam M5 | 5 | ath79 | - | - | 64MB | unknown | released
-NanoBeam AC 5 | 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | unknown | nightly
+NanoBeam AC 5 (WA) | 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | unknown | nightly
+NanoBeam AC 5 (XC) | 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | unknown | nightly
 NanoBeam AC 5 Gen 2 | 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | nightly
 NanoBeam M2-13 | 2 | ath79 | - | - | 32MB | unknown | sunset
 NanoBeam M5-16 | 5| ath79 | - | - | 32MB | unknown | sunset
