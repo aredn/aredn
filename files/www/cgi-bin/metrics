@@ -1,0 +1,200 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2023 Tim Wilkinson
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("nixio")
+
+local gzip = (os.getenv("HTTP_ACCEPT_ENCODING") or ""):match("gzip")
+
+print "Content-type: text/plain; version=0.0.4\r"
+print "Cache-Control: no-store\r"
+if gzip then
+    print "Content-Encoding: gzip\r"
+end
+print("Access-Control-Allow-Origin: *\r")
+print("\r")
+
+local output = nil
+if gzip then
+    io.flush()
+    output = io.popen("gzip", "w")
+    function print(line)
+        output:write(line .. "\n")
+    end
+end
+
+-- Metrics start
+
+-- Cpus
+
+print("# HELP node_cpu Seconds the cpus spent in each mode")
+print("# TYPE node_cpu counter")
+for line in io.lines("/proc/stat")
+do
+    local cpunr, user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice = line:match("^cpu(%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+)")
+    if cpunr then
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="guest"} ' .. guest / 100)
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="guest_nice"} ' .. guest_nice / 100)
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="idle"} ' .. idle / 100)
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="iowait"} ' .. iowait / 100)
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="irq"} ' .. irq / 100)
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="nice"} ' .. nice / 100)
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="softirq"} ' .. softirq / 100)
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="steal"} ' .. steal / 100)
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="system"} ' .. system / 100)
+        print('node_cpu_seconds_total{cpu="' .. cpunr .. '",mode="user"} ' .. user / 100)
+    end
+end
+
+-- Filesystems
+
+print('# HELP node_filesystem_avail_bytes Filesystem space available in bytes.')
+print('# TYPE node_filesystem_avail_bytes gauge')
+for line in io.lines("/proc/mounts")
+do
+    local dev, mountpoint, fstype = line:match("^(%S+)%s+(%S+)%s+(%S+)")
+    if dev then
+        if mountpoint:match("^/") then
+            local info = nixio.fs.statvfs(mountpoint)
+            print('node_filesystem_avail_bytes{device="' .. dev .. '",fstype="' .. fstype .. '",mountpoint="' .. mountpoint .. '"} ' .. info.bfree * 4096)
+        end
+    end
+end
+
+-- Memory
+
+for line in io.lines("/proc/meminfo")
+do
+    local key, size = line:match("^(%S+):%s+(%d+) kB$")
+    if key then
+        key = key:gsub("%(", "_"):gsub("%)", "")
+        print('# HELP node_memory_' .. key .. '_bytes Memory information field ' .. key .. '_bytes.')
+        print('# TYPE node_memory_' .. key .. '_bytes gauge')
+        print('node_memory_' .. key .. '_bytes ' .. size * 1024)
+    end
+end
+
+-- Networks
+
+local path = "/sys/class/net/"
+function read_val(p)
+    local f = io.open(path .. p)
+    if f then
+        local val = f:read("*a")
+        f:close()
+        if val then
+            val = val:match("^(%S+)")
+        end
+        return val
+    end
+    return nil
+end
+local netprops = {
+    address_assign_type = "addr_assign_type",
+    carrier = "carrier",
+    carrier_changes_total = "carrier_changes",
+    carrier_down_changes_total = "carrier_down_count",
+    carrier_up_changes_total = "carrier_up_count",
+    device_id = function(dev)
+        return 'node_network_device_id{device="' .. dev .. '"} ' .. tonumber(read_val(dev .. "/dev_id"))
+    end,
+    dormant = "dormant",
+    flags = function(dev)
+        return 'node_network_flags{device="' .. dev .. '"} ' .. tonumber(read_val(dev .. "/flags"))
+    end,
+    iface_id = "ifindex",
+    iface_link = "iflink",
+    iface_link_mode = "link_mode",
+    info = function(dev)
+        local address = read_val(dev .. "/address") or ""
+        local broadcast = read_val(dev .. "/broadcast") or ""
+        local duplex = read_val(dev .. "/duplex") or ""
+        local ifalias = read_val(dev .. "/ifalias") or ""
+        local operstate = read_val(dev .. "/operstate")
+        return 'node_network_info{address="' .. address .. '",broadcast="' .. broadcast .. '",device="' .. dev .. '",duplex="' .. duplex .. '",ifalias="' .. ifalias .. '",operstate="' .. operstate .. '"} 1'
+    end,
+    mtu_bytes_total = "mtu",
+    name_assign_type = "name_assign_type",
+    netdev_group = "netdev_group",
+    protocol_type = "type",
+    receive_bytes_total = "statistics/rx_bytes",
+    receive_compressed_total = "statistics/rx_compressed",
+    receive_drop_total = "statistics/rx_dropped",
+    receive_errors_total = "statistics/rx_errors",
+    receive_fifo_errors_total = "statistics/rx_fifo_errors",
+    receive_frame_errors_total = "statistics/rx_frame_errors",
+    receive_multicast_total = "statistics/multicast",
+    receive_packets_total = "statistics/rx_packets",
+    speed_bytes = "speed",
+    transmit_bytes_total = "statistics/tx_bytes",
+    transmit_carrier_errors_total = "statistics/tx_carrier_errors",
+    transmit_collision_errors_total = "statistics/collisions",
+    transmit_compressed_total = "statistics/tx_compressed",
+    transmit_drop_total = "statistics/tx_dropped",
+    transmit_errors_total = "statistics/tx_errors",
+    transmit_fifo_errors_total = "statistics/tx_fifo_errors",
+    transmit_packets_total = "statistics/tx_packets",
+    up = function(dev)
+        return 'node_network_up{device="' .. dev .. '"} ' .. (read_val(dev .. "/operstate") == "up" and 1 or 0)
+    end
+}
+for _, key in ipairs({ "carrier", "carrier_changes_total", "carrier_down_changes_total", "carrier_up_changes_total", "device_id", "dormant", "flags", "iface_id", "iface_link", "iface_link_mode", "info", "mtu_bytes_total", "name_assign_type", "netdev_group", "protocol_type", "receive_bytes_total", "receive_compressed_total", "receive_drop_total", "receive_errors_total", "receive_fifo_errors_total", "receive_frame_errors_total", "receive_multicast_total", "receive_packets_total", "speed_bytes", "transmit_bytes_total", "transmit_carrier_errors_total", "transmit_collision_errors_total", "transmit_compressed_total", "transmit_drop_total", "transmit_errors_total", "transmit_fifo_errors_total", "transmit_packets_total", "up" })
+do
+    local file = netprops[key]
+    print('# HELP node_network_' .. key)
+    print('# TYPE node_network_' .. key .. (key:match('_total$') and ' counter' or ' gauge'))
+    for dev in nixio.fs.dir(path)
+    do
+        if type(file) == "string" then
+            local val = read_val(dev .. "/" .. file)
+            if val then
+                print('node_network_' .. key .. '{device="' .. dev .. '"} ' .. val)
+            end
+        else
+            local str = file(dev)
+            if str then
+                print(str)
+            end
+        end
+    end
+end
+
+-- Metrics end
+
+if output then
+    output:close()
+else
+    io.flush()
+end
