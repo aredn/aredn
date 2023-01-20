@@ -540,7 +540,7 @@ function lqm()
                                             track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * rtrack.snr)
                                         end
                                     end
-                                    if not rtrack.blocked and not tracker[rtrack.mac] and not our_macs[rtrack.mac] and rfcount > 1 then
+                                    if rtrack.routable and not tracker[rtrack.mac] and not our_macs[rtrack.mac] and rfcount > 1 then
                                         track.exposed = true
                                     end
                                 end
