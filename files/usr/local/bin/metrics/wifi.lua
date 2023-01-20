@@ -34,46 +34,34 @@
 
 --]]
 
-package.path = package.path .. ";/usr/local/bin/?.lua"
+reqire("iwinfo")
 
-require("nixio")
-
-local gzip = (os.getenv("HTTP_ACCEPT_ENCODING") or ""):match("gzip")
-
-print "Content-type: text/plain; version=0.0.4\r"
-print "Cache-Control: no-store\r"
-if gzip then
-    print "Content-Encoding: gzip\r"
-end
-print("Access-Control-Allow-Origin: *\r")
-print("\r")
-
-local output = nil
-if gzip then
-    io.flush()
-    output = io.popen("gzip", "w")
-    function print(line)
-        output:write(line .. "\n")
-    end
-end
-
--- Find, sort then generate the metrics to be returned
-local metrics = {}
-for m in nixio.fs.dir("/usr/local/bin/metrics/")
+local wifistaprops = {
+    { "noise", "noise" },
+    { "receive_mcs", "rx_mcs" },
+    { "receive_packets_total", "rx_packets" },
+    { "receive_rate_bits_per_second", "rx_rate", 1024 },
+    { "signal", "signal" },
+    { "transmit_mcs", "tx_mcs" },
+    { "transmit_packets_total", "tx_packets" },
+    { "transmit_rate_bits_per_second", "tx_rate", 1024 },
+}
+for _, keys in ipairs(wifistaprops)
 do
-    m = m:match("^(.*)%.lua$")
-    if m then
-        metrics[#metrics + 1] = "metrics." .. m
+    print('# HELP node_wifi_station_' .. keys[1])
+    print('# TYPE node_wifi_station_' .. keys[1] .. (keys[1]:match('_total$') and ' counter' or ' gauge'))
+    for _, wlan in ipairs({ "wlan0", "wlan1" })
+    do
+        local stations = iwinfo.nl80211.assoclist(wlan)
+        for mac, station in pairs(stations)
+        do
+            local val = station[keys[2]]
+            if val then
+                if keys[3] then
+                    val = val * keys[3]
+                end
+                print('node_wifi_station_' .. keys[1] .. '{device="' .. wlan .. '",mac="' .. mac .. '"} ' .. val)
+            end
+        end
     end
-end
-table.sort(metrics);
-for _, m in ipairs(metrics)
-do
-    require(m)
-end
-
-if output then
-    output:close()
-else
-    io.flush()
 end

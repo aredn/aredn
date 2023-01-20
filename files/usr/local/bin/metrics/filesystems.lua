@@ -34,46 +34,15 @@
 
 --]]
 
-package.path = package.path .. ";/usr/local/bin/?.lua"
-
-require("nixio")
-
-local gzip = (os.getenv("HTTP_ACCEPT_ENCODING") or ""):match("gzip")
-
-print "Content-type: text/plain; version=0.0.4\r"
-print "Cache-Control: no-store\r"
-if gzip then
-    print "Content-Encoding: gzip\r"
-end
-print("Access-Control-Allow-Origin: *\r")
-print("\r")
-
-local output = nil
-if gzip then
-    io.flush()
-    output = io.popen("gzip", "w")
-    function print(line)
-        output:write(line .. "\n")
-    end
-end
-
--- Find, sort then generate the metrics to be returned
-local metrics = {}
-for m in nixio.fs.dir("/usr/local/bin/metrics/")
+print('# HELP node_filesystem_avail_bytes Filesystem space available in bytes.')
+print('# TYPE node_filesystem_avail_bytes gauge')
+for line in io.lines("/proc/mounts")
 do
-    m = m:match("^(.*)%.lua$")
-    if m then
-        metrics[#metrics + 1] = "metrics." .. m
+    local dev, mountpoint, fstype = line:match("^(%S+)%s+(%S+)%s+(%S+)")
+    if dev then
+        if mountpoint:match("^/") then
+            local info = nixio.fs.statvfs(mountpoint)
+            print('node_filesystem_avail_bytes{device="' .. dev .. '",fstype="' .. fstype .. '",mountpoint="' .. mountpoint .. '"} ' .. info.bfree * 4096)
+        end
     end
-end
-table.sort(metrics);
-for _, m in ipairs(metrics)
-do
-    require(m)
-end
-
-if output then
-    output:close()
-else
-    io.flush()
 end

@@ -34,46 +34,13 @@
 
 --]]
 
-package.path = package.path .. ";/usr/local/bin/?.lua"
-
-require("nixio")
-
-local gzip = (os.getenv("HTTP_ACCEPT_ENCODING") or ""):match("gzip")
-
-print "Content-type: text/plain; version=0.0.4\r"
-print "Cache-Control: no-store\r"
-if gzip then
-    print "Content-Encoding: gzip\r"
-end
-print("Access-Control-Allow-Origin: *\r")
-print("\r")
-
-local output = nil
-if gzip then
-    io.flush()
-    output = io.popen("gzip", "w")
-    function print(line)
-        output:write(line .. "\n")
-    end
-end
-
--- Find, sort then generate the metrics to be returned
-local metrics = {}
-for m in nixio.fs.dir("/usr/local/bin/metrics/")
+for line in io.lines("/proc/meminfo")
 do
-    m = m:match("^(.*)%.lua$")
-    if m then
-        metrics[#metrics + 1] = "metrics." .. m
+    local key, size = line:match("^(%S+):%s+(%d+) kB$")
+    if key then
+        key = key:gsub("%(", "_"):gsub("%)", "")
+        print('# HELP node_memory_' .. key .. '_bytes Memory information field ' .. key .. '_bytes.')
+        print('# TYPE node_memory_' .. key .. '_bytes gauge')
+        print('node_memory_' .. key .. '_bytes ' .. size * 1024)
     end
-end
-table.sort(metrics);
-for _, m in ipairs(metrics)
-do
-    require(m)
-end
-
-if output then
-    output:close()
-else
-    io.flush()
 end
