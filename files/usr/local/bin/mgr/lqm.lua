@@ -525,11 +525,13 @@ function lqm()
                                         if tonumber(rtrack.lat) and tonumber(rtrack.lon) and lat and lon then
                                             rdistance = calc_distance(lat, lon, tonumber(rtrack.lat), tonumber(rtrack.lon))
                                         end
-                                        rflinks[track.mac][rtrack.ip] = {
-                                            ip = rtrack.ip,
-                                            hostname = rhostname,
-                                            distance = rdistance
-                                        }
+                                        if rtrack.routable then
+                                            rflinks[track.mac][rtrack.ip] = {
+                                                ip = rtrack.ip,
+                                                hostname = rhostname,
+                                                distance = rdistance
+                                            }
+                                        end
                                     end
                                     if myhostname == rhostname then
                                         if not old_rev_snr or not rtrack.snr then
