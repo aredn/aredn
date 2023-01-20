@@ -260,7 +260,7 @@ if config == "not set" then
     config_mode = "ram"
     for line in io.lines("/proc/mounts")
     do
-        if line:match("overlay") then
+        if line:match("overlay") or line:match("ext4") then
             config_mode = "setup"
             break
         end

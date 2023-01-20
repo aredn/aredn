@@ -1,37 +1,37 @@
 #! /usr/bin/lua
 --[[
 
-	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2021 Tim Wilkinson
-	Original Perl Copyright (C) 2015 Conrad Lara
-	See Contributors file for additional contributors
+    Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+    Copyright (C) 2021 Tim Wilkinson
+    Original Perl Copyright (C) 2015 Conrad Lara
+    See Contributors file for additional contributors
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation version 3 of the License.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation version 3 of the License.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	Additional Terms:
+    Additional Terms:
 
-	Additional use restrictions exist on the AREDN(TM) trademark and logo.
-		See AREDNLicense.txt for more info.
+    Additional use restrictions exist on the AREDN(TM) trademark and logo.
+        See AREDNLicense.txt for more info.
 
-	Attributions to the AREDN Project must be retained in the source code.
-	If importing this code into a new or existing project attribution
-	to the AREDN project must be added to the source code.
+    Attributions to the AREDN Project must be retained in the source code.
+    If importing this code into a new or existing project attribution
+    to the AREDN project must be added to the source code.
 
-	You must not misrepresent the origin of the material contained within.
+    You must not misrepresent the origin of the material contained within.
 
-	Modified versions must be modified to attribute to the original source
-	and be marked in reasonable ways as differentiate it from the original
-	version
+    Modified versions must be modified to attribute to the original source
+    and be marked in reasonable ways as differentiate it from the original
+    version
 
 --]]
 
@@ -55,36 +55,44 @@ local dtdmac = aredn_info.get_nvram("dtdmac")
 
 local hardware_mac
 if wifi_mac == "" or mac2 == "" then
-	local phy
-	for i = 1,5
-	do
-		local f = io.popen("iwinfo " .. get_ifname("wifi") .. " info")
-		if f then
-			for line in f:lines()
-			do
-				phy = line:match("PHY name:%s*([a-z0-4]+)")
-				if phy then
-					break
-				end
-			end
-			f:close()
-		end
-		if phy then
-			break
-		end
-		sleep(5)
-	end
-    for line in io.lines("/sys/class/ieee80211/" .. phy .. "/macaddress")
-    do
-        local m = line:match("(%w%w:%w%w:%w%w:%w%w:%w%w:%w%w)")
-        if m then
-            hardware_mac = m
-            break
+    local wlan = get_ifname("wifi")
+    if wlan then
+        local phy
+        for i = 1,5
+        do
+            local f = io.popen("iwinfo " .. wlan .. " info")
+            if f then
+                for line in f:lines()
+                do
+                    phy = line:match("PHY name:%s*([a-z0-4]+)")
+                    if phy then
+                        break
+                    end
+                end
+                f:close()
+            end
+            if phy then
+                break
+            end
+            sleep(5)
+        end
+        for line in io.lines("/sys/class/ieee80211/" .. phy .. "/macaddress")
+        do
+            local m = line:match("(%w%w:%w%w:%w%w:%w%w:%w%w:%w%w)")
+            if m then
+                hardware_mac = m
+                break
+            end
         end
     end
     if not hardware_mac then
-        io.stderr:write("ERROR: hardware mac not found\n")
-        os.exit(-1)
+        if aredn.hardware.get_board_id():match("QEMU") then
+            -- Detect emulation, and create a random mac address instead
+            hardware_mac = capture([[hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/random]]):match("^(%S+)")
+        else
+            io.stderr:write("ERROR: hardware mac not found\n")
+            os.exit(-1)
+        end
     end
 end
 
