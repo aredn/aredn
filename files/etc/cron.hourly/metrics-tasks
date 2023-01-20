@@ -38,45 +38,28 @@ package.path = package.path .. ";/usr/local/bin/?.lua"
 
 require("nixio")
 
-local gzip = (os.getenv("HTTP_ACCEPT_ENCODING") or ""):match("gzip")
+local ONE_HOUR = 60 * 60 -- in seconds
 
-print "Content-type: text/plain; version=0.0.4\r"
-print "Cache-Control: no-store\r"
-if gzip then
-    print "Content-Encoding: gzip\r"
-end
-print("Access-Control-Allow-Origin: *\r")
-print("\r")
-
-local output = nil
-if gzip then
-    io.flush()
-    output = io.popen("gzip", "w")
-    function print(line)
-        output:write(line .. "\n")
-    end
+-- Only run periodic tasks if metrics have been retrieved in the last hour.
+-- This prevents expensive tasks executing unless metrics are being actively monitored.
+local last = nixio.fs.stat("/tmp/metrics-ran", "mtime")
+if not last or last + ONE_HOUR < os.time() then
+    exit(0)
 end
 
--- Find, sort then generate the metrics to be returned
+os.mkdir("/tmp/metrics")
+
+-- Collect the hourly metric tasks and execute them in order
 local metrics = {}
-for m in nixio.fs.dir("/usr/local/bin/metrics/")
+for m in nixio.fs.dir("/usr/local/bin/metrics/hourly/")
 do
     m = m:match("^(.*)%.lua$")
     if m then
-        metrics[#metrics + 1] = "metrics." .. m
+        metrics[#metrics + 1] = "metrics.hourly." .. m
     end
 end
 table.sort(metrics);
 for _, m in ipairs(metrics)
 do
     require(m)
-end
-
--- Touch a file so we know when this was last done
-io.open("/tmp/metrics-ran", "w+"):close()
-
-if output then
-    output:close()
-else
-    io.flush()
 end
