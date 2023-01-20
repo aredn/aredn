@@ -43,14 +43,14 @@ Bullet M2 XW | 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | unknown | release
 LiteBeam AC5 Gen2 | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | nightly
 LiteBeam M5 | 5 | ath79 | - | - | 64MB | unknown | released
 NanoBeam AC 5 (WA) | 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | unknown | nightly
-NanoBeam AC 5 (XC) | 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | unknown | nightly
+NanoBeam AC 5 (XC) | 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | nightly
 NanoBeam AC 5 Gen 2 | 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | nightly
 NanoBeam M2-13 | 2 | ath79 | - | - | 32MB | unknown | sunset
 NanoBeam M5-16 | 5| ath79 | - | - | 32MB | unknown | sunset
 NanoBeam M5-19 | 5| ath79 | - | - | 32MB | unknown | sunset
 NanoBridge 2G18 | 2 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
 NanoBridge 5G22 | 5 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
-NanoBridge 5G25 | 5 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
+NanoBridge 5G25 | 5 | ath79 | tiny | ubnt_nanobridge-m | 32MB | stable | sunset
 NanoBridge M9 | 900 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
 NanoStation AC 5 | 5 | ath79 | generic | ubnt_nanostation-ac | 64MB | stable | nightly
 NanoStation Loco M2 XM | 2 | ath79 | tiny | ubnt_nanostation-loco-m | 32MB | unknown | sunset
@@ -95,7 +95,7 @@ TPLink CPE210 v2.0 | 2 | ath79 | generic | tplink_cpe210-v2 | 64MB | stable | re
 TPLink CPE210 v3.0 | 2 | ath79 | generic | tplink_cpe210-v3 | 64MB | unknown | released
 TPLink CPE220 v2.0 | 2 | ath79 | generic | tplink_cpe220-v2 | 64MB | unknown | released
 TPLink CPE220 v3.0 | 2 | ath79 | generic | tplink_cpe220-v3 | 64MB | unknown | released
-TPLink CPE510 v1.X | 5 | ath79 | generic | tplink_cpe510-v1 | 64MB | unknown | released
+TPLink CPE510 v1.X | 5 | ath79 | generic | tplink_cpe510-v1 | 64MB | stable | released
 TPLink CPE510 v2.0 | 5 | ath79 | generic | tplink_cpe510-v2 | 64MB | stable | released
 TPLink CPE510 v3.0 | 5 | ath79 | generic | tplink_cpe510-v3 | 64MB | stable | released
 TPLink CPE605 v1.0 | 5 | ath79 | generic | tplink_cpe605-v1 | 64MB | unknown | released
