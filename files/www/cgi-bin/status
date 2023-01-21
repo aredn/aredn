@@ -305,12 +305,18 @@ local col2 = {}
 -- left column - network interface info
 
 local ip = cursor:get("network", "wifi", "ipaddr")
-local cidr = netmask_to_cidr(cursor:get("network", "wifi", "netmask"))
-if wifi_disabled then
-    col1[#col1 + 1] = "<th align=right><nobr>primary address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
+local mask = cursor:get("network", "wifi", "netmask")
+local cidr
+if not ip or not mask then
+    col1[#col1 + 1] = "<th align=right><nobr>primary address:</nobr></th><td>none<br>"
 else
-    wifi_gw = get_default_gw("wifi")
-    col1[#col1 + 1] = "<th align=right><nobr>mesh RF address:</nobr><br><nobr>mesh gateway:</nobr><br><nobr>gateway node:</nobr><br>SSID:<br>channel:<br><nobr>channel width:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_gw .. "<br>" .. mesh_ip_to_hostnames(wifi_gw) .. "<br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. " MHz</td>"
+    cidr = netmask_to_cidr(mask)
+    if wifi_disabled then
+        col1[#col1 + 1] = "<th align=right><nobr>primary address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
+    else
+        wifi_gw = get_default_gw("wifi")
+        col1[#col1 + 1] = "<th align=right><nobr>mesh RF address:</nobr><br><nobr>mesh gateway:</nobr><br><nobr>gateway node:</nobr><br>SSID:<br>channel:<br><nobr>channel width:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_gw .. "<br>" .. mesh_ip_to_hostnames(wifi_gw) .. "<br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. " MHz</td>"
+    end
 end
 
 ip = cursor:get("network", "lan", "ipaddr")

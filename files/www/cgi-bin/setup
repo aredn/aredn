@@ -226,8 +226,10 @@ end
 
 if parms.button_default then
     local node = aredn_info.get_nvram("node")
-    local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
-    local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
+    --local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
+    --local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
+    local mac2 = aredn_info.get_nvram("mac2")
+    local dtdmac = aredn_info.get_nvram("dtdmac")
     for line in io.lines("/etc/config.mesh/_setup.default")
     do
         if not (line:match("^%s*#") or line:match("^%s*$")) then
@@ -246,8 +248,10 @@ else
     end
     if parms.button_reset or not has_parms then
         local node = aredn_info.get_nvram("node")
-        local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
-        local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
+        --local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
+        --local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
+        local mac2 = aredn_info.get_nvram("mac2")
+        local dtdmac = aredn_info.get_nvram("dtdmac")
         for line in io.lines("/etc/config.mesh/_setup")
         do
             if not (line:match("^%s*#") or line:match("^%s*$")) then
@@ -537,18 +541,19 @@ if parms.button_save then
         end
     end
 
-    local wifi_country_validated = false
-    local countries = { "00","HX","AD","AE","AL","AM","AN","AR","AT","AU","AW","AZ","BA","BB","BD","BE","BG","BH","BL","BN","BO","BR","BY","BZ","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GE","GB","GD","GR","GL","GT","GU","HN","HK","HR","HT","HU","ID","IE","IL","IN","IS","IR","IT","JM","JP","JO","KE","KH","KP","KR","KW","KZ","LB","LI","LK","LT","LU","LV","MC","MA","MO","MK","MT","MY","MX","NL","NO","NP","NZ","OM","PA","PE","PG","PH","PK","PL","PT","PR","QA","RO","RS","RU","RW","SA","SE","SG","SI","SK","SV","SY","TW","TH","TT","TN","TR","UA","US","UY","UZ","VE","VN","YE","ZA","ZW" }
-    for _,country in ipairs(countries)
-    do
-        if country == wifi_country then
-            wifi_country_validated = true
-            break
+        local wifi_country_validated = false
+        local countries = { "00","HX","AD","AE","AL","AM","AN","AR","AT","AU","AW","AZ","BA","BB","BD","BE","BG","BH","BL","BN","BO","BR","BY","BZ","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GE","GB","GD","GR","GL","GT","GU","HN","HK","HR","HT","HU","ID","IE","IL","IN","IS","IR","IT","JM","JP","JO","KE","KH","KP","KR","KW","KZ","LB","LI","LK","LT","LU","LV","MC","MA","MO","MK","MT","MY","MX","NL","NO","NP","NZ","OM","PA","PE","PG","PH","PK","PL","PT","PR","QA","RO","RS","RU","RW","SA","SE","SG","SI","SK","SV","SY","TW","TH","TT","TN","TR","UA","US","UY","UZ","VE","VN","YE","ZA","ZW" }
+        for _,country in ipairs(countries)
+        do
+            if country == wifi_country then
+                wifi_country_validated = true
+                break
+            end
         end
-    end
-    if not wifi_country_validated then
-        wifi_country = "00"
-        err("Invalid country")
+        if not wifi_country_validated then
+            wifi_country = "00"
+            err("Invalid country")
+        end
     end
 
     if lan_proto == "static" then
