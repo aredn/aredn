@@ -525,11 +525,13 @@ function lqm()
                                         if tonumber(rtrack.lat) and tonumber(rtrack.lon) and lat and lon then
                                             rdistance = calc_distance(lat, lon, tonumber(rtrack.lat), tonumber(rtrack.lon))
                                         end
-                                        rflinks[track.mac][rtrack.ip] = {
-                                            ip = rtrack.ip,
-                                            hostname = rhostname,
-                                            distance = rdistance
-                                        }
+                                        if rtrack.routable then
+                                            rflinks[track.mac][rtrack.ip] = {
+                                                ip = rtrack.ip,
+                                                hostname = rhostname,
+                                                distance = rdistance
+                                            }
+                                        end
                                     end
                                     if myhostname == rhostname then
                                         if not old_rev_snr or not rtrack.snr then
@@ -538,7 +540,7 @@ function lqm()
                                             track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * rtrack.snr)
                                         end
                                     end
-                                    if not rtrack.blocked and not tracker[rtrack.mac] and not our_macs[rtrack.mac] and rfcount > 1 then
+                                    if rtrack.routable and not tracker[rtrack.mac] and not our_macs[rtrack.mac] and rfcount > 1 then
                                         track.exposed = true
                                     end
                                 end
