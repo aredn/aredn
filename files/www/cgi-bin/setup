@@ -175,6 +175,7 @@ wan_gw = ""
 passwd1 = ""
 passwd2 = ""
 
+local haswifi = aredn.hardware.has_wifi()
 local wifiintf = aredn.hardware.get_iface_name("wifi")
 local phy = iwinfo.nl80211.phyname(wifiintf)
 local phycount = tonumber(capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp())
@@ -226,8 +227,6 @@ end
 
 if parms.button_default then
     local node = aredn_info.get_nvram("node")
-    --local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
-    --local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
     local mac2 = aredn_info.get_nvram("mac2")
     local dtdmac = aredn_info.get_nvram("dtdmac")
     for line in io.lines("/etc/config.mesh/_setup.default")
@@ -1048,16 +1047,22 @@ end
 
 -- mesh rf settings
 html.print("<table width=100% style='border-collapse: collapse;'>")
-html.print("<tr><th colspan=2>Mesh RF (" .. (M3model and "3GHz" or M9model and "900MHz" or wifi_channel < 36 and "2GHz" or "5GHz") .. ")</th></tr>")
+if haswifi then
+    html.print("<tr><th colspan=2>Mesh RF (" .. (M3model and "3GHz" or M9model and "900MHz" or wifi_channel < 36 and "2GHz" or "5GHz") .. ")</th></tr>")
+else
+    html.print("<tr><th colspan=2>Mesh</th></tr>")
+end
 hidden[#hidden + 1] = "<input type=hidden name=wifi_proto value='static'>"
 
 -- add enable/disable
 
-html.print("<tr><td>Enable</td><td><input type=checkbox name=wifi_enable value=1")
-if wifi_enable == "1" then
-    html.print(" checked")
+if haswifi then
+    html.print("<tr><td>Enable</td><td><input type=checkbox name=wifi_enable value=1")
+    if wifi_enable == "1" then
+        html.print(" checked")
+    end
+    html.print("></td></tr>")
 end
-html.print("></td></tr>")
 html.print("<tr><td><nobr>IP Address</nobr></td><td><input type=text size=15 name=wifi_ip value='" .. wifi_ip .. "'></td></tr><tr><td>Netmask</td><td><input type=text size=15 name=wifi_mask value='" .. wifi_mask  .. "'></td></tr>")
 
 if wifi_enable == "1" then
