@@ -65,7 +65,7 @@ NanoStation M2 XW | 2 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable 
 NanoStation M5 XW | 5 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 PicoStation M2 | 2 | ath79 | tiny | ubnt_picostation-m | 32MB | unknown | sunset
 PowerBeam AC 5 500 | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | nightly
-PowerBeam-M2-400 | 2 | ath79 | generic | ubnt_powerbeam-m2-xw | 64MB | unknown | released
+PowerBeam-M2-400 | 2 | ath79 | generic | ubnt_powerbeam-m2-xw | 64MB | stable | released
 PowerBeam-M5-300 | 5 | ath79 | generic | ubnt_powerbeam-m5-300 | 64MB | stable | released
 PowerBeam-M5-400 | 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
 PowerBeam-M5-400ISO | 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
