@@ -49,7 +49,7 @@ print "Cache-Control: no-store\r"
 print("Access-Control-Allow-Origin: *\r")
 print("\r")
 if uci.cursor():get("aredn", "@iperf[0]", "enable") == "0" then
-    print("<html><head></head><body><pre>iperf is disabled</pre></body></html>")
+    print("<html><head><title>DISABLED</title></head><body><pre>iperf is disabled</pre></body></html>")
 elseif not server then
     print("<html><head></head><body><pre>Provide a server name to run a test between this client and a server [/cgi-bin/iperf?server=&lt;ServerName&gt;&amp;protocol=&lt;udp|tcp&gt;]</pre></body></html>")
 elseif server:match("[^%w%-%.]") then
@@ -63,7 +63,7 @@ else
     if server == "" then
         os.execute("iperf3 -s -D -1 --idle-timeout 20 -B " .. node)
         nixio.nanosleep(1, 0)
-        print("<html><head><title>ERROR</title></head><body><pre>iperf server failed</pre></body></html>")
+        print("<html><head><title>RUNNING</title></head><body><pre>iperf server running</pre></body></html>")
     else
         if not server:match("%.") then
             server = server .. ".local.mesh"
@@ -75,7 +75,7 @@ else
             f:close();
         end
         if status:match("running") then
-            print("<html><head><title>iperf</title></head><body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. io.popen("/usr/bin/iperf3 --forceflush -b 0 -Z -c " .. server .. (protocol == "udp" and " -u" or "") .. " 2>&1"):read("*a") .. "</pre></body></html>")
+            print("<html><head><title>SUCCESS</title></head><body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. io.popen("/usr/bin/iperf3 --forceflush -b 0 -Z -c " .. server .. (protocol == "udp" and " -u" or "") .. " 2>&1"):read("*a") .. "</pre></body></html>")
         else
             print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf client failed to start server</pre></body></html>")
         end
