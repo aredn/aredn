@@ -411,7 +411,7 @@ end
 -- upload fw
 if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
     os.execute("mv -f /tmp/web/upload/file " .. tmpdir .. "/firmware")
-    if firmmwaretype == "bin" and firmfile:match("sysupgrade%.bin$") then -- full firmware
+    if firmware_type == "bin" and firmfile:match("sysupgrade%.bin$") then -- full firmware
         fw_install = true
         -- drop the page cache to take pressure off tmps when checking the firmware
         write_all("/proc/sys/vm/drop_caches", "3")
