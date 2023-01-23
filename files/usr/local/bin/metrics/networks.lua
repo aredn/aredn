@@ -47,7 +47,8 @@ function read_val(p)
     end
     return nil
 end
-local netprops = {
+
+local props = {
     { "address_assign_type", "addr_assign_type" },
     { "carrier", "carrier" },
     { "carrier_changes_total", "carrier_changes" },
@@ -92,7 +93,8 @@ local netprops = {
         return 'node_network_up{device="' .. dev .. '"} ' .. (read_val(dev .. "/operstate") == "up" and 1 or 0)
     end }
 }
-for _, keys in ipairs(netprops)
+
+for _, keys in ipairs(props)
 do
     print('# HELP node_network_' .. keys[1])
     print('# TYPE node_network_' .. keys[1] .. (keys[1]:match('_total$') and ' counter' or ' gauge'))

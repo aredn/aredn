@@ -34,9 +34,9 @@
 
 --]]
 
-reqire("iwinfo")
+require("iwinfo")
 
-local wifistaprops = {
+local props = {
     { "noise", "noise" },
     { "receive_mcs", "rx_mcs" },
     { "receive_packets_total", "rx_packets" },
@@ -46,7 +46,8 @@ local wifistaprops = {
     { "transmit_packets_total", "tx_packets" },
     { "transmit_rate_bits_per_second", "tx_rate", 1024 },
 }
-for _, keys in ipairs(wifistaprops)
+
+for _, keys in ipairs(props)
 do
     print('# HELP node_wifi_station_' .. keys[1])
     print('# TYPE node_wifi_station_' .. keys[1] .. (keys[1]:match('_total$') and ' counter' or ' gauge'))
