@@ -501,6 +501,12 @@ function lqm()
                 dtdlinks[track.mac] = {}
                 track.exposed = false
 
+                -- Refresh the hostname periodically as it can change
+                local hostname = nixio.getnameinfo(track.ip)
+                if hostname then
+                    track.hostname = canonical_hostname(hostname)
+                end
+
                 local raw = io.popen("/usr/bin/curl --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
                 local info = luci.jsonc.parse(raw:read("*a"))
                 raw:close()
