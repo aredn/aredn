@@ -37,9 +37,9 @@
 local http = require("socket.http")
 local json = require("luci.jsonc")
 
-local resp, status_code = http.request("http://127.0.0.1:9090/links")
-if status_code == 200 then
-    local links = json.parse(resp).links
+local payload, code = http.request("http://127.0.0.1:9090/links")
+if code == 200 then
+    local links = json.parse(payload).links
 
     local props = {
         { "asymmetry_time", "asymmetryTime" },
@@ -65,7 +65,7 @@ if status_code == 200 then
     do
         local key = keys[1]
         print("# HELP node_olsr_link_" .. key)
-        print('# TYPE node_olsr_link_' .. key .. ' gauge')
+        print('# TYPE node_olsr_link_' .. key .. (key:match('_total$') and ' counter' or ' gauge'))
         for _, link in pairs(links)
         do
             local val = link[keys[2]]
