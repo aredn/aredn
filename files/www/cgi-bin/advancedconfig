@@ -47,6 +47,7 @@ local html = aredn.html
 
 local urlprefix
 local target = "unknown"
+local arch = "unknown"
 function defaultPackageRepos(repo)
     if not urlprefix then
         urlprefix = "http://downloads.arednmesh.org"
@@ -61,6 +62,10 @@ function defaultPackageRepos(repo)
             if m then
                 target = m
             end
+            m = line:match("DISTRIB_ARCH='(.*)'")
+            if m then
+                arch = m
+            end
         end
         local a, b = release:match("^(%d+)%.(%d+)%.")
         if a and b then
@@ -73,7 +78,7 @@ function defaultPackageRepos(repo)
     if repo:match("aredn_core") then
         return urlprefix .. "/targets/" .. target .. "/packages"
     else
-        return urlprefix .. "/packages/mips_24kc/" .. repo
+        return urlprefix .. "/packages/" .. arch .. "/" .. repo
     end
 end
 
