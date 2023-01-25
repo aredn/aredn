@@ -9,9 +9,9 @@ ip rule del pref 20010 fwmark 0x15 lookup 29  > /dev/null 2>&1
 ip rule add pref 20010 fwmark 0x15 lookup 29
 
 #tag traffic for use later in iprule's
-nft insert rule ip fw4 mangle_prerouting ip daddr $wifiip counter meta mark set 0x15
-nft insert rule ip fw4 mangle_prerouting ip daddr $dtdlinkip counter meta mark set 0x15
+nft insert rule ip fw4 mangle_prerouting ip daddr $wifiip meta mark set 0x15
+nft insert rule ip fw4 mangle_prerouting ip daddr $dtdlinkip meta mark set 0x15
 
 # Mark and masq local traffic going out the dtdlink interface.
-nft add rule ip fw4 helper_lan counter meta mark set 0xe
-nft add rule ip fw4 srcnat mark 0xe mark 0xe counter masquerade
+nft add rule ip fw4 helper_lan meta mark set 0xe
+nft add rule ip fw4 srcnat mark 0xe mark 0xe masquerade
