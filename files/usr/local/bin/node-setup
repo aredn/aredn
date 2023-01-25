@@ -378,6 +378,8 @@ if do_basic then
             config = config .. "config device\n"
             if not wireless then
                 config = config .. "	option name 'br-" .. net .. "'\n	option type 'bridge'\n"
+            elseif cfg.wifi_enable ~= "1" then
+                netmask = "255.255.255.255"
             end
             if nixio.fs.stat("/etc/aredn_include/fixedmac." .. net) then
                 config = config .. read_all("/etc/aredn_include/fixedmac." .. net)
