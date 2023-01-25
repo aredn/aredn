@@ -43,6 +43,7 @@ aredn.html = require("aredn.html")
 require("uci")
 aredn.info = require("aredn.info")
 require("ubus")
+require("luci.jsonc")
 
 local html = aredn.html
 
@@ -51,10 +52,9 @@ local conn = ubus.connect()
 
 -- handle firmware updates
 local fw_install = false
-local patch_install = false
 local fw_output = {}
-local fw_images = {}
-local fw_md5 = {}
+local fw_versions = {}
+local fw_names = {}
 local fw_version = ""
 local blocked_fw = {
     "^aredn%-3%.15",
@@ -69,37 +69,6 @@ local blocked_fw = {
 
 function fwout(msg)
     fw_output[#fw_output + 1] = msg
-end
-
-function firmware_list_gen()
-    if nixio.fs.stat("/etc/mesh-release") then
-        for line in io.lines("/etc/mesh-release")
-        do
-            fw_version = line:chomp()
-            break
-        end
-    end
-    if nixio.fs.stat("/tmp/web/firmware.list") then
-        for line in io.lines("/tmp/web/firmware.list")
-        do
-            local md5, fw, tag = line:match("^(%S+) (%S+) (.*)")
-            if tag and tag ~= "none" and (tag == "all" or fw_version:match(tag)) then
-                -- dont provide older firmwares at this point
-                local blocked = false
-                for _, m in ipairs(blocked_fw)
-                do
-                    if fw:match(m) then
-                        blocked = true
-                        break
-                    end
-                end
-                if not blocked then
-                    fw_images[#fw_images + 1] = fw
-                    fw_md5[fw] = md5
-                end
-            end
-        end
-    end
 end
 
 function get_default_gw()
@@ -329,20 +298,60 @@ if parms.button_refresh_fw then
     nixio.fs.remove("/tmp/web/firmware.list")
     if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
         fwout("Downloading firmware list from " .. uciserverpath .. "...")
-        local ok = false
+        local config_versions
+        local config_serverpath
         for _, serverpath in ipairs(serverpaths)
         do
-            if os.execute(wget .. "-O /tmp/web/firmware.list " .. serverpath .. "/firmware." .. hardwaretype .. ".list >/dev/null 2>>" .. tmpdir .. "/wget.err") == 0 then
-                ok = true
+            config_serverpath = serverpath:match("^(.*)/firmware") .. "/afs/www/"
+            for line in io.popen(wget .. " -O - " .. config_serverpath .. "config.js 2> /dev/null"):lines()
+            do
+                local v = line:match("versions: {(.+)}")
+                if v then
+                    config_versions = v
+                    break
+                end
+            end
+            if config_versions then
                 break
             end
         end
-        if ok then
-            fwout("Done")
+        if not config_versions then
+            fwout("Failed to find firmware versions")
         else
-            fwout(read_all(tmpdir .. "/wget.err"))
+            local firmware_versions = {}
+            for k, v in config_versions:gmatch("'([^']+)': '([^']+)'")
+            do
+                if not blocked_fw[k] then
+                    firmware_versions[k] = v
+                end
+            end
+            local board_type = aredn.hardware.get_board_type():gsub(",", "_")
+            for ver, data in pairs(firmware_versions)
+            do
+                local raw = io.popen(wget .. " -O - " .. config_serverpath .. data .. "/overview.json 2> /dev/null")
+                local info = luci.jsonc.parse(raw:read("*a"))
+                raw:close()
+                firmware_versions[ver] = nil
+                if info then
+                    for _, profile in ipairs(info.profiles)
+                    do
+                        if profile.id == board_type then
+                            firmware_versions[ver] = {
+                                overview = config_serverpath .. data .. "/" .. profile.target .. "/" .. profile.id .. ".json",
+                                target = info.image_url:gsub("{target}", profile.target)
+                            }
+                            break
+                        end
+                    end
+                end
+            end
+            local f = io.open("/tmp/web/firmware.list", "w")
+            if f then
+                f:write(luci.jsonc.stringify(firmware_versions, true))
+                f:close()
+            end
+            fwout("Done")
         end
-        nixio.fs.remove(tmpdir .. "/wget.err")
     else
         fwout("Error: no route to Host")
     end
@@ -350,7 +359,50 @@ end
 
 -- generate data structures
 -- and set fw_version
-firmware_list_gen()
+--firmware_list_gen()
+if nixio.fs.stat("/etc/mesh-release") then
+    for line in io.lines("/etc/mesh-release")
+    do
+        fw_version = line:chomp()
+        break
+    end
+end
+local f = io.open("/tmp/web/firmware.list")
+if f then
+    fw_versions = luci.jsonc.parse(f:read("*a"))
+    f:close()
+    if fw_versions then
+        for v, d in pairs(fw_versions)
+        do
+            fw_names[#fw_names + 1] = v
+        end
+        -- Sort in version number order (newest at the top) but with nightlies at the bottom
+        table.sort(fw_names, function (a, b)
+            if a:match("%-") then
+                return false
+            elseif b:match("%-") then
+                return true
+            end
+            local ai = a:gmatch("(%d+)")
+            local bi = b:gmatch("(%d+)")
+            while true
+            do
+                local va = tonumber(ai() or nil)
+                local vb = tonumber(bi() or nil)
+                if not va then
+                    return false
+                elseif not vb then
+                    return true
+                elseif va < vb then
+                    return false
+                elseif va > vb then
+                    return true
+                end
+            end
+            return false
+        end)
+    end
+end
 
 -- sideload fw
 if parms.button_apply_fw and nixio.fs.stat("/tmp/web/local_firmware.bin") then
@@ -379,8 +431,6 @@ if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
                 fwout("Failed to restart all services, please reboot this node.")
             end
         end
-    elseif firmfile:match("^patch%S+%.tgz$") then -- firmware patch
-        patch_install = false
     else
         fwout("Firmware CANNOT be updated")
         fwout("the uploaded file is not recognized")
@@ -396,64 +446,54 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
     if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
         nixio.fs.remove(tmpdir .. "/firmware")
         os.execute("/usr/local/bin/uploadctlservices update > /dev/null 2>&1")
-        if parms.dl_fw:match("sysupgrade%.bin$") then
-            -- Downloading a system upgrade - clear out memory early
-            os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
-        end
+        os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
 
-        local ok = false
-        for _, serverpath in ipairs(serverpaths)
-        do
-            if os.execute(wget .. "-O " .. tmpdir .. "/firmware " .. serverpath .. "/" .. parms.dl_fw .. " >/dev/null 2>>" .. tmpdir .. "/wget.err") == 0 then
-                ok = true
-                break
-            end
-        end
+        fw_install = false
+        local err
 
-        if parms.dl_fw:match("sysupgrade%.bin$") then -- full firmware
-            fw_install = true
-            if not ok then
-                fwout("Downloading firmware image...")
-                fwout(read_all(tmpdir .. "/wget.err"))
-            end
-            nixio.fs.remove(tmpdir .. "/wget.err")
-            -- check md5sum
-            local fw = parms.dl_fw
-            if os.execute("echo '" .. (fw_md5[fw] or "error") .. "  " .. tmpdir .. "/firmware' | md5sum -cs") ~= 0 then
-                fwout("Firmware CANNOT be updated")
-                fwout("firmware file is not valid")
-                fw_install = false
-                nixio.fs.remove(tmpdir .. "/firmware")
-                if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
-                    fwout("Failed to restart all services.")
+        local f = io.popen(wget .. " -O - " .. fw_versions[parms.dl_fw].overview .. " 2> /dev/null")
+        local fwinfo = luci.jsonc.parse(f:read("*a"))
+        f:close()
+
+        if fwinfo then
+            local fwimage
+            for _, image in ipairs(fwinfo.images)
+            do
+                if image.type == "sysupgrade" then
+                    fwimage = {
+                        url = fw_versions[parms.dl_fw].target .. "/" .. image.name,
+                        sha = image.sha256
+                    }
+                    break
                 end
-                fwout("Please reboot this node.")
             end
-        elseif parms.dl_fw:match("^patch%S+%.tgz$") then -- firmware patch
-            patch_install = true
-            if not ok then
-                fwout("Downloading patch file...")
-                fwout(read_all(tmpdir .. "/wget.err"))
-            end
-            nixio.fs.remove(tmpdir .. "/wget.err")
-            -- check md5sum
-            local fw = parms.dl_fw
-            if os.execute("echo '" .. (fw_md5[fw] or "error") .. "  firmware' | md5sum -cs") ~= 0 then
-                fwout("Firmware CANNOT be updated")
-                fwout("patch file is not valid")
-                patch_install = false
-                nixio.fs.remove(tmpdir .. "/firmware")
-                if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
-                    fwout("Failed to restart all services, please reboot this node.")
+            if fwimage then
+                if os.execute(wget .. "-O " .. tmpdir .. "/firmware " .. fwimage.url .. " > /dev/null 2>>" .. tmpdir .. "/wget.err") ~= 0 then
+                    err = "Download failed!\n" .. read_all(tmpdir .. "/wget.err")
+                else
+                    local sha = capture("sha256sum " .. tmpdir .. "/firmware"):match("^(%S+)")
+                    if sha ~= fwimage.sha then
+                        err = "firmware file checksum failed"
+                    else
+                        fw_install = true
+                    end
                 end
+            else
+                err = "sysupgrade is not available"
             end
         else
+            err = "the downloaded file cannot be found"
+        end
+
+        nixio.fs.remove(tmpdir .. "/wget.err")
+
+        if err then
             fwout("Firmware CANNOT be updated")
-            fwout("the downloaded file is not recognized")
-            nixio.fs.remove(tmpdir .. "/firmware")
+            fwout(err)
             if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
                 fwout("Failed to restart all services, please reboot this node.")
             end
+            nixio.fs.remove(tmpdir .. "/firmware")
         end
     else
         fwout("Error: no route to Host")
@@ -563,11 +603,6 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
         os.execute(upgradecmd)
     end
     os.exit()
-end
-
--- install patch
-if patch_install and nixio.fs.stat(tmpdir .. "/firmware") then
-    fwout("Error: Installing firmware patches no longer supported")
 end
 
 -- handle package actions
@@ -783,42 +818,8 @@ remove_all(tmpdir)
 -- generate the page
 
 http_header()
-html.header(node .. " administration", false)
-html.print([[
-    <script>
-    function validateFirmwareFilename(elem){
-        var hwmfg = mfgprefix;
-        var hwtype = hardwaretypev;
-        var searchstring = "";
-        var efn = "";
-        if(hwmfg != "cpe"){
-            if (hwmfg == "wbs") {
-                searchstring= ".*wbs" + hwtype + ".*-sysupgrade.bin$\";
-                efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. hardwaretypev .. ".*-sysupgrade.bin";
-            } else {
-                searchstring= ".*(-|_)" + hwtype + ".*-sysupgrade.bin$\";
-                efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. "-" .. hardwaretypev .. ".*-sysupgrade.bin";
-            }
-        } else {
-            searchstring= ".*cpe" + hwtype + ".*-sysupgrade.bin$\";
-            efn = "aredn-" .. fw_version .. "-" .. mfgprefix .. hardwaretypev .. ".*-sysupgrade.bin";
-        }
-        var re = new RegExp(searchstring,"g");
-        if(elem.value.match(re)){
-            return true;
-        }else{
-            if (confirm('This filename is NOT appropriate for this device!\\n\\nThis device expects a file such as: ' + efn + ' \\n\\n\\nClick OK to continue if you are CERTAIN that the file is correct.')) {
-                return true;
-            } else {
-                elem.value="";
-                return false;
-            }
-        }
-    }
-    </script>
-    </head>
-    <body><center>
-]])
+html.header(node .. " administration", true)
+html.print("<body><center>")
 html.alert_banner()
 html.print("<form method=post action=admin enctype='multipart/form-data'><table width=850><tr><td>")
 -- nav
@@ -857,7 +858,7 @@ html.print("<tr><td align=center colspan=3>Keep Existing Configuration Settings 
 
 html.print("<tr>")
 html.print("<td>Upload Firmware</td>")
-html.print("<td><input style='width:100%' type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin' onchange='validateFirmwareFilename(this)'></td>")
+html.print("<td><input style='width:100%' type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin'></td>")
 html.print("<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'></td>")
 html.print("</tr>")
 
@@ -865,9 +866,9 @@ html.print("<tr>")
 html.print("<td>Download Firmware</td>")
 html.print("<td><select name=dl_fw style='font-family:monospace'>")
 html.print("<option value=default selected>- Select Firmware -</option>")
-for _, fwi in ipairs(fw_images)
+for _, fwi in ipairs(fw_names)
 do
-    html.print("<option value=" .. fwi .. ">" .. fwi .. "</option>")
+    html.print("<option value=" .. fwi .. ">" .. fwi .. (fwi:match("%-") and " (nightly)" or "") .. "</option>")
 end
 html.print("</select>")
 html.print("<input type=submit name=button_refresh_fw value=Refresh title='download the list of available firmware versions'>")
