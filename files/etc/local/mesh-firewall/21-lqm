@@ -40,4 +40,4 @@ handle=$(nft -n -a list chain ip fw4 input | grep "jump input_lqm" | sed "s/^.* 
 if [ "$handle" != "" ]; then
   nft delete rule ip fw4 input handle $handle 2> /dev/null
 fi
-nft insert rule ip fw4 input counter jump input_lqm comment \"block low quality links\" 2> /dev/null
+nft insert rule ip fw4 input jump input_lqm comment \"block low quality links\" 2> /dev/null

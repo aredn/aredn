@@ -133,12 +133,12 @@ function update_block(track)
         track.blocked = true
         if track.type == "Tunnel" then
             if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 .* drop") then
-                os.execute(NFT .. " insert rule ip fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 counter drop 2> /dev/null")
+                os.execute(NFT .. " insert rule ip fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 drop 2> /dev/null")
                 return "blocked"
             end
         else
             if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") then
-                os.execute(NFT .. " insert rule ip fw4 input_lqm udp dport 698 ether saddr " .. track.mac .. " counter drop 2> /dev/null")
+                os.execute(NFT .. " insert rule ip fw4 input_lqm udp dport 698 ether saddr " .. track.mac .. " drop 2> /dev/null")
                 return "blocked"
             end
         end
@@ -232,7 +232,7 @@ function lqm()
     if handle then
         os.execute(NFT .. " delete rule ip fw4 input handle " .. handle)
     end
-    os.execute(NFT .. " insert rule ip fw4 input counter jump input_lqm comment \\\"block low quality links\\\"")
+    os.execute(NFT .. " insert rule ip fw4 input jump input_lqm comment \\\"block low quality links\\\"")
 
     -- We dont know any distances yet
     os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
