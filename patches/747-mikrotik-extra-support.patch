@@ -1,6 +1,6 @@
 --- a/target/linux/ath79/image/mikrotik.mk
 +++ a/target/linux/ath79/image/mikrotik.mk
-@@ -102,6 +102,25 @@
+@@ -102,6 +102,34 @@
  endef
  TARGET_DEVICES += mikrotik_routerboard-mapl-2nd
  
@@ -13,6 +13,15 @@
 +  IMAGE_SIZE := 16256k
 +endef
 +TARGET_DEVICES += mikrotik_routerboard-ldf-5nd
++
++define Device/mikrotik_routerboard-sxt-5hpnd
++  $(Device/mikrotik_nor)
++  SOC := ar9344
++  DEVICE_MODEL := RouterBOARD SXT 5HPnD (SXT 5 High Power)
++  DEVICE_PACKAGES += rssileds
++  IMAGE_SIZE := 16256k
++endef
++TARGET_DEVICES += mikrotik_routerboard-sxt-5hpnd
 +
 +define Device/mikrotik_routerboard-sxt-5nd
 +  $(Device/mikrotik_nor)
@@ -215,9 +224,20 @@
 +
 +	compatible = "syscon", "simple-mfd";
 +};
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-sxt-5hpnd.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "ar9344_mikrotik_routerboard-sxt-5nd.dts"
++
++/ {
++        compatible = "mikrotik,routerboard-sxt-5hpnd", "qca,ar9344";
++        model = "MikroTik RouterBOARD SXT 5HPnD (SXT 5 High Power)";
++};
 --- a/target/linux/ipq40xx/image/mikrotik.mk
 +++ b/target/linux/ipq40xx/image/mikrotik.mk
-@@ -62,3 +62,11 @@
+@@ -62,3 +62,19 @@
  	DEVICE_PACKAGES := rssileds
  endef
  TARGET_DEVICES += mikrotik_sxtsq-5-ac
@@ -229,13 +249,21 @@
 +	DEVICE_PACKAGES := rssileds
 +endef
 +TARGET_DEVICES += mikrotik_lhgg-5acd
++
++define Device/mikrotik_lhgg-5acd-xl
++	$(call Device/mikrotik_nor)
++	DEVICE_MODEL := RouterBOARD LHG 5 AC XL
++	SOC := qcom-ipq4018
++	DEVICE_PACKAGES := rssileds
++endef
++TARGET_DEVICES += mikrotik_lhgg-5acd-xl
 --- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
 +++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
 @@ -35,6 +35,7 @@
  	zyxel,wre6606)
  		ucidef_set_interface_lan "eth0"
  		;;
-+	mikrotik,lhgg-5acd|\
++	mikrotik,lhgg-5acd*|\
  	mikrotik,sxtsq-5-ac)
  		ucidef_set_interfaces_lan_wan "lan" "lan.1"
  		ucidef_set_interface "wifi" device "wlan0" protocol "static"
@@ -243,7 +271,7 @@
  		label_mac="$wan_mac"
  		;;
  	mikrotik,lhgg-60ad|\
-+	mikrotik,lhgg-5acd|\
++	mikrotik,lhgg-5acd*|\
  	mikrotik,sxtsq-5-ac)
  		lan_mac=$(cat /sys/firmware/mikrotik/hard_config/mac_base)
  		label_mac="$lan_mac"
@@ -488,6 +516,17 @@
 +
 +       label = "lan";
 +       phy-mode = "rgmii";
++};
+--- /dev/null
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-lhgg-5acd-xl.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "qcom-ipq4018-lhgg-5acd.dts"
++
++/ {
++        compatible = "mikrotik,lhgg-5acd-xl";
++        model = "MikroTik LHG 5 ac XL (RBLHGG-5acD-XL)";
 +};
 --- a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
 +++ b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
