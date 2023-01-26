@@ -111,8 +111,8 @@ TPLink WBS510 v2.0 | 5 | ath79 | generic | tplink_wbs510-v2 | 64MB | unknown | r
 ## GL.iNet
 Device | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-GL.iNet GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released
-GL.iNet GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released
+GL.iNet GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released (1)
+GL.iNet GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released (1)
 GL.iNet GL-AR300M16 | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
 GL.iNet GL-AR300M w/ 128MB NAND | 2 | ath79 | nand | gl-ar300m | 64MB | unknown | nightly
 GL.iNet GL-AR750 (creta) | 2 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | released
@@ -126,7 +126,7 @@ Meraki MR-16 || ath79 | - | - | 64MB | unsupported | **brick**
 
 ## Notes
 
-### Stability:
+### Stability
 * *untested* - this image has not been tested on hardware. It may or may not work.
 * *stable* - this image has been tested on hardware. There may still be bugs.
 
@@ -136,6 +136,9 @@ Meraki MR-16 || ath79 | - | - | 64MB | unsupported | **brick**
 * *sunset* - this device has been sunsetted and support will be deprecated at some point.
 * *nightly* - this device is newly supported in the nightly builds (since the last release).
 * *reinstall* - this device cannot be upgraded from 3.22.12.0 and must be reinstalled using the "First Install Process".
+
+### Other
+ 1. This device will not reboot reliably and you may need to power cycle it (several times) during an update.
 
 The 'target' and 'subtarget' identify the directory to find the image on at http://downloads.arednmesh.org
 
