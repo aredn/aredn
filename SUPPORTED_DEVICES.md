@@ -111,7 +111,7 @@ TPLink WBS510 v2.0 | 5 | ath79 | generic | tplink_wbs510-v2 | 64MB | unknown | r
 ## GL.iNet
 Device | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-GL.iNet GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released
+GL.iNet GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released (1)
 GL.iNet GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released (1)
 GL.iNet GL-AR300M16 | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
 GL.iNet GL-AR300M w/ 128MB NAND | 2 | ath79 | nand | gl-ar300m | 64MB | unknown | nightly
