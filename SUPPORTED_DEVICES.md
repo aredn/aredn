@@ -7,8 +7,7 @@ Mikrotik Basebox RB912UAG-2HPnD | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd |
 Mikrotik Basebox RB912UAG-5HPnD | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | reinstall
 Mikrotik hAP ac lite 952Ui-5ac2nD | 2 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
 Mikrotik RBLHG-2nD | 2 | ath79 | mikrotik | mikrotik-lhg-2nd | 64MB | stable | released
-Mikrotik RBLHG-2HPnD | 2 | ath79 | mikrotik | mikrotik-lhg-2hpnd | 64MB | stable | released
-Mikrotik RBLHG-2HPnD-XL | 2 | ath79 | mikrotik | mikrotik-lhg-2hpnd-xl | 64MB | stable | released
+Mikrotik RBLHG-2nD-XL | 2 | ath79 | mikrotik | mikrotik-lhg-2nd-xl | 64MB | stable | released
 Mikrotik RBLHG-5nD | 5 | ath79 | mikrotik | mikrotik-lhg-5nd | 64MB | stable | released
 Mikrotik RBLHG-5HPnD | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd | 64MB | stable | released
 Mikrotik RBLHG-5HPnD-XL | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd-xl | 64MB | stable | released
