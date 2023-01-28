@@ -39,23 +39,36 @@ LICENSE
 #
 SERVICES="dnsmasq:dnsmasq dropbear:dropbear urngd:urngd rpcd:rpcd telnet:telnetd manager:manager.lua log:logd"
 
-#
-# We unceremoniously kill services, and then stop them to prevent
-# procd restarting them again
-#
-for S in ${SERVICES}
-do
-    srv=$(echo ${S} | cut -d: -f1)
-    daemon=$(echo ${S} | cut -d: -f2 -s)
-    if [ "${daemon}" != "" ]; then
-        killall -KILL ${daemon}
-    fi
-    if [ -x /etc/init.d/${srv} ]; then
-        /etc/init.d/${srv} stop
-    fi
-done
+if [ "$1" = "restore" ]; then
+    #
+    # Restart everything
+    #
+    for S in ${SERVICES}
+    do
+        srv=$(echo ${S} | cut -d: -f1)
+        if [ -x /etc/init.d/${srv} ]; then
+            /etc/init.d/${srv} start
+        fi
+    done
+else
+    #
+    # We unceremoniously kill services, and then stop them to prevent
+    # procd restarting them again
+    #
+    for S in ${SERVICES}
+    do
+        srv=$(echo ${S} | cut -d: -f1)
+        daemon=$(echo ${S} | cut -d: -f2 -s)
+        if [ "${daemon}" != "" ]; then
+            killall -KILL ${daemon}
+        fi
+        if [ -x /etc/init.d/${srv} ]; then
+            /etc/init.d/${srv} stop
+        fi
+    done
 
-#
-# Drop page cache to take pressure of tmps
-#
-echo 3 > /proc/sys/vm/drop_caches
+    #
+    # Drop page cache to take pressure of tmps
+    #
+    echo 3 > /proc/sys/vm/drop_caches
+fi
