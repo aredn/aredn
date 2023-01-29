@@ -317,7 +317,7 @@ if parms.button_refresh_fw then
             for ver, data in pairs(firmware_versions)
             do
                 local raw = io.popen(wget .. " -O - " .. config_serverpath .. data .. "/overview.json 2> /dev/null")
-                local info = luci.jsonc.parse(raw:read("*a"))
+                local info = luci.jsonc.parse(raw:read("*a") or "")
                 raw:close()
                 firmware_versions[ver] = nil
                 if info then
@@ -357,7 +357,7 @@ if nixio.fs.stat("/etc/mesh-release") then
 end
 local f = io.open("/tmp/web/firmware.list")
 if f then
-    fw_versions = luci.jsonc.parse(f:read("*a"))
+    fw_versions = luci.jsonc.parse(f:read("*a") or "")
     f:close()
     if fw_versions then
         for v, d in pairs(fw_versions)
@@ -440,7 +440,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
         local err
 
         local f = io.popen(wget .. " -O - " .. fw_versions[parms.dl_fw].overview .. " 2> /dev/null")
-        local fwinfo = luci.jsonc.parse(f:read("*a"))
+        local fwinfo = luci.jsonc.parse(f:read("*a") or "")
         f:close()
 
         if fwinfo then
