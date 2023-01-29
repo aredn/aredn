@@ -47,13 +47,17 @@ if f then
         "distance",
         "exposed",
         "hidden",
+        "last_tx",
         "last_tx_total",
         "lat",
         "lon",
         "ping_quality",
+        "ping_success_time",
         "quality",
         "rev_snr",
         "routable",
+        "rx_bitrate",
+        "tx_bitrate",
         "tx_quality",
         "user_allow"
     }
