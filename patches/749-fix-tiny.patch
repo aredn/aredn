@@ -7,3 +7,15 @@
  CONFIG_NET_DEVLINK=y
  CONFIG_NET_DSA=y
  CONFIG_NET_DSA_MV88E6060=y
+--- a/target/linux/ath79/tiny/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/tiny/base-files/etc/board.d/02_network
+@@ -108,7 +108,8 @@
+ 	ubnt,airrouter)
+ 		ucidef_set_interface_wan "eth1"
+ 		ucidef_add_switch "switch0" \
+-			"0@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
++			"0@eth0" "1t:dummy" "1t:dtdlink" "4:lan" "3:lan" "2:lan"
++		ucidef_set_interface "wifi" device "wlan0" "protocol" "static"
+ 		;;
+ 	ubnt,nanostation-m)
+ 		ucidef_set_interface_lan "eth0 eth1"
