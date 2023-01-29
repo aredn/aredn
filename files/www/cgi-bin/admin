@@ -186,7 +186,7 @@ if os.getenv("REQUEST_METHOD") == "POST" then
             if not fp then
                 if meta and meta.file then
                     firmfile = meta.file
-                    if firmfile:match("sysupgrade%.bin$") then
+                    if firmfile:match("sysupgrade%.bin$") or firmfile:match("ext4%-combined%.img%.gz$") then
                         -- Uploading a system upgrade - clear out memory early
                         os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
                     end
@@ -230,7 +230,7 @@ local local_firmware = "local_firmware.bin"
 local firmware_type = "bin"
 if targettype:match("x86") then
     local_firmware = "local_firmware.img.gz"
-    firmware_type = "img"
+    firmware_type = "gz"
 end
 
 -- handle TPLink and Mikrotik exception conditions
@@ -403,7 +403,11 @@ end
 if parms.button_apply_fw and nixio.fs.stat("/tmp/web/" .. local_firmware) then
     nixio.fs.mkdir("/tmp/web/upload")
     os.execute("mv -f /tmp/web/" .. local_firmware .. " /tmp/web/upload/file")
-    firmfile = "arednmesh-sideload-sysupgrade.bin"
+    if firmware_type == "gz" then
+        firmfile = "arednmesh-sideload-ext4-combined.img.gz"
+    else
+        firmfile = "arednmesh-sideload-sysupgrade.bin"
+    end
     parms.button_ul_fw = "Upload"
     os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
 end
@@ -426,6 +430,8 @@ if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
                 fwout("Failed to restart all services, please reboot this node.")
             end
         end
+    elseif firmware_type == "gz" and firmfile:match("ext4%-combined%.img%.gz$") then -- full x86 firmware
+        fw_install = true
     else
         fwout("Firmware CANNOT be updated")
         fwout("the uploaded file is not recognized")
@@ -455,7 +461,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
             local fwimage
             for _, image in ipairs(fwinfo.images)
             do
-                if image.type == "sysupgrade" or image.type == "nand-sysupgrade" then
+                if (firmware.type == "bin" and (image.type == "sysupgrade" or image.type == "nand-sysupgrade")) or (firmware_type == "gz" and image.type == "combined") then
                     fwimage = {
                         url = fw_versions[parms.dl_fw].target .. "/" .. image.name,
                         sha = image.sha256
@@ -475,7 +481,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
                     end
                 end
             else
-                err = "sysupgrade is not available"
+                err = "upgrade is not available"
             end
         else
             err = "the downloaded file cannot be found"
@@ -851,7 +857,7 @@ end
 
 html.print("<tr>")
 html.print("<td>Upload Firmware</td>")
-html.print("<td><input style='width:100%' type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin'></td>")
+html.print("<td><input style='width:100%' type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='." .. firmware_type .. "'></td>")
 html.print("<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'></td>")
 html.print("</tr>")
 
