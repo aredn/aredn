@@ -188,7 +188,7 @@ if os.getenv("REQUEST_METHOD") == "POST" then
                     firmfile = meta.file
                     if firmfile:match("sysupgrade%.bin$") then
                         -- Uploading a system upgrade - clear out memory early
-                        os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
+                        os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
                     end
                 end
                 nixio.fs.mkdir("/tmp/web/upload")
@@ -398,7 +398,7 @@ if parms.button_apply_fw and nixio.fs.stat("/tmp/web/local_firmware.bin") then
     os.execute("mv -f /tmp/web/local_firmware.bin /tmp/web/upload/file")
     firmfile = "arednmesh-sideload-sysupgrade.bin"
     parms.button_ul_fw = "Upload"
-    os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
+    os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
 end
 
 -- upload fw
@@ -423,6 +423,7 @@ if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
         fwout("Firmware CANNOT be updated")
         fwout("the uploaded file is not recognized")
         nixio.fs.remove(tmpdir .. "/firmware")
+        os.execute("/usr/local/bin/upgrade_prepare.sh restore > /dev/null 2>&1")
         if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
             fwout("Failed to restart all services, please reboot this node.")
         end
@@ -434,7 +435,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
     if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
         nixio.fs.remove(tmpdir .. "/firmware")
         os.execute("/usr/local/bin/uploadctlservices update > /dev/null 2>&1")
-        os.execute("/usr/local/bin/upgrade_prepare.sh > /dev/null 2>&1")
+        os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
 
         fw_install = false
         local err
@@ -478,6 +479,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
         if err then
             fwout("Firmware CANNOT be updated")
             fwout(err)
+            os.execute("/usr/local/bin/upgrade_prepare.sh restore > /dev/null 2>&1")
             if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
                 fwout("Failed to restart all services, please reboot this node.")
             end

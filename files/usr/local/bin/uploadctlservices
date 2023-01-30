@@ -35,19 +35,19 @@ remove_opkg_lists() {
 
 return_to_operating_mode() {
 
-
-    # If anything goes wrong after this point return the error code to the calling process
-    # as we could be in an unstable state.
-    set -e
-
     # Start up the services we stopped
+    err=0
     for name in $serviceslist
     do
         "/etc/init.d/${name}" start
+        if [ "$?" != "0" ]; then
+            err=-1
+        fi
     done
 
     rm -f /tmp/.upgrade_mode
 
+    exit $err
 }
 
 
