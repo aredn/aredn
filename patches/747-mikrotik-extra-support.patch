@@ -885,19 +885,32 @@
 +&usb_phy {
 +	status = "okay";
 +};
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9342_mikrotik_routerboard-911g-5hpnd-qrt.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "ar9342_mikrotik_routerboard-912uag-5hpnd.dts"
++
++/ {
++        compatible = "mikrotik,routerboard-911g-5hpnd-qrt", "qca,ar9342";
++        model = "MikroTik RouterBOARD 911G-5HPnD-QRT";
++};
 --- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
-@@ -15,6 +15,7 @@
+@@ -15,6 +15,8 @@
  			"0@eth1" "1:lan:4" "2:lan:1" "3:lan:2" "4:lan:3"
  		;;
++	mikrotik,routerboard-911g-5hpnd*|\
  	mikrotik,routerboard-912uag-2hpnd|\
 +	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-lhg-2nd|\
  	mikrotik,routerboard-lhg-5nd|\
  	mikrotik,routerboard-mapl-2nd|\
-@@ -69,6 +70,7 @@
+@@ -69,6 +70,8 @@
  
  	case "$board" in
++	mikrotik,routerboard-911g-5hpnd*|\
  	mikrotik,routerboard-912uag-2hpnd|\
 +	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-lhg-2nd|\
@@ -905,9 +918,10 @@
  	mikrotik,routerboard-map-2nd|\
 --- a/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
 +++ b/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
-@@ -24,6 +24,7 @@
+@@ -24,6 +24,8 @@
  "ath9k-eeprom-ahb-18100000.wmac.bin")
  	case $board in
++	mikrotik,routerboard-911g-5hpnd*|\
  	mikrotik,routerboard-912uag-2hpnd|\
 +	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-lhg-2nd|\
@@ -915,9 +929,10 @@
  	mikrotik,routerboard-sxt-5nd|\
 --- a/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
 +++ b/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
-@@ -33,6 +33,7 @@
+@@ -33,6 +33,8 @@
  	case "$board" in
  	mikrotik,routerboard-493g|\
++	mikrotik,routerboard-911g-5hpnd*|\
  	mikrotik,routerboard-912uag-2hpnd|\
 +	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-921gs-5hpacd-15s|\
@@ -925,7 +940,7 @@
  	mikrotik,routerboard-922uags-5hpacd|\
 --- a/target/linux/ath79/image/mikrotik.mk
 +++ b/target/linux/ath79/image/mikrotik.mk
-@@ -18,6 +18,15 @@
+@@ -18,6 +18,24 @@
  endef
  TARGET_DEVICES += mikrotik_routerboard-912uag-2hpnd
  
@@ -937,6 +952,15 @@
 +  SUPPORTED_DEVICES += rb-912uag-5hpnd
 +endef
 +TARGET_DEVICES += mikrotik_routerboard-912uag-5hpnd
++
++define Device/mikrotik_routerboard-911g-5hpnd-qrt
++  $(Device/mikrotik_nand)
++  SOC := ar9342
++  DEVICE_MODEL := RouterBOARD 911G-5HPnD-QRT
++  DEVICE_PACKAGES += kmod-usb-ehci kmod-usb2
++  SUPPORTED_DEVICES += rb-912uag-5hpnd
++endef
++TARGET_DEVICES += mikrotik_routerboard-911g-5hpnd-qrt
 +
  define Device/mikrotik_routerboard-921gs-5hpacd-15s
    $(Device/mikrotik_nand)
