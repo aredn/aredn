@@ -34,6 +34,7 @@
 
 local ip = require("luci.ip")
 local info = require("aredn.info")
+local socket = require("socket")
 
 local refresh_timeout = 15 * 60 -- refresh high cost data every 15 minutes
 local pending_timeout = 5 * 60 -- pending node wait 5 minutes before they are included
@@ -43,6 +44,8 @@ local quality_min_packets = 100 -- minimum number of tx packets before we can sa
 local quality_injection_max = 10 -- number of packets to inject into poor links to update quality
 local tx_quality_run_avg = 0.8 -- tx quality running average
 local ping_timeout = 1.0 -- timeout before ping gives a qualtiy penalty
+local ping_time_run_avg = 0.8 -- ping time runnng average
+local bitrate_run_avg = 0.8 -- rx/tx running average
 local dtd_distance = 50 -- distance (meters) after which nodes connected with DtD links are considered different sites
 local connect_timeout = 5 -- timeout (seconds) when fetching information from other nodes
 local speed_time = 10 --
@@ -280,7 +283,9 @@ function lqm()
                 ["signal avg:"] = "signal",
                 ["tx packets:"] = "tx_packets",
                 ["tx retries:"] = "tx_retries",
-                ["tx failed:"] = "tx_fail"
+                ["tx failed:"] = "tx_fail",
+                ["tx bitrate:"] = "tx_bitrate",
+                ["rx bitrate:"] = "rx_bitrate"
             }
             local station = {}
             local cnoise = iwinfo.nl80211.noise(wlan)
@@ -297,7 +302,9 @@ function lqm()
                         mac = mac:upper(),
                         signal = 0,
                         noise = noise,
-                        ip = nil
+                        ip = nil,
+                        tx_bitrate = 0,
+                        rx_bitrate = 0
                     }
                     local entry = arps[station.mac]
                     if entry then
@@ -330,7 +337,9 @@ function lqm()
                     mac = nil,
                     tx_packets = 0,
                     tx_fail = 0,
-                    tx_retries = 0
+                    tx_retries = 0,
+                    tx_bitrate = 0,
+                    rx_bitrate = 0
                 }
                 stations[#stations + 1] = tunnel
             else
@@ -361,7 +370,9 @@ function lqm()
                     mac = mac:upper(),
                     tx_packets = 0,
                     tx_fail = 0,
-                    tx_retries = 0
+                    tx_retries = 0,
+                    tx_bitrate = 0,
+                    rx_bitrate = 0
                 }
             end
         end
@@ -388,7 +399,9 @@ function lqm()
                                 mac = foundmac,
                                 tx_packets = 0,
                                 tx_fail = 0,
-                                tx_retries = 0
+                                tx_retries = 0,
+                                tx_bitrate = 0,
+                                rx_bitrate = 0
                             }
                         end
                     end
@@ -429,6 +442,9 @@ function lqm()
                         last_tx_total = nil,
                         tx_quality = 100,
                         ping_quality = 100,
+                        ping_success_time = 0,
+                        tx_bitrate = nil,
+                        rx_bitrate = nil,
                         quality = 100,
                         exposed = false
                     }
@@ -470,6 +486,16 @@ function lqm()
                     track.last_tx_total = tx_total
                     track.last_quality = tx_quality
                     track.tx_quality = math.min(100, math.max(0, math.ceil(tx_quality_run_avg * track.tx_quality + (1 - tx_quality_run_avg) * tx_quality)))
+                end
+                if not track.tx_bitrate then
+                    track.tx_bitrate = station.tx_bitrate
+                else
+                    track.tx_bitrate = track.tx_bitrate * bitrate_run_avg + station.tx_bitrate * (1 - bitrate_run_avg)
+                end
+                if not track.rx_bitrate then
+                    track.rx_bitrate = station.rx_bitrate
+                else
+                    track.rx_bitrate = track.rx_bitrate * bitrate_run_avg + station.rx_bitrate * (1 - bitrate_run_avg)
                 end
 
                 track.lastseen = now
@@ -609,29 +635,37 @@ function lqm()
                 track.ping_quality = 100
             elseif should_ping(track) then
                 local success = 100
+                local ptime = ping_timeout
                 if track.type == "Tunnel" then
                     -- Tunnels have no MAC, so we can only use IP level pings.
                     local sigsock = nixio.socket("inet", "dgram")
                     sigsock:setopt("socket", "rcvtimeo", ping_timeout)
                     -- Must connect or we wont see the error
                     sigsock:connect(track.ip, 8080)
+                    local pstart = socket.gettime(0)
                     sigsock:send("")
                     -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
                     -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
                     if sigsock:recv(0) == false then
                         success = 0
                     end
+                    ptime = socket.gettime(0) - pstart
                     sigsock:close()
                 else
                     -- Make an arp request to the target ip to see if we get a timely reply. By using ARP we avoid any
                     -- potential routing issues and avoid any firewall blocks on the other end.
                     -- As the request is broadcast, we avoid any potential distance/scope timing issues as we dont wait for the
                     -- packet to be acked. The reply will be unicast to us, and our ack to that is unimportant to the latency test.
+                    local pstart = socket.gettime(0)
                     if os.execute(ARPING .. " -f -w " .. ping_timeout .. " -I " .. track.device .. " " .. track.ip .. " >/dev/null") ~= 0 then
                         success = 0
                     end
+                    ptime = socket.gettime(0) - pstart
                 end
                 local ping_loss_run_avg = 1 - config.ping_penalty / 100
+                if success > 0 then
+                    track.ping_success_time = track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)
+                end
                 track.ping_quality = math.ceil(ping_loss_run_avg * track.ping_quality + (1 - ping_loss_run_avg) * success)
             end
 
