@@ -17,9 +17,9 @@ Mikrotik RBLDF-2nD | 2 | ath79 | mikrotik | - | 64MB | unknown | released
 Mikrotik RBLDF-5nD | 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | nightly
 Mikrotik QRT5 RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | - | 64MB | unknown | released
 Mikrotik mANTBox RB911G-2HPnD | 2 | ath79 | mikrotik | - | 64MB | unknown | released
-Mikrotik mANTBox RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | unknown | released
-Mikrotik mANTBox RB912UAG-2HPnD | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 128MB | unknown | released
-Mikrotik mANTBox RB912UAG-5HPnD | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 128MB | stable | released
+Mikrotik mANTBox RB911G-5HPnD | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | unknown | reinstall
+Mikrotik mANTBox RB912UAG-2HPnD | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 128MB | unknown | reinstall
+Mikrotik mANTBox RB912UAG-5HPnD | 5 | ath79 | mikrotik | - | 128MB | stable | released
 Mikrotik mANTBox RB921GS-5HPacD 15s | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | nightly
 Mikrotik mANTBox RB921GS-5HPacD 19s | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | nightly
 Mikrotik SXTsq 5HPnD | 5 | ath79 | mikrotik | mikrotik-sxt-5hpnd | 64MB | stable | released
