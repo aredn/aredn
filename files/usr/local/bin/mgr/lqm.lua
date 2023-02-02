@@ -262,7 +262,11 @@ function lqm()
         arptable(
             function (entry)
                 if entry["Flags"] ~= "0x0" then
-                    arps[entry["HW address"]:upper()] = entry
+                    -- Sometimes we find arp entries are not routable. Filter them out early.
+                    local rt = ip.route(entry["IP address"])
+                    if rt and tostring(rt.gw) == entry["IP address"] then
+                        arps[entry["HW address"]:upper()] = entry
+                    end
                 end
             end
         )
@@ -362,22 +366,18 @@ function lqm()
         for mac, entry in pairs(arps)
         do
             if entry.Device:match("%.2$") or entry.Device:match("^br%-dtdlink") then
-                -- Sometimes we find arp entries are not routable. Filter them out early.
-                local rt = ip.route(entry["IP address"])
-                if rt and tostring(rt.gw) == entry["IP address"] then
-                    stations[#stations + 1] = {
-                        type = "DtD",
-                        device = entry.Device,
-                        signal = nil,
-                        ip = entry["IP address"],
-                        mac = mac:upper(),
-                        tx_packets = 0,
-                        tx_fail = 0,
-                        tx_retries = 0,
-                        tx_bitrate = 0,
-                        rx_bitrate = 0
-                    }
-                end
+                stations[#stations + 1] = {
+                    type = "DtD",
+                    device = entry.Device,
+                    signal = nil,
+                    ip = entry["IP address"],
+                    mac = mac:upper(),
+                    tx_packets = 0,
+                    tx_fail = 0,
+                    tx_retries = 0,
+                    tx_bitrate = 0,
+                    rx_bitrate = 0
+                }
             end
         end
 
