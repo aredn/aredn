@@ -36,8 +36,8 @@ Device | Band | Target | Subtarget | Image | RAM | Stability | Status
 AirGrid M2 XM | 2 | ath79 | tiny | ubnt_bullet-m-ar7241 | 32MB | unknown | sunset
 AirGrid M5 XM | 5 | ath79 | tiny | ubnt_bullet-m-ar7241 | 32MB | unknown | sunset
 AirGrid M5 XW | 5 | ath79 | generic | ubnt_bullet-m-xw | 32MB | unknown | sunset
-AirRouter  | 2 | ath79 | tiny | ubnt_airrouter | 32MB | unknown | sunset
-AirRouter HP | 2 | ath79 | tiny | ubnt_airrouter | 32MB | unknown | sunset
+AirRouter  | 2 | ath79 | tiny | ubnt_airrouter | 32MB | stable | sunset
+AirRouter HP | 2 | ath79 | tiny | ubnt_airrouter | 32MB | stable | sunset
 Bullet M2Ti | 2 | ath79 | - | - | 32MB | unknown | sunset
 Bullet M5 | 5 | ath79 | - | - | 32MB | unknown | sunset
 Bullet M5Ti | 5 | ath79 | - | - | 32MB | unknown | sunset
@@ -52,7 +52,7 @@ NanoBeam M2-13 | 2 | ath79 | - | - | 32MB | unknown | sunset
 NanoBeam M5-16 | 5| ath79 | - | - | 32MB | unknown | sunset
 NanoBeam M5-19 | 5| ath79 | - | - | 32MB | unknown | sunset
 NanoBridge 2G18 | 2 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
-NanoBridge 5G22 | 5 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
+NanoBridge 5G22 | 5 | ath79 | tiny | ubnt_nanobridge-m | 32MB | stable | sunset
 NanoBridge 5G25 | 5 | ath79 | tiny | ubnt_nanobridge-m | 32MB | stable | sunset
 NanoBridge M9 | 900 | ath79 | tiny | ubnt_nanobridge-m | 32MB | unknown | sunset
 NanoStation AC 5 | 5 | ath79 | generic | ubnt_nanostation-ac | 64MB | stable | nightly
