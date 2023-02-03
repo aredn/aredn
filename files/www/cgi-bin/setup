@@ -1071,8 +1071,14 @@ if nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset then
 end
 
 if wifi_enable == "1" then
-    html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi_ssid value='" .. wifi_ssid .. "'>-" .. wifi_chanbw .. "-v3</td></tr>")
     hidden[#hidden + 1] = "<input type=hidden name=wifi_mode value='" .. wifi_mode .. "'>"
+    local rfband = aredn.hardware.get_rfband()
+    if rfband == "900" then html.print("<tr><td>RF Band</td><td>900MHz</td></tr>")
+    elseif rfband == "2400" then html.print("<tr><td>RF Band</td><td>2GHz</td></tr>")
+    elseif rfband == "3400" then html.print("<tr><td>RF Band</td><td>3GHz</td></tr>")
+    elseif rfband == "5800ubntus" then html.print("<tr><td>RF Band</td><td>5GHz</td></tr>")
+    end
+
     html.print("<tr><td>Channel</td><td><select name=wifi_channel>")
     local rfchannels = aredn.hardware.get_rfchannels(wifiintf)
     table.sort(rfchannels, function(a, b) return a.number < b.number end)
@@ -1087,6 +1093,7 @@ if wifi_enable == "1" then
     do
         html.print("<option value='" .. width .. "'".. (wifi_chanbw == tostring(width) and " selected" or "") .. ">" .. width .. " MHz</option>")
     end
+    html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi_ssid value='" .. wifi_ssid .. "'>-" .. wifi_chanbw .. "-v3</td></tr>")
     html.print("</select></td></tr>")
 
     hidden[#hidden + 1] = "<input type=hidden name=wifi_country value='HX'>"
