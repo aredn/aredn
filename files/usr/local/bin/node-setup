@@ -138,8 +138,10 @@ function expand_vars(lines)
                     line = line:gsub("<MAC2>", mac2)
                 elseif parm == "DTDMAC" then
                     line = line:gsub("<DTDMAC>", dtdmac)
-                else
+                elseif cfg[parm] then
                     line = line:gsub("<" .. parm .. ">", cfg[parm])
+                else
+                    line = nil
                 end
             end
         end
@@ -291,6 +293,15 @@ if do_basic then
         local config = ""
         -- user override
         if nixio.fs.stat("/etc/aredn_include/" .. net .. ".network.user") then
+            if nixio.fs.stat("/etc/aredn_include/fixedmac." .. net) then
+                for line in io.lines("/etc/aredn_include/fixedmac." .. net)
+                do
+                    local m = line:match("option%s+macaddr%s+(%S+)")
+                    if m then
+                        cfg[net .. "_mac"] = m
+                    end
+                end
+            end
             config = expand_vars(read_all("/etc/aredn_include/" .. net .. ".network.user"))
         else
             -- generate a complete config
