@@ -814,7 +814,6 @@ function lqm()
         end
 
         local distance = -1
-        local pending_distance = -1
 
         -- Update the block state and calculate the routable distance
         for _, track in pairs(tracker)
@@ -826,19 +825,13 @@ function lqm()
                 end
 
                 -- Find the most distant, unblocked, RF node
-                if track.type == "RF" and not track.blocked then
-                    if not is_pending(track) then
-                        if track.distance and track.distance > distance then 
+                if track.type == "RF" then
+                    if track.distance then
+                        if track.distance > distance and ((not track.blocked and track.routable) or is_pending(track)) then
                             distance = track.distance
                         end
-                    else
-                        if track.distance then
-                            if track.distance > pending_distance then
-                                pending_distance = track.distance
-                            end
-                        else
-                            pending_distance = config.max_distance
-                        end
+                    elseif is_pending(track) then
+                        distance = config.max_distance
                     end
                 end
             end
@@ -850,16 +843,15 @@ function lqm()
             end
         end
 
-        -- Update the wifi distance
-        if pending_distance >= 0 then
-            distance = pending_distance
-        elseif distance >= 0 then
-            -- Just use distance
-        elseif config.auto_distance > 0 then
-            distance = config.auto_distance
-        else
-            distance = config.max_distance
+        -- Default distances if we haven't calcuated anything
+        if distance < 0 then
+            if config.auto_distance > 0 then
+                distance = config.auto_distance
+            else
+                distance = config.max_distance
+            end
         end
+        -- Update the wifi distance
         local coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3))
         if coverage ~= last_coverage then
             os.execute(IW .. " " .. phy .. " set coverage " .. coverage .. " > /dev/null 2>&1")
