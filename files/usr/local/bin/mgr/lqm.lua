@@ -247,6 +247,7 @@ function lqm()
     local dtdlinks = {}
     local rflinks = {}
     local hidden_nodes = {}
+    local last_coverage = -1
     while true
     do
         now = nixio.sysinfo().uptime
@@ -505,10 +506,6 @@ function lqm()
                 track.lastseen = now
             end
         end
-
-        local distance = -1
-        local alt_distance = -1
-        local coverage = -1
 
         -- Count the RF links we have
         local rfcount = 0
@@ -816,6 +813,9 @@ function lqm()
             end
         end
 
+        local distance = -1
+        local pending_distance = -1
+
         -- Update the block state and calculate the routable distance
         for _, track in pairs(tracker)
         do
@@ -825,15 +825,19 @@ function lqm()
                     track.pending = now + pending_timeout
                 end
 
-                -- Find the most distant, unblocked, routable, RF node
-                if track.type == "RF" and not track.blocked and track.distance then
-                    if not is_pending(track) and track.routable then
-                        if track.distance > distance then 
+                -- Find the most distant, unblocked, RF node
+                if track.type == "RF" and not track.blocked then
+                    if not is_pending(track) then
+                        if track.distance and track.distance > distance then 
                             distance = track.distance
                         end
                     else
-                        if track.distance > alt_distance then
-                            alt_distance = track.distance
+                        if track.distance then
+                            if track.distance > pending_distance then
+                                pending_distance = track.distance
+                            end
+                        else
+                            pending_distance = config.max_distance
                         end
                     end
                 end
@@ -846,20 +850,20 @@ function lqm()
             end
         end
 
-        distance = distance + 1
-        alt_distance = alt_distance + 1
-
         -- Update the wifi distance
-        if distance > 0 then
-            coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3)) -- airtime
-            os.execute(IW .. " " .. phy .. " set coverage " .. coverage .. " > /dev/null 2>&1")
-        elseif alt_distance > 1 then
-            coverage = math.min(255, math.floor((alt_distance * 2 * 0.0033) / 3))
-            os.execute(IW .. " " .. phy .. " set coverage " .. coverage .. " > /dev/null 2>&1")
+        if pending_distance >= 0 then
+            distance = pending_distance
+        elseif distance >= 0 then
+            -- Just use distance
         elseif config.auto_distance > 0 then
-            os.execute(IW .. " " .. phy .. " set distance " .. config.auto_distance .. " > /dev/null 2>&1")
+            distance = config.auto_distance
         else
-            os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
+            distance = config.max_distance
+        end
+        local coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3))
+        if coverage ~= last_coverage then
+            os.execute(IW .. " " .. phy .. " set coverage " .. coverage .. " > /dev/null 2>&1")
+            last_coverage = coverage
         end
 
         -- Set the RTS/CTS state depending on whether everyone can see everyone
