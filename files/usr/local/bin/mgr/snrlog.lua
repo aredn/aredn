@@ -108,8 +108,7 @@ function run_snrlog()
     local trigger_auto_distance = false
     local snrdatcache = {}
     for mstation in pairs(stations) do
-        local mac = mstation:lower()
-        local umac = mstation:upper()
+        local mac = mstation:upper()
 
         snrdatcache[mac] = now
 
@@ -122,12 +121,12 @@ function run_snrlog()
 
         -- improve existing filename if we can
         local datafile = tmpdir.."/"..mac.."-"
-        local arp = arpcache[umac]
+        local arp = arpcache[mac]
         if arp then
             local ip = arp["IP address"]
             local hostname = nslookup(ip)
             if hostname then
-                datafile = datafile..hostname
+                datafile = datafile..hostname:lower()
             elseif ip then
                 datafile = datafile..ip
             end
@@ -143,9 +142,9 @@ function run_snrlog()
             trigger_auto_distance = true
         end
 
-        local signal = stations[umac].signal or ""
+        local signal = stations[mac].signal or ""
         local update = true;
-        if lasttime[mac] and stations[umac].inactive >= INACTIVETIMEOUT then
+        if lasttime[mac] and stations[mac].inactive >= INACTIVETIMEOUT then
             -- beacons expired
             if nulledout[mac] == "true" then
                 -- No need to double log inactive null's
@@ -170,11 +169,11 @@ function run_snrlog()
             file_trim(datafile, MAXLINES)
             local f, err = assert(io.open(datafile, "a"),"Cannot open file ("..datafile..") for appending!")
             if f then
-                local noise = stations[umac].noise or ""
-                local tx_mcs = stations[umac].tx_mcs or -1
-                local tx_rate = adjust_rate((stations[umac].tx_rate) / 1000, bandwidth)
-                local rx_mcs = stations[umac].rx_mcs or -1
-                local rx_rate = adjust_rate((stations[umac].rx_rate) / 1000, bandwidth)
+                local noise = stations[mac].noise or ""
+                local tx_mcs = stations[mac].tx_mcs or -1
+                local tx_rate = adjust_rate((stations[mac].tx_rate) / 1000, bandwidth)
+                local rx_mcs = stations[mac].rx_mcs or -1
+                local rx_rate = adjust_rate((stations[mac].rx_rate) / 1000, bandwidth)
                 f:write(string.format("%s,%s,%s,%s,%s,%s,%s\n", os.date("%m/%d/%Y %H:%M:%S",os.time()), signal, noise, tx_mcs, tx_rate, rx_mcs, rx_rate))
                 f:close()
             else
