@@ -37,6 +37,7 @@
 
 local nxo = require("nixio")
 local ipc = require("luci.ip")
+require("luci.http")
 require("uci")
 
 function round2(num, idp)
@@ -65,10 +66,7 @@ end
 function parseQueryString(qs)
 	local qsa={}
 	if qs ~=nil then
-		for i,j in pairs(qs:split("&")) do
-			z=j:split("=")
-			qsa[z[1]]=z[2]
-		end
+		qsa = luci.http.urldecode_params(qs)
 	end
 	return qsa
 end
