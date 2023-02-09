@@ -827,7 +827,7 @@ function lqm()
                 -- Find the most distant, unblocked, RF node
                 if track.type == "RF" then
                     if track.distance then
-                        if track.distance > distance and ((not track.blocked and track.routable) or is_pending(track)) then
+                        if track.distance > distance and (not track.blocked or is_pending(track)) then
                             distance = track.distance
                         end
                     elseif is_pending(track) then
