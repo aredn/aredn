@@ -62,7 +62,7 @@ function get_config()
     return {
         margin = tonumber(c:get("aredn", "@lqm[0]", "margin_snr")),
         low = tonumber(c:get("aredn", "@lqm[0]", "min_snr")),
-        rts_theshold = tonumber(c:get("aredn", "@lqm[0]", "rts_theshold") or "1"),
+        rts_threshold = tonumber(c:get("aredn", "@lqm[0]", "rts_threshold") or "-1"),
         min_distance = tonumber(c:get("aredn", "@lqm[0]", "min_distance")),
         max_distance = tonumber(c:get("aredn", "@lqm[0]", "max_distance")),
         auto_distance = tonumber(c:get("aredn", "@lqm[0]", "auto_distance") or "0"),
@@ -891,9 +891,9 @@ function lqm()
         do
             hidden[#hidden + 1] = ninfo
         end
-        if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_theshold >= 0 and config.rts_theshold <= 2347 then
+        if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
             if #hidden > 0 then
-                os.execute(IW .. " " .. phy .. " set rts " .. config.rts_theshold .. " > /dev/null 2>&1")
+                os.execute(IW .. " " .. phy .. " set rts " .. config.rts_threshold .. " > /dev/null 2>&1")
             else
                 os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
             end
