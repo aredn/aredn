@@ -191,7 +191,7 @@ passwd1 = ""
 passwd2 = ""
 
 local ctwo = { 1,2,3,4,5,6,7,8,9,10,11 }
-local cfive = { 36,40,44,48,149,153,157,161,165 }
+local cfive = { 36,40,44,48,149,153,157,161,163,165,167,169,171,173,175,177 }
 
 local wifiintf = aredn.hardware.get_iface_name("wifi")
 local phy = iwinfo.nl80211.phyname(wifiintf)
@@ -1267,10 +1267,28 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
     else
         hidden[#hidden + 1] = "<input type=hidden name=wifi2_hwmode  value='" .. wifi2_hwmode .."'>"
     end
-    html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi2_ssid value='" .. wifi2_ssid .."'></td></tr><tr><td>Channel</td><td><select name=wifi2_channel>")
-    for i = 1,#chan
-    do
-        html.print("<option value='" .. chan[i] .. "'" .. (wifi2_channel == chan[i] and " selected" or "") .. ">" .. chan[i] .. "</option>")
+    html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi2_ssid value='" .. wifi2_ssid .."'></td></tr>")
+    html.print("<tr><td>Channel</td><td><select name=wifi2_channel>")
+    if chan == cfive then
+        html.print("<optgroup label='Standard Channels'>")
+        for _, chnum in ipairs(chan) do
+            if chnum < 163 or chnum == 165 then
+                html.print("<option value='" .. chnum .. "'" .. (wifi2_channel == chnum and " selected" or "") .. ">" .. chnum .. "</option>")
+            end
+        end
+        html.print("</optgroup>")
+        html.print("<optgroup label='Extended Channels'>")
+        for _, chnum in ipairs(chan) do
+            if chnum == 163 or chnum > 165 then
+                html.print("<option value='" .. chnum .. "'" .. (wifi2_channel == chnum and " selected" or "") .. ">" .. chnum .. "</option>")
+            end
+        end
+        html.print("</optgroup>")
+    else
+        for i = 1,#chan
+        do
+            html.print("<option value='" .. chan[i] .. "'" .. (wifi2_channel == chan[i] and " selected" or "") .. ">" .. chan[i] .. "</option>")
+        end
     end
     html.print("</select></td></tr>")
     html.print("<tr><td>Encryption</td><td><select name=wifi2_encryption>")
