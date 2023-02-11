@@ -227,6 +227,12 @@ function lqm()
     -- Let things startup for a while before we begin
     wait_for_ticks(math.max(1, 30 - nixio.sysinfo().uptime))
 
+    -- Detect ath10k - we need some special handling (for the moment)
+    local is_ath10k = false
+    if nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k") then
+        is_ath10k = true
+    end
+
     -- Create filters (cannot create during install as they disappear on reboot)
     os.execute(NFT .. " flush chain ip fw4 input_lqm 2> /dev/null")
     os.execute(NFT .. " delete chain ip fw4 input_lqm 2> /dev/null")
@@ -240,7 +246,9 @@ function lqm()
     -- We dont know any distances yet
     os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
     -- Or any hidden nodes
-    os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+    if not is_ath10k then
+        os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+    end
 
     local noise = -95
     local tracker = {}
@@ -891,11 +899,14 @@ function lqm()
         do
             hidden[#hidden + 1] = ninfo
         end
-        if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
-            if #hidden > 0 then
-                os.execute(IW .. " " .. phy .. " set rts " .. config.rts_threshold .. " > /dev/null 2>&1")
-            else
-                os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+        -- Don't adjust RTS on ath10k for the moment - appear to be some bug to be worked out here
+        if not is_ath10k then
+            if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
+                if #hidden > 0 then
+                    os.execute(IW .. " " .. phy .. " set rts " .. config.rts_threshold .. " > /dev/null 2>&1")
+                else
+                    os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+                end
             end
         end
         hidden_nodes = hidden
