@@ -271,11 +271,8 @@ function lqm()
         arptable(
             function (entry)
                 if entry["Flags"] ~= "0x0" then
-                    -- Sometimes we find arp entries are not routable. Filter them out early.
-                    local rt = ip.route(entry["IP address"])
-                    if rt and tostring(rt.gw) == entry["IP address"] then
-                        arps[entry["HW address"]:upper()] = entry
-                    end
+                    entry["HW address"] = entry["HW address"]:upper()
+                    arps[#arps + 1] = entry
                 end
             end
         )
@@ -307,7 +304,7 @@ function lqm()
             end
             for line in io.popen(IW .. " " .. wlan .. " station dump"):lines()
             do
-                local mac = line:match("^Station ([0-9a-f:]+) ")
+                local mac = line:match("^Station ([0-9a-fA-F:]+) ")
                 if mac then
                     station = {
                         type = "RF",
@@ -319,9 +316,12 @@ function lqm()
                         tx_bitrate = 0,
                         rx_bitrate = 0
                     }
-                    local entry = arps[station.mac]
-                    if entry then
-                        station.ip = entry["IP address"]
+                    for _, entry in ipairs(arps)
+                    do
+                        if entry["HW address"] == station.mac and entry.Device:match("^wlan") then
+                            station.ip = entry["IP address"]
+                            break
+                        end
                     end
                     stations[#stations + 1] = station
                 else
@@ -372,15 +372,15 @@ function lqm()
         end
 
         -- DtD
-        for mac, entry in pairs(arps)
+        for _, entry in ipairs(arps)
         do
-            if entry.Device:match("%.2$") or entry.Device:match("^br%-dtdlink") then
+            if entry.Device:match("%.2$") or entry.Device:match("^br%-dtdlink") and (nixio.getnameinfo(entry["IP address"]) or ""):match("^dtdlink.") then
                 stations[#stations + 1] = {
                     type = "DtD",
                     device = entry.Device,
                     signal = nil,
                     ip = entry["IP address"],
-                    mac = mac:upper(),
+                    mac = entry["HW address"],
                     tx_packets = 0,
                     tx_fail = 0,
                     tx_retries = 0,
@@ -395,27 +395,23 @@ function lqm()
             uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
                 function(section)
                     if section.peer and section.ifname then
-                        local foundmac
-                        for mac, entry in pairs(arps)
+                        for _, entry in ipairs(arps)
                         do
                             if entry["IP address"] == section.peer then
-                                foundmac = mac
+                                stations[#stations + 1] = {
+                                    type = "Xlink",
+                                    device = section.ifname,
+                                    signal = nil,
+                                    ip = section.peer,
+                                    mac = entry["HW address"],
+                                    tx_packets = 0,
+                                    tx_fail = 0,
+                                    tx_retries = 0,
+                                    tx_bitrate = 0,
+                                    rx_bitrate = 0
+                                }
                                 break
                             end
-                        end
-                        if foundmac then
-                            stations[#stations + 1] = {
-                                type = "Xlink",
-                                device = section.ifname,
-                                signal = nil,
-                                ip = section.peer,
-                                mac = foundmac,
-                                tx_packets = 0,
-                                tx_fail = 0,
-                                tx_retries = 0,
-                                tx_bitrate = 0,
-                                rx_bitrate = 0
-                            }
                         end
                     end
                 end
