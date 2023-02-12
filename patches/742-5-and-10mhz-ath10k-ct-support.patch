@@ -275,3 +275,22 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 + 
 + /* Use random MAC address for TA for Probe Request frame and add
 +  * OUI specified by WMI_SCAN_PROB_REQ_OUI_CMDID to the Probe Request frame.
+--- /dev/null
++++ openwrt/package/kernel/ath10k-ct/patches/999-0004-ath10k-coverage.patch
+@@ -0,0 +1,16 @@
++--- a/ath10k-5.15/hw.c
+++++ b/ath10k-5.15/hw.c
++@@ -665,13 +665,6 @@
++ 
++ 	slottime = MS(slottime_reg, WAVE1_PCU_GBL_IFS_SLOT);
++ 	slottime = slottime / phyclk;
++-	if (slottime != 9 && slottime != 20) {
++-		ath10k_warn(ar,
++-			    "failed to set coverage class: expected slot time of 9 or 20us in HW register. It is %uus.\n",
++-			    slottime);
++-
++-		goto store_regs;
++-	}
++ 
++ 	/* Recalculate the register values by adding the additional propagation
++ 	 * delay (3us per coverage class).
