@@ -110,6 +110,9 @@ end
 
 local chanbw = 1
 local cb = "/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/chanbw"
+if not nixio.fs.stat(cb) then
+    cb = "/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k/chanbw"
+end
 if nixio.fs.stat(cb) then
     for line in io.lines(cb)
     do
@@ -214,7 +217,9 @@ end
 -- load up arpcache
 local arpcache = {}
 arptable(function(a)
-    arpcache[a["IP address"]] = a
+    if a["Flags"] ~= "0x0" and a["HW address"] ~= "00:00:00:00:00:00" then
+        arpcache[a["IP address"]] = a
+    end
 end)
 
 local iwrates
@@ -268,7 +273,7 @@ do
             end
             local station = iwrates[mac["HW address"]]
             if station then
-                links[node.remoteIP].mbps = string.format("%.1f", station.txbitrate)
+                links[node.remoteIP].mbps = string.format("%.1f", tonumber(station.txbitrate) / chanbw)
             end
         end
     end
