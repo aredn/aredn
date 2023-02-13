@@ -242,6 +242,22 @@ function lqm()
     -- Or any hidden nodes
     os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
 
+    -- If the channel bandwidth is less than 20, we need to adjust what we report as the values from 'iw' will not
+    -- be correct
+    local channel_bw_scale = 1
+    local chanbw = read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k/chanbw")
+    if not chanbw then
+        chanbw = read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/chanbw")
+    end
+    if chanbw then
+        chanbw = tonumber(chanbw)
+        if chanbw == 10 then
+            channel_bw_scale = 0.5
+        elseif chanbw == 5 then
+            channel_bw_scale = 0.25
+        end
+    end
+
     local noise = -95
     local tracker = {}
     local dtdlinks = {}
@@ -322,6 +338,9 @@ function lqm()
                         local val = line:match(k .. "%s*([%d%-]+)")
                         if val then
                             station[v] = tonumber(val)
+                            if v == "tx_bitrate" or v == "rx_bitrate" then
+                                station[v] = station[v] * channel_bw_scale
+                            end
                         end
                     end
                 end
