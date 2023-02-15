@@ -230,51 +230,25 @@ do
     neighbor[node.remoteIP] = true
     local mac = arpcache[node.remoteIP]
     if mac then
-        local f = io.open(prefix .. mac["HW address"] .. "/rc_stats_csv", "r")
-        if f then
-            for line in f:lines()
+        if not iwrates then
+            iwrates = {}
+            local station = {}
+            for line in io.popen("iw " .. wifiif .. " station dump"):lines()
             do
-                local gi, rate, ewma = line:match("^[^,]*,([^,]*),[^,]*,A[^,]*,([^,%s]*)%s*,[^,]*,[^,]*,[^,]*,[^,]*,([^,]*),")
-                ewma = tonumber(ewma)
-                if gi and ewma then
-                    -- 802.11b/n
-                    if gi == "SGI" then
-                        links[node.remoteIP].mbps = string.format("%.1f", (rateS[rate] or 0) * ewma / 100 / chanbw)
-                    else
-                        links[node.remoteIP].mbps = string.format("%.1f", (rateL[rate] or 0) * ewma / 100 / chanbw)
-                    end
-                else
-                    rate, ewma = line:match("^A[^,]*,([^,]*),[^,]*,[^,]*,([^,]*,)")
-                    rate = tonumber(rate)
-                    ewma = tonumber(ewma)
-                    if rate and ewma then
-                        -- 802.11a/b/g
-                        links[node.remoteIP].mbps = string.format("%.1f", rate * ewma / 100 / chanbw)
-                    end
+                local mac = line:match("^Station (%S+) ")
+                if mac then
+                    station = {}
+                    iwrates[mac] = station
+                end
+                local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
+                if txbitrate then
+                    station.txbitrate = txbitrate
                 end
             end
-            f:close()
-        else -- fallback (rates without error accounting)
-            if not iwrates then
-                iwrates = {}
-                local station = {}
-                for line in io.popen("iw " .. wifiif .. " station dump"):lines()
-                do
-                    local mac = line:match("^Station (%S+) ")
-                    if mac then
-                        station = {}
-                        iwrates[mac] = station
-                    end
-                    local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
-                    if txbitrate then
-                        station.txbitrate = txbitrate
-                    end
-                end
-            end
-            local station = iwrates[mac["HW address"]]
-            if station then
-                links[node.remoteIP].mbps = string.format("%.1f", tonumber(station.txbitrate) / chanbw)
-            end
+        end
+        local station = iwrates[mac["HW address"]]
+        if station then
+            links[node.remoteIP].mbps = string.format("%.1f", tonumber(station.txbitrate) / chanbw)
         end
     end
 end
