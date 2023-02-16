@@ -39,12 +39,18 @@ function namechange()
     local count = 0
     while true
     do
-        if not nixio.fs.stat("/tmp/namechange") and count < 12 then
+        local exists = nixio.fs.stat("/tmp/namechange")
+        if not exists and count < 12 then
             count = count + 1
             wait_for_ticks(5)
         else
-            os.remove("/tmp/namechange")
+            if exists then
+                os.remove("/tmp/namechange")
+            end
             do_namechange()
+            if not exists then
+                dns_update()
+            end
             count = 0
         end
     end
@@ -112,6 +118,13 @@ function do_namechange()
         f:close()
     end
 
+end
+
+function dns_update()
+    local pid = capture("pidof dnsmasq")
+    if pid ~= "" then
+        nixio.kill(tonumber(pid), 1)
+    end
 end
 
 return namechange
