@@ -47,48 +47,6 @@ require("iwinfo")
 
 local html = aredn.html
 
-local rateL = {
-	["1.0M"] = 1,   -- CCP LP
-	["2.0M"] = 2,   -- CCP LP
-	["5.5M"] = 5.5, -- CCP LP
-	MCS0 = 6.5, -- HT20 LGI
-	["11.0M"] = 11, -- CCP LP
-	MCS1 = 13,  -- HT20 LGI...
-	MCS2 = 19.5,
-	MCS3 = 26,
-	MCS4 = 39,
-	MCS5 = 52,
-	MCS6 = 58.5,
-	MCS7 = 65,
-	MCS8 = 13,
-	MCS9 = 26,
-	MCS10 = 39,
-	MCS11 = 52,
-	MCS12 = 78,
-	MCS13 = 104,
-	MCS14 = 117,
-	MCS15 = 130,
-    ["54.0M"] = 54
-}
-local rateS = {
-    MCS0 = 7.2,
-	MCS1 = 14.4,
-	MCS2 = 21.7,
-	MCS3 = 28.9,
-	MCS4 = 43.3,
-	MCS5 = 57.8,
-	MCS6 = 65,
-	MCS7 = 72.2,
-	MCS8 = 14.4,
-	MCS9 = 28.9,
-	MCS10 = 43.3,
-	MCS11 = 57.8,
-	MCS12 = 86.7,
-	MCS13 = 115.6,
-	MCS14 = 130,
-	MCS15 = 144.4
-}
-
 local node = aredn.info.get_nvram("node")
 if node == "" then
     node = "NOCALL"
@@ -230,51 +188,25 @@ do
     neighbor[node.remoteIP] = true
     local mac = arpcache[node.remoteIP]
     if mac then
-        local f = io.open(prefix .. mac["HW address"] .. "/rc_stats_csv", "r")
-        if f then
-            for line in f:lines()
+        if not iwrates then
+            iwrates = {}
+            local station = {}
+            for line in io.popen("iw " .. wifiif .. " station dump"):lines()
             do
-                local gi, rate, ewma = line:match("^[^,]*,([^,]*),[^,]*,A[^,]*,([^,%s]*)%s*,[^,]*,[^,]*,[^,]*,[^,]*,([^,]*),")
-                ewma = tonumber(ewma)
-                if gi and ewma then
-                    -- 802.11b/n
-                    if gi == "SGI" then
-                        links[node.remoteIP].mbps = string.format("%.1f", (rateS[rate] or 0) * ewma / 100 / chanbw)
-                    else
-                        links[node.remoteIP].mbps = string.format("%.1f", (rateL[rate] or 0) * ewma / 100 / chanbw)
-                    end
-                else
-                    rate, ewma = line:match("^A[^,]*,([^,]*),[^,]*,[^,]*,([^,]*,)")
-                    rate = tonumber(rate)
-                    ewma = tonumber(ewma)
-                    if rate and ewma then
-                        -- 802.11a/b/g
-                        links[node.remoteIP].mbps = string.format("%.1f", rate * ewma / 100 / chanbw)
-                    end
+                local mac = line:match("^Station (%S+) ")
+                if mac then
+                    station = {}
+                    iwrates[mac] = station
+                end
+                local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
+                if txbitrate then
+                    station.txbitrate = txbitrate
                 end
             end
-            f:close()
-        else -- fallback (rates without error accounting)
-            if not iwrates then
-                iwrates = {}
-                local station = {}
-                for line in io.popen("iw " .. wifiif .. " station dump"):lines()
-                do
-                    local mac = line:match("^Station (%S+) ")
-                    if mac then
-                        station = {}
-                        iwrates[mac] = station
-                    end
-                    local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
-                    if txbitrate then
-                        station.txbitrate = txbitrate
-                    end
-                end
-            end
-            local station = iwrates[mac["HW address"]]
-            if station then
-                links[node.remoteIP].mbps = string.format("%.1f", tonumber(station.txbitrate) / chanbw)
-            end
+        end
+        local station = iwrates[mac["HW address"]]
+        if station then
+            links[node.remoteIP].mbps = string.format("%.1f", tonumber(station.txbitrate) / chanbw)
         end
     end
 end
