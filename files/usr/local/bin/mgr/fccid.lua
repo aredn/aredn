@@ -34,14 +34,13 @@
 
 --]]
 
-local info = require("aredn.info")
-
 function fccid()
     local c = uci.cursor()
     local device = c:get("network", "wifi", "device")
+    local name = c:get("system","@system[0]", "hostname") or "localnode"
     local lat = c:get("aredn", "@location[0]", "lat")
     local lon = c:get("aredn", "@location[0]", "lon")
-    local id = "ID: " .. (info.get_nvram("node") or "localnode")
+    local id = "ID: " .. name
     if lat and lon then
         id = id .. " LOCATION: " .. lat .. "," .. lon
     end
