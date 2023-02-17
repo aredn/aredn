@@ -39,7 +39,7 @@ local wifiiface
 local last_scan_time = 0
 
 function rssi_monitor_10k()
-    if string.match(get_ifname("wifi"), "^eth.") then
+    if not string.match(get_ifname("wifi"), "^wlan") then
         exit_app()
     else
         wait_for_ticks(math.max(1, 120 - nixio.sysinfo().uptime))
