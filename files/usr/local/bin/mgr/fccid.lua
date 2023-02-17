@@ -36,18 +36,30 @@
 
 function fccid()
     local c = uci.cursor()
-    local device = c:get("network", "wifi", "device")
-    local name = c:get("system","@system[0]", "hostname") or "localnode"
+
+    local device = get_ifname("wifi")
+    local name = c:get("system","@system[0]", "hostname")
     local lat = c:get("aredn", "@location[0]", "lat")
     local lon = c:get("aredn", "@location[0]", "lon")
+
+    if not (name and device:match("^wlan")) then
+        exit_app()
+        return
+    end
+
     local id = "ID: " .. name
     if lat and lon then
         id = id .. " LOCATION: " .. lat .. "," .. lon
     end
-    local beacon = "echo '" .. id .. "' | /usr/bin/socat - udp-datagram:10.255.255.255:4919,bind=:4191,broadcast,so-bindtodevice=" .. device
+    
+    local udp = nixio.socket("inet", "dgram")
+    udp:setopt("socket", "broadcast", 1)
+    udp:setopt("socket", "bindtodevice", device)
+    udp:bind(nil, 4919)
+
     while true
     do
-        os.execute(beacon)
+        udp:sendto(id, "10.255.255.255", 4919)
         wait_for_ticks(5 * 60) -- 5 minutes
     end
 end
