@@ -670,7 +670,7 @@ if parms.button_save then
         end
     end
 
-    if phycount > 1 and wifi_enable == "1" and wifi2_channel < 36 and wifi2_enable == "1" then
+    if phycount > 1 and wifi_enable == "1" and wifi2_enable == "1" and (wifi_channel < 36) == (wifi2_channel < 36) then
         err("Mesh RF and LAN Access Point can not both use the same wireless card, review LAN AP settings")
     end
     if phycount > 1 and wifi_enable == "0" and wifi2_enable == "1" and wifi3_enable == "1" and wifi2_hwmode == wifi3_hwmode then
@@ -1214,7 +1214,7 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
     -- lan ap shows as an option
     -- determine hardware options and set band ahd channels accordingly
     if phycount == 1 then
-        local rc3 = os.execute("iw phy phy0 info | grep -q '5180 MHz' > /dev/null")
+        local rc3 = os.execute("iw phy phy0 info | grep -v disabled | grep -q '5180 MHz' > /dev/null")
         if rc3 ~= 0 then
             wifi2_hwmode = "11g"
             if wifi2_channel > 14 then
@@ -1231,11 +1231,20 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
     else
         -- 2 band device
         if wifi_enable == "1" then
-            wifi2_hwmode = "11a"
-            if wifi2_channel < 36 then
-                wifi2_channel = 36
+            local rc3 = os.execute("iw phy phy1 info | grep -v disabled | grep -q '5180 MHz' > /dev/null")
+            if rc3 ~= 0 then
+                wifi2_hwmode = "11g"
+                if wifi2_channel > 14 then
+                    wifi2_channel = 1
+                end
+                chan = ctwo
+            else
+                wifi2_hwmode = "11a"
+                if wifi2_channel < 36 then
+                    wifi2_channel = 36
+                end
+                chan = cfive
             end
-            chan = cfive
         else
             if wifi2_enable ~= "1" and wifi3_enable == "1" and wifi3_hwmode == "11a" then
                 wifi2_hwmode = "11g"
@@ -1258,12 +1267,14 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
     end
     html.print("<tr><th colspan=2><small>LAN Access Point</small></th></tr><tr><td>Enable</td><td><input type=checkbox name=wifi2_enable value=1" .. (wifi2_enable == "1" and " checked" or "") .. ">&nbsp;&nbsp;<a href='/help.html#lanap' target='_blank'><img src='/qmark.png'></a></td></tr>")
     if phycount > 1 then
-        html.print("<tr><td>AP band</td><td><select name=wifi2_hwmode>")
         if wifi_enable ~= "1" then
+            html.print("<tr><td>AP band</td><td><select name=wifi2_hwmode>")
             html.print("<option value='11g'".. (wifi2_hwmode == "11g" and " selected" or "") .. ">2GHz</option>")
+            html.print("<option value='11a'".. (wifi2_hwmode == "11a" and " selected" or "") .. ">5GHz</option>")
+            html.print("</select></td></tr>")
+        else
+            hidden[#hidden + 1] = "<input type=hidden name=wifi2_hwmode  value='" .. wifi2_hwmode .."'>"
         end
-        html.print("<option value='11a'".. (wifi2_hwmode == "11a" and " selected" or "") .. ">5GHz</option>")
-	    html.print("</select></td></tr>")
     else
         hidden[#hidden + 1] = "<input type=hidden name=wifi2_hwmode  value='" .. wifi2_hwmode .."'>"
     end
