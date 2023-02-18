@@ -135,12 +135,12 @@ function update_block(track)
     if should_block(track) then
         track.blocked = true
         if track.type == "Tunnel" then
-            if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 .* drop") then
+            if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop") then
                 os.execute(NFT .. " insert rule ip fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 drop 2> /dev/null")
                 return "blocked"
             end
         else
-            if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") then
+            if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " drop") then
                 os.execute(NFT .. " insert rule ip fw4 input_lqm udp dport 698 ether saddr " .. track.mac .. " drop 2> /dev/null")
                 return "blocked"
             end
@@ -148,13 +148,13 @@ function update_block(track)
     else
         track.blocked = false
         if track.type == "Tunnel" then
-            local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 .* drop")
+            local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
             if handle then
                 os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
                 return "unblocked"
             end
         else
-            local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") 
+            local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " drop")
             if handle then
                 os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
                 return "unblocked"
@@ -166,11 +166,11 @@ end
 
 function force_remove_block(track)
     track.blocked = false
-    local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " .* drop") 
+    local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " drop")
     if handle then
         os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
     end
-    handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 .* drop")
+    handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
     if handle then
         os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
     end
