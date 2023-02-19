@@ -662,11 +662,11 @@ if parms.button_save then
         end
     end
     if wifi3_enable == "1" then
-        if #wifi3_key ~= 0 and (#wifi3_key < 8 or #wifi3_key > 64) then
-            err("WAN Wifi Client Password must be between 8 and 64 characters")
+        if #wifi3_key > 64 then
+            err("WAN Wifi Client Password must be 64 characters or less")
         end
         if wifi3_key:match("'") or wifi3_ssid:match("'") then
-            err("The WAN Wifi Client password and ssid may not contain a single quote character")
+            err("The WAN Wifi Client password and ssid cannot contain a single quote character")
         end
     end
 
