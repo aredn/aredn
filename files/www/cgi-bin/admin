@@ -448,7 +448,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
             local fwimage
             for _, image in ipairs(fwinfo.images)
             do
-                if image.type == "sysupgrade" then
+                if image.type == "sysupgrade" or image.type == "nand-sysupgrade" then
                     fwimage = {
                         url = fw_versions[parms.dl_fw].target .. "/" .. image.name,
                         sha = image.sha256
