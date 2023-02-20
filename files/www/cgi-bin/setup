@@ -1234,7 +1234,7 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
     else
         -- 2 band device
         if wifi_enable == "1" then
-            local alt_phy = phy == "phy0" and "phy1" or "phy0"
+            local alt_phy = (not phy or phy == "phy0") and "phy1" or "phy0"
             local rc3 = os.execute("iw " .. alt_phy .. " info | grep -v disabled | grep -q '5180 MHz' > /dev/null")
             if rc3 ~= 0 then
                 wifi2_hwmode = "11g"
