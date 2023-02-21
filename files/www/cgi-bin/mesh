@@ -488,40 +488,31 @@ if next(localhosts) then
     local rows = {}
     for ip, host in pairs(localhosts)
     do
-        local c1, c2, c3
         local localpart = host.name:match("([^.]*)%.")
         if localpart then
             local tactical = ""
             if host.tactical ~= "" then
                 tactical = " / " .. host.tactical
             end
-            c1 = localpart .. tactical
+            local c1 = localpart .. tactical
             if wangateway[ip] then
                 c1 = c1 .. " &nbsp; <small>(wan)</small>"
             end
-            c2 =  "<br>"
+            local c2 = ""
+            local c3 = ""
             if services[host.name] then
-                local i=1
                 for _, v in pairs(services[host.name])
                 do
-                    if c3 then
-                        c3 = c3 .. v .. "<br>"
-                    else
-                        c3 =  v .. "<br>"
-                    end
-                    if i > 1 then c2 = c2 .. "<br>" end
-                    i=i+1
+                    c3 = c3 .. v .. "<br>"
+                    c2 = c2 .. "<br>"
                 end
             else
-                if c3 then
-                    c3 = c3 .. "<br>"
-                else
-                    c3 = "<br>"
-                end
+                c2 = c2 .. "<br>"
+                c3 = c3 .. "<br>"
             end
 
             -- add locally advertised dmz hosts
-            for i, dmzhost in ipairs(host.hosts)
+            for _, dmzhost in ipairs(host.hosts)
             do
                 local nopropd = false
                 local aliased = false
@@ -542,25 +533,20 @@ if next(localhosts) then
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
                 if localpart then
                     if not nopropd and not aliased then
-                        c2 = c2 .. localpart .. "<br>"
+                        c2 = c2 .. localpart
                     elseif aliased then
-                        c2 = c2 .. "<span class=aliased-hosts>" .. localpart .. "</span><br>"
+                        c2 = c2 .. "<span class=aliased-hosts>" .. localpart .. "</span>"
                     else
-                        c2 = c2 .. "<span class=hidden-hosts>" .. localpart .. "</span><br>"
+                        c2 = c2 .. "<span class=hidden-hosts>" .. localpart .. "</span>"
                     end
                     if services[dmzhost] then
-                        local i=1
                         for n, v in pairs(services[dmzhost])
                         do
-                            if c3 then
-                                c3 = c3 .. v .. "<br>"
-                            else
-                                c3 = v .. "<br>"
-                            end
-                            if i > 1 then c2 = c2 .. "<br>" end
-                            i=i+1
+                            c3 = c3 .. v .. "<br>"
+                            c2 = c2 .. "<br>"
                         end
                     else
+                        c2 = c2 .. "<br>"
                         c3 = c3 .. "<br>"
                     end
                 end
@@ -599,7 +585,6 @@ local rows = {}
 local neighservices = {}
 for ip, link in pairs(links)
 do
-    local c1,c2,c3,c4,c5,c6
     local ipmain = ipalias[ip]
     if not ipmain then
         ipmain = ip
@@ -624,7 +609,7 @@ do
         name = name .. " " -- avoid collision 2 links to same host {rf, dtd}
     end
     local no_space_host = name:match("(.*%S)%s*$")
-    c1 = "<a href='http://" .. no_space_host .. ":8080/'>" .. localpart .. tactical .. "</a>"
+    local c1 = "<a href='http://" .. no_space_host .. ":8080/'>" .. localpart .. tactical .. "</a>"
     local nodeiface
     if ipmain ~= ip then
         if links[ip].dtd then
@@ -647,33 +632,24 @@ do
     if nodeiface then
         c1 = c1 .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
     end
-    c2 = "<br>"
-    c3 = string.format("%.0f%%", 100 * link.lq)
-    c4 = string.format("%.0f%%", 100 * link.nlq)
-    c5 = string.format("%s", link.mbps)
-    c6 = ""
+    local c2 = ""
+    local c3 = string.format("%.0f%%", 100 * link.lq)
+    local c4 = string.format("%.0f%%", 100 * link.nlq)
+    local c5 = string.format("%s", link.mbps)
+    local c6 = ""
 
     -- print node services if any
     if not neighservices[name] then
         neighservices[name] = true
         if services[name] then
-            local i=1
             for _, v in pairs(services[name])
             do
-                if c6 then
-                    c6 = c6 .. v .. "<br>"
-                else
-                    c6 = v .. "<br>"
-                end
-                if i > 1 then c2 = c2 .. "<br>" end
-                i=i+1
+                c6 = c6 .. v .. "<br>"
+                c2 = c2 .. "<br>"
             end
         else
-            if c6 then
-                c6 = c6 .. "<br>"
-            else
-                c6 = "<br>"
-            end
+            c2 = c2 .. "<br>"
+            c6 = c6 .. "<br>"
         end
 
         -- add advertised dmz hosts
@@ -682,25 +658,16 @@ do
             do
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
                 if localpart then
-                    c2 = c2 .. localpart .. "<br>"
+                    c2 = c2 .. localpart
                     if services[dmzhost] then
-                        local i=1
                         for _, v in pairs(services[dmzhost])
                         do
-                            if c6 then
-                                c6 = c6 .. v .. "<br>"
-                            else
-                                c6 = v .. "<br>"
-                            end
-                            if i > 1 then c2 = c2 .. "<br>" end
-                            i=i+1
+                            c6 = c6 .. v .. "<br>"
+                            c2 = c2 .. "<br>"
                         end
                     else
-                        if c6 then
-                            c6 = c6 .. "<br>"
-                        else
-                            c6 = "<br>"
-                        end
+                        c2 = c2 .. "<br>"
+                        c6 = c6 .. "<br>"
                     end
                 end
             end
