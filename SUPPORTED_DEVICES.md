@@ -39,7 +39,7 @@ AirGrid M5 XW | 5 | ath79 | generic | ubnt_bullet-m-xw | 32MB | unknown | sunset
 AirRouter  | 2 | ath79 | tiny (2) | ubnt_airrouter | 32MB | stable | sunset
 AirRouter HP | 2 | ath79 | tiny (2) | ubnt_airrouter | 32MB | stable | sunset
 Bullet M2Ti | 2 | ath79 | - | - | 32MB | unknown | sunset
-Bullet M5 | 5 | ath79 | - | - | 32MB | unknown | sunset
+Bullet M5 | 5 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | stable | sunset
 Bullet M5Ti | 5 | ath79 | - | - | 32MB | unknown | sunset
 Bullet M2 | 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | stable | sunset
 Bullet M2 XW | 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | unknown | released
