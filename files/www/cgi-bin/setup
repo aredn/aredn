@@ -129,21 +129,6 @@ function out(str)
     output[#output + 1] = str
 end
 
-function is_channel_valid(channel)
-    local list = aredn.hardware.get_rfchannels(aredn.hardware.get_iface_name("wifi"))
-    for _, c in ipairs(list)
-    do
-        if c.number == channel then
-            return true
-        end
-    end
-    return false
-end
-
-function is_wifi_chanbw_valid(wifi_chanbw, wifi_ssid)
-    return true -- always true
-end
-
 function validate_hostname(raw_name, name_type)
     local trimmed_name = raw_name:match("^%s*(.-)%s*$")
     if trimmed_name == "" then
@@ -189,9 +174,6 @@ wan_mask = ""
 wan_gw = ""
 passwd1 = ""
 passwd2 = ""
-
-local ctwo = { 1,2,3,4,5,6,7,8,9,10,11 }
-local cfive = { 36,40,44,48,149,153,157,161,163,165,167,169,171,173,175,177 }
 
 local wifiintf = aredn.hardware.get_iface_name("wifi")
 local phy = iwinfo.nl80211.phyname(wifiintf)
@@ -528,22 +510,31 @@ if parms.button_save then
         end
     end
 
-    if not validate_netmask(wifi_mask) then
-        err("invalid Mesh netmask")
-    elseif not validate_ip_netmask(wifi_ip, wifi_mask) then
-        err("invalid Mesh IP address")
-    end
+    if wifi_enable == "1" then
+        if not validate_netmask(wifi_mask) then
+            err("invalid Mesh netmask")
+        elseif not validate_ip_netmask(wifi_ip, wifi_mask) then
+            err("invalid Mesh IP address")
+        end
 
-    if #wifi_ssid > 32 then
-        err("invalid Mesh RF SSID")
-    end
+        if #wifi_ssid > 32 then
+            err("invalid Mesh RF SSID")
+        end
 
-    if not is_channel_valid(wifi_channel) then
-        err("invalid Mesh RF channel")
-    end
-    if not is_wifi_chanbw_valid(wifi_chanbw, wifi_ssid) then
-        err("Invalid Mesh RF channel width")
-        wifi_chanbw = 20
+        if wifiintf:match("^br") then
+            wifiintf = "wlan0"
+        end
+        local valid = false
+        for _, c in ipairs(aredn.hardware.get_rfchannels(wifiintf))
+        do
+            if c.number == wifi_channel then
+                valid = true
+                break
+            end
+        end
+        if not valid then
+            err("invalid Mesh RF channel")
+        end
     end
 
     local wifi_country_validated = false
@@ -1055,7 +1046,7 @@ html.print([[
 
 -- reset wifi channel/bandwidth to default
 if nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset then
-    local defaultwifi = aredn.hardware.get_default_channel()
+    local defaultwifi = aredn.hardware.get_default_channel(wifiintf)
     wifi_channel = defaultwifi.channel
     wifi_chanbw = tostring(defaultwifi.bandwidth)
 end
@@ -1087,7 +1078,7 @@ if wifi_enable == "1" then
     html.print("</select>&nbsp;&nbsp;<a href='/help.html#channel' target='_blank'><img src='/qmark.png'></a></td></tr>")
 
     html.print("<tr><td>Channel Width</td><td><select name=wifi_chanbw>")
-    for _, width in ipairs(aredn.hardware.get_rfbandwidths())
+    for _, width in ipairs(aredn.hardware.get_rfbandwidths(wifiintf))
     do
         html.print("<option value='" .. width .. "'".. (wifi_chanbw == tostring(width) and " selected" or "") .. ">" .. width .. " MHz</option>")
     end
@@ -1217,37 +1208,33 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
     -- lan ap shows as an option
     -- determine hardware options and set band ahd channels accordingly
     if phycount == 1 then
-        local rc3 = os.execute("iw phy phy0 info | grep -v disabled | grep -q '5180 MHz' > /dev/null")
-        if rc3 ~= 0 then
+        chan = aredn.hardware.get_rfchannels("wlan0")
+        if chan[1].frequency < 3000 then
             wifi2_hwmode = "11g"
             if wifi2_channel > 14 then
                 wifi2_channel = 1
             end
-            chan = ctwo
         else
             wifi2_hwmode = "11a"
             if wifi2_channel < 36 then
                 wifi2_channel = 36
             end
-            chan = cfive
         end
     else
         -- 2 band device
         if wifi_enable == "1" then
-            local alt_phy = (not phy or phy == "phy0") and "phy1" or "phy0"
-            local rc3 = os.execute("iw " .. alt_phy .. " info | grep -v disabled | grep -q '5180 MHz' > /dev/null")
-            if rc3 ~= 0 then
+            local alt_wifi = (not phy or phy == "phy0") and "wlan1" or "wlan0"
+            chan = aredn.hardware.get_rfchannels(alt_wifi)
+            if chan[1].frequency < 3000 then
                 wifi2_hwmode = "11g"
                 if wifi2_channel > 14 then
                     wifi2_channel = 1
                 end
-                chan = ctwo
             else
                 wifi2_hwmode = "11a"
                 if wifi2_channel < 36 then
                     wifi2_channel = 36
                 end
-                chan = cfive
             end
         else
             if wifi2_enable ~= "1" and wifi3_enable == "1" and wifi3_hwmode == "11a" then
@@ -1256,16 +1243,26 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
             if wifi2_enable ~= "1" and wifi3_enable == "1" and wifi3_hwmode == "11g" then
                 wifi2_hwmode = "11a"
             end
+            local chan0 = aredn.hardware.get_rfchannels("wlan0")
+            local chan1 = aredn.hardware.get_rfchannels("wlan1")
             if wifi2_hwmode == "11a" then
+                if chan0[1].frequency > 3000 then
+                    chan = chan0
+                else
+                    chan = chan1
+                end
                 if wifi2_channel < 36 then
                     wifi2_channel = 36
                 end
-                chan = cfive
             else
+                if chan0[1].frequency < 3000 then
+                    chan = chan0
+                else
+                    chan = chan1
+                end
                 if wifi2_channel > 14 then
                     wifi2_channel = 1
                 end
-                chan = ctwo
             end
         end
     end
@@ -1285,25 +1282,27 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
     end
     html.print("<tr><td>SSID</td><td><input type=text size=15 name=wifi2_ssid value='" .. wifi2_ssid .."'></td></tr>")
     html.print("<tr><td>Channel</td><td><select name=wifi2_channel>")
-    if chan == cfive then
+    if chan[1].frequency > 3000 then
         html.print("<optgroup label='Standard Channels'>")
-        for _, chnum in ipairs(chan) do
-            if chnum < 163 or chnum == 165 then
-                html.print("<option value='" .. chnum .. "'" .. (wifi2_channel == chnum and " selected" or "") .. ">" .. chnum .. "</option>")
+        for _, ch in ipairs(chan)
+        do
+            if ch.number < 163 or ch.number == 165 then
+                html.print("<option value='" .. ch.number .. "'" .. (wifi2_channel == ch.number and " selected" or "") .. ">" .. ch.number .. "</option>")
             end
         end
         html.print("</optgroup>")
         html.print("<optgroup label='Extended Channels'>")
-        for _, chnum in ipairs(chan) do
-            if chnum == 163 or chnum > 165 then
-                html.print("<option value='" .. chnum .. "'" .. (wifi2_channel == chnum and " selected" or "") .. ">" .. chnum .. "</option>")
+        for _, ch in ipairs(chan)
+        do
+            if ch.number == 163 or ch.number > 165 then
+                html.print("<option value='" .. ch.number .. "'" .. (wifi2_channel == ch.number and " selected" or "") .. ">" .. ch.number .. "</option>")
             end
         end
         html.print("</optgroup>")
     else
-        for i = 1,#chan
+        for _, ch in ipairs(chan)
         do
-            html.print("<option value='" .. chan[i] .. "'" .. (wifi2_channel == chan[i] and " selected" or "") .. ">" .. chan[i] .. "</option>")
+            html.print("<option value='" ..ch.number .. "'" .. (wifi2_channel == ch.number and " selected" or "") .. ">" .. ch.number .. "</option>")
         end
     end
     html.print("</select></td></tr>")
