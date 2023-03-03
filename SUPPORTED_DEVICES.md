@@ -49,8 +49,8 @@ NanoBeam AC 5 (WA) | 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | unknown | n
 NanoBeam AC 5 (XC) | 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | nightly
 NanoBeam AC 5 Gen 2 | 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | nightly
 NanoBeam M2-13 | 2 | ath79 | - | - | 32MB | unknown | sunset
-NanoBeam M5-16 | 5| ath79 | - | - | 32MB | unknown | sunset
-NanoBeam M5-19 | 5| ath79 | - | - | 32MB | unknown | sunset
+NanoBeam M5-16 | 5 | ath79 | - | - | 32MB | unknown | sunset
+NanoBeam M5-19 | 5 | ath79 | generic | ubnt_nanobeam-m5-19 | 64MB | stable | nightly
 NanoBridge 2G18 | 2 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | unknown | sunset
 NanoBridge 5G22 | 5 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | stable | sunset
 NanoBridge 5G25 | 5 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | stable | sunset
