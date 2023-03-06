@@ -54,11 +54,11 @@ NanoBeam M5-19 | 5 | ath79 | generic | ubnt_nanobeam-m5-19 | 64MB | stable | nig
 NanoBridge 2G18 | 2 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | unknown | sunset
 NanoBridge 5G22 | 5 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | stable | sunset
 NanoBridge 5G25 | 5 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | stable | sunset
-NanoBridge M9 | 900 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | unknown | sunset
+NanoBridge M9 | 900 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | stable | sunset
 NanoStation AC 5 | 5 | ath79 | generic | ubnt_nanostation-ac | 64MB | stable | nightly
-NanoStation Loco M2 XM | 2 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | unknown | sunset
+NanoStation Loco M2 XM | 2 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | stable | sunset
 NanoStation Loco M5 XM | 5 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | unknown | sunset
-NanoStation Loco M9 XM | 900 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | unknown | sunset
+NanoStation Loco M9 XM | 900 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | stable | sunset
 NanoStation Loco M2 XW | 2 | ath79 | generic | ubnt_nanostation-loco-m-xw | 64MB | unknown | released
 NanoStation Loco M5 XW | 5 | ath79 | generic | ubnt_nanostation-loco-m-xw | 64MB | stable | released
 NanoStation M2 XM | 2 | ath79 | tiny (2) | ubnt_nanostation-m | 32MB | stable | sunset
