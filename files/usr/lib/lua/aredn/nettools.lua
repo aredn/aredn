@@ -124,38 +124,45 @@ function tools.getIperf3(target, protocol)
 	local summary = { protocol = protocol, client = {}, server = {}, sender = {}, receiver = {} }
 	local trace = {}
 	-- start remote server
-	os.execute("wget -q 'http://" .. target .. ":8080/cgi-bin/iperf?server=' > /dev/null 2>&1")
-	local output = capture("/usr/bin/iperf3 -b 0 -c " .. target .. (protocol == "udp" and " -u" or "") .. " 2>&1")
+	local output = capture("/usr/bin/wget -q -O - 'http://localhost:8080/cgi-bin/iperf?server=" .. target .. "&protocol=" .. protocol .. "'")
 	for _, line in ipairs(output:splitNewLine())
 	do
-		local chost, cport, shost, sport = line:match("local ([%d%.]+) port (%d+) connected to ([%d%.]+) port (%d+)")
-		if chost then
-			summary.client = { host = chost, port = tonumber(cport) }
-			summary.server = { host = shost, port = tonumber(sport) }
+		if line:match("<title>CLIENT DISABLED</title>") then
+			summary.error = "client disabled"
+		elseif line:match("<title>SERVER DISABLED</title>") then
+			summary.error = "server disabled"
+		elseif line:match("<title>BUSY</title>") then
+			summary.error = "busy"
 		else
-			local from, to, transfer, tu, bitrate, bu, retr = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)%s+sender")
-			if from then
-				summary.sender = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), retr = tonumber(retr) }
+			local chost, cport, shost, sport = line:match("local ([%d%.]+) port (%d+) connected to ([%d%.]+) port (%d+)")
+			if chost then
+				summary.client = { host = chost, port = tonumber(cport) }
+				summary.server = { host = shost, port = tonumber(sport) }
 			else
-				local from, to, transfer, tu, bitrate, bu = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+receiver")
+				local from, to, transfer, tu, bitrate, bu, retr = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)%s+sender")
 				if from then
-					summary.receiver = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu) }
+					summary.sender = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), retr = tonumber(retr) }
 				else
-					local from, to, transfer, tu, bitrate, bu, jitter, lost, total, percent = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+([%d%.]+) ms%s+(%d+)/(%d+) %(([%d%.]+)%%%)%s+sender")
+					local from, to, transfer, tu, bitrate, bu = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+receiver")
 					if from then
-						summary.sender = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), jitterMs = tonumber(jitter), lostDgrams = tonumber(lost), totalDgrams = tonumber(total), lossPercentage = tonumber(precent) }
+						summary.receiver = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu) }
 					else
-						local from, to, transfer, tu, bitrate, bu, jitter, lost, total, percent = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+([%d%.]+) ms%s+(%d+)/(%d+) %(([%d%.]+)%%%)%s+receiver")
+						local from, to, transfer, tu, bitrate, bu, jitter, lost, total, percent = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+([%d%.]+) ms%s+(%d+)/(%d+) %(([%d%.]+)%%%)%s+sender")
 						if from then
-							summary.receiver = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), jitterMs = tonumber(jitter), lostDgrams = tonumber(lost), totalDgrams = tonumber(total), lossPercentage = tonumber(precent) }
+							summary.sender = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), jitterMs = tonumber(jitter), lostDgrams = tonumber(lost), totalDgrams = tonumber(total), lossPercentage = tonumber(precent) }
 						else
-							local from, to, transfer, tu, bitrate, bu, retr, cwnd, cu = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)%s+([%d%.]+) ([KM])Bytes")
+							local from, to, transfer, tu, bitrate, bu, jitter, lost, total, percent = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+([%d%.]+) ms%s+(%d+)/(%d+) %(([%d%.]+)%%%)%s+receiver")
 							if from then
-								trace[#trace + 1] = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, by), retr = tonumber(retr), cwndKB = toK(cwnd, cu) }
+								summary.receiver = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), jitterMs = tonumber(jitter), lostDgrams = tonumber(lost), totalDgrams = tonumber(total), lossPercentage = tonumber(precent) }
 							else
-								local from, to, transfer, tu, bitrate, bu, dgrams = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)")
+								local from, to, transfer, tu, bitrate, bu, retr, cwnd, cu = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)%s+([%d%.]+) ([KM])Bytes")
 								if from then
-									trace[#trace + 1] = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), dgrams = tonumber(dgrams) }
+									trace[#trace + 1] = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, by), retr = tonumber(retr), cwndKB = toK(cwnd, cu) }
+								else
+									local from, to, transfer, tu, bitrate, bu, dgrams = line:match("([%d%.]+)-([%d%.]+)%s+sec%s+([%d%.]+) ([KM])Bytes%s+([%d%.]+) ([MK])bits/sec%s+(%d+)")
+									if from then
+										trace[#trace + 1] = { from = tonumber(from), to = tonumber(to), transferMB = toM(transfer, tu), bitrateMb = toM(bitrate, bu), dgrams = tonumber(dgrams) }
+									end
 								end
 							end
 						end

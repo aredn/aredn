@@ -49,7 +49,7 @@ print "Cache-Control: no-store\r"
 print("Access-Control-Allow-Origin: *\r")
 print("\r")
 if uci.cursor():get("aredn", "@iperf[0]", "enable") == "0" then
-    print("<html><head><title>DISABLED</title></head><body><pre>iperf is disabled</pre></body></html>")
+    print("<html><head><title>CLIENT DISABLED</title></head><body><pre>iperf is disabled</pre></body></html>")
 elseif not server then
     print("<html><head></head><body><pre>Provide a server name to run a test between this client and a server [/cgi-bin/iperf?server=&lt;ServerName&gt;&amp;protocol=&lt;udp|tcp&gt;]</pre></body></html>")
 elseif server:match("[^%w%-%.]") then
@@ -72,12 +72,14 @@ else
         local f = io.popen("wget -q -O - 'http://" .. server .. ":8080/cgi-bin/iperf?server=' 2>&1")
         if f then
             status = f:read("*a")
-            f:close();
+            f:close()
         end
         if status:match("running") then
             print("<html><head><title>SUCCESS</title></head><body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. io.popen("p=$$;setsid sh -c \"(sleep 20; kill $p)\" > /dev/null 2>&1 & /usr/bin/iperf3 --forceflush -b 0 -Z -c " .. server .. (protocol == "udp" and " -u" or "") .. " 2>&1"):read("*a") .. "</pre></body></html>")
+        elseif status:match("iperf is disabled") then
+            print("<html><head><title>SERVER DISABLED</title></head><body><pre>iperf server is disabled</pre></body></html>")
         else
-            print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf client failed to start server</pre></body></html>")
+            print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf server failed to start server</pre></body></html>")
         end
     end
 end
