@@ -49,4 +49,12 @@ case "$(/usr/local/bin/get_boardid)" in
         ;;
 esac
 
-/sbin/sysupgrade $*
+#
+# Let users force upgrade a node
+#
+force=""
+if [ -f /tmp/force-upgrade-this-is-dangerous ]; then
+  force="--force"
+fi
+
+/sbin/sysupgrade ${force} $*
