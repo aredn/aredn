@@ -846,6 +846,10 @@ end
 html.print("<tr><td align=center colspan=3><b>Current Version:</b> " .. fw_version .. "&nbsp; &nbsp; &nbsp; <b>Hardware Type:</b> (" .. targettype .. ") " .. mfgprefix .. " (" .. hardwaretype .. ")</td></tr>")
 html.print("<tr><td align=center colspan=3>Keep Existing Configuration Settings <input type=checkbox name=checkbox_keep_settings checked title='keep existing configuration settings'></td></tr>")
 
+if nixio.fs.stat("/tmp/force-upgrade-this-is-dangerous") then
+    html.print("<tr><td align=center colspan=3><span style=background-color:red;font-size:140%;>&nbsp; ALL FIRMWARE UPGRADE COMPATIBILITY CHECKS HAVE BEEN DISABLED &nbsp;</span></td></tr>")
+end
+
 html.print("<tr>")
 html.print("<td>Upload Firmware</td>")
 html.print("<td><input style='width:100%' type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin'></td>")

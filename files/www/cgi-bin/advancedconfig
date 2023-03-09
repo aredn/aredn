@@ -289,14 +289,14 @@ local settings = {
         default = "http://unpkg.com/leaflet@0.7.7/dist/leaflet.js"
     },
     {
-        category = "Firmware Paths",
+        category = "Firmware",
         key = "aredn.@downloads[0].firmwarepath",
         type = "string",
         desc = "<b>Firmware Download URL</b><br><br><small>aredn.@downloads[0].firmwarepath</small>",
         default = "http://downloads.arednmesh.org/firmware"
     },
     {
-        category = "Firmware Paths",
+        category = "Firmware",
         key = "aredn.@downloads[0].pkgs_core",
         type = "string",
         desc = "<b>Core Packages Download URL</b><br><br><small>aredn.@downloads[0].pkgs_core</small>",
@@ -304,7 +304,7 @@ local settings = {
         postcallback = "writePackageRepo('core')"
     },
     {
-        category = "Firmware Paths",
+        category = "Firmware",
         key = "aredn.@downloads[0].pkgs_base",
         type = "string",
         desc = "<b>Base Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_base</small>",
@@ -312,7 +312,7 @@ local settings = {
         postcallback = "writePackageRepo('base')"
     },
     {
-        category = "Firmware Paths",
+        category = "Firmware",
         key = "aredn.@downloads[0].pkgs_arednpackages",
         type = "string",
         desc = "<b>AREDN Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_arednpackages</small>",
@@ -320,7 +320,7 @@ local settings = {
         postcallback = "writePackageRepo('arednpackages')"
     },
     {
-        category = "Firmware Paths",
+        category = "Firmware",
         key = "aredn.@downloads[0].pkgs_luci",
         type = "string",
         desc = "<b>Luci Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_luci</small>",
@@ -328,7 +328,7 @@ local settings = {
         postcallback = "writePackageRepo('luci')"
     },
     {
-        category = "Firmware Paths",
+        category = "Firmware",
         key = "aredn.@downloads[0].pkgs_packages",
         type = "string",
         desc = "<b>Package Download URL</b> for packages not included in the other sections<br><br><small>aredn.@downloads[0].pkgs_packages</small>",
@@ -336,7 +336,7 @@ local settings = {
         postcallback = "writePackageRepo('packages')"
     },
     {
-        category = "Firmware Paths",
+        category = "Firmware",
         key = "aredn.@downloads[0].pkgs_routing",
         type = "string",
         desc = "<b>Routing Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_routing</small>",
@@ -344,7 +344,7 @@ local settings = {
         postcallback = "writePackageRepo('routing')"
     },
     {
-        category = "Firmware Paths",
+        category = "Firmware",
         key = "aredn.@downloads[0].pkgs_telephony",
         type = "string",
         desc = "<b>Telephony Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_telephony</small>",
@@ -352,12 +352,21 @@ local settings = {
         postcallback = "writePackageRepo('telephony')"
     },
     {
-        category = "Firmware Paths",
+        category = "Firmware",
         key = "aredn.@downloads[0].pkgs_freifunk",
         type = "string",
         desc = "<b>Freifunk Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_freifunk</small>",
         default = defaultPackageRepos('freifunk'),
         postcallback = "writePackageRepo('freifunk')"
+    },
+    {
+        category = "Firmware",
+        key = "aredn.firmware.dangerous_upgrade",
+        type = "boolean",
+        desc = "<b>Dangerous Upgrade Disables</b> all safety checks usually applied when upgrading firmware<br><br><small>aredn.firmware.dangerous_upgrade</small>",
+        default = "0",
+        current = "current_force_upgrade()",
+        postcallback = "update_force_upgrade()"
     },
     {
         category = "AREDN Alert Settings",
@@ -557,6 +566,19 @@ function lqm_defaults()
     cursor_set("aredn", "@lqm[0]", "min_quality", "50")
     cursor_set("aredn", "@lqm[0]", "ping_penalty", "5")
     cursor_set("aredn", "@lqm[0]", "margin_quality", "1")
+end
+
+function current_force_upgrade()
+    return nixio.fs.stat("/tmp/force-upgrade-this-is-dangerous") and 1 or 0
+end
+
+function update_force_upgrade()
+    if not newval or newval ~= "1" then
+        nixio.fs.remove("/tmp/force-upgrade-this-is-dangerous")
+    else
+        io.open("/tmp/force-upgrade-this-is-dangerous", "w+"):close()
+    end
+
 end
 
 function writePackageRepo(repo)
