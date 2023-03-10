@@ -16,8 +16,12 @@ then
 		return 1;
 	fi
 	if [ "$(echo "$json" | jsonfilter -e '@.tests.fwtool_device_match')" = "false" ]; then
-		echo "firmware device match failed";
-		return 1
+		if [ -f /tmp/force-upgrade-this-is-dangerous ]; then
+			return 0
+		else
+			echo "firmware device match failed";
+			return 1
+		fi
 	fi
 fi
 echo "platform check image failed";
