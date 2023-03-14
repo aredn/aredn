@@ -199,7 +199,8 @@ if validate then
     for _, service in ipairs(services)
     do
         local proto, hostname, port, path = service:match("^(%w+)://([%w%-%.]+):(%d+)(.*)|...|[^|]+$")
-        if vstate[hostname:lower()] or dmz_mode == "0" then
+        local vs = vstate[hostname:lower()]
+        if not vs or vs > now or dmz_mode == "0" then
             if port == "0" then
                 -- no port so not a link - we can only check the hostname so have to assume the service is good
                 vstate[service] = last
@@ -266,7 +267,7 @@ if validate then
         if not vs then
             -- New services will be valid for a while, even if they're not there yet
             services[#services + 1] = service
-            vstate[services] = last
+            vstate[service] = last
         elseif vs > now then
             services[#services + 1] = service
         end
