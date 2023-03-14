@@ -250,22 +250,25 @@ if validate then
     for _, host in ipairs(old_hosts)
     do
         local lname = host.host:lower()
-        local vs = vstate[lname] or 0
-        if vs > now then
+        local vs = vstate[lname]
+        if not vs then
             hosts[#hosts + 1] = host
-        else
-            vstate[lname] = nil
+            vstate[lname] = last
+        elseif vs > now then
+            hosts[#hosts + 1] = host
         end
     end
     local old_services = services
     services = {}
     for _, service in ipairs(old_services)
     do
-        local vs = vstate[service] or 0
-        if vs > now then
+        local vs = vstate[service]
+        if not vs then
+            -- New services will be valid for a while, even if they're not there yet
             services[#services + 1] = service
-        else
-            vstate[services] = nil
+            vstate[services] = last
+        elseif vs > now then
+            services[#services + 1] = service
         end
     end
 
