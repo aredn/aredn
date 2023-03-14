@@ -43,6 +43,8 @@ require("uci")
 
 -- Whether to validate hosts and services before publishing
 local validate = false
+local validation_timeout = 150 * 60 -- 2.5 hours (so must fail 3 times in a row)
+local validation_state = "/tmp/service-validation-state"
 
 -- check what config gile we are building for
 local uci_conf_file
@@ -165,41 +167,52 @@ end
 
 -- validation
 if validate then
+    -- Load previous state
+    local vstate = {}
+    if nixio.fs.stat(validation_state) then
+        for line in io.lines(validation_state)
+        do
+            local last, key = line:match("^(%d+) (.*)$")
+            if last then
+                vstate[key] = tonumber(last)
+            end
+        end
+    end
+    local now = os.time()
+    local last = now + validation_timeout
     local laniface = aredn.hardware.get_iface_name("lan")
-    local valid_hosts = {}
     -- Add in local names so services checks pass
     for _, name in ipairs(names)
     do
-        valid_hosts[name:lower()] = { host = name, ip = nil }
+        vstate[name:lower()] = last
     end
     -- Check we can reach all the IP addresses
     for _, host in ipairs(hosts)
     do
         if os.execute("/bin/ping -q -c 1 -W 1 " .. host.ip .. " > /dev/null 2>&1") == 0 then
-            valid_hosts[host.host:lower()] = host
+            vstate[host.host:lower()] = last
         elseif os.execute("/usr/sbin/arping -q -f -c 1 -w 1 -I " .. laniface .. " " .. host.ip .. " > /dev/null 2>&1") == 0 then
-            valid_hosts[host.host:lower()] = host
+            vstate[host.host:lower()] = last
         end
     end
     -- Check all the services have a valid host
-    local valid_services = {}
     for _, service in ipairs(services)
     do
         local proto, hostname, port, path = service:match("^(%w+)://([%w%-%.]+):(%d+)(.*)|...|[^|]+$")
-        if valid_hosts[hostname:lower()] or dmz_mode == "0" then
+        if vstate[hostname:lower()] or dmz_mode == "0" then
             if port == "0" then
                 -- no port so not a link - we can only check the hostname so have to assume the service is good
-                valid_services[#valid_services + 1] = service
+                vstate[service] = last
             elseif proto == "http" then
                 -- http so looks like a link. http check it
                 local status, effective_url = io.popen("/usr/bin/curl --max-time 10 --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --location --write-out '%{http_code} %{url_effective}' " .. "http://" .. hostname .. ":" .. port .. path):read("*a"):match("^(%d+) (.*)")
                 if status == "200" or status == "401" then
-                    valid_services[#valid_services + 1] = service
+                    vstate[service] = last
                 elseif status == "301" or status == "302" or status == "303" or status == "307" or status == "308" then
 		            -- Ended at a redirect rather than an actual page.
                     if effective_url:match("^https:") then
                         -- We cannot validate https: links so we just assume they're okay
-                        valid_services[#valid_services + 1] = service
+                        vstate[service] = last
                     end
                 end
             else
@@ -212,7 +225,7 @@ if validate then
                 s:close()
                 if r == true then
                     -- tcp connection succeeded
-                    valid_services[#valid_services + 1] = service
+                    vstate[service] = last
                 else
                     -- udp
                     s = nixio.socket("inet", "dgram")
@@ -224,21 +237,47 @@ if validate then
                     if r ~= nil then
                         -- A nil response is an explicity rejection of the udp request. Otherwise we have
                         -- to assume the service is valid
-                        valid_services[#valid_services + 1] = service
+                        vstate[service] = last
                     end
                 end
             end
         end
     end
+
+    -- Generate new hosts and services as long as they're valid
     local old_hosts = hosts
     hosts = {}
     for _, host in ipairs(old_hosts)
     do
-        if valid_hosts[host.host:lower()] then
+        local lname = host.host:lower()
+        local vs = vstate[lname] or 0
+        if vs > now then
             hosts[#hosts + 1] = host
+        else
+            vstate[lname] = nil
         end
     end
-    services = valid_services
+    local old_services = services
+    services = {}
+    for _, service in ipairs(old_services)
+    do
+        local vs = vstate[service] or 0
+        if vs > now then
+            services[#services + 1] = service
+        else
+            vstate[services] = nil
+        end
+    end
+
+    -- Store state for next time
+    local f = io.open(validation_state, "w")
+    if f then
+        for key, last in pairs(vstate)
+        do
+            f:write(last .. " " .. key .. "\n")
+        end
+        f:close()
+    end
 end
 -- end validation
 
