@@ -140,7 +140,7 @@ function html.navbar_admin(selected)
     do
         local nav = navs[key]
         if nav then
-            html.print("<td align=center width=" .. width .. (nav.href == selected and " class='navbar_select'" or "") .. "><a href='" .. nav.href .. "?f=" .. selected .. "'>" .. nav.display .. "</a></td>")
+            html.print("<td align=center width=" .. width .. (nav.href == selected and " class='navbar_select'" or "") .. "><a href='" .. nav.href .. "'>" .. nav.display .. "</a></td>")
         end
     end
     html.print("</tr><tr><td colspan=100%><hr></td></tr></table>")
