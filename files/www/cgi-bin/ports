@@ -829,6 +829,8 @@ if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or 
     filecopy(tmpdir .. "/services", servfile)
     filecopy(tmpdir .. "/aliases", aliasfile)
 
+    os.remove("/tmp/service-validation-state")
+
     if os.execute("/usr/local/bin/node-setup -a -p mesh > /dev/null 2>&1") ~= 0 then
         err("problem with configuration")
     end
