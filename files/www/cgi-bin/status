@@ -141,17 +141,6 @@ function get_wifi_signal(wifiif)
     end
 end
 
-function css_options()
-    html.print("<option>Select a theme</option>")
-    for file in nixio.fs.glob("/www/*.css")
-    do
-        if file ~= "/www/style.css" then
-            file = file:match("/www/(.*).css")
-            html.print("<option value=\"" .. file .. ".css\">" .. file .. "</option>")
-        end
-    end
-end
-
 -- helpers end
 
 local node = aredn_info.get_nvram("node")
@@ -265,29 +254,7 @@ end
 html.print("<hr>")
 
 -- nav buttons
-html.print("<nobr>")
-html.print("<a href='/help.html' target='_blank'>Help</a>")
-html.print("&nbsp;&nbsp;")
-html.print("<input type=button name=refresh value=Refresh title='Refresh this page' onclick='window.location.reload()'>")
-if config == "mesh" then
-    html.print("&nbsp;&nbsp;")
-    html.print("<button type=button onClick='window.location=\"mesh\"' title='See what is on the mesh'>Mesh Status</button>")
-    if cursor:get("aredn", "@lqm[0]", "enable") == "1" then
-        html.print("&nbsp;&nbsp;")
-        html.print("<button type=button onClick='window.location=\"lqm\"' title='See the link status to our neighbors'>Neighbor Status</button>")
-    end
-    if not wifi_disabled then
-        html.print("&nbsp;&nbsp;")
-        html.print("<button type=button onClick='window.location=\"scan\"' title='See what wireless networks are nearby'>WiFi Scan</button>")
-    end
-end
-html.print("&nbsp;&nbsp;")
-html.print("<button type=button onClick='window.location=\"setup\"' title='Configure this node'>Setup</button>")
-html.print("&nbsp;&nbsp;")
-html.print("<select name=\"css\" size=\"1\" onChange=\"form.submit()\" >")
-css_options()
-html.print("</select>")
-html.print("</nobr>")
+html.navbar_user("status")
 
 html.print("<input type=hidden name=reload value=reload>")
 

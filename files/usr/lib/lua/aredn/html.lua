@@ -88,6 +88,65 @@ function html.msg_banner()
     html.print("</div>")
 end
 
+function html.navbar_user(selected)
+    local opath = package.path
+    package.path = '/www/cgi-bin/?;' .. package.path
+    local order = {}
+    local navs = {}
+    for file in nixio.fs.dir("/www/cgi-bin/nav/user")
+    do
+        order[#order + 1] = file
+        navs[file] = require("nav.user." .. file)
+    end
+    table.sort(order)
+    html.print("<nobr>")
+    html.print("<a href='/help.html' target='_blank'>Help</a>")
+    html.print("&nbsp;&nbsp;<input type=button name=refresh value=Refresh title='Refresh this page' onclick='window.location.reload()'>")
+    for _, key in ipairs(order)
+    do
+        local nav = navs[key]
+        if nav then
+            html.print("&nbsp;&nbsp;<button type=button onClick='window.location=\"" .. nav.href .. "\"' title='" .. (nav.title or "") .. "'>" .. nav.display .. "</button>")
+        end
+    end
+    html.print("&nbsp;&nbsp;<select name=\"css\" size=\"1\" onChange=\"form.submit()\" >")
+    html.print("<option>Select a theme</option>")
+    for file in nixio.fs.glob("/www/*.css")
+    do
+        if file ~= "/www/style.css" then
+            file = file:match("/www/(.*).css")
+            html.print("<option value=\"" .. file .. ".css\">" .. file .. "</option>")
+        end
+    end
+    html.print("</select>")
+    html.print("</nobr>")
+    package.path = opath
+end
+
+function html.navbar_admin(selected)
+    local opath = package.path
+    package.path = '/www/cgi-bin/?;' .. package.path
+    local order = {}
+    local navs = {}
+    for file in nixio.fs.dir("/www/cgi-bin/nav/admin")
+    do
+        order[#order + 1] = file
+        navs[file] = require("nav.admin." .. file)
+    end
+    table.sort(order)
+    html.print("<table cellpadding=5 border=0 align=center width='" .. (#order * 120) .. "px'><tr><td colspan=100%><hr></td></tr><tr>")
+    local width = math.floor(100 / #order) .. "%"
+    for _, key in ipairs(order)
+    do
+        local nav = navs[key]
+        if nav then
+            html.print("<td align=center width=" .. width .. (nav.href == selected and " class='navbar_select'" or "") .. "><a href='" .. nav.href .. "'>" .. nav.display .. "</a></td>")
+        end
+    end
+    html.print("</tr><tr><td colspan=100%><hr></td></tr></table>")
+    package.path = opath
+end
+
 function html.print(line)
     -- html output is defined in aredn.http
     -- this is a bit icky at the moment :-()
