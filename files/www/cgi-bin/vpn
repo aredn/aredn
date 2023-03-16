@@ -86,11 +86,6 @@ function hide(inp)
     hidden[#hidden + 1] = inp
 end
 
-function navbar()
-    html.print("<tr><td>")
-    html.navbar_admin("vpn")
-end
-
 function get_active_tun()
     local tuns = {}
     local f = io.popen("ps -w | grep vtun | grep ' tun '")
@@ -168,9 +163,9 @@ if config == "" or nixio.fs.stat("/tmp/reboot-required") then
     html.header(node .. " setup", true);
     html.print("<body><center>")
     html.alert_banner()
+    html.navbar_admin("vpn")
     html.print("<table width=790><tr><td>")
-    navbar();
-    html.print("</td></tr><tr><td align=center><br>")
+    html.print("<tr><td align=center><br>")
     if config == "" then
         html.print("<b>This page is not available until the configuration has been set.</b>")
     else
@@ -369,12 +364,11 @@ html.header(node .. " setup", true)
 html.print("<body><center>")
 html.alert_banner()
 html.print("<form id=vpn method=post action=/cgi-bin/vpn enctype='multipart/form-data'>")
-html.print("<form method=post action=test>")
-html.print("<table width=790>")
 
 -- navigation bar
-navbar()
-html.print("</td></tr>")
+html.navbar_admin("vpn")
+
+html.print("<table width=790>")
 
 -- control buttons
 html.print("<tr><td align=center>")

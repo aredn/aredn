@@ -73,11 +73,6 @@ if os.getenv("REQUEST_METHOD") == "POST" then
     parms = request:formvalue()
 end
 
-function navbar()
-    html.print("<tr><td>")
-    html.navbar_admin("ports")
-end
-
 function validate_service_name(name)
     if not name or name == "" or name:match("[:-\"|<>]") then
         return false
@@ -139,10 +134,10 @@ local macs = {}
 if config ~= "mesh" or nixio.fs.stat("/tmp/reboot-required") then
     http_header()
     html.header(node .. " setup", true)
-    html.print("<body><center><table width=820><tr><td>")
+    html.print("<body><center>")
     html.alert_banner()
-    navbar()
-    html.print("</td></tr><tr><td align=center><br><b>")
+    html.navbar_admin("ports")
+    html.print("<table width=820><tr><td align=center><br><b>")
     if config == "" then
         html.print("This page is not available until the configuration has been set.")
     else
@@ -844,10 +839,8 @@ html.header(node .. " setup", true)
 html.print("<body><center>")
 html.alert_banner()
 html.print("<form method=post action=/cgi-bin/ports enctype='multipart/form-data'>")
+html.navbar_admin("ports")
 html.print("<table width=820>")
-html.print("<tr><td>")
-navbar()
-html.print("</td></tr>")
 
 -- control buttons
 html.print([[<tr><td align=center>

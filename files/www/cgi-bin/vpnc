@@ -90,11 +90,6 @@ function err2(msg)
     errors[#errors + 1] = msg
 end
 
-function navbar()
-    html.print("<tr><td>")
-    html.navbar_admin("vpnc")
-end
-
 function get_active_tun()
     local tuns = {}
     local f = io.popen("ps -w | grep vtun | grep ' tun '")
@@ -152,9 +147,9 @@ if config == "" or nixio.fs.stat("/tmp/reboot-required") then
     html.header(node .. " setup", true);
     html.print("<body><center>")
     html.alert_banner()
+    html.navbar_admin("vpnc")
     html.print("<table width=790>")
-    navbar();
-    html.print("</td></tr><tr><td align=center><br>")
+    html.print("<tr><td align=center><br>")
     if config == "" then
         html.print("<b>This page is not available until the configuration has been set.</b>")
     else
@@ -345,15 +340,13 @@ html.header(node .. " setup", true)
 html.print("<body><center>")
 html.alert_banner()
 
-html.print("<form method=post action=/cgi-bin/vpnc enctype='multipart/form-data'><table width=790>")
+html.print("<form method=post action=/cgi-bin/vpnc enctype='multipart/form-data'>")
 
 -- nav bar
-html.print("<tr><td>")
-navbar()
-html.print("</td></tr>")
+html.navbar_admin("vpnc")
 
 -- control buttons
-html.print("<tr><td align=center>")
+html.print("<table width=790><tr><td align=center>")
 html.print("<a href='/help.html#tunnels' target='_blank'>Help</a>")
 html.print("&nbsp;&nbsp;&nbsp;")
 html.print("<input type=submit name=button_save value='Save Changes' title='Save and use these settings now (takes about 20 seconds)'>&nbsp;")
