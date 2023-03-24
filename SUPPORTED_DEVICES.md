@@ -43,6 +43,7 @@ Bullet M5 || 5 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | stable | sunse
 Bullet M5Ti || 5 | ath79 | - | - | 32MB | unknown | sunset
 Bullet M2 || 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | stable | sunset
 Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | unknown | released
+LiteAP 5AC | LAP-120 <nbr> LAP-120-US <br> LBE-5AC-16-120 <br> LBE-5AC-16-120-US | 5 | ath79 | generic | ubnt_lap-120 | 64MB | stable | nightly
 LiteBeam AC5 Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | nightly
 LiteBeam M5 || 5 | ath79 | - | - | 64MB | unknown | released
 NanoBeam AC 5 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | unknown | nightly
