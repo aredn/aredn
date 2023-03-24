@@ -45,6 +45,7 @@ Bullet M2 || 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | stable | sunse
 Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | unknown | released
 LiteBeam AC5 Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | nightly
 LiteBeam M5 || 5 | ath79 | - | - | 64MB | unknown | released
+NanoBeam AC 2 (2WA) | NBE-2AC-13 | 2 | ath79 | generic | ubnt_nanobeam-2ac | 64MB | buggy | nightly
 NanoBeam AC 5 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | unknown | nightly
 NanoBeam AC 5 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | nightly
 NanoBeam AC 5 Gen 2 || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | nightly
@@ -132,6 +133,7 @@ Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 ### Stability
 * *untested* - this image has not been tested on hardware. It may or may not work.
 * *stable* - this image has been tested on hardware. There may still be bugs.
+* *buggy* - this image is working on the hardware, but there are known bugs still.
 
 ### Status
 * *released* - this image is in a production release of the AREDN firmware.
