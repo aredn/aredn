@@ -211,7 +211,7 @@ end
 
 -- get IP from CIDR (strip network)
 function ipFromCIDR(ip)
-	return string.match(ip,"(.*)/.-")
+	return string.match(ip,"(%d+%.%d+%.%d+%.%d+)")
 end
 
 -- strips newline from a string
