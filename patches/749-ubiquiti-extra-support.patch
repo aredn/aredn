@@ -91,3 +91,81 @@
  	ubnt,nanostation-ac-loco|\
  	ubnt,nanostation-loco-m-xw|\
  	ubnt,powerbeam-5ac-500|\
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image/generic-ubnt.mk
+@@ -165,6 +165,14 @@
+ endef
+ TARGET_DEVICES += ubnt_powerbeam-5ac-gen2
+ 
++define Device/ubnt_powerbeam-5ac-400
++  $(Device/ubnt-wa)
++  DEVICE_MODEL := PowerBeam 5AC 400
++  DEVICE_VARIANT := 400
++  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct rssileds
++endef
++TARGET_DEVICES += ubnt_powerbeam-5ac-400
++
+ define Device/ubnt_powerbeam-m2-xw
+   $(Device/ubnt-xw)
+   DEVICE_MODEL := PowerBeam M2
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9342_ubnt_powerbeam-5ac-400.dts
+@@ -0,0 +1,38 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "ar9342_ubnt_wa_1port.dtsi"
++
++/ {
++	compatible = "ubnt,powerbeam-5ac-400", "ubnt,wa", "qca,ar9342";
++	model = "Ubiquiti PowerBeam 5AC 400";
++
++	aliases {
++		led-boot = &led_rssi3;
++		led-failsafe = &led_rssi3;
++		led-upgrade = &led_rssi3;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		rssi0 {
++			label = "blue:rssi0";
++			gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
++		};
++
++		rssi1 {
++			label = "blue:rssi1";
++			gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
++		};
++
++		rssi2 {
++			label = "blue:rssi2";
++			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
++		};
++
++		led_rssi3: rssi3 {
++			label = "blue:rssi3";
++			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
++		};
++	};
++};
+--- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+@@ -101,6 +101,7 @@
+ 	ubnt,nanostation-ac-loco|\
+ 	ubnt,nanostation-loco-m-xw|\
+ 	ubnt,powerbeam-5ac-500|\
++	ubnt,powerbeam-5ac-400|\
+ 	ubnt,powerbeam-5ac-gen2|\
+ 	ubnt,powerbeam-m2-xw|\
+ 	ubnt,powerbeam-m5-xw|\
+--- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -47,6 +47,7 @@
+ 	ubnt,nanobeam-ac-xc|\
+ 	ubnt,nanostation-ac|\
+ 	ubnt,nanostation-ac-loco|\
++	ubnt,powerbeam-5ac-400|\
+ 	ubnt,powerbeam-5ac-500|\
+ 	ubnt,powerbeam-5ac-gen2|\
+ 	ubnt,rocket-5ac-lite|\
