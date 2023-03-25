@@ -1187,7 +1187,9 @@ function print_services()
             end
             for i = 1,parms.dhcp_num
             do
-                html.print("<option " .. (parms["dhcp" .. i .. "_host"] == _host and "selected" or "") .. " value='" .. parms["dhcp" .. i .. "_host"] .. "'>" .. parms["dhcp" .. i .. "_host"] .. "</option>")
+                if parms["dhcp" .. i .. "_noprop"] ~= "#NOPROP" then
+                    html.print("<option " .. (parms["dhcp" .. i .. "_host"] == _host and "selected" or "") .. " value='" .. parms["dhcp" .. i .. "_host"] .. "'>" .. parms["dhcp" .. i .. "_host"] .. "</option>")
+                end
             end
             html.print("</select>")
         else
