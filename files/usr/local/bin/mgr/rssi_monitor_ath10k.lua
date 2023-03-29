@@ -38,6 +38,9 @@ local periodic_scan_time = 300 -- 5 minutes
 local wifiiface
 local last_scan_time = 0
 
+local IW = "/usr/sbin/iw"
+local ARPING = "/usr/sbin/arping"
+
 function rssi_monitor_10k()
     if not string.match(get_ifname("wifi"), "^wlan") then
         exit_app()
@@ -88,6 +91,34 @@ function run_monitor_10k()
          log:flush()
     end
     last_station_count = station_count
+
+    -- Check each station to make sure we can broadcast and unicast to them
+    arptable(
+        function (entry)
+            if entry.Device == wifiiface then
+                local ip = entry["IP address"]
+                local mac = entry["HW address"]
+                if entry["Flags"] ~= "0x0" and ip and mac then
+                    local reassociate = false
+                    -- Two arp pings - the first is broadcast, the second unicast
+                    for line in io.popen(ARPING .. " -c 2 -I " .. wifiiface .. " " .. ip):lines()
+                    do
+                        -- If we see exactly one response then we neeed to force the station to reassociate
+                        -- This indicates that broadcasts work, but unicasts dont
+                        if line:match("Received 1 response") then
+                            reassociate = true
+                            break
+                        end
+                    end
+                    if reassociate then
+                        os.execute(IW .. " " .. wifiiface .. " station del " .. mac)
+                        log:write("Unresponsive node forced to reassociate: ip " .. ip .. ", mac " .. mac)
+                        log:flush()
+                    end
+                end
+            end
+        end
+    )
 end
 
 return rssi_monitor_10k
