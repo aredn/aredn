@@ -48,7 +48,8 @@ LiteBeam AC5 Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebea
 LiteBeam M5 || 5 | ath79 | - | - | 64MB | unknown | released
 NanoBeam AC 5 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | unknown | nightly
 NanoBeam AC 5 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | nightly
-NanoBeam AC 5 Gen 2 || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | nightly
+NanoBeam AC 5 Gen 2 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | nightly
+NanoBeam AC 5 Gen 2 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2-xc | 128MB | unknown | nightly
 NanoBeam M2-13 || 2 | ath79 | - | - | 32MB | unknown | sunset
 NanoBeam M5-16 || 5 | ath79 | generic | ubnt_nanobeam-m5-16 | 64MB | stable | nightly
 NanoBeam M5-19 || 5 | ath79 | generic | ubnt_nanobeam-m5-19 | 64MB | stable | nightly

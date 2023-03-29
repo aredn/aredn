@@ -169,3 +169,163 @@
  	ubnt,powerbeam-5ac-500|\
  	ubnt,powerbeam-5ac-gen2|\
  	ubnt,rocket-5ac-lite|\
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image/generic-ubnt.mk
+@@ -87,6 +87,15 @@
+ endef
+ TARGET_DEVICES += ubnt_nanobeam-ac-xc
+ 
++define Device/ubnt_nanobeam-ac-gen2-xc
++  $(Device/ubnt-xc)
++  SOC := qca9558
++  DEVICE_MODEL := NanoBeam AC
++  DEVICE_VARIANT := Gen2 (XC)
++  DEVICE_PACKAGES += kmod-ath10k-ct ath10k-firmware-qca988x-ct rssileds
++endef
++TARGET_DEVICES += ubnt_nanobeam-ac-gen2-xc
++
+ define Device/ubnt_nanobeam-m5-xw
+   $(Device/ubnt-xw)
+   DEVICE_MODEL := NanoBeam M5
+--- /dev/null
++++ b/target/linux/ath79/dts/qca9558_ubnt_nanobeam-ac-gen2-xc.dts
+@@ -0,0 +1,111 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Device Tree file for Ubiquiti Nanobeam NBE-5AC-19 (XC)
++ *
++ * Copyright (C) 2022 Daniel González Cabanelas <dgcbueu@gmail.com>
++ * based on device tree from qca9558_ubnt_powerbeam-5ac-500.dts
++ */
++ 
++#include "qca955x_ubnt_xc.dtsi"
++
++/ {
++	compatible = "ubnt,nanobeam-ac-gen2-xc", "ubnt,xc", "qca,qca9558";
++	model = "Ubiquiti NanoBeam AC Gen2 (XC)";
++
++	aliases {
++		led-boot = &led_power;
++		led-failsafe = &led_power;
++		led-running = &led_power;
++		led-upgrade = &led_power;
++	};
++
++	keys {
++		compatible = "gpio-keys";
++
++		reset {
++			label = "Reset button";
++			linux,code = <KEY_RESTART>;
++			gpios = <&gpio 19 GPIO_ACTIVE_LOW>;
++			debounce-interval = <60>;
++		};
++	};
++
++	led_spi {
++		compatible = "spi-gpio";
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		sck-gpios  = <&gpio 0 GPIO_ACTIVE_HIGH>;
++		mosi-gpios = <&gpio 1 GPIO_ACTIVE_HIGH>;
++		cs-gpios   = <&gpio 3 GPIO_ACTIVE_HIGH>;
++		num-chipselects = <1>;
++
++		led_gpio: led_gpio@0 {
++			compatible = "fairchild,74hc595";
++			reg = <0>;
++			gpio-controller;
++			#gpio-cells = <2>;
++			registers-number = <1>;
++			spi-max-frequency = <10000000>;
++			enable-gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		rssi0 {
++			label = "blue:rssi0";
++			gpios = <&led_gpio 0 GPIO_ACTIVE_LOW>;
++		};
++		rssi1 {
++			label = "blue:rssi1";
++			gpios = <&led_gpio 1 GPIO_ACTIVE_LOW>;
++		};
++		rssi2 {
++			label = "blue:rssi2";
++			gpios = <&led_gpio 2 GPIO_ACTIVE_LOW>;
++		};
++		rssi3 {
++			label = "blue:rssi3";
++			gpios = <&led_gpio 3 GPIO_ACTIVE_LOW>;
++		};
++		led_power: power {
++			label = "blue:power";
++			gpios = <&led_gpio 4 GPIO_ACTIVE_LOW>;
++			default-state = "on";
++		};
++	};
++};
++
++&mdio0 {
++	status = "okay";
++
++	phy-mask = <4>;
++	phy4: ethernet-phy@4 {
++		phy-mode = "sgmii";
++		reg = <4>;
++		at803x-override-sgmii-link-check;
++	};
++};
++
++&eth0 {
++	status = "okay";
++
++	pll-reg = <0 0x48 0>;
++	pll-data = <0x03000000 0x00000101 0x00001313>;
++	nvmem-cells = <&macaddr_art_0>;
++	nvmem-cell-names = "mac-address";
++	phy-mode = "sgmii";
++	phy-handle = <&phy4>;
++};
++
++&art {
++	compatible = "nvmem-cells";
++	#address-cells = <1>;
++	#size-cells = <1>;
++
++	macaddr_art_0: macaddr@0 {
++		reg = <0x0 0x6>;
++	};
++};
+--- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+@@ -96,6 +96,7 @@
+ 	ubnt,litebeam-ac-gen2|\
+ 	ubnt,nanobeam-ac|\
+ 	ubnt,nanobeam-ac-xc|\
++	ubnt,nanobeam-ac-gen2-xc|\
+ 	ubnt,nanobeam-m5-1[69]|\
+ 	ubnt,nanostation-ac-loco|\
+ 	ubnt,nanostation-loco-m-xw|\
+@@ -762,6 +763,7 @@
+ 	ubnt,litebeam-ac-gen2|\
+ 	ubnt,nanobeam-ac-gen2|\
+ 	ubnt,nanobeam-ac-xc|\
++	ubnt,nanobeam-ac-gen2-xc|\
+ 	ubnt,powerbeam-5ac-500|\
+ 	ubnt,powerbeam-5ac-gen2)
+ 		label_mac=$(mtd_get_mac_binary art 0x5006)
+--- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -43,6 +43,7 @@
+ 	ubnt,litebeam-ac-gen2|\
+ 	ubnt,nanobeam-ac|\
+ 	ubnt,nanobeam-ac-gen2|\
++	ubnt,nanobeam-ac-gen2-xc|\
+ 	ubnt,nanobeam-ac-xc|\
+ 	ubnt,nanostation-ac|\
+ 	ubnt,nanostation-ac-loco|\
