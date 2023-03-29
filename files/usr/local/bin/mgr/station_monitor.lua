@@ -1,7 +1,7 @@
 --[[
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2022 Tim Wilkinson
+	Copyright (C) 2023 Tim Wilkinson
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -33,12 +33,12 @@
 
 --]]
 
-local periodic_scan_time = 300 -- 5 minutes
-
 local wifiiface
-local last_scan_time = 0
 
-function rssi_monitor_10k()
+local IW = "/usr/sbin/iw"
+local ARPING = "/usr/sbin/arping"
+
+function station_monitor()
     if not string.match(get_ifname("wifi"), "^wlan") then
         exit_app()
     else
@@ -46,48 +46,45 @@ function rssi_monitor_10k()
 
         wifiiface = get_ifname("wifi")
 
-        -- ath10k only
-        local phy = iwinfo.nl80211.phyname(wifiiface)
-        if not phy or not nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k") then
-            exit_app()
-            return
-        end
-
         while true
         do
-            run_monitor_10k()
+            run_station_monitor()
             wait_for_ticks(60) -- 1 minute
         end
     end
 end
 
-local logfile = "/tmp/rssi_ath10k.log"
-
+local logfile = "/tmp/station_monitor.log"
 if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
+local log = aredn.log.open(logfile, 8000)
 
-local last_station_count = 0
-local log = aredn.log.open(logfile, 16000)
+function run_station_monitor()
 
-function run_monitor_10k()
-
-    local station_count = 0
-    local stations = iwinfo.nl80211.assoclist(wifiiface)
-    for mac, station in pairs(stations)
-    do
-        station_count = station_count + 1
-    end
-
-    if station_count == 0 and (last_station_count ~= 0 or nixio.sysinfo().uptime > periodic_scan_time + last_scan_time) then
-         -- reset
-         last_scan_time = nixio.sysinfo().uptime
-         os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
-         os.execute("/usr/sbin/iw " .. wifiiface .. " scan passive > /dev/null 2>&1")
-         log:write("No stations detected")
-         log:flush()
-    end
-    last_station_count = station_count
+    -- Check each station to make sure we can broadcast and unicast to them
+    arptable(
+        function (entry)
+            if entry.Device == wifiiface then
+                local ip = entry["IP address"]
+                local mac = entry["HW address"]
+                if entry["Flags"] ~= "0x0" and ip and mac then
+                    -- Two arp pings - the first is broadcast, the second unicast
+                    for line in io.popen(ARPING .. " -c 2 -I " .. wifiiface .. " " .. ip):lines()
+                    do
+                        -- If we see exactly one response then we neeed to force the station to reassociate
+                        -- This indicates that broadcasts work, but unicasts dont
+                        if line:match("Received 1 response") then
+                            os.execute(IW .. " " .. wifiiface .. " station del " .. mac)
+                            log:write("Unresponsive node forced to reassociate: ip " .. ip .. ", mac " .. mac)
+                            log:flush()
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    )
 end
 
-return rssi_monitor_10k
+return station_monitor
