@@ -3,8 +3,7 @@
 ## Mikrotik
 Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-hAP ac lite | RB952Ui-5ac2nD | 2 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
-hAP ac lite TC | RB952Ui-5ac2nD-TC
+hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
 hAP ac² | RBD52G-5HacD2HnD-TC | 2 | ipq40xx | mikrotik | mikrotik_hap-ac2 | 128MB | stable | nightly
 hAP ac³ | RBD53iG-5HacD2HnD | 2 | ipq40xx | mikrotik | mikrotik_hap-ac3 | 256MB | stable | nightly
 SXTsq Lite2 | RBSXTsq2nD | 2 | ath79 | mikrotik | - | 64MB | unknown | released
@@ -20,14 +19,11 @@ LHG 5 ac | RBLHGG-5acD | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd | 256MB | s
 LHG XL 5 ac | RBLHGG-5acD-XL | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd-xl | 256MB | stable | nightly
 LDF 2 | RBLDF-2nD | 2 | ath79 | mikrotik | - | 64MB | unknown | released
 LDF 5 | RBLDF-5nD | 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | nightly
-RB911G-2HPnD | RB911G-2HPnD | 2 | ath79 | mikrotik | - | 64MB | unknown | released
-mANTBox 2 12s | RB911G-2HPnD-12S
+RB911G-2HPnD <br> mANTBox 2 12s | RB911G-2HPnD <br> RB911G-2HPnD-12S | 2 | ath79 | mikrotik | - | 64MB | unknown | released
 RB911G-5HPnD | RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | unknown | released
 QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | reinstall
-RB912UAG-2HPnD | RB912UAG-2HPnD | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | unknown | released
-BaseBox 2 | RB912UAG-2HPnD-OUT
-RB912UAG-5HPnD | RB912UAG-5HPnD | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | reinstall
-BaseBox 5 | RB912UAG-5HPnD-OUT
+RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | unknown | released
+ RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | reinstall
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | nightly
 mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | nightly
 
