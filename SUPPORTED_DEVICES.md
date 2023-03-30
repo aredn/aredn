@@ -12,6 +12,7 @@ Mikrotik RBLHG-5nD || 5 | ath79 | mikrotik | mikrotik-lhg-5nd | 64MB | stable | 
 Mikrotik RBLHG-5HPnD || 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd | 64MB | stable | released
 Mikrotik RBLHG-5HPnD-XL || 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd-xl | 64MB | stable | released
 MikroTik RBLHGG-5acD | RBLHGG-5acD | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd | 256MB | stable | nightly
+MikroTik RBDiscG-5acD | RBLHGG-5acD | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd | 256MB | stable | nightly
 MikroTik RBLHGG-5acD-XL | RBLHGG-5acD-XL | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd-xl | 256MB | stable | nightly
 Mikrotik RBLDF-2nD || 2 | ath79 | mikrotik | - | 64MB | unknown | released
 Mikrotik RBLDF-5nD || 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | nightly
