@@ -116,13 +116,13 @@ TPLink WBS510 v2.0 || 5 | ath79 | generic | tplink_wbs510-v2 | 64MB | unknown | 
 ## GL.iNet
 Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-GL.iNet GL-AR150 || 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released (1)
-GL.iNet GL-USB150 || 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released (1)
-GL.iNet GL-AR300M16 | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
-GL.iNet GL-AR300M w/ 128MB NAND || 2 | ath79 | nand | gl-ar300m | 64MB | unknown | nightly
-GL.iNet GL-AR750 (creta) || 2 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | released
-GL.iNet GL-AR750s (slate) || 2 | ath79 | nand | gl-ar750s | 128MB | unknown | nightly
-GL.iNet GL-E750 || 2 | ath79 | nand | gl-e750 | 128MB | unknown | nightly
+White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released (1)
+Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released (1)
+Shadow (16MB NOR) | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
+Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | unknown | nightly
+Creta | GL-AR750 | 2 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | released
+Slate | GL-AR750S-Ext | 2 | ath79 | nand | gl-ar750s | 128MB | unknown | nightly
+Mudi | GL-E750 | 2 | ath79 | nand | gl-e750 | 128MB | unknown | nightly
 
 ## Others
 Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
