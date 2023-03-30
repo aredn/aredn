@@ -13,7 +13,7 @@ SXTsq 5 High Power | RBSXTsq5HPnD | 5 | ath79 | mikrotik | mikrotik-sxt-5hpnd | 
 SXTsq 5 ac | RBSXTsqG-5acD | 5 | ipq40xx | mikrotik | mikrotik_sxtsq-5-ac | 256MB | stable | nightly
 LHG 2 | RBLHG-2nD | 2 | ath79 | mikrotik | mikrotik-lhg-2nd | 64MB | stable | released
 LHG XL 2 | RBLHG-2nD-XL | 2 | ath79 | mikrotik | mikrotik-lhg-2nd-xl | 64MB | stable | released
-LHG 5 | RBLHG-5nD | | 5 | ath79 | mikrotik | mikrotik-lhg-5nd | 64MB | stable | released
+LHG 5 | RBLHG-5nD | 5 | ath79 | mikrotik | mikrotik-lhg-5nd | 64MB | stable | released
 LHG HP5 | RBLHG-5HPnD | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd | 64MB | stable | released
 LHG XL HP5 | RBLHG-5HPnD-XL | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd-xl | 64MB | stable | released
 LHG 5 ac | RBLHGG-5acD | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd | 256MB | stable | nightly
