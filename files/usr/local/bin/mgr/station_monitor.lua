@@ -49,7 +49,7 @@ function station_monitor()
         while true
         do
             run_station_monitor()
-            wait_for_ticks(60) -- 1 minute
+            wait_for_ticks(300) -- 5 minute
         end
     end
 end
@@ -75,8 +75,7 @@ function run_station_monitor()
                         -- If we see exactly one response then we neeed to force the station to reassociate
                         -- This indicates that broadcasts work, but unicasts dont
                         if line:match("Received 1 response") then
-                            os.execute(IW .. " " .. wifiiface .. " station del " .. mac)
-                            log:write("Unresponsive node forced to reassociate: ip " .. ip .. ", mac " .. mac)
+                            log:write("Unresponsive node: ip " .. ip .. ", mac " .. mac)
                             log:flush()
                             break
                         end
