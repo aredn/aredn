@@ -3,31 +3,29 @@
 ## Mikrotik
 Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-Mikrotik Basebox RB912UAG-2HPnD || 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | unknown | released
-Mikrotik Basebox RB912UAG-5HPnD || 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | reinstall
-Mikrotik hAP ac lite 952Ui-5ac2nD | RB952Ui-5ac2nD | 2 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
-Mikrotik RBLHG-2nD || 2 | ath79 | mikrotik | mikrotik-lhg-2nd | 64MB | stable | released
-Mikrotik RBLHG-2nD-XL || 2 | ath79 | mikrotik | mikrotik-lhg-2nd-xl | 64MB | stable | released
-Mikrotik RBLHG-5nD || 5 | ath79 | mikrotik | mikrotik-lhg-5nd | 64MB | stable | released
-Mikrotik RBLHG-5HPnD || 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd | 64MB | stable | released
-Mikrotik RBLHG-5HPnD-XL || 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd-xl | 64MB | stable | released
-MikroTik RBLHGG-5acD | RBLHGG-5acD | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd | 256MB | stable | nightly
-MikroTik RBLHGG-5acD-XL | RBLHGG-5acD-XL | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd-xl | 256MB | stable | nightly
-Mikrotik RBLDF-2nD || 2 | ath79 | mikrotik | - | 64MB | unknown | released
-Mikrotik RBLDF-5nD || 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | nightly
-Mikrotik QRT5 RB911G-5HPnD-QRT || 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | reinstall
-Mikrotik mANTBox RB911G-2HPnD || 2 | ath79 | mikrotik | - | 64MB | unknown | released
-Mikrotik mANTBox RB911G-5HPnD || 5 | ath79 | mikrotik | - | 64MB | unknown | released
-Mikrotik mANTBox RB912UAG-2HPnD || 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 128MB | unknown | reinstall
-Mikrotik mANTBox RB912UAG-5HPnD || 5 | ath79 | mikrotik | - | 128MB | stable | released
-Mikrotik mANTBox RB921GS-5HPacD 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | nightly
-Mikrotik mANTBox RB921GS-5HPacD 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | nightly
-Mikrotik SXTsq 5HPnD | RBSXTsq5HPnD | 5 | ath79 | mikrotik | mikrotik-sxt-5hpnd | 64MB | stable | released
-Mikrotik SXTsq 5nD | RBSXTsq5nD | 5 | ath79 | mikrotik | mikrotik-sxt-5nd | 64MB | stable | released
-Mikrotik SXTsq 2nD || 2 | ath79 | mikrotik | - | 64MB | unknown | released
-MikroTik RouterBOARD D52G-5HacD2HnD | RBD52G-5HacD2HnD-TC | 2 | ipq40xx | mikrotik | mikrotik_hap-ac2 | 128MB | stable | nightly
-MikroTik RouterBOARD D53iG-5HacD2HnD | RBD53iG-5HacD2HnD | 2 | ipq40xx | mikrotik | mikrotik_hap-ac3 | 256MB | stable | nightly
-MikroTik RouterBOARD SXTsqG-5acD | RBSXTsqG-5acD | 5 | ipq40xx | mikrotik | mikrotik_sxtsq-5-ac | 256MB | stable | nightly
+hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
+hAP ac² | RBD52G-5HacD2HnD-TC | 2 | ipq40xx | mikrotik | mikrotik_hap-ac2 | 128MB | stable | nightly
+hAP ac³ | RBD53iG-5HacD2HnD | 2 | ipq40xx | mikrotik | mikrotik_hap-ac3 | 256MB | stable | nightly
+SXTsq Lite2 | RBSXTsq2nD | 2 | ath79 | mikrotik | - | 64MB | unknown | released
+SXTsq Lite5 | RBSXTsq5nD | 5 | ath79 | mikrotik | mikrotik-sxt-5nd | 64MB | stable | released
+SXTsq 5 High Power | RBSXTsq5HPnD | 5 | ath79 | mikrotik | mikrotik-sxt-5hpnd | 64MB | stable | released
+SXTsq 5 ac | RBSXTsqG-5acD | 5 | ipq40xx | mikrotik | mikrotik_sxtsq-5-ac | 256MB | stable | nightly
+LHG 2 | RBLHG-2nD | 2 | ath79 | mikrotik | mikrotik-lhg-2nd | 64MB | stable | released
+LHG XL 2 | RBLHG-2nD-XL | 2 | ath79 | mikrotik | mikrotik-lhg-2nd-xl | 64MB | stable | released
+LHG 5 | RBLHG-5nD | 5 | ath79 | mikrotik | mikrotik-lhg-5nd | 64MB | stable | released
+LHG HP5 | RBLHG-5HPnD | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd | 64MB | stable | released
+LHG XL HP5 | RBLHG-5HPnD-XL | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd-xl | 64MB | stable | released
+LHG 5 ac | RBLHGG-5acD | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd | 256MB | stable | nightly
+LHG XL 5 ac | RBLHGG-5acD-XL | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd-xl | 256MB | stable | nightly
+LDF 2 | RBLDF-2nD | 2 | ath79 | mikrotik | - | 64MB | unknown | released
+LDF 5 | RBLDF-5nD | 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | nightly
+RB911G-2HPnD <br> mANTBox 2 12s | RB911G-2HPnD <br> RB911G-2HPnD-12S | 2 | ath79 | mikrotik | - | 64MB | unknown | released
+RB911G-5HPnD | RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | unknown | released
+QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | reinstall
+RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | unknown | released
+ RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | reinstall
+mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | nightly
+mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | nightly
 
 
 ## Ubiquiti
