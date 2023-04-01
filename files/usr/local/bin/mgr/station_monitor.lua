@@ -34,7 +34,7 @@
 --]]
 
 local unresponsive_max = 3
-local unresponsive = 0
+local last = {}
 local wifiiface
 local frequency
 local ssid
@@ -85,6 +85,8 @@ function run_station_monitor()
 
     -- Check each station to make sure we can broadcast and unicast to them
     local total = 0
+    local old = last
+    last = {}
     arptable(
         function (entry)
             if entry.Device == wifiiface then
@@ -97,9 +99,15 @@ function run_station_monitor()
                         -- If we see exactly one response then we neeed to force the station to reassociate
                         -- This indicates that broadcasts work, but unicasts dont
                         if line:match("Received 1 response") then
-                            log:write("Possible unresponsive node: " .. ip .. " [" .. mac .. "]")
-                            log:flush()
-                            total = total + 1
+                            local val = (old[ip] or 0) + 1
+                            last[ip] = val
+                            if val > 1 then
+                                log:write("Possible unresponsive node: " .. ip .. " [" .. mac .. "]")
+                                log:flush()
+                                if val > total then
+                                    total = val
+                                end
+                            end
                             break
                         end
                     end
@@ -110,14 +118,9 @@ function run_station_monitor()
 
     -- If we find unresponsive nodes too often then we leave and rejoin the network
     -- to reset everything
-    if total == 0 then
-        unresponsive = 0
-    else
-        unresponsive = unresponsive + 1
-        if unresponsive >= unresponsive_max then
-            unresponsive = 0
-            rejoin_network()
-        end
+    if total >= unresponsive_max then
+        last = {}
+        rejoin_network()
     end
 end
 
