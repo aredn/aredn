@@ -33,10 +33,28 @@
 
 --]]
 
+local unresponsive_max = 3
+local last = {}
 local wifiiface
+local frequency
+local ssid
 
 local IW = "/usr/sbin/iw"
 local ARPING = "/usr/sbin/arping"
+
+local logfile = "/tmp/station_monitor.log"
+if not file_exists(logfile) then
+    io.open(logfile, "w+"):close()
+end
+local log = aredn.log.open(logfile, 8000)
+
+function rejoin_network()
+    os.execute(IW .. " " .. wifiiface .. " ibss leave")
+    nixio.nanosleep(1, 0)
+    os.execute(IW .. " " .. wifiiface .. " ibss join " .. ssid .. " " .. frequency .. " fixed-freq")
+    log:write("Rejoining network")
+    log:flush()
+end
 
 function station_monitor()
     if not string.match(get_ifname("wifi"), "^wlan") then
@@ -45,24 +63,30 @@ function station_monitor()
         wait_for_ticks(math.max(1, 120 - nixio.sysinfo().uptime))
 
         wifiiface = get_ifname("wifi")
+        frequency = iwinfo.nl80211.frequency(wifiiface)
+        ssid = iwinfo.nl80211.ssid(wifiiface)
+
+        -- Mikrotik AC hardware has some startup issues which we try to resolve
+        -- by leaving and rejoining the network
+        local boardid = aredn.hardware.get_board_id():lower()
+        if boardid:match("mikrotik") and boardid:match("ac") then
+            rejoin_network()
+        end
 
         while true
         do
             run_station_monitor()
-            wait_for_ticks(300) -- 5 minute
+            wait_for_ticks(60) -- 1 minute
         end
     end
 end
 
-local logfile = "/tmp/station_monitor.log"
-if not file_exists(logfile) then
-    io.open(logfile, "w+"):close()
-end
-local log = aredn.log.open(logfile, 8000)
-
 function run_station_monitor()
 
     -- Check each station to make sure we can broadcast and unicast to them
+    local total = 0
+    local old = last
+    last = {}
     arptable(
         function (entry)
             if entry.Device == wifiiface then
@@ -75,8 +99,15 @@ function run_station_monitor()
                         -- If we see exactly one response then we neeed to force the station to reassociate
                         -- This indicates that broadcasts work, but unicasts dont
                         if line:match("Received 1 response") then
-                            log:write("Unresponsive node: ip " .. ip .. ", mac " .. mac)
-                            log:flush()
+                            local val = (old[ip] or 0) + 1
+                            last[ip] = val
+                            if val > 1 then
+                                log:write("Possible unresponsive node: " .. ip .. " [" .. mac .. "]")
+                                log:flush()
+                                if val > total then
+                                    total = val
+                                end
+                            end
                             break
                         end
                     end
@@ -84,6 +115,13 @@ function run_station_monitor()
             end
         end
     )
+
+    -- If we find unresponsive nodes too often then we leave and rejoin the network
+    -- to reset everything
+    if total >= unresponsive_max then
+        last = {}
+        rejoin_network()
+    end
 end
 
 return station_monitor
