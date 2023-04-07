@@ -6,7 +6,7 @@ Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
 hAP ac² | RBD52G-5HacD2HnD-TC | 2 | ipq40xx | mikrotik | mikrotik_hap-ac2 | 128MB | stable | nightly
 hAP ac³ | RBD53iG-5HacD2HnD | 2 | ipq40xx | mikrotik | mikrotik_hap-ac3 | 256MB | stable | nightly
-SXTsq Lite2 | RBSXTsq2nD | 2 | ath79 | mikrotik | - | 64MB | unknown | released
+SXTsq Lite2 | RBSXTsq2nD | 2 | ath79 | mikrotik | mikrotik-sxt-2nd | 64MB | unknown | released
 SXTsq Lite5 | RBSXTsq5nD | 5 | ath79 | mikrotik | mikrotik-sxt-5nd | 64MB | stable | released
 SXTsq 5 High Power | RBSXTsq5HPnD | 5 | ath79 | mikrotik | mikrotik-sxt-5hpnd | 64MB | stable | released
 SXTsq 5 ac | RBSXTsqG-5acD | 5 | ipq40xx | mikrotik | mikrotik_sxtsq-5-ac | 256MB | stable | nightly
