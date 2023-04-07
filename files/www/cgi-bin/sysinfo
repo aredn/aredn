@@ -53,14 +53,9 @@ html.print(" node: " .. node)
 html.print("model: " .. aredn.hardware.get_board_id())
 html.print("")
 
-if aredn.hardware.supported() ~= 1 then
+if not aredn.hardware.supported() then
     html.print("<font color=\"red\">!!!! UNSUPPORTED DEVICE !!!!</font>")
     html.print("boardid: " .. aredn.hardware.get_board_id())
-    if aredn.hardware.supported() == 0 then
-        html.print("<font color=\"red\">Device HAS BEEN TESTED AS UNSUPPORTED</font>")
-    else
-        html.print("<font color=\"red\">Device has not been tested. Please file a ticket with your experiences.</font>")
-    end
     html.print("")
 end
 

@@ -63,6 +63,9 @@ function hardware.get_radio()
         local radios = json.parse(f:read("*a"))
         f:close()
         radio_json = radios[hardware.get_board_id()]
+        if not radio_json.name then
+            radio_json.name = hardware.get_board_id()
+        end
     end
     return radio_json
 end
@@ -295,12 +298,7 @@ function hardware.get_rfchannels(wifiintf)
 end
 
 function hardware.supported()
-    local radio = hardware.get_radio()
-    if radio then
-        return tonumber(radio.supported)
-    else
-        return 0
-    end
+    return hardware.get_radio() and true or false
 end
 
 function hardware.get_interface_ip4(intf)
