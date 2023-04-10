@@ -33,7 +33,8 @@
 
 --]]
 
-local unresponsive_max = 3
+local unresponsive_max = 5
+local unresponsive_report = 3
 local last = {}
 local wifiiface
 local frequency
@@ -83,6 +84,16 @@ end
 
 function run_station_monitor()
 
+    -- Use the LQM state to ignore nodes we dont care about
+    local trackers = nil
+    local f = io.open("/tmp/lqm.info")
+    if f then
+        local lqm = luci.jsonc.parse(f:read("*a"))
+        f:close()
+        trackers = lqm.trackers
+    end
+    local now = nixio.sysinfo().uptime
+
     -- Check each station to make sure we can broadcast and unicast to them
     local total = 0
     local old = last
@@ -91,8 +102,13 @@ function run_station_monitor()
         function (entry)
             if entry.Device == wifiiface then
                 local ip = entry["IP address"]
-                local mac = entry["HW address"]
-                if entry["Flags"] ~= "0x0" and ip and mac then
+                local mac = entry["HW address"] or ""
+                -- Only consider nodes which have valid ip and macs, routable and not pending
+                local tracker = { pending = 0, routable = true }
+                if trackers then
+                    tracker = trackers[mac:upper()] or { pending = now, routable = false }
+                end
+                if entry["Flags"] ~= "0x0" and ip and mac ~= "" and tracker.routable and tracker.pending < now then
                     -- Two arp pings - the first is broadcast, the second unicast
                     for line in io.popen(ARPING .. " -c 2 -I " .. wifiiface .. " " .. ip):lines()
                     do
@@ -101,12 +117,12 @@ function run_station_monitor()
                         if line:match("Received 1 response") then
                             local val = (old[ip] or 0) + 1
                             last[ip] = val
-                            if val > 1 then
+                            if val > unresponsive_report then
                                 log:write("Possible unresponsive node: " .. ip .. " [" .. mac .. "]")
                                 log:flush()
-                                if val > total then
-                                    total = val
-                                end
+                            end
+                            if val > total then
+                                total = val
                             end
                             break
                         end
