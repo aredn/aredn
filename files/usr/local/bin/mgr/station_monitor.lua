@@ -74,6 +74,12 @@ function station_monitor()
             rejoin_network()
         end
 
+        -- Only monitor if we have LQM information
+        if uci.cursor():get("aredn", "@lqm[0]", "enable") ~= "1" then
+            exit_app()
+            return
+        end
+
         while true
         do
             run_station_monitor()
