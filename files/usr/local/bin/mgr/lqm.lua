@@ -562,7 +562,7 @@ function lqm()
                         end
                     end
                     if track.type == "RF" then
-                        if info.lqm and info.lqm.enabled and info.lqm.info.trackers then
+                        if info.lqm and info.lqm.enabled and info.lqm.info and info.lqm.info.trackers then
                             rflinks[track.mac] = {}
                             for _, rtrack in pairs(info.lqm.info.trackers)
                             do
