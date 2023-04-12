@@ -1,17 +1,5 @@
 # Supported Devices
 
-<style>
-    td:nth-child(1) { min-width: 190px; }
-    td:nth-child(2) { min-width: 150px; }
-    td:nth-child(3) { min-width: 30px; }
-    td:nth-child(4) { min-width: 60px; }
-    td:nth-child(5) { min-width: 80px; }
-    td:nth-child(6) { min-width: 200px; }
-    td:nth-child(7) { min-width: 50px; }
-    td:nth-child(8) { min-width: 60px; }
-    td:nth-child(9) { min-width: 80px; }
-</style>
-
 ## Mikrotik
 Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
