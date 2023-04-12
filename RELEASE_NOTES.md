@@ -50,6 +50,8 @@ Because of changes in the way OpenWRT names devices, this upgrade is not simple 
     * Slate
     * Mudi
 
+For a full list of supported products, see the list [here](http://downloads.arednmesh.org/snapshots/SUPPORTED_DEVICES.md).
+
 **Notes:**
 
 1. **Important** - the initial factory installation instructions for Ubiquiti 802.11 ac products are new.  They can be found in the AREDN Online Documentation [here](http://docs.arednmesh.org/en/latest/arednGettingStarted/installing_firmware.html#ubiquiti-802-11ac-first-install-process).
