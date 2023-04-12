@@ -6,19 +6,23 @@ There have been over 140 nightly releases of the AREDN codebase since the last p
 
 ## Major Enhancements
 
-* Support for the ‘AC’ class of radios
+* Support for the ‘AC’ class of radios (2)
 * Improved service validation
 * Improved WiFi scanning
 * Better error feedback for future upgrades
-* Hidden and Exposed node handling
+* Hidden and Exposed node handling (3)
 * Enhance AP and WiFi Client channel selection
 * Support for easier “nightly build” testing
 * Upgraded to OpenWRT 22.03.3; the latest release of OpenWRT with many security and bug fixes.
 * Upgraded to Linux kernel 5.10.161
 
+**IMPORTANT NOTE!** 
+
+Because of changes in the way OpenWRT names devices, this upgrade is not simple to revert without reinstalling your node as if you just took it out of the box.
+
 ## New Devices
 
-* Ubiquiti
+* Ubiquiti (1)
     * LiteAP 5 AC
     * LiteBeam AC5 Gen2
     * NanoBeam AC 5 (WA)
@@ -48,9 +52,11 @@ There have been over 140 nightly releases of the AREDN codebase since the last p
 
 **Notes:**
 
-1. **Important** - the initial factory installation instructions for Ubiquiti 802.11 ac products are new.  They can be found in the AREDN Online Documentation [here](https://docs.arednmesh.org/en/latest/_downloads/cc242dc167cc98af688b0c1245d47236/Ubiquiti_AC_First_Install_Checklist.pdf).
+1. **Important** - the initial factory installation instructions for Ubiquiti 802.11 ac products are new.  They can be found in the AREDN Online Documentation [here](http://docs.arednmesh.org/en/latest/arednGettingStarted/installing_firmware.html#ubiquiti-802-11ac-first-install-process).
 
 2. The 802.11ac products offer noticeable advantages over the legacy 802.11n devices.  If you’re contemplating a new deployment or just looking for better performance, consider an 802.11ac device.  Here’s [a list of recommended devices](https://www.arednmesh.org/content/device-migration-suggestions) for migrations.
+
+3. Over and above neighbor status states of pending, active and idle, new states of hidden and exposed have been added. Because the nodes talk amongst themselves, your node knows which of its neighbor nodes are nearby but hidden from it. This can be useful for network management. Exposed nodes are nodes that a node can see, but will block it from transmitting to other neighbors when they are transmitting. It's a bit complex - see the 'exposed node problem' in Wikipedia for more detail The AREDN team hopes to use these parameters in the future to reduce channel congestion.
 
 ## Full Change List
 
