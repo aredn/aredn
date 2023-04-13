@@ -6,11 +6,11 @@ There have been over 140 nightly releases of the AREDN codebase since the last p
 
 ## Major Enhancements
 
-* Support for the ‘AC’ class of radios (2)
+* Support for the ‘AC’ class of radios [2]
 * Improved service validation
 * Improved WiFi scanning
 * Better error feedback for future upgrades
-* Hidden and Exposed node handling (3)
+* Hidden and Exposed node handling [3]
 * Enhance AP and WiFi Client channel selection
 * Support for easier “nightly build” testing
 * Upgraded to OpenWRT 22.03.3; the latest release of OpenWRT with many security and bug fixes.
@@ -22,7 +22,7 @@ Because of changes in the way OpenWRT names devices, this upgrade is not simple 
 
 ## New Devices
 
-* Ubiquiti (1)
+* Ubiquiti [1]
     * LiteAP 5 AC
     * LiteBeam AC5 Gen2
     * NanoBeam AC 5 (WA)
@@ -62,86 +62,86 @@ For a full list of supported products, see the list [here](http://downloads.ared
 
 ## Full Change List
 
-* Merged openwrt release 22.03.3
-* Added a maximum timeout for service checks
-* Made the default country HX (HAM)
-* Improved the quality of the scan output
-* Improved idle tunnel quality measurement
-* Provided better error feedback when upgrades fail
-* Tagged devices which must be reinstalled. (The NAND layout for a few Mikrotik devices has changed sufficiently that they cannot be easily upgraded and must be reinstalled from scratch.)
-* Established a more consistent way to provide interface mac address in overrides
-* Provided a timeout on the iperf3 client
-* Now gather statistics about RF links
-* Updated firmware selector on web page
-* Set up to refresh LQM’s hostnames periodically
-* Made iperf3 improvements
-* Now ignore non-routable when calculating hidden nodes
-* Now handle missing IP address and created more general RF/DTD identification
-* Now automatically enable RTS (Ready To Send) when hidden nodes detected
-* Improve ipFromCIDR function to handle /32 CIDRs.
-* Validate state of services over a period of time before disabling advertisements
-* Support forced upgrades
-* iperf3: Improve error reporting when server is busy/disabled
-* Move the unconfigured setup earlier
-* Handle system upgrade files of type “nand-sysupgrade”
-* Remove WAN Wifi Client key lower limit
-* Improve AP band selection
-* Force dnsmasq to update itself if no network changes for > 60 secs
-* Add extended channels to LAN AP list
-* Fixed WAN VLAN detection on hAP
-* Fixed idle tunnel quality check
-* Fixed IBSS (Independent Basic Service Set) problem on 2.4GHz
-* Enabled negative channels for 2.4 GHz 802.11ac devices
-* Fixed negative channels not beaconing.
-* Fixed PowerBridge M upgrade
-* Fixed AirRouter port identification
-* Made sure we never pass ‘nil’ to the json parser
-* Made sure we look for packages with the correct architecture
-* Fixed xlink firewall rule inserted incorrectly
-* Fixed the netmask on the br-nomesh device (for when RF mesh is disabled)
-* A node with a single RF link can’t have any exposed nodes - corrected
-* Fixed AR150 port settings
-* Fixed power offsets on various devices
-* Fixed Mikrotik boot loader to avoid boot lockup problem
-* Improved firmware failure error recovery
-* Filtered out non-routable ARP entries which confuse LQM
-* Force badly associated stations to reassociate.
-* Don't let services use hostnames which are not propagated.
-* Block DHCP server traffic from ever going to the WAN interface
-* Stop RETURN from refreshing the mesh page
-* Fixed support for Mikrotik LHGG-5acd-xl
-* Fixed upgrade compatibility for nanobeam m5 19
-* Fixed AP mode selection when turning mesh back on.
-* More fixes for AP mode
-* Fixed firewall rule checking for existing drop rules
-* Fixed fccid beacon
-* Fixed monitors not detecting non-mesh mode
-* Ath9k driver - no error accounting - added
-* Fixed the bandwidth reporting for ath10k devices
-* Fixed -ac coverage calculation in driver.
-* Fix occasional LQM nil error
-* Eliminate false network rejoins using LQM information
-* Resolve unresponsive node problems with Mikrotik AC devices
-* Force badly associated stations to reassociate.
-* Now use luci’s urldecode_params to handle query strings
-* Added “tiny build” notes
-* Set PowerBeam-M2-400 to stable status
-* Re-enabled the  kmod-rtc-ds1307 package
-* Removed a firmware blocker we no longer need
-* Added a note about the USB150 & AR150 devices
-* Added "hidden" and "exposed" node statuses to help file
-* Some initramfs cleanup
-* Generalized node-setup variable expansion
-* Removed firewall counters except for specific ports
-* Created new network configuration code
-* Reworked the DTD blocking detection
-* Split the various Mikrotik radios into their individual variants
-* Clarified the Mikrotik LHG 2nd firmware versions
-* Add SKUs to Supported Devices doc
-* Cleaned up Supported Devices doc
-* Validate Bullet M5 build
-* More upgrade compatibility
-* Fixed service alignments on web page
+* RF performance improvements
+    * Now automatically enable RTS (Ready To Send) when hidden nodes detected
+    * Fixed IBSS (Independent Basic Service Set) problem on 2.4GHz
+    * Enabled negative channels for 2.4 GHz 802.11ac devices
+    * Fixed negative channels not beaconing.
+    * Fixed power offsets on various devices
+    * Fixed fccid beacon
+    * Fixed -ac coverage calculation in driver.
+    * Resolve unresponsive node problems with Mikrotik AC devices
+    * Now ignore non-routable when calculating hidden nodes
+* Network performance improvements
+    * Added a maximum timeout for service checks
+    * Provided a timeout on the iperf3 client
+    * iperf3: Improve error reporting when server is busy/disabled
+    * Set up to refresh LQM’s hostnames periodically
+    * Made the default country HX (HAM)Now handle missing IP address and create more general RF/DTD identification
+    * Validate state of services over a period of time before disabling advertisements
+    * Force dnsmasq to update itself if no network changes for > 60 secs
+    * Fixed idle tunnel quality check
+    * Fixed WAN VLAN detection on hAP
+    * Fixed the netmask on the br-nomesh device (for when RF mesh is disabled)
+    * A node with a single RF link can’t have any exposed nodes - corrected
+    * Filtered out non-routable ARP entries which confuse LQM
+    * Don't let services use hostnames which are not propagated.
+    * Block DHCP server traffic from ever going to the WAN interface
+    * Reworked the DTD blocking detection
+    * Fix occasional LQM nil error
+    * Eliminate false network rejoins using LQM information
+    * Force badly associated stations to reassociate.
+* Node management improvements
+    * Improved the quality of the scan output
+    * Improved idle tunnel quality measurement
+    * Provided better error feedback when upgrades fail
+    * Tagged devices which must be reinstalled. (The NAND layout for a few Mikrotik devices has changed sufficiently that they cannot be easily upgraded and must be reinstalled from scratch.)
+    * Now gather statistics about RF links
+    * Established a more consistent way to provide interface mac address in overrides
+    * Support forced upgrades
+    * Move the unconfigured setup earlier
+    * Handle system upgrade files of type “nand-sysupgrade”
+    * Remove WAN Wifi Client key lower limit
+    * Improve AP band selection
+    * Add extended channels to LAN AP list
+    * Fixed PowerBridge M upgrade
+    * Fixed AirRouter port identification
+    * Made sure we look for packages with the correct architecture
+    * Fixed AR150 port settings
+    * Fixed Mikrotik boot loader to avoid boot lockup problem
+    * Improved firmware failure error recovery
+    * Stop RETURN from refreshing the mesh page
+    * Fixed support for Mikrotik LHGG-5acd-xl
+    * Fixed upgrade compatibility for nanobeam m5 19
+    * Fixed AP mode selection when turning mesh back on.
+    * More fixes for AP mode
+    * Fixed firewall rule checking for existing drop rules
+    * Fixed monitors not detecting non-mesh mode
+    * Created new network configuration code
+* Miscellaneous
+    * Merged openwrt release 22.03.3
+    * Updated firmware selector on web page
+    * Made sure we never pass ‘nil’ to the json parser
+    * Fixed xlink firewall rule inserted incorrectly
+    * Removed a firmware blocker we no longer need
+    * Added a note about the USB150 & AR150 devices
+    * Added "hidden" and "exposed" node statuses to help file
+    * Re-enabled the  kmod-rtc-ds1307 package
+    * Some initramfs cleanup
+    * Generalized node-setup variable expansion
+    * Removed firewall counters except for specific ports
+    * Now use luci’s urldecode_params to handle query strings
+    * Added “tiny build” notes
+    * Set PowerBeam-M2-400 to stable status
+    * Fixed service alignments on web page
+    * Add SKUs to Supported Devices doc
+    * Cleaned up Supported Devices doc
+    * Split the various Mikrotik radios into their individual variants
+    * Clarified the Mikrotik LHG 2nd firmware versions
+    * Validate Bullet M5 build
+    * More upgrade compatibility
+    * Ath9k driver - no error accounting - added
+    * Fixed the bandwidth reporting for ath10k devices
 
 # 3.22.12.0
 
