@@ -1,7 +1,7 @@
 # Supported Devices
 
 ## Mikrotik
-Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
 hAP ac² | RBD52G-5HacD2HnD-TC | 2 | ipq40xx | mikrotik | mikrotik_hap-ac2 | 128MB | stable | released
@@ -29,7 +29,7 @@ mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-
 
 
 ## Ubiquiti
-Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 AirGrid M2 XM || 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | unknown | sunset
 AirGrid M5 XM || 5 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | unknown | sunset
@@ -93,7 +93,7 @@ Rocket M5 Titanium XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable 
 
 
 ## TP-Link
-Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 TPLink CPE210 v1.X || 2 | ath79 | generic | tplink_cpe210-v1 | 64MB | stable | released
 TPLink CPE210 v2.0 || 2 | ath79 | generic | tplink_cpe210-v2 | 64MB | stable | released
@@ -114,7 +114,7 @@ TPLink WBS510 v2.0 || 5 | ath79 | generic | tplink_wbs510-v2 | 64MB | unknown | 
 
 
 ## GL.iNet
-Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released (1)
 Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released (1)
@@ -125,7 +125,7 @@ Slate | GL-AR750S-Ext | 2 | ath79 | nand | gl-ar750s | 128MB | unknown | release
 Mudi | GL-E750 | 2 | ath79 | nand | gl-e750 | 128MB | unknown | released
 
 ## Others
-Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 
