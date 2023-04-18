@@ -21,9 +21,9 @@ LDF 2 | RBLDF-2nD | 2 | ath79 | mikrotik | - | 64MB | unknown | released
 LDF 5 | RBLDF-5nD | 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | released
 RB911G-2HPnD <br> mANTBox 2 12s | RB911G-2HPnD <br> RB911G-2HPnD-12S | 2 | ath79 | mikrotik | - | 64MB | unknown | released
 RB911G-5HPnD | RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | unknown | released
-QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | reinstall
+QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | danger-upgrade
 RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | unknown | released
- RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | reinstall
+ RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | danger-upgrade
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | released
 mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | released
 
@@ -140,7 +140,7 @@ Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 * *brick* - this image has been tested and will currently brick your hardware. Avoid for now.
 * *sunset* - this device has been sunsetted and support will be deprecated at some point.
 * *nightly* - this device is newly supported in the nightly builds (since the last release).
-* *reinstall* - this device cannot be upgraded from 3.22.12.0 and must be reinstalled using the "First Install Process".
+* *danger-upgrade* - this device can be upgraded from 3.22.12.0 but you must first install the the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable all the safefy checks. Proceed with caution. Do not remove this package once installed.
 
 ### Other
  1. This device will not reboot reliably and you may need to power cycle it (several times) during an update.
