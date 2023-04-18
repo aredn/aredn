@@ -97,7 +97,7 @@ Device | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 TPLink CPE210 v1.X || 2 | ath79 | generic | tplink_cpe210-v1 | 64MB | stable | released
 TPLink CPE210 v2.0 || 2 | ath79 | generic | tplink_cpe210-v2 | 64MB | stable | released
-TPLink CPE210 v3.0 || 2 | ath79 | generic | tplink_cpe210-v3 | 64MB | unknown | released
+TPLink CPE210 v3.0 || 2 | ath79 | generic | tplink_cpe210-v3 | 64MB | unknown | nightly
 TPLink CPE220 v2.0 || 2 | ath79 | generic | tplink_cpe220-v2 | 64MB | unknown | released
 TPLink CPE220 v3.0 || 2 | ath79 | generic | tplink_cpe220-v3 | 64MB | unknown | released
 TPLink CPE510 v1.X || 5 | ath79 | generic | tplink_cpe510-v1 | 64MB | stable | released
