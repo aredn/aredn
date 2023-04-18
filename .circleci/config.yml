@@ -54,6 +54,7 @@ jobs:
       - run:
           name: Deploy Files
           command: scp -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST}:${TARGET_DIR}
+  
   check2build:
     machine:
       enabled: true
@@ -65,6 +66,7 @@ jobs:
           name: Check2build failure (build not needed)
           when: on_fail
           command: circleci-agent step halt
+  
   save_build_info:
       machine:
         enabled: true
@@ -151,9 +153,6 @@ workflows:
       - build:
           requires:
             - check2build
-      - save_build_info:
-          requires:
-            - build
       - process_artifacts_nightly:
           requires:
             - build
@@ -179,3 +178,6 @@ workflows:
           filters:
             branches:
               only: main
+      - save_build_info:
+          requires:
+            - process_artifacts_nightly
