@@ -19,3 +19,25 @@
  		;;
  	ubnt,nanostation-m)
  		ucidef_set_interface_lan "eth0 eth1"
+--- /dev/null
++++ b/target/linux/ath79/tiny/base-files/etc/board.d/03_gpio_switches
+@@ -0,0 +1,19 @@
++#
++# Copyright (C) 2018 OpenWrt.org
++#
++
++. /lib/functions/uci-defaults.sh
++
++board_config_update
++
++board=$(board_name)
++
++case "$board" in
++ubnt,nanostation-m)
++	ucidef_add_gpio_switch "poe_passthrough" "PoE Passthrough" "8"
++	;;
++esac
++
++board_config_flush
++
++exit 0
