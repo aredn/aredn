@@ -57,7 +57,7 @@ jobs:
   
   check2build:
     machine:
-      enabled: true
+      image: ubuntu-2004:2023.02.1
     steps:
       - run:
           name: Retrieve last build info and check
@@ -68,19 +68,19 @@ jobs:
           command: circleci-agent step halt
   
   save_build_info:
-      machine:
-        enabled: true
-      steps:
-        - run:
-            name: Save last build info
-            command: ssh ${SSH_USER}@${SSH_HOST} "sh -c ' echo ${CIRCLE_SHA1} > ~/build_info/${CIRCLE_PROJECT_USERNAME}_${CIRCLE_PROJECT_REPONAME}_${CIRCLE_BRANCH}'"
+    machine:
+      image: ubuntu-2004:2023.02.1
+    steps:
+      - run:
+          name: Save last build info
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c ' echo ${CIRCLE_SHA1} > ~/build_info/${CIRCLE_PROJECT_USERNAME}_${CIRCLE_PROJECT_REPONAME}_${CIRCLE_BRANCH}'"
 
   ######################################
   # Nightly
   ######################################
   process_artifacts_nightly:
     machine:
-      enabled: true
+      image: ubuntu-2004:2023.02.1
     steps:
       - run:
           name: Untar Files
@@ -100,7 +100,7 @@ jobs:
 
   changelog_nightly:
     machine:
-      enabled: true
+      image: ubuntu-2004:2023.02.1
     steps:
       - run:
           name: Generate changelog.md
@@ -111,7 +111,7 @@ jobs:
 
   readme_nightly:
     machine:
-      enabled: true
+      image: ubuntu-2004:2023.02.1
     steps:
       - run:
           name: Fetch README.md
@@ -129,7 +129,7 @@ jobs:
 
   afs_collector:
     machine:
-      enabled: true
+      image: ubuntu-2004:2023.02.1
     steps:
       - run:
           name: Run AFS collector
