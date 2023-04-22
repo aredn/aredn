@@ -63,7 +63,7 @@ function hardware.get_radio()
         local radios = json.parse(f:read("*a"))
         f:close()
         radio_json = radios[hardware.get_board_id()]
-        if not radio_json.name then
+        if radio_json and not radio_json.name then
             radio_json.name = hardware.get_board_id()
         end
     end
@@ -273,10 +273,12 @@ function hardware.get_rfchannels(wifiintf)
         local freq_adjust = 0
         if wifiintf == "wlan0" then
             local radio = hardware.get_radio()
-            if radio.name:match("M9") then
-                freq_adjust = -1520;
-            elseif radio.name:match("M3") then
-                freq_adjust = -2000;
+            if radio then
+                if radio.name:match("M9") then
+                    freq_adjust = -1520;
+                elseif radio.name:match("M3") then
+                    freq_adjust = -2000;
+                end
             end
         end
         for line in f:lines()
