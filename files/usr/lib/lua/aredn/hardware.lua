@@ -42,8 +42,6 @@ local hardware = {}
 local radio_json = nil
 local board_json = nil
 
-local rf_channel_map = nil
-
 function hardware.get_board()
     if not board_json then
         local f = io.open("/etc/board.json")
@@ -65,6 +63,9 @@ function hardware.get_radio()
         local radios = json.parse(f:read("*a"))
         f:close()
         radio_json = radios[hardware.get_board_id()]
+        if radio_json and not radio_json.name then
+            radio_json.name = hardware.get_board_id()
+        end
     end
     return radio_json
 end
@@ -239,136 +240,67 @@ function hardware.has_usb()
     return false
 end
 
-function hardware.get_rfband()
-    local radio = hardware.get_radio()
-    if radio then
-        return radio.rfband
-    else
-        return nil
-    end
+function hardware.get_rfbandwidths(wifiintf)
+    return { 5, 10, 20 }
 end
 
-function hardware.get_rfbandwidths()
-    local radio = hardware.get_radio()
-    if radio.rfbandwidths then
-        return radio.rfbandwidths
-    else
-        return { 5, 10, 20 }
-    end
-end
-
-function hardware.get_default_channel()
-    local radio = hardware.get_radio()
-    if radio.rfband == "900" then
-        return { channel = 5, bandwidth = 5 }
-    end
-    local w = {}
-    for _, width in ipairs(hardware.get_rfbandwidths())
+function hardware.get_default_channel(wifiintf)
+    for _, channel in ipairs(hardware.get_rfchannels(wifiintf))
     do
-        w[width] = true
-    end
-    local width = w[10] and 10 or w[5] and 5 or 20
-    if radio.rfband == "2400" then
-        local c = {}
-        for _, chan in ipairs(hardware.get_rfchannels())
-        do
-            c[chan.number] = chan
+        if channel.frequency == 912 then
+            return { channel = 5, bandwidth = 5 }
         end
-        local chan = c[-2] and -2 or 1
-        return { channel = chan, bandwidth = width }
-    elseif radio.rfband == "3400" then
-        return { channel = 84, bandwidth = width }
-    elseif radio.rfband == "5800ubntus" then
-        return { channel = 149, bandwidth = width }
-    else
-        return nil
+        if channel.frequency == 2397 then
+            return { channel = -2, bandwidth = 10 }
+        end
+        if channel.frequency == 2412 then
+            return { channel = 1, bandwidth = 10 }
+        end
+        if channel.frequency == 3420 then
+            return { channel = 84, bandwidth = 10 }
+        end
+        if channel.frequency == 5745 then
+            return { channel = 149, bandwidth = 10 }
+        end
     end
+    return nil
 end
 
 function hardware.get_rfchannels(wifiintf)
-    if not rf_channel_map then
-        rf_channel_map = {
-            ["900"] = {},
-            ["2400"] = {},
-            ["3400"] = {},
-            ["5500"] = {},
-            ["5800ubntus"] = {}
-        }
-        for i = 4,7
-        do
-            rf_channel_map["900"][i - 3] = { label = i .. " (" .. (887 + i * 5) .. ")", number = i, frequency = 887 + i * 5 }
-        end
-        for i = -4,11
-        do
-            rf_channel_map["2400"][i + (i <= 0 and 5 or 4)] = { label = i .. " (" .. (2407 + i * 5) .. ")", number = i, frequency = 2407 + i * 5 }
-        end
-        for i = 76,99
-        do
-            rf_channel_map["3400"][i - 75] = { label = i .. " (" .. (3000 + i * 5) .. ")", number = i, frequency = 3000 + i * 5 }
-        end
-        for i = 36,64,4
-        do
-            rf_channel_map["5500"][(i - 32) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
-        end
-        for i = 100,140,4
-        do
-            rf_channel_map["5500"][(i - 64) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
-        end
-        for i = 149,165,4
-        do
-            rf_channel_map["5500"][(i - 69) / 4] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
-        end
-        for i = 131,184
-        do
-            rf_channel_map["5800ubntus"][i - 130] = { label = i .. " (" .. (5000 + i * 5) .. ")", number = i, frequency = 5000 + i * 5 }
-        end
-    end
     local channels = {}
-    local rfband = hardware.get_rfband()
-    if rfband and rf_channel_map[rfband] then
-        channels = rf_channel_map[rfband]
-    else
-        local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
-        if f then
-            for line in f:lines()
-            do
-                local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%d+)%)")
-                if freq and not line:match("restricted") then
-                    freq = freq:gsub("%.", "")
-                    num = num:gsub("^0+", "")
-                    channels[#channels + 1] = {
-                        label = num .. " (" .. freq .. ")",
-                        number = tonumber(num),
-                        frequency = freq
-                    }
+    local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
+    if f then
+        local freq_adjust = 0
+        if wifiintf == "wlan0" then
+            local radio = hardware.get_radio()
+            if radio then
+                if radio.name:match("M9") then
+                    freq_adjust = -1520;
+                elseif radio.name:match("M3") then
+                    freq_adjust = -2000;
                 end
             end
-            f:close()
         end
-    end
-    local radio = hardware.get_radio()
-    if radio.rfblocked then
-        for _, chan in ipairs(radio.rfblocked)
+        for line in f:lines()
         do
-            for idx, channel in ipairs(channels)
-            do
-                if channel.number == chan then
-                    table.remove(channels, idx)
-                    break
-                end
+            local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%-?%d+)%)")
+            if freq and not line:match("restricted") and not line:match("disabled") then
+                freq = tonumber("" .. freq:gsub("%.", "")) + freq_adjust
+                num = tonumber("" .. num:gsub("^0+", ""))
+                channels[#channels + 1] = {
+                    label = num .. " (" .. freq .. ")",
+                    number = num,
+                    frequency = freq
+                }
             end
         end
+        f:close()
     end
     return channels
 end
 
 function hardware.supported()
-    local radio = hardware.get_radio()
-    if radio then
-        return tonumber(radio.supported)
-    else
-        return 0
-    end
+    return hardware.get_radio() and true or false
 end
 
 function hardware.get_interface_ip4(intf)
