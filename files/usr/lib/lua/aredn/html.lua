@@ -108,7 +108,7 @@ function html.navbar_user(selected, config_mode)
     for _, key in ipairs(order)
     do
         local nav = navs[key]
-        if nav then
+        if type(nav) == "table" then
             html.print("&nbsp;&nbsp;<button type=button onClick='window.location=\"" .. nav.href .. "\"' title='" .. (nav.hint or "") .. "' " .. (nav.enable == false and "disabled" or "") .. ">" .. nav.display .. "</button>")
         end
     end
@@ -142,7 +142,7 @@ function html.navbar_admin(selected)
     for _, key in ipairs(order)
     do
         local nav = navs[key]
-        if nav then
+        if type(nav) == "table" then
             html.print("<td align=center width=" .. width .. (nav.href == selected and " class='navbar_select'" or "") .. ">")
             if nav.enable == false then
                 html.print(nav.display .. "</td>")
