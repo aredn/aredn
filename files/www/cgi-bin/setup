@@ -538,7 +538,6 @@ if parms.button_save then
         if not valid then
             err("invalid Mesh RF channel")
         end
-    end
 
         local wifi_country_validated = false
         local countries = { "00","HX","AD","AE","AL","AM","AN","AR","AT","AU","AW","AZ","BA","BB","BD","BE","BG","BH","BL","BN","BO","BR","BY","BZ","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GE","GB","GD","GR","GL","GT","GU","HN","HK","HR","HT","HU","ID","IE","IL","IN","IS","IR","IT","JM","JP","JO","KE","KH","KP","KR","KW","KZ","LB","LI","LK","LT","LU","LV","MC","MA","MO","MK","MT","MY","MX","NL","NO","NP","NZ","OM","PA","PE","PG","PH","PK","PL","PT","PR","QA","RO","RS","RU","RW","SA","SE","SG","SI","SK","SV","SY","TW","TH","TT","TN","TR","UA","US","UY","UZ","VE","VN","YE","ZA","ZW" }
@@ -1039,7 +1038,7 @@ html.print([[
 ]])
 
 -- reset wifi channel/bandwidth to default
-if nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset then
+if haswifi and (nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset) then
     local defaultwifi = aredn.hardware.get_default_channel(wifiintf)
     wifi_channel = defaultwifi.channel
     wifi_chanbw = tostring(defaultwifi.bandwidth)

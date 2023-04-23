@@ -244,52 +244,6 @@ elseif mfg:match("[Tt][Pp]-[Ll]ink") then
     mfgprefix = "cpe"
 end
 
-local hardwaretypev
-if hardwaretype == "nanostation-m" then
-    hardwaretypev = "nano-m" -- Nano XM
-elseif hardwaretype == "nanostation-m-xw" then
-    hardwaretypev = "nano-m-xw"  -- Nano XW
-elseif hardwaretype == "rb-952ui-5ac2nd" then
-    hardwaretypev = "rb-nor-flash-16M-ac"     -- hAP AC Lite
-elseif hardwaretype:match("rb-911g-[25]hpnd") or hardwaretype:match("rb-912uag-[25]hpnd") then
-    hardwaretypev = "nand-large"     -- Basebox 2/5 and QRT 2/5
-elseif hardwaretype:match("rb-l[dfhg]+-[25]nd") or hardwaretype:match("rb-lhg-[25]hpnd")  then
-    hardwaretypev = "rb-nor-flash-16M"     -- LHGs & LDFs
-elseif mfgprefix == "cpe" then
-    local hwmodel = aredn.hardware.get_board_id()
-    if hwmodel:match("CPE210 v1%.[01]") then
-        hardwaretypev = "210-220-v1"       -- v1.0/v1.1
-    elseif hwmodel:match("CPE210 v2%.0") then
-        hardwaretypev = "210-v2"           -- v2.0
-    elseif hwmodel:match("CPE210 v3%.0") then
-        hardwaretypev = "210-v3"           -- v3.0
-    elseif hwmodel:match("CPE220 v2%.0") then
-        hardwaretypev = "220-v2"           -- v3.0
-    elseif hwmodel:match("CPE220 v3%.0") then
-        hardwaretypev = "220-v3"           -- v3.0
-    elseif hwmodel:match("CPE510 v2%.0") then
-        hardwaretypev = "510-v2"           -- v2.0
-    elseif hwmodel:match("CPE510 v3%.0") then
-        hardwaretypev = "510-v3"           -- v3.0
-    elseif hwmodel:match("CPE510") then
-        hardwaretypev = "510-520-v1"       -- CPE510 V1.0/v1.1
-    elseif hwmodel:match("CPE605") then
-        hardwaretypev = "605-v1"      	    -- CPE605 V1.0
-    elseif hwmodel:match("CPE610 v2%.0") then
-        hardwaretypev = "610-v2"      	    -- CPE610 V2.0
-    elseif hwmodel:match("CPE610") then
-        hardwaretypev = "610-v1"      	    -- CPE610 V1.0
-    elseif hwmodel:match("WBS510 v2%.0") then
-        mfgprefix="wbs"
-        hardwaretypev = "510-v2"           -- WBS510 v2.0
-    elseif hwmodel:match("WBS210 v1%.[012]") then
-        mfgprefix="wbs"
-        hardwaretypev = "210-v1"       -- WBS210 v1.0/v1.1
-    end
-else
-    hardwaretypev = hardwaretype
-end
-
 -- refresh fw
 if parms.button_refresh_fw then
     nixio.fs.remove("/tmp/web/firmware.list")
