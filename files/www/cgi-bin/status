@@ -253,22 +253,28 @@ if node_desc then
 end
 html.print("<hr>")
 
--- nav buttons
-html.navbar_user("status")
-
-html.print("<input type=hidden name=reload value=reload>")
-
+-- Work out what config mode we're in. We use this to better instruct the
+-- user about the next steps
+local config_mode = nil
 if config == "not set" then
-    html.print("<b><br><br>This node is not yet configured.<br>")
-    local overlay = false
+    config_mode = "ram"
     for line in io.lines("/proc/mounts")
     do
         if line:match("overlay") then
-            overlay = true
+            config_mode = "setup"
             break
         end
     end
-    if overlay then
+end
+
+-- nav buttons
+html.navbar_user("status", config_mode)
+
+html.print("<input type=hidden name=reload value=reload>")
+
+if config_mode then
+    html.print("<b><br><br>This node is not yet configured.<br>")
+    if config_mode == "setup" then
         html.print("Go to the <a href='setup'>setup page</a> and set your node name and password.<br>")
         html.print("Click Save Changes, <u>even if you didn't make any changes</u>, then the node will reboot.</b>")
     else

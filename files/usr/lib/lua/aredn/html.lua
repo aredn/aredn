@@ -88,11 +88,14 @@ function html.msg_banner()
     html.print("</div>")
 end
 
-function html.navbar_user(selected)
+function html.navbar_user(selected, config_mode)
     local opath = package.path
     package.path = '/www/cgi-bin/?;' .. package.path
     local order = {}
     local navs = {}
+    if config_mode then
+        _G.config_mode = config_mode
+    end
     for file in nixio.fs.dir("/www/cgi-bin/nav/user")
     do
         order[#order + 1] = file
@@ -106,7 +109,7 @@ function html.navbar_user(selected)
     do
         local nav = navs[key]
         if nav then
-            html.print("&nbsp;&nbsp;<button type=button onClick='window.location=\"" .. nav.href .. "\"' title='" .. (nav.title or "") .. "'>" .. nav.display .. "</button>")
+            html.print("&nbsp;&nbsp;<button type=button onClick='window.location=\"" .. nav.href .. "\"' title='" .. (nav.hint or "") .. "' " .. (nav.enable == false and "disabled" or "") .. ">" .. nav.display .. "</button>")
         end
     end
     html.print("&nbsp;&nbsp;<select name=\"css\" size=\"1\" onChange=\"form.submit()\" >")
@@ -140,7 +143,12 @@ function html.navbar_admin(selected)
     do
         local nav = navs[key]
         if nav then
-            html.print("<td align=center width=" .. width .. (nav.href == selected and " class='navbar_select'" or "") .. "><a href='" .. nav.href .. "'>" .. nav.display .. "</a></td>")
+            html.print("<td align=center width=" .. width .. (nav.href == selected and " class='navbar_select'" or "") .. ">")
+            if nav.enable == false then
+                html.print(nav.display .. "</td>")
+            else
+                html.print("<a href='" .. nav.href .. "'>" .. nav.display .. "</a></td>")
+            end
         end
     end
     html.print("</tr><tr><td colspan=100%><hr></td></tr></table>")
