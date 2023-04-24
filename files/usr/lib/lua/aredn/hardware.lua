@@ -271,13 +271,19 @@ function hardware.get_rfchannels(wifiintf)
     local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
     if f then
         local freq_adjust = 0
+        local freq_min = 0
+        local freq_max = 0x7FFFFFFF
         if wifiintf == "wlan0" then
             local radio = hardware.get_radio()
             if radio then
                 if radio.name:match("M9") then
                     freq_adjust = -1520;
+                    freq_min = 907
+                    freq_max = 922
                 elseif radio.name:match("M3") then
                     freq_adjust = -2000;
+                    freq_min = 3380
+                    freq_max = 3495
                 end
             end
         end
@@ -286,12 +292,14 @@ function hardware.get_rfchannels(wifiintf)
             local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%-?%d+)%)")
             if freq and not line:match("restricted") and not line:match("disabled") then
                 freq = tonumber("" .. freq:gsub("%.", "")) + freq_adjust
-                num = tonumber("" .. num:gsub("^0+", ""))
-                channels[#channels + 1] = {
-                    label = num .. " (" .. freq .. ")",
-                    number = num,
-                    frequency = freq
-                }
+                if freq >= freq_min and freq <= freq_max then
+                    num = tonumber("" .. num:gsub("^0+", ""))
+                    channels[#channels + 1] = {
+                        label = freq_adjust == 0 and (num .. " (" .. freq .. ")") or (freq),
+                        number = num,
+                        frequency = freq
+                    }
+                end
             end
         end
         f:close()
