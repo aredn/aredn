@@ -89,17 +89,15 @@ function html.msg_banner()
 end
 
 function html.navbar_user(selected, config_mode)
-    local opath = package.path
-    package.path = '/www/cgi-bin/?;' .. package.path
     local order = {}
     local navs = {}
     if config_mode then
         _G.config_mode = config_mode
     end
-    for file in nixio.fs.dir("/www/cgi-bin/nav/user")
+    for file in nixio.fs.dir("/usr/lib/lua/aredn/nav/user")
     do
         order[#order + 1] = file
-        navs[file] = require("nav.user." .. file)
+        navs[file] = require("aredn.nav.user." .. file:match("^(.*)%.lua$"))
     end
     table.sort(order)
     html.print("<nobr>")
@@ -123,18 +121,15 @@ function html.navbar_user(selected, config_mode)
     end
     html.print("</select>")
     html.print("</nobr>")
-    package.path = opath
 end
 
 function html.navbar_admin(selected)
-    local opath = package.path
-    package.path = '/www/cgi-bin/?;' .. package.path
     local order = {}
     local navs = {}
-    for file in nixio.fs.dir("/www/cgi-bin/nav/admin")
+    for file in nixio.fs.dir("/usr/lib/lua/aredn/nav/admin")
     do
         order[#order + 1] = file
-        navs[file] = require("nav.admin." .. file)
+        navs[file] = require("aredn.nav.admin." .. file:match("^(.*)%.lua$"))
     end
     table.sort(order)
     html.print("<table cellpadding=5 border=0 align=center width='" .. (#order * 120) .. "px'><tr><td colspan=100%><hr></td></tr><tr>")
@@ -152,7 +147,6 @@ function html.navbar_admin(selected)
         end
     end
     html.print("</tr><tr><td colspan=100%><hr></td></tr></table>")
-    package.path = opath
 end
 
 function html.print(line)
