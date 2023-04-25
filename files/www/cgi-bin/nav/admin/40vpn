@@ -1,3 +1,1 @@
-if nixio.fs.stat("/usr/sbin/vtund") then
-    return { href = "vpn", display = "Tunnel<br>Server" }
-end
+return { href = "vpn", display = "Tunnel<br>Server", enable = nixio.fs.stat("/usr/sbin/vtund") ~= nil }
