@@ -850,21 +850,10 @@ function toggleDefault(fname, defval) {
 
 html.print("<body><center>")
 html.alert_banner();
-html.print("<div style='padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;'>")
-html.print("<strong>WARNING:</strong> Changing advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></div>")
 html.print("<form method=post action=advancedconfig enctype='multipart/form-data'>")
 
 -- navbar
-html.print("<hr style='width:800px'>")
-html.print("<table cellpadding=5 border=0 width=840px><tr align=center>")
-html.print("<td width=14%><a href='status'>Node Status</a></td>")
-html.print("<td width=14%><a href='setup'>Basic Setup</a></td>")
-html.print("<td width=14%><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
-html.print("<td width=14%><a href='vpn'>Tunnel<br>Server</a></td>")
-html.print("<td width=14%><a href='vpnc'>Tunnel<br>Client</a></td>")
-html.print("<td width=14%><a href='admin'>Administration</a></td>")
-html.print("<td width=14%><a href='advancedconfig'>Advanced<br>Configuration</a></td>")
-html.print("</tr></table><hr style='width:800px'>")
+html.navbar_admin("advancedconfig")
 
 -- help link and buttons table
 html.print("<table width=800px><tr align=center><td>")
@@ -872,6 +861,9 @@ html.print("<a href='/help.html#advancedconfig' target='_blank'>Help</a>")
 html.print("&nbsp; &nbsp; <input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>")
 html.print("&nbsp; &nbsp; <input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'>")
 html.print("</td></tr></table>")
+
+html.print("<div style='margin:10px;padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;'>")
+html.print("<strong>WARNING:</strong> Changing advanced settings can be harmful to the stability, security, and performance of this node and potentially the entire mesh network.<br><strong>You should only continue if you are sure of what you are doing.</strong></div>")
 
 -- messages table
 html.print("<table width=800px>")

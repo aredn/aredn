@@ -73,19 +73,6 @@ if os.getenv("REQUEST_METHOD") == "POST" then
     parms = request:formvalue()
 end
 
-function navbar()
-    html.print("<tr><td>")
-    html.print("<hr><table cellpadding=5 border=0 width=100%><tr>")
-    html.print("<td align=center width=15%><a href='status'>Node Status</a></td>")
-    html.print("<td align=center width=15%><a href='setup'>Basic Setup</a></td>")
-    html.print("<td align=center width=15% class=navbar_select><a href='ports'>Port Forwarding,<br>DHCP, and Services</a></td>")
-    html.print("<td align=center width=15%><a href='vpn'>Tunnel<br>Server</a></td>")
-    html.print("<td align=center width=15%><a href='vpnc'>Tunnel<br>Client</a></td>")
-    html.print("<td align=center width=15%><a href='admin'>Administration</a></td>")
-    html.print("<td align=center width=15%><a href='advancedconfig'>Advanced<br>Configuration</a></td>")
-    html.print("</tr></table><hr>")
-end
-
 function validate_service_name(name)
     if not name or name == "" or name:match("[:-\"|<>]") then
         return false
@@ -147,10 +134,10 @@ local macs = {}
 if config ~= "mesh" or nixio.fs.stat("/tmp/reboot-required") then
     http_header()
     html.header(node .. " setup", true)
-    html.print("<body><center><table width=820><tr><td>")
+    html.print("<body><center>")
     html.alert_banner()
-    navbar()
-    html.print("</td></tr><tr><td align=center><br><b>")
+    html.navbar_admin("ports")
+    html.print("<table width=820><tr><td align=center><br><b>")
     if config == "" then
         html.print("This page is not available until the configuration has been set.")
     else
@@ -852,10 +839,8 @@ html.header(node .. " setup", true)
 html.print("<body><center>")
 html.alert_banner()
 html.print("<form method=post action=/cgi-bin/ports enctype='multipart/form-data'>")
+html.navbar_admin("ports")
 html.print("<table width=820>")
-html.print("<tr><td>")
-navbar()
-html.print("</td></tr>")
 
 -- control buttons
 html.print([[<tr><td align=center>

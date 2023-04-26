@@ -88,6 +88,67 @@ function html.msg_banner()
     html.print("</div>")
 end
 
+function html.navbar_user(selected, config_mode)
+    local order = {}
+    local navs = {}
+    if config_mode then
+        _G.config_mode = config_mode
+    end
+    for file in nixio.fs.dir("/usr/lib/lua/aredn/nav/user")
+    do
+        order[#order + 1] = file
+        navs[file] = require("aredn.nav.user." .. file:match("^(.*)%.lua$"))
+    end
+    table.sort(order)
+    html.print("<nobr>")
+    html.print("<a href='/help.html' target='_blank'>Help</a>")
+    html.print("&nbsp;&nbsp;<input type=button name=refresh value=Refresh title='Refresh this page' onclick='window.location.reload()'>")
+    for _, key in ipairs(order)
+    do
+        local nav = navs[key]
+        if type(nav) == "table" then
+            html.print("&nbsp;&nbsp;<button type=button onClick='window.location=\"" .. nav.href .. "\"' title='" .. (nav.hint or "") .. "' " .. (nav.enable == false and "disabled" or "") .. ">" .. nav.display .. "</button>")
+        end
+    end
+    html.print("&nbsp;&nbsp;<select name=\"css\" size=\"1\" onChange=\"form.submit()\" >")
+    html.print("<option>Select a theme</option>")
+    for file in nixio.fs.glob("/www/*.css")
+    do
+        if file ~= "/www/style.css" then
+            file = file:match("/www/(.*).css")
+            html.print("<option value=\"" .. file .. ".css\">" .. file .. "</option>")
+        end
+    end
+    html.print("</select>")
+    html.print("</nobr>")
+end
+
+function html.navbar_admin(selected)
+    local order = {}
+    local navs = {}
+    for file in nixio.fs.dir("/usr/lib/lua/aredn/nav/admin")
+    do
+        order[#order + 1] = file
+        navs[file] = require("aredn.nav.admin." .. file:match("^(.*)%.lua$"))
+    end
+    table.sort(order)
+    html.print("<table cellpadding=5 border=0 align=center width='" .. (#order * 120) .. "px'><tr><td colspan=100%><hr></td></tr><tr>")
+    local width = math.floor(100 / #order) .. "%"
+    for _, key in ipairs(order)
+    do
+        local nav = navs[key]
+        if type(nav) == "table" then
+            html.print("<td align=center width=" .. width .. (nav.href == selected and " class='navbar_select'" or "") .. ">")
+            if nav.enable == false then
+                html.print(nav.display .. "</td>")
+            else
+                html.print("<a href='" .. nav.href .. "'>" .. nav.display .. "</a></td>")
+            end
+        end
+    end
+    html.print("</tr><tr><td colspan=100%><hr></td></tr></table>")
+end
+
 function html.print(line)
     -- html output is defined in aredn.http
     -- this is a bit icky at the moment :-()
