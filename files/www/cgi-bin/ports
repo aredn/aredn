@@ -891,18 +891,20 @@ function print_reservations()
     end
     list[#list + 1] = "_add"
 
+    local mac_list = {}
     for _, val in ipairs(list)
     do
         local host = parms["dhcp" .. val .. "_host"]
         local ip = parms["dhcp" .. val .. "_ip"]
         local mac = parms["dhcp" .. val .. "_mac"]:lower()
         local noprop = parms["dhcp" .. val .. "_noprop"]
+        mac_list[mac] = true
 
         if val == "_add" and #list > 1 then
             html.print("<tr><td colspan=4 height=10></td></tr>")
         end
         html.print("<tr><td><input style='width=180;' type=text name=dhcp" .. val .. "_host value='" .. host .. "'></td>")
-        html.print("<td align=center><select name=dhcp" .. val .. "_ip>")
+        html.print("<td align=center style='padding:0 4px'><select style='width:130px' name=dhcp" .. val .. "_ip>")
         if val == "_add" then
 	        html.print("<option value=''>- IP Address -</option>\n")
         end
@@ -934,7 +936,7 @@ function print_reservations()
         if val == "_add" then
             html.print("dhcp_add       value=Add title='Add this as a DHCP reservation'")
         else
-            html.print("dhcp" .. val .. "_del value=Del title='Remove this reservation'")
+            html.print("dhcp" .. val .. "_del value='Del ' title='Remove this reservation'")
         end
         html.print("></nobr></td></tr>")
 
@@ -958,8 +960,7 @@ function print_reservations()
             local _, mac, ip, host = line:match("(%S+)%s+(%S+)%s+(%S+)%s+(%S+)")
             html.print("<tr><td height=5></td></tr>")
             html.print("<tr><td align=center>" .. host .. "</td><td align=center><small>" .. ip .. "</small></td>")
-            html.print("<td align=center><small>" .. mac .. "</small></td><td></td><td><nobr>&nbsp;")
-            html.print("<input type=submit name=lease" .. i .. "_add  value=Add ")
+            html.print("<td align=center><small>" .. mac .. "</small></td><td></td><td><nobr>&nbsp;<input " .. (mac_list[mac] and "disabled " or "") .. "type=submit name=lease" .. i .. "_add  value=Add ")
             html.print("title='Use these values as an address reservation'></nobr></td></tr>")
             hide("<input type=hidden name=lease" .. i .. "_host value=" .. host .. ">")
             hide("<input type=hidden name=lease" .. i .. "_ip   value=" .. ip .. ">")
@@ -1044,7 +1045,7 @@ function print_forwarding()
         if val == "_add" then
             html.print("port_add value=Add title='Add this as a port forwarding rule'")
         else
-            html.print("port" .. val .. "_del value=Del title='Remove this rule'")
+            html.print("port" .. val .. "_del value='Del ' title='Remove this rule'")
         end
         html.print("></nobr></td></tr>")
 
@@ -1196,7 +1197,7 @@ function print_services()
         if val == "_add" then
             html.print("serv_add       value=Add title='Add this as a service'>")
         else
-            html.print("serv" .. val .. "_del value=Del title='Remove this service'>")
+            html.print("serv" .. val .. "_del value='Del ' title='Remove this service'>")
         end
         local svc = string.format([[PlParam "service" "%s://%s:%s/%s|tcp|%s"]], (_link == "1" and _proto or "http"), _host, (_link == "1" and _port or "0"), _suffix, _name)
         if val ~= "_add" and activesvc and not activesvc[svc] then
@@ -1265,7 +1266,7 @@ function print_aliases()
         if val == "_add" then
             html.print("alias_add       value=Add title='Add Alias'")
         else
-            html.print("alias" .. val .. "_del value=Del title='Remove Alias'")
+            html.print("alias" .. val .. "_del value='Del ' title='Remove Alias'")
         end
         html.print("></nobr></td></tr>")
     end
