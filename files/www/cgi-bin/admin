@@ -186,7 +186,7 @@ if os.getenv("REQUEST_METHOD") == "POST" then
             if not fp then
                 if meta and meta.file then
                     firmfile = meta.file
-                    if firmfile:match("sysupgrade%.bin$") then
+                    if firmfile:match("sysupgrade%.bin$") or firmfile:match("ext4%-combined%.img%.gz$") then
                         -- Uploading a system upgrade - clear out memory early
                         os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
                     end
@@ -226,6 +226,13 @@ serverpaths[#serverpaths + 1] = uciserverpath
 local hardwaretype = aredn.hardware.get_type()
 local targettype = conn:call("system", "board", {}).release.target
 
+local local_firmware = "local_firmware.bin"
+local firmware_type = "bin"
+if targettype:match("x86") then
+    local_firmware = "local_firmware.img.gz"
+    firmware_type = "gz"
+end
+
 -- handle TPLink and Mikrotik exception conditions
 local mfg = aredn.hardware.get_manufacturer()
 local mfgprefix = ""
@@ -235,52 +242,6 @@ elseif mfg:match("[Mm]ikro[Tt]ik") then
     mfgprefix = "mikrotik"
 elseif mfg:match("[Tt][Pp]-[Ll]ink") then
     mfgprefix = "cpe"
-end
-
-local hardwaretypev
-if hardwaretype == "nanostation-m" then
-    hardwaretypev = "nano-m" -- Nano XM
-elseif hardwaretype == "nanostation-m-xw" then
-    hardwaretypev = "nano-m-xw"  -- Nano XW
-elseif hardwaretype == "rb-952ui-5ac2nd" then
-    hardwaretypev = "rb-nor-flash-16M-ac"     -- hAP AC Lite
-elseif hardwaretype:match("rb-911g-[25]hpnd") or hardwaretype:match("rb-912uag-[25]hpnd") then
-    hardwaretypev = "nand-large"     -- Basebox 2/5 and QRT 2/5
-elseif hardwaretype:match("rb-l[dfhg]+-[25]nd") or hardwaretype:match("rb-lhg-[25]hpnd")  then
-    hardwaretypev = "rb-nor-flash-16M"     -- LHGs & LDFs
-elseif mfgprefix == "cpe" then
-    local hwmodel = aredn.hardware.get_board_id()
-    if hwmodel:match("CPE210 v1%.[01]") then
-        hardwaretypev = "210-220-v1"       -- v1.0/v1.1
-    elseif hwmodel:match("CPE210 v2%.0") then
-        hardwaretypev = "210-v2"           -- v2.0
-    elseif hwmodel:match("CPE210 v3%.0") then
-        hardwaretypev = "210-v3"           -- v3.0
-    elseif hwmodel:match("CPE220 v2%.0") then
-        hardwaretypev = "220-v2"           -- v3.0
-    elseif hwmodel:match("CPE220 v3%.0") then
-        hardwaretypev = "220-v3"           -- v3.0
-    elseif hwmodel:match("CPE510 v2%.0") then
-        hardwaretypev = "510-v2"           -- v2.0
-    elseif hwmodel:match("CPE510 v3%.0") then
-        hardwaretypev = "510-v3"           -- v3.0
-    elseif hwmodel:match("CPE510") then
-        hardwaretypev = "510-520-v1"       -- CPE510 V1.0/v1.1
-    elseif hwmodel:match("CPE605") then
-        hardwaretypev = "605-v1"      	    -- CPE605 V1.0
-    elseif hwmodel:match("CPE610 v2%.0") then
-        hardwaretypev = "610-v2"      	    -- CPE610 V2.0
-    elseif hwmodel:match("CPE610") then
-        hardwaretypev = "610-v1"      	    -- CPE610 V1.0
-    elseif hwmodel:match("WBS510 v2%.0") then
-        mfgprefix="wbs"
-        hardwaretypev = "510-v2"           -- WBS510 v2.0
-    elseif hwmodel:match("WBS210 v1%.[012]") then
-        mfgprefix="wbs"
-        hardwaretypev = "210-v1"       -- WBS210 v1.0/v1.1
-    end
-else
-    hardwaretypev = hardwaretype
 end
 
 -- refresh fw
@@ -393,10 +354,14 @@ if f then
 end
 
 -- sideload fw
-if parms.button_apply_fw and nixio.fs.stat("/tmp/web/local_firmware.bin") then
+if parms.button_apply_fw and nixio.fs.stat("/tmp/web/" .. local_firmware) then
     nixio.fs.mkdir("/tmp/web/upload")
-    os.execute("mv -f /tmp/web/local_firmware.bin /tmp/web/upload/file")
-    firmfile = "arednmesh-sideload-sysupgrade.bin"
+    os.execute("mv -f /tmp/web/" .. local_firmware .. " /tmp/web/upload/file")
+    if firmware_type == "gz" then
+        firmfile = "arednmesh-sideload-ext4-combined.img.gz"
+    else
+        firmfile = "arednmesh-sideload-sysupgrade.bin"
+    end
     parms.button_ul_fw = "Upload"
     os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
 end
@@ -404,7 +369,7 @@ end
 -- upload fw
 if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
     os.execute("mv -f /tmp/web/upload/file " .. tmpdir .. "/firmware")
-    if firmfile:match("sysupgrade%.bin$") then -- full firmware
+    if firmware_type == "bin" and firmfile:match("sysupgrade%.bin$") then -- full firmware
         fw_install = true
         -- drop the page cache to take pressure off tmps when checking the firmware
         write_all("/proc/sys/vm/drop_caches", "3")
@@ -419,6 +384,8 @@ if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
                 fwout("Failed to restart all services, please reboot this node.")
             end
         end
+    elseif firmware_type == "gz" and firmfile:match("ext4%-combined%.img%.gz$") then -- full x86 firmware
+        fw_install = true
     else
         fwout("Firmware CANNOT be updated")
         fwout("the uploaded file is not recognized")
@@ -448,7 +415,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
             local fwimage
             for _, image in ipairs(fwinfo.images)
             do
-                if image.type == "sysupgrade" or image.type == "nand-sysupgrade" then
+                if (firmware.type == "bin" and (image.type == "sysupgrade" or image.type == "nand-sysupgrade")) or (firmware_type == "gz" and image.type == "combined") then
                     fwimage = {
                         url = fw_versions[parms.dl_fw].target .. "/" .. image.name,
                         sha = image.sha256
@@ -468,7 +435,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
                     end
                 end
             else
-                err = "sysupgrade is not available"
+                err = "upgrade is not available"
             end
         else
             err = "the downloaded file cannot be found"
@@ -844,7 +811,7 @@ end
 
 html.print("<tr>")
 html.print("<td>Upload Firmware</td>")
-html.print("<td><input style='width:100%' type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin'></td>")
+html.print("<td><input style='width:100%' type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='." .. firmware_type .. "'></td>")
 html.print("<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'></td>")
 html.print("</tr>")
 
@@ -864,8 +831,8 @@ html.print("</tr>")
 html.print("<tr>")
 html.print("<td>Load Local Firmware</td>")
 html.print("<td style='font-family:monospace'>")
-html.print("<input type=submit name=button_apply_fw value='Apply Local Firmware' title='apply firmware previously uploaded to this node and named as shown' " .. (nixio.fs.stat("/tmp/web/local_firmware.bin") and "" or "disabled") .. ">")
-html.print(" /tmp/web/local_firmware.bin</td>")
+html.print("<input type=submit name=button_apply_fw value='Apply Local Firmware' title='apply firmware previously uploaded to this node and named as shown' " .. (nixio.fs.stat("/tmp/web/" .. local_firmware) and "" or "disabled") .. ">")
+html.print(" /tmp/web/" .. local_firmware .. "</td>")
 html.print("</tr>")
 
 html.print("</table></td></tr>")

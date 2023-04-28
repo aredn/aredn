@@ -240,6 +240,14 @@ function hardware.has_usb()
     return false
 end
 
+function hardware.has_wifi()
+    if nixio.fs.stat("/sys/kernel/debug/ieee80211") then
+        return true
+    else
+        return false
+    end
+end
+
 function hardware.get_rfbandwidths(wifiintf)
     return { 5, 10, 20 }
 end
