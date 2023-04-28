@@ -153,11 +153,12 @@ if config == "" or nixio.fs.stat("/etc/config.mesh", "type") ~= "dir" then
     config = "not set"
 end
 
+local haswifi = aredn.hardware.has_wifi()
 local wifi_iface = aredn.hardware.get_iface_name("wifi")
 local wifi_nr = wifi_iface:match("wlan(%d+)")
 local wifi_disabled = true
 local radio = "radio0"
-if wifi_nr then
+if haswifi and wifi_nr then
     wifi_disabled = false
     radio = "radio" .. wifi_nr
 end
