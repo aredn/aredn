@@ -6,8 +6,8 @@ version: 2.1
 parameters:
   action:
     type: enum
-    enum: [nightly_build, manual_build, release_build]
-    default: nightly_build
+    enum: [none, nightly_build, manual_build, release_build]
+    default: none
 
 ######################################
 # JOBS
@@ -137,7 +137,6 @@ jobs:
           name: Move SUPPORTED_DEVICES.md
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c 'mv ~/SUPPORTED_DEVICES.md ${NIGHTLY_DIR}/SUPPORTED_DEVICES.md'"
 
-
   afs_collector:
     machine:
       image: ubuntu-2004:2023.02.1
@@ -145,6 +144,12 @@ jobs:
       - run:
           name: Run AFS collector
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c '${DOWNLOADS_DOCROOT}/afs/misc/collect.py --image-url http://downloads.arednmesh.org/{base}/{target} ${DOWNLOADS_DOCROOT} ${DOWNLOADS_DOCROOT}/afs/www'"
+
+  no_action:
+    machine:
+      image: ubuntu-2004:2023.02.1
+    steps:
+      - run: echo "No action needed"
       
 ######################################
 # Workflows
@@ -194,3 +199,10 @@ workflows:
       - save_build_info:
           requires:
             - process_artifacts_nightly
+
+  no_build:
+    when:
+      equal: [ none, << pipeline.parameters.action >> ]
+    
+    jobs:
+      - no_action
