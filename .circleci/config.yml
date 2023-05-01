@@ -1,8 +1,18 @@
-version: 2
+version: 2.1
+
+######################################
+# PIPELINE PARAMETERS
+######################################
+parameters:
+  action:
+    type: enum
+    enum: [nightly_build, manual_build, release_build]
+    default: nightly_build
+
+######################################
+# JOBS
+######################################
 jobs:
-  ######################################
-  # Common
-  ######################################
   build:
     resource_class: large
     docker:
@@ -79,9 +89,6 @@ jobs:
           name: Save last build info
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c ' echo ${CIRCLE_SHA1} > ~/build_info/${CIRCLE_PROJECT_USERNAME}_${CIRCLE_PROJECT_REPONAME}_${CIRCLE_BRANCH}'"
 
-  ######################################
-  # Nightly
-  ######################################
   process_artifacts_nightly:
     machine:
       image: ubuntu-2004:2023.02.1
@@ -143,15 +150,9 @@ jobs:
 # Workflows
 ######################################
 workflows:
-  version: 2
-
-  nightly:
-    triggers:
-      - schedule:
-          cron: "0 9 * * *" # 9AM UTC
-          filters:
-            branches:
-              only: main
+  nightly_build:
+    when:
+      equal: [ nightly_build, << pipeline.parameters.action >> ]
     jobs:
       - check2build
       - build:
@@ -160,28 +161,36 @@ workflows:
       - process_artifacts_nightly:
           requires:
             - build
-          filters:
-            branches:
-              only: main
       - readme_nightly:
           requires:
             - process_artifacts_nightly
-          filters:
-            branches:
-              only:
-                - main
       - changelog_nightly:
           requires:
             - process_artifacts_nightly
-          filters:
-            branches:
-              only: main
       - afs_collector:
           requires:
             - process_artifacts_nightly
-          filters:
-            branches:
-              only: main
+      - save_build_info:
+          requires:
+            - process_artifacts_nightly
+  
+  manual_build:
+    when:
+      equal: [ manual_build, << pipeline.parameters.action >> ]
+    jobs:
+      - build
+      - process_artifacts_nightly:
+          requires:
+            - build
+      - readme_nightly:
+          requires:
+            - process_artifacts_nightly
+      - changelog_nightly:
+          requires:
+            - process_artifacts_nightly
+      - afs_collector:
+          requires:
+            - process_artifacts_nightly
       - save_build_info:
           requires:
             - process_artifacts_nightly
