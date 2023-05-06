@@ -1,11 +1,3 @@
---- a/package/base-files/files/etc/rc.local
-+++ b/package/base-files/files/etc/rc.local
-@@ -1,4 +1,4 @@
- # Put your custom commands here that should be executed once
- # the system init finished. By default this file does nothing.
--
-+/etc/init.d/dnsmasq start
- exit 0
 --- a/package/network/services/dnsmasq/Makefile
 +++ b/package/network/services/dnsmasq/Makefile
 @@ -167,7 +167,7 @@ define Package/dnsmasq/install
@@ -19,7 +11,7 @@
  	$(INSTALL_DIR) $(1)/etc/hotplug.d/ntp
 --- /dev/null
 +++ b/package/network/services/dnsmasq/files/dnsmasq.init.aredn
-@@ -0,0 +1,641 @@
+@@ -0,0 +1,637 @@
 +#!/bin/sh /etc/rc.common
 +# Copyright (C) 2007-2012 OpenWrt.org
 +
@@ -562,11 +554,6 @@
 +	procd_add_reload_trigger "dhcp"
 +}
 +
-+boot() {
-+	# Will be launched through hotplug
-+	return 0
-+}
-+
 +start_service() {
 +	include /lib/functions
 +
@@ -587,6 +574,7 @@
 +	mkdir -p /var/run/dnsmasq/
 +	mkdir -p $(dirname $CONFIGFILE)
 +	mkdir -p /var/lib/misc
++	mkdir -p /tmp/hosts
 +	touch /tmp/dhcp.leases
 +
 +	if [ ! -f "$TIMESTAMPFILE" ]; then
