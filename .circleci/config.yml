@@ -10,6 +10,22 @@ parameters:
     default: no_action
 
 ######################################
+# REUSABLE COMMANDS
+######################################
+commands:
+  update_config_mk:
+    description: "Update variables in config.mk"
+    steps:
+      - run:
+          name: Update Config.mk
+          command:  |
+            export MY_WORKING_DIRECTORY=`pwd`
+            printf -v BUILD_DATE '%(%Y%m%d)T' -1
+            sed -i "s/NoCall/${BUILD_DATE}/g" ${MY_WORKING_DIRECTORY}/config.mk
+            sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j${DASH_J_VALUE}/g" ${MY_WORKING_DIRECTORY}/config.mk
+            cat ${MY_WORKING_DIRECTORY}/config.mk
+
+######################################
 # JOBS
 ######################################
 jobs:
@@ -20,46 +36,37 @@ jobs:
 
     steps:
       - checkout
+      - update_config_mk
       - run:
-          name: Update Config.mk
-          command:  |
-            export MY_WORKING_DIRECTORY=`pwd`
-            export MY_PROCS=`nproc`
-            echo "#Procs: ${MY_PROCS}, DASH_J_VALUE: ${DASH_J_VALUE}" 
-            sed -i "s/NoCall/${CIRCLE_BUILD_NUM}/g" ${MY_WORKING_DIRECTORY}/config.mk
-            sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j${DASH_J_VALUE}/g" ${MY_WORKING_DIRECTORY}/config.mk
-            cat ${MY_WORKING_DIRECTORY}/config.mk
-            echo "${TARGET_DIR}"
-      - run:
-          name: Build
+          name: Build ath79/generic
           command: make MAINTARGET=ath79 SUBTARGET=generic
           no_output_timeout: 2h
       - run:
-          name: Build
+          name: Build ath79/tiny
           command: make MAINTARGET=ath79 SUBTARGET=tiny
           no_output_timeout: 1h
       - run:
-          name: Build
+          name: Build ath79/mikrotik
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik
           no_output_timeout: 1h
       - run:
-          name: Build
+          name: Build ath79/mikrotik/ath10k
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k
           no_output_timeout: 1h
       - run:
-          name: Build
+          name: Build ath79/mikrotik/nand
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand
           no_output_timeout: 1h
       - run:
-          name: Build
+          name: Build ath79/nand
           command: make MAINTARGET=ath79 SUBTARGET=nand
           no_output_timeout: 1h
       - run:
-          name: Build
+          name: Build ipq40xx/mikrotik
           command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
           no_output_timeout: 2h
       - run:
-          name: Build
+          name: Build x64/64
           command: make MAINTARGET=x86 SUBTARGET=64
           no_output_timeout: 2h
       - run:
