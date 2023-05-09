@@ -175,7 +175,6 @@ wan_gw = ""
 passwd1 = ""
 passwd2 = ""
 
-local haswifi = aredn.hardware.has_wifi()
 local wifiintf = aredn.hardware.get_iface_name("wifi")
 local phy = iwinfo.nl80211.phyname(wifiintf)
 local phycount = tonumber(capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp())
@@ -523,7 +522,8 @@ if parms.button_save then
         end
 
         if wifiintf:match("^br") then
-            wifiintf = "wlan0"
+            wifiintf = aredn.hardware.get_board_network_ifname("wifi")
+            phy = iwinfo.nl80211.phyname(wifiintf)
         end
         local valid = false
         for _, c in ipairs(aredn.hardware.get_rfchannels(wifiintf))
@@ -1036,7 +1036,7 @@ html.print([[
 ]])
 
 -- reset wifi channel/bandwidth to default
-if haswifi and (nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset) then
+if phycount > 0 and (nixio.fs.stat("/etc/config/unconfigured") or parms.button_reset) then
     local defaultwifi = aredn.hardware.get_default_channel(wifiintf)
     wifi_channel = defaultwifi.channel
     wifi_chanbw = tostring(defaultwifi.bandwidth)
@@ -1044,7 +1044,7 @@ end
 
 -- mesh rf settings
 html.print("<table width=100% style='border-collapse: collapse;'>")
-if haswifi then
+if phycount > 0 then
     html.print("<tr><th colspan=2>Mesh RF (" .. (M3model and "3GHz" or M9model and "900MHz" or wifi_channel < 36 and "2GHz" or "5GHz") .. ")</th></tr>")
 else
     html.print("<tr><th colspan=2>Mesh</th></tr>")
@@ -1053,7 +1053,7 @@ hidden[#hidden + 1] = "<input type=hidden name=wifi_proto value='static'>"
 
 -- add enable/disable
 
-if haswifi then
+if phycount > 0 then
     html.print("<tr><td>Enable</td><td><input type=checkbox name=wifi_enable value=1")
     if wifi_enable == "1" then
         html.print(" checked")
