@@ -69,6 +69,10 @@ jobs:
           name: Build x64/64
           command: make MAINTARGET=x86 SUBTARGET=64
           no_output_timeout: 2h
+      - persist_to_workspace:
+          root: /opt/aredn/aredn
+          paths:
+            - firmware
       - run:
           name: Compress build files
           command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
