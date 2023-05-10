@@ -84,12 +84,12 @@ Rocket M5 XM || 5 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
 Rocket M5GPS XM || 5 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
 Rocket M2 XM with USB port || 2 | ath79 | generic | ubnt_rocket-m | 64MB | unknown | released
 Rocket M5 XM with USB port || 5 | ath79 | generic | ubnt_rocket-m | 64MB | unknown | released
-Rocket M2 XW || 2 | ath79 | generic | ubnt_rocket-m-xw | 64MB | unknown | released
-Rocket M5 XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | released
+Rocket M2 XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | stable | nightly
+Rocket M5 XW || 5 | ath79 | generic | ubnt_rocket-m5-xw | 64MB | stable | nightly
 Rocket M2 Titanium TI || 2 | ath79 | - | - | 64MB | unknown | released
-Rocket M2 Titanium XW || 2 | ath79 | generic | ubnt_rocket-m-xw | 64MB | unknown | released
+Rocket M2 Titanium XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | unknown | released
 Rocket M5 Titanium TI || 5 | ath79 | - | - | 64MB | unknown | released
-Rocket M5 Titanium XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | released
+Rocket M5 Titanium XW || 5 | ath79 | generic | ubnt_rocket-m5-xw | 64MB | stable | released
 
 
 ## TP-Link
