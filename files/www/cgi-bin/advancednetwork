@@ -1,0 +1,680 @@
+#!/usr/bin/lua
+--[[
+
+        Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+        Copyright (C) 2023 Tim Wilkinson
+        See Contributors file for additional contributors
+
+        This program is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation version 3 of the License.
+
+        This program is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+        Additional Terms:
+
+        Additional use restrictions exist on the AREDN(TM) trademark and logo.
+                See AREDNLicense.txt for more info.
+
+        Attributions to the AREDN Project must be retained in the source code.
+        If importing this code into a new or existing project attribution
+        to the AREDN project must be added to the source code.
+
+        You must not misrepresent the origin of the material contained within.
+
+        Modified versions must be modified to attribute to the original source
+        and be marked in reasonable ways as differentiate it from the original
+        version
+
+--]]
+
+require("nixio")
+require("aredn.hardware")
+require("aredn.http")
+local html = require("aredn.html")
+local aredn_info = require("aredn.info")
+
+local base = "/etc/aredn_include/"
+local xlink_file = "/etc/config.mesh/xlink"
+
+local default_5_port_layout = { ports = { "wan", "lan1", "lan2", "lan3", "lan4" } }
+local layouts = {
+    ["mikrotik,hap-ac2"] = default_5_port_layout,
+    ["mikrotik,hap-ac3"] = default_5_port_layout
+}
+
+local default_5_port_config = {
+    {
+        name = "dtdlink",
+        vlan = 2,
+        ports = { lan4 = { tagged = true } },
+        tagged = true
+    },
+    {
+        name = "lan",
+        vlan = 3,
+        ports = { lan1 = { tagged = false }, lan2 = { tagged = false }, lan3 = { tagged = false } },
+        tagged = false
+    },
+    {
+        name = "wan",
+        vlan = 1,
+        ports = { wan = { tagged = false } },
+        tagged = false
+    }
+}
+local default_configs = {
+    ["mikrotik,hap-ac2"] = default_5_port_config,
+    ["mikrotik,hap-ac3"] = default_5_port_config
+}
+
+function read_user_config(network)
+    local file = base .. network .. ".network.user"
+    if not nixio.fs.stat(file) then
+        return nil
+    end
+    local config = {
+        name = network,
+        vlan = nil,
+        ports = {},
+        tagged = false
+    }
+    local invlan = false
+    for line in io.lines(file)
+    do
+        if line:match("^config%s+bridge%-vlan") then
+            invlan = true
+        elseif line:match("^config") then
+            invlan = false
+        elseif invlan then
+            local m
+            m = line:match("option%s+vlan%s+'(%d+)'")
+            if m then
+                config.vlan = tonumber(m)
+            end
+            m = line:match("list%s+ports%s+'(%S+):u'")
+            if m then
+                config.ports[m] = {
+                    tagged = false
+                }
+            end
+            m = line:match("list%s+ports%s+'(%S+):t'")
+            if m then
+                config.ports[m] = {
+                    tagged = true
+                }
+                config.tagged = true
+            end
+        end
+    end
+    return config
+end
+
+function read_xlink_config()
+    if not nixio.fs.stat(xlink_file) then
+        return {}
+    end
+    local configs = {}
+    local config = {}
+    local type = "none"
+    for line in io.lines(xlink_file)
+    do
+        if line:match("^config%s+bridge%-vlan") then
+            type = "vlan"
+            config = {
+                name = nil,
+                vlan = nil,
+                ipaddr = nil,
+                peer = nil,
+                weight = 0,
+                port = nil
+            }
+            configs[#configs + 1] = config
+        elseif line:match("^config%s+interface") then
+            type = "interface"
+            config.name = line:match("^config%s+interface%s+'(%S+)'")
+        elseif type == "vlan" then
+            local m
+            m = line:match("option%s+vlan%s+'(%d+)'")
+            if m then
+                config.vlan = tonumber(m)
+            end
+            m = line:match("list%s+ports%s+'(%S+):t'")
+            if m then
+                config.port = m
+            end
+        elseif type == "interface" then
+            local m
+            m = line:match("option%s+ipaddr%s+'([%d%.]+)'")
+            if m then
+                config.ipaddr = m
+            end
+            m = line:match("option%s+peer%s+'([%d%.]+)'")
+            if m then
+                config.peer = m
+            end
+            m = line:match("option%s+weight%s+'([%d]+)'")
+            if m then
+                config.weight = tonumber(m)
+            end
+        end
+    end
+    return configs
+end
+
+function write_user_config(config, variables)
+    local network = config.name
+    local f = io.open(base .. network .. ".network.user", "w")
+    f:write("# Generated by advancednetwork\n")
+    f:write("\nconfig bridge-vlan\n")
+    f:write("\toption device 'br0'\n")
+    f:write("\toption vlan '" .. config.vlan .. "'\n")
+    for name, port in pairs(config.ports)
+    do
+        f:write("\tlist ports '" .. name .. (port.tagged and ":t" or ":u") .. "'\n")
+    end
+    f:write("\nconfig device\n")
+    f:write("\toption name 'br-" .. network .. "'\n")
+    f:write("\toption type 'bridge'\n")
+    f:write("\toption macaddr '<" .. network .. "_mac>'\n")
+    f:write("\tlist ports 'br0." .. config.vlan .. "'\n")
+    f:write("\nconfig interface " .. network .. "\n")
+    f:write("\toption device 'br-" .. network .. "'\n")
+    if network == "dtdlink" then
+        f:write("\toption proto 'static'\n")
+        f:write("\toption ipaddr '<" .. network .. "_ip>'\n")
+        f:write("\toption netmask '255.0.0.0'\n")
+    else
+        if variables[network .. "_proto"] and variables[network .. "_proto"] ~= "" then
+            f:write("\toption proto '<" .. network .. "_proto>'\n")
+        end
+        if variables[network .. "_ip"] and variables[network .. "_ip"] ~= "" then
+            f:write("\toption ipaddr '<" .. network .. "_ip>'\n")
+        end
+        if variables[network .. "_mask"] and variables[network .. "_mask"] ~= "" then
+            f:write("\toption netmask '<" .. network .. "_mask>'\n")
+        end
+    end
+    if network == "lan" then
+        f:write("\toption dns '<wan_dns1> <wan_dns2>'\n")
+    end
+    if network == "wan" and variables.wan_gw and variables.wan_gw ~= "" then
+        f:write("\toption gateway '<wan_gw>'\n")
+    end
+    f:close()
+end
+
+function update_legacy_wan_vlan(config)
+    local lines = {}
+    for line in io.lines("/etc/config.mesh/_setup")
+    do
+        if not line:match("^wan_intf = ") then
+            lines[#lines + 1] = line
+        end
+    end
+
+    for name, port in pairs(config.ports)
+    do
+        if port.tagged then
+            local wan_intf = ""
+            for dev in aredn.hardware.get_board_network_ifname("wan"):gmatch("%S+")
+            do
+                wan_intf = wan_intf .. " " .. dev:match("^([^%.]+)") .. "." .. config.vlan
+            end
+            if wan_intf ~= "" then
+                lines[#lines + 1] = "wan_intf =" .. wan_intf
+            end
+            break
+        end
+    end
+
+    local f = io.open("/etc/config.mesh/_setup", "w")
+    if f then
+        for _, line in ipairs(lines)
+        do
+            f:write(line .. "\n")
+        end
+        f:close()
+    end
+end
+
+function write_xlink_config(configs)
+    local f = io.open(xlink_file, "w")
+    f:write("# Generated by advancednetwork\n")
+    for _, config in ipairs(configs)
+    do
+        f:write("\nconfig bridge-vlan\n")
+        f:write("\toption device 'br0'\n")
+        f:write("\toption vlan '" .. config.vlan .. "'\n")
+        f:write("\tlist ports '" .. config.port .. ":t'\n")
+        f:write("\nconfig interface '" .. config.name .. "'\n")
+        f:write("\toption ifname 'br0." .. config.vlan .. "'\n")
+        f:write("\toption proto 'static'\n")
+        f:write("\toption ipaddr '" .. config.ipaddr .. "'\n")
+        f:write("\toption netmask '255.255.255.252'\n")
+        f:write("\toption peer '" .. config.peer .. "'\n")
+        f:write("\toption weight '" .. config.weight .. "'\n")
+    end
+    f:close()
+end
+
+function reboot()
+    local node = aredn_info.get_nvram("node")
+    if node == "" then
+        node = "Node"
+    end
+    http_header()
+    html.header(node .. " rebooting", false)
+    html.print("<meta http-equiv='refresh' content='60;url=/cgi-bin/status'>")
+    html.print("</head><body><center>")
+    html.print("<h1>" .. node .. " is rebooting</h1><br>")
+    html.print("<h3>Your browser should return to this node in 60 seconds.</br><br>")
+    html.print("If something goes astray you can try to connect with<br><br>")
+    html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>")
+    if node ~= "Node" then
+        html.print("or<br><a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
+    end
+    html.print("</center></body></html>")
+    http_footer()
+    os.execute("reboot >/dev/null 2>&1")
+    os.exit()
+end
+
+local get_board_type = aredn.hardware.get_board_type()
+
+local layout = layouts[get_board_type]
+local configs = {}
+
+if os.getenv("REQUEST_METHOD") == "POST" then
+    require('luci.http')
+    local request = luci.http.Request(nixio.getenv(),
+      function()
+        local v = io.read(1024)
+        if not v then
+            io.close()
+        end
+        return v
+      end
+    )
+    local params = request:formvalue()
+    if params.op == "save" then
+        if params.configs then
+            local variables = {}
+            for line in io.lines("/etc/config.mesh/_setup")
+            do
+                if not (line:match("^%s*#") or line:match("^%s*$")) then
+                    local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
+                    variables[k] = v
+                end
+            end
+            local configs = luci.jsonc.parse(params.configs)
+            for _, config in ipairs(configs)
+            do
+                write_user_config(config, variables)
+                if config.name == "wan" then
+                    update_legacy_wan_vlan(config)
+                end
+            end
+            write_xlink_config(luci.jsonc.parse(params.xlinks))
+            os.execute("/usr/local/bin/node-setup -a mesh > /dev/null 2>&1")
+            io.open("/tmp/reboot-required", "w"):close()
+        end
+    elseif params.op == "defaults" then
+        for _, network in ipairs({ "dtdlink", "lan", "wan" })
+        do
+            nixio.fs.remove(base .. network .. ".network.user")
+        end
+        write_xlink_config({})
+        os.execute("/usr/local/bin/node-setup -a mesh > /dev/null 2>&1")
+        io.open("/tmp/reboot-required", "w"):close()
+    elseif params.op == "reboot" then
+        reboot()
+    end
+end
+
+for _, network in ipairs({ "dtdlink", "lan", "wan" })
+do
+    local config = read_user_config(network)
+    if not config then
+        for _, default_config in ipairs(default_configs[get_board_type])
+        do
+            if default_config.name == network then
+                config = default_config
+                break
+            end
+        end
+    end
+    configs[#configs + 1] = config
+end
+
+local xlinks = read_xlink_config()
+
+http_header()
+html.header("Advanced Network Configuration")
+html.print("<body><center>")
+html.alert_banner()
+html.print([[
+    <style>
+        .title {
+            font-size: 24px;
+            padding: 5px 0;
+            text-align: center;
+        }
+        .control {
+            text-align: center;
+            padding-bottom: 8px;
+        }
+        .control input {
+            margin: 0 4px;
+        }
+        .msg {
+            font-size: 14px;
+            text-align: center;
+            font-weight: bold;
+            padding-bottom: 10px;
+        }
+        caption {
+            font-size: 12px;
+            font-weight: bold;
+            padding-bottom: 6px;
+        }
+        .ports {
+            margin: 10px 0 30px 0;
+            padding: 20px;
+            border: 1px solid #808080;
+        }
+        .ports tr:first-child {
+            font-variant: all-small-caps;
+        }
+        .ports td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .ports td:first-child {
+            text-align: left;
+        }
+        .h {
+            width: 50px;
+            font-size: 16px;
+        }
+        .l {
+            font-size: 12px;
+            font-weight: bold;
+            width: 120px;
+            padding: 6px 0 2px 0;
+        }
+        .v {
+            font-size: 12px;
+            color: grey;
+        }
+        .v input {
+            padding-left: 2px;
+            font-size: 12px;
+            width: 65px;
+            border: 0;
+        }
+        .xlinks {
+            min-width: 610px;
+            margin: 30px auto;
+            padding: 20px;
+            border: 1px solid #808080;
+        }
+        .xlinks .h {
+            height: 30px;
+            vertical-align: top;
+            font-variant: all-small-caps;
+        }
+        .xlinks td {
+            width: 100px;
+            padding-left: 10px;
+        }
+        .xlinks td:nth-child(1), .xlinks td:nth-child(5) {
+            width: 40px;
+        }
+        .xlinks td:nth-child(6) {
+            width: 55px;
+        }
+        .xlinks td:nth-child(7) {
+            width: 20px;
+        }
+        .xlinks td input {
+            width: 100%;
+            border: 1px solid transparent;
+        }
+        .xlinks td input.error {
+            border-color: red;
+        }
+        .xlinks td:nth-child(1) input, .xlinks td:nth-child(5) input {
+            text-align: right;
+        }
+        .xlinks td:nth-child(7) button {
+            width: 24px;
+            line-height: 14px;
+            background-color: #f0f0f0;
+            border: 1px solid #c0c0c0;
+            border-radius: 5px;
+        }
+    </style>
+]])
+html.print([[
+    <script>
+        const configs = ]] .. luci.jsonc.stringify(configs, true) .. [[;
+        function port_change(input, network, port, checked) {
+            console.log(network, port, checked)
+            const config = configs.find(c => c.name == network);
+            if (!config.tagged && checked) {
+                configs.forEach(config => {
+                    if (!config.tagged && config.ports[port]) {
+                        input.checked = false;
+                    }
+                });
+                if (!input.checked) {
+                    return;
+                }
+            }
+            if (checked) {
+                config.ports[port] = { tagged: config.tagged };
+            }
+            else {
+                delete config.ports[port]
+            }
+        }
+        function wan_vlan_change(input, value) {
+            const config = configs.find(c => c.name == "wan");
+            if (isNaN(value) || value < 4) {
+                if (config.tagged) {
+                    config.tagged = false;
+                    config.vlan = 1;
+                    config.ports = {};
+                    const boxes = document.querySelectorAll("#wan_row td input[type=checkbox]");
+                    for (let i = 0; i < boxes.length; i++) {
+                        boxes[i].checked = false;
+                    }
+                }
+                input.value = "";
+            }
+            else {
+                config.tagged = true;
+                config.vlan = value;
+                for (port in config.ports) {
+                    config.ports[port].tagged = true;
+                }
+                input.value = value;
+            }
+            validate();
+        }
+        function xlink_add() {
+            const tbody = document.querySelector("table.xlinks tbody");
+            const row = document.createElement("tr");
+            row.innerHTML = "<td><input type='text' value=''></td><td><input type='text' value=''></td><td><input type='text' value=''></td><td>255.255.255.252</td><td><input type='text' value='0'></td><td><select>]]
+                .. (function() local s = "" for _, port in ipairs(layout.ports) do s = s .. "<option>" .. port .. "</option>" end return s end)()
+                .. [[</select></td><td><button onclick='xlink_remove(this)'>-</button></td>"
+            tbody.appendChild(row)
+            validate();
+        }
+        function xlink_remove(button) {
+            const row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row)
+            validate();
+        }
+        function generate_xlinks() {
+            const xlinks = [];
+            const rows = document.querySelectorAll("table.xlinks tr");
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i].querySelectorAll("td input");
+                xlinks.push({
+                    name: "xlink" + (i - 1),
+                    vlan: parseInt(cells[0].value),
+                    ipaddr: cells[1].value,
+                    peer: cells[2].value,
+                    weight: parseInt(cells[3].value),
+                    port: rows[i].querySelector("select").value
+                });
+            }
+            return xlinks;
+        }
+        function validate() {
+            let cansave = true;
+            const wan_config = configs.find(c => c.name == "wan");
+            let wan_vlan = "__untagged__";
+            if (wan_config.tagged) {
+                wan_vlan = wan_config.vlan;
+            }
+            const rows = document.querySelectorAll("table.xlinks tr");
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i].querySelectorAll("td input");
+                if (/^\d+$/.test(cells[0].value) && parseInt(cells[0].value) > 3 && cells[0].value != wan_vlan) {
+                    cells[0].classList.remove("error");
+                }
+                else {
+                    cells[0].classList.add("error");
+                    cansave = false;
+                }
+                if (/^\d+\.\d+\.\d+\.\d+$/.test(cells[1].value)) {
+                    cells[1].classList.remove("error");
+                }
+                else {
+                    cells[1].classList.add("error");
+                    cansave = false;
+                }
+                if (/^\d+\.\d+\.\d+\.\d+$/.test(cells[2].value)) {
+                    cells[2].classList.remove("error");
+                }
+                else {
+                    cells[2].classList.add("error");
+                    cansave = false;
+                }
+                if (/^\d+$/.test(cells[3].value)) {
+                    cells[3].classList.remove("error");
+                }
+                else {
+                    cells[3].classList.add("error");
+                    cansave = false;
+                }
+                if (!cells[1].classList.contains("error") && !cells[1].classList.contains("error")) {
+                    const ip = cells[1].value.split(".");
+                    const peer = cells[2].value.split(".");
+                    const i3 = parseInt(ip[3]);
+                    const p3 = parseInt(peer[3]);
+                    if (ip[0] != peer[0] || ip[1] != peer[1] || ip[2] != peer[2] || (i3 & 252) != (p3 & 252) || i3 == p3 || (i3 & 3) == 0 || (p3 & 3) == 0 || (i3 & 3) == 3 || (p3 & 3) == 3) {
+                        cells[1].classList.add("error");
+                        cells[2].classList.add("error");
+                        cansave = false;
+                    }
+                }
+            }
+
+            if (cansave) {
+                document.getElementById("save").disabled = null;
+            }
+            else {
+                document.getElementById("save").disabled = "disabled"
+            }
+        }
+        function save_config() {
+            document.getElementById('configs').value = JSON.stringify(configs);
+            document.getElementById('xlinks').value = JSON.stringify(generate_xlinks());
+        }
+    </script>
+]])
+html.print("<div>")
+
+-- navbar
+html.navbar_admin("advancednetwork")
+
+html.print([[
+    <div class="control">
+        <form method="post" action="advancednetwork" enctype="multipart/form-data">
+            <input type="button" id="save" value="Save Changes" onclick="save_config(); document.getElementById('op').value = 'save'; form.submit()">
+            <input type="button" value="Default Values" onclick="document.getElementById('op').value = 'defaults'; form.submit()">
+            <input type="button" value="Reboot" style="font-weight:bold" onclick="document.getElementById('op').value = 'reboot'; form.submit()">
+            <input type="hidden" name="configs" id="configs" value="">
+            <input type="hidden" name="xlinks" id="xlinks" value="">
+            <input type="hidden" name="op" id="op" value="">
+        </form>
+    </div>
+]])
+
+if nixio.fs.stat("/tmp/reboot-required") then
+    html.print("<div class='msg'>Reboot is required for changes to take effect</div>")
+end
+
+html.print([[<table class="ports" align="center"><caption>Ports</caption>]])
+html.print("<tr>")
+html.print("<td></td>")
+for _, port in ipairs(layout.ports)
+do
+    html.print("<td class='h'>" .. port .. "</td>")
+end
+html.print("</tr>")
+for _, config in ipairs(configs)
+do
+    html.print("<tr id='" .. config.name .. "_row'>")
+    html.print("<td>")
+    html.print("<div class='l'>" .. config.name .. "</div>")
+    if config.name == "wan" then
+        local value = not config.vlan or config.vlan < 4 and "" or config.vlan
+        html.print("<div class='v'>vlan: <input type='text' placeholder='Untagged' onchange='wan_vlan_change(this, parseInt(this.value))' value='" .. value .. "'></div>")
+    elseif config.name == "dtdlink" then
+        html.print("<div class='v'>vlan: <span>2</span></div>")
+    else
+        html.print("<div class='v'>vlan: <span>Untagged</span></div>")
+    end
+    html.print("</td>")
+    for _, port in ipairs(layout.ports)
+    do
+        local checked = config.ports[port] and "checked" or ""
+        html.print("<td><input type='checkbox' " .. checked .. " onchange='port_change(this, \"" .. config.name .. "\", \"" .. port .. "\", this.checked)'></td>")
+    end
+    html.print("</tr>")
+end
+html.print([[</table>]])
+
+html.print([[<table class="xlinks" align="center"><caption>Xlinks</caption>]])
+html.print([[<tr class="h"><td>vlan</td><td>ip address</td><td>peer address</td><td>netmask</td><td>weight</td><td>&nbsp;Port</td><td><button onclick="xlink_add()">+</button></td></tr>]])
+for _, xlink in ipairs(xlinks)
+do
+    html.print("<tr id='" .. xlink.name .. "'>")
+    html.print("<td><input type='text' value='" .. xlink.vlan .. "'></td><td><input type='text' value='" .. xlink.ipaddr .. "'></td><td><input type='text' value='" .. xlink.peer .. "'></td><td>255.255.255.252</td><td><input type='text' value='" .. xlink.weight .. "'></td>")
+    html.print("<td><select>")
+    for _, port in ipairs(layout.ports)
+    do
+        html.print("<option value='" .. port .. "'" .. (xlink.port == port and " selected" or "") .. ">" .. port .. "</option>")
+    end
+    html.print("</td></select>")
+    html.print("<td><button onclick='xlink_remove(this)'>-</button></td>")
+    html.print("</tr>")
+end
+html.print([[</table>]])
+html.print([[<script>document.querySelector(".xlinks").addEventListener("change", validate);</script>]])
+
+print("</div></center>")
+html.footer()
+html.print("</body></html>")
+http_footer()
