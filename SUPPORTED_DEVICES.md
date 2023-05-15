@@ -70,6 +70,7 @@ PicoStation M2 || 2 | ath79 | tiny (2) | ubnt_picostation-m | 32MB | unknown | s
 PowerBeam AC 5 Gen2 || 5 | ath79 | generic | ubnt_powerbeam-5ac-gen2 | 128MB | unknown | released
 PowerBeam AC 5 400 || 5 | ath79 | generic | ubnt_powerbeam-5ac-400 | 128MB | unknown | nightly
 PowerBeam AC 5 500 | PBE-5AC-500 <br> PBE-5AC-500-US | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | released
+PowerBeam AC 5 620 || 5 | ath79 | generic | ubnt_powerbeam-5ac-620 | 128MB | unknown | nightly
 PowerBeam-M2-400 || 2 | ath79 | generic | ubnt_powerbeam-m2-xw | 64MB | stable | released
 PowerBeam-M5-300 || 5 | ath79 | generic | ubnt_powerbeam-m5-300 | 64MB | stable | released
 PowerBeam-M5-400 || 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
