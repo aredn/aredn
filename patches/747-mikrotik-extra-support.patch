@@ -237,10 +237,18 @@
 +};
 --- a/target/linux/ipq40xx/image/mikrotik.mk
 +++ b/target/linux/ipq40xx/image/mikrotik.mk
-@@ -62,3 +62,19 @@
+@@ -62,3 +62,27 @@
  	DEVICE_PACKAGES := rssileds
  endef
  TARGET_DEVICES += mikrotik_sxtsq-5-ac
++
++define Device/mikrotik_ldf-5acd
++	$(call Device/mikrotik_nor)
++	DEVICE_MODEL := RouterBOARD LDF 5 AC (RBLDFG-5acD)
++	SOC := qcom-ipq4018
++	DEVICE_PACKAGES := rssileds
++endef
++TARGET_DEVICES += mikrotik_ldf-5acd
 +
 +define Device/mikrotik_lhgg-5acd
 +	$(call Device/mikrotik_nor)
@@ -259,19 +267,21 @@
 +TARGET_DEVICES += mikrotik_lhgg-5acd-xl
 --- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
 +++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
-@@ -35,6 +35,7 @@
+@@ -35,6 +35,8 @@
  	zyxel,wre6606)
  		ucidef_set_interface_lan "eth0"
  		;;
 +	mikrotik,lhgg-5acd*|\
++	mikrotik,ldf-5acd|\
  	mikrotik,sxtsq-5-ac)
  		ucidef_set_interfaces_lan_wan "lan" "lan.1"
  		ucidef_set_interface "wifi" device "wlan0" protocol "static"
-@@ -216,6 +217,7 @@
+@@ -216,6 +217,8 @@
  		label_mac="$wan_mac"
  		;;
  	mikrotik,lhgg-60ad|\
 +	mikrotik,lhgg-5acd*|\
++	mikrotik,ldf-5acd|\
  	mikrotik,sxtsq-5-ac)
  		lan_mac=$(cat /sys/firmware/mikrotik/hard_config/mac_base)
  		label_mac="$lan_mac"
@@ -528,31 +538,45 @@
 +        compatible = "mikrotik,lhgg-5acd-xl";
 +        model = "MikroTik LHG 5 ac XL (RBLHGG-5acD-XL)";
 +};
+--- /dev/null
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-ldf-5acd.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "qcom-ipq4018-sxtsq-5-ac.dts"
++
++/ {
++	compatible = "mikrotik,ldf-5acd";
++	model = "MikroTik LDF 5 ac (RBLDFG-5acD)";
++};
 --- a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
 +++ b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-@@ -197,6 +197,7 @@
+@@ -197,6 +197,8 @@
  	mikrotik,cap-ac |\
  	mikrotik,hap-ac2 |\
  	mikrotik,hap-ac3 |\
 +	mikrotik,lhgg-5acd* |\
++	mikrotik,ldf-5acd |\
  	mikrotik,sxtsq-5-ac)
  		wlan_data="/sys/firmware/mikrotik/hard_config/wlan_data"
  		( [ -f "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data" 0x8000 0x2f20 ) || \
-@@ -236,6 +237,7 @@
+@@ -236,6 +237,8 @@
  	mikrotik,cap-ac |\
  	mikrotik,hap-ac2 |\
  	mikrotik,hap-ac3 |\
 +	mikrotik,lhgg-5acd* |\
++	mikrotik,ldf-5acd |\
  	mikrotik,sxtsq-5-ac)
  		wlan_data="/sys/firmware/mikrotik/hard_config/wlan_data"
  		( [ -f "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data" 0xaf20 0x2f20 ) || \
 --- a/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
 +++ b/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
-@@ -163,12 +163,13 @@
+@@ -163,12 +163,14 @@
  		;;
  	mikrotik,cap-ac|\
  	mikrotik,hap-ac2|\
 +	mikrotik,lhgg-5acd*|\
++	mikrotik,ldf-5acd|\
  	mikrotik,lhgg-60ad|\
  	mikrotik,sxtsq-5-ac)
  		[ "$(rootfs_type)" = "tmpfs" ] && mtd erase firmware
