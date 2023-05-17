@@ -507,6 +507,11 @@ function hasUSB()
 end
 
 function supportsVLANChange()
+    -- If we support advanced networking, we dont provide this option here
+    local board = aredn.hardware.get_board_type()
+    if board == "mikrotik,hap-ac2" or board == "mikrotik,hap-ac3" then
+        return false
+    end
     local stat = nixio.fs.stat("/etc/aredn_include/swconfig")
     -- We always support VLAN changing on devices without switches
     if not (stat and stat.size > 0) then
