@@ -19,6 +19,7 @@ LHG 5 ac | RBLHGG-5acD | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd | 256MB | s
 LHG XL 5 ac | RBLHGG-5acD-XL | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd-xl | 256MB | stable | released
 LDF 2 | RBLDF-2nD | 2 | ath79 | mikrotik | mikrotik-ldf-2nd | 64MB | stable | nightly
 LDF 5 | RBLDF-5nD | 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | released
+LDF 5 ac | RBLDFG-5acD | 5 | ipq40xx | mikrotik | mikrotik-ldf-5acd | 64MB | stable | nightly
 RB911G-2HPnD <br> mANTBox 2 12s | RB911G-2HPnD <br> RB911G-2HPnD-12S | 2 | ath79 | mikrotik | - | 64MB | unknown | released
 RB911G-5HPnD | RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | unknown | released
 QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | danger-upgrade
