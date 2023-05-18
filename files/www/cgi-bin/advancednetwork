@@ -43,7 +43,7 @@ local aredn_info = require("aredn.info")
 local base = "/etc/aredn_include/"
 local xlink_file = "/etc/config.mesh/xlink"
 
-local default_5_port_layout = { ports = { "wan", "lan1", "lan2", "lan3", "lan4" } }
+local default_5_port_layout = { ports = { [1] = "wan", [2] = "lan1", [3] = "lan2", [4] = "lan3", [5] = "lan4" } }
 local layouts = {
     ["mikrotik,hap-ac2"] = default_5_port_layout,
     ["mikrotik,hap-ac3"] = default_5_port_layout
@@ -402,6 +402,7 @@ html.print([[
         .h {
             width: 50px;
             font-size: 16px;
+            font-weight: bold;
         }
         .l {
             font-size: 12px;
@@ -417,7 +418,7 @@ html.print([[
             padding-left: 2px;
             font-size: 12px;
             width: 65px;
-            border: 0;
+            border: 1px solid #c0c0c0;
         }
         .xlinks {
             min-width: 610px;
@@ -513,7 +514,7 @@ html.print([[
             const tbody = document.querySelector("table.xlinks tbody");
             const row = document.createElement("tr");
             row.innerHTML = "<td><input type='text' value=''></td><td><input type='text' value=''></td><td><input type='text' value=''></td><td>255.255.255.252</td><td><input type='text' value='0'></td><td><select>]]
-                .. (function() local s = "" for _, port in ipairs(layout.ports) do s = s .. "<option>" .. port .. "</option>" end return s end)()
+                .. (function() local s = "" for pos, port in ipairs(layout.ports) do s = s .. "<option value='" .. port .. "'>" .. pos .. "</option>" end return s end)()
                 .. [[</select></td><td><button onclick='xlink_remove(this)'>-</button></td>"
             tbody.appendChild(row)
             validate();
@@ -628,9 +629,9 @@ end
 html.print([[<table class="ports" align="center"><caption>Ports</caption>]])
 html.print("<tr>")
 html.print("<td></td>")
-for _, port in ipairs(layout.ports)
+for pos, port in ipairs(layout.ports)
 do
-    html.print("<td class='h'>" .. port .. "</td>")
+    html.print("<td class='h'>" .. pos .. "</td>")
 end
 html.print("</tr>")
 for _, config in ipairs(configs)
@@ -663,9 +664,9 @@ do
     html.print("<tr id='" .. xlink.name .. "'>")
     html.print("<td><input type='text' value='" .. xlink.vlan .. "'></td><td><input type='text' value='" .. xlink.ipaddr .. "'></td><td><input type='text' value='" .. xlink.peer .. "'></td><td>255.255.255.252</td><td><input type='text' value='" .. xlink.weight .. "'></td>")
     html.print("<td><select>")
-    for _, port in ipairs(layout.ports)
+    for pos, port in ipairs(layout.ports)
     do
-        html.print("<option value='" .. port .. "'" .. (xlink.port == port and " selected" or "") .. ">" .. port .. "</option>")
+        html.print("<option value='" .. port .. "'" .. (xlink.port == port and " selected" or "") .. ">" .. pos .. "</option>")
     end
     html.print("</td></select>")
     html.print("<td><button onclick='xlink_remove(this)'>-</button></td>")
