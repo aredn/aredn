@@ -170,9 +170,11 @@ do
 end
 
 if cfg.wifi_enable == "1" then
-    cfg.wifi_intf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
+    if not cfg.wifiintf then
+        cfg.wifiintf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
+    end
 else
-    cfg.wifi_intf = "br-nomesh"
+    cfg.wifiintf = "br-nomesh"
 end
 
 -- delete some config lines if necessary
@@ -360,7 +362,7 @@ if do_basic then
                 cfg.dtdlink_mask = "255.0.0.0"
             elseif net == "wifi" then
                 wireless = true
-                ports = { cfg.wifi_intf }
+                ports = { cfg.wifiintf }
             end
 
             if vlan then
@@ -654,7 +656,7 @@ if sf then
             cfg.wifi_txpower = 1
         end
         if cfg.wifi_enable == "1" then
-            sf:write("/usr/sbin/iw dev " .. cfg.wifi_intf .. " set txpower fixed " .. cfg.wifi_txpower .. "00\n")
+            sf:write("/usr/sbin/iw dev " .. cfg.wifiintf .. " set txpower fixed " .. cfg.wifi_txpower .. "00\n")
         end
         if not is_null(cfg.aprs_lat) and not is_null(cfg.aprs_lon) then
             c:set("aredn", "@location[0]", "lat", cfg.aprs_lat)
@@ -770,7 +772,7 @@ if nixio.fs.stat(ieee80211) then
         local encryption = nil
         local key = nil
 
-        if wlan == cfg.wifi_intf then
+        if wlan == cfg.wifiintf then
             -- mesh RF adhoc configuration
             is_mesh_rf = true
             channel = cfg.wifi_channel
