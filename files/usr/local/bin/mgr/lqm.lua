@@ -204,18 +204,13 @@ f:write('{"trackers":{},"hidden_nodes":[]}')
 f:close()
 
 -- Get radio
-local radioname = "radio0"
 local radiomode = "none"
-for i = 0,2
-do
-    if cursor:get("wireless", "@wifi-iface[" .. i .. "]", "network") == "wifi" then
-        radioname = cursor:get("wireless", "@wifi-iface[" .. i .. "]", "device")
-        radiomode = cursor:get("wireless", "@wifi-iface[" .. i .. "]", "mode")
-        break
-    end
+local wlan = aredn.hardware.get_iface_name("wifi")
+local phy = "none"
+if wlan:match("^wlan(%d+)$") then
+  phy = iwinfo.nl80211.phyname(wlan)
+  radiomode = "adhoc"
 end
-local phy = "phy" .. radioname:match("radio(%d+)")
-local wlan = aredn.hardware.get_board_network_ifname("wifi")
 
 function lqm()
 
