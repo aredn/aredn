@@ -528,6 +528,9 @@ if parms.button_save then
         if wifi_intf:match("^br") then
             wifi_intf = aredn.hardware.get_board_network_ifname("wifi")
             phy = iwinfo.nl80211.phyname(wifi_intf)
+            local defaultwifi = aredn.hardware.get_default_channel(wifi_intf)
+            wifi_channel = defaultwifi.channel
+            wifi_chanbw = tostring(defaultwifi.bandwidth)
         end
         local valid = false
         for _, c in ipairs(aredn.hardware.get_rfchannels(wifi_intf))
@@ -1066,7 +1069,7 @@ if phycount > 0 then
         html.print(" checked")
     end
     html.print("></td></tr>")
-    if phycount > 1 then
+    if phycount > 1 and wifi_enable == "1" then
         local defaultwifi = aredn.hardware.get_default_channel(wifi_intf)
         local alt_wifi = (not phy or phy == "phy0") and "wlan1" or "wlan0"
         html.print("<tr><td>Band</td><td><select name=wifi_intf onChange='form.submit()'>")
