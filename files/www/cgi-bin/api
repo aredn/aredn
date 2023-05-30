@@ -253,15 +253,16 @@ function getSignal(realtime)
 			-- split out device to mac-host
 			local mac,host=string.match(parms.device,"([^-]*)-(.*)")
 			local macinfo=iwinfo["nl80211"].assoclist(wifiiface)[mac:upper()]
-
-			signal_dbm=macinfo.signal
-			noise_dbm=macinfo.noise
-			tx_rate_mbps=macinfo.tx_rate/1000
-			tx_rate_mbps=adjust_rate(tx_rate_mbps,bandwidth)
-			rx_rate_mbps=macinfo.rx_rate/1000
-			rx_rate_mbps=adjust_rate(rx_rate_mbps,bandwidth)
-			tx_rate_mcs_index=macinfo.tx_mcs
-			rx_rate_mcs_index=macinfo.rx_mcs
+			if macinfo then
+				signal_dbm=macinfo.signal
+				noise_dbm=macinfo.noise
+				tx_rate_mbps=macinfo.tx_rate/1000
+				tx_rate_mbps=adjust_rate(tx_rate_mbps,bandwidth)
+				rx_rate_mbps=macinfo.rx_rate/1000
+				rx_rate_mbps=adjust_rate(rx_rate_mbps,bandwidth)
+				tx_rate_mcs_index=macinfo.tx_mcs
+				rx_rate_mcs_index=macinfo.rx_mcs
+			end
 		end
 		insertResult(timestamp_s, signal_dbm, noise_dbm, tx_rate_mbps, rx_rate_mbps, tx_rate_mcs_index, rx_rate_mcs_index )
 	else
