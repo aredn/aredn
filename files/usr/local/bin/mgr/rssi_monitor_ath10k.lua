@@ -36,8 +36,6 @@
 local periodic_scan_tick = 5
 
 local wifiiface
-local frequency
-local ssid
 
 function rssi_monitor_10k()
     if not string.match(get_ifname("wifi"), "^wlan") then
@@ -53,8 +51,6 @@ function rssi_monitor_10k()
             exit_app()
             return
         end
-        frequency = iwinfo.nl80211.frequency(wifiiface)
-        ssid = iwinfo.nl80211.ssid(wifiiface)
 
         while true
         do
@@ -74,8 +70,7 @@ local station_zero = 0
 local log = aredn.log.open(logfile, 16000)
 
 local function reset_network()
-    os.execute("/usr/sbin/iw " .. wifiiface .. " ibss leave > /dev/null 2>&1")
-    os.execute("/usr/sbin/iw " .. wifiiface .. " ibss join " .. ssid .. " " .. frequency .. " fixed-freq > /dev/null 2>&1")
+    write_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k/simulate_fw_crash", "hw-restart")
 end
 
 function run_monitor_10k()

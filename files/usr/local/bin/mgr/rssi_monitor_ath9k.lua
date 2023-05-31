@@ -37,8 +37,6 @@
 local wifiiface
 local phy
 local multiple_ant = false
-local frequency
-local ssid
 
 function rssi_monitor_9k()
     if not string.match(get_ifname("wifi"), "^wlan") then
@@ -48,8 +46,6 @@ function rssi_monitor_9k()
 
         wifiiface = get_ifname("wifi")
         phy = iwinfo.nl80211.phyname(wifiiface)
-        frequency = iwinfo.nl80211.frequency(wifiiface)
-        ssid = iwinfo.nl80211.ssid(wifiiface)
     
         -- Supports ath9k
         if not phy or not nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k") then
@@ -84,8 +80,7 @@ local periodic_scan_tick = 5
 local log = aredn.log.open(logfile, 16000)
 
 local function reset_network()
-    os.execute("/usr/sbin/iw " .. wifiiface .. " ibss leave > /dev/null 2>&1")
-    os.execute("/usr/sbin/iw " .. wifiiface .. " ibss join " .. ssid .. " " .. frequency .. " fixed-freq > /dev/null 2>&1")
+    write_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/reset", "1")
 end
 
 function run_monitor_9k()
