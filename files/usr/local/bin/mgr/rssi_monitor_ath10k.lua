@@ -33,10 +33,11 @@
 
 --]]
 
-local periodic_scan_time = 300 -- 5 minutes
+local periodic_scan_tick = 5
 
 local wifiiface
-local last_scan_time = 0
+local frequency
+local ssid
 
 function rssi_monitor_10k()
     if not string.match(get_ifname("wifi"), "^wlan") then
@@ -52,6 +53,8 @@ function rssi_monitor_10k()
             exit_app()
             return
         end
+        frequency = iwinfo.nl80211.frequency(wifiiface)
+        ssid = iwinfo.nl80211.ssid(wifiiface)
 
         while true
         do
@@ -67,8 +70,13 @@ if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
 
-local last_station_count = 0
+local station_zero = 0
 local log = aredn.log.open(logfile, 16000)
+
+local function reset_network()
+    os.execute("/usr/sbin/iw " .. wifiiface .. " ibss leave > /dev/null 2>&1")
+    os.execute("/usr/sbin/iw " .. wifiiface .. " ibss join " .. ssid .. " " .. frequency .. " fixed-freq > /dev/null 2>&1")
+end
 
 function run_monitor_10k()
 
@@ -79,15 +87,16 @@ function run_monitor_10k()
         station_count = station_count + 1
     end
 
-    if station_count == 0 and (last_station_count ~= 0 or nixio.sysinfo().uptime > periodic_scan_time + last_scan_time) then
-         -- reset
-         last_scan_time = nixio.sysinfo().uptime
-         os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
-         os.execute("/usr/sbin/iw " .. wifiiface .. " scan passive > /dev/null 2>&1")
-         log:write("No stations detected")
-         log:flush()
+    if station_count ~= 0 then
+        station_zero = periodic_scan_tick - 1
+    else
+        station_zero = station_zero + 1
+        if math.mod(station_zero, periodic_scan_tick) == 0 then
+            reset_network()
+            log:write("No stations detected")
+            log:flush()
+        end
     end
-    last_station_count = station_count
 end
 
 return rssi_monitor_10k
