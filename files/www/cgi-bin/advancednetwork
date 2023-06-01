@@ -466,6 +466,11 @@ html.print([[
 html.print([[
     <script>
         const configs = ]] .. luci.jsonc.stringify(configs, true) .. [[;
+        configs.forEach(config => {
+            if (Array.isArray(config.ports)) {
+                config.ports = {}
+            }
+        });
         function port_change(input, network, port, checked) {
             console.log(network, port, checked)
             const config = configs.find(c => c.name == network);
