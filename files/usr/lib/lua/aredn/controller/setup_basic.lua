@@ -83,8 +83,8 @@ function module:GET()
   data.meshrf.distance = aredn_info.getMeshRadioDistance(radio)
   data.meshrf.bw = aredn_info.getChannelBW(radio)
   data.meshrf.channel = aredn_info.getChannel(radio)
-  data.meshrf.power = aredn_info.getTXPower()
-  data.meshrf.maxpower = aredn_hardware.wifi_maxpower(data['meshrf']['channel'])
+  data.meshrf.power = aredn_info.getTXPower(radio)
+  data.meshrf.maxpower = aredn_hardware.wifi_maxpower(radio, data['meshrf']['channel'])
   
 
   -- LAN
