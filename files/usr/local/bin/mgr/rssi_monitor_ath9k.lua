@@ -75,8 +75,13 @@ if not file_exists(logfile) then
     io.open(logfile, "w+"):close()
 end
 
-local last_station_count = 0
+local station_zero = 0
+local periodic_scan_tick = 5
 local log = aredn.log.open(logfile, 16000)
+
+local function reset_network()
+    write_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/reset", "1")
+end
 
 function run_monitor_9k()
 
@@ -105,13 +110,6 @@ function run_monitor_9k()
         end
     end
     local amac = nil
-
-    -- avoid node going deaf while trying to obtain 'normal' statistics of neighbor strength
-    -- in first few minutes after boot
-    if now > 119 and now < 750 then
-        os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
-    end
-
     local station_count = 0
     local rssi = get_rssi(wifiiface)
     for mac, info in pairs(rssi)
@@ -166,9 +164,7 @@ function run_monitor_9k()
     end
 
     if amac then
-        -- reset
-        os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
-        os.execute("/usr/sbin/iw " .. wifiiface .. " scan passive > /dev/null 2>&1")
+        reset_network()
         wait_for_ticks(5)
         -- update time
         now = nixio.sysinfo().uptime
@@ -202,13 +198,18 @@ function run_monitor_9k()
                 rssih.num = rssih.num + 1
             end
         end
-    elseif station_count == 0 and last_station_count ~= 0 then
-         -- reset
-         os.execute("/usr/sbin/iw " .. wifiiface .. " scan > /dev/null 2>&1")
-         wait_for_ticks(5)
-         log:write("No stations detected")
+    else
+        if station_count ~= 0 then
+            station_zero = periodic_scan_tick - 1
+        else
+            station_zero = station_zero + 1
+            if math.mod(station_zero, periodic_scan_tick) == 0 then
+                reset_network()
+                wait_for_ticks(5)
+                log:write("No stations detected")
+            end
+        end
     end
-    last_station_count = station_count
 
     local f = io.open(datfile, "w")
     if f then

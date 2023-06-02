@@ -51,7 +51,6 @@ local log = aredn.log.open(logfile, 8000)
 
 function rejoin_network()
     os.execute(IW .. " " .. wifiiface .. " ibss leave")
-    nixio.nanosleep(1, 0)
     os.execute(IW .. " " .. wifiiface .. " ibss join " .. ssid .. " " .. frequency .. " fixed-freq")
     log:write("Rejoining network")
     log:flush()
