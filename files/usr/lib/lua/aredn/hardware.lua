@@ -71,30 +71,30 @@ function hardware.get_radio()
 end
 
 function hardware.wifi_maxpower(wifiintf, channel)
-    local radio = hardware.get_radio() or {}
-    local nr = wifiintf:match("(%d+)$")
-    local chanpower = "chanpower"
-    local maxpower = "maxpower"
-    if nr then
-        if radio["chanpower." .. nr] then
-            chanpower = "chanpower." .. nr
-        end
-        if radio["maxpower." .. nr] then
-            maxpower = "maxpower." .. nr
-        end
-    end
-    if radio[chanpower] then
-        for k, v in pairs(radio[chanpower])
-        do
-            if channel <= tonumber(k) then
-                return tonumber(v)
+    local radio = hardware.get_radio()
+    if radio then
+        local maxpower = radio.maxpower
+        local chanpower = radio.chanpower
+        if chanpower then
+            if type(maxpower) == "table" then
+                chanpower = chanpower[1 + tonumber(wifiintf:match("(%d+)$"))]
+            end
+            for k, v in pairs(chanpower)
+            do
+                if channel <= tonumber(k) then
+                    return tonumber(v)
+                end
             end
         end
-    elseif radio[maxpower] then
-        return tonumber(radio[maxpower])
-    else
-        return 27 -- default
+        if type(maxpower) == "table" then
+            maxpower = maxpower[1 + tonumber(wifiintf:match("(%d+)$"))]
+        end
+        maxpower = tonumber(maxpower)
+        if maxpower then
+            return maxpower
+        end
     end
+    return 27 -- default
 end
 
 function hardware.wifi_poweroffset(wifiintf)
@@ -113,15 +113,16 @@ function hardware.wifi_poweroffset(wifiintf)
     end
     local radio = hardware.get_radio()
     if radio then
-        local nr = wifiintf:match("(%d+)$")
-        if nr and tonumber(radio["pwroffset." .. nr]) then
-            return tonumber(radio["pwroffset." .. nr])
+        local pwroffset = radio.pwroffset
+        if type(pwroffset) == "table" then
+            pwroffset = pwroffset[1 + tonumber(wifiintf:match("(%d+)$"))]
         end
-        if tonumber(radio.pwroffset) then
-            return tonumber(radio.pwroffset)
+        pwroffset = tonumber(pwroffset)
+        if pwroffset then
+            return pwroffset
         end
     end
-    return 0 -- if all else fails
+    return 0 -- default
 end
 
 function hardware.get_board_id()
