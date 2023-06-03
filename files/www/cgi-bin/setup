@@ -362,8 +362,8 @@ if cursor:get("aredn", "@lqm[0]", "enable") == "1" then
 end
 
 -- sanitize the active settings
-if not wifi_txpower or wifi_txpower > aredn.hardware.wifi_maxpower(wifi_channel) then
-    wifi_txpower = aredn.hardware.wifi_maxpower(wifi_channel)
+if not wifi_txpower or wifi_txpower > aredn.hardware.wifi_maxpower(wifi_intf, wifi_channel) then
+    wifi_txpower = aredn.hardware.wifi_maxpower(wifi_intf, wifi_channel)
 end
 if not wifi_power or wifi_power < 1 then
     wifi_power = 1
@@ -1113,7 +1113,7 @@ if wifi_enable == "1" then
     end
     html.print("<tr><td><nobr>Tx Power</nobr></td><td><select name=wifi_txpower>")
     local txpoweroffset = aredn.hardware.wifi_poweroffset(wifi_intf)
-    for i = aredn.hardware.wifi_maxpower(wifi_channel),1,-1
+    for i = aredn.hardware.wifi_maxpower(wifi_intf, wifi_channel),1,-1
     do
         html.print("<option value='" .. i .. "'".. (i == tonumber(wifi_txpower) and " selected" or "") .. ">" .. (txpoweroffset + i) .. " dBm</option>")
     end

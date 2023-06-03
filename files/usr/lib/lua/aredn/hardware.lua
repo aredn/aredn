@@ -70,21 +70,31 @@ function hardware.get_radio()
     return radio_json
 end
 
-function hardware.wifi_maxpower(channel)
+function hardware.wifi_maxpower(wifiintf, channel)
     local radio = hardware.get_radio()
     if radio then
-        if radio.chanpower then
-            for k, v in pairs(radio.chanpower)
+        local maxpower = radio.maxpower
+        local chanpower = radio.chanpower
+        if chanpower then
+            if type(maxpower) == "table" then
+                chanpower = chanpower[1 + tonumber(wifiintf:match("(%d+)$"))]
+            end
+            for k, v in pairs(chanpower)
             do
                 if channel <= tonumber(k) then
                     return tonumber(v)
                 end
             end
-        elseif radio.maxpower then
-            return tonumber(radio.maxpower)
+        end
+        if type(maxpower) == "table" then
+            maxpower = maxpower[1 + tonumber(wifiintf:match("(%d+)$"))]
+        end
+        maxpower = tonumber(maxpower)
+        if maxpower then
+            return maxpower
         end
     end
-    return 27 -- if all else fails
+    return 27 -- default
 end
 
 function hardware.wifi_poweroffset(wifiintf)
@@ -102,10 +112,17 @@ function hardware.wifi_poweroffset(wifiintf)
         f:close()
     end
     local radio = hardware.get_radio()
-    if radio and tonumber(radio.pwroffset) then
-         return tonumber(radio.pwroffset)
+    if radio then
+        local pwroffset = radio.pwroffset
+        if type(pwroffset) == "table" then
+            pwroffset = pwroffset[1 + tonumber(wifiintf:match("(%d+)$"))]
+        end
+        pwroffset = tonumber(pwroffset)
+        if pwroffset then
+            return pwroffset
+        end
     end
-    return 0 -- if all else fails
+    return 0 -- default
 end
 
 function hardware.get_board_id()
