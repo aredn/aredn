@@ -75,9 +75,10 @@ function hardware.wifi_maxpower(wifiintf, channel)
     if radio then
         local maxpower = radio.maxpower
         local chanpower = radio.chanpower
+        local intf = tonumber(wifiintf:match("(%d+)$") or 0) 
         if chanpower then
             if type(maxpower) == "table" then
-                chanpower = chanpower[1 + tonumber(wifiintf:match("(%d+)$"))]
+                chanpower = chanpower[1 + intf]
             end
             for k, v in pairs(chanpower)
             do
@@ -87,7 +88,7 @@ function hardware.wifi_maxpower(wifiintf, channel)
             end
         end
         if type(maxpower) == "table" then
-            maxpower = maxpower[1 + tonumber(wifiintf:match("(%d+)$"))]
+            maxpower = maxpower[1 + intf]
         end
         maxpower = tonumber(maxpower)
         if maxpower then
@@ -114,8 +115,9 @@ function hardware.wifi_poweroffset(wifiintf)
     local radio = hardware.get_radio()
     if radio then
         local pwroffset = radio.pwroffset
+        local intf = tonumber(wifiintf:match("(%d+)$") or 0) 
         if type(pwroffset) == "table" then
-            pwroffset = pwroffset[1 + tonumber(wifiintf:match("(%d+)$"))]
+            pwroffset = pwroffset[1 + intf]
         end
         pwroffset = tonumber(pwroffset)
         if pwroffset then
