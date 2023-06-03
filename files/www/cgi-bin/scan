@@ -111,7 +111,7 @@ local f = io.popen("iw dev " .. wifiiface .. " station dump")
 if f then
     local scan = {}
     local myssid = aredn_info.getSSID()
-    local myfreq = tonumber(aredn_info.getFreq())
+    local myfreq = tonumber(aredn_info.getFreq(wifiiface))
     for line in f:lines()
     do
         local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")

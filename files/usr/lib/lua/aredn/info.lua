@@ -256,8 +256,7 @@ end
 -------------------------------------
 -- Return TX Power
 -------------------------------------
-function model.getTXPower()
-	local wlanInf=get_ifname('wifi')
+function model.getTXPower(wlanInf)
 	local api=iwinfo.type(wlanInf)
 	local iw = iwinfo[api]
 	local power = iw.txpower(wlanInf)
@@ -267,8 +266,7 @@ end
 -------------------------------------
 -- Return Frequency
 -------------------------------------
-function model.getFreq()
-	local wlanInf=get_ifname('wifi')
+function model.getFreq(wlanInf)
 	local api=iwinfo.type(wlanInf)
 	local iw = iwinfo[api]
 	local freq = iw.frequency(wlanInf)
