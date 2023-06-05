@@ -260,7 +260,7 @@ function hardware.has_usb()
 end
 
 function hardware.has_wifi()
-    if nixio.fs.stat("/sys/kernel/debug/ieee80211") then
+    if nixio.fs.stat("/sys/kernel/debug/ieee80211/phy0") then
         return true
     else
         return false
