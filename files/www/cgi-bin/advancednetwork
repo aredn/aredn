@@ -679,14 +679,12 @@ for _, xlink in ipairs(xlinks)
 do
     html.print("<tr id='" .. xlink.name .. "'>")
     html.print("<td><input type='text' value='" .. xlink.vlan .. "'></td><td><input type='text' value='" .. xlink.ipaddr .. "'></td><td><input type='text' value='" .. xlink.peer .. "'></td><td>255.255.255.252</td><td><input type='text' value='" .. xlink.weight .. "'></td>")
-    if #layout.ports > 1 then
-        html.print("<td><select>")
-        for pos, port in ipairs(layout.ports)
-        do
-            html.print("<option value='" .. port .. "'" .. (xlink.port == port and " selected" or "") .. ">" .. pos .. "</option>")
-        end
-        html.print("</td></select>")
+    html.print("<td" .. (#layout.ports <= 1 and " style='display:none'" or "") .. "><select>")
+    for pos, port in ipairs(layout.ports)
+    do
+        html.print("<option value='" .. port .. "'" .. (xlink.port == port and " selected" or "") .. ">" .. pos .. "</option>")
     end
+    html.print("</td></select>")
     html.print("<td><button onclick='xlink_remove(this)'>-</button></td>")
     html.print("</tr>")
 end
