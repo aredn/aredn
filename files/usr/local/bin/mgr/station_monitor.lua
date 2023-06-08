@@ -66,6 +66,12 @@ function station_monitor()
         frequency = iwinfo.nl80211.frequency(wifiiface)
         ssid = iwinfo.nl80211.ssid(wifiiface)
 
+        -- If frequency or ssid is missing (some kind of bad configuration) just exit this
+        if not (frequency and ssid) then
+            exit_app()
+            return
+        end
+
         -- Mikrotik AC hardware has some startup issues which we try to resolve
         -- by leaving and rejoining the network
         local boardid = aredn.hardware.get_board_id():lower()
