@@ -173,29 +173,30 @@ function run_monitor_9k()
         local beforev = rssi[amac].Vrssi
         local arssi = get_rssi(wifiiface)
 
-        if multiple_ant then
-            log:write(string.format("before %s [%d] [%d]", amac, beforeh, beforev))
-            log:write(string.format("after  %s [%d] [%d]", amac, arssi[amac].Hrssi, arssi[amac].Vrssi))
-        else
-            log:write(string.format("before %s [%d]", amac, beforeh))
-            log:write(string.format("after  %s [%d]", amac, arssi[amac].Hrssi))
-        end
-
-        if math.abs(beforeh - arssi[amac].Hrssi) <= 2 and math.abs(beforev - arssi[amac].Vrssi) <= 2 then
-            -- false positive if within 2dB after reset
-            log:write(string.format("%s Possible valid data point, adding to statistics", amac))
-            local rssih = rssi_hist[amac]
-            local ave_h = (rssih.ave_h * rssih.num + beforeh) / (rssih.num + 1)
-            local sd_h = math.sqrt(((rssih.num - 1) * rssih.sd_h * rssih.sd_h + (beforeh - ave_h) * (beforeh - rssih.ave_h)) / rssih.num)
-            rssih.ave_h = ave_h
-            rssih.sd_h = sd_h
-            local ave_v = (rssih.ave_v * rssih.num + beforeh) / (rssih.num + 1)
-            local sd_v = math.sqrt(((rssih.num - 1) * rssih.sd_v * rssih.sd_v + (beforeh - ave_v) * (beforeh - rssih.ave_v)) / rssih.num)
-            rssih.ave_v = ave_v
-            rssih.sd_v = sd_v
-            rssih.last = now
-            if rssih.num < 60 then
-                rssih.num = rssih.num + 1
+        if arssi[amac] then
+            if multiple_ant then
+                log:write(string.format("before %s [%d] [%d]", amac, beforeh, beforev))
+                log:write(string.format("after  %s [%d] [%d]", amac, arssi[amac].Hrssi, arssi[amac].Vrssi))
+            else
+                log:write(string.format("before %s [%d]", amac, beforeh))
+                log:write(string.format("after  %s [%d]", amac, arssi[amac].Hrssi))
+            end
+            if math.abs(beforeh - arssi[amac].Hrssi) <= 2 and math.abs(beforev - arssi[amac].Vrssi) <= 2 then
+                -- false positive if within 2dB after reset
+                log:write(string.format("%s Possible valid data point, adding to statistics", amac))
+                local rssih = rssi_hist[amac]
+                local ave_h = (rssih.ave_h * rssih.num + beforeh) / (rssih.num + 1)
+                local sd_h = math.sqrt(((rssih.num - 1) * rssih.sd_h * rssih.sd_h + (beforeh - ave_h) * (beforeh - rssih.ave_h)) / rssih.num)
+                rssih.ave_h = ave_h
+                rssih.sd_h = sd_h
+                local ave_v = (rssih.ave_v * rssih.num + beforeh) / (rssih.num + 1)
+                local sd_v = math.sqrt(((rssih.num - 1) * rssih.sd_v * rssih.sd_v + (beforeh - ave_v) * (beforeh - rssih.ave_v)) / rssih.num)
+                rssih.ave_v = ave_v
+                rssih.sd_v = sd_v
+                rssih.last = now
+                if rssih.num < 60 then
+                    rssih.num = rssih.num + 1
+                end
             end
         end
     else
