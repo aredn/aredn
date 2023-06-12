@@ -260,9 +260,12 @@ function write_xlink_config(configs)
         f:write("\toption ifname 'br0." .. config.vlan .. "'\n")
         f:write("\toption proto 'static'\n")
         f:write("\toption ipaddr '" .. config.ipaddr .. "'\n")
-        f:write("\toption netmask '255.255.255.252'\n")
+        f:write("\toption netmask '255.255.255.255'\n")
         f:write("\toption peer '" .. config.peer .. "'\n")
         f:write("\toption weight '" .. config.weight .. "'\n")
+        f:write("\nconfig route\n")
+        f:write("\toption interface '" .. config.name .. "'\n")
+        f:write("\toption target '" .. config.peer .. "'\n")
     end
     f:close()
 end
@@ -440,13 +443,13 @@ html.print([[
             width: 100px;
             padding-left: 10px;
         }
-        .xlinks td:nth-child(1), .xlinks td:nth-child(5) {
+        .xlinks td:nth-child(1), .xlinks td:nth-child(4) {
             width: 40px;
         }
-        .xlinks td:nth-child(6) {
+        .xlinks td:nth-child(5) {
             width: 55px;
         }
-        .xlinks td:nth-child(7) {
+        .xlinks td:nth-child(6) {
             width: 20px;
         }
         .xlinks td input {
@@ -456,10 +459,10 @@ html.print([[
         .xlinks td input.error {
             border-color: red;
         }
-        .xlinks td:nth-child(1) input, .xlinks td:nth-child(5) input {
+        .xlinks td:nth-child(1) input, .xlinks td:nth-child(4) input {
             text-align: right;
         }
-        .xlinks td:nth-child(7) button {
+        .xlinks td:nth-child(6) button {
             width: 24px;
             line-height: 14px;
             background-color: #f0f0f0;
@@ -523,7 +526,7 @@ html.print([[
         function xlink_add() {
             const tbody = document.querySelector("table.xlinks tbody");
             const row = document.createElement("tr");
-            row.innerHTML = "<td><input type='text' value=''></td><td><input type='text' value=''></td><td><input type='text' value=''></td><td>255.255.255.252</td><td><input type='text' value='0'></td>]]
+            row.innerHTML = "<td><input type='text' value=''></td><td><input type='text' value=''></td><td><input type='text' value=''></td><td><input type='text' value='0'></td>]]
                 .. (function() local s = "<td" if #layout.ports <= 1 then s = s .. " style='display:none'" end s = s .. "><select>" for pos, port in ipairs(layout.ports) do s = s .. "<option value='" .. port .. "'>" .. pos .. "</option>" end return s .. "</select></td>" end)()
                 .. [[<td><button onclick='xlink_remove(this)'>-</button></td>"
             tbody.appendChild(row)
@@ -593,7 +596,7 @@ html.print([[
                     const peer = cells[2].value.split(".");
                     const i3 = parseInt(ip[3]);
                     const p3 = parseInt(peer[3]);
-                    if (ip[0] != peer[0] || ip[1] != peer[1] || ip[2] != peer[2] || (i3 & 252) != (p3 & 252) || i3 == p3 || (i3 & 3) == 0 || (p3 & 3) == 0 || (i3 & 3) == 3 || (p3 & 3) == 3) {
+                    if (i3 == 0 || p3 == 0 || i3 == 255 || p3 == 255) {
                         cells[1].classList.add("error");
                         cells[2].classList.add("error");
                         cansave = false;
@@ -670,7 +673,7 @@ if #layout.ports > 1 then
 end
 
 html.print([[<table class="xlinks" align="center"><caption>Xlinks</caption>]])
-html.print([[<tr class="h"><td>vlan</td><td>ip address</td><td>peer address</td><td>netmask</td><td>weight</td>]])
+html.print([[<tr class="h"><td>vlan</td><td>ip address</td><td>peer address</td><td>weight</td>]])
 if #layout.ports > 1 then
     html.print([[<td>&nbsp;Port</td>]])
 end
@@ -678,7 +681,8 @@ html.print([[<td><button onclick="xlink_add()">+</button></td></tr>]])
 for _, xlink in ipairs(xlinks)
 do
     html.print("<tr id='" .. xlink.name .. "'>")
-    html.print("<td><input type='text' value='" .. xlink.vlan .. "'></td><td><input type='text' value='" .. xlink.ipaddr .. "'></td><td><input type='text' value='" .. xlink.peer .. "'></td><td>255.255.255.252</td><td><input type='text' value='" .. xlink.weight .. "'></td>")
+    html.print("<td><input type='text' value='" .. xlink.vlan .. "'></td><td><input type='text' value='" .. xlink.ipaddr .. "'></td><td><input type='text' value='" .. xlink.peer .. "'></td>")
+    html.print("<td><input type='text' value='" .. xlink.weight .. "'></td>")
     html.print("<td" .. (#layout.ports <= 1 and " style='display:none'" or "") .. "><select>")
     for pos, port in ipairs(layout.ports)
     do
