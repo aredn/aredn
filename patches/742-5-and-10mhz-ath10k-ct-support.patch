@@ -277,13 +277,23 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 +  * OUI specified by WMI_SCAN_PROB_REQ_OUI_CMDID to the Probe Request frame.
 --- /dev/null
 +++ openwrt/package/kernel/ath10k-ct/patches/999-0004-ath10k-coverage.patch
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,26 @@
 +--- a/ath10k-5.15/hw.c
 ++++ b/ath10k-5.15/hw.c
-+@@ -665,13 +665,6 @@
++@@ -655,23 +655,6 @@
++ 	slottime_reg = ar->fw_coverage.reg_slottime_orig;
++ 	timeout_reg = ar->fw_coverage.reg_ack_cts_timeout_orig;
 + 
-+ 	slottime = MS(slottime_reg, WAVE1_PCU_GBL_IFS_SLOT);
-+ 	slottime = slottime / phyclk;
++-	/* Do some sanity checks on the slottime register. */
++-	if (slottime_reg % phyclk) {
++-		ath10k_warn(ar,
++-			    "failed to set coverage class: expected integer microsecond value in register\n");
++-
++-		goto store_regs;
++-	}
++-
++-	slottime = MS(slottime_reg, WAVE1_PCU_GBL_IFS_SLOT);
++-	slottime = slottime / phyclk;
 +-	if (slottime != 9 && slottime != 20) {
 +-		ath10k_warn(ar,
 +-			    "failed to set coverage class: expected slot time of 9 or 20us in HW register. It is %uus.\n",

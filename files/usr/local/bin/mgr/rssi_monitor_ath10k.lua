@@ -71,7 +71,23 @@ local station_zero = 0
 local log = aredn.log.open(logfile, 16000)
 
 local function reset_network()
+    local coverage
+    local f = io.popen("iw " .. phy .. " info")
+    if f then
+        for line in f:lines()
+        do
+            coverage = tonumber(line:match("Coverage class: (%d+)"))
+            if coverage then
+                os.execute("iw " .. phy .. " set coverage 0 > /dev/null 2>&1")
+                break
+            end
+        end
+        f:close()
+    end
     write_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k/simulate_fw_crash", "hw-restart")
+    if coverage then
+        os.execute("iw " .. phy .. " set coverage " .. coverage .. " > /dev/null 2>&1")
+    end
 end
 
 function run_monitor_10k()
