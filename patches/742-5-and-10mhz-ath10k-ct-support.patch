@@ -280,7 +280,7 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 @@ -0,0 +1,26 @@
 +--- a/ath10k-5.15/hw.c
 ++++ b/ath10k-5.15/hw.c
-+@@ -655,23 +655,8 @@
++@@ -655,23 +655,6 @@
 + 	slottime_reg = ar->fw_coverage.reg_slottime_orig;
 + 	timeout_reg = ar->fw_coverage.reg_ack_cts_timeout_orig;
 + 
@@ -292,8 +292,8 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 +-		goto store_regs;
 +-	}
 +-
-+ 	slottime = MS(slottime_reg, WAVE1_PCU_GBL_IFS_SLOT);
-+ 	slottime = slottime / phyclk;
++-	slottime = MS(slottime_reg, WAVE1_PCU_GBL_IFS_SLOT);
++-	slottime = slottime / phyclk;
 +-	if (slottime != 9 && slottime != 20) {
 +-		ath10k_warn(ar,
 +-			    "failed to set coverage class: expected slot time of 9 or 20us in HW register. It is %uus.\n",
