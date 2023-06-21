@@ -55,10 +55,10 @@ local action_limits = {
 }
 -- Start action state assuming the node is active and no actions are pending
 local action_state = {
-    done_scan1 = true,
-    done_scan2 = true,
-    done_rejoin1 = true,
-    done_rejoin2 = true
+    scan1 = true,
+    scan2 = true,
+    rejoin1 = true,
+    rejoin2 = true
 }
 local unresponsive = {
     max = 0,
@@ -193,7 +193,10 @@ end
 function M.run_actions()
     -- No action if we have stations and they're responsive
     if station_count.last_nonzero > station_count.last_zero and unresponsive.max < action_limits.unresponsive_trigger1 then
-        action_state = {}
+        for k, _ in pairs(action_state)
+        do
+            action_state[k] = false
+        end
         return
     end
 
@@ -201,25 +204,25 @@ function M.run_actions()
 
     -- If network stations falls to zero when it was previously non-zero
     if station_count.first_zero > station_count.first_nonzero then
-        if not action_state.done_scan1 and station_count.last_zero - station_count.first_zero > action_limits.zero_trigger1 then
+        if not action_state.scan1 and station_count.last_zero - station_count.first_zero > action_limits.zero_trigger1 then
             M.reset_network("scan-quick")
-            action_state.done_scan1 = true
+            action_state.scan1 = true
             return
-        elseif not action_state.done_scan2 and station_count.last_zero - station_count.first_zero > action_limits.zero_trigger2 then
+        elseif not action_state.scan2 and station_count.last_zero - station_count.first_zero > action_limits.zero_trigger2 then
             M.reset_network("scan-all")
-            action_state.done_scan2 = true
+            action_state.scan2 = true
             return
         end
     end
 
     -- We are failing to ping stations we are associated with
-    if unresponsive.max >= action_limits.unresponsive_trigger1 and not action_state.done_rejoin1 then
+    if unresponsive.max >= action_limits.unresponsive_trigger1 and not action_state.rejoin1 then
         M.reset_network("rejoin")
-        action_state.done_rejoin1 = true
+        action_state.rejoin1 = true
         return
-    elseif unresponsive.max >= action_limits.unresponsive_trigger2 and not action_state.done_rejoin2 then
+    elseif unresponsive.max >= action_limits.unresponsive_trigger2 and not action_state.rejoin2 then
         M.reset_network("rejoin")
-        action_state.done_rejoin2 = true
+        action_state.rejoin2 = true
         return
     end
 end
@@ -248,6 +251,11 @@ function M.start_monitor()
         return
     end
 
+    -- No stations when we start
+    local now = nixio.sysinfo().uptime
+    station_count.first_zero = now
+    station_count.last_zero = now
+
     wait_for_ticks(math.max(1, 120 - nixio.sysinfo().uptime))
 
     -- Extract all the necessary wifi parameters
@@ -256,6 +264,8 @@ function M.start_monitor()
     frequency = iwinfo.nl80211.frequency(wifi)
     ssid = iwinfo.nl80211.ssid(wifi)
     if not (phy and frequency and ssid) then
+        log:write("Startup failed")
+        log:flush()
         exit_app()
         return
     end
