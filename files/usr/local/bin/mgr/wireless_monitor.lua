@@ -100,10 +100,10 @@ function M.reset_network(mode)
             log:write("-- ignoring (mikrotik ac only)")
         end
     elseif mode == "scan-quick" then
-        os.execite(IW .. " " .. wifi .. " scan freq " .. frequency .. " > /dev/null 2>&1")
+        os.execute(IW .. " " .. wifi .. " scan freq " .. frequency .. " > /dev/null 2>&1")
     elseif mode == "scan-all" then
-        os.execite(IW .. " " .. wifi .. " scan > /dev/null 2>&1")
-        os.execite(IW .. " " .. wifi .. " scan passive > /dev/null 2>&1")
+        os.execute(IW .. " " .. wifi .. " scan > /dev/null 2>&1")
+        os.execute(IW .. " " .. wifi .. " scan passive > /dev/null 2>&1")
     elseif mode == "reset" then
         if chipset == "ath9k" then
             write_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/reset", "1")
