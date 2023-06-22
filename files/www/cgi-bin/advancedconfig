@@ -142,6 +142,15 @@ local settings = {
     },
     {
         category = "Link Quality Settings",
+        key = "aredn.@lqm[0].mtu",
+        type = "string",
+        desc = "<b>Maximum packet size</b> in bytes sent over WiFi (256 to 1500)<br><br><small>aredn.@lqm[0].mtu</small>",
+        default = "1500",
+        postcallback = "changeMTU()",
+        needreboot = true
+    },
+    {
+        category = "Link Quality Settings",
         key = "aredn.@lqm[0].user_blocks",
         type = "string",
         desc = "<b>User Blocked</b> comma-separated list of blocked MACs<br><br><small>aredn.@lqm[0].user_blocks</small>",
@@ -711,6 +720,10 @@ function changeWANVLAN()
 end
 
 function changeWANGW()
+    os.execute("/usr/local/bin/node-setup -a mesh")
+end
+
+function changeMTU()
     os.execute("/usr/local/bin/node-setup -a mesh")
 end
 
