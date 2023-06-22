@@ -69,6 +69,8 @@ end
 
 -- helpers end
 
+local c = uci.cursor()
+
 -- validate args
 local auto = false
 local do_basic = true
@@ -172,6 +174,10 @@ end
 if cfg.wifi_enable == "1" then
     if not cfg.wifi_intf or cfg.wifi_intf == "" then
         cfg.wifi_intf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
+    end
+    local mtu = tonumber(c:get("aredn", "@lqm[0]", "mtu"))
+    if mtu and mtu >= 256 and mtu <= 1500 then
+        cfg.wifi_mtu = mtu
     end
 else
     cfg.wifi_intf = "br-nomesh"
@@ -380,6 +386,7 @@ if do_basic then
             local proto = cfg[net .. "_proto"] or ""
             local ipaddr = cfg[net .. "_ip"] or ""
             local netmask = cfg[net .. "_mask"] or ""
+            local mtu = cfg[net .. "_mtu"] or ""
             local dns1 = ""
             local dns2 = ""
             if net == "lan" then
@@ -418,6 +425,9 @@ if do_basic then
             end
             if proto ~= "" then
                 config = config .. "	option proto '" .. proto .. "'\n"
+            end
+            if mtu ~= "" then
+                config = config .. "	option mtu '" .. mtu .. "'\n"
             end
             if ipaddr ~= "" then
                 config = config .. "	option ipaddr '" .. ipaddr .. "'\n"
@@ -550,9 +560,6 @@ if not do_basic then
     filecopy("/etc/config.mesh/firewall", "/etc/config/firewall")
     filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user")
 end
-
--- for all the uci changes
-local c = uci.cursor()
 
 -- append to firewall
 local add_masq = false
