@@ -175,7 +175,8 @@ if cfg.wifi_enable == "1" then
     if not cfg.wifi_intf or cfg.wifi_intf == "" then
         cfg.wifi_intf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
     end
-    local mtu = tonumber(c:get("aredn", "@lqm[0]", "mtu"))
+    local mtu = c:get("aredn", "@lqm[0]", "mtu")
+    mtu = tonumber(mtu)
     if mtu and mtu >= 256 and mtu <= 1500 then
         cfg.wifi_mtu = mtu
     end
