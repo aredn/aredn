@@ -124,41 +124,48 @@ function M.monitor_unresponsive_stations()
     unresponsive.max = 0
 
     local now = nixio.sysinfo().uptime
+    local arp = {}
     arptable(
         function (entry)
-            if entry.Device == wifi then
+            if entry.Device == wifi and entry["Flags"] ~= "0x0" then
                 local ipaddr = entry["IP address"]
-                local mac = entry["HW address"] or ""
-                -- Only consider nodes which have valid ip and mac and routable
-                if ipaddr then
-                    unresponsive.stations[ipaddr] = -1
-                    local rt = ip.route(ipaddr)
-                    if entry["Flags"] ~= "0x0" and mac ~= "" and rt and tostring(rt.gw) == ipaddr then
-                        unresponsive.stations[ipaddr] = 0
-                        -- The first ping is broadcast, the rest unicast
-                        for line in io.popen(ARPING .. " -w 5 -I " .. wifi .. " " .. ipaddr):lines()
-                        do
-                            -- If we see exactly one response then broadcast works and unicast doesnt.
-                            -- We neeed to force the station to reassociate
-                            if line:match("^Received 1 response") then
-                                local val = (old[ipaddr] or 0) + 1
-                                unresponsive.stations[ipaddr] = val
-                                if val < unresponsive.ignore then
-                                    if val > action_limits.unresponsive_report then
-                                        log:write("Possible unresponsive node: " .. ipaddr .. " [" .. mac .. "]")
-                                    end
-                                    if val > unresponsive.max then
-                                        unresponsive.max = val
-                                    end
-                                end
-                                break
-                            end
-                        end
-                    end
+                local mac = entry["HW address"]
+                if mac and ipaddr then
+                    arp[mac:upper()] = ipaddr
                 end
             end
         end
     )
+    for mac, _ in pairs(iwinfo.nl80211.assoclist(wifi))
+    do
+        local ipaddr = arp[mac:upper()]
+        if ipaddr then
+            unresponsive.stations[ipaddr] = -1
+            local rt = ip.route(ipaddr)
+            if rt and tostring(rt.gw) == ipaddr then
+                unresponsive.stations[ipaddr] = 0
+                -- The first ping is broadcast, the rest unicast
+                for line in io.popen(ARPING .. " -w 5 -I " .. wifi .. " " .. ipaddr):lines()
+                do
+                    -- If we see exactly one response then broadcast works and unicast doesnt.
+                    -- We neeed to force the station to reassociate
+                    if line:match("^Received 1 response") then
+                        local val = (old[ipaddr] or 0) + 1
+                        unresponsive.stations[ipaddr] = val
+                        if val < unresponsive.ignore then
+                            if val > action_limits.unresponsive_report then
+                                log:write("Possible unresponsive node: " .. ipaddr .. " [" .. mac .. "]")
+                            end
+                            if val > unresponsive.max then
+                                unresponsive.max = val
+                            end
+                        end
+                        break
+                    end
+                end
+            end
+        end
+    end
 end
 
 -- Monitor number of connected stations --
