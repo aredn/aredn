@@ -171,11 +171,14 @@ local wifi_ssid
 if not wifi_disabled then
     wifi_channel = cursor:get("wireless", radio, "channel")
     wifi_channel = tonumber(wifi_channel) or 0
-    local basefreq = aredn.hardware.get_rfchannels(wifi_iface)[1].frequency
-    if basefreq > 3000 and basefreq < 5000 then
-        wifi_channel = wifi_channel * 5 + 3000
-    elseif basefreq > 900 and basefreq < 2300 then
-        wifi_channel = wifi_channel * 5 + 887
+    local rfchans = aredn.hardware.get_rfchannels(wifi_iface)
+    if rfchans and rfchans[1] then
+        local basefreq = rfchans[1].frequency
+        if basefreq > 3000 and basefreq < 5000 then
+            wifi_channel = wifi_channel * 5 + 3000
+        elseif basefreq > 900 and basefreq < 2300 then
+            wifi_channel = wifi_channel * 5 + 887
+        end
     end
     wifi_chanbw = cursor:get("wireless", radio, "chanbw") or "20"
     wifi_ssid = "none"
