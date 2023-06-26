@@ -55,34 +55,39 @@ local dtdmac = aredn_info.get_nvram("dtdmac")
 
 local hardware_mac
 if wifi_mac == "" or mac2 == "" then
-    local wlan = get_ifname("wifi")
-    if wlan then
+    if aredn.hardware.has_wifi() then
         local phy
         for i = 1,5
         do
-            local f = io.popen("iwinfo " .. wlan .. " info")
-            if f then
-                for line in f:lines()
+            for _, wlan in ipairs({ "wlan0", "wlan1" })
+            do
+                local f = io.popen("iwinfo " .. wlan .. " info")
+                if f then
+                    for line in f:lines()
+                    do
+                        phy = line:match("PHY name:%s*([a-z0-4]+)")
+                        if phy then
+                            break
+                        end
+                    end
+                    f:close()
+                end
+                if phy then
+                    break
+                end
+            end
+            if phy then
+                for line in io.lines("/sys/class/ieee80211/" .. phy .. "/macaddress")
                 do
-                    phy = line:match("PHY name:%s*([a-z0-4]+)")
-                    if phy then
+                    local m = line:match("(%w%w:%w%w:%w%w:%w%w:%w%w:%w%w)")
+                    if m then
+                        hardware_mac = m
                         break
                     end
                 end
-                f:close()
-            end
-            if phy then
                 break
             end
             sleep(5)
-        end
-        for line in io.lines("/sys/class/ieee80211/" .. phy .. "/macaddress")
-        do
-            local m = line:match("(%w%w:%w%w:%w%w:%w%w:%w%w:%w%w)")
-            if m then
-                hardware_mac = m
-                break
-            end
         end
     end
     if not hardware_mac then
