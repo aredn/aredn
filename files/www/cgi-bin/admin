@@ -528,6 +528,9 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                 end
             else
                 fin:close()
+                html.footer()
+                html.print("</body></html>")
+                http_footer()
             end
         else
             html.print([[
@@ -774,7 +777,7 @@ remove_all(tmpdir)
 
 -- generate the page
 
-http_header()
+http_header(true)
 html.header(node .. " administration", true)
 html.print("<body><center>")
 html.alert_banner()
