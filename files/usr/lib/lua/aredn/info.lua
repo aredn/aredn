@@ -266,17 +266,14 @@ end
 -------------------------------------
 -- Return Frequency
 -------------------------------------
-function model.getFreq(wlanInf)
-	local api=iwinfo.type(wlanInf)
+function model.getFreq(radio)
+	local api=iwinfo.type(radio)
 	local iw = iwinfo[api]
-	local freq = iw.frequency(wlanInf)
-	local radio = wlanInf:match("wlan(%d+)")
-	if radio then
-		local chan = tonumber(uci.cursor():get("wireless", "radio" .. radio, "channel") or 0)
-		-- 3GHZ channel -> Freq conversion
-		if (chan >= 76 and chan <= 99) then
-			freq = freq - 2000
-		end
+	local freq = iw.frequency(radio)
+	local chan = tonumber(uci.cursor():get("wireless", radio, "channel") or 0)
+	-- 3GHZ channel -> Freq conversion
+	if (chan >= 76 and chan <= 99) then
+		freq = freq - 2000
 	end
 	return tostring(freq)
 end
