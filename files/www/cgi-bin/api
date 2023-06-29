@@ -38,6 +38,7 @@ require("uci")
 require("aredn.uci")
 require("aredn.utils")
 require("aredn.http")
+require("aredn.hardware")
 local aredn_olsr = require("aredn.olsr")
 local aredn_info = require("aredn.info")
 require("nixio")
@@ -80,7 +81,7 @@ end
 function getStatusMeshRF()
 	local info={}
 	local dev = aredn_info.getMeshRadioDevice()
-	if dev ~= "" then
+	if dev and dev ~= "" then
 		info['device']= dev
 		info['ssid']=aredn_info.getSSID()
 		info['channel']=aredn_info.getChannel(info['device'])
