@@ -142,7 +142,7 @@ Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 * *brick* - this image has been tested and will currently brick your hardware. Avoid for now.
 * *sunset* - this device has been sunsetted and support will be deprecated at some point.
 * *nightly* - this device is newly supported in the nightly builds (since the last release).
-* *danger-upgrade* - this device can be upgraded from 3.22.12.0 but you must first install the the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable all the safefy checks. Proceed with caution. Do not remove this package once installed.
+* *danger-upgrade* - this device can be upgraded from 3.22.12.0 but you must first install the the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable all the safefy checks. Proceed with caution. Do not remove this package once installed. 
 
 ### Other
  1. This device will not reboot reliably and you may need to power cycle it (several times) during an update.
