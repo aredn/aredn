@@ -94,3 +94,20 @@ if [ ! -z "$alertslocalpath" ]; then
       rm /tmp/local_message_all
   fi
 fi
+
+# are there any groups alerts to look for?   uci: aredn.alerts.groups != NULL
+#
+alertgroups=$(uci -q get aredn.@alerts[0].groups)
+if [ -n "$alertgroups" ]; then
+  # split if we have multiple groups
+  IFS=',' ;for i in $alertgroups; do
+    groupname=$(echo $i | xargs)
+
+    # fetch group specific message file
+    wget -q -O group_message -P /tmp "${alertslocalpath}/${groupname}".txt &&
+    [ -s /tmp/local_message ] &&
+    echo "<strong>&#8611; ${groupname}:</strong>"|cat - /tmp/local_message > /tmp/out &&
+    mv /tmp/out /tmp/local_message
+  done
+fi
+
