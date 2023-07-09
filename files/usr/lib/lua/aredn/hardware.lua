@@ -62,7 +62,7 @@ function hardware.get_radio()
         end
         local radios = json.parse(f:read("*a"))
         f:close()
-        radio_json = radios[hardware.get_board_id()]
+        radio_json = radios[hardware.get_board_id():lower()]
         if radio_json and not radio_json.name then
             radio_json.name = hardware.get_board_id()
         end
