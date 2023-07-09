@@ -33,6 +33,27 @@ true <<'LICENSE'
 
 LICENSE
 
+function retrieve_alert() {
+  url=$1
+  file=$2
+  label=$3
+
+  # label is an optional argument
+  [ -z "$label" ] && label=$file
+
+  wget -q -O "${file}" -P /tmp "${url}"
+  if [ -s "/tmp/${file}" ]; then
+    echo "<strong>&#8611; ${label}:</strong>"|cat - "/tmp/${file}" > /tmp/out &&
+    echo "<p>" >> /tmp/out &&
+    mv /tmp/out "/tmp/${file}"
+
+    # return success
+    return 0
+  else
+    return 1
+  fi
+}
+
 # does the node have access to downloads.arednmesh.org
 ping -q -W10 -c1 downloads.arednmesh.org > /dev/null &&
   online=true;
@@ -44,23 +65,14 @@ nodename=$(echo "$HOSTNAME" | tr 'A-Z' 'a-z')
 if [ "$online" = "true" ]
 then
   # fetch node specific message file
-  wget -q -O aredn_message -P /tmp http://downloads.arednmesh.org/messages/"${nodename}".txt &&
-    [ -s /tmp/aredn_message ] &&
-    echo "<strong>&#8611; ${nodename}:</strong>"|cat - /tmp/aredn_message > /tmp/out &&
-    mv /tmp/out /tmp/aredn_message
+  retrieve_alert http://downloads.arednmesh.org/messages/${nodename}.txt aredn_message ${nodename}
   if [ $? -ne 0 ] # no node specific file
   then
     # fetch broadcast message file
-    wget -q -O aredn_message -P /tmp http://downloads.arednmesh.org/messages/all.txt &&
-    [ -s /tmp/aredn_message ] &&
-    echo "<strong>&#8611; all nodes:</strong>"|cat - /tmp/aredn_message > /tmp/out &&
-    mv /tmp/out /tmp/aredn_message
+    retrieve_alert http://downloads.arednmesh.org/messages/all.txt aredn_message "all nodes"}
   else
     # need to append to node file
-    wget -q -O aredn_message_all -P /tmp http://downloads.arednmesh.org/messages/all.txt &&
-      [ -s /tmp/aredn_message_all ] &&
-      echo "<strong>&#8611; all nodes:</strong>"|cat - /tmp/aredn_message_all > /tmp/out &&
-      mv /tmp/out /tmp/aredn_message_all
+    retrieve_alert http://downloads.arednmesh.org/messages/all.txt aredn_message_all "all nodes"
     echo "<br />" >> /tmp/aredn_message
     cat /tmp/aredn_message_all >> /tmp/aredn_message
     rm /tmp/aredn_message_all
@@ -68,29 +80,35 @@ then
 fi
 
 # are local alerts enabled?   uci:  aredn.alerts.localpath != NULL
-#
 alertslocalpath=$(uci -q get aredn.@alerts[0].localpath)
-if [ ! -z "$alertslocalpath" ]; then
-  # fetch node specific message file
-  wget -q -O local_message -P /tmp "${alertslocalpath}/${nodename}".txt &&
-    [ -s /tmp/local_message ] &&
-    echo "<strong>&#8611; ${nodename}:</strong>"|cat - /tmp/local_message > /tmp/out &&
-    mv /tmp/out /tmp/local_message
-  if [ $? -ne 0 ] # no node specific file
-  then
-    # fetch broadcast message file
-    wget -q -O local_message -P /tmp "${alertslocalpath}/all.txt" &&
-      [ -s /tmp/local_message ] &&
-      echo "<strong>&#8611; all nodes:</strong>"|cat - /tmp/local_message > /tmp/out &&
-      mv /tmp/out /tmp/local_message
-  else
-    # need to append to node file
-    wget -q -O local_message_all -P /tmp "${alertslocalpath}/all.txt" &&
-      [ -s /tmp/local_message_all ] &&
-      echo "<strong>&#8611; all nodes:</strong>"|cat - /tmp/local_message_all > /tmp/out &&
-      mv /tmp/out /tmp/local_message_all
-    echo "<br />" >> /tmp/local_message
-    cat /tmp/local_message_all >> /tmp/local_message &&
-      rm /tmp/local_message_all
+if [ -n "$alertslocalpath" ]; then
+
+  # try node specific message file
+  retrieve_alert "${alertslocalpath}/${nodename}.txt" "${nodename}-alert" "${nodename}" &&
+    FILES="${nodename}"
+
+  # try group messages   uci: aredn.alerts.groups != NULL
+  alertgroups=$(uci -q get aredn.@alerts[0].groups)
+  if [ -n "$alertgroups" ]; then
+    IFS=',' # split multiple groups on comma
+    for group in $alertgroups; do
+      groupname=$(echo $group | xargs | tr 'A-Z' 'a-z')
+      retrieve_alert "${alertslocalpath}/${groupname}.txt" "${groupname}-alert" "${groupname}" &&
+        FILES="${FILES} ${groupname}"
+    done
+    IFS=' '     # reset IFS
+  fi
+
+  # try broadcast message file
+  retrieve_alert "${alertslocalpath}/all.txt" "all-alert" "all nodes" &&
+    FILES="${FILES} all"
+
+  # combine all files
+  if [ -n "$FILES" ];then
+    cat /dev/null > /tmp/local_message
+    for FILE in $FILES; do
+      cat /tmp/${FILE}-alert >> /tmp/local_message
+      rm /tmp/${FILE}-alert
+    done
   fi
 fi
