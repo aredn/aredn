@@ -22,9 +22,9 @@ LDF 5 | RBLDF-5nD | 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | re
 LDF 5 ac | RBLDFG-5acD | 5 | ipq40xx | mikrotik | mikrotik-ldf-5acd | 64MB | stable | nightly
 RB911G-2HPnD <br> mANTBox 2 12s | RB911G-2HPnD <br> RB911G-2HPnD-12S | 2 | ath79 | mikrotik | - | 64MB | unknown | released
 RB911G-5HPnD | RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | unknown | released
-QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | danger-upgrade
+QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | released (1)
 RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | unknown | released
- RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | danger-upgrade
+RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | released (1)
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | released
 mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | released
 
@@ -118,8 +118,8 @@ TPLink WBS510 v2.0 || 5 | ath79 | generic | tplink_wbs510-v2 | 64MB | unknown | 
 ## GL.iNet
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released (1)
-Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released (1)
+White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released (3)
+Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released (3)
 Shadow (16MB NOR) | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
 Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | unknown | released
 Creta | GL-AR750 | 2 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | released
@@ -133,6 +133,11 @@ Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 
 ## Notes
 
+### Important Footnotes
+ 1. This device is supported for new installs. It can also be upgraded from 3.22.12.0 after first installing the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable the firmware compatability checks. Proceed with caution. Do not remove this package once installed.
+ 2. Tiny builds exclude support for Tunnels and AP WiFi mode by default due to lack of space. The relevant packages can be installed separately but is not recommended.
+ 3. This device will not reboot reliably and you may need to power cycle it (several times) during an update.
+
 ### Stability
 * *untested* - this image has not been tested on hardware. It may or may not work.
 * *stable* - this image has been tested on hardware. There may still be bugs.
@@ -142,11 +147,6 @@ Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 * *brick* - this image has been tested and will currently brick your hardware. Avoid for now.
 * *sunset* - this device has been sunsetted and support will be deprecated at some point.
 * *nightly* - this device is newly supported in the nightly builds (since the last release).
-* *danger-upgrade* - this device can be upgraded from 3.22.12.0 but you must first install the the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable all the safefy checks. Proceed with caution. Do not remove this package once installed.
-
-### Other
- 1. This device will not reboot reliably and you may need to power cycle it (several times) during an update.
- 2. Tiny builds exlude support for Tunnels and AP WiFi mode by default due to lack of space. The relevant packages can be installed separately but is not recommended.
 
 The 'target' and 'subtarget' identify the directory to find the image on at http://downloads.arednmesh.org
 
