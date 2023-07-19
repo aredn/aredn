@@ -34,12 +34,17 @@ LICENSE
 
 MESHFW_WAN_WEB=$(/sbin/uci -q get aredn.@wan[0].web_access)
 MESHFW_WAN_SSH=$(/sbin/uci -q get aredn.@wan[0].ssh_access)
+MESHFW_WAN_TELNET=$(/sbin/uci -q get aredn.@wan[0].telnet_access)
 
-if [ "${MESHFW_WAN_WEB}" = "1" ]; then
+if [ "${MESHFW_WAN_WEB}" != "0" ]; then
     nft insert rule ip fw4 input_wan tcp dport 80 accept comment \"wan web access\" 2> /dev/null
     nft insert rule ip fw4 input_wan tcp dport 8080 accept comment \"wan web access\" > /dev/null
 fi
 
-if [ "${MESHFW_WAN_SSH}" = "1" ]; then
+if [ "${MESHFW_WAN_SSH}" != "0" ]; then
     nft insert rule ip fw4 input_wan tcp dport 2222 accept comment \"wan ssh access\" 2> /dev/null
+fi
+
+if [ "${MESHFW_WAN_TELNET}" != "0" ]; then
+    nft insert rule ip fw4 input_wan tcp dport 23 accept comment \"wan telnet access\" 2> /dev/null
 fi
