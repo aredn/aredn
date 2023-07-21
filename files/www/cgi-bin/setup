@@ -1266,7 +1266,7 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
             local chan0 = aredn.hardware.get_rfchannels("wlan0")
             local chan1 = aredn.hardware.get_rfchannels("wlan1")
             if wifi2_hwmode == "11a" then
-                if chan0[1].frequency > 3000 then
+                if #chan0 >= 1 and chan0[1].frequency > 3000 then
                     chan = chan0
                 else
                     chan = chan1
@@ -1275,7 +1275,7 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
                     wifi2_channel = 36
                 end
             else
-                if chan0[1].frequency < 3000 then
+                if #chan0 >= 1 and chan0[1].frequency < 3000 then
                     chan = chan0
                 else
                     chan = chan1
