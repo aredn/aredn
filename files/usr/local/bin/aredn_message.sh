@@ -82,6 +82,7 @@ fi
 # are local alerts enabled?   uci:  aredn.alerts.localpath != NULL
 alertslocalpath=$(uci -q get aredn.@alerts[0].localpath)
 if [ -n "$alertslocalpath" ]; then
+  cat /dev/null > /tmp/local_message   # initialize local_message file
 
   # try node specific message file
   retrieve_alert "${alertslocalpath}/${nodename}.txt" "${nodename}-alert" "${nodename}" &&
@@ -105,7 +106,6 @@ if [ -n "$alertslocalpath" ]; then
 
   # combine all files
   if [ -n "$FILES" ];then
-    cat /dev/null > /tmp/local_message
     for FILE in $FILES; do
       cat /tmp/${FILE}-alert >> /tmp/local_message
       rm /tmp/${FILE}-alert
