@@ -294,6 +294,16 @@ local settings = {
         default = "1000"
     },
     {
+        category = "Supernode Settings",
+        key = "aredn.@supernode[0].enabled",
+        type = "boolean",
+        desc = "<b>Enable Supernode</b> setup for this node <br><br><small>aredn.@supernode[0].enabled</small>",
+        default = "0",
+        condition = "canBeSupernode()",
+        postcallback = "changeSupernode()",
+        needreboot = true
+    },
+    {
         category = "Network Tools",
         key = "aredn.olsr.restart",
         type = "none",
@@ -574,6 +584,14 @@ function supportsVLANChange()
     return false
 end
 
+function canBeSupernode()
+    local board = aredn.hardware.get_board_type()
+    if board == "qemu-standard-pc-i440fx-piix-1996" then
+        return true
+    end
+    return false
+end
+
 -- callbacks
 
 local newval
@@ -747,6 +765,10 @@ function changeWANGW()
 end
 
 function changeMTU()
+    os.execute("/usr/local/bin/node-setup -a mesh")
+end
+
+function changeSupernode()
     os.execute("/usr/local/bin/node-setup -a mesh")
 end
 
