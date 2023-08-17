@@ -280,6 +280,11 @@ end
 parms.conn_num = conn_num
 
 -- save the connections
+if cursor:get("aredn", "@supernode[0]", "enabled") == "1" then
+    cursor:set("vtun", "@options[0]", "port", "5526")
+else
+    cursor:delete("vtun", "@options[0]", "port")
+end
 local enabled_count = 0
 for i = 0,parms.conn_num-1
 do

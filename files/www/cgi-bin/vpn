@@ -182,6 +182,7 @@ end
 
 if parms.button_reset then
     cursor:revert("vtun")
+    cursor:delete("vtun", "@options[0]", "port")
     cursor:delete("vtun", "@network[0]", "start")
     cursor:delete("vtun", "@network[0]", "dns")
     cursor:commit("vtun")
@@ -300,6 +301,11 @@ if not validate_fqdn(dns) then
 end
 if #cli_err == 0 then
     local net = "172.31." .. parms.server_net1 .. "." .. parms.server_net2
+    if cursor:get("aredn", "@supernode[0]", "enabled") == "1" then
+        cursor:set("vtun", "@options[0]", "port", "5526")
+    else
+        cursor:delete("vtun", "@options[0]", "port")
+    end
     cursor:set("vtun", "@network[0]", "start", net)
     cursor:set("vtun", "@network[0]", "dns", dns)
 end
