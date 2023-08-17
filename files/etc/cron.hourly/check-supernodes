@@ -1,0 +1,120 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2023 Tim Wilkinson
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("nixio")
+require("aredn.hardware")
+
+local sn_file = "/tmp/sn.addr"
+local hosts_file = "/tmp/run/hosts_olsr.stable"
+local resolv_conf_file = "/tmp/resolv.conf.d/resolv.conf.auto"
+
+local sn = {}
+local changed = false
+local count = 0
+
+local myip = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("dtdlink"))
+
+-- Find our current supernodes
+if nixio.fs.stat(hosts_file) then
+    for line in io.lines(hosts_file)
+    do
+        local ip = line:match("^(%S+)%s+supernode%.")
+        if ip and ip ~= myip then
+            sn[ip] = true
+            count = count + 1
+        end
+    end
+end
+
+-- Work out if they're different from the last time we looked
+if nixio.fs.stat(sn_file) then
+    local old_count = 0
+    for ip in io.lines(sn_file)
+    do
+        old_count = old_count + 1
+        if not sn[ip] then
+            changed = true
+        end
+    end
+    if count ~= old_count then
+        changed = true
+    end
+elseif count ~= 0 then
+    changed = true
+end
+
+-- If things have changed, update the DNS
+if changed then
+    local lines = {}
+
+    for ip, _ in pairs(sn)
+    do
+        lines[#lines + 1] = "nameserver " .. ip
+    end
+
+    local ignore = true
+    for line in io.lines(resolv_conf_file)
+    do
+        if ignore then
+            if line:match("^#") then
+                ignore = false
+                lines[#lines + 1] = line
+            end
+        else
+            lines[#lines + 1] = line
+        end
+    end
+
+    -- Save state
+    local f = io.open(sn_file, "w")
+    if f then
+        for k, _ in pairs(sn)
+        do
+            f:write(k .. "\n")
+        end
+        f:close()
+    end
+
+    -- Update DNS
+    f = io.open(resolv_conf_file, "w")
+    if f then
+        for _, line in ipairs(lines)
+        do
+            f:write(line .. "\n")
+        end
+        f:close()
+    end
+end
