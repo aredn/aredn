@@ -35,86 +35,46 @@
 --]]
 
 require("nixio")
+require("uci")
 require("aredn.hardware")
 
-local sn_file = "/tmp/sn.addr"
 local hosts_file = "/tmp/run/hosts_olsr.stable"
 local resolv_conf_file = "/tmp/resolv.conf.d/resolv.conf.auto"
 
-local sn = {}
-local changed = false
-local count = 0
+if uci.cursor():get("aredn", "@supernode[0]", "enabled") == "1" then
+    os.exit(0)
+end
 
-local myip = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("dtdlink"))
+local lines = {}
 
--- Find our current supernodes
 if nixio.fs.stat(hosts_file) then
     for line in io.lines(hosts_file)
     do
         local ip = line:match("^(%S+)%s+supernode%.")
-        if ip and ip ~= myip then
-            sn[ip] = true
-            count = count + 1
+        if ip then
+            lines[#lines + 1] = "nameserver " .. ip
         end
     end
 end
 
--- Work out if they're different from the last time we looked
-if nixio.fs.stat(sn_file) then
-    local old_count = 0
-    for ip in io.lines(sn_file)
-    do
-        old_count = old_count + 1
-        if not sn[ip] then
-            changed = true
-        end
-    end
-    if count ~= old_count then
-        changed = true
-    end
-elseif count ~= 0 then
-    changed = true
-end
-
--- If things have changed, update the DNS
-if changed then
-    local lines = {}
-
-    for ip, _ in pairs(sn)
-    do
-        lines[#lines + 1] = "nameserver " .. ip
-    end
-
-    local ignore = true
-    for line in io.lines(resolv_conf_file)
-    do
-        if ignore then
-            if line:match("^#") then
-                ignore = false
-                lines[#lines + 1] = line
-            end
-        else
+local ignore = true
+for line in io.lines(resolv_conf_file)
+do
+    if ignore then
+        if line:match("^#") then
+            ignore = false
             lines[#lines + 1] = line
         end
+    else
+        lines[#lines + 1] = line
     end
+end
 
-    -- Save state
-    local f = io.open(sn_file, "w")
-    if f then
-        for k, _ in pairs(sn)
-        do
-            f:write(k .. "\n")
-        end
-        f:close()
+local f = io.open(resolv_conf_file, "w")
+if f then
+    for _, line in ipairs(lines)
+    do
+        f:write(line .. "\n")
     end
-
-    -- Update DNS
-    f = io.open(resolv_conf_file, "w")
-    if f then
-        for _, line in ipairs(lines)
-        do
-            f:write(line .. "\n")
-        end
-        f:close()
-    end
+    f:close()
 end
