@@ -38,53 +38,34 @@ require("nixio")
 require("uci")
 require("aredn.hardware")
 
-local hosts_file = "/tmp/run/hosts_olsr.stable"
 local resolv_conf_file = "/tmp/resolv.conf.d/resolv.conf.auto"
+local hosts_file = "/tmp/run/hosts_olsr.stable"
+
+local c = uci.cursor()
 
 -- Supernodes themselves dont need supernode nameservers
-if uci.cursor():get("aredn", "@supernode[0]", "enabled") == "1" then
+if c:get("aredn", "@supernode[0]", "enabled") == "1" then
     os.exit(0)
 end
 
--- Dont run the update is the hosts file is missing
-if not nixio.fs.stat(hosts_file) then
-	os.exit(0)
-end
-
-local lines = {}
-
 -- Add known supernodes as nameservers
+local dns = ""
 for line in io.lines(hosts_file)
 do
 	local ip = line:match("^(%S+)%s+supernode%.")
 	if ip then
-		if #lines == 0 then
-			lines[1] = "## Supernodes"
-		end
-		lines[#lines + 1] = "nameserver " .. ip
+		dns = dns .. " " .. ip
 	end
 end
+dns = dns:sub(2)
 
--- Append the rest of the resolve file (ignoring any old supernode information)
-local ignore = true
-for line in io.lines(resolv_conf_file)
-do
-    if ignore then
-        if line:match("^#%s") then
-            ignore = false
-            lines[#lines + 1] = line
-        end
-    else
-        lines[#lines + 1] = line
-    end
-end
-
--- Update
-local f = io.open(resolv_conf_file, "w")
-if f then
-    for _, line in ipairs(lines)
-    do
-        f:write(line .. "\n")
-    end
-    f:close()
+-- Update the dns list and reload if necessary
+if c:get("network", "dtdlink", "dns") ~= dns then
+	if dns == "" then
+		c:delete("network", "dtdlink", "dns")
+	else
+		c:set("network", "dtdlink", "dns", dns)
+	end
+	c:commit("network")
+	os.system("/etc/init.d/network reload")
 end
