@@ -37,9 +37,11 @@
 require("nixio")
 require("uci")
 require("aredn.hardware")
+require("aredn.utils")
 
 local resolv_conf_file = "/tmp/resolv.conf.d/resolv.conf.auto"
 local services_file = "/tmp/run/services_olsr"
+local dns_file = "/tmp/supernode.dns"
 
 local c = uci.cursor()
 
@@ -63,8 +65,10 @@ dns = dns:sub(2)
 if c:get("network", "dtdlink", "dns") ~= dns then
 	if dns == "" then
 		c:delete("network", "dtdlink", "dns")
+		os.remove(dns_file)
 	else
 		c:set("network", "dtdlink", "dns", dns)
+		write_all(dns_file, dns)
 	end
 	c:commit("network")
 	os.execute("/etc/init.d/network reload")
