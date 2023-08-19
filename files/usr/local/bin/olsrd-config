@@ -330,14 +330,13 @@ for _, host in ipairs(hosts)
 do
     print([[    PlParam "]] .. host.ip .. [[" "]] .. host.host .. [["]])
 end
-if cursor:get("aredn", "@supernode[0]", "enabled") == "1" then
-    local ip = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("dtdlink"))
-    local host = aredn.info.get_nvram("node")
-    print([[    PlParam "]] .. ip .. [[" "supernode.]] .. host .. [[.local.mesh"]])
-end
 for _, service in ipairs(services)
 do
     print([[    PlParam "service" "]] .. service .. [["]])
+end
+if cursor:get("aredn", "@supernode[0]", "enabled") == "1" then
+    local ip = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("dtdlink"))
+    print([[    PlParam "service" "dns://]] .. ip .. [[:53/|udp|Supernode"]])
 end
 print([[}]])
 

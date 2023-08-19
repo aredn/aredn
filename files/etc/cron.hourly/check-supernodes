@@ -39,7 +39,7 @@ require("uci")
 require("aredn.hardware")
 
 local resolv_conf_file = "/tmp/resolv.conf.d/resolv.conf.auto"
-local hosts_file = "/tmp/run/hosts_olsr.stable"
+local services_file = "/tmp/run/services_olsr"
 
 local c = uci.cursor()
 
@@ -50,9 +50,9 @@ end
 
 -- Add known supernodes as nameservers
 local dns = ""
-for line in io.lines(hosts_file)
+for line in io.lines(services_file)
 do
-	local ip = line:match("^(%S+)%s+supernode%.")
+	local ip = line:match("^dns://(%S+):53/|udp|Supernode")
 	if ip then
 		dns = dns .. " " .. ip
 	end
@@ -67,5 +67,5 @@ if c:get("network", "dtdlink", "dns") ~= dns then
 		c:set("network", "dtdlink", "dns", dns)
 	end
 	c:commit("network")
-	os.system("/etc/init.d/network reload")
+	os.execute("/etc/init.d/network reload")
 end
