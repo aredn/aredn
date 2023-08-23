@@ -17,9 +17,9 @@ LHG HP5 | RBLHG-5HPnD | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd | 64MB | stabl
 LHG XL HP5 | RBLHG-5HPnD-XL | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd-xl | 64MB | stable | released
 LHG 5 ac | RBLHGG-5acD | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd | 256MB | stable | released
 LHG XL 5 ac | RBLHGG-5acD-XL | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd-xl | 256MB | stable | released
-LDF 2 | RBLDF-2nD | 2 | ath79 | mikrotik | mikrotik-ldf-2nd | 64MB | stable | nightly
+LDF 2 | RBLDF-2nD | 2 | ath79 | mikrotik | mikrotik-ldf-2nd | 64MB | stable | released
 LDF 5 | RBLDF-5nD | 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | released
-LDF 5 ac | RBLDFG-5acD | 5 | ipq40xx | mikrotik | mikrotik-ldf-5acd | 64MB | stable | nightly
+LDF 5 ac | RBLDFG-5acD | 5 | ipq40xx | mikrotik | mikrotik-ldf-5acd | 64MB | stable | released
 RB911G-2HPnD <br> mANTBox 2 12s | RB911G-2HPnD <br> RB911G-2HPnD-12S | 2 | ath79 | mikrotik | - | 64MB | unknown | released
 RB911G-5HPnD | RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | unknown | released
 QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | released (1)
@@ -69,9 +69,9 @@ NanoStation M2 XW || 2 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable
 NanoStation M5 XW || 5 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 PicoStation M2 || 2 | ath79 | tiny (2) | ubnt_picostation-m | 32MB | unknown | sunset
 PowerBeam AC 5 Gen2 || 5 | ath79 | generic | ubnt_powerbeam-5ac-gen2 | 128MB | unknown | released
-PowerBeam AC 5 400 || 5 | ath79 | generic | ubnt_powerbeam-5ac-400 | 128MB | unknown | nightly
+PowerBeam AC 5 400 || 5 | ath79 | generic | ubnt_powerbeam-5ac-400 | 128MB | unknown | released
 PowerBeam AC 5 500 | PBE-5AC-500 <br> PBE-5AC-500-US | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | released
-PowerBeam AC 5 620 || 5 | ath79 | generic | ubnt_powerbeam-5ac-620 | 128MB | unknown | nightly
+PowerBeam AC 5 620 || 5 | ath79 | generic | ubnt_powerbeam-5ac-620 | 128MB | unknown | released
 PowerBeam-M2-400 || 2 | ath79 | generic | ubnt_powerbeam-m2-xw | 64MB | stable | released
 PowerBeam-M5-300 || 5 | ath79 | generic | ubnt_powerbeam-m5-300 | 64MB | stable | released
 PowerBeam-M5-400 || 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
@@ -86,8 +86,8 @@ Rocket M5 XM || 5 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
 Rocket M5GPS XM || 5 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
 Rocket M2 XM with USB port || 2 | ath79 | generic | ubnt_rocket-m | 64MB | unknown | released
 Rocket M5 XM with USB port || 5 | ath79 | generic | ubnt_rocket-m | 64MB | unknown | released
-Rocket M2 XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | stable | nightly
-Rocket M5 XW || 5 | ath79 | generic | ubnt_rocket-m5-xw | 64MB | stable | nightly
+Rocket M2 XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | stable | released
+Rocket M5 XW || 5 | ath79 | generic | ubnt_rocket-m5-xw | 64MB | stable | released
 Rocket M2 Titanium TI || 2 | ath79 | - | - | 64MB | unknown | released
 Rocket M2 Titanium XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | unknown | released
 Rocket M5 Titanium TI || 5 | ath79 | - | - | 64MB | unknown | released
@@ -99,7 +99,7 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 TPLink CPE210 v1.X || 2 | ath79 | generic | tplink_cpe210-v1 | 64MB | stable | released
 TPLink CPE210 v2.0 || 2 | ath79 | generic | tplink_cpe210-v2 | 64MB | stable | released
-TPLink CPE210 v3.0 || 2 | ath79 | generic | tplink_cpe210-v3 | 64MB | unknown | nightly
+TPLink CPE210 v3.0 || 2 | ath79 | generic | tplink_cpe210-v3 | 64MB | unknown | released
 TPLink CPE220 v2.0 || 2 | ath79 | generic | tplink_cpe220-v2 | 64MB | unknown | released
 TPLink CPE220 v3.0 || 2 | ath79 | generic | tplink_cpe220-v3 | 64MB | unknown | released
 TPLink CPE510 v1.X || 5 | ath79 | generic | tplink_cpe510-v1 | 64MB | stable | released
