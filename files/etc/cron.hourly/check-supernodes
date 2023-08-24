@@ -54,9 +54,12 @@ end
 local dns = ""
 for line in io.lines(services_file)
 do
-	local ip = line:match("^dns://(%S+):53/|udp|Supernode")
-	if ip then
-		dns = dns .. " " .. ip
+	local host = line:match("^dns://(%S+):53/|udp|Supernode")
+	if host then
+		local ip = iplookup(host)
+		if ip then
+			dns = dns .. " " .. ip
+		end
 	end
 end
 dns = dns:sub(2)
