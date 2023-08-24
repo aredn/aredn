@@ -38,9 +38,9 @@ require("nixio")
 require("uci")
 require("aredn.hardware")
 require("aredn.utils")
+local olsr = require("aredn.olsr")
 
 local resolv_conf_file = "/tmp/resolv.conf.d/resolv.conf.auto"
-local services_file = "/tmp/run/services_olsr"
 local dns_file = "/tmp/supernode.dns"
 
 local c = uci.cursor()
@@ -52,14 +52,10 @@ end
 
 -- Add known supernodes as nameservers
 local dns = ""
-for line in io.lines(services_file)
+for _, hna in ipairs(olsr.getOLSRHNA())
 do
-	local host = line:match("^dns://(%S+):53/|udp|Supernode")
-	if host then
-		local ip = iplookup(host)
-		if ip then
-			dns = dns .. " " .. ip
-		end
+	if hna.genmask == 8 and hna.destination == "10.0.0.0" then
+		dns = dns .. " " .. hna.gateway
 	end
 end
 dns = dns:sub(2)
