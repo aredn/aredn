@@ -46,8 +46,14 @@ local dns_file = "/tmp/supernode.dns"
 local c = uci.cursor()
 
 -- Supernodes themselves dont need supernode nameservers
-if c:get("aredn", "@supernode[0]", "enabled") == "1" then
+if c:get("aredn", "@supernode[0]", "enable") == "1" then
     os.exit(0)
+end
+
+-- Ignore supernodes?
+if c:get("aredn", "@supernode[0]", "ignore") == "1" then
+	os.remove(dns_file)
+	os.exit(0)
 end
 
 -- Add known supernodes as nameservers

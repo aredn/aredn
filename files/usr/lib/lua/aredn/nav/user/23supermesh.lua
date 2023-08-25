@@ -3,4 +3,6 @@ if nixio.fs.stat("/tmp/supernode.dns") then
     if ip then
         return { href = "http://" .. ip .. "/cgi-bin/mesh", display = "Super Mesh", hint = "See what is on the supernode mesh" }
     end
+elseif uci.cursor():get("aredn", "@supernode[0]", "enable") == "1" then
+    return { href = "/cgi-bin/mesh", display = "Super Mesh", hint = "See what is on the supernode mesh" }
 end
