@@ -410,15 +410,26 @@ html.print([[
     input.search {
         width:150px;
     }
-    // table header alignment
+    #nTable {
+        margin-bottom: 12px;
+    }
+    #nTable:not(:has(td.f)) {
+        display: none;
+    }
     #nTable th:nth-child(1) {
       width: 25%;
     }
     #nTable th:nth-child(2) {
       width: 45%;
     }
-    #nTable th:nth-child(3)
+    #nTable th:nth-child(3) {
       width: 30%;
+    }
+    #cTable {
+        margin-bottom: 12px;
+    }
+    #cTable:not(:has(td.f)) {
+        display: none;
     }
     #cTable th:nth-child(1), #rTable th:nth-child(1) {
       width: 25%;
@@ -432,13 +443,35 @@ html.print([[
     #cTable th:nth-child(5) {
       width: 8%;
     }
+    #rTable:not(:has(td.f)) {
+        display: none;
+    }
     #rTable th:nth-child(3) {
       width: 20%;
     }
     #rTable th:nth-child(4) {
       width: 30%;
     }
+    tr.s:not(:has(td.f)) {
+        display: none;
+    }
     </style>
+    <script>
+    function doSearch() {
+        const filter = document.getElementById("srch").value.toUpperCase();
+        const tds = document.querySelectorAll("td.s")
+        for (let i = 0; i < tds.length; i++) {
+            const td = tds[i];
+            const txt = td.textContent || td.innerText;
+            if (txt.toUpperCase().indexOf(filter) === -1) {
+                td.classList.remove("f")
+            }
+            else {
+                td.classList.add("f")
+            }
+        }
+    }
+    </script>
 ]])
 html.print("</head>")
 
@@ -465,6 +498,8 @@ end
 
 html.print("&nbsp;&nbsp;")
 html.print("<button type=button onClick='window.location=\"status\"' title='Return to the status page'>Quit</button>")
+html.print("&nbsp;&nbsp;")
+html.print("<input id=srch type=search autocorrect=off spellcheck=false placeholder='Search...' onkeyup='doSearch()' onsearch='doSearch()' onkeypress='event.keyCode == 13 && event.preventDefault()'>")
 html.print("</nobr><br><br>")
 
 if not next(localhosts) and not next(links) then
@@ -479,9 +514,9 @@ end
 
 html.print("<table id=nTable>")
 html.print("<tr>")
-html.print("<th width=25%><input class=search type=text id='inNN' onkeyup=nSearch('inNN','nTable',0) onkeypress='event.keyCode == 13 && event.preventDefault()' placeholder='Node Name'></th>")
-html.print("<th><input class=search type=text id='inNH' onkeyup=nSearch('inNH','nTable',1) onkeypress='event.keyCode == 13 && event.preventDefault()' placeholder='LAN Hostname'></th>")
-html.print("<th><input class=search type=text id='inNS' onkeyup=nSearch('inNS','nTable',2) onkeypress='event.keyCode == 13 && event.preventDefault()' placeholder='Service Name'></th>")
+html.print("<th width=25%>Node Name</th>")
+html.print("<th>LAN Hostname</th>")
+html.print("<th>Service Name</th>")
 html.print("</tr>")
 
 if next(localhosts) then
@@ -552,7 +587,7 @@ if next(localhosts) then
                 end
             end
             -- Build this row
-            local row = "<tr><td>" .. c1 .. "</td><td>" .. c2 .. "</td><td>" .. c3 .. "</td></tr>"
+            local row = "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'>" .. c2 .. "</td><td class='s f'>" .. c3 .. "</td></tr>"
             rows[#rows + 1] = { key = host.name, row = row }
         end
     end
@@ -564,7 +599,7 @@ if next(localhosts) then
     -- discard
     rows = nil
 else
-    html.print("<tr><td>none</td></tr>")
+    html.print("<tr><td class='s f'>none</td></tr>")
 end
 
 -- discard
@@ -574,11 +609,11 @@ html.print("</table>")
 
 -- show current neighbors table
 
-html.print("<br><table id='cTable'><tr>")
-html.print("<th width=25%><input class=search type=text id='inCN' onkeyup=nSearch('inCN','cTable',0) onkeypress='event.keyCode == 13 && event.preventDefault()' placeholder='Current Neighbors'></th>")
-html.print("<th><input class=search type=text id='inCH' onkeyup=nSearch('inCH','cTable',1) onkeypress='event.keyCode == 13 && event.preventDefault()' placeholder='LAN Hostname'></th>")
+html.print("<table id='cTable'><tr>")
+html.print("<th width=25%>Current Neighbors</th>")
+html.print("<th>LAN Hostname</th>")
 html.print("<th>LQ</th><th>NLQ</th><th>TxMbps</th>")
-html.print("<th><input class=search type=text id='inCS' onkeyup=nSearch('inCS','cTable',5) onkeypress='event.keyCode == 13 && event.preventDefault()' placeholder='Service Name'></th>")
+html.print("<th>Service Name</th>")
 html.print("</tr>")
 
 local rows = {}
@@ -674,7 +709,7 @@ do
         end
     end
     -- Build this row
-    local row = "<tr><td>" .. c1 .. "</td><td>" .. c2 .. "</td><td>" .. c3 .. "</td><td>" .. c4 .. "</td><td>" .. c5 .. "</td><td>" .. c6 .. "</td></tr>"
+    local row = "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'>" .. c2 .. "</td><td>" .. c3 .. "</td><td>" .. c4 .. "</td><td>" .. c5 .. "</td><td class='s f'>" .. c6 .. "</td></tr>"
     rows[#rows + 1] = { key = name, row = row }
 end
 if #rows > 0 then
@@ -686,7 +721,7 @@ if #rows > 0 then
     -- discard
     rows = nil
 else
-    html.print("<tr><td>none</td></tr>")
+    html.print("<tr><td class='s f'>none</td></tr>")
 end
 
 --add previous neighbors
@@ -744,11 +779,11 @@ html.print("</table>")
 
 -- show remote node table
 
-html.print("<br><table id='rTable'><tr>")
-html.print("<th width=25%><input class=search type=text id='inRN' onkeyup=nSearch('inRN','rTable',0) onkeypress='event.keyCode == 13 && event.preventDefault()' placeholder='Remote Nodes'></th>")
-html.print("<th><input class=search type=text id='inRH' onkeyup=nSearch('inRH','rTable',1) onkeypress='event.keyCode == 13 && event.preventDefault()' placeholder='LAN Hostname'</th>")
+html.print("<table id='rTable'><tr>")
+html.print("<th width=25%>Remote Nodes</th>")
+html.print("<th>LAN Hostname</th>")
 html.print("<th>ETX</th>")
-html.print("<th><input class=search type=text id='inRS' onkeyup=nSearch('inRS','rTable',3) onkeypress='event.keyCode == 13 && event.preventDefault()' placeholder='Service Name'</th>")
+html.print("<th>Service Name</th>")
 html.print("</tr>")
 
 local rows = {}
@@ -840,7 +875,7 @@ do
                 end
             end
             -- Build this row
-            local row = "<tr><td>" .. c1 .. "</td><td>" .. c2 .. "</td><td>" .. c3 .. "</td><td>" .. c4 .. "</td></tr>"
+            local row = "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'>" .. c2 .. "</td><td>" .. c3 .. "</td><td class='s f'>" .. c4 .. "</td></tr>"
             rows[#rows + 1] = { key = host.etx, row = row }
         end
     end
@@ -855,7 +890,7 @@ if #rows > 0 then
     -- discard
     rows = nil
 else
-    html.print("<tr><td>none</td></tr>")
+    html.print("<tr><td class='s f'>none</td></tr>")
 end
 -- discard
 neighbor = nil
@@ -874,29 +909,6 @@ html.print("</table>")
 
 html.print("</center>")
 html.print("</form>")
-
-html.print([[
-    <script>
-    function nSearch(inputId,tableId,colId) {
-        var input, filter, table, tr, td, i, txtval;
-        input = document.getElementById(inputId);
-        filter = input.value.toUpperCase();
-        table = document.getElementById(tableId);
-        tr = table.getElementsByTagName("tr");
-        for (i=0; i < tr.length; i++) {
-            td = tr[i].getElementsByTagName("td")[colId];
-            if (td) {
-                txtval = td.textContent || td.innerText;
-                if (txtval.toUpperCase().indexOf(filter) > -1 ) {
-                    tr[i].style.display = "";
-                } else {
-                    tr[i].style.display = "none";
-                }
-            }
-        }
-    }
-    </script>
-]])
 html.footer();
 html.print("</body>")
 html.print("</html>")
