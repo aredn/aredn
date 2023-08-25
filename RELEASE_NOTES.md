@@ -1,5 +1,76 @@
 __RELEASE NOTES__
 
+# 3.23.8.0
+
+There have been over 70 nightly releases of the AREDN codebase since the last production release in April of 2023. Here are the highlights of the latest production release:	 	
+
+## Enhancements
+
+* Added Prometheus Metrics (meant for use with monitoring apps like Grafana)
+* SSH, TELNET and HTTP access to a node via the WAN port can now be disabled from the advanced configuration page.
+* Improved handling of unsupported hardware.
+* Use wifi assoc list when looking for unresponsive nodes
+* Allow MTU on wifi interface to be modified
+* Minor wifi monitor improvements for better metrics reporting
+* Merge all the station monitoring and mitigation into a single service
+* Support xlinks on x86
+* Remove subnet restrictions for xlinks
+* Support switching mesh radio on multi-radio devices
+* UI improvements from AB7PA
+* Upgrade to OpenWRT 22.03.5 
+* Added Advanced Networking tab
+* Feedback when pressing upload/download buttons
+* Virtualized X86 support
+* Restructure, modularize and tidy up the navigation buttons and menus
+* Remove hardwired frequency tables and use information from the hardware instead
+* Note devices which support the danger-upgrade process
+* Allow the “&” character in service paths
+* Added support for group alert messages
+
+## Known Issues
+
+* Wifi scanning on Ubiquiti AC devices does not return all found devices, only ones already associated with the node.
+
+## New Devices Added
+
+* New LiteBeam AC Gen2 variant
+* Mikrotik LDF 5AC 
+* Mikrotik LDF2
+* PowerBeam 5ac-620 support
+
+## Bug Fixes
+
+* Fix x86 upgrades (naming is a little odd)
+* Fix Mikrotik first install
+* Re-enable AREDN’s reset button behavior (was being overridden by OpenWrt’s)
+* Revert PowerBeam 5AC 400 name change which caused upgrade problems
+* Remove another coverage test which causes problems
+* Fix MTU failure which broke node setup
+* Avoid error if mac disappears across a radio reset
+* Monitor bug fixes
+* Fix bug when editing xlinks on single port devices
+* Enhance ‘has_wifi’ detection
+* Handle non-wifi devices passed to maxpower/pwroffset functions 
+* Fix LUA converting empty port object to empty array. 
+* Alternate ath9k and ath10k radio reset for deaf nodes
+* Fix API nil pointer when mac lookup fails
+* Disable WAN access to node by default
+* Fix disabled mesh on multi-wifi devices
+* Split rocket-m[52]-xw into different builds
+* Enable Rocket M XW (accidentally disabled when splitting out the M2 version)
+* Fix wifi setup for multi-radio devices 05/08/2023
+* Add missing radios.json for Powerbeam 5AC 400 05/07/2023 
+* Remove old PBE 100mb fix and /etc/rc.local where it was included
+* Fix channel display for 5GHz nodes
+* Tidy up the formatting and fix column widths
+* Fix syntax error in patch that broke network on many ath79 devices
+* Fix ar300m16 wan configuration 04/25/2023
+* Fix frequency range reporting and display for 900MHz & 3GHz devices
+* Tolerate missing frequency list
+* Fix missing POE for nanostation-m
+* Remove ar300m nand and nor builds which are causing confusion
+* Fix local message refresh 
+
 # 3.23.4.0
 
 There have been over 140 nightly releases of the AREDN codebase since the last production release in December 2022. Here are the highlights:
