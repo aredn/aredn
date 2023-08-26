@@ -400,11 +400,11 @@ html.print([[
     tr:hover {
         background-color:rgba(128,128,128,0.15);
     }
-    tr:has(th) {
+    tr.h {
         border-top: 1px solid black;
         border-bottom: 1px solid black;
     }
-    tr:has(th):hover {
+    tr.h:hover {
         background-color:inherit;
     }
     th {
@@ -418,9 +418,6 @@ html.print([[
     #nTable {
         margin-bottom: 12px;
     }
-    #nTable:not(:has(td.f)) {
-        display: none;
-    }
     #nTable th:nth-child(1) {
       width: 25%;
     }
@@ -432,9 +429,6 @@ html.print([[
     }
     #cTable {
         margin-bottom: 12px;
-    }
-    #cTable:not(:has(td.f)) {
-        display: none;
     }
     #cTable th:nth-child(1), #rTable th:nth-child(1) {
       width: 25%;
@@ -448,31 +442,44 @@ html.print([[
     #cTable th:nth-child(5) {
       width: 8%;
     }
-    #rTable:not(:has(td.f)) {
-        display: none;
-    }
     #rTable th:nth-child(3) {
       width: 20%;
     }
     #rTable th:nth-child(4) {
       width: 30%;
     }
-    tr.s:not(:has(td.f)) {
+    tr.s.f.nf {
+        display: table-row;
+    }
+    tr.s.nf {
         display: none;
     }
     </style>
     <script>
     function doSearch() {
         const filter = document.getElementById("srch").value.toUpperCase();
-        const tds = document.querySelectorAll("td.s")
+        const rows = document.querySelectorAll("tr.s");
+        for (let i = 0; i < rows.length; i++) {
+            rows[i].classList.remove("f", "nf");
+        }
+        const tds = document.querySelectorAll("td.s");
         for (let i = 0; i < tds.length; i++) {
             const td = tds[i];
             const txt = td.textContent || td.innerText;
             if (txt.toUpperCase().indexOf(filter) === -1) {
-                td.classList.remove("f")
+                td.parentElement.classList.add("nf")
             }
             else {
-                td.classList.add("f")
+                td.parentElement.classList.add("f")
+            }
+        }
+        const tables = document.querySelectorAll("table.s");
+        for (let i = 0; i < tables.length; i++) {
+            if (!tables[i].querySelector("tr.f")) {
+                tables[i].style.display = "none";
+            }
+            else {
+                tables[i].style.display = null;
             }
         }
     }
@@ -517,8 +524,8 @@ end
 
 -- show local node table
 
-html.print("<table id=nTable>")
-html.print("<tr>")
+html.print("<table id=nTable class=s>")
+html.print("<tr class=h>")
 html.print("<th width=25%>Node Name</th>")
 html.print("<th>LAN Hostname</th>")
 html.print("<th>Service Name</th>")
@@ -614,7 +621,7 @@ html.print("</table>")
 
 -- show current neighbors table
 
-html.print("<table id='cTable'><tr>")
+html.print("<table id='cTable' class=s><tr class=h>")
 html.print("<th width=25%>Current Neighbors</th>")
 html.print("<th>LAN Hostname</th>")
 html.print("<th>LQ</th><th>NLQ</th><th>TxMbps</th>")
@@ -784,7 +791,7 @@ html.print("</table>")
 
 -- show remote node table
 
-html.print("<table id='rTable'><tr>")
+html.print("<table id='rTable' class=s><tr class=h>")
 html.print("<th width=25%>Remote Nodes</th>")
 html.print("<th>LAN Hostname</th>")
 html.print("<th>ETX</th>")
