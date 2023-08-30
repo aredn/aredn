@@ -150,7 +150,7 @@ index 0000000000000..8e8b7a1689c87
 +	unsigned char buf = 0;
 +
 +	/* built a byte from unaligned bits (reversed) */
-+	for (int i = 0; i <= 7; ++i)
++	int i; for (i = 0; i <= 7; ++i)
 +		buf += ((in[(in_offset_bit+i)>>3] >> ((in_offset_bit+i) & 7)) & 0x1)<<(7-i);
 +	return buf;
 +}
@@ -480,7 +480,7 @@ index 0000000000000..8e8b7a1689c87
 +					}
 +				}
 +
-+				for (unsigned int i = opcode->length; i > 0; --i) {
++				unsigned int i; for (i = opcode->length; i > 0; --i) {
 +					*output_ptr = lz77_mikrotik_wlan_get_byte(in, input_bit);
 +					++output_ptr;
 +					input_bit += 8;
