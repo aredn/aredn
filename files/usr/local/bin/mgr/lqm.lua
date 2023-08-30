@@ -397,18 +397,18 @@ function lqm()
         end
 
         -- Xlink
-        if nixio.fs.stat("/etc/config.mesh/xlink") then
-            uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
+        if nixio.fs.stat("/etc/config/xlink") then
+            uci.cursor("/etc/config"):foreach("xlink", "interface",
                 function(section)
-                    if section.peer and section.ifname then
+                    if section.ifname then
                         for _, entry in ipairs(arps)
                         do
-                            if entry["IP address"] == section.peer then
+                            if entry["Device"] == section.ifname then
                                 stations[#stations + 1] = {
                                     type = "Xlink",
                                     device = section.ifname,
                                     signal = nil,
-                                    ip = section.peer,
+                                    ip = entry["IP address"],
                                     mac = entry["HW address"],
                                     tx_packets = 0,
                                     tx_fail = 0,
@@ -416,7 +416,6 @@ function lqm()
                                     tx_bitrate = 0,
                                     rx_bitrate = 0
                                 }
-                                break
                             end
                         end
                     end
