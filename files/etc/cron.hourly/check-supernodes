@@ -66,15 +66,16 @@ do
 end
 dns = dns:sub(2)
 
--- Update the dns list and reload if necessary
+-- Update the dns
+if dns == "" then
+	c:delete("network", "dtdlink", "dns")
+	os.remove(dns_file)
+else
+	c:set("network", "dtdlink", "dns", dns)
+	write_all(dns_file, dns)
+end
+-- Commit and restart network only if necessary
 if c:get("network", "dtdlink", "dns") ~= dns then
-	if dns == "" then
-		c:delete("network", "dtdlink", "dns")
-		os.remove(dns_file)
-	else
-		c:set("network", "dtdlink", "dns", dns)
-		write_all(dns_file, dns)
-	end
 	c:commit("network")
 	os.execute("/etc/init.d/network reload")
 end
