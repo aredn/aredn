@@ -2,13 +2,12 @@ diff --git a/target/linux/generic/files/drivers/platform/mikrotik/Makefile b/tar
 index a232e1a9e8488..2e1ab3dcf44c0 100644
 --- a/target/linux/generic/files/drivers/platform/mikrotik/Makefile
 +++ b/target/linux/generic/files/drivers/platform/mikrotik/Makefile
-@@ -2,3 +2,6 @@
+@@ -1,4 +1,4 @@
+ #
  # Makefile for MikroTik RouterBoard platform specific drivers
  #
- obj-$(CONFIG_MIKROTIK_RB_SYSFS)     += routerboot.o rb_hardconfig.o rb_softconfig.o
-+ifneq ($(filter y,$(CONFIG_CPU_LITTLE_ENDIAN) $(CONFIG_ARCH_IPQ40XX)),)
-+obj-y				    += rb_hardconfig_lz77.o
-+endif
+-obj-$(CONFIG_MIKROTIK_RB_SYSFS)     += routerboot.o rb_hardconfig.o rb_softconfig.o
++obj-$(CONFIG_MIKROTIK_RB_SYSFS)     += routerboot.o rb_hardconfig.o rb_softconfig.o rb_hardconfig_lz77.o
 diff --git a/target/linux/generic/files/drivers/platform/mikrotik/rb_hardconfig.c b/target/linux/generic/files/drivers/platform/mikrotik/rb_hardconfig.c
 index bd0469d5e8385..83ba74341c8f9 100644
 --- a/target/linux/generic/files/drivers/platform/mikrotik/rb_hardconfig.c
@@ -550,7 +549,7 @@ new file mode 100644
 index 0000000000000..50d19f54b3618
 --- /dev/null
 +++ b/target/linux/generic/files/drivers/platform/mikrotik/rb_hardconfig_lz77.h
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,25 @@
 +/* SPDX-License-Identifier: GPL-2.0-or-later */
 +/*
 + * Copyright (C) 2023 John Thomson
@@ -571,22 +570,11 @@ index 0000000000000..50d19f54b3618
 + */
 +#define LZ77_MK_MAX_COUNT_BIT_LEN 27
 +
-+#if defined(CONFIG_CPU_LITTLE_ENDIAN) || defined(CONFIG_ARCH_IPQ40XX)
 +int lz77_mikrotik_wlan_decompress(
 +		const unsigned char *in,
 +		size_t in_len,
 +		unsigned char *out,
 +		size_t *out_len);
-+#else
-+static inline int lz77_mikrotik_wlan_decompress(
-+		const unsigned char *in,
-+		size_t in_len,
-+		unsigned char *out,
-+		size_t *out_len)
-+{
-+	return -EOPNOTSUPP;
-+}
-+#endif /* defined(CONFIG_CPU_LITTLE_ENDIAN) || defined(CONFIG_ARCH_IPQ40XX) */
 diff --git a/target/linux/generic/files/drivers/platform/mikrotik/routerboot.h b/target/linux/generic/files/drivers/platform/mikrotik/routerboot.h
 index e858a524af43f..91693d8985226 100644
 --- a/target/linux/generic/files/drivers/platform/mikrotik/routerboot.h
