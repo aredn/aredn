@@ -776,6 +776,9 @@ function changeMTU()
 end
 
 function changeSupernode()
+    -- Remove all tunnels when changing supernode state as they're not the same
+    cursora:foreach('vtun', 'client', function(s) cursor_delete("vtun", s[".name"]) end)
+    cursora:foreach('vtun', 'server', function(s) cursor_delete("vtun", s[".name"]) end)
     os.execute("/usr/local/bin/node-setup -a mesh")
 end
 
