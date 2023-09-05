@@ -1381,7 +1381,12 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or
     else
         -- 2 band
         if wifi_enable == "1" then
-            wifi3_hwmode = "11a"
+            local defaultwifi = aredn.hardware.get_default_channel(wifi_intf)
+            if defaultwifi.channel == 149 then
+                wifi3_hwmode = "11g"
+            else
+                wifi3_hwmode = "11a"
+            end
         else
             if wifi2_hwmode == "11g" and wifi2_enable == "1" then
                 wifi3_hwmode = "11a"
