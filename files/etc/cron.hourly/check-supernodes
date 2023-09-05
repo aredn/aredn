@@ -42,6 +42,7 @@ local olsr = require("aredn.olsr")
 
 local resolv_conf_file = "/tmp/resolv.conf.d/resolv.conf.auto"
 local dns_file = "/tmp/supernode.dns"
+local dnsmasq_conf_file = "/etc/dnsmasq.conf"
 
 local c = uci.cursor()
 
@@ -67,15 +68,20 @@ end
 dns = dns:sub(2)
 
 -- Update the dns
+local odns = c:get("network", "dtdlink", "dns")
 if dns == "" then
 	c:delete("network", "dtdlink", "dns")
 	os.remove(dns_file)
+	os.execute("sed -i /^rev-server=/d " .. dnsmasq_conf_file)
 else
 	c:set("network", "dtdlink", "dns", dns)
 	write_all(dns_file, dns)
+	os.execute("sed -i /^rev-server=/d " .. dnsmasq_conf_file)
+	os.execute("echo 'rev-server=10.0.0.0/8," .. dns .. "' >> " .. dnsmasq_conf_file)
 end
 -- Commit and restart network only if necessary
-if c:get("network", "dtdlink", "dns") ~= dns then
+if odns ~= dns then
 	c:commit("network")
 	os.execute("/etc/init.d/network reload")
+	os.execute("/etc/init.d/dnsmasq restart")
 end
