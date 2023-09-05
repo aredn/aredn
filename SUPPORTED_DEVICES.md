@@ -118,12 +118,12 @@ TPLink WBS510 v2.0 || 5 | ath79 | generic | tplink_wbs510-v2 | 64MB | unknown | 
 ## GL.iNet
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | released (3)
-Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | released (3)
+White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | sunset (3)
+Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | sunset (3)
 Shadow (16MB NOR) | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
 Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | unknown | released
-Creta | GL-AR750 | 2 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | released
-Slate | GL-AR750S-Ext | 2 | ath79 | nand | gl-ar750s | 128MB | unknown | released
+Creta | GL-AR750 | 2 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | sunset (3)
+Slate | GL-AR750S-Ext | 2 | ath79 | nand | gl-ar750s | 128MB | unknown | sunset (3)
 Mudi | GL-E750 | 2 | ath79 | nand | gl-e750 | 128MB | unknown | released
 
 ## Others
@@ -134,9 +134,9 @@ Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 ## Notes
 
 ### Important Footnotes
- 1. This device is supported for new installs. It can also be upgraded from 3.22.12.0 after first installing the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable the firmware compatability checks. Proceed with caution. Do not remove this package once installed.
+ 1. This device is supported for new installs. It can also be upgraded from 3.22.12.0 after first installing the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable the firmware compatibility checks. Proceed with caution.
  2. Tiny builds exclude support for Tunnels and AP WiFi mode by default due to lack of space. The relevant packages can be installed separately but is not recommended.
- 3. This device will not reboot reliably and you may need to power cycle it (several times) during an update.
+ 3. These devices are no longer being manufactured by GL.iNET. They may not reboot reliably and you may need to power cycle them (several times) during an update.
 
 ### Stability
 * *untested* - this image has not been tested on hardware. It may or may not work.
