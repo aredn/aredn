@@ -261,11 +261,13 @@ function write_xlink_config(configs)
         f:write("\toption proto 'static'\n")
         f:write("\toption ipaddr '" .. config.ipaddr .. "'\n")
         f:write("\toption netmask '255.255.255.255'\n")
-        f:write("\toption peer '" .. config.peer .. "'\n")
         f:write("\toption weight '" .. config.weight .. "'\n")
-        f:write("\nconfig route\n")
-        f:write("\toption interface '" .. config.name .. "'\n")
-        f:write("\toption target '" .. config.peer .. "'\n")
+        if config.peer and config.peer ~= "" then
+            f:write("\toption peer '" .. config.peer .. "'\n")
+            f:write("\nconfig route\n")
+            f:write("\toption interface '" .. config.name .. "'\n")
+            f:write("\toption target '" .. config.peer .. "'\n")
+        end
     end
     f:close()
 end
@@ -577,7 +579,7 @@ html.print([[
                     cells[1].classList.add("error");
                     cansave = false;
                 }
-                if (/^\d+\.\d+\.\d+\.\d+$/.test(cells[2].value)) {
+                if (cells[2].value == "" || /^\d+\.\d+\.\d+\.\d+$/.test(cells[2].value)) {
                     cells[2].classList.remove("error");
                 }
                 else {
@@ -681,7 +683,7 @@ html.print([[<td><button onclick="xlink_add()">+</button></td></tr>]])
 for _, xlink in ipairs(xlinks)
 do
     html.print("<tr id='" .. xlink.name .. "'>")
-    html.print("<td><input type='text' value='" .. xlink.vlan .. "'></td><td><input type='text' value='" .. xlink.ipaddr .. "'></td><td><input type='text' value='" .. xlink.peer .. "'></td>")
+    html.print("<td><input type='text' value='" .. xlink.vlan .. "'></td><td><input type='text' value='" .. xlink.ipaddr .. "'></td><td><input type='text' value='" .. (xlink.peer or "") .. "'></td>")
     html.print("<td><input type='text' value='" .. xlink.weight .. "'></td>")
     html.print("<td" .. (#layout.ports <= 1 and " style='display:none'" or "") .. "><select>")
     for pos, port in ipairs(layout.ports)
