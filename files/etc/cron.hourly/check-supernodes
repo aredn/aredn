@@ -45,6 +45,12 @@ local dnsmasq_conf_file = "/etc/dnsmasq.conf"
 
 local c = uci.cursor()
 
+local first = false
+if not nixio.fs.stat(dns_file) then
+	write_all(dns_file, "")
+	first = true
+end
+
 -- Supernodes themselves dont need supernode nameservers
 if c:get("aredn", "@supernode[0]", "enable") == "1" then
     os.exit(0)
@@ -54,6 +60,13 @@ end
 if c:get("aredn", "@supernode[0]", "ignore") == "1" then
 	os.remove(dns_file)
 	os.exit(0)
+end
+
+if first then
+	local c = "conf-file=" .. dns_file
+	if #capture("grep '" .. c .. "' " .. dnsmasq_conf_file) < 2 then
+		os.execute("echo '" .. c .. "' >> " .. dnsmasq_conf_file);
+	end
 end
 
 -- Add known supernodes as nameservers
@@ -68,18 +81,12 @@ dns = dns:sub(2)
 
 -- Update the dns
 local odns = read_all(dns_file)
-if dns == "" then
-	os.remove(dns_file)
-	os.execute("sed -i /^server=/d " .. dnsmasq_conf_file)
-	os.execute("sed -i /^rev-server=/d " .. dnsmasq_conf_file)
-else
-	write_all(dns_file, dns)
-	os.execute("sed -i /^server=/d " .. dnsmasq_conf_file)
-	os.execute("sed -i /^rev-server=/d " .. dnsmasq_conf_file)
-	os.execute("echo 'server=/local.mesh/" .. dns .. "' >> " .. dnsmasq_conf_file)
-	os.execute("echo 'rev-server=10.0.0.0/8," .. dns .. "' >> " .. dnsmasq_conf_file)
+if dns ~= "" then
+	dns = "#" .. dns .. "\nserver=/local.mesh/" .. dns .. "\nrev-server=10.0.0.0/8," .. dns .. "\n"
 end
+
 -- Commit and restart network only if necessary
 if odns ~= dns then
+	write_all(dns_file, dns)
 	os.execute("/etc/init.d/dnsmasq restart")
 end
