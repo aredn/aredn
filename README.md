@@ -1,4 +1,4 @@
-# Amateur Radio Emergency Data Network AREDN® Firmware
+# Amateur Radio Emergency Data Network AREDN® Firmware 
 
 https://www.arednmesh.org
 
