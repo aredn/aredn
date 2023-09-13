@@ -32,9 +32,9 @@
 
 LICENSE
 
-SUPERNODE_ENABLED=$(/sbin/uci -q get aredn.@supernode[0].enabled)
+SUPERNODE_ENABLE=$(/sbin/uci -q get aredn.@supernode[0].enable)
 
-if [ "${SUPERNODE_ENABLED}" = "1" ]; then
+if [ "${SUPERNODE_ENABLE}" = "1" ]; then
     nft insert rule ip fw4 input_dtdlink udp dport 53 accept comment \"dns access\" 2> /dev/null
     nft insert rule ip fw4 input_dtdlink tcp dport 53 accept comment \"dns access\" > /dev/null
     ip route add blackhole 10.0.0.0/8 table 30
