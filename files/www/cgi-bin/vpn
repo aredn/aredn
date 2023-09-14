@@ -117,7 +117,11 @@ function get_server_network_address()
     if not server_net then
         local mac = aredn.hardware.get_interface_mac("eth0")
         local a, b = mac:match("^..:..:..:..:(..):(..)$")
-        server_net = "172.31." .. tonumber(b, 16) .. "." .. ((tonumber(a, 16) * 4) % 256)
+        local net_base = "172.31."
+        if cursor:get("aredn", "@supernode[0]", "enable") == "1" then
+            net_base = "172.30."
+        end
+        server_net = net_base .. tonumber(b, 16) .. "." .. ((tonumber(a, 16) * 4) % 256)
         cursor:set("vtun", "@network[0]", "start", server_net)
         cursor:commit("vtun")
 
@@ -300,12 +304,14 @@ if not validate_fqdn(dns) then
     err("Not a valid DNS name")
 end
 if #cli_err == 0 then
-    local net = "172.31." .. parms.server_net1 .. "." .. parms.server_net2
+    local net_base = "172.31."
     if cursor:get("aredn", "@supernode[0]", "enable") == "1" then
+        net_base = "172.30."
         cursor:set("vtun", "@options[0]", "port", "5526")
     else
         cursor:delete("vtun", "@options[0]", "port")
     end
+    local net = net_base .. parms.server_net1 .. "." .. parms.server_net2
     cursor:set("vtun", "@network[0]", "start", net)
     cursor:set("vtun", "@network[0]", "dns", dns)
 end
