@@ -1,7 +1,8 @@
+#!/usr/bin/lua
 --[[
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2022 Tim Wilkinson
+	Copyright (C) 2023 Tim Wilkinson
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -33,38 +34,26 @@
 
 --]]
 
-function run_scripts(dir)
-    if nixio.fs.stat(dir, "type") == "dir" then
-        for script in nixio.fs.dir(dir)
-        do
-            local stat = nixio.fs.stat(dir .. "/" .. script)
-            if script:match("^[a-zA-Z0-9_%-]+$") and stat.type == "reg" and nixio.bit.band(tonumber(stat.modedec, 8), tonumber(111, 8)) ~= 0 then
-                os.execute("(cd /tmp;" .. dir .. "/" .. script .. " 2>&1 | logger -p daemon.debug -t " .. script .. ")&")
-            end
-        end
-    end
-end
+require("nixio")
+require("luci.jsonc")
 
-function periodic()
-    wait_for_ticks(120) -- Initial wait before starting up period tasks
-    local hours = 0
-    local days = 0
-    run_scripts("/etc/cron.boot")
-    while true
+local package_store = "/etc/package_store"
+local package_catalog = package_store .. "/catalog.json"
+
+if nixio.fs.stat(package_catalog) then
+    os.execute("opkg update")
+    local catalog = luci.jsonc.parse(io.open(package_catalog):read("*a"))
+    for ipkg, state in pairs(catalog.installed)
     do
-        run_scripts("/etc/cron.hourly")
-        hours = hours - 1
-        if hours <= 0 then
-            run_scripts("/etc/cron.daily")
-            hours = 24
-            days = days - 1
-            if days <= 0 then
-                run_scripts("/etc/cron.weekly")
-                days = 7
+        if state == "local" then
+            local file = package_store .. "/" .. ipkg .. ".ipk"
+            if nixio.fs.stat(file) then
+                os.execute("opkg install " .. file)
             end
+        elseif state == "global" then
+            os.execute("opkg install " .. ipkg)
         end
-        wait_for_ticks(60 * 60)
     end
 end
 
-return periodic
+os.remove("/etc/cron.boot/reinstall-packages")

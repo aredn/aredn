@@ -591,6 +591,31 @@ function update_advertised_services()
     end
 end
 
+local package_store = "/etc/package_store"
+local package_catalog = package_store .. "/catalog.json"
+
+function record_package(op, ipkg, file)
+    nixio.fs.mkdir(package_store)
+    local catalog = luci.jsonc.parse(read_all(package_catalog) or '{"installed":{}}')
+    if op == "upload" then
+        local package = ipkg:match("^([^_]+)")
+        if package then
+            os.execute("/bin/cp -f " .. file .. " " .. package_store .. "/" .. package .. ".ipk")
+            catalog.installed[package] = "local"
+        end
+    elseif op == "download" then
+        local result = capture("opkg status " .. ipkg .. " 2>&1")
+        local package = result:match("Package: (%S+)")
+        if package then
+            catalog.installed[package] = "global"
+        end
+    elseif op == "remove" then
+        nixio.fs.remove(package_store .. "/" .. ipkg .. ".ipk")
+        catalog.installed[ipkg] = nil
+    end
+    write_all(package_catalog, luci.jsonc.stringify(catalog))
+end
+
 -- upload package
 if parms.button_ul_pkg and nixio.fs.stat("/tmp/web/upload/file") then
     os.execute("mv -f /tmp/web/upload/file /tmp/web/upload/newpkg.ipk")
@@ -603,6 +628,7 @@ if parms.button_ul_pkg and nixio.fs.stat("/tmp/web/upload/file") then
         result = capture("opkg -force-overwrite install /tmp/web/upload/newpkg.ipk 2>&1")
     end
     pkgout(result)
+    record_package("upload", firmfile, "/tmp/web/upload/newpkg.ipk")
     os.execute("rm -rf /tmp/opkg-*")
     nixio.fs.remove("/tmp/web/upload/newpkg.ipk")
     if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
@@ -624,6 +650,7 @@ if parms.button_dl_pkg and parms.dl_pkg ~= "default" then
             result = capture("opkg -force-overwrite install " .. parms.dl_pkg .. " 2>&1")
         end
         pkgout(result)
+        record_package("download", parms.dl_pkg)
         if os.execute("/usr/local/bin/uploadctlservices restore > /dev/null 2>&1") ~= 0 then
             pkgout("Failed to restart all services, please reboot this node.")
         else
@@ -651,6 +678,7 @@ if parms.button_rm_pkg and parms.rm_pkg ~= "default" and not permpkg[parms.rm_pk
     if not output:match("No packages removed") then
         pkgout("Package removed successfully")
         update_advertised_services()
+        record_package("remove", parms.rm_pkg)
     end
 end
 
