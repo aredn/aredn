@@ -72,6 +72,15 @@ function html.alert_banner()
     if not aredn.hardware.supported() then
         html.print("<center><div style=\"padding:5px;background-color:#FF4719;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNSUPPORTED DEVICE !!!!</a></div></center>")
     end
+    local f = io.open("/etc/cron.boot/reinstall-packages")
+    if f then
+        f:close()
+        f = io.open("/etc/package_store/catalog.json")
+        if f then
+            f:close()
+            html.print("<center><div style=\"padding:5px;color:black;border:1px solid #ccc;width:650px;\">Packages are being reinstalled in the background. This can take a few minutes.</div></center>")
+        end
+    end
     html.print("</div>")
 end
 
