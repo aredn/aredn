@@ -531,6 +531,9 @@ if h and e then
             if not (line:match("^%s*#") or line:match("^%s*$")) then
                 local ip, host = line:match("(%S+)%s+(%S+)")
                 if ip then
+                    if host:match("%.") and not host:match("%.local%.mesh$") then
+                        host = host .. ".local.mesh"
+                    end
                     h:write(ip .. "\t" .. host .. " #ALIAS\n")
                 end
             end
