@@ -677,9 +677,9 @@ function lqm()
                     track.ping_success_time = track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)
                 end
                 track.ping_quality = math.ceil(ping_loss_run_avg * track.ping_quality + (1 - ping_loss_run_avg) * success)
-                if success == 0 and track.firstseen == now then
-                    -- If ping immediately fail, ditch this tracker
-                    -- This can happen for various reasons, but one is arp entries being misassigned in the arp cache
+                if success == 0 and track.type == "DtD" and track.firstseen == now then
+                    -- If local ping immediately fail, ditch this tracker. This can happen sometimes when we
+                    -- find arp entries which aren't valid.
                     tracker[track.mac] = nil
                 end
             end
