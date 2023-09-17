@@ -295,16 +295,6 @@ local settings = {
     },
     {
         category = "Supernode Settings",
-        key = "aredn.@supernode[0].enable",
-        type = "boolean",
-        desc = "<b>Enable Supernode</b> mode for this node <br><br><small>aredn.@supernode[0].enable</small>",
-        default = "0",
-        condition = "canBeSupernode()",
-        postcallback = "changeSupernode()",
-        needreboot = true
-    },
-    {
-        category = "Supernode Settings",
         key = "aredn.@supernode[0].ignore",
         type = "boolean",
         desc = "<b>Ignore any Supernodes</b> found on the mesh <br><br><small>aredn.@supernode[0].ignore</small>",
@@ -772,14 +762,6 @@ function changeWANGW()
 end
 
 function changeMTU()
-    os.execute("/usr/local/bin/node-setup -a mesh")
-end
-
-function changeSupernode()
-    -- Remove all tunnels when changing supernode state as they're not the same
-    cursora:foreach('vtun', 'client', function(s) cursor_delete("vtun", s[".name"]) end)
-    cursora:foreach('vtun', 'server', function(s) cursor_delete("vtun", s[".name"]) end)
-    cursor_delete("vtun", "@network[0]", "start")
     os.execute("/usr/local/bin/node-setup -a mesh")
 end
 
