@@ -613,7 +613,12 @@ function record_package(op, ipkg, file)
         nixio.fs.remove(package_store .. "/" .. ipkg .. ".ipk")
         catalog.installed[ipkg] = nil
     end
-    write_all(package_catalog, luci.jsonc.stringify(catalog))
+    os.remove(package_catalog)
+    for _,_ in pairs(catalog.installed)
+    do
+        write_all(package_catalog, luci.jsonc.stringify(catalog))
+        break
+    end
 end
 
 -- upload package

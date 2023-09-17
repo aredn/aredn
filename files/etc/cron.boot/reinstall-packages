@@ -41,6 +41,17 @@ local package_store = "/etc/package_store"
 local package_catalog = package_store .. "/catalog.json"
 
 if nixio.fs.stat(package_catalog) then
+	-- Make sure we can contact the package server before proceeding.
+	-- We'll wait a few minutes before going ahead anyway
+	for i = 1,5
+	do
+		if os.execute("ping -q -c 1 -W 5 downloads.arednmesh.org > /dev/null 2>&1") == 0 then
+			break
+		end
+		print("Failed to contact package server - retry in 60 seconds")
+		nixio.nanosleep(60, 0)
+	end
+
     os.execute("opkg update")
     local catalog = luci.jsonc.parse(io.open(package_catalog):read("*a"))
     for ipkg, state in pairs(catalog.installed)
@@ -56,4 +67,5 @@ if nixio.fs.stat(package_catalog) then
     end
 end
 
+-- Don't do this again
 os.remove("/etc/cron.boot/reinstall-packages")
