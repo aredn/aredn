@@ -123,7 +123,7 @@ end
 function nft_handle(list, query)
     for line in io.popen(NFT .. " -a list chain ip fw4 " .. list):lines()
     do
-        local handle = line:match(query .. "%s*# handle (%d+)")
+        local handle = line:match(query .. ".*# handle (%d+)$")
         if handle then
             return handle
         end
@@ -380,7 +380,7 @@ function lqm()
         -- DtD
         for _, entry in ipairs(arps)
         do
-            if entry.Device:match("%.2$") or entry.Device:match("^br%-dtdlink") and (nixio.getnameinfo(entry["IP address"]) or ""):match("^dtdlink.") then
+            if entry.Device:match("%.2$") or entry.Device:match("^br%-dtdlink") then
                 stations[#stations + 1] = {
                     type = "DtD",
                     device = entry.Device,
@@ -677,6 +677,11 @@ function lqm()
                     track.ping_success_time = track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)
                 end
                 track.ping_quality = math.ceil(ping_loss_run_avg * track.ping_quality + (1 - ping_loss_run_avg) * success)
+                if success == 0 and track.type == "DtD" and track.firstseen == now then
+                    -- If local ping immediately fail, ditch this tracker. This can happen sometimes when we
+                    -- find arp entries which aren't valid.
+                    tracker[track.mac] = nil
+                end
             end
 
             -- Calculate overall link quality
