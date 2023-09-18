@@ -34,22 +34,12 @@
 
 --]]
 
-require("nixio")
 require("uci")
-require("aredn.hardware")
-require("aredn.utils")
 local olsr = require("aredn.olsr")
 
-local dns_file = "/tmp/supernode.dns"
-local dnsmasq_conf_file = "/etc/dnsmasq.conf"
+local dns_file = "/tmp/dnsmasq.d/supernode.conf"
 
 local c = uci.cursor()
-
-local first = false
-if not nixio.fs.stat(dns_file) then
-	write_all(dns_file, "")
-	first = true
-end
 
 -- Supernodes themselves dont need supernode nameservers
 if c:get("aredn", "@supernode[0]", "enable") == "1" then
@@ -58,35 +48,31 @@ end
 
 -- Ignore supernodes?
 if c:get("aredn", "@supernode[0]", "ignore") == "1" then
-	os.remove(dns_file)
 	os.exit(0)
 end
 
-if first then
-	local c = "conf-file=" .. dns_file
-	if #capture("grep '" .. c .. "' " .. dnsmasq_conf_file) < 2 then
-		os.execute("echo '" .. c .. "' >> " .. dnsmasq_conf_file);
-	end
-end
-
--- Add known supernodes as nameservers
+-- Find the first supernode to use as a nameserver
 local dns = ""
 for _, hna in ipairs(olsr.getOLSRHNA())
 do
 	if hna.genmask == 8 and hna.destination == "10.0.0.0" then
-		dns = dns .. " " .. hna.gateway
+		dns = "#" .. hna.gateway .. "\nserver=/local.mesh/" .. hna.gateway .. "\nrev-server=10.0.0.0/8," .. hna.gateway .. "\nrev-server=172.31.0.0/16," .. hna.gateway .. "\n"
+		break
 	end
 end
-dns = dns:sub(2)
 
--- Update the dns
-local odns = read_all(dns_file)
-if dns ~= "" then
-	dns = "#" .. dns .. "\nserver=/local.mesh/" .. dns .. "\nrev-server=10.0.0.0/8," .. dns .. "\nrev-server=172.31.0.0/16," .. dns .. "\n"
+-- Updae the dns and restart network if necessary
+local odns = ""
+local f = io.open(dns_file)
+if f then
+	odns = f:read("*a")
+	f:close()
 end
-
--- Commit and restart network only if necessary
 if odns ~= dns then
-	write_all(dns_file, dns)
-	os.execute("/etc/init.d/dnsmasq restart")
+	f = io.open(dns_file, "w+")
+	if f then
+		f:write(dns)
+		f:close()
+		os.execute("/etc/init.d/dnsmasq restart")
+	end
 end
