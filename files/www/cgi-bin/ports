@@ -631,7 +631,6 @@ do
         local ip = parms["alias" .. val .. "_ip"]
         -- if adding aliases check the name is not already in use,
         -- also check that it dos not contain anything that will be weird on the mesh
-        -- for instance: supercoolservice.kg6wxc-host.local.mesh is certainly a valid host name, but it won't work for the mesh.
         if val == "_add" then
             if host ~= "" then
                 local pattern = "%s" .. host .. "%s"
@@ -648,11 +647,8 @@ do
                         end
                     end
                 end
-                if not validate_hostname(host) then
+                if not host:match("^%*%.") and (host:match("_") or not host:match("^[%w%-%.]+$")) then
                     aliaserr(val .. " <font color='red'>Warning!</font> The alias name: '" .. host .."' is invalid")
-                end
-                if host:match("%.") then
-                    aliaserr(val .. " '" .. host .. "' cannot contain the dot '.' character")
                 end
             end
             if not ((host ~= "" or ip ~= "" or foundhost) and (parms.alias_add or parms.button_save)) then

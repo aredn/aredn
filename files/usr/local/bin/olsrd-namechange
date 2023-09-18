@@ -1,38 +1,81 @@
-#!/bin/sh
-<<'LICENSE'
-  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2023 Tim Wilkinson
-   See Contributors file for additional contributors
+#!/usr/bin/lua
+--[[
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation version 3 of the License.
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2023 Tim Wilkinson
+	See Contributors file for additional contributors
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
 
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-  Additional Terms:
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  Additional use restrictions exist on the AREDN(TM) trademark and logo.
-    See AREDNLicense.txt for more info.
+	Additional Terms:
 
-  Attributions to the AREDN Project must be retained in the source code.
-  If importing this code into a new or existing project attribution
-  to the AREDN project must be added to the source code.
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
 
-  You must not misrepresent the origin of the material contained within.
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
 
-  Modified versions must be modified to attribute to the original source
-  and be marked in reasonable ways as differentiate it from the original
-  version.
+	You must not misrepresent the origin of the material contained within.
 
-LICENSE
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
 
-cp /var/run/hosts_olsr /var/run/hosts_olsr.snapshot
-mv -f /var/run/hosts_olsr.snapshot /var/run/hosts_olsr.stable
-touch /tmp/namechange
+--]]
+
+local dns_file = "/tmp/dnsmasq.d/subdomains.conf"
+
+local f = io.open("/var/run/hosts_olsr")
+if f then
+    local data = ""
+    local subdomains = ""
+    for line in f:lines()
+    do
+        local ip, host = line:match("^(%S+)%s+%*%.(%S+)")
+        if host then
+            if not host:match("%.local%.mesh$") then
+                host = host .. ".local.mesh"
+            end
+            subdomains = subdomains .. "server=/" .. host .. "/" ..  ip .. "\n"
+        else
+            data = data .. line .. "\n"
+        end
+    end
+    f:close()
+
+    local w = io.open("/var/run/hosts_olsr.stable", "w+")
+    if w then
+        w:write(data)
+        w:close()
+    end
+
+    -- Write out the subdomains to lookup
+    local osubdomains = ""
+    f = io.open(dns_file)
+    if f then
+        osubdomains = f:read("*a")
+        f:close()
+    end
+    if osubdomains ~= subdomains then
+        local w = io.open(dns_file, "w+")
+        if w then
+            w:write(subdomains)
+            w:close()
+        end
+        os.execute("/etc/init.d/dnsmasq restart")
+    end
+
+end
+
+io.open("/tmp/namechange", "w+"):close()
