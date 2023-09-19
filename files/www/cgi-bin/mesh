@@ -341,7 +341,7 @@ do
             if path then
                 local name, originator = name:match("(.*%S)%s*#(.*)")
                 if originator == " my own service" or (hosts[originator] and hosts[originator].name) then
-                    if not host:match("%.") then
+                    if not host:match("%.local%.mesh$") then
                         host = host .. ".local.mesh"
                     end
                     if not services[host] then
