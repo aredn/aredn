@@ -115,7 +115,8 @@ local cfg = {
     lan_network_config = "",
     wan_network_config = "",
     dtdlink_network_config = "",
-    wifi_network_config = ""
+    wifi_network_config = "",
+    olsrd_dtd_interface_mode = "ether"
 }
 
 function expand_vars(lines)
@@ -182,6 +183,13 @@ if cfg.wifi_enable == "1" then
     end
 else
     cfg.wifi_intf = "br-nomesh"
+end
+
+-- Supernode options
+
+local is_supernode = (c:get("aredn", "@supernode[0]", "enable") == "1")
+if is_supernode then
+    cfg.olsrd_dtd_interface_mode = "isolated"
 end
 
 -- delete some config lines if necessary
@@ -713,6 +721,10 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
                 if cwan ~= cdtd then
                     of:write(string.format("config Hna4\n\toption netaddr %s\n\toption netmask 255.255.255.255\n\n", cfg.wifi_ip))
                 end
+            end
+
+            if is_supernode then
+                of:write("config Hna4\n\toption netaddr 10.0.0.0\n\toption netmask 255.0.0.0\n\n")
             end
         
             if c:get("aredn", "@wan[0]", "olsrd_gw") == "1" then

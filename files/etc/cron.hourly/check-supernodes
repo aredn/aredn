@@ -1,0 +1,78 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2023 Tim Wilkinson
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("uci")
+local olsr = require("aredn.olsr")
+
+local dns_file = "/tmp/dnsmasq.d/supernode.conf"
+
+local c = uci.cursor()
+
+-- Supernodes themselves dont need supernode nameservers
+if c:get("aredn", "@supernode[0]", "enable") == "1" then
+    os.exit(0)
+end
+
+-- Ignore supernodes?
+if c:get("aredn", "@supernode[0]", "ignore") == "1" then
+	os.exit(0)
+end
+
+-- Find the first supernode to use as a nameserver
+local dns = ""
+for _, hna in ipairs(olsr.getOLSRHNA())
+do
+	if hna.genmask == 8 and hna.destination == "10.0.0.0" then
+		dns = "#" .. hna.gateway .. "\nserver=/local.mesh/" .. hna.gateway .. "\nrev-server=10.0.0.0/8," .. hna.gateway .. "\nrev-server=172.31.0.0/16," .. hna.gateway .. "\n"
+		break
+	end
+end
+
+-- Updae the dns and restart network if necessary
+local odns = ""
+local f = io.open(dns_file)
+if f then
+	odns = f:read("*a")
+	f:close()
+end
+if odns ~= dns then
+	f = io.open(dns_file, "w+")
+	if f then
+		f:write(dns)
+		f:close()
+		os.execute("/etc/init.d/dnsmasq restart")
+	end
+end

@@ -294,6 +294,13 @@ local settings = {
         default = "1000"
     },
     {
+        category = "Supernode Settings",
+        key = "aredn.@supernode[0].ignore",
+        type = "boolean",
+        desc = "<b>Ignore any Supernodes</b> found on the mesh <br><br><small>aredn.@supernode[0].ignore</small>",
+        default = "0"
+    },
+    {
         category = "Network Tools",
         key = "aredn.olsr.restart",
         type = "none",
@@ -571,6 +578,14 @@ function supportsVLANChange()
         return true
     end
     -- Otherwise
+    return false
+end
+
+function canBeSupernode()
+    local board = aredn.hardware.get_board_type()
+    if board == "mikrotik,hap-ac2" or board == "qemu-standard-pc-i440fx-piix-1996" then
+        return true
+    end
     return false
 end
 
