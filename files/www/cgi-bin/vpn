@@ -122,9 +122,6 @@ function get_server_network_address()
             net_base = "172.30."
         end
         server_net = net_base .. tonumber(b, 16) .. "." .. ((tonumber(a, 16) * 4) % 256)
-        cursor:set("vtun", "@network[0]", "start", server_net)
-        cursor:commit("vtun")
-
     end
     local a, b, c, d = server_net:match("^(%d+).(%d+).(%d+).(%d+)$")
     return { a, b, c, d }
