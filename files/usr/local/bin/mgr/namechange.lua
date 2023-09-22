@@ -47,9 +47,9 @@ function namechange()
             if exists then
                 os.remove("/tmp/namechange")
             end
-            do_namechange()
-            if not exists then
-                dns_update()
+            local reload = do_namechange()
+            if not exists or reload then
+                dns_update(reload)
             end
             count = 0
         end
@@ -60,13 +60,14 @@ end
 function do_namechange()
     -- Do nothing if olsrd is not running
     if capture("pidof olsrd") == "" then
-        return
+        return false
     end
 
     local uptime = nixio.sysinfo().uptime
 
     local hosts = {}
     local history = {}
+    local subdomains = ""
 
     -- Load the hosts file
     for line in io.lines("/var/run/hosts_olsr.stable")
@@ -76,11 +77,19 @@ function do_namechange()
         local name = v[2]
         local originator = v[4]
         local mid = v[5]
-        if ip and string.match(ip, "^%d") and originator and originator ~= "myself" and (ip == originator or mid == "(mid") then
-            if hosts[ip] then
-                hosts[ip] = hosts[ip] .. "/" .. name
-            else
-                hosts[ip] = name
+        if ip then
+            if ip:match("^%d") and originator and originator ~= "myself" and (ip == originator or mid == "(mid") then
+                if hosts[ip] then
+                    hosts[ip] = hosts[ip] .. "/" .. name
+                else
+                    hosts[ip] = name
+                end
+            end
+            if name and name:sub(1,2) == "*." then
+                if not name:match("%.local%.mesh$") then
+                    name = name .. ".local.mesh"
+                end
+                subdomains = subdomains .. "address=/." .. name:sub(3) .. "/" ..  ip .. "\n"
             end
         end
     end
@@ -90,7 +99,7 @@ function do_namechange()
     local links = luci.jsonc.parse(raw:read("*a"))
     raw:close()
     if not (links and links.links and #links.links > 0) then
-        return
+        return false
     end
     for i, link in ipairs(links.links)
     do
@@ -118,12 +127,33 @@ function do_namechange()
         f:close()
     end
 
+    -- Write out the subdomains
+    local osubdomains = ""
+    f = io.open("/tmp/dnsmasq.d/subdomains.conf")
+    if f then
+        osubdomains = f:read("*a")
+        f:close()
+    end
+    if osubdomains ~= subdomains then
+        local w = io.open("/tmp/dnsmasq.d/subdomains.conf", "w+")
+        if w then
+            w:write(subdomains)
+            w:close()
+            return true
+        end
+    end
+
+    return false
 end
 
-function dns_update()
-    local pid = capture("pidof dnsmasq")
-    if pid ~= "" then
-        nixio.kill(tonumber(pid), 1)
+function dns_update(reload)
+    if reload then
+        os.execute("/etc/init.d/dnsmasq restart")
+    else
+        local pid = capture("pidof dnsmasq")
+        if pid ~= "" then
+            nixio.kill(tonumber(pid), 1)
+        end
     end
 end
 
