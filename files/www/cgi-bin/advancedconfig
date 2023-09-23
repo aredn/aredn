@@ -269,7 +269,8 @@ local settings = {
         type = "string",
         desc = "<b>Tunnel Weight</b> specifies the cost of using a tunnel. The higher the number, the less likely a tunnel is used.<br><br><small>aredn.@tunnel[0].weight</small>",
         default = "1",
-        needreboot= true
+        needreboot= true,
+        condition = "not isSupernode()"
     },
     {
         category = "Tunnel Options",
@@ -581,12 +582,8 @@ function supportsVLANChange()
     return false
 end
 
-function canBeSupernode()
-    local board = aredn.hardware.get_board_type()
-    if board == "mikrotik,hap-ac2" or board == "qemu-standard-pc-i440fx-piix-1996" then
-        return true
-    end
-    return false
+function isSupernode()
+    return cursor_get("aredn", "@supernode[0]", "enable") == "1"
 end
 
 -- callbacks
