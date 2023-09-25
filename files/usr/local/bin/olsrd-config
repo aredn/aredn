@@ -349,7 +349,8 @@ if #tunnels > 0 then
     print([[Interface]] .. tuns)
     print([[{]])
     print([[     Ip4Broadcast 255.255.255.255]])
-    if not tun_weight or tun_weight < 1 then
+    local is_supernode = cursor:get("aredn", "@supernode[0]", "enable") == "1"
+    if not tun_weight or tun_weight < 1 or is_supernode then
         print([[     Mode "ether"]])
     elseif tun_weight > 1 then
         print([[     LinkQualityMult default ]] .. (1 / tun_weight))

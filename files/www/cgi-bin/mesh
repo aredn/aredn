@@ -511,7 +511,13 @@ else
     html.print("&nbsp;&nbsp;")
     html.print("<input type=submit name=auto value=Auto title='Automatic page refresh'>")
 end
-
+if nixio.fs.stat("/tmp/dnsmasq.d/supernode.conf") then
+    local ip = read_all("/tmp/dnsmasq.d/supernode.conf"):match("^#(%S+)")
+    if ip then
+        html.print("&nbsp;&nbsp;")
+        html.print("<a target=_blank href='http://" .. ip .. "/cgi-bin/mesh'><button type=button title='See what is on the whole AREDN mesh'>Super Mesh</button></a>")
+    end
+end
 html.print("&nbsp;&nbsp;")
 html.print("<button type=button onClick='window.location=\"status\"' title='Return to the status page'>Quit</button>")
 html.print("&nbsp;&nbsp;")
