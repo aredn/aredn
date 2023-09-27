@@ -187,7 +187,7 @@ end
 
 -- Supernode options
 
-local is_supernode = (c:get("aredn", "@supernode[0]", "enable") == "1")
+local is_supernode = (uci.cursor("/etc/config.mesh"):get("aredn", "@supernode[0]", "enable") == "1")
 if is_supernode then
     cfg.olsrd_dtd_interface_mode = "isolated"
 end
