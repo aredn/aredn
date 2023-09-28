@@ -154,8 +154,4 @@ function model.getCurrentNeighbors(RFinfo)
   return info
 end
 
-function model.getServicesByNode(node)
-    return {}
-end
-
 return model
