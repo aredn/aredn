@@ -194,6 +194,11 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"lqm=1") then
 	info['lqm']=lqm
 end
 
+-- MESH NODES COUNT
+if string.find(nixio.getenv("QUERY_STRING"):lower(),"nodes=1") then
+	info['nodes']=aredn_info.getOLSRInfo()
+end
+
 -- Output the HTTP header for JSON
 json_header()
 
