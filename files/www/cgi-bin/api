@@ -46,7 +46,7 @@ local json = require("luci.jsonc")
 require("iwinfo")
 local nettools = require("aredn.nettools")
 
-local API_VERSION="1.5"
+local API_VERSION="1.6"
 
 -- Function extensions
 os.capture = capture
@@ -426,10 +426,6 @@ for page, comps in pairs(qsset) do
 		for i,comp in pairs(comps:split(',')) do
 			if comp=="sysinfo" then
 				info['pages'][page][comp]=getSysinfo()
-			elseif comp=="bynode" then
-				info['pages'][page][comp]=getServicesByNode()
-			elseif comp=="byservice" then
-				info['pages'][page][comp]=getServicesByService()
 			end
 		end
 	elseif page=="chart" then
