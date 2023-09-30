@@ -149,10 +149,10 @@ end
 function dns_update(reload)
     if reload then
         os.execute("/etc/init.d/dnsmasq restart")
-    else
-        local pid = capture("pidof dnsmasq")
-        if pid ~= "" then
-            nixio.kill(tonumber(pid), 1)
+    elseif nixio.fs.stat("/var/run/dnsmasq/dnsmasq.pid") then
+        local pid = tonumber(read_all("/var/run/dnsmasq/dnsmasq.pid"))
+        if pid then
+            nixio.kill(pid, 1)
         end
     end
 end
