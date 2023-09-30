@@ -55,7 +55,7 @@ end
 info={}
 
 -- API version
-info['api_version']="1.11"
+info['api_version']="1.12"
 
 
 -- NODE name
@@ -192,6 +192,11 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"lqm=1") then
 		end
 	end
 	info['lqm']=lqm
+end
+
+-- MESH NODES COUNT
+if string.find(nixio.getenv("QUERY_STRING"):lower(),"nodes=1") then
+	info['nodes']=aredn_info.getOLSRInfo()
 end
 
 -- Output the HTTP header for JSON
