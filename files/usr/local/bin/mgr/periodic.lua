@@ -46,10 +46,10 @@ function run_scripts(dir)
 end
 
 function periodic()
+    run_scripts("/etc/cron.boot")
     wait_for_ticks(120) -- Initial wait before starting up period tasks
     local hours = 0
     local days = 0
-    run_scripts("/etc/cron.boot")
     while true
     do
         run_scripts("/etc/cron.hourly")
