@@ -32,8 +32,7 @@ default: compile
 
 # clone openwrt
 $(OPENWRT_DIR): .stamp-openwrt-removed
-	git clone $(OPENWRT_SRC) $(OPENWRT_DIR)
-	cd $(OPENWRT_DIR); git checkout $(OPENWRT_COMMIT)
+	git -c advice.detachedHead=false clone --depth 1 $(OPENWRT_SRC) --branch $(OPENWRT_COMMIT) --single-branch $(OPENWRT_DIR)
 	ln -sf $(TOP_DIR)/patches $(OPENWRT_DIR)/
 	ln -sf $(TOP_DIR)/files   $(OPENWRT_DIR)/
 	touch .stamp-openwrt-cleaned
