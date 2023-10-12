@@ -52,10 +52,17 @@ if not nixio.fs.stat("/tmp/web") then
     nixio.fs.mkdir("/tmp/web")
 end
 
+local channels = aredn.hardware.get_rfchannels(wifiiface)
+local scan_list = ""
+for _, channel in ipairs(channels)
+do
+    scan_list = scan_list .. " " .. channel.frequency
+end
+
 -- scan start
 
 local scanned = {}
-local f = io.popen("iw dev " .. wifiiface .. " scan passive")
+local f = io.popen("iw dev " .. wifiiface .. " scan freq" .. scan_list .. " passive")
 if f then
     local scan = {}
     for line in f:lines()
