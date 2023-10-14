@@ -41,6 +41,7 @@ local hardware = {}
 
 local radio_json = nil
 local board_json = nil
+local channels_cache = {}
 
 function hardware.get_board()
     if not board_json then
@@ -70,25 +71,27 @@ function hardware.get_radio()
     return radio_json
 end
 
-function hardware.wifi_maxpower(wifiintf, channel)
+function hardware.get_radio_intf(wifiintf)
     local radio = hardware.get_radio()
+    if radio and radio[wifiintf] then
+        return radio[wifiintf]
+    else
+        return radio
+    end
+end
+
+function hardware.wifi_maxpower(wifiintf, channel)
+    local radio = hardware.get_radio_intf(wifiintf)
     if radio then
         local maxpower = radio.maxpower
         local chanpower = radio.chanpower
-        local intf = tonumber(wifiintf:match("(%d+)$") or 0) 
         if chanpower then
-            if type(maxpower) == "table" then
-                chanpower = chanpower[1 + intf]
-            end
             for k, v in pairs(chanpower)
             do
                 if channel <= tonumber(k) then
                     return tonumber(v)
                 end
             end
-        end
-        if type(maxpower) == "table" then
-            maxpower = maxpower[1 + intf]
         end
         maxpower = tonumber(maxpower)
         if maxpower then
@@ -112,14 +115,9 @@ function hardware.wifi_poweroffset(wifiintf)
         end
         f:close()
     end
-    local radio = hardware.get_radio()
+    local radio = hardware.get_radio_intf(wifiintf)
     if radio then
-        local pwroffset = radio.pwroffset
-        local intf = tonumber(wifiintf:match("(%d+)$") or 0) 
-        if type(pwroffset) == "table" then
-            pwroffset = pwroffset[1 + intf]
-        end
-        pwroffset = tonumber(pwroffset)
+        local pwroffset = tonumber(radio.pwroffset)
         if pwroffset then
             return pwroffset
         end
@@ -268,6 +266,10 @@ function hardware.has_wifi()
 end
 
 function hardware.get_rfbandwidths(wifiintf)
+    local radio = hardware.get_radio_intf(wifiintf)
+    if radio and radio.bandwidths then
+        return radio.bandwidths
+    end
     return { 5, 10, 20 }
 end
 
@@ -275,61 +277,65 @@ function hardware.get_default_channel(wifiintf)
     for _, channel in ipairs(hardware.get_rfchannels(wifiintf))
     do
         if channel.frequency == 912 then
-            return { channel = 5, bandwidth = 5 }
+            return { channel = 5, bandwidth = 5, rfband = "900MHz" }
         end
         if channel.frequency == 2397 then
-            return { channel = -2, bandwidth = 10 }
+            return { channel = -2, bandwidth = 10, rfband = "2.4GHz" }
         end
         if channel.frequency == 2412 then
-            return { channel = 1, bandwidth = 10 }
+            return { channel = 1, bandwidth = 10, rfband = "2.4GHz" }
         end
         if channel.frequency == 3420 then
-            return { channel = 84, bandwidth = 10 }
+            return { channel = 84, bandwidth = 10, rfband = "3GHz" }
         end
         if channel.frequency == 5745 then
-            return { channel = 149, bandwidth = 10 }
+            return { channel = 149, bandwidth = 10, rfband = "5GHz" }
         end
     end
     return nil
 end
 
 function hardware.get_rfchannels(wifiintf)
-    local channels = {}
-    local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
-    if f then
-        local freq_adjust = 0
-        local freq_min = 0
-        local freq_max = 0x7FFFFFFF
-        if wifiintf == "wlan0" then
-            local radio = hardware.get_radio()
-            if radio then
-                if radio.name:match("M9") then
-                    freq_adjust = -1520;
-                    freq_min = 907
-                    freq_max = 922
-                elseif radio.name:match("M3") then
-                    freq_adjust = -2000;
-                    freq_min = 3380
-                    freq_max = 3495
+    local channels = channels_cache[wifiintf]
+    if not channels then
+        channels = {}
+        local f = io.popen("iwinfo " .. wifiintf .. " freqlist")
+        if f then
+            local freq_adjust = 0
+            local freq_min = 0
+            local freq_max = 0x7FFFFFFF
+            if wifiintf == "wlan0" then
+                local radio = hardware.get_radio()
+                if radio then
+                    if radio.name:match("M9") then
+                        freq_adjust = -1520;
+                        freq_min = 907
+                        freq_max = 922
+                    elseif radio.name:match("M3") then
+                        freq_adjust = -2000;
+                        freq_min = 3380
+                        freq_max = 3495
+                    end
                 end
             end
-        end
-        for line in f:lines()
-        do
-            local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%-?%d+)%)")
-            if freq and not line:match("restricted") and not line:match("disabled") then
-                freq = tonumber("" .. freq:gsub("%.", "")) + freq_adjust
-                if freq >= freq_min and freq <= freq_max then
-                    num = tonumber("" .. num:gsub("^0+", ""))
-                    channels[#channels + 1] = {
-                        label = freq_adjust == 0 and (num .. " (" .. freq .. ")") or (freq),
-                        number = num,
-                        frequency = freq
-                    }
+            for line in f:lines()
+            do
+                local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%-?%d+)%)")
+                if freq and not line:match("restricted") and not line:match("disabled") then
+                    freq = tonumber("" .. freq:gsub("%.", "")) + freq_adjust
+                    if freq >= freq_min and freq <= freq_max then
+                        num = tonumber("" .. num:gsub("^0+", ""))
+                        channels[#channels + 1] = {
+                            label = freq_adjust == 0 and (num .. " (" .. freq .. ")") or (freq),
+                            number = num,
+                            frequency = freq
+                        }
+                    end
                 end
             end
+            f:close()
+            channels_cache[wifiintf] = channels
         end
-        f:close()
     end
     return channels
 end
