@@ -38,9 +38,10 @@
 
 --- /dev/null
 +++ b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-ldf-5nd.dts
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,92 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +
++#include "ar9344_mikrotik_routerboard.dtsi"
 +#include "ar9344_mikrotik_routerboard-16m-nor.dtsi"
 +
 +#include <dt-bindings/gpio/gpio.h>
@@ -132,9 +133,10 @@
 +};
 --- /dev/null
 +++ b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-sxt-5nd.dts
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,92 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +
++#include "ar9344_mikrotik_routerboard.dtsi"
 +#include "ar9344_mikrotik_routerboard-16m-nor.dtsi"
 +
 +#include <dt-bindings/gpio/gpio.h>
@@ -237,11 +239,10 @@
 +};
 --- a/target/linux/ipq40xx/image/mikrotik.mk
 +++ b/target/linux/ipq40xx/image/mikrotik.mk
-@@ -62,3 +62,27 @@
- 	DEVICE_PACKAGES := rssileds
+@@ -71,6 +71,30 @@
  endef
  TARGET_DEVICES += mikrotik_sxtsq-5-ac
-+
+ 
 +define Device/mikrotik_ldf-5acd
 +	$(call Device/mikrotik_nor)
 +	DEVICE_MODEL := RouterBOARD LDF 5 AC (RBLDFG-5acD)
@@ -265,6 +266,11 @@
 +	DEVICE_PACKAGES := rssileds
 +endef
 +TARGET_DEVICES += mikrotik_lhgg-5acd-xl
++
+ define Device/mikrotik_wap-ac
+ 	$(call Device/mikrotik_nor)
+ 	DEVICE_MODEL := wAP ac
+
 --- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
 +++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
 @@ -35,6 +35,8 @@
@@ -511,7 +517,7 @@
 +	status = "okay";
 +};
 +
-+&gmac0 {
++&gmac {
 +       status = "okay";
 +};
 +
@@ -551,49 +557,44 @@
 +};
 --- a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
 +++ b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-@@ -197,6 +197,8 @@
- 	mikrotik,cap-ac |\
- 	mikrotik,hap-ac2 |\
+@@ -210,6 +210,8 @@
  	mikrotik,hap-ac3 |\
+ 	mikrotik,hap-ac3-lte6-kit |\
+ 	mikrotik,sxtsq-5-ac |\
 +	mikrotik,lhgg-5acd* |\
 +	mikrotik,ldf-5acd |\
- 	mikrotik,sxtsq-5-ac)
- 		wlan_data="/sys/firmware/mikrotik/hard_config/wlan_data"
- 		( [ -f "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data" 0x8000 0x2f20 ) || \
-@@ -236,6 +237,8 @@
- 	mikrotik,cap-ac |\
+ 	mikrotik,wap-ac |\
+ 	mikrotik,wap-ac-lte |\
+ 	mikrotik,wap-r-ac)
+@@ -249,6 +251,8 @@
  	mikrotik,hap-ac2 |\
  	mikrotik,hap-ac3 |\
+ 	mikrotik,hap-ac3-lte6-kit |\
 +	mikrotik,lhgg-5acd* |\
 +	mikrotik,ldf-5acd |\
- 	mikrotik,sxtsq-5-ac)
- 		wlan_data="/sys/firmware/mikrotik/hard_config/wlan_data"
- 		( [ -f "$wlan_data" ] && caldata_sysfsload_from_file "$wlan_data" 0xaf20 0x2f20 ) || \
+ 	mikrotik,wap-ac |\
+ 	mikrotik,wap-ac-lte |\
+ 	mikrotik,wap-r-ac)
+@@ -265,6 +269,8 @@
+ 	mikrotik,hap-ac3 |\
+         mikrotik,hap-ac3-lte6-kit |\
+ 	mikrotik,sxtsq-5-ac |\
++	mikrotik,lhgg-5acd*|\
++	mikrotik,ldf-5acd|\
+ 	mikrotik,wap-ac |\
+ 	mikrotik,wap-ac-lte |\
+ 	mikrotik,wap-r-ac)
 --- a/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
 +++ b/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
-@@ -163,12 +163,14 @@
- 		;;
+@@ -181,6 +181,8 @@
  	mikrotik,cap-ac|\
  	mikrotik,hap-ac2|\
+ 	mikrotik,hap-ac3-lte6-kit|\
 +	mikrotik,lhgg-5acd*|\
 +	mikrotik,ldf-5acd|\
  	mikrotik,lhgg-60ad|\
- 	mikrotik,sxtsq-5-ac)
- 		[ "$(rootfs_type)" = "tmpfs" ] && mtd erase firmware
- 		default_do_upgrade "$1"
- 		;;
- 	mikrotik,hap-ac3)
- 		platform_do_upgrade_mikrotik_nand "$1"
- 		;;
- 	netgear,rbr50 |\
---- a/target/linux/ath79/image/common-mikrotik.mk
-+++ b/target/linux/ath79/image/common-mikrotik.mk
-@@ -17,5 +17,4 @@
-   IMAGE/sysupgrade.bin = append-kernel | kernel2minor -s 2048 -e -c | \
- 	sysupgrade-tar kernel=$$$$@ | append-metadata
-   DEVICE_PACKAGES := nand-utils
--  DEFAULT := n
- endef
+ 	mikrotik,sxtsq-5-ac|\
+ 	mikrotik,wap-ac|\
 --- a/target/linux/ath79/image/mikrotik.mk
 +++ b/target/linux/ath79/image/mikrotik.mk
 @@ -28,6 +28,16 @@
@@ -922,19 +923,23 @@
 +};
 --- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
-@@ -15,6 +15,8 @@
+@@ -14,8 +14,10 @@
+ 		ucidef_add_switch "switch1" \
  			"0@eth1" "1:lan:4" "2:lan:1" "3:lan:2" "4:lan:3"
  		;;
 +	mikrotik,routerboard-911g-5hpnd*|\
+ 	mikrotik,routerboard-911-lite|\
  	mikrotik,routerboard-912uag-2hpnd|\
 +	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-lhg-2nd|\
  	mikrotik,routerboard-lhg-5nd|\
  	mikrotik,routerboard-mapl-2nd|\
-@@ -69,6 +70,8 @@
+@@ -73,8 +75,10 @@
+ 	local mac_base="$(cat /sys/firmware/mikrotik/hard_config/mac_base)"
  
  	case "$board" in
 +	mikrotik,routerboard-911g-5hpnd*|\
+ 	mikrotik,routerboard-911-lite|\
  	mikrotik,routerboard-912uag-2hpnd|\
 +	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-lhg-2nd|\
@@ -942,10 +947,12 @@
  	mikrotik,routerboard-map-2nd|\
 --- a/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
 +++ b/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
-@@ -24,6 +24,8 @@
+@@ -23,8 +23,10 @@
+ case "$FIRMWARE" in
  "ath9k-eeprom-ahb-18100000.wmac.bin")
  	case $board in
 +	mikrotik,routerboard-911g-5hpnd*|\
+ 	mikrotik,routerboard-911-lite|\
  	mikrotik,routerboard-912uag-2hpnd|\
 +	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-lhg-2nd|\
@@ -953,15 +960,16 @@
  	mikrotik,routerboard-sxt-5nd|\
 --- a/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
 +++ b/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
-@@ -33,6 +33,8 @@
+@@ -30,7 +30,9 @@
+ 
  	case "$board" in
  	mikrotik,routerboard-493g|\
 +	mikrotik,routerboard-911g-5hpnd*|\
  	mikrotik,routerboard-912uag-2hpnd|\
 +	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-921gs-5hpacd-15s|\
- 	mikrotik,routerboard-921gs-5hpacd-19s|\
  	mikrotik,routerboard-922uags-5hpacd|\
+ 	mikrotik,routerboard-951g-2hnd|\
 --- a/target/linux/ath79/image/mikrotik.mk
 +++ b/target/linux/ath79/image/mikrotik.mk
 @@ -18,6 +18,24 @@

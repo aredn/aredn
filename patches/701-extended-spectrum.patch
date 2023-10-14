@@ -58,10 +58,10 @@
 +===================================================================
 +--- a/net/wireless/util.c
 ++++ b/net/wireless/util.c
-+@@ -76,13 +76,16 @@ int ieee80211_channel_to_frequency(int c
-+ 		return 0; /* not supported */
++@@ -81,13 +81,16 @@ int ieee80211_channel_to_frequency(int c
 + 	switch (band) {
 + 	case NL80211_BAND_2GHZ:
++ 	case NL80211_BAND_LC:
 ++		chan = (int)(unsigned char)chan;
 + 		if (chan == 14)
 + 			return MHZ_TO_KHZ(2484);

@@ -1,9 +1,9 @@
 --- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
-@@ -113,7 +113,9 @@ ath79_setup_interfaces()
- 	ubnt,unifi|\
- 	wd,mynet-wifi-rangeextender|\
- 	winchannel,wb2000)
+@@ -126,7 +126,9 @@ ath79_setup_interfaces()
+ 	zyxel,nwa1121-ni|\
+ 	zyxel,nwa1123-ac|\
+ 	zyxel,nwa1123-ni)
 -		ucidef_set_interface_lan "eth0"
 +		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
@@ -186,9 +186,9 @@
 --- a/target/linux/ath79/nand/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/nand/base-files/etc/board.d/02_network
 @@ -9,7 +9,9 @@ ath79_setup_interfaces()
- 	case "$board" in
  	aerohive,hiveap-121|\
- 	glinet,gl-e750)
+ 	glinet,gl-e750|\
+ 	meraki,mr18)
 -		ucidef_set_interface_lan "eth0"
 +		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
 +		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
@@ -223,7 +223,7 @@
 
 --- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
-@@ -22,14 +22,21 @@
+@@ -23,15 +23,22 @@
  	mikrotik,routerboard-wap-2nd|\
  	mikrotik,routerboard-wap-g-5hact2hnd|\
  	mikrotik,routerboard-wapr-2nd)
@@ -232,6 +232,7 @@
 +		ucidef_set_interface "dtdlink" device "eth0.2 eth1.2" protocol "static"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
  		;;
+ 	mikrotik,routerboard-951ui-2hnd|\
 -	mikrotik,routerboard-951ui-2nd|\
 -	mikrotik,routerboard-952ui-5ac2nd)
 +	mikrotik,routerboard-951ui-2nd)
@@ -275,9 +276,9 @@
 +		ucidef_set_interface "dtdlink" device "eth0.2 eth1.2" protocol "static"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
 +		;;
+ 	mikrotik,routerboard-951ui-2hnd|\
  	mikrotik,routerboard-951ui-2nd)
  		ucidef_set_interface_wan "eth1"
- 		ucidef_add_switch "switch0" \
 
 --- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
