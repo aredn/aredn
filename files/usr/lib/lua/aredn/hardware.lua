@@ -277,19 +277,19 @@ function hardware.get_default_channel(wifiintf)
     for _, channel in ipairs(hardware.get_rfchannels(wifiintf))
     do
         if channel.frequency == 912 then
-            return { channel = 5, bandwidth = 5, rfband = "900MHz" }
+            return { channel = 5, bandwidth = 5, band = "900MHz" }
         end
         if channel.frequency == 2397 then
-            return { channel = -2, bandwidth = 10, rfband = "2.4GHz" }
+            return { channel = -2, bandwidth = 10, band = "2.4GHz" }
         end
         if channel.frequency == 2412 then
-            return { channel = 1, bandwidth = 10, rfband = "2.4GHz" }
+            return { channel = 1, bandwidth = 10, band = "2.4GHz" }
         end
         if channel.frequency == 3420 then
-            return { channel = 84, bandwidth = 10, rfband = "3GHz" }
+            return { channel = 84, bandwidth = 10, band = "3GHz" }
         end
         if channel.frequency == 5745 then
-            return { channel = 149, bandwidth = 10, rfband = "5GHz" }
+            return { channel = 149, bandwidth = 10, band = "5GHz" }
         end
     end
     return nil
@@ -320,7 +320,7 @@ function hardware.get_rfchannels(wifiintf)
             end
             for line in f:lines()
             do
-                local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%-?%d+)%)")
+                local freq, num = line:match("(%d+%.%d+) GHz %(Band: .*, Channel (%-?%d+)%)")
                 if freq and not line:match("restricted") and not line:match("disabled") then
                     freq = tonumber("" .. freq:gsub("%.", "")) + freq_adjust
                     if freq >= freq_min and freq <= freq_max then
