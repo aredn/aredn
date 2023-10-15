@@ -13,7 +13,7 @@
  		uci -q batch <<-EOF
  			set wireless.radio${devidx}=wifi-device
  			set wireless.radio${devidx}.type=mac80211
-@@ -203,13 +203,12 @@
+@@ -203,13 +203,13 @@
  			set wireless.${name}.channel=${channel}
  			set wireless.${name}.band=${mode_band}
  			set wireless.${name}.htmode=$htmode
@@ -25,6 +25,7 @@
  			set wireless.default_${name}.mode=ap
 -			set wireless.default_${name}.ssid=OpenWrt
 +			set wireless.default_${name}.ssid=${arednssid}
++			set wireless.default_${name}.ifname=$(echo ${name} | sed s/radio/wlan/)
  			set wireless.default_${name}.encryption=none
  EOF
  		uci -q commit wireless
