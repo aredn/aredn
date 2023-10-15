@@ -1,5 +1,19 @@
+--- a/target/linux/generic/config-5.15
++++ b/target/linux/generic/config-5.15
+@@ -3853,8 +3853,8 @@
+ # CONFIG_MTD_SPINAND_MT29F is not set
+ # CONFIG_MTD_SPI_NAND is not set
+ # CONFIG_MTD_SPI_NOR is not set
+-# CONFIG_MTD_SPI_NOR_SWP_DISABLE is not set
+-CONFIG_MTD_SPI_NOR_SWP_DISABLE_ON_VOLATILE=y
++CONFIG_MTD_SPI_NOR_SWP_DISABLE=y
++# CONFIG_MTD_SPI_NOR_SWP_DISABLE_ON_VOLATILE is not set
+ # CONFIG_MTD_SPI_NOR_SWP_KEEP is not set
+ # CONFIG_MTD_SPI_NOR_USE_4K_SECTORS is not set
+ # CONFIG_MTD_SPI_NOR_USE_VARIABLE_ERASE is not set
+
 --- /dev/null
-+++ b/target/linux/generic/backport-5.15/420-spansion-flash.patch
++++ b/target/linux/generic/backport-5.15/420-flash-fixes.patch
 @@ -0,0 +1,11 @@
 +--- a/drivers/mtd/spi-nor/spansion.c
 ++++ b/drivers/mtd/spi-nor/spansion.c
