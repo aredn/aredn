@@ -306,6 +306,19 @@
 
 --- a/target/linux/ath79/tiny/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/tiny/base-files/etc/board.d/02_network
+@@ -55,7 +55,9 @@
+ 	ubnt,nanobridge-m|\
+ 	ubnt,picostation-m|\
+ 	ubnt,nanostation-loco-m)
+-		ucidef_set_interface_lan "eth0"
++		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
+ 		;;
+ 	engenius,enh202-v1)
+ 		ucidef_set_interface_lan "eth0"
+--- a/target/linux/ath79/tiny/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/tiny/base-files/etc/board.d/02_network
 @@ -111,7 +111,10 @@
  			"0@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
  		;;
