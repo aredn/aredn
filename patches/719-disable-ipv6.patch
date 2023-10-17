@@ -46,7 +46,7 @@
 
 --- /dev/null
 +++ b/package/network/config/firewall4/patches/001-disable-ipv6.patch
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,139 @@
 +--- a/root/usr/share/firewall4/main.uc
 ++++ b/root/usr/share/firewall4/main.uc
 +@@ -33,14 +33,14 @@ function reload_sets() {
@@ -165,4 +165,24 @@
 ++	{%+ endif -%}
 + {%+ include("zone-match.uc", { egress, rule }) -%}
 + {%+ if (zone.counter): -%}
++ 	counter {%+ endif -%}
++--- a/root/usr/share/firewall4/templates/mangle-rule.uc
++--- a/root/usr/share/firewall4/templates/mangle-rule.uc
++@@ -1,7 +1,7 @@
++ {%+ for (let src_devices in rule.src?.zone) }
++ 
++ {%+ if (rule.family && !rule.has_addrs): -%}
++-	meta nfproto {{ fw4.nfproto(rule.family) }} {%+ endif -%}
+++	{%+ endif -%}
++ {%+ if (!rule.proto.any && !rule.has_ports && !rule.icmp_types && !rule.icmp_codes): -%}
++ 	meta l4proto {{
++ 		(rule.proto.name == 'icmp' && rule.family == 6) ? 'ipv6-icmp' : rule.proto.name
++--- a/root/usr/share/firewall4/templates/zone-drop-invalid.uc
+++++ a/root/usr/share/firewall4/templates/zone-drop-invalid.uc
++@@ -1,5 +1,5 @@
++ {%+ if (zone.masq ^ zone.masq6): -%}
++-	meta nfproto {{ fw4.nfproto(zone.masq ? 4 : 6) }} {%+ endif -%}
+++	{%+ endif -%}
++ {%+  include("zone-match.uc", { egress: true, rule }) -%}
++ ct state invalid {%+ if (zone.counter): -%}
 + 	counter {%+ endif -%}
