@@ -928,7 +928,17 @@ html.navbar_admin("advancedconfig")
 html.print("<table width=800px><tr align=center><td>")
 html.print("<a href='/help.html#advancedconfig' target='_blank'>Help</a>")
 html.print("&nbsp; &nbsp; <input type=submit name=button_reboot value=Reboot style='font-weight:bold' title='Immediately reboot this node'>")
-html.print("&nbsp; &nbsp; <input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'>")
+local overlay = false
+for line in io.lines("/proc/mounts")
+do
+    if line:match("overlay") then
+        overlay = true
+        break
+    end
+end
+if overlay then
+    html.print("&nbsp; &nbsp; <input type=submit name=button_firstboot value='Reset to Firstboot' onclick=\"return confirm('All config settings and add-on packages will be lost back to first boot state. Continue?')\"  title='Reset this node to the initial/firstboot status and reboot.'>")
+end
 html.print("</td></tr></table>")
 
 html.print("<div style='margin:10px;padding:5px;background-color:#FF0000;color:#FFFFFF;width:650px;'>")
