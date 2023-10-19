@@ -15,9 +15,9 @@ The 'target' and 'subtarget' identify the directory in which to find the image o
 ## Mikrotik
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
-hAP ac² | RBD52G-5HacD2HnD-TC | 2 | ipq40xx | mikrotik | mikrotik_hap-ac2 | 128MB | stable | released
-hAP ac³ | RBD53iG-5HacD2HnD | 2 | ipq40xx | mikrotik | mikrotik_hap-ac3 | 256MB | stable | released
+hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 & 5 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
+hAP ac² | RBD52G-5HacD2HnD-TC | 2 & 5 | ipq40xx | mikrotik | mikrotik_hap-ac2 | 128MB | stable | released
+hAP ac³ | RBD53iG-5HacD2HnD | 2 & 5 | ipq40xx | mikrotik | mikrotik_hap-ac3 | 256MB | stable | released
 SXTsq Lite2 | RBSXTsq2nD | 2 | ath79 | mikrotik | mikrotik-sxt-2nd | 64MB | stable | released
 SXTsq Lite5 | RBSXTsq5nD | 5 | ath79 | mikrotik | mikrotik-sxt-5nd | 64MB | stable | released
 SXTsq 5 High Power | RBSXTsq5HPnD | 5 | ath79 | mikrotik | mikrotik-sxt-5hpnd | 64MB | stable | released
@@ -132,6 +132,7 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 Shadow (16MB NOR) | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
 Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | untested | released
 Mudi | GL-E750 | 2 | ath79 | nand | gl-e750 | 128MB | untested | released
+Convexa-B | GL-B1300 | 2 & 5 | ipq40xx | generic | gl-b1300 | 256MB | untested | nightly
 **Sunset Devices** | | | | | | | |
 White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | sunset (3)
 Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | sunset (3)
