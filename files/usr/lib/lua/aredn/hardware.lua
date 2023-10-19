@@ -71,6 +71,26 @@ function hardware.get_radio()
     return radio_json
 end
 
+function hardware.get_radio_count()
+    local radio = hardware.get_radio()
+    if not radio then
+        return 0
+    elseif radio.wlan0 then
+        if radio.wlan1 then
+            return 2
+        else
+            return 1
+        end
+    else
+        local count = 0
+        for file in nixio.fs.dir("/sys/class/ieee80211")
+        do
+            count = count + 1
+        end
+        return count
+    end
+end
+
 function hardware.get_radio_intf(wifiintf)
     local radio = hardware.get_radio()
     if radio and radio[wifiintf] then
@@ -279,17 +299,23 @@ function hardware.get_default_channel(wifiintf)
         if channel.frequency == 912 then
             return { channel = 5, bandwidth = 5, band = "900MHz" }
         end
+        local bws = {}
+        for _, v in ipairs(hardware.get_rfbandwidths(wifiintf))
+        do
+            bws[v] = v
+        end
+        local bw = bws["10"] or bws["20"] or bws["5"] or 0
         if channel.frequency == 2397 then
-            return { channel = -2, bandwidth = 10, band = "2.4GHz" }
+            return { channel = -2, bandwidth = bw, band = "2.4GHz" }
         end
         if channel.frequency == 2412 then
-            return { channel = 1, bandwidth = 10, band = "2.4GHz" }
+            return { channel = 1, bandwidth = bw, band = "2.4GHz" }
         end
         if channel.frequency == 3420 then
-            return { channel = 84, bandwidth = 10, band = "3GHz" }
+            return { channel = 84, bandwidth = bw, band = "3GHz" }
         end
         if channel.frequency == 5745 then
-            return { channel = 149, bandwidth = 10, band = "5GHz" }
+            return { channel = 149, bandwidth = bw, band = "5GHz" }
         end
     end
     return nil

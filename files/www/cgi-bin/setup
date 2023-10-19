@@ -176,7 +176,7 @@ passwd1 = ""
 passwd2 = ""
 wifi_intf = ""
 
-local phycount = tonumber(capture("ls -1d /sys/class/ieee80211/* | wc -l"):chomp())
+local phycount = aredn.hardware.get_radio_count()
 local radio_name = (aredn.hardware.get_radio() or {}).name or ""
 local M9model = radio_name:match("M9")
 local M3model = radio_name:match("M3")
