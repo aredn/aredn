@@ -149,7 +149,11 @@ Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
  1. This device is supported for new installs. It can also be upgraded from 3.22.12.0 after first installing the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable the firmware compatibility checks. Proceed carefully.
  2. Tiny builds exclude support for *tunnels* and *WiFi AP* mode due to lack of resources. The relevant packages can be installed separately but this is not recommended.
  3. These devices are no longer being manufactured by GL-iNET. They may not reboot reliably and you may need to power cycle them (several times) during an update.
+<<<<<<< HEAD
  4. 20MHz channels only.
+=======
+ 4. 20MHz bandwidth only.
+>>>>>>> 37775f92 (Update support)
 
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/
