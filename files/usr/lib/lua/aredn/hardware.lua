@@ -83,9 +83,11 @@ function hardware.get_radio_count()
         end
     else
         local count = 0
-        for file in nixio.fs.dir("/sys/class/ieee80211")
-        do
-            count = count + 1
+        if nixio.fs.stat("/sys/class/ieee80211") then
+            for file in nixio.fs.dir("/sys/class/ieee80211")
+            do
+                count = count + 1
+            end
         end
         return count
     end
