@@ -104,11 +104,3 @@ nft add rule ip fw4 reject_to_vpn oifname "wg*" reject
 nft insert rule ip fw4 forward_dtdlink jump accept_to_vpn
 nft insert rule ip fw4 forward_wifi jump accept_to_vpn
 nft insert rule ip fw4 forward_lan jump accept_to_vpn
-# Wireguard port
-if [ "$MESHFW_WG_TUNNELS_ENABLED" = "1" ] ; then
-  PORT=$(uci -q get vtun.@options[0].port)
-  if [ "${PORT}" = "" ]; then
-    PORT=5525
-  fi
-  nft insert rule ip fw4 input_wan udp dport ${PORT} accept comment \"Wireguard\"
-fi
