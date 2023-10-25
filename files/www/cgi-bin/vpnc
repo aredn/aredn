@@ -45,7 +45,7 @@ require("uci")
 
 local html = aredn.html
 
-local cursor = uci.cursor();
+local cursor = uci.cursor("/etc/config.mesh");
 
 local node = aredn.info.get_nvram("node")
 if node == "" then
@@ -73,6 +73,9 @@ if os.getenv("REQUEST_METHOD") == "POST" then
     )
     parms = request:formvalue()
 end
+
+-- wireguard
+local wireguard_alive_time = 300 -- 5 minutes
 
 -- helpers start
 
@@ -106,12 +109,37 @@ function get_active_tun()
     return tuns
 end
 
+function get_active_wgtun()
+    local tuns = {}
+    local f = io.popen("/usr/bin/wg show all latest-handshakes")
+    if f then
+        for line in f:lines()
+        do
+            local k,v = line:match("^%S+%s+(%S+)%s+(%S+)%s*$")
+            if k then
+                tuns[k] = tonumber(v) -- time in seconds
+            end
+        end
+        f:close()
+    end
+    return tuns
+end
+
 function is_tunnel_active(ip, tunnels)
     for _, aip in ipairs(tunnels)
     do
         if ip == aip then
             return true
         end
+    end
+    return false
+end
+
+function is_wgtunnel_active(key, wgtunnels)
+    local key = key:match("^(.*=).*=.*=$")
+    local v = wgtunnels[key]
+    if v and v + wireguard_alive_time > os.time() then
+        return true
     end
     return false
 end
@@ -242,7 +270,11 @@ do
             err(val .. " this connection must be added or cleared out before saving changes")
             break
         end
-        if passwd:match("[^%w@]") then
+        if netip:match("/") then
+            if not passwd:match("^.+=.+=.+=$") then
+                err("The password is not a wireguard key")
+            end
+        elseif passwd:match("[^%w@]") then
             err("The password cannot contain non-alphanumeric characters (#" .. conn_num .. ")")
         end
         if host == "" then
@@ -326,17 +358,14 @@ end
 -- save the connections the uci vtun file
 if parms.button_save and #conn_err == 0 then
     cursor:commit("vtun")
-    write_all("/etc/config.mesh/vtun", read_all("/etc/config/vtun"))
-    if os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1") ~= 0 then
-      err2("Problem restarting olsrd")
-    end
-    if os.execute("/etc/init.d/vtund restart > /dev/null 2>&1") ~= 0 then
-      err2("Problem restaring vtund")
-    end
-
+    os.execute("/usr/local/bin/node-setup -a mesh > /dev/null 2>&1")
+    os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1")
+    os.execute("/etc/init.d/vtund restart > /dev/null 2>&1")
+    os.execute("/etc/init.d/network restart > /dev/null 2>&1")
 end
 
 local active_tun = get_active_tun()
+local active_wgtun = get_active_wgtun()
 
 -- generate page
 http_header()
@@ -460,7 +489,7 @@ if config == "mesh" then
         html.print("<td class='tun_client_center_item' rowspan='2'>&nbsp;")
 
         if val ~= "_add" then
-            if is_tunnel_active(netip, active_tun) then
+            if is_tunnel_active(netip, active_tun) or is_wgtunnel_active(passwd, active_wgtun) then
                 html.print("<img class='tun_client_active_img' src='/connected.png' title='Connected' />")
             else
                 html.print("<img class='tun_client_inactive_img' src='/disconnected.png' title='Not connected' />")

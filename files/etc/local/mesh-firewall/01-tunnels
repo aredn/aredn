@@ -34,8 +34,8 @@
 
 LICENSE
 
-if [ "$MESHFW_TUNNELS_ENABLED" != "1" ]; then
-        exit 0;
+if [ "$MESHFW_TUNNELS_ENABLED" != "1" -a "$MESHFW_WG_TUNNELS_ENABLED" != "1" ]; then
+  exit 0;
 fi
 
 # In all cases - restart, flush, clear -- it is necessary to clean up any remenant rules to ensure chain order is correct
@@ -66,14 +66,17 @@ nft add chain ip fw4 reject_to_vpn
 nft insert rule ip fw4 forward iifname "tun*" jump forward_vpn
 nft add rule ip fw4 input iifname "tun*" jump input_vpn
 nft add rule ip fw4 output oifname "tun*" jump accept_vpn # instead of creating a output_vpn chain
-nft add rule ip fw4 input_vpn icmp type echo-request counter accept
-nft add rule ip fw4 input_vpn tcp dport 2222 counter accept
-nft add rule ip fw4 input_vpn tcp dport 8080 counter accept
-nft add rule ip fw4 input_vpn tcp dport 80 counter accept
-nft add rule ip fw4 input_vpn udp dport 698 counter accept
-nft add rule ip fw4 input_vpn tcp dport 23 counter accept
-nft add rule ip fw4 input_vpn tcp dport 9090 counter accept
-nft add rule ip fw4 input_vpn udp dport 161 counter accept
+nft insert rule ip fw4 forward iifname "wg*" jump forward_vpn
+nft add rule ip fw4 input iifname "wg*" jump input_vpn
+nft add rule ip fw4 output oifname "wg*" jump accept_vpn # instead of creating a output_vpn chain
+nft add rule ip fw4 input_vpn icmp type echo-request accept
+nft add rule ip fw4 input_vpn tcp dport 2222 accept
+nft add rule ip fw4 input_vpn tcp dport 8080 accept
+nft add rule ip fw4 input_vpn tcp dport 80 accept
+nft add rule ip fw4 input_vpn udp dport 698 accept
+nft add rule ip fw4 input_vpn tcp dport 23 accept
+nft add rule ip fw4 input_vpn tcp dport 9090 accept
+nft add rule ip fw4 input_vpn udp dport 161 accept
 nft add rule ip fw4 input_vpn ct status dnat accept comment \"!vtun: Accept port redirections\"
 nft add rule ip fw4 input_vpn jump reject_vpn
 nft insert rule ip fw4 forward_vpn jump forwarding_vpn_rule
@@ -92,6 +95,20 @@ nft add rule ip fw4 reject_vpn oifname "tun*" reject
 nft add rule ip fw4 reject_vpn iifname "tun*" reject
 nft add rule ip fw4 accept_to_vpn oifname "tun*" accept
 nft add rule ip fw4 reject_to_vpn oifname "tun*" reject
+nft add rule ip fw4 accept_vpn oifname "wg*" accept
+nft add rule ip fw4 accept_vpn iifname "wg*" accept
+nft add rule ip fw4 reject_vpn oifname "wg*" reject
+nft add rule ip fw4 reject_vpn iifname "wg*" reject
+nft add rule ip fw4 accept_to_vpn oifname "wg*" accept
+nft add rule ip fw4 reject_to_vpn oifname "wg*" reject
 nft insert rule ip fw4 forward_dtdlink jump accept_to_vpn
 nft insert rule ip fw4 forward_wifi jump accept_to_vpn
 nft insert rule ip fw4 forward_lan jump accept_to_vpn
+# Wireguard port
+if [ "$MESHFW_WG_TUNNELS_ENABLED" = "1" ] ; then
+  PORT=$(uci -q get vtun.@options[0].port)
+  if [ "${PORT}" = "" ]; then
+    PORT=5525
+  fi
+  nft insert rule ip fw4 input_wan udp dport ${PORT} accept comment \"Wireguard\"
+fi
