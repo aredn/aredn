@@ -428,45 +428,49 @@ if (parms.button_apply or parms.button_save) and wifi_enable == "1" then
     os.execute("iw dev " .. wifi_intf .. " set txpower fixed " .. wifi_txpower .. "00 >/dev/null 2>&1")
 end
 
-if parms.button_updatelocation then
+if (parms.button_updatelocation or parms.button_save) then
     -- process gridsquare
     local cursora = uci.cursor();
     local cursorb = uci.cursor("/etc/config.mesh")
-    if parms.gridsquare ~= "" then
-        if parms.gridsquare:match("^[A-Z][A-Z]%d%d[a-z][a-z]$") then
-            cursora:set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
-            cursorb:set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
-            out("Gridsquare updated.")
+    if (cursora:get("aredn", "@location[0]", "gridsquare") or "") ~= parms.gridsquare then
+        if parms.gridsquare ~= "" then
+            if parms.gridsquare:match("^[A-Z][A-Z]%d%d[a-z][a-z]$") then
+                cursora:set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
+                cursorb:set("aredn", "@location[0]", "gridsquare", parms.gridsquare)
+                out("Gridsquare updated.")
+            else
+                err("ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)")
+            end
         else
-            err("ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)")
+            cursora:set("aredn", "@location[0]", "gridsquare", "")
+            cursorb:set("aredn", "@location[0]", "gridsquare", "")
+            out("Gridsquare purged.")
         end
-    else
-        cursora:set("aredn", "@location[0]", "gridsquare", "")
-        cursorb:set("aredn", "@location[0]", "gridsquare", "")
-        out("Gridsquare purged.")
     end
 
     -- process lat/lng
-    if parms.latitude ~= "" and parms.longitude ~= "" then
-        if parms.latitude:match("^[-+]?%d%d?%.%d+$") and parms.longitude:match("^[-+]?%d%d?%d?%.%d+$") then
-            if tonumber(parms.latitude) >= -90 and tonumber(parms.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
-                cursora:set("aredn", "@location[0]", "lat", parms.latitude)
-                cursorb:set("aredn", "@location[0]", "lat", parms.latitude)
-                cursora:set("aredn", "@location[0]", "lon", parms.longitude)
-                cursorb:set("aredn", "@location[0]", "lon", parms.longitude)
-                out("Lat/lon updated.")
+    if (cursora:get("aredn", "@location[0]", "lat") or "") ~= parms.latitude or (cursora:get("aredn", "@location[0]", "lon") or "") ~= parms.longitude then
+        if parms.latitude ~= "" and parms.longitude ~= "" then
+            if parms.latitude:match("^[-+]?%d%d?%.%d+$") and parms.longitude:match("^[-+]?%d%d?%d?%.%d+$") then
+                if tonumber(parms.latitude) >= -90 and tonumber(parms.latitude) <= 90 and tonumber(parms.longitude) >= -180 and tonumber(parms.longitude) <= 180 then
+                    cursora:set("aredn", "@location[0]", "lat", parms.latitude)
+                    cursorb:set("aredn", "@location[0]", "lat", parms.latitude)
+                    cursora:set("aredn", "@location[0]", "lon", parms.longitude)
+                    cursorb:set("aredn", "@location[0]", "lon", parms.longitude)
+                    out("Lat/lon updated.")
+                else
+                    err("ERROR: Lat/lon values must be between -90/90 and -180/180, respectively.")
+                end
             else
-                err("ERROR: Lat/lon values must be between -90/90 and -180/180, respectively.")
+                err("ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154).")
             end
         else
-            err("ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154).")
+            cursora:set("aredn", "@location[0]", "lat", "")
+            cursorb:set("aredn", "@location[0]", "lat", "")
+            cursora:set("aredn", "@location[0]", "lon", "")
+            cursorb:set("aredn", "@location[0]", "lon", "")
+            out("Lat/lon purged.")
         end
-    else
-        cursora:set("aredn", "@location[0]", "lat", "")
-        cursorb:set("aredn", "@location[0]", "lat", "")
-        cursora:set("aredn", "@location[0]", "lon", "")
-        cursorb:set("aredn", "@location[0]", "lon", "")
-        out("Lat/lon purged.")
     end
     cursora:commit("aredn")
     cursorb:commit("aredn")
