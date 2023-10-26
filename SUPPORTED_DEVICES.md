@@ -133,6 +133,7 @@ Shadow (16MB NOR) | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | gli
 Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | untested | released
 Mudi | GL-E750 | 2 | ath79 | nand | gl-e750 | 128MB | untested | released
 Convexa-B | GL-B1300 | 2 & 5 | ipq40xx | generic | gl-b1300 | 256MB | untested | nightly
+Beryl | GL-MT1300 | 2 & 5 | ramips | mt7621 | gl-mt1300 | 256MB | untested | nightly
 **Sunset Devices** | | | | | | | |
 White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | sunset (3)
 Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | sunset (3)

@@ -92,6 +92,10 @@ jobs:
           command: make MAINTARGET=x86 SUBTARGET=64
           no_output_timeout: 2h
       - run:
+          name: Build ramips/mt7621
+          command: make MAINTARGET=ipq40xx SUBTARGET=mt7621
+          no_output_timeout: 2h
+      - run:
           name: Compress build files
           command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
       - run:
@@ -141,6 +145,10 @@ jobs:
       - run:
           name: Build x64/64
           command: make MAINTARGET=x86 SUBTARGET=64
+          no_output_timeout: 2h
+      - run:
+          name: Build ramips/mt7621
+          command: make MAINTARGET=ipq40xx SUBTARGET=mt7621
           no_output_timeout: 2h
       - run:
           name: Compress build files
