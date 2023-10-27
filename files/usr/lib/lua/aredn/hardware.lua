@@ -306,7 +306,7 @@ function hardware.get_default_channel(wifiintf)
         do
             bws[v] = v
         end
-        local bw = bws["10"] or bws["20"] or bws["5"] or 0
+        local bw = bws[10] or bws[20] or bws[5] or 0
         if channel.frequency == 2397 then
             return { channel = -2, bandwidth = bw, band = "2.4GHz" }
         end
