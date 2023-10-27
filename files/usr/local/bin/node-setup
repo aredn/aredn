@@ -298,7 +298,7 @@ if do_basic then
                 list[port:gsub("%..*$", "")] = true
             end
         end
-        local config = "config device\n	option name 'br0'\n	option type 'bridge'\n"
+        local config = "config device\n	option name 'br0'\n	option type 'bridge'\n	option vlan_filtering '1'\n"
         for port, _ in pairs(list)
         do
             config = config .. "	list ports '" .. port .. "'\n"
@@ -418,9 +418,13 @@ if do_basic then
             end
 
             if not wireless then
-                for _, port in ipairs(ports)
-                do
-                    config = config .. "	list ports '" .. port .. "'\n"
+                if #ports == 0 then
+                    config = config .. "	option bridge_empty '1'\n"
+                else
+                    for _, port in ipairs(ports)
+                    do
+                        config = config .. "	list ports '" .. port .. "'\n"
+                    end
                 end
             else
                 config = config .. "	option name '" .. ports[1] .. "'\n"
