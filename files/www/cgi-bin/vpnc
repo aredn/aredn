@@ -369,9 +369,40 @@ local active_wgtun = get_active_wgtun()
 
 -- generate page
 http_header()
-html.header(node .. " setup", true)
+html.header(node .. " setup", false)
 
-html.print("<body><center>")
+html.print([[
+<script>
+    function configPaste(e) {
+        const txt = e.clipboardData.getData("text/plain");
+        if (!txt) {
+            return;
+        }
+        const config = {};
+        txt.split("\n").forEach(line => {
+            if (line.startsWith("Password: ")) {
+                config.passwd = line.substring(10);
+            }
+            else if (line.startsWith("Network: ")) {
+                config.network = line.substring(9);
+            }
+            else if (line.startsWith("Server address: ")) {
+                config.server = line.substring(16);
+            }
+        });
+        if (!(config.passwd && config.network && config.server)) {
+            return;
+        }
+        document.forms[0].conn_add_host.value = config.server;
+        document.forms[0].conn_add_passwd.value = config.passwd;
+        document.forms[0].conn_add_netip.value = config.network;
+        e.stopPropagation();
+        e.preventDefault();
+    }
+</script>
+]])
+
+html.print("</head><body><center>")
 html.alert_banner()
 
 html.print("<form method=post action=/cgi-bin/vpnc enctype='multipart/form-data'>")
@@ -469,12 +500,16 @@ if config == "mesh" then
         html.print("<td><input type=text size=25 name=conn" .. val .. "_host value='" .. host .. "'")
         if val ~= "_add" then
             html.print(" onChange='form.submit()'")
+        else
+            html.print(" onPaste='configPaste(event)'")
         end
         html.print(" title='connection name'></td>")
 
         html.print("<td><input type=text size=20 name=conn" .. val .. "_passwd value='" .. passwd .. "' ")
         if val ~= "_add" then
             html.print(" onChange='form.submit()'")
+        else
+            html.print(" onPaste='configPaste(event)'")
         end
         html.print(" title='connection password'")
         html.print("></td>")
@@ -482,6 +517,8 @@ if config == "mesh" then
         html.print("<td><input type=text size=14 name=conn" .. val .. "_netip value='" .. netip .. "'")
         if val ~= "_add" then
             html.print(" onChange='form.submit()'")
+        else
+            html.print(" onPaste='configPaste(event)'")
         end
         html.print(" title='connection network'></td>")
 
@@ -509,7 +546,7 @@ if config == "mesh" then
         html.print("</tr>")
         html.print("<tr class='tun_client_list1 tun_client_row tun_loading_css_comment'><td colspan='3' align='right'>Contact Info/Comment (Optional): <input type=text maxlength='50' size=40 name=conn" .. val .. "_contact value='" .. contact .. "'")
         if val == "_add" or val == "" then
-            html.print(" onChange='form.submit()'")
+            html.print(" onChange='form.submit()' onPaste='configPaste(event)'")
         end
         html.print(" title='client contact info'></td>")
 
