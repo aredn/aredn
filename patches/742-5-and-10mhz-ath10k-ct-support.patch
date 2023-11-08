@@ -312,3 +312,16 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 + 	/* After an error we will not retry setting the coverage class. */
 + 	spin_lock_bh(&ar->data_lock);
 + 	ar->fw_coverage.coverage_class = value;
+--- /dev/null
+--- openwrt/package/kernel/ath10k-ct/patches/999-0005-ath10k-force-ibss.patch
+@@ -0,0 +1,10 @@
++--- a/ath10k-5.15/mac.c
+++++ b/ath10k-5.15/mac.c
++@@ -11533,6 +11533,7 @@
++ 		} else {
++ 			ret = ath10k_copy_comb(ar, ath10k_10x_if_comb,
++ 					       ARRAY_SIZE(ath10k_10x_if_comb));
+++			ar->hw->wiphy->interface_modes |= BIT(NL80211_IFTYPE_ADHOC);
++ 		}
++ 		break;
++ 	case ATH10K_FW_WMI_OP_VERSION_10_4:
