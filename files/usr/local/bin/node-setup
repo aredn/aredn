@@ -70,6 +70,7 @@ end
 -- helpers end
 
 local c = uci.cursor()
+local cm = uci.cursor("/etc/config.mesh")
 
 -- validate args
 local auto = false
@@ -117,7 +118,9 @@ local cfg = {
     wan_network_config = "",
     dtdlink_network_config = "",
     wifi_network_config = "",
-    olsrd_dtd_interface_mode = "ether"
+    olsrd_dtd_interface_mode = "ether",
+    tun_network_config = "",
+    wireguard_network_config = ""
 }
 
 function expand_vars(lines)
@@ -188,7 +191,7 @@ end
 
 -- Supernode options
 
-local is_supernode = (uci.cursor("/etc/config.mesh"):get("aredn", "@supernode[0]", "enable") == "1")
+local is_supernode = (cm:get("aredn", "@supernode[0]", "enable") == "1")
 if is_supernode then
     cfg.olsrd_dtd_interface_mode = "isolated"
 end
@@ -310,7 +313,7 @@ if do_basic then
                 list[port:gsub("%..*$", "")] = true
             end
         end
-        local config = "config device\n	option name 'br0'\n	option type 'bridge'\n"
+        local config = "config device\n	option name 'br0'\n	option type 'bridge'\n	option vlan_filtering '1'\n"
         for port, _ in pairs(list)
         do
             config = config .. "	list ports '" .. port .. "'\n"
@@ -430,9 +433,13 @@ if do_basic then
             end
 
             if not wireless then
-                for _, port in ipairs(ports)
-                do
-                    config = config .. "	list ports '" .. port .. "'\n"
+                if #ports == 0 then
+                    config = config .. "	option bridge_empty '1'\n"
+                else
+                    for _, port in ipairs(ports)
+                    do
+                        config = config .. "	list ports '" .. port .. "'\n"
+                    end
                 end
             else
                 config = config .. "	option name '" .. ports[1] .. "'\n"
@@ -469,13 +476,86 @@ if do_basic then
         cfg[net .. "_network_config"] = config
     end
 
+    -- Generate the tunnel configurations
+    local tun_port = cm:get("vtun", "@option[0]", "port")
+    if tun_port then
+        cfg.tun_network_config = cfg.tun_network_config .. "config option\n\toption port '" .. tun_port .. "'\n\n"
+    end
+    local tun_start = cm:get("vtun", "@network[0]", "start")
+    local tun_dns = cm:get("vtun", "@network[0]", "dns")
+    if tun_start or tun_dns then
+        cfg.tun_network_config = cfg.tun_network_config .. "config network\n"
+        if tun_start then
+            cfg.tun_network_config = cfg.tun_network_config .. "\toption start '" .. tun_start .. "'\n"
+        end
+        if tun_dns then
+            cfg.tun_network_config = cfg.tun_network_config .. "\toption dns '" .. tun_dns .. "'\n"
+        end
+        cfg.tun_network_config = cfg.tun_network_config .. "\n"
+    end
+    cm:foreach("vtun", "client",
+        function(s)
+            if s.enabled == "1" then
+                cfg.tun_network_config = cfg.tun_network_config .. string.format("config client\n\toption enabled '1'\n\toption node '%s'\n\toption password '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n", 
+                    s.node, s.passwd, s.clientip, s.serverip, s.netip)
+            end
+        end
+    )
+    local wgclients = 0
+    cm:foreach("wireguard", "client",
+        function(s)
+            if s.enabled == "1" then
+                local client_priv, client_pub = s.key:match("^(.+=)(.+=)$")
+                cfg.wireguard_network_config = cfg.wireguard_network_config ..
+                    string.format("config wireguard_wgc\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
+                        client_pub)
+                wgclients = wgclients + 1
+            end
+        end
+    )
+    if wgclients > 0 then
+        local private = cm:get("wireguard", "@wireguard_server[0]", "private")
+        local mask_size = tonumber(cm:get("wireguard", "@wireguard_server[0]", "masksize") or 26)
+        local ab, c, d = tun_start:match("^(%d+%.%d+%.)(%d+)%.(%d+)$")
+        c = tonumber(c) + 1
+        if c > 255 then
+            c = 0
+        end
+        d = nixio.bit.band(tonumber(d), nixio.bit.lshift(255, 32 - mask_size)) + 1
+        cfg.wireguard_network_config = 
+            string.format("config interface 'wgc'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\n",
+            private, (tun_port or 5525), (ab .. c .. "." .. d)) ..
+            cfg.wireguard_network_config
+    end
+    local wgservers = 0
+    cm:foreach("vtun", "server",
+        function(s)
+            if s.enabled == "1" then
+                if s.netip:match("/") then
+                    local server_pub, client_priv, client_pub = s.passwd:match("^(.+=)(.+=)(.+=)$")
+                    cfg.wireguard_network_config = cfg.wireguard_network_config ..
+                        string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\tlist addresses '%s'\n\n",
+                            wgservers, client_priv, s.netip:match("^(.+)/"))
+                    cfg.wireguard_network_config = cfg.wireguard_network_config ..
+                        string.format("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
+                            wgservers, server_pub, s.host, (tun_port or 5525))
+                    wgservers = wgservers + 1
+                else
+                    cfg.tun_network_config = cfg.tun_network_config ..
+                        string.format("config server\n\toption enabled '1'\n\toption host '%s'\n\toption node '%s'\n\toption password '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n", 
+                            s.host, s.node, s.passwd, s.clientip, s.serverip, s.netip)
+                end
+            end
+        end
+    )
+
     remove_all("/tmp/new_config")
     nixio.fs.mkdir("/tmp/new_config")
 
     for file in nixio.fs.glob("/etc/config.mesh/*")
     do
         local bfile = nixio.fs.basename(file)
-        if not (bfile:match("^_setup") or bfile:match("^firewall.user") or bfile:match("^olsrd")) then
+        if not (bfile:match("^_setup") or bfile:match("^firewall.user") or bfile:match("^olsrd") or bfile == "vtun") then
             local f = io.open("/tmp/new_config/" .. bfile, "w")
             if f then
                 f:write(expand_vars(read_all(file)))
@@ -483,6 +563,9 @@ if do_basic then
             end
         end
     end
+
+    -- Tunnels
+    write_all("/tmp/new_config/vtun", expand_vars("<tun_network_config>"))
 
     -- make it official
     for file in nixio.fs.glob("/etc/config/*")
