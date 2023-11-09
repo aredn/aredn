@@ -75,6 +75,7 @@ local c = uci.cursor()
 local auto = false
 local do_basic = true
 local config = nil
+local wifi_mon_enable = false
 for i, a in ipairs(arg)
 do
     if a == "-a" then
@@ -876,11 +877,11 @@ if nixio.fs.stat(ieee80211) then
         end
         config = config .. "\n"
 
-        if is_mesh_rf then
+        if is_mesh_rf and wifi_mon_enable then
             config = config .. "config wifi-iface\n"
-            config = config .. "	option ifname '" .. wlan .. "-1'\n"
-            config = config .. "	option device '" .. radio .. "'\n"
-            config = config .. "	option network 'wifi_mon'\n	option mode 'monitor'\n\n"
+            config = config .. "       option ifname '" .. wlan .. "-1'\n"
+            config = config .. "       option device '" .. radio .. "'\n"
+            config = config .. "       option network 'wifi_mon'\n     option mode 'monitor'\n\n"
         end
 
         ifacenum = ifacenum + 1
