@@ -212,6 +212,20 @@ else
     cfg.lan_dhcp = 1
 end
 
+-- handle possible remote syslog
+local remote_log = c:get("aredn", "@remotelog[0]", "url") or ""
+local proto, ip, port = remote_log:match("^(.+)://(%d+%.%d+%.%d+%.%d+):(%d+)$")
+port = tonumber(port)
+if proto and (proto == "tcp" or proto == "udp") and (port > 0 and port < 65536) and validate_ip(ip) then
+    cfg.remote_log_ip = ip
+    cfg.remote_log_port = port
+    cfg.remote_log_proto = proto
+else
+    deleteme.remote_log_ip = true
+    deleteme.remote_log_port = true
+    deleteme.remote_log_proto = true
+end
+
 -- verify that we have all the variables we need
 for file in nixio.fs.glob("/etc/config.mesh/*")
 do
