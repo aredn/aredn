@@ -47,7 +47,7 @@ Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | untested | relea
 LiteAP 5AC | LAP-120 <br> LAP-120-US <br> LBE-5AC-16-120 <br> LBE-5AC-16-120-US | 5 | ath79 | generic | ubnt_lap-120 | 64MB | stable | released
 LiteBeam AC5 Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | released
 LiteBeam M5 || 5 | ath79 | - | - | 64MB | untested | released
-NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | stable | nightly (4)
+NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | stable | nightly
 NanoBeam AC 5 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | untested | released
 NanoBeam AC 5 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | released
 NanoBeam AC 5 Gen 2 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | released
