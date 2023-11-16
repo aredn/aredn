@@ -194,20 +194,14 @@ function write_user_config(config, variables)
         f:write("\toption ipaddr '<" .. network .. "_ip>'\n")
         f:write("\toption netmask '255.0.0.0'\n")
     else
-        if variables[network .. "_proto"] and variables[network .. "_proto"] ~= "" then
-            f:write("\toption proto '<" .. network .. "_proto>'\n")
-        end
-        if variables[network .. "_ip"] and variables[network .. "_ip"] ~= "" then
-            f:write("\toption ipaddr '<" .. network .. "_ip>'\n")
-        end
-        if variables[network .. "_mask"] and variables[network .. "_mask"] ~= "" then
-            f:write("\toption netmask '<" .. network .. "_mask>'\n")
-        end
+        f:write("\toption proto '<" .. network .. "_proto>'\n")
+        f:write("\toption ipaddr '<" .. network .. "_ip>'\n")
+        f:write("\toption netmask '<" .. network .. "_mask>'\n")
     end
     if network == "lan" then
         f:write("\toption dns '<wan_dns1> <wan_dns2>'\n")
     end
-    if network == "wan" and variables.wan_gw and variables.wan_gw ~= "" then
+    if network == "wan" then
         f:write("\toption gateway '<wan_gw>'\n")
     end
     f:close()
