@@ -112,7 +112,7 @@ function inject_quality_traffic(track)
 end
 
 function should_ping(track)
-    if track.ip and is_connected(track) and not (track.blocks.dtd or track.blocks.distance or track.blocks.user) then
+    if track.ip and is_connected(track) and track.routable and not (track.blocks.dtd or track.blocks.distance or track.blocks.user) then
         return true
     else
         return false
