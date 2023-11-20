@@ -167,10 +167,12 @@ local cursor = uci.cursor()
 
 local wifi_channel
 local wifi_chanbw
+local wifi_freq_range = ""
 local wifi_ssid
 if not wifi_disabled then
     wifi_channel = cursor:get("wireless", radio, "channel")
     wifi_channel = tonumber(wifi_channel) or 0
+    wifi_chanbw = tonumber(cursor:get("wireless", radio, "chanbw") or "20")
     local rfchans = aredn.hardware.get_rfchannels(wifi_iface)
     if rfchans and rfchans[1] then
         local basefreq = rfchans[1].frequency
@@ -179,8 +181,15 @@ if not wifi_disabled then
         elseif basefreq > 900 and basefreq < 2300 then
             wifi_channel = wifi_channel * 5 + 887
         end
+        for _, chan in ipairs(rfchans)
+        do
+            if chan.number == wifi_channel then
+                wifi_freq_range = (chan.frequency - wifi_chanbw / 2) .. " - " .. (chan.frequency + wifi_chanbw / 2) .. " MHz"
+                break
+            end
+        end
     end
-    wifi_chanbw = cursor:get("wireless", radio, "chanbw") or "20"
+
     wifi_ssid = "none"
     cursor:foreach("wireless", "wifi-iface",
         function (section)
@@ -319,7 +328,7 @@ else
         col1[#col1 + 1] = "<th align=right><nobr>primary address:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>"
     else
         wifi_gw = get_default_gw("wifi")
-        col1[#col1 + 1] = "<th align=right><nobr>mesh RF address:</nobr><br><nobr>mesh gateway:</nobr><br><nobr>gateway node:</nobr><br>SSID:<br>channel:<br><nobr>channel width:</nobr></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_gw .. "<br>" .. mesh_ip_to_hostnames(wifi_gw) .. "<br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. " MHz</td>"
+        col1[#col1 + 1] = "<th align=right><nobr>mesh RF address:</nobr><br><nobr>mesh gateway:</nobr><br><nobr>gateway node:</nobr><br>SSID:<br>channel:<br><nobr>channel width:</nobr><br>frequency range:</br></th><td>" .. ip .. " <small>/ " .. cidr .. "</small><br>" .. wifi_gw .. "<br>" .. mesh_ip_to_hostnames(wifi_gw) .. "<br>" .. wifi_ssid .. "<br>" .. wifi_channel .. "<br>" .. wifi_chanbw .. " MHz<br>" .. wifi_freq_range .. "</td>"
     end
 end
 
