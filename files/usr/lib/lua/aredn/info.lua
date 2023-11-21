@@ -121,6 +121,14 @@ function model.getGridSquare()
 end
 
 -------------------------------------
+-- Returns Heading
+-------------------------------------
+function model.getHeading()
+	loc=aredn_uci.getUciConfType("aredn", "location")
+	return loc[1]['heading']
+end
+
+-------------------------------------
 -- Returns AREDN Alert (if exists)
 -------------------------------------
 function model.getArednAlert()

@@ -472,6 +472,28 @@ if (parms.button_updatelocation or parms.button_save) then
             out("Lat/lon purged.")
         end
     end
+
+    -- process antenna and heading
+    if wifi_enable == "1" then
+        if (cursora:get("aredn", "@location[0]", "antenna") or "") ~= parms.antenna then
+            cursora:set("aredn", "@location[0]", "antenna", parms.antenna)
+            cursorb:set("aredn", "@location[0]", "antenna", parms.antenna)
+        end
+        if (cursora:get("aredn", "@location[0]", "heading") or "") ~= parms.heading then
+            local ant = aredn.hardware.get_current_antenna(wifi_intf)
+            if ant and ant.beamwidth == 360 then
+                parms.heading = ""
+            end
+            local heading = tonumber(parms.heading)
+            if parms.heading == "" or (heading >= 0 and heading < 360) then
+                cursora:set("aredn", "@location[0]", "heading", parms.heading)
+                cursorb:set("aredn", "@location[0]", "heading", parms.heading)
+            else
+                err("ERROR: Heading value must be blank or between 0 and 360.")
+            end
+        end
+    end
+
     cursora:commit("aredn")
     cursorb:commit("aredn")
     cursor = cursora
@@ -490,6 +512,8 @@ gridsquare = cursor:get("aredn", "@location[0]", "gridsquare")
 if not gridsquare then
     gridsquare = ""
 end
+local heading = cursor:get("aredn", "@location[0]", "heading") or ""
+local antenna = cursor:get("aredn", "@location[0]", "antenna") or ""
 
 -- retrieve ntp_period
 local cm = uci.cursor("/etc/config.mesh")
@@ -1464,7 +1488,35 @@ html.print("<input type=submit name='button_updatelocation' value='Apply Locatio
 html.print("&nbsp;<button " .. locdisabled .. " type='button' id='hideshowmap' value='show' onClick='toggleMap(this);'>Show Map</button>&nbsp;")
 html.print("<input " .. locdisabled .. " type='submit' name='button_uploaddata' value='Upload data to AREDN Servers' />&nbsp;")
 
-html.print("</td><tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='" .. lon .. "' title='Longitude value (in decimal) (ie. -95.334454)' /></td><td align=left>Grid Square <input type=text name=gridsquare maxlength=6 size=6 value='" .. gridsquare .. "' title='Gridsquare value (ie. AB12cd)' /></td></tr><tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr><tr><td colspan=4><hr /></td></tr>")
+html.print("</td><tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='" .. lon .. "' title='Longitude value (in decimal) (ie. -95.334454)' /></td><td align=left>Grid Square <input type=text name=gridsquare maxlength=6 size=6 value='" .. gridsquare .. "' title='Gridsquare value (ie. AB12cd)' /></td></tr>")
+if wifi_enable == "1" then
+    local ants = aredn.hardware.get_antennas(wifi_intf)
+    local changeh = ""
+    local changea = true
+    if ants and #ants == 1 then
+        changea = false
+        antenna = ants[1].description
+        if ants[1].beamwidth == 360 then
+            changeh = "disabled"
+        end
+    end
+    html.print("<tr><td align=left>Heading</td><td><input " .. changeh .. " type=text name=heading size=10 value='" .. heading .. "' title='Heading (degrees)' /></td>")
+    if changea then
+        if not ants then
+            html.print("<td align=left>Antenna <input type=text name=antenna size=10 value='" .. antenna .. "'/></td></tr>")
+        else
+            html.print("<td align=left>Antenna <select name=antenna>")
+            for _, ant in ipairs(ants)
+            do
+                html.print("<option value='" .. ant.model .. "'" .. (ant.model == antenna and " selected" or "") .. ">" .. ant.description .. "</option>")
+            end
+            html.print("</select></td></tr>")
+        end
+    else
+        html.print("<td align=left>Antenna <input disabled type=text name=antenna_description size=10 value='" .. antenna .. "'/></td></tr>")
+    end
+end
+html.print("<tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr><tr><td colspan=4><hr /></td></tr>")
 html.print("<tr><td>Timezone </td><td><select name=time_zone_name tabindex=10>")
 for _,zone in ipairs(tz_db_names)
 do

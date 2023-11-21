@@ -446,7 +446,7 @@ if config == "mesh" and not wifi_disabled then
     end
 end
 
-col2[#col2 + 1] = "<th align=right><nobr>firmware version:</nobr><br><nobr>model:</nobr></th><td>" .. read_all("/etc/mesh-release") .. "<br>" .. (aredn.hardware.get_radio() or { name = "unknown" }).name .. "</td>"
+col2[#col2 + 1] = "<th align=right><nobr>firmware version:</nobr><br><nobr>model:</nobr><br><nobr>antenna:</nobr></th><td>" .. read_all("/etc/mesh-release") .. "<br>" .. (aredn.hardware.get_radio() or { name = "unknown" }).name .. "<br>" .. (aredn.hardware.get_current_antenna(wifi_iface) or { description = "Unknown" }).description .. "</td>"
 
 local sysinfo = nixio.sysinfo()
 local uptime = string.format("%d:%02d", math.floor(sysinfo.uptime / 3600) % 24, math.floor(sysinfo.uptime / 60) % 60)

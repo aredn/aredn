@@ -38,6 +38,7 @@ require("uci")
 require("aredn.utils")
 local aredn_info = require("aredn.info")
 local aredn_olsr = require("aredn.olsr")
+require("aredn.hardware")
 require("aredn.http")
 require("nixio")
 local ipc = require("luci.ip")
@@ -55,7 +56,7 @@ end
 info={}
 
 -- API version
-info['api_version']="1.12"
+info['api_version']="1.13"
 
 
 -- NODE name
@@ -99,6 +100,8 @@ if ( radio ~= nil and radio ~= "" ) then
 	info['meshrf']['channel']=aredn_info.getChannel(radio)
 	info['meshrf']['chanbw']=aredn_info.getChannelBW(radio)
 	info['meshrf']['freq']=aredn_info.getFreq(radio)
+	info['meshrf']['heading'] = aredn_info.getHeading()
+	info['meshrf']['antenna'] = aredn.hardware.get_current_antenna(radio)
 else
 	info['meshrf']['status']="off"
 end

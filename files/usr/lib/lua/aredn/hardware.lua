@@ -42,6 +42,7 @@ local hardware = {}
 local radio_json = nil
 local board_json = nil
 local channels_cache = {}
+local antennas_cache = {}
 
 function hardware.get_board()
     if not board_json then
@@ -366,6 +367,50 @@ function hardware.get_rfchannels(wifiintf)
         end
     end
     return channels
+end
+
+function hardware.get_antennas(wifiintf)
+    local ants = antennas_cache[wifiintf]
+    if not ants then
+        local radio = hardware.get_radio_intf(wifiintf)
+        if radio and radio.antenna then
+            if radio.antenna == "external" then
+                local dchan = hardware.get_default_channel(wifiintf)
+                if dchan and dchan.band then
+                    local f = io.open("/etc/antennas.json")
+                    if f then
+                        ants = json.parse(f:read("*a"))
+                        f:close()
+                        ants = ants[dchan.band]
+                    end
+                end
+            else
+                radio.antenna.builtin = true
+                ants = { radio.antenna }
+            end
+        end
+        antennas_cache[wifiintf] = ants
+    end
+    return ants
+end
+
+function hardware.get_current_antenna(wifiintf)
+    local ants = hardware.get_antennas(wifiintf)
+    if ants then
+        if #ants == 1 then
+            return ants[1]
+        end
+        local antenna = uci.cursor():get("aredn", "@location[0]", "antenna")
+        if antenna then
+            for _, ant in ipairs(ants)
+            do
+                if ant.model == antenna then
+                    return ant
+                end
+            end
+        end
+    end
+    return nil
 end
 
 function hardware.supported()
