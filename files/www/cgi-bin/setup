@@ -473,23 +473,23 @@ if (parms.button_updatelocation or parms.button_save) then
         end
     end
 
-    -- process antenna and heading
+    -- process antenna and azimuth
     if wifi_enable == "1" then
         if (cursora:get("aredn", "@location[0]", "antenna") or "") ~= parms.antenna then
             cursora:set("aredn", "@location[0]", "antenna", parms.antenna)
             cursorb:set("aredn", "@location[0]", "antenna", parms.antenna)
         end
-        if (cursora:get("aredn", "@location[0]", "heading") or "") ~= parms.heading then
+        if (cursora:get("aredn", "@location[0]", "azimuth") or "") ~= parms.azimuth then
             local ant = aredn.hardware.get_current_antenna(wifi_intf)
             if ant and ant.beamwidth == 360 then
-                parms.heading = ""
+                parms.azimuth = ""
             end
-            local heading = tonumber(parms.heading)
-            if parms.heading == "" or (heading >= 0 and heading < 360) then
-                cursora:set("aredn", "@location[0]", "heading", parms.heading)
-                cursorb:set("aredn", "@location[0]", "heading", parms.heading)
+            local azimuth = tonumber(parms.azimuth)
+            if parms.azimuth == "" or (azimuth >= 0 and azimuth < 360) then
+                cursora:set("aredn", "@location[0]", "azimuth", parms.azimuth)
+                cursorb:set("aredn", "@location[0]", "azimuth", parms.azimuth)
             else
-                err("ERROR: Heading value must be blank or between 0 and 360.")
+                err("ERROR: Azimuth value must be blank or between 0 and 360.")
             end
         end
     end
@@ -512,7 +512,7 @@ gridsquare = cursor:get("aredn", "@location[0]", "gridsquare")
 if not gridsquare then
     gridsquare = ""
 end
-local heading = cursor:get("aredn", "@location[0]", "heading") or ""
+local azimuth = cursor:get("aredn", "@location[0]", "azimuth") or ""
 local antenna = cursor:get("aredn", "@location[0]", "antenna") or ""
 
 -- retrieve ntp_period
@@ -1500,7 +1500,7 @@ if wifi_enable == "1" then
             changeh = "disabled"
         end
     end
-    html.print("<tr><td align=left>Heading</td><td><input " .. changeh .. " type=text name=heading size=10 value='" .. heading .. "' title='Heading (degrees)' /></td>")
+    html.print("<tr><td align=left>Azimuth</td><td><input " .. changeh .. " type=text name=azimuth size=10 value='" .. azimuth .. "' title='azimuth (degrees)' /></td>")
     if changea then
         if not ants then
             html.print("<td align=left>Antenna <input type=text name=antenna size=10 value='" .. antenna .. "'/></td></tr>")

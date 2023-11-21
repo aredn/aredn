@@ -121,11 +121,11 @@ function model.getGridSquare()
 end
 
 -------------------------------------
--- Returns Heading
+-- Returns Azimuth
 -------------------------------------
-function model.getHeading()
+function model.getAzimuth()
 	loc=aredn_uci.getUciConfType("aredn", "location")
-	return loc[1]['heading']
+	return loc[1]['azimuth']
 end
 
 -------------------------------------
