@@ -95,7 +95,7 @@ nft add rule ip fw4 reject_to_vpn oifname "tun*" reject
 nft insert rule ip fw4 forward_dtdlink jump accept_to_vpn
 nft insert rule ip fw4 forward_wifi jump accept_to_vpn
 nft insert rule ip fw4 forward_lan jump accept_to_vpn
-nft insert rule ip fw4 mangle_forward iifname "tun*" tcp flags syn tcp option maxseg size set rt mtu
-nft insert rule ip fw4 mangle_forward oifname "tun*" tcp flags syn tcp option maxseg size set rt mtu
-nft insert rule ip fw4 mangle_forward iifname "wg*" tcp flags syn tcp option maxseg size set rt mtu
-nft insert rule ip fw4 mangle_forward oifname "wg*" tcp flags syn tcp option maxseg size set rt mtu
+nft add rule ip fw4 mangle_forward iifname "tun*" tcp flags syn tcp option maxseg size set rt mtu
+nft add rule ip fw4 mangle_forward oifname "tun*" tcp flags syn tcp option maxseg size set rt mtu
+nft add rule ip fw4 mangle_forward iifname "wg*" tcp flags syn tcp option maxseg size set rt mtu
+nft add rule ip fw4 mangle_forward oifname "wg*" tcp flags syn tcp option maxseg size set rt mtu
