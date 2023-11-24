@@ -1511,21 +1511,17 @@ if wifi_enable == "1" then
         end
     end
     html.print("<tr><td align=left>Azimuth</td><td><input " .. changeh .. " type=text name=azimuth size=10 value='" .. azimuth .. "' title='azimuth (degrees)' /></td>")
-    if changea then
-        if not ants then
-            html.print("<td align=left>Antenna <input type=text name=antenna size=10 value='" .. antenna .. "'/></td></tr>")
-        else
-            html.print("<td align=left>Antenna <select name=antenna>")
-            for _, ant in ipairs(ants)
-            do
-                html.print("<option value='" .. ant.model .. "'" .. (ant.model == antenna and " selected" or "") .. ">" .. ant.description .. "</option>")
-            end
-            html.print("</select></td></tr>")
+    if not changea then
+        html.print("<td align=left>Antenna <input disabled type=text name=antenna_description size=10 value='" .. antenna .. "'/></td>")
+    elseif ants then
+        html.print("<td align=left>Antenna <select name=antenna>")
+        for _, ant in ipairs(ants)
+        do
+            html.print("<option value='" .. ant.model .. "'" .. (ant.model == antenna and " selected" or "") .. ">" .. ant.description .. "</option>")
         end
-    else
-        html.print("<td align=left>Antenna <input disabled type=text name=antenna_description size=10 value='" .. antenna .. "'/></td></tr>")
+        html.print("</select></td>")
     end
-    html.print("<tr><td align=left>Elevation</td><td><input type=text name=elevation size=10 value='" .. elevation .. "' title='elevation above ground level (degrees)' /></td></tr>")
+    html.print("</tr><tr><td align=left>Elevation</td><td><input type=text name=elevation size=10 value='" .. elevation .. "' title='elevation above ground level (degrees)' /></td></tr>")
 end
 html.print("<tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr><tr><td colspan=4><hr /></td></tr>")
 html.print("<tr><td>Timezone </td><td><select name=time_zone_name tabindex=10>")
