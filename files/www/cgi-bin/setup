@@ -475,9 +475,10 @@ if (parms.button_updatelocation or parms.button_save) then
 
     -- process antenna, azimuth and elevation
     if wifi_enable == "1" then
-        if (cursora:get("aredn", "@location[0]", "antenna") or "") ~= parms.antenna then
-            cursora:set("aredn", "@location[0]", "antenna", parms.antenna)
-            cursorb:set("aredn", "@location[0]", "antenna", parms.antenna)
+	local antenna = parms.antenna or ""
+        if (cursora:get("aredn", "@location[0]", "antenna") or "") ~= antenna then
+            cursora:set("aredn", "@location[0]", "antenna", antenna)
+            cursorb:set("aredn", "@location[0]", "antenna", antenna)
         end
         if (cursora:get("aredn", "@location[0]", "azimuth") or "") ~= parms.azimuth then
             local ant = aredn.hardware.get_current_antenna(wifi_intf)
@@ -488,7 +489,7 @@ if (parms.button_updatelocation or parms.button_save) then
             if parms.azimuth == "" or (azimuth >= 0 and azimuth < 360) then
                 cursora:set("aredn", "@location[0]", "azimuth", parms.azimuth)
                 cursorb:set("aredn", "@location[0]", "azimuth", parms.azimuth)
-            else
+            elseif parms.azimuth then
                 err("ERROR: Azimuth value must be blank or between 0 and 360.")
             end
         end
@@ -497,7 +498,7 @@ if (parms.button_updatelocation or parms.button_save) then
             if parms.elevation == "" or (elevation >= -180 and elevation <= 180) then
                 cursora:set("aredn", "@location[0]", "elevation", parms.elevation)
                 cursorb:set("aredn", "@location[0]", "elevation", parms.elevation)
-            else
+            elseif parms.elevation then
                 err("ERROR: Elevation value must be blank or between -180 and 180.")
             end
         end
