@@ -129,6 +129,14 @@ function model.getAzimuth()
 end
 
 -------------------------------------
+-- Returns Elevation
+-------------------------------------
+function model.getElevation()
+	loc=aredn_uci.getUciConfType("aredn", "location")
+	return loc[1]['elevation']
+end
+
+-------------------------------------
 -- Returns AREDN Alert (if exists)
 -------------------------------------
 function model.getArednAlert()

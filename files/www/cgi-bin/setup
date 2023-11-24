@@ -473,7 +473,7 @@ if (parms.button_updatelocation or parms.button_save) then
         end
     end
 
-    -- process antenna and azimuth
+    -- process antenna, azimuth and elevation
     if wifi_enable == "1" then
         if (cursora:get("aredn", "@location[0]", "antenna") or "") ~= parms.antenna then
             cursora:set("aredn", "@location[0]", "antenna", parms.antenna)
@@ -490,6 +490,15 @@ if (parms.button_updatelocation or parms.button_save) then
                 cursorb:set("aredn", "@location[0]", "azimuth", parms.azimuth)
             else
                 err("ERROR: Azimuth value must be blank or between 0 and 360.")
+            end
+        end
+        if (cursora:get("aredn", "@location[0]", "elevation") or "") ~= parms.elevation then
+            local elevation = tonumber(parms.elevation)
+            if parms.elevation == "" or (elevation >= -180 and elevation <= 180) then
+                cursora:set("aredn", "@location[0]", "elevation", parms.elevation)
+                cursorb:set("aredn", "@location[0]", "elevation", parms.elevation)
+            else
+                err("ERROR: Elevation value must be blank or between -180 and 180.")
             end
         end
     end
@@ -513,6 +522,7 @@ if not gridsquare then
     gridsquare = ""
 end
 local azimuth = cursor:get("aredn", "@location[0]", "azimuth") or ""
+local elevation = cursor:get("aredn", "@location[0]", "elevation") or ""
 local antenna = cursor:get("aredn", "@location[0]", "antenna") or ""
 
 -- retrieve ntp_period
@@ -1515,6 +1525,7 @@ if wifi_enable == "1" then
     else
         html.print("<td align=left>Antenna <input disabled type=text name=antenna_description size=10 value='" .. antenna .. "'/></td></tr>")
     end
+    html.print("<tr><td align=left>Elevation</td><td><input type=text name=elevation size=10 value='" .. elevation .. "' title='elevation above ground level (degrees)' /></td></tr>")
 end
 html.print("<tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr><tr><td colspan=4><hr /></td></tr>")
 html.print("<tr><td>Timezone </td><td><select name=time_zone_name tabindex=10>")
