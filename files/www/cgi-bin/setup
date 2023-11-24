@@ -1501,18 +1501,22 @@ html.print("<input " .. locdisabled .. " type='submit' name='button_uploaddata' 
 html.print("</td><tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='" .. lon .. "' title='Longitude value (in decimal) (ie. -95.334454)' /></td><td align=left>Grid Square <input type=text name=gridsquare maxlength=6 size=6 value='" .. gridsquare .. "' title='Gridsquare value (ie. AB12cd)' /></td></tr>")
 if wifi_enable == "1" then
     local ants = aredn.hardware.get_antennas(wifi_intf)
-    local changeh = ""
+    local changeh = true
     local changea = true
     if ants and #ants == 1 then
         changea = false
         antenna = ants[1].description
         if ants[1].beamwidth == 360 then
-            changeh = "disabled"
+            changeh = false
         end
     end
-    html.print("<tr><td align=left>Azimuth</td><td><input " .. changeh .. " type=text name=azimuth size=10 value='" .. azimuth .. "' title='azimuth (degrees)' /></td>")
+    if not changeh then
+        html.print("<tr><td align=left>Azimuth</td><td>-</td>")
+    else
+        html.print("<tr><td align=left>Azimuth</td><td><input type=text name=azimuth size=10 value='" .. azimuth .. "' title='azimuth (degrees)' /></td>")
+    end
     if not changea then
-        html.print("<td align=left>Antenna <input disabled type=text name=antenna_description size=10 value='" .. antenna .. "'/></td>")
+        html.print("<td align=left>Antenna " .. antenna .. "</td>")
     elseif ants then
         html.print("<td align=left>Antenna <select name=antenna>")
         for _, ant in ipairs(ants)
@@ -1521,7 +1525,11 @@ if wifi_enable == "1" then
         end
         html.print("</select></td>")
     end
-    html.print("</tr><tr><td align=left>Elevation</td><td><input type=text name=elevation size=10 value='" .. elevation .. "' title='elevation above ground level (degrees)' /></td></tr>")
+    if not changeh then
+        html.print("</tr><tr><td align=left>Elevation</td><td>-</td></tr>")
+    else
+        html.print("</tr><tr><td align=left>Elevation</td><td><input type=text name=elevation size=10 value='" .. elevation .. "' title='elevation above ground level (degrees)' /></td></tr>")
+    end
 end
 html.print("<tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr><tr><td colspan=4><hr /></td></tr>")
 html.print("<tr><td>Timezone </td><td><select name=time_zone_name tabindex=10>")
