@@ -116,7 +116,8 @@ local cfg = {
     wan_network_config = "",
     dtdlink_network_config = "",
     wifi_network_config = "",
-    olsrd_dtd_interface_mode = "ether"
+    olsrd_dtd_interface_mode = "ether",
+    olsrd_pollrate = "0.05",
 }
 
 function expand_vars(lines)
@@ -190,6 +191,7 @@ end
 local is_supernode = (uci.cursor("/etc/config.mesh"):get("aredn", "@supernode[0]", "enable") == "1")
 if is_supernode then
     cfg.olsrd_dtd_interface_mode = "isolated"
+    cfg.olsrd_pollrate = "0.01"
 end
 
 -- delete some config lines if necessary
