@@ -462,9 +462,9 @@ if do_basic then
     end
 
     -- Generate the tunnel configurations
-    local tun_port = cm:get("vtun", "@option[0]", "port")
+    local tun_port = cm:get("vtun", "@options[0]", "port")
     if tun_port then
-        cfg.tun_network_config = cfg.tun_network_config .. "config option\n\toption port '" .. tun_port .. "'\n\n"
+        cfg.tun_network_config = cfg.tun_network_config .. "config options\n\toption port '" .. tun_port .. "'\n\n"
     end
     local tun_start = cm:get("vtun", "@network[0]", "start")
     local tun_dns = cm:get("vtun", "@network[0]", "dns")
@@ -481,7 +481,7 @@ if do_basic then
     cm:foreach("vtun", "client",
         function(s)
             if s.enabled == "1" then
-                cfg.tun_network_config = cfg.tun_network_config .. string.format("config client\n\toption enabled '1'\n\toption node '%s'\n\toption password '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n", 
+                cfg.tun_network_config = cfg.tun_network_config .. string.format("config client\n\toption enabled '1'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
                     s.node, s.passwd, s.clientip, s.serverip, s.netip)
             end
         end
@@ -527,7 +527,7 @@ if do_basic then
                     wgservers = wgservers + 1
                 else
                     cfg.tun_network_config = cfg.tun_network_config ..
-                        string.format("config server\n\toption enabled '1'\n\toption host '%s'\n\toption node '%s'\n\toption password '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n", 
+                        string.format("config server\n\toption enabled '1'\n\toption host '%s'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
                             s.host, s.node, s.passwd, s.clientip, s.serverip, s.netip)
                 end
             end
