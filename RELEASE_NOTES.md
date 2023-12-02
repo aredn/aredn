@@ -1,6 +1,6 @@
 __RELEASE NOTES__
 
-# 3.23.11.0
+# 3.23.12.0
 
 ## Enhancements
 
