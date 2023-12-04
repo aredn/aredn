@@ -6,7 +6,7 @@ version: 2.1
 parameters:
   action:
     type: enum
-    enum: [no_action, nightly_build, manual_build, release_build]
+    enum: [no_action, nightly_build, manual_build, release_build, afs_collector]
     default: no_action
   release_version:
     type: string
@@ -303,4 +303,10 @@ workflows:
       - save_build_info:
           requires:
             - process_artifacts_release
+
+  afs_collector_workflow:
+    when:
+      equal: [ afs_collector, << pipeline.parameters.action >> ]
+    jobs:
+      - afs_collector
 
