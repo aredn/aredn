@@ -45,7 +45,7 @@ require("uci")
 
 local html = aredn.html
 
-local cursor = uci.cursor();
+local cursor = uci.cursor("/etc/config.mesh");
 
 local node = aredn.info.get_nvram("node")
 if node == "" then
@@ -69,6 +69,11 @@ if os.getenv("REQUEST_METHOD") == "POST" then
     )
     parms = request:formvalue()
 end
+
+-- wireguard
+local wireguard_mask_size = tonumber(cursor:get("wireguard", "@wireguard_server[0]", "masksize") or 26)
+local wireguard_max = nixio.bit.lshift(1, 32 - wireguard_mask_size)
+local wireguard_alive_time = 300 -- 5 minutes
 
 -- helpers start
 
@@ -102,12 +107,37 @@ function get_active_tun()
     return tuns
 end
 
+function get_active_wgtun()
+    local tuns = {}
+    local f = io.popen("/usr/bin/wg show all latest-handshakes")
+    if f then
+        for line in f:lines()
+        do
+            local k,v = line:match("^%S+%s+(%S+)%s+(%S+)%s*$")
+            if k then
+                tuns[k] = tonumber(v) -- time in seconds
+            end
+        end
+        f:close()
+    end
+    return tuns
+end
+
 function is_tunnel_active(ip, tunnels)
     for _, aip in ipairs(tunnels)
     do
         if ip == aip then
             return true
         end
+    end
+    return false
+end
+
+function is_wgtunnel_active(key, wgtunnels)
+    local key = key:match("^.*=(.*=)$")
+    local v = wgtunnels[key]
+    if v and v + wireguard_alive_time > os.time() then
+        return true
     end
     return false
 end
@@ -127,9 +157,23 @@ function get_server_network_address()
     return { a, b, c, d }
 end
 
+function get_wireguard_network_address(netw)
+    local c = netw[3] + 1
+    if c > 255 then
+        c = 0
+    end
+    local d = nixio.bit.band(netw[4], nixio.bit.lshift(255, 32 - wireguard_mask_size))
+    return { netw[1], netw[2], c, d, wireguard_mask_size }
+end
+
 function get_server_dns()
     local dns = cursor:get("vtun", "@network[0]", "dns")
     return dns and dns or ""
+end
+
+function get_wireguard_public()
+    local wg = cursor:get("wireguard", "@wireguard_server[0]", "public")
+    return wg or ""
 end
 
 -- helper end
@@ -152,6 +196,25 @@ function get_client_info()
         end
     )
     parms.client_num = c
+end
+-- wireguard
+local gci_vars = { "enabled", "name", "key", "clientip", "contact" }
+function get_wgclient_info()
+    local c = 0
+    cursor:foreach("wireguard", "client",
+        function(section)
+            for _, var in ipairs(gci_vars)
+            do
+                local key = "wgclient" .. c .. "_" .. var
+                parms[key] = section[var]
+                if not parms[key] then
+                    parms[key] = ""
+                end
+            end
+            c = c + 1
+        end
+    )
+    parms.wgclient_num = c
 end
 
 if parms.button_reboot then
@@ -186,24 +249,30 @@ if parms.button_reset then
     cursor:delete("vtun", "@options[0]", "port")
     cursor:delete("vtun", "@network[0]", "start")
     cursor:delete("vtun", "@network[0]", "dns")
-    cursor:commit("vtun")
 end
 
 -- get vtun network address
 local netw = get_server_network_address()
+local netwg = get_wireguard_network_address(netw)
 local dns = get_server_dns()
+local wireguard_public = get_wireguard_public()
 
 -- if RESET or FIRST TIME load client/servers from file into parms
 if parms.button_reset or not parms.reload then
     cursor:revert("vtun")
     get_client_info()
+    get_wgclient_info()
     parms.server_net1 = netw[3]
     parms.server_net2 = netw[4]
     parms.dns = dns
-    -- initialzie the "add" entries to clear them
+    parms.wireguard_public = wireguard_public
+    -- initialize the "add" entries to clear them
     parms.client_add_enabled = "0"
     parms.client_add_name = ""
     parms.client_add_passwd = ""
+    parms.wgclient_add_enabled = "0"
+    parms.wgclient_add_name = ""
+    parms.wgclient_add_key = ""
 end
 
 local list = {}
@@ -239,12 +308,15 @@ do
         end
 
         if val == "_add" and not ((enabled ~= "0" or name ~= "" or passwd ~= "" or contact ~= "") and (parms.client_add or parms.button_save)) then
-           break
+            break
         end
 
         if val == "_add" and parms.button_save then
             err(val .. " this client must be added or cleared out before saving changes")
             break
+        end
+        if passwd == "" then
+            err("A client password is required")
         end
         if passwd:match("[^%w@]") then
             err("The password cannot contain non-alphanumeric characters (#" .. client_num .. ")")
@@ -254,9 +326,6 @@ do
         end
         if name == "" then
             err("A client name is required")
-        end
-        if passwd == "" then
-            err("A client password is required")
         end
 
         if val == "_add" and #cli_err > 0 and cli_err[#cli_err]:match("^" .. val .. " ") then
@@ -281,8 +350,78 @@ do
         end
     end
 end
-
 parms.client_num = client_num
+
+-- wireguard
+local vars = { "enabled", "name", "key", "clientip", "contact" }
+local wgclient_num = 0
+for val = 0, parms.wgclient_num
+do
+    if val == tonumber(parms.wgclient_num) then
+        val = "_add"
+    end
+    for _ = 1,1
+    do
+        for _, var in ipairs(vars)
+        do
+            local varname = "wgclient" .. val .. "_" .. var
+            if var == "enabled" and not parms[varname] then
+                parms[varname] = "0"
+            elseif not parms[varname] then
+                parms[varname] = ""
+            elseif var == "contact" then
+                parms[varname] = parms[varname]:gsub("^%s+", ""):gsub("%s+$", ""):sub(1,210):gsub('"',"&quot;"):gsub("'","&apos;"):gsub("<","&lt;"):gsub(">","&gt;")
+            else
+                parms[varname] = parms[varname]:gsub("^%s+", ""):gsub("%s+$", "")
+            end
+            if val ~= "_add" and parms[varname] == "" and var == "enabled" then
+                parms[varname] = "0"
+            end
+            _G[var] = parms[varname]
+        end
+
+        if val == "_add" and not ((enabled ~= "0" or name ~= "" or contact ~= "") and (parms.wgclient_add or parms.button_save)) then
+            break
+        end
+
+        if val == "_add" and parms.button_save then
+            err(val .. " this wireguard client must be added or cleared out before saving changes")
+            break
+        end
+        if name == "" then
+            err("A client name is required")
+        end
+
+        if val == "_add" and #cli_err > 0 and cli_err[#cli_err]:match("^" .. val .. " ") then
+            break
+        end
+
+        if key == "" then
+            local priv = capture("/usr/bin/wg genkey"):match("(%S+)")
+            local pub = capture("echo " .. priv .. " | /usr/bin/wg pubkey"):match("(%S+)")
+            key = priv .. pub
+        end
+
+        parms["wgclient" .. wgclient_num .. "_enabled"] = enabled
+        parms["wgclient" .. wgclient_num .. "_name"] = name:upper()
+        parms["wgclient" .. wgclient_num .. "_key"] = key
+        parms["wgclient" .. wgclient_num .. "_clientip"] = clientip
+        parms["wgclient" .. wgclient_num .. "_contact"] = contact
+
+        -- commit the data from this client
+        wgclient_num = wgclient_num + 1
+
+        -- clear out the ADD values
+        if val == "_add" then
+            for _, var in ipairs(vars)
+            do
+                parms["wgclient_add_" .. var] = ""
+            end
+        end
+    end
+end
+parms.wgclient_num = wgclient_num
+
 
 -- SAVE the server network numbers and dns into the UCI
 netw[3] = parms.server_net1
@@ -343,6 +482,22 @@ do
         enabled_count = enabled_count + 1
     end
 end
+-- wireguard
+for i = 0,wgclient_num-1
+do
+    local clientx = "wgclient" .. i
+    local client_x = "client_" .. i
+
+    if not cursor:get("wireguard", client_x) then
+        cursor:set("wireguard", client_x, 'client')
+    end
+
+    cursor:set("wireguard", client_x, "enabled", parms[clientx .. "_enabled"])
+    cursor:set("wireguard", client_x, "name", parms[clientx .. "_name"])
+    cursor:set("wireguard", client_x, "contact", parms[clientx .. "_contact"])
+    cursor:set("wireguard", client_x, "key", parms[clientx .. "_key"])
+    cursor:set("wireguard", client_x, "clientip", parms[clientx .. "_clientip"])
+end
 
 local maxclients = tonumber(cursor:get("aredn", "@tunnel[0]", "maxclients"))
 if not maxclients then
@@ -355,16 +510,15 @@ end
 -- save configuration (commit)
 if parms.button_save and #cli_err == 0 then
     cursor:commit("vtun")
-    write_all("/etc/config.mesh/vtun", read_all("/etc/config/vtun"))
-    if os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1") ~= 0 then
-      err2("Problem restarting olsrd")
-    end
-    if os.execute("/etc/init.d/vtundsrv restart > /dev/null 2>&1") ~= 0 then
-      err2("Problem restaring vtundsrv")
-    end
+    cursor:commit("wireguard")
+    os.execute("/usr/local/bin/node-setup -a mesh > /dev/null 2>&1")
+    os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1")
+    os.execute("/etc/init.d/vtundsrv restart > /dev/null 2>&1")
+    os.execute("/etc/init.d/network restart > /dev/null 2>&1")
 end
 
 local active_tun = get_active_tun()
+local active_wgtun = get_active_wgtun()
 
 -- generate the page
 
@@ -377,7 +531,7 @@ html.print("<form id=vpn method=post action=/cgi-bin/vpn enctype='multipart/form
 -- navigation bar
 html.navbar_admin("vpn")
 
-html.print("<table width=790>")
+html.print("<table width=850>")
 
 -- control buttons
 html.print("<tr><td align=center>")
@@ -430,11 +584,13 @@ if config == "mesh" then
     -- print vpn clients
     html.print("<table cellpadding=0 cellspacing=0>")
 
-    html.print("<br /><tr class=tun_network_row><td colspan=6 align=center valign=top>Tunnel Server Network: ")
+    html.print("<br /><tr class=tun_network_row><td colspan=6 valign=top><div style='display:inline-block;width:175px;padding-left:50px'>Tunnel Server Network:</div>")
     html.print(netw[1] .. "." .. netw[2] .. ".<input type='text' name='server_net1' size='3' maxlen='3' value='" .. netw[3] .. "' onChange='form.submit()' title='from 0-255' >.<input type='text' name='server_net2' size='3' maxlen='3' value='" .. netw[4] .. "' onChange='form.submit()' title='from 0-255 in multiples of 4. (ie. 0,4,8,12,16...252)' >")
-
+    html.print("<br /><div style='display:inline-block;width:175px;padding:2px 0 0 50px'>Wireguard Server Network:</div>")
+    html.print(netwg[1] .. "." .. netwg[2] .. "." .. netwg[3] .. "." .. netwg[4] .. "/" .. netwg[5])
     html.print("<br /><hr>Tunnel Server DNS Name: ")
     html.print("<input type='text' name='dns' size='30' value='" .. dns .. "' onChange='form.submit()' ></td></tr>")
+    html.print("<input type='hidden' name='wireguard_public' value='" .. wireguard_public .. "'>")
 
     html.print("</table>")
     html.print("<table cellpadding=0 cellspacing=0>")
@@ -462,9 +618,6 @@ if config == "mesh" then
         do
             _G[var] = parms["client" .. val .. "_" .. var]
         end
-        if val == "_add" and #list > 1 then
-            html.print("<tr class=tun_client_add_row><td height=10></td></tr>")
-        end
         html.print("<tr class='tun_client_list2 tun_client_row'>")
         html.print("<td class='tun_client_center_item' rowspan='2'>")
         html.print("<input type='checkbox' name='client" .. val .. "_enabled' value='1'")
@@ -480,11 +633,12 @@ if config == "mesh" then
             html.print(" onChange='form.submit()'")
         end
         html.print(" title='client name'></td>")
-        html.print("<td><input type=text size=25 name=client" .. val .. "_passwd value='" .. passwd .. "' ")
+        html.print("<td>")
+        html.print("<input type=text size=25 name=client" .. val .. "_passwd value='" .. passwd .. "' title='client password' ")
         if val ~= "_add" then
             html.print(" onChange='form.submit()'")
         end
-        html.print(" title='client password'></td>")
+        html.print("</td>")
 
         -- handle rollover of netw
         local net
@@ -498,8 +652,8 @@ if config == "mesh" then
         end
         local lastnet = netw[4] + net * 4
         local fullnet = netw[1] .. "." .. netw[2] .. "." .. netw[3] .. "." .. lastnet
-        html.print("<td rowspan='2' class='tun_client_center_item'>&nbsp;" .. fullnet)
-        html.print("<input type=hidden name=client" .. val .. "_netip value='" .. fullnet .. "'/></td>")
+        html.print("<td rowspan='2' class='tun_client_center_item'>")
+        html.print("<input style='width:90px;background-color:transparent;border:0;text-align:center;' readonly type=text size=16 name=client" .. val .. "_netip value='" .. fullnet .. "'/></td>")
         html.print("<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;")
         if val ~= "_add" and is_tunnel_active(fullnet, active_tun) then
             html.print("<img class='tun_client_active_img' src='/connected.png' title='Connected' />")
@@ -510,7 +664,9 @@ if config == "mesh" then
         if val == "_add" then
             html.print("<td rowspan='2' class='tun_client_center_item'><input type=submit name=client_add value=Add title='Add this client'></td>")
         else
-            html.print("<td rowspan='2' class='tun_client_center_item tun_client_mailto'><a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20" .. name .. "%0D%0APassword:%20" .. passwd .. "%0D%0ANetwork:%20" .. fullnet .. "%0D%0AServer%20address:%20" .. dns .. "' target='_blank'><img class='tun_client_mailto_img' src='/email.png' title='Email details' /></a></td>")
+            html.print("<td rowspan='2' class='tun_client_center_item tun_client_mailto' id=client" .. val .. "_email>")
+            html.print("<a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20" .. name .. "%0D%0APassword:%20" .. passwd .. "%0D%0ANetwork:%20" .. fullnet .. "%0D%0AServer%20address:%20" .. dns .. "' target='_blank'>")
+            html.print("<img class='tun_client_mailto_img' src='/email.png' title='Email details' /></a></td>")
         end
         html.print("</tr><tr class='tun_client_list1 tun_client_row tun_loading_css_comment'><td colspan='2' align='right'>Contact Info/Comment (Optional): <input type=text maxlength='50' size=40 name=client" .. val .. "_contact value='" .. contact .."'")
         if val ~= "" and val ~= "_add" then
@@ -521,8 +677,78 @@ if config == "mesh" then
         -- display any errors
         while #cli_err > 0 and cli_err[1]:match("^" .. val .. " ")
         do
-            html.print("<tr class=tun_client_error_row><th colspan=4>" .. err:gsub("^%S+ ", "") .. "</th></tr>")
-            cli_err:remove(1)
+            html.print("<tr class=tun_client_error_row><th colspan=4>" .. cli_err[1]:gsub("^%S+ ", "") .. "</th></tr>")
+            table.remove(cli_err)
+        end
+
+        html.print("<tr><td colspan=4 height=4></td></tr>")
+        cnum = cnum + 1
+    end
+
+    -- Wireguard
+    html.print("<tr><th colspan=6></th></tr>")
+    html.print("<tr><th colspan=6 style='padding: 30px 0 0 0'>Allow the following clients to connect to this Wireguard server:</th></tr>")
+    html.print("<tr><th colspan=6><hr></th></tr>")
+    html.print("<tr><th>Enabled?</th><th>Client</th><th>Key</th><th>Client</th><th>Active&nbsp;</td><th>Action</th></tr>")
+
+    local keys = { "enabled", "name", "contact", "key" }
+    local cnum = 1
+    for val = 0, wgclient_num
+    do
+        if val == wgclient_num then
+            val = "_add"
+        end
+        for _, var in ipairs(keys)
+        do
+            _G[var] = parms["wgclient" .. val .. "_" .. var]
+        end
+        html.print("<tr class='tun_client_list2 tun_client_row'>")
+        html.print("<td class='tun_client_center_item' rowspan='2'>")
+        html.print("<input type='checkbox' name='wgclient" .. val .. "_enabled' value='1'")
+        if val ~= "_add" then
+            html.print(" onChange='form.submit()'")
+        end
+        if enabled == "1" then
+            html.print(" checked='checked'")
+        end
+        html.print(" title='enable this client'></td>")
+        html.print("<td><input type=text size=40 name=wgclient" .. val .. "_name value='" .. (name or "") .. "'")
+        if val ~= "_add" then
+            html.print(" onChange='form.submit()'")
+        end
+        html.print(" title='client name'></td>")
+        html.print("<td>")
+        html.print("<input type=" .. (val == '_add' and 'hidden' or 'text') .. " readonly size=25 oncopy='return false' name=wgclient" .. val .. "_key value='" .. key .. "' title='client key'>")
+        html.print("</td>")
+
+        local fullnet = netwg[1] .. "." .. netwg[2] .. "." .. netwg[3] .. "." .. (netwg[4] + 1 + cnum) .. "/" .. netwg[5]
+        html.print("<td rowspan='2' class='tun_client_center_item'>")
+        html.print("<input style='width:90px;background-color:transparent;border:0;text-align:center;' readonly type=text size=16 name=wgclient" .. val .. "_clientip value='" .. fullnet:match("^(.+)/") .. "'/></td>")
+        html.print("<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;")
+        if val ~= "_add" and is_wgtunnel_active(key, active_wgtun) then
+            html.print("<img class='tun_client_active_img' src='/connected.png' title='Connected' />")
+        else
+            html.print("<img class='tun_client_inactive_img' src='/disconnected.png' title='Not connected' />")
+        end
+        html.print("</td>")
+        if val == "_add" then
+            html.print("<td rowspan='2' class='tun_client_center_item'><input type=submit name=wgclient_add value=Add title='Add this client'></td>")
+        else
+            html.print("<td rowspan='2' class='tun_client_center_item tun_client_mailto' id=wgclient" .. val .. "_email>")
+            html.print("<a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20" .. name .. "%0D%0APassword:%20" .. wireguard_public .. key .. "%0D%0ANetwork:%20" .. fullnet .. "%0D%0AServer%20address:%20" .. dns .. "' target='_blank'>")
+            html.print("<img class='tun_client_mailto_img' src='/email.png' title='Email details' /></a></td>")
+        end
+        html.print("</tr><tr class='tun_client_list1 tun_client_row tun_loading_css_comment'><td colspan='2' align='right'>Contact Info/Comment (Optional): <input type=text maxlength='50' size=40 name=wgclient" .. val .. "_contact value='" .. (contact or "") .."'")
+        if val ~= "" and val ~= "_add" then
+            html.print(" onChange='form.submit()'")
+        end
+        html.print(" title='client contact info'></td></tr>")
+
+        -- display any errors
+        while #cli_err > 0 and cli_err[1]:match("^" .. val .. " ")
+        do
+            html.print("<tr class=tun_client_error_row><th colspan=4>" .. cli_err[1]:gsub("^%S+ ", "") .. "</th></tr>")
+            table.remove(cli_err)
         end
 
         html.print("<tr><td colspan=4 height=4></td></tr>")
@@ -535,6 +761,7 @@ if config == "mesh" then
 end
 html.print("</table><p style='font-size:8px'>Tunnel v" .. VPNVER .. "</p>")
 hide("<input type=hidden name=client_num value=" .. parms.client_num .. ">")
+hide("<input type=hidden name=wgclient_num value=" .. parms.wgclient_num .. ">")
 
 -- add hidden forms fields
 for _, h in ipairs(hidden)
