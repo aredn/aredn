@@ -312,26 +312,28 @@ end
 -- discard
 routes = nil
 
-for line in io.lines("/var/run/services_olsr")
-do
-    if line:match("^%w") then
-        local url, name = line:match("^(.*)|.*|(.*)$")
-        if name then
-            local protocol, host, port, path = url:match("^([%w][%w%+%-%.]+)%://(.+):(%d+)/(.*)")
-            if path then
-                local name, originator = name:match("(.*%S)%s*#(.*)")
-                if originator == " my own service" or (hosts[originator] and hosts[originator].name) then
-                    if not host:match("%.local%.mesh$") then
-                        host = host .. ".local.mesh"
-                    end
-                    if not services[host] then
-                        services[host] = {}
-                    end
-                    if not services[host][name] then
-                        if port ~= "0" then
-                            services[host][name] = "<a href='" .. protocol .. "://" .. host .. ":" .. port .. "/" .. path .. "' target='_blank'>" .. name .. "</a>"
-                        else
-                            services[host][name] = name
+if nixio.fs.stat("/var/run/services_olsr") then
+    for line in io.lines("/var/run/services_olsr")
+    do
+        if line:match("^%w") then
+            local url, name = line:match("^(.*)|.*|(.*)$")
+            if name then
+                local protocol, host, port, path = url:match("^([%w][%w%+%-%.]+)%://(.+):(%d+)/(.*)")
+                if path then
+                    local name, originator = name:match("(.*%S)%s*#(.*)")
+                    if originator == " my own service" or (hosts[originator] and hosts[originator].name) then
+                        if not host:match("%.local%.mesh$") then
+                            host = host .. ".local.mesh"
+                        end
+                        if not services[host] then
+                            services[host] = {}
+                        end
+                        if not services[host][name] then
+                            if port ~= "0" then
+                                services[host][name] = "<a href='" .. protocol .. "://" .. host .. ":" .. port .. "/" .. path .. "' target='_blank'>" .. name .. "</a>"
+                            else
+                                services[host][name] = name
+                            end
                         end
                     end
                 end
