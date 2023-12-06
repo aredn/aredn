@@ -1,5 +1,52 @@
 __RELEASE NOTES__
 
+# 3.23.12.0
+
+## Enhancements
+
+* Added Supernode support.
+
+  "Supernodes" are specifically configured AREDN nodes in various locations which support a 
+"mesh of meshes". With this release your localnode will automatically detect a nearby 
+supernode, and will show a new button on the Mesh Status page, labeled "Cloud Mesh". 
+Clicking on that button will take you to the Mesh Status page of that supernode and show you 
+all the nodes and services on the Cloud Mesh. You can navigate to any of them as though they
+were on your local mesh.
+
+  The URL for the supernode map is currently https://arednmap.xojs.org/  Clicking on any of the 
+nodes in the upper-right-hand corner of the map will filter all other nodes out, showing only the 
+types selected.
+
+* Remember and reinstall packages after firmware upgrade (AFTER this version is installed)
+* Simplified search tool
+* Added LZ77 decompression for Mikrotik firmware, which is now using a different compression method
+* Cron
+  * Now run cron.boot tasks earlier
+  * Changed pollrate default to one hour
+  * Added installable cron package for people who need more functionality
+* Improved dual radio configuration support in hAPs
+* Added support for wildcard DNS subdomains
+* Now using frequency list for scan.  Some hardware didn’t scan all the frequencies we want by default. (Not a fix for the scan issue seen on some AC devices.)
+* Set tunnel weight to 1 and provided UI to change it. With this change, if there are both RF and tunnel links to a destination, the tunnel value can be set high (relatively poor).  In that way traffic will only flow over the tunnel if the RF link goes down.  This provides an effective method for implementing backup links.
+* Bumped the allowed Ubiquiti version numbers to support AREDN installation on newer LiteBeam 5ACs.  (Probably all new Ubiquiti devices but currently only tested on Litebeams).
+* Xlink broadcast - Allow xlinks to broadcast OLSR traffic as well as targeting specific IPs.
+
+## New device support
+
+None in this release
+
+## Bug fixes
+
+* Now detect if we support firstboot mode (x86 VMs don't support it, so don't show the button in that case)
+* Fixed dnsmasq directives 
+* Correctly set wifi wan mode when depending on the mesh wifi setting.
+* Corrected a bug where it would mess up the wan wifi when switching the band of the mesh wifi
+* Made LQM neighbor improvements (fixed occasional exclusion of specific DtD neighbors)
+
+## Known problems
+
+* Ubiquiti 802.11ac devices - missing wifi scan and waterfall info
+
 # 3.23.8.0
 
 There have been over 70 nightly releases of the AREDN codebase since the last production release in April of 2023. Here are the highlights of the latest production release:	 	
