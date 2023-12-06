@@ -1,0 +1,10 @@
+#!/bin/sh
+
+vtunduciport=$(uci get vtun.@options[0].port 2>/dev/null)
+vtundport=${vtunduciport:-5525}
+
+nft insert rule ip fw4 input_wan udp dport $vtundport accept comment \"Wireguard\"
+if [ "$(/sbin/uci -q get aredn.@tunnel[0].wanonly)" != "0" ]; then
+    nft insert rule ip fw4 output_wifi udp dport $vtundport reject comment \"Wireguard\"
+    nft insert rule ip fw4 output_dtdlink udp dport $vtundport reject comment \"Wireguard\"
+fi
