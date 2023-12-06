@@ -1,0 +1,11 @@
+#! /bin/sh
+if [ "$(/sbin/uci -c /etc/config.mesh -q get wireguard.@wireguard_server[0].public)" = "" -a -f /usr/bin/wg ]; then
+    private=$(/usr/bin/wg genkey)
+    public=$(echo $private | /usr/bin/wg pubkey)
+    touch /etc/config.mesh/wireguard
+    /sbin/uci -q -c /etc/config.mesh add wireguard wireguard_server
+    /sbin/uci -q -c /etc/config.mesh set wireguard.@wireguard_server[0].private=$private
+    /sbin/uci -q -c /etc/config.mesh set wireguard.@wireguard_server[0].public=$public
+    /sbin/uci -q -c /etc/config.mesh set wireguard.@wireguard_server[0].masksize=26
+    /sbin/uci -q -c /etc/config.mesh commit wireguard
+fi

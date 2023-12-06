@@ -192,7 +192,7 @@ function canonical_hostname(hostname)
 end
 
 local cursor = uci.cursor()
-
+local cursorm = uci.cursor("/etc/config.mesh")
 
 local myhostname = canonical_hostname(info.get_nvram("node") or "localnode")
 local myip = cursor:get("network", "wifi", "ipaddr")
@@ -375,6 +375,49 @@ function lqm()
                 end
             end
         end
+
+        -- Wireguard
+        cursorm:foreach("wireguard", "client",
+            function(s)
+                if s.enabled == "1" then
+                    local a, b, c, d = s.clientip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+                    stations[#stations + 1] = {
+                        type = "Tunnel",
+                        device = "wgc",
+                        signal = nil,
+                        ip = s.clientip,
+                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d),
+                        tx_packets = 0,
+                        tx_fail = 0,
+                        tx_retries = 0,
+                        tx_bitrate = 0,
+                        rx_bitrate = 0
+                    }
+                end
+            end
+        )
+        local wgs = 0
+        cursorm:foreach("vtun", "server",
+            function(s)
+                if s.enabled == "1" and s.netip:match("/") then
+                    local a, b, c, d, m = s.netip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)/(%d+)$")
+                    local d = nixio.bit.band(d, nixio.bit.lshift(255, 32 - m)) + 1
+                    stations[#stations + 1] = {
+                        type = "Tunnel",
+                        device = "wgs" .. wgs,
+                        signal = nil,
+                        ip = string.format("%d.%d.%d.%d", a, b, c, d),
+                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d),
+                        tx_packets = 0,
+                        tx_fail = 0,
+                        tx_retries = 0,
+                        tx_bitrate = 0,
+                        rx_bitrate = 0
+                    }
+                    wgs = wgs + 1
+                end
+            end
+        )
 
         -- DtD
         for _, entry in ipairs(arps)
