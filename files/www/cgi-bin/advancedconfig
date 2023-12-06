@@ -146,8 +146,8 @@ local settings = {
         type = "string",
         desc = "<b>Maximum packet size</b> in bytes sent over WiFi (256 to 1500)<br><br><small>aredn.@lqm[0].mtu</small>",
         default = "1500",
-        postcallback = "changeMTU()",
-        needreboot = true
+        needreboot = true,
+        nodesetup = true
     },
     {
         category = "Link Quality Settings",
@@ -171,8 +171,8 @@ local settings = {
         type = "boolean",
         desc = "<b>Allow other MESH nodes to use my WAN</b> - not recommended and OFF by default<br><br><small>aredn.@wan[0].olsrd_gw</small>",
         default = "0",
-        postcallback = "changeWANGW()",
-        needreboot = true
+        needreboot = true,
+        nodesetup = true
     },
     {
         category = "WAN Settings",
@@ -180,8 +180,8 @@ local settings = {
         type = "boolean",
         desc = "<b>Allow my LAN devices to access my WAN</b> - ON by default<br><br><small>aredn.@wan[0].lan_dhcp_route</small>",
         default = "1",
-        postcallback = "changeWANGW()",
-        needreboot = true
+        needreboot = true,
+        nodesetup = true
     },
     {
         category = "WAN Settings",
@@ -189,8 +189,8 @@ local settings = {
         type = "boolean",
         desc = "<b>Provide default route to LAN devices</b> even when WAN access is disabled<br><br><small>aredn.@wan[0].lan_dhcp_defaultroute</small>",
         default = "0",
-        postcallback = "changeWANGW()",
-        needreboot = true
+        needreboot = true,
+        nodesetup = true
     },
     {
         category = "WAN Settings",
@@ -201,7 +201,8 @@ local settings = {
         condition = "supportsVLANChange()",
         current = "currentWANVLAN()",
         postcallback = "changeWANVLAN()",
-        needreboot = true
+        needreboot = true,
+        nodesetup = true
     },
     {
         category = "WAN Settings",
@@ -315,6 +316,16 @@ local settings = {
         type = "boolean",
         desc = "<b>IPERF Enable</b> allows the included iperf3 client/server<br><br><small>aredn.@iperf[0].enable</small>",
         default = "1"
+    },
+    {
+        category = "Remote Logging",
+        key = "aredn.@remotelog[0].url",
+        type = "string",
+        desc = "<b>Remote logging URL</b> for the remote syslog machine. Must be formatted as <i>protocol://ipaddress:port</i><br><br><small>aredn.@remotelog[0].url</small>",
+        default = "",
+        needreboot = true,
+        nodesetup = true,
+        precallback = "validate_rsyslog()"
     },
     {
         category = "Map Paths",
@@ -751,15 +762,16 @@ function changeWANVLAN()
         end
         f:close()
     end
-    os.execute("/usr/local/bin/node-setup -a mesh")
 end
 
-function changeWANGW()
-    os.execute("/usr/local/bin/node-setup -a mesh")
-end
-
-function changeMTU()
-    os.execute("/usr/local/bin/node-setup -a mesh")
+function validate_rsyslog()
+    if newval ~= "" then
+        local proto, ip, port = newval:match("^(.+)://(%d+%.%d+%.%d+%.%d+):(%d+)$")
+        if not proto or not (proto == "tcp" or proto == "udp") then
+            msg("Badly formatted remote logging URL")
+            newval = ""
+        end
+    end
 end
 
 -- read_postdata
@@ -811,6 +823,9 @@ do
         msg("Changed " .. key)
         if setting.postcallback then
             loadstring(setting.postcallback)()
+        end
+        if setting.nodesetup then
+            os.execute("/usr/local/bin/node-setup -a mesh")
         end
         if setting.needreboot then
             io.open("/tmp/reboot-required", "w"):close()
