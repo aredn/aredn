@@ -36,11 +36,11 @@ Index: openwrt/feeds/packages/net/iperf3/files/iperf.firewall
 +++ openwrt/feeds/packages/net/iperf3/files/iperf.firewall
 @@ -0,0 +1,9 @@
 +#!/bin/sh
-+nft insert rule ip fw4 input_wifi udp dport 5201 counter accept
-+nft insert rule ip fw4 input_wifi tcp dport 5201 counter accept
-+nft insert rule ip fw4 input_dtdlink udp dport 5201 counter accept
-+nft insert rule ip fw4 input_dtdlink tcp dport 5201 counter accept
-+if [ "$MESHFW_TUNNELS_ENABLED" == "1" ]; then
-+	 nft insert rule ip fw4 input_vpn udp dport 5201 counter accept
-+	 nft insert rule ip fw4 input_vpn tcp dport 5201 counter accept
++nft insert rule ip fw4 input_wifi udp dport 5201 accept
++nft insert rule ip fw4 input_wifi tcp dport 5201 accept
++nft insert rule ip fw4 input_dtdlink udp dport 5201 accept
++nft insert rule ip fw4 input_dtdlink tcp dport 5201 accept
++if [ "$MESHFW_TUNNELS_ENABLED" == "1" -o "$MESHFW_WG_TUNNELS_ENABLED" == "1" ]; then
++	 nft insert rule ip fw4 input_vpn udp dport 5201 accept
++	 nft insert rule ip fw4 input_vpn tcp dport 5201 accept
 +fi
