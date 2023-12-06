@@ -55,6 +55,13 @@ then
 else
   export MESHFW_TUNNELS_ENABLED=0
 fi
+# Is Wireguard 'enabled'
+if [ -x "/usr/bin/wg" ]
+then
+  export MESHFW_WG_TUNNELS_ENABLED=1
+else
+  export MESHFW_WG_TUNNELS_ENABLED=0
+fi
 
 # Lets execute each include file
 
