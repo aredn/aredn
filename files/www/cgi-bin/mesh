@@ -116,19 +116,6 @@ local lon = cursor:get("aredn", "@location[0]", "lon")
 if lat and lon then
     lat_lon = string.format("<center><strong>Location: </strong> %s %s</center>", lat, lon)
 end
--- low memory mitigation
-local lowmemory = cursor:get("aredn", "@meshstatus[0]", "lowmem")
-if not lowmemory then
-    lowmemory = 10000
-end
-lowmemory = 1024 * tonumber(lowmemory)
-local lowroutes = cursor:get("aredn", "@meshstatus[0]", "lowroutes")
-if not lowroutes then
-    lowroutes = 1000
-else
-    lowroutes = tonumber(lowroutes)
-end
-
 
 local routes = {}
 local links = {}
@@ -142,31 +129,24 @@ local hosts = {}
 local services = {}
 local history = {}
 
-local olsr_total = 0
-local olsr_nodes = 0
-local olsr_routes = 0
 for i, node in ipairs(aredn.olsr.getOLSRRoutes())
 do
-    if node.genmask ~= 0 then -- don't count default route
-        olsr_total = olsr_total + 1
-        if node.genmask ~= 32 then
-            olsr_nodes = olsr_nodes + 1
-        end
-        if node.etx <= 50 then
-            routes[node.destination] = { etx = node.etx }
-            olsr_routes = olsr_routes + 1
-        end
+    if node.genmask ~= 0 and node.etx <= 50 then
+        routes[node.destination] = { etx = node.etx }
     end
 end
+
 -- low memory route reduction
-if olsr_routes > lowroutes and nixio.sysinfo().freeram < lowmemory then
+local lowmemory = 1024 * tonumber(cursor:get("aredn", "@meshstatus[0]", "lowmem") or 10000)
+local lowroutes = tonumber(cursor:get("aredn", "@meshstatus[0]", "lowroutes") or 1000)
+if #routes > lowroutes and nixio.sysinfo().freeram < lowmemory then
     local list = {}
     for k,v in pairs(routes)
     do
         list[#list + 1] = { key = k, etx = v.etx }
     end
     table.sort(list, function (a, b) return a.etx < b.etx end)
-    for i = lowroutes,olsr_routes
+    for i = lowroutes, #list - 1
     do
         routes[list[i].key] = nil
     end
