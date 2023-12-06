@@ -889,24 +889,23 @@ function loadScript(url, callback) {
 
 var map;
 var marker;
+var dotIcon;
 
 var leafletLoad = function() {
     map = L.map('map').setView([0.0, 0.0], 1);
-    var dotIcon = L.icon({iconUrl: '/dot.png'});
+    dotIcon = L.icon({iconUrl: '/dot.png'});
 ]])
 html.print("L.tileLayer('" .. maptiles .. "',")
 html.print([[
     {
         maxZoom: 18,
-        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-            '<a href="http://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>, ' +
-            'Imagery &copy;<a href="http://stamen.com">Stamen Design</a>',
-        id: 'mapbox.streets'
+        attribution: 'Map data and images &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+            '<a href="http://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>'
     }).addTo(map);
 ]])
 
 if tonumber(lat) and tonumber(lon) then
-    html.print("marker= new L.marker([" .. lat .. "," .. lon .. "],{draggable: true, icon: dotIcon});")
+    html.print("marker = new L.marker([" .. lat .. "," .. lon .. "],{draggable: true, icon: dotIcon});")
     html.print("map.addLayer(marker);")
     html.print("map.setView([" .. lat .. "," .. lon .. "],13);")
     html.print("marker.on('drag', onMarkerDrag);")
@@ -918,11 +917,15 @@ html.print([[
 }
 
 function onMapClick(e) {
-    marker= new L.marker(e.latlng.wrap(),{draggable: true, icon: dotIcon});
-    map.addLayer(marker);
+    if (marker) {
+        marker.setLatLng(e.latlng.wrap());
+    }
+    else {
+        marker = new L.marker(e.latlng.wrap(),{draggable: true, icon: dotIcon});
+        map.addLayer(marker);
+    }
     document.getElementsByName('latitude')[0].value=e.latlng.wrap().lat.toFixed(6).toString();
     document.getElementsByName('longitude')[0].value=e.latlng.wrap().lng.toFixed(6).toString();
-    map.off('click', onMapClick);
     marker.on('drag', onMarkerDrag);
 }
 
@@ -953,7 +956,13 @@ function foundLocation(position) {
     // try to update the map if Javascript libs have been loaded
     if (typeof L != 'undefined') {
         var latlng = L.latLng(jlat, jlon);
-        marker.setLatLng(latlng);
+        if (marker) {
+            marker.setLatLng(latlng);
+        }
+        else {
+            marker = new L.marker(latlng.wrap(),{draggable: true, icon: dotIcon});
+            map.addLayer(marker);
+        }
         map.setView(latlng,13);
     }
 }
@@ -964,11 +973,9 @@ function noLocation() {
         try {
             const json = JSON.parse(this.responseText);
             foundLocation({ coords: { latitude: json.lat, longitude: json.lon }})
-            return;
         }
         catch (_) {
         }
-        alert('Could not find location.  Try pinning it on the map.');
     });
     req.open("GET", "http://ip-api.com/json");
     req.send();

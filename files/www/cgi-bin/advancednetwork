@@ -100,6 +100,9 @@ function read_user_config(network)
             m = line:match("option%s+vlan%s+'(%d+)'")
             if m then
                 config.vlan = tonumber(m)
+                if config.vlan == 2 or config.vlan >= 4 then
+                    config.tagged = true
+                end
             end
             m = line:match("list%s+ports%s+'(%S+):u'")
             if m then
@@ -476,7 +479,6 @@ html.print([[
             }
         });
         function port_change(input, network, port, checked) {
-            console.log(network, port, checked)
             const config = configs.find(c => c.name == network);
             if (!config.tagged && checked) {
                 configs.forEach(config => {

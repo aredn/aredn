@@ -70,26 +70,28 @@ function do_namechange()
     local subdomains = ""
 
     -- Load the hosts file
-    for line in io.lines("/var/run/hosts_olsr.stable")
-    do
-        local v = line:splitWhiteSpace()
-        local ip = v[1]
-        local name = v[2]
-        local originator = v[4]
-        local mid = v[5]
-        if ip then
-            if ip:match("^%d") and originator and originator ~= "myself" and (ip == originator or mid == "(mid") then
-                if hosts[ip] then
-                    hosts[ip] = hosts[ip] .. "/" .. name
-                else
-                    hosts[ip] = name
+    if nixio.fs.stat("/var/run/hosts_olsr.stable") then
+        for line in io.lines("/var/run/hosts_olsr.stable")
+        do
+            local v = line:splitWhiteSpace()
+            local ip = v[1]
+            local name = v[2]
+            local originator = v[4]
+            local mid = v[5]
+            if ip then
+                if ip:match("^%d") and originator and originator ~= "myself" and (ip == originator or mid == "(mid") then
+                    if hosts[ip] then
+                        hosts[ip] = hosts[ip] .. "/" .. name
+                    else
+                        hosts[ip] = name
+                    end
                 end
-            end
-            if name and name:sub(1,2) == "*." then
-                if not name:match("%.local%.mesh$") then
-                    name = name .. ".local.mesh"
+                if name and name:sub(1,2) == "*." then
+                    if not name:match("%.local%.mesh$") then
+                        name = name .. ".local.mesh"
+                    end
+                    subdomains = subdomains .. "address=/." .. name:sub(3) .. "/" ..  ip .. "\n"
                 end
-                subdomains = subdomains .. "address=/." .. name:sub(3) .. "/" ..  ip .. "\n"
             end
         end
     end
