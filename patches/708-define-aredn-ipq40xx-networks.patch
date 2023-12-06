@@ -1,36 +1,41 @@
 --- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
 +++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
-@@ -30,12 +30,16 @@
- 	engenius,emd1|\
+@@ -26,7 +26,9 @@
+ 	pakedge,wr-1|\
+ 	teltonika,rutx50|\
+ 	zyxel,nbg6617)
+-		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "wan"
++		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
++		ucidef_set_interface "dtdlink" device "lan4.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
+ 		;;
+ 	8dev,jalapeno|\
+ 	alfa-network,ap120c-ac|\
+@@ -54,11 +56,15 @@
  	meraki,mr33|\
+ 	meraki,mr74|\
  	mikrotik,lhgg-60ad|\
 -	mikrotik,sxtsq-5-ac|\
  	netgear,ex6100v2|\
- 	netgear,ex6150v2|\
- 	zyxel,wre6606)
- 		ucidef_set_interface_lan "eth0"
+ 	netgear,ex6150v2)
+ 		ucidef_set_interface_lan "lan"
  		;;
 +	mikrotik,sxtsq-5-ac)
 +		ucidef_set_interfaces_lan_wan "lan" "lan.1"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
 +		ucidef_set_interface "dtdlink" device "lan.2" protocol "static"
 +		;;
- 	aruba,ap-303h|\
- 	teltonika,rutx10)
- 		ucidef_set_interfaces_lan_wan "eth0" "eth1"
-
---- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
-+++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
-@@ -61,9 +61,9 @@
- 	p2w,r619ac-64m|\
- 	p2w,r619ac-128m|\
- 	zyxel,nbg6617)
--		ucidef_set_interfaces_lan_wan "eth0" "eth1"
--		ucidef_add_switch "switch0" \
--			"0u@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
-+		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
-+		ucidef_set_interface "dtdlink" device "lan4.2" protocol "static"
+ 	avm,fritzbox-7530)
+ 		ucidef_set_interface_lan "lan1 lan2 lan3 lan4"
+ 		;;
+@@ -83,7 +83,9 @@
+ 	glinet,gl-a1300|\
+ 	glinet,gl-b1300|\
+ 	mobipromo,cm520-79f)
+-		ucidef_set_interfaces_lan_wan "lan1 lan2" "wan"
++		ucidef_set_interfaces_lan_wan "lan1" "wan"
++		ucidef_set_interface "dtdlink" device "lan2.2" protocol "static"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
  		;;
- 	avm,fritzbox-4040|\
- 	linksys,ea6350v3|\
+ 	mikrotik,wap-ac|\
+ 	mikrotik,wap-ac-lte|\

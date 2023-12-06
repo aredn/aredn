@@ -71,6 +71,28 @@ function hardware.get_radio()
     return radio_json
 end
 
+function hardware.get_radio_count()
+    local radio = hardware.get_radio()
+    if not radio then
+        return 0
+    elseif radio.wlan0 then
+        if radio.wlan1 then
+            return 2
+        else
+            return 1
+        end
+    else
+        local count = 0
+        if nixio.fs.stat("/sys/class/ieee80211") then
+            for file in nixio.fs.dir("/sys/class/ieee80211")
+            do
+                count = count + 1
+            end
+        end
+        return count
+    end
+end
+
 function hardware.get_radio_intf(wifiintf)
     local radio = hardware.get_radio()
     if radio and radio[wifiintf] then
@@ -277,19 +299,25 @@ function hardware.get_default_channel(wifiintf)
     for _, channel in ipairs(hardware.get_rfchannels(wifiintf))
     do
         if channel.frequency == 912 then
-            return { channel = 5, bandwidth = 5, rfband = "900MHz" }
+            return { channel = 5, bandwidth = 5, band = "900MHz" }
         end
+        local bws = {}
+        for _, v in ipairs(hardware.get_rfbandwidths(wifiintf))
+        do
+            bws[v] = v
+        end
+        local bw = bws[10] or bws[20] or bws[5] or 0
         if channel.frequency == 2397 then
-            return { channel = -2, bandwidth = 10, rfband = "2.4GHz" }
+            return { channel = -2, bandwidth = bw, band = "2.4GHz" }
         end
         if channel.frequency == 2412 then
-            return { channel = 1, bandwidth = 10, rfband = "2.4GHz" }
+            return { channel = 1, bandwidth = bw, band = "2.4GHz" }
         end
         if channel.frequency == 3420 then
-            return { channel = 84, bandwidth = 10, rfband = "3GHz" }
+            return { channel = 84, bandwidth = bw, band = "3GHz" }
         end
         if channel.frequency == 5745 then
-            return { channel = 149, bandwidth = 10, rfband = "5GHz" }
+            return { channel = 149, bandwidth = bw, band = "5GHz" }
         end
     end
     return nil
@@ -320,7 +348,7 @@ function hardware.get_rfchannels(wifiintf)
             end
             for line in f:lines()
             do
-                local freq, num = line:match("(%d+%.%d+) GHz %(Channel (%-?%d+)%)")
+                local freq, num = line:match("(%d+%.%d+) GHz %(Band: .*, Channel (%-?%d+)%)")
                 if freq and not line:match("restricted") and not line:match("disabled") then
                     freq = tonumber("" .. freq:gsub("%.", "")) + freq_adjust
                     if freq >= freq_min and freq <= freq_max then

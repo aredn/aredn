@@ -1,0 +1,37 @@
+--- a/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
++++ b/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
+@@ -7,7 +7,8 @@
+ 	return 0
+ }
+ 
+-RAMFS_COPY_BIN='yafut'
++RAMFS_COPY_BIN='fw_printenv fw_setenv nandwrite'
++RAMFS_COPY_DATA='/etc/fw_env.config /var/lock/fw_printenv.lock'
+ 
+ platform_do_upgrade_mikrotik_nand() {
+ 	CI_KERNPART=none
+@@ -20,7 +21,8 @@
+ 	board_dir=${board_dir%/}
+ 	[ -n "$board_dir" ] || return
+ 
+-	tar xf "$1" ${board_dir}/kernel -O | yafut -d "$fw_mtd" -w -i - -o kernel -m 0755 || return
++	mtd erase kernel
++	tar xf "$1" ${board_dir}/kernel -O | nandwrite -o "$fw_mtd" -
+ 
+ 	nand_do_upgrade "$1"
+ }
+--- a/target/linux/ath79/image/common-mikrotik.mk
++++ b/target/linux/ath79/image/common-mikrotik.mk
+@@ -17,9 +17,7 @@
+ 
+ define Device/mikrotik_nand
+   $(Device/mikrotik)
+-  IMAGE/sysupgrade.bin = append-kernel | sysupgrade-tar | append-metadata
+-  DEVICE_COMPAT_MESSAGE := \
+-       NAND images switched to yafut. If running older image, reinstall from initramfs.
+-  DEVICE_COMPAT_VERSION := 1.1
+-
++  IMAGE/sysupgrade.bin = append-kernel | kernel2minor -s 2048 -e -c | \
++        sysupgrade-tar kernel=$$$$@ | append-metadata
++  DEVICE_PACKAGES := nand-utils
+ endef

@@ -37,7 +37,7 @@
 
 local nxo = require("nixio")
 local ipc = require("luci.ip")
-require("luci.http")
+require('luci.ohttp')
 require("uci")
 
 function round2(num, idp)

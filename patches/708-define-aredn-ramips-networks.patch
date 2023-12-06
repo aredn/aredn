@@ -1,0 +1,13 @@
+--- a/target/linux/ramips/mt7621/base-files/etc/board.d/02_network
++++ b/target/linux/ramips/mt7621/base-files/etc/board.d/02_network
+@@ -80,7 +80,9 @@
+ 	xiaomi,mi-router-4|\
+ 	xiaomi,mi-router-4a-gigabit|\
+ 	xiaomi,mi-router-4a-gigabit-v2)
+-		ucidef_set_interfaces_lan_wan "lan1 lan2" "wan"
++		ucidef_set_interfaces_lan_wan "lan2" "wan"
++		ucidef_set_interface "dtdlink" device "lan1.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
+ 		;;
+ 	bolt,arion)
+ 		ucidef_set_interfaces_lan_wan "lan" "wan"

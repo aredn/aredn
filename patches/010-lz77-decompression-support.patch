@@ -106,7 +106,7 @@ new file mode 100644
 index 0000000000000..8e8b7a1689c87
 --- /dev/null
 +++ b/target/linux/generic/files/drivers/platform/mikrotik/rb_hardconfig_lz77.c
-@@ -0,0 +1,437 @@
+@@ -0,0 +1,438 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later
 +/*
 + * Copyright (C) 2023 John Thomson
@@ -461,6 +461,7 @@ index 0000000000000..8e8b7a1689c87
 +			fallthrough;
 +		case INSTR_LONG:
 +			if (opcode->offset == 0) {
++				unsigned int i;
 +				/* this is a non-matching group */
 +				pr_debug(" non-match, len: 0x%x\n",
 +						opcode->length);
@@ -479,7 +480,7 @@ index 0000000000000..8e8b7a1689c87
 +					}
 +				}
 +
-+				unsigned int i; for (i = opcode->length; i > 0; --i) {
++				for (i = opcode->length; i > 0; --i) {
 +					*output_ptr = lz77_mikrotik_wlan_get_byte(in, input_bit);
 +					++output_ptr;
 +					input_bit += 8;
