@@ -53,7 +53,6 @@ local speed_limit = 1000 -- close connection if it's too slow (< 1kB/s for 10 se
 
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
-local ARPING = "/usr/sbin/arping"
 
 local now = 0
 
@@ -113,7 +112,7 @@ function inject_quality_traffic(track)
 end
 
 function should_ping(track)
-    if track.ip and is_connected(track) and not (track.blocks.dtd or track.blocks.distance or track.blocks.user) then
+    if track.ip and is_connected(track) and track.routable and not (track.blocks.dtd or track.blocks.distance or track.blocks.user) then
         return true
     else
         return false
@@ -193,7 +192,7 @@ function canonical_hostname(hostname)
 end
 
 local cursor = uci.cursor()
-
+local cursorm = uci.cursor("/etc/config.mesh")
 
 local myhostname = canonical_hostname(info.get_nvram("node") or "localnode")
 local myip = cursor:get("network", "wifi", "ipaddr")
@@ -376,6 +375,49 @@ function lqm()
                 end
             end
         end
+
+        -- Wireguard
+        cursorm:foreach("wireguard", "client",
+            function(s)
+                if s.enabled == "1" then
+                    local a, b, c, d = s.clientip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+                    stations[#stations + 1] = {
+                        type = "Tunnel",
+                        device = "wgc",
+                        signal = nil,
+                        ip = s.clientip,
+                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d),
+                        tx_packets = 0,
+                        tx_fail = 0,
+                        tx_retries = 0,
+                        tx_bitrate = 0,
+                        rx_bitrate = 0
+                    }
+                end
+            end
+        )
+        local wgs = 0
+        cursorm:foreach("vtun", "server",
+            function(s)
+                if s.enabled == "1" and s.netip:match("/") then
+                    local a, b, c, d, m = s.netip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)/(%d+)$")
+                    local d = nixio.bit.band(d, nixio.bit.lshift(255, 32 - m)) + 1
+                    stations[#stations + 1] = {
+                        type = "Tunnel",
+                        device = "wgs" .. wgs,
+                        signal = nil,
+                        ip = string.format("%d.%d.%d.%d", a, b, c, d),
+                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d),
+                        tx_packets = 0,
+                        tx_fail = 0,
+                        tx_retries = 0,
+                        tx_bitrate = 0,
+                        rx_bitrate = 0
+                    }
+                    wgs = wgs + 1
+                end
+            end
+        )
 
         -- DtD
         for _, entry in ipairs(arps)
@@ -646,32 +688,24 @@ function lqm()
             elseif should_ping(track) then
                 local success = 100
                 local ptime = ping_timeout
-                if track.type == "Tunnel" then
-                    -- Tunnels have no MAC, so we can only use IP level pings.
-                    local sigsock = nixio.socket("inet", "dgram")
-                    sigsock:setopt("socket", "rcvtimeo", ping_timeout)
-                    -- Must connect or we wont see the error
-                    sigsock:connect(track.ip, 8080)
-                    local pstart = socket.gettime(0)
-                    sigsock:send("")
-                    -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
-                    -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
-                    if sigsock:recv(0) == false then
-                        success = 0
-                    end
-                    ptime = socket.gettime(0) - pstart
-                    sigsock:close()
-                else
-                    -- Make an arp request to the target ip to see if we get a timely reply. By using ARP we avoid any
-                    -- potential routing issues and avoid any firewall blocks on the other end.
-                    -- As the request is broadcast, we avoid any potential distance/scope timing issues as we dont wait for the
-                    -- packet to be acked. The reply will be unicast to us, and our ack to that is unimportant to the latency test.
-                    local pstart = socket.gettime(0)
-                    if os.execute(ARPING .. " -f -w " .. ping_timeout .. " -I " .. track.device .. " " .. track.ip .. " >/dev/null") ~= 0 then
-                        success = 0
-                    end
-                    ptime = socket.gettime(0) - pstart
+
+                -- Measure the "ping" time directly to the device
+                local sigsock = nixio.socket("inet", "dgram")
+                sigsock:setopt("socket", "rcvtimeo", ping_timeout)
+                sigsock:setopt("socket", "bindtodevice", track.device)
+                sigsock:setopt("socket", "dontroute", 1)
+                -- Must connect or we wont see the error
+                sigsock:connect(track.ip, 8080)
+                local pstart = socket.gettime(0)
+                sigsock:send("")
+                -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
+                -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
+                if sigsock:recv(0) == false then
+                    success = 0
                 end
+                ptime = socket.gettime(0) - pstart
+                sigsock:close()
+
                 local ping_loss_run_avg = 1 - config.ping_penalty / 100
                 if success > 0 then
                     track.ping_success_time = track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)

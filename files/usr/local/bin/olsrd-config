@@ -63,11 +63,13 @@ if uci_conf_file == "olsrd6" then
 end
 
 local cursor = uci.cursor()
+local cursorm = uci.cursor("/etc/config.mesh")
 
 local names = {}
 local hosts = {}
 local services = {}
 local tunnels = {}
+local wgtunnels = {}
 
 function ip_to_hostname(ip)
     if ip and ip ~= "" and ip ~= "none" then
@@ -304,11 +306,20 @@ if nixio.fs.stat("/etc/local/mesh-firewall/02-vtund") then
         maxclients = 10
     end
     tunnum = 50 + maxclients
-    cursor:foreach("vtun", "server",
+    local wgtunnum = 0
+    if cursor:get("wireguard", "@client[0]", "name") then
+        tunnels[#tunnels + 1] = "wgc"
+    end
+    cursorm:foreach("vtun", "server",
         function(section)
             if section.enabled == "1" then
-                tunnels[#tunnels + 1] = "tun" .. tunnum
-                tunnum = tunnum + 1
+                if section.netip:match("/") then
+                    tunnels[#tunnels + 1] = "wgs" .. wgtunnum
+                    wgtunnum = wgtunnum + 1
+                else
+                    tunnels[#tunnels + 1] = "tun" .. tunnum
+                    tunnum = tunnum + 1
+                end
             end
         end
     )

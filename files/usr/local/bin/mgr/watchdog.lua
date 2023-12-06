@@ -65,7 +65,7 @@ end
 function watchdog()
     while true
     do
-        wait_for_ticks(21)
+        wait_for_ticks(223)
 
         local pid = read_all(pidfile)
         if pid and nixio.fs.stat("/proc/" .. pid) then

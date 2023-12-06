@@ -148,6 +148,12 @@ You need approximately 10GB of space for the build.
 Prior AREDN® images can be rebuilt.  Replace one of the following after
 the "cd aredn" command above:
 
+AREDN® release 3.23.12.0
+
+```
+git checkout 3.23.12.0
+```
+
 AREDN® release 3.23.8.0
 
 ```

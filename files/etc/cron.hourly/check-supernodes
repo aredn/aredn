@@ -56,7 +56,7 @@ local dns = ""
 for _, hna in ipairs(olsr.getOLSRHNA())
 do
 	if hna.genmask == 8 and hna.destination == "10.0.0.0" then
-		dns = "#" .. hna.gateway .. "\nserver=/local.mesh/" .. hna.gateway .. "\nrev-server=10.0.0.0/8," .. hna.gateway .. "\nrev-server=172.31.0.0/16," .. hna.gateway .. "\n"
+		dns = "#" .. hna.gateway .. "\nserver=/local.mesh/" .. hna.gateway .. "\nrev-server=10.0.0.0/8," .. hna.gateway .. "\nrev-server=172.31.0.0/16," .. hna.gateway .. "\nrev-server=172.30.0.0/16," .. hna.gateway .. "\n"
 		break
 	end
 end
