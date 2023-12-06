@@ -104,12 +104,6 @@ function M.reset_network(mode)
     elseif mode == "scan-all" then
         os.execute(IW .. " " .. wifi .. " scan > /dev/null 2>&1")
         os.execute(IW .. " " .. wifi .. " scan passive > /dev/null 2>&1")
-    elseif mode == "reset" then
-        if chipset == "ath9k" then
-            write_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/reset", "1")
-        else
-            write_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k/simulate_fw_crash", "hw-restart")
-        end
     else
         log:write("-- unknown")
     end

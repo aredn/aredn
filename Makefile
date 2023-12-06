@@ -96,7 +96,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install curl
 	cd $(OPENWRT_DIR); ./scripts/feeds install ntpclient
 	cd $(OPENWRT_DIR); ./scripts/feeds install socat
-	cd $(OPENWRT_DIR); ./scripts/feeds install luci-base
+	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-base
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-nixio
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-ip
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-jsonc

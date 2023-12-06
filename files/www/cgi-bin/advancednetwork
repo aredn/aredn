@@ -100,6 +100,9 @@ function read_user_config(network)
             m = line:match("option%s+vlan%s+'(%d+)'")
             if m then
                 config.vlan = tonumber(m)
+                if config.vlan == 2 or config.vlan >= 4 then
+                    config.tagged = true
+                end
             end
             m = line:match("list%s+ports%s+'(%S+):u'")
             if m then
@@ -300,7 +303,7 @@ local layout = layouts[get_board_type]
 local configs = {}
 
 if os.getenv("REQUEST_METHOD") == "POST" then
-    require('luci.http')
+    require('luci.ohttp')
     local request = luci.http.Request(nixio.getenv(),
       function()
         local v = io.read(1024)
@@ -482,7 +485,6 @@ html.print([[
             }
         });
         function port_change(input, network, port, checked) {
-            console.log(network, port, checked)
             const config = configs.find(c => c.name == network);
             if (!config.tagged && checked) {
                 configs.forEach(config => {

@@ -6,7 +6,7 @@ version: 2.1
 parameters:
   action:
     type: enum
-    enum: [no_action, nightly_build, manual_build, release_build]
+    enum: [no_action, nightly_build, manual_build, release_build, afs_collector]
     default: no_action
   release_version:
     type: string
@@ -80,12 +80,20 @@ jobs:
           command: make MAINTARGET=ath79 SUBTARGET=nand
           no_output_timeout: 1h
       - run:
+          name: Build ipq40xx/generic
+          command: make MAINTARGET=ipq40xx SUBTARGET=generic
+          no_output_timeout: 2h
+      - run:
           name: Build ipq40xx/mikrotik
           command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
-          no_output_timeout: 2h
+          no_output_timeout: 1h
       - run:
           name: Build x64/64
           command: make MAINTARGET=x86 SUBTARGET=64
+          no_output_timeout: 2h
+      - run:
+          name: Build ramips/mt7621
+          command: make MAINTARGET=ipq40xx SUBTARGET=mt7621
           no_output_timeout: 2h
       - run:
           name: Compress build files
@@ -127,12 +135,20 @@ jobs:
           command: make MAINTARGET=ath79 SUBTARGET=nand
           no_output_timeout: 1h
       - run:
+          name: Build ipq40xx/generic
+          command: make MAINTARGET=ipq40xx SUBTARGET=generic
+          no_output_timeout: 2h
+      - run:
           name: Build ipq40xx/mikrotik
           command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
-          no_output_timeout: 2h
+          no_output_timeout: 1h
       - run:
           name: Build x64/64
           command: make MAINTARGET=x86 SUBTARGET=64
+          no_output_timeout: 2h
+      - run:
+          name: Build ramips/mt7621
+          command: make MAINTARGET=ipq40xx SUBTARGET=mt7621
           no_output_timeout: 2h
       - run:
           name: Compress build files
@@ -223,7 +239,7 @@ jobs:
     steps:
       - run:
           name: Run AFS collector
-          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c '${DOWNLOADS_DOCROOT}/afs/misc/collect.py --image-url http://downloads.arednmesh.org/{base}/{target} ${DOWNLOADS_DOCROOT} ${DOWNLOADS_DOCROOT}/afs/www'"
+          command: ssh ${SSH_USER}@${SSH_HOST} "sh -c '${DOWNLOADS_DOCROOT}/afs/misc/collect.py ${DOWNLOADS_DOCROOT}/releases ${DOWNLOADS_DOCROOT}/afs/www'"
       
   no_action:
     machine:
@@ -293,7 +309,7 @@ workflows:
       - build_release
       - process_artifacts_release:
           requires:
-            - process_artifacts_release 
+            - build_release 
       - readme_nightly:
           requires:
             - process_artifacts_release
@@ -303,4 +319,10 @@ workflows:
       - save_build_info:
           requires:
             - process_artifacts_release
+
+  afs_collector_workflow:
+    when:
+      equal: [ afs_collector, << pipeline.parameters.action >> ]
+    jobs:
+      - afs_collector
 

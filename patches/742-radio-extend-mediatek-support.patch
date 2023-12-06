@@ -1,0 +1,88 @@
+--- /dev/null
++++ b/package/kernel/mt76/patches/001-extend-channels.patch
+@@ -0,0 +1,85 @@
++--- a/mac80211.c
+++++ b/mac80211.c
++@@ -29,6 +29,10 @@
++ }
++ 
++ static const struct ieee80211_channel mt76_channels_2ghz[] = {
+++	CHAN2G(-4, 2387),
+++	CHAN2G(-3, 2392),
+++	CHAN2G(-2, 2397),
+++	CHAN2G(-1, 2402),
++ 	CHAN2G(1, 2412),
++ 	CHAN2G(2, 2417),
++ 	CHAN2G(3, 2422),
++@@ -64,19 +68,61 @@
++ 	CHAN5G(120, 5600),
++ 	CHAN5G(124, 5620),
++ 	CHAN5G(128, 5640),
+++
+++	CHAN5G(131, 5655),
++ 	CHAN5G(132, 5660),
+++	CHAN5G(133, 5665),
+++	CHAN5G(134, 5670),
+++	CHAN5G(135, 5675),
++ 	CHAN5G(136, 5680),
+++	CHAN5G(137, 5685),
+++	CHAN5G(138, 5690),
+++	CHAN5G(139, 5695),
++ 	CHAN5G(140, 5700),
+++	CHAN5G(141, 5705),
+++	CHAN5G(142, 5710),
+++	CHAN5G(143, 5715),
++ 	CHAN5G(144, 5720),
++-
+++	CHAN5G(145, 5725),
+++	CHAN5G(146, 5730),
+++	CHAN5G(147, 5735),
+++	CHAN5G(148, 5740),
++ 	CHAN5G(149, 5745),
+++	CHAN5G(150, 5750),
+++	CHAN5G(151, 5755),
+++	CHAN5G(152, 5760),
++ 	CHAN5G(153, 5765),
+++	CHAN5G(154, 5770),
+++	CHAN5G(155, 5775),
+++	CHAN5G(156, 5780),
++ 	CHAN5G(157, 5785),
+++	CHAN5G(158, 5790),
+++	CHAN5G(159, 5795),
+++	CHAN5G(160, 5800),
++ 	CHAN5G(161, 5805),
+++	CHAN5G(162, 5810),
+++	CHAN5G(163, 5815),
+++	CHAN5G(164, 5820),
++ 	CHAN5G(165, 5825),
+++	CHAN5G(166, 5830),
+++	CHAN5G(167, 5835),
+++	CHAN5G(168, 5840),
++ 	CHAN5G(169, 5845),
+++	CHAN5G(170, 5850),
+++	CHAN5G(171, 5855),
+++	CHAN5G(172, 5860),
++ 	CHAN5G(173, 5865),
+++	CHAN5G(174, 5870),
+++	CHAN5G(175, 5875),
+++	CHAN5G(176, 5880),
++ 	CHAN5G(177, 5885),
+++	CHAN5G(178, 5890),
+++	CHAN5G(179, 5895),
+++	CHAN5G(180, 5900),
+++	CHAN5G(181, 5905),
+++	CHAN5G(182, 5910),
+++	CHAN5G(183, 5915),
+++	CHAN5G(184, 5920),
++ };
++ 
++ static const struct ieee80211_channel mt76_channels_6ghz[] = {
++@@ -175,7 +221,7 @@
++ EXPORT_SYMBOL_GPL(mt76_rates);
++ 
++ static const struct cfg80211_sar_freq_ranges mt76_sar_freq_ranges[] = {
++-	{ .start_freq = 2402, .end_freq = 2494, },
+++	{ .start_freq = 2382, .end_freq = 2494, },
++ 	{ .start_freq = 5150, .end_freq = 5350, },
++ 	{ .start_freq = 5350, .end_freq = 5470, },
++ 	{ .start_freq = 5470, .end_freq = 5725, },
