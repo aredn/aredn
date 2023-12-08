@@ -40,10 +40,13 @@ require("aredn.http")
 local html = require("aredn.html")
 local aredn_info = require("aredn.info")
 
+math.randomseed(os.time())
+
 local base = "/etc/aredn_include/"
 local xlink_file = "/etc/config.mesh/xlink"
 
 local default_5_port_layout = { ports = { [1] = "wan", [2] = "lan1", [3] = "lan2", [4] = "lan3", [5] = "lan4" } }
+local default_3_port_layout = { ports = { [1] = "lan2", [2] = "lan1", [3] = "wan" } }
 local default_1_port_layout = { ports = { [1] = "eth0" } }
 local layouts = {
     ["mikrotik,hap-ac2"] = default_5_port_layout,
@@ -71,9 +74,30 @@ local default_5_port_config = {
         tagged = false
     }
 }
+local default_3_port_config = {
+    {
+        name = "dtdlink",
+        vlan = 2,
+        ports = { lan2 = { tagged = true } },
+        tagged = true
+    },
+    {
+        name = "lan",
+        vlan = 3,
+        ports = { lan1 = { tagged = false } },
+        tagged = false
+    },
+    {
+        name = "wan",
+        vlan = 1,
+        ports = { wan = { tagged = false } },
+        tagged = false
+    }
+}
 local default_configs = {
     ["mikrotik,hap-ac2"] = default_5_port_config,
     ["mikrotik,hap-ac3"] = default_5_port_config,
+    ["glinet,gl-b1300"] = default_3_port_config,
     ["qemu-standard-pc-i440fx-piix-1996"] = nil,
 }
 
@@ -102,20 +126,15 @@ function read_user_config(network)
                 config.vlan = tonumber(m)
                 if config.vlan == 2 or config.vlan >= 4 then
                     config.tagged = true
+                else
+                    config.tagged = false
                 end
             end
-            m = line:match("list%s+ports%s+'(%S+):u'")
+            m = line:match("list%s+ports%s+'(%S+):u'") or line:match("list%s+ports%s+'(%S+):t'")
             if m then
                 config.ports[m] = {
-                    tagged = false
+                    tagged = config.tagged
                 }
-            end
-            m = line:match("list%s+ports%s+'(%S+):t'")
-            if m then
-                config.ports[m] = {
-                    tagged = true
-                }
-                config.tagged = true
             end
         end
     end
@@ -139,7 +158,8 @@ function read_xlink_config()
                 ipaddr = nil,
                 peer = nil,
                 weight = 0,
-                port = nil
+                port = nil,
+                mac = ""
             }
             configs[#configs + 1] = config
         elseif line:match("^config%s+interface") then
@@ -157,6 +177,10 @@ function read_xlink_config()
             end
         elseif type == "interface" then
             local m
+            m = line:match("option%s+macaddr%s+'(%S+)'")
+            if m then
+                config.mac = m
+            end
             m = line:match("option%s+ipaddr%s+'([%d%.]+)'")
             if m then
                 config.ipaddr = m
@@ -255,6 +279,13 @@ function write_xlink_config(configs)
         f:write("\tlist ports '" .. config.port .. ":t'\n")
         f:write("\nconfig interface '" .. config.name .. "'\n")
         f:write("\toption ifname 'br0." .. config.vlan .. "'\n")
+        if config.mac == "" then
+            config.mac = string.gsub("x2:xx:xx:xx:xx:xx", "x", function()
+                local i = math.random(1, 16)
+                return string.sub("0123456789ABCDEF", i, i)
+            end)
+        end
+        f:write("\toption macaddr '" .. config.mac .. "'\n")
         f:write("\toption proto 'static'\n")
         f:write("\toption ipaddr '" .. config.ipaddr .. "'\n")
         f:write("\toption netmask '255.255.255.255'\n")
@@ -546,7 +577,8 @@ html.print([[
                     ipaddr: cells[1].value,
                     peer: cells[2].value,
                     weight: parseInt(cells[3].value),
-                    port: rows[i].querySelector("select").value
+                    port: rows[i].querySelector("select").value,
+                    mac: cells[4].value
                 });
             }
             return xlinks;
@@ -687,7 +719,7 @@ do
         html.print("<option value='" .. port .. "'" .. (xlink.port == port and " selected" or "") .. ">" .. pos .. "</option>")
     end
     html.print("</td></select>")
-    html.print("<td><button onclick='xlink_remove(this)'>-</button></td>")
+    html.print("<td><input type='hidden' value='" .. xlink.mac .. "'><button onclick='xlink_remove(this)'>-</button></td>")
     html.print("</tr>")
 end
 html.print([[</table>]])
