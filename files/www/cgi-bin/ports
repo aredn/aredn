@@ -131,7 +131,7 @@ local hosts = {}
 local addrs = {}
 local macs = {}
 
-if config ~= "mesh" or nixio.fs.stat("/tmp/reboot-required") then
+if config == "" or nixio.fs.stat("/tmp/reboot-required") then
     http_header()
     html.header(node .. " setup", true)
     html.print("<body><center>")
@@ -814,17 +814,10 @@ if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or 
 
     os.remove("/tmp/service-validation-state")
 
-    if os.execute("/usr/local/bin/node-setup -a -p mesh > /dev/null 2>&1") ~= 0 then
+    if os.execute("/usr/local/bin/node-setup > /dev/null 2>&1") ~= 0 then
         err("problem with configuration")
-    end
-    if os.execute("/etc/init.d/dnsmasq restart > /dev/null 2>&1") ~= 0 then
-        err("problem with dnsmasq")
-    end
-    if os.execute("/etc/init.d/firewall restart > /dev/null 2>&1") ~= 0 then
-        err("problem with port setup")
-    end
-    if os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1") ~= 0 then
-        err("problem with olsr setup")
+    else
+        os.execute("/usr/local/bin/restart-services.sh dnsmasq firewall olsrd > /dev/null 2>&1")
     end
 end
 

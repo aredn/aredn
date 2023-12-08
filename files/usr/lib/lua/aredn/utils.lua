@@ -311,21 +311,31 @@ function capture(cmd)
 end
 
 -- copy a file
-function filecopy(from, to)
+function filecopy(from, to, ifchanged)
 	local f = io.open(from, "r")
 	if not f then
 		return false
 	end
+	local r = f:read("*a")
+	f:close()
+
+	if ifchanged then
+		local t = io.open(to, "r")
+		if t then
+			if r == t:read("*a") then
+				t:close()
+				return true, false
+			end
+			t:close()
+		end
+	end
 	local t = io.open(to, "w")
 	if not t then
-		f:close()
 		return false
 	end
-	-- not great on memory usage
-	t:write(f:read("*a"))
+	t:write(r)
 	t:close()
-	f:close()
-	return true
+	return true, true
 end
 
 -- remove all files (including recursively into directories)
@@ -345,12 +355,24 @@ function remove_all(name)
 end
 
 -- write all data to a file in one go
-function write_all(filename, data)
+function write_all(filename, data, ifchanged)
+	if ifchanged then
+		local t = io.open(filename, "r")
+		if t then
+			if data == t:read("*a") then
+				t:close()
+				return true, false
+			end
+			t:close()
+		end
+	end
     local f = io.open(filename, "w")
     if f then
         f:write(data)
         f:close()
+		return true, true
     end
+	return false
 end
 
 -- read all data from file in one go

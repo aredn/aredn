@@ -327,8 +327,7 @@ if os.getenv("REQUEST_METHOD") == "POST" then
                 end
             end
             write_xlink_config(luci.jsonc.parse(params.xlinks))
-            os.execute("/usr/local/bin/node-setup -a mesh > /dev/null 2>&1")
-            io.open("/tmp/reboot-required", "w"):close()
+            os.execute("/usr/local/bin/node-setup > /dev/null 2>&1")
         end
     elseif params.op == "defaults" then
         for _, network in ipairs({ "dtdlink", "lan", "wan" })
@@ -336,8 +335,7 @@ if os.getenv("REQUEST_METHOD") == "POST" then
             nixio.fs.remove(base .. network .. ".network.user")
         end
         write_xlink_config({})
-        os.execute("/usr/local/bin/node-setup -a mesh > /dev/null 2>&1")
-        io.open("/tmp/reboot-required", "w"):close()
+        os.execute("/usr/local/bin/node-setup > /dev/null 2>&1")
     elseif params.op == "reboot" then
         reboot()
     end

@@ -358,10 +358,8 @@ end
 -- save the connections the uci vtun file
 if parms.button_save and #conn_err == 0 then
     cursor:commit("vtun")
-    os.execute("/usr/local/bin/node-setup -a mesh > /dev/null 2>&1")
-    os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1")
-    os.execute("/etc/init.d/vtund restart > /dev/null 2>&1")
-    os.execute("/etc/init.d/network restart > /dev/null 2>&1")
+    os.execute("/usr/local/bin/node-setup > /dev/null 2>&1")
+    os.execute("/usr/local/bin/restart-services.sh olsrd tunnels network > /dev/null 2>&1")
 end
 
 local active_tun = get_active_tun()
