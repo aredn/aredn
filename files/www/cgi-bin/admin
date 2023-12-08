@@ -253,7 +253,7 @@ if parms.button_refresh_fw then
         local config_serverpath
         for _, serverpath in ipairs(serverpaths)
         do
-            config_serverpath = serverpath:match("^(.*)/firmware") .. "/afs/www/"
+            config_serverpath = (serverpath:match("^(.*)/firmware") or serverpath) .. "/afs/www/"
             for line in io.popen(wget .. " -O - " .. config_serverpath .. "config.js 2> /dev/null"):lines()
             do
                 local v = line:match("versions: {(.+)}")
