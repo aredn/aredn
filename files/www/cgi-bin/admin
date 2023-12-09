@@ -430,7 +430,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
                 if host then
                     local ip = iplookup(host)
                     if ip then
-                        url = url:gsub(host, ip)
+                        url = url:gsub(host:gsub("%-","%%-"), ip)
                         headers = "-H 'Host: " .. host .. "' "
                         os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
                     end
