@@ -423,6 +423,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
                 end
             end
             if fwimage then
+                -- We shutdown dnsmasq to save memory, so we resolve the URL's IP address before doing that if we can
                 local url = fwimage.url
                 local host = url:match("^https?://([^/:]+)")
                 local headers = ""
