@@ -50,6 +50,9 @@ local dtd_distance = 50 -- distance (meters) after which nodes connected with Dt
 local connect_timeout = 5 -- timeout (seconds) when fetching information from other nodes
 local speed_time = 10 --
 local speed_limit = 1000 -- close connection if it's too slow (< 1kB/s for 10 seconds)
+local default_retries_scale = 2
+local default_short_retries = 6
+local default_long_retries = 4
 
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
@@ -211,6 +214,12 @@ if wlan:match("^wlan(%d+)$") then
   radiomode = "adhoc"
 end
 
+function iw_set(cmd)
+    if phy ~= "none" then
+        os.execute(IW .. " " .. phy .. " set " .. cmd .. " > /dev/null 2>&1")
+    end
+end
+
 function lqm()
 
     if cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
@@ -232,9 +241,9 @@ function lqm()
     os.execute(NFT .. " insert rule ip fw4 input jump input_lqm comment \\\"block low quality links\\\"")
 
     -- We dont know any distances yet
-    os.execute(IW .. " " .. phy .. " set distance auto > /dev/null 2>&1")
+    iw_set("distance auto")
     -- Or any hidden nodes
-    os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+    iw_set("rts off")
 
     -- If the channel bandwidth is less than 20, we need to adjust what we report as the values from 'iw' will not
     -- be correct
@@ -258,6 +267,8 @@ function lqm()
     local rflinks = {}
     local hidden_nodes = {}
     local last_coverage = -1
+    local last_short_retries = -1
+    local last_long_retries = -1
     while true
     do
         now = nixio.sysinfo().uptime
@@ -902,7 +913,7 @@ function lqm()
         -- Update the wifi distance
         local coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3))
         if coverage ~= last_coverage then
-            os.execute(IW .. " " .. phy .. " set coverage " .. coverage .. " > /dev/null 2>&1")
+            iw_set("coverage " .. coverage)
             last_coverage = coverage
         end
 
@@ -938,12 +949,26 @@ function lqm()
         -- Don't adjust RTS on ath10k for the moment - appear to be some bug to be worked out here
         if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
             if #hidden > 0 then
-                os.execute(IW .. " " .. phy .. " set rts " .. config.rts_threshold .. " > /dev/null 2>&1")
+                iw_set("rts " .. config.rts_threshold)
             else
-                os.execute(IW .. " " .. phy .. " set rts off > /dev/null 2>&1")
+                iw_set("rts off")
             end
         end
         hidden_nodes = hidden
+
+        -- Adjust to retry attempts based on how many nodes we're managing
+        local short_retries = math.max(1, math.floor(default_short_retries / math.max(1, rfcount / default_retries_scale)))
+        local long_retries = math.max(1, math.floor(default_long_retries / math.max(1, rfcount / default_retries_scale)))
+        -- When operating at the max distance (with nodes pending) we can't afford retries as they take too long
+        if distance == config.max_distance then
+            short_retries = 1
+            long_retries = 1
+        end
+        if short_retries ~= last_short_retries or long_retries ~= last_long_retries then
+            iw_set("retry short " .. short_retries .. " long " .. long_retries)
+            last_short_retries = short_retries
+            last_long_retries = long_retries
+        end
 
         -- Save this for the UI
         f = io.open("/tmp/lqm.info", "w")
