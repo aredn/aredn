@@ -956,13 +956,17 @@ function lqm()
         end
         hidden_nodes = hidden
 
-        -- Adjust to retry attempts based on how many nodes we're managing
-        local short_retries = math.max(1, math.floor(default_short_retries / math.max(1, rfcount / default_retries_scale)))
-        local long_retries = math.max(1, math.floor(default_long_retries / math.max(1, rfcount / default_retries_scale)))
-        -- When operating at the max distance (with nodes pending) we can't afford retries as they take too long
-        if distance == config.max_distance then
+        -- Adjust retry attempts. If we're just managing a single connection, we can retry failed transmissions.
+        -- If we're managing many, we can't afford the delays associated with retries, to reduce them to the minimum.
+        -- Don't retry when distance is max because the delay makes thing unusable and blocks other closer traffic.
+        local short_retries
+        local long_retries
+        if distance == config.max_distance or rfcount > 1 then
             short_retries = 1
             long_retries = 1
+        else
+            short_retries = default_short_retries
+            long_retries = default_long_retries
         end
         if short_retries ~= last_short_retries or long_retries ~= last_long_retries then
             iw_set("retry short " .. short_retries .. " long " .. long_retries)
