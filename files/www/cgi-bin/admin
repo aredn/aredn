@@ -213,8 +213,8 @@ local tmpdir = "/tmp/web/admin"
 nixio.fs.mkdir("/tmp/web")
 nixio.fs.mkdir("/tmp/web/admin")
 
--- set the wget command options
-local wget = "wget -U 'node: " .. node .. "' "
+-- set the curl command options
+local curl = "curl -A 'node: " .. node .. "' "
 
 local serverpaths = {}
 local uciserverpath = cursor:get("aredn", "@downloads[0]", "firmwarepath")
@@ -254,7 +254,7 @@ if parms.button_refresh_fw then
         for _, serverpath in ipairs(serverpaths)
         do
             config_serverpath = (serverpath:match("^(.*)/firmware") or serverpath) .. "/afs/www/"
-            for line in io.popen(wget .. " -O - " .. config_serverpath .. "config.js 2> /dev/null"):lines()
+            for line in io.popen(curl .. " -o - " .. config_serverpath .. "config.js 2> /dev/null"):lines()
             do
                 local v = line:match("versions: {(.+)}")
                 if v then
@@ -277,7 +277,7 @@ if parms.button_refresh_fw then
             local board_type = aredn.hardware.get_board_type():gsub(",", "_")
             for ver, data in pairs(firmware_versions)
             do
-                local raw = io.popen(wget .. " -O - " .. config_serverpath .. data .. "/overview.json 2> /dev/null")
+                local raw = io.popen(curl .. " -o - " .. config_serverpath .. data .. "/overview.json 2> /dev/null")
                 local info = luci.jsonc.parse(raw:read("*a") or "")
                 raw:close()
                 firmware_versions[ver] = nil
@@ -402,12 +402,11 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
     if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
         nixio.fs.remove(tmpdir .. "/firmware")
         os.execute("/usr/local/bin/uploadctlservices update > /dev/null 2>&1")
-        os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
 
         fw_install = false
         local err
 
-        local f = io.popen(wget .. " -O - " .. fw_versions[parms.dl_fw].overview .. " 2> /dev/null")
+        local f = io.popen(curl .. " -o - " .. fw_versions[parms.dl_fw].overview .. " 2> /dev/null")
         local fwinfo = luci.jsonc.parse(f:read("*a") or "")
         f:close()
 
@@ -424,8 +423,20 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
                 end
             end
             if fwimage then
-                if os.execute(wget .. "-O " .. tmpdir .. "/firmware " .. fwimage.url .. " > /dev/null 2>>" .. tmpdir .. "/wget.err") ~= 0 then
-                    err = "Download failed!\n" .. read_all(tmpdir .. "/wget.err")
+                -- We shutdown dnsmasq to save memory, so we resolve the URL's IP address before doing that if we can
+                local url = fwimage.url
+                local host = url:match("^https?://([^/:]+)")
+                local headers = ""
+                if host then
+                    local ip = iplookup(host)
+                    if ip then
+                        url = url:gsub(host:gsub("%-","%%-"):gsub("%.","%%."), ip)
+                        headers = "-H 'Host: " .. host .. "' "
+                        os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
+                    end
+                end
+                if os.execute(curl .. "-o " .. tmpdir .. "/firmware " .. headers .. url .. " > /dev/null 2>>" .. tmpdir .. "/curl.err") ~= 0 then
+                    err = "Download failed!\n" .. read_all(tmpdir .. "/curl.err")
                 else
                     local sha = capture("sha256sum " .. tmpdir .. "/firmware"):match("^(%S+)")
                     if sha ~= fwimage.sha then
@@ -441,7 +452,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
             err = "the downloaded file cannot be found"
         end
 
-        nixio.fs.remove(tmpdir .. "/wget.err")
+        nixio.fs.remove(tmpdir .. "/curl.err")
 
         if err then
             fwout("Firmware CANNOT be updated")
@@ -454,7 +465,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
         end
     else
         fwout("Error: no route to Host")
-        nixio.fs.remove(tmpdir .. "/wget.err")
+        nixio.fs.remove(tmpdir .. "/curl.err")
     end
 end
 
