@@ -532,12 +532,12 @@ cm:foreach("vtun", "server",
 )
 
 -- Create the tunnel devices we need
-local maxclients = tonumber(cm:get("aredn", "@tunnel[0]", "maxclients") or 10)
-local maxservers = tonumber(cm:get("aredn", "@tunnel[0]", "maxservers") or 10)
+local maxclients = 0
+local maxservers = 0
 -- No tunnel devices without the vtund app
-if not nixio.fs.stat("/usr/sbin/vtund") then
-    maxclients = 0
-    maxservers = 0
+if nixio.fs.stat("/usr/sbin/vtund") then
+    maxclients = 10 * math.ceil(vtunclients / 10)
+    maxservers = 10 * math.ceil(vtunservers / 10)
 end
 for dev = 50, 50 + maxclients + maxservers - 1
 do
@@ -962,6 +962,8 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
                 of:write("\toption LinkQualityMult 'default " .. (1 / tun_weight) .. "'\n")
             end
         end
+        nc:set("aredn", "@tunnel[0]", "maxclients", maxclients)
+        nc:set("aredn", "@tunnel[0]", "maxservers", maxservers)
 
         -- add xlink interfaces
         if nixio.fs.stat("/etc/config.mesh/xlink") then
@@ -1056,8 +1058,6 @@ end
 -- Handle /etc/config/aredn specially because only some changes require a restart/reboot
 local config_aredn = {
     lqm_enable = c:get("aredn", "@lqm[0]", "enable"),
-    tunnel_maxclients = c:get("aredn", "@tunnel[0]", "maxclients"),
-    tunnel_maxservers = c:get("aredn", "@tunnel[0]", "maxservers"),
     tunnel_weight = c:get("aredn", "@tunnel[0]", "weight"),
     supernode_enable = c:get("aredn", "@supernode[0]", "enable")
 }
@@ -1085,11 +1085,6 @@ do
             local oc = uci:cursor()
             if oc:get("aredn", "@lqm[0]", "enable") ~= config_aredn.lqm_enable then
                 changes.manager = true
-            end
-            if oc:get("aredn", "@tunnel[0]", "maxclients") ~= config_aredn.tunnel_maxclients or c:get("aredn", "@tunnel[0]", "maxservers") ~= config_aredn.tunnel_maxservers then
-                changes.network = true
-                changes.olsrd = true
-                changes.tunnels = true
             end
             if oc:get("aredn", "@tunnel[0]", "weight") ~= config_aredn.tunnel_weight then
                 changes.olsrd = true

@@ -499,14 +499,6 @@ do
     cursor:set("wireguard", client_x, "clientip", parms[clientx .. "_clientip"])
 end
 
-local maxclients = tonumber(cursor:get("aredn", "@tunnel[0]", "maxclients"))
-if not maxclients then
-    maxclients = 10
-end
-if enabled_count > maxclients then
-    err("Number of clients enabled (" .. enabled_count .. ") exceeds maxclients value (" .. maxclients .. ")")
-end
-
 -- save configuration (commit)
 if parms.button_save and #cli_err == 0 then
     cursor:commit("vtun")
