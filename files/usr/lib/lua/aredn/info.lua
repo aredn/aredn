@@ -670,4 +670,8 @@ function model.set_nvram(var, val)
     c:commit("hsmmmesh")
 end
 
+if not aredn then
+    aredn = {}
+end
+aredn.info = model
 return model

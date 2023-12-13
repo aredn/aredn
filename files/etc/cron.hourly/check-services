@@ -2,7 +2,7 @@
 --[[
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2022 Tim Wilkinson
+	Copyright (C) 2022-2023 Tim Wilkinson
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -34,76 +34,101 @@
 
 --]]
 
-local olsrd_conf = "/tmp/etc/olsrd.conf"
+require("uci")
+require("aredn.services")
 
--- Load olsrd.conf
-local lines = {}
-for line in io.lines(olsrd_conf)
+local cursor = uci.cursor()
+
+-- Current nameserver state
+local ns = cursor:get_all("olsrd", "nameservice")
+if not ns then
+    print("Missing nameservice")
+    return
+end
+local cnames = {}
+for _, name in ipairs(ns.name)
 do
-    lines[#lines + 1] = line
+    cnames[name] = true
+end
+local chosts = {}
+for k, v in pairs(ns)
+do
+    if k:match("^%d+_%d+_%d+_%d+$") then
+        chosts[k:gsub("_", ".")] = v
+    end
+end
+local cservices = {}
+for _, service in ipairs(ns.service or {})
+do
+    cservices[service] = true
 end
 
--- Generate validated name services
-local ns = {}
-for line in io.popen("/usr/local/bin/olsrd-config olsrd validate"):lines()
+-- Work out the differences between the validated state and the current state
+local names, hosts, services = aredn.services.get(true)
+local nnames = false
+for _, name in ipairs(names)
 do
-    ns[#ns + 1] = line
+    if cnames[name] then
+        cnames[name] = nil
+    else
+        nnames = true
+    end
 end
-table.remove(ns, 1) -- strip first line which is blank
+local nhosts = {}
+for _, host in ipairs(hosts)
+do
+    if chosts[host.ip] then
+        chosts[host.ip] = nil
+    else
+        nhosts[host.ip] = host.host
+    end
+end
+local nservices = false
+for _, service in ipairs(services)
+do
+    if cservices[service] then
+        cservices[service] = nil
+    else
+        nservices = true
+    end
+end
 
--- Locate merge point, then merge new validated services
+function not_empty(h)
+    for _, _ in pairs(h)
+    do
+        return true
+    end
+    return false
+end
+
 local change = false
-local i = 1
-while true
-do
-    if lines[i] == 'LoadPlugin "olsrd_nameservice.so.0.4"' then
-        local n = 1
-        while i <= #lines and n <= #ns
-        do
-            if lines[i] ~= ns[n] then
-                lines[i] = ns[n]
-                change = true
-            end
-            i = i + 1
-            n = n + 1
-        end
-        if i <= #lines then
-            -- truncated
-            while i <= #lines
-            do
-                table.remove(lines, #lines)
-            end
-            change = true
-        end
-        if n <= #ns then
-            -- append
-            while n <= #ns
-            do
-                lines[#lines + 1] = ns[n]
-                n = n + 1
-            end
-            change = true
-        end
-        break
+
+-- Apply the changes
+if nnames or not_empty(cnames) then
+    cursor:set("olsrd", "nameserver", "name", names)
+    change = true
+end
+if not_empty(chosts) or not_empty(nhosts) then
+    for k, _ in pairs(chosts)
+    do
+        cursor:delete("olsrd", "nameserver", k)
     end
-    i = i + 1
+    for k, v in pairs(nhosts)
+    do
+        cursor:set("olsrd", "nameserver", k, v)
+    end
+    change = true
+end
+if nservices or not_empty(cservices) then
+    cursor:set("olsrd", "nameserver", "service", services)
+    change = true
 end
 
--- If services have changed we need to update and restart olsrd
+-- If services have changed we need to restart olsrd
 if change then
+    cursor:commit("olsrd")
     print("Change")
-    local f = io.open(olsrd_conf, "w")
-    if f then
-        for _, line in ipairs(lines)
-        do
-            f:write(line .. "\n")
-        end
-        f:close()
-        -- We use 'killall' to restart olsrd to stop if from regenerating the olsrd.conf file we
-        -- just changed. We dont want to modify the standard process so these changes wont persist
-        -- across restarts/reconfigurations but will only be applied daily when poor services are detected
-        os.execute("/usr/bin/killall olsrd > /dev/null 2>&1")
-    end
+    os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1")
 else
     print("Unchange")
 end

@@ -89,8 +89,7 @@ local settings = {
         type = "boolean",
         desc = "Enable <b>Link Quality Management</b><br><br><small>aredn.@lqm[0].enable</small>",
         default = "1",
-        postcallback = "lqm_defaults()",
-        needreboot = true
+        postcallback = "lqm_defaults()"
     },
     {
         category = "Link Quality Settings",
@@ -145,9 +144,7 @@ local settings = {
         key = "aredn.@lqm[0].mtu",
         type = "string",
         desc = "<b>Maximum packet size</b> in bytes sent over WiFi (256 to 1500)<br><br><small>aredn.@lqm[0].mtu</small>",
-        default = "1500",
-        needreboot = true,
-        nodesetup = true
+        default = "1500"
     },
     {
         category = "Link Quality Settings",
@@ -170,27 +167,21 @@ local settings = {
         key = "aredn.@wan[0].olsrd_gw",
         type = "boolean",
         desc = "<b>Allow other MESH nodes to use my WAN</b> - not recommended and OFF by default<br><br><small>aredn.@wan[0].olsrd_gw</small>",
-        default = "0",
-        needreboot = true,
-        nodesetup = true
+        default = "0"
     },
     {
         category = "WAN Settings",
         key = "aredn.@wan[0].lan_dhcp_route",
         type = "boolean",
         desc = "<b>Allow my LAN devices to access my WAN</b> - ON by default<br><br><small>aredn.@wan[0].lan_dhcp_route</small>",
-        default = "1",
-        needreboot = true,
-        nodesetup = true
+        default = "1"
     },
     {
         category = "WAN Settings",
         key = "aredn.@wan[0].lan_dhcp_defaultroute",
         type = "boolean",
         desc = "<b>Provide default route to LAN devices</b> even when WAN access is disabled<br><br><small>aredn.@wan[0].lan_dhcp_defaultroute</small>",
-        default = "0",
-        needreboot = true,
-        nodesetup = true
+        default = "0"
     },
     {
         category = "WAN Settings",
@@ -200,33 +191,28 @@ local settings = {
         default = "",
         condition = "supportsVLANChange()",
         current = "currentWANVLAN()",
-        postcallback = "changeWANVLAN()",
-        needreboot = true,
-        nodesetup = true
+        postcallback = "changeWANVLAN()"
     },
     {
         category = "WAN Settings",
         key = "aredn.@wan[0].web_access",
         type = "boolean",
         desc = "<b>Enable web access</b> to the node from the WAN interface<br><br><small>aredn.@wan[0].web_access</small>",
-        default = "1",
-        needreboot = true
+        default = "1"
     },
     {
         category = "WAN Settings",
         key = "aredn.@wan[0].ssh_access",
         type = "boolean",
         desc = "<b>Enable SSH access</b> to the node from the WAN interface<br><br><small>aredn.@wan[0].ssh_access</small>",
-        default = "1",
-        needreboot = true
+        default = "1"
     },
     {
         category = "WAN Settings",
         key = "aredn.@wan[0].telnet_access",
         type = "boolean",
         desc = "<b>Enable TELNET access</b> to the node from the WAN interface<br><br><small>aredn.@wan[0].telnet_access</small>",
-        default = "1",
-        needreboot = true
+        default = "1"
     },
     {
         category = "Power Options",
@@ -252,8 +238,7 @@ local settings = {
         type = "string",
         desc = "<b>Tunnel Maxclients</b> specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].<br><br><small>aredn.@tunnel[0].maxclients</small>",
         default = "10",
-        precallback = "restrictTunnelLimitToValidRange()",
-        postcallback = "adjustTunnelInterfaceCount()"
+        precallback = "restrictTunnelLimitToValidRange()"
     },
     {
         category = "Tunnel Options",
@@ -261,8 +246,7 @@ local settings = {
         type = "string",
         desc = "<b>Tunnel Maxservers</b> specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].<br><br><small>aredn.@tunnel[0].maxservers</small>",
         default = "10",
-        precallback = "restrictTunnelLimitToValidRange()",
-        postcallback = "adjustTunnelInterfaceCount()"
+        precallback = "restrictTunnelLimitToValidRange()"
     },
     {
         category = "Tunnel Options",
@@ -270,7 +254,6 @@ local settings = {
         type = "string",
         desc = "<b>Tunnel Weight</b> specifies the cost of using a tunnel. The higher the number, the less likely a tunnel is used.<br><br><small>aredn.@tunnel[0].weight</small>",
         default = "1",
-        needreboot= true,
         condition = "not isSupernode()"
     },
     {
@@ -278,8 +261,7 @@ local settings = {
         key = "aredn.@tunnel[0].wanonly",
         type = "boolean",
         desc = "<b>WAN-Only Tunnel</b> prevents tunnel traffic from being routed over the Mesh network itself<br><br><small>aredn.@tunnel[0].wanonly</small>",
-        default = "1",
-        needreboot= true
+        default = "1"
     },
     {
         category = "Memory Settings",
@@ -323,8 +305,6 @@ local settings = {
         type = "string",
         desc = "<b>Remote logging URL</b> for the remote syslog machine. Must be formatted as <i>protocol://ipaddress:port</i><br><br><small>aredn.@remotelog[0].url</small>",
         default = "",
-        needreboot = true,
-        nodesetup = true,
         precallback = "validate_rsyslog()"
     },
     {
@@ -455,8 +435,7 @@ local settings = {
         key = "aredn.@alerts[0].pollrate",
         type = "string",
         desc = "<b>Alert Message Pollrate</b> - how many hours to wait between polling for new AREDN Alerts<br><br><small>aredn.@alerts[0].pollrate</small>",
-        default = "1",
-        needreboot = true
+        default = "1"
     },
     {
         category = "AREDN Alert Settings",
@@ -478,37 +457,18 @@ function msg(m)
 end
 
 -- uci cursor
-local cursora = uci.cursor()
-local cursorb = uci.cursor("/etc/config.mesh")
+local cursor = uci.cursor("/etc/config.mesh")
+
 function cursor_set(a, b, c, d)
-    if not cursora:get(a, b) and b:match("@(.+)%[0%]") then
-        cursora:add(a, b:match("@(.+)%[0%]"))
+    if not cursor:get(a, b) and b:match("@(.+)%[0%]") then
+        cursor:add(a, b:match("@(.+)%[0%]"))
     end
-    cursora:set(a, b, c, d)
-    if not cursorb:get(a, b) and b:match("@(.+)%[0%]") then
-        cursorb:add(a, b:match("@(.+)%[0%]"))
-    end
-    cursorb:set(a, b, c, d)
-    cursora:commit(a)
-    cursorb:commit(a)
-end
-
-function cursor_add(a, b, c)
-    cursora:set(a, b, c)
-    cursorb:set(a, b, c)
-    cursora:commit(a)
-    cursorb:commit(a)
-end
-
-function cursor_delete(a, b)
-    cursora:delete(a, b)
-    cursorb:delete(a, b)
-    cursora:commit(a)
-    cursorb:commit(a)
+    cursor:set(a, b, c, d)
+    cursor:commit(a)
 end
 
 function cursor_get(a, b, c)
-    return cursora:get(a, b, c)
+    return cursor:get(a, b, c)
 end
 
 function reboot()
@@ -679,48 +639,6 @@ function restrictTunnelLimitToValidRange()
     end
 end
 
-function addTunnelInterface(file, tunnum)
-    local section = "tun" .. tunnum
-    cursor_add(file, section, "interface")
-    cursor_set(file, section, "ifname", section)
-    cursor_set(file, section, "proto", "none")
-end
-
-function deleteTunnelInterface(file, tunnum)
-    local section = "tun" .. tunnum
-    cursor_delete(file, section)
-end
-
-function adjustTunnelInterfaceCount()
-    local tunnel_if_count = 0
-    cursora:foreach('network_tun', 'interface', function(s) tunnel_if_count = tunnel_if_count + 1 end)
-    local maxclients = cursor_get("aredn", "@tunnel[0]", "maxclients")
-    if not maxclients then
-        maxclients = 10
-    end
-    local maxservers = cursor_get("aredn", "@tunnel[0]", "maxservers")
-    if not maxservers then
-        maxservers = 10
-    end
-    local needed_if_count = maxclients + maxservers
-    if tunnel_if_count ~= needed_if_count then
-        for i = tunnel_if_count,needed_if_count-1
-        do
-            local tunnum = 50 + i
-            addTunnelInterface("network_tun", tunnum)
-            addTunnelInterface("network", tunnum)
-        end
-        for i = tunnel_if_count-1,needed_if_count,-1
-        do
-            local tunnum = 50 + i
-            deleteTunnelInterface("network_tun", tunnum)
-            deleteTunnelInterface("network", tunnum)
-        end
-        -- can't clone network because it contains macros; re-edit it instead
-        os.execute("sed -i -e '$r /etc/config.mesh/network_tun' -e '/interface.*tun',$d' /etc/config.mesh/network")
-    end
-end
-
 function currentWANVLAN()
     for line in io.lines("/etc/config.mesh/_setup")
     do
@@ -824,12 +742,8 @@ do
         if setting.postcallback then
             loadstring(setting.postcallback)()
         end
-        if setting.nodesetup then
-            os.execute("/usr/local/bin/node-setup -a mesh")
-        end
-        if setting.needreboot then
-            io.open("/tmp/reboot-required", "w"):close()
-        end
+        os.execute("/usr/local/bin/node-setup > /dev/null 2>&1")
+        os.execute("/usr/local/bin/restart-services.sh > /dev/null 2>&1")
         break
     end
 end

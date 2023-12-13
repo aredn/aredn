@@ -6,23 +6,6 @@ if [ "$(/sbin/uci -c /etc/config.mesh -q get aredn.@tunnel[0])" != "tunnel" ]; t
     /sbin/uci -c /etc/config.mesh -q set aredn.@tunnel[0].weight=1
     /sbin/uci -c /etc/config.mesh -q commit aredn
 fi
-clients=$(/sbin/uci -c /etc/config.mesh -q get aredn.@tunnel[0].maxclients)
-servers=$(/sbin/uci -c /etc/config.mesh -q get aredn.@tunnel[0].maxservers)
-maxtun=$((49 + $clients + $servers))
-
-# Check we have sufficient tunnels and regenerate network_tun if not
-if [ "$(/sbin/uci -c /etc/config.mesh -q get network_tun.tun$maxtun)" != "interface" -o "$(/sbin/uci -c /etc/config.mesh -q get network_tun.tun$((1 + $maxtun)))" != "" ]; then
-    cp /dev/null /etc/config.mesh/network_tun
-    for tun in $(seq 50 $maxtun)
-    do
-        cat >> /etc/config.mesh/network_tun <<__EOT__
-config interface 'tun$tun'
-    option ifname 'tun$tun'
-    option proto 'none'
-
-__EOT__
-    done
-fi
 
 # Default tunnel weight to 1 (perfect RF)
 if [ "$(/sbin/uci -c /etc/config.mesh -q get aredn.@tunnel[0].weight)" = "" ]; then
