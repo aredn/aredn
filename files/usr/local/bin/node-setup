@@ -539,7 +539,7 @@ if not nixio.fs.stat("/usr/sbin/vtund") then
     maxclients = 0
     maxservers = 0
 end
-for dev = 50, 50 + maxclients + maxservers
+for dev = 50, 50 + maxclients + maxservers - 1
 do
     cfg.tun_devices_config = cfg.tun_devices_config ..
         string.format("config interface 'tun%d'\n\toption ifname 'tun%d'\n\toption proto 'none'\n\n", dev, dev)
@@ -938,7 +938,11 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         -- add all the tunnel interfaces
         if vtunclients + vtunservers + wgclients + wgservers > 0 then
             of:write("config Interface\n")
-            for dev = 50, 50 + vtunclients + vtunservers
+            for dev = 50, 50 + vtunclients - 1
+            do
+                of:write("\tlist interface 'tun" .. dev .. "'\n")
+            end
+            for dev = 50 + maxclients, 50 + maxclients + vtunservers - 1
             do
                 of:write("\tlist interface 'tun" .. dev .. "'\n")
             end
