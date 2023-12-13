@@ -471,11 +471,13 @@ if tun_start or tun_dns then
     end
     cfg.tun_network_config = cfg.tun_network_config .. "\n"
 end
+local vtunclients = 0
 cm:foreach("vtun", "client",
     function(s)
         if s.enabled == "1" then
             cfg.tun_network_config = cfg.tun_network_config .. string.format("config client\n\toption enabled '1'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
                 s.node, s.passwd, s.clientip, s.serverip, s.netip)
+            vtunclients = vtunclients + 1
         end
     end
 )
@@ -505,6 +507,7 @@ if wgclients > 0 then
         private, (tun_port or 5525), (ab .. c .. "." .. d)) ..
         cfg.wireguard_network_config
 end
+local vtunservers = 0
 local wgservers = 0
 cm:foreach("vtun", "server",
     function(s)
@@ -522,6 +525,7 @@ cm:foreach("vtun", "server",
                 cfg.tun_network_config = cfg.tun_network_config ..
                     string.format("config server\n\toption enabled '1'\n\toption host '%s'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
                         s.host, s.node, s.passwd, s.clientip, s.serverip, s.netip)
+                vtunservers = vtunservers + 1
             end
         end
     end
@@ -932,23 +936,27 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         of:write("\n")
     
         -- add all the tunnel interfaces
-        of:write("config Interface\n")
-        for dev = 50, 50 + maxclients + maxservers
-        do
-            of:write("\tlist interface 'tun" .. dev .. "'\n")
-        end
-        of:write("\tlist interface 'wgc'\n")
-        for dev = 0, maxwgs - 1
-        do
-            of:write("\tlist interface 'wgs" .. dev .. "'\n")
-        end
-        of:write("\toption Ip4Broadcast '255.255.255.255'\n")
-        local tun_weight = tonumber(nc:get("aredn", "@tunnel[0]", "weight") or 1)
-        local is_supernode = nc:get("aredn", "@supernode[0]", "enable") == "1"
-        if not tun_weight or tun_weight < 1 or is_supernode then
-            of:write("\toption Mode 'ether'\n")
-        elseif tun_weight > 1 then
-            of:write("\toption LinkQualityMult 'default " .. (1 / tun_weight) .. "'\n")
+        if vtunclients + vtunservers + wgclients + wgservers > 0 then
+            of:write("config Interface\n")
+            for dev = 50, 50 + vtunclients + vtunservers
+            do
+                of:write("\tlist interface 'tun" .. dev .. "'\n")
+            end
+            if wgclients + wgservers > 0 then
+                of:write("\tlist interface 'wgc'\n")
+                for dev = 0, wgservers - 1
+                do
+                    of:write("\tlist interface 'wgs" .. dev .. "'\n")
+                end
+            end
+            of:write("\toption Ip4Broadcast '255.255.255.255'\n")
+            local tun_weight = tonumber(nc:get("aredn", "@tunnel[0]", "weight") or 1)
+            local is_supernode = nc:get("aredn", "@supernode[0]", "enable") == "1"
+            if not tun_weight or tun_weight < 1 or is_supernode then
+                of:write("\toption Mode 'ether'\n")
+            elseif tun_weight > 1 then
+                of:write("\toption LinkQualityMult 'default " .. (1 / tun_weight) .. "'\n")
+            end
         end
 
         -- add xlink interfaces
@@ -966,7 +974,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
                         if weight > 1 then
                             of:write("\toption LinkQualityMult 'default " .. (1 / weight) .. "'\n")
                         elseif weight < 1 then
-                            print([[     Mode "ether"]])
+                            of:write([[     Mode "ether"]])
                         end
                     else
                         of:write("\toption Mode 'ether'\n")
