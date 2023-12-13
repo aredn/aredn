@@ -544,14 +544,16 @@ do
     cfg.tun_devices_config = cfg.tun_devices_config ..
         string.format("config interface 'tun%d'\n\toption ifname 'tun%d'\n\toption proto 'none'\n\n", dev, dev)
 end
-local maxwgs = nixio.bit.lshift(1, 32 - tonumber(cm:get("wireguard", "@wireguard_server[0]", "masksize") or 26))
 -- Not wireguard devices without the wg app
 if not nixio.fs.stat("/usr/bin/wg") then
-    maxwgs = 0
-else
+    wgclients = 0
+    wgservers = 0
+end
+if wgclients + wgservers > 0 then
+    local maxwgservers = math.min(10 * math.ceil(wgservers / 10), nixio.bit.lshift(1, 32 - tonumber(cm:get("wireguard", "@wireguard_server[0]", "masksize") or 26)))
     cfg.tun_devices_config = cfg.tun_devices_config ..
         string.format("config interface 'wgc'\n\toption ifname 'wgc'\n\toption proto 'none'\n\n")
-    for dev = 0, maxwgs - 1
+    for dev = 0, maxwgservers - 1
     do
         cfg.tun_devices_config = cfg.tun_devices_config ..
             string.format("config interface 'wgs%d'\n\toption ifname 'wgs%d'\n\toption proto 'none'\n\n", dev, dev)
