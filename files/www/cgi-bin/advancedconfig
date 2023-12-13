@@ -234,22 +234,6 @@ local settings = {
     },
     {
         category = "Tunnel Options",
-        key = "aredn.@tunnel[0].maxclients",
-        type = "string",
-        desc = "<b>Tunnel Maxclients</b> specifies the maximum number of tunnel clients this node can serve; must be an integer in the range [0,100].<br><br><small>aredn.@tunnel[0].maxclients</small>",
-        default = "10",
-        precallback = "restrictTunnelLimitToValidRange()"
-    },
-    {
-        category = "Tunnel Options",
-        key = "aredn.@tunnel[0].maxservers",
-        type = "string",
-        desc = "<b>Tunnel Maxservers</b> specifies the maximum number of tunnel servers to which this node can connect; must be an integer in the range [0,100].<br><br><small>aredn.@tunnel[0].maxservers</small>",
-        default = "10",
-        precallback = "restrictTunnelLimitToValidRange()"
-    },
-    {
-        category = "Tunnel Options",
         key = "aredn.@tunnel[0].weight",
         type = "string",
         desc = "<b>Tunnel Weight</b> specifies the cost of using a tunnel. The higher the number, the less likely a tunnel is used.<br><br><small>aredn.@tunnel[0].weight</small>",
@@ -622,20 +606,6 @@ function writePackageRepo(repo)
     local disturl = capture("grep aredn_" .. repo .. " /etc/opkg/distfeeds.conf | cut -d' ' -f3")
     if uciurl and disturl ~= "" then
         os.execute("sed -i 's|" .. disturl:chomp() .. "|" .. uciurl:chomp() .. "|g' /etc/opkg/distfeeds.conf")
-    end
-end
-
-function restrictTunnelLimitToValidRange()
-    newval = tonumber(newval)
-    if not newval then
-        msg(key .. " must be an interger in the range [0,100]")
-        newval = 0
-    elseif newval < 0 then
-        msg("Lower limit of " .. key .. " is 0")
-        newval = 0
-    elseif newval > 100 then
-        msg("Upper limit of " .. key .. " is 100")
-        newval = 100
     end
 end
 

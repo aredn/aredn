@@ -1,9 +1,6 @@
 #!/bin/sh
 if [ "$(/sbin/uci -c /etc/config.mesh -q get aredn.@tunnel[0])" != "tunnel" ]; then
     /sbin/uci -c /etc/config.mesh -q add aredn tunnel
-    /sbin/uci -c /etc/config.mesh -q set aredn.@tunnel[0].maxclients=10
-    /sbin/uci -c /etc/config.mesh -q set aredn.@tunnel[0].maxservers=10
-    /sbin/uci -c /etc/config.mesh -q set aredn.@tunnel[0].weight=1
     /sbin/uci -c /etc/config.mesh -q commit aredn
 fi
 

@@ -347,13 +347,6 @@ do
         enabled_count = enabled_count + 1
     end
 end
-local maxservers = tonumber(cursor:get("aredn", "@tunnel[0]", "maxservers"))
-if not maxservers then
-    maxservers = 10
-end
-if enabled_count > maxservers then
-    err("Number of servers enabled (" .. enabled_count .. " exceeds maxservers (" .. maxservers .. "); only the first 10 will activate.")
-end
 
 -- save the connections the uci vtun file
 if parms.button_save and #conn_err == 0 then
