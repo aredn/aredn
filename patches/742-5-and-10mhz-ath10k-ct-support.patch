@@ -314,13 +314,15 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 + 	ar->fw_coverage.coverage_class = value;
 --- /dev/null
 --- openwrt/package/kernel/ath10k-ct/patches/999-0005-ath10k-force-ibss.patch
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,12 @@
 +--- a/ath10k-5.15/mac.c
 ++++ b/ath10k-5.15/mac.c
-+@@ -11533,6 +11533,7 @@
++@@ -11533,6 +11533,9 @@
 + 		} else {
 + 			ret = ath10k_copy_comb(ar, ath10k_10x_if_comb,
 + 					       ARRAY_SIZE(ath10k_10x_if_comb));
+++			ATH_ASSIGN_CONST_U16(ar->if_comb[0].limits[0].max, ar->max_num_vdevs);
+++			ar->if_comb[0].max_interfaces = ar->max_num_vdevs;
 ++			ar->hw->wiphy->interface_modes |= BIT(NL80211_IFTYPE_ADHOC);
 + 		}
 + 		break;
