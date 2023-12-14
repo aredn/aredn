@@ -450,8 +450,8 @@ function lqm()
         end
 
         -- Xlink
-        if nixio.fs.stat("/etc/config/xlink") then
-            uci.cursor("/etc/config"):foreach("xlink", "interface",
+        if nixio.fs.stat("/etc/config/xlink.mesh") then
+            uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
                 function(section)
                     if section.ifname then
                         for _, entry in ipairs(arps)
