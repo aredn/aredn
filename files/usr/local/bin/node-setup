@@ -928,7 +928,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         for _, host in ipairs(hosts)
         do
             if host.host ~= "" then
-                of:write("\toption " .. host.ip:gsub("%.", "_") .. " '" .. host.host .. "'\n")
+                of:write("\tlist hosts '" .. host.ip .. " " .. host.host .. "'\n")
             end
         end
         for _, service in ipairs(services)
@@ -971,7 +971,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         if nixio.fs.stat("/etc/config.mesh/xlink") then
             uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
                 function(section)
-                    of:write("config Interface\n\t list interface '" .. section.ifname .. "'\n")
+                    of:write("\nconfig Interface\n\tlist interface '" .. section[".name"] .. "'\n")
                     if section.peer then
                         of:write("\toption Ip4Broadcast '" .. section.peer .. "'\n")
                     else
@@ -982,7 +982,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
                         if weight > 1 then
                             of:write("\toption LinkQualityMult 'default " .. (1 / weight) .. "'\n")
                         elseif weight < 1 then
-                            of:write([[     Mode "ether"]])
+                            of:write("\toption Mode 'ether'\n")
                         end
                     else
                         of:write("\toption Mode 'ether'\n")
