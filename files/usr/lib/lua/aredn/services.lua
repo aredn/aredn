@@ -164,7 +164,7 @@ local function get(validate)
                     if link == "0" then
                         port = "0"
                     end
-                    services[#services + 1] = string.format("%s://%s:%s/%s|tcp|%s\n", proto, host, port, sffx, name)
+                    services[#services + 1] = string.format("%s://%s:%s/%s|tcp|%s", proto, host, port, sffx, name)
                 end
             end
         end
