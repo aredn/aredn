@@ -450,7 +450,7 @@ function lqm()
         end
 
         -- Xlink
-        if nixio.fs.stat("/etc/config/xlink.mesh") then
+        if nixio.fs.stat("/etc/config.mesh/xlink") then
             uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
                 function(section)
                     if section.ifname then
