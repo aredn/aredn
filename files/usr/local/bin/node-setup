@@ -966,6 +966,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         end
         nc:set("aredn", "@tunnel[0]", "maxclients", maxclients)
         nc:set("aredn", "@tunnel[0]", "maxservers", maxservers)
+        nc:commit("aredn")
 
         -- add xlink interfaces
         if nixio.fs.stat("/etc/config.mesh/xlink") then
