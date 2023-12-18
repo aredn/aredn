@@ -477,11 +477,11 @@ col2[#col2 + 1] = "<th align=right><nobr>firmware version:</nobr><br><nobr>model
     (elevation and "<br><nobr>elevation:</nobr>" or "") ..
     (height and "<br><nobr>height:</nobr>" or "") ..
     "</th><td>" ..
-    read_all("/etc/mesh-release") .. "<br>" .. (aredn.hardware.get_radio() or { name = "unknown" }).name .. "<br><br>" ..
-    (antenna and antenna .. "<br>" or "") ..
-    (azimuth and azimuth .. "<br>" or "") ..
-    (elevation and elevation .. "<br>" or "") .. 
-    (height or "") .. 
+    read_all("/etc/mesh-release") .. "<br>" .. (aredn.hardware.get_radio() or { name = "unknown" }).name .. "<br>" ..
+    (antenna and "<br>" .. antenna or "") ..
+    (azimuth and "<br>" .. azimuth or "") ..
+    (elevation and "<br>" .. elevation or "") ..
+    (height and "<br>" .. height or "") ..
     "</td>"
 
 local sysinfo = nixio.sysinfo()
