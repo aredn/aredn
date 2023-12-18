@@ -1063,6 +1063,9 @@ local config_special = {
     lqm_enable = c:get("aredn", "@lqm[0]", "enable"),
     tunnel_weight = c:get("aredn", "@tunnel[0]", "weight"),
     supernode_enable = c:get("aredn", "@supernode[0]", "enable"),
+    watchdog_enable = c:get("aredn", "@watchdog[0]", "enable"),
+    watchdog_pings = c:get("aredn", "@watchdog[0]", "ping_addresses"),
+    watchdog_daily = c:get("aredn", "@watchdog[0]", "daily"),
     wifi_mode_0 = c:get("wireless", "@wifi-iface[0]", "mode"),
     wifi_mode_1 = c:get("wireless", "@wifi-iface[1]", "mode")
 }
@@ -1096,6 +1099,15 @@ do
             end
             if oc:get("aredn", "@supernode[0]", "enable") ~= config_special.supernode_enable then
                 changes.reboot = true
+            end
+            if oc:get("aredn", "@watchdog[0]", "enable") ~= config_special.watchdog_enable then
+                changes.reboot = true
+            end
+            if oc:get("aredn", "@watchdog[0]", "ping_addresses") ~= config_special.watchdog_pings then
+                changes.manager = true
+            end
+            if oc:get("aredn", "@watchdog[0]", "daily") ~= config_special.watchdog_daily then
+                changes.manager = true
             end
         elseif file == "network" then
             changes.network = true

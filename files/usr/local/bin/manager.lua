@@ -43,6 +43,7 @@ require("iwinfo")
 require("aredn.hardware")
 require("aredn.log")
 require("luci.jsonc")
+require("ubus")
 
 -- aggressive gc on low memory devices
 if nixio.sysinfo().totalram < 32 * 1024 * 1024 then

@@ -62,7 +62,7 @@ function olsrd_restart()
     end
 end
 
-function watchdog()
+function olsrd_watchdog()
     while true
     do
         wait_for_ticks(223)
@@ -86,4 +86,4 @@ function watchdog()
     end
 end
 
-return watchdog
+return olsrd_watchdog
