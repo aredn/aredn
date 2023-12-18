@@ -1058,11 +1058,13 @@ end
 --- Make it official
 ---
 
--- Handle /etc/config/aredn specially because only some changes require a restart/reboot
-local config_aredn = {
+-- Handle special cases
+local config_special = {
     lqm_enable = c:get("aredn", "@lqm[0]", "enable"),
     tunnel_weight = c:get("aredn", "@tunnel[0]", "weight"),
-    supernode_enable = c:get("aredn", "@supernode[0]", "enable")
+    supernode_enable = c:get("aredn", "@supernode[0]", "enable"),
+    wifi_mode_0 = c:get("wireless", "@wifi-iface[0]", "mode"),
+    wifi_mode_1 = c:get("wireless", "@wifi-iface[1]", "mode")
 }
 local nfiles = {}
 for file in nixio.fs.glob("/tmp/new_config/*")
@@ -1086,13 +1088,13 @@ do
             changes.system = true
         elseif file == "aredn" then
             local oc = uci:cursor()
-            if oc:get("aredn", "@lqm[0]", "enable") ~= config_aredn.lqm_enable then
+            if oc:get("aredn", "@lqm[0]", "enable") ~= config_special.lqm_enable then
                 changes.manager = true
             end
-            if oc:get("aredn", "@tunnel[0]", "weight") ~= config_aredn.tunnel_weight then
+            if oc:get("aredn", "@tunnel[0]", "weight") ~= config_special.tunnel_weight then
                 changes.olsrd = true
             end
-            if oc:get("aredn", "@supernode[0]", "enable") ~= config_aredn.supernode_enable then
+            if oc:get("aredn", "@supernode[0]", "enable") ~= config_special.supernode_enable then
                 changes.reboot = true
             end
         elseif file == "network" then
@@ -1104,7 +1106,12 @@ do
         elseif file == "firewall" then
             changes.firewall = true
         elseif file == "wireless" then
-            changes.wireless = true
+            local oc = uci:cursor()
+            if oc:get("wireless", "@wifi-iface[0]", "mode") ~= config_special.wifi_mode_0 or oc:get("wireless", "@wifi-iface[1]", "mode") ~= config_special.wifi_mode_1 then
+                changes.reboot = true
+            else
+                changes.wireless = true
+            end
         elseif file == "vtun" then
             changes.tunnels = true
         else

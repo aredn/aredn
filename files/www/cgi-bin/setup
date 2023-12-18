@@ -1316,6 +1316,10 @@ if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or
         if wifi_enable == "1" then
             local alt_wifi = (not phy or phy == "phy0") and "wlan1" or "wlan0"
             chan = aredn.hardware.get_rfchannels(alt_wifi)
+            if #chan == 0 then
+                -- Hardware device can crash after switching - so at least make the page render until a reboot
+                chan[1] = { frequency = 2412, number = 1, label = nil }
+            end
             if chan[1].frequency < 3000 then
                 wifi2_hwmode = "11g"
                 if wifi2_channel > 14 then

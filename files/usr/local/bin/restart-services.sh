@@ -41,6 +41,17 @@ if [ ! -d $ROOT ]; then
   exit 0
 fi
 
+ignore=0
+if [ "$1" = "--ignore-reboot" ]; then
+  shift
+  ignore=1
+fi
+
+# If we have to reboot, do nothing (unless ignored)
+if [ -f $ROOT/reboot -a $ignore = 0 ]; then
+  exit 1
+fi
+
 # Override services to restart
 if [ "$*" != "" ]; then
   SERVICES="$*"
