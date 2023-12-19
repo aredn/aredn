@@ -681,6 +681,7 @@ if parms.button_save then
         if not nixio.fs.stat("/etc/cron.daily/update-clock") then
             if nixio.fs.stat("/etc/cron.hourly/update-clock") then
                 os.execute("mv /etc/cron.hourly/update-clock /etc/cron.daily/update-clock")
+                ntp_period = parms.ntp_period
             else
                 err("update-clock script not found")
             end
@@ -689,6 +690,7 @@ if parms.button_save then
         if not nixio.fs.stat("/etc/cron.hourly/update-clock") then
             if nixio.fs.stat("/etc/cron.daily/update-clock") then
                 os.execute("mv /etc/cron.daily/update-clock /etc/cron.hourly/update-clock")
+                ntp_period = parms.ntp_period
             else
                 err("update-clock script not found")
             end
