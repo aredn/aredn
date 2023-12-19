@@ -44,8 +44,8 @@ local config_limits = {
     startup_delay = { 600, 600, 3600 },
     ping_count = { 1, 3, 10 },
     ping_timeout = { 1, 5, 10 },
-    tick = { 60, 60, 600 },
-    failures = { 2, 3, 25 },
+    tick = { 60, 120, 600 },
+    failures = { 2, 5, 25 },
     daily = { -1, -1, 23 }
 }
 
@@ -55,25 +55,25 @@ if uci.cursor():get("vtun", "server_0", "host") or uci.cursor():get("vtun", "cli
     default_daemons = default_daemons .. " vtund"
 end
 
-function W.get_config()
+function W.get_config(verbose)
     local c = uci.cursor()
-
-    if c:get("aredn", "@watchdog[0]", "enable") ~= "1" then
-        return nil
-    end
 
     local ping_addresses = {}
     local addresses = c:get("aredn", "@watchdog[0]", "ping_addresses") or ""
     for address in addresses:gmatch("(%S+)") do
         if address:match("^%d+%.%d+%.%d+%.%d+$") then
-            mainlog:write("pinging " .. address)
+            if verbose then
+                mainlog:write("pinging " .. address)
+            end
             ping_addresses[#ping_addresses + 1] = address
         end
     end
     local daemons = {}
     local mydaemons = c:get("aredn", "@watchdog[0]", "daemons") or default_daemons
     for daemon in mydaemons:gmatch("(%S+)") do
-        mainlog:write("monitor " .. daemon)
+        if verbose then
+            mainlog:write("monitor " .. daemon)
+        end
         daemons[#daemons + 1] = daemon
     end
     local config = {
@@ -93,15 +93,26 @@ function W.get_config()
             config[k] = val
         end
     end
+
+    -- Make sure we have enough tick time for any pings
+    local total_ping_time = 30 + (config.ping_timeout + config.ping_count) * #config.ping_addresses
+    if total_ping_time > config.tick then
+        config.tick = math.ceil(total_ping_time / 60) * 60
+        if verbose then
+            mainlog:write("adjusting tick to " .. config.tick)
+        end
+    end
+
     return config
 end
 
 function W.start()
-    local config = W.get_config()
-    if not config then
+    if uci.cursor():get("aredn", "@watchdog[0]", "enable") ~= "1" then
         exit_app()
         return
     end
+
+    local config = W.get_config(true)
 
     -- Dont start monitoring too soon. Let the system settle down.
     wait_for_ticks(math.max(1, config.startup_delay - nixio.sysinfo().uptime))
@@ -118,16 +129,8 @@ function W.start()
         return
     end
 
-    -- Make sure we have enough tick time for any pings
-    local total_ping_time = 30 + (config.ping_timeout + config.ping_count) * #config.ping_addresses
-    if total_ping_time > config.tick then
-        config.tick = math.ceil(total_ping_time / 60) * 60
-        mainlog:write("adjusted tick to " .. config.tick)
-    end
-
-    -- The reboot timeout seem to be 3-5x the timeout value
     -- We make sure it's at least 5 minutes
-    ub:call("system", "watchdog", { timeout = math.ceil(math.max(300, config.tick * config.failures) / 3) })
+    ub:call("system", "watchdog", { timeout = math.ceil(math.max(300, config.tick * config.failures)) })
 
     local daily_reboot_armed = false
 
@@ -135,6 +138,9 @@ function W.start()
     do
         local now = os.time()
         local success = true
+
+        -- Update config
+        config = W.get_config()
 
         -- Reboot a device daily at a given time if configured. To avoid rebooting over and
         -- over we must have just seen the previous hour
