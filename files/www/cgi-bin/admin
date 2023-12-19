@@ -267,13 +267,14 @@ if parms.button_refresh_fw then
             end
         end
         if not config_versions then
-            fwout("Failed to find firmware versions")
+            fwout("Failed to load firmware versions")
         else
             local firmware_versions = {}
             for k, v in config_versions:gmatch("'([^']+)': '([^']+)'")
             do
                 firmware_versions[k] = v
             end
+            local err = false
             local board_type = aredn.hardware.get_board_type():gsub(",", "_")
             for ver, data in pairs(firmware_versions)
             do
@@ -292,6 +293,8 @@ if parms.button_refresh_fw then
                             break
                         end
                     end
+                else
+                    err = true
                 end
             end
             local f = io.open("/tmp/web/firmware.list", "w")
@@ -299,7 +302,11 @@ if parms.button_refresh_fw then
                 f:write(luci.jsonc.stringify(firmware_versions, true))
                 f:close()
             end
-            fwout("Done")
+            if err then
+                fwout("Failed to load all firmware versions. List is incomplete")
+            else
+                fwout("Done")
+            end
         end
     else
         fwout("Error: no route to Host")
