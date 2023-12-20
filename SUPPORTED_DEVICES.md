@@ -27,6 +27,7 @@ LHG XL 2 | RBLHG-2nD-XL | 2 | ath79 | mikrotik | mikrotik-lhg-2nd-xl | 64MB | st
 LHG 5 | RBLHG-5nD | 5 | ath79 | mikrotik | mikrotik-lhg-5nd | 64MB | stable | released
 LHG HP5 | RBLHG-5HPnD | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd | 64MB | stable | released
 LHG XL HP5 | RBLHG-5HPnD-XL | 5 | ath79 | mikrotik | mikrotik-lhg-5hpnd-xl | 64MB | stable | released
+DiscG 5 ac | RBDiscG-5acD | 5 | ipq40xx | mikrotik | mikrotik_DiscG-5acd | 256MB | stable | released
 LHG 5 ac | RBLHGG-5acD | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd | 256MB | stable | released
 LHG XL 5 ac | RBLHGG-5acD-XL | 5 | ipq40xx | mikrotik | mikrotik_lhgg-5acd-xl | 256MB | stable | released
 LDF 2 | RBLDF-2nD | 2 | ath79 | mikrotik | mikrotik-ldf-2nd | 64MB | stable | released
