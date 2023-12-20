@@ -54,12 +54,12 @@ function wait_for_ticks(ticks)
 	local when = nixio.sysinfo().uptime + ticks
 	while true
 	do
-		ticks = when - nixio.sysinfo().uptime
-		if ticks > 0 then
+		if ticks >= 0 then
 			coroutine.yield(ticks)
 		else
 			break
 		end
+		ticks = when - nixio.sysinfo().uptime
 	end
 end
 
