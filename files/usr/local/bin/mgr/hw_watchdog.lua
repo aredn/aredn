@@ -39,15 +39,9 @@ local REBOOT = "/sbin/reboot"
 
 local W = {}
 
--- Configuration limits and defaults
-local config_limits = {
-    startup_delay = { 600, 600, 3600 },
-    ping_count = { 1, 3, 10 },
-    ping_timeout = { 1, 5, 10 },
-    tick = { 60, 120, 600 },
-    failures = { 2, 5, 25 },
-    daily = { -1, -1, 23 }
-}
+local tick = 20
+local ping_timeout = 3
+local startup_delay = 600
 
 -- Set of daemons to monitor
 local default_daemons = "olsrd dnsmasq telnetd dropbear uhttpd"
@@ -68,6 +62,7 @@ function W.get_config(verbose)
             ping_addresses[#ping_addresses + 1] = address
         end
     end
+
     local daemons = {}
     local mydaemons = c:get("aredn", "@watchdog[0]", "daemons") or default_daemons
     for daemon in mydaemons:gmatch("(%S+)") do
@@ -76,34 +71,14 @@ function W.get_config(verbose)
         end
         daemons[#daemons + 1] = daemon
     end
-    local config = {
+
+    local daily = tonumber(c:get("aredn", "@watchdog[0]", "daily") or nil) or -1
+
+    return {
         ping_addresses = ping_addresses,
-        daemons = daemons
+        daemons = daemons,
+        daily = daily
     }
-    for k, v in pairs(config_limits)
-    do
-        local val = tonumber(c:get("aredn", "@watchdog[0]", k) or nil)
-        if not val then
-            config[k] = v[2]
-        elseif val < v[1] then
-            config[k] = v[1]
-        elseif val > v[3] then
-            config[k] = v[3]
-        else
-            config[k] = val
-        end
-    end
-
-    -- Make sure we have enough tick time for any pings
-    local total_ping_time = 30 + (config.ping_timeout + config.ping_count) * #config.ping_addresses
-    if total_ping_time > config.tick then
-        config.tick = math.ceil(total_ping_time / 60) * 60
-        if verbose then
-            mainlog:write("adjusting tick to " .. config.tick)
-        end
-    end
-
-    return config
 end
 
 function W.start()
@@ -112,12 +87,15 @@ function W.start()
         return
     end
 
+    local ub = ubus.connect()
     local config = W.get_config(true)
 
-    -- Dont start monitoring too soon. Let the system settle down.
-    wait_for_ticks(math.max(1, config.startup_delay - nixio.sysinfo().uptime))
+    ub:call("system", "watchdog", { frequency = 1 })
+    ub:call("system", "watchdog", { timeout = 60 })
 
-    local ub = ubus.connect()
+    -- Dont start monitoring too soon. Let the system settle down.
+    wait_for_ticks(math.max(0, startup_delay - nixio.sysinfo().uptime))
+
     ub:call("system", "watchdog", { magicclose = true })
     ub:call("system", "watchdog", { stop = true })
 
@@ -128,9 +106,6 @@ function W.start()
         exit_app()
         return
     end
-
-    -- We make sure it's at least 5 minutes
-    ub:call("system", "watchdog", { timeout = math.ceil(math.max(300, config.tick * config.failures)) })
 
     local daily_reboot_armed = false
 
@@ -146,7 +121,7 @@ function W.start()
         -- over we must have just seen the previous hour
         if config.daily ~= -1 then
             local time = os.date("*t")
-            if time.min >= (60 - config.tick * 3) and (time.hour + 1) % 24 == config.daily then
+            if time.min >= 55 and (time.hour + 1) % 24 == config.daily then
                 daily_reboot_armed = true
             elseif daily_reboot_armed and time.hour == config.daily then
                 mainlog:write("reboot")
@@ -177,7 +152,7 @@ function W.start()
                 success = false
                 for _, address in ipairs(config.ping_addresses)
                 do
-                    if os.execute(PING .. " -c " .. config.ping_count .. " -A -q -W " .. config.ping_timeout .. " " .. address .. " > /dev/null 2>&1") == 0 then
+                    if os.execute(PING .. " -c 1 -A -q -W " .. ping_timeout .. " " .. address .. " > /dev/null 2>&1") == 0 then
                         success = true
                         break
                     else
@@ -191,12 +166,13 @@ function W.start()
 
         end
         if success then
-            wd:write("V")
+            wd:write("1")
+            wd:flush()
         else
             mainlog:write("failed")
         end
 
-        wait_for_ticks(math.max(1, config.tick - (os.time() - now)))
+        wait_for_ticks(math.max(0, tick - (os.time() - now)))
     end
 end
 
