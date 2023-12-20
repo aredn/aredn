@@ -257,6 +257,15 @@
 +	SOC := qcom-ipq4018
 +	DEVICE_PACKAGES := rssileds
 +endef
++TARGET_DEVICES += mikrotik_ldf-5acd
++
++define Device/mikrotik_discg-5acd
++	$(call Device/mikrotik_nor)
++	DEVICE_MODEL := RouterBOARD DiscG 5 AC
++	SOC := qcom-ipq4018
++	DEVICE_PACKAGES := rssileds
++endef
+
 +TARGET_DEVICES += mikrotik_lhgg-5acd
 +
 +define Device/mikrotik_lhgg-5acd-xl
@@ -277,6 +286,7 @@
  	zyxel,wre6606)
  		ucidef_set_interface_lan "eth0"
  		;;
++ mikrotik,discg-5acd*|\
 +	mikrotik,lhgg-5acd*|\
 +	mikrotik,ldf-5acd|\
  	mikrotik,sxtsq-5-ac)
@@ -286,6 +296,7 @@
  		label_mac="$wan_mac"
  		;;
  	mikrotik,lhgg-60ad|\
++ mikrotik,discg-5acd*|\
 +	mikrotik,lhgg-5acd*|\
 +	mikrotik,ldf-5acd|\
  	mikrotik,sxtsq-5-ac)
@@ -534,6 +545,19 @@
 +       phy-mode = "rgmii";
 +};
 --- /dev/null
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-discg-5acd.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "qcom-ipq4018-discg-5acd.dts"
++
++/ {
++        compatible = "mikrotik,discg-5acd";
++        model = "MikroTik DiscG 5 ac XL (RBDiscG-5acD)";
++};
+--- /dev/null
++++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-discg-5acd.dts
+--- /dev/null
 +++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-lhgg-5acd-xl.dts
 @@ -0,0 +1,8 @@
 +// SPDX-License-Identifier: GPL-2.0-only
@@ -546,6 +570,7 @@
 +};
 --- /dev/null
 +++ b/target/linux/ipq40xx/files/arch/arm/boot/dts/qcom-ipq4018-ldf-5acd.dts
+
 @@ -0,0 +1,8 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +
@@ -561,6 +586,7 @@
  	mikrotik,hap-ac3 |\
  	mikrotik,hap-ac3-lte6-kit |\
  	mikrotik,sxtsq-5-ac |\
+  mikrotik,discg-5acd |\
 +	mikrotik,lhgg-5acd* |\
 +	mikrotik,ldf-5acd |\
  	mikrotik,wap-ac |\
@@ -570,6 +596,7 @@
  	mikrotik,hap-ac2 |\
  	mikrotik,hap-ac3 |\
  	mikrotik,hap-ac3-lte6-kit |\
+  mikrotik,discg-5acd |\
 +	mikrotik,lhgg-5acd* |\
 +	mikrotik,ldf-5acd |\
  	mikrotik,wap-ac |\
@@ -579,6 +606,7 @@
  	mikrotik,hap-ac3 |\
          mikrotik,hap-ac3-lte6-kit |\
  	mikrotik,sxtsq-5-ac |\
+  mikrotik,discg-5acd |\
 +	mikrotik,lhgg-5acd*|\
 +	mikrotik,ldf-5acd|\
  	mikrotik,wap-ac |\
@@ -590,6 +618,7 @@
  	mikrotik,cap-ac|\
  	mikrotik,hap-ac2|\
  	mikrotik,hap-ac3-lte6-kit|\
+  mikrotik,rbdisc-5acd \|
 +	mikrotik,lhgg-5acd*|\
 +	mikrotik,ldf-5acd|\
  	mikrotik,lhgg-60ad|\
