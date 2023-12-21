@@ -584,7 +584,7 @@ if fw then
         fw:write("\nconfig 'include'\n        option 'path' '/etc/firewall.natmode'\n        option 'reload' '1'\n")
     end
 
-    if c:get("aredn", "@wan[0]", "olsrd_gw") == "1" then
+    if nc:get("aredn", "@wan[0]", "olsrd_gw") == "1" then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   wan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   wan\n")
     end
