@@ -306,27 +306,19 @@ end
 -- Return locally hosted services (for sysinfo.json)
 -------------------------------------
 function model.local_services()
-	local filelines={}
-	local lclsrvs={}
-	local lclsrvfile=io.open("/etc/config/services", "r")
-	if lclsrvfile~=nil then
-		for line in lclsrvfile:lines() do
-			table.insert(filelines, line)
+	require("aredn.services")
+	local lclsrvs = {}
+	local _, _, services = aredn.services.get()
+	for _, service in ipairs(services)
+	do
+		local link, protocol, name = service:match("^([^|]*)|(.+)|([^\t]*).*")
+		if link and protocol and name then
+			table.insert(lclsrvs, {
+				name = name,
+				protocol = protocol,
+				link = link
+			})
 		end
-		lclsrvfile:close()
-		for pos,val in pairs(filelines) do
-			local service={}
-			local link,protocol,name = string.match(val,"^([^|]*)|(.+)|([^\t]*).*")
-			if link and protocol and name then
-				service['name']=name
-				service['protocol']=protocol
-				service['link']=link
-				table.insert(lclsrvs, service)
-			end
-		end
-	else
-		service['error']="Cannot read local services file"
-		table.insert(lclsrvs, service)
 	end
 	return lclsrvs
 end
