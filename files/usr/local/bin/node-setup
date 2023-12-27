@@ -986,29 +986,6 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
     end
 end
 
--- generate the services file
-local sf = io.open("/tmp/new_config/services", "w")
-if sf then
-    if nixio.fs.access(servfile) then
-        for line in io.lines(servfile)
-        do
-            if not (line:match("^%s*#") or line:match("^%s*$")) then
-                local name, link, proto, host, port, sffx = line:match("(.*)|(.*)|(.*)|(.*)|(.*)|(.*)")
-                if name and name ~= "" and host ~= "" then
-                    if proto == "" then
-                        proto = "http"
-                    end
-                    if link == "0" then
-                        port = "0"
-                    end
-                    sf:write(string.format("%s://%s:%s/%s|tcp|%s\n", proto, host, port, sffx, name))
-                end
-            end
-        end
-    end
-    sf:close()
-end
-
 -- Update user firewall
 local _, diff = filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user", true)
 if diff then
