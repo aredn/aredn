@@ -477,6 +477,7 @@ function cursor_get(a, b, c)
 end
 
 function reboot()
+    local c = uci.cursor()
     local node = aredn.info.get_nvram("node")
     if node == "" then
         node = "Node"
@@ -493,8 +494,8 @@ function reboot()
         fromlan = validate_same_subnet(browser, lanip, lanmask)
         if fromlan then
             lanmask = ip_to_decimal(lanmask)
-            local cfgip = cursor_get("network", "lan", "ipaddr")
-            local cfgmask = ip_to_decimal(cursor_get("network", "lan", "netmask"))
+            local cfgip = c:get("network", "lan", "ipaddr")
+            local cfgmask = ip_to_decimal(c:get("network", "lan", "netmask"))
             if lanmask ~= cfgmask or nixio.bit.band(ip_to_decimal(lanip), lanmask) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
                 subnet_change = true
             end
