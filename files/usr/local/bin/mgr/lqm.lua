@@ -228,7 +228,7 @@ function lqm()
     end
 
     -- Let things startup for a while before we begin
-    wait_for_ticks(math.max(1, 30 - nixio.sysinfo().uptime))
+    wait_for_ticks(math.max(0, 30 - nixio.sysinfo().uptime))
 
     -- Create filters (cannot create during install as they disappear on reboot)
     os.execute(NFT .. " flush chain ip fw4 input_lqm 2> /dev/null")
@@ -599,6 +599,7 @@ function lqm()
                 local raw = io.popen("/usr/bin/curl --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
                 local info = luci.jsonc.parse(raw:read("*a"))
                 raw:close()
+                wait_for_ticks(0)
                 if info then
                     rflinks[track.mac] = nil
                     if tonumber(info.lat) and tonumber(info.lon) then
@@ -716,6 +717,7 @@ function lqm()
                 end
                 ptime = socket.gettime(0) - pstart
                 sigsock:close()
+                wait_for_ticks(0)
 
                 local ping_loss_run_avg = 1 - config.ping_penalty / 100
                 if success > 0 then
