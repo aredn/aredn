@@ -51,12 +51,13 @@ do
     cnames[name] = true
 end
 local chosts = {}
-for k, v in pairs(ns)
-do
-    if k:match("^%d+_%d+_%d+_%d+$") then
-        chosts[k:gsub("_", ".")] = v
-    end
-end
+for _, v in ipairs(ns.hosts or {})                                                                                                                    
+do                                                                                                                                              
+    local ip, name = v:match("^(%d+%.%d+%.%d+%.%d+)%s+(%S+)$")                                                                                    
+    if ip then                                                                                                                                    
+        chosts[ip] = name                                                                                                                           
+    end                                                                                                                                           
+end                                                                                                                                             
 local cservices = {}
 for _, service in ipairs(ns.service or {})
 do
