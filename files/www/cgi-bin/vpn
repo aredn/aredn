@@ -643,7 +643,7 @@ if config == "mesh" then
         local lastnet = netw[4] + net * 4
         local fullnet = netw[1] .. "." .. netw[2] .. "." .. netw[3] .. "." .. lastnet
         html.print("<td rowspan='2' class='tun_client_center_item'>")
-        html.print("<input style='width:90px;background-color:transparent;border:0;text-align:center;' readonly type=text size=16 name=client" .. val .. "_netip value='" .. fullnet .. "'/></td>")
+        html.print("<input style='min-width:90px;background-color:transparent;border:0;text-align:center;' readonly type=text size=16 name=client" .. val .. "_netip value='" .. fullnet .. "'/></td>")
         html.print("<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;")
         if val ~= "_add" and is_tunnel_active(fullnet, active_tun) then
             html.print("<img class='tun_client_active_img' src='/connected.png' title='Connected' />")
@@ -713,7 +713,7 @@ if config == "mesh" then
 
         local fullnet = netwg[1] .. "." .. netwg[2] .. "." .. netwg[3] .. "." .. (netwg[4] + 1 + cnum) .. "/" .. netwg[5]
         html.print("<td rowspan='2' class='tun_client_center_item'>")
-        html.print("<input style='width:90px;background-color:transparent;border:0;text-align:center;' readonly type=text size=16 name=wgclient" .. val .. "_clientip value='" .. fullnet:match("^(.+)/") .. "'/></td>")
+        html.print("<input style='min-width:90px;background-color:transparent;border:0;text-align:center;' readonly type=text size=16 name=wgclient" .. val .. "_clientip value='" .. fullnet:match("^(.+)/") .. "'/></td>")
         html.print("<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;")
         if val ~= "_add" and is_wgtunnel_active(key, active_wgtun) then
             html.print("<img class='tun_client_active_img' src='/connected.png' title='Connected' />")
