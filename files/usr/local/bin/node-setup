@@ -476,7 +476,7 @@ cm:foreach("vtun", "client",
     function(s)
         if s.enabled == "1" then
             cfg.tun_network_config = cfg.tun_network_config .. string.format("config client\n\toption enabled '1'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
-                s.node, s.passwd, s.clientip, s.serverip, s.netip)
+                s.node:upper(), s.passwd, s.clientip, s.serverip, s.netip)
             vtunclients = vtunclients + 1
         end
     end
@@ -524,7 +524,7 @@ cm:foreach("vtun", "server",
             else
                 cfg.tun_network_config = cfg.tun_network_config ..
                     string.format("config server\n\toption enabled '1'\n\toption host '%s'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
-                        s.host, s.node, s.passwd, s.clientip, s.serverip, s.netip)
+                        s.host, s.node:upper(), s.passwd, s.clientip, s.serverip, s.netip)
                 vtunservers = vtunservers + 1
             end
         end
