@@ -39,7 +39,7 @@ require("aredn.services")
 
 local cursor = uci.cursor()
 
--- Current nameserver state
+-- Current nameservice state
 local ns = cursor:get_all("olsrd", "nameservice")
 if not ns then
     print("Missing nameservice")
@@ -104,15 +104,19 @@ local change = false
 
 -- Apply the changes
 if nnames or not_empty(cnames) then
-    cursor:set("olsrd", "nameserver", "name", names)
+    cursor:set("olsrd", "nameservice", "name", names)
     change = true
 end
 if nhosts or not_empty(chosts) then
-    cursor:set("olsrd", "nameserver", "hosts", hosts)
+    for i, host in ipairs(hosts)
+    do
+        hosts[i] = host.ip .. " " .. host.host
+    end
+    cursor:set("olsrd", "nameservice", "hosts", hosts)
     change = true
 end
 if nservices or not_empty(cservices) then
-    cursor:set("olsrd", "nameserver", "service", services)
+    cursor:set("olsrd", "nameservice", "service", services)
     change = true
 end
 
