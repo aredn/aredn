@@ -482,44 +482,40 @@ cm:foreach("vtun", "client",
     end
 )
 local wgclients = 0
+local wgport = tonumber(tun_port or 5525)
+if is_supernode then
+    wgport = wgport + 1000
+end
 cm:foreach("wireguard", "client",
     function(s)
         if s.enabled == "1" then
-            local client_priv, client_pub = s.key:match("^(.+=)(.+=)$")
+            local server_priv, _, _, client_pub = s.key:match("^(.+=)(.+=)(.+=)(.+=)$")
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                string.format("config wireguard_wgc\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
-                    client_pub)
+                string.format("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\n",
+                    wgclients, server_priv, wgport, s.clientip)
+            cfg.wireguard_network_config = cfg.wireguard_network_config ..
+                string.format("config wireguard_wgc%d\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
+                    wgclients, client_pub)
             wgclients = wgclients + 1
         end
+        wgport = wgport + 1
     end
 )
-if wgclients > 0 then
-    local private = cm:get("wireguard", "@wireguard_server[0]", "private")
-    local mask_size = tonumber(cm:get("wireguard", "@wireguard_server[0]", "masksize") or 26)
-    local ab, c, d = tun_start:match("^(%d+%.%d+%.)(%d+)%.(%d+)$")
-    c = tonumber(c) + 1
-    if c > 255 then
-        c = 0
-    end
-    d = nixio.bit.band(tonumber(d), nixio.bit.lshift(255, 32 - mask_size)) + 1
-    cfg.wireguard_network_config = 
-        string.format("config interface 'wgc'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\n",
-        private, (tun_port or 5525), (ab .. c .. "." .. d)) ..
-        cfg.wireguard_network_config
-end
 local vtunservers = 0
 local wgservers = 0
 cm:foreach("vtun", "server",
     function(s)
         if s.enabled == "1" then
-            if s.netip:match("/") then
+            if s.netip:match(":") then
                 local server_pub, client_priv, client_pub = s.passwd:match("^(.+=)(.+=)(.+=)$")
+                local abc, d, p = s.netip:match("^(%d+%.%d+%.%d+)%.(%d+):(%d+)")
+                d = tonumber(d) + 1
                 cfg.wireguard_network_config = cfg.wireguard_network_config ..
                     string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\tlist addresses '%s'\n\n",
-                        wgservers, client_priv, s.netip:match("^(.+)/"))
+                        wgservers, client_priv,(abc .. "." .. d))
                 cfg.wireguard_network_config = cfg.wireguard_network_config ..
                     string.format("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
-                        wgservers, server_pub, s.host, (tun_port or 5525))
+                        wgservers, server_pub, s.host, p)
                 wgservers = wgservers + 1
             else
                 cfg.tun_network_config = cfg.tun_network_config ..
@@ -938,8 +934,13 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
             do
                 of:write("\tlist interface 'tun" .. dev .. "'\n")
             end
-            if wgclients + wgservers > 0 then
-                of:write("\tlist interface 'wgc'\n")
+            if wgclients > 0 then
+                for dev = 0, wgclients - 1
+                do
+                    of:write("\tlist interface 'wgc" .. dev .. "'\n")
+                end
+            end
+            if wgservers > 0 then
                 for dev = 0, wgservers - 1
                 do
                     of:write("\tlist interface 'wgs" .. dev .. "'\n")
