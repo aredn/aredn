@@ -388,15 +388,17 @@ function lqm()
         end
 
         -- Wireguard
+        local wgc = 0
         cursorm:foreach("wireguard", "client",
             function(s)
                 if s.enabled == "1" then
                     local a, b, c, d = s.clientip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+                    d = tonumber(d) + 1
                     stations[#stations + 1] = {
                         type = "Tunnel",
-                        device = "wgc",
+                        device = "wgc" .. wgc,
                         signal = nil,
-                        ip = s.clientip,
+                        ip = string.format("%d.%d.%d.%d", a, b, c, d),
                         mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d),
                         tx_packets = 0,
                         tx_fail = 0,
@@ -404,15 +406,15 @@ function lqm()
                         tx_bitrate = 0,
                         rx_bitrate = 0
                     }
+                    wgc = wgc + 1
                 end
             end
         )
         local wgs = 0
         cursorm:foreach("vtun", "server",
             function(s)
-                if s.enabled == "1" and s.netip:match("/") then
-                    local a, b, c, d, m = s.netip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)/(%d+)$")
-                    local d = nixio.bit.band(d, nixio.bit.lshift(255, 32 - m)) + 1
+                if s.enabled == "1" and s.netip:match(":") then
+                    local a, b, c, d, _ = s.netip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+):(%d+)$")
                     stations[#stations + 1] = {
                         type = "Tunnel",
                         device = "wgs" .. wgs,
