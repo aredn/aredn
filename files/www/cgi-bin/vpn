@@ -497,7 +497,7 @@ if parms.button_save and #cli_err == 0 then
     cursor:commit("vtun")
     cursor:commit("wireguard")
     os.execute("/usr/local/bin/node-setup > /dev/null 2>&1")
-    os.execute("/usr/local/bin/restart-services.sh olsrd tunnels network > /dev/null 2>&1")
+    os.execute("/usr/local/bin/restart-services.sh network tunnels olsrd > /dev/null 2>&1")
 end
 
 local active_tun = get_active_tun()
@@ -704,14 +704,15 @@ if config == "mesh" then
         end
         html.print(" title='client name'></td>")
         html.print("<td>")
-        html.print("<input type=" .. (val == '_add' and 'hidden' or 'text') .. " readonly size=25 oncopy='return false' onmousedown='return false' name=wgclient" .. val .. "_key value='" .. key .. "' title='client key'>")
+        local _, server_pub, client_priv, client_pub = key:match("^(.+=)(.+=)(.+=)(.+=)$")
+        local client_key = val == "_add" and "" or (server_pub .. client_priv .. client_pub)
+        html.print("<input type=hidden name=wgclient" .. val .. "_key value='" .. key .. "'><input type=" .. (val == '_add' and 'hidden' or 'text') .. " readonly size=25 name=wgclient" .. val .. "_clientkey value='" .. client_key .. "' title='client key'>")
         html.print("</td>")
 
         local fullnet = netwg[1] .. "." .. netwg[2] .. "." .. netwg[3] .. "." .. (netwg[4] + 2 * cnum) .. ":" .. (wg_port + cnum)
         html.print("<td rowspan='2' class='tun_client_center_item'>")
         html.print("<input style='min-width:90px;background-color:transparent;border:0;text-align:center;' readonly type=text size=20 name=wgclient" .. val .. "_clientip value='" .. fullnet .. "'/></td>")
         html.print("<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;")
-        local _, server_pub, client_priv, client_pub = key:match("^(.+=)(.+=)(.+=)(.+=)$")
         if val ~= "_add" and is_wgtunnel_active(client_pub) then
             html.print("<img class='tun_client_active_img' src='/connected.png' title='Connected' />")
         else
