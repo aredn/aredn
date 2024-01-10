@@ -371,18 +371,21 @@ function lqm()
                     rx_bitrate = 0
                 }
                 stations[#stations + 1] = tunnel
-            else
+            elseif line:match("^%s*$") then
+                tunnel = nil
+            elseif tunnel then
                 local ip = line:match("P-t-P:(%d+%.%d+%.%d+%.%d+)")
                 if ip then
                     tunnel.ip = ip
                     -- Fake a mac from the ip
                     local a, b, c, d = ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
                     tunnel.mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
-                end
-                local txp, txf = line:match("TX packets:(%d+)%s+errors:(%d+)")
-                if txp and txf then
-                    tunnel.tx_packets = txp
-                    tunnel.tx_fail = txf
+                else
+                    local txp, txf = line:match("TX packets:(%d+)%s+errors:(%d+)")
+                    if txp and txf then
+                        tunnel.tx_packets = txp
+                        tunnel.tx_fail = txf
+                    end
                 end
             end
         end
@@ -392,7 +395,7 @@ function lqm()
         cursorm:foreach("wireguard", "client",
             function(s)
                 if s.enabled == "1" then
-                    local a, b, c, d = s.clientip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+                    local a, b, c, d = s.clientip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+):")
                     d = tonumber(d) + 1
                     stations[#stations + 1] = {
                         type = "Tunnel",
