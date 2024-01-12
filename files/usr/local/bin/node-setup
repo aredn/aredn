@@ -197,7 +197,7 @@ else
 end
 
 -- handle possible remote syslog
-local remote_log = c:get("aredn", "@remotelog[0]", "url") or ""
+local remote_log = cm:get("aredn", "@remotelog[0]", "url") or ""
 local proto, ip, port = remote_log:match("^(.+)://(%d+%.%d+%.%d+%.%d+):(%d+)$")
 port = tonumber(port)
 if proto and (proto == "tcp" or proto == "udp") and (port > 0 and port < 65536) and validate_ip(ip) then
@@ -1052,6 +1052,7 @@ do
     local _, diff = filecopy(ffile, "/etc/config/" .. file, true)
     if diff then
         if file == "system" then
+            changes.log = true
             changes.system = true
         elseif file == "aredn" then
             local oc = uci:cursor()
