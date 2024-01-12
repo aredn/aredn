@@ -34,7 +34,7 @@ true <<'LICENSE'
 LICENSE
 
 ROOT="/tmp/reboot-required"
-SERVICES="system firewall network wireless dnsmasq tunnels manager olsrd"
+SERVICES="log system firewall network wireless dnsmasq tunnels manager olsrd"
 
 ignore=0
 force=0
