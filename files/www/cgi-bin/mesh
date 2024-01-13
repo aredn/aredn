@@ -171,17 +171,19 @@ do
     if mac then
         if not iwrates then
             iwrates = {}
-            local station = {}
-            for line in io.popen("iw " .. wifiif .. " station dump"):lines()
-            do
-                local mac = line:match("^Station (%S+) ")
-                if mac then
-                    station = {}
-                    iwrates[mac] = station
-                end
-                local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
-                if txbitrate then
-                    station.txbitrate = txbitrate
+            if wifiif ~= "br-nomesh" then
+                local station = {}
+                for line in io.popen("iw " .. wifiif .. " station dump"):lines()
+                do
+                    local mac = line:match("^Station (%S+) ")
+                    if mac then
+                        station = {}
+                        iwrates[mac] = station
+                    end
+                    local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
+                    if txbitrate then
+                        station.txbitrate = txbitrate
+                    end
                 end
             end
         end
