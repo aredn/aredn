@@ -344,7 +344,7 @@ parms.dhcp_limit = dhcp_end - dhcp_start + 1
 parms.dmz_dhcp_limit = dmz_dhcp_end - dmz_dhcp_start + 1
 
 -- get the active wifi settings on a fresh page load
-if not parms.reload then
+if not parms.reload and wifi_intf ~= "br-nomesh" then
     wifi_txpower = capture_and_match("iwinfo " .. wifi_intf .. " info", "Tx%-Power: (%d+)")
     local doesiwoffset = capture_and_match("iwinfo " .. wifi_intf .. " info", "TX power offset: (%d+)")
     if wifi_txpower then
@@ -365,8 +365,8 @@ end
 if not wifi_txpower or wifi_txpower > aredn.hardware.wifi_maxpower(wifi_intf, wifi_channel) then
     wifi_txpower = aredn.hardware.wifi_maxpower(wifi_intf, wifi_channel)
 end
-if not wifi_power or wifi_power < 1 then
-    wifi_power = 1
+if not wifi_txpower or wifi_txpower < 1 then
+    wifi_txpower = 1
 end
 if not wifi_distance then
     wifi_distance = 0
