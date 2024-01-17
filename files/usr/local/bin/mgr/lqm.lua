@@ -136,7 +136,7 @@ end
 function update_block(track)
     if should_block(track) then
         track.blocked = true
-        if track.type == "Tunnel" then
+        if track.type == "Tunnel" or track.type == "Wireguard" then
             if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop") then
                 os.execute(NFT .. " insert rule ip fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 drop 2> /dev/null")
                 return "blocked"
@@ -149,7 +149,7 @@ function update_block(track)
         end
     else
         track.blocked = false
-        if track.type == "Tunnel" then
+        if track.type == "Tunnel" or track.type == "Wireguard" then
             local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
             if handle then
                 os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
@@ -398,7 +398,7 @@ function lqm()
                     local a, b, c, d = s.clientip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+):")
                     d = tonumber(d) + 1
                     stations[#stations + 1] = {
-                        type = "Tunnel",
+                        type = "Wireguard",
                         device = "wgc" .. wgc,
                         signal = nil,
                         ip = string.format("%d.%d.%d.%d", a, b, c, d),
@@ -419,7 +419,7 @@ function lqm()
                 if s.enabled == "1" and s.netip:match(":") then
                     local a, b, c, d, _ = s.netip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+):(%d+)$")
                     stations[#stations + 1] = {
-                        type = "Tunnel",
+                        type = "Wireguard",
                         device = "wgs" .. wgs,
                         signal = nil,
                         ip = string.format("%d.%d.%d.%d", a, b, c, d),
