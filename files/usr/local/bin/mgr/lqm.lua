@@ -194,11 +194,8 @@ function canonical_hostname(hostname)
     return hostname
 end
 
-local cursor = uci.cursor()
-local cursorm = uci.cursor("/etc/config.mesh")
-
 local myhostname = canonical_hostname(info.get_nvram("node") or "localnode")
-local myip = cursor:get("network", "wifi", "ipaddr")
+local myip = uci.cursor():get("network", "wifi", "ipaddr")
 
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
@@ -222,7 +219,7 @@ end
 
 function lqm()
 
-    if cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
+    if uci.cursor():get("aredn", "@lqm[0]", "enable") ~= "1" then
         exit_app()
         return
     end
@@ -274,6 +271,9 @@ function lqm()
         now = nixio.sysinfo().uptime
 
         local config = get_config()
+
+        local cursor = uci.cursor()
+        local cursorm = uci.cursor("/etc/config.mesh")
 
         local lat = cursor:get("aredn", "@location[0]", "lat")
         local lon = cursor:get("aredn", "@location[0]", "lon")
