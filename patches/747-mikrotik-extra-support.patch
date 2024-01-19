@@ -765,3 +765,74 @@
  define Device/mikrotik_routerboard-921gs-5hpacd-15s
    $(Device/mikrotik_nand)
    SOC := qca9558
+XXXX
+XXXX
+XXXX
+--- a/target/linux/ath79/image/mikrotik.mk
++++ b/target/linux/ath79/image/mikrotik.mk
+@@ -28,6 +28,15 @@
+ endef
+ TARGET_DEVICES += mikrotik_routerboard-912uag-2hpnd
+ 
++define Device/mikrotik_routerboard-911g-2hpnd-12s
++  $(Device/mikrotik_nand)
++  SOC := ar9342
++  DEVICE_MODEL := RouterBOARD 911G-2HPnD-12s
++  DEVICE_PACKAGES += kmod-usb-ehci kmod-usb2
++  SUPPORTED_DEVICES += rb-912uag-2hpnd
++endef
++TARGET_DEVICES += mikrotik_routerboard-911g-2hpnd-12s
++
+ define Device/mikrotik_routerboard-912uag-5hpnd
+   $(Device/mikrotik_nand)
+   SOC := ar9342
+
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9342_mikrotik_routerboard-911g-2hpnd-12s.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "ar9342_mikrotik_routerboard-912uag-2hpnd.dts"
++
++/ {
++        compatible = "mikrotik,routerboard-911g-2hpnd-12s", "qca,ar9342";
++        model = "MikroTik RouterBOARD 911G-2HPnD-12s";
++};
+--- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
+@@ -16,6 +16,7 @@
+ 		;;
+ 	mikrotik,routerboard-911g-5hpnd*|\
+ 	mikrotik,routerboard-911-lite|\
++	mikrotik,routerboard-911g-2hpnd-12s|\
+ 	mikrotik,routerboard-912uag-2hpnd|\
+ 	mikrotik,routerboard-912uag-5hpnd|\
+ 	mikrotik,routerboard-lhg-2nd|\
+@@ -82,6 +83,7 @@
+ 	case "$board" in
+ 	mikrotik,routerboard-911g-5hpnd*|\
+ 	mikrotik,routerboard-911-lite|\
++	mikrotik,routerboard-911g-2hpnd-12s|\
+ 	mikrotik,routerboard-912uag-2hpnd|\
+ 	mikrotik,routerboard-912uag-5hpnd|\
+ 	mikrotik,routerboard-lhg-2nd|\
+--- a/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
++++ b/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
+@@ -25,6 +25,7 @@
+ 	case $board in
+ 	mikrotik,routerboard-911g-5hpnd*|\
+ 	mikrotik,routerboard-911-lite|\
++	mikrotik,routerboard-911g-2hpnd-12s|\
+ 	mikrotik,routerboard-912uag-2hpnd|\
+ 	mikrotik,routerboard-912uag-5hpnd|\
+ 	mikrotik,routerboard-lhg-2nd|\
+--- a/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
++++ b/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
+@@ -33,6 +33,7 @@
+ 	case "$board" in
+ 	mikrotik,routerboard-493g|\
+ 	mikrotik,routerboard-911g-5hpnd*|\
++	mikrotik,routerboard-911g-2hpnd-12s|\
+ 	mikrotik,routerboard-912uag-2hpnd|\
+ 	mikrotik,routerboard-912uag-5hpnd|\
+ 	mikrotik,routerboard-921gs-5hpacd-15s|\
