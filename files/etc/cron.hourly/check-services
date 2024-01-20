@@ -39,7 +39,7 @@ require("aredn.services")
 
 local cursor = uci.cursor()
 
--- Current nameserver state
+-- Current nameservice state
 local ns = cursor:get_all("olsrd", "nameservice")
 if not ns then
     print("Missing nameservice")
@@ -51,11 +51,9 @@ do
     cnames[name] = true
 end
 local chosts = {}
-for k, v in pairs(ns)
+for _, iphost in ipairs(ns.hosts or {})
 do
-    if k:match("^%d+_%d+_%d+_%d+$") then
-        chosts[k:gsub("_", ".")] = v
-    end
+    chosts[iphost] = true
 end
 local cservices = {}
 for _, service in ipairs(ns.service or {})
@@ -74,13 +72,14 @@ do
         nnames = true
     end
 end
-local nhosts = {}
+local nhosts = false
 for _, host in ipairs(hosts)
 do
-    if chosts[host.ip] then
-        chosts[host.ip] = nil
+    local iphost = host.ip .. " " .. host.host
+    if chosts[iphost] then
+        chosts[iphost] = nil
     else
-        nhosts[host.ip] = host.host
+        nhosts = true
     end
 end
 local nservices = false
@@ -105,22 +104,19 @@ local change = false
 
 -- Apply the changes
 if nnames or not_empty(cnames) then
-    cursor:set("olsrd", "nameserver", "name", names)
+    cursor:set("olsrd", "nameservice", "name", names)
     change = true
 end
-if not_empty(chosts) or not_empty(nhosts) then
-    for k, _ in pairs(chosts)
+if nhosts or not_empty(chosts) then
+    for i, host in ipairs(hosts)
     do
-        cursor:delete("olsrd", "nameserver", k)
+        hosts[i] = host.ip .. " " .. host.host
     end
-    for k, v in pairs(nhosts)
-    do
-        cursor:set("olsrd", "nameserver", k, v)
-    end
+    cursor:set("olsrd", "nameservice", "hosts", hosts)
     change = true
 end
 if nservices or not_empty(cservices) then
-    cursor:set("olsrd", "nameserver", "service", services)
+    cursor:set("olsrd", "nameservice", "service", services)
     change = true
 end
 
@@ -128,7 +124,7 @@ end
 if change then
     cursor:commit("olsrd")
     print("Change")
-    os.execute("/etc/init.d/olsrd restart > /dev/null 2>&1")
+    os.execute("/usr/local/bin/restart-services.sh --force olsrd")
 else
     print("Unchange")
 end

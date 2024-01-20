@@ -197,7 +197,7 @@ else
 end
 
 -- handle possible remote syslog
-local remote_log = c:get("aredn", "@remotelog[0]", "url") or ""
+local remote_log = cm:get("aredn", "@remotelog[0]", "url") or ""
 local proto, ip, port = remote_log:match("^(.+)://(%d+%.%d+%.%d+%.%d+):(%d+)$")
 port = tonumber(port)
 if proto and (proto == "tcp" or proto == "udp") and (port > 0 and port < 65536) and validate_ip(ip) then
@@ -482,7 +482,7 @@ cm:foreach("vtun", "client",
     function(s)
         if s.enabled == "1" then
             cfg.tun_network_config = cfg.tun_network_config .. string.format("config client\n\toption enabled '1'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
-                s.node, s.passwd, s.clientip, s.serverip, s.netip)
+                s.node:upper(), s.passwd, s.clientip, s.serverip, s.netip)
             vtunclients = vtunclients + 1
         end
     end
@@ -491,46 +491,38 @@ local wgclients = 0
 cm:foreach("wireguard", "client",
     function(s)
         if s.enabled == "1" then
-            local client_priv, client_pub = s.key:match("^(.+=)(.+=)$")
+            local server_priv, _, _, client_pub = s.key:match("^(.+=)(.+=)(.+=)(.+=)$")
+            local addr, port = s.clientip:match("^(%d+%.%d+%.%d+%.%d+):(%d+)$")
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                string.format("config wireguard_wgc\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
-                    client_pub)
+                string.format("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\n",
+                    wgclients, server_priv, port, addr)
+            cfg.wireguard_network_config = cfg.wireguard_network_config ..
+                string.format("config wireguard_wgc%d\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
+                    wgclients, client_pub)
             wgclients = wgclients + 1
         end
     end
 )
-if wgclients > 0 then
-    local private = cm:get("wireguard", "@wireguard_server[0]", "private")
-    local mask_size = tonumber(cm:get("wireguard", "@wireguard_server[0]", "masksize") or 26)
-    local ab, c, d = tun_start:match("^(%d+%.%d+%.)(%d+)%.(%d+)$")
-    c = tonumber(c) + 1
-    if c > 255 then
-        c = 0
-    end
-    d = nixio.bit.band(tonumber(d), nixio.bit.lshift(255, 32 - mask_size)) + 1
-    cfg.wireguard_network_config = 
-        string.format("config interface 'wgc'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\n",
-        private, (tun_port or 5525), (ab .. c .. "." .. d)) ..
-        cfg.wireguard_network_config
-end
 local vtunservers = 0
 local wgservers = 0
 cm:foreach("vtun", "server",
     function(s)
         if s.enabled == "1" then
-            if s.netip:match("/") then
+            if s.netip:match(":") then
                 local server_pub, client_priv, client_pub = s.passwd:match("^(.+=)(.+=)(.+=)$")
+                local abc, d, p = s.netip:match("^(%d+%.%d+%.%d+)%.(%d+):(%d+)")
+                d = tonumber(d) + 1
                 cfg.wireguard_network_config = cfg.wireguard_network_config ..
                     string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\tlist addresses '%s'\n\n",
-                        wgservers, client_priv, s.netip:match("^(.+)/"))
+                        wgservers, client_priv, (abc .. "." .. d))
                 cfg.wireguard_network_config = cfg.wireguard_network_config ..
                     string.format("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
-                        wgservers, server_pub, s.host, (tun_port or 5525))
+                        wgservers, server_pub, s.host, p)
                 wgservers = wgservers + 1
             else
                 cfg.tun_network_config = cfg.tun_network_config ..
                     string.format("config server\n\toption enabled '1'\n\toption host '%s'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
-                        s.host, s.node, s.passwd, s.clientip, s.serverip, s.netip)
+                        s.host, s.node:upper(), s.passwd, s.clientip, s.serverip, s.netip)
                 vtunservers = vtunservers + 1
             end
         end
@@ -1012,8 +1004,13 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
             do
                 of:write("\tlist interface 'tun" .. dev .. "'\n")
             end
-            if wgclients + wgservers > 0 then
-                of:write("\tlist interface 'wgc'\n")
+            if wgclients > 0 then
+                for dev = 0, wgclients - 1
+                do
+                    of:write("\tlist interface 'wgc" .. dev .. "'\n")
+                end
+            end
+            if wgservers > 0 then
                 for dev = 0, wgservers - 1
                 do
                     of:write("\tlist interface 'wgs" .. dev .. "'\n")
@@ -1129,6 +1126,7 @@ do
     local _, diff = filecopy(ffile, "/etc/config/" .. file, true)
     if diff then
         if file == "system" then
+            changes.log = true
             changes.system = true
         elseif file == "aredn" then
             local oc = uci:cursor()
@@ -1152,6 +1150,7 @@ do
             end
         elseif file == "network" then
             changes.network = true
+            changes.tunnels = true -- restarting network devices requires tunnels to restart
         elseif file == "dhcp" then
             changes.dnsmasq = true
         elseif file == "olsrd" then

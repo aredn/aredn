@@ -125,6 +125,7 @@ local ipalias = {}
 local localhosts = {}
 local dtd = {}
 local midcount = {}
+local xlinkcount = {}
 local hosts = {}
 local services = {}
 local history = {}
@@ -161,26 +162,27 @@ arptable(function(a)
 end)
 
 local iwrates
-local prefix = "/sys/kernel/debug/ieee80211/" .. phy .. "/netdev:" .. wifiif .. "/stations/"
 for i, node in ipairs(aredn.olsr.getOLSRLinks())
 do
-    links[node.remoteIP] = { lq = node.linkQuality, nlq = node.neighborLinkQuality, mbps = "" }
+    links[node.remoteIP] = { lq = node.linkQuality, nlq = node.neighborLinkQuality, mbps = "", weight = 65536 / node.lossMultiplier }
     neighbor[node.remoteIP] = true
     local mac = arpcache[node.remoteIP]
     if mac then
         if not iwrates then
             iwrates = {}
-            local station = {}
-            for line in io.popen("iw " .. wifiif .. " station dump"):lines()
-            do
-                local mac = line:match("^Station (%S+) ")
-                if mac then
-                    station = {}
-                    iwrates[mac] = station
-                end
-                local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
-                if txbitrate then
-                    station.txbitrate = txbitrate
+            if wifiif ~= "br-nomesh" then
+                local station = {}
+                for line in io.popen("iw " .. wifiif .. " station dump"):lines()
+                do
+                    local mac = line:match("^Station (%S+) ")
+                    if mac then
+                        station = {}
+                        iwrates[mac] = station
+                    end
+                    local txbitrate = line:match("tx bitrate:%s+([%d%.]+) MBit/s")
+                    if txbitrate then
+                        station.txbitrate = txbitrate
+                    end
                 end
             end
         end
@@ -285,7 +287,11 @@ if nixio.fs.stat("/var/run/hosts_olsr.stable") then
                     links[ip].dtd = true
                 end
             elseif name:match("^xlink%d+%.") then
-                dtd[originator] = true
+                if not xlinkcount[originator] then
+                    xlinkcount[originator] = 1
+                else
+                    xlinkcount[originator] = xlinkcount[originator] + 1
+                end
                 if links[ip] then
                     links[ip].xlink = true
                 end
@@ -616,7 +622,7 @@ html.print("</table>")
 html.print("<table id='cTable' class=s><tr class=h>")
 html.print("<th width=25%>Current Neighbors</th>")
 html.print("<th>LAN Hostname</th>")
-html.print("<th>LQ</th><th>NLQ</th><th>TxMbps</th>")
+html.print("<th title='Percent of packets successfully received'>LQ</th><th title='Percent of packets successfully sent'>NLQ</th><th>TxMbps</th>")
 html.print("<th>Service Name</th>")
 html.print("</tr>")
 
@@ -672,8 +678,8 @@ do
         c1 = c1 .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
     end
     local c2 = ""
-    local c3 = string.format("%.0f%%", 100 * link.lq)
-    local c4 = string.format("%.0f%%", 100 * link.nlq)
+    local c3 = string.format("%.0f%%", math.min(100, math.ceil(100 * link.lq * link.weight)))
+    local c4 = string.format("%.0f%%", math.min(100, math.ceil(100 * link.nlq * link.weight)))
     local c5 = string.format("%s", link.mbps)
     local c6 = ""
 
@@ -807,6 +813,10 @@ do
             local mycount = 0
             if midcount[ip] then
                 mycount = midcount[ip]
+                if xlinkcount[ip] then
+                    mycount = mycount - xlinkcount[ip]
+                    nodeiface = "xlink*" .. xlinkcount[ip]
+                end
             end
             if dtd[ip] then
                 mycount = mycount - 1
@@ -815,7 +825,11 @@ do
                 mycount = mycount - 1
             end
             if mycount > 0 then
-                nodeiface = "tun*" .. mycount
+                if nodeiface then
+                    nodeiface = nodeiface .. ",tun*" .. mycount
+                else
+                    nodeiface = "tun*" .. mycount
+                end
             end
             if wangateway[ip] then
                 if nodeiface then
@@ -900,6 +914,7 @@ end
 neighbor = nil
 dtd = nil
 midcount = nil
+xlinkcount = nil
 wangateway = nil
 services = nil
 

@@ -47,13 +47,22 @@ local xlink_file = "/etc/config.mesh/xlink"
 
 local default_5_port_layout = { ports = { [1] = "wan", [2] = "lan1", [3] = "lan2", [4] = "lan3", [5] = "lan4" } }
 local default_3_port_layout = { ports = { [1] = "lan2", [2] = "lan1", [3] = "wan" } }
-local default_1_port_layout = { ports = { [1] = "eth0" } }
+local function default_n_port_layout(board_type)
+    local ports = {}
+    for _, i in ipairs(nixio.getifaddrs())
+    do
+        if i.family == "packet" and i.name:match("^eth") then
+            ports[#ports + 1] = i.name
+        end
+    end
+    return { ports = ports }
+end
 local layouts = {
     ["mikrotik,hap-ac2"] = default_5_port_layout,
     ["mikrotik,hap-ac3"] = default_5_port_layout,
     ["glinet,gl-b1300"] = default_3_port_layout,
-    ["qemu-standard-pc-i440fx-piix-1996"] = default_1_port_layout,
-    ["VMware, Inc. VMware Virtual Platform"] = default_1_port_layout
+    ["qemu-standard-pc-i440fx-piix-1996"] = default_n_port_layout,
+    ["VMware, Inc. VMware Virtual Platform"] = default_n_port_layout
 }
 
 local default_5_port_config = {
@@ -96,12 +105,32 @@ local default_3_port_config = {
         tagged = false
     }
 }
+local default_1_port_config = {
+    {
+        name = "dtdlink",
+        vlan = 2,
+        ports = { eth0 = { tagged = true } },
+        tagged = true
+    },
+    {
+        name = "lan",
+        vlan = 3,
+        ports = { eth0 = { tagged = false } },
+        tagged = false
+    },
+    {
+        name = "wan",
+        vlan = 1,
+        ports = { eth0 = { tagged = true } },
+        tagged = true
+    }
+}
 local default_configs = {
     ["mikrotik,hap-ac2"] = default_5_port_config,
     ["mikrotik,hap-ac3"] = default_5_port_config,
     ["glinet,gl-b1300"] = default_3_port_config,
-    ["qemu-standard-pc-i440fx-piix-1996"] = nil,
-    ["VMware, Inc. VMware Virtual Platform"] = nil
+    ["qemu-standard-pc-i440fx-piix-1996"] = default_1_port_config,
+    ["VMware, Inc. VMware Virtual Platform"] = default_1_port_config
 }
 
 function read_user_config(network)
@@ -328,7 +357,12 @@ end
 local get_board_type = aredn.hardware.get_board_type()
 
 local layout = layouts[get_board_type]
+if type(layout) == "function" then
+    layout = layout(get_board_type)
+end
 local configs = {}
+
+local pending_restart = false
 
 if os.getenv("REQUEST_METHOD") == "POST" then
     require('luci.http')
@@ -361,8 +395,7 @@ if os.getenv("REQUEST_METHOD") == "POST" then
                 end
             end
             write_xlink_config(luci.jsonc.parse(params.xlinks))
-            os.execute("/usr/local/bin/node-setup > /dev/null 2>&1")
-            os.execute("/usr/local/bin/restart-services.sh > /dev/null 2>&1")
+            pending_restart = true
         end
     elseif params.op == "defaults" then
         for _, network in ipairs({ "dtdlink", "lan", "wan" })
@@ -370,22 +403,25 @@ if os.getenv("REQUEST_METHOD") == "POST" then
             nixio.fs.remove(base .. network .. ".network.user")
         end
         write_xlink_config({})
-        os.execute("/usr/local/bin/node-setup > /dev/null 2>&1")
-        os.execute("/usr/local/bin/restart-services.sh > /dev/null 2>&1")
+        pending_restart = true
     elseif params.op == "reboot" then
         reboot()
     end
 end
 
-if default_configs[get_board_type] then
+local default_config = default_configs[get_board_type]
+if type(default_config) == "function" then
+    default_config = default_config(get_board_type)
+end
+if default_config then
     for _, network in ipairs({ "dtdlink", "lan", "wan" })
     do
         local config = read_user_config(network)
         if not config then
-            for _, default_config in ipairs(default_configs[get_board_type])
+            for _, dconfig in ipairs(default_config)
             do
-                if default_config.name == network then
-                    config = default_config
+                if dconfig.name == network then
+                    config = dconfig
                     break
                 end
             end
@@ -687,7 +723,7 @@ if #layout.ports > 1 then
         html.print("<td>")
         html.print("<div class='l'>" .. config.name .. "</div>")
         if config.name == "wan" then
-            local value = not config.vlan or config.vlan < 4 and "" or config.vlan
+            local value = config.tagged and config.vlan or ""
             html.print("<div class='v'>vlan: <input type='text' placeholder='Untagged' onchange='wan_vlan_change(this, parseInt(this.value))' value='" .. value .. "'></div>")
         elseif config.name == "dtdlink" then
             html.print("<div class='v'>vlan: <span>2</span></div>")
@@ -732,3 +768,8 @@ print("</div></center>")
 html.footer()
 html.print("</body></html>")
 http_footer()
+
+if pending_restart then
+    os.execute("/usr/local/bin/node-setup > /dev/null 2>&1")
+    os.execute("/usr/local/bin/restart-services.sh > /dev/null 2>&1")
+end

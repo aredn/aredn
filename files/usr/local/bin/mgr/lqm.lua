@@ -136,7 +136,7 @@ end
 function update_block(track)
     if should_block(track) then
         track.blocked = true
-        if track.type == "Tunnel" then
+        if track.type == "Tunnel" or track.type == "Wireguard" then
             if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop") then
                 os.execute(NFT .. " insert rule ip fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 drop 2> /dev/null")
                 return "blocked"
@@ -149,7 +149,7 @@ function update_block(track)
         end
     else
         track.blocked = false
-        if track.type == "Tunnel" then
+        if track.type == "Tunnel" or track.type == "Wireguard" then
             local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
             if handle then
                 os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
@@ -194,11 +194,8 @@ function canonical_hostname(hostname)
     return hostname
 end
 
-local cursor = uci.cursor()
-local cursorm = uci.cursor("/etc/config.mesh")
-
 local myhostname = canonical_hostname(info.get_nvram("node") or "localnode")
-local myip = cursor:get("network", "wifi", "ipaddr")
+local myip = uci.cursor():get("network", "wifi", "ipaddr")
 
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
@@ -222,7 +219,7 @@ end
 
 function lqm()
 
-    if cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
+    if uci.cursor():get("aredn", "@lqm[0]", "enable") ~= "1" then
         exit_app()
         return
     end
@@ -274,6 +271,9 @@ function lqm()
         now = nixio.sysinfo().uptime
 
         local config = get_config()
+
+        local cursor = uci.cursor()
+        local cursorm = uci.cursor("/etc/config.mesh")
 
         local lat = cursor:get("aredn", "@location[0]", "lat")
         local lon = cursor:get("aredn", "@location[0]", "lon")
@@ -371,32 +371,37 @@ function lqm()
                     rx_bitrate = 0
                 }
                 stations[#stations + 1] = tunnel
-            else
+            elseif line:match("^%s*$") then
+                tunnel = nil
+            elseif tunnel then
                 local ip = line:match("P-t-P:(%d+%.%d+%.%d+%.%d+)")
                 if ip then
                     tunnel.ip = ip
                     -- Fake a mac from the ip
                     local a, b, c, d = ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
                     tunnel.mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
-                end
-                local txp, txf = line:match("TX packets:(%d+)%s+errors:(%d+)")
-                if txp and txf then
-                    tunnel.tx_packets = txp
-                    tunnel.tx_fail = txf
+                else
+                    local txp, txf = line:match("TX packets:(%d+)%s+errors:(%d+)")
+                    if txp and txf then
+                        tunnel.tx_packets = txp
+                        tunnel.tx_fail = txf
+                    end
                 end
             end
         end
 
         -- Wireguard
+        local wgc = 0
         cursorm:foreach("wireguard", "client",
             function(s)
                 if s.enabled == "1" then
-                    local a, b, c, d = s.clientip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+                    local a, b, c, d = s.clientip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+):")
+                    d = tonumber(d) + 1
                     stations[#stations + 1] = {
-                        type = "Tunnel",
-                        device = "wgc",
+                        type = "Wireguard",
+                        device = "wgc" .. wgc,
                         signal = nil,
-                        ip = s.clientip,
+                        ip = string.format("%d.%d.%d.%d", a, b, c, d),
                         mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d),
                         tx_packets = 0,
                         tx_fail = 0,
@@ -404,17 +409,17 @@ function lqm()
                         tx_bitrate = 0,
                         rx_bitrate = 0
                     }
+                    wgc = wgc + 1
                 end
             end
         )
         local wgs = 0
         cursorm:foreach("vtun", "server",
             function(s)
-                if s.enabled == "1" and s.netip:match("/") then
-                    local a, b, c, d, m = s.netip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)/(%d+)$")
-                    local d = nixio.bit.band(d, nixio.bit.lshift(255, 32 - m)) + 1
+                if s.enabled == "1" and s.netip:match(":") then
+                    local a, b, c, d, _ = s.netip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+):(%d+)$")
                     stations[#stations + 1] = {
-                        type = "Tunnel",
+                        type = "Wireguard",
                         device = "wgs" .. wgs,
                         signal = nil,
                         ip = string.format("%d.%d.%d.%d", a, b, c, d),

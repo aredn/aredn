@@ -34,17 +34,23 @@ true <<'LICENSE'
 LICENSE
 
 ROOT="/tmp/reboot-required"
-SERVICES="system firewall network wireless dnsmasq tunnels manager olsrd"
-
-# Anything to do?
-if [ ! -d $ROOT ]; then
-  exit 0
-fi
+SERVICES="log system firewall network wireless dnsmasq tunnels manager olsrd"
 
 ignore=0
+force=0
+if [ "$1" = "--force" ]; then
+  shift
+  ignore=1
+  force=1
+fi
 if [ "$1" = "--ignore-reboot" ]; then
   shift
   ignore=1
+fi
+
+# Anything to do?
+if [ ! -d $ROOT -a $force = 0 ]; then
+  exit 0
 fi
 
 # If we have to reboot, do nothing (unless ignored)
@@ -59,7 +65,7 @@ fi
 
 for srv in $SERVICES
 do
-  if [ -f $ROOT/$srv ]; then
+  if [ -f $ROOT/$srv -o $force = 1 ]; then
     echo "Restarting $srv"
     if [ $srv = "tunnels" ]; then
       /etc/init.d/vtund restart > /dev/null 2>&1
@@ -69,11 +75,11 @@ do
     elif [ -x /etc/init.d/$srv ]; then
       /etc/init.d/$srv restart > /dev/null 2>&1
     fi
-    rm $ROOT/$srv
+    rm -f $ROOT/$srv
   fi
 done
 
-rmdir --ignore-fail-on-non-empty $ROOT
+rmdir --ignore-fail-on-non-empty $ROOT 2> /dev/null
 if [ -d $ROOT ]; then
   exit 1
 fi

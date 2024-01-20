@@ -362,3 +362,61 @@
  	ubnt,powerbeam-5ac-gen2|\
  	ubnt,rocket-5ac-lite|\
  	ubnt,unifiac-pro|\
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image.generic-ubnt.mk
+@@ -63,6 +63,15 @@
+ endef
+ TARGET_DEVICES += ubnt_litebeam-ac-gen2
+ 
++define Device/ubnt_litebeam-ac-lr
++  $(Device/ubnt-wa)
++  DEVICE_MODEL := LiteBeam LR
++  DEVICE_VARIANT := Gen2
++  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct
++  UBNT_VERSION := 8.7.4
++endef
++TARGET_DEVICES += ubnt_litebeam-ac-lr
++
+ define Device/ubnt_nanobeam-ac
+   $(Device/ubnt-wa)
+   DEVICE_MODEL := NanoBeam AC
+
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9342_ubnt_litebeam-ac-lr.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "ar9342_ubnt_wa_1port.dtsi"
++
++/ {
++	compatible = "ubnt,litebeam-ac-lr", "ubnt,wa", "qca,ar9342";
++	model = "Ubiquiti LiteBeam AC LR";
++};
+--- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+@@ -102,6 +102,7 @@
+ 	ubnt,bullet-m-xw|\
+ 	ubnt,lap-120|\
+ 	ubnt,litebeam-ac-gen2|\
++	ubnt,litebeam-ac-lr|\
+ 	ubnt,nanobeam-ac|\
+ 	ubnt,nanobeam-2ac-13|\
+ 	ubnt,nanobeam-ac-xc|\
+@@ -825,6 +826,7 @@
+ 		label_mac=$(cat /sys/class/ieee80211/phy0/macaddress)
+ 		;;
+ 	ubnt,litebeam-ac-gen2|\
++	ubnt,litebeam-ac-lr|\
+ 	ubnt,nanobeam-ac-gen2|\
+ 	ubnt,nanobeam-ac-xc|\
+ 	ubnt,nanobeam-ac-gen2-xc|\
+--- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -42,6 +42,7 @@
+ 	ubnt,unifiac-mesh-pro|\
+ 	ubnt,lap-120|\
+ 	ubnt,litebeam-ac-gen2|\
++	ubnt,litebeam-ac-lr|\
+ 	ubnt,nanobeam-ac|\
+ 	ubnt,nanobeam-2ac-13|\
+ 	ubnt,nanobeam-ac-gen2|\

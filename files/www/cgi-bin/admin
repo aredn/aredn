@@ -274,33 +274,39 @@ if parms.button_refresh_fw then
             do
                 firmware_versions[k] = v
             end
-            local err = false
             local board_type = aredn.hardware.get_board_type():gsub(",", "_")
-            for ver, data in pairs(firmware_versions)
+            local firmware_list = {}
+            for attempt = 1, 3
             do
-                local raw = io.popen(curl .. " -o - " .. config_serverpath .. data .. "/overview.json 2> /dev/null")
-                local info = luci.jsonc.parse(raw:read("*a") or "")
-                raw:close()
-                firmware_versions[ver] = nil
-                if info then
-                    for _, profile in ipairs(info.profiles)
-                    do
-                        if profile.id == board_type or ((board_type == "qemu-standard-pc-i440fx-piix-1996" or board_type == "VMware, Inc. VMware Virtual Platform") and profile.id == "generic" and profile.target == "x86/64") then
-                            firmware_versions[ver] = {
-                                overview = config_serverpath .. data .. "/" .. profile.target .. "/" .. profile.id .. ".json",
-                                target = info.image_url:gsub("{target}", profile.target)
-                            }
-                            break
+                for ver, data in pairs(firmware_versions)
+                do
+                    local raw = io.popen(curl .. " -o - " .. config_serverpath .. data .. "/overview.json 2> /dev/null")
+                    local info = luci.jsonc.parse(raw:read("*a") or "")
+                    raw:close()
+                    if info then
+                        firmware_versions[ver] = nil
+                        for _, profile in ipairs(info.profiles)
+                        do
+                            if profile.id == board_type or ((board_type == "qemu-standard-pc-i440fx-piix-1996" or board_type == "VMware, Inc. VMware Virtual Platform") and profile.id == "generic" and profile.target == "x86/64") then
+                                firmware_list[ver] = {
+                                    overview = config_serverpath .. data .. "/" .. profile.target .. "/" .. profile.id .. ".json",
+                                    target = info.image_url:gsub("{target}", profile.target)
+                                }
+                                break
+                            end
                         end
                     end
-                else
-                    err = true
                 end
             end
             local f = io.open("/tmp/web/firmware.list", "w")
             if f then
-                f:write(luci.jsonc.stringify(firmware_versions, true))
+                f:write(luci.jsonc.stringify(firmware_list, true))
                 f:close()
+            end
+            local err = false
+            for _, _ in pairs(firmware_versions)
+            do
+                err = true
             end
             if err then
                 fwout("Failed to load all firmware versions. List is incomplete")

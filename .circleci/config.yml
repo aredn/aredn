@@ -240,6 +240,14 @@ jobs:
       - run:
           name: Run AFS collector
           command: ssh ${SSH_USER}@${SSH_HOST} "sh -c '${DOWNLOADS_DOCROOT}/afs/misc/collect.py ${DOWNLOADS_DOCROOT} ${DOWNLOADS_DOCROOT}/afs/www'"
+
+  post_to_slack:
+    machine:
+      image: ubuntu-2004:2023.02.1
+    steps:
+      - run:
+          name: Post to Slack
+          command: ssh ${SSH_USER}@${SSH_HOST} "./post-nightly.sh $(printf '%(%Y%m%d)T')-$(echo ${CIRCLE_SHA1} | cut -c '-7')"
       
   no_action:
     machine:
@@ -280,6 +288,9 @@ workflows:
       - save_build_info:
           requires:
             - process_artifacts_nightly
+      - post_to_slack:
+          requires:
+            - afs_collector
   
   manual_build:
     when:

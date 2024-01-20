@@ -270,7 +270,7 @@ do
             err(val .. " this connection must be added or cleared out before saving changes")
             break
         end
-        if netip:match("/") then
+        if netip:match(":") then
             if not passwd:match("^.+=.+=.+=$") then
                 err("The password is not a wireguard key")
             end
@@ -352,7 +352,7 @@ end
 if parms.button_save and #conn_err == 0 then
     cursor:commit("vtun")
     os.execute("/usr/local/bin/node-setup > /dev/null 2>&1")
-    os.execute("/usr/local/bin/restart-services.sh olsrd tunnels network > /dev/null 2>&1")
+    os.execute("/usr/local/bin/restart-services.sh network tunnels olsrd > /dev/null 2>&1")
 end
 
 local active_tun = get_active_tun()
