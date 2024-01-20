@@ -1180,7 +1180,7 @@ end
 -- everything else
 
 local js_mac_pattern = [[ pattern='^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$' ]]
-local js_host_pattern = [[ pattern='^[a-zA-Z0-9][a-zA-Z0-9.\-]*$' ]]
+local js_host_pattern = [[ pattern='^[a-zA-Z0-9][a-zA-Z0-9\-]*$' ]]
 local js_port_range_pattern = [[ pattern='^\s*\d{1,5}(?:\s*-\s*\d{1,5})?\s*$' ]]
 
 function print_heading_vsep()
@@ -1229,7 +1229,7 @@ function print_reservations()
         mac_list[mac] = true
 
         print_new_entry_vsep(val, list, 5)
-        html.print("<tr><td><input style='width=180;' type=text name=dhcp" .. val .. "_host value='" .. host .. "'" .. js_host_pattern .. require_existing(val) .. "></td>")
+        html.print("<tr><td><input style='width=180;' type=text placeholder='host-name' title='alphanumerics and embedded hyphens' name=dhcp" .. val .. "_host value='" .. host .. "'" .. js_host_pattern .. require_existing(val) .. "></td>")
         html.print("<td align=center style='padding:0 4px'><select style='width:130px' name=dhcp" .. val .. "_ip>")
         if val == "_add" then
             html.print("<option value=''>- IP Address -</option>\n")
@@ -1246,7 +1246,7 @@ function print_reservations()
             end
         end
         html.print("</select></td>")
-        html.print("<td><input style='width:120;' type=text name=dhcp" .. val .. "_mac value='" .. mac .. "'" .. js_mac_pattern .. require_existing(val) .. "></td>")
+        html.print("<td><input style='width:120;' type=text placeholder='aa:aa:aa:aa:aa:aa' name=dhcp" .. val .. "_mac value='" .. mac .. "'" .. js_mac_pattern .. require_existing(val) .. "></td>")
         if dmz_mode ~= 0 then
             html.print("<td align=center><input type=checkbox id=dhcp" .. val .. "_noprop name=dhcp" .. val .. "_noprop value='#NOPROP'"
                        .. (noprop == "#NOPROP" and " checked" or "") .. "></td>")
@@ -1338,7 +1338,7 @@ function print_forwarding()
         html.print("<option " .. (_type == "both" and "selected" or "") .. " value='both'>Both</option>")
         html.print("</select></td>")
 
-        html.print("<td align=center valign=top><input style='width:90;' type=text name=port" .. val .. "_out value='"
+        html.print("<td align=center valign=top><input style='width:90;' type=text placeholder='9998-9999' title='integer 1-65535 or two integers separated by a hyphen' name=port" .. val .. "_out value='"
                    .. _out .. "'" .. js_port_range_pattern .. require_existing(val) .. "></td>")
         html.print("<td align=center valign=top><select name=port" .. val .. "_ip>")
         if val == "_add" then
@@ -1356,7 +1356,7 @@ function print_forwarding()
         end
         html.print("</select></td>")
 
-        html.print("<td align=left valign=top><input style='width:90;' type='number' min='1' max='65535' name=port"
+        html.print("<td align=left valign=top><input style='width:90;' type='number' min='1' max='65535' placeholder='9998' title='integer 1-65535' name=port"
                    .. val .. "_in value='" .. _in .. "'" .. require_existing(val) .. "></td>")
         html.print("<td><nobr>&nbsp;<input type=submit name=")
 
@@ -1452,7 +1452,7 @@ function print_services()
 
         print_new_entry_vsep(val, list, 4)
         html.print("<tr>")
-        html.print("<td><input type=text style='width:120;' name=serv" .. val .. "_name value='" .. _name .. "' title='what to call this service'></td>")
+        html.print("<td><input type=text style='width:120;' placeholder='Service Name' name=serv" .. val .. "_name value='" .. _name .. "' title='what to call this service'></td>")
 
         html.print("<td><nobr><input type=checkbox name=serv" .. val .. "_link value=1")
         if val ~= "_add" then
@@ -1545,7 +1545,7 @@ function print_aliases()
         local host = parms["alias" .. val .. "_host"]
         local ip = parms["alias" .. val .. "_ip"]
         print_new_entry_vsep(val, list , 4)
-        html.print("<tr><td align=center><input type=text name=alias" .. val .. "_host value='" .. host .. "' size=20" .. js_host_pattern .. require_existing(val) .. "></td>")
+        html.print("<tr><td align=center><input type=text placeholder='alias-name' title='alphanumerics and embedded hyphens' name=alias" .. val .. "_host value='" .. host .. "' size=20" .. js_host_pattern .. require_existing(val) .. "></td>")
         html.print("<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>")
         html.print("<td align=center><select name=alias" .. val .. "_ip>")
         if val == "_add" then
@@ -1623,7 +1623,7 @@ function print_dhcp_tags()
         local matcher = parms[prefix .. "pat"]
 
         print_new_entry_vsep(val, list, 4)
-        html.print("<tr><td><input style='width:110px' type='text' name='" .. prefix .. "name' value='" .. name
+        html.print("<tr><td><input style='width:110px' type='text' placeholder='tagname' name='" .. prefix .. "name' value='" .. name
                    .. "' pattern='^[a-zA-Z0-9]+$' title='Alphanumeric string identifying the tag to assign'"
                    .. require_existing(val) .. "></td>")
         local patname = prefix .. "pat"
