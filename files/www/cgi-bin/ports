@@ -1668,18 +1668,15 @@ end
 
 function get_dhcp_tag_names()
     local tag_hash = {}
+    local names = {}
+
     for val = 1,parms.dhcptags_num
     do
         local name = parms["dhcptag" .. val .. "_name"]
-        if name then
+        if name and not tag_hash[name] then
             tag_hash[name] = 0
+            table.insert(names, name)
         end
-    end
-
-    local names = {}
-    for name in pairs(tag_hash)
-    do
-        table.insert(names, name)
     end
     table.sort(names)
 
