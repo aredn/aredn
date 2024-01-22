@@ -69,6 +69,8 @@ function model.getOLSRInterfaceType(iface)
     it="DTD"
   elseif string.match(iface,"tun") then
     it="TUN"
+  elseif string.match(iface,"wg") then
+    it="WIREGUARD"
   end
   return it
 end
@@ -94,7 +96,7 @@ function model.getCurrentNeighbors(RFinfo)
         end
 
         info[mainip]['olsrInterface']=v['olsrInterface']
-        info[mainip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])  -- RF or DTD or TUN
+        info[mainip]['linkType']= model.getOLSRInterfaceType(v['olsrInterface'])  -- RF or DTD or TUN or WIREGUARD
         info[mainip]['linkQuality']=v['linkQuality']
         info[mainip]['neighborLinkQuality']=v['neighborLinkQuality']
 
