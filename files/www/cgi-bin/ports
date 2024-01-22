@@ -1670,14 +1670,25 @@ function print_dhcp_tag_selector(row, tag_name)
     local field_name = "dhcpopt" .. row .. "_tag"
     html.print("<td><select name='" .. field_name .. "' title='Only send this option to clients with this tag'>")
 
-    html.print("<option value=''>[any]</option>")
+    local tag_hash = {}
     for val = 1,parms.dhcptags_num
     do
-        local name = parms["dhcptag" .. val .. "_name"] or ""
-        local sel = ""
-        if name ~= "" and name == tag_name then
-            sel = "selected "
+        local name = parms["dhcptag" .. val .. "_name"]
+        if name then
+            tag_hash[name] = 0
         end
+    end
+    local tag_names = {}
+    for name in pairs(tag_hash)
+    do
+        table.insert(tag_names, name)
+    end
+    table.sort(tag_names)
+
+    html.print("<option value=''>[any]</option>")
+    for _, name in ipairs(tag_names)
+    do
+        local sel = name == tag_name and "selected " or "" 
         html.print("<option " .. sel .. "value=\"" .. name .. "\">" .. name .. "</option>")
     end
     html.print("</select></td>")
