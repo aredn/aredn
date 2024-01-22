@@ -1666,10 +1666,7 @@ function print_dhcp_tags()
     html.print("</table>")
 end
 
-function print_dhcp_tag_selector(row, tag_name)
-    local field_name = "dhcpopt" .. row .. "_tag"
-    html.print("<td><select name='" .. field_name .. "' title='Only send this option to clients with this tag'>")
-
+function get_dhcp_tag_names()
     local tag_hash = {}
     for val = 1,parms.dhcptags_num
     do
@@ -1678,15 +1675,22 @@ function print_dhcp_tag_selector(row, tag_name)
             tag_hash[name] = 0
         end
     end
-    local tag_names = {}
+
+    local names = {}
     for name in pairs(tag_hash)
     do
-        table.insert(tag_names, name)
+        table.insert(names, name)
     end
-    table.sort(tag_names)
+    table.sort(names)
 
+    return names
+end
+
+function print_dhcp_tag_selector(row, tag_name, all_tags)
+    local field_name = "dhcpopt" .. row .. "_tag"
+    html.print("<td><select name='" .. field_name .. "' title='Only send this option to clients with this tag'>")
     html.print("<option value=''>[any]</option>")
-    for _, name in ipairs(tag_names)
+    for _, name in ipairs(all_tags)
     do
         local sel = name == tag_name and "selected " or "" 
         html.print("<option " .. sel .. "value=\"" .. name .. "\">" .. name .. "</option>")
@@ -1748,6 +1752,7 @@ function print_dhcp_options()
     html.print("<tr><td align=center>For Tag</td><td align=center>Always</td><td align=center>Send DHCP Option</td><td align=center style='width:99%'>With Value</td></tr>")
 
     local known_options = load_known_options()
+    local all_tags = get_dhcp_tag_names()
 
     local list = make_addable_list(parms.dhcpoptions_num)
     for _, val in ipairs(list)
@@ -1760,7 +1765,7 @@ function print_dhcp_options()
 
         print_new_entry_vsep(val, list, 5)
         html.print("<tr>")
-        print_dhcp_tag_selector(val, tag)
+        print_dhcp_tag_selector(val, tag, all_tags)
         html.print("<td align=center><input type='checkbox' name='" .. prefix .. "force' value='force' "
                    .. (force == "force" and "checked " or "")
                    .. "title='Send option even when not requested by client'/></td>")
