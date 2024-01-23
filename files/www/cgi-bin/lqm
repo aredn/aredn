@@ -220,7 +220,7 @@ html.print([[<hr>
                         }
                         break;
                 }
-                if (status !== "idle" || track.hostname) {
+                if (track.lastrouted + 3600 > data.info.now && (status !== "idle" || track.hostname)) {
                     links += `<div><span class="m">${name(track)}</span><span class="s">${track.type}</span><span class="s">${get_snr(track)}</span><span class="p">${distance}</span><span class="s">${quality}</span><span class="i">${status}</span></div>`;
                 }
             });
