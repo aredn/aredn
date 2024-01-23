@@ -490,6 +490,7 @@ function lqm()
                         device = station.device,
                         firstseen = now,
                         lastseen = now,
+                        lastrouted = now,
                         pending = now + pending_timeout,
                         refresh = 0,
                         mac = station.mac,
@@ -689,6 +690,7 @@ function lqm()
                 local rt = track.ip and ip.route(track.ip) or nil
                 if rt and tostring(rt.gw) == track.ip then
                     track.routable = true
+                    track.lastrouted = now
                 else
                     track.routable = false
                 end
