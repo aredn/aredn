@@ -74,9 +74,7 @@ end
 
 function hardware.get_radio_count()
     local radio = hardware.get_radio()
-    if not radio then
-        return 0
-    elseif radio.wlan0 then
+    if radio and radio.wlan0 then
         if radio.wlan1 then
             return 2
         else
