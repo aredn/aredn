@@ -46,6 +46,7 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | untested | released
 LiteAP 5AC | LAP-120 <br> LAP-120-US <br> LBE-5AC-16-120 <br> LBE-5AC-16-120-US | 5 | ath79 | generic | ubnt_lap-120 | 64MB | stable | released
 LiteBeam AC5 Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | released
+LiteBeam AC5 LR | LBE-5AC-LR <br> LBE-5AC-LR-US | 5 | ath79 | generic | ubnt_litebeam-ac-lr | 64MB | stable | nightly
 LiteBeam M5 || 5 | ath79 | - | - | 64MB | untested | released
 NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | stable | nightly
 NanoBeam AC 5 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | untested | released
@@ -131,7 +132,7 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Shadow (16MB NOR) | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
 Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | untested | released
-Mudi | GL-E750 | 2 | ath79 | nand | gl-e750 | 128MB | untested | released
+Mudi | GL-E750 | 2 & 5 | ath79 | nand | gl-e750 | 128MB | stable | nightly
 Convexa-B | GL-B1300 | 2 & 5 | ipq40xx | generic | gl-b1300 | 256MB | untested | nightly
 Beryl | GL-MT1300 | 2 & 5 | ramips | mt7621 | gl-mt1300 | 256MB | untested | nightly (4)
 **Sunset Devices** | | | | | | | |
