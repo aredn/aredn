@@ -39,6 +39,7 @@ RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath
 RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | released (1)
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | released
 mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | released
+mANTBox 2 12s | RB911G-2HPnD-12S | 2 | ath79 | mikrotik | mikrotik-911g-2hpnd-12s | 64MB | stable | nightly
 
 ## Ubiquiti
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
