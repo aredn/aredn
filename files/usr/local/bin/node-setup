@@ -252,16 +252,22 @@ end
 -- select ports and dhcp files based on mode
 local portfile  = "/etc/config.mesh/_setup.ports"
 local dhcpfile  = "/etc/config.mesh/_setup.dhcp"
+local dhcptagsfile = "/etc/config.mesh/_setup.dhcptags"
+local dhcpoptionsfile = "/etc/config.mesh/_setup.dhcpoptions"
 local aliasfile = "/etc/config.mesh/aliases"
 local servfile = "/etc/config.mesh/_setup.services"
 if is_null(cfg.dmz_mode) then
     portfile = portfile .. ".nat"
     dhcpfile = dhcpfile .. ".nat"
+    dhcptagsfile = dhcptagsfile .. ".nat"
+    dhcpoptionsfile = dhcpoptionsfile .. ".nat"
     aliasfile = aliasfile .. ".nat"
     servfile = servfile .. ".nat"
 else
     portfile = portfile .. ".dmz"
     dhcpfile = dhcpfile .. ".dmz"
+    dhcptagsfile = dhcptagsfile .. ".dmz"
+    dhcpoptionsfile = dhcpoptionsfile .. ".dmz"
     aliasfile = aliasfile .. ".dmz"
     servfile = servfile .. ".dmz"
 end
@@ -632,147 +638,206 @@ if add_masq then
 end
 
 -- setup node lan dhcp
-if nc:get("aredn", "@wan[0]", "lan_dhcp_route") == "1" or nc:get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" then
-    -- Provide stateless routes and default route
-    nc:set("dhcp", "@dhcp[0]", "dhcp_option", {
-        "121,10.0.0.0/8," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip,
-        "249,10.0.0.0/8," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip
-    })
-else
-    -- Provide stateless routes to the mesh, and a blank default route (option 3 has no values) to
-    -- surpress default route being sent
-    nc:set("dhcp", "@dhcp[0]", "dhcp_option", {
-        "121,10.0.0.0/8," .. cfg.lan_ip,
-        "249,10.0.0.0/8," .. cfg.lan_ip,
-        "3"
-    })
+function load_dhcp_tags(dhcptagsfile)
+    local dhcp_tags = {}
+
+    for line in io.lines(dhcptagsfile)
+    do
+        if not (line:match("^%s*#") or line:match("^%s*$")) then
+            local name, condition, pattern = line:match("(%S+)%s+(%S+)%s+(.*)")
+            if pattern then
+                local cond_table = dhcp_tags[condition]
+                if not cond_table then
+                    cond_table = {}
+                    dhcp_tags[condition] = cond_table
+                end
+                table.insert(cond_table, {name = name, pattern = pattern})
+            end
+        end
+    end
+    return dhcp_tags
 end
+
+function load_dhcp_options(dhcpoptionsfile)
+    local dhcp_options = {}
+    for line in io.lines(dhcpoptionsfile)
+    do
+        if not (line:match("^%s*#") or line:match("^%s*$")) then
+            local tag, force, opt_num, opt_val = line:match("(%S*)%s+(%w+)%s+(%d+)%s+(.*)")
+            if opt_val then
+                table.insert(dhcp_options, {
+                            tag = tag,
+                            force = force == "force",
+                            num = opt_num,
+                            val = opt_val})
+            end
+        end
+    end
+    return dhcp_options
+end
+
+if nixio.fs.access(dhcptagsfile) then
+    for condition, cond_table in pairs(load_dhcp_tags(dhcptagsfile))
+    do
+        for i, props in ipairs(cond_table)
+        do
+            nc:add("dhcp", condition)
+            nc:set("dhcp", string.format("@%s[%d]", condition, i-1), "networkid", props.name)
+            nc:set("dhcp", string.format("@%s[%d]", condition, i-1), condition, props.pattern)
+        end
+    end
+end
+do
+    local dhcp_option_list = {}
+    if nc:get("aredn", "@wan[0]", "lan_dhcp_route") == "1" or nc:get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" then
+        -- Provide stateless routes and default route
+        table.insert(dhcp_option_list, "121,10.0.0.0/8," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip)
+        table.insert(dhcp_option_list, "249,10.0.0.0/8," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip)
+    else
+        -- Provide stateless routes to the mesh, and a blank default route (option 3 has no values) to
+        -- suppress default route being sent
+        table.insert(dhcp_option_list, "121,10.0.0.0/8," .. cfg.lan_ip)
+        table.insert(dhcp_option_list, "249,10.0.0.0/8," .. cfg.lan_ip)
+        table.insert(dhcp_option_list, "3")
+    end
+    if nixio.fs.access(dhcpoptionsfile) then
+        local forced_advanced_options = {}
+        for _, option in ipairs(load_dhcp_options(dhcpoptionsfile))
+        do
+            local parts = {}
+            if option.tag ~= "" then
+                table.insert(parts, "tag:" .. option.tag)
+            end
+            table.insert(parts, option.num)
+            table.insert(parts, option.val)
+            table.insert(option.force and forced_advanced_options or dhcp_option_list, table.concat(parts, ","))
+        end
+        if #forced_advanced_options > 0 then
+            nc:set("dhcp", "@dhcp[0]", "dhcp_option_force", forced_advanced_options)
+        end
+    end
+    if #dhcp_option_list > 0 then
+        nc:set("dhcp", "@dhcp[0]", "dhcp_option", dhcp_option_list)
+    end
+end
+
 nc:commit("dhcp")
 
 -- generate the wireless config file
 local config = ""
-local ifacenum = 0
-local ifacecount = 0
+local ifacecount = aredn.hardware.get_radio_count()
 local devpaths = {}
-if nixio.fs.stat(ieee80211) then
-    for devname in nixio.fs.dir(ieee80211)
-    do
-        ifacecount = ifacecount + 1
+for dev = 0, ifacecount - 1
+do
+    local devname = "phy" .. dev
+    local radio = "radio" .. dev
+    local wlan = "wlan" .. dev
+    local devpath = nixio.fs.realpath(ieee80211 .. nixio.fs.readlink(ieee80211 .. devname)):match("^/sys/devices/(.*)/ieee802.*$")
+    if devpath:match("^platform.*/pci.*") then
+        devpath = devpath:match("^platform/(.*)")
     end
-    for devname in nixio.fs.dir(ieee80211)
-    do
-        local dev = devname:match("^phy(%d+)$")
-        local radio = "radio" .. dev
-        local wlan = "wlan" .. dev
-        local devpath = nixio.fs.realpath(ieee80211 .. nixio.fs.readlink(ieee80211 .. devname)):match("^/sys/devices/(.*)/ieee802.*$")
-        if devpath:match("^platform.*/pci.*") then
-            devpath = devpath:match("^platform/(.*)")
-        end
-        local devpathc = devpaths[devpath] or 0
-        devpaths[devpath] = devpathc + 1
-        if devpathc > 0 then
-            devpath = devpath .. "+" .. devpathc
-        end
-        local is_mesh_rf = false
-        local htmode = "HT20"
-        local disabled = "0"
-        local chanbw = nil
-        local country = nil
-        local channel = nil
-        local distance = nil
-        local hwmode = "11g"
-        if iwinfo.nl80211.freqlist(devname)[1].mhz > 5000 then
-            hwmode="11a"
-        end
-        local network = nil
-        local mode = nil
-        local ssid = nil
-        local encryption = nil
-        local key = nil
+    local devpathc = devpaths[devpath] or 0
+    devpaths[devpath] = devpathc + 1
+    if devpathc > 0 then
+        devpath = devpath .. "+" .. devpathc
+    end
+    local is_mesh_rf = false
+    local htmode = "HT20"
+    local disabled = "0"
+    local chanbw = nil
+    local country = nil
+    local channel = nil
+    local distance = nil
+    local hwmode = "11g"
+    if iwinfo.nl80211.freqlist(devname)[1].mhz > 5000 then
+        hwmode="11a"
+    end
+    local network = nil
+    local mode = nil
+    local ssid = nil
+    local encryption = nil
+    local key = nil
 
-        if wlan == cfg.wifi_intf then
-            -- mesh RF adhoc configuration
-            is_mesh_rf = true
-            channel = cfg.wifi_channel
-            chanbw = cfg.wifi_chanbw
-            country = "HX"
-            distance = cfg.wifi_distance
-            ssid = cfg.wifi_ssid .. "-" .. chanbw .. "-v3"
-            mode = "adhoc"
-            encryption = "none"
-            network = "wifi"
-        elseif cfg.wifi2_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi2_hwmode)) then
-            -- lan AP interface
-            channel = cfg.wifi2_channel
-            ssid = h2s(cfg.wifi2_ssid)
-            mode = "ap"
-            encryption = cfg.wifi2_encryption
-            key = h2s(cfg.wifi2_key)
-            network = "lan"
-        elseif cfg.wifi3_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi3_hwmode)) then
-            -- wan client
-            ssid = h2s(cfg.wifi3_ssid)
-            mode = "sta"
-            if cfg.wifi3_key and cfg.wifi3_key ~= "" then
-                encryption = "psk2"
-                key = h2s(cfg.wifi3_key)
-            else
-                encryption = "none"
-            end
-            network = "wan"
-            htmode = nil
+    if wlan == cfg.wifi_intf then
+        -- mesh RF adhoc configuration
+        is_mesh_rf = true
+        channel = cfg.wifi_channel
+        chanbw = cfg.wifi_chanbw
+        country = "HX"
+        distance = cfg.wifi_distance
+        ssid = cfg.wifi_ssid .. "-" .. chanbw .. "-v3"
+        mode = "adhoc"
+        encryption = "none"
+        network = "wifi"
+    elseif cfg.wifi2_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi2_hwmode)) then
+        -- lan AP interface
+        channel = cfg.wifi2_channel
+        ssid = h2s(cfg.wifi2_ssid)
+        mode = "ap"
+        encryption = cfg.wifi2_encryption
+        key = h2s(cfg.wifi2_key)
+        network = "lan"
+    elseif cfg.wifi3_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi3_hwmode)) then
+        -- wan client
+        ssid = h2s(cfg.wifi3_ssid)
+        mode = "sta"
+        if cfg.wifi3_key and cfg.wifi3_key ~= "" then
+            encryption = "psk2"
+            key = h2s(cfg.wifi3_key)
         else
-            disabled = "1"
+            encryption = "none"
         end
+        network = "wan"
+        htmode = nil
+    else
+        disabled = "1"
+    end
 
-        config = config .. "config	wifi-device '" .. radio .. "'\n	option type 'mac80211'\n"
-        config = config .. "	option disabled '" .. disabled .. "'\n"
-        if channel then
-            config = config .. "	option channel '" .. channel .. "'\n"
-        end
-        if chanbw then
-            config = config .. "	option chanbw '" .. chanbw .. "'\n"
-        end
-        if country then
-            config = config .. "	option country '" .. country .. "'\n"
-        end
-        if distance then
-            config = config .. "	option distance '" .. distance .. "'\n"
-        end
-        config = config .. "	option hwmode '" .. hwmode .. "'\n"
-        if htmode then
-            config = config .. "	option htmode '" .. htmode .. "'\n"
-        end
-        config = config .. "	option path '" .. devpath .. "'\n\n"
+    config = config .. "config	wifi-device '" .. radio .. "'\n	option type 'mac80211'\n"
+    config = config .. "	option disabled '" .. disabled .. "'\n"
+    if channel then
+        config = config .. "	option channel '" .. channel .. "'\n"
+    end
+    if chanbw then
+        config = config .. "	option chanbw '" .. chanbw .. "'\n"
+    end
+    if country then
+        config = config .. "	option country '" .. country .. "'\n"
+    end
+    if distance then
+        config = config .. "	option distance '" .. distance .. "'\n"
+    end
+    config = config .. "	option hwmode '" .. hwmode .. "'\n"
+    if htmode then
+        config = config .. "	option htmode '" .. htmode .. "'\n"
+    end
+    config = config .. "	option path '" .. devpath .. "'\n\n"
 
-        config = config .. "config	wifi-iface\n"
-        config = config .. "	option ifname '" .. wlan .. "'\n"
-        config = config .. "	option device '" .. radio .. "'\n"
-        if network then
-            config = config .. "	option network '" .. network .. "'\n"
-        end
-        if mode then
-            config = config .. "	option mode '" .. mode .. "'\n"
-        end
-        if ssid then
-            config = config .. "	option ssid '" .. ssid .. "'\n"
-        end
-        if encryption then
-            config = config .. "	option encryption '" .. encryption .. "'\n"
-        end
-        if key then
-            config = config .. "	option key '" .. key .. "'\n"
-        end
-        config = config .. "\n"
+    config = config .. "config	wifi-iface\n"
+    config = config .. "	option ifname '" .. wlan .. "'\n"
+    config = config .. "	option device '" .. radio .. "'\n"
+    if network then
+        config = config .. "	option network '" .. network .. "'\n"
+    end
+    if mode then
+        config = config .. "	option mode '" .. mode .. "'\n"
+    end
+    if ssid then
+        config = config .. "	option ssid '" .. ssid .. "'\n"
+    end
+    if encryption then
+        config = config .. "	option encryption '" .. encryption .. "'\n"
+    end
+    if key then
+        config = config .. "	option key '" .. key .. "'\n"
+    end
+    config = config .. "\n"
 
-        if is_mesh_rf and wifi_mon_enable then
-            config = config .. "config wifi-iface\n"
-            config = config .. "       option ifname '" .. wlan .. "-1'\n"
-            config = config .. "       option device '" .. radio .. "'\n"
-            config = config .. "       option network 'wifi_mon'\n     option mode 'monitor'\n\n"
-        end
-
-        ifacenum = ifacenum + 1
+    if is_mesh_rf and wifi_mon_enable then
+        config = config .. "config wifi-iface\n"
+        config = config .. "       option ifname '" .. wlan .. "-1'\n"
+        config = config .. "       option device '" .. radio .. "'\n"
+        config = config .. "       option network 'wifi_mon'\n     option mode 'monitor'\n\n"
     end
 end
 write_all("/tmp/new_config/wireless", config)

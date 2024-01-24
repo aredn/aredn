@@ -709,7 +709,11 @@ if config == "mesh" then
         html.print("<input type=hidden name=wgclient" .. val .. "_key value='" .. key .. "'><input type=" .. (val == '_add' and 'hidden' or 'text') .. " readonly size=25 name=wgclient" .. val .. "_clientkey value='" .. client_key .. "' title='client key'>")
         html.print("</td>")
 
-        local fullnet = netwg[1] .. "." .. netwg[2] .. "." .. netwg[3] .. "." .. (netwg[4] + 2 * cnum) .. ":" .. (wg_port + cnum)
+        local netwg4 = tonumber(netwg[4]) + 2 * cnum
+        if netwg4 >= 254 then
+            netwg4 = netwg4 - 252
+        end
+        local fullnet = netwg[1] .. "." .. netwg[2] .. "." .. netwg[3] .. "." .. netwg4 .. ":" .. (wg_port + cnum)
         html.print("<td rowspan='2' class='tun_client_center_item'>")
         html.print("<input style='min-width:90px;background-color:transparent;border:0;text-align:center;' readonly type=text size=20 name=wgclient" .. val .. "_clientip value='" .. fullnet .. "'/></td>")
         html.print("<td rowspan='2' class='tun_client_center_item' align=center>&nbsp;")

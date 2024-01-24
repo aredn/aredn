@@ -97,6 +97,67 @@ function validate_service_suffix(suffix)
     end
 end
 
+local mac_pattern = "%x%x:%x%x:%x%x:%x%x:%x%x:%x%x"
+local mac_wildcard = "*:*:*:*:*:*"
+
+-- accepts nonempty strings
+local function validate_nonempty_matcher(matcher)
+    return matcher ~= ""
+end
+
+-- accepts MAC addresses with optional bytewise wildcard substitution
+local function validate_mac_matcher(matcher)
+    return matcher:gsub("%x%x", "*") == mac_wildcard
+end
+
+-- accepts host names with optional trailing wildcard
+local function validate_host_matcher(matcher)
+    return matcher:match("^%w[%w.-]*%*?$")
+end
+
+local dhcp_tag_conds = {
+    { key = "vendorclass",
+      name = "Vendor Class",
+      validator = validate_nonempty_matcher,
+      hint = "all or part of the class value sent by the client",
+      jsPlaceholder = "subpart of class string",
+    },
+    { key = "userclass",
+      name = "User Class",
+      validator = validate_nonempty_matcher,
+      hint = "all or part of the class value sent by the client",
+      jsPlaceholder = "subpart of class string",
+    },
+    { key = "mac",
+      name = "MAC Address",
+      validator = validate_mac_matcher,
+      hint = "six bytes, each either two hexadecimal digits or a single asterisk, separated by colons",
+      jsPattern = [[^(?:(?:[0-9a-fA-F]{2}|\\*):){5}(?:[0-9a-fA-F]{2}|\\*)$]],
+      jsPlaceholder = "*:*:*:*:*:*",
+    },
+    { key = "name",
+      name = "Host Name",
+      validator = validate_host_matcher,
+      hint = "alphanumerics, hyphens, and dots, with an optional trailing asterisk",
+      jsPattern = [[^[a-zA-Z0-9][a-zA-Z0-9.\\-]*\\*?$]],
+      jsPlaceholder = "client.host-name*",
+    },
+}
+
+local dhcp_tag_validators = {}
+for _, cond in ipairs(dhcp_tag_conds)
+do
+    dhcp_tag_validators[cond.key] = {
+        validator = cond.validator,
+        hint = cond.hint,
+        jsPattern = cond.jsPattern,
+        jsPlaceholder = cond.jsPlaceholder}
+end
+
+function html_safe(s)
+    return s:gsub("&", "&amp;"):gsub(">", "&gt;"):gsub("<", "&lt;")
+end
+
 local serv_err = {}
 function serverr(msg)
     serv_err[#serv_err + 1] = msg:gsub(">", "&gt;"):gsub("<", "&lt;")
@@ -113,6 +174,14 @@ end
 local dhcp_err = {}
 function dhcperr(msg)
     dhcp_err[#dhcp_err + 1] = msg
+end
+local dhcptag_err = {}
+function dhcptagerr(msg)
+    dhcptag_err[#dhcptag_err + 1] = msg
+end
+local dhcpopt_err = {}
+function dhcpopterr(msg)
+    dhcpopt_err[#dhcpopt_err + 1] = msg
 end
 local alias_err = {}
 function aliaserr(msg)
@@ -169,6 +238,8 @@ nixio.fs.mkdir(tmpdir)
 local fsuffix = dmz_mode == 0 and ".nat" or ".dmz"
 local portfile = "/etc/config.mesh/_setup.ports" .. fsuffix
 local dhcpfile = "/etc/config.mesh/_setup.dhcp" .. fsuffix
+local dhcptagsfile = "/etc/config.mesh/_setup.dhcptags" .. fsuffix
+local dhcpoptionsfile = "/etc/config.mesh/_setup.dhcpoptions" .. fsuffix
 local servfile = "/etc/config.mesh/_setup.services" .. fsuffix
 local aliasfile = "/etc/config.mesh/aliases" .. fsuffix
 
@@ -226,6 +297,45 @@ if parms.button_reset or not parms.reload then
     end
     parms.dhcp_num = i
 
+    -- set dhcp tags
+    i = 0
+    if nixio.fs.stat(dhcptagsfile) then
+        for line in io.lines(dhcptagsfile)
+        do
+            if not (line:match("^%s*#") or line:match("^%s*$")) then
+                local name, condition, pattern = line:match("(%S+)%s+(%S+)%s+(.*)")
+                if pattern then
+                    i = i + 1
+                    local prefix = "dhcptag" .. i .. "_"
+                    parms[prefix .. "name"] = name
+                    parms[prefix .. "cond"] = condition
+                    parms[prefix .. "pat"] = pattern
+                end
+            end
+        end
+    end
+    parms.dhcptags_num = i
+
+    -- set dhcp options
+    i = 0
+    if nixio.fs.stat(dhcpoptionsfile) then
+        for line in io.lines(dhcpoptionsfile)
+        do
+            if not (line:match("^%s*#") or line:match("^%s*$")) then
+                local tag, force, opt_num, opt_val = line:match("(%S*)%s+(%w+)%s+(%d+)%s+(.*)")
+                if force then
+                    i = i + 1
+                    local prefix = "dhcpopt" .. i .. "_"
+                    parms[prefix .. "tag"] = tag
+                    parms[prefix .. "force"] = force
+                    parms[prefix .. "num"] = opt_num
+                    parms[prefix .. "val"] = opt_val
+                end
+            end
+        end
+    end
+    parms.dhcpoptions_num = i
+
     -- services
     i = 0
     if nixio.fs.stat(servfile) then
@@ -270,7 +380,7 @@ if parms.button_reset or not parms.reload then
     end
     parms.alias_num = i
 
-    -- sanatize the 'add' values
+    -- sanitize the 'add' values
     parms.port_add_intf = dmz_mode ~= 0 and "wan" or "wifi"
     parms.port_add_type = "tcp"
     if not parms.dmz_ip then
@@ -283,6 +393,12 @@ if parms.button_reset or not parms.reload then
     parms.dhcp_add_ip = ""
     parms.dhcp_add_mac = ""
     parms.dhcp_add_noprop = ""
+    parms.dhcptag_add_name = ""
+    parms.dhcptag_add_cond = ""
+    parms.dhcptag_add_pat = ""
+    parms.dhcpopt_add_tag = ""
+    parms.dhcpopt_add_num = ""
+    parms.dhcpopt_add_val = ""
     parms.serv_add_name = ""
     parms.serv_add_proto = ""
     parms.serv_add_host = ""
@@ -298,12 +414,17 @@ local dhcp_end = dhcp_start + dhcp_limit - 1
 
 -- load and validate the ports
 
-local list = {}
-for i = 1,parms.port_num
-do
-    list[#list + 1] = i
+function make_addable_list(max_row)
+    local list = {}
+    for i = 1,max_row
+    do
+        list[#list + 1] = i
+    end
+    list[#list + 1] = "_add"
+    return list
 end
-list[#list + 1] = "_add"
+
+local list = make_addable_list(parms.port_num)
 local port_num = 0
 local usedports = {}
 
@@ -415,12 +536,7 @@ parms.port_num = port_num
 
 -- load and validate the dhcp reservations
 
-local list = {}
-for i = 1,parms.dhcp_num
-do
-    list[#list + 1] = i
-end
-list[#list + 1] = "_add"
+local list = make_addable_list(parms.dhcp_num)
 local dhcp_num = 0
 
 for _, val in ipairs(list)
@@ -501,7 +617,7 @@ do
             end
         end
 
-        if mac:match("[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]:[a-fA-F0-9][a-fA-F0-9]") then
+        if mac:match(mac_pattern) then
             if macs[mac] then
                 dhcperr(val .. " MAC " .. mac .. " is already in use")
             end
@@ -613,13 +729,162 @@ if f then
     f:close()
 end
 
--- aliases
-local list = {}
-for i = 1,parms.alias_num
-do
-    list[#list + 1] = i
+function write_temp_records(filename, group_name, record_count, fields)
+    local f = io.open(tmpdir .. "/" .. filename, "w")
+    if f then
+        for i = 1,record_count
+        do
+            local prefix = group_name .. i .. "_"
+            local record = {}
+            for _, field in ipairs(fields)
+            do
+                table.insert(record, parms[prefix .. field])
+            end
+            f:write(table.concat(record, " ") .. "\n")
+        end
+        f:close()
+    end
 end
-list[#list + 1] = "_add"
+
+-- DHCP tags
+local list = make_addable_list(parms.dhcptags_num)
+local dhcptags_num = 0
+
+for _, val in ipairs(list)
+do
+    for _ = 1,1
+    do
+        local prefix = "dhcptag" .. val .. "_"
+        local name = parms[prefix .. "name"]
+        local cond_key = parms[prefix .. "cond"]
+        local matcher = parms[prefix .. "pat"]
+
+        if val == "_add" then
+            if not ((name ~= "" or cond_key ~= "" or matcher ~= "") and (parms.dhcptag_add or parms.button_save)) then
+                break
+            end
+        elseif parms[prefix .. "del"] then
+            break
+        end
+        if val == "_add" and parms.button_save then
+            dhcptagerr(val .. " this tag must be added or cleared out before saving changes")
+            break
+        end
+        if name and not name:match("^%w+$") then
+            dhcptagerr(val .. [[ <font color='red'>Warning!</font> The tag name "]] .. html_safe(name)
+                        .. [[" is invalid; tag names must contain only letters and digits.]])
+            break
+        end
+        if cond_key == "" then
+            dhcptagerr(val .. [[ <font color='red'>Warning!</font> Please choose a client parameter to match.]])
+            break
+        end
+        if matcher == "" then
+            dhcptagerr(val .. [[ <font color='red'>Warning!</font> Please supply a value to match to the client parameter.]])
+            break
+        else
+            local tag_validator = dhcp_tag_validators[cond_key]
+            if not tag_validator then
+                dhcptagerr(string.format([[%s <font color='red'>Warning!</font> "%s" is not a known DHCP parameter.]], val, cond_key))
+                break
+            end
+            if not tag_validator.validator(matcher) then
+                dhcptagerr(string.format([[%s <font color='red'>Warning!</font> "%s" is not a valid match for %s; must be %s]],
+                                          val, html_safe(matcher), cond_key, tag_validator.hint))
+                break
+            end
+        end
+
+        if val == "_add" and #dhcptag_err > 0 and dhcptag_err[#dhcptag_err]:match("^" .. val .. " ") then
+            break
+        end
+
+        dhcptags_num = dhcptags_num + 1
+        prefix = "dhcptag" .. dhcptags_num .. "_"
+        parms[prefix .. "name"] = name
+        parms[prefix .. "cond"] = cond_key
+        parms[prefix .. "pat"] = matcher
+        if val == "_add" then
+            parms.dhcptag_add_name = ""
+            parms.dhcptag_add_cond = ""
+            parms.dhcptag_add_pat = ""
+        end
+    end
+end
+
+-- write to temp file
+write_temp_records("dhcptags", "dhcptag", dhcptags_num, {"name", "cond", "pat"})
+parms.dhcptags_num = dhcptags_num
+
+-- DHCP options
+local list = make_addable_list(parms.dhcpoptions_num)
+local dhcpoptions_num = 0
+
+for _, val in ipairs(list)
+do
+    for _ = 1,1
+    do
+        local prefix = "dhcpopt" .. val .. "_"
+        local tag = parms[prefix .. "tag"]
+        local force = parms[prefix .. "force"]
+        if force ~= "force" then
+            force = "onrequest"
+        end
+        local opt_num = parms[prefix .. "num"]
+        local opt_val = parms[prefix .. "val"]
+
+        if val == "_add" then
+            if not ((tag ~= "" or opt_num ~= "" or opt_val ~= "") and (parms.dhcpopt_add or parms.button_save)) then
+                break
+            end
+        elseif parms[prefix .. "del"] then
+            break
+        end
+        if val == "_add" and parms.button_save then
+            dhcpopterr(val .. " this option must be added or cleared out before saving changes")
+            break
+        end
+        if tag ~= "" and not tag:match("^%w+$") then
+            dhcpopterr(val .. [[ <font color='red'>Warning!</font> The tag name "]] .. html_safe(tag) .. [[" is invalid; tag names must contain only letters and digits.]])
+            break
+        end
+        local nnum = tonumber(opt_num)
+        if not nnum or nnum < 1 or nnum > 254 then
+            dhcpopterr(val .. [[ <font color='red'>Warning!</font> Option number must be an integer in the range [1..254].]])
+            break
+        end
+        -- TODO check opt_val for suitability for opt_num
+        if opt_val == "" then
+            dhcpopterr(val .. [[ <font color='red'>Warning!</font> Please supply a value to send for this option.]])
+            break
+        end
+
+        if val == "_add" and #dhcpopt_err > 0 and dhcpopt_err[#dhcpopt_err]:match("^" .. val .. " ") then
+        --if val == "_add" and #dhcpopt_err > 0 then
+            break
+        end
+
+        dhcpoptions_num = dhcpoptions_num + 1
+        prefix = "dhcpopt" .. dhcpoptions_num .. "_"
+        parms[prefix .. "tag"] = tag
+        parms[prefix .. "force"] = force
+        parms[prefix .. "num"] = opt_num
+        parms[prefix .. "val"] = opt_val
+        if val == "_add" then
+            parms.dhcpopt_add_tag = ""
+            parms.dhcpopt_add_force = ""
+            parms.dhcpopt_add_num = ""
+            parms.dhcpopt_add_val = ""
+        end
+    end
+end
+
+-- write to temp file
+write_temp_records("dhcpoptions", "dhcpopt", dhcpoptions_num, {"tag", "force", "num", "val"})
+parms.dhcpoptions_num = dhcpoptions_num
+
+-- aliases
+local list = make_addable_list(parms.alias_num)
 local alias_num = 0
 
 for _, val in ipairs(list)
@@ -677,23 +942,11 @@ do
 end
 
 -- write to temp file
-local f = io.open(tmpdir .. "/aliases", "w")
-if f then
-    for i = 1,alias_num
-    do
-        f:write(parms["alias" .. i .. "_ip"] .. " " .. parms["alias" .. i .. "_host"] .. "\n")
-    end
-    f:close()
-end
+write_temp_records("aliases", "alias", alias_num, {"ip", "host"})
 parms.alias_num = alias_num
 
 -- load and validate services
-local list = {}
-for i = 1,parms.serv_num
-do
-    list[#list + 1] = i
-end
-list[#list + 1] = "_add"
+local list = make_addable_list(parms.serv_num)
 local serv_num = 0
 hosts[""] = true
 hosts[node] = true
@@ -806,9 +1059,11 @@ end
 parms.serv_num = serv_num
 
 -- save configuration
-if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or #serv_err > 0 or #alias_err > 0) then
+if parms.button_save and not (#port_err > 0 or #dhcp_err > 0 or #dhcptag_err > 0 or #dhcpopt_err > 0 or #dmz_err > 0 or #serv_err > 0 or #alias_err > 0) then
     filecopy(tmpdir .. "/ports", portfile)
     filecopy(tmpdir .. "/dhcp", dhcpfile)
+    filecopy(tmpdir .. "/dhcptags", dhcptagsfile)
+    filecopy(tmpdir .. "/dhcpoptions", dhcpoptionsfile)
     filecopy(tmpdir .. "/services", servfile)
     filecopy(tmpdir .. "/aliases", aliasfile)
 
@@ -824,7 +1079,70 @@ end
 -- generate the page
 
 http_header()
-html.header(node .. " setup", true)
+html.header(node .. " setup", false)
+
+do
+    local function generateValidatorCaseJS(cond)
+        local caseTab = {'        case "',
+                         cond.key,
+                         '":\n          newPlaceholder = "',
+                         cond.jsPlaceholder,
+                         '";\n          newTitle = "',
+                         cond.hint}
+        if cond.jsPattern then
+            table.insert(caseTab, '";\n          newPattern = "')
+            table.insert(caseTab, cond.jsPattern)
+        end
+        table.insert(caseTab, '";\n          break;\n')
+        return table.concat(caseTab, '')
+    end
+
+    -- Note: toggleField comes from https://jsfiddle.net/6nq7w/4/
+    local scriptTab = {[[
+    <script>
+    function toggleField(hideObj,showObj){
+      hideObj.disabled=true;        
+      hideObj.style.display='none';
+      showObj.disabled=false;   
+      showObj.style.display='inline';
+      showObj.focus();
+    }
+    function setOrRemoveAttribute(elem, attrName, value) {
+      console.log(`setOrRemoveAttribute(${elem.name},${attrName},${value})`)
+      if (value == null)
+        elem.removeAttribute(attrName);
+      else
+        elem.setAttribute(attrName, value)
+    }
+    function setMatcherValidator(inputId, matcherType) {
+      console.log(`setMatcherValidator(${inputId},${matcherType})`)
+      const matcherElem = document.getElementById(inputId);
+      newPattern = null;
+      newPlaceholder = null;
+      newTitle = null;
+      switch (matcherType) {
+]]}
+    for _, cond in ipairs(dhcp_tag_conds)
+    do
+        table.insert(scriptTab, generateValidatorCaseJS(cond))
+    end
+    table.insert(scriptTab, [[
+        default:
+          break;
+      }
+      setOrRemoveAttribute(matcherElem, "placeholder", newPlaceholder);
+      setOrRemoveAttribute(matcherElem, "pattern", newPattern);
+      setOrRemoveAttribute(matcherElem, "title", newTitle);
+    }
+    </script>
+    <style>
+    input:invalid {
+      border: 2px dashed red;
+    }
+    </style>]])
+    html.print(table.concat(scriptTab, ''))
+end
+html.print("</head>")
 html.print("<body><center>")
 html.alert_banner()
 html.print("<form method=post action=/cgi-bin/ports enctype='multipart/form-data'>")
@@ -839,12 +1157,12 @@ html.print([[<tr><td align=center>
 <input type=submit name=button_reset value='Reset Values' title='Revert to the last saved settings'>&nbsp;
 <input type=button name=button_refresh value='Refresh' title='Refresh this page' onclick='window.location.reload();'>&nbsp;
 <tr><td>&nbsp;</td></tr>]])
-hide("<input type=hidden name=reload value=1></td></tr>")
+hide("<input type=hidden name=reload value=1>")
 
 -- messages
 
 if parms.button_save then
-    if #port_err > 0 or #dhcp_err > 0 or #dmz_err > 0 or #serv_err > 0 then
+    if #port_err > 0 or #dhcp_err > 0 or #dhcptag_err > 0 or #dhcpopt_err > 0 or #dmz_err > 0 or #serv_err > 0 then
         html.print("<tr><td align=center><b>Configuration NOT saved!</b></td></tr>")
     elseif #errors > 0 then
         html.print("<tr><td align=center><b>Configuration saved, however:<br>")
@@ -861,9 +1179,35 @@ end
 
 -- everything else
 
+local js_mac_pattern = [[ pattern='^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$' ]]
+local js_host_pattern = [[ pattern='^[a-zA-Z0-9][a-zA-Z0-9\-]*$' ]]
+local js_port_range_pattern = [[ pattern='^\s*\d{1,5}(?:\s*-\s*\d{1,5})?\s*$' ]]
+
+function print_heading_vsep()
+    html.print("<tr><td colspan=4 height=5></td></tr>")
+end
+
+function print_new_entry_vsep(val, list, columns)
+    if val == "_add" and #list > 1 then
+        html.print("<tr><td colspan=" .. columns .. " height=10></td></tr>")
+    end
+end
+
+-- mark input fields of already-added entries as "required"
+function require_existing(val)
+    return val == "_add" and "" or " required "
+end
+
+function print_errors(error_list)
+    for _, e in ipairs(error_list)
+    do
+        html.print("<tr><th colspan=8>" .. e .. "</th></tr>")
+    end
+end
+
 function print_reservations()
     html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>DHCP Address Reservations</th></tr>")
-    html.print("<tr><td colspan=4 height=5></td></tr>")
+    print_heading_vsep()
     html.print("<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td>")
 
     if dmz_mode ~= 0 then
@@ -871,14 +1215,9 @@ function print_reservations()
     else
         html.print("<td></td><td></td></tr>")
     end
-    html.print("<tr><td colspan=4 height=5></td></tr>")
+    print_heading_vsep()
 
-    local list = {}
-    for i = 1,parms.dhcp_num
-    do
-        list[#list + 1] = i
-    end
-    list[#list + 1] = "_add"
+    local list = make_addable_list(parms.dhcp_num)
 
     local mac_list = {}
     for _, val in ipairs(list)
@@ -889,13 +1228,11 @@ function print_reservations()
         local noprop = parms["dhcp" .. val .. "_noprop"]
         mac_list[mac] = true
 
-        if val == "_add" and #list > 1 then
-            html.print("<tr><td colspan=4 height=10></td></tr>")
-        end
-        html.print("<tr><td><input style='width=180;' type=text name=dhcp" .. val .. "_host value='" .. host .. "'></td>")
+        print_new_entry_vsep(val, list, 5)
+        html.print("<tr><td><input style='width=180;' type=text placeholder='host-name' title='alphanumerics and embedded hyphens' name=dhcp" .. val .. "_host value='" .. host .. "'" .. js_host_pattern .. require_existing(val) .. "></td>")
         html.print("<td align=center style='padding:0 4px'><select style='width:130px' name=dhcp" .. val .. "_ip>")
         if val == "_add" then
-	        html.print("<option value=''>- IP Address -</option>\n")
+            html.print("<option value=''>- IP Address -</option>\n")
         end
         for i = dhcp_start,dhcp_end
         do
@@ -909,13 +1246,10 @@ function print_reservations()
             end
         end
         html.print("</select></td>")
-        html.print("<td><input style='width:120;' type=text name=dhcp" .. val .. "_mac value='" .. mac .. "'></td>")
+        html.print("<td><input style='width:120;' type=text placeholder='aa:aa:aa:aa:aa:aa' name=dhcp" .. val .. "_mac value='" .. mac .. "'" .. js_mac_pattern .. require_existing(val) .. "></td>")
         if dmz_mode ~= 0 then
-            if noprop == "#NOPROP" then
-                html.print("<td align=center><input type=checkbox id=dhcp" .. val .. "_noprop name=dhcp" .. val .. "_noprop value='#NOPROP' checked></td>")
-            else
-                html.print("<td align=center><input type=checkbox id=dhcp" .. val .. "_noprop name=dhcp" .. val .. "_noprop value='#NOPROP'></td>")
-            end
+            html.print("<td align=center><input type=checkbox id=dhcp" .. val .. "_noprop name=dhcp" .. val .. "_noprop value='#NOPROP'"
+                       .. (noprop == "#NOPROP" and " checked" or "") .. "></td>")
         else
             html.print("<td></td>")
         end
@@ -973,12 +1307,7 @@ function print_forwarding()
     html.print("<td align=center>LAN Port</td><td>&nbsp;</td></tr>")
     html.print("<tr><td colspan=6 height=5></td></tr>")
 
-    local list = {}
-    for i = 1,parms.port_num
-    do
-        list[#list + 1] = i
-    end
-    list[#list + 1] = "_add"
+    local list = make_addable_list(parms.port_num)
     local vars = { "_intf", "_type", "_out", "_ip", "_in", "_enable", "_adv", "_link", "_proto", "_suffix", "_name" }
     for _, val in ipairs(list)
     do
@@ -987,9 +1316,7 @@ function print_forwarding()
             _G[var] = parms["port" .. val .. var]
         end
 
-        if val == "_add" and #list > 1 then
-            html.print("<tr><td colspan=6 height=10></td></tr>")
-        end
+        print_new_entry_vsep(val, list, 6)
 
         html.print("<tr>")
         hide("<input style='width:90;' type=hidden name=port" .. val .. "_enable value=1>")
@@ -1011,7 +1338,8 @@ function print_forwarding()
         html.print("<option " .. (_type == "both" and "selected" or "") .. " value='both'>Both</option>")
         html.print("</select></td>")
 
-        html.print("<td align=center valign=top><input style='width:90;' type=text name=port" .. val .. "_out value='" .. _out .. "'></td>")
+        html.print("<td align=center valign=top><input style='width:90;' type=text placeholder='9998-9999' title='integer 1-65535 or two integers separated by a hyphen' name=port" .. val .. "_out value='"
+                   .. _out .. "'" .. js_port_range_pattern .. require_existing(val) .. "></td>")
         html.print("<td align=center valign=top><select name=port" .. val .. "_ip>")
         if val == "_add" then
             html.print("<option value=''>- IP Address -</option>")
@@ -1028,7 +1356,8 @@ function print_forwarding()
         end
         html.print("</select></td>")
 
-        html.print("<td align=left valign=top><input style='width:90;' type=text name=port" .. val .. "_in value='" .. _in .. "'></td>")
+        html.print("<td align=left valign=top><input style='width:90;' type='number' min='1' max='65535' placeholder='9998' title='integer 1-65535' name=port"
+                   .. val .. "_in value='" .. _in .. "'" .. require_existing(val) .. "></td>")
         html.print("<td><nobr>&nbsp;<input type=submit name=")
 
         if val == "_add" then
@@ -1070,10 +1399,7 @@ function print_forwarding()
         end
         html.print("</select></td>")
 
-        for _, e in ipairs(dmz_err)
-        do
-            html.print("<tr><th colspan=8>" .. e .. "</th></tr>")
-        end
+        print_errors(dmz_err)
     end
     html.print("</table>")
 end
@@ -1110,12 +1436,7 @@ function print_services()
         html.print("<tr><td>Name</td><td>Link</td><td>URL</td><td><br><br></td></tr>")
     end
 
-    local list = {}
-    for i = 1,parms.serv_num
-    do
-        list[#list + 1] = i
-    end
-    list[#list + 1] = "_add"
+    local list = make_addable_list(parms.serv_num)
 
     local vars = { "_name", "_link", "_proto", "_host", "_port", "_suffix" }
     for _, val in ipairs(list)
@@ -1129,11 +1450,9 @@ function print_services()
             parms["serv" .. val .. "_host"] = node
         end
 
-        if val == "_add" and #list > 1 then
-            html.print("<tr><td colspan=4 height=10></td></tr>")
-        end
+        print_new_entry_vsep(val, list, 4)
         html.print("<tr>")
-        html.print("<td><input type=text style='width:120;' name=serv" .. val .. "_name value='" .. _name .. "' title='what to call this service'></td>")
+        html.print("<td><input type=text style='width:120;' placeholder='Service Name' name=serv" .. val .. "_name value='" .. _name .. "' title='what to call this service'></td>")
 
         html.print("<td><nobr><input type=checkbox name=serv" .. val .. "_link value=1")
         if val ~= "_add" then
@@ -1168,14 +1487,14 @@ function print_services()
             end
             html.print("</select>")
         else
-	        html.print("<td><nobr><b>:</b>//<small>" .. _host .. "</small>")
+	        html.print("<td style='width:99%'><nobr><b>:</b>//<small>" .. _host .. "</small>")
         end
 
         html.print("<b>:</b><input type=text style='width:40;' name=serv" .. val .. "_port value='" .. _port .. "' title='port number'")
         if val ~= "_add" and _link ~= "1" then
             html.print(" disabled")
         end
-        html.print("> / <input type=text style='width:80;' name=serv" .. val .. "_suffix value='" .. _suffix .. "' ")
+        html.print("> / <input type=text name=serv" .. val .. "_suffix value='" .. _suffix .. "' ")
         html.print("title='leave blank unless the URL needs a more specific path'")
         if val ~= "_add" and _link ~= "1" then
             html.print(" disabled")
@@ -1219,21 +1538,14 @@ function print_aliases()
     html.print("<tr><td align=center>Alias Name</td><td></td><td align=center>IP Address</td></tr>")
     html.print("<tr><td colspan=3 height=5></td></tr>")
 
-    local list = {}
-    for i = 1,parms.alias_num
-    do
-        list[#list + 1] = i
-    end
-    list[#list + 1] = "_add"
+    local list = make_addable_list(parms.alias_num)
 
     for _, val in ipairs(list)
     do
         local host = parms["alias" .. val .. "_host"]
         local ip = parms["alias" .. val .. "_ip"]
-        if val == "_add" and #list > 1 then
-            html.print("<tr><td colspan=3 height=10></td></tr>\n")
-        end
-        html.print("<tr><td align=center><input type=text name=alias" .. val .. "_host value='" .. host .. "' size=20></td>")
+        print_new_entry_vsep(val, list , 4)
+        html.print("<tr><td align=center><input type=text placeholder='alias-name' title='alphanumerics and embedded hyphens' name=alias" .. val .. "_host value='" .. host .. "' size=20" .. js_host_pattern .. require_existing(val) .. "></td>")
         html.print("<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>")
         html.print("<td align=center><select name=alias" .. val .. "_ip>")
         if val == "_add" then
@@ -1266,6 +1578,210 @@ function print_aliases()
     html.print("</table>")
 end
 
+function print_dhcp_cond_selector(row, selected_key, allow_unset, patname)
+    local field_name = "dhcptag" .. row .. "_cond"
+    html.print("<td align=center style='padding:0 4px'><select name='" .. field_name
+                .. "' title='Type of identifying information sent by the client' "
+                .. "onchange='setMatcherValidator(\"" .. patname .. "\",this.value);'>")
+
+    if allow_unset then
+        html.print("<option value=''>-Parameter-</option>")
+    end
+    for _, condition in ipairs(dhcp_tag_conds)
+    do
+        html.print("<option " .. (condition.key == selected_key and "selected " or "")
+                  .. "value=\"" .. condition.key .. "\">" .. condition.name .. "</option>")
+    end
+    html.print("</select></td>")
+end
+
+function dhcp_tag_used(tag_name)
+    if tag_name == "" then
+        return false
+    end
+    for i = 1,parms.dhcpoptions_num
+    do
+        if tag_name == parms["dhcpopt" .. i .. "_tag"] then
+            return true
+        end
+    end
+    return false
+end
+
+function print_dhcp_tags()
+    html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>Tags for Advanced DHCP Options</th></tr>")
+    print_heading_vsep()
+    html.print("<tr><td align=center>Set a Tag Named</td><td align=center>When Client's</td><td align=center style='width:99%'>Matches</td>")
+
+    local list = make_addable_list(parms.dhcptags_num)
+
+    for _, val in ipairs(list)
+    do
+        local prefix = "dhcptag" .. val .. "_"
+        local name = parms[prefix .. "name"]
+        local cond_key = parms[prefix .. "cond"]
+        local matcher = parms[prefix .. "pat"]
+
+        print_new_entry_vsep(val, list, 4)
+        html.print("<tr><td><input style='width:110px' type='text' placeholder='tagname' name='" .. prefix .. "name' value='" .. name
+                   .. "' pattern='^[a-zA-Z0-9]+$' title='Alphanumeric string identifying the tag to assign'"
+                   .. require_existing(val) .. "></td>")
+        local patname = prefix .. "pat"
+        print_dhcp_cond_selector(val, cond_key, val == "_add", patname)
+        local t = {"<td><input style='width:99%' name='",
+                   patname,
+                   "' value='",
+                   matcher,
+                   "' id='",
+                   patname,}
+        if val ~= "_add" then
+            local cond = dhcp_tag_validators[cond_key]
+            table.insert(t, "' required title='")
+            table.insert(t, cond.hint)
+            table.insert(t, "' placeholder='")
+            table.insert(t, cond.jsPlaceholder)
+            if cond.jsPattern ~= nil then
+                table.insert(t, "' pattern='")
+                table.insert(t, (cond.jsPattern:gsub("\\\\", "\\")))
+            end
+        end
+        table.insert(t, "'></td>")
+        html.print(table.concat(t, ''))
+        html.print("<td><nobr>&nbsp;<input type=submit name=")
+        if val == "_add" then
+            html.print("dhcptag_add value=Add title='Add DHCP Tag'")
+        else
+            html.print(prefix .. "del value='Del ' title=")
+            if dhcp_tag_used(name) then
+                html.print("'Cannot remove; tag is in use by an option.' disabled='disabled'")
+            else
+                html.print("'Remove DHCP Tag'")
+            end
+        end
+        html.print("></nobr></td></tr>")
+    end
+
+    print_errors(dhcptag_err)
+
+    html.print("</table>")
+end
+
+function get_dhcp_tag_names()
+    local tag_hash = {}
+    local names = {}
+
+    for val = 1,parms.dhcptags_num
+    do
+        local name = parms["dhcptag" .. val .. "_name"]
+        if name and not tag_hash[name] then
+            tag_hash[name] = 0
+            table.insert(names, name)
+        end
+    end
+    table.sort(names)
+
+    return names
+end
+
+function print_dhcp_tag_selector(row, tag_name, all_tags)
+    local field_name = "dhcpopt" .. row .. "_tag"
+    html.print("<td><select name='" .. field_name .. "' title='Only send this option to clients with this tag'>")
+    html.print("<option value=''>[any]</option>")
+    for _, name in ipairs(all_tags)
+    do
+        local sel = name == tag_name and "selected " or "" 
+        html.print("<option " .. sel .. "value=\"" .. name .. "\">" .. name .. "</option>")
+    end
+    html.print("</select></td>")
+end
+
+function print_dhcp_option_selector(known_options, row, opt_num)
+    local field_name = "dhcpopt" .. row .. "_num"
+    -- custom-value option adapted from https://jsfiddle.net/6nq7w/4/
+    html.print("<td align=center style='padding:0 4px'><select name=\"" .. field_name .. '"')
+    html.print([[ onchange="if(this.options[this.selectedIndex].value=='[numeric]'){
+              toggleField(this,this.nextSibling);
+              this.selectedIndex='0';
+          }">
+          <option value="">- DHCP Option Number -</option>
+          <option value="[numeric]">[other option number]</option>]])
+    local found = false
+    for _, option in ipairs(known_options)
+    do
+        local sel = ""
+        local nnum = tonumber(opt_num)
+        if option.num == nnum then
+            found = true
+            sel = "selected "
+        elseif nnum and not found and nnum < option.num then -- not a known option
+            found = true
+            html.print("<option selected value=" .. nnum .. ">" .. nnum .. "</option>")
+        end
+        html.print("<option " .. sel .. "value=" .. option.num .. ">" .. option.num .. " (" .. option.name .. ")</option>")
+    end
+    -- do not insert any whitespace between the following two HTML tags
+    html.print("</select><input name=\"" .. field_name .. '"')
+    html.print([[ type="number" min=1 max=254 style="display:none;" disabled="disabled" 
+            onblur="if(this.value==''){toggleField(this,this.previousSibling);}"></td>]])
+end
+
+-- load all known DHCP option names
+function load_known_options()
+    local known_options = {}
+
+    local optlist = io.popen("/usr/sbin/dnsmasq --help dhcp")
+    if optlist then
+        for line in optlist:lines()
+        do
+            local num, name = line:match("%s*(%d+)%s+(%S+)")
+            if name then
+                table.insert(known_options, {num = tonumber(num), name = name})
+            end
+        end
+        optlist:close()
+    end
+    return known_options
+end
+
+function print_dhcp_options()
+    html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=5>Advanced DHCP Options</th></tr>")
+    print_heading_vsep()
+    html.print("<tr><td align=center>For Tag</td><td align=center>Always</td><td align=center>Send DHCP Option</td><td align=center style='width:99%'>With Value</td></tr>")
+
+    local known_options = load_known_options()
+    local all_tags = get_dhcp_tag_names()
+
+    local list = make_addable_list(parms.dhcpoptions_num)
+    for _, val in ipairs(list)
+    do
+        local prefix = "dhcpopt" .. val .. "_"
+        local tag = parms[prefix .. "tag"] or ""
+        local force = parms[prefix .. "force"]
+        local opt_num = tonumber(parms[prefix .. "num"])
+        local opt_val = parms[prefix .. "val"] or ""
+
+        print_new_entry_vsep(val, list, 5)
+        html.print("<tr>")
+        print_dhcp_tag_selector(val, tag, all_tags)
+        html.print("<td align=center><input type='checkbox' name='" .. prefix .. "force' value='force' "
+                   .. (force == "force" and "checked " or "")
+                   .. "title='Send option even when not requested by client'/></td>")
+        print_dhcp_option_selector(known_options, val, opt_num)
+        html.print("<td><input type='text' style='width:99%' name='" .. prefix .. "val' value='" .. opt_val .. "'></td>")
+        html.print("<td><nobr>&nbsp;<input type=submit name=")
+        if val == "_add" then
+            html.print("dhcpopt_add value=Add title='Add DHCP Option'")
+        else
+            html.print(prefix .. "del value='Del ' title='Remove DHCP Option'")
+        end
+        html.print("></nobr></td></tr>")
+    end
+
+    print_errors(dhcpopt_err)
+
+    html.print("</table>")
+end
+
 html.print("<tr><td align=center>")
 html.print("<table width=100%><tr><td align=center valign=top>")
 if dmz_mode ~= 0 then
@@ -1280,7 +1796,13 @@ print_services()
 html.print("</td>")
 html.print("</tr>")
 html.print("<tr><td colspan=3><hr></td></tr>")
-html.print("<tr><td align=center valign=top>")
+html.print("<tr><td valign=top>")
+print_dhcp_tags()
+html.print("</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td valign=top>")
+print_dhcp_options()
+html.print("</td></tr>")
+html.print("<tr><td colspan=3><hr></td></tr>")
+html.print("<tr><td>")
 if dmz_mode ~= 0 then
     print_forwarding()
 else
@@ -1291,10 +1813,14 @@ html.print("<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>")
 html.print("<td align=center valign=top>")
 print_aliases()
 html.print("</td></tr>")
-html.print("</table>")
-
+html.print("</table></td></tr>")
+html.print("<tr><td>")
+html.footer()
+html.print(" </td></tr></table>")
 hide("<input type=hidden name=port_num value=" .. parms.port_num .. ">")
 hide("<input type=hidden name=dhcp_num value=" .. parms.dhcp_num .. ">")
+hide("<input type=hidden name=dhcptags_num value=" .. parms.dhcptags_num .. ">")
+hide("<input type=hidden name=dhcpoptions_num value=" .. parms.dhcpoptions_num .. ">")
 hide("<input type=hidden name=serv_num value=" .. parms.serv_num .. ">")
 hide("<input type=hidden name=alias_num value=" .. parms.alias_num .. ">")
 
@@ -1302,10 +1828,5 @@ for _, h in ipairs(hidden)
 do
     html.print(h)
 end
-
-html.print("<tr><td>")
-html.footer()
-html.print(" </td></tr>")
-html.print("</form></center></table>")
-html.print("</body></html>")
+html.print("</form></center></body></html>")
 http_footer()
