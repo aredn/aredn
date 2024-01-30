@@ -109,6 +109,15 @@ local changes = {
     wireless = false
 }
 
+function valid_config(config)
+    remove_all("/tmp/uci_validate")
+    nixio.fs.mkdir("/tmp/uci_validate")
+    write_all("/tmp/uci_validate/config", config)
+    local r = os.execute("/sbin/uci -c /tmp/uci_validate import dummy < /tmp/uci_validate/config")
+    remove_all("/tmp/uci_validate")
+    return r == 0 and true or false
+end
+
 function expand_vars(lines)
     local nlines = {}
     for line in lines:gmatch("([^\n]*\n?)")
@@ -117,6 +126,10 @@ function expand_vars(lines)
         if inc then
             if nixio.fs.stat(inc) then
                 line = expand_vars(read_all(inc))
+                if not valid_config(line) then
+                    print("Invalid config fragment: " .. inc)
+                    os.exit(1)
+                end
             else
                 line = nil
             end
@@ -287,6 +300,10 @@ end
 -- generate the new school bridge configuration
 if nixio.fs.stat("/etc/aredn_include/bridge.network.user") then
     cfg.bridge_network_config = expand_vars(read_all("/etc/aredn_include/bridge.network.user"))
+    if not valid_config(cfg.bridge_network_config) then
+        print("Invalid config fragment: /etc/aredn_include/bridge.network.user")
+        os.exit(1)
+    end
 else
     local list = {}
     for _, net in ipairs({ "lan", "wan", "dtdlink" })
@@ -322,6 +339,10 @@ do
             end
         end
         config = expand_vars(read_all("/etc/aredn_include/" .. net .. ".network.user"))
+        if not valid_config(config) then
+            print("Invalid config fragment: /etc/aredn_include/" .. net .. ".network.user")
+            os.exit(1)
+        end
     else
         -- generate a complete config
         local vlan = nil
