@@ -386,6 +386,12 @@ do
             break
         end
 
+        -- Generate a new key if we chance the client name
+        local cname = cursor:get("wireguard", "client_" .. wgclient_num, "name") or ""
+        local ckey = cursor:get("wireguard", "client_" .. wgclient_num, "key") or ""
+        if key == ckey and name ~= cname and name ~= "" then
+            key = ""
+        end
         if key == "" then
             local privS = capture("/usr/bin/wg genkey"):match("(%S+)")
             local pubS = capture("echo " .. privS .. " | /usr/bin/wg pubkey"):match("(%S+)")
