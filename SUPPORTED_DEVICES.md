@@ -151,8 +151,8 @@ Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 
 Hypervisor |  Target | Subtarget | Image | RAM | Stability | Status
 :------ | :------: | :---------: | :-----: | :---: | :---------: | :------
-Vmware ESXi  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
-Proxmox pve  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | nightly  (5)
+Vmware ESXi  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | nightly (5)
+Proxmox pve  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released  (5)
 Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | nightly (5)
 
 
