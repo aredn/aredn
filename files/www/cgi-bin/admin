@@ -287,7 +287,7 @@ if parms.button_refresh_fw then
                         firmware_versions[ver] = nil
                         for _, profile in ipairs(info.profiles)
                         do
-                            if profile.id == board_type or ((board_type == "qemu-standard-pc-i440fx-piix-1996" or board_type == "VMware, Inc. VMware Virtual Platform") and profile.id == "generic" and profile.target == "x86/64") then
+                            if profile.id == board_type or ((board_type == "qemu" or board_type == "vmware") and profile.id == "generic" and profile.target == "x86/64") then
                                 firmware_list[ver] = {
                                     overview = config_serverpath .. data .. "/" .. profile.target .. "/" .. profile.id .. ".json",
                                     target = info.image_url:gsub("{target}", profile.target)
