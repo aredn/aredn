@@ -147,11 +147,21 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 
+## x86 / Virtual Machine
+
+Hypervisor |  Target | Subtarget | Image | RAM | Stability | Status
+:------ | :------: | :---------: | :-----: | :---: | :---------: | :------
+Vmware ESXi  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | nightly (5)
+Proxmox pve  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released  (5)
+Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | nightly (5)
+
+
 ## Footnotes
  1. This device is supported for new installs. It can also be upgraded from 3.22.12.0 after first installing the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable the firmware compatibility checks. Proceed carefully.
  2. Tiny builds exclude support for *tunnels* and *WiFi AP* mode due to lack of resources. The relevant packages can be installed separately but this is not recommended.
  3. These devices are no longer being manufactured by GL-iNET. They may not reboot reliably and you may need to power cycle them (several times) during an update.
  4. 20MHz channels only.
+ 5. x86 images are for advanced users. See "Installing AREDN Firmware" x86 documentation section.
 
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/
