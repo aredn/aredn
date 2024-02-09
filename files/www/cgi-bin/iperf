@@ -75,7 +75,7 @@ else
             f:close()
         end
         if status:match("running") then
-            print("<html><head><title>SUCCESS</title></head><body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. io.popen("p=$$;setsid sh -c \"(sleep 20; kill $p)\" > /dev/null 2>&1 & /usr/bin/iperf3 --forceflush -b 0 -Z -c " .. server .. (protocol == "udp" and " -u" or "") .. " 2>&1"):read("*a") .. "</pre></body></html>")
+            print("<html><head><title>SUCCESS</title></head><body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. io.popen("p=$$;setsid sh -c \"(sleep 20; kill $p)\" > /dev/null 2>&1 & /usr/bin/iperf3 --forceflush -b 0 -Z -c " .. server .. (protocol == "udp" and " -u" or "") .. " -l 1K 2>&1"):read("*a") .. "</pre></body></html>")
         elseif status:match("iperf is disabled") then
             print("<html><head><title>SERVER DISABLED</title></head><body><pre>iperf server is disabled</pre></body></html>")
         else
