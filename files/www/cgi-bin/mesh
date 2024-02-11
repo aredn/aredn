@@ -442,10 +442,15 @@ html.print([[
     #cTable th:nth-child(9) {
       width: 25%;
     }
-    #rTable th:nth-child(3) {
-      width: 30%;
+    #rTable th:nth-child(3), #rTable td:nth-child(3) {
+      width: 4%;
+      padding: 0 2px 0 0;
+      text-align: right;
     }
     #rTable th:nth-child(4) {
+      width: 26%;
+    }
+    #rTable th:nth-child(5) {
       width: 25%;
     }
     tr.s.f.nf {
@@ -868,6 +873,9 @@ do
         rows[#rows + 1] = { key = name:lower(), row = row }
     end
 end
+-- discard trackers
+trackers = nil
+
 if #rows > 0 then
     table.sort(rows, function(a,b) return a.key < b.key end)
     for _, row in ipairs(rows)
@@ -938,7 +946,7 @@ html.print("</table>")
 html.print("<table id='rTable' class=s><tr class=h>")
 html.print("<th>Remote Nodes</th>")
 html.print("<th>LAN Hostname</th>")
-html.print("<th>ETX</th>")
+html.print("<th>ETX</th><th></th>")
 html.print("<th>Service Name</th>")
 html.print("</tr>")
 
@@ -1039,7 +1047,7 @@ do
                 end
             end
             -- Build this row
-            local row = "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'>" .. c2 .. "</td><td>" .. c3 .. "</td><td class='s f'>" .. c4 .. "</td></tr>"
+            local row = "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'>" .. c2 .. "</td><td>" .. c3 .. "</td><td></td><td class='s f'>" .. c4 .. "</td></tr>"
             rows[#rows + 1] = { key = string.format("%05d/%s", math.floor(100 * host.etx), host.name:lower()), row = row }
         end
     end
