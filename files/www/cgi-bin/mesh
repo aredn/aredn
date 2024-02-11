@@ -644,7 +644,10 @@ local l = io.open("/tmp/lqm.info")
 if l then
     local lqm = luci.jsonc.parse(l:read("*a"))
     l:close()
-    trackers = lqm.trackers
+    for _, tracker in pairs(lqm.trackers)
+    do
+        trackers[tracker.ip] = tracker
+    end
 end
 local now = nixio.sysinfo().uptime
 
@@ -678,6 +681,8 @@ do
     local no_space_host = name:match("(.*%S)%s*$")
     local c1 = "<a href='http://" .. no_space_host .. ":8080/'>" .. localpart .. tactical .. "</a>"
     local nodeiface
+    local waniface
+    local lqmstatus
     if ipmain ~= ip then
         if links[ip].dtd then
             nodeiface = "dtd"
@@ -690,11 +695,7 @@ do
         end
     end
     if wangateway[ip] or wangateway[ipmain] then
-        if nodeiface then
-            nodeiface = nodeiface .. ",wan"
-        else
-            nodeiface = "wan"
-        end
+        waniface = "wan"
     end
 
     local c2 = ""
@@ -707,55 +708,62 @@ do
     local c6 = ""
 
     -- lqm info
-    local lqmstatus = nil
-    for _, track in pairs(trackers)
-    do
-        if track.ip == ip then
-            if track.hidden or track.blocked then
-                break
+    local track = trackers[ip]
+    if track and not (track.hidden or track.blocked) then
+        if not nodeiface and track.type == "RF" then
+            nodeiface = "rf"
+        end
+        if nodeiface == "tun" and track.type == "Wireguard" then
+            nodeiface = "wg"
+        end
+        if track.pending > now then
+            lqmstatus = "pending"
+        elseif track.routable then
+            lqmstatus = "active"
+        else
+            lqmstatus = "idle"
+        end
+        if track.snr > 0 then
+            c4b = track.snr
+            if track.rev_snr then
+                c4b = c4b .. "/" .. track.rev_snr
             end
-            if track.pending > now then
-                lqmstatus = "pending"
-            elseif track.routable then
-                lqmstatus = "active"
+        end
+        if track.quality then
+            c4c = track.quality .. "%"
+        end
+        if track.distance then
+            if true then
+                local v = track.distance * 0.000621371
+                if v > 1 then
+                    c5b = math.ceil(v) .. " miles"
+                elseif v > 0.5 then
+                    c5b = "1 mile"
+                end
             else
-                lqmstatus = "idle"
+                c5b = math.ceil(track.distance * 0.001) .. " km"
             end
-            if track.snr > 0 then
-                c4b = track.snr
-                if track.rev_snr then
-                    c4b = c4b .. "/" .. track.rev_snr
-                end
-            end
-            if track.quality then
-                c4c = track.quality .. "%"
-            end
-            if track.distance then
-                if true then
-                    local v = track.distance * 0.000621371
-                    if v > 1 then
-                        c5b = math.ceil(v) .. " miles"
-                    elseif v > 0.5 then
-                        c5b = "1 mile"
-                    end
-                else
-                    c5b = math.ceil(track.distance * 0.001) .. " km"
-                end
-            end
-            break
         end
     end
 
-    if nodeiface then
-        if lqmstatus then
-            c1 = c1 .. "&nbsp;<small>(" .. nodeiface .. "," .. lqmstatus .. ")</small>"
-        else
-            c1 = c1 .. "&nbsp;<small>(" .. nodeiface .. ")</small>"
+    if nodeiface or waniface or lqmstatus then
+        c1 = c1 .. "&nbsp;<small>("
+        if nodeiface then
+            c1 = c1 .. nodeiface
         end
-    else
-        if lqmstatus then
-            c1 = c1 .. "&nbsp;<small>(" .. lqmstatus .. ")</small>"
+        if waniface then
+            if nodeiface then
+                c1 = c1 .. ","
+            end
+            c1 = c1 .. waniface
         end
+        if lqmstatus then
+            if nodeiface or waniface then
+                c1 = c1 .. ","
+            end
+            c1 = c1 .. lqmstatus
+        end
+        c1 = c1 .. ")</small>"
     end
 
     -- print node services if any
@@ -808,25 +816,29 @@ do
         local c4c = ""
         local c4b = ""
         local c5b = ""
+        local type = ""
+        if track.type == "RF" then
+            type = "rf,"
+        end
         if track.blocked then
             if track.blocks.user then
-                c1 = c1 .. "&nbsp;<small>(blocked user)</small>"
+                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked user)</small>"
             elseif track.blocks.dtd then
-                c1 = c1 .. "&nbsp;<small>(blocked dtd)</small>"
+                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked dtd)</small>"
             elseif track.blocks.distance then
-                c1 = c1 .. "&nbsp;<small>(blocked distance)</small>"
+                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked distance)</small>"
             elseif track.blocks.signal then
-                c1 = c1 .. "&nbsp;<small>(blocked signal)</small>"
+                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked signal)</small>"
             elseif track.blocks.dup then
-                c1 = c1 .. "&nbsp;<small>(blocked dup)</small>"
+                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked dup)</small>"
             elseif track.blocks.quality then
                 if track.tx_quality < track.ping_quality then
-                    c1 = c1 .. "&nbsp;<small>(blocked retries)</small>"
+                    c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked retries)</small>"
                 else
-                    c1 = c1 .. "&nbsp;<small>(blocked latency)</small>"
+                    c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked latency)</small>"
                 end
             else
-                c1 = c1 .. "&nbsp;<small>(blocked)</small>"
+                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked)</small>"
             end
             if track.snr > 0 then
                 c4b = track.snr
@@ -838,7 +850,7 @@ do
                 c4c = track.quality .. "%"
             end
         elseif track.hidden then
-            c1 = c1 .. "&nbsp;<small>(hidden)</small>"
+            c1 = c1 .. "&nbsp;<small>(" .. type .. "hidden)</small>"
         end
         if track.distance then
             if true then
