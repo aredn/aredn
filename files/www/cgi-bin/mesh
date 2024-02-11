@@ -360,6 +360,16 @@ if nixio.fs.stat("/tmp/node.history") then
     end
 end
 
+function ac(a, b)
+    if not a or a == "" then
+        return b
+    elseif not b or b == "" then
+        return a
+    else
+        return a .. "," .. b
+    end
+end
+
 ------------------
 -- generate page
 ------------------
@@ -752,23 +762,7 @@ do
     end
 
     if nodeiface or waniface or lqmstatus then
-        c1 = c1 .. "&nbsp;<small>("
-        if nodeiface then
-            c1 = c1 .. nodeiface
-        end
-        if waniface then
-            if nodeiface then
-                c1 = c1 .. ","
-            end
-            c1 = c1 .. waniface
-        end
-        if lqmstatus then
-            if nodeiface or waniface then
-                c1 = c1 .. ","
-            end
-            c1 = c1 .. lqmstatus
-        end
-        c1 = c1 .. ")</small>"
+        c1 = c1 .. "&nbsp;<small>(" .. ac(ac(nodeiface, waniface), lqmstatus) .. ")</small>"
     end
 
     -- print node services if any
@@ -812,7 +806,7 @@ do
 end
 for _, track in pairs(trackers)
 do
-    if track.blocked or track.hidden then
+    if track.blocked then
         local name = track.ip
         if track.hostname then
             name = track.hostname
@@ -825,37 +819,33 @@ do
         if track.type == "RF" then
             type = "rf,"
         end
-        if track.blocked then
-            if track.blocks.user then
-                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked user)</small>"
-            elseif track.blocks.dtd then
-                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked dtd)</small>"
-            elseif track.blocks.distance then
-                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked distance)</small>"
-            elseif track.blocks.signal then
-                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked signal)</small>"
-            elseif track.blocks.dup then
-                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked dup)</small>"
-            elseif track.blocks.quality then
-                if track.tx_quality < track.ping_quality then
-                    c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked retries)</small>"
-                else
-                    c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked latency)</small>"
-                end
+        if track.blocks.user then
+            c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked user)</small>"
+        elseif track.blocks.dtd then
+            c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked dtd)</small>"
+        elseif track.blocks.distance then
+            c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked distance)</small>"
+        elseif track.blocks.signal then
+            c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked signal)</small>"
+        elseif track.blocks.dup then
+            c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked dup)</small>"
+        elseif track.blocks.quality then
+            if track.tx_quality < track.ping_quality then
+                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked retries)</small>"
             else
-                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked)</small>"
+                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked latency)</small>"
             end
-            if track.snr > 0 then
-                c4b = track.snr
-                if track.rev_snr then
-                    c4b = c4b .. "/" .. track.rev_snr
-                end
+        else
+            c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked)</small>"
+        end
+        if track.snr > 0 then
+            c4b = track.snr
+            if track.rev_snr then
+                c4b = c4b .. "/" .. track.rev_snr
             end
-            if track.quality then
-                c4c = track.quality .. "%"
-            end
-        elseif track.hidden then
-            c1 = c1 .. "&nbsp;<small>(" .. type .. "hidden)</small>"
+        end
+        if track.quality then
+            c4c = track.quality .. "%"
         end
         if track.distance then
             if true then
@@ -873,8 +863,6 @@ do
         rows[#rows + 1] = { key = name:lower(), row = row }
     end
 end
--- discard trackers
-trackers = nil
 
 if #rows > 0 then
     table.sort(rows, function(a,b) return a.key < b.key end)
@@ -964,6 +952,9 @@ do
             local etx = string.format("%.2f", host.etx)
             c1 = "<a href='http://" .. host.name .. ":8080/'>" .. localpart .. tactical .. "</a>"
             local nodeiface
+            local tuniface
+            local waniface
+            local hidden
             local mycount = 0
             if midcount[ip] then
                 mycount = midcount[ip]
@@ -979,21 +970,17 @@ do
                 mycount = mycount - 1
             end
             if mycount > 0 then
-                if nodeiface then
-                    nodeiface = nodeiface .. ",tun*" .. mycount
-                else
-                    nodeiface = "tun*" .. mycount
-                end
+                tuniface = "tun*" .. mycount
             end
             if wangateway[ip] then
-                if nodeiface then
-                    nodeiface = nodeiface .. ",wan"
-                else
-                    nodeiface = "wan"
-                end
+                waniface = "wan"
             end
-            if nodeiface then
-                c1 = c1 .. " &nbsp; <small>(" .. nodeiface .. ")</small>"
+            local track = trackers[ip]
+            if track and track.hidden then
+                hidden = "hidden"
+            end
+            if nodeiface or waniface then
+                c1 = c1 .. "&nbsp;<small>(" .. ac(ac(ac(nodeiface, tuniface), waniface), hidden) .. ")</small>"
             end
             c2 = "<br>"
             c3 = string.format("%s", etx)
@@ -1059,24 +1046,24 @@ if #rows > 0 then
     do
         html.print(row.row)
     end
-    -- discard
-    rows = nil
 else
     html.print("<tr><td class='s f'>none</td></tr>")
 end
+
 -- discard
+rows = nil
 neighbor = nil
 dtd = nil
 midcount = nil
 xlinkcount = nil
 wangateway = nil
 services = nil
-
--- discard
+trackers = nil
 links = nil
 ipalias = nil
 hosts = nil
 history = nil
+
 -- end remote nodes table
 html.print("</table>")
 
