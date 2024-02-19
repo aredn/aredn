@@ -94,3 +94,6 @@ function parsecgi(str)
 end
 -- Written by RiciLake -- END
 
+function encode_uri_component(str)
+  return str:gsub(" ", "%%20"):gsub("%+", "%%2B"):gsub("=", "%%3D")
+end
