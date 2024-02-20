@@ -753,7 +753,7 @@ do
         html.print("<td rowspan='2' class='tun_client_center_item'><input type=submit name=wgclient_add value=Add title='Add this client'></td>")
     else
         html.print("<td rowspan='2' class='tun_client_center_item tun_client_mailto' id=wgclient" .. val .. "_email>")
-        html.print("<a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20" .. name .. "%0D%0APassword:%20" .. (server_pub .. client_priv .. client_pub) .. "%0D%0ANetwork:%20" .. fullnet .. "%0D%0AServer%20address:%20" .. dns .. "' target='_blank'>")
+        html.print("<a href='mailto:?subject=AREDN%20Tunnel%20Connection&body=Your%20connection%20details:%0D%0AName:%20" ..encode_uri_component(name) .. "%0D%0APassword:%20" .. encode_uri_component(server_pub .. client_priv .. client_pub) .. "%0D%0ANetwork:%20" .. encode_uri_component(fullnet) .. "%0D%0AServer%20address:%20" .. encode_uri_component(dns) .. "' target='_blank'>")
         html.print("<img class='tun_client_mailto_img' src='/email.png' title='Email details' /></a></td>")
     end
     html.print("</tr><tr class='tun_client_list1 tun_client_row tun_loading_css_comment'><td colspan='2' align='right'>Contact Info/Comment (Optional): <input type=text maxlength='50' size=40 name=wgclient" .. val .. "_contact value='" .. (contact or "") .."'")
