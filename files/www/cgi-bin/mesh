@@ -661,7 +661,9 @@ if l then
     l:close()
     for _, tracker in pairs(lqm.trackers)
     do
-        trackers[tracker.ip] = tracker
+        if tracker.ip then
+            trackers[tracker.ip] = tracker
+        end
     end
 end
 local now = nixio.sysinfo().uptime
