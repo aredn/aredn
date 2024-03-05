@@ -981,6 +981,17 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         if is_supernode then
             of:write("config Hna4\n\toption netaddr 10.0.0.0\n\toption netmask 255.0.0.0\n\n")
         end
+
+        if nixio.fs.stat("/etc/config.mesh/xlink") then
+            uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
+                function(section)
+                    if section.netmask ~= "255.255.255.255" then
+                        local addr = decimal_to_ip(nixio.bit.band(ip_to_decimal(section.ipaddr), ip_to_decimal(section.netmask)))
+                        of:write(string.format("config Hna4\n\toption netaddr %s\n\toption netmask %s\n\n", addr, section.netmask))
+                    end
+                end
+            )
+        end
     
         if nc:get("aredn", "@wan[0]", "olsrd_gw") == "1" then
             of:write("config LoadPlugin\n\toption library 'olsrd_dyn_gw.so.0.5'\n\toption Interval '60'\n\tlist Ping '8.8.8.8'\n\tlist Ping '8.8.4.4'\n\n")
