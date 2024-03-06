@@ -80,7 +80,7 @@ local files = {
 local sensitive = {
     "/etc/config/vtun",
     "/etc/config.mesh/vtun",
-    "/etc/httpd.conf"
+    "/etc/config/network"
 }
 local cmds = {
     "cat /proc/cpuinfo",
@@ -146,12 +146,21 @@ do
     end
 end
 
--- remove sensitive files
+-- hide sensitive information
 for _, path in ipairs(sensitive)
 do
-    local m = path:match("^/(.*)")
-    if m then
-        remove_all("/tmp/sd/" .. m)
+    local file = "/tmp/sd" .. path
+    if nixio.fs.stat(file) then
+        local lines = read_all(file)
+        local nlines = {}
+        for line in lines:gmatch("([^\n]*\n?)")
+        do
+            line = line:gsub("option passwd.+", "option passwd '***HIDDEN***'\n")
+            line = line:gsub("option public_key.+", "option public_key '***HIDDEN***'\n")
+            line = line:gsub("option private_key.+", "option private_key '***HIDDEN***'\n")
+            nlines[#nlines + 1] = line
+        end
+        write_all(file, table.concat(nlines, ""))
     end
 end
 
@@ -184,7 +193,7 @@ if f then
     f:close()
 end
 
-os.execute("tar -zcf /tmp/supportdata.gz -C /tmp/sd ./")
+os.execute("tar -zcf /tmp/supportdata.tar.gz -C /tmp/sd ./")
 -- cleaup the temp files
 remove_all("/tmp/sd")
 
@@ -192,15 +201,15 @@ local nodename = capture("uname -n"):chomp()
 local tstamp = capture("date +%Y%m%d%H%M"):chomp()
 
 if os.getenv("GATEWAY_INTERFACE") ~= "" then
-    local fn = "supportdata-" .. nodename .. "-" .. tstamp .. ".gz"
+    local fn = "supportdata-" .. nodename .. "-" .. tstamp .. ".tar.gz"
     print("Content-type: application/x-gzip\r")
     print("Content-Disposition: attachment; filename=" .. fn .. "\r")
     print("\r")
-    io.write(read_all("/tmp/supportdata.gz"))
+    io.write(read_all("/tmp/supportdata.tar.gz"))
 else
-    local fn = "/tmp/supportdata-" .. nodename .. "-" .. tstamp .. ".gz"
+    local fn = "/tmp/supportdata-" .. nodename .. "-" .. tstamp .. ".tar.gz"
     nixio.fs.remove(fn)
-    nixio.fs.rename("/tmp/supportdata.gz", fn)
+    nixio.fs.rename("/tmp/supportdata.tar.gz", fn)
     print("File created: " .. fn)
     print("Please copy this file and remove from the node")
     print("to free up resources.")
