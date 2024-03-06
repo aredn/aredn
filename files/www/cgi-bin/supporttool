@@ -80,7 +80,8 @@ local files = {
 local sensitive = {
     "/etc/config/vtun",
     "/etc/config.mesh/vtun",
-    "/etc/config/network"
+    "/etc/config/network",
+    "/etc/config.mesh/wireguard"
 }
 local cmds = {
     "cat /proc/cpuinfo",
@@ -158,6 +159,7 @@ do
             line = line:gsub("option passwd.+", "option passwd '***HIDDEN***'\n")
             line = line:gsub("option public_key.+", "option public_key '***HIDDEN***'\n")
             line = line:gsub("option private_key.+", "option private_key '***HIDDEN***'\n")
+            line = line:gsub("option key.+", "option key '***HIDDEN***'\n")
             nlines[#nlines + 1] = line
         end
         write_all(file, table.concat(nlines, ""))
