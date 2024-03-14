@@ -403,9 +403,6 @@ html.print([[
         border-top: 1px solid black;
         border-bottom: 1px solid black;
     }
-    tbody.h:hover {
-        background-color: inherit;
-    }
     th {
         white-space:nowrap;
         vertical-align:middle;
@@ -583,12 +580,12 @@ end
 
 -- show local node table
 
-html.print("<table id=nTable class=s><tbody class=h>")
+html.print("<table id=nTable class=s><thead>")
 html.print("<tr class=h>")
 html.print("<th>Node Name</th>")
 html.print("<th>LAN Hostname</th>")
 html.print("<th>Service Name</th>")
-html.print("</tr></tbody>")
+html.print("</tr></thead>")
 
 if next(localhosts) then
     local rows = {}
@@ -684,13 +681,13 @@ html.print("</table>")
 
 -- show current neighbors table
 
-html.print("<table id='cTable' class=s><tbody class=h><tr class=h>")
+html.print("<table id='cTable' class=s><thead><tr class=h>")
 html.print("<th>Current Neighbors</th>")
 html.print("<th>LAN Hostname</th>")
 html.print("<th title='Percent of packets successfully received'>LQ</th><th title='Percent of packets successfully sent'>NLQ</th>")
 html.print("<th>SNR</th><th>Quality</th><th>TxMbps</th><th>Distance</th>")
 html.print("<th>Service Name</th>")
-html.print("</tr></tbody>")
+html.print("</tr></thead>")
 
 local trackers = {}
 local l = io.open("/tmp/lqm.info")
@@ -914,8 +911,8 @@ do
                 c5b = math.ceil(track.distance * 0.001) .. " km"
             end
         end
-        local row = "<tbody><tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td></td><td></td><td>" .. c4b .. "</td><td>" .. c4c .. "</td><td></td><td>" .. c5b .. "</td><td class='s f'></td></tr></tbody>"
-        rows[#rows + 1] = { key = name:lower(), row = row }
+        local tbody = "<tbody><tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td></td><td></td><td>" .. c4b .. "</td><td>" .. c4c .. "</td><td></td><td>" .. c5b .. "</td><td class='s f'></td></tr></tbody>"
+        rows[#rows + 1] = { key = name:lower(), row = tbody }
     end
 end
 
@@ -986,12 +983,12 @@ html.print("</table>")
 
 -- show remote node table
 
-html.print("<table id='rTable' class=s><tbody class=h><tr class=h>")
+html.print("<table id='rTable' class=s><thead><tr class=h>")
 html.print("<th>Remote Nodes</th>")
 html.print("<th>LAN Hostname</th>")
 html.print("<th>ETX</th><th></th>")
 html.print("<th>Service Name</th>")
-html.print("</tr></tbody>")
+html.print("</tr></thead>")
 
 local rows = {}
 for ip, host in pairs(hosts)
