@@ -668,6 +668,12 @@ if l then
 end
 local now = nixio.sysinfo().uptime
 
+local metric = true
+local language = os.getenv("HTTP_ACCEPT_LANGUAGE") or "en-US"
+if language:match("^..%-US") or language:match("^..%-GB") then
+    metric = false
+end
+
 local rows = {}
 local neighservices = {}
 for ip, link in pairs(links)
@@ -750,12 +756,14 @@ do
             c4c = track.quality .. "%"
         end
         if track.distance then
-            if true then
+            if not metric then
                 local v = track.distance * 0.000621371
                 if v > 1 then
                     c5b = math.ceil(v) .. " miles"
                 elseif v > 0.5 then
                     c5b = "1 mile"
+                else
+                    c5b = "<1 mile"
                 end
             else
                 c5b = math.ceil(track.distance * 0.001) .. " km"
