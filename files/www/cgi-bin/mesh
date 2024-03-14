@@ -469,8 +469,11 @@ html.print([[
     tr.s.nf {
         display: none;
     }
-    tr.s.f.nf td {
+    tr.s.f.nf td, tr.s.f.nf td.s.f.nf {
         color: transparent;
+    }
+    tr.s.f.nf td.s.f.nf:last-child a {
+        display: none;
     }
     tr.s.f.nf td.s.f {
         color: inherit;
@@ -489,38 +492,46 @@ html.print([[
         clearTimeout(searchPending);
         searchPending = setTimeout(function() {
             const filter = document.getElementById("srch").value.toUpperCase();
-            if (filter == cFilter) {
-                return;
-            }
-            cFilter = filter;
-            const rows = document.querySelectorAll("tr.s");
-            for (let i = 0; i < rows.length; i++) {
-                rows[i].classList.remove("f", "nf");
-            }
-            const cells = document.querySelectorAll("tr.s td.nf");
-            for (let i = 0; i < cells.length; i++) {
-                cells[i].classList.remove("nf");
-            }
-            const tds = document.querySelectorAll("td.s");
-            for (let i = 0; i < tds.length; i++) {
-                const td = tds[i];
-                const txt = td.textContent || td.innerText;
-                if (txt.toUpperCase().indexOf(filter) === -1) {
-                    td.classList.add("nf");
-                    td.parentElement.classList.add("nf");
+            if (filter !== cFilter) {
+                cFilter = filter;
+                const rows = document.querySelectorAll("tr.s");
+                for (let i = 0; i < rows.length; i++) {
+                    rows[i].classList.remove("f", "nf");
+                }
+                const cells = document.querySelectorAll("tr.s td.nf");
+                for (let i = 0; i < cells.length; i++) {
+                    cells[i].classList.remove("nf");
+                }
+                const tds = document.querySelectorAll("td.s");
+                if (filter === "") {
+                    for (let i = 0; i < tds.length; i++) {
+                        const td = tds[i];
+                        td.parentElement.classList.add("f");
+                        td.parentElement.parentElement.firstElementChild.classList.add("f");
+                    }
                 }
                 else {
-                    td.parentElement.classList.add("f");
-                    td.parentElement.parentElement.firstElementChild.classList.add("f");
+                    for (let i = 0; i < tds.length; i++) {
+                        const td = tds[i];
+                        const txt = td.textContent || td.innerText;
+                        if (txt.toUpperCase().indexOf(filter) === -1) {
+                            td.classList.add("nf");
+                            td.parentElement.classList.add("nf");
+                        }
+                        else {
+                            td.parentElement.classList.add("f");
+                            td.parentElement.parentElement.firstElementChild.classList.add("f");
+                        }
+                    }
                 }
-            }
-            const tables = document.querySelectorAll("table.s");
-            for (let i = 0; i < tables.length; i++) {
-                if (!tables[i].querySelector("tr.f")) {
-                    tables[i].style.display = "none";
-                }
-                else {
-                    tables[i].style.display = null;
+                const tables = document.querySelectorAll("table.s");
+                for (let i = 0; i < tables.length; i++) {
+                    if (!tables[i].querySelector("tr.f")) {
+                        tables[i].style.display = "none";
+                    }
+                    else {
+                        tables[i].style.display = null;
+                    }
                 }
             }
         }, 200);
