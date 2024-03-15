@@ -396,15 +396,12 @@ html.print([[
     tr.spaceUnder>td {
         padding-bottom:2em;
     }
-    tr:hover {
+    tbody:hover {
         background-color:rgba(128,128,128,0.15);
     }
     tr.h {
         border-top: 1px solid black;
         border-bottom: 1px solid black;
-    }
-    tr.h:hover {
-        background-color:inherit;
     }
     th {
         white-space:nowrap;
@@ -469,38 +466,72 @@ html.print([[
     tr.s.nf {
         display: none;
     }
+    tr.s.f.nf td, tr.s.f.nf td.s.f.nf {
+        color: transparent;
+    }
+    tr.s.f.nf td.s.f.nf:last-child a {
+        display: none;
+    }
+    tr.s.f.nf td.s.f {
+        color: inherit;
+    }
+    tr.s.f.nf td:first-child, tr.s.f.nf td:nth-child(2), tr.s.f.nf td:nth-child(3) {
+        color: inherit;
+    }
+    #cTable tr.s.f.nf td:nth-child(4), #cTable tr.s.f.nf td:nth-child(5), #cTable tr.s.f.nf td:nth-child(6), #cTable tr.s.f.nf td:nth-child(7), #cTable tr.s.f.nf td:nth-child(8) {
+        color: inherit;
+    }
     </style>
     <script>
     let searchPending;
+    let cFilter;
     function doSearch() {
         clearTimeout(searchPending);
         searchPending = setTimeout(function() {
             const filter = document.getElementById("srch").value.toUpperCase();
-            const rows = document.querySelectorAll("tr.s");
-            for (let i = 0; i < rows.length; i++) {
-                rows[i].classList.remove("f", "nf");
-            }
-            const tds = document.querySelectorAll("td.s");
-            for (let i = 0; i < tds.length; i++) {
-                const td = tds[i];
-                const txt = td.textContent || td.innerText;
-                if (txt.toUpperCase().indexOf(filter) === -1) {
-                    td.parentElement.classList.add("nf")
+            if (filter !== cFilter) {
+                cFilter = filter;
+                const rows = document.querySelectorAll("tr.s");
+                for (let i = 0; i < rows.length; i++) {
+                    rows[i].classList.remove("f", "nf");
+                }
+                const cells = document.querySelectorAll("tr.s td.nf");
+                for (let i = 0; i < cells.length; i++) {
+                    cells[i].classList.remove("nf");
+                }
+                const tds = document.querySelectorAll("td.s");
+                if (filter === "") {
+                    for (let i = 0; i < tds.length; i++) {
+                        const td = tds[i];
+                        td.parentElement.classList.add("f");
+                        td.parentElement.parentElement.firstElementChild.classList.add("f");
+                    }
                 }
                 else {
-                    td.parentElement.classList.add("f")
+                    for (let i = 0; i < tds.length; i++) {
+                        const td = tds[i];
+                        const txt = td.textContent || td.innerText;
+                        if (txt.toUpperCase().indexOf(filter) === -1) {
+                            td.classList.add("nf");
+                            td.parentElement.classList.add("nf");
+                        }
+                        else {
+                            td.parentElement.classList.add("f");
+                            td.parentElement.parentElement.firstElementChild.classList.add("f");
+                        }
+                    }
+                }
+                const tables = document.querySelectorAll("table.s");
+                for (let i = 0; i < tables.length; i++) {
+                    if (!tables[i].querySelector("tr.f")) {
+                        tables[i].style.display = "none";
+                    }
+                    else {
+                        tables[i].style.display = null;
+                    }
                 }
             }
-            const tables = document.querySelectorAll("table.s");
-            for (let i = 0; i < tables.length; i++) {
-                if (!tables[i].querySelector("tr.f")) {
-                    tables[i].style.display = "none";
-                }
-                else {
-                    tables[i].style.display = null;
-                }
-            }
-        }, 300);
+        }, 200);
     }
     </script>
 ]])
@@ -549,12 +580,12 @@ end
 
 -- show local node table
 
-html.print("<table id=nTable class=s>")
+html.print("<table id=nTable class=s><thead>")
 html.print("<tr class=h>")
 html.print("<th>Node Name</th>")
 html.print("<th>LAN Hostname</th>")
 html.print("<th>Service Name</th>")
-html.print("</tr>")
+html.print("</tr></thead>")
 
 if next(localhosts) then
     local rows = {}
@@ -570,20 +601,23 @@ if next(localhosts) then
             if wangateway[ip] then
                 c1 = c1 .. " &nbsp; <small>(wan)</small>"
             end
-            local c2 = ""
-            local c3 = ""
+
+            local tbody = "<tbody>"
             if services[host.name] then
+                local first = true;
                 for _, v in pairs(services[host.name])
                 do
-                    c3 = c3 .. v .. "<br>"
-                    c2 = c2 .. "<br>"
+                    if first then
+                        first = false
+                        tbody = tbody .. "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td class='s f'>" .. v .. "</td></tr>"
+                    else
+                        tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'></td><td class='s f'>" .. v .. "</td></tr>"
+                    end
                 end
             else
-                c2 = c2 .. "<br>"
-                c3 = c3 .. "<br>"
+                tbody = tbody .. "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td class='s f'></td></tr>"
             end
 
-            -- add locally advertised dmz hosts
             for _, dmzhost in ipairs(host.hosts)
             do
                 local nopropd = false
@@ -604,28 +638,29 @@ if next(localhosts) then
                 end
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
                 if localpart then
-                    if not nopropd and not aliased then
-                        c2 = c2 .. localpart
-                    elseif aliased then
-                        c2 = c2 .. "<span class=aliased-hosts>" .. localpart .. "</span>"
-                    else
-                        c2 = c2 .. "<span class=hidden-hosts>" .. localpart .. "</span>"
+                    if aliased then
+                        localpart = "<span class=aliased-hosts>" .. localpart .. "</span>"
+                    elseif nopropd then
+                        localpart = "<span class=hidden-hosts>" .. localpart .. "</span>"
                     end
                     if services[dmzhost] then
-                        for n, v in pairs(services[dmzhost])
+                        local first = true
+                        for _, v in pairs(services[dmzhost])
                         do
-                            c3 = c3 .. v .. "<br>"
-                            c2 = c2 .. "<br>"
+                            if first then
+                                first = false
+                                tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'>" .. localpart .. "</td><td class='s f'>" .. v .. "</td></tr>"
+                            else
+                                tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'></td><td class='s f'>" .. v .. "</td></tr>"
+                            end
                         end
                     else
-                        c2 = c2 .. "<br>"
-                        c3 = c3 .. "<br>"
+                        tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'>" .. localpart .. "</td><td class='s f'></td></tr>"
                     end
                 end
             end
-            -- Build this row
-            local row = "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'>" .. c2 .. "</td><td class='s f'>" .. c3 .. "</td></tr>"
-            rows[#rows + 1] = { key = host.name, row = row }
+            tbody = tbody .. "</tbody>"
+            rows[#rows + 1] = { key = host.name, row = tbody }
         end
     end
     table.sort(rows, function(a,b) return a.key < b.key end)
@@ -636,7 +671,7 @@ if next(localhosts) then
     -- discard
     rows = nil
 else
-    html.print("<tr><td class='s f'>none</td></tr>")
+    html.print("<tbody><tr><td class='s f'>none</td></tr></tbody>")
 end
 
 -- discard
@@ -646,13 +681,13 @@ html.print("</table>")
 
 -- show current neighbors table
 
-html.print("<table id='cTable' class=s><tr class=h>")
+html.print("<table id='cTable' class=s><thead><tr class=h>")
 html.print("<th>Current Neighbors</th>")
 html.print("<th>LAN Hostname</th>")
 html.print("<th title='Percent of packets successfully received'>LQ</th><th title='Percent of packets successfully sent'>NLQ</th>")
 html.print("<th>SNR</th><th>Quality</th><th>TxMbps</th><th>Distance</th>")
 html.print("<th>Service Name</th>")
-html.print("</tr>")
+html.print("</tr></thead>")
 
 local trackers = {}
 local l = io.open("/tmp/lqm.info")
@@ -776,43 +811,50 @@ do
     end
 
     -- print node services if any
+    local tbody = "<tbody>"
     if not neighservices[name] then
         neighservices[name] = true
+
         if services[name] then
+            local first = true
             for _, v in pairs(services[name])
             do
-                c6 = c6 .. v .. "<br>"
-                c2 = c2 .. "<br>"
+                if first then
+                    first = false
+                    tbody = tbody .. "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td>" .. c3 .. "</td><td>" .. c4 .. "</td><td>" .. c4b .. "</td><td>" .. c4c .. "</td><td>" .. c5 .. "</td><td>" .. c5b .. "</td><td class='s f'>" .. v .. "</td></tr>"
+                else
+                    tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'></td><td></td><td></td><td></td><td></td><td></td><td></td><td class='s f'>" .. v .. "</td></tr>"
+                end
             end
         else
-            c2 = c2 .. "<br>"
-            c6 = c6 .. "<br>"
+            tbody = tbody .. "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td>" .. c3 .. "</td><td>" .. c4 .. "</td><td>" .. c4b .. "</td><td>" .. c4c .. "</td><td>" .. c5 .. "</td><td>" .. c5b .. "</td><td class='s f'></td></tr>"
         end
 
-        -- add advertised dmz hosts
         if host then
             for _, dmzhost in ipairs(host.hosts)
             do
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
                 if localpart then
-                    c2 = c2 .. localpart
                     if services[dmzhost] then
+                        local first = true
                         for _, v in pairs(services[dmzhost])
                         do
-                            c6 = c6 .. v .. "<br>"
-                            c2 = c2 .. "<br>"
+                            if first then
+                                first = false
+                                tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'>" .. localpart .. "</td><td></td><td></td><td></td><td></td><td></td><td></td><td class='s f'>" .. v .. "</td></tr>"
+                            else
+                                tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'></td><td></td><td></td><td></td><td></td><td></td><td></td><td class='s f'>" .. v .. "</td></tr>"
+                            end
                         end
                     else
-                        c2 = c2 .. "<br>"
-                        c6 = c6 .. "<br>"
+                        tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'>" .. localpart .. "</td><td></td><td></td><td></td><td></td><td></td><td></td><td class='s f'></td></tr>"
                     end
                 end
             end
         end
     end
-    -- Build this row
-    local row = "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'>" .. c2 .. "</td><td>" .. c3 .. "</td><td>" .. c4 .. "</td><td>" .. c4b .. "</td><td>" .. c4c .. "</td><td>" .. c5 .. "</td><td>" .. c5b .. "</td><td class='s f'>" .. c6 .. "</td></tr>"
-    rows[#rows + 1] = { key = name:lower(), row = row }
+    tbody = tbody .. "</tbody>"
+    rows[#rows + 1] = { key = name:lower(), row = tbody }
 end
 for _, track in pairs(trackers)
 do
@@ -869,8 +911,8 @@ do
                 c5b = math.ceil(track.distance * 0.001) .. " km"
             end
         end
-        local row = "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td></td><td></td><td>" .. c4b .. "</td><td>" .. c4c .. "</td><td></td><td>" .. c5b .. "</td><td class='s f'></td></tr>"
-        rows[#rows + 1] = { key = name:lower(), row = row }
+        local tbody = "<tbody><tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td></td><td></td><td>" .. c4b .. "</td><td>" .. c4c .. "</td><td></td><td>" .. c5b .. "</td><td class='s f'></td></tr></tbody>"
+        rows[#rows + 1] = { key = name:lower(), row = tbody }
     end
 end
 
@@ -883,7 +925,7 @@ if #rows > 0 then
     -- discard
     rows = nil
 else
-    html.print("<tr><td class='s f'>none</td></tr>")
+    html.print("<tbody><tr><td class='s f'>none</td></tr></tbody>")
 end
 
 --add previous neighbors
@@ -941,17 +983,16 @@ html.print("</table>")
 
 -- show remote node table
 
-html.print("<table id='rTable' class=s><tr class=h>")
+html.print("<table id='rTable' class=s><thead><tr class=h>")
 html.print("<th>Remote Nodes</th>")
 html.print("<th>LAN Hostname</th>")
 html.print("<th>ETX</th><th></th>")
 html.print("<th>Service Name</th>")
-html.print("</tr>")
+html.print("</tr></thead>")
 
 local rows = {}
 for ip, host in pairs(hosts)
 do
-    local c1,c2,c3,c4
     if not neighbor[ip] and host.name then
         local localpart = host.name:match("(.*)%.local%.mesh")
         if localpart then
@@ -960,7 +1001,7 @@ do
                 tactical = " / " .. host.tactical
             end
             local etx = string.format("%.2f", host.etx)
-            c1 = "<a href='http://" .. host.name .. ":8080/'>" .. localpart .. tactical .. "</a>"
+            local c1 = "<a href='http://" .. host.name .. ":8080/'>" .. localpart .. tactical .. "</a>"
             local nodeiface
             local tuniface
             local waniface
@@ -992,60 +1033,46 @@ do
             if nodeiface or waniface then
                 c1 = c1 .. "&nbsp;<small>(" .. ac(ac(ac(nodeiface, tuniface), waniface), hidden) .. ")</small>"
             end
-            c2 = "<br>"
-            c3 = string.format("%s", etx)
+            local c3 = string.format("%s", etx)
 
-            -- print node services if any
+            local tbody = "<tbody>"
             if services[host.name] then
-                local i=1
+                local first = true
                 for _, v in pairs(services[host.name])
                 do
-                    if c4 then
-                        c4 = c4 .. v .. "<br>"
+                    if first then
+                        first = false
+                        tbody = tbody .. "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td>" .. c3 .. "</td><td></td><td class='s f'>" .. v .. "</td></tr>"
                     else
-                        c4 = v .. "<br>"
+                        tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'></td><td></td><td></td><td class='s f'>" .. v .. "</td></tr>"
                     end
-                    if i > 1 then c2 = c2 .. "<br>" end
-                    i=i+1
                 end
             else
-                if c4 then
-                    c4 = c4 .. "<br>"
-                else
-                    c4 = "<br>"
-                end
+                tbody = tbody .. "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'></td><td>" .. c3 .. "</td><td></td><td class='s f'></td></tr>"
             end
 
-            -- add locally advertised dmz hosts
             for _, dmzhost in ipairs(host.hosts)
             do
                 local localpart = dmzhost:match("(.*)%.local%.mesh")
                 if localpart then
-                    c2 = c2 .. localpart .. "<br>"
                     if services[dmzhost] then
-                        local i=1
+                        local first = true
                         for _, v in pairs(services[dmzhost])
                         do
-                            if c4 then
-                                c4 = c4 .. v .. "<br>"
+                            if first then
+                                first = false
+                                tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'>" .. localpart .. "</td><td></td><td></td><td class='s f'>" .. v .. "</td></tr>"
                             else
-                                c4 = v .. "<br>"
+                                tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'></td><td></td><td></td><td class='s f'>" .. v .. "</td></tr>"
                             end
-                            if i > 1 then c2 = c2 .. "<br>" end
-                            i=i+1
                         end
                     else
-                        if c4 then
-                            c4 = c4 .. "<br>"
-                        else
-                            c4 = "<br>"
-                        end
+                        tbody = tbody .. "<tr class=s><td class='s f'></td><td class='s f'>" .. localpart .. "</td><td></td><td></td><td class='s f'></td></tr>"
                     end
                 end
             end
-            -- Build this row
-            local row = "<tr class=s><td class='s f'>" .. c1 .. "</td><td class='s f'>" .. c2 .. "</td><td>" .. c3 .. "</td><td></td><td class='s f'>" .. c4 .. "</td></tr>"
-            rows[#rows + 1] = { key = string.format("%05d/%s", math.floor(100 * host.etx), host.name:lower()), row = row }
+            tbody = tbody .. "</tbody>"
+            rows[#rows + 1] = { key = string.format("%05d/%s", math.floor(100 * host.etx), host.name:lower()), row = tbody }
         end
     end
 end
@@ -1057,7 +1084,7 @@ if #rows > 0 then
         html.print(row.row)
     end
 else
-    html.print("<tr><td class='s f'>none</td></tr>")
+    html.print("<tbody><tr><td class='s f'>none</td></tr></tbody>")
 end
 
 -- discard
