@@ -484,7 +484,7 @@ html.print([[
     </style>
     <script>
     let searchPending;
-    let cFilter;
+    let cFilter = "";
     function doSearch() {
         clearTimeout(searchPending);
         searchPending = setTimeout(function() {
@@ -510,8 +510,12 @@ html.print([[
                 else {
                     for (let i = 0; i < tds.length; i++) {
                         const td = tds[i];
-                        const txt = td.textContent || td.innerText;
-                        if (txt.toUpperCase().indexOf(filter) === -1) {
+                        let txt = td.dataset.search;
+                        if (txt === undefined) {
+                            txt = (td.textContent || td.innerText).toUpperCase();
+                            td.dataset.search = txt
+                        }
+                        if (txt.indexOf(filter) === -1) {
                             td.classList.add("nf");
                             td.parentElement.classList.add("nf");
                         }
