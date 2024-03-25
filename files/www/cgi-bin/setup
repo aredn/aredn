@@ -69,58 +69,6 @@ function capture_and_match(cmd, pattern)
     end
 end
 
-function reboot()
-    local node = aredn_info.get_nvram("node")
-    if node == "" then
-        node = "Node"
-    end
-    local lanip, _, lanmask = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("lan"))
-    local browser = os.getenv("REMOTE_ADDR")
-    local browser6 = browser:match("::ffff:([%d%.]+)")
-    if browser6 then
-        browser = browser6
-    end
-    local fromlan = false
-    local subnet_change = false
-    if lanip then
-        fromlan = validate_same_subnet(browser, lanip, lanmask)
-        if fromlan then
-            lanmask = ip_to_decimal(lanmask)
-            local cfgip = cursor:get("network", "lan", "ipaddr")
-            local cfgmask = ip_to_decimal(cursor:get("network", "lan", "netmask"))
-            if lanmask ~= cfgmask or nixio.bit.band(ip_to_decimal(lanip), lanmask) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
-                subnet_change = true
-            end
-        end
-    end
-    http_header()
-    if fromlan and subnet_change then
-        html.header(node .. " rebooting", true);
-        html.print("<body><center>")
-        html.print("<h1>" .. node .. " is rebooting</h1><br>")
-        html.print("<h3>The LAN subnet has changed. You will need to acquire a new DHCP lease<br>")
-        html.print("and reset any name service caches you may be using.</h3><br>")
-        html.print("<h3>When the node reboots you get your new DHCP lease and reconnect with<br>")
-        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>")
-        html.print("<a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
-    else
-        html.header(node .. " rebooting", false)
-        html.print("<meta http-equiv='refresh' content='60;url=/cgi-bin/status'>")
-        html.print("</head><body><center>")
-        html.print("<h1>" .. node .. " is rebooting</h1><br>")
-        html.print("<h3>Your browser should return to this node in 60 seconds.</br><br>")
-        html.print("If something goes astray you can try to connect with<br><br>")
-        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>")
-        if node ~= "Node" then
-            html.print("or<br><a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
-        end
-    end
-    html.print("</center></body></html>")
-    http_footer()
-    os.execute("reboot >/dev/null 2>&1")
-    os.exit()
-end
-
 function err(str)
     errors[#errors + 1] = str
 end
@@ -835,14 +783,14 @@ if parms.button_save then
             end 
         end
         if nixio.fs.stat("/tmp/unconfigured") and #errors == 0 then
-            reboot()
+            html.reboot()
         end
     end
 end
 
 remove_all("/tmp/web/save")
 if parms.button_reboot then
-    reboot()
+    html.reboot()
 end
 
 local desc = cursor:get("system", "@system[0]", "description")
