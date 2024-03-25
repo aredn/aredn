@@ -106,7 +106,8 @@ local changes = {
     dnsmasq = false,
     firewall = false,
     tunnels = false,
-    wireless = false
+    wireless = false,
+    localservices = false
 }
 
 function valid_config(config)
@@ -1109,7 +1110,7 @@ if sf then
     sf:close()
     local _, diff = filecopy("/tmp/local_services", "/etc/local/services", true)
     if diff then
-        changes.reboot = true
+        changes.localservices = true
     end
     os.remove("/tmp/local_services")
     nixio.fs.chmod("/etc/local/services", "777")

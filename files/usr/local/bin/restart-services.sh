@@ -34,7 +34,7 @@ true <<'LICENSE'
 LICENSE
 
 ROOT="/tmp/reboot-required"
-SERVICES="log system firewall network wireless dnsmasq tunnels manager olsrd"
+SERVICES="log system firewall network wireless dnsmasq tunnels manager olsrd localservices"
 
 ignore=0
 force=0
@@ -72,6 +72,8 @@ do
       /etc/init.d/vtundsrv restart > /dev/null 2>&1
     elif [ $srv = "wireless" ]; then
       /sbin/wifi reload > /dev/null 2>&1
+    elif [ $srv = "localservices" ]; then
+      /etc/local/services > /dev/null 2>&1
     elif [ -x /etc/init.d/$srv ]; then
       /etc/init.d/$srv restart > /dev/null 2>&1
     fi
