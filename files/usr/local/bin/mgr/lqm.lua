@@ -969,7 +969,7 @@ function lqm()
         -- Adjust retry attempts. If we're just managing a single connection, we can retry failed transmissions.
         -- If we're managing many, we can't afford the delays associated with retries, so reduce them to the minimum.
         -- Don't retry when distance is max because the delay makes thing unusable and blocks other closer traffic.
-        local short_retries
+        --[[local short_retries
         local long_retries
         if distance == config.max_distance or rfcount > 1 then
             short_retries = minimum_short_retries
@@ -982,7 +982,7 @@ function lqm()
             iw_set("retry short " .. short_retries .. " long " .. long_retries)
             last_short_retries = short_retries
             last_long_retries = long_retries
-        end
+        end]]--
 
         -- Save this for the UI
         f = io.open("/tmp/lqm.info", "w")
