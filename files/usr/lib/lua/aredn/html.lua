@@ -158,6 +158,93 @@ function html.navbar_admin(selected)
     html.print("</tr><tr><td colspan=100%><hr></td></tr></table>")
 end
 
+function html.wait_for_reboot(delay)
+    html.print([[
+<script>
+    const TIMEOUT = 10000;
+    function reload() {
+        const start = Date.now();
+        const req = new XMLHttpRequest();
+        req.open('GET', window.origin + "/cgi-bin/status");
+        req.onreadystatechange = function() {
+            if (req.readyState === 4) {
+                if (req.status === 200) {
+                    window.location =  window.origin + "/cgi-bin/status";
+                }
+                else {
+                    const time = Date.now() - start;
+                    setTimeout(reload, time > TIMEOUT ? 0 : TIMEOUT - time);
+                }
+            }
+        }
+        req.timeout = TIMEOUT;
+        try {
+            req.send(null);
+        }
+        catch (_) {
+        }
+    }
+    setTimeout(reload, ]] .. delay .. [[ * 1000);
+</script>
+    ]])
+end
+
+function html.reboot()
+    local aredn_info = require("aredn.info")
+    require("aredn.hardware")
+    require("aredn.http")
+
+    local node = aredn_info.get_nvram("node")
+    if node == "" then
+        node = "Node"
+    end
+    local lanip, _, lanmask = aredn.hardware.get_interface_ip4(aredn.hardware.get_iface_name("lan"))
+    local browser = os.getenv("REMOTE_ADDR")
+    local browser6 = browser:match("::ffff:([%d%.]+)")
+    if browser6 then
+        browser = browser6
+    end
+    local fromlan = false
+    local subnet_change = false
+    if lanip then
+        fromlan = validate_same_subnet(browser, lanip, lanmask)
+        if fromlan then
+            lanmask = ip_to_decimal(lanmask)
+            local cfgip = cursor:get("network", "lan", "ipaddr")
+            local cfgmask = ip_to_decimal(cursor:get("network", "lan", "netmask"))
+            if lanmask ~= cfgmask or nixio.bit.band(ip_to_decimal(lanip), lanmask) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
+                subnet_change = true
+            end
+        end
+    end
+    http_header()
+    if fromlan and subnet_change then
+        html.header(node .. " rebooting", true);
+        html.print("<body><center>")
+        html.print("<h1>" .. node .. " is rebooting</h1><br>")
+        html.print("<h3>The LAN subnet has changed. You will need to acquire a new DHCP lease<br>")
+        html.print("and reset any name service caches you may be using.</h3><br>")
+        html.print("<h3>When the node reboots you get your new DHCP lease and reconnect with<br>")
+        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>")
+        html.print("<a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
+    else
+        html.header(node .. " rebooting", false)
+        html.wait_for_reboot(20)
+        html.print("</head><body><center>")
+        html.print("<h1>" .. node .. " is rebooting</h1><br>")
+        html.print("<h3>Your browser should return to this node after it has rebooted.</br><br>")
+        html.print("If something goes astray you can try to connect with<br><br>")
+        html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>")
+        if node ~= "Node" then
+            html.print("or<br><a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
+        end
+    end
+    html.print("</center></body></html>")
+    http_footer()
+    os.execute("reboot >/dev/null 2>&1")
+    os.exit()
+end
+
 function html.print(line)
     -- html output is defined in aredn.http
     -- this is a bit icky at the moment :-()
