@@ -88,27 +88,6 @@ if not nixio.fs.stat("/tmp/web") then
     nixio.fs.mkdir("/tmp/web")
 end
 
--- post data
-
-if os.getenv("REQUEST_METHOD") == "POST" then
-    require('luci.http')
-    local request = luci.http.Request(nixio.getenv(),
-      function()
-        local v = io.read(1024)
-        if not v then
-            io.close()
-        end
-        return v
-      end
-    )
-    if request:formvalue("auto") then
-        io.open("/tmp/web/automesh", "w"):close()
-    end
-    if request:formvalue("stop") then
-        os.remove("/tmp/web/automesh")
-    end
-end
-
 local cursor = uci.cursor()
 local node_desc = cursor:get("system", "@system[0]", "description")
 local lat_lon = "<strong>Location Not Available</strong>"
@@ -375,9 +354,9 @@ end
 ------------------
 http_header()
 html.header(node .. " mesh status", false)
-local automesh = nixio.fs.stat("/tmp/web/automesh");
+local automesh = string.find((nixio.getenv("QUERY_STRING") or ""):lower(),"automesh=1")
 if automesh then
-    html.print("<meta http-equiv='refresh' content='10;url=/cgi-bin/mesh'>")
+    html.print("<script>setTimeout(function(){ window.location.reload(); }, 10000);</script>")
 end
 html.print([[
     <style>
@@ -554,12 +533,12 @@ html.print("<hr><nobr>")
 
 html.print("<a href='/help.html#meshstatus' target='_blank'>Help</a> &nbsp;&nbsp; ")
 
-if nixio.fs.stat("/tmp/web/automesh") then
-    html.print("<input type=submit name=stop value=Stop title='Abort continuous status'>")
+if automesh then
+    html.print("<input type=button name=stop value=Stop title='Abort continuous status' onclick='window.location = window.location.origin + window.location.pathname'>")
 else
     html.print("<input type=button name=refresh value=Refresh title='Refresh this page' onclick='window.location.reload();'>")
     html.print("&nbsp;&nbsp;")
-    html.print("<input type=submit name=auto value=Auto title='Automatic page refresh'>")
+    html.print([[<input type=button name=auto value=Auto title='Automatic page refresh' onclick='window.location = window.location.origin + window.location.pathname + "?automesh=1"'>]])
 end
 if nixio.fs.stat("/tmp/dnsmasq.d/supernode.conf") then
     local ip = read_all("/tmp/dnsmasq.d/supernode.conf"):match("^#(%S+)")
