@@ -71,6 +71,8 @@ function model.getOLSRInterfaceType(iface)
     it="TUN"
   elseif string.match(iface,"wg") then
     it="WIREGUARD"
+  elseif string.match(iface,"^br0%.%d+$") then
+    it="XLINK"
   end
   return it
 end
@@ -87,9 +89,10 @@ function model.getCurrentNeighbors(RFinfo)
         info[mainip]={}
 
         if host~=nil then
-          host = string.gsub(host,"mid%d+.", "")
+          host = string.gsub(host,"mid%d+%.", "")
           host = string.gsub(host,"dtdlink%.", "")
-          host = string.gsub(host,".local.mesh$","")
+          host = string.gsub(host,"xlink%d+%.", "")
+          host = string.gsub(host,"%.local%.mesh$","")
           info[mainip]['hostname']=host
         else
           info[mainip]['hostname']=mainip
