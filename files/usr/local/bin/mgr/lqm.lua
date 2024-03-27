@@ -50,10 +50,8 @@ local dtd_distance = 50 -- distance (meters) after which nodes connected with Dt
 local connect_timeout = 5 -- timeout (seconds) when fetching information from other nodes
 local speed_time = 10 --
 local speed_limit = 1000 -- close connection if it's too slow (< 1kB/s for 10 seconds)
-local default_short_retries = 6 -- Default retries for a node with a single connection
-local default_long_retries = 4 --
-local minimum_short_retries = 2 -- Minimum retries for nodes with multiple connections
-local minimum_long_retries = 2 --
+local default_short_retries = 20 -- More link-level retries helps overall tcp performance (factory default is 7)
+local default_long_retries = 20 -- (factory default is 4)
 
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
@@ -242,6 +240,9 @@ function lqm()
     iw_set("distance auto")
     -- Or any hidden nodes
     iw_set("rts off")
+    -- Set the default retries
+    -- 
+    iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
 
     -- If the channel bandwidth is less than 20, we need to adjust what we report as the values from 'iw' will not
     -- be correct
@@ -965,24 +966,6 @@ function lqm()
             end
         end
         hidden_nodes = hidden
-
-        -- Adjust retry attempts. If we're just managing a single connection, we can retry failed transmissions.
-        -- If we're managing many, we can't afford the delays associated with retries, so reduce them to the minimum.
-        -- Don't retry when distance is max because the delay makes thing unusable and blocks other closer traffic.
-        --[[local short_retries
-        local long_retries
-        if distance == config.max_distance or rfcount > 1 then
-            short_retries = minimum_short_retries
-            long_retries = minimum_long_retries
-        else
-            short_retries = default_short_retries
-            long_retries = default_long_retries
-        end
-        if short_retries ~= last_short_retries or long_retries ~= last_long_retries then
-            iw_set("retry short " .. short_retries .. " long " .. long_retries)
-            last_short_retries = short_retries
-            last_long_retries = long_retries
-        end]]--
 
         -- Save this for the UI
         f = io.open("/tmp/lqm.info", "w")
