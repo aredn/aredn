@@ -119,5 +119,13 @@ end
 
 if dtdmac == "" then
     local a, b, c = aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")):match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
-    aredn_info.set_nvram("dtdmac", string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16)))
+    dtdmac = string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
+    if dtdmac == mac2 then
+        a = tonumber(a, 16) + 1
+        if a > 255 then
+            a = 0
+        end
+        dtdmac = string.format("%d.%d.%d", a, tonumber(b, 16), tonumber(c, 16))
+    end
+    aredn_info.set_nvram("dtdmac", dtdmac)
 end
