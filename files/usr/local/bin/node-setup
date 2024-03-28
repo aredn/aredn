@@ -94,7 +94,11 @@ local cfg = {
     tun_network_config = "",
     wireguard_network_config = "",
     olsrd_pollrate = "0.05",
-    tun_devices_config = ""
+    tun_devices_config = "",
+    hello_interval = "4.0",
+    tc_interval = "10.0",
+    mid_interval = "10.0",
+    hna_interval = "10.0"
 }
 -- Track the changes so we can make better decissions about what to restart/reboot
 local changes = {
@@ -1048,6 +1052,10 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
             elseif tun_weight > 1 then
                 of:write("\toption LinkQualityMult 'default " .. (1 / tun_weight) .. "'\n")
             end
+            of:write("\toption HelloInterval '" .. cfg.hello_interval .. "'\n")
+            of:write("\toption TcInterval '" .. cfg.tc_interval .. "'\n")
+            of:write("\toption MidInterval '" .. cfg.mid_interval .. "'\n")
+            of:write("\toption HnaInterval '" .. cfg.hna_interval .. "'\n")
         end
         nc:set("aredn", "@tunnel[0]", "maxclients", maxclients)
         nc:set("aredn", "@tunnel[0]", "maxservers", maxservers)
@@ -1073,6 +1081,10 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
                     else
                         of:write("\toption Mode 'ether'\n")
                     end
+                    of:write("\toption HelloInterval '" .. cfg.hello_interval .. "'\n")
+                    of:write("\toption TcInterval '" .. cfg.tc_interval .. "'\n")
+                    of:write("\toption MidInterval '" .. cfg.mid_interval .. "'\n")
+                    of:write("\toption HnaInterval '" .. cfg.hna_interval .. "'\n")
                 end
             )
         end
