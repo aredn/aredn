@@ -899,10 +899,12 @@ do
     end
 end
 
+local cn = {}
 if #rows > 0 then
     table.sort(rows, function(a,b) return a.key < b.key end)
     for _, row in ipairs(rows)
     do
+        cn[row.key] = true
         html.print(row.row)
     end
     -- discard
@@ -924,31 +926,32 @@ do
         else
             host = host:gsub("^mid%d+%.", ""):gsub("^dtdlink%.", "")
         end
-        local row = "<tr><td style='color:sienna;'>" .. host
-        if hosts[ip] and hosts[ip].hosts then
-            for _, v in ipairs(hosts[ip].hosts)
-            do
-                row = row .. "<br>" .. v
-            end
-        end
-        row = row .. "</td><td style='color:sienna;'>"
-        if age < 3600 then
-            local val = math.floor(age / 60)
-            if val == 1 then
-                row = row .. "1 minute ago"
+        if not cn[host:lower()] then
+            local row = "<tbody style='color:sienna;'><tr><td>" .. host .. "</td><td colspan=7></td><td style='text-align:left'>"
+            if age < 3600 then
+                local val = math.floor(age / 60)
+                if val == 1 then
+                    row = row .. "1 minute ago</td></tr>"
+                else
+                    row = row .. val .. " minutes ago</td></tr>"
+                end
             else
-                row = row .. val .. " minutes ago"
+                local val = string.format("%.1f", age / 3600)
+                if val == "1.0" then
+                    row = row .. "1 hour ago</td></tr>"
+                else
+                    row = row .. val .. " hours ago</td></tr>"
+                end
             end
-        else
-            local val = string.format("%.1f", age / 3600)
-            if val == "1.0" then
-                row = row .. "1 hour ago"
-            else
-                row = row .. val .. " hours ago"
-            end
+            if hosts[ip] and hosts[ip].hosts then
+                for _, v in ipairs(hosts[ip].hosts)
+                do
+                    row = row .. "<tr><td></td><td colspan=8>" .. v .. "</td></tr>"
+                end
+            end            
+            row = row .. "</tbody>"
+            rows[#rows + 1] = { key = age, row = row }
         end
-        row = row .. "</td></tr>"
-        rows[#rows + 1] = { key = age, row = row }
     end
 end
 if #rows > 0 then
@@ -961,6 +964,7 @@ if #rows > 0 then
     -- discard
     rows = nil
 end
+cn = nil
 -- end current neighbors table
 html.print("</table>")
 
