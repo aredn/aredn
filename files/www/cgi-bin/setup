@@ -423,13 +423,22 @@ if (parms.button_updatelocation or parms.button_save) then
 
     -- process antenna, azimuth and elevation
     if wifi_enable == "1" then
-	local antenna = parms.antenna or ""
+	    local antenna = parms.antenna or ""
         if (cursora:get("aredn", "@location[0]", "antenna") or "") ~= antenna then
             cursora:set("aredn", "@location[0]", "antenna", antenna)
             cursorb:set("aredn", "@location[0]", "antenna", antenna)
         end
+        local antenna_aux = parms.antenna_aux or ""
+        if (cursora:get("aredn", "@location[0]", "antenna_aux") or "") ~= antenna_aux then
+            cursora:set("aredn", "@location[0]", "antenna_aux", antenna_aux)
+            cursorb:set("aredn", "@location[0]", "antenna_aux", antenna_aux)
+        end
         if (cursora:get("aredn", "@location[0]", "azimuth") or "") ~= parms.azimuth then
             local ant = aredn.hardware.get_current_antenna(wifi_intf)
+            if ant and ant.beamwidth == 360 then
+                parms.azimuth = ""
+            end
+            ant = aredn.hardware.get_current_antenna_aux(wifi_intf)
             if ant and ant.beamwidth == 360 then
                 parms.azimuth = ""
             end
@@ -483,6 +492,7 @@ local azimuth = cursor:get("aredn", "@location[0]", "azimuth") or ""
 local elevation = cursor:get("aredn", "@location[0]", "elevation") or ""
 local height = cursor:get("aredn", "@location[0]", "height") or ""
 local antenna = cursor:get("aredn", "@location[0]", "antenna") or ""
+local antenna_aux = cursor:get("aredn", "@location[0]", "antenna_aux") or ""
 
 -- retrieve ntp_period
 local cm = uci.cursor("/etc/config.mesh")
@@ -1057,7 +1067,7 @@ html.print([[
 hidden[#hidden + 1] = "<input type=hidden name=config value='mesh'>"
 hidden[#hidden + 1] = "<input type=hidden name=compat_version value='" .. (compat_version or "") .. "'>"
 html.print([[
-<td>Verify Password</td>
+<td>Verify&nbsp;Password</td>
 <td><input class='password-input' type=password name=passwd2 value=']] .. passwd2 .. [[' size=8 tabindex=3><i class='password-toggle'></i></td>
 </tr>
 </table>
@@ -1460,12 +1470,12 @@ end
 
 html.print("</table></td></tr></table></td></tr></table><br></td></tr>")
 
--- optional settings
+-- Location and antenna settings
 html.print("<tr><td align=center>")
-html.print("<table cellpadding=5 border=0><tr><th colspan=4>Optional Settings</th></tr>")
+html.print("<table border=0 width=790>")
 html.print("<tr><td colspan=4><hr /></td></tr>")
 html.print("<tr><td align=left>Latitude</td><td><input type=text name=latitude size=10 value='" .. lat .."' title='Latitude value (in decimal) (ie. 30.312354)' /></td>")
-html.print("<td align='right' colspan='2'>")
+html.print("<td align='left' colspan='2'>")
 local locdisabled = pingOK and "" or "disabled"
 html.print("<button " .. locdisabled .. " type='button' id='findlocation' value='findloc' onClick='findLocation();'>Find Me!</button>&nbsp;")
 html.print("<input type=submit name='button_updatelocation' value='Apply Location Settings' title='Immediately use these location settings'>")
@@ -1475,6 +1485,7 @@ html.print("<input " .. locdisabled .. " type='submit' name='button_uploaddata' 
 html.print("</td><tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='" .. lon .. "' title='Longitude value (in decimal) (ie. -95.334454)' /></td><td align=left>Grid Square <input type=text name=gridsquare maxlength=6 size=6 value='" .. gridsquare .. "' title='Gridsquare value (ie. AB12cd)' /></td></tr>")
 if wifi_enable == "1" then
     local ants = aredn.hardware.get_antennas(wifi_intf)
+    local antsx = aredn.hardware.get_antennas_aux(wifi_intf)
     local changeh = true
     local changea = true
     if ants and #ants == 1 then
@@ -1490,9 +1501,9 @@ if wifi_enable == "1" then
         html.print("<tr><td align=left>Azimuth</td><td><input type=text name=azimuth size=10 value='" .. azimuth .. "' title='azimuth (degrees)' /> &deg;</td>")
     end
     if not changea then
-        html.print("<td align=left>Antenna " .. antenna .. "</td>")
+        html.print("<td align=left colspan=2>Antenna " .. antenna .. "</td>")
     elseif ants then
-        html.print("<td align=left>Antenna <select name=antenna>")
+        html.print("<td align=left colspan=2>Antenna <select name=antenna>")
         for _, ant in ipairs(ants)
         do
             html.print("<option value='" .. ant.model .. "'" .. (ant.model == antenna and " selected" or "") .. ">" .. ant.description .. "</option>")
@@ -1504,10 +1515,18 @@ if wifi_enable == "1" then
     else
         html.print("</tr><tr><td align=left>Elevation</td><td><input type=text name=elevation size=10 value='" .. elevation .. "' title='elevation above ground level (degrees)' /> &deg;</td>")
     end
-    html.print("<td align=left>Height <input type=text name=height size=10 value='" .. height .. "' title='height above ground level (meters)' /> m</tr>")
+    if antsx then
+        html.print("<td align=left colspan=2>Aux Antenna <select name=antenna_aux>")
+        for _, ant in ipairs(antsx)
+        do
+            html.print("<option value='" .. ant.model .. "'" .. (ant.model == antenna_aux and " selected" or "") .. ">" .. ant.description .. "</option>")
+        end
+        html.print("</select></td>")
+    end
+    html.print("</tr><tr><td align=left>Height</td><td><input type=text name=height size=10 value='" .. height .. "' title='height above ground level (meters)' /> m</tr>")
 end
 html.print("<tr><td colspan=4><div id='map' style='height: 200px; display: none;'></div></td></tr><tr><td colspan=4><hr /></td></tr>")
-html.print("<tr><td>Timezone </td><td><select name=time_zone_name tabindex=10>")
+html.print("<tr><td colspan=2>Timezone <select name=time_zone_name tabindex=10>")
 for _,zone in ipairs(tz_db_names)
 do
     html.print("<option value='" .. zone.name .. "'".. (zone.name == time_zone_name and " selected" or "") .. ">" .. zone.name .. "</option>")

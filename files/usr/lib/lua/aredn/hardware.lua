@@ -400,6 +400,26 @@ function hardware.get_antennas(wifiintf)
     return ants
 end
 
+function hardware.get_antennas_aux(wifiintf)
+    local ants = antennas_cache["aux:" .. wifiintf]
+    if not ants then
+        local radio = hardware.get_radio_intf(wifiintf)
+        if radio and radio.antenna_aux == "external" then
+            local dchan = hardware.get_default_channel(wifiintf)
+            if dchan and dchan.band then
+                local f = io.open("/etc/antennas.json")
+                if f then
+                    ants = json.parse(f:read("*a"))
+                    f:close()
+                    ants = ants[dchan.band]
+                end
+            end
+        end
+        antennas_cache["aux:" .. wifiintf] = ants
+    end
+    return ants
+end
+
 function hardware.get_current_antenna(wifiintf)
     local ants = hardware.get_antennas(wifiintf)
     if ants then
@@ -407,6 +427,25 @@ function hardware.get_current_antenna(wifiintf)
             return ants[1]
         end
         local antenna = uci.cursor():get("aredn", "@location[0]", "antenna")
+        if antenna then
+            for _, ant in ipairs(ants)
+            do
+                if ant.model == antenna then
+                    return ant
+                end
+            end
+        end
+    end
+    return nil
+end
+
+function hardware.get_current_antenna_aux(wifiintf)
+    local ants = hardware.get_antennas_aux(wifiintf)
+    if ants then
+        if #ants == 1 then
+            return ants[1]
+        end
+        local antenna = uci.cursor():get("aredn", "@location[0]", "antenna_aux")
         if antenna then
             for _, ant in ipairs(ants)
             do

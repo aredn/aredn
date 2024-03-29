@@ -465,20 +465,27 @@ else
     height = nil
 end
 local antenna
+local antenna_aux
 if not wifi_disabled then
     antenna = aredn.hardware.get_current_antenna(wifi_iface)
     if antenna then
         antenna = antenna.description
     end
+    antenna_aux = aredn.hardware.get_current_antenna_aux(wifi_iface)
+    if antenna_aux then
+        antenna_aux = antenna_aux.description
+    end
 end
 col2[#col2 + 1] = "<th align=right><nobr>firmware version:</nobr><br><nobr>model:</nobr><br>" ..
     (antenna and "<br><nobr>antenna:</nobr>" or "") ..
+    (antenna_aux and "<br><nobr>aux antenna:</nobr>" or "") ..
     (azimuth and "<br><nobr>azimuth:</nobr>" or "") ..
     (elevation and "<br><nobr>elevation:</nobr>" or "") ..
     (height and "<br><nobr>height:</nobr>" or "") ..
     "</th><td>" ..
     read_all("/etc/mesh-release") .. "<br>" .. (aredn.hardware.get_radio() or { name = "unknown" }).name .. "<br>" ..
     (antenna and "<br>" .. antenna or "") ..
+    (antenna_aux and "<br>" .. antenna_aux or "") ..
     (azimuth and "<br>" .. azimuth or "") ..
     (elevation and "<br>" .. elevation or "") ..
     (height and "<br>" .. height or "") ..
