@@ -36,7 +36,6 @@
 
 require("uci")
 require("nixio")
-require("aredn.utils")
 local info = require("aredn.info")
 
 local node = info.get_nvram("node")
@@ -62,30 +61,25 @@ else
         return
     end
     if server == "" then
-        os.execute("iperf3 -s -D -1 --idle-timeout 20 --forceflush -B 0.0.0.0")
+        os.execute("iperf3 -s -D -1 --idle-timeout 20 -B " .. node)
         nixio.nanosleep(1, 0)
         print("<html><head><title>RUNNING</title></head><body><pre>iperf server running</pre></body></html>")
     else
         if not server:match("%.") then
             server = server .. ".local.mesh"
         end
-        local ip = iplookup(server)
-        if ip then
-            local status = ""
-            local f = io.popen("wget -q -O - 'http://" .. ip .. ":8080/cgi-bin/iperf?server=' 2>&1")
-            if f then
-                status = f:read("*a")
-                f:close()
-            end
-            if status:match("running") then
-                print("<html><head><title>SUCCESS</title></head><body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. io.popen("p=$$;setsid sh -c \"(sleep 20; kill $p)\" > /dev/null 2>&1 & /usr/bin/iperf3 --forceflush -b 0 -Z -c " .. server .. (protocol == "udp" and " -u" or "") .. " -l 16K 2>&1"):read("*a") .. "</pre></body></html>")
-            elseif status:match("iperf is disabled") then
-                print("<html><head><title>SERVER DISABLED</title></head><body><pre>iperf server is disabled</pre></body></html>")
-            else
-                print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf server failed to start server</pre></body></html>")
-            end
+        local status = ""
+        local f = io.popen("wget -q -O - 'http://" .. server .. ":8080/cgi-bin/iperf?server=' 2>&1")
+        if f then
+            status = f:read("*a")
+            f:close()
+        end
+        if status:match("running") then
+            print("<html><head><title>SUCCESS</title></head><body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. io.popen("p=$$;setsid sh -c \"(sleep 20; kill $p)\" > /dev/null 2>&1 & /usr/bin/iperf3 --forceflush -b 0 -Z -c " .. server .. (protocol == "udp" and " -u" or "") .. " -l 1K 2>&1"):read("*a") .. "</pre></body></html>")
+        elseif status:match("iperf is disabled") then
+            print("<html><head><title>SERVER DISABLED</title></head><body><pre>iperf server is disabled</pre></body></html>")
         else
-            print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf failed to find server</pre></body></html>")
+            print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf server failed to start server</pre></body></html>")
         end
     end
 end
