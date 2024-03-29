@@ -450,7 +450,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
     html.print("<style>")
     html.print(read_all("/tmp/web/style.css"))
     html.print("</style>")
-    html.wait_for_reboot(120)
+    html.wait_for_reboot(120, 300)
     html.print("</head>")
     html.print("<body><center>")
     html.print("<h2>The firmware is being updated.</h2>")
@@ -492,6 +492,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                         received a new IP address and reconnect with<br>
                         <a href='http://]] .. node .. [[.local.mesh:8080/'>http://]] .. node .. [[.local.mesh:8080/</a><br>
                         This page will automatically reload once the upgrade has completed</h3>
+                        <br><h1 id='countdown'></h1>
                         </center></body></html>
                     ]])
                     http_footer()
@@ -526,6 +527,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
             <a href='http://localnode.local.mesh:8080/'>http://192.168.1.1:8080/</a><br>
             and continue setup of the node in firstboot state.<br>
             This page will automatically reload once the upgrade has completed</h3>
+            <br><h1 id='countdown'></h1>
             </center></body></html>
         ]])
         http_footer()

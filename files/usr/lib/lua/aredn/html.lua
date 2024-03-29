@@ -158,10 +158,10 @@ function html.navbar_admin(selected)
     html.print("</tr><tr><td colspan=100%><hr></td></tr></table>")
 end
 
-function html.wait_for_reboot(delay)
+function html.wait_for_reboot(delay, countdown)
     html.print([[
 <script>
-    const TIMEOUT = 10000;
+    const TIMEOUT = 5000;
     function reload() {
         const start = Date.now();
         const req = new XMLHttpRequest();
@@ -184,6 +184,23 @@ function html.wait_for_reboot(delay)
         catch (_) {
         }
     }
+    const start = Date.now()
+    function cdown() {
+        const div = document.getElementById("countdown");
+        if (div) {
+            let t = Math.round(]] .. countdown .. [[ - (Date.now() - start) / 1000);
+            if (t <= 0) {
+                div.innerHTML = ""
+            }
+            else if (t == 1) {
+                div.innerHTML = t + " second";
+            }
+            else {
+                div.innerHTML = t + " seconds";
+            }
+        }
+    }
+    setInterval(cdown, 1000);
     setTimeout(reload, ]] .. delay .. [[ * 1000);
 </script>
     ]])
@@ -231,7 +248,7 @@ function html.reboot()
         html.print("<a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
     else
         html.header(node .. " rebooting", false)
-        html.wait_for_reboot(20)
+        html.wait_for_reboot(20, 120)
         html.print("</head><body><center>")
         html.print("<h1>" .. node .. " is rebooting</h1><br>")
         html.print("<h3>Your browser should return to this node after it has rebooted.</br><br>")
@@ -240,6 +257,7 @@ function html.reboot()
         if node ~= "Node" then
             html.print("or<br><a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
         end
+        html.print("<br><h1 id='countdown'></h1>")
     end
     html.print("</center></body></html>")
     http_footer()
