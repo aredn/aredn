@@ -1,6 +1,6 @@
 --[[
 
-	Copyright (C) 2022 Tim Wilkinson
+	Copyright (C) 2022-2024 Tim Wilkinson
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -55,6 +55,8 @@ local default_long_retries = 20 -- (factory default is 4)
 
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
+local ARPING = "/usr/sbin/arping"
+local CURL = "/usr/bin/curl"
 
 local now = 0
 
@@ -114,11 +116,20 @@ function inject_quality_traffic(track)
 end
 
 function should_ping(track)
-    if track.ip and is_connected(track) and track.routable and not (track.blocks.dtd or track.blocks.distance or track.blocks.user) then
-        return true
-    else
-        return false
+    if track.ip and is_connected(track) then
+        if track.type == "Tunnel" or track.type == "Wireguard" then
+            -- Can only ping if not blocked
+            if not track.blocked then
+                return true
+            end
+        else
+            -- Ping unless we fail a fixed boundary
+            if not (track.blocks.dtd or track.blocks.distance or track.blocks.user) then
+                return true
+            end
+        end
     end
+    return false
 end
 
 function nft_handle(list, query)
@@ -604,7 +615,7 @@ function lqm()
                     track.hostname = canonical_hostname(hostname)
                 end
 
-                local raw = io.popen("/usr/bin/curl --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
+                local raw = io.popen(CURL .. " --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
                 local info = luci.jsonc.parse(raw:read("*a"))
                 raw:close()
                 wait_for_ticks(0)
@@ -708,24 +719,36 @@ function lqm()
                 track.ping_quality = 100
             elseif should_ping(track) then
                 local success = 100
-                local ptime = ping_timeout
+                local ptime
 
-                -- Measure the "ping" time directly to the device
-                local sigsock = nixio.socket("inet", "dgram")
-                sigsock:setopt("socket", "rcvtimeo", ping_timeout)
-                sigsock:setopt("socket", "bindtodevice", track.device)
-                sigsock:setopt("socket", "dontroute", 1)
-                -- Must connect or we wont see the error
-                sigsock:connect(track.ip, 8080)
-                local pstart = socket.gettime(0)
-                sigsock:send("")
-                -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
-                -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
-                if sigsock:recv(0) == false then
-                    success = 0
+                if track.type == "Tunnel" or track.type == "Wireguard" then
+                    -- Measure the "ping" time directly to the device by sending a UDP packet
+                    local sigsock = nixio.socket("inet", "dgram")
+                    sigsock:setopt("socket", "rcvtimeo", ping_timeout)
+                    sigsock:setopt("socket", "bindtodevice", track.device)
+                    sigsock:setopt("socket", "dontroute", 1)
+                    -- Must connect or we wont see the error
+                    sigsock:connect(track.ip, 8080)
+                    local pstart = socket.gettime(0)
+                    sigsock:send("")
+                    -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
+                    -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
+                    if sigsock:recv(0) == false then
+                        success = 0
+                    end
+                    ptime = socket.gettime(0) - pstart
+                    sigsock:close()
+                else
+                    -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
+                    -- table messing up the response packet.
+                    local pstart = socket.gettime(0)
+                    if os.execute(ARPING .. " -q -c 1 -D -w " .. math.ceil(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) == 0 then
+                        -- Failure
+                        success = 0
+                    end
+                    ptime = socket.gettime(0) - pstart
                 end
-                ptime = socket.gettime(0) - pstart
-                sigsock:close()
+
                 wait_for_ticks(0)
 
                 local ping_loss_run_avg = 1 - config.ping_penalty / 100
@@ -772,7 +795,7 @@ function lqm()
                 track.blocks.dtd = false
                 for _, dtd in pairs(tracker) do
                     if dtd.type == "DtD" and dtd.hostname == track.hostname then
-                        if dtd.distance and dtd.distance < dtd_distance then
+                        if dtd.distance and dtd.distance < dtd_distance and dtd.routable then
                             track.blocks.dtd = true
                         end
                         break
