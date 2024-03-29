@@ -193,6 +193,7 @@ function html.reboot()
     local aredn_info = require("aredn.info")
     require("aredn.hardware")
     require("aredn.http")
+    require("uci")
 
     local node = aredn_info.get_nvram("node")
     if node == "" then
@@ -210,6 +211,7 @@ function html.reboot()
         fromlan = validate_same_subnet(browser, lanip, lanmask)
         if fromlan then
             lanmask = ip_to_decimal(lanmask)
+            local cursor = uci.cursor()
             local cfgip = cursor:get("network", "lan", "ipaddr")
             local cfgmask = ip_to_decimal(cursor:get("network", "lan", "netmask"))
             if lanmask ~= cfgmask or nixio.bit.band(ip_to_decimal(lanip), lanmask) ~= nixio.bit.band(ip_to_decimal(cfgip), cfgmask) then
