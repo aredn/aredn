@@ -36,6 +36,7 @@
 
 require("uci")
 require("nixio")
+require("aredn.utils")
 local info = require("aredn.info")
 
 local node = info.get_nvram("node")
@@ -43,6 +44,7 @@ local node = info.get_nvram("node")
 local q = os.getenv("QUERY_STRING") or ""
 local server = q:match("server=([^&]*)")
 local protocol = q:match("protocol=([^&]*)") or "tcp"
+local kill = q:match("kill=1") and true or false
 
 print "Content-type: text/html\r"
 print "Cache-Control: no-store\r"
@@ -51,35 +53,73 @@ print("\r")
 if uci.cursor():get("aredn", "@iperf[0]", "enable") == "0" then
     print("<html><head><title>CLIENT DISABLED</title></head><body><pre>iperf is disabled</pre></body></html>")
 elseif not server then
-    print("<html><head></head><body><pre>Provide a server name to run a test between this client and a server [/cgi-bin/iperf?server=&lt;ServerName&gt;&amp;protocol=&lt;udp|tcp&gt;]</pre></body></html>")
+    print("<html><head><title>ERROR</title></head><body><pre>Provide a server name to run a test between this client and a server [/cgi-bin/iperf?server=&lt;ServerName&gt;&amp;protocol=&lt;udp|tcp&gt;]</pre></body></html>")
 elseif server:match("[^%w%-%.]") then
     print("<html><head><title>ERROR</title></head><body><pre>Illegal server name</pre></body></html>")
 else
-    -- Using io.popen here causes the script to terminate (a bug?), so we have this workaround
-    if os.execute('if [ "$(pidof iperf3)" = "" ]; then exit 0; else exit 1; fi') ~= 0 then 
-        print("<html><head><title>BUSY</title></head><body><pre>iperf server busy</pre></body></html>")
-        return
-    end
+
     if server == "" then
-        os.execute("iperf3 -s -D -1 --idle-timeout 20 -B " .. node)
-        nixio.nanosleep(1, 0)
+        -- iperf server
+        if kill then
+            os.execute("/usr/bin/killall -9 iperf3 > /dev/null 2>&1")
+        else
+            if io.popen("/bin/pidof iperf3"):read("*a") ~= "" then
+                print("<html><head><title>BUSY</title></head><body><pre>iperf server busy</pre></body></html>")
+                return
+            end
+        end
+        local first = true
+        local running = io.popen("/usr/bin/iperf3 -s -1 --idle-timeout 20 --forceflush -B 0.0.0.0")
+        if not running then
+            print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf server failed to start</pre></body></html>")
+            return
+        end
+        running:read("*l")
         print("<html><head><title>RUNNING</title></head><body><pre>iperf server running</pre></body></html>")
+        io.flush()
+        return
     else
+        -- iperf client
         if not server:match("%.") then
             server = server .. ".local.mesh"
         end
-        local status = ""
-        local f = io.popen("wget -q -O - 'http://" .. server .. ":8080/cgi-bin/iperf?server=' 2>&1")
-        if f then
-            status = f:read("*a")
-            f:close()
-        end
-        if status:match("running") then
-            print("<html><head><title>SUCCESS</title></head><body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. io.popen("p=$$;setsid sh -c \"(sleep 20; kill $p)\" > /dev/null 2>&1 & /usr/bin/iperf3 --forceflush -b 0 -Z -c " .. server .. (protocol == "udp" and " -u" or "") .. " -l 1K 2>&1"):read("*a") .. "</pre></body></html>")
-        elseif status:match("iperf is disabled") then
-            print("<html><head><title>SERVER DISABLED</title></head><body><pre>iperf server is disabled</pre></body></html>")
+        local ip = iplookup(server)
+        if not ip then
+            print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf no such server</pre></body></html>")
         else
-            print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf server failed to start server</pre></body></html>")
+            local remote = io.popen("/usr/bin/wget -O - 'http://" .. ip .. ":8080/cgi-bin/iperf?" .. (kill and "kill=1&" or "") .. "server=' 2>&1")
+            if not remote then
+                print("<html><head><title>CLIENT ERROR</title></head><body><pre>iperf failed to call remote server</pre></body></html>")
+                return
+            end
+            while true
+            do
+                local line = remote:read("*l")
+                if not line then
+                    print("<html><head><title>ERROR</title></head><body><pre>iperf unknown error</pre></body></html>")
+                    break
+                elseif line:match("CLIENT DISABLED") then
+                    print("<html><head><title>SERVER DISABLED</title></head><body><pre>iperf server is disabled</pre></body></html>")
+                    break
+                elseif line:match("BUSY") then
+                    print("<html><head><title>SERVER BUSY</title></head><body><pre>iperf server is busy</pre></body></html>")
+                    break
+                elseif line:match("ERROR") then
+                    print("<html><head><title>SERVER ERROR</title></head><body><pre>iperf server error</pre></body></html>")
+                    break
+                elseif line:match("RUNNING") then
+                    local running = io.popen("/usr/bin/iperf3 --forceflush --rcv-timeout 20000 -b 0 -Z -c " .. ip .. (protocol == "udp" and " -u" or "") .. " -l 16K 2>&1")
+                    if not running then
+                        print("<html><head><title>CLIENT ERROR</title></head><body><pre>iperf client failed</pre></body></html>")
+                        break
+                    end
+                    print("<html><head><title>SUCCESS</title></head>")
+                    io.flush()
+                    print("<body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. running:read("*a") .. "</pre></body></html>")
+                    break
+                end
+            end
+            remote:close()
         end
     end
 end
