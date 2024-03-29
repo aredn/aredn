@@ -1252,10 +1252,9 @@ else
     hidden[#hidden + 1] = "<input type=hidden name=dmz_dhcp_end   value='" .. dmz_dhcp_end .. "'>"
 end
 
-html.print("<tr><td colspan=2><hr></hr></td></tr>")
-
 local APokay = nixio.fs.stat("/usr/sbin/wpad")
 if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi3_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi3_enable ~= "1") and not M39model) then
+    html.print("<tr><td colspan=2><hr></hr></td></tr>")
     -- lan ap shows as an option
     -- determine hardware options and set band ahd channels accordingly
     if phycount == 1 then
@@ -1399,12 +1398,11 @@ end
 html.print("<tr><td><nobr>DNS 1</nobr></td><td><input type=text size=15 name=wan_dns1 value='" .. wan_dns1 .. "'></td></tr>")
 html.print("<tr><td><nobr>DNS 2</nobr></td><td><input type=text size=15 name=wan_dns2 value='" .. wan_dns2 .. "'></td></tr>")
 
-html.print("<tr><th colspan=2><hr></td></tr>")
-
 -- wan wifi client
 if APokay and ((phycount > 1 and (wifi_enable ~= "1" or wifi2_enable ~= "1")) or (phycount == 1 and wifi_enable ~= "1" and wifi2_enable ~= "1")) and not M39model then
     -- wifi client shows as an option
     -- determine hardware options and set band accordingly
+    html.print("<tr><th colspan=2><hr></td></tr>")
 
     if phycount == 1 then
         local rc3 = os.execute("iw phy phy0 info | grep -q '5180 MHz' > /dev/null")
@@ -1473,6 +1471,7 @@ html.print("</table></td></tr></table></td></tr></table><br></td></tr>")
 -- Location and antenna settings
 html.print("<tr><td align=center>")
 html.print("<table border=0 width=790>")
+html.print("<tr><th colspan=4>Location Settings</th></tr>")
 html.print("<tr><td colspan=4><hr /></td></tr>")
 html.print("<tr><td align=left>Latitude</td><td><input type=text name=latitude size=10 value='" .. lat .."' title='Latitude value (in decimal) (ie. 30.312354)' /></td>")
 html.print("<td align='left' colspan='2'>")
@@ -1483,7 +1482,10 @@ html.print("&nbsp;<button " .. locdisabled .. " type='button' id='hideshowmap' v
 html.print("<input " .. locdisabled .. " type='submit' name='button_uploaddata' value='Upload data to AREDN Servers' />&nbsp;")
 
 html.print("</td><tr><td align=left>Longitude</td><td><input type=text name=longitude size=10 value='" .. lon .. "' title='Longitude value (in decimal) (ie. -95.334454)' /></td><td align=left>Grid Square <input type=text name=gridsquare maxlength=6 size=6 value='" .. gridsquare .. "' title='Gridsquare value (ie. AB12cd)' /></td></tr>")
+
 if wifi_enable == "1" then
+    html.print("<tr><th colspan=4 style='padding-top:20px'>Antenna Settings (optional)</th></tr>")
+    html.print("<tr><td colspan=4><hr /></td></tr>")
     local ants = aredn.hardware.get_antennas(wifi_intf)
     local antsx = aredn.hardware.get_antennas_aux(wifi_intf)
     local changeh = true
