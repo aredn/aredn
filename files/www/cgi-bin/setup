@@ -1470,7 +1470,7 @@ html.print("</table></td></tr></table></td></tr></table><br></td></tr>")
 
 -- Location and antenna settings
 html.print("<tr><td align=center>")
-html.print("<table border=0 width=790>")
+html.print("<table border=0 style='min-width:790px'>")
 html.print("<tr><th colspan=4>Location Settings</th></tr>")
 html.print("<tr><td colspan=4><hr /></td></tr>")
 html.print("<tr><td align=left>Latitude</td><td><input type=text name=latitude size=10 value='" .. lat .."' title='Latitude value (in decimal) (ie. 30.312354)' /></td>")
@@ -1504,7 +1504,7 @@ if wifi_enable == "1" then
         html.print("<tr><td align=left>Azimuth</td><td><input type=text name=azimuth size=10 value='" .. azimuth .. "' title='azimuth (degrees)' /> &deg;</td>")
     end
     if not changea then
-        html.print("<td align=left colspan=2>Antenna " .. antenna .. "</td>")
+        html.print("<td align=left colspan=2>Antenna <input disabled value='" .. antenna .. "'></td>")
     elseif ants then
         html.print("<td align=left colspan=2>Antenna <select name=antenna>")
         for _, ant in ipairs(ants)
@@ -1566,7 +1566,7 @@ margin-left: -24px;
 cursor: pointer;
 background-image: url(/viz.png);
 background-size: contain;
-vertical-align: text-bottom;
+vertical-align: middle;
 }
 </style>
 <script>
