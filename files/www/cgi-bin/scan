@@ -55,10 +55,6 @@ if board_type:match("^ubnt,") and board_type:match("ac") then
     ubnt_ac = true
 end
 
-if not nixio.fs.stat("/tmp/web") then
-    nixio.fs.mkdir("/tmp/web")
-end
-
 local channels = aredn.hardware.get_rfchannels(wifiiface)
 local scan_list = ""
 for _, channel in ipairs(channels)
@@ -178,31 +174,12 @@ end
 
 -- scan end
 
-if os.getenv("REQUEST_METHOD") == "POST" then
-    require('luci.http')
-    local request = luci.http.Request(nixio.getenv(),
-      function()
-        local v = io.read(1024)
-        if not v then
-            io.close()
-        end
-        return v
-      end
-    )
-    if request:formvalue("auto") then
-        io.open("/tmp/web/autoscan", "w"):close()
-    end
-    if request:formvalue("stop") then
-        os.remove("/tmp/web/autoscan")
-    end
-end
-
 -- generate page
 http_header()
 html.header(node .. " WiFi scan", false)
-local autoscan = nixio.fs.stat("/tmp/web/autoscan");
+local autoscan = string.find((nixio.getenv("QUERY_STRING") or ""):lower(),"autoscan=1")
 if autoscan then
-    html.print("<meta http-equiv='refresh' content='5;url=/cgi-bin/scan'>")
+    html.print("<script>setTimeout(function(){ window.location.reload(); }, 10000);</script>")
 end
 html.print([[
     <script src="/js/sorttable-min.js"></script>
@@ -226,11 +203,11 @@ html.alert_banner()
 html.print("<h1>" .. node .. " WiFi scan</h1><hr>")
 
 if autoscan then
-    html.print("<input type=submit name=stop value=Stop title='Abort continuous scan'>")
+    html.print("<input type=button name=stop value=Stop title='Abort continuous scan' onclick='window.location = window.location.origin + window.location.pathname'>")
 else
     html.print("<input type=button name=refresh value=Refresh title='Refresh this page' onclick='window.location.reload();'>")
     html.print("&nbsp;&nbsp;&nbsp;")
-    html.print("<input type=submit name=auto value=Auto title='Begin continuous scan'>")
+    html.print([[<input type=button name=auto value=Auto title='Begin continuous scan' onclick='window.location = window.location.origin + window.location.pathname + "?autoscan=1"'>]])
 end
 
 html.print("&nbsp;&nbsp;&nbsp;")
