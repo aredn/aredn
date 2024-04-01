@@ -35,6 +35,7 @@
 
 --]]
 
+require("nixio")
 require("aredn.http")
 require("aredn.hardware")
 require("aredn.utils")
@@ -47,6 +48,12 @@ if not node then
 end
 local wifiiface = aredn.hardware.get_iface_name("wifi")
 local nf = iwinfo.nl80211.noise(wifiiface) or -95
+local myfreq = tonumber(aredn_info.getFreq(aredn_info.getMeshRadioDevice()))
+
+local board_type = aredn.hardware.get_board_type()
+if board_type:match("^ubnt,") and board_type:match("ac") then
+    ubnt_ac = true
+end
 
 if not nixio.fs.stat("/tmp/web") then
     nixio.fs.mkdir("/tmp/web")
@@ -62,6 +69,57 @@ end
 -- scan start
 
 local scanned = {}
+
+local f = io.popen("iw dev " .. wifiiface .. " station dump")
+if f then
+    local scan = {}
+    local myssid = aredn_info.getSSID()
+    for line in f:lines()
+    do
+        local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")
+        if m then
+            scan = scanned[m]
+            if not scan then
+                scan = {
+                    mac = m,
+                    signal = 9999,
+                    freq = {},
+                    key = "",
+                    joined = false
+                }
+                scanned[m] = scan
+            end
+            scan.mode = "Connected Ad-Hoc Station"
+            scan.ssid = myssid
+            scan.freq[myfreq] = true
+        end
+        m = line:match("signal avg:%s+([%d%-]+)")
+        if m then
+            scan.signal = tonumber(m)
+        end
+    end
+    f:close()
+end
+
+-- Ubiquiti AC device workaround
+if ubnt_ac then
+    os.execute("iw dev " .. wifiiface .. " ibss leave > /dev/null 2>&1")
+    os.execute("wifi up > /dev/null 2>&1")
+    local attempt = 10
+    while attempt > 0
+    do
+        attempt = attempt - 1
+        for line in io.popen("iw dev " .. wifiiface .. " scan"):lines()
+        do
+            if line:match("^BSS ") then
+                attempt = 0
+            end
+            break
+        end
+        nixio.nanosleep(2, 0)
+    end
+end
+
 local f = io.popen("iw dev " .. wifiiface .. " scan freq" .. scan_list .. " passive")
 if f then
     local scan = {}
@@ -75,7 +133,7 @@ if f then
                     mac = m,
                     mode = "AP",
                     ssid = "",
-                    signal = 0,
+                    signal = 9999,
                     freq = {},
                     key = "",
                     joined = false
@@ -94,6 +152,10 @@ if f then
         m = line:match("freq: (%d+)")
         if m then
             scan.freq[m] = true
+            if tonumber(m) == myfreq and scan.mode == "AP" then
+                scan.mode = "My Ad-Hoc Network"
+                scan.joined = true
+            end
         end
         m = line:match("SSID: (.+)")
         if m then
@@ -109,38 +171,6 @@ if f then
         end
         if line:match("capability: IBSS") and scan.mode == "AP" then
             scan.mode = "Foreign Ad-Hoc Network"
-        end
-    end
-    f:close()
-end
-
-local f = io.popen("iw dev " .. wifiiface .. " station dump")
-if f then
-    local scan = {}
-    local myssid = aredn_info.getSSID()
-    local myfreq = tonumber(aredn_info.getFreq(aredn_info.getMeshRadioDevice()))
-    for line in f:lines()
-    do
-        local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")
-        if m then
-            scan = scanned[m]
-            if not scan then
-                scan = {
-                    mac = m,
-                    signal = 0,
-                    freq = {},
-                    key = "",
-                    joined = false
-                }
-                scanned[m] = scan
-            end
-            scan.mode = "Connected Ad-Hoc Station"
-            scan.ssid = myssid
-            scan.freq[myfreq] = true
-        end
-        m = line:match("signal avg:%s+([%d%-]+)")
-        if m then
-            scan.signal = tonumber(m)
         end
     end
     f:close()
@@ -219,7 +249,7 @@ end)
 local scanlist = {}
 for _, v in pairs(scanned)
 do
-    if v.signal ~= 0 or v.joined then
+    if v.signal ~= 9999 or v.joined then
         scanlist[#scanlist + 1] = v
     end
 end
