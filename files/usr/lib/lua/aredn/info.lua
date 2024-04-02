@@ -37,7 +37,6 @@
 require("uci")
 local aredn_uci = require("aredn.uci")
 require("aredn.utils")
-
 local lip=require("luci.ip")
 require("nixio")
 require("ubus")
@@ -330,12 +329,10 @@ function model.all_services()
 	local services={}
 	local lines={}
 	local pos, val
-	local hfile=io.open("/var/run/services_olsr","r")
-	if hfile~=nil then
-		for line in hfile:lines() do
-			table.insert(lines,line)
-		end
-		hfile:close()
+	for line in aredn.olsr.getServicesAsLines() do
+		table.insert(lines,line)
+	end
+	if #lines > 0 then
 		for pos,val in pairs(lines) do
 			local service={}
 			local link,protocol,name,ip = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#(.*)")
@@ -366,15 +363,14 @@ end
 -- Return *All* Hosts
 -------------------------------------
 function model.all_hosts()
+	require("aredn.olsr")
 	local hosts={}
 	local lines={}
 	local pos, val
-	local hfile=io.open("/var/run/hosts_olsr.stable","r")
-	if hfile~=nil then
-		for line in hfile:lines() do
-			table.insert(lines,line)
-		end
-		hfile:close()
+	for line in aredn.olsr.getHostAsLines() do
+		table.insert(lines,line)
+	end
+	if #lines > 0 then
 		for pos,val in pairs(lines) do
 			local host={}
 
@@ -585,7 +581,7 @@ end
 -------------------------------------
 function model.getLocalHosts()
   local localhosts = {}
-  myhosts=os.capture('/bin/grep "# myself" /var/run/hosts_olsr.stable|grep -v dtdlink')
+  myhosts=os.capture('/bin/grep "# myself" /var/run/hosts_olsr|grep -v dtdlink')
   local lines = myhosts:splitNewLine()
   data = {}
   for k,v in pairs(lines) do

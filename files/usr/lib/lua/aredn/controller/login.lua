@@ -33,7 +33,7 @@
   version.
 
 --]]
-local aredn_info = require("aredn.info")
+require("aredn.info")
 require("aredn.utils")
 
 -- -------------------------------------

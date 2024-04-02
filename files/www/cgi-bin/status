@@ -39,9 +39,10 @@ require("nixio")
 require("aredn.hardware")
 require("aredn.http")
 require("aredn.utils")
+require("aredn.olsr")
 local html = require("aredn.html")
 require("uci")
-local aredn_info = require("aredn.info")
+require("aredn.info")
 
 -- helpers start
 
@@ -58,16 +59,14 @@ function mesh_ip_to_hostnames(ip)
             return host.gsub("%s+", " / ")
         end
     end
-    if nixio.fs.stat("/var/run/hosts_olsr.stable") then
-        for line in io.lines("/var/run/hosts_olsr.stable")
-        do
-            local host = line:match(pattern)
-            if host then
-                host = host:gsub("^dtdlink%.","")
-                host = host:gsub("^mid[0-9]*%.","")
-                host = host:gsub("%.local.mesh$","")
-                return host
-            end
+    for line in aredn.olsr.getHostAsLines()
+    do
+        local host = line:match(pattern)
+        if host then
+            host = host:gsub("^dtdlink%.","")
+            host = host:gsub("^mid[0-9]*%.","")
+            host = host:gsub("%.local.mesh$","")
+            return host
         end
     end
     return host
@@ -143,12 +142,12 @@ end
 
 -- helpers end
 
-local node = aredn_info.get_nvram("node")
+local node = aredn.info.get_nvram("node")
 if node == "" then
     node = "NOCALL"
 end
-local tactical = aredn_info.get_nvram("tactical")
-local config = aredn_info.get_nvram("config")
+local tactical = aredn.info.get_nvram("tactical")
+local config = aredn.info.get_nvram("config")
 if config == "" or nixio.fs.stat("/etc/config.mesh", "type") ~= "dir" then
     config = "not set"
 end
@@ -211,15 +210,13 @@ end
 
 local host_total = 0
 local host_nodes = 0
-if nixio.fs.stat("/var/run/hosts_olsr.stable") then
-    for line in io.lines("/var/run/hosts_olsr.stable")
-    do
-        if line:match("^10%.") and not line:match("%smid%d+%.") then
-            host_total = host_total + 1
-            local host = line:match("^10%..+%sdtdlink%.")
-            if host then
-                host_nodes = host_nodes + 1
-            end
+for line in aredn.olsr.getHostAsLines()
+do
+    if line:match("^10%.") and not line:match("%smid%d+%.") then
+        host_total = host_total + 1
+        local host = line:match("^10%..+%sdtdlink%.")
+        if host then
+            host_nodes = host_nodes + 1
         end
     end
 end

@@ -33,7 +33,7 @@
 --]]
 
 local ip = require("luci.ip")
-local info = require("aredn.info")
+require("aredn.info")
 local socket = require("socket")
 
 local refresh_timeout = 15 * 60 -- refresh high cost data every 15 minutes
@@ -204,7 +204,7 @@ function canonical_hostname(hostname)
     return hostname
 end
 
-local myhostname = canonical_hostname(info.get_nvram("node") or "localnode")
+local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode")
 local myip = uci.cursor():get("network", "wifi", "ipaddr")
 
 -- Clear old data

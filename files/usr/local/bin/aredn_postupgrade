@@ -35,17 +35,17 @@
 --]]
 
 require("aredn.utils")
-local aredn_info = require("aredn.info")
+require("aredn.info")
 require("aredn.hardware")
 require("uci")
 
-local needsrun = aredn_info.get_nvram("nodeupgraded")
+local needsrun = aredn.info.get_nvram("nodeupgraded")
 if needsrun == "" or needsrun == "0" then
     print "Node not upgraded, exiting"
     os.exit(0)
 end
 
-local config = aredn_info.get_nvram("config")
+local config = aredn.info.get_nvram("config")
 if config ~= "mesh" then
     print "This node was previously configured in non-mesh mode and is no longer implemented.  Returning to 'firstboot'."
     local f = io.popen("firstboot -y && reboot")
@@ -54,7 +54,7 @@ if config ~= "mesh" then
     os.exit(1)
 end
 
-local node = aredn_info.get_nvram("node")
+local node = aredn.info.get_nvram("node")
 local mac2 = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("wifi")), 0)
 local dtdmac = mac_to_ip(aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")), 0)
 
@@ -124,6 +124,6 @@ os.remove("/tmp/.mesh_setup")
 
 os.execute("/usr/local/bin/node-setup")
 
-aredn_info.set_nvram("nodeupgraded", "0")
+aredn.info.set_nvram("nodeupgraded", "0")
 print "Rebooting node"
 os.execute("reboot >/dev/null 2>&1")

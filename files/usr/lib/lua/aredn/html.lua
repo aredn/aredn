@@ -207,12 +207,12 @@ function html.wait_for_reboot(delay, countdown)
 end
 
 function html.reboot()
-    local aredn_info = require("aredn.info")
+    require("aredn.info")
     require("aredn.hardware")
     require("aredn.http")
     require("uci")
 
-    local node = aredn_info.get_nvram("node")
+    local node = aredn.info.get_nvram("node")
     if node == "" then
         node = "Node"
     end
