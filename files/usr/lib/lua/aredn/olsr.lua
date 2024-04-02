@@ -33,9 +33,12 @@
   version.
 
 --]]
+
+require("nixio")
 require("aredn.http")
 require("aredn.utils")
-local ai=require("aredn.info")
+require("aredn.info")
+
 -------------------------------------
 -- Public API is attached to table
 -------------------------------------
@@ -124,8 +127,8 @@ function model.getCurrentNeighbors(RFinfo)
 
         if info[mainip]['linkType'] == "RF" and RFinfo then
           require("iwinfo")
-          local radio = ai.getMeshRadioDevice()
-          local bandwidth = tonumber(ai.getChannelBW(radio))
+          local radio = aredn.info.getMeshRadioDevice()
+          local bandwidth = tonumber(aredn.info.getChannelBW(radio))
           local RFinterface=get_ifname('wifi')
           local arptable=capture("/bin/cat /proc/net/arp |grep "..RFinterface)
           local lines=arptable:splitNewLine()
@@ -158,5 +161,33 @@ function model.getCurrentNeighbors(RFinfo)
   end
   return info
 end
+
+function model.getHostAsLines(attempts)
+  if not attempts then
+    attempts = 1
+  end
+  for _ = 1, attempts
+  do
+    local f = io.open("/var/run/hosts_olsr")
+    if f then
+      return f:lines()
+    end
+    nixio.nanosleep(1, 0)
+  end
+  return string.gmatch("", ".")
+end
+
+function model.getServicesAsLines()
+  local f = io.open("/var/run/services_olsr")
+  if f then
+    return f:lines()
+  end
+  return string.gmatch("", ".")
+end
+
+if not aredn then
+  aredn = {}
+end
+aredn.olsr = model;
 
 return model
