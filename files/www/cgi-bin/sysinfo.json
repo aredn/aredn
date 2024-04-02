@@ -36,8 +36,8 @@
 
 require("uci")
 require("aredn.utils")
-local aredn_info = require("aredn.info")
-local aredn_olsr = require("aredn.olsr")
+require("aredn.info")
+require("aredn.olsr")
 require("aredn.hardware")
 require("aredn.http")
 require("nixio")
@@ -60,14 +60,14 @@ info['api_version']="1.13"
 
 
 -- NODE name
-info['node']=aredn_info.getNodeName()
+info['node']=aredn.info.getNodeName()
 
 info['node_details']={}
 -- MODEL
-info['node_details']['model']=aredn_info.getModel()
+info['node_details']['model']=aredn.info.getModel()
 
 -- DESCRIPTION
-info['node_details']['description']=aredn_info.getNodeDescription()
+info['node_details']['description']=aredn.info.getNodeDescription()
 
 -- BOARD ID
 info['node_details']['board_id']=hardware_boardid()
@@ -80,10 +80,10 @@ end
 info['node_details']['firmware_mfg']=fw_mfg
 
 -- Firmware version
-info['node_details']['firmware_version']=aredn_info.getFirmwareVersion()
+info['node_details']['firmware_version']=aredn.info.getFirmwareVersion()
 
 -- Mesh Gatway
-info['node_details']['mesh_gateway']=aredn_info.getMeshGatewaySetting()
+info['node_details']['mesh_gateway']=aredn.info.getMeshGatewaySetting()
 
 -- Supernode
 if ctx:get("aredn", "@supernode[0]", "enable") == "1" then
@@ -92,17 +92,17 @@ end
 
 -- Mesh RF info
 info['meshrf']={}
-local radio=aredn_info.getMeshRadioDevice()
+local radio=aredn.info.getMeshRadioDevice()
 
 if ( radio ~= nil and radio ~= "" ) then
 	info['meshrf']['status']="on"
-	info['meshrf']['ssid']=aredn_info.getSSID()
-	info['meshrf']['channel']=aredn_info.getChannel(radio)
-	info['meshrf']['chanbw']=aredn_info.getChannelBW(radio)
-	info['meshrf']['freq']=aredn_info.getFreq(radio)
-	info['meshrf']['azimuth'] = aredn_info.getAzimuth()
-	info['meshrf']['elevation'] = aredn_info.getElevation()
-	info['meshrf']['height'] = aredn_info.getHeight()
+	info['meshrf']['ssid']=aredn.info.getSSID()
+	info['meshrf']['channel']=aredn.info.getChannel(radio)
+	info['meshrf']['chanbw']=aredn.info.getChannelBW(radio)
+	info['meshrf']['freq']=aredn.info.getFreq(radio)
+	info['meshrf']['azimuth'] = aredn.info.getAzimuth()
+	info['meshrf']['elevation'] = aredn.info.getElevation()
+	info['meshrf']['height'] = aredn.info.getHeight()
 	info['meshrf']['antenna'] = aredn.hardware.get_current_antenna(radio)
 	info['meshrf']['antenna_aux'] = aredn.hardware.get_current_antenna_aux(radio)
 else
@@ -118,12 +118,12 @@ info['tunnels']['active_tunnel_count']=atc:chomp()
 
 -- Location info
 -- LAT/LON
-local lat, lon = aredn_info.getLatLon()
+local lat, lon = aredn.info.getLatLon()
 info['lat']=lat
 info['lon']=lon
 
 -- GRID SQUARE
-info["grid_square"]=aredn_info.getGridSquare()
+info["grid_square"]=aredn.info.getGridSquare()
 
 -- UPTIME AND LOADAVGS
 mynix=nixio.sysinfo()
@@ -157,22 +157,22 @@ info['interfaces']=tif
 
 -- HOSTS
 if string.find(nixio.getenv("QUERY_STRING"):lower(),"hosts=1") then
-	info['hosts']=aredn_info.all_hosts()
+	info['hosts']=aredn.info.all_hosts()
 end
 
 -- SERVICES
 if string.find(nixio.getenv("QUERY_STRING"):lower(),"services=1") then
-	info['services']=aredn_info.all_services()
+	info['services']=aredn.info.all_services()
 end
 
 -- LOCALLY HOSTED SERVICES ONLY
 if string.find(nixio.getenv("QUERY_STRING"):lower(),"services_local=1") then
-	info['services_local']=aredn_info.local_services()
+	info['services_local']=aredn.info.local_services()
 end
 
 -- LOCAL NEIGHBORS LINK INFO
 if string.find(nixio.getenv("QUERY_STRING"):lower(),"link_info=1") then
-	info['link_info']=aredn_olsr.getCurrentNeighbors(true)
+	info['link_info']=aredn.olsr.getCurrentNeighbors(true)
 end
 
 -- LQM INFO
@@ -202,7 +202,7 @@ end
 
 -- MESH NODES COUNT
 if string.find(nixio.getenv("QUERY_STRING"):lower(),"nodes=1") then
-	info['nodes']=aredn_info.getOLSRInfo()
+	info['nodes']=aredn.info.getOLSRInfo()
 end
 
 -- Output the HTTP header for JSON

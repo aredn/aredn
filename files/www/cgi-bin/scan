@@ -40,15 +40,15 @@ require("aredn.http")
 require("aredn.hardware")
 require("aredn.utils")
 local html = require("aredn.html")
-local aredn_info = require("aredn.info")
+require("aredn.info")
 
-local node = aredn_info.get_nvram("node")
+local node = aredn.info.get_nvram("node")
 if not node then
     node = "NOCALL"
 end
 local wifiiface = aredn.hardware.get_iface_name("wifi")
 local nf = iwinfo.nl80211.noise(wifiiface) or -95
-local myfreq = tonumber(aredn_info.getFreq(aredn_info.getMeshRadioDevice()))
+local myfreq = tonumber(aredn.info.getFreq(aredn.info.getMeshRadioDevice()))
 
 local board_type = aredn.hardware.get_board_type()
 if board_type:match("^ubnt,") and board_type:match("ac") then
@@ -69,7 +69,7 @@ local scanned = {}
 local f = io.popen("iw dev " .. wifiiface .. " station dump")
 if f then
     local scan = {}
-    local myssid = aredn_info.getSSID()
+    local myssid = aredn.info.getSSID()
     for line in f:lines()
     do
         local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")

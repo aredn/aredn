@@ -39,8 +39,8 @@ require("aredn.uci")
 require("aredn.utils")
 require("aredn.http")
 require("aredn.hardware")
-local aredn_olsr = require("aredn.olsr")
-local aredn_info = require("aredn.info")
+require("aredn.olsr")
+require("aredn.info")
 require("nixio")
 local json = require("luci.jsonc")
 require("iwinfo")
@@ -55,56 +55,56 @@ os.capture = capture
 function getSysinfo()
 	local info={}
 	info['api_version']=API_VERSION
-	info['node']=aredn_info.getNodeName()
-	info['tactical']=aredn_info.getTacticalName()
-	info['description']=aredn_info.getNodeDescription()
-	info['firmware_version']=aredn_info.getFirmwareVersion()
-	info['model']=aredn_info.getModel()
+	info['node']=aredn.info.getNodeName()
+	info['tactical']=aredn.info.getTacticalName()
+	info['description']=aredn.info.getNodeDescription()
+	info['firmware_version']=aredn.info.getFirmwareVersion()
+	info['model']=aredn.info.getModel()
 	--
-	info['date']=aredn_info.getDate()
-	info['time']=aredn_info.getTime()
+	info['date']=aredn.info.getDate()
+	info['time']=aredn.info.getTime()
 	--
-	info['uptime']=aredn_info.getUptime()
-	info['loads']=aredn_info.getLoads()
-	info['first_boot']=aredn_info.getFirstBoot()
-	info['target_type']=aredn_info.getTargetType()
+	info['uptime']=aredn.info.getUptime()
+	info['loads']=aredn.info.getLoads()
+	info['first_boot']=aredn.info.getFirstBoot()
+	info['target_type']=aredn.info.getTargetType()
 	return info
 end
 
 function getAlerts()
 	local info={}
-	info['aredn']=aredn_info.getArednAlert()
-	info['local']=aredn_info.getLocalAlert()
+	info['aredn']=aredn.info.getArednAlert()
+	info['local']=aredn.info.getLocalAlert()
 	return info
 end
 
 function getStatusMeshRF()
 	local info={}
-	local dev = aredn_info.getMeshRadioDevice()
+	local dev = aredn.info.getMeshRadioDevice()
 	if dev and dev ~= "" then
 		info['device']= dev
-		info['ssid']=aredn_info.getSSID()
-		info['channel']=aredn_info.getChannel(info['device'])
-		info['chanbw']=aredn_info.getChannelBW(info['device'])
-		info['band']=aredn_info.getBand(info['device'])
-		info['frequency']=aredn_info.getFreq(info['device'])
+		info['ssid']=aredn.info.getSSID()
+		info['channel']=aredn.info.getChannel(info['device'])
+		info['chanbw']=aredn.info.getChannelBW(info['device'])
+		info['band']=aredn.info.getBand(info['device'])
+		info['frequency']=aredn.info.getFreq(info['device'])
 	end
 	return info
 end
 
 function getStatusIp()
 	local info={}
-	info['gateway']=aredn_info.getDefaultGW()
-	info['wifi']=aredn_info.getInterfaceIPAddress('wifi')
-	info['lan']=aredn_info.getInterfaceIPAddress('lan')
-	info['wan']=aredn_info.getInterfaceIPAddress('wan')
+	info['gateway']=aredn.info.getDefaultGW()
+	info['wifi']=aredn.info.getInterfaceIPAddress('wifi')
+	info['lan']=aredn.info.getInterfaceIPAddress('lan')
+	info['wan']=aredn.info.getInterfaceIPAddress('wan')
 	return info
 end
 
 function getLocationInfo()
 	local info={}
-	local lat, lon= aredn_info.getLatLon()
-	local gs= aredn_info.getGridSquare()
+	local lat, lon= aredn.info.getLatLon()
+	local gs= aredn.info.getGridSquare()
 	info['lat']=lat
 	info['lon']=lon
 	info['gridsquare']=gs
@@ -112,7 +112,7 @@ function getLocationInfo()
 end
 
 function getFreeMemory()
-	local info = aredn_info.getFreeMemory()
+	local info = aredn.info.getFreeMemory()
 	return info
 end
 
@@ -127,7 +127,7 @@ end
 function getRemoteNodes()
 	local info = {}
 	local neighbors = {}
-	for _, v in ipairs(aredn_olsr.getOLSRLinks())
+	for _, v in ipairs(aredn.olsr.getOLSRLinks())
 	do
 		local remoteIP = v.remoteIP
 		neighbors[remoteIP] = true
@@ -143,11 +143,11 @@ function getRemoteNodes()
 		end
 	end
 	local routeetx = {}
-	for _, v in ipairs(aredn_olsr.getOLSRRoutes())
+	for _, v in ipairs(aredn.olsr.getOLSRRoutes())
 	do
 		routeetx[v.destination] = string.format("%.2f", v.etx)
 	end
-	for line in io.lines("/var/run/hosts_olsr.stable")
+	for line in aredn.olsr.getHostAsLines()
 	do
 		local ip, hostname = line:match("^(%d+%.%d+%.%d+%.%d+)%s+(%S+)%s+#.*$")
 		if ip and not neighbors[ip] and not (hostname:match("^dtdlink%.") or hostname:match("^mid%d+%.")) then
@@ -186,8 +186,8 @@ function getSignal(realtime)
 	local wifiiface=get_ifname("wifi")
 
 	-- get bandwidth
-	local radio=aredn_info.getMeshRadioDevice()
-	local bandwidth=aredn_info.getChannelBW(radio)
+	local radio=aredn.info.getMeshRadioDevice()
+	local bandwidth=aredn.info.getChannelBW(radio)
 
 	local timestamp_s=os.time()
 	local signal_dbm, noise_dbm, tx_rate_mbps, rx_rate_mbps, tx_rate_mcs_index, rx_rate_mcs_index
@@ -297,13 +297,13 @@ function getSignal(realtime)
 end
 
 function getScanList()
-	local device = aredn_info.getMeshRadioDevice()
+	local device = aredn.info.getMeshRadioDevice()
 	local scanlist = iwinfo["nl80211"].scanlist(device)
 	return scanlist
 end
 
 function getFreqList()
-	local device = aredn_info.getMeshRadioDevice()
+	local device = aredn.info.getMeshRadioDevice()
 	local freqlist = iwinfo["nl80211"].freqlist(device)
 	return freqlist
 end
@@ -361,9 +361,9 @@ for page, comps in pairs(qsset) do
 			elseif comp=="memory" then
 				info['pages'][page][comp]=getFreeMemory()
 			elseif comp=="storage" then
-				info['pages'][page][comp]=aredn_info.getFSFree()
+				info['pages'][page][comp]=aredn.info.getFSFree()
 			elseif comp=="olsr" then
-				info['pages'][page][comp]=aredn_info.getOLSRInfo()
+				info['pages'][page][comp]=aredn.info.getOLSRInfo()
 			elseif comp=="location" then
 				info['pages'][page][comp]=getLocationInfo()
 			elseif comp=="freqlist" then
@@ -407,15 +407,15 @@ for page, comps in pairs(qsset) do
 			if comp=="sysinfo" then
 				info['pages'][page][comp]=getSysinfo()
 			elseif comp=="allhosts" then
-				info['pages'][page][comp]=aredn_info.all_hosts()
+				info['pages'][page][comp]=aredn.info.all_hosts()
 			elseif comp=="localhosts" then
-				info['pages'][page][comp]=aredn_info.getLocalHosts()
+				info['pages'][page][comp]=aredn.info.getLocalHosts()
 			elseif comp=="remotenodes" then
 				info['pages'][page][comp]=getRemoteNodes()
 			elseif comp=="currentneighbors" then
-				info['pages'][page][comp]=aredn_olsr.getCurrentNeighbors(true)
+				info['pages'][page][comp]=aredn.olsr.getCurrentNeighbors(true)
 			elseif comp=="services" then
-				info['pages'][page][comp]=aredn_info.all_services()
+				info['pages'][page][comp]=aredn.info.all_services()
 			elseif comp=="previousneighbors" then
 				info['pages'][page][comp]={}
 			elseif comp=="topology" then

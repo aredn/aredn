@@ -39,9 +39,10 @@ require("nixio")
 require("aredn.hardware")
 require("aredn.http")
 require("aredn.utils")
-aredn.html = require("aredn.html")
+require("aredn.html")
 require("uci")
-aredn.info = require("aredn.info")
+require("aredn.info")
+require("aredn.olsr")
 
 local html = aredn.html
 
@@ -555,17 +556,15 @@ do
         if val == "_add" then
             if host ~= "" then
                 local pattern = "%s" .. host .. "%s"
-                if nixio.fs.stat("/var/run/hosts_olsr.stable") then
-                    for line in io.lines("/var/run/hosts_olsr.stable")
-                    do
-                        if line:lower():match(pattern) then
-                            foundhost = true
-                            dhcperr(val .. [[ <font color='red'>Warning!</font> ']] .. host .. [[ is already in use!<br>
-                                Please choose another hostname.<br>
-                                Prefixing the hostname with your callsign will help prevent duplicates on the network.
-                            ]])
-                            break
-                        end
+                for line in aredn.olsr.getHostAsLines()
+                do
+                    if line:lower():match(pattern) then
+                        foundhost = true
+                        dhcperr(val .. [[ <font color='red'>Warning!</font> ']] .. host .. [[ is already in use!<br>
+                            Please choose another hostname.<br>
+                            Prefixing the hostname with your callsign will help prevent duplicates on the network.
+                        ]])
+                        break
                     end
                 end
             end
@@ -899,17 +898,15 @@ do
         if val == "_add" then
             if host ~= "" then
                 local pattern = "%s" .. host .. "%s"
-                if nixio.fs.stat("/var/run/hosts_olsr.stable") then
-                    for line in io.lines("/var/run/hosts_olsr.stable")
-                    do
-                        if line:lower():match(pattern) then
-                            foundhost = true
-                            aliaserr(val .. [[ <font color='red'>Warning!</font> ']] .. host .. [[ is already in use!<br>
-                                Please choose another hostname.<br>
-                                Prefixing the hostname with your callsign will help prevent duplicates on the network.
-                            ]])
-                            break
-                        end
+                for line in aredn.olsr.getHostAsLines()
+                do
+                    if line:lower():match(pattern) then
+                        foundhost = true
+                        aliaserr(val .. [[ <font color='red'>Warning!</font> ']] .. host .. [[ is already in use!<br>
+                            Please choose another hostname.<br>
+                            Prefixing the hostname with your callsign will help prevent duplicates on the network.
+                        ]])
+                        break
                     end
                 end
                 if not host:match("^%*%.") and (host:match("_") or not host:match("^[%w%-%.]+$")) then

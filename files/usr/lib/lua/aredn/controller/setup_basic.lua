@@ -33,8 +33,8 @@
   version.
 
 --]]
-local aredn_info = require("aredn.info")
-local aredn_hardware = require("aredn.hardware")
+require("aredn.info")
+require("aredn.hardware")
 require("aredn.utils")
 
 -- -------------------------------------
@@ -68,31 +68,31 @@ function module:GET()
   local res={}
   local data={}
   data.basic = {}
-  data.basic.nodename = aredn_info.getNodeName()
-  data.basic.description = aredn_info.getNodeDescription()
+  data.basic.nodename = aredn.info.getNodeName()
+  data.basic.description = aredn.info.getNodeDescription()
   -- password :: "WE CANNOT RETRIEVE THE PASSWORD"
 
   -- MESHRF
-  radio = aredn_info.getMeshRadioDevice()
+  radio = aredn.info.getMeshRadioDevice()
   data.meshrf = {}
-  data.meshrf.ssid_full = aredn_info.getSSID()
+  data.meshrf.ssid_full = aredn.info.getSSID()
   data.meshrf.ssid_prefix = data['meshrf']['ssid_full']:split("-")[1]
-  data.meshrf.enabled = aredn_info.isMeshRadioEnabled(radio)
-  data.meshrf.ip = aredn_info.getInterfaceIPAddress("wifi")
-  data.meshrf.netmask = aredn_info.getInterfaceNetmask("wifi")
-  data.meshrf.distance = aredn_info.getMeshRadioDistance(radio)
-  data.meshrf.bw = aredn_info.getChannelBW(radio)
-  data.meshrf.channel = aredn_info.getChannel(radio)
-  data.meshrf.power = aredn_info.getTXPower(radio)
-  data.meshrf.maxpower = aredn_hardware.wifi_maxpower(radio, data['meshrf']['channel'])
+  data.meshrf.enabled = aredn.info.isMeshRadioEnabled(radio)
+  data.meshrf.ip = aredn.info.getInterfaceIPAddress("wifi")
+  data.meshrf.netmask = aredn.info.getInterfaceNetmask("wifi")
+  data.meshrf.distance = aredn.info.getMeshRadioDistance(radio)
+  data.meshrf.bw = aredn.info.getChannelBW(radio)
+  data.meshrf.channel = aredn.info.getChannel(radio)
+  data.meshrf.power = aredn.info.getTXPower(radio)
+  data.meshrf.maxpower = aredn.hardware.wifi_maxpower(radio, data['meshrf']['channel'])
   
 
   -- LAN
   data.lan = {}
-  data.lan.mode = aredn_info.getLANMode()
-  data.lan.dhcp = aredn_info.isLANDHCPEnabled()
-  data.lan.ip = aredn_info.getInterfaceIPAddress("lan")
-  data.lan.netmask = aredn_info.getInterfaceNetmask("lan")
+  data.lan.mode = aredn.info.getLANMode()
+  data.lan.dhcp = aredn.info.isLANDHCPEnabled()
+  data.lan.ip = aredn.info.getInterfaceIPAddress("lan")
+  data.lan.netmask = aredn.info.getInterfaceNetmask("lan")
   -- dhcp_start
   -- dhcp_end
 
@@ -104,7 +104,7 @@ function module:GET()
 
   -- WAN Advanced
   data.wanadv = {}
-  data.wanadv.meshgw = aredn_info.isMeshGatewayEnabled()
+  data.wanadv.meshgw = aredn.info.isMeshGatewayEnabled()
 
   -- WAN Wifi Client
   data.wanclient = {}
