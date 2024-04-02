@@ -240,9 +240,7 @@ end
 for line in aredn.olsr.getHostAsLines(2)
 do
     local ip, name, originator = line:match("^([%d%.]+)%s+(%S+)%s+%S+%s+(%S+)")
-    if originator == "myself" then
-        attempts = 0
-    elseif ip and originator and (routes[ip] or routes[originator]) then
+    if ip and originator and originator ~= "myself" and (routes[ip] or routes[originator]) then
         local etx = routes[ip]
         if not etx then
             etx = routes[originator]
