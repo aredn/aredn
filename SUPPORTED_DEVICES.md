@@ -9,6 +9,7 @@
 * *nightly* - this device is newly supported in the nightly builds (since the last production release).
 * *sunset* - this device is supported but no longer recommended. Support will be deprecated in the future.
 * *brick* - this image has been tested and found to brick your hardware. Avoid for now.
+* *not supported* - this image is no longer supported and not available for download.
 
 The 'target' and 'subtarget' identify the directory in which to find the image on at http://downloads.arednmesh.org
 
@@ -39,7 +40,7 @@ RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath
 RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | released (1)
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | released
 mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | released
-mANTBox 2 12s | RB911G-2HPnD-12S | 2 | ath79 | mikrotik | mikrotik-911g-2hpnd-12s | 64MB | stable | nightly
+mANTBox 2 12s | RB911G-2HPnD-12S | 2 | ath79 | mikrotik | mikrotik-911g-2hpnd-12s | 64MB | stable | released
 
 ## Ubiquiti
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
@@ -47,9 +48,9 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | untested | released
 LiteAP 5AC | LAP-120 <br> LAP-120-US <br> LBE-5AC-16-120 <br> LBE-5AC-16-120-US | 5 | ath79 | generic | ubnt_lap-120 | 64MB | stable | released
 LiteBeam AC5 Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | released
-LiteBeam AC5 LR | LBE-5AC-LR <br> LBE-5AC-LR-US | 5 | ath79 | generic | ubnt_litebeam-ac-lr | 64MB | stable | nightly
+LiteBeam AC5 LR | LBE-5AC-LR <br> LBE-5AC-LR-US | 5 | ath79 | generic | ubnt_litebeam-ac-lr | 64MB | stable | released
 LiteBeam M5 || 5 | ath79 | - | - | 64MB | untested | released
-NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | stable | nightly
+NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | stable | released
 NanoBeam AC 5 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | untested | released
 NanoBeam AC 5 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | released
 NanoBeam AC 5 Gen 2 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | released
@@ -114,8 +115,8 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 TPLink CPE210 v1.X || 2 | ath79 | generic | tplink_cpe210-v1 | 64MB | stable | released
 TPLink CPE210 v2.0 || 2 | ath79 | generic | tplink_cpe210-v2 | 64MB | stable | released
 TPLink CPE210 v3.0 || 2 | ath79 | generic | tplink_cpe210-v3 | 64MB | untested | released
-TPLink CPE220 v2.0 || 2 | ath79 | generic | tplink_cpe220-v2 | 64MB | untested | released
-TPLink CPE220 v3.0 || 2 | ath79 | generic | tplink_cpe220-v3 | 64MB | untested | released
+TPLink CPE220 v2.0 || 2 | ath79 | generic | tplink_cpe220-v2 | 64MB | untested | not supported
+TPLink CPE220 v3.0 || 2 | ath79 | generic | tplink_cpe220-v3 | 64MB | untested | not supported
 TPLink CPE510 v1.X || 5 | ath79 | generic | tplink_cpe510-v1 | 64MB | stable | released
 TPLink CPE510 v2.0 || 5 | ath79 | generic | tplink_cpe510-v2 | 64MB | stable | released
 TPLink CPE510 v3.0 || 5 | ath79 | generic | tplink_cpe510-v3 | 64MB | stable | released
@@ -132,7 +133,7 @@ TPLink WBS510 v2.0 || 5 | ath79 | generic | tplink_wbs510-v2 | 64MB | untested |
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Shadow (16MB NOR) | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
-Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m-nand | 128MB | stable | nightly
+Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | untested | released
 Mudi | GL-E750 | 2 & 5 | ath79 | nand | gl-e750 | 128MB | stable | nightly
 Convexa-B | GL-B1300 | 2 & 5 | ipq40xx | generic | gl-b1300 | 256MB | untested | nightly
 Beryl | GL-MT1300 | 2 & 5 | ramips | mt7621 | gl-mt1300 | 256MB | untested | nightly (4)
@@ -151,9 +152,9 @@ Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 
 Hypervisor |  Target | Subtarget | Image | RAM | Stability | Status
 :------ | :------: | :---------: | :-----: | :---: | :---------: | :------
-Vmware ESXi  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | nightly (5)
+Vmware ESXi  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
 Proxmox pve  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released  (5)
-Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | nightly (5)
+Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
 
 
 ## Footnotes
