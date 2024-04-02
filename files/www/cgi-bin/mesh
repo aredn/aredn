@@ -41,8 +41,8 @@ require("aredn.http")
 require("aredn.utils")
 require("aredn.html")
 require("uci")
-aredn.info = require("aredn.info")
-aredn.olsr = require("aredn.olsr")
+require("aredn.info")
+require("aredn.olsr")
 require("iwinfo")
 require('luci.jsonc')
 
@@ -237,60 +237,60 @@ do
 end
 
 -- load the olsr hosts file
-if nixio.fs.stat("/var/run/hosts_olsr.stable") then
-    for line in io.lines("/var/run/hosts_olsr.stable")
-    do
-        local ip, name, originator = line:match("^([%d%.]+)%s+(%S+)%s+%S+%s+(%S+)")
-        if ip and originator and originator ~= "myself" and (routes[ip] or routes[originator]) then
-            local etx = routes[ip]
-            if not etx then
-                etx = routes[originator]
+for line in aredn.olsr.getHostAsLines(2)
+do
+    local ip, name, originator = line:match("^([%d%.]+)%s+(%S+)%s+%S+%s+(%S+)")
+    if originator == "myself" then
+        attempts = 0
+    elseif ip and originator and (routes[ip] or routes[originator]) then
+        local etx = routes[ip]
+        if not etx then
+            etx = routes[originator]
+        end
+        etx = etx.etx
+        if not name:match("%.") or name:match("^mid%.[^%.]*$") then
+            name = name .. ".local.mesh"
+        end
+        if ip == originator then
+            if not hosts[originator] then
+                hosts[originator] = { hosts = {} }
             end
-            etx = etx.etx
-            if not name:match("%.") or name:match("^mid%.[^%.]*$") then
-                name = name .. ".local.mesh"
-            end
-            if ip == originator then
-                if not hosts[originator] then
-                    hosts[originator] = { hosts = {} }
-                end
-                local host = hosts[originator]
-                if host.name then
-                    host.tactical = name
-                else
-                    host.name = name
-                    host.etx = etx
-                end
-            elseif name:match("^dtdlink%.") then
-                dtd[originator] = true
-                if links[ip] then
-                    links[ip].dtd = true
-                end
-            elseif name:match("^xlink%d+%.") then
-                if not xlinkcount[originator] then
-                    xlinkcount[originator] = 1
-                else
-                    xlinkcount[originator] = xlinkcount[originator] + 1
-                end
-                if links[ip] then
-                    links[ip].xlink = true
-                end
-            elseif name:match("^mid%d+%.") then
-                if not midcount[originator] then
-                    midcount[originator] = 1
-                else
-                    midcount[originator] = midcount[originator] + 1
-                end
-                if links[ip] then
-                    links[ip].tun = true
-                end
+            local host = hosts[originator]
+            if host.name then
+                host.tactical = name
             else
-                if not hosts[originator] then
-                    hosts[originator] = { hosts = {} }
-                end
-                local host = hosts[originator]
-                host.hosts[#host.hosts + 1] = name
+                host.name = name
+                host.etx = etx
             end
+        elseif name:match("^dtdlink%.") then
+            dtd[originator] = true
+            if links[ip] then
+                links[ip].dtd = true
+            end
+        elseif name:match("^xlink%d+%.") then
+            if not xlinkcount[originator] then
+                xlinkcount[originator] = 1
+            else
+                xlinkcount[originator] = xlinkcount[originator] + 1
+            end
+            if links[ip] then
+                links[ip].xlink = true
+            end
+        elseif name:match("^mid%d+%.") then
+            if not midcount[originator] then
+                midcount[originator] = 1
+            else
+                midcount[originator] = midcount[originator] + 1
+            end
+            if links[ip] then
+                links[ip].tun = true
+            end
+        else
+            if not hosts[originator] then
+                hosts[originator] = { hosts = {} }
+            end
+            local host = hosts[originator]
+            host.hosts[#host.hosts + 1] = name
         end
     end
 end
@@ -298,28 +298,26 @@ end
 -- discard
 routes = nil
 
-if nixio.fs.stat("/var/run/services_olsr") then
-    for line in io.lines("/var/run/services_olsr")
-    do
-        if line:match("^%w") then
-            local url, name = line:match("^(.*)|.*|(.*)$")
-            if name then
-                local protocol, host, port, path = url:match("^([%w][%w%+%-%.]+)%://(.+):(%d+)/(.*)")
-                if path then
-                    local name, originator = name:match("(.*%S)%s*#(.*)")
-                    if originator == " my own service" or (hosts[originator] and hosts[originator].name) then
-                        if not host:match("%.local%.mesh$") then
-                            host = host .. ".local.mesh"
-                        end
-                        if not services[host] then
-                            services[host] = {}
-                        end
-                        if not services[host][name] then
-                            if port ~= "0" then
-                                services[host][name] = "<a href='" .. protocol .. "://" .. host .. ":" .. port .. "/" .. path .. "' target='_blank'>" .. name .. "</a>"
-                            else
-                                services[host][name] = name
-                            end
+for line in aredn.olsr.getServicesAsLines()
+do
+    if line:match("^%w") then
+        local url, name = line:match("^(.*)|.*|(.*)$")
+        if name then
+            local protocol, host, port, path = url:match("^([%w][%w%+%-%.]+)%://(.+):(%d+)/(.*)")
+            if path then
+                local name, originator = name:match("(.*%S)%s*#(.*)")
+                if originator == " my own service" or (hosts[originator] and hosts[originator].name) then
+                    if not host:match("%.local%.mesh$") then
+                        host = host .. ".local.mesh"
+                    end
+                    if not services[host] then
+                        services[host] = {}
+                    end
+                    if not services[host][name] then
+                        if port ~= "0" then
+                            services[host][name] = "<a href='" .. protocol .. "://" .. host .. ":" .. port .. "/" .. path .. "' target='_blank'>" .. name .. "</a>"
+                        else
+                            services[host][name] = name
                         end
                     end
                 end
@@ -329,8 +327,9 @@ if nixio.fs.stat("/var/run/services_olsr") then
 end
 
 -- load the node history
-if nixio.fs.stat("/tmp/node.history") then
-    for line in io.lines("/tmp/node.history")
+local f = io.open("/tmp/node.history")
+if f then
+    for line in f:lines("/tmp/node.history")
     do
         local ip, age, host = line:match("^(%S+) (%d+) (%S+)")
         if ip and age and host then
