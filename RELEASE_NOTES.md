@@ -27,9 +27,10 @@ __RELEASE NOTES__
 
 ## Fixes and Improvements
 
-* Fixed wifi scan for Uniquiti AC devices
+* Fixed wifi scan for Ubiquiti AC devices
 * Ignore tracker entries without IP addresses 
 * Limit buffer size of IPerf3 test to 16K
+* Improve IPerf3 api reliability
 * New supernodes no longer have access to legacy tunnels
 * Legacy tunnels will be removed from supernodes in the next prod release
   * NOTE: in the distant future, legacy tunnels will be completely removed.  Migrate to Wireguard tunnels now and avoid the rush :-)  They’re way better anyway.
@@ -76,9 +77,8 @@ __RELEASE NOTES__
   * Fixed NLQ display of weighted links (using the LQ weight ... and assume its symmetrical)
   * Now sort the remote node list by ETX, then ASCIIbetically
   * Fixed clearing the mesh search field
-* Advanced Configuration
-  * Added watchdog support, initial version
-  * The watchdog monitors three things:
+  * Another attempt to deal with occasional missing remote hosts
+* Added watchdog support. The watchdog monitors three things:
   * A set of important system daemons. 
   * A set of pingable ip addresses. 
   * A time the node should reboot everyday. 
@@ -87,7 +87,7 @@ __RELEASE NOTES__
 * Increased wifi retries for noisy links
 * Auto mesh page updates nolonger persist
 * Auto scan page updates nolonger persist
-* Elimate duplicate past neighbors
+* Eliminate duplicate past neighbors
 * Support default /metrics path for Prometheaus
 * Fix various color problems on alternate display styles
 * Add green on black style
@@ -99,6 +99,7 @@ __RELEASE NOTES__
 * Include tunnel information (redacted) in support data dumps
 * Fix badly escaped character in tunnel emails
 * Improve speed and relevance of search on mesh page
+* Simplified lua library requires
 
 # 3.23.12.0
 
