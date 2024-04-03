@@ -26,3 +26,17 @@
 + 	{ "s25fl116k",  INFO(0x014015,      0,  64 * 1024,  32,
 + 			     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 + 	{ "s25fl132k",  INFO(0x014016,      0,  64 * 1024,  64, SECT_4K) },
+--- /dev/null
++++ b/target/linux/ath79/patches-5.15/941-mikrotik-nand-flash.patch
+@@ -0,0 +1,11 @@
++--- a/drivers/mtd/nand/raw/nand_amd.c
+++++ b/drivers/mtd/nand/raw/nand_amd.c
++@@ -44,6 +44,8 @@
++ 		chip->options |= NAND_BBM_FIRSTPAGE | NAND_BBM_SECONDPAGE |
++ 				 NAND_BBM_LASTPAGE;
++ 
+++ 	chip->options |= NAND_NO_SUBPAGE_WRITE;
+++
++ 	return 0;
++ }
++ 
