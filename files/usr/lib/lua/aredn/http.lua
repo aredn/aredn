@@ -49,6 +49,7 @@ http_output = nil
 function http_header(disable_compression)
    print "Content-type: text/html\r"
    print "Cache-Control: no-store\r"
+   print("Access-Control-Allow-Origin: *\r")
    if not disable_compression then
      local encoding = os.getenv("HTTP_ACCEPT_ENCODING")
      if encoding and encoding:match("gzip") then
