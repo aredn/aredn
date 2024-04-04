@@ -158,18 +158,23 @@ function html.navbar_admin(selected)
     html.print("</tr><tr><td colspan=100%><hr></td></tr></table>")
 end
 
-function html.wait_for_reboot(delay, countdown)
+function html.wait_for_reboot(delay, countdown, address)
+    if address then
+        address = [["http://]] .. address .. [[/cgi-bin/status"]]
+    else
+        address = [[window.origin + "/cgi-bin/status"]]
+    end
     html.print([[
 <script>
     const TIMEOUT = 5000;
     function reload() {
         const start = Date.now();
         const req = new XMLHttpRequest();
-        req.open('GET', window.origin + "/cgi-bin/status");
+        req.open('GET', ]] .. address .. [[);
         req.onreadystatechange = function() {
             if (req.readyState === 4) {
                 if (req.status === 200) {
-                    window.location =  window.origin + "/cgi-bin/status";
+                    window.location = ]] .. address .. [[;
                 }
                 else {
                     const time = Date.now() - start;
@@ -238,14 +243,21 @@ function html.reboot()
     end
     http_header()
     if fromlan and subnet_change then
-        html.header(node .. " rebooting", true);
-        html.print("<body><center>")
+        html.header(node .. " rebooting", false);
+        local cursor = uci.cursor()
+        local wifiip = cursor:get("network", "wifi", "ipaddr")
+        if not wifiip then
+            wifiip = "localnode.local.mesh"
+        end
+        html.wait_for_reboot(20, 120, wifiip)
+        html.print("</head><body><center>")
         html.print("<h1>" .. node .. " is rebooting</h1><br>")
         html.print("<h3>The LAN subnet has changed. You will need to acquire a new DHCP lease<br>")
         html.print("and reset any name service caches you may be using.</h3><br>")
         html.print("<h3>When the node reboots you get your new DHCP lease and reconnect with<br>")
         html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>")
         html.print("<a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
+        html.print("<br><h1 id='countdown'></h1>")
     else
         html.header(node .. " rebooting", false)
         html.wait_for_reboot(20, 120)

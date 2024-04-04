@@ -447,10 +447,23 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
         end
         nixio.fs.symlink("/www/aredn.css", "/tmp/web/style.css")
     end
+    -- Show a different reload address if we're running on the ramdisk
+    local displayaddress = "192.168.1.1"
+    local waitaddress = displayaddress
+    if parms.checkbox_keep_settings then
+        for line in io.lines("/proc/mounts")
+        do
+            if line:match("overlay") or line:match("ext4") then
+                displayaddress = node .. ".local.mesh"
+                waitaddress = nil
+                break
+            end
+        end
+    end
     html.print("<style>")
     html.print(read_all("/tmp/web/style.css"))
     html.print("</style>")
-    html.wait_for_reboot(120, 300)
+    html.wait_for_reboot(120, 300, waitaddress)
     html.print("</head>")
     html.print("<body><center>")
     html.print("<h2>The firmware is being updated.</h2>")
@@ -483,15 +496,6 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                     aredn.info.set_nvram("nodeupgraded", "0")
                     os.execute("reboot >/dev/null 2>&1")
                 else
-                    -- Show a different reload address if we're running on the ramdisk
-                    local hostname = "192.168.1.1"
-                    for line in io.lines("/proc/mounts")
-                    do
-                        if line:match("overlay") or line:match("ext4") then
-                            hostname = node .. ".local.mesh"
-                            break
-                        end
-                    end
                     html.print([[
                         <center><h2>Firmware will be written in the background.</h2>
                         <h3>If your computer is connected to the LAN of this node you may need to acquire<br>
@@ -499,7 +503,7 @@ if fw_install and nixio.fs.stat(tmpdir .. "/firmware") then
                         <h3>The node will reboot twice while the configuration is applied<br>
                         When the node has finished booting you should ensure your computer has<br>
                         received a new IP address and reconnect with<br>
-                        <a href='http://]] .. hostname .. [[:8080/'>http://]] .. hostname .. [[:8080/</a><br>
+                        <a href='http://]] .. displayaddress .. [[:8080/'>http://]] .. displayaddress .. [[:8080/</a><br>
                         This page will automatically reload once the upgrade has completed</h3>
                         <br><h1 id='countdown'></h1>
                         </center></body></html>
