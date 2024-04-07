@@ -194,7 +194,7 @@ function html.wait_for_reboot(delay, countdown, address)
         const div = document.getElementById("countdown");
         if (div) {
             let t = Math.round(]] .. countdown .. [[ - (Date.now() - start) / 1000);
-	    div.innerHTML = t <= 0 ? "" : new Date(1000 * t).toISOString().substring(14, 19);
+            div.innerHTML = t <= 0 ? "" : new Date(1000 * t).toISOString().substring(14, 19);
             const cdp = document.getElementById("cdProgress");
             if (cdp) {
                 cdp.value = cdp.max - t;
