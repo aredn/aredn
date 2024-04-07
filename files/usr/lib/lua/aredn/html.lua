@@ -194,10 +194,13 @@ function html.wait_for_reboot(delay, countdown, address)
         const div = document.getElementById("countdown");
         if (div) {
             let t = Math.round(]] .. countdown .. [[ - (Date.now() - start) / 1000);
-            div.innerHTML = t <= 0 ? "" : new Date(1000 * t).toISOString().substring(14, 19);
-            const cdp = document.getElementById("cdProgress");
+            div.innerHTML = t <= 0 ? "..." : new Date(1000 * t).toISOString().substring(14, 19);
+            const cdp = document.getElementById("cdprogress");
             if (cdp) {
-                cdp.value = cdp.max - t;
+                if (t < 0)
+                    cdp.removeAttribute("value");
+                else
+                    cdp.setAttribute("value", cdp.getAttribute("max") - t);
             }
         }
     }
@@ -265,8 +268,8 @@ function html.reboot()
             html.print("or<br><a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
         end
     end
-    html.print("<br><h3><label for='cdProgress'>Rebooting: </label><progress id='cdProgress' max='120'/></h3>")
-    html.print("<h1>Time Remaining: <span id='countdown'></h1>")
+    html.print("<br><h3><label for='cdprogress'>Rebooting: </label><progress id='cdprogress' max='120'/></h3>")
+    html.print("<h1>Time Remaining: <span id='countdown'/></h1>")
     html.print("</center></body></html>")
     http_footer()
     os.execute("reboot >/dev/null 2>&1")
