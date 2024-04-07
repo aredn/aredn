@@ -194,14 +194,10 @@ function html.wait_for_reboot(delay, countdown, address)
         const div = document.getElementById("countdown");
         if (div) {
             let t = Math.round(]] .. countdown .. [[ - (Date.now() - start) / 1000);
-            if (t <= 0) {
-                div.innerHTML = ""
-            }
-            else if (t == 1) {
-                div.innerHTML = t + " second";
-            }
-            else {
-                div.innerHTML = t + " seconds";
+	    div.innerHTML = t <= 0 ? "" : new Date(1000 * t).toISOString().substring(14, 19);
+            const cdp = document.getElementById("cdProgress");
+            if (cdp) {
+                cdp.value = cdp.max - t;
             }
         }
     }
@@ -257,7 +253,6 @@ function html.reboot()
         html.print("<h3>When the node reboots you get your new DHCP lease and reconnect with<br>")
         html.print("<a href='http://localnode.local.mesh:8080/'>http://localnode.local.mesh:8080/</a><br>or<br>")
         html.print("<a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
-        html.print("<br><h1 id='countdown'></h1>")
     else
         html.header(node .. " rebooting", false)
         html.wait_for_reboot(20, 120)
@@ -269,8 +264,9 @@ function html.reboot()
         if node ~= "Node" then
             html.print("or<br><a href='http://" .. node .. ".local.mesh:8080/'>http://" .. node .. ".local.mesh:8080/</a></h3>")
         end
-        html.print("<br><h1 id='countdown'></h1>")
     end
+    html.print("<br><h3><label for='cdProgress'>Rebooting: </label><progress id='cdProgress' max='120'/></h3>")
+    html.print("<h1>Time Remaining: <span id='countdown'></h1>")
     html.print("</center></body></html>")
     http_footer()
     os.execute("reboot >/dev/null 2>&1")
