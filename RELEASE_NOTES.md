@@ -8,6 +8,7 @@ __RELEASE NOTES__
 * GL.iNet E750 
 * GL.iNet GL-B1300
 * GL.iNet GL-MT1300
+* GL.iNet AR300M NAND
 * Ubiquiti Litebeam 5AC LR
 * Ubiquiti Nanobeam 2AC
 * Unraid
