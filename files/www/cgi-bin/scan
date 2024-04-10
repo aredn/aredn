@@ -36,6 +36,7 @@
 --]]
 
 require("nixio")
+require("luci.jsonc")
 require("aredn.http")
 require("aredn.hardware")
 require("aredn.utils")
@@ -55,124 +56,207 @@ if board_type:match("^ubnt,") and board_type:match("ac") then
     ubnt_ac = true
 end
 
-local channels = aredn.hardware.get_rfchannels(wifiiface)
-local scan_list = ""
-for _, channel in ipairs(channels)
-do
-    scan_list = scan_list .. " " .. channel.frequency
-end
+local rescan = string.find((nixio.getenv("QUERY_STRING") or ""):lower(),"rescan=1")
 
--- scan start
-
-local scanned = {}
-
-local f = io.popen("iw dev " .. wifiiface .. " station dump")
-if f then
-    local scan = {}
-    local myssid = aredn.info.getSSID()
-    for line in f:lines()
-    do
-        local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")
-        if m then
-            scan = scanned[m]
-            if not scan then
-                scan = {
-                    mac = m,
-                    signal = 9999,
-                    freq = {},
-                    key = "",
-                    joined = false
-                }
-                scanned[m] = scan
-            end
-            scan.mode = "Connected Ad-Hoc Station"
-            scan.ssid = myssid
-            scan.freq[myfreq] = true
-        end
-        m = line:match("signal avg:%s+([%d%-]+)")
-        if m then
-            scan.signal = tonumber(m)
-        end
+local scanlist
+-- Show the last scan if we have one, it's not too old, and we're not rescanning
+if not rescan then
+    local lscan = io.open("/tmp/last-scan.json")
+    if lscan then
+        scanlist = luci.jsonc.parse(lscan:read("*a") or "")
+        lscan:close()
     end
-    f:close()
 end
 
--- Ubiquiti AC device workaround
-if ubnt_ac then
-    os.execute("iw dev " .. wifiiface .. " ibss leave > /dev/null 2>&1")
-    os.execute("wifi up > /dev/null 2>&1")
-    local attempt = 10
-    while attempt > 0
+if not scanlist then
+    local channels = aredn.hardware.get_rfchannels(wifiiface)
+    local scan_list = ""
+    for _, channel in ipairs(channels)
     do
-        attempt = attempt - 1
-        for line in io.popen("iw dev " .. wifiiface .. " scan"):lines()
+        scan_list = scan_list .. " " .. channel.frequency
+    end
+
+    -- scan start
+
+    local scanned = {}
+
+    local f = io.popen("iw dev " .. wifiiface .. " station dump")
+    if f then
+        local scan = {}
+        local myssid = aredn.info.getSSID()
+        for line in f:lines()
         do
-            if line:match("^BSS ") then
-                attempt = 0
+            local m = line:match("^Station ([%da-fA-F:]+) %(on " .. wifiiface .. "%)")
+            if m then
+                scan = scanned[m]
+                if not scan then
+                    scan = {
+                        mac = m,
+                        signal = 9999,
+                        freq = {},
+                        key = "",
+                        joined = false
+                    }
+                    scanned[m] = scan
+                end
+                scan.mode = "Connected Ad-Hoc Station"
+                scan.ssid = myssid
+                scan.freq[tostring(myfreq)] = true
             end
-            break
+            m = line:match("signal avg:%s+([%d%-]+)")
+            if m then
+                scan.signal = tonumber(m)
+            end
         end
-        nixio.nanosleep(2, 0)
+        f:close()
     end
-end
 
-local f = io.popen("iw dev " .. wifiiface .. " scan freq" .. scan_list .. " passive")
-if f then
-    local scan = {}
-    for line in f:lines()
+    -- Ubiquiti AC device workaround
+    if ubnt_ac then
+        os.execute("iw dev " .. wifiiface .. " ibss leave > /dev/null 2>&1")
+        os.execute("wifi up > /dev/null 2>&1")
+        local attempt = 10
+        while attempt > 0
+        do
+            attempt = attempt - 1
+            for line in io.popen("iw dev " .. wifiiface .. " scan"):lines()
+            do
+                if line:match("^BSS ") then
+                    attempt = 0
+                end
+                break
+            end
+            nixio.nanosleep(2, 0)
+        end
+    end
+
+    local f = io.popen("iw dev " .. wifiiface .. " scan freq" .. scan_list .. " passive")
+    if f then
+        local scan = {}
+        for line in f:lines()
+        do
+            local m = line:match("^BSS ([%da-fA-F:]+)")
+            if m then
+                scan = scanned[m]
+                if not scan then
+                    scan = {
+                        mac = m,
+                        mode = "AP",
+                        ssid = "",
+                        signal = 9999,
+                        freq = {},
+                        key = "",
+                        joined = false
+                    }
+                    scanned[m] = scan
+                elseif scan.joined then
+                    scan = {
+                        freq = {}
+                    }
+                end
+                if line:match("joined") then
+                    scan.mode = "My Ad-Hoc Network"
+                    scan.joined = true
+                end
+            end
+            m = line:match("freq: (%d+)")
+            if m then
+                scan.freq[m] = true
+                if tonumber(m) == myfreq and scan.mode == "AP" then
+                    scan.mode = "My Ad-Hoc Network"
+                    scan.joined = true
+                end
+            end
+            m = line:match("SSID: (.+)")
+            if m then
+                scan.ssid = m
+            end
+            m = line:match("signal: ([%d%-]+)")
+            if m then
+                scan.signal = tonumber(m)
+            end
+            m = line:match("Group cipher: (.+)")
+            if m then
+                scan.key = m
+            end
+            if line:match("capability: IBSS") and scan.mode == "AP" then
+                scan.mode = "Foreign Ad-Hoc Network"
+            end
+        end
+        f:close()
+    end
+
+    -- scan end
+
+    -- load arp cache
+    local arpcache = {}
+    arptable(function(a)
+        arpcache[a["HW address"]] = a["IP address"]
+    end)
+
+    scanlist = {}
+    for _, v in pairs(scanned)
     do
-        local m = line:match("^BSS ([%da-fA-F:]+)")
-        if m then
-            scan = scanned[m]
-            if not scan then
-                scan = {
-                    mac = m,
-                    mode = "AP",
-                    ssid = "",
-                    signal = 9999,
-                    freq = {},
-                    key = "",
-                    joined = false
-                }
-                scanned[m] = scan
-            elseif scan.joined then
-                scan = {
-                    freq = {}
-                }
-            end
-            if line:match("joined") then
-                scan.mode = "My Ad-Hoc Network"
-                scan.joined = true
-            end
-        end
-        m = line:match("freq: (%d+)")
-        if m then
-            scan.freq[m] = true
-            if tonumber(m) == myfreq and scan.mode == "AP" then
-                scan.mode = "My Ad-Hoc Network"
-                scan.joined = true
-            end
-        end
-        m = line:match("SSID: (.+)")
-        if m then
-            scan.ssid = m
-        end
-        m = line:match("signal: ([%d%-]+)")
-        if m then
-            scan.signal = tonumber(m)
-        end
-        m = line:match("Group cipher: (.+)")
-        if m then
-            scan.key = m
-        end
-        if line:match("capability: IBSS") and scan.mode == "AP" then
-            scan.mode = "Foreign Ad-Hoc Network"
+        if v.signal ~= 9999 or v.joined then
+            scanlist[#scanlist + 1] = v
         end
     end
-    f:close()
+    table.sort(scanlist, function(a, b) return a.signal > b.signal end)
+    for _, scan in ipairs(scanlist)
+    do
+        -- freq to chan
+        local chan = {}
+        for f, _ in pairs(scan.freq)
+        do
+            f = tonumber(f)
+            if f < 256 then
+            elseif f == 2484 then
+                chan[#chan + 1] = 14
+            elseif f == 2407 then
+                chan[#chan + 1] = 0
+            elseif f < 2484 then
+                chan[#chan + 1] = (f - 2407) / 5
+            elseif f < 5000 then
+            elseif f < 5380 then
+                chan[#chan + 1] = (f - 5000) / 5
+            elseif f < 5500 then
+                chan[#chan + 1] = f - 2000
+            elseif f < 6000 then
+                chan[#chan + 1] = (f - 5000) / 5
+            end
+        end
+        table.sort(chan)
+        scan.chan = table.concat(chan, " ")
+        if scan.joined then
+            scan.hostname = node
+        else
+            -- ip lookup then host lookup
+            local ip = arpcache[scan.mac]
+            if ip then
+                scan.hostname = ip
+                local f = io.popen("nslookup " .. ip)
+                if f then
+                    for line in f:lines()
+                    do
+                        local m = line:match("name = (.*)%.local%.mesh")
+                        if m then
+                            scan.hostname = m:gsub("^mid[0-9]*%.",""):gsub("^dtdlink%.",""):gsub("%.local%.mesh$","")
+                            break
+                        end
+                    end
+                    f:close()
+                end
+            else
+                scan.hostname = "-"
+            end
+        end
+    end
+    lscan = io.open("/tmp/last-scan.json", "w")
+    if lscan then
+        lscan:write(luci.jsonc.stringify(scanlist, true))
+        lscan:close()
+    end
 end
-
--- scan end
 
 -- generate page
 http_header()
@@ -181,21 +265,30 @@ local autoscan = string.find((nixio.getenv("QUERY_STRING") or ""):lower(),"autos
 if autoscan then
     html.print("<script>setTimeout(function(){ window.location.reload(); }, 10000);</script>")
 end
+if rescan then
+    html.print([[
+        <script>
+            if (history.replaceState) {
+                history.replaceState(null, "", window.location.origin + window.location.pathname)
+            }
+        </script>
+]])
+end
 html.print([[
     <script src="/js/sorttable-min.js"></script>
     <style>
     table {
         border-collapse:collapse;
     }
-    table.sortable thead {                                          
-        background-color:#eee;                                     
-        color:#666666;                            
+    table.sortable thead {
+        background-color:#eee;
+        color:#666666;
         font-weight: bold;
-        cursor: default;                                               
-    }                                                                      
+        cursor: default;
+    }
     </style>
     </head>
-    <body><form method=post action=/cgi-bin/scan enctype='multipart/form-data'>
+    <body>
     <center>
 ]])
 
@@ -205,9 +298,11 @@ html.print("<h1>" .. node .. " WiFi scan</h1><hr>")
 if autoscan then
     html.print("<input type=button name=stop value=Stop title='Abort continuous scan' onclick='window.location = window.location.origin + window.location.pathname'>")
 else
-    html.print("<input type=button name=refresh value=Refresh title='Refresh this page' onclick='window.location.reload();'>")
-    html.print("&nbsp;&nbsp;&nbsp;")
-    html.print([[<input type=button name=auto value=Auto title='Begin continuous scan' onclick='window.location = window.location.origin + window.location.pathname + "?autoscan=1"'>]])
+    html.print([[<input type=button name=refresh value=Rescan title='Run a new scan' onclick='window.location = window.location.origin + window.location.pathname + "?rescan=1"'>]])
+    if not ubnt_ac then
+        html.print("&nbsp;&nbsp;&nbsp;")
+        html.print([[<input type=button name=auto value=Auto title='Begin continuous scan' onclick='window.location = window.location.origin + window.location.pathname + "?autoscan=1"'>]])
+    end
 end
 
 html.print("&nbsp;&nbsp;&nbsp;")
@@ -217,77 +312,29 @@ html.print("<button type=button onClick='window.location=\"status\"' title='Retu
 html.print("<table class=sortable border=1 cellpadding=5>")
 html.print("<tr><th>SNR</th><th>Signal</th><th>Chan</th><th>Enc</th><th>SSID</th><th>Hostname</th><th>MAC/BSSID</th><th>802.11 Mode</th></tr>")
 
--- load arp cache
-local arpcache = {}
-arptable(function(a)
-    arpcache[a["HW address"]] = a["IP address"]
-end)
-
-local scanlist = {}
-for _, v in pairs(scanned)
-do
-    if v.signal ~= 9999 or v.joined then
-        scanlist[#scanlist + 1] = v
-    end
-end
-table.sort(scanlist, function(a, b) return a.signal > b.signal end)
 for _, scan in ipairs(scanlist)
 do
-    -- freq to chan
-    local chan = {}
-    for f, _ in pairs(scan.freq)
-    do
-        f = tonumber(f)
-        if f < 256 then
-        elseif f == 2484 then
-            chan[#chan + 1] = 14
-        elseif f == 2407 then
-            chan[#chan + 1] = 0
-        elseif f < 2484 then
-            chan[#chan + 1] = (f - 2407) / 5
-        elseif f < 5000 then
-        elseif f < 5380 then
-            chan[#chan + 1] = (f - 5000) / 5
-        elseif f < 5500 then
-            chan[#chan + 1] = f - 2000
-        elseif f < 6000 then
-            chan[#chan + 1] = (f - 5000) / 5
-        end
-    end
-    table.sort(chan)
-    chan = table.concat(chan, " ")
-    if scan.joined then
-        hostname = node
-    else
-        -- ip lookup then host lookup
-        local ip = arpcache[scan.mac]
-        if ip then
-            hostname = ip
-            local f = io.popen("nslookup " .. ip)
-            if f then
-                for line in f:lines()
-                do
-                    local m = line:match("name = (.*)%.local%.mesh")
-                    if m then
-                        hostname = m:gsub("^mid[0-9]*%.",""):gsub("^dtdlink%.",""):gsub("%.local%.mesh$","")
-                        break
-                    end
-                end
-                f:close()
-            end
-        else
-            hostname = "-"
-        end
-    end
     if scan.ssid:match("^AREDN-") then
         html.print("<tr class=\"wscan-row-node\">")
     else
         html.print("<tr>")
     end
-    html.print("<td>" .. (scan.signal - nf) .. "</td><td>" .. scan.signal .. "</td><td>" .. chan .. "</td><td>" .. scan.key .. "</td><td>" .. scan.ssid .. "</td><td align=center>" .. hostname .. "</td><td>" .. scan.mac:upper() .. "</td><td>" .. scan.mode .. "</td>")
+    html.print("<td>" .. (scan.signal - nf) .. "</td><td>" .. scan.signal .. "</td><td>" .. scan.chan .. "</td><td>" .. scan.key .. "</td><td>" .. scan.ssid .. "</td><td align=center>" .. scan.hostname .. "</td><td>" .. scan.mac:upper() .. "</td><td>" .. scan.mode .. "</td>")
     html.print("</tr>")
 end
 
-html.print("</table><br></center>")
+html.print("</table><br>")
+local lastscan = os.time() - (nixio.fs.stat("/tmp/last-scan.json", "mtime") or 0)
+if lastscan == 1 then
+    html.print("<div>Last scan: 1 second ago")
+elseif lastscan < 60 then
+    html.print("<div>Last scan: " .. lastscan .. " seconds ago")
+elseif lastscan < 120 then
+    html.print("<div>Last scan: 1 minute ago")
+elseif lastscan < 3600 then
+    html.print("<div>Last scan: " .. math.floor(lastscan / 60) .. " minutes ago")
+else
+    html.print("<div>Last scan: a long time ago")
+end
 html.footer()
-html.print("</body></html>")
+html.print("</center></body></html>")
