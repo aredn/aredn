@@ -58,7 +58,7 @@ end
 
 local rescan = string.find((nixio.getenv("QUERY_STRING") or ""):lower(),"rescan=1")
 
-local scanlist
+local scanlist = {}
 -- Show the last scan if we have one, it's not too old, and we're not rescanning
 if not rescan then
     local lscan = io.open("/tmp/last-scan.json")
@@ -68,7 +68,7 @@ if not rescan then
     end
 end
 
-if not scanlist then
+if rescan then
     local channels = aredn.hardware.get_rfchannels(wifiiface)
     local scan_list = ""
     for _, channel in ipairs(channels)
@@ -324,17 +324,22 @@ do
 end
 
 html.print("</table><br>")
-local lastscan = os.time() - (nixio.fs.stat("/tmp/last-scan.json", "mtime") or 0)
-if lastscan == 1 then
-    html.print("<div>Last scan: 1 second ago")
-elseif lastscan < 60 then
-    html.print("<div>Last scan: " .. lastscan .. " seconds ago")
-elseif lastscan < 120 then
-    html.print("<div>Last scan: 1 minute ago")
-elseif lastscan < 3600 then
-    html.print("<div>Last scan: " .. math.floor(lastscan / 60) .. " minutes ago")
+local lastscan = nixio.fs.stat("/tmp/last-scan.json", "mtime")
+if lastscan then
+    lastscan = os.time() - lastscan
+    if lastscan == 1 then
+        html.print("<div>Last scan: 1 second ago")
+    elseif lastscan < 60 then
+        html.print("<div>Last scan: " .. lastscan .. " seconds ago")
+    elseif lastscan < 120 then
+        html.print("<div>Last scan: 1 minute ago")
+    elseif lastscan < 3600 then
+        html.print("<div>Last scan: " .. math.floor(lastscan / 60) .. " minutes ago")
+    else
+        html.print("<div>Last scan: a long time ago")
+    end
 else
-    html.print("<div>Last scan: a long time ago")
+    html.print("<div>Last scan: none")
 end
 html.footer()
 html.print("</center></body></html>")
