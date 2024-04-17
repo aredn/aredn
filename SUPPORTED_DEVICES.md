@@ -133,10 +133,10 @@ TPLink WBS510 v2.0 || 5 | ath79 | generic | tplink_wbs510-v2 | 64MB | untested |
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Shadow (16MB NOR) | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | glinet_gl-ar300m16 | 64MB | stable | released
-Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | untested | released
-Mudi | GL-E750 | 2 & 5 | ath79 | nand | gl-e750 | 128MB | stable | nightly
-Convexa-B | GL-B1300 | 2 & 5 | ipq40xx | generic | gl-b1300 | 256MB | untested | nightly
-Beryl | GL-MT1300 | 2 & 5 | ramips | mt7621 | gl-mt1300 | 256MB | untested | nightly (4)
+Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | stable | released
+Mudi | GL-E750 | 2 & 5 | ath79 | nand | gl-e750 | 128MB | stable | stable
+Convexa-B | GL-B1300 | 2 & 5 | ipq40xx | generic | gl-b1300 | 256MB | stable | released (6)
+Beryl | GL-MT1300 | 2 & 5 | ramips | mt7621 | gl-mt1300 | 256MB | stable | released (4)
 **Sunset Devices** | | | | | | | |
 White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | sunset (3)
 Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | sunset (3)
@@ -163,6 +163,6 @@ Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
  3. These devices are no longer being manufactured by GL-iNET. They may not reboot reliably and you may need to power cycle them (several times) during an update.
  4. 20MHz channels only.
  5. x86 images are for advanced users. See "Installing AREDN Firmware" x86 documentation section.
-
+ 6. These devices do not function on negative channels in the 2.4 GHz band.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/
