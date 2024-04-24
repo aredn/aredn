@@ -1,5 +1,112 @@
 __RELEASE NOTES__
 
+# 3.24.4.0
+
+## Enhancements
+
+* Wireguard tunnels
+* Configurable DHCP options
+* Antenna information
+* Watchdog support
+* Remote logging
+* OpenWRT 23.05.3
+
+## New Device Support
+
+* Mikrotik mANTbox 2 12s
+* GL.iNet E750 
+* GL.iNet GL-B1300
+* GL.iNet GL-MT1300
+* GL.iNet AR300M NAND
+* Ubiquiti Litebeam 5AC LR
+* Ubiquiti Nanobeam 2AC
+* Unraid
+* VMWare ESXi
+
+## Notes
+
+* This release is incompatible with MeshChat 2.9 or earlier.
+* GL.iNet GL-B1300 does not support negative channels on the 2.4 GHz band.
+
+## Fixes and Improvements
+
+* Updated to latest OpenWRT 23.05.3
+* Fixed wifi scan for Ubiquiti AC devices
+* Now ignore tracker entries without IP addresses 
+* Limit buffer size of IPerf3 test to 16K
+* Improved IPerf3 api reliability
+* New supernodes will no longer have access to legacy tunnels
+  * Legacy tunnels will be removed from supernodes in the next prod release
+  * NOTE: in the distant future, legacy tunnels will be completely removed.  Migrate to Wireguard tunnels now and avoid the rush :-)  They’re way better anyway.
+* Collapsed QEMU and VMWARE VM hardware into two basic types
+* Validated network override configs
+* Now hide long time idle neighbors
+* Fixed PowerBeam 5AC 400 name
+* Labeled Wireguard tunnels in LQM
+* Added support for dynamic number of Ethernet ports on VMs
+* Don't run iwinfo if we have no wifi
+* Improved hidden node reporting & fixed column alignments
+* Improved link labels (add RF and Wireguard)
+* Improved link monitoring
+* Configuration updates without reboots
+* Unified Neighbors and Mesh pages
+* Firmware downloads:
+  * Added retry for failed firmware version downloads 
+  * Improved the messaging when failing to retrieve firmware versions
+* Fixed tunnel net display truncation on some browsers
+* Made sure the node names we use for tunnels are always uppercase
+* Switched Nanobeam 2AC to DD-WRT firmware (doesn’t function on 10MHz otherwise)
+* Fix display of NTP update when it changes
+* Add rev DNS lookup for supernode tunnels 
+* Make sure switching wifi modes forces a reboot.
+* Fixed wan client/no encryption mode
+* Fixed xlink monitoring by LQM
+* Removed fixed tunnel limits
+* Improve VLAN selection in advanced networking
+* Fixed all x86 mac addresses
+* For x86 devices, make all the bridge mac addresses unique. Gives more flexibility when virtualized.
+* Added extra protection for bad OLSR info
+* Fixed bug in route truncation in low memory situations
+* Now refresh browser cursor on each LQM iteration
+* Ports Page:
+    * Added Advanced DHCP Options selector on Port Forwarding, DHCP, and Services page
+* Front Page: 
+    * Now show antenna information on the front page
+    * Internal antenna info is automatically shown
+    * External antenna info may be added on the Basic Setup page
+    * Added frequency range on front page to help detection of overlapping channels
+* Basic Status page:
+    * Added support for azimuth, elevation, height above ground and external antenna type
+    * Note – if the node has azimuth information set, the bearing of its antenna will be displayed on the mesh map by rotation of the node’s pin on the map ( https://arednmap.xojs.org ).
+* Mesh display improvements:
+  * Added xlink display to remote nodes
+  * Fixed LQ display of weighted local links
+  * Fixed NLQ display of weighted links (using the LQ weight ... and assume its symmetrical)
+  * Now sort the remote node list by ETX, then alphabetically
+  * Fixed clearing the mesh search field
+  * Another attempt to deal with occasional missing remote hosts
+* Added watchdog support. The watchdog monitors three things:
+  * A set of important system daemons. 
+  * A set of pingable ip addresses. 
+  * A time the node should reboot everyday. 
+  * Countdown timers for reboots and firmware updates.
+* Reboot pages will now refresh once the node is ready rather than after a fixed timeout.
+* Increased wifi retries for noisy links
+* Auto mesh page updates no longer persist
+* Auto scan page updates no longer persist
+* Eliminate duplicate past neighbors
+* Support default /metrics path for Prometheus
+* Fix various color problems on alternate display styles
+* Add green on black style
+* Half olsrd maintenance traffic rate
+* Fix clashing IP address on devices with the same mac address ethernet and wifi hardware
+* Fix Bad Gateway when rebooting from tunnel pages
+* Add CIDR network to Xlinks
+* Provide better xlink information in sysinfo.json
+* Include tunnel information (redacted) in support data dumps
+* Fix badly escaped character in tunnel gmail emails
+* Improve speed and relevance of search on mesh page
+
 # 3.23.12.0
 
 ## Enhancements
