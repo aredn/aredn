@@ -38,7 +38,7 @@ commands:
             export MY_WORKING_DIRECTORY=`pwd`
             sed -i "s/FW_VERSION=\$(PRIVATE_BUILD_VERSION)-\$(GIT_COMMIT)/FW_VERSION=\$(PRIVATE_BUILD_VERSION)/g" ${MY_WORKING_DIRECTORY}/Makefile
             sed -i "s/NoCall/<< pipeline.parameters.release_version >>/g" ${MY_WORKING_DIRECTORY}/config.mk
-            sed -i "s/releases\/3\/24\/<< pipeline.parameters.release_version >>/g" ${MY_WORKING_DIRECTORY}/config.mk
+            sed -i "s/releases\/3\/24/<< pipeline.parameters.release_version >>/g" ${MY_WORKING_DIRECTORY}/config.mk
             sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j${DASH_J_VALUE}/g" ${MY_WORKING_DIRECTORY}/config.mk
             sed -i "s/develop/<< pipeline.parameters.release_version >>/g" ${MY_WORKING_DIRECTORY}/feeds.conf
             cat ${MY_WORKING_DIRECTORY}/config.mk
