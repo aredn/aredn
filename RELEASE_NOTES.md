@@ -2,6 +2,15 @@ __RELEASE NOTES__
 
 # 3.24.4.0
 
+## Enhancements
+
+* Wireguard tunnels
+* Configurable DHCP options
+* Antenna information
+* Watchdog support
+* Remote logging
+* OpenWRT 23.05.3
+
 ## New Device Support
 
 * Mikrotik mANTbox 2 12s
@@ -14,8 +23,14 @@ __RELEASE NOTES__
 * Unraid
 * VMWare ESXi
 
+## Notes
+
+* This release is incompatible with MeshChat 2.9 or earlier.
+* GL.iNet GL-B1300 does not support negative channels on the 2.4 GHz band.
+
 ## Fixes and Improvements
 
+* Updated to latest OpenWRT 23.05.3
 * Fixed wifi scan for Ubiquiti AC devices
 * Now ignore tracker entries without IP addresses 
 * Limit buffer size of IPerf3 test to 16K
