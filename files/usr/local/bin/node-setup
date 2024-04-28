@@ -1140,6 +1140,9 @@ local config_special = {
     watchdog_enable = c:get("aredn", "@watchdog[0]", "enable"),
     watchdog_pings = c:get("aredn", "@watchdog[0]", "ping_addresses"),
     watchdog_daily = c:get("aredn", "@watchdog[0]", "daily"),
+    web_access = c:get("aredn", "@wan[0]", "web_access"),
+    ssh_access = c:get("aredn", "@wan[0]", "ssh_access"),
+    telnet_access = c:get("aredn", "@wan[0]", "telnet_access"),
     wifi_mode_0 = c:get("wireless", "@wifi-iface[0]", "mode"),
     wifi_mode_1 = c:get("wireless", "@wifi-iface[1]", "mode")
 }
@@ -1183,6 +1186,9 @@ do
             end
             if oc:get("aredn", "@watchdog[0]", "daily") ~= config_special.watchdog_daily then
                 changes.manager = true
+            end
+            if oc:get("aredn", "@wan[0]", "web_access") ~= config_special.web_access or oc:get("aredn", "@wan[0]", "ssh_access") ~= config_special.ssh_access or oc:get("aredn", "@wan[0]", "telnet_access") ~= config_special.telnet_access then
+                changes.firewall = true
             end
         elseif file == "network" then
             changes.network = true
