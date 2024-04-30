@@ -69,7 +69,7 @@ then
   if [ $? -ne 0 ] # no node specific file
   then
     # fetch broadcast message file
-    retrieve_alert http://downloads.arednmesh.org/messages/all.txt aredn_message "all nodes"}
+    retrieve_alert http://downloads.arednmesh.org/messages/all.txt aredn_message "all nodes"
   else
     # need to append to node file
     retrieve_alert http://downloads.arednmesh.org/messages/all.txt aredn_message_all "all nodes"
