@@ -57,7 +57,7 @@ function W.get_config(verbose)
     for address in addresses:gmatch("(%S+)") do
         if address:match("^%d+%.%d+%.%d+%.%d+$") then
             if verbose then
-                mainlog:write("pinging " .. address)
+                nixio.syslog("debug", "pinging " .. address)
             end
             ping_addresses[#ping_addresses + 1] = address
         end
@@ -67,7 +67,7 @@ function W.get_config(verbose)
     local mydaemons = c:get("aredn", "@watchdog[0]", "daemons") or default_daemons
     for daemon in mydaemons:gmatch("(%S+)") do
         if verbose then
-            mainlog:write("monitor " .. daemon)
+            nixio.syslog("debug", "monitor " .. daemon)
         end
         daemons[#daemons + 1] = daemon
     end
@@ -101,7 +101,7 @@ function W.start()
 
     local wd = io.open("/dev/watchdog", "w")
     if not wd then
-        mainlog:write("Watchdog failed to start: Cannot open /dev/watchdog\n")
+        nixio.syslog("err", "Watchdog failed to start: Cannot open /dev/watchdog\n")
         ub:call("system", "watchdog", { stop = false })
         exit_app()
         return
@@ -124,7 +124,7 @@ function W.start()
             if time.min >= 55 and (time.hour + 1) % 24 == config.daily then
                 daily_reboot_armed = true
             elseif daily_reboot_armed and time.hour == config.daily then
-                mainlog:write("reboot")
+                nixio.syslog("notice", "reboot")
                 os.execute(REBOOT .. " >/dev/null 2>&1")
                 daily_reboot_armed = false
             else
@@ -138,7 +138,7 @@ function W.start()
             for _, daemon in ipairs(config.daemons)
             do
                 if os.execute(PIDOF .. " " .. daemon .. " > /dev/null ") ~= 0 then
-                    mainlog:write("pidof " .. daemon .. " failed")
+                    nixio.syslog("err", "pidof " .. daemon .. " failed")
                     success = false
                     break
                 end
@@ -156,7 +156,7 @@ function W.start()
                         success = true
                         break
                     else
-                        mainlog:write("ping " .. address .. " failed")
+                        nixio.syslog("err", "ping " .. address .. " failed")
                     end
                 end
                 if not success then
@@ -169,7 +169,7 @@ function W.start()
             wd:write("1")
             wd:flush()
         else
-            mainlog:write("failed")
+            nixio.syslog("err", "failed")
         end
 
         wait_for_ticks(math.max(0, tick - (os.time() - now)))
