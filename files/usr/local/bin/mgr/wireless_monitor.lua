@@ -81,23 +81,17 @@ if boardid:match("mikrotik") and boardid:match("ac") then
     mikrotik_ac = true
 end
 
-local logfile = "/tmp/wireless_monitor.log"
-if not file_exists(logfile) then
-    io.open(logfile, "w+"):close()
-end
-local log = aredn.log.open(logfile, 8000)
-
 -- Various forms of network resets --
 
 function M.reset_network(mode)
-    log:write("reset_network: " .. mode)
+    nixio.syslog("notice", "reset_network: " .. mode)
     if mode == "rejoin" then
         -- Only observered on Mikrotik AC devices
         if mikrotik_ac then
             os.execute(IW .. " " .. wifi .. " ibss leave > /dev/null 2>&1")
             os.execute(IW .. " " .. wifi .. " ibss join " .. ssid .. " " .. frequency .. " fixed-freq > /dev/null 2>&1")
         else
-            log:write("-- ignoring (mikrotik ac only)")
+            nixio.syslog("notice", "-- ignoring (mikrotik ac only)")
         end
     elseif mode == "scan-quick" then
         os.execute(IW .. " " .. wifi .. " scan freq " .. frequency .. " > /dev/null 2>&1")
@@ -105,7 +99,7 @@ function M.reset_network(mode)
         os.execute(IW .. " " .. wifi .. " scan > /dev/null 2>&1")
         os.execute(IW .. " " .. wifi .. " scan passive > /dev/null 2>&1")
     else
-        log:write("-- unknown")
+        nixio.syslog("err", "-- unknown")
     end
 end
 
@@ -148,7 +142,7 @@ function M.monitor_unresponsive_stations()
                         unresponsive.stations[ipaddr] = val
                         if val < unresponsive.ignore then
                             if val > action_limits.unresponsive_report then
-                                log:write("Possible unresponsive node: " .. ipaddr .. " [" .. mac .. "]")
+                                nixio.syslog("err", "Possible unresponsive node: " .. ipaddr .. " [" .. mac .. "]")
                             end
                             if val > unresponsive.max then
                                 unresponsive.max = val
@@ -265,8 +259,7 @@ function M.start_monitor()
     frequency = iwinfo.nl80211.frequency(wifi)
     ssid = iwinfo.nl80211.ssid(wifi)
     if not (phy and frequency and ssid) then
-        log:write("Startup failed")
-        log:flush()
+        nixio.syslog("err", "Startup failed")
         exit_app()
         return
     end
@@ -281,7 +274,7 @@ function M.start_monitor()
         return
     end
 
-    log:write("Monitoring wireless chipset: " .. chipset)
+    nixio.syslog("notice", "Monitoring wireless chipset: " .. chipset)
 
     M.reset_network("rejoin")
 
@@ -290,7 +283,6 @@ function M.start_monitor()
         M.run_monitors()
         M.run_actions()
         M.save()
-        log:flush()
         wait_for_ticks(60) -- 1 minute
     end
 end
