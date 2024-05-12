@@ -290,6 +290,7 @@ end
 -- Return Frequency
 -------------------------------------
 function model.getFreq(radio)
+	require("aredn.hardware")
 	local api=iwinfo.type(radio)
 	local iw = iwinfo[api]
 	local freq = iw.frequency(radio)
@@ -297,6 +298,11 @@ function model.getFreq(radio)
 	-- 3GHZ channel -> Freq conversion
 	if (chan >= 76 and chan <= 99) then
 		freq = freq - 2000
+	end
+	-- 900MHz channel -> Freq conversion
+	local radio = aredn.hardware.get_radio()
+	if radio and radio.name:match("M9") then
+		freq = freq - 1520
 	end
 	return tostring(freq)
 end

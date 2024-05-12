@@ -112,9 +112,9 @@ end
 -- Tunnel info
 info['tunnels']={}
 -- ACTIVE TUNNELS
-local atc=""
-atc=os.capture("ifconfig|grep tun|wc -l")
-info['tunnels']['active_tunnel_count']=atc:chomp()
+local atc=os.capture("ifconfig|grep tun|wc -l"):chomp()
+local awc=os.capture("wg|grep interface|wc -l"):chomp()
+info['tunnels']['active_tunnel_count']=tonumber(atc) + tonumber(awc)
 
 -- Location info
 -- LAT/LON
