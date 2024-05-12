@@ -1003,7 +1003,8 @@ function lqm()
 
         -- Save valid (unblocked) rf mac list for use by OLSR
         if config.enable and phy ~= "none" then
-            f = io.open("/tmp/lqm." .. phy .. ".macs", "w")
+            local tmpfile = "/tmp/lqm." .. phy .. ".macs.tmp"
+            f = io.open(tmpfile, "w")
             if f then
                 for _, track in pairs(tracker)
                 do
@@ -1012,6 +1013,8 @@ function lqm()
                     end
                 end
                 f:close()
+                filecopy(tmpfile, "/tmp/lqm." .. phy .. ".macs", true)
+                os.remove(tmpfile)
             end
         end
 

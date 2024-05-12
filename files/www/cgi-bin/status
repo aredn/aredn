@@ -166,7 +166,7 @@ local cursor = uci.cursor()
 
 local wifi_channel
 local wifi_chanbw
-local wifi_freq_range = ""
+local wifi_freq_range = "-"
 local wifi_ssid
 if not wifi_disabled then
     wifi_channel = cursor:get("wireless", radio, "channel")
@@ -174,6 +174,7 @@ if not wifi_disabled then
     wifi_chanbw = tonumber(cursor:get("wireless", radio, "chanbw") or "20")
     local rfchans = aredn.hardware.get_rfchannels(wifi_iface)
     if rfchans and rfchans[1] then
+        local num = wifi_channel
         local basefreq = rfchans[1].frequency
         if basefreq > 3000 and basefreq < 5000 then
             wifi_channel = wifi_channel * 5 + 3000
@@ -182,8 +183,8 @@ if not wifi_disabled then
         end
         for _, chan in ipairs(rfchans)
         do
-            if chan.number == wifi_channel then
-                wifi_freq_range = (chan.frequency - wifi_chanbw / 2) .. " - " .. (chan.frequency + wifi_chanbw / 2) .. " MHz"
+            if chan.number == num then
+                wifi_freq_range = math.floor(chan.frequency - wifi_chanbw / 2) .. " - " .. math.ceil(chan.frequency + wifi_chanbw / 2) .. " MHz"
                 break
             end
         end
