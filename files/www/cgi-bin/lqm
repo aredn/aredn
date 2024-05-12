@@ -50,7 +50,7 @@ if cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
 end
 
 
-local node = info.get_nvram("node")
+local node = aredn.info.get_nvram("node")
 local node_desc = cursor:get("system", "@system[0]", "description") or ""
 local lat_lon = "<strong>Location Not Available</strong>"
 local lat = cursor:get("aredn", "@location[0]", "lat")
@@ -162,7 +162,7 @@ html.print([[<hr>
             return track.exposed ? "idle - exposed" : "idle";
         }
         const get_snr = track => {
-            return track.snr <= 0 ? "-" : track.snr + ("rev_snr" in track ? "/" + track.rev_snr : "");
+            return !track.snr ? "-" : track.snr + ("rev_snr" in track ? "/" + track.rev_snr : "");
         }
         const name = track => {
             if (track.hostname) {

@@ -37,11 +37,11 @@ require("aredn.info")
 local socket = require("socket")
 
 local refresh_timeout = 15 * 60 -- refresh high cost data every 15 minutes
+local refresh_retry_timeout = 5 * 60
 local pending_timeout = 5 * 60 -- pending node wait 5 minutes before they are included
 local lastseen_timeout = 60 * 60 -- age out nodes we've not seen for 1 hour
 local snr_run_avg = 0.8 -- snr running average
 local quality_min_packets = 100 -- minimum number of tx packets before we can safely calculate the link quality
-local quality_injection_max = 10 -- number of packets to inject into poor links to update quality
 local tx_quality_run_avg = 0.8 -- tx quality running average
 local ping_timeout = 1.0 -- timeout before ping gives a qualtiy penalty
 local ping_time_run_avg = 0.8 -- ping time runnng average
@@ -59,10 +59,12 @@ local ARPING = "/usr/sbin/arping"
 local CURL = "/usr/bin/curl"
 
 local now = 0
+local config = {}
 
-function get_config()
+function update_config()
     local c = uci.cursor() -- each time as /etc/config/aredn may have changed
-    return {
+    config = {
+        enable = c:get("aredn", "@lqm[0]", "enable") == "1",
         margin = tonumber(c:get("aredn", "@lqm[0]", "margin_snr")),
         low = tonumber(c:get("aredn", "@lqm[0]", "min_snr")),
         rts_threshold = tonumber(c:get("aredn", "@lqm[0]", "rts_threshold") or "1"),
@@ -95,9 +97,18 @@ function is_pending(track)
     end
 end
 
+function is_user_blocked(track)
+    if not track.user_allow and track.blocks.user then
+        return true
+    end
+    return false
+end
+
 function should_block(track)
     if track.user_allow then
         return false
+    elseif not config.enable then
+        return track.blocks.user
     elseif is_pending(track) then
         return track.blocks.dtd or track.blocks.user
     else
@@ -109,31 +120,40 @@ function should_nonpair_block(track)
     return track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.quality or track.type ~= "RF"
 end
 
-function inject_quality_traffic(track)
-    return track.ip and track.type ~= "DtD" and track.blocked and track.blocks.quality and not (
-        track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.dup
-    )
-end
-
 function should_ping(track)
-    if track.ip and is_connected(track) then
-        if track.type == "Tunnel" or track.type == "Wireguard" then
-            -- Can only ping if not blocked
-            if not track.blocked then
-                return true
-            end
-        else
-            -- Ping unless we fail a fixed boundary
-            if not (track.blocks.dtd or track.blocks.distance or track.blocks.user) then
-                return true
-            end
+    if not track.ip or is_user_blocked(track) then
+        return false
+    end
+    if track.type == "Tunnel" or track.type == "Wireguard" then
+        -- Tunnels use L3 pings, so we can only ping if we're not blocked
+        if track.blocked then
+            return false
+        end
+    else
+        -- Non-tunnels use L2 pings, so we can still ping even when blocked
+        -- but we dont ping if the node is too distance, the signal is too low, or we dont use this RF because
+        -- we have a DTD connection instead
+        if track.blocks.distance or track.blocks.signal or track.blocks.dtd then
+            return false
         end
     end
-    return false
+    return true
 end
 
-function nft_handle(list, query)
-    for line in io.popen(NFT .. " -a list chain ip fw4 " .. list):lines()
+function nft(cmd)
+    os.execute(NFT .. " " .. cmd)
+end
+
+function nft_insert(chain, cmd)
+    os.execute(NFT .. " insert rule ip fw4 " .. chain .. " " .. cmd)
+end
+
+function nft_delete(chain, handle)
+    os.execute(NFT .. " delete rule ip fw4 " .. chain .. " handle " .. handle)
+end
+
+function nft_handle(chain, query)
+    for line in io.popen(NFT .. " -a list chain ip fw4 " .. chain):lines()
     do
         local handle = line:match(query .. ".*# handle (%d+)$")
         if handle then
@@ -148,12 +168,12 @@ function update_block(track)
         track.blocked = true
         if track.type == "Tunnel" or track.type == "Wireguard" then
             if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop") then
-                os.execute(NFT .. " insert rule ip fw4 input_lqm iifname \\\"" .. track.device .. "\\\" udp dport 698 drop 2> /dev/null")
+                nft_insert("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop 2> /dev/null")
                 return "blocked"
             end
         else
             if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " drop") then
-                os.execute(NFT .. " insert rule ip fw4 input_lqm udp dport 698 ether saddr " .. track.mac .. " drop 2> /dev/null")
+                nft_insert("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop 2> /dev/null")
                 return "blocked"
             end
         end
@@ -162,13 +182,13 @@ function update_block(track)
         if track.type == "Tunnel" or track.type == "Wireguard" then
             local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
             if handle then
-                os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
+                nft_delete("input_lqm", handle)
                 return "unblocked"
             end
         else
             local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " drop")
             if handle then
-                os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
+                nft_delete("input_lqm", handle)
                 return "unblocked"
             end
         end
@@ -180,11 +200,11 @@ function force_remove_block(track)
     track.blocked = false
     local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " drop")
     if handle then
-        os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
+        nft_delete("input_lqm", handle)
     end
     handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
     if handle then
-        os.execute(NFT .. " delete rule ip fw4 input_lqm handle " .. handle)
+        nft_delete("input_lqm", handle)
     end
 end
 
@@ -196,12 +216,17 @@ function calc_distance(lat1, lon1, lat2, lon2)
     return math.floor(r2 * math.asin(math.sqrt(v)))
 end
 
+function av(c, f, n, o)
+    if c and o and n then
+        return f * c + (1 - f) * (n - o)
+    else
+        return n
+    end
+end
+
 -- Canonical hostname
 function canonical_hostname(hostname)
-    if hostname then
-        hostname = hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("%.local%.mesh$", "")
-    end
-    return hostname
+    return hostname and hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("%.local%.mesh$", "")
 end
 
 local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode")
@@ -228,31 +253,24 @@ function iw_set(cmd)
 end
 
 function lqm()
-
-    if uci.cursor():get("aredn", "@lqm[0]", "enable") ~= "1" then
-        exit_app()
-        return
-    end
-
     -- Let things startup for a while before we begin
     wait_for_ticks(math.max(0, 30 - nixio.sysinfo().uptime))
 
     -- Create filters (cannot create during install as they disappear on reboot)
-    os.execute(NFT .. " flush chain ip fw4 input_lqm 2> /dev/null")
-    os.execute(NFT .. " delete chain ip fw4 input_lqm 2> /dev/null")
-    os.execute(NFT .. " add chain ip fw4 input_lqm 2> /dev/null")
+    nft("flush chain ip fw4 input_lqm 2> /dev/null")
+    nft("delete chain ip fw4 input_lqm 2> /dev/null")
+    nft("add chain ip fw4 input_lqm 2> /dev/null")
     local handle = nft_handle("input", "jump input_lqm comment")
     if handle then
-        os.execute(NFT .. " delete rule ip fw4 input handle " .. handle)
+        nft_delete("input", handle)
     end
-    os.execute(NFT .. " insert rule ip fw4 input jump input_lqm comment \\\"block low quality links\\\"")
+    nft_insert("input", "jump input_lqm comment \\\"block low quality links\\\"")
 
     -- We dont know any distances yet
     iw_set("distance auto")
     -- Or any hidden nodes
     iw_set("rts off")
     -- Set the default retries
-    -- 
     iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
 
     -- If the channel bandwidth is less than 20, we need to adjust what we report as the values from 'iw' will not
@@ -283,7 +301,7 @@ function lqm()
     do
         now = nixio.sysinfo().uptime
 
-        local config = get_config()
+        update_config()
 
         local cursor = uci.cursor()
         local cursorm = uci.cursor("/etc/config.mesh")
@@ -365,7 +383,7 @@ function lqm()
             end
         end
 
-        -- Tunnels
+        -- Legacy tunnels
         local tunnel = {}
         for line in io.popen("ifconfig"):lines()
         do
@@ -376,12 +394,7 @@ function lqm()
                     device = tun,
                     signal = nil,
                     ip = nil,
-                    mac = nil,
-                    tx_packets = 0,
-                    tx_fail = 0,
-                    tx_retries = 0,
-                    tx_bitrate = 0,
-                    rx_bitrate = 0
+                    mac = nil
                 }
                 stations[#stations + 1] = tunnel
             elseif line:match("^%s*$") then
@@ -413,14 +426,8 @@ function lqm()
                     stations[#stations + 1] = {
                         type = "Wireguard",
                         device = "wgc" .. wgc,
-                        signal = nil,
                         ip = string.format("%d.%d.%d.%d", a, b, c, d),
-                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d),
-                        tx_packets = 0,
-                        tx_fail = 0,
-                        tx_retries = 0,
-                        tx_bitrate = 0,
-                        rx_bitrate = 0
+                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
                     }
                     wgc = wgc + 1
                 end
@@ -434,14 +441,8 @@ function lqm()
                     stations[#stations + 1] = {
                         type = "Wireguard",
                         device = "wgs" .. wgs,
-                        signal = nil,
                         ip = string.format("%d.%d.%d.%d", a, b, c, d),
-                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d),
-                        tx_packets = 0,
-                        tx_fail = 0,
-                        tx_retries = 0,
-                        tx_bitrate = 0,
-                        rx_bitrate = 0
+                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
                     }
                     wgs = wgs + 1
                 end
@@ -455,45 +456,33 @@ function lqm()
                 stations[#stations + 1] = {
                     type = "DtD",
                     device = entry.Device,
-                    signal = nil,
                     ip = entry["IP address"],
-                    mac = entry["HW address"],
-                    tx_packets = 0,
-                    tx_fail = 0,
-                    tx_retries = 0,
-                    tx_bitrate = 0,
-                    rx_bitrate = 0
+                    mac = entry["HW address"]
                 }
             end
         end
 
         -- Xlink
-        if nixio.fs.stat("/etc/config.mesh/xlink") then
-            uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
-                function(section)
-                    if section.ifname then
-                        for _, entry in ipairs(arps)
-                        do
-                            if entry["Device"] == section.ifname then
-                                stations[#stations + 1] = {
-                                    type = "Xlink",
-                                    device = section.ifname,
-                                    signal = nil,
-                                    ip = entry["IP address"],
-                                    mac = entry["HW address"],
-                                    tx_packets = 0,
-                                    tx_fail = 0,
-                                    tx_retries = 0,
-                                    tx_bitrate = 0,
-                                    rx_bitrate = 0
-                                }
-                            end
+        cursorm:foreach("xlink", "interface",
+            function(section)
+                if section.ifname then
+                    for _, entry in ipairs(arps)
+                    do
+                        if entry["Device"] == section.ifname then
+                            stations[#stations + 1] = {
+                                type = "Xlink",
+                                device = section.ifname,
+                                signal = nil,
+                                ip = entry["IP address"],
+                                mac = entry["HW address"]
+                            }
                         end
                     end
                 end
-            )
-        end
+            end
+        )
 
+        -- Update the trackers based on the latest station information
         for _, station in ipairs(stations)
         do
             if station.signal ~= 0 and not our_macs[station.mac] then
@@ -503,11 +492,9 @@ function lqm()
                         device = station.device,
                         firstseen = now,
                         lastseen = now,
-                        lastrouted = now,
                         pending = now + pending_timeout,
                         refresh = 0,
                         mac = station.mac,
-                        station = nil,
                         ip = nil,
                         hostname = nil,
                         lat = nil,
@@ -521,18 +508,21 @@ function lqm()
                             quality = false
                         },
                         blocked = false,
-                        snr = 0,
+                        snr = nil,
                         rev_snr = nil,
-                        avg_snr = 0,
+                        avg_snr = nil,
                         last_tx = nil,
-                        last_tx_total = nil,
-                        tx_quality = 100,
-                        ping_quality = 100,
-                        ping_success_time = 0,
+                        tx_quality = nil,
+                        ping_quality = nil,
+                        ping_success_time = nil,
                         tx_bitrate = nil,
                         rx_bitrate = nil,
-                        quality = 100,
-                        exposed = false
+                        quality = nil,
+                        last_tx_fail = nil,
+                        last_tx_retries = nil,
+                        avg_tx = nil,
+                        avg_tx_retries = nil,
+                        avg_tx_fail = nil
                     }
                 end
                 local track = tracker[station.mac]
@@ -543,150 +533,136 @@ function lqm()
                     track.hostname = nil
                 end
                 if not track.hostname and track.ip then
-                    local hostname = nixio.getnameinfo(track.ip)
-                    if hostname then
-                        track.hostname = canonical_hostname(hostname)
-                    end
+                    track.hostname = canonical_hostname(nixio.getnameinfo(track.ip))
                 end
 
                 -- Running average SNR
-                if station.type == "RF" then
-                    local snr = station.signal - station.noise
-                    if track.snr == 0 then
-                        track.snr = snr
-                    else
-                        track.snr = math.ceil(snr_run_avg * track.snr + (1 - snr_run_avg) * snr)
-                    end
+                if station.signal and station.noise then
+                    track.snr = math.ceil(av(track.snr, snr_run_avg, station.signal - station.noise, 0))
                 end
 
                 -- Running average estimate of link quality
                 local tx = station.tx_packets
-                local tx_total = station.tx_packets + station.tx_fail + station.tx_retries
-                if not track.last_tx then
-                    track.last_tx = tx
-                    track.last_tx_total = tx_total
-                    track.tx_quality = 100
-                elseif tx_total >= track.last_tx_total + quality_min_packets then
-                    local tx_quality = 100 * (tx - track.last_tx) / (tx_total - track.last_tx_total)
-                    track.last_tx = tx
-                    track.last_tx_total = tx_total
-                    track.last_quality = tx_quality
-                    track.tx_quality = math.min(100, math.max(0, math.ceil(tx_quality_run_avg * track.tx_quality + (1 - tx_quality_run_avg) * tx_quality)))
+                local tx_retries = station.tx_retries
+                local tx_fail = station.tx_fail
+
+                local tx_total = (tx or 0) + (tx_fail or 0) + (tx_retries or 0)
+                local tx_last_total = (track.tx or 0) + (track.tx_fail or 0) + (track.tx_retries or 0)
+
+                if tx_total >= tx_last_total + quality_min_packets then
+                    track.avg_tx = av(track.avg_tx, tx_quality_run_avg, tx, track.tx)
+                    track.avg_tx_retries = av(track.avg_tx_retries, tx_quality_run_avg, tx_retries, track.tx_retries)
+                    track.avg_tx_fail = av(track.avg_tx_fail, tx_quality_run_avg, tx_fail, track.tx_fail)
+
+                    local tx_quality = 100 * ((tx or 0) - (track.tx or 0) / (tx_total - tx_last_total))
+                    track.tx_quality = math.min(100, math.max(0, math.ceil(tx_quality_run_avg * (track.tx_quality or 100) + (1 - tx_quality_run_avg) * tx_quality)))
                 end
-                if not track.tx_bitrate then
-                    track.tx_bitrate = station.tx_bitrate
-                else
-                    track.tx_bitrate = track.tx_bitrate * bitrate_run_avg + station.tx_bitrate * (1 - bitrate_run_avg)
-                end
-                if not track.rx_bitrate then
-                    track.rx_bitrate = station.rx_bitrate
-                else
-                    track.rx_bitrate = track.rx_bitrate * bitrate_run_avg + station.rx_bitrate * (1 - bitrate_run_avg)
-                end
+
+                track.tx = tx
+                track.tx_retries = tx_retries
+                track.tx_fail = tx_fail
+
+                track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, station.tx_bitrate, track.tx_bitrate)
+                track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, station.rx_bitrate, track.rx_bitrate)
 
                 track.lastseen = now
-            end
-        end
-
-        -- Count the RF links we have
-        local rfcount = 0
-        for _, track in pairs(tracker)
-        do
-            if track.type == "RF" then
-                rfcount = rfcount + 1
             end
         end
 
         -- Update link tracking state
         for _, track in pairs(tracker)
         do
-            -- Only refresh remote attributes periodically
-            if track.ip and (now > track.refresh or is_pending(track)) then
-                track.refresh = now + refresh_timeout
+            -- Update if link is routable
+            local rt = track.ip and ip.route(track.ip) or nil
+            if rt and tostring(rt.gw) == track.ip then
+                track.routable = true
+            else
+                track.routable = false
+            end
 
-                local old_rev_snr = track.rev_snr
-                track.rev_snr = null
-                dtdlinks[track.mac] = {}
-                track.exposed = false
+            -- Refresh remote attributes periodically as this is expensive
+            if track.ip and now > track.refresh then
 
                 -- Refresh the hostname periodically as it can change
-                local hostname = nixio.getnameinfo(track.ip)
-                if hostname then
-                    track.hostname = canonical_hostname(hostname)
-                end
+                track.hostname = canonical_hostname(nixio.getnameinfo(track.ip)) or track.hostname
 
-                local raw = io.popen(CURL .. " --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
-                local info = luci.jsonc.parse(raw:read("*a"))
-                raw:close()
-                wait_for_ticks(0)
-                if info then
-                    rflinks[track.mac] = nil
-                    if tonumber(info.lat) and tonumber(info.lon) then
-                        track.lat = tonumber(info.lat)
-                        track.lon = tonumber(info.lon)
-                        if lat and lon then
+                if track.blocked or not track.routable then
+                    -- Remote is blocked not directly routable
+                    -- We cannot update so invalidate any information considered stale and set time to attempt refresh
+                    track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
+                    track.rev_snr = nil
+                else
+                    local raw = io.popen(CURL .. " --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
+                    local info = luci.jsonc.parse(raw:read("*a"))
+                    raw:close()
+
+                    wait_for_ticks(0)
+
+                    if not info then
+                        -- Failed to fetch information. Set time for retry and invalidate any information
+                        -- considered stale
+                        track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
+                        track.rev_snr = nil
+                    else
+                        track.refresh = now + refresh_timeout
+
+                        dtdlinks[track.mac] = {}
+
+                        -- Update the distance to the remote node
+                        track.lat = tonumber(info.lat) or track.lat
+                        track.lon = tonumber(info.lon) or track.lon
+                        if track.lat and track.lon and lat and lon then
                             track.distance = calc_distance(lat, lon, track.lat, track.lon)
                         end
-                    end
-                    if track.type == "RF" then
-                        if info.lqm and info.lqm.enabled and info.lqm.info and info.lqm.info.trackers then
-                            rflinks[track.mac] = {}
-                            for _, rtrack in pairs(info.lqm.info.trackers)
-                            do
-                                if not rtrack.type or rtrack.type == "RF" then
-                                    local rhostname = canonical_hostname(rtrack.hostname)
-                                    if rtrack.ip then
-                                        local rdistance = nil
-                                        if tonumber(rtrack.lat) and tonumber(rtrack.lon) and lat and lon then
-                                            rdistance = calc_distance(lat, lon, tonumber(rtrack.lat), tonumber(rtrack.lon))
-                                        end
-                                        if rtrack.routable then
+
+                        if track.type == "RF" then
+                            rflinks[track.mac] = nil
+                            if info.lqm and info.lqm.enabled and info.lqm.info and info.lqm.info.trackers then
+                                rflinks[track.mac] = {}
+                                for _, rtrack in pairs(info.lqm.info.trackers)
+                                do
+                                    if rtrack.type == "RF" or not rtrack.type then
+                                        local rhostname = canonical_hostname(rtrack.hostname)
+                                        if rtrack.ip and rtrack.routable then
+                                            local rdistance = nil
+                                            if tonumber(rtrack.lat) and tonumber(rtrack.lon) and lat and lon then
+                                                rdistance = calc_distance(lat, lon, tonumber(rtrack.lat), tonumber(rtrack.lon))
+                                            end
                                             rflinks[track.mac][rtrack.ip] = {
                                                 ip = rtrack.ip,
                                                 hostname = rhostname,
                                                 distance = rdistance
                                             }
                                         end
-                                    end
-                                    if myhostname == rhostname then
-                                        if not old_rev_snr or not rtrack.snr then
-                                            track.rev_snr = rtrack.snr
-                                        else
-                                            track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * rtrack.snr)
+                                        if myhostname == rhostname then
+                                            track.rev_snr = (track.rev_snr and rtrack.snr) and math.ceil(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * rtrack.snr) or rtrack.snr
                                         end
                                     end
-                                    if rtrack.routable and not tracker[rtrack.mac] and not our_macs[rtrack.mac] and rfcount > 1 then
-                                        track.exposed = true
+                                end
+                                for ip, link in pairs(info.link_info)
+                                do
+                                    if link.hostname and link.linkType == "DTD" then
+                                        dtdlinks[track.mac][canonical_hostname(link.hostname)] = true
                                     end
                                 end
-                            end
-                            for ip, link in pairs(info.link_info)
-                            do
-                                if link.hostname and link.linkType == "DTD" then
-                                    dtdlinks[track.mac][canonical_hostname(link.hostname)] = true
-                                end
-                            end
-                        elseif info.link_info then
-                            rflinks[track.mac] = {}
-                            -- If there's no LQM information we fallback on using link information.
-                            for ip, link in pairs(info.link_info)
-                            do
-                                if link.linkType == "RF" then
-                                    rflinks[track.mac][ip] = {
-                                        ip = ip,
-                                        hostname = canonical_hostname(link.hostname)
-                                    }
-                                end
-                                if link.hostname then
-                                    local hostname = canonical_hostname(link.hostname)
-                                    if link.linkType == "DTD" then
-                                        dtdlinks[track.mac][hostname] = true
-                                    elseif link.linkType == "RF" and link.signal and link.noise and myhostname == hostname then
-                                        local snr = link.signal - link.noise
-                                        if not old_rev_snr then
-                                            track.rev_snr = snr
-                                        else
-                                            track.rev_snr = math.ceil(snr_run_avg * old_rev_snr + (1 - snr_run_avg) * snr)
+                            elseif info.link_info then
+                                rflinks[track.mac] = {}
+                                -- If there's no LQM information we fallback on using link information.
+                                for ip, link in pairs(info.link_info)
+                                do
+                                    local rhostname = canonical_hostname(link.hostname)
+                                    if link.linkType == "RF" then
+                                        rflinks[track.mac][ip] = {
+                                            ip = ip,
+                                            hostname = rhostname
+                                        }
+                                    end
+                                    if rhostname then
+                                        if link.linkType == "DTD" then
+                                            dtdlinks[track.mac][rhostname] = true
+                                        elseif link.linkType == "RF" and link.signal and link.noise and myhostname == rhostname then
+                                            local snr = link.signal - link.noise
+                                            track.rev_snr = track.rev_snr and math.ceil(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * snr) or snr
                                         end
                                     end
                                 end
@@ -696,28 +672,19 @@ function lqm()
                 end
             end
 
-            if is_connected(track) then
-                -- Update avg snr using both ends (if we have them)
-                track.avg_snr = (track.snr + (track.rev_snr or track.snr)) / 2
-                -- Routable
-                local rt = track.ip and ip.route(track.ip) or nil
-                if rt and tostring(rt.gw) == track.ip then
-                    track.routable = true
-                    track.lastrouted = now
+            -- Update avg snr using both ends (if we have them)
+            if track.snr then
+                if track.rev_snr then
+                    track.avg_snr = math.ceil((track.snr + track.rev_snr) / 2)
                 else
-                    track.routable = false
+                    track.avg_snr = track.snr
                 end
             else
-                -- Clear snr when we've not seen the node this time (disconnected)
-                track.snr = 0
-                track.rev_snr = nil
-                track.routable = false
+                track.avg_snr = null
             end
 
             -- Ping addresses and penalize quality for excessively slow links
-            if config.ping_penalty <= 0 then
-                track.ping_quality = 100
-            elseif should_ping(track) then
+            if should_ping(track) then
                 local success = 100
                 local ptime
 
@@ -740,7 +707,7 @@ function lqm()
                     sigsock:close()
                 else
                     -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
-                    -- table messing up the response packet.
+                    -- table and firewall messing up the response packet.
                     local pstart = socket.gettime(0)
                     if os.execute(ARPING .. " -q -c 1 -D -w " .. math.ceil(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) == 0 then
                         -- Failure
@@ -751,110 +718,137 @@ function lqm()
 
                 wait_for_ticks(0)
 
-                local ping_loss_run_avg = 1 - config.ping_penalty / 100
+                local ping_loss_run_avg = config.ping_penalty / 100
+                track.ping_quality = (track.ping_quality or 100) - ping_loss_run_avg
                 if success > 0 then
-                    track.ping_success_time = track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)
+                    track.ping_success_time = track.ping_success_time and (track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)) or ptime
+                    track.ping_quality = track.ping_quality + ping_loss_run_avg
                 end
-                track.ping_quality = math.ceil(ping_loss_run_avg * track.ping_quality + (1 - ping_loss_run_avg) * success)
+                track.ping_quality = math.ceil(track.ping_quality)
                 if success == 0 and track.type == "DtD" and track.firstseen == now then
                     -- If local ping immediately fail, ditch this tracker. This can happen sometimes when we
                     -- find arp entries which aren't valid.
                     tracker[track.mac] = nil
                 end
+            else
+                track.ping_quality = nil
+                track.ping_success_time = nil
             end
 
             -- Calculate overall link quality
-            track.quality = math.ceil((track.tx_quality + track.ping_quality) / 2)
-
-            -- Inject traffic into links with poor quality
-            -- We do this so we can keep measuring the current link quality otherwise, once it becomes
-            -- bad, it wont be used and we can never tell if it becomes good again. Beware injecting too
-            -- much traffic because, on very poor links, this can generate multiple retries per packet, flooding
-            -- the wifi channel
-            if inject_quality_traffic(track) then
-                -- Create socket we use to inject traffic into degraded links
-                -- This is setup so it ignores routing and will always send to the correct wifi station
-                local sigsock = nixio.socket("inet", "dgram")
-                sigsock:setopt("socket", "bindtodevice", track.device)
-                sigsock:setopt("socket", "dontroute", 1)
-                for _ = 1,quality_injection_max
-                do
-                    sigsock:sendto("", track.ip, 8080)
+            if track.tx_quality then
+                if track.ping_quality then
+                    track.quality = math.ceil((track.tx_quality + track.ping_quality) / 2)
+                else
+                    track.quality = track.tx_quality
                 end
-                sigsock:close()
+            elseif track.ping_quality then
+                track.quality = track.ping_quality
+            else
+                track.quality = nil
             end
+
         end
 
-        -- Work out what to block, unblock and limit
+        --
+        -- At this point we have gather all the data we need to determine which links are best to use and
+        -- which links should be blocked.
+        --
+
         for _, track in pairs(tracker)
         do
-            -- SNR and distance blocks only related to RF links
-            if track.type == "RF" then
-
-                -- If we have a direct dtd connection to this device, make sure we use that
-                track.blocks.dtd = false
-                for _, dtd in pairs(tracker) do
-                    if dtd.type == "DtD" and dtd.hostname == track.hostname then
-                        if dtd.distance and dtd.distance < dtd_distance and dtd.routable then
-                            track.blocks.dtd = true
-                        end
+            for _ = 1,1
+            do
+                -- Clear state
+                local oldblocks = track.blocks;
+                track.blocks = {
+                    dtd = false,
+                    signal = false,
+                    distance = false,
+                    pair = false,
+                    quality = false
+                }
+    
+                -- Always allow if user requested it
+                for val in string.gmatch(config.user_allows, "([^,]+)")
+                do
+                    if val:gsub("%s+", ""):gsub("-", ":"):upper() == track.mac then
+                        track.user_allow = true
                         break
                     end
                 end
+                if track.user_allow then
+                    break
+                end
 
-                -- When unblocked link signal becomes too low, block
-                if not track.blocks.signal then
-                    if track.snr < config.low or (track.rev_snr and track.rev_snr < config.low) then
-                        track.blocks.signal = true
-                    end 
-                -- when blocked link becomes (low+margin) again, unblock
-                else
-                    if track.snr >= config.low + config.margin and (not track.rev_snr or track.rev_snr >= config.low + config.margin) then
-                        track.blocks.signal = false
-                        -- When signal is good enough to unblock a link but the quality is low, artificially bump
-                        -- it up to give the link chance to recover
-                        if track.blocks.quality then
-                            track.quality = config.min_quality + config.margin_quality
+                -- Block if user requested it
+                for val in string.gmatch(config.user_blocks, "([^,]+)")
+                do
+                    if val:gsub("%s+", ""):gsub("-", ":"):upper() == track.mac then
+                        track.blocks.user = true
+                        break
+                    end
+                end
+                if track.blocks.user then
+                    break
+                end
+        
+                -- SNR and distance blocks only related to RF links
+                if track.type == "RF" then
+
+                    -- Block any nodes which are too distant
+                    if track.distance and (track.distance < config.min_distance or track.distance > config.max_distance) then
+                        track.blocks.distance = true
+                        break
+                    end
+
+                    -- If we have a direct dtd connection to this device, make sure we use that
+                    for _, dtd in pairs(tracker) do
+                        if dtd.type == "DtD" and dtd.hostname == track.hostname then
+                            if dtd.distance and dtd.distance < dtd_distance and dtd.routable then
+                                track.blocks.dtd = true
+                            end
+                            break
                         end
-                    end 
+                    end
+                    if track.blocks.dtd then
+                        break
+                    end
+
+                    -- When unblocked link signal becomes too low, block
+                    if not oldblocks.signal then
+                        if track.snr < config.low or (track.rev_snr and track.rev_snr < config.low) then
+                            track.blocks.signal = true
+                            break
+                        end 
+                    -- when blocked link becomes (low+margin) again, unblock
+                    else
+                        if track.snr < config.low + config.margin or (track.rev_snr and track.rev_snr < config.low + config.margin) then
+                            track.blocks.signal = true
+                            break
+                        else
+                            -- When signal is good enough to unblock a link but the quality is low, artificially bump
+                            -- it up to give the link chance to recover
+                            if oldblocks.quality then
+                                track.quality = config.min_quality + config.margin_quality
+                            end
+                        end
+                    end
                 end
 
-                -- Block any nodes which are too distant
-                if not track.distance or (track.distance >= config.min_distance and track.distance <= config.max_distance) then
-                    track.blocks.distance = false
-                else
-                    track.blocks.distance = true
+                -- Block if quality is poor
+                if track.quality and (track.type ~= "DtD" or (track.distance and track.distance >= dtd_distance)) then
+                    if not oldblocks.quality then
+                        if track.quality < config.min_quality then
+                            track.blocks.quality = true
+                        end
+                    else
+                        if track.quality < config.min_quality + config.margin_quality then
+                            track.blocks.quality = true
+                        end
+                    end
                 end
 
-            end
-
-            -- Block if user requested it
-            track.blocks.user = false
-            for val in string.gmatch(config.user_blocks, "([^,]+)")
-            do
-                if val:gsub("%s+", ""):gsub("-", ":"):upper() == track.mac then
-                    track.blocks.user = true
-                    break
-                end
-            end
-
-            -- Block if quality is poor
-            if track.quality then
-                if not track.blocks.quality and track.quality < config.min_quality and (track.type ~= "DtD" or (track.distance and track.distance >= dtd_distance)) then
-                    track.blocks.quality = true
-                elseif track.blocks.quality and track.quality >= config.min_quality + config.margin_quality then
-                    track.blocks.quality = false
-                end
-            end
-
-            -- Always allow if user requested it
-            track.user_allow = false;
-            for val in string.gmatch(config.user_allows, "([^,]+)")
-            do
-                if val:gsub("%s+", ""):gsub("-", ":"):upper() == track.mac then
-                    track.user_allow = true
-                    break
-                end
             end
         end
 
@@ -906,8 +900,13 @@ function lqm()
             end
         end
 
-        local distance = -1
+        --
+        -- We now have updated state on what is blocked and what is not.
+        -- Reflect this state with the firewall and various other
+        -- node parameters (e.g. rts, coverage)
+        --
 
+        local distance = -1
         -- Update the block state and calculate the routable distance
         for _, track in pairs(tracker)
         do
@@ -946,7 +945,7 @@ function lqm()
         end
         -- Update the wifi distance
         local coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3))
-        if coverage ~= last_coverage then
+        if config.enable and coverage ~= last_coverage then
             iw_set("coverage " .. coverage)
             last_coverage = coverage
         end
@@ -980,8 +979,7 @@ function lqm()
         do
             hidden[#hidden + 1] = ninfo
         end
-        -- Don't adjust RTS on ath10k for the moment - appear to be some bug to be worked out here
-        if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
+        if config.enable and (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
             if #hidden > 0 then
                 iw_set("rts " .. config.rts_threshold)
             else
@@ -1001,6 +999,20 @@ function lqm()
                 hidden_nodes = hidden_nodes
             }, true))
             f:close()
+        end
+
+        -- Save valid (unblocked) rf mac list for use by OLSR
+        if config.enable and phy ~= "none" then
+            f = io.open("/tmp/lqm." .. phy .. ".macs", "w")
+            if f then
+                for _, track in pairs(tracker)
+                do
+                    if track.device == wlan and not track.blocked then
+                        f:write(track.mac .. "\n")
+                    end
+                end
+                f:close()
+            end
         end
 
         wait_for_ticks(60) -- 1 minute
