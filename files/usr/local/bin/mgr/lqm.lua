@@ -224,6 +224,10 @@ function av(c, f, n, o)
     end
 end
 
+function round(v)
+    return math.floor(v + 0.5)
+end
+
 -- Canonical hostname
 function canonical_hostname(hostname)
     return hostname and hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("%.local%.mesh$", "")
@@ -344,7 +348,7 @@ function lqm()
             local station = {}
             local cnoise = iwinfo.nl80211.noise(wlan)
             if cnoise and cnoise < -70 then
-                noise = math.ceil(noise * 0.9 + cnoise * 0.1)
+                noise = round(noise * 0.9 + cnoise * 0.1)
             end
             for line in io.popen(IW .. " " .. wlan .. " station dump"):lines()
             do
@@ -538,7 +542,7 @@ function lqm()
 
                 -- Running average SNR
                 if station.signal and station.noise then
-                    track.snr = math.ceil(av(track.snr, snr_run_avg, station.signal - station.noise, 0))
+                    track.snr = round(av(track.snr, snr_run_avg, station.signal - station.noise, 0))
                 end
 
                 -- Running average estimate of link quality
@@ -546,16 +550,13 @@ function lqm()
                 local tx_retries = station.tx_retries
                 local tx_fail = station.tx_fail
 
-                local tx_total = (tx or 0) + (tx_fail or 0) + (tx_retries or 0)
-                local tx_last_total = (track.tx or 0) + (track.tx_fail or 0) + (track.tx_retries or 0)
-
-                if tx_total >= tx_last_total + quality_min_packets then
+                if tx and track.tx and tx >= track.tx + quality_min_packets then
                     track.avg_tx = av(track.avg_tx, tx_quality_run_avg, tx, track.tx)
                     track.avg_tx_retries = av(track.avg_tx_retries, tx_quality_run_avg, tx_retries, track.tx_retries)
                     track.avg_tx_fail = av(track.avg_tx_fail, tx_quality_run_avg, tx_fail, track.tx_fail)
 
-                    local tx_quality = 100 * ((tx or 0) - (track.tx or 0) / (tx_total - tx_last_total))
-                    track.tx_quality = math.min(100, math.max(0, math.ceil(tx_quality_run_avg * (track.tx_quality or 100) + (1 - tx_quality_run_avg) * tx_quality)))
+                    local bad = math.max((track.avg_tx_fail or 0), (track.avg_tx_retries or 0))
+                    track.tx_quality = 100 * (1 - math.min(1, math.max(track.avg_tx > 0 and bad / track.avg_tx or 0, 0)))
                 end
 
                 track.tx = tx
@@ -635,7 +636,7 @@ function lqm()
                                             }
                                         end
                                         if myhostname == rhostname then
-                                            track.rev_snr = (track.rev_snr and rtrack.snr) and math.ceil(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * rtrack.snr) or rtrack.snr
+                                            track.rev_snr = (track.rev_snr and rtrack.snr) and round(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * rtrack.snr) or rtrack.snr
                                         end
                                     end
                                 end
@@ -662,7 +663,7 @@ function lqm()
                                             dtdlinks[track.mac][rhostname] = true
                                         elseif link.linkType == "RF" and link.signal and link.noise and myhostname == rhostname then
                                             local snr = link.signal - link.noise
-                                            track.rev_snr = track.rev_snr and math.ceil(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * snr) or snr
+                                            track.rev_snr = track.rev_snr and round(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * snr) or snr
                                         end
                                     end
                                 end
@@ -675,7 +676,7 @@ function lqm()
             -- Update avg snr using both ends (if we have them)
             if track.snr then
                 if track.rev_snr then
-                    track.avg_snr = math.ceil((track.snr + track.rev_snr) / 2)
+                    track.avg_snr = round((track.snr + track.rev_snr) / 2)
                 else
                     track.avg_snr = track.snr
                 end
@@ -709,7 +710,7 @@ function lqm()
                     -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
                     -- table and firewall messing up the response packet.
                     local pstart = socket.gettime(0)
-                    if os.execute(ARPING .. " -q -c 1 -D -w " .. math.ceil(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) == 0 then
+                    if os.execute(ARPING .. " -q -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) == 0 then
                         -- Failure
                         success = 0
                     end
@@ -718,13 +719,13 @@ function lqm()
 
                 wait_for_ticks(0)
 
-                local ping_loss_run_avg = config.ping_penalty / 100
-                track.ping_quality = (track.ping_quality or 100) - ping_loss_run_avg
+                track.ping_quality = track.ping_quality and (track.ping_quality + 1) or 100
                 if success > 0 then
                     track.ping_success_time = track.ping_success_time and (track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)) or ptime
-                    track.ping_quality = track.ping_quality + ping_loss_run_avg
+                else
+                    track.ping_quality = track.ping_quality - config.ping_penalty
                 end
-                track.ping_quality = math.ceil(track.ping_quality)
+                track.ping_quality = math.max(0, math.min(100, track.ping_quality))
                 if success == 0 and track.type == "DtD" and track.firstseen == now then
                     -- If local ping immediately fail, ditch this tracker. This can happen sometimes when we
                     -- find arp entries which aren't valid.
@@ -738,16 +739,15 @@ function lqm()
             -- Calculate overall link quality
             if track.tx_quality then
                 if track.ping_quality then
-                    track.quality = math.ceil((track.tx_quality + track.ping_quality) / 2)
+                    track.quality = round((track.tx_quality + track.ping_quality) / 2)
                 else
-                    track.quality = track.tx_quality
+                    track.quality = round(track.tx_quality)
                 end
             elseif track.ping_quality then
-                track.quality = track.ping_quality
+                track.quality = round(track.ping_quality)
             else
                 track.quality = nil
             end
-
         end
 
         --
@@ -862,7 +862,7 @@ function lqm()
                 for _, track2 in pairs(tracker)
                 do
                     if track ~= track2 and track2.hostname and not should_nonpair_block(track2) then
-                        if dtdlinks[track.mac][track2.hostname] then
+                        if dtdlinks[track.mac] and dtdlinks[track.mac][track2.hostname] then
                             if not (track.lat and track.lon and track2.lat and track2.lon) or calc_distance(track.lat, track.lon, track2.lat, track2.lon) < dtd_distance then
                                 tracklist[#tracklist + 1] = track2
                             end
@@ -1008,7 +1008,7 @@ function lqm()
             if f then
                 for _, track in pairs(tracker)
                 do
-                    if track.device == wlan and not track.blocked then
+                    if track.device == wlan and is_connected(track) and not track.blocked then
                         f:write(track.mac .. "\n")
                     end
                 end
