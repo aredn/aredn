@@ -862,15 +862,25 @@ do
         elseif track.blocks.dup then
             c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked dup)</small>"
         elseif track.blocks.quality then
-            if not track.ping_quality or track.tx_quality < track.ping_quality then
-                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked retries)</small>"
+            if track.ping_quality then
+                if track.tx_quality then
+                    if track.tx_quality < track.ping_quality then
+                        c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked retries)</small>"
+                    else
+                        c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked latency)</small>"
+                    end
+                else
+                    c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked latency)</small>"
+                end
             else
-                c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked latency)</small>"
+                if track.tx_quality then
+                    c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked retries)</small>"
+                end
             end
         else
             c1 = c1 .. "&nbsp;<small>(" .. type .. "blocked)</small>"
         end
-        if track.snr > 0 then
+        if track.snr then
             c4b = track.snr
             if track.rev_snr then
                 c4b = c4b .. "/" .. track.rev_snr
