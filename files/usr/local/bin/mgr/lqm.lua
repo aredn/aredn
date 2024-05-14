@@ -413,8 +413,8 @@ function lqm()
                 else
                     local txp, txf = line:match("TX packets:(%d+)%s+errors:(%d+)")
                     if txp and txf then
-                        tunnel.tx_packets = txp
-                        tunnel.tx_fail = txf
+                        tunnel.tx_packets = tonumber(txp)
+                        tunnel.tx_fail = tonumber(txf)
                     end
                 end
             end
