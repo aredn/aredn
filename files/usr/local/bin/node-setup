@@ -68,7 +68,28 @@ local function h2s(hex)
     return s
 end
 
+local function tablesize(t)
+    local len = 0
+    for _ in pairs(t)
+    do
+        len = len + 1
+    end
+    return len
+end
+
+local function get_subtable(container, key)
+    local subtable = container[key]
+    if not subtable then
+        subtable = {}
+        container[key] = subtable
+    end
+    return subtable
+end
+
 -- helpers end
+
+local FORCED = "force"
+local UNFORCED = "onrequest"
 
 local c = uci.cursor()
 local cm = uci.cursor("/etc/config.mesh")
@@ -664,7 +685,7 @@ if add_masq then
 end
 
 -- setup node lan dhcp
-function load_dhcp_tags(dhcptagsfile)
+local function load_dhcp_tags(dhcptagsfile)
     local dhcp_tags = {}
 
     for line in io.lines(dhcptagsfile)
@@ -672,47 +693,76 @@ function load_dhcp_tags(dhcptagsfile)
         if not (line:match("^%s*#") or line:match("^%s*$")) then
             local name, condition, pattern = line:match("(%S+)%s+(%S+)%s+(.*)")
             if pattern then
-                local cond_table = dhcp_tags[condition]
-                if not cond_table then
-                    cond_table = {}
-                    dhcp_tags[condition] = cond_table
-                end
-                table.insert(cond_table, {name = name, pattern = pattern})
+                table.insert(get_subtable(dhcp_tags, condition),
+                             {name = name, pattern = pattern})
             end
         end
     end
     return dhcp_tags
 end
 
-function load_dhcp_options(dhcpoptionsfile)
+local function load_dhcp_options(dhcpoptionsfile)
     local dhcp_options = {}
-    for line in io.lines(dhcpoptionsfile)
-    do
-        if not (line:match("^%s*#") or line:match("^%s*$")) then
-            local tag, force, opt_num, opt_val = line:match("(%S*)%s+(%w+)%s+(%d+)%s+(.*)")
-            if opt_val then
-                table.insert(dhcp_options, {
-                            tag = tag,
-                            force = force == "force",
-                            num = opt_num,
-                            val = opt_val})
+    if nixio.fs.access(dhcpoptionsfile) then
+        for line in io.lines(dhcpoptionsfile)
+        do
+            if not (line:match("^%s*#") or line:match("^%s*$")) then
+                local tag, force, opt_num, opt_val = line:match("(%S*)%s+(%w+)%s+(%d+)%s+(.*)")
+                if opt_val then
+                    local by_tag = get_subtable(dhcp_options, tag)
+                    if tag == "" and force == FORCED then
+                        force = UNFORCED -- force is unsupported for untagged options
+                    end
+                    table.insert(get_subtable(by_tag, force),
+                                 {num = opt_num, val = opt_val})
+                end
             end
         end
     end
     return dhcp_options
 end
 
-if nixio.fs.access(dhcptagsfile) then
-    for condition, cond_table in pairs(load_dhcp_tags(dhcptagsfile))
+local function option_item(tag, option)
+    local parts = {}
+    if tag ~= "" then
+        table.insert(parts, "tag:" .. tag)
+    end
+    table.insert(parts, option.num)
+    table.insert(parts, option.val)
+    return table.concat(parts, ",")
+end
+
+local function create_classifying_section(condition, cond_list)
+    for i, props in ipairs(cond_list)
     do
-        for i, props in ipairs(cond_table)
-        do
-            nc:add("dhcp", condition)
-            nc:set("dhcp", string.format("@%s[%d]", condition, i-1), "networkid", props.name)
-            nc:set("dhcp", string.format("@%s[%d]", condition, i-1), condition, props.pattern)
+        local secname = condition
+        local pat = props.pattern
+        if (condition == "subscriberid") then
+            secname = "subscrid"
+            pat = '"' .. pat:gsub('"', '\\"') .. '"'
+            print(props.pattern, "->", pat)
         end
+        nc:add("dhcp", secname)
+        local section_ref = string.format("@%s[%d]", secname, i-1)
+        nc:set("dhcp", section_ref, "networkid", props.name)
+        nc:set("dhcp", section_ref, condition, pat)
     end
 end
+
+local function create_tag_section(tag, force, optlist)
+    if tag ~= "" then
+        nc:set("dhcp", tag, "tag")
+        if force == FORCED then
+            nc:set("dhcp", tag, "force", 1)
+        end
+        local options = {}
+        for _, option in ipairs(optlist) do
+            table.insert(options, option_item("", option)) -- tag is on section
+        end
+        nc:set("dhcp", tag, "dhcp_option", options)
+    end
+end
+
 do
     local dhcp_option_list = {}
     if nc:get("aredn", "@wan[0]", "lan_dhcp_route") == "1" or nc:get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" then
@@ -726,22 +776,34 @@ do
         table.insert(dhcp_option_list, "249,10.0.0.0/8," .. cfg.lan_ip)
         table.insert(dhcp_option_list, "3")
     end
-    if nixio.fs.access(dhcpoptionsfile) then
-        local forced_advanced_options = {}
-        for _, option in ipairs(load_dhcp_options(dhcpoptionsfile))
+
+    local advanced_options = load_dhcp_options(dhcpoptionsfile)
+
+    if nixio.fs.access(dhcptagsfile) then
+        for condition, cond_list in pairs(load_dhcp_tags(dhcptagsfile))
         do
-            local parts = {}
-            if option.tag ~= "" then
-                table.insert(parts, "tag:" .. option.tag)
-            end
-            table.insert(parts, option.num)
-            table.insert(parts, option.val)
-            table.insert(option.force and forced_advanced_options or dhcp_option_list, table.concat(parts, ","))
-        end
-        if #forced_advanced_options > 0 then
-            nc:set("dhcp", "@dhcp[0]", "dhcp_option_force", forced_advanced_options)
+            create_classifying_section(condition, cond_list)
         end
     end
+
+    for tag, forcelist in pairs(advanced_options)
+    do
+        if forcelist then
+            if tag == "" -- tag-section name cannot be empty
+                    or tablesize(forcelist) > 1 -- section name must be unique
+                    then -- place unforced options in the anonymous section
+                for _, option in ipairs(forcelist[UNFORCED]) do
+                    table.insert(dhcp_option_list, option_item(tag, option))
+                end
+                forcelist[UNFORCED] = nil
+            end
+            for force, optlist in pairs(forcelist)
+            do
+                create_tag_section(tag, force, optlist)
+            end
+        end
+    end
+
     if #dhcp_option_list > 0 then
         nc:set("dhcp", "@dhcp[0]", "dhcp_option", dhcp_option_list)
     end
