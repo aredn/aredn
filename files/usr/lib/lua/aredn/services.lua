@@ -45,27 +45,6 @@ require("uci")
 local validation_timeout = 150 * 60 -- 2.5 hours (so must fail 3 times in a row)
 local validation_state = "/tmp/service-validation-state"
 
-local function ip_to_hostname(ip)
-    if ip and ip ~= "" and ip ~= "none" then
-        local a, b, c, d = ip:match("(.*)%.(.*)%.(.*)%.(.*)")
-        local revip = d .. "." .. c .. "." .. b .. "." .. a
-        local f = io.popen("nslookup " .. ip)
-        if f then
-            local pattern = "^" .. revip .. "%.in%-addr%.arpa%s+name%s+=%s+(%S+)%.local%.mesh"
-            for line in f:lines()
-            do
-                local host = line:match(pattern)
-                if host then
-                    f:close()
-                    return host
-                end
-            end
-            f:close()
-        end
-    end
-    return ""
-end
-
 --
 -- Get all the known node names, host and services
 --  with optional validation
@@ -113,7 +92,7 @@ local function get(validate)
             do
                 local ip = line:match("[0-9a-fA-F:]+%s+([%d%.]+)")
                 if ip and not noprop_ip[ip] then
-                    local host = ip_to_hostname(ip)
+                    local host = nixio.getnameinfo(ip)
                     if host then
                         hosts[#hosts + 1] = { ip = ip, host = host }
                     end
