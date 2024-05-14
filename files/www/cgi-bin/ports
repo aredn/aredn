@@ -74,7 +74,7 @@ if os.getenv("REQUEST_METHOD") == "POST" then
     parms = request:formvalue()
 end
 
-function validate_service_name(name)
+local function validate_service_name(name)
     if not name or name == "" or name:match("[:-\"|<>]") then
         return false
     else
@@ -82,7 +82,7 @@ function validate_service_name(name)
     end
 end
 
-function validate_service_protocol(proto)
+local function validate_service_protocol(proto)
     if not proto or proto == "" or proto:match("[:-\"|<>]") or not proto:match("^%w+") then
         return false
     else
@@ -90,7 +90,7 @@ function validate_service_protocol(proto)
     end
 end
 
-function validate_service_suffix(suffix)
+local function validate_service_suffix(suffix)
     if not suffix or suffix:match("[:-\"|<>]") or not suffix:match("^[%w/?&._=#-]*$") then
         return false
     else
@@ -111,10 +111,24 @@ local function validate_mac_matcher(matcher)
     return matcher:gsub("%x%x", "*") == mac_wildcard
 end
 
+-- accepts sequences of one or more hexadecimal digit pairs separated by colons
+local function validate_hexbytes_matcher(matcher)
+    return matcher:gsub("[XY]", "Z"):gsub("%x%x:", "X"):gsub("%x%x", "Y"):match("^X*Y$")
+end
+
 -- accepts host names with optional trailing wildcard
 local function validate_host_matcher(matcher)
     return matcher:match("^%w[%w.-]*%*?$")
 end
+
+-- accepts Net-ASCII (RFC 854) with escapes for supported control characters
+local function validate_net_ascii(matcher)
+    local no_escapes = matcher:gsub("\\[\\benrt]", "")
+    return not no_escapes:match("[^ -Z^-~%[%]]")
+end
+
+local FORCE_SUPPORTED_HINT = "Send option even when not requested by client"
+local FORCE_UNSUPPORTED_HINT = "Only options with an explicit tag can be sent always."
 
 local dhcp_tag_conds = {
     { key = "vendorclass",
@@ -136,12 +150,26 @@ local dhcp_tag_conds = {
       jsPattern = [[^(?:(?:[0-9a-fA-F]{2}|\\*):){5}(?:[0-9a-fA-F]{2}|\\*)$]],
       jsPlaceholder = "*:*:*:*:*:*",
     },
-    { key = "name",
-      name = "Host Name",
-      validator = validate_host_matcher,
-      hint = "alphanumerics, hyphens, and dots, with an optional trailing asterisk",
-      jsPattern = [[^[a-zA-Z0-9][a-zA-Z0-9.\\-]*\\*?$]],
-      jsPlaceholder = "client.host-name*",
+    { key = "circuitid",
+      name = "Agent Circuit ID",
+      validator = validate_hexbytes_matcher,
+      hint = "one or more bytes, each two hexadecimal digits, separated by colons",
+      jsPattern = [[^(?:(?:[0-9a-fA-F]{2}|\\*):)*(?:[0-9a-fA-F]{2}|\\*)$]],
+      jsPlaceholder = "12:3a:bc",
+    },
+    { key = "remoteid",
+      name = "Agent Remote ID",
+      validator = validate_hexbytes_matcher,
+      hint = "one or more bytes, each two hexadecimal digits, separated by colons",
+      jsPattern = [[^(?:(?:[0-9a-fA-F]{2}|\\*):)*(?:[0-9a-fA-F]{2}|\\*)$]],
+      jsPlaceholder = "12:3a:bc",
+    },
+    { key = "subscriberid",
+      name = "Subscriber-ID",
+      validator = validate_net_ascii,
+      hint = [[ASCII printing characters and \\ escapes; use \\\\ \\b \\e \\n \\r or \\t for \\, BS, ESC, LF, CR, or HT, respectively]],
+      jsPattern = [[^(?:[ -\\[\\]-~]|\\\\[\\\\benrt])+$]],
+      jsPlaceholder = "ASCII string\\\\r\\\\n& escapes",
     },
 }
 
@@ -155,45 +183,45 @@ do
         jsPlaceholder = cond.jsPlaceholder}
 end
 
-function html_safe(s)
+local function html_safe(s)
     return s:gsub("&", "&amp;"):gsub(">", "&gt;"):gsub("<", "&lt;")
 end
 
 local serv_err = {}
-function serverr(msg)
+local function serverr(msg)
     serv_err[#serv_err + 1] = msg:gsub(">", "&gt;"):gsub("<", "&lt;")
 end
 local port_err = {}
-function porterr(msg)
+local function porterr(msg)
     port_err[#port_err + 1] = msg
 end
 
 local dmz_err = {}
-function dmzerr(msg)
+local function dmzerr(msg)
     dmz_err[#dmz_err + 1] = msg
 end
 local dhcp_err = {}
-function dhcperr(msg)
+local function dhcperr(msg)
     dhcp_err[#dhcp_err + 1] = msg
 end
 local dhcptag_err = {}
-function dhcptagerr(msg)
+local function dhcptagerr(msg)
     dhcptag_err[#dhcptag_err + 1] = msg
 end
 local dhcpopt_err = {}
-function dhcpopterr(msg)
+local function dhcpopterr(msg)
     dhcpopt_err[#dhcpopt_err + 1] = msg
 end
 local alias_err = {}
-function aliaserr(msg)
+local function aliaserr(msg)
     alias_err[#alias_err + 1] = msg
 end
 local errors = {}
-function err(msg)
+local function err(msg)
     errors[#errors + 1] = msg
 end
 local hidden = {}
-function hide(m)
+local function hide(m)
     hidden[#hidden + 1] = m
 end
 
@@ -415,7 +443,7 @@ local dhcp_end = dhcp_start + dhcp_limit - 1
 
 -- load and validate the ports
 
-function make_addable_list(max_row)
+local function make_addable_list(max_row)
     local list = {}
     for i = 1,max_row
     do
@@ -728,7 +756,7 @@ if f then
     f:close()
 end
 
-function write_temp_records(filename, group_name, record_count, fields)
+local function write_temp_records(filename, group_name, record_count, fields)
     local f = io.open(tmpdir .. "/" .. filename, "w")
     if f then
         for i = 1,record_count
@@ -788,8 +816,8 @@ do
                 break
             end
             if not tag_validator.validator(matcher) then
-                dhcptagerr(string.format([[%s <font color='red'>Warning!</font> "%s" is not a valid match for %s; must be %s]],
-                                          val, html_safe(matcher), cond_key, tag_validator.hint))
+                dhcptagerr(string.format([[Line %s: <font color='red'>Warning!</font> "%s" is not a valid match for %s; must be %s]],
+                                          val, html_safe(matcher), cond_key, (tag_validator.hint:gsub("\\\\", "\\"))))
                 break
             end
         end
@@ -1080,63 +1108,72 @@ html.header(node .. " setup", false)
 
 do
     local function generateValidatorCaseJS(cond)
-        local caseTab = {'        case "',
+        local caseTab = {'    case "',
                          cond.key,
-                         '":\n          newPlaceholder = "',
+                         '":\n      newPlaceholder = "',
                          cond.jsPlaceholder,
-                         '";\n          newTitle = "',
+                         '";\n      newTitle = "',
                          cond.hint}
         if cond.jsPattern then
-            table.insert(caseTab, '";\n          newPattern = "')
+            table.insert(caseTab, '";\n      newPattern = "')
             table.insert(caseTab, cond.jsPattern)
         end
-        table.insert(caseTab, '";\n          break;\n')
+        table.insert(caseTab, '";\n      break;\n')
         return table.concat(caseTab, '')
     end
 
     -- Note: toggleField comes from https://jsfiddle.net/6nq7w/4/
     local scriptTab = {[[
-    <script>
-    function toggleField(hideObj,showObj){
-      hideObj.disabled=true;        
-      hideObj.style.display='none';
-      showObj.disabled=false;   
-      showObj.style.display='inline';
-      showObj.focus();
-    }
-    function setOrRemoveAttribute(elem, attrName, value) {
-      console.log(`setOrRemoveAttribute(${elem.name},${attrName},${value})`)
-      if (value == null)
-        elem.removeAttribute(attrName);
-      else
-        elem.setAttribute(attrName, value)
-    }
-    function setMatcherValidator(inputId, matcherType) {
-      console.log(`setMatcherValidator(${inputId},${matcherType})`)
-      const matcherElem = document.getElementById(inputId);
-      newPattern = null;
-      newPlaceholder = null;
-      newTitle = null;
-      switch (matcherType) {
+<script>
+function toggleField(hideObj,showObj){
+  hideObj.disabled=true;        
+  hideObj.style.display='none';
+  showObj.disabled=false;   
+  showObj.style.display='inline';
+  showObj.focus();
+}
+function setOrRemoveAttribute(elem, attrName, value) {
+  if (value == null)
+    elem.removeAttribute(attrName);
+  else
+    elem.setAttribute(attrName, value);
+}
+function allowForceOption(forceID, tagValue) {
+  const forceElem = document.getElementById(forceID);
+  if (tagValue == "") {
+    forceElem.checked = false;
+    forceElem.disabled = true;
+    forceElem.title = "]] .. FORCE_UNSUPPORTED_HINT .. [[";
+  }
+  else
+    forceElem.disabled = false;
+    forceElem.title = "]] .. FORCE_SUPPORTED_HINT .. [[";
+}
+function setMatcherValidator(inputId, matcherType) {
+  const matcherElem = document.getElementById(inputId);
+  newPattern = null;
+  newPlaceholder = null;
+  newTitle = null;
+  switch (matcherType) {
 ]]}
     for _, cond in ipairs(dhcp_tag_conds)
     do
         table.insert(scriptTab, generateValidatorCaseJS(cond))
     end
     table.insert(scriptTab, [[
-        default:
-          break;
-      }
-      setOrRemoveAttribute(matcherElem, "placeholder", newPlaceholder);
-      setOrRemoveAttribute(matcherElem, "pattern", newPattern);
-      setOrRemoveAttribute(matcherElem, "title", newTitle);
-    }
-    </script>
-    <style>
-    input:invalid {
-      border: 2px dashed red;
-    }
-    </style>]])
+    default:
+      break;
+  }
+  setOrRemoveAttribute(matcherElem, "placeholder", newPlaceholder);
+  setOrRemoveAttribute(matcherElem, "pattern", newPattern);
+  setOrRemoveAttribute(matcherElem, "title", newTitle);
+}
+</script>
+<style>
+input:invalid {
+  border: 2px dashed red;
+}
+</style>]])
     html.print(table.concat(scriptTab, ''))
 end
 html.print("</head>")
@@ -1180,29 +1217,29 @@ local js_mac_pattern = [[ pattern='^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$' ]]
 local js_host_pattern = [[ pattern='^[a-zA-Z0-9][a-zA-Z0-9\-]*$' ]]
 local js_port_range_pattern = [[ pattern='^\s*\d{1,5}(?:\s*-\s*\d{1,5})?\s*$' ]]
 
-function print_heading_vsep()
+local function print_heading_vsep()
     html.print("<tr><td colspan=4 height=5></td></tr>")
 end
 
-function print_new_entry_vsep(val, list, columns)
+local function print_new_entry_vsep(val, list, columns)
     if val == "_add" and #list > 1 then
         html.print("<tr><td colspan=" .. columns .. " height=10></td></tr>")
     end
 end
 
 -- mark input fields of already-added entries as "required"
-function require_existing(val)
+local function require_existing(val)
     return val == "_add" and "" or " required "
 end
 
-function print_errors(error_list)
+local function print_errors(error_list)
     for _, e in ipairs(error_list)
     do
         html.print("<tr><th colspan=8>" .. e .. "</th></tr>")
     end
 end
 
-function print_reservations()
+local function print_reservations()
     html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>DHCP Address Reservations</th></tr>")
     print_heading_vsep()
     html.print("<tr><td align=center>Hostname</td><td align=center>IP Address</td><td align=center>MAC Address</td>")
@@ -1294,7 +1331,7 @@ function print_reservations()
     html.print("</table>")
 end
 
-function print_forwarding()
+local function print_forwarding()
     html.print("<table cellpadding=0 cellspacing=0>")
     html.print("<tr><th colspan=6>Port Forwarding</th></tr>")
     html.print("<tr><td colspan=6 height=5></td></tr>")
@@ -1401,7 +1438,7 @@ function print_forwarding()
     html.print("</table>")
 end
 
-function print_services()
+local function print_services()
     local activesvc = nil
     if nixio.fs.stat("/var/etc/olsrd.conf") then
         activesvc = {}
@@ -1529,7 +1566,7 @@ function print_services()
     html.print("</table>")
 end
 
-function print_aliases()
+local function print_aliases()
     html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>DNS Aliases</th></tr>")
     html.print("<tr><td colspan=3 height=5></td></tr>")
     html.print("<tr><td align=center>Alias Name</td><td></td><td align=center>IP Address</td></tr>")
@@ -1575,7 +1612,7 @@ function print_aliases()
     html.print("</table>")
 end
 
-function print_dhcp_cond_selector(row, selected_key, allow_unset, patname)
+local function print_dhcp_cond_selector(row, selected_key, allow_unset, patname)
     local field_name = "dhcptag" .. row .. "_cond"
     html.print("<td align=center style='padding:0 4px'><select name='" .. field_name
                 .. "' title='Type of identifying information sent by the client' "
@@ -1592,7 +1629,7 @@ function print_dhcp_cond_selector(row, selected_key, allow_unset, patname)
     html.print("</select></td>")
 end
 
-function dhcp_tag_used(tag_name)
+local function dhcp_tag_used(tag_name)
     if tag_name == "" then
         return false
     end
@@ -1605,7 +1642,7 @@ function dhcp_tag_used(tag_name)
     return false
 end
 
-function print_dhcp_tags()
+local function print_dhcp_tags()
     html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=4>Tags for Advanced DHCP Options</th></tr>")
     print_heading_vsep()
     html.print("<tr><td align=center>Set a Tag Named</td><td align=center>When Client's</td><td align=center style='width:99%'>Matches</td>")
@@ -1634,9 +1671,9 @@ function print_dhcp_tags()
         if val ~= "_add" then
             local cond = dhcp_tag_validators[cond_key]
             table.insert(t, "' required title='")
-            table.insert(t, cond.hint)
+            table.insert(t, (cond.hint:gsub("\\\\", "\\")))
             table.insert(t, "' placeholder='")
-            table.insert(t, cond.jsPlaceholder)
+            table.insert(t, (cond.jsPlaceholder:gsub("\\\\", "\\")))
             if cond.jsPattern ~= nil then
                 table.insert(t, "' pattern='")
                 table.insert(t, (cond.jsPattern:gsub("\\\\", "\\")))
@@ -1663,7 +1700,7 @@ function print_dhcp_tags()
     html.print("</table>")
 end
 
-function get_dhcp_tag_names()
+local function get_dhcp_tag_names()
     local tag_hash = {}
     local names = {}
 
@@ -1680,9 +1717,12 @@ function get_dhcp_tag_names()
     return names
 end
 
-function print_dhcp_tag_selector(row, tag_name, all_tags)
-    local field_name = "dhcpopt" .. row .. "_tag"
-    html.print("<td><select name='" .. field_name .. "' title='Only send this option to clients with this tag'>")
+local function print_dhcp_tag_selector(row, tag_name, all_tags)
+    local prefix = "dhcpopt" .. row .. "_"
+    local field_name = prefix .. "tag"
+    html.print("<td><select name='" .. field_name ..
+               "' onchange='allowForceOption(\"" .. prefix ..
+               "force\", this.value);' title='Only send this option to clients with this tag'>")
     html.print("<option value=''>[any]</option>")
     for _, name in ipairs(all_tags)
     do
@@ -1692,7 +1732,7 @@ function print_dhcp_tag_selector(row, tag_name, all_tags)
     html.print("</select></td>")
 end
 
-function print_dhcp_option_selector(known_options, row, opt_num)
+local function print_dhcp_option_selector(known_options, row, opt_num)
     local field_name = "dhcpopt" .. row .. "_num"
     -- custom-value option adapted from https://jsfiddle.net/6nq7w/4/
     html.print("<td align=center style='padding:0 4px'><select name=\"" .. field_name .. '"')
@@ -1723,7 +1763,7 @@ function print_dhcp_option_selector(known_options, row, opt_num)
 end
 
 -- load all known DHCP option names
-function load_known_options()
+local function load_known_options()
     local known_options = {}
 
     local optlist = io.popen("/usr/sbin/dnsmasq --help dhcp")
@@ -1740,7 +1780,7 @@ function load_known_options()
     return known_options
 end
 
-function print_dhcp_options()
+local function print_dhcp_options()
     html.print("<table cellpadding=0 cellspacing=0><tr><th colspan=5>Advanced DHCP Options</th></tr>")
     print_heading_vsep()
     html.print("<tr><td align=center>For Tag</td><td align=center>Always</td><td align=center>Send DHCP Option</td><td align=center style='width:99%'>With Value</td></tr>")
@@ -1752,17 +1792,18 @@ function print_dhcp_options()
     for _, val in ipairs(list)
     do
         local prefix = "dhcpopt" .. val .. "_"
+        local forceAttr = prefix .. "force"
         local tag = parms[prefix .. "tag"] or ""
-        local force = parms[prefix .. "force"]
+        local force = tag == "" and "onrequest" or parms[forceAttr] -- force is unsupported for untagged options
         local opt_num = tonumber(parms[prefix .. "num"])
         local opt_val = parms[prefix .. "val"] or ""
 
         print_new_entry_vsep(val, list, 5)
         html.print("<tr>")
         print_dhcp_tag_selector(val, tag, all_tags)
-        html.print("<td align=center><input type='checkbox' name='" .. prefix .. "force' value='force' "
-                   .. (force == "force" and "checked " or "")
-                   .. "title='Send option even when not requested by client'/></td>")
+        html.print("<td align=center><input type='checkbox' name='" .. forceAttr .. "' id='" .. forceAttr .. "' value='force' "
+                   .. (force == "force" and "checked " or "") .. (tag == "" and "disabled " or "")
+                   .. "title='" .. (tag == "" and FORCE_UNSUPPORTED_HINT or FORCE_SUPPORTED_HINT) .."'/></td>")
         print_dhcp_option_selector(known_options, val, opt_num)
         html.print("<td><input type='text' style='width:99%' name='" .. prefix .. "val' value='" .. opt_val .. "'></td>")
         html.print("<td><nobr>&nbsp;<input type=submit name=")
