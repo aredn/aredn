@@ -1215,6 +1215,7 @@ end
 
 local js_mac_pattern = [[ pattern='^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$' ]]
 local js_host_pattern = [[ pattern='^[a-zA-Z0-9][a-zA-Z0-9\-]*$' ]]
+local js_alias_pattern = [[ pattern='^(\*\.|)?[a-zA-Z0-9][a-zA-Z0-9\-]*$' ]]
 local js_port_range_pattern = [[ pattern='^\s*\d{1,5}(?:\s*-\s*\d{1,5})?\s*$' ]]
 
 local function print_heading_vsep()
@@ -1579,7 +1580,7 @@ local function print_aliases()
         local host = parms["alias" .. val .. "_host"]
         local ip = parms["alias" .. val .. "_ip"]
         print_new_entry_vsep(val, list , 4)
-        html.print("<tr><td align=center><input type=text placeholder='alias-name' title='alphanumerics and embedded hyphens' name=alias" .. val .. "_host value='" .. host .. "' size=20" .. js_host_pattern .. require_existing(val) .. "></td>")
+        html.print("<tr><td align=center><input type=text placeholder='alias-name' title='alphanumerics and embedded hyphens' name=alias" .. val .. "_host value='" .. host .. "' size=20" .. js_alias_pattern .. require_existing(val) .. "></td>")
         html.print("<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>")
         html.print("<td align=center><select name=alias" .. val .. "_ip>")
         if val == "_add" then
