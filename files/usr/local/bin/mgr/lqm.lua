@@ -274,8 +274,10 @@ function lqm()
     iw_set("distance auto")
     -- Or any hidden nodes
     iw_set("rts off")
-    -- Set the default retries
-    iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
+    if config.enable then
+        -- Set the default retries
+        iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
+    end
 
     -- If the channel bandwidth is less than 20, we need to adjust what we report as the values from 'iw' will not
     -- be correct
@@ -522,6 +524,7 @@ function lqm()
                         tx_bitrate = nil,
                         rx_bitrate = nil,
                         quality = nil,
+                        quality0_seen = nil,
                         last_tx_fail = nil,
                         last_tx_retries = nil,
                         avg_tx = nil,
@@ -748,6 +751,9 @@ function lqm()
             else
                 track.quality = nil
             end
+            if track.quality and track.quality == 0 and not track.quality0_seen then
+                track.quality0_seen = now
+            end
         end
 
         --
@@ -831,6 +837,7 @@ function lqm()
                             -- it up to give the link chance to recover
                             if oldblocks.quality then
                                 track.quality = config.min_quality + config.margin_quality
+                                track.quality0_seen = nil
                             end
                         end
                     end
@@ -929,7 +936,10 @@ function lqm()
             end
 
             -- Remove any trackers which are too old or if they disconnect when first seen
-            if ((now > track.lastseen + lastseen_timeout) or (not is_connected(track) and track.firstseen + pending_timeout > now)) then
+            if ((now > track.lastseen + lastseen_timeout) or
+                (not is_connected(track) and track.firstseen + pending_timeout > now) or
+                (track.quality0_seen and now > track.quality0_seen + lastseen_timeout)
+            ) then
                 force_remove_block(track)
                 tracker[track.mac] = nil
             end
