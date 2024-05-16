@@ -51,15 +51,19 @@ if nixio.sysinfo().totalram < 32 * 1024 * 1024 then
 end
 
 function wait_for_ticks(ticks)
-	local when = nixio.sysinfo().uptime + ticks
-	while true
-	do
-		if ticks >= 0 then
-			coroutine.yield(ticks)
-		else
-			break
+	if ticks <= 0 then
+		coroutine.yield(0)
+	else
+		local when = nixio.sysinfo().uptime + ticks
+		while true
+		do
+			if ticks > 0 then
+				coroutine.yield(ticks)
+			else
+				break
+			end
+			ticks = when - nixio.sysinfo().uptime
 		end
-		ticks = when - nixio.sysinfo().uptime
 	end
 end
 
