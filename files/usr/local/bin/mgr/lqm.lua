@@ -57,6 +57,7 @@ local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
 local ARPING = "/usr/sbin/arping"
 local CURL = "/usr/bin/curl"
+local IPCMD = "/sbin/ip"
 
 local now = 0
 local config = {}
@@ -172,7 +173,7 @@ function update_block(track)
                 return "blocked"
             end
         else
-            if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " drop") then
+            if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop") then
                 nft_insert("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop 2> /dev/null")
                 return "blocked"
             end
@@ -186,7 +187,7 @@ function update_block(track)
                 return "unblocked"
             end
         else
-            local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " drop")
+            local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop")
             if handle then
                 nft_delete("input_lqm", handle)
                 return "unblocked"
@@ -198,7 +199,7 @@ end
 
 function force_remove_block(track)
     track.blocked = false
-    local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac:lower() .. " drop")
+    local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop")
     if handle then
         nft_delete("input_lqm", handle)
     end
@@ -318,20 +319,46 @@ function lqm()
         lon = tonumber(lon)
 
         local arps = {}
-        arptable(
-            function (entry)
-                if entry["Flags"] ~= "0x0" then
-                    entry["HW address"] = entry["HW address"]:upper()
-                    arps[#arps + 1] = entry
-                end
+        for line in io.popen(IPCMD .. " neigh show"):lines()
+        do
+            local ip, dev, mac, probes, state = line:match("^(%S+) dev (%S+) lladdr (%S+) .+ probes (%d+) (.+)$")
+            if ip and (tonumber(probes) < 4 or state ~= "STALE") then
+                arps[#arps + 1] = {
+                    Device = dev,
+                    ["HW address"] = mac:lower(),
+                    ["IP address"] = ip
+                }
             end
-        )
+        end
 
-        -- Know our macs so we can exclude them
+        -- Find all our devices and know our macs so we can exclude them
+        local devices = {}
         local our_macs = {}
-        for _, i in ipairs(nixio.getifaddrs()) do
-            if i.family == "packet" and i.addr then
-                our_macs[i.addr:upper()] = true
+        for _, i in ipairs(nixio.getifaddrs())
+        do
+            if i.name then
+                local dev = devices[i.name]
+                if not dev then
+                    dev = { name = i.name }
+                    devices[i.name] = dev
+                end
+                if i.family == "packet" then
+                    if i.addr then
+                        dev.mac = i.addr:lower()
+                        our_macs[dev.mac] = true
+                    end
+                    dev.tx_packets = i.data.tx_packets
+                    dev.tx_fail = i.data.tx_errors
+                end
+                if i.family == "inet" then
+                    dev.ip = i.addr
+                    dev.dstip = i.dstaddr
+                    if not dev.mac then
+                        -- Fake a mac from the ip if we need one
+                        local a, b, c, d = dev.ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+                        dev.mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
+                    end
+                end
             end
         end
 
@@ -359,7 +386,7 @@ function lqm()
                     station = {
                         type = "RF",
                         device = wlan,
-                        mac = mac:upper(),
+                        mac = mac:lower(),
                         signal = 0,
                         noise = noise,
                         ip = nil,
@@ -389,71 +416,41 @@ function lqm()
             end
         end
 
-        -- Legacy tunnels
+        -- Legacy and wireguard tunnels
         local tunnel = {}
-        for line in io.popen("ifconfig"):lines()
+        for _, dev in pairs(devices)
         do
-            local tun = line:match("^(tun%d+)%s")
-            if tun then
-                tunnel = {
+            if dev.name:match("^tun") then
+                stations[#stations + 1] = {
                     type = "Tunnel",
-                    device = tun,
-                    signal = nil,
-                    ip = nil,
-                    mac = nil
+                    device = dev.name,
+                    ip = dev.dstip,
+                    mac = dev.mac,
+                    tx_packets = dev.tx_packets,
+                    tx_fail = dev.tx_fail
                 }
-                stations[#stations + 1] = tunnel
-            elseif line:match("^%s*$") then
-                tunnel = nil
-            elseif tunnel then
-                local ip = line:match("P-t-P:(%d+%.%d+%.%d+%.%d+)")
-                if ip then
-                    tunnel.ip = ip
-                    -- Fake a mac from the ip
-                    local a, b, c, d = ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
-                    tunnel.mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
-                else
-                    local txp, txf = line:match("TX packets:(%d+)%s+errors:(%d+)")
-                    if txp and txf then
-                        tunnel.tx_packets = tonumber(txp)
-                        tunnel.tx_fail = tonumber(txf)
-                    end
-                end
+            elseif dev.name:match("^wgc") then
+                local ip123, ip4 = dev.ip:match("^(%d+%.%d+%.%d+%.)(%d+)$")
+                stations[#stations + 1] = {
+                    type = "Wireguard",
+                    device = dev.name,
+                    ip = ip123 .. (tonumber(ip4) + 1),
+                    mac = dev.mac,
+                    tx_packets = dev.tx_packets,
+                    tx_fail = dev.tx_fail
+                }
+            elseif dev.name:match("^wgs") then
+                local ip123, ip4 = dev.ip:match("^(%d+%.%d+%.%d+%.)(%d+)$")
+                stations[#stations + 1] = {
+                    type = "Wireguard",
+                    device = dev.name,
+                    ip = ip123 .. (tonumber(ip4) - 1),
+                    mac = dev.mac,
+                    tx_packets = dev.tx_packets,
+                    tx_fail = dev.tx_fail
+                }
             end
         end
-
-        -- Wireguard
-        local wgc = 0
-        cursorm:foreach("wireguard", "client",
-            function(s)
-                if s.enabled == "1" then
-                    local a, b, c, d = s.clientip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+):")
-                    d = tonumber(d) + 1
-                    stations[#stations + 1] = {
-                        type = "Wireguard",
-                        device = "wgc" .. wgc,
-                        ip = string.format("%d.%d.%d.%d", a, b, c, d),
-                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
-                    }
-                    wgc = wgc + 1
-                end
-            end
-        )
-        local wgs = 0
-        cursorm:foreach("vtun", "server",
-            function(s)
-                if s.enabled == "1" and s.netip:match(":") then
-                    local a, b, c, d, _ = s.netip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+):(%d+)$")
-                    stations[#stations + 1] = {
-                        type = "Wireguard",
-                        device = "wgs" .. wgs,
-                        ip = string.format("%d.%d.%d.%d", a, b, c, d),
-                        mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
-                    }
-                    wgs = wgs + 1
-                end
-            end
-        )
 
         -- DtD
         for _, entry in ipairs(arps)
@@ -472,17 +469,14 @@ function lqm()
         cursorm:foreach("xlink", "interface",
             function(section)
                 if section.ifname then
-                    for _, entry in ipairs(arps)
-                    do
-                        if entry["Device"] == section.ifname then
-                            stations[#stations + 1] = {
-                                type = "Xlink",
-                                device = section.ifname,
-                                signal = nil,
-                                ip = entry["IP address"],
-                                mac = entry["HW address"]
-                            }
-                        end
+                    local entry = devices[section.ifname]
+                    if entry then
+                        stations[#stations + 1] = {
+                            type = "Xlink",
+                            device = entry.name,
+                            ip = entry.ip,
+                            mac = entry.mac
+                        }
                     end
                 end
             end
@@ -778,7 +772,7 @@ function lqm()
                 -- Always allow if user requested it
                 for val in string.gmatch(config.user_allows, "([^,]+)")
                 do
-                    if val:gsub("%s+", ""):gsub("-", ":"):upper() == track.mac then
+                    if val:gsub("%s+", ""):gsub("-", ":"):lower() == track.mac then
                         track.user_allow = true
                         break
                     end
@@ -790,7 +784,7 @@ function lqm()
                 -- Block if user requested it
                 for val in string.gmatch(config.user_blocks, "([^,]+)")
                 do
-                    if val:gsub("%s+", ""):gsub("-", ":"):upper() == track.mac then
+                    if val:gsub("%s+", ""):gsub("-", ":"):lower() == track.mac then
                         track.blocks.user = true
                         break
                     end
