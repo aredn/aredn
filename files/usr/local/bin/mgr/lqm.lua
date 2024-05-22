@@ -803,6 +803,7 @@ function lqm()
         -- At this point we have gather all the data we need to determine which links are best to use and
         -- which links should be blocked.
         --
+        local leafs = 0
         for _, track in pairs(tracker)
         do
             for _ = 1,1
@@ -908,7 +909,11 @@ function lqm()
                         end
                     end
                 end
+            end
 
+            -- Count block leafs
+            if is_leaf(track) and (track.blocks.distance or track.blocks.signal or track.blocks.quality) then
+                leafs = leafs + 1
             end
         end
 
@@ -966,7 +971,6 @@ function lqm()
         -- node parameters (e.g. rts, coverage)
         --
         local distance = -1
-        local leafs = 0
         -- Update the block state and calculate the routable distance
         for _, track in pairs(tracker)
         do
@@ -984,10 +988,6 @@ function lqm()
                         end
                     elseif is_pending(track) then
                         distance = config.max_distance
-                    end
-                    -- Count leafs
-                    if is_leaf(track) then
-                        leafs = leafs + 1
                     end
                 end
             end
