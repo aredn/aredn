@@ -112,11 +112,19 @@ if nhosts or not_empty(chosts) then
     do
         hosts[i] = host.ip .. " " .. host.host
     end
-    cursor:set("olsrd", "nameservice", "hosts", hosts)
+    if #hosts > 0 then
+        cursor:set("olsrd", "nameservice", "hosts", hosts)
+    else
+        cursor:delete("olsrd", "nameservice", "hosts")
+    end
     change = true
 end
 if nservices or not_empty(cservices) then
-    cursor:set("olsrd", "nameservice", "service", services)
+    if #services > 0 then
+        cursor:set("olsrd", "nameservice", "service", services)
+    else
+        cursor:delete("olsrd", "nameservice", "service")
+    end
     change = true
 end
 
