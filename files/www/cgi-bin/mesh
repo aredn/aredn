@@ -761,8 +761,8 @@ do
         else
             lqmstatus = "idle"
         end
-        if track.minroutes then
-            lqmstatus = "minroutes"
+        if (track.leaf == "minor" and track.rev_leaf == "major") or (track.leaf == "major" and track.rev_leaf == "minor") then
+            lqmstatus = ac(lqmstatus, "leaf")
         end
         if track.snr then
             c4b = track.snr
@@ -790,7 +790,7 @@ do
     end
 
     if nodeiface or waniface or lqmstatus then
-        c1 = c1 .. "&nbsp;<small>(" .. ac(ac(nodeiface, waniface), lqmstatus) .. ")</small>"
+        c1 = c1 .. "&nbsp;<small>(" .. ac(ac(nodeiface, waniface), x) .. ")</small>"
     end
 
     -- print node services if any
