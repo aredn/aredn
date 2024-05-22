@@ -318,6 +318,7 @@ function lqm()
     local last_coverage = -1
     local last_short_retries = -1
     local last_long_retries = -1
+    local pending_count = 0
     while true
     do
         now = nixio.sysinfo().uptime
@@ -585,6 +586,7 @@ function lqm()
 
         -- Update link tracking state
         local ip2tracker = {}
+        pending_count = 0
         for _, track in pairs(tracker)
         do            
             if not track.ip then
@@ -702,6 +704,11 @@ function lqm()
                 end
             else
                 track.avg_snr = null
+            end
+
+            -- Count number of pending trackers
+            if is_pending(track) then
+                pending_count = pending_count + 1
             end
 
             -- Ping addresses and penalize quality for excessively slow links
@@ -1055,7 +1062,7 @@ function lqm()
 
         -- Save valid (unblocked) rf mac list for use by OLSR
         if config.enable and phy ~= "none" then
-            if minroutes_count > 0 then
+            if minroutes_count > 0 or pending_count > 0 then
                 os.remove( "/tmp/lqm." .. phy .. ".macs")
             else
                 local tmpfile = "/tmp/lqm." .. phy .. ".macs.tmp"
