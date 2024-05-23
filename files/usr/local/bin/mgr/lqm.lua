@@ -64,7 +64,6 @@ local now = 0
 local config = {}
 
 local total_node_route_count = 0
-local minroutes_count = 0
 
 function update_config()
     local c = uci.cursor() -- each time as /etc/config/aredn may have changed
@@ -110,6 +109,10 @@ function is_user_blocked(track)
     return false
 end
 
+function is_leaf(track)
+    return (track.leaf == "minor" and track.rev_leaf == "major") or (track.leaf == "major" and track.rev_leaf == "minor")
+end
+
 function should_block(track)
     if track.user_allow then
         return false
@@ -117,7 +120,7 @@ function should_block(track)
         return track.blocks.user
     elseif is_pending(track) then
         return track.blocks.dtd or track.blocks.user
-    elseif track.minroutes then
+    elseif is_leaf(track) then
         return false
     else
         return track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.dup or track.blocks.quality
@@ -234,13 +237,6 @@ end
 
 function round(v)
     return math.floor(v + 0.5)
-end
-
-function set_minroutes(track)
-    if track.node_route_count <= config.min_routes or (total_node_route_count - track.node_route_count) <= config.min_routes then
-        track.minroutes = true
-        minroutes_count = minroutes_count + 1
-    end
 end
 
 -- Canonical hostname
@@ -379,58 +375,6 @@ function lqm()
 
         local stations = {}
 
-        -- RF
-        if radiomode == "adhoc" then
-            local kv = {
-                ["signal avg:"] = "signal",
-                ["tx packets:"] = "tx_packets",
-                ["tx retries:"] = "tx_retries",
-                ["tx failed:"] = "tx_fail",
-                ["tx bitrate:"] = "tx_bitrate",
-                ["rx bitrate:"] = "rx_bitrate"
-            }
-            local station = {}
-            local cnoise = iwinfo.nl80211.noise(wlan)
-            if cnoise and cnoise < -70 then
-                noise = round(noise * 0.9 + cnoise * 0.1)
-            end
-            for line in io.popen(IW .. " " .. wlan .. " station dump"):lines()
-            do
-                local mac = line:match("^Station ([0-9a-fA-F:]+) ")
-                if mac then
-                    station = {
-                        type = "RF",
-                        device = wlan,
-                        mac = mac:lower(),
-                        signal = 0,
-                        noise = noise,
-                        ip = nil,
-                        tx_bitrate = 0,
-                        rx_bitrate = 0
-                    }
-                    for _, entry in ipairs(arps)
-                    do
-                        if entry["HW address"] == station.mac and entry.Device:match("^wlan") then
-                            station.ip = entry["IP address"]
-                            break
-                        end
-                    end
-                    stations[#stations + 1] = station
-                else
-                    for k, v in pairs(kv)
-                    do
-                        local val = line:match(k .. "%s*([%d%-]+)")
-                        if val then
-                            station[v] = tonumber(val)
-                            if v == "tx_bitrate" or v == "rx_bitrate" then
-                                station[v] = station[v] * channel_bw_scale
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
         -- Legacy and wireguard tunnels
         local tunnel = {}
         for _, dev in pairs(devices)
@@ -497,6 +441,58 @@ function lqm()
             end
         )
 
+        -- RF
+        if radiomode == "adhoc" then
+            local kv = {
+                ["signal avg:"] = "signal",
+                ["tx packets:"] = "tx_packets",
+                ["tx retries:"] = "tx_retries",
+                ["tx failed:"] = "tx_fail",
+                ["tx bitrate:"] = "tx_bitrate",
+                ["rx bitrate:"] = "rx_bitrate"
+            }
+            local station = {}
+            local cnoise = iwinfo.nl80211.noise(wlan)
+            if cnoise and cnoise < -70 then
+                noise = round(noise * 0.9 + cnoise * 0.1)
+            end
+            for line in io.popen(IW .. " " .. wlan .. " station dump"):lines()
+            do
+                local mac = line:match("^Station ([0-9a-fA-F:]+) ")
+                if mac then
+                    station = {
+                        type = "RF",
+                        device = wlan,
+                        mac = mac:lower(),
+                        signal = 0,
+                        noise = noise,
+                        ip = nil,
+                        tx_bitrate = 0,
+                        rx_bitrate = 0
+                    }
+                    for _, entry in ipairs(arps)
+                    do
+                        if entry["HW address"] == station.mac and entry.Device:match("^wlan") then
+                            station.ip = entry["IP address"]
+                            break
+                        end
+                    end
+                    stations[#stations + 1] = station
+                else
+                    for k, v in pairs(kv)
+                    do
+                        local val = line:match(k .. "%s*([%d%-]+)")
+                        if val then
+                            station[v] = tonumber(val)
+                            if v == "tx_bitrate" or v == "rx_bitrate" then
+                                station[v] = station[v] * channel_bw_scale
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
         -- Update the trackers based on the latest station information
         for _, station in ipairs(stations)
         do
@@ -540,7 +536,8 @@ function lqm()
                         avg_tx_retries = nil,
                         avg_tx_fail = nil,
                         node_route_count = 0,
-                        minroutes = false
+                        leaf = nil,
+                        rev_leaf = nil
                     }
                 end
                 local track = tracker[station.mac]
@@ -613,6 +610,7 @@ function lqm()
                         -- We cannot update so invalidate any information considered stale and set time to attempt refresh
                         track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
                         track.rev_snr = nil
+                        track.rev_leaf = nil
                     else
                         local raw = io.popen(CURL .. " --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
                         local info = luci.jsonc.parse(raw:read("*a"))
@@ -625,8 +623,9 @@ function lqm()
                             -- considered stale
                             track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
                             track.rev_snr = nil
+                            track.rev_leaf = nil
                         else
-                            track.refresh = now + refresh_timeout
+                            track.refresh = is_pending(track) and 0 or now + refresh_timeout
 
                             dtdlinks[track.mac] = {}
 
@@ -658,6 +657,7 @@ function lqm()
                                             end
                                             if myhostname == rhostname then
                                                 track.rev_snr = (track.rev_snr and rtrack.snr) and round(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * rtrack.snr) or rtrack.snr
+                                                track.rev_leaf = rtrack.leaf
                                             end
                                         end
                                     end
@@ -713,7 +713,7 @@ function lqm()
 
             -- Ping addresses and penalize quality for excessively slow links
             if should_ping(track) then
-                local success = 100
+                local success = true
                 local ptime
 
                 if track.type == "Tunnel" or track.type == "Wireguard" then
@@ -729,7 +729,7 @@ function lqm()
                     -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
                     -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
                     if sigsock:recv(0) == false then
-                        success = 0
+                        success = false
                     end
                     ptime = socket.gettime(0) - pstart
                     sigsock:close()
@@ -739,7 +739,7 @@ function lqm()
                     local pstart = socket.gettime(0)
                     if os.execute(ARPING .. " -q -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) == 0 then
                         -- Failure
-                        success = 0
+                        success = false
                     end
                     ptime = socket.gettime(0) - pstart
                 end
@@ -747,13 +747,13 @@ function lqm()
                 wait_for_ticks(0)
 
                 track.ping_quality = track.ping_quality and (track.ping_quality + 1) or 100
-                if success > 0 then
+                if success then
                     track.ping_success_time = track.ping_success_time and (track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)) or ptime
                 else
                     track.ping_quality = track.ping_quality - config.ping_penalty
                 end
                 track.ping_quality = math.max(0, math.min(100, track.ping_quality))
-                if success == 0 and track.type == "DtD" and track.firstseen == now then
+                if not success and track.type == "DtD" and track.firstseen == now then
                     -- If local ping immediately fail, ditch this tracker. This can happen sometimes when we
                     -- find arp entries which aren't valid.
                     tracker[track.mac] = nil
@@ -803,7 +803,7 @@ function lqm()
         -- At this point we have gather all the data we need to determine which links are best to use and
         -- which links should be blocked.
         --
-        minroutes_count = 0
+        local leafs = 0
         for _, track in pairs(tracker)
         do
             for _ = 1,1
@@ -817,7 +817,17 @@ function lqm()
                     pair = false,
                     quality = false
                 }
-                track.minroutes = false
+
+                -- A leaf link is one where most (but not 0) of the nodes are on one end or the other
+                -- We try to keep leaf links active even if they wouldn't otherwise be, so they dont get cut off.
+                track.leaf = nil
+                if track.node_route_count > 0 then
+                    if total_node_route_count - track.node_route_count <= config.min_routes then
+                        track.leaf = "minor"
+                    elseif track.node_route_count <= config.min_routes then
+                        track.leaf = "major"
+                    end
+                end
     
                 -- Always allow if user requested it
                 for val in string.gmatch(config.user_allows, "([^,]+)")
@@ -849,7 +859,6 @@ function lqm()
                     -- Block any nodes which are too distant
                     if track.distance and (track.distance < config.min_distance or track.distance > config.max_distance) then
                         track.blocks.distance = true
-                        set_minroutes(track)
                         break
                     end
 
@@ -870,14 +879,12 @@ function lqm()
                     if not oldblocks.signal then
                         if track.snr < config.low or (track.rev_snr and track.rev_snr < config.low) then
                             track.blocks.signal = true
-                            set_minroutes(track)
                             break
                         end 
                     -- when blocked link becomes (low+margin) again, dont maintain block
                     else
                         if track.snr < config.low + config.margin or (track.rev_snr and track.rev_snr < config.low + config.margin) then
                             track.blocks.signal = true
-                            set_minroutes(track)
                             break
                         else
                             -- When signal is good enough to unblock a link but the quality is low, artificially bump
@@ -895,16 +902,18 @@ function lqm()
                     if not oldblocks.quality then
                         if track.quality < config.min_quality then
                             track.blocks.quality = true
-                            set_minroutes(track)
                         end
                     else
                         if track.quality < config.min_quality + config.margin_quality then
                             track.blocks.quality = true
-                            set_minroutes(track)
                         end
                     end
                 end
+            end
 
+            -- Count block leafs
+            if is_leaf(track) and (track.blocks.distance or track.blocks.signal or track.blocks.quality) then
+                leafs = leafs + 1
             end
         end
 
@@ -971,8 +980,8 @@ function lqm()
                     track.pending = now + pending_timeout
                 end
 
-                -- Find the most distant, unblocked, RF node
                 if track.type == "RF" then
+                    -- Find the most distant, unblocked, RF node
                     if track.distance then
                         if track.distance > distance and (not track.blocked or is_pending(track)) then
                             distance = track.distance
@@ -1062,7 +1071,7 @@ function lqm()
 
         -- Save valid (unblocked) rf mac list for use by OLSR
         if config.enable and phy ~= "none" then
-            if minroutes_count > 0 or pending_count > 0 then
+            if pending_count > 0 or leafs > 0 then
                 os.remove( "/tmp/lqm." .. phy .. ".macs")
             else
                 local tmpfile = "/tmp/lqm." .. phy .. ".macs.tmp"
