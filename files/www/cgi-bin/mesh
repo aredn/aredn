@@ -761,7 +761,8 @@ do
         else
             lqmstatus = "idle"
         end
-        if (track.leaf == "minor" and track.rev_leaf == "major") or (track.leaf == "major" and track.rev_leaf == "minor") then
+        if (track.blocks.signal or track.blocks.distance or track.blocks.quality) and
+           ((track.leaf == "minor" and track.rev_leaf == "major") or (track.leaf == "major" and track.rev_leaf == "minor")) then
             lqmstatus = ac(lqmstatus, "leaf")
         end
         if track.snr then
@@ -790,7 +791,7 @@ do
     end
 
     if nodeiface or waniface or lqmstatus then
-        c1 = c1 .. "&nbsp;<small>(" .. ac(ac(nodeiface, waniface), x) .. ")</small>"
+        c1 = c1 .. "&nbsp;<small>(" .. ac(ac(nodeiface, waniface), lqmstatus) .. ")</small>"
     end
 
     -- print node services if any
