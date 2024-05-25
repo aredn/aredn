@@ -530,6 +530,7 @@ function lqm()
                         rx_bitrate = nil,
                         quality = nil,
                         quality0_seen = nil,
+                        quality_block_snr = nil,
                         last_tx_fail = nil,
                         last_tx_retries = nil,
                         avg_tx = nil,
@@ -703,7 +704,7 @@ function lqm()
                     track.avg_snr = track.snr
                 end
             else
-                track.avg_snr = null
+                track.avg_snr = nil
             end
 
             -- Count number of pending trackers
@@ -895,6 +896,12 @@ function lqm()
                             end
                         end
                     end
+
+                    -- If we have a quality block and the snr gets sufficiently better, bump the quality to unblock it and see if things have improved
+                    if oldblocks.quality and track.quality_block_snr and track.avg_snr and track.avg_snr > track.quality_block_snr + config.margin then
+                        track.quality = config.min_quality + config.margin_quality
+                        track.quality0_seen = nil
+                    end
                 end
 
                 -- Block if quality is poor
@@ -902,6 +909,7 @@ function lqm()
                     if not oldblocks.quality then
                         if track.quality < config.min_quality then
                             track.blocks.quality = true
+                            track.quality_block_snr = track.avg_snr
                         end
                     else
                         if track.quality < config.min_quality + config.margin_quality then
