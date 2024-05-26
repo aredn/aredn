@@ -113,7 +113,10 @@ end
 info['tunnels']={}
 -- ACTIVE TUNNELS
 local atc=os.capture("ifconfig|grep tun|wc -l"):chomp()
-local awc=os.capture("wg|grep interface|wc -l"):chomp()
+local awc=0
+if nixio.fs.stat("/usr/bin/wg") then
+	awc=os.capture("wg|grep interface|wc -l"):chomp()
+end
 info['tunnels']['active_tunnel_count']=tonumber(atc) + tonumber(awc)
 
 -- Location info
