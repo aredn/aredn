@@ -3,8 +3,6 @@ config defaults
         option input            ACCEPT
         option output           ACCEPT
         option forward          REJECT
-# Uncomment this line to disable ipv6 rules
-#       option disable_ipv6     1
 
 config zone
         option name             lan
@@ -33,7 +31,15 @@ config zone
 
 config zone
         option name             dtdlink
-        option network          'dtdlink'
+        <dtdlink_interfaces>
+        option input            REJECT
+        option output           ACCEPT
+        option forward          REJECT
+        option mtu_fix          1
+
+config zone
+        option name             vpn
+ <vpn_interfaces>
         option input            REJECT
         option output           ACCEPT
         option forward          REJECT
@@ -63,6 +69,30 @@ config forwarding
         option src              dtdlink
         option dest             wifi
 
+config forwarding
+        option src              vpn
+        option dest             wifi
+
+config forwarding
+        option src              wifi
+        option dest             vpn
+
+config forwarding
+        option src              lan
+        option dest             vpn
+
+config forwarding
+        option src              vpn
+        option dest             dtdlink
+
+config forwarding
+        option src              dtdlink
+        option dest             vpn
+
+config forwarding
+        option src              vpn
+        option dest             vpn
+
 # Allow IPv4 ping
 config rule
         option name             Allow-Ping
@@ -75,6 +105,14 @@ config rule
 config rule
         option name             Allow-Ping
         option src              dtdlink
+        option proto            icmp
+        option icmp_type        echo-request
+        option family           ipv4
+        option target           ACCEPT
+
+config rule
+        option name             Allow-Ping
+        option src              vpn
         option proto            icmp
         option icmp_type        echo-request
         option family           ipv4
@@ -156,6 +194,36 @@ config rule
        option proto    tcp
        option target   ACCEPT
 
+config rule
+       option src              vpn
+       option dest_port        2222
+       option proto    tcp
+       option target   ACCEPT
+
+config rule
+       option src              vpn
+       option dest_port        8080
+       option proto    tcp
+       option target   ACCEPT
+
+config rule
+       option src              vpn
+       option dest_port        80
+       option proto    tcp
+       option target   ACCEPT
+
+config rule
+       option src              vpn
+       option dest_port        698
+       option proto    udp
+       option target   ACCEPT
+
+config rule
+       option src              vpn
+       option dest_port        23
+       option proto    tcp
+       option target   ACCEPT
+
 #SNMPD
 config rule
        option src              wifi
@@ -169,6 +237,12 @@ config rule
        option proto    udp
        option target   ACCEPT
 
+config rule
+       option src              vpn
+       option dest_port        161
+       option proto    udp
+       option target   ACCEPT
+
 # olsr jsoninfo
 config rule
        option src              wifi
@@ -178,6 +252,12 @@ config rule
 
 config rule
        option src              dtdlink
+       option dest_port        9090
+       option proto    tcp
+       option target   ACCEPT
+
+config rule
+       option src              vpn
        option dest_port        9090
        option proto    tcp
        option target   ACCEPT

@@ -114,6 +114,8 @@ local cfg = {
     olsrd_dtd_interface_mode = "ether",
     tun_network_config = "",
     wireguard_network_config = "",
+    dtdlink_interfaces = "list network 'dtdlink'",
+    vpn_interfaces = "",
     olsrd_pollrate = "0.05",
     tun_devices_config = "",
     hello_interval = "4.0",
@@ -595,6 +597,33 @@ if not nixio.fs.stat("/usr/bin/wg") then
     wgservers = 0
 end
 
+-- Put the tunnels into the vpn zone
+local vpnzone = false
+if maxclients + maxservers + wgclients + wgservers > 0 then
+    vpnzone = true
+    for i = 50, 50 + maxclients + maxservers - 1
+    do
+        cfg.vpn_interfaces = cfg.vpn_interfaces .. "        list network 'tun" .. i .. "'\n"
+    end
+    for i = 0, wgclients-1
+    do
+        cfg.vpn_interfaces = cfg.vpn_interfaces .. "        list network 'wgc" .. i .. "'\n"
+    end
+    for i = 0, wgservers-1
+    do
+        cfg.vpn_interfaces = cfg.vpn_interfaces .. "        list network 'wgs" .. i .. "'\n"
+    end
+end
+
+-- Put xlinks into dtdlink zone
+if nixio.fs.stat("/etc/config.mesh/xlink") then
+    uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
+        function(section)
+            cfg.dtdlink_interfaces = cfg.dtdlink_interfaces .. "\n        list network '" .. section[".name"] .. "'"
+        end
+    )
+end
+
 remove_all("/tmp/new_config")
 nixio.fs.mkdir("/tmp/new_config")
 
@@ -624,6 +653,9 @@ if fw then
     if not is_null(cfg.dmz_mode) then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   lan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   lan\n")
+        if vpnzone then
+            fw:write("\nconfig forwarding\n        option src    vpn\n        option dest   lan\n")
+        end
         add_masq = true
     else
         fw:write("\nconfig 'include'\n        option 'path' '/etc/firewall.natmode'\n        option 'reload' '1'\n")
@@ -632,6 +664,9 @@ if fw then
     if nc:get("aredn", "@wan[0]", "olsrd_gw") == "1" then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   wan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   wan\n")
+        if vpnzone then
+            fw:write("\nconfig forwarding\n        option src    vpn\n        option dest   wan\n")
+        end
     end
 
     if nixio.fs.access(portfile) then
@@ -645,7 +680,7 @@ if fw then
                 else
                     local intf, type, oport, host, iport, enable = line:match("(.*):(.*):(.*):(.*):(.*):(.*)")
                     if enable == "1" then
-                        local match = "        option src_dport " .. oport .. "\n"
+                        local match = "option src_dport " .. oport .. "\n"
                         if type == "tcp" then
                             match = match .. "        option proto tcp\n"
                         elseif type == "udp" then
@@ -653,7 +688,7 @@ if fw then
                         end
                         -- uci the host and then
                         -- set the inside port unless the rule uses an outside port range
-                        host = "option dest_ip    " .. host .. "\n"
+                        host = "option dest_ip " .. host .. "\n"
                         if not oport:match("-") then
                             host = host .. "        option dest_port " .. iport .. "\n"
                         end
@@ -661,15 +696,21 @@ if fw then
                             intf = "wan"
                         end
                         if intf == "both" then
-                            fw:write("\nconfig redirect\n        option src  wifi\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                            fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                            fw:write("config redirect\n        option src wan\n        " .. match .. "        " .. host .. "\n")
+                            fw:write("\nconfig redirect\n        option src  wifi\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            fw:write("\nconfig redirect\n        option src dtdlink\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            if vpnzone then
+                                fw:write("\nconfig redirect\n        option src vpn\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            end
+                            fw:write("config redirect\n        option src wan\n        option dest  lan\n        " .. match .. "        " .. host .. "\n")
                         elseif intf == "wifi" and is_null(cfg.dmz_mode) then
-                            fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                            fw:write("\nconfig redirect\n        option src wifi\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            fw:write("\nconfig redirect\n        option src dtdlink\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            fw:write("\nconfig redirect\n        option src wifi\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            if vpnzone then
+                                fw:write("\nconfig redirect\n        option src vpn\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            end
                         elseif intf == "wan" then
-                            fw:write("\nconfig redirect\n        option src dtdlink\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                            fw:write("config redirect\n        option src wan\n        " .. match .. "        " .. host .. "\n")
+                            fw:write("\nconfig redirect\n        option src dtdlink\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
+                            fw:write("config redirect\n        option src wan\n        option dest  lan\n        " .. match .. "        " .. host .. "\n")
                         end
                     end
                 end
