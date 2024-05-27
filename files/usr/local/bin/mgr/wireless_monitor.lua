@@ -191,9 +191,11 @@ function M.run_actions()
 
     -- Once per day we do a wifi scan as a fallback for failed connections
     local time = os.date("*t")
-    if default_scan_enabled and time.hour == action_limits.default_scan then
-        default_scan_enabled = false
-        M.reset_network("scan-all")
+    if time.hour == action_limits.default_scan then
+        if default_scan_enabled then
+            default_scan_enabled = false
+            M.reset_network("scan-all")
+        end
     else
         default_scan_enabled = true
     end
