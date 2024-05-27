@@ -51,7 +51,8 @@ local action_limits = {
     unresponsive_trigger1 = 5,
     unresponsive_trigger2 = 10,
     zero_trigger1 = 10 * 60, -- 10 minutes
-    zero_trigger2 = 30 * 60 -- 30 minutes
+    zero_trigger2 = 30 * 60, -- 30 minutes
+    default_scan = 3 -- 3am
 }
 -- Start action state assuming the node is active and no actions are pending
 local action_state = {
@@ -73,6 +74,7 @@ local station_count = {
     history = {},
     history_limit = 120 -- 2 hours
 }
+local default_scan_enabled = true
 
 -- Detect Mikrotik AC which requires special handling
 local mikrotik_ac = false
@@ -186,6 +188,18 @@ end
 -- Take action depending on the monitor state
 
 function M.run_actions()
+
+    -- Once per day we do a wifi scan as a fallback for failed connections
+    local time = os.date("*t")
+    if time.hour == action_limits.default_scan then
+        if default_scan_enabled then
+            default_scan_enabled = false
+            M.reset_network("scan-all")
+        end
+    else
+        default_scan_enabled = true
+    end
+
     -- No action if we have stations and they're responsive
     if station_count.last_nonzero > station_count.last_zero and unresponsive.max < action_limits.unresponsive_trigger1 then
         for k, _ in pairs(action_state)
