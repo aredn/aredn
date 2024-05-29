@@ -184,49 +184,51 @@ local function get(validate)
         for _, service in ipairs(services)
         do
             local proto, hostname, port, path = service:match("^(%w+)://([%w%-%.]+):(%d+)(.*)|...|[^|]+$")
-            local vs = vstate[hostname:lower()]
-            if not vs or vs > now or dmz_mode == "0" then
-                if port == "0" then
-                    -- no port so not a link - we can only check the hostname so have to assume the service is good
-                    vstate[service] = last
-                elseif proto == "http" then
-                    -- http so looks like a link. http check it
-                    if not hostname:match("%.local%.mesh$") then
-                        hostname = hostname .. ".local.mesh"
-                    end
-                    local status, effective_url = io.popen("/usr/bin/curl --max-time 10 --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --location --write-out '%{http_code} %{url_effective}' " .. "http://" .. hostname .. ":" .. port .. path):read("*a"):match("^(%d+) (.*)")
-                    if status == "200" or status == "401" then
+            if proto then
+                local vs = vstate[hostname:lower()]
+                if not vs or vs > now or dmz_mode == "0" then
+                    if port == "0" then
+                        -- no port so not a link - we can only check the hostname so have to assume the service is good
                         vstate[service] = last
-                    elseif status == "301" or status == "302" or status == "303" or status == "307" or status == "308" then
-                        -- Ended at a redirect rather than an actual page.
-                        if effective_url:match("^https:") then
-                            -- We cannot validate https: links so we just assume they're okay
-                            vstate[service] = last
+                    elseif proto == "http" then
+                        -- http so looks like a link. http check it
+                        if not hostname:match("%.local%.mesh$") then
+                            hostname = hostname .. ".local.mesh"
                         end
-                    end
-                else
-                    -- valid port, but we dont know the protocol (we cannot trust the one defined in the services file because the UI wont set
-                    -- anything but 'tcp'). Check both tcp and udp and assume valid it either is okay
-                    -- tcp
-                    local s = nixio.socket("inet", "stream")
-                    s:setopt("socket", "sndtimeo", 2)
-                    local r = s:connect(hostname, tonumber(port))
-                    s:close()
-                    if r == true then
-                        -- tcp connection succeeded
-                        vstate[service] = last
-                    else
-                        -- udp
-                        s = nixio.socket("inet", "dgram")
-                        s:setopt("socket", "rcvtimeo", 2)
-                        s:connect(hostname, tonumber(port))
-                        s:send("")
-                        r = s:recv(0)
-                        s:close()
-                        if r ~= nil then
-                            -- A nil response is an explicity rejection of the udp request. Otherwise we have
-                            -- to assume the service is valid
+                        local status, effective_url = io.popen("/usr/bin/curl --max-time 10 --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --location --write-out '%{http_code} %{url_effective}' " .. "http://" .. hostname .. ":" .. port .. path):read("*a"):match("^(%d+) (.*)")
+                        if status == "200" or status == "401" then
                             vstate[service] = last
+                        elseif status == "301" or status == "302" or status == "303" or status == "307" or status == "308" then
+                            -- Ended at a redirect rather than an actual page.
+                            if effective_url:match("^https:") then
+                                -- We cannot validate https: links so we just assume they're okay
+                                vstate[service] = last
+                            end
+                        end
+                    else
+                        -- valid port, but we dont know the protocol (we cannot trust the one defined in the services file because the UI wont set
+                        -- anything but 'tcp'). Check both tcp and udp and assume valid it either is okay
+                        -- tcp
+                        local s = nixio.socket("inet", "stream")
+                        s:setopt("socket", "sndtimeo", 2)
+                        local r = s:connect(hostname, tonumber(port))
+                        s:close()
+                        if r == true then
+                            -- tcp connection succeeded
+                            vstate[service] = last
+                        else
+                            -- udp
+                            s = nixio.socket("inet", "dgram")
+                            s:setopt("socket", "rcvtimeo", 2)
+                            s:connect(hostname, tonumber(port))
+                            s:send("")
+                            r = s:recv(0)
+                            s:close()
+                            if r ~= nil then
+                                -- A nil response is an explicity rejection of the udp request. Otherwise we have
+                                -- to assume the service is valid
+                                vstate[service] = last
+                            end
                         end
                     end
                 end
