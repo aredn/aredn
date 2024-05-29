@@ -5,7 +5,7 @@
 * *stable* - this image has been tested on hardware. There may still be bugs.
 
 **Status**
-* *released* - this image is in a production release of the AREDN firmware.
+* *released* - this image is in a production release of the AREDN® firmware.
 * *nightly* - this device is newly supported in the nightly builds (since the last production release).
 * *sunset* - this device is supported but no longer recommended. Support will be deprecated in the future.
 * *brick* - this image has been tested and found to brick your hardware. Avoid for now.
@@ -162,7 +162,7 @@ Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
  2. Tiny builds exclude support for *tunnels* and *WiFi AP* mode due to lack of resources. The relevant packages can be installed separately but this is not recommended.
  3. These devices are no longer being manufactured by GL-iNET. They may not reboot reliably and you may need to power cycle them (several times) during an update.
  4. 20MHz channels only.
- 5. x86 images are for advanced users. See "Installing AREDN Firmware" x86 documentation section.
+ 5. x86 images are for advanced users. See "Installing AREDN® Firmware" x86 documentation section.
  6. These devices do not function on negative channels in the 2.4 GHz band.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/
