@@ -1,6 +1,6 @@
 --[[
 
-  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
   Copyright (C) 2021 Tim Wilkinson
   See Contributors file for additional contributors
 
@@ -18,12 +18,12 @@
 
   Additional Terms:
 
-  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+  Additional use restrictions exist on the AREDN® trademark and logo.
     See AREDNLicense.txt for more info.
 
-  Attributions to the AREDN Project must be retained in the source code.
+  Attributions to the AREDN® Project must be retained in the source code.
   If importing this code into a new or existing project attribution
-  to the AREDN project must be added to the source code.
+  to the AREDN® project must be added to the source code.
 
   You must not misrepresent the origin of the material contained within.
 
@@ -63,7 +63,7 @@ function html.header(title, close)
 end
 
 function html.footer()
-    html.print "<div class=\"Page_Footer\"><hr><p class=\"PartOfAREDN\">Part of the AREDN&trade; Project. For more details please <a href=\"/about.html\" target=\"_blank\">see here</a></p></div>"
+    html.print "<div class=\"Page_Footer\"><hr><p class=\"PartOfAREDN\">Part of the AREDN&#174; Project. For more details please <a href=\"/about.html\" target=\"_blank\">see here</a></p></div>"
 end
 
 function html.alert_banner()

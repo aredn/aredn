@@ -17,12 +17,12 @@
 
 	Additional Terms:
 
-	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+	Additional use restrictions exist on the AREDN® trademark and logo.
 		See AREDNLicense.txt for more info.
 
-	Attributions to the AREDN Project must be retained in the source code.
+	Attributions to the AREDN® Project must be retained in the source code.
 	If importing this code into a new or existing project attribution
-	to the AREDN project must be added to the source code.
+	to the AREDN® project must be added to the source code.
 
 	You must not misrepresent the origin of the material contained within.
 
