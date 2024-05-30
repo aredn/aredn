@@ -395,7 +395,6 @@ function lqm()
         local stations = {}
 
         -- Legacy and wireguard tunnels
-        local tunnel = {}
         for _, dev in pairs(devices)
         do
             if dev.name:match("^tun") then
