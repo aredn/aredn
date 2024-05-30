@@ -51,17 +51,28 @@ if c:get("aredn", "@supernode[0]", "support") == "0" then
 	os.exit(0)
 end
 
--- Find the first supernode to use as a nameserver
-local dns = ""
+-- Find the closest supernode to use as a nameserver
+local sn = {}
 for _, hna in ipairs(aredn.olsr.getOLSRHNA())
 do
 	if hna.genmask == 8 and hna.destination == "10.0.0.0" then
-		dns = "#" .. hna.gateway .. "\nserver=/local.mesh/" .. hna.gateway .. "\nrev-server=10.0.0.0/8," .. hna.gateway .. "\nrev-server=172.31.0.0/16," .. hna.gateway .. "\nrev-server=172.30.0.0/16," .. hna.gateway .. "\n"
+		sn[hna.gateway] = true
 		break
 	end
 end
+local best = { destination = nil, etx = 99999999 }
+for _, route in ipairs(aredn.olsr.getOLSRRoutes())
+do
+	if sn[route.destination] and route.etx < best.etx then
+		best = route
+	end
+end
+if not best.destination then
+	os.exit(0)
+end
 
--- Updae the dns and restart network if necessary
+-- Update the dns and restart network if necessary
+local dns = "#" .. best.destination .. "\nserver=/local.mesh/" .. best.destination .. "\nrev-server=10.0.0.0/8," ..best.destination .. "\nrev-server=172.31.0.0/16," .. best.destination .. "\nrev-server=172.30.0.0/16," .. best.destination .. "\n"
 local odns = ""
 local f = io.open(dns_file)
 if f then
