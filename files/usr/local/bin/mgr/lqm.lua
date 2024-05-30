@@ -53,6 +53,7 @@ local speed_limit = 1000 -- close connection if it's too slow (< 1kB/s for 10 se
 local default_short_retries = 20 -- More link-level retries helps overall tcp performance (factory default is 7)
 local default_long_retries = 20 -- (factory default is 4)
 local default_min_routes = 8 -- Minimum number of routes (nodes x2 usually) on a link which *must* be left active. Avoids cutting off poorly behaving leaf nodes.
+local wireguard_alive_time = 300 -- 5 minutes
 
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
@@ -247,6 +248,8 @@ end
 local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode")
 local myip = uci.cursor():get("network", "wifi", "ipaddr")
 
+local wgsupport = nixio.fs.stat("/usr/bin/wg")
+
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
 f:write('{"trackers":{},"hidden_nodes":[]}')
@@ -373,10 +376,25 @@ function lqm()
             end
         end
 
+        -- Find the wireguard tunnels that are active
+        local wgtuns = {}
+        if wgsupport then
+            local f = io.popen("/usr/bin/wg show all latest-handshakes")
+            if f then
+                for line in f:lines()
+                do
+                    local iface, handshake = line:match("^(%S+)%s+%S+%s+(%d+)%s*$")
+                    if iface and tonumber(handshake) + wireguard_alive_time > os.time() then
+                        wgtuns[iface] = true
+                    end
+                end
+                f:close()
+            end
+        end
+
         local stations = {}
 
         -- Legacy and wireguard tunnels
-        local tunnel = {}
         for _, dev in pairs(devices)
         do
             if dev.name:match("^tun") then
@@ -388,7 +406,7 @@ function lqm()
                     tx_packets = dev.tx_packets,
                     tx_fail = dev.tx_fail
                 }
-            elseif dev.name:match("^wgc") then
+            elseif dev.name:match("^wgc") and wgtuns[dev.name] then
                 local ip123, ip4 = dev.ip:match("^(%d+%.%d+%.%d+%.)(%d+)$")
                 stations[#stations + 1] = {
                     type = "Wireguard",
@@ -398,7 +416,7 @@ function lqm()
                     tx_packets = dev.tx_packets,
                     tx_fail = dev.tx_fail
                 }
-            elseif dev.name:match("^wgs") then
+            elseif dev.name:match("^wgs") and wgtuns[dev.name] then
                 local ip123, ip4 = dev.ip:match("^(%d+%.%d+%.%d+%.)(%d+)$")
                 stations[#stations + 1] = {
                     type = "Wireguard",
