@@ -64,7 +64,7 @@ local IPCMD = "/sbin/ip"
 local now = 0
 local config = {}
 
-local total_node_route_count = 0
+local total_node_route_count = nil
 
 function update_config()
     local c = uci.cursor() -- each time as /etc/config/aredn may have changed
@@ -348,7 +348,6 @@ function lqm()
 
         -- Find all our devices and know our macs so we can exclude them
         local devices = {}
-        local our_macs = {}
         for _, i in ipairs(nixio.getifaddrs())
         do
             if i.name then
@@ -360,7 +359,6 @@ function lqm()
                 if i.family == "packet" then
                     if i.addr then
                         dev.mac = i.addr:lower()
-                        our_macs[dev.mac] = true
                     end
                     dev.tx_packets = i.data.tx_packets
                     dev.tx_fail = i.data.tx_errors
@@ -398,7 +396,7 @@ function lqm()
         -- Legacy and wireguard tunnels
         for _, dev in pairs(devices)
         do
-            if dev.name:match("^tun") then
+            if dev.name:match("^tun%d+") then
                 stations[#stations + 1] = {
                     type = "Tunnel",
                     device = dev.name,
@@ -407,7 +405,7 @@ function lqm()
                     tx_packets = dev.tx_packets,
                     tx_fail = dev.tx_fail
                 }
-            elseif dev.name:match("^wgc") and wgtuns[dev.name] then
+            elseif dev.name:match("^wgc%d+") and wgtuns[dev.name] then
                 local ip123, ip4 = dev.ip:match("^(%d+%.%d+%.%d+%.)(%d+)$")
                 stations[#stations + 1] = {
                     type = "Wireguard",
@@ -417,7 +415,7 @@ function lqm()
                     tx_packets = dev.tx_packets,
                     tx_fail = dev.tx_fail
                 }
-            elseif dev.name:match("^wgs") and wgtuns[dev.name] then
+            elseif dev.name:match("^wgs%d+") and wgtuns[dev.name] then
                 local ip123, ip4 = dev.ip:match("^(%d+%.%d+%.%d+%.)(%d+)$")
                 stations[#stations + 1] = {
                     type = "Wireguard",
@@ -430,7 +428,17 @@ function lqm()
             end
         end
 
-        -- DtD
+        -- Xlink interfaces
+        local xlinks = {}
+        cursorm:foreach("xlink", "interface",
+            function(section)
+                if section.ifname then
+                    xlinks[section.ifname] = true
+                end
+            end
+        )
+
+        -- DtD & Xlinks
         for _, entry in ipairs(arps)
         do
             if entry.Device:match("%.2$") or entry.Device:match("^br%-dtdlink") then
@@ -440,25 +448,15 @@ function lqm()
                     ip = entry["IP address"],
                     mac = entry["HW address"]
                 }
+            elseif xlinks[entry.Device] then
+                stations[#stations + 1] = {
+                    type = "Xlink",
+                    device = entry.Device,
+                    ip = entry["IP address"],
+                    mac = entry["HW address"]
+                }
             end
         end
-
-        -- Xlink
-        cursorm:foreach("xlink", "interface",
-            function(section)
-                if section.ifname then
-                    local entry = devices[section.ifname]
-                    if entry then
-                        stations[#stations + 1] = {
-                            type = "Xlink",
-                            device = entry.name,
-                            ip = entry.ip,
-                            mac = entry.mac
-                        }
-                    end
-                end
-            end
-        )
 
         -- RF
         if radiomode == "adhoc" then
@@ -483,7 +481,7 @@ function lqm()
                         type = "RF",
                         device = wlan,
                         mac = mac:lower(),
-                        signal = 0,
+                        signal = nil,
                         noise = noise,
                         ip = nil,
                         tx_bitrate = 0,
@@ -496,7 +494,6 @@ function lqm()
                             break
                         end
                     end
-                    stations[#stations + 1] = station
                 else
                     for k, v in pairs(kv)
                     do
@@ -505,6 +502,9 @@ function lqm()
                             station[v] = tonumber(val)
                             if v == "tx_bitrate" or v == "rx_bitrate" then
                                 station[v] = station[v] * channel_bw_scale
+                            end
+                            if v == "signal" then
+                                stations[#stations + 1] = station
                             end
                         end
                     end
@@ -515,90 +515,88 @@ function lqm()
         -- Update the trackers based on the latest station information
         for _, station in ipairs(stations)
         do
-            if station.signal ~= 0 and not our_macs[station.mac] then
-                if not tracker[station.mac] then
-                    tracker[station.mac] = {
-                        type = station.type,
-                        device = station.device,
-                        firstseen = now,
-                        lastseen = now,
-                        pending = now + pending_timeout,
-                        refresh = 0,
-                        mac = station.mac,
-                        ip = nil,
-                        hostname = nil,
-                        lat = nil,
-                        lon = nil,
-                        distance = nil,
-                        blocks = {
-                            dtd = false,
-                            signal = false,
-                            distance = false,
-                            pair = false,
-                            quality = false
-                        },
-                        blocked = false,
-                        snr = nil,
-                        rev_snr = nil,
-                        avg_snr = nil,
-                        last_tx = nil,
-                        tx_quality = nil,
-                        ping_quality = nil,
-                        ping_success_time = nil,
-                        tx_bitrate = nil,
-                        rx_bitrate = nil,
-                        quality = nil,
-                        quality0_seen = nil,
-                        quality_block_snr = nil,
-                        last_tx_fail = nil,
-                        last_tx_retries = nil,
-                        avg_tx = nil,
-                        avg_tx_retries = nil,
-                        avg_tx_fail = nil,
-                        node_route_count = 0,
-                        leaf = nil,
-                        rev_leaf = nil
-                    }
-                end
-                local track = tracker[station.mac]
-
-                -- IP and Hostname
-                if station.ip and station.ip ~= track.ip then
-                    track.ip = station.ip
-                    track.hostname = nil
-                end
-                if not track.hostname and track.ip then
-                    track.hostname = canonical_hostname(nixio.getnameinfo(track.ip))
-                end
-
-                -- Running average SNR
-                if station.signal and station.noise then
-                    track.snr = round(av(track.snr, snr_run_avg, station.signal - station.noise, 0))
-                end
-
-                -- Running average estimate of link quality
-                local tx = station.tx_packets
-                local tx_retries = station.tx_retries
-                local tx_fail = station.tx_fail
-
-                if tx and track.tx and tx >= track.tx + quality_min_packets then
-                    track.avg_tx = av(track.avg_tx, tx_quality_run_avg, tx, track.tx)
-                    track.avg_tx_retries = av(track.avg_tx_retries, tx_quality_run_avg, tx_retries, track.tx_retries)
-                    track.avg_tx_fail = av(track.avg_tx_fail, tx_quality_run_avg, tx_fail, track.tx_fail)
-
-                    local bad = math.max((track.avg_tx_fail or 0), (track.avg_tx_retries or 0))
-                    track.tx_quality = 100 * (1 - math.min(1, math.max(track.avg_tx > 0 and bad / track.avg_tx or 0, 0)))
-                end
-
-                track.tx = tx
-                track.tx_retries = tx_retries
-                track.tx_fail = tx_fail
-
-                track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, station.tx_bitrate, track.tx_bitrate)
-                track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, station.rx_bitrate, track.rx_bitrate)
-
-                track.lastseen = now
+            if not tracker[station.mac] then
+                tracker[station.mac] = {
+                    type = station.type,
+                    device = station.device,
+                    firstseen = now,
+                    lastseen = now,
+                    pending = now + pending_timeout,
+                    refresh = 0,
+                    mac = station.mac,
+                    ip = nil,
+                    hostname = nil,
+                    lat = nil,
+                    lon = nil,
+                    distance = nil,
+                    blocks = {
+                        dtd = false,
+                        signal = false,
+                        distance = false,
+                        pair = false,
+                        quality = false
+                    },
+                    blocked = false,
+                    snr = nil,
+                    rev_snr = nil,
+                    avg_snr = nil,
+                    last_tx = nil,
+                    tx_quality = nil,
+                    ping_quality = nil,
+                    ping_success_time = nil,
+                    tx_bitrate = nil,
+                    rx_bitrate = nil,
+                    quality = nil,
+                    quality0_seen = nil,
+                    quality_block_snr = nil,
+                    last_tx_fail = nil,
+                    last_tx_retries = nil,
+                    avg_tx = nil,
+                    avg_tx_retries = nil,
+                    avg_tx_fail = nil,
+                    node_route_count = 0,
+                    leaf = nil,
+                    rev_leaf = nil
+                }
             end
+            local track = tracker[station.mac]
+
+            -- IP and Hostname
+            if station.ip and station.ip ~= track.ip then
+                track.ip = station.ip
+                track.hostname = nil
+            end
+            if not track.hostname and track.ip then
+                track.hostname = canonical_hostname(nixio.getnameinfo(track.ip))
+            end
+
+            -- Running average SNR
+            if station.signal and station.noise then
+                track.snr = round(av(track.snr, snr_run_avg, station.signal - station.noise, 0))
+            end
+
+            -- Running average estimate of link quality
+            local tx = station.tx_packets
+            local tx_retries = station.tx_retries
+            local tx_fail = station.tx_fail
+
+            if tx and track.tx and tx >= track.tx + quality_min_packets then
+                track.avg_tx = av(track.avg_tx, tx_quality_run_avg, tx, track.tx)
+                track.avg_tx_retries = av(track.avg_tx_retries, tx_quality_run_avg, tx_retries, track.tx_retries)
+                track.avg_tx_fail = av(track.avg_tx_fail, tx_quality_run_avg, tx_fail, track.tx_fail)
+
+                local bad = math.max((track.avg_tx_fail or 0), (track.avg_tx_retries or 0))
+                track.tx_quality = 100 * (1 - math.min(1, math.max(track.avg_tx > 0 and bad / track.avg_tx or 0, 0)))
+            end
+
+            track.tx = tx
+            track.tx_retries = tx_retries
+            track.tx_fail = tx_fail
+
+            track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, station.tx_bitrate, track.tx_bitrate)
+            track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, station.rx_bitrate, track.rx_bitrate)
+
+            track.lastseen = now
         end
 
         -- Update link tracking state
@@ -804,17 +802,17 @@ function lqm()
 
         --
         -- Pull in the routing table to see how many node routes are associated with each tracker.
-        -- We dont do this if this is a supernode because the routes table is massive and can cause
-        -- crash olsrd.
+        -- We don't do this for supernodes as the table is very big and we don't use the information.
+        -- Don't pull the data from OLSR as this can be too distruptive to its operation on slower nodes
+        -- with large routing tables.
         --
-        total_node_route_count = 0
         if not is_supernode then
-            for _, route in ipairs(aredn.olsr.getOLSRRoutes())
+            total_node_route_count = 0
+            for line in io.popen(IPCMD .. " route show table 30"):lines()
             do
-                -- Count routes to nodes. There are two routes to most nodes, the node's primary address
-                -- and the node's dtdlink address.
-                if route.genmask == 32 and route.destination:match("^10%.") then
-                    local track = ip2tracker[route.gateway];
+                local gw = line:match("^10%.%d+%.%d+%.%d+ via (%d+%.%d+%.%d+%.%d+) dev")
+                if gw then
+                    local track = ip2tracker[gw];
                     if track then
                         track.node_route_count = track.node_route_count + 1
                         total_node_route_count = total_node_route_count + 1
