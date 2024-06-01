@@ -247,6 +247,7 @@ end
 
 local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode")
 local myip = uci.cursor():get("network", "wifi", "ipaddr")
+local is_supernode = uci.cursor():get("aredn", "@supernode[0]", "enable") == "1"
 
 local wgsupport = nixio.fs.stat("/usr/bin/wg")
 
@@ -803,17 +804,21 @@ function lqm()
 
         --
         -- Pull in the routing table to see how many node routes are associated with each tracker.
+        -- We dont do this if this is a supernode because the routes table is massive and can cause
+        -- crash olsrd.
         --
         total_node_route_count = 0
-        for _, route in ipairs(aredn.olsr.getOLSRRoutes())
-        do
-            -- Count routes to nodes. There are two routes to most nodes, the node's primary address
-            -- and the node's dtdlink address.
-            if route.genmask == 32 and route.destination:match("^10%.") then
-                local track = ip2tracker[route.gateway];
-                if track then
-                    track.node_route_count = track.node_route_count + 1
-                    total_node_route_count = total_node_route_count + 1
+        if not is_supernode then
+            for _, route in ipairs(aredn.olsr.getOLSRRoutes())
+            do
+                -- Count routes to nodes. There are two routes to most nodes, the node's primary address
+                -- and the node's dtdlink address.
+                if route.genmask == 32 and route.destination:match("^10%.") then
+                    local track = ip2tracker[route.gateway];
+                    if track then
+                        track.node_route_count = track.node_route_count + 1
+                        total_node_route_count = total_node_route_count + 1
+                    end
                 end
             end
         end

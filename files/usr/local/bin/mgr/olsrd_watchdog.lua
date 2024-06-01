@@ -36,53 +36,22 @@
 --]]
 
 local watchdogfile = "/tmp/olsrd.watchdog"
-local pidfile = "/var/run/olsrd.pid"
-local logfile = "/tmp/olsrd.log"
-
-function olsrd_restart()
-    -- print "olsrd_restart"
-
-    os.execute("/etc/init.d/olsrd restart")
-
-    if nixio.fs.stat(logfile) then
-        local lines = read_all(logfile):splitNewLine()
-        lines[#lines + 1] = secondsToClock(nixio.sysinfo().uptime) .. " " .. os.date()
-        local start = 1
-        if #lines > 300 then
-            start = #lines - 275
-        end
-        local f = io.open(logfile, "w")
-        if f then
-            for i = start, #lines
-            do
-                f:write(lines[i] .. "\n")
-            end
-            f:close()
-        end
-    end
-end
+local sleeptime = 3 * 60 -- 3 minutes
+local timeout = 10 * 60 -- 10 minutes
 
 function olsrd_watchdog()
     while true
     do
-        wait_for_ticks(223)
-
-        local pid = read_all(pidfile)
-        if pid and nixio.fs.stat("/proc/" .. pid) then
-            if nixio.fs.stat(watchdogfile) then
+        wait_for_ticks(sleeptime)
+        if nixio.fs.stat(watchdogfile) then
+            local watchtime = tonumber(read_all(watchdogfile))
+            -- If watchtime hasn't update recently then we restart OLSRD
+            if watchtime + timeout < os.time() then
+                nixio.syslog("err", "olsrd watchdog timeout - restarting")
                 os.remove(watchdogfile)
-            else
-                olsrd_restart()
-            end
-        else
-            local pids = capture("pidof olsrd"):splitWhiteSpace()
-            if #pids == 1 then
-                write_all(pidfile, pids[1]);
-            elseif #pids == 0 then
-                olsrd_restart()
+                os.execute("/etc/init.d/olsrd restart")
             end
         end
-
     end
 end
 
