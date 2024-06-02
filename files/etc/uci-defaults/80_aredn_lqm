@@ -20,7 +20,7 @@ done
 
 if [ "$(/sbin/uci -q get aredn.@lqm[0].min_quality)" = "50" ]; then
     /sbin/uci -q set aredn.@lqm[0].min_quality=35
-    /sbin/uci -q -c /etc/config.mesh set aredn.@lqm[0].min_quality=35
     /sbin/uci commit aredn
+    /sbin/uci -q -c /etc/config.mesh set aredn.@lqm[0].min_quality=35
     /sbin/uci -c /etc/config.mesh commit aredn
 fi
