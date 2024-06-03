@@ -89,10 +89,10 @@ function html.msg_banner()
     local aredn_message = read_all("/tmp/aredn_message")
     local local_message = read_all("/tmp/local_message")
     if aredn_message and #aredn_message > 0 then
-        html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Messages:</strong><br /><div style=\"text-align:left;\">" .. aredn_message .. "</div></div>")
+        html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:700px;\"><strong>AREDN Messages:</strong><br /><div style=\"text-align:left;\">" .. aredn_message .. "</div></div>")
     end
     if local_message and #local_message > 0 then
-        html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Messages:</strong><br /><div style=\"text-align:left;\">" .. local_message .. "</div></div>")
+        html.print("<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:700px;\"><strong>Local Messages:</strong><br /><div style=\"text-align:left;\">" .. local_message .. "</div></div>")
     end
     html.print("</div>")
 end
