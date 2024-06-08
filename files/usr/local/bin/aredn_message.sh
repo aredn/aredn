@@ -73,9 +73,11 @@ then
   else
     # need to append to node file
     retrieve_alert http://downloads.arednmesh.org/messages/all.txt aredn_message_all "all nodes"
-    echo "<br />" >> /tmp/aredn_message
-    cat /tmp/aredn_message_all >> /tmp/aredn_message
-    rm /tmp/aredn_message_all
+    if [ -s "/tmp/aredn_message_all" ]; then
+      echo "<br />" >> /tmp/aredn_message
+      cat /tmp/aredn_message_all >> /tmp/aredn_message
+      rm /tmp/aredn_message_all
+    fi
   fi
 fi
 
