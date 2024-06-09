@@ -115,7 +115,14 @@ else
                     end
                     print("<html><head><title>SUCCESS</title></head>")
                     io.flush()
-                    print("<body><pre>Client: " .. node .. "\nServer: " .. server .. "\n" .. running:read("*a") .. "</pre></body></html>")
+                    print("<body><pre>Client: " .. node .. "\nServer: " .. server .. "\n")
+                    for line in running:lines()
+                    do
+                        print(line)
+                        io.flush()
+                    end
+                    running:close()
+                    print("</pre></body></html>")
                     break
                 end
             end
