@@ -51,6 +51,9 @@ function is_null(v)
         return false
     end
 end
+function is_notnull(v)
+    return not is_null(v)
+end
 
 local function h2s(hex)
     local s = ""
@@ -225,7 +228,7 @@ if cfg.wan_proto == "dhcp" then
     deleteme.wan_gw = true
     deleteme.wan_mask = true
 end
-if not is_null(cfg.dmz_mode) or cfg.wan_proto ~= "disabled" then
+if is_notnull(cfg.dmz_mode) or cfg.wan_proto ~= "disabled" then
     deleteme.lan_gw = true
 end
 
@@ -282,7 +285,7 @@ if is_null(cfg.dmz_mode) then
 end
 
 -- switch to dmz values if needed
-if not is_null(cfg.dmz_mode) then
+if is_notnull(cfg.dmz_mode) then
     cfg.lan_ip = cfg.dmz_lan_ip
     cfg.lan_mask = cfg.dmz_lan_mask
     cfg.dhcp_start = cfg.dmz_dhcp_start
@@ -647,18 +650,14 @@ write_all("/tmp/new_config/vtun", expand_vars("<tun_network_config>"))
 local nc = uci.cursor("/tmp/new_config")
 
 -- append to firewall
-local add_masq = false
 local fw = io.open("/tmp/new_config/firewall", "a")
 if fw then
-    if not is_null(cfg.dmz_mode) then
+    if is_notnull(cfg.dmz_mode) then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   lan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   lan\n")
         if vpnzone then
             fw:write("\nconfig forwarding\n        option src    vpn\n        option dest   lan\n")
         end
-        add_masq = true
-    else
-        fw:write("\nconfig 'include'\n        option 'path' '/etc/firewall.natmode'\n        option 'reload' '1'\n")
     end
 
     if nc:get("aredn", "@wan[0]", "olsrd_gw") == "1" then
@@ -692,7 +691,7 @@ if fw then
                         if not oport:match("-") then
                             host = host .. "        option dest_port " .. iport .. "\n"
                         end
-                        if not is_null(cfg.dmz_mode) and intf == "both" then
+                        if is_notnull(cfg.dmz_mode) and intf == "both" then
                             intf = "wan"
                         end
                         if intf == "both" then
@@ -720,8 +719,16 @@ if fw then
 
     fw:close();
 end
-if add_masq then
-    nc:set("firewall", "@zone[2]", "masq", "0")
+
+-- setup nat
+if is_null(cfg.dmz_mode) then
+    -- zone[0] = lan, zone[1] = wan, zone[2] = wifi, zone[3] = dtdlink, zone[4] = vpn
+    local masq_src = cfg.lan_ip .. "/" .. netmask_to_cidr(cfg.lan_mask)
+    for z = 2, 4
+    do
+        nc:set("firewall", "@zone[" .. z .. "]", "masq", "1")
+        nc:set("firewall", "@zone[" .. z .. "]", "masq_src", masq_src)
+    end
     nc:commit("firewall")
 end
 
@@ -983,13 +990,13 @@ if h and e then
     h:write("# automatically generated file - do not edit\n")
     h:write("# use /etc/hosts.user for custom entries\n")
     h:write("127.0.0.1\tlocalhost\n")
-    if not is_null(cfg.wifi_ip) then
+    if is_notnull(cfg.wifi_ip) then
         h:write(cfg.lan_ip .. "\tlocalnode\n")
         h:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
     else
         h:write(cfg.lan_ip .. "\tlocalnode " .. node .. " " .. tactical .. "\n")
     end
-    if not is_null(cfg.dtdlink_ip) then
+    if is_notnull(cfg.dtdlink_ip) then
         h:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
     end
     if is_null(cfg.dmz_mode) then
@@ -1077,12 +1084,12 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
             of:write(line .. "\n")
         end
 
-        if not is_null(cfg.dmz_mode) then
+        if is_notnull(cfg.dmz_mode) then
             local a, b, c, d = cfg.dmz_lan_ip:match("(.*)%.(.*)%.(.*)%.(.*)")
             of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%s.%d\n\toption netmask 255.255.255.%d\n\n", a, b, c, d - 1, nixio.bit.band(255 * 2 ^ cfg.dmz_mode, 255)))
         end
 
-        if cfg.wifi_enable ~= "1" and not is_null(cfg.wifi_ip) then
+        if cfg.wifi_enable ~= "1" and is_notnull(cfg.wifi_ip) then
             of:write(string.format("config Hna4\n\toption netaddr %s\n\toption netmask 255.255.255.255\n\n", cfg.wifi_ip))
         end
 
@@ -1216,7 +1223,7 @@ if sf then
         if cfg.wifi_enable == "1" then
             sf:write("/usr/sbin/iw dev " .. cfg.wifi_intf .. " set txpower fixed " .. cfg.wifi_txpower .. "00\n")
         end
-        if not is_null(cfg.aprs_lat) and not is_null(cfg.aprs_lon) then
+        if is_notnull(cfg.aprs_lat) and is_notnull(cfg.aprs_lon) then
             nc:set("aredn", "@location[0]", "lat", cfg.aprs_lat)
             nc:set("aredn", "@location[0]", "lon", cfg.aprs_lon)
             nc:commit("aredn")
