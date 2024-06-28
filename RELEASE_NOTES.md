@@ -1,5 +1,53 @@
 __RELEASE NOTES__
 
+# 3.24.6.0
+
+## Enhancements
+
+* MTR support via installable package (mtr-nojson).
+* NAT mode: Allow NAT traffic to LAN from all interfaces (WAN, RF, DTD, TUN, WG and XLink).
+* Improve iPerf3 service to provide data line by line rather than at the end.
+* Use closest supernode rather than first discovered supernode.
+* LQM+OLSRD improvements where weak connections are detected.
+* Detect "leaf" nodes and prevent them being blocked.
+
+## New Device Support
+
+* Antenna: Mikrotik 30 dBi 5deg Dish
+* Antenna: airMAX 2.4 GHz, 24 dBi 6.6deg RocketDish
+* Antenna: airMAX 3 GHz, 26 dBi 7deg RocketDish
+* Antenna: airMAX 3 GHz, 18 dBi, 120deg Sector
+* Antenna: airMAX 3 GHz, 12 dBi Omni
+* Antenna: airMAX 5 GHz, 30 dBi 5.8deg RocketDish Light Weight
+* Antenna: Mikrotik 15 dBi 120deg Sector
+* Antenna: Mikrotik 19 dBi 120deg Sector
+* Antenna: Mikrotik 30 dBi 5deg Dish (PA)
+
+## Notes
+
+* There remain problems with the TP-Link CPE710.
+* GL.iNet GL-B1300 does not support negative channels on the 2.4 GHz band.
+
+## Fixes and Improvements
+
+* Add service validation state to support data.
+* Name xlink configs.
+* Fix missing file error when retrieving messages.
+* Simplify olsrd watchdog.
+* Fix bug requiring reboot when updating tunnels.
+* Ignore badly formatted service definitions.
+* Update AREDN® registration marks.
+* Count Wireguard tunnels in sysinfo.json reporting.
+* Fix NAT Firewall for tunnels and xlinks. Moved to stanard OpenWRT firewall configuration rather than custom rules.
+* Force DHCP server active even when other servers detected (restore OpenWRT 22.03 behaviour).
+* Fix check-services bug when all services fail.
+* Fix manager.lua busy wait bug.
+* Fix hostname alias pattern to allow dns delegation.
+* Use more reliable system ip-to-hostname lookup rather than hand-rolled version.
+* Fix status page infor for 900MHz devices.
+* Move all logging into syslog so it can be logged remotely.
+* Change web, telnet and ssh WAN settings without reboot.
+
 # 3.24.4.0
 
 ## Enhancements
