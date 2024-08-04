@@ -1,0 +1,104 @@
+#! /usr/bin/lua
+--[[
+
+    Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+    Copyright (C) 2024 Tim Wilkinson
+    See Contributors file for additional contributors
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation version 3 of the License.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+    Additional Terms:
+
+    Additional use restrictions exist on the AREDN® trademark and logo.
+        See AREDNLicense.txt for more info.
+
+    Attributions to the AREDN® Project must be retained in the source code.
+    If importing this code into a new or existing project attribution
+    to the AREDN® project must be added to the source code.
+
+    You must not misrepresent the origin of the material contained within.
+
+    Modified versions must be modified to attribute to the original source
+    and be marked in reasonable ways as differentiate it from the original
+    version
+
+--]]
+
+require("uci")
+require("aredn.utils")
+require("aredn.hardware")
+
+local c = uci.cursor("/etc/local/uci")
+
+if #arg ~= 2 then
+    io.stderr:write("Usage: firstuse <node name> <password>\n")
+    os.exit(-1)
+end
+
+local name = arg[1]
+local passwd = arg[2]:gsub("'", "\\'")
+
+-- Set the password
+io.popen("{ echo '" .. passwd .. "'; sleep 1; echo '" .. passwd .. "'; } | passwd 2>&1"):read("*a")
+
+-- Set the node name
+c:set("hsmmmesh", "settings", "node", name)
+c:commit("hsmmmesh")
+
+-- Initial configuration
+local mac2 = c:get("hsmmmesh", "settings", "mac2")
+local dtdmac = c:get("hsmmmesh", "settings", "dtdmac")
+local defaultwifi = null;
+if aredn.hardware.get_radio_count() > 0 then
+    defaultwifi = aredn.hardware.get_default_channel("wlan0")
+end
+
+local lines = {}
+for line in io.lines("/etc/config.mesh/_setup")
+do
+    line = line:gsub("<NODE>", name):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
+    if defaultwifi then
+        if line:match("^wifi_channel") then
+            line = "wifi_channel = " .. defaultwifi.channel
+        elseif line:match("^wifi_chanbw") then
+            line = "wifi_chanbw = " .. defaultwifi.bandwidth
+        elseif line:match("^wifi_intf") then
+            line = "wifi_intf = wlan0"
+        end
+    end
+    lines[#lines + 1] = line
+end
+-- dhcp dmz
+local dmz_dhcp_base, net = ("1" .. decimal_to_ip((ip_to_decimal("10." .. mac2) * 8) % 0x1000000)):match("(%d+%.%d+%.%d+%.)(%d+)")
+net = tonumber(net)
+local dmz_lan_ip = dmz_dhcp_base .. (tonumber(net) + 1)
+local dmz_dhcp_start = net + 2
+local dmz_dhcp_limit = 5 -- dmz_mode == 3
+local dmz_dhcp_end = dmz_dhcp_start + dmz_dhcp_limit - 1
+lines[#lines + 1] = "dmz_dhcp_end = " .. dmz_dhcp_end
+lines[#lines + 1] = "dmz_dhcp_limit = " .. dmz_dhcp_limit
+lines[#lines + 1] = "dmz_dhcp_start = " .. dmz_dhcp_start
+lines[#lines + 1] = "dmz_lan_ip = " .. dmz_dhcp_base .. (net + 1)
+lines[#lines + 1] = "dmz_lan_mask = 255.255.255.248"
+
+local f = io.open("/etc/config.mesh/_setup", "w")
+for _, line in ipairs(lines)
+do
+    f:write(line .. "\n")
+end
+f:close()
+
+os.execute("/usr/local/bin/node-setup")
+
+c:set("hsmmmesh", "settings", "nodeupgraded", "0")
+c:commit("hsmmmesh")
