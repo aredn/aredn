@@ -151,7 +151,7 @@ compile: stamp-clean-compiled .stamp-compiled
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
 	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -path "*packages" -prune -o \( -type f -a \
-	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin" -o -name "*x86*" -o -name "*initramfs*" -o -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
+	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin"  -o -name "*sysupgrade-v7.bin" -o -name "*x86*" -o -name "*initramfs*" -o -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
 	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh

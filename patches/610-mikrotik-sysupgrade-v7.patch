@@ -1,0 +1,203 @@
+diff --git a/include/image-commands.mk b/include/image-commands.mk
+index 77a35f3eec0070..b8810bfbab305b 100644
+--- a/include/image-commands.mk
++++ b/include/image-commands.mk
+@@ -383,6 +383,11 @@ define Build/kernel-bin
+ 	cp $< $@
+ endef
+ 
++define Build/kernel-pack-npk
++	sh -c 'source $(STAGING_DIR_HOST)/share/npkpy-venv/bin/activate; python $(STAGING_DIR_HOST)/share/npkpy-venv/bin/pack_npk_kernel.py --kernel $@ --output $@.npk'
++	mv $@.npk $@
++endef
++
+ define Build/linksys-image
+ 	$(TOPDIR)/scripts/linksys-image.sh \
+ 		"$(call param_get_default,type,$(1),$(DEVICE_NAME))" \
+diff --git a/target/linux/ath79/image/common-mikrotik.mk b/target/linux/ath79/image/common-mikrotik.mk
+index b37c8b7197067c..3d8d354d443654 100644
+--- a/target/linux/ath79/image/common-mikrotik.mk
++++ b/target/linux/ath79/image/common-mikrotik.mk
+@@ -13,6 +13,10 @@ define Device/mikrotik_nor
+   IMAGE/sysupgrade.bin := append-kernel | kernel2minor -s 1024 -e | \
+ 	pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \
+ 	check-size | append-metadata
++  IMAGES += sysupgrade-v7.bin
++  IMAGE/sysupgrade-v7.bin := append-kernel | kernel-pack-npk | \
++	  kernel2minor -b -s 1024 -e | pad-to $$$$(BLOCKSIZE) | \
++	  append-rootfs | pad-rootfs | check-size | append-metadata
+ endef
+ 
+ define Device/mikrotik_nand
+diff --git a/target/linux/generic/files/drivers/mtd/mtdsplit/mtdsplit_minor.c b/target/linux/generic/files/drivers/mtd/mtdsplit/mtdsplit_minor.c
+index af6822e11ab344..db7198169e44e6 100644
+--- a/target/linux/generic/files/drivers/mtd/mtdsplit/mtdsplit_minor.c
++++ b/target/linux/generic/files/drivers/mtd/mtdsplit/mtdsplit_minor.c
+@@ -35,6 +35,7 @@
+ #define YAFFS_OBJECTID_ROOT	0x1
+ #define YAFFS_SUM_UNUSED	0xFFFF
+ #define YAFFS_NAME		"kernel"
++#define YAFFS_NAME_BOOTIMAGE	"bootimage"
+ 
+ #define MINOR_NR_PARTS		2
+ 
+@@ -77,7 +78,8 @@ static int mtdsplit_parse_minor(struct mtd_info *master,
+ 	if (hdr.yaffs_sum_unused != YAFFS_SUM_UNUSED)
+ 		return -EINVAL;
+ 
+-	if (memcmp(hdr.yaffs_name, YAFFS_NAME, sizeof(YAFFS_NAME)))
++	if ((memcmp(hdr.yaffs_name, YAFFS_NAME, sizeof(YAFFS_NAME)) != 0) &&
++			(memcmp(hdr.yaffs_name, YAFFS_NAME_BOOTIMAGE, sizeof(YAFFS_NAME)) != 0))
+ 		return -EINVAL;
+ 
+ 	err = mtd_find_rootfs_from(master, master->erasesize, master->size,
+diff --git a/target/linux/ipq40xx/image/mikrotik.mk b/target/linux/ipq40xx/image/mikrotik.mk
+index f0e1f1aad34d92..6142b4ad3371ad 100644
+--- a/target/linux/ipq40xx/image/mikrotik.mk
++++ b/target/linux/ipq40xx/image/mikrotik.mk
+@@ -5,9 +5,13 @@ define Device/mikrotik_nor
+ 	KERNEL_NAME := vmlinux
+ 	KERNEL := kernel-bin | append-dtb-elf
+ 	IMAGES = sysupgrade.bin
++	IMAGES += sysupgrade-v7.bin
+ 	IMAGE/sysupgrade.bin := append-kernel | kernel2minor -s 1024 | \
+ 		pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \
+ 		check-size | append-metadata
++	IMAGE/sysupgrade-v7.bin := append-kernel | kernel-pack-npk | \
++		kernel2minor -b -s 1024 | pad-to $$$$(BLOCKSIZE) | \
++		append-rootfs | pad-rootfs | check-size | append-metadata
+ endef
+ 
+ define Device/mikrotik_nand
+diff --git a/target/linux/ramips/image/mt7621.mk b/target/linux/ramips/image/mt7621.mk
+index 0d25fc1eb31790..b72e9dd16f0195 100644
+--- a/target/linux/ramips/image/mt7621.mk
++++ b/target/linux/ramips/image/mt7621.mk
+@@ -1545,9 +1545,16 @@ define Device/MikroTik
+   DEVICE_PACKAGES := kmod-usb3 -uboot-envtools
+   KERNEL_NAME := vmlinuz
+   KERNEL := kernel-bin | append-dtb-elf
++  LOADER_TYPE := elf
++  KERNEL_INITRAMFS_NAME := vmlinux-initramfs
++  KERNEL_INITRAMFS := $(KERNEL_DTB) | loader-kernel
+   IMAGE/sysupgrade.bin := append-kernel | kernel2minor -s 1024 | \
+ 	pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | check-size | \
+ 	append-metadata
++  IMAGES += sysupgrade-v7.bin
++  IMAGE/sysupgrade-v7.bin := append-kernel | kernel-pack-npk | \
++	  kernel2minor -b -s 1024 | pad-to $$$$(BLOCKSIZE) | \
++	  append-rootfs | pad-rootfs | check-size | append-metadata
+ endef
+ 
+ define Device/mikrotik_ltap-2hnd
+diff --git a/tools/Makefile b/tools/Makefile
+index bf525d34a052cd..7f9947756af5bc 100644
+--- a/tools/Makefile
++++ b/tools/Makefile
+@@ -84,5 +84,6 @@ tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USES_MINOR),y) += kernel2minor
+ tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USE_SPARSE),y) += sparse
+ tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USE_LLVM_BUILD),y) += llvm-bpf
++tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USES_MINOR),y) += npkpy
+ 
+ # builddir dependencies
+ $(curdir)/autoconf/compile := $(curdir)/m4/compile
+diff --git a/tools/kernel2minor/patches/001-bootimage-path-option.patch b/tools/kernel2minor/patches/001-bootimage-path-option.patch
+new file mode 100644
+index 00000000000000..6da5d6b408db8b
+--- /dev/null
++++ b/tools/kernel2minor/patches/001-bootimage-path-option.patch
+@@ -0,0 +1,55 @@
++--- a/kernel2minor.c
+++++ b/kernel2minor.c
++@@ -38,6 +38,7 @@ static int info_block_size = 0;
++ #define INFO_BLOCK_VAR_LEN 8
++ //имя файла ядра в файловой система yaffs2
++ #define KERNEl_YAFFS_FILE_NAME "kernel"
+++#define BOOTIMAGE_YAFFS_FILE_NAME "bootimage"
++ /* размер блока данных по которому считается ECC. для yaffs2 это 256 */
++ #define ECC_BLOCK_SIZE 256
++ 
++@@ -56,6 +57,7 @@ int verbose = 0; //говорливос�
++ //добавить к образу блок с данными описывающими его параметры(размер, blocksize, chunksize, etc...)
++ int add_image_info_block = 0; //это нужно для образов используемых перепрошивальщиком openwrt(для nand флешей)
++ int align_size = 0; //нужно для openwrt-шного sysupgrade-а. размер блока который будет добавлен к нам сторонним скриптом(sysupgrade-ом)
+++int use_bootimage = 0;
++ 
++ //параметры для создаваемой нами файловой системы yaffs2. рассчитываются ф-ей calc_needed_vars.
++ static int chunk_data_size = 0;
++@@ -83,6 +85,7 @@ void print_help(void){
++       "-s", "FLASH Unit(Chunk) size", chunk_size_str,
++       "-i", "Add image info block", add_image_info_block ? info_block_size_str : "No",
++       "-p", "Platform name", platform_name_str,
+++      "-b", "Use \"bootimage\" for packed file name", "",
++       "-v", "Verbose output", verbose ? "Yes" : "No",
++       "-h", "Show help and exit", "" };
++   printf("Version := %s\nUsage:\n", PROGRAM_VERSION);
++@@ -365,7 +368,10 @@ int fill_and_write_obj_header(int r, int
++   memset(buf, 0xff, buf_size);
++   verb_printf("%u: Writing chunk = 0 for obj(%u) HEADER, seq = %u\n", (*n)++, obj_id, seq_number);
++   //заполним заголовок объекта
++-  cook_object_header(buf, KERNEl_YAFFS_FILE_NAME);
+++  if (use_bootimage)
+++  	cook_object_header(buf, BOOTIMAGE_YAFFS_FILE_NAME);
+++  else
+++  	cook_object_header(buf, KERNEl_YAFFS_FILE_NAME);
++   //заполним данные tags + ecc(oob part)
++   cook_tags(buf, buf_size, chunk_data_size, obj_id, seq_number, chunk_id, n_bytes, 1);
++   len = write(r, buf, buf_size);
++@@ -592,7 +598,7 @@ int main(int argc, char *argv[]){
++   int r = 0;
++   int ch; //для парсинга параметров
++   //загружаем параметры командной строки
++-  while( (ch = getopt(argc, argv, "k:r:s:i:p:cevh")) != -1){
+++  while( (ch = getopt(argc, argv, "k:r:s:i:p:cebvh")) != -1){
++     switch(ch){
++       case 'k': snprintf(kernel_file, sizeof(kernel_file) - 1, "%s", optarg); break;
++       case 'r': snprintf(res_file, sizeof(res_file) - 1, "%s", optarg); break;
++@@ -601,6 +607,7 @@ int main(int argc, char *argv[]){
++       case 's': chunk_size = atoi(optarg); break;
++       case 'i': add_image_info_block = 1; align_size = atoi(optarg); break;
++       case 'p': strncpy(platform_name, optarg, sizeof(platform_name)); break;
+++      case 'b': use_bootimage = 1; break;
++       case 'v': verbose = 1; break;
++       case 'h': print_help(); exit(0); break;
++     }
+diff --git a/tools/npkpy/Makefile b/tools/npkpy/Makefile
+new file mode 100644
+index 00000000000000..78fe83aaec2d77
+--- /dev/null
++++ b/tools/npkpy/Makefile
+@@ -0,0 +1,33 @@
++#
++# Copyright (C) 2023 OpenWrt.org
++#
++# This is free software, licensed under the GNU General Public License v2.
++# See /LICENSE for more information.
++#
++include $(TOPDIR)/rules.mk
++
++PKG_NAME:=npkpy
++PKG_RELEASE:=1
++
++PKG_SOURCE_PROTO:=git
++PKG_SOURCE_URL:=https://github.com/john-tho/npkpy.git
++PKG_SOURCE_DATE:=2023-01-22
++PKG_SOURCE_VERSION:=771dddc5aaaff95a9b4160d6867152cfa1a9255f
++PKG_MIRROR_HASH:=4c0596218e8c1f78b38c0583c18a574da18ff4c000ecdd5fbf50c62a62a1fb03
++
++include $(INCLUDE_DIR)/host-build.mk
++
++define Host/Compile
++	python -m venv $(STAGING_DIR_HOST)/share/npkpy-venv
++	sh -c 'source $(STAGING_DIR_HOST)/share/npkpy-venv/bin/activate; pip install --editable $(HOST_BUILD_DIR)'
++endef
++
++define Host/Install
++	$(CP) $(HOST_BUILD_DIR)/tools/demo_pack_kernel/poc_pack_kernel.py $(STAGING_DIR_HOST)/share/npkpy-venv/bin/pack_npk_kernel.py
++endef
++
++define Host/Clean
++	rm -rf $(STAGING_DIR_HOST)/share/npkpy-venv
++endef
++
++$(eval $(call HostBuild))
