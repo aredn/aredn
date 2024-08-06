@@ -150,7 +150,7 @@ if os.getenv("REQUEST_METHOD") == "POST" then
             if not fp then
                 if meta and meta.file then
                     firmfile = meta.file
-                    if firmfile:match("sysupgrade%.bin$") or firmfile:match("ext4%-combined%.img%.gz$") then
+                    if firmfile:match("sysupgrade%.bin$") or firmfile:match("sysupgrade%-v7%.bin$") or firmfile:match("ext4%-combined%.img%.gz$") then
                         -- Uploading a system upgrade - clear out memory early
                         os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
                     end
@@ -192,6 +192,7 @@ local targettype = conn:call("system", "board", {}).release.target
 
 local local_firmware = "local_firmware.bin"
 local firmware_type = "bin"
+local firmware_subtype = ""
 if targettype:match("x86") then
     local_firmware = "local_firmware.img.gz"
     firmware_type = "gz"
@@ -206,6 +207,18 @@ elseif mfg:match("[Mm]ikro[Tt]ik") then
     mfgprefix = "mikrotik"
 elseif mfg:match("[Tt][Pp]-[Ll]ink") then
     mfgprefix = "cpe"
+end
+
+-- Handle Mikrotik v7 bootloader
+if mfgprefix == "mikrotik" then
+    local f = io.open("/sys/firmware/mikrotik/soft_config/bios_version")
+    if f then
+        local booter_version = f:read("*a")
+        f:close();
+        if booter_version:match("^7%.") then
+            firmware_subtype = "v7"
+        end
+    end
 end
 
 -- refresh fw
@@ -346,7 +359,7 @@ end
 -- upload fw
 if parms.button_ul_fw and nixio.fs.stat("/tmp/web/upload/file") then
     os.execute("mv -f /tmp/web/upload/file " .. tmpdir .. "/firmware")
-    if firmware_type == "bin" and firmfile:match("sysupgrade%.bin$") then -- full firmware
+    if firmware_type == "bin" and (firmfile:match("sysupgrade%.bin$") or firmfile:match("sysupgrade%-v7%.bin$")) then -- full firmware
         fw_install = true
         -- drop the page cache to take pressure off tmps when checking the firmware
         write_all("/proc/sys/vm/drop_caches", "3")
@@ -391,7 +404,7 @@ if parms.button_dl_fw and parms.dl_fw ~= "default" then
             local fwimage
             for _, image in ipairs(fwinfo.images)
             do
-                if (firmware_type == "bin" and (image.type == "sysupgrade" or image.type == "nand-sysupgrade")) or (firmware_type == "gz" and image.type == "combined") then
+                if (firmware_type == "bin" and firmware_subtype == "" and image.type == "sysupgrade") or (firmware_type == "bin" and firmware_subtype == "" and image.type == "nand-sysupgrade") or (firmware_type == "bin" and firmware_subtype == "v7" and image.type == "sysupgrade-v7") or (firmware_type == "gz" and image.type == "combined") then
                     fwimage = {
                         url = fw_versions[parms.dl_fw].target .. "/" .. image.name,
                         sha = image.sha256
@@ -818,7 +831,7 @@ if #fw_output > 0 then
     html.print("</b></td></tr></table></td></tr>")
 end
 
-html.print("<tr><td align=center colspan=3><b>Current Version:</b> " .. fw_version .. "&nbsp; &nbsp; &nbsp; <b>Hardware Type:</b> (" .. targettype .. ") " .. mfgprefix .. " (" .. hardwaretype .. ")</td></tr>")
+html.print("<tr><td align=center colspan=3><b>Current Version:</b> " .. fw_version .. "&nbsp; &nbsp; &nbsp; <b>Hardware Type:</b> (" .. targettype .. (firmware_subtype ~= "" and "-" .. firmware_subtype or "") .. ") " .. mfgprefix .. " (" .. hardwaretype .. ")</td></tr>")
 html.print("<tr><td align=center colspan=3>Keep Existing Configuration Settings <input type=checkbox name=checkbox_keep_settings checked title='keep existing configuration settings'></td></tr>")
 
 if nixio.fs.stat("/tmp/force-upgrade-this-is-dangerous") then
