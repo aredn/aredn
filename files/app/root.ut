@@ -552,7 +552,16 @@ global.handle_request = function(env)
                     );
                 }
                 else {
-                    const datafile = `/tmp/uhttpd.${time()}${math.rand()}`;
+                    const r = fs.open("/dev/urandom");
+                    let datafile;
+                    if (r) {
+                        const rid = r.read(8);
+                        r.close();
+                        datafile = `/tmp/uhttpd.${hexenc(rid)}`;
+                    }
+                    else {
+                        datafile = `/tmp/uhttpd.${time()}${math.rand()}`;
+                    }
                     try {
                         fs.writefile(datafile, res);
                         const z = fs.popen("exec /bin/gzip -c " + datafile);
