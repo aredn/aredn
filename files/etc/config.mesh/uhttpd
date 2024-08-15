@@ -1,11 +1,13 @@
-# Server configuration
-config uhttpd main
+
+config uhttpd 'main'
 	list listen_http '0.0.0.0:8080'
 	list listen_http '0.0.0.0:80'
 	option home '/www'
 	option rfc1918_filter '1'
 	option cgi_prefix '/cgi-bin'
+	list ucode_prefix '/a=/app/root.ut'
 	option script_timeout '240'
 	option network_timeout '30'
 	option http_keepalive '0'
 	list alias '/metrics=/cgi-bin/metrics'
+	option max_requests '3'

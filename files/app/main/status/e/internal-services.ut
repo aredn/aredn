@@ -1,0 +1,261 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+if (request.env.REQUEST_METHOD === "PUT") {
+    configuration.prepareChanges();
+    if (request.args.cloudmesh) {
+        uciMesh.set("aredn", "@supernode[0]", "support", request.args.cloudmesh === "on" ? "1" : "0");
+    }
+    if (request.args.iperf) {
+        uciMesh.set("aredn", "@iperf[0]", "enable", request.args.iperf === "on" ? "1" : "0");
+    }
+    if (request.args.ssh_access) {
+        uciMesh.set("aredn", "@wan[0]", "ssh_access", request.args.ssh_access === "on" ? "1" : "0");
+    }
+    if (request.args.telnet_access) {
+        uciMesh.set("aredn", "@wan[0]", "telnet_access", request.args.telnet_access === "on" ? "1" : "0");
+    }
+    if (request.args.web_access) {
+        uciMesh.set("aredn", "@wan[0]", "web_access", request.args.web_access === "on" ? "1" : "0");
+    }
+    if ("remotelog" in request.args) {
+        uciMesh.set("aredn", "@remotelog[0]", "url", request.args.remotelog);
+    }
+    if (request.args.watchdog) {
+        uciMesh.set("aredn", "@watchdog[0]", "enable", request.args.watchdog === "on" ? "1" : "0");
+    }
+    if ("watchdog_ping_address" in request.args) {
+        uciMesh.set("aredn", "@watchdog[0]", "ping_addresses", request.args.watchdog_ping_address);
+    }
+    if ("watchdog_daily" in request.args) {
+        uciMesh.set("aredn", "@watchdog[0]", "daily", request.args.watchdog_daily);
+    }
+    if ("power_poe" in request.args) {
+        uciMesh.set("aredn", "@poe[0]", "passthrough", request.args.power_poe === "on" ? "1" : "0");
+    }
+    if ("power_usb" in request.args) {
+        uciMesh.set("aredn", "@usb[0]", "passthrough", request.args.power_usb === "on" ? "1" : "0");
+    }
+    if ("message_pollrate" in request.args) {
+        uciMesh.set("aredn", "@alerts[0]", "pollrate", request.args.message_pollrate);
+    }
+    if ("message_localpath" in request.args) {
+        uciMesh.set("aredn", "@alerts[0]", "localpath", request.args.message_localpath);
+    }
+    if ("message_groups" in request.args) {
+        uciMesh.set("aredn", "@alerts[0]", "groups", request.args.message_groups);
+    }
+    uciMesh.commit("aredn");
+    print(_R("changes"));
+    return;
+}
+if (request.env.REQUEST_METHOD === "DELETE") {
+    configuration.revertModalChanges();
+    print(_R("changes"));
+    return;
+}
+%}
+<div class="dialog">
+    {{_R("dialog-header", "Internal Services")}}
+    <div>
+        <div class="cols">
+            <div>
+                <div class="o">Cloud Mesh</div>
+                <div class="m">Use any Supernodes found on the mesh.</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "cloudmesh", value: uciMesh.get("aredn", "@supernode[0]", "support") !== "0" })}}
+            </div>
+        </div>
+        {{_H("By default, your node will locate and use any available supernode it finds on your local mesh.
+            This allows you to connect to any node in the AREDN cloud. Disable this option if you don't want to connect.")}}
+        <div class="cols">
+            <div>
+                <div class="o">iPerf3 Server</div>
+                <div class="m">Enable the iperf3 server for easy connection speed testing</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "iperf", value: uciMesh.get("aredn", "@iperf[0]", "enable") !== "0" })}}
+            </div>
+        </div>
+        {{_H("Enable the included iperf3 client and server tools. This makes it easy to perform bandwidth tests between arbitrary nodes
+            in the network. The client and server are only invoked on demand, so there is no performance impact on the node except when tests
+            are performed.")}}
+        <div class="cols">
+            <div>
+                <div class="o">Remote logging</div>
+                <div class="m">Send internal logging information to a remove server</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="remotelog" type="text" size="24" placeholder="None" pattern="(tcp|udp)://((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}:\d+" value="{{uciMesh.get("aredn", "@remotelog[0]", "url") || ""}}">
+            </div>
+        </div>
+        {{_H("Local node logs are kept in a limited amount of RAM which means older information is lost, and all logs are lost on reboot.
+            This options will send the logs to a remote log server using the syslog protocol. The option should be <b>udp://ip-address:port</b> or <b>tcp://ip-adress:port</b>.
+            Leave blank if no remote logging is required.")}}
+        <div class="cols">
+            <div>
+                <div class="o">WAN ssh</div>
+                <div class="m">Allow ssh access to node from the WAN interface</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "ssh_access", value: uciMesh.get("aredn", "@wan[0]", "ssh_access") !== "0" })}}
+            </div>
+        </div>
+        {{_H("Allow access to the node via the WAN network using ssh. Disabling this option will not prevent ssh acccess to the node from the mesh.")}}
+        <div class="cols">
+            <div>
+                <div class="o">WAN telnet</div>
+                <div class="m">Allow telnet access to node from the WAN interface</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "telnet_access", value: uciMesh.get("aredn", "@wan[0]", "telnet_access") !== "0" })}}
+            </div>
+        </div>
+        {{_H("Allow access to the node via the WAN network using telnet. Disabling this option will not prevent telnet acccess to the node from the mesh.")}}
+        <div class="cols">
+            <div>
+                <div class="o">WAN web</div>
+                <div class="m">Allow web access to node from the WAN interface</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "web_access", value: uciMesh.get("aredn", "@wan[0]", "web_access") !== "0" })}}
+            </div>
+        </div>
+        {{_H("Allow access to the node's web interface via the WAN network. Disabling this option will not prevent web acccess to the node from the mesh.")}}
+        <div class="hideable">
+            <div class="cols">
+                <div>
+                    <div class="o">Watchdog</div>
+                    <div class="m">Allow watchdog to reboot the node if it becomes unresponsive</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "watchdog", value: uciMesh.get("aredn", "@watchdog[0]", "enable") === "1" })}}
+                </div>
+            </div>
+            {{_H("Enables the hardware watchdog timer. This timer will reboot the device if it becomes unresponsive or various critical AREDN components
+            stop running correctly. Because the watchdog is in the hardware, even if the kernel crashes, the device will still reboot itself.
+            ")}}
+            <div class="hideable0">
+                <div class="cols">
+                    <div>
+                        <div class="o">Watchdog IP address</div>
+                        <div class="m">IP address to check periodically</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="watchdog_ping_address" type="text" size="20" placeholder="None" pattern="{{constants.patIP}}" value="{{uciMesh.get("aredn", "@watchdog[0]", "ping_addresses") || ""}}">
+                    </div>
+                </div>
+                {{_H("As part of the watchdog process, the watchdog periodically makes sure it can reach a given IP address. If it can't the node will be rebooted.
+                It is important that this IP address is easy and quick to reach. Don't try to reach IP addresses on the Internet.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">Daily Watchdog hour</div>
+                        <div class="m">Reboot the node at a specific hour every day</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="watchdog_daily" type="text" size="20" placeholder="None" pattern="(\d|1\d|2[0-3])" value="{{uciMesh.get("aredn", "@watchdog[0]", "daily") || ""}}">
+                    </div>
+                </div>
+                {{_H("For the node to reboot at a specific hour of the day (between 0 and 23), every day. Hopefully this isn't necessary. but it can be a good fallback for nodes which
+                are unreliable and in places difficult to reach.")}}
+            </div>
+        </div>
+    {% if (hardware.hasPOE()) { %}
+        <div class="cols">
+            <div>
+                <div class="o">PoE Passthrough</div>
+                <div class="m">Enable power-over-ethernet on ports which support it</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "power_poe", value: uciMesh.get("aredn", "@poe[0]", "passthrough") !== "0" })}}
+            </div>
+        </div>
+        {{_H("Enable power over ethernet on ethernet ports where this is avaiable. Typically these ports provide passive power,
+        so the voltage out will be the same as whatever is powering the node.")}}
+    {% }
+       if (hardware.hasUSBPower()) { %}
+        <div class="cols">
+            <div>
+                <div class="o">USB Power</div>
+                <div class="m">Enable USB power on ports which support it</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "power_usb", value: uciMesh.get("aredn", "@usb[0]", "passthrough") !== "0" })}}
+            </div>
+        </div>
+        {{_H("Enable power on the node's USB port. Which ports support this is device dependend, and some devices with USB
+        port may only have some with power available.")}}
+    {% } %}
+        <div class="cols">
+            <div>
+                <div class="o">Message Updates</div>
+                <div class="m">Update messages every so many hours</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" type="text" name="message_pollrate" pattern="([1-9]|1[0-9]|2[0-4])" placeholder="1" value="{{uciMesh.get("aredn", "@alerts[0]", "pollrate")}}">
+            </div>
+        </div>
+        {{_H("Change the frequency we fetch messsage for this node. By default this happens every hour, but you can decrese the frequency up to
+        every 24 hours.")}}
+        <div class="cols">
+            <div>
+                <div class="o">Local Message URL</div>
+                <div class="m">Configure the local message sources</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" type="text" name="message_localpath" pattern="{{constants.patUrl}}" value="{{uciMesh.get("aredn", "@alerts[0]", "localpath")}}">
+            </div>
+        </div>
+        {{_H("Add a local message server URL. By default messages are fetched from the global AREDN server, but you can also specify a
+        local server.")}}
+        <div class="cols">
+            <div>
+                <div class="o">Message Groups</div>
+                <div class="m">List of message group names</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" type="text" name="message_groups" pattern="[a-zA-Z]+(,[a-zA-Z]+)*" value="{{uciMesh.get("aredn", "@alerts[0]", "groups")}}">
+            </div>
+        </div>
+        {{_H("A comma seperated list of group names to check for messages.")}}
+    </div>
+    {{_R("dialog-footer")}}
+    <script>
+    (function(){
+    {{_R("open")}}
+    })();
+    </script>
+</div>

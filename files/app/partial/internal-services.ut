@@ -1,0 +1,72 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+    const rl = uci.get("aredn", "@remotelog[0]", "url") ? "active" : "disabled";
+    const sn = uci.get("aredn", "@supernode[0]", "enable") === "1" ? "active" : "disabled";
+    const cm = uci.get("aredn", "@supernode[0]", "support") === "0" ? "disabled" : "active";
+    const wd = uci.get("aredn", "@watchdog[0]", "enable") === "1" ? "active" : "disabled";
+    const ip = uci.get("aredn", "@iperf[0]", "enable") === "0" ? "disabled" : "active";
+    const s = fs.stat("/tmp/metrics-ran");
+    const mt = s && time() - s.mtime < 3600000 ? "active" : "inactive";
+    const ws = "active";
+    const ww = "active";
+    const wt = "active";
+    const ws = uci.get("aredn", "@wan[0]", "ssh_access") === "0" ? "disabled" : "active";
+    const ww = uci.get("aredn", "@wan[0]", "web_access") === "0" ? "disabled" : "active";
+    const wt = uci.get("aredn", "@wan[0]", "telnet_access") === "0" ? "disabled" : "active";
+    const poe = uci.get("aredn", "@poe[0]", "passthrough") === "0" ? "disabled" : "active";
+    const pou = uci.get("aredn", "@usb[0]", "passthrough") === "0" ? "disabled" : "active";
+
+%}
+<div class="ctrl" hx-get="status/e/internal-services" hx-target="#ctrl-modal">
+    <div class="section-title">Internal Services</div>
+    <div class="section cols">
+        <div class="service"><div class="status {{cm}}"></div>Cloud Mesh</div>
+        <div class="service"><div class="status {{mt}}"></div>Metrics</div>
+        <div class="service"><div class="status {{wd}}"></div>Watchdog</div>
+        <div class="service"><div class="status {{rl}}"></div>Remote Logging</div>
+        <div class="service"><div class="status {{ip}}"></div>IPerf3 Server</div>
+        <div class="service"><div class="status {{sn}}"></div>Supernode</div>
+        <div class="service"><div class="status {{ws}}"></div>WAN ssh</div>
+        <div class="service"><div class="status {{wt}}"></div>WAN telnet</div>
+        <div class="service"><div class="status {{ww}}"></div>WAN web</div>
+        {% if (hardware.hasPOE()) { %}
+        <div class="service"><div class="status {{poe}}"></div>PoE out</div>
+        {% } %}
+        {% if (hardware.hasUSBPower()) { %}
+        <div class="service"><div class="status {{pou}}"></div>USB power out</div>
+        {% } %}
+    </div>
+</div>

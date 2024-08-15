@@ -1,0 +1,6 @@
+#! /bin/sh
+# Disable hostapd (etc) on devices without wifi
+
+if [ ! -d /sys/class/ieee80211 ]; then
+    /etc/init.d/wpad disable
+fi

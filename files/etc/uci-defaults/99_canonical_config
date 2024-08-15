@@ -1,0 +1,191 @@
+#!/bin/sh
+true <<'LICENSE'
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2024 Tim Wilkinson
+  See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+LICENSE
+
+cat > /tmp/canonical_config << __EOF__
+
+require("nixio")
+require("uci")
+require("aredn.hardware")
+
+local root = "/etc/config.mesh"
+local DELETE = "__DELETE__"
+
+function shell(cmd)
+    local h = io.popen(cmd)
+    local r = h:read("*a")
+    h:close()
+    return r ~= "" and r:gsub("^%s+", ""):gsub("%s+$", "") or null
+end
+
+function vtun_network()
+    local mac = aredn.hardware.get_interface_mac("eth0")
+    local a, b = mac:match("^..:..:..:..:(..):(..)$")
+    return "172.31." .. "" .. tonumber(b, 16) .. "." .. ((tonumber(a, 16) * 4) % 256)
+end
+
+local config = {
+    aredn = {
+        alerts = {},
+        dmz = {
+            mode = shell("cat /etc/config/dmz-mode 2>/dev/null; rm -f /etc/config/dmz-mode") or 0
+        },
+        downloads = {
+            firmware_aredn = "http://downloads.arednmesh.org",
+            firmwarepath = DELETE,
+            packages_default = "http://downloads.arednmesh.org",
+            pkgs_core = DELETE,
+            pkgs_base = DELETE,
+            pkgs_arednpackages = DELETE,
+            pkgs_packages = DELETE,
+            pkgs_luci = DELETE,
+            pkgs_routing = DELETE,
+            pkgs_telephony = DELETE
+        },
+        iperf = {
+            enable = 1
+        },
+        location = {
+            lat = shell("head -1 /etc/latlon 2>/dev/null"),
+            lon = shell("tail -1 /etc/latlon 2>/dev/null; rm -f /etc/latlon"),
+            gridsquare = shell("head -1 /etc/gridsquare 2>/dev/null ; rm -f /etc/gridsquare"),
+            map = "https://worldmap.arednmesh.org/#12/(lat)/(lon)",
+            gps_enable = 1
+        },
+        lqm = {
+            enable = 1,
+            min_snr = 15,
+            margin_snr = 1,
+            rts_threshold = 1,
+            min_distance = 0,
+            max_distance = 80467,
+            min_quality = 35,
+            ping_penalty = 5,
+            margin_quality = 1,
+            min_routes = 8
+        },
+        map = DELETE,
+        meshstatus = DELETE,
+        notes = {},
+        ntp = {
+            period = "daily",
+        },
+        poe = {},
+        remotelog = {},
+        supernode = {
+            enable = 0,
+            support = 1
+        },
+        time = {
+            ntp_enable = 1,
+            gps_enable = 1
+        },
+        tunnel = {
+            weight = 1
+        },
+        usb = {},
+        wan = {
+            lan_dhcp_route = 1,
+            lan_dhcp_defaultroute = 0,
+            olsrd_gw = 0,
+            ssh_access = 1,
+            telnet_access = 1,
+            web_access = 1
+        },
+        watchdog = {
+            enable = 0,
+        }
+    },
+    dhcp = {},
+    dropbear = {},
+    olsrd = {},
+    snmpd = {},
+    uhttpd = {},
+    vtun = {
+        defaults = {},
+        options = {},
+        network = {
+            start = vtun_network()
+        }
+    },
+    wireguard = {},
+    xlink = {}
+}
+
+local cursor = uci.cursor(root)
+for fn, f in pairs(config)
+do
+    if not nixio.fs.stat(root .. "/" .. fn) then
+        io.open(root .. "/" .. fn, "w"):close()
+    else
+        cursor:add(fn, "__dummy__")
+        cursor:delete(fn, "@__dummy__[0]")
+        for k, v in pairs(cursor:get_all(fn))
+        do
+            local c = 0
+            for k1, _ in pairs(v)
+            do
+                if not k1:match("^%.") then
+                    c = c + 1
+                end
+            end
+            if c == 0 then
+                cursor:delete(fn, k)
+            end
+        end
+    end
+    for sn, s in pairs(f)
+    do
+        local san = "@" .. sn .. "[0]"
+        if s == DELETE then
+            cursor:delete(fn, san)
+        else
+            if not cursor:get(fn, san) then
+                cursor:add(fn, sn)
+            end
+            for on, o in pairs(s)
+            do
+                if o == DELETE then
+                    cursor:delete(fn, san, on)
+                elseif not cursor:get(fn, san, on) then
+                    cursor:set(fn, san, on, o)
+                end
+            end
+        end
+    end
+    cursor:commit(fn)
+end
+__EOF__
+/usr/bin/lua /tmp/canonical_config
+rm -f /tmp/canonical_config

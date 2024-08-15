@@ -1,29 +1,30 @@
-config 'system'
-	option 'hostname' '<NODE>'
-        option 'timezone' '<time_zone>'
-        option 'description' '<description_node>'
-        option 'compat_version' '<compat_version>'
-        option 'log_ip' '<remote_log_ip>'
-        option 'log_port' '<remote_log_port>'
-        option 'log_proto' '<remote_log_proto>'
 
-config 'timeserver' 'ntp'
-        list 'server'     '<ntp_server>'
-        option enable_server 0
-        option enabled 0
+config system
+	option hostname '<NODE>'
+	option timezone '<time_zone>'
+	option description '<description_node>'
+	option compat_version '<compat_version>'
+	option log_ip '<remote_log_ip>'
+	option log_port '<remote_log_port>'
+	option log_proto '<remote_log_proto>'
 
-config button
-        option button 'reset'
-        option action 'released'
-        option handler '/usr/local/bin/recoverymode'
-        option min '3'
-        option max '7'
+config timeserver 'ntp'
+	list server '<ntp_server>'
+	option enable_server '0'
+	option enabled '0'
 
 config button
-        option button 'reset'
-        option action 'released'
-        option handler 'firstboot -y && reboot'
-        option min '12'
-        option max '20'
+	option button 'reset'
+	option action 'released'
+	option handler '/usr/local/bin/recoverymode'
+	option min '3'
+	option max '7'
+
+config button
+	option button 'reset'
+	option action 'released'
+	option handler 'firstboot -y && reboot'
+	option min '12'
+	option max '20'
 
 include /etc/aredn_include/system_netled

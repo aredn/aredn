@@ -1,0 +1,242 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+if (request.env.REQUEST_METHOD === "PUT") {
+    configuration.prepareChanges();
+    if ("gridsquare" in request.args) {
+        if (match(request.args.gridsquare, /^[A-X][A-X]\d\d[a-x][a-x]$/)) {
+            uciMesh.set("aredn", "@location[0]", "gridsquare", request.args.gridsquare);
+        }
+        else if (request.args.gridsquare === "") {
+            uciMesh.set("aredn", "@location[0]", "gridsquare", "");
+        }
+    }
+    if ("lat" in request.args) {
+        if (request.args.lat > -90 && request.args.lat < 90) {
+            uciMesh.set("aredn", "@location[0]", "lat", request.args.lat);
+        }
+        else if (request.args.lat === "") {
+            uciMesh.set("aredn", "@location[0]", "lat", "");
+        }
+        uciMesh.set("aredn", "@location[0]", "source", "");
+    }
+    if ("lon" in request.args) {
+        if (request.args.lon > -180 && request.args.lon < 180) {
+            uciMesh.set("aredn", "@location[0]", "lon", request.args.lon);
+        }
+        else if (request.args.lon === "") {
+            uciMesh.set("aredn", "@location[0]", "lon", "");
+        }
+        uciMesh.set("aredn", "@location[0]", "source", "");
+    }
+    if (request.args.gps_enable) {
+        uciMesh.set("aredn", "@location[0]", "gps_enable", request.args.gps_enable === "on" ? "1" : "0");
+    }
+    if ("mapurl" in request.args) {
+        if (match(request.args.mapurl, constants.reUrl)) {
+            uciMesh.set("aredn", "@location[0]", "map", request.args.mapurl);
+        }
+    }
+    uciMesh.commit("aredn");
+    print(_R("changes"));
+    return;
+}
+if (request.env.REQUEST_METHOD === "DELETE") {
+    configuration.revertModalChanges();
+    print(_R("changes"));
+    return;
+}
+const map = uciMesh.get("aredn", "@location[0]", "map");
+const lat = uciMesh.get("aredn", "@location[0]", "lat") ?? 37;
+const lon = uciMesh.get("aredn", "@location[0]", "lon") ?? -122;
+const gridsquare = uciMesh.get("aredn", "@location[0]", "gridsquare");
+const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
+%}
+<div class="dialog">
+    {{_R("dialog-header", "Location")}}
+    <div>
+        {% if (mapurl) { %}
+        <div id="location-edit-map">
+            <div class="icon plus"></div>
+            <iframe src="{{mapurl}}"></iframe>
+        </div>
+        {% } %}
+        <div class="cols">
+            <div>
+                <div class="o">Latitude</div>
+                <div class="m">Node's latitude</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="lat" type="text" size="10" pattern="-?\d+(\.\d+)?" value="{{lat}}">
+            </div>
+        </div>
+        {{_H("The latitude of this node. This information is used to determine the distance between this node and others and is required to
+        optimize connection latency and bandwidth.")}}
+        <div class="cols">
+            <div>
+                <div class="o">Longitude</div>
+                <div class="m">Node's longitude</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="lon" type="text" size="10" pattern="-?\d+(\.\d+)?" value="{{lon}}">
+            </div>
+        </div>
+        {{_H("The longitude of this node. This information is used to determine the distance between this node and others and is required to
+        optimize connection latency and bandwidth.")}}
+        <div class="cols">
+            <div>
+                <div class="o">Gridsquare</div>
+                <div class="m">Maidenhead gridsquare</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="gridsquare" type="text" size="7" pattern="[A-X][A-X]\d\d[a-x][a-x]" value="{{gridsquare}}">
+            </div>
+        </div>
+        {{_H("A gridsquare is a 6 character (2 uppercase letters, 2 digits, 2 lowercase letters) designation of the node's location.
+        A gridsquare is approximately 3x4 miles in size.")}}
+        {{_R("dialog-advanced")}}
+        <div>
+        {% if (includeAdvanced) { %}
+            <div class="cols">
+                <div>
+                    <div class="o">GPS Location</div>
+                    <div class="m">Use local or network GPS to set location</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "gps_enable", value: uciMesh.get("aredn", "@location[0]", "gps_enable") === "1" })}}
+                </div>
+            </div>
+            {{_H("Use either a local GPS devices to set the location, or search for a GPS device on another local node, and use its
+            GPS to set our location.")}}
+            <div class="cols">
+                <div>
+                    <div class="o">Map URL</div>
+                    <div class="m">URL for embedded map</div>
+                </div>
+                <div style="flex:0">
+                    <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="mapurl" type="text" size="45" pattern="{{constants.patUrl}}" value="{{map}}">
+                </div>
+            </div>
+            {{_H("The map URL is used to embed maps in this page (see above) and in other node pages. The (lat) and (lon) parameters in
+            the URL are expanded before the URL is used.")}}
+        {% } %}
+        </div>
+    </div>
+    {{_R("dialog-footer")}}
+    <script>
+    (function(){
+        {{_R("open")}}
+        const lat = htmx.find("#ctrl-modal .dialog input[name=lat]");
+        const lon = htmx.find("#ctrl-modal .dialog input[name=lon]");
+        const gridsquare = htmx.find("#ctrl-modal .dialog input[name=gridsquare]");
+        const map = htmx.find("#ctrl-modal .dialog iframe");
+        let mapt = null;
+        if (map) {
+            window.addEventListener("message", e => {
+                const msg = JSON.parse(e.data);
+                if (msg.type === "location") {
+                    lat.value = parseFloat(msg.lat).toFixed(5);
+                    lon.value = parseFloat(msg.lon).toFixed(5);
+                    clearTimeout(mapt);
+                    mapt = setTimeout(() => {
+                        htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                            swap: "none",
+                            values: { lat: lat.value, lon: lon.value, gridsquare: gridsquare.value }
+                        });
+                    }, 500);
+                    latlon2gridsquare();
+                }
+            });
+        }
+        function llchange() {
+            if (lat.value !== "" && lon.value !== "") {
+                if (map) {
+                    map.contentWindow.postMessage(JSON.stringify({ type: "change-location", lat: lat.value, lon: lon.value }), "*");
+                }
+                latlon2gridsquare();
+                if (!map) {
+                    htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                        swap: "none",
+                        values: { lat: lat.value, lon: lon.value, gridsquare: gridsquare.value }
+                    });
+                }
+            }
+            else if (lat.value === "" && lon.value === "") {
+                gridsquare.value = "";
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    swap: "none",
+                    values: { lat: "", lon: "", gridsquare: "" }
+                });
+            }
+        }
+        lat.addEventListener("change", llchange);
+        lon.addEventListener("change", llchange);
+        gridsquare.addEventListener("change", function() {
+            if (gridsquare.value !== "") {
+                gridsquare2latlon();
+                if (map) {
+                    map.contentWindow.postMessage(JSON.stringify({ type: "change-location", lat: lat.value, lon: lon.value }), "*");
+                }
+                else {
+                    htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                        swap: "none",
+                        values: { lat: lat.value, lon: lon.value, gridsquare: gridsquare.value }
+                    });
+                }
+            }
+        });
+        function latlon2gridsquare()
+        {
+            const alat = parseFloat(lat.value) + 90;
+            const flat = String.fromCharCode(65 + Math.floor(alat / 10));
+            const slat = Math.floor(alat % 10);
+            const ulat = String.fromCharCode(97 + Math.floor((alat - Math.floor(alat)) * 60 / 2.5));
+
+            const alon = parseFloat(lon.value) + 180;
+            const flon = String.fromCharCode(65 + Math.floor(alon / 20));
+            const slon = Math.floor((alon / 2) % 10);
+            const ulon = String.fromCharCode(97 + Math.floor((alon - 2 * Math.floor(alon / 2)) * 60 / 5));
+
+            gridsquare.value = `${flon}${flat}${slon}${slat}${ulon}${ulat}`;
+        }
+        function gridsquare2latlon()
+        {
+            const grid = gridsquare.value;
+            lat.value = ((10 * (grid.charCodeAt(1) - 65) + parseInt(grid.charAt(3)) - 90) + (2.5 / 60.0) * (grid.charCodeAt(5) - 97 + 0.5)).toFixed(5);
+            lon.value = ((20 * (grid.charCodeAt(0) - 65) + 2 * parseInt(grid.charAt(2)) - 180) + (5.0 / 60.0) * (grid.charCodeAt(4) - 97 + 0.5)).toFixed(5);
+        }
+    })();
+    </script>
+</div>

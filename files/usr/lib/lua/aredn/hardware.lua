@@ -494,6 +494,105 @@ function hardware.get_interface_mac(intf)
     return mac
 end
 
+local gpsd = "/usr/sbin/gpsd";
+local gps_ttys = {
+    "/dev/ttyACM0",
+    "/dev/ttyUSB0"
+}
+
+function hardware.gps_find()
+    if nixio.fs.stat(gpsd) then
+        for _, tty in ipairs(gps_ttys)
+        do
+            if nixio.fs.stat(tty) then
+                return tty
+            end
+        end
+    end
+    local l = io.open("/tmp/lqm.info")
+    if l then
+        local lqm = luci.jsonc.parse(l:read("*a"))
+        l:close()
+        for _, tracker in pairs(lqm.trackers)
+        do
+            if tracker.type == "DtD" and tracker.ip then
+                local s = nixio.socket("inet", "stream")
+                s:setopt("socket", "sndtimeo", 1)
+                local r = s:connect(tracker.ip, 2947)
+                s:close()
+                if r then
+                    return tracker.ip
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function gps_open(gps)
+    if gps:match("^/dev/") then
+        gps = "127.0.0.1"
+    end
+    local s = nixio.socket("inet", "stream")
+    local r = s:connect(gps, 2947)
+    if not r then
+        return nil
+    end
+    return s
+end
+
+local function gps_read(s)
+    local l = ""
+    while true
+    do
+        local b = s:read(1)
+        if #b == 0 then
+            return nil
+        elseif b == "\n" then
+            local ok, jsn = pcall(function() return luci.jsonc.parse(l) end)
+            if ok then
+                return jsn
+            end
+            l = ""
+        else
+            l = l .. b
+        end
+    end
+end
+
+local function gps_close(s)
+    s:close()
+end
+
+function hardware.gps_read_llt(gps, maxlines)
+    local info = {
+        lat = nil,
+        lon = nil,
+        time = nil
+    }
+    local s = gps_open(gps)
+    if not s then
+        return nil
+    end
+    s:write('?WATCH={"enable":true,"json":true}\n')
+    if not maxlines then
+        maxlines = 10
+    end
+    while maxlines > 0
+    do
+        local j = gps_read(s)
+        if j.class == "TPV" then
+            info.time = j.time:gsub("T", " "):gsub(".000Z", "")
+            info.lat = j.lat
+            info.lon = j.lon
+            break
+        end
+        maxlines = maxlines - 1
+    end
+    gps_close(s)
+    return info
+end
+
 if not aredn then
     aredn = {}
 end

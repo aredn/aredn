@@ -1,0 +1,209 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+    let links = {};
+    const o = olsr.getLinks();
+    for (let i = 0; i < length(o); i++) {
+        links[o[i].remoteIP] = o[i];
+    }
+    function calcColor(tracker)
+    {
+        if (tracker.blocked) {
+            return "blocked";
+        }
+        if (!tracker.routable) {
+            return "idle";
+        }
+        const quality = tracker.quality;
+        if (quality < 40) {
+            return "bad";
+        }
+        else if (quality < 50) {
+            return "poor";
+        }
+        else if (quality < 75) {
+            return "okay";
+        }
+        else if (quality < 95) {
+            return "good";
+        }
+        else {
+            return "excellent";
+        }
+    };
+    function calcBitrate(txbitrate, rxbitrate)
+    {
+        if (txbitrate) {
+            if (rxbitrate) {
+                return sprintf("%.1f", ((txbitrate + rxbitrate) * 5 + 0.5) / 10);
+            }
+            else {
+                return sprintf("%.1f", (txbitrate * 10 + 0.5) / 10);
+            }
+        }
+        return "-";
+    }
+%}
+<div class="noctrl">
+    <div class="section-title">Local Nodes</div>
+    <div class="section" style="line-height:18px;margin-top:-16px">
+        <div class="cols">
+            <div class="heading" style="flex:0.75"></div>
+            <div class="heading ts cols stats">
+                <div>lq</div><div>nlq</div><div>snr</div><div>n snr</div><div>errors</div><div>mbps</div><div>{{units.distanceUnit()}}</div>
+            </div>
+        </div>
+        {%
+            const trackers = lqm.getTrackers();
+            const llist = [];
+            const nlist = [];
+            const hlist = lqm.getHidden();
+            for (mac in trackers) {
+                const tracker = trackers[mac];
+                if (tracker.hostname || (tracker.ip && tracker.routable)) {
+                    if (tracker.type === "DtD" && tracker.distance < 50) {
+                        push(llist, { name: tracker.hostname || `|${tracker.ip}`, mac: mac });
+                    }
+                    else {
+                        push(nlist, { name: tracker.hostname || `|${tracker.ip}`, mac: mac });
+                    }
+                }
+            }
+            if (length(llist) > 0) {
+                sort(llist, (a, b) => a.name == b.name ? 0 : a.name < b.name ? -1 : 1);
+                for (let i = 0; i < length(llist); i++) {
+                    const tracker = trackers[llist[i].mac];
+                    const status = calcColor(tracker);
+                    print("<div class='cols " + status + "'>");
+                    const link = links[tracker.ip] || {};
+                    const lq = link.lossMultiplier ? (int(100 * link.linkQuality * 65536 / link.lossMultiplier) + "%"): "-";
+                    const nlq = link.lossMultiplier ? (int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier) + "%") : "-";
+                    if (tracker.hostname) {
+                        print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" title='Link status: ${status}' href='http://${tracker.hostname}.local.mesh'>${tracker.hostname}</a></div>`);
+                    }
+                    else {
+                        print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" title='Link status: ${status}' href='http://${tracker.ip}'>${tracker.ip}</a></div>`);
+                    }
+                    print("<div class='ts cols stats'>");
+                    print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${100 - tracker.quality}%</div><div></div><div></div>`);
+                    print("</div></div>");
+                }
+            }
+            else {
+                print("<div>None</div>");
+            }
+        %}
+    </div>
+</div>
+<div class="noctrl" hx-target="#ctrl-modal">
+    <div class="section-title">Neighborhood Nodes</div>
+    <div class="section" style="line-height:18px">
+    {%
+        if (length(nlist) > 0) {
+            sort(nlist, (a, b) => a.name == b.name ? 0 : a.name < b.name ? -1 : 1);
+            for (let i = 0; i < length(nlist); i++) {
+                const tracker = trackers[nlist[i].mac];
+                const status = calcColor(tracker);
+                print(`<div class="ctrl cols status ${status}" hx-get="status/e/neighbor-device?m=${tracker.mac}">`);
+                const link = links[tracker.ip] || {};
+                const lq = link.lossMultiplier ? (int(100 * link.linkQuality * 65536 / link.lossMultiplier) + "%"): "-";
+                const nlq = link.lossMultiplier ? (int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier) + "%") : "-";
+                let icon = "";
+                let title = "";
+                switch (tracker.type) {
+                    case "RF":
+                        title = "RF ";
+                        icon = "wifi";
+                        break;
+                    case "DtD":
+                        title = "DtD ";
+                        icon = "twoarrow";
+                        break;
+                    case "Xlink":
+                        title = "Xlink ";
+                        icon = "plane";
+                        break;
+                    case "Tunnel":
+                        title = "Legacy tunnel ";
+                        icon = "globe";
+                        break;
+                    case "Wireguard":
+                        title = "Wireguard tunnel ";
+                        icon = "globe";
+                        break;
+                    default:
+                        break;
+                }
+                if (tracker.hostname) {
+                    print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" title='${title}status: ${status}' href='http://${tracker.hostname}.local.mesh'>${tracker.hostname}<div class="icon ${icon}"></div></a></div>`);
+                }
+                else {
+                    print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" title='${title}status: ${status}' href='http://${tracker.ip}'>${tracker.ip}<div class="icon ${icon}"></div></a></div>`);
+                }
+                print("<div class='ts cols stats'>");
+                let d = "-";
+                if ("distance" in tracker) {
+                    d = units.meters2distance(tracker.distance);
+                    if (d < 1) {
+                        d = "< 1";
+                    }
+                    else {
+                        d = sprintf("%.1f", d);
+                    }
+                }
+                print(`<div>${lq}</div><div>${nlq}</div><div>${tracker.snr || "-"}</div><div>${tracker.rev_snr || "-"}</div><div>${100 - tracker.quality}%</div><div>${calcBitrate(tracker.tx_bitrate, tracker.rx_bitrate)}</div><div>${d}</div>`);
+                print("</div></div>");
+            }
+        }
+        else {
+            print("<div>None</div>");
+        }
+    %}
+    </div>
+</div>
+{% if (length(hlist) > 0) { %}
+<div class="noctrl">
+    <div class="section-title">Hidden Nodes</div>
+    <div class="section" style="line-height:18px">
+    {%
+        sort(hlist, (a, b) => a.hostname == b.hostname ? 0 : a.hostname < b.hostname ? -1 : 1);
+        for (let i = 0; i < length(hlist); i++) {
+            const hostname = nlist[i].hostname;
+            print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" title='Link status: hidden' href='http://${hostname}.local.mesh'>${hostname}</a></div>`);
+        }
+    %}
+    </div>
+</div>
+{% } %}

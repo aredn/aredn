@@ -1,0 +1,274 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+const last_scan_file = "/tmp/last-scan.json";
+let last_scan = [];
+let scan_time = "Unknown";
+
+if (request.env.REQUEST_METHOD === "PUT") {
+    const config = radios.getActiveConfiguration();
+    const radio = config[0]?.mode === radios.RADIO_MESH ? config[0] : config[1]?.mode === radios.RADIO_MESH ? config[1] : null;
+    if (!radio) {
+        return;
+    }
+    const radiomode = radio.modes[radios.RADIO_MESH];
+    const wifiiface = radio.iface;
+    const myssid = radiomode.ssid;
+    const mychan = radiomode.channel;
+    const myfreq = hardware.getChannelFrequency(wifiiface, radiomode.channel);
+    const nodename = configuration.getName();
+    const scan = {};
+
+    let ubnt_ac = false;
+    const board_type = hardware.getBoard().model.id;
+    if (index(board_type, "ubnt,") === 0 && index(board_type, "ac") !== -1) {
+        ubnt_ac = true
+    }
+
+    const reArp = /^([\.0-9]+) +0x. +0x. +([0-9a-fA-F:]+)/;
+    const arp = {};
+    let f = fs.open("/proc/net/arp");
+    if (f) {
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            const m = match(l, reArp);
+            if (m) {
+                arp[m[2]] = m[1];
+            }
+        }
+        f.close();
+    }
+    
+    f = fs.popen(`/usr/sbin/iw dev ${wifiiface} station dump`);
+    if (f) {
+        const re = regexp(`^Station ([0-9a-fA-F:]+) \\(on ${wifiiface}\\)`);
+        const reSi = /signal:[ \t]+(-[0-9]+)/;
+        let station;
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            let m = match(l, re);
+            if (m) {
+                station = scan[m[1]];
+                if (!station) {
+                    const ip = arp[m[1]];
+                    const hostname = ip ? network.nslookup(ip) : null;
+                    station = {
+                        mac: m[1],
+                        signal: 9999,
+                        chan: { [mychan]: true },
+                        key: "",
+                        joined: false,
+                        mode: "Connected Ad-Hoc Station",
+                        ssid: myssid,
+                        ip: ip,
+                        hostname: hostname
+                    };
+                    scan[m[1]] = station;
+                }
+            }
+            m = match(l, reSi);
+            if (m) {
+                station.signal = int(m[1]);
+            }
+        }
+        f.close();
+    }
+
+    if (ubnt_ac) {
+        system(`/usr/sbin/iw dev ${wifiiface} ibss leave > /dev/null 2>&1`);
+        system("/sbin/wifi up > /dev/null 2>&1");
+        for (let attempt = 10; attempt > 0; attempt--) {
+            f = fs.popen(`/usr/sbin/iw dev ${wifiiface} scan`);
+            if (f) {
+                for (let l = f.read("line"); length(l); l = f.read("line")) {
+                    if (substr(l, 0, 4) === "BSS ") {
+                        attempt = 0;
+                        break;
+                    }
+                }
+                f.close();
+            }
+            if (attempt > 0) {
+                sleep(2000);
+            }
+        }
+    }
+
+    f = fs.popen(`/usr/sbin/iw dev ${wifiiface} scan passive`);
+    if (f) {
+        const re = /^BSS ([0-9a-fA-F:]+)/;
+        const reF = /freq: ([0-9]+)/;
+        const reSs = /SSID: (.+)\n/;
+        const reSi = /signal: (.+)\n/;
+        const reC = /Group cipher: (.+)\n/;
+        let station = {};
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            let m = match(l, re);
+            if (m) {
+                station = scan[m[1]];
+                if (!station) {
+                    const ip = arp[m[1]];
+                    const hostname = ip ? network.nslookup(ip) : null;
+                    station = {
+                        mac: m[1],
+                        signal: 9999,
+                        chan: {},
+                        key: "",
+                        joined: false,
+                        mode: "AP",
+                        ssid: "",
+                        ip: ip,
+                        hostname: hostname
+                    };
+                    scan[m[1]] = station;
+                }
+                if (index(l, "joined") !== -1) {
+                    station.mode = "My Ad-Hoc Network";
+                    station.joined = true;
+                    station.hostname = nodename;
+                }
+            }
+            m = match(l, reF);
+            if (m) {
+                if (m[1] == myfreq) {
+                    station.mode = "My Ad-Hoc Network";
+                    station.joined = true;
+                }
+                const chan = hardware.getChannelFromFrequency(int(m[1]));
+                if (chan) {
+                    station.chan[chan] = true;
+                }
+            }
+            m = match(l, reSs);
+            if (m) {
+                station.ssid = m[1];
+            }
+            m = match(l, reSi);
+            if (m) {
+                station.signal = int(m[1]);
+            }
+            m = match(l, reC);
+            if (m) {
+                station.key = m[1];
+            }
+            if (index(l, "capability: IBSS") !== -1 && station.mode === "AP") {
+                station.mode = "Foreign Ad-Hoc Network";
+            }
+        }
+        f.close();
+    }
+
+    for (let k in scan) {
+        scan[k].chan = join(" ", sort(keys(scan[k].chan)));
+        scan[k].hostname = scan[k].hostname ? replace(scan[k].hostname, ".local.mesh", "") : null;
+    }
+
+    last_scan = sort(
+        filter(values(scan), v => v.signal !== 9999 || v.joined),
+        (a, b) => b.signal - a.signal
+    );
+
+    fs.writefile(last_scan_file, sprintf("%J", last_scan));
+    scan_time = "0 seconds ago";
+}
+else {
+    const d = fs.readfile(last_scan_file);
+    if (d) {
+        last_scan = json(d);
+        const last = time() - fs.stat(last_scan_file).mtime;
+        if (last === 1) {
+            scan_time = "1 second ago";
+        }
+        else if (last < 60) {
+            scan_time = `${last} seconds ago`;
+        }
+        else if (last < 120) {
+            scan_time = `1 minute ago`;
+        }
+        else if (last < 3600) {
+            scan_time = `${int(last / 60)} minutes ago`;
+        }
+        else {
+            scan_time = "a long time ago";
+        }
+    }
+}
+%}
+<div class="dialog wide">
+    {{_R("tool-header", "WiFi Scan")}}
+    <div id="wifi-scan">
+        <table>
+            <thead>
+                <tr>
+                <td>SNR</td><td>Signal</td><td style="width:50px">Chan</td><td>Enc</td><td>SSID</td><td>Hostname</td><td>MAC/BSSID</td><td>802.11 Mode</td>
+                </tr>
+            </thead>
+            <tbody>
+                {% for (let i = 0; i < length(last_scan); i++) {
+                    const s = last_scan[i];
+                %}
+                    <tr><td>{{95 + s.signal}}</td><td>{{s.signal}}</td><td>{{s.chan}}</td><td>-</td><td>{{s.ssid}}</td><td>{{s.hostname || s.ip || "-"}}</td><td>{{s.mac}}</td><td>{{s.mode}}</td></tr>
+                {% } %}
+            </tbody>
+        </table>
+    </div>
+    <div class="cols">
+        <div>Last Scan: {{scan_time}}</div>
+        <button hx-put="{{request.env.REQUEST_URI}}" hx-target="#ctrl-modal">Rescan</button>
+    </div>
+    {{_H("<br>Scan the appropriate radio spectrum for other nodes and wifi devices. What a node can find while scanning is highly dependent
+    on the hardware itself. Also, due to the nature of wireless scanning and beaconing, multiple scans are something required for a
+    complete pictures of the surrounding radio area.<p>By default the last scan is shown.")}}
+    {{_R("tool-footer")}}
+    <script>
+    (function(){
+        {{_R("open")}}
+        htmx.on("#wifi-scan + div button", "click", e => {
+            const target = e.target;
+            target.style.width="100px";
+            target.innerText = "Scanning ";
+            let dots = ".";
+            const timer = setInterval(_ => {
+                if (!document.contains(target)) {
+                    clearInterval(timer);
+                }
+                target.innerText = "Scanning " + dots;
+                dots += ".";
+                if (dots.length > 3) {
+                    dots = "";
+                }
+            }, 300);
+        });
+    })();
+    </script>
+</div>

@@ -1,0 +1,80 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+<div class="network ctrl" hx-get="status/e/network" hx-target="#ctrl-modal">
+    <div class="section-title">Network</div>
+    <div class="t">{{uci.get("network", "wifi", "ipaddr")}} <span class="ts">{{uci.get("network", "wifi", "netmask") == "255.255.255.255" ? "/ 32" : "/ 8"}}<span></div>
+    <div class="s">mesh address</div>
+    <div class="t">{{uci.get("network", "lan", "ipaddr")}}
+        <span class="ts">{{`/ ${network.netmaskToCIDR(uci.get("network", "lan", "netmask"))} `}}<span>
+    </div>
+    <div class="s">lan address</div>
+    {%
+        let validWan = false;
+        const wan_proto = uci.get("network", "wan", "proto");
+        if (wan_proto === "dhcp") {
+            const ifaces = ubus.call("network.interface", "dump").interface;
+            for (let i = 0; i < length(ifaces); i++) {
+                if (ifaces[i].interface === "wan" && ifaces[i]["ipv4-address"]) {
+                    const wan = ifaces[i]["ipv4-address"][0];
+                    print("<div class='t'>" + wan.address + " <span class='ts'>/ " + wan.mask + "</span></div>");
+                    print("<div class='s'>wan address (dhcp)</div>");
+                    print("<div class='t'>" + ifaces[i].route[0].nexthop + "</div>");
+                    print("<div class='s'>wan gateway</div>");
+                    validWan = true;
+                    break;
+                }
+            }
+        }
+        else if (wan_proto === "static") {
+            print("<div class='t'>" + uci.get("network", "wan", "ipaddr") + "</div>");
+            print("<div class='s'>wan address (static)</div>");
+            print("<div class='t'>" + uci.get("network", "wan", "gateway") + "</div>");
+            print("<div class='s'>wan gateway</div>");
+            valueWan = true;
+        }
+        if (validWan) {
+            let v = "-";
+            const dns = split(uci.get("network", "lan", "dns"), " ");
+            if (dns && dns[0]) {
+                v = dns[0];
+                if (dns[1]) {
+                    v += "&nbsp;&nbsp;&nbsp;" + dns[1];
+                }
+            }
+            print("<div class='t'>" + v + "</div>");
+            print("<div class='s'>wan dns</div>")
+        }
+    %}
+</div>

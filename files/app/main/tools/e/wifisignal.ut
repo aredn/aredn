@@ -1,0 +1,292 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+if (request.env.REQUEST_METHOD === "PUT") {
+    const wifiiface = uci.get("network", "wifi", "device");
+    let f = fs.popen(`iw ${wifiiface} station dump`);
+    if (f) {
+        const signals = {};
+        let mac = null;
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            if (index(l, "Station") === 0) {
+                const m = match(l, / ([0-9a-fA-F:]+) /);
+                if (m) {
+                    mac = m[1];
+                }
+            }
+            if (index(l, "signal:") !== -1) {
+                const m = match(l, /[\t ]([0-9\-]+)[\t ]/);
+                if (m) {
+                    signals[mac] = int(m[1]);
+                }
+            }
+        }
+        f.close();
+        let noise = -95;
+        f = fs.popen(`iw ${wifiiface} survey dump`);
+        if (f) {
+            const reN = /noise:[ \t]+([0-9\-]+) dBm/;
+            let ff = false;
+            for (let l = f.read("line"); length(l); l = f.read("line")) {
+                if (index(l, "[in use]") !== -1) {
+                    ff = true;
+                }
+                else if (ff) {
+                    const m = match(l, reN);
+                    if (m) {
+                        noise = int(m[1]);
+                        break;
+                    }
+                }
+            }
+            f.close();
+        }
+        printf("%J", { s: signals, n: noise });
+    }
+    return;
+}
+const stations = fs.lsdir("/tmp/snrlog");
+for (let i = 0; i < length(stations); i++) {
+    const s = stations[i];
+    const m = match(s, /^([0-9A-Fa-f:]+)-(.*)$/);
+    if (m) {
+        stations[i] = { hostname: m[2], mac: lc(m[1]) };
+    }
+    else {
+        stations[i] = null;
+    }
+}
+%}
+<div class="dialog wide">
+    {{_R("tool-header", "WiFi Signal")}}
+    <div id="wifi-chart">
+        <div class="cols">
+            <div>
+                <div class="o">Node</div>
+                <div class="m">Select the target node</div>
+            </div>
+            <div style="flex:0">
+                <select id="wifi-device">
+                    <option value="average">Average</option>
+                    {%
+                        for (let i = 0; i < length(stations); i++) {
+                            const s = stations[i];
+                            if (s) {
+                                print(`<option value="${s.mac}">${replace(s.hostname || s.mac, ".local.mesh", "")}</option>`);
+                            }
+                        }
+                    %}
+                </select>
+            </div>
+        </div>
+        <div class="cols"  style="padding:10px 0 30px 0">
+            <div style="flex:0">
+                <div id="wifi-bar">
+                    <div>- dBm<br><small>snr: -</small></div>
+                    <div class="bars">
+                        <div><div></div><div style="background-color:var(--conn-fg-color-idle)"></div></div>
+                        <div><div></div><div style="background-color:var(--conn-fg-color-good)"></div></div>
+                        <div><div></div><div style="background-color:var(--conn-fg-color-bad)"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="chart">
+                <div>
+                    <svg viewBox="0 0 200 100" preserveAspectRatio="meet">
+                        <polyline class="frame" points="10,10 10,90 190,90" />
+                        <text x="9" y="4">dBm</text>
+                        <text x="8" y="10">0</text>
+                        <text x="8" y="23">-20</text>
+                        <text x="8" y="37">-40</text>
+                        <text x="8" y="50">-60</text>
+                        <text x="8" y="63">-80</text>
+                        <text x="8" y="77">-100</text>
+                        <text x="8" y="90">-120</text>
+                        <text x="105" y="96">Last 5 minutes</text>
+                        <polyline class="signal" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div class="cols">
+            <div class="cols">
+                <div>
+                    <div class="o">Sound</div>
+                    <div class="m">Enable audible indicator</div>
+                </div>
+                <div>
+                    <select name="sound"><option value="off">Off</option><option value="on">On</option></select>
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Volume</div>
+                </div>
+                <div>
+                    <input type="range" name="volume" min="0" max="10">
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Pitch</div>
+                </div>
+                <div>
+                    <input type="range" name="pitch" min="5" max="100">
+                </div>
+            </div>
+        </div>
+        {{_H("This tool helps to align the node's antenna with its neighbors for the best signal strength. The indicator on the left
+        shows the current, best, and worst signal strenghts. The graph on the right show the history of the most recent signal strengths.
+        Specific neighbors can be selected, the default being an average of all those currently visible.<p>A sound indicator is also
+        provided which is useful when aligning antennas without looking at this display.")}}
+    </div>
+    {{_R("tool-footer")}}
+    <script>
+    (function(){
+        {{_R("open")}}
+        const sf = -95;
+        const st = -20;
+        const device = htmx.find("#wifi-device");
+        const target = htmx.find("#wifi-chart");
+        const bart = htmx.find("#wifi-bar > div");
+        const bar1 = htmx.find("#wifi-bar .bars > div:nth-child(1)");
+        const bar2 = htmx.find("#wifi-bar .bars > div:nth-child(2)");
+        const bar3 = htmx.find("#wifi-bar .bars > div:nth-child(3)");
+        const chart = htmx.find("#wifi-chart svg");
+        const signal = htmx.find("#wifi-chart svg .signal");
+    
+        let oscillator;
+        let gain;
+        function resetAudio() {
+            const audio = new AudioContext();
+            oscillator = audio.createOscillator();
+            gain = audio.createGain();
+            oscillator.connect(gain);
+            oscillator.type = "sine";
+            gain.connect(audio.destination);
+            gain.gain.value = 0;
+        }
+        resetAudio();
+
+        let smax = sf;
+        let smin = st;
+        let last = null;
+        const maxpoints = 300;
+        function p(v) {
+            if (v <= sf) {
+                return "0%";
+            }
+            const low = Math.max(sf, 1.05 * smin);
+            const range = 0.98 * smax - low;
+            return `${Math.min(100, 100 * (v - low) / range)}%`;
+        }
+        function reset() {
+            last = device.value;
+            smax = sf;
+            smin = st;
+            bart.innerText = "dBm";
+            bar1.style.height = "";
+            bar2.style.height = "";
+            bar3.style.height = "";
+            bar1.firstElementChild.innerText = "";
+            bar2.firstElementChild.innerText = "";
+            bar3.firstElementChild.innerText = "";
+            signal.points.clear();
+        }
+        const timer = setInterval(async _ => {
+            if (!document.contains(target)) {
+                clearInterval(timer);
+                return;
+            }
+            const r = await fetch("{{request.env.REQUEST_URI}}", { method: "PUT" });
+            const j = await r.json();
+            if (last !== device.value) {
+                reset();
+            }
+            let s = j.s[last];
+            if (!s) {
+                if (last === "average") {
+                    s = Math.round(Object.values(j.s).reduce((t, v, _, a) => t + v / a.length, 0));
+                }
+                if (!s) {
+                    s = -120;
+                }
+            }
+            if (s >= sf) {
+                if (s > smax) {
+                    smax = s;
+                }
+                if (s < smin) {
+                    smin = s;
+                }
+                const snr = s - j.n;
+                bart.innerHTML = `${s} dBm<br><small>snr: ${snr}</small>`;
+                bar1.style.height = p(smax);
+                bar2.style.height = p(s);
+                bar3.style.height = p(smin);
+                bar1.firstElementChild.innerText = smax;
+                bar2.firstElementChild.innerText = s;
+                bar3.firstElementChild.innerText = smin;
+            }
+            else {
+                bart.innerHTML = `- dBm<br><small>snr: -</small>`;
+                bar2.style.height = p(sf);
+                bar2.firstElementChild.innerText = "";
+            }
+            if (signal.points.length >= maxpoints) {
+                signal.points.removeItem(0);
+                for (let i = 0; i < signal.points.length; i++) {
+                    signal.points[i].x = 10 + i / maxpoints * 180;
+                }
+            }
+            const point = chart.createSVGPoint();
+            point.x = 10 + signal.points.length / maxpoints * 180;
+            point.y = 90 - 80 * ((s > -120 ? s : -120) + 120) / 120;
+            signal.points.appendItem(point);
+            oscillator.frequency.value = (s - sf) * htmx.find("#wifi-chart input[name=pitch]").value;
+            gain.gain.value = htmx.find("#wifi-chart input[name=volume]").value;
+        }, 1000);
+        htmx.on("#wifi-chart select[name=sound]", "change", e => {
+            if (e.target.value === "on") {
+                oscillator.start();
+            }
+            else {
+                oscillator.stop();
+                resetAudio();
+            }
+        });
+    })();
+    </script>
+</div>

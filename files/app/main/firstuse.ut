@@ -1,0 +1,132 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+if (request.env.REQUEST_METHOD === "PUT") {
+    system(`/usr/local/bin/firstuse-setup '${request.args.name}' '${request.args.passwd}'`);
+    response.reboot = true;
+    print(_R("reboot-firstuse"));
+    return;
+}
+%}
+<!DOCTYPE>
+<html>
+<head>
+    <link href="/a/css/theme.css" rel="stylesheet">
+    <link href="/a/css/user.css" rel="stylesheet">
+    <link href="/a/css/admin.css" rel="stylesheet">
+    <script src="/a/js/htmx.min.js"></script>
+    <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
+</head>
+<body>
+    <div id="all">
+        <div class="firstuse">
+            <div>
+                <div id="icon-logo""></div>
+                <div></div>
+                <div>AREDN<span>TM</span></div>
+                <div>Amateur Radio Emergency Data Network</div>
+            </div>
+            <div>
+                <div>Welcome</div>
+                <div>
+                    <div>Congratulations on installing AREDN&reg;</div>
+                    <div>There's a few pieces of basic information we need to start setting up your node.</div>
+                </div>
+                <div>
+                    <div class="cols">
+                        <div>Node Name</div>
+                        <div><input type="text" name="name" required pattern="{{constants.patNodename}}"></div>
+                    </div>
+                    <div>
+                        <small>This is the unique name given to your node. It must start with your callsign. For example, <b>K6AH-Home</b></small>
+                    </div>
+                    <div class="cols">
+                        <div>New Password</div>
+                        <div><input type="password" name="passwd1" required pattern="`[^#'"]+" minlength="4"></div>
+                    </div>
+                    <div class="cols">
+                        <div>Retype Password</div>
+                        <div><input type="password" name="passwd2" required pattern="" minlength="4"></div>
+                    </div>
+                    <div>
+                        <small>Enter a password, twice, to assign to your node for access to configuration information later</small>
+                    </div>
+                    <div class="cols">
+                        <div></div>
+                        <div><button disabled>Save &amp; Reboot</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function(){
+        function change()
+        {
+            const name = htmx.find("input[name=name]");
+            const passwd1 = htmx.find("input[name=passwd1]");
+            const passwd2 = htmx.find("input[name=passwd2]");
+            if (passwd1.value === "hsmm") {
+                passwd1.pattern = "BAD";
+            }
+            else {
+                passwd1.pattern = `[^#'"]+`;
+            }
+            passwd2.required = passwd1.value ? "required" : "";
+            passwd2.pattern = passwd1.value;
+            if (name.validity.valid && passwd1.validity.valid && passwd2.validity.valid) {
+                htmx.find("button").disabled = false;
+            }
+            else {
+                htmx.find("button").disabled = true;
+            }
+        }
+        htmx.on("input[name=name]", "keyup", change);
+        htmx.on("input[name=passwd1]", "keyup", change);
+        htmx.on("input[name=passwd2]", "keyup", change);
+        htmx.on("button", "click", _ => {
+            htmx.find("button").disabled = true;
+            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                values: {
+                    name: htmx.find("input[name=name]").value,
+                    passwd: htmx.find("input[name=passwd1]").value
+                },
+                swap: "none"
+            });
+        });
+    })();
+    </script>
+</body>
+</html>

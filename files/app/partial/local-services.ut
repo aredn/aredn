@@ -1,0 +1,145 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+    const reService = /^([^|]+)\|1\|([^|]+)\|([^|]+)\|(\d+)\|(.*)$/;
+    const reLink = /^([^|]+)\|0\|\|([^|]+)\|\|$/;
+    const reType = /^(.+) \[([a-z]+)\]$/;
+    const reOlsr = /PlParam "service" ".*\|([^|]+)"/;
+
+    const services = [];
+    const devices = [];
+    const leases = {};
+    const activesvc = {};
+
+    const dhcp = configuration.getDHCP();
+
+    let f = fs.open("/var/etc/olsrd.conf");
+    if (f) {
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            const m = match(l, reOlsr);
+            if (m) {
+                activesvc[m[1]] = true;
+            }
+        }
+        f.close();
+    }
+    f = fs.open(dhcp.services);
+    if (f) {
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            const v = match(trim(l), reService);
+            if (v) {
+                let type = "";
+                if (!activesvc[v[1]]) {
+                    type += ` <div class="icon warning" title="Service cannot be reached"></div>`;
+                }
+                const v2 = match(v[1], reType);
+                if (v2) {
+                    v[1] = v2[1];
+                    type += ` <div class="icon ${v2[2]}"></div>`;
+                }
+                switch (v[4]) {
+                    case "80":
+                        push(services, `<div class="service"><a href="http://${v[3]}.local.mesh/${v[5]}" onclick="event.stopPropagation()">${v[1]}${type}</a></div>`);
+                        break;
+                    case "443":
+                        push(services, `<div class="service"><a href="https://${v[3]}.local.mesh/${v[5]}" onclick="event.stopPropagation()">${v[1]}${type}</a></div>`);
+                        break;
+                    default:
+                        push(services, `<div class="service"><a href="${v[2]}://${v[3]}.local.mesh:${v[4]}/${v[5]}" onclick="event.stopPropagation()">${v[1]}${type}</a></div>`);
+                        break;
+                }
+            }
+            else {
+                const k = match(trim(l), reLink);
+                if (k) {
+                    let type = "";
+                    const k2 = match(k[1], reType);
+                    if (k2) {
+                        k[1] = k2[1];
+                        type = ` <div class="icon ${k2[2]}"></div>`;
+                    }
+                    push(services, `<div class="service">${k[1]}${type}</div>`);
+                }
+            }
+        }
+        f.close();
+    }
+
+    f = fs.open(dhcp.reservations);
+    if (f) {
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            const v = match(trim(l), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
+            if (v && v[4] !== "#NOPROP") {
+                push(devices, `<div class="device">${v[3]}</div>`);
+            }
+        }
+        f.close();
+    }
+%}
+<div class="ctrl" hx-get="status/e/local-services" hx-target="#ctrl-modal">
+    <div class="section-title">Local Services</div>
+    <div class="section">
+    {%
+        if (length(services) === 0) {
+            print("None");
+        }
+        else {
+            print("<div class='cols'>");
+            for (let i = 0; i < length(services); i++) {
+                print(services[i]);
+            }
+            print("</div>");
+        }
+    %}
+    </div>
+</div>
+<hr>
+<div class="noctrl">
+    <div class="section-title">Local Devices</div>
+    <div class="section">
+    {%
+        if (length(devices) === 0) {
+            print("None");
+        }
+        else {
+            print("<div class='cols'>");
+            for (let i = 0; i < length(devices); i++) {
+                print(devices[i]);
+            }
+            print("</div>");
+        }
+    %}
+    </div>
+</div>

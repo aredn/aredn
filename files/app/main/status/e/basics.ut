@@ -1,0 +1,340 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+function getSshKeys()
+{
+    let options = "<option value='-'>-</option>";
+    const f = fs.open("/etc/dropbear/authorized_keys");
+    if (f) {
+        const re = /^(.+) (.+) (.+)$/;
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            const m = match(trim(l), re);
+            if (m) {
+                options += `<option value="${m[3]}">${m[3]}</option>`;
+            }
+        }
+        f.close();
+    }
+    return options;
+}
+if (request.env.REQUEST_METHOD === "PUT") {
+    if ("theme" in request.args) {
+        const theme = request.args.theme;
+        if (fs.access(`${config.application}/resource/css/themes/${theme}.css`)) {
+            fs.unlink(`${config.application}/resource/css/theme.css`);
+            fs.symlink(`themes/${theme}.css`, `${config.application}/resource/css/theme.css`);
+            if (config.resourcehash) {
+                const themes = fs.lsdir(`${config.application}/resource/css/themes`);
+                const re = regexp(`^${theme}\.css\.(.+)\.gz`);
+                for (let i = 0; i < length(themes); i++) {
+                    const m = match(themes[i], re);
+                    if (m) {
+                        fs.unlink(`${config.application}/resource/css/theme.version`);
+                        fs.symlink(m[1], `${config.application}/resource/css/theme.version`);
+                        break;
+                    }
+                }
+            }
+        }
+        return;
+    }
+    configuration.prepareChanges();
+    if ("description_node" in request.args) {
+        configuration.setSetting("description_node", replace(request.args.description_node || "", "'", "’"));
+    }
+    if ("notes" in request.args) {
+        uciMesh.set("aredn", "@notes[0]", "private", replace(request.args.notes || "", "'", "’"));
+        uciMesh.commit("aredn");
+    }
+    if ("node_name" in request.args) {
+        const name = request.args.node_name;
+        if (match(name, constants.reNodename)) {
+            configuration.setName(name);
+            uciMesh.foreach("vtun", "server", s => {
+                const netip = s.netip;
+                if (index(net, ":") === -1) {
+                    const np = split(netip, ":");
+                    const n = iptoarr(np[0]);
+                    uciMesh.set("vtun", s[".name"], "node", `${uc(substr(name, 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}:${np[1]}`);
+                }
+                else {
+                    const n = iptoarr(netip);
+                    uciMesh.set("vtun", s[".name"], "node", `${uc(substr(name, 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}`);
+                }
+            });
+            uciMesh.commit("vtun");
+        }
+    }
+    if ("passwd" in request.args) {
+        configuration.setPassword(request.args.passwd);
+    }
+    if ("ssh_remove" in request.args) {
+        print(request.args);
+        const keys = split(fs.readfile("/etc/dropbear/authorized_keys"), "\n");
+        const re = /^(.+) (.+) (.+)$/;
+        for (let i = 0; i < length(keys); i++) {
+            const m = match(keys[i], re);
+            if (m && m[3] === request.args.ssh_remove) {
+                splice(keys, i, 1);
+                break;
+            }
+        }
+        fs.writefile("/etc/dropbear/authorized_keys", join("\n", keys));
+        print(getSshKeys());
+    }
+    if ("ssh_add" in request.args) {
+        configuration.prepareChanges();
+        const key = fs.readfile(request.args.ssh_add);
+        if (key && match(trim(key), /^(ssh-rsa|ecdsa-sha2-nistp256) [a-zA-Z0-9+\/=]+ .+$/)) {
+            const keys = fs.readfile("/etc/dropbear/authorized_keys") || "";
+            fs.writefile("/etc/dropbear/authorized_keys", `${keys}${key}`);
+        }
+        print(getSshKeys());
+    }
+    configuration.saveSettings();
+    print(_R("changes"));
+    return;
+}
+if (request.env.REQUEST_METHOD === "DELETE") {
+    configuration.revertModalChanges();
+    print(_R("changes"));
+    return;
+}
+%}
+<div class="dialog basics">
+    {{_R("dialog-header", "Name &amp; Security")}}
+    <div>
+        <div class="cols">
+            <div>
+                <div class="o">Node Name</div>
+                <div class="m">This node's unique name</div>
+            </div>
+            <div style="flex:0">
+                <input name="node_name" hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" type="text" minlength="4" maxlength="63" size="30" required pattern="{{constants.patNodename}}" value="{{configuration.getName()}}">
+            </div>
+        </div>
+        {{_H("Change the node's unique name. The name must start with your callsign and be less than 64 characters long.")}}
+        <div class="cols">
+            <div>
+                <div class="o">Description</div>
+                <div class="m">Information about this node</div>
+            </div>
+            <div style="flex:0">
+                <textarea name="description_node" style="width:340px" rows="2" columns="80" hx-put="{{request.env.REQUEST_URI}}">{{configuration.getSettingAsString("description_node", "")}}</textarea>
+            </div>
+        </div>
+        {{_H("Some optional descriptive text about this node. This can be anything you think relevant.
+        People include various thing, such as some basic information about the location or hardware or
+        the services this node provides. Some people include alternate ways to reach the owner (e.g em&zwnj;ail
+        address).")}}
+        <div class="cols">
+            <div>
+                <div class="o">Notes</div>
+                <div class="m">Private notes about this node</div>
+            </div>
+            <div style="flex:0">
+                <textarea name="notes" style="width:340px" rows="2" columns="80" hx-put="{{request.env.REQUEST_URI}}">{{uciMesh.get("aredn", "@notes[0]", "private") || ""}}</textarea>
+            </div>
+        </div>
+        {{_H("Private notes about this node which are only visible to the operator. This can be anything
+        thought relevant or useful. For example it might include information about custom configurations
+        or attached devices.")}}
+        <div class="cols">
+            <div>
+                <div class="o">Theme</div>
+                <div class="m">Display theme and colors</div>
+            </div>
+            <div style="flex:0">
+                {%
+                    const theme = fs.readlink(`${config.application}/resource/css/theme.css`);
+                    const themes = fs.lsdir(`${config.application}/resource/css/themes`);
+                    
+                %}
+                <select name="theme" hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" hx-on:htmx:after-request="location.reload()">
+                    <option value="default" {{theme === 'themes/default.css' ? 'selected': ''}}>default</option>
+                {%
+                    for (let i = 0; i < length(themes); i++) {
+                        const t = themes[i];
+                        const m = match(t, /^(.*)\.css$/);
+                        if (t !== "default.css" && m) {
+                            print(`<option value="${m[1]}" ${theme === "themes/" + t ? "selected": ""}>${m[1]}</option>`);
+                        }
+                    }
+                %}
+                </select>
+            </div>
+        </div>
+        {{_H("Select the display theme for this node. This theme determines how everyone see this node when they visit. The
+        default theme automatically selects either Light or Dark depending on the viewers browser settings.")}}
+        <hr>
+        <div class="password">
+            <div class="cols">
+                <div>
+                    <div class="o">New Password</div>
+                    <div class="m">Change the node password</div>
+                </div>
+                <div>
+                    <input name="passwd1" type="password" pattern="[^#'"]+"><button class="icon eye"></button>
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Retype Password</div>
+                    <div class="m">Passwords must match</div>
+                </div>
+                <div>
+                    <input name="passwd2" type="password" pattern=""><button class="icon eye"></button>
+                </div>
+            </div>
+            {{_H("Set a new password for this device by entering it twice in the boxes. Don't use the # or any quote character. This password
+            is used for logging into the UI as well as telnet and ssh access.")}}
+        </div>
+        {{_R("dialog-advanced")}}
+        <div>
+        {% if (includeAdvanced) { %}
+            <div class="cols">
+                <div>
+                    <div class="o">Upload SSH Key</div>
+                    <div class="m">Add SSH key</div>
+                </div>
+                <div>
+                    <input name="ssh_add" type="file" accept=".pub">
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Remove SSH Key</div>
+                    <div class="m">Delete SSH key</div>
+                </div>
+                <div style="flex:0">
+                    <select name="ssh_remove">{{getSshKeys()}}</select>
+                </div>
+            </div>
+            {{_H("Console access to the node is possible using SSH. To avoid typing a password you can upload an SSH public key which allows
+            password-less login. Multiple keys can be uploaded above, and keys can also be selectively removed.")}}
+            <div class="cols">
+                <div></div>
+                <div style="flex:0">
+                    <button id="ssh_change" disabled hx-trigger="none" hx-encoding="multipart/form-data">Upload or Remove Key</button>
+                </div>
+            </div>
+        {% } %}
+        </div>
+    </div>
+    {{_R("dialog-footer")}}
+    <script>
+    (function(){
+        {{_R("open")}}
+        htmx.on("dialog input[name=passwd1]", "keyup", e => {
+            const v = e.target.value;
+            if (v === "hsmm") {
+                htmx.find("dialog input[name=passwd1]").pattern = "BAD";
+            }
+            else {
+                htmx.find("dialog input[name=passwd1]").pattern = `[^#'"]+`;
+            }
+            htmx.find("dialog input[name=passwd2]").required = v ? "required" : "";
+            htmx.find("dialog input[name=passwd2]").pattern = v;
+        });
+        htmx.on("#dialog-done", "click", _ => {
+            const passwd1 = htmx.find("dialog input[name=passwd1]");
+            const passwd2 = htmx.find("dialog input[name=passwd2]");
+            if (passwd1.validity.valid && passwd2.validity.valid && passwd1.value !== "" && passwd1.value === passwd2.value) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    values: {
+                        passwd: passwd1.value
+                    },
+                    swap: "none"
+                });
+            }
+        });
+        function toggle()
+        {
+            const t = htmx.find("dialog input[name=passwd1]").type;
+            htmx.find("dialog input[name=passwd1]").type = t === "text" ? "password" : "text";
+            htmx.find("dialog input[name=passwd2]").type = t === "text" ? "password" : "text";
+        }
+        htmx.on("dialog input[name=passwd1] + button", "click", toggle);
+        htmx.on("dialog input[name=passwd2] + button", "click", toggle);
+        {% if (includeAdvanced) { %}
+        htmx.on("dialog input[name=ssh_add]", "change", e => {
+            htmx.find("dialog select[name=ssh_remove]").value = "-";
+            if (e.target.value === "-") {
+                htmx.find("dialog #ssh_change").disabled = true;
+                htmx.find("dialog #ssh_change").innerHTML = "Upload or Remove Key";
+            }
+            else {
+                htmx.find("dialog #ssh_change").disabled = false;
+                htmx.find("dialog #ssh_change").innerHTML = "Upload Key";
+            }
+        });
+        htmx.on("dialog select[name=ssh_remove]", "change", e => {
+            htmx.find("dialog input[name=ssh_add]").value = "";
+            if (e.target.value === "-") {
+                htmx.find("dialog #ssh_change").disabled = true;
+                htmx.find("dialog #ssh_change").innerHTML = "Upload or Remove Key";
+            }
+            else {
+                htmx.find("dialog #ssh_change").disabled = false;
+                htmx.find("dialog #ssh_change").innerHTML = "Remove Key";
+            }
+        });
+        htmx.on("dialog #ssh_change", "click", e => {
+            const upload = htmx.find("dialog input[name=ssh_add]").files[0];
+            const remove = htmx.find("dialog select[name=ssh_remove]").value;
+            if (upload) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    source: e.currentTarget,
+                    values: {
+                        "ssh_add": upload
+                    },
+                    target: "dialog select[name=ssh_remove]"
+                }).then(_ => htmx.find("dialog input[name=ssh_add]").value = "");
+            }
+            else if (remove) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    values: {
+                        "ssh_remove": remove
+                    },
+                    target: "dialog select[name=ssh_remove]"
+                });
+            }
+            htmx.find("dialog #ssh_change").disabled = true;
+            htmx.find("dialog #ssh_change").innerHTML = "Upload or Remove Key";
+        });
+        {% } %}
+    })();
+    </script>
+</div>

@@ -1,0 +1,1459 @@
+/* ctrls start */
+
+#ctrl-modal[open]
+{
+    display: flex;
+    font: inherit;
+    font-size: 16px;
+    height: 90%;
+    padding: 40px;
+    border: 1px solid var(--ctrl-modal-border-color);
+    background-color: var(--ctrl-modal-bg-color);
+    border-radius: 10px;
+    outline: none;
+}
+#ctrl-modal[open]:empty
+{
+    background-color: transparent;
+    border-color: transparent;
+}
+#ctrl-modal::backdrop
+{
+    background-color: var(--ctrl-modal-backdrop-color);
+}
+#ctrl-modal > .dialog
+{
+    display: flex;
+    flex-direction: column;
+    width: 520px;
+    flex: 1;
+    color: var(--ctrl-modal-fg-color);
+}
+#ctrl-modal .dialog.wide
+{
+    width: 720px;
+}
+#ctrl-modal .dialog > div:first-child
+{
+    flex: 0;
+}
+#ctrl-modal .dialog > div:nth-child(2)
+{
+    flex: 1;
+    overflow-y: scroll;
+    overscroll-behavior: contain;
+    padding: 0 10px;
+}
+#ctrl-modal .dialog > div:last-child
+{
+    flex: 0;
+}
+#ctrl-modal .t
+{
+    font-size: 24px;
+    color: var(--ctrl-modal-fg-title-color);
+}
+#ctrl-modal .s
+{
+    font-size: 14px;
+    color: var(--ctrl-modal-fg-subtitle-color);
+}
+.ctrl-modal-footer #dialog-done
+{
+    float: right;
+}
+#dialog-help
+{
+    float: right;
+}
+#dialog-help.enabled
+{
+    background-color: var(--ctrl-modal-bg-secondary-color);
+}
+#dialog-help.enabled:active
+{
+    background-color: var(--ctrl-modal-textbox-bg-color);
+}
+.ctrl-modal-advanced
+{
+    display: flex;
+    padding: 15px 0;
+}
+.ctrl-modal-advanced hr
+{
+    flex: 1;
+    border-color: var(--ctrl-modal-advance-options-color);
+}
+#ctrl-modal .ctrl-modal-advanced button
+{
+    margin-left: -8px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--ctrl-modal-advance-options-color);
+    border: 0 !important;
+    background-color: transparent !important;
+}
+#ctrl-modal .ctrl-modal-advanced button:hover
+{
+    color: var(--ctrl-modal-fg-color);
+}
+.ctrl-modal-advanced + div
+{
+    display: none;
+}
+.ctrl-modal-advanced.active + div
+{
+    display: block;
+}
+
+#ctrl-modal .o
+{
+    color: var(--ctrl-modal-fg-option-color);
+    font-size: 16px;
+}
+#ctrl-modal .m
+{
+    color: var(--ctrl-modal-fg-message-color);
+    font-size: 14px;
+    padding: 4px 8px 16px 0;
+}
+#ctrl-modal .compact .m
+{
+    padding-bottom: 10px;
+}
+#ctrl-modal .help
+{
+    color: var(--ctrl-modal-fg-help-color);
+    font-size: 14px;
+    padding: 0px 40px 20px 10px;
+}
+
+#ctrl-modal input[type=text],
+#ctrl-modal input[type=password],
+#ctrl-modal input[type=file]
+{
+    color: var(--ctrl-modal-fg-color);
+    background-color: var(--ctrl-modal-textbox-bg-color);
+    border: 1px solid var(--ctrl-modal-textbox-border-color);
+    padding: 5px;
+    margin-top: 2px;
+    border-radius: .2em;
+    outline: none;
+    font: inherit;
+    font-size: 14px;
+    text-align: right;
+}
+#ctrl-modal input[type=text]:invalid,
+#ctrl-modal input[type=password]:invalid,
+#ctrl-modal select:invalid
+{
+    border-color: var(--ctrl-modal-border-color-error) !important;
+}
+#ctrl-modal input[type=file]::file-selector-button
+{
+    color: var(--ctrl-modal-fg-color);
+    background-color: var(--ctrl-modal-textbox-bg-color);
+    border: 1px solid var(--ctrl-modal-textbox-border-color);
+}
+#ctrl-modal .noborder input[type=text],
+#ctrl-modal .noborder input[type=password],
+#ctrl-modal .noborder input[type=file]
+{
+    border-color: transparent;
+}
+#ctrl-modal input[type=file]
+{
+    max-width: 350px;
+    text-align: left;
+}
+
+#ctrl-modal select
+{
+    font: inherit;
+    font-size: 14px;
+    appearance: none;
+    outline: none;
+    padding: 5px 5px 5px 10px;
+    color: var(--ctrl-modal-fg-color);
+    background-color: var(--ctrl-modal-textbox-bg-color);
+    border: 1px solid var(--ctrl-modal-textbox-border-color);
+    border-radius: .2em;
+    direction: rtl;
+    text-align: right;
+}
+#ctrl-modal select option
+{
+    direction: ltr;
+}
+
+#ctrl-modal textarea
+{
+    font: inherit;
+    font-size: 14px;
+    color: var(--ctrl-modal-fg-color);
+    border: 1px solid var(--ctrl-modal-textbox-border-color);
+    background-color: var(--ctrl-modal-textbox-bg-color);
+    padding: 5px;
+    outline: none;
+    resize: none;
+}
+
+#ctrl-modal button
+{
+    margin-top: 4px;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    color: var(--ctrl-modal-textbox-border-color);
+    background-color: var(--ctrl-modal-textbox-bg-color);
+    border: 1px solid var(--ctrl-modal-textbox-border-color);
+    white-space: nowrap;
+    font-size: 14px;
+}
+#ctrl-modal button:hover:not(:disabled)
+{
+    background-color: var(--ctrl-modal-bg-secondary-color);
+}
+#ctrl-modal button:disabled
+{
+    border-color: var(--ctrl-modal-textbox-bg-color);
+}
+
+label.switch
+{
+    display: inline-block;
+    position: relative;
+    height: 2rem;
+    width: 3.5rem;
+    margin-right: 2px;
+    vertical-align: bottom;
+}
+.switch input[type=checkbox]
+{
+    position: absolute;
+    appearance: none;
+    height: 2rem;
+    width: 3.5rem;
+    background-color: var(--ctrl-modal-textbox-bg-color);
+    border: 1px solid var(--ctrl-modal-textbox-border-color);
+    border-radius: .2em;
+    cursor: pointer;
+    outline: none;
+    margin-right: 0;
+}
+   
+.switch input[type=checkbox]::before
+{
+    content: "";
+    display: block;
+    height: 1.9em;
+    width: 1.9em;
+    transform: translate(-50%, -50%);
+    position: absolute;
+    top: 50%;
+    left: calc(1.9em/2 + .3em);
+    background-color: var(--service-bg-color-status-disabled);
+    border-radius: .2em;
+    transition: .3s ease;
+}
+.switch.inactive input[type=checkbox]::before
+{
+    background-color: var(--service-bg-color-status-inactive);
+}
+   
+.switch input[type=checkbox]:checked::before
+{
+    background-color: var(--service-bg-color-status-active);
+    left: calc(100% - (1.9em/2 + .3em));
+}
+
+/* ctrls end */
+
+/* changes start */
+
+#changes
+{
+    position: absolute;
+    left: 0;
+    width: 100%;
+    font-size: 16px;
+    color: var(--title-fg-color);
+    text-align: center;
+}
+#changes > div
+{
+    display: inline-block;
+    width: 450px;
+    margin-top: 4px;
+    padding: 10px;
+    border: 2px solid var(--firmware-status-bg-color-positive);
+}
+#changes button
+{
+    font: inherit;
+    font-size: 12px;
+    margin: 0 10px;
+    padding: 8px;
+    background-color: transparent;
+}
+#changes button:first-child
+{
+    border: 2px solid var(--firmware-status-bg-color-positive);
+    color: var(--firmware-status-bg-color-positive);
+}
+#changes button:last-child
+{
+    border: 2px solid var(--firmware-status-bg-color-negative);
+    color: var(--firmware-status-bg-color-negative);
+}
+
+/* changes end */
+
+/* basics start */
+
+#ctrl-modal .basics select[name=theme]
+{
+    text-transform: capitalize;
+}
+#ctrl-modal .basics .password .cols div:last-child
+{
+    position: relative;
+    flex: 0;
+}
+#ctrl-modal .basics .password input
+{
+    padding-right: 30px;
+}
+#ctrl-modal .basics .password input + button
+{
+    position: absolute;
+    right: 2px;
+    border: 0;
+    border-radius: 12px;
+    scale: 0.8;
+    background-color: transparent;
+    filter: var(--icon-filter);
+}
+
+/* basics end */
+
+/* tools start */
+
+.authenticated #tools
+{
+    display: block;
+}
+#tools input
+{
+    width: 64px;
+    height: 64px;
+    margin: 0;
+    opacity: 0;
+}
+#tools label
+{
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+#tools label .icon
+{
+    position: absolute;
+    bottom: 0;
+    pointer-events: none;
+}
+#tools:hover label .icon
+{
+    filter: var(--nav-icon-filter-select);
+}
+#tools .menu
+{
+    display: none;
+    position: absolute;
+    bottom: 0;
+    left: 64px;
+    padding: 10px;
+    color: var(--title-fg-color);
+    background-color: var(--nav-bg-color);
+    border-top-right-radius: 10px;
+    border-left: 1px solid var(--ctrl-modal-bg-tertiary-color);
+    z-index: 1;
+}
+#tools:has(input:checked) .menu
+{
+    display: block;
+}
+#tools .menu > div
+{
+    padding: 10px 20px;
+    color: var(--title-fg-color);
+    background-color: var(--nav-bg-color);
+}
+#tools .menu > div[hx-target]:hover
+{
+    color: var(--menu-fg-select-color);
+}
+#tools .menu > div[hx-trigger]:hover .icon
+{
+    filter: var(--nav-icon-filter-select);
+}
+#tools .menu > div > div
+{
+    display: inline-block;
+    position: relative;
+    top: 4px;
+    height: 20px;
+    width: 30px;
+    margin: 0;
+}
+
+/* tools end */
+
+/* customization start */
+
+#ctrl-modal .hideable:has(> div:first-child input[type='checkbox']:not(:checked)) > .hideable0
+{
+    display: none;
+}
+
+#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable0,
+#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable1,
+#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable2,
+#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable3,
+#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable4
+{
+    display: none;
+}
+#ctrl-modal .hideable:has(> div:first-child select > option[value="0"]:checked) > .hideable0,
+#ctrl-modal .hideable:has(> div:first-child select > option[value="1"]:checked) > .hideable1,
+#ctrl-modal .hideable:has(> div:first-child select > option[value="2"]:checked) > .hideable2,
+#ctrl-modal .hideable:has(> div:first-child select > option[value="3"]:checked) > .hideable3,
+#ctrl-modal .hideable:has(> div:first-child select > option[value="4"]:checked) > .hideable4
+{
+    display: block;
+}
+
+#location-edit-map
+{
+    position: relative;
+}
+#location-edit-map .icon.plus
+{
+    position: absolute;
+    top: 60px;
+    left: calc(50% - 40px);
+    width: 80px;
+    height: 80px;
+    pointer-events: none;
+    filter: var(--icon-filter);
+    z-index: 1;
+}
+#location-edit-map iframe
+{
+    width: 100%;
+    height: 200px;
+    border: 1px solid var(--hr-color);
+    margin-bottom: 16px;
+    filter: var(--map-filter);
+}
+
+/* customization end */
+
+/* dhcp start */
+
+#ctrl-modal .noborder input,
+#ctrl-modal .noborder select
+{
+    border-color: var(--ctrl-modal-textbox-bg-color);
+}
+#ctrl-modal #dhcp-reservations:not(:has(.reservation)) .reservation-label
+{
+    display: none;
+}
+#ctrl-modal .reservation input[type=text]:first-child,
+#ctrl-modal .lease input:first-child,
+#ctrl-modal .reservation-label div:first-child div:first-child,
+#ctrl-modal .lease-label div:first-child div:first-child
+{
+    width: 155px;
+    border-color: var(--ctrl-modal-textbox-bg-color);
+}
+#ctrl-modal .reservation select:nth-child(2),
+#ctrl-modal .lease input:nth-child(2),
+#ctrl-modal .reservation-label div:first-child div:nth-child(2),
+#ctrl-modal .lease-label div:first-child div:nth-child(2)
+{
+    width: 120px;
+    border-color: var(--ctrl-modal-textbox-bg-color);
+}
+#ctrl-modal .reservation input:nth-child(3),
+#ctrl-modal .lease input:nth-child(3),
+#ctrl-modal .reservation-label div:first-child div:nth-child(3),
+#ctrl-modal .lease-label div:first-child div:nth-child(3)
+{
+    width: 130px;
+    border-color: var(--ctrl-modal-textbox-bg-color);
+}
+#ctrl-modal .reservation-label div:first-child div:nth-child(4)
+{
+    white-space: normal;
+    width: 50px;
+    text-align: center;
+}
+#ctrl-modal .reservation input[type=checkbox],
+#ctrl-modal .dhcp-options .row input[type=checkbox]
+{
+    width: 14px;
+    height: 14px;
+    accent-color: var(--ctrl-modal-checkbox-color);
+    margin-left: 18px;
+}
+#ctrl-modal .reservation-label div:first-child div,
+#ctrl-modal .lease-label div:first-child div,
+#ctrl-modal .xlink-label div:first-child div,
+#ctrl-modal .dhcptag-label div:first-child div,
+#ctrl-modal .dhcpoption-label div:first-child div,
+#ctrl-modal .port-forwards-label div:first-child div
+{
+    display: inline-block;
+    font-size: 10px;
+    text-align: right;
+    color: var(--ctrl-modal-fg-message-color);
+}
+#ctrl-modal .dhcp-options
+{
+    padding-top: 20px;
+}
+#ctrl-modal .dhcp-options .row :first-child,
+#ctrl-modal .dhcp-tags .row :first-child
+{
+    width: 80px;
+    max-width: 80px;
+    overflow-x: hidden;
+}
+#ctrl-modal .dhcp-options .row :nth-child(2),
+#ctrl-modal .dhcp-tags .row :nth-child(2)
+{
+    width: 210px;
+}
+#ctrl-modal .dhcp-options .row :nth-child(3)
+{
+    width: 120px;
+    max-width: 120px;
+    overflow-x: hidden;
+}
+#ctrl-modal .dhcp-tags .row :nth-child(3)
+{
+    width: 155px;
+    max-width: 155px;
+    overflow-x: hidden;
+}
+#ctrl-modal .dhcpoption-label .row :last-child
+{
+    position: relative;
+    top: -2px;
+    right: -10px;
+}
+#ctrl-modal .dhcp-tags:has(.list:empty) .dhcptag-label,
+#ctrl-modal .dhcp-options:has(.list:empty) .dhcpoption-label
+{
+    display: none;
+}
+
+/* dhcp end */
+
+/* neighbors start */
+
+#ctrl-modal .neighbor
+{
+    padding-bottom: 16px;
+}
+#ctrl-modal .neighbor a
+{
+    font: inherit;
+    color: inherit;
+    text-decoration: none;
+}
+#ctrl-modal .neighbor a:hover
+{
+    color: var(--section-link-fg-color);
+}
+#ctrl-modal .neighbor .o
+{
+    font-size: 20px;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    background-color: var(--ctrl-modal-bg-secondary-color);
+}
+#ctrl-modal .neighbor > div:not(.o)
+{
+    padding-left: 7px;
+}
+#ctrl-modal .neighbor .i
+{
+    padding-top: 4px;
+    font-size: 14px;
+    color: var(--title-fg-color);
+}
+#ctrl-modal .neighbor .i div:last-child
+{
+    font-size: 12px;
+    color: var(--subtitle-fg-color);
+}
+#ctrl-modal .neighbor select
+{
+    padding: 2px 4px;
+    vertical-align: top;
+    float: right;
+    border-color: var(--subtitle-fg-color);
+}
+#neighbor-device-chart
+{
+    padding-top: 20px;
+}
+#neighbor-device-chart svg
+{
+    width: 100%;
+}
+#neighbor-device-chart .frame
+{
+    fill: none;
+    stroke: var(--title-fg-color);
+    stroke-width: 0.2px;
+    font-size: 4px;
+}
+#neighbor-device-chart .frame text
+{
+    text-anchor: end;
+}
+#neighbor-device-chart .signal
+{
+    fill: none;
+    stroke: var(--conn-fg-color-good);
+    stroke-width: 1px;
+}
+#neighbor-device-chart .noise
+{
+    fill: none;
+    stroke: var(--conn-fg-color-bad);
+    stroke-width: 1px;
+}
+#neighbor-device-chart .hints rect
+{
+    fill: transparent;
+}
+#neighbor-device-chart .hints rect:hover
+{
+    fill: var(--ctrl-modal-fg-color);
+    opacity: 0.1;
+}
+#neighbor-device-chart .hints g text
+{
+    display: none;
+    font-size: 4px;
+    fill: var(--ctrl-modal-fg-color);
+}
+#neighbor-device-chart .hints g.r text
+{
+    text-anchor: end;
+}
+#neighbor-device-chart .hints g:hover text
+{
+    display: block;
+}
+
+/* neighbors end */
+
+/* service start */
+
+#host-aliases
+{
+    padding-bottom: 20px;
+}
+#local-services .service
+{
+    padding-top: 10px;
+    color: var(--ctrl-modal-fg-color);
+}
+#local-services .service .cols:first-child input
+{
+    flex: 1;
+    margin-right: 4px;
+}
+#local-services .service .cols:first-child > .cols
+{
+    flex: 1;
+    padding-right: 10px;
+}
+#local-services .service .cols:first-child > div select
+{
+    position: relative;
+    top: 2px;
+}
+#local-services .service .cols:last-child div:nth-child(2)
+{
+    white-space: nowrap;
+    padding-right: 34px;
+    font-size: 10px;
+}
+#local-services .service .cols:last-child input[name=protocol],
+#local-services .service .cols:last-child input[name=port]
+{
+    width: 50px;
+}
+#local-services .service .cols:last-child select[name=hostname]
+{
+    width: 171.5px;
+}
+#ctrl-modal #local-services .service input[type=text],
+#ctrl-modal #local-services .service select
+{
+    border-color: var(--ctrl-modal-textbox-bg-color);
+    text-align: left;
+}
+#ctrl-modal #local-services .service .cols:last-child input[type=text],
+#ctrl-modal #local-services .service .cols:last-child select
+{
+    font-size: 14px;
+}
+#ctrl-modal #local-services .link
+{
+    padding-top: 3px;
+}
+#ctrl-modal #local-services .link select
+{
+    width: 100%;
+}
+#ctrl-modal #host-aliases .cols input
+{
+    flex: 1;
+    margin-right: 6px;
+    text-align: left;
+}
+#ctrl-modal #host-aliases .cols div
+{
+    flex: 0;
+    position: relative;
+    top: 2px;
+    padding-right: 6px;
+}
+#ctrl-modal #port-forwards > .cols
+{
+    padding-bottom: 6px;
+}
+#ctrl-modal #port-forwards label.switch input
+{
+    top: 1px;
+    height: 28px;
+    margin-left: 0;
+}
+#ctrl-modal #port-forwards select[name=port_src],
+#ctrl-modal #port-forwards input[name=port_src],
+#ctrl-modal #port-forwards select[name=port_dst],
+#ctrl-modal .port-forwards-label div:first-child div:first-child
+{
+    width: 180px;
+    max-width: 180px;
+    overflow-x: hidden;
+}
+#ctrl-modal #port-forwards input[name=port_sports],
+#ctrl-modal #port-forwards input[name=port_dport],
+#ctrl-modal .port-forwards-label div:first-child div:nth-child(2)
+{
+    width: 110px;
+}
+#ctrl-modal .port-forwards-label div:first-child div:nth-child(3)
+{
+    width: 92px;
+}
+#ctrl-modal .port-forwards-label div:first-child div:nth-child(4)
+{
+    width: 56px;
+}
+#ctrl-modal:has(#port-forwards:empty) .port-forwards-label
+{
+    display: none;
+}
+
+/* services end */
+
+/* reboot and firstuse start */
+
+.reboot,
+.firstuse
+{
+    display: flex;
+    height: 100%;
+    padding: 64px;
+    background-color: white;
+    color: black;
+}
+.reboot > div:first-child,
+.firstuse > div:first-child
+{
+    flex: 0;
+}
+.reboot > div:nth-child(2),
+.firstuse > div:nth-child(2)
+{
+    display: flex;
+    flex-direction: column;
+    padding: 64px 172px;
+    font-size: 32px;
+}
+.reboot #icon-logo,
+.firstuse #icon-logo
+{
+    transform: scale(4) translate(47%,37%);
+}
+.reboot #icon-logo + div + div,
+.firstuse #icon-logo + div + div
+{
+    position: relative;
+    margin-top: 107px;
+    font-size: 82px;
+    font-weight: bold;
+    line-height: 70px;
+    background-color: rgba(255,255,255,0.6);
+}
+.reboot #icon-logo + div + div span,
+.firstuse #icon-logo + div + div span
+{
+    font-size: 10px;
+    line-height: 10px;
+}
+.reboot #icon-logo + div + div + div,
+.firstuse #icon-logo + div + div + div
+{
+    font-size: 15px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+.reboot > div:nth-child(2) > div + div
+{
+    flex: 1;
+    font-size: 18px;
+    line-height: 32px;
+    padding-top: 64px;
+}
+.reboot #countdown
+{
+    font-size: 24px;
+    font-variant: proportional-nums;
+}
+.reboot progress
+{
+    width: 100%;
+}
+.firstuse > div:nth-child(2) > div:nth-child(2)
+{
+    font-size: 24px;
+    line-height: 34px;
+    padding-top: 30px;
+}
+.firstuse > div:nth-child(2) > div:nth-child(3)
+{
+    padding-top: 40px;
+    font-size: 20px;
+    line-height: 30px;
+}
+.firstuse > div:nth-child(2) > div:nth-child(3) .cols div:first-child
+{
+    margin: auto 0;
+    white-space: nowrap;
+}
+.firstuse .cols div:nth-child(2)
+{
+    flex: 0;
+}
+.firstuse input[type=text],
+.firstuse input[type=password]
+{
+    width: 350px;
+    font: inherit;
+    margin: 5px;
+    border: 1px solid black;
+    outline: none;
+}
+.firstuse input[type=password]
+{
+    width: 200px;
+}
+.firstuse input[type=text]:invalid,
+.firstuse input[type=password]:invalid
+{
+    border-color: red;
+}
+.firstuse small
+{
+    font-size: 14px;
+}
+.firstuse button
+{
+    width: 200px;
+    padding: 10px;
+    border: 0;
+    margin: 40px 7px 0 0;
+    background-color: green;
+    color: white;
+    font: inherit;
+}
+.firstuse button:disabled
+{
+    background-color: #e0e0e0;
+    color: #c0c0c0;
+}
+.firstuse.ram > div:nth-child(2) > div:nth-child(2) > div:nth-child(2)
+{
+    font-size: 16px;
+    padding-top: 10px;
+}
+.firstuse.ram > div:nth-child(2) > div:nth-child(2) > div:nth-child(3)
+{
+    font-size: 18px;
+    padding-top: 10px;
+}
+.firstuse.ram input[type=file]
+{
+    width: 465px;
+    margin-right: 6px;
+    padding: 6px;
+    border: 1px solid black;
+    font: inherit;
+    font-size: 12px;
+}
+
+/* reboot and firstuse end */
+
+/* firmware and package update start */
+
+#firmware-update,
+#package-update
+{
+    display: flex;
+    flex-direction: column;
+}
+#firmware-update hr + div,
+#package-update hr + div
+{
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+#firmware-upload,
+#package-upload
+{
+    padding: 6px 10px 0 0;
+}
+#firmware-upload progress,
+#package-upload progress
+{
+    width: 100%;
+}
+#dialog-messages-error
+{
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 8px;
+    color: var(--firmware-status-fg-color);
+    background-color: var(--firmware-status-bg-color-negative);
+}
+#package-info
+{
+    font-size: 14px;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+#dialog-messages-success
+{
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 8px;
+    color: var(--firmware-status-fg-color);
+    background-color: var(--firmware-status-bg-color-positive);
+}
+#dialog-messages-error:empty,
+#dialog-messages-success:empty,
+#package-info:empty
+{
+    display: none;
+}
+#download-firmware,
+#download-package
+{
+    width: 248px;
+}
+#sideload-firmware
+{
+    width: 278px;
+}
+#firmware-refresh,
+#package-refresh
+{
+    width: 24px;
+    height: 24px;
+    margin: 2px 0 0 4px;
+    border: 1px solid var(--ctrl-modal-textbox-border-color);
+    border-radius: 4px;
+    background-color: var(--ctrl-modal-bg-color);
+}
+#firmware-refresh:hover,
+#package-refresh:hover
+{
+    background-color: var(--ctrl-modal-bg-secondary-color);
+}
+#ctrl-modal #firmware-refresh button,
+#ctrl-modal #package-refresh button
+{
+    position: relative;
+    top: -1px;
+    left: 3px;
+    min-width: 16px;
+    height: 16px;
+    border: 0;
+    background-color: transparent;
+    background-size: 16px;
+    background-position: center center;
+    background-repeat: no-repeat;
+    filter: var(--icon-filter);
+}
+#firmware-refresh button.rotate,
+#package-refresh button.rotate
+{
+    animation-name: logo-rotate;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+#remove-package
+{
+    width: 277px;
+}
+
+/* firmware and package update end */
+
+/* tunnel start */
+
+.tunnel
+{
+    padding: 10px 0;
+}
+.tunnel:not(:last-child)
+{
+    border-bottom: 1px solid #d0d0d0;
+}
+.tunnel input[type="text"]
+{
+    border-color: transparent !important;
+    direction: ltr !important;
+    text-align: left !important;
+}
+.tunnel input[type="text"][name="name"]
+{
+    border-color: inherit !important;
+}
+.tunnel > .cols > div:first-child
+{
+    flex: 0;
+    font-size: 12px;
+    margin: 0 10px 0 0;
+    padding: 0 4px;
+    border-radius: 6px;;
+    writing-mode: vertical-rl;
+    rotate: 180deg;
+    text-align: center;
+    color: var(--tunnel-fg-color);
+    cursor: default;
+}
+.tunnel > .cols > div:first-child[data-type=ws]
+{
+    background-color: var(--tunnel-bg-wireguard-server-color);
+}
+.tunnel > .cols > div:first-child[data-type=wc]
+{
+    background-color: var(--tunnel-bg-wireguard-client-color);
+}
+.tunnel > .cols > div:first-child[data-type=ls]
+{
+    background-color: var(--tunnel-bg-legacy-server-color);
+}
+.tunnel > .cols > div:first-child[data-type=lc]
+{
+    background-color: var(--tunnel-bg-legacy-client-color);
+}
+.tunnel > .cols > div:nth-child(3)
+{
+    flex: 0;
+    padding: 10px 10px 0 10px;
+}
+.tunnel .cols .cols.pwnw input:first-child
+{
+    width: 50%;
+}
+.tunnel .cols .cols.pwnw input:nth-child(2)
+{
+    width: calc(50% - 50px);
+    margin-left: 3px;
+}
+.tunnel .switch input[type=checkbox]
+{
+    top: -1px;
+    height: 30px;
+    width: 53px;
+}
+.tunnel .switch input[type=checkbox]::before
+{
+    height: 1.4em;
+    width: 1.4em;
+    left: calc(1.7em/2 + .3em);
+}
+.tunnel .switch input[type=checkbox]:checked::before
+{
+    left: calc(100% - (1.7em/2 + .3em));
+    background-color: var(--service-bg-color-status-inactive);
+}
+.tunnel .switch.up input[type=checkbox]:checked::before
+{
+    background-color: var(--service-bg-color-status-active);
+}
+.tunnel input[name=name]
+{
+    flex: 1;
+}
+.tunnel input[name=password]
+{
+    flex: 1;
+}
+.tunnel input[name=network]
+{
+    width: 115px;
+    margin-right: 3px;
+}
+.tunnel input[name=weight]
+{
+    width: 53px;
+    margin-right: 3px;
+}
+.tunnel input[name=notes]
+{
+    flex: 1;
+    margin-right: 3px;
+}
+.tunnel button.clipboard
+{
+    margin-right: 3px;
+}
+.tunnel .icon.clipboard
+{
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+    filter: var(--icon-filter);
+}
+
+/* tunnel end */
+
+/* ports start */
+
+#ctrl-modal .ports
+{
+    color: var(--ctrl-modal-fg-color);
+    background-color: var(--ctrl-modal-bg-secondary-color);
+    border-radius: 10px;
+    padding: 20px;
+}
+#ctrl-modal .ports table
+{
+    width: 100%;
+    border-collapse: collapse;
+}
+#ctrl-modal .ports table td:not(:first-child)
+{
+    text-align: center;
+}
+#ctrl-modal .ports table thead td div
+{
+    width: 54px;
+    padding: 5px 0;
+    margin: 0 auto;
+    border-radius: 14px;
+    color: var(--service-fg-color-status);
+    background-color: var(--service-bg-color-status-inactive);
+}
+#ctrl-modal .ports table thead td.active div
+{
+    background-color: var(--service-bg-color-status-active);
+}
+#ctrl-modal .ports table thead td:first-child,
+#ctrl-modal .ports table tbody td:first-child
+{
+    width: 160px;
+    padding: 10px 25px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+#ctrl-modal .ports table tbody td:last-child
+{
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+#ctrl-modal .ports table tbody td:first-child div:nth-child(2)
+{
+    font-size: 12px;
+    color: var(--section-subtitle-fg-color);
+}
+#ctrl-modal .ports table tbody td:first-child input
+{
+    font: inherit;
+}
+#ctrl-modal .ports table tbody tr:nth-child(even)
+{
+    background-color: var(--ctrl-modal-bg-tertiary-color);
+}
+#ctrl-modal .ports table input[type=checkbox]
+{
+    width: 14px;
+    height: 14px;
+    accent-color: var(--ctrl-modal-checkbox-color);
+}
+
+/* ports end */
+
+/* xlink start */
+
+#ctrl-modal .xlink-label div:first-child div:first-child,
+#ctrl-modal .xlink-label div:first-child div:nth-child(6),
+#ctrl-modal .xlink input:first-child,
+#ctrl-modal .xlink select:first-child,
+#ctrl-modal .xlink select[name=port]
+{
+    width: 55px;
+}
+#ctrl-modal .xlink-label div:first-child div:nth-child(2),
+#ctrl-modal .xlink-label div:first-child div:nth-child(3),
+#ctrl-modal .xlink input:nth-child(2),
+#ctrl-modal .xlink input:nth-child(3)
+{
+    width: 125px;
+}
+#ctrl-modal .xlink-label div:first-child div:nth-child(4),
+#ctrl-modal .xlink-label div:first-child div:nth-child(5),
+#ctrl-modal .xlink input:nth-child(5),
+#ctrl-modal .xlink select[name=cidr]
+{
+    width: 40px;
+}
+#ctrl-modal .xlink input,
+#ctrl-modal .xlink select
+{
+    border-color: transparent;
+}
+.xlink-label
+{
+    padding-top: 6px;
+}
+#xlink-list:not(:has(.xlink)) .xlink-label
+{
+    display: none;
+}
+
+/* xlink end */
+
+/* tools start */
+
+.tool-console
+{
+    position: absolute;
+    top: 0;
+    right: 60px;
+    bottom: 0;
+    left: 0;
+    font-size: 12px;
+    padding: 10px;
+    color: var(--console-fg-color);
+    background-color: var(--console-bg-color);
+    border: 1px solid var(--console-border-color);
+    border-radius: 10px;
+}
+.tool-console pre
+{
+    height: 100%;
+    margin: 0;
+    overflow: hidden scroll;
+}
+.tool-console pre a
+{
+    color: inherit;
+    text-decoration: none;
+}
+.tool-console pre a:hover
+{
+    text-decoration: underline;
+}
+.simple-tool
+{
+    display: flex;
+    flex-direction: column;
+}
+.simple-tool select
+{
+    width: 30px;
+    height: 28px;
+    margin: 2px 0 0 2px;
+}
+.simple-tool .cols:first-child > div:nth-child(2),
+.simple-tool.client-server .cols:nth-child(2) > div:nth-child(2)
+{
+    display: flex;
+    height: 30px;
+    flex: 0;
+}
+.simple-tool .cols:last-child
+{
+    position: relative;
+    flex: 1;
+    align-items: flex-end;
+}
+.simple-tool .cols:last-child div:nth-child(2)
+{
+    text-align: right;
+}
+.simple-tool button
+{
+    width: 40px;
+    height: 30px;
+    margin-left: 10px;
+}
+
+.simple-tool #target-swap
+{
+    position: relative;
+    top: 20px;
+    width: 32px;
+    height: 32px;
+}
+.simple-tool #target-swap > div
+{
+    width: 20px;
+    height: 20px;
+    filter: var(--icon-filter);
+}
+
+#wifi-scan table
+{
+    width: 100%;
+    font-size: 12px;
+}
+#wifi-scan table thead tr
+{
+    font-weight: bold;
+}
+#wifi-scan table thead tr td
+{
+    padding-bottom: 4px;
+}
+#wifi-scan table tbody tr
+{
+    vertical-align: top;
+}
+#wifi-scan + div button
+{
+    text-align: left;
+}
+
+#wifi-char > .cols
+{
+    padding-bottom: 10px;
+}
+#wifi-bar
+{
+    height: 300px;
+    width: 120px;
+    padding: 10px 0;
+    color: var(--ctrl-modal-fg-title-color);
+    background-color: var(--ctrl-modal-bg-secondary-color);
+    color: var(--ctrl-modal-fg-title-color);
+    border-radius: 10px;
+    font-size: 14px;
+}
+#wifi-bar > div:first-child
+{
+    text-align: center;
+    font-size: 18px;
+}
+#wifi-bar .bars
+{
+    position: relative;
+    height: calc(100% - 42px);
+}
+#wifi-bar .bars > div
+{
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    left: 10px;
+    transition: height 1s linear;
+
+}
+#wifi-bar .bars div div
+{
+    display: inline-block;
+    width: 24px;
+    vertical-align: top;
+    padding-right: 5px;
+}
+#wifi-bar .bars div div:nth-child(2)
+{
+    border-radius: 10px;
+    width: 50px;
+    height: 100%;
+}
+#wifi-chart .cols .cols:nth-child(2) .o,
+#wifi-chart .cols .cols:nth-child(3) .o
+{
+    text-align: right;
+    padding-right: 10px;
+}
+#wifi-chart .chart
+{
+    padding-left: 10px;
+}
+#wifi-chart .chart > div
+{
+    height: 300px;
+    padding: 10px;
+    background-color: var(--ctrl-modal-bg-secondary-color);
+    border-radius: 10px;
+}
+#wifi-chart svg
+{
+    width: 100%;
+    height: 100%;
+}
+#wifi-chart .frame
+{
+    fill: none;
+    stroke: var(--title-fg-color);
+    stroke-width: 0.5px;
+}
+#wifi-chart .signal
+{
+    fill: none;
+    stroke: var(--conn-fg-color-good);
+    stroke-width: 1px;
+}
+#wifi-chart text
+{
+    fill: var(--title-fg-color);
+    font-size: 4px;
+    text-anchor: end;
+}
+#wifi-chart input[type=range]::-webkit-slider-runnable-track
+{
+    background-color: var(--ctrl-modal-bg-secondary-color);
+    border-radius: 5px;
+}
+
+/* tools end */

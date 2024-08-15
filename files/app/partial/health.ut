@@ -1,0 +1,76 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+    const d = split(fs.readfile("/proc/uptime"), " ");
+    const up = int(d[0]);
+    let uptime = sprintf("%d:%02d", int(up / 3600) % 24, int(up / 60) % 60);
+    if (up >= 172800) {
+        uptime = int(up / 86400) + " days, " + uptime;
+    }
+    else if (up > 86400) {
+        uptime = "1 day, " + uptime;
+    }
+    const ld = split(fs.readfile("/proc/loadavg"), " ");
+    const ram = int(match(fs.readfile("/proc/meminfo"), /MemFree: +(\d+) kB/)[1]) / 1000.0;
+    const f = fs.popen("exec /bin/df /");
+    let flash = "-";
+    if (f) {
+        flash = int(split(f.read("all"), /\s+/)[10]) / 1000.0;
+        f.close();
+    }
+    const tm = localtime();
+    const tmsource = fs.readfile("/tmp/timesync");
+%}
+<div class="ctrl" hx-get="status/e/time" hx-target="#ctrl-modal">
+    <div class="t">{{tm.hour === 0 ? "12" : tm.hour > 12 ? tm.hour - 12 : tm.hour}}:{{sprintf("%02d", tm.min)}} {{tm.hour >= 12 ? "pm" : "am"}}</div>
+    <div class="s">time{{tmsource ? " (" + tmsource + ")" : ""}}</div>
+</div>
+<div class="noctrl">
+    <div class="t">{{uptime}}</div>
+    <div class="s">uptime</div>
+    <div class="t">{{ld[0]}}, {{ld[1]}}, {{ld[2]}}</div>
+    <div class="s">load</div>
+    <div class="cols">
+        <div>
+            <div class="t">{{flash}} MB</div>
+            <div class="s">free flash</div>
+        </div>
+        <div>
+            <div class="t">{{ram}} MB</div>
+            <div class="s">free ram</div>
+        </div>
+        <div></div>
+    </div>
+</div>

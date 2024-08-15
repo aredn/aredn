@@ -1,0 +1,204 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+const nodes = mesh.getNodeList();
+const mynode = configuration.getName();
+%}
+<div class="dialog wide">
+    {{_R("tool-header", "Ping")}}
+    <div class="simple-tool compact client-server">
+        <div class="cols">
+            <div>
+                <div class="o">Target A&zwnj;ddress</div>
+                <div class="m">IP A&zwnj;ddress, Hostname or Node</div>
+            </div>
+            <div>
+                <input id="tool-target" type="text" size="40" required>
+                <select id="tool-select">
+                    <option value="">&#x25BC;</option>
+                    <option value="{{mynode}}">{{mynode}}</option>
+                    {%
+                        for (let i = 0; i < length(nodes); i++) {
+                            if (nodes[i] !== mynode) {
+                                print(`<option value="${nodes[i]}">${nodes[i]}</option>`);
+                            }
+                        }
+                    %}
+                </select>
+                <button id="target-swap"><div class="icon updownarrow"></div></button>
+            </div>
+        </div>
+        <div class="cols">
+            <div>
+                <div class="o">Source A&zwnj;ddress</div>
+                <div class="m">Node name or a&zwnj;ddress</div>
+            </div>
+            <div>
+                <input id="tool-client" type="text" size="40" required value="{{mynode}}">
+                <select id="tool-client-select">
+                    <option value="">&#x25BC;</option>
+                    <option value="{{mynode}}">{{mynode}}</option>
+                    {%
+                        for (let i = 0; i < length(nodes); i++) {
+                            if (nodes[i] !== mynode) {
+                                print(`<option value="${nodes[i]}">${nodes[i]}</option>`);
+                            }
+                        }
+                    %}
+                </select>
+                <div style="width:42px"></div>
+            </div>
+        </div>
+        {{_H("Send ping packets between a source host and a target. The source should be node on the mesh, and by default is the current node.
+        The target can be a node, an IP address, or any hostname that might be reachable.")}}
+        <div class="cols">
+            <div class="tool-console">
+                <pre></pre>
+            </div>
+            <div>
+                <button id="tool-start">Go</button>
+            </div>
+        </div>
+    </div>
+    {{_R("tool-footer")}}
+    <script>
+    (function(){
+        {{_R("open")}}
+        htmx.find("#tool-target").focus();
+        const mynode = "{{mynode}}";
+        htmx.on("#tool-select", "change", e => {
+            if (e.target.value !== "") {
+                htmx.find("#tool-target").value = e.target.value;
+                e.target.value = "";
+            }
+        });
+         htmx.on("#tool-client-select", "change", e => {
+            if (e.target.value !== "") {
+                htmx.find("#tool-client").value = e.target.value;
+                e.target.value = "";
+            }
+        });
+        htmx.on("#target-swap", "click", _ => {
+            const v = htmx.find("#tool-target").value;
+            htmx.find("#tool-target").value = htmx.find("#tool-client").value;
+            htmx.find("#tool-client").value = v;
+        });
+        htmx.on("#tool-start", "click", async _ => {
+            const server = htmx.find("#tool-target").value;
+            const client = htmx.find("#tool-client").value;
+            if (server && client) {
+                const con = htmx.find(".tool-console pre");
+                con.innerText = "";
+                function out(line) {
+                    con.innerText += `${line}\n`;
+                }
+                out("Ping test started");
+                out("");
+                try {
+                    const r = await fetch(`http://${client}${client.indexOf(".") == -1 ? ".local.mesh" : ""}/cgi-bin/ping?server=${server}${server.indexOf(".") == -1 ? ".local.mesh" : ""}`);
+                    const reader = r.body.getReader();
+                    let state = "BEGIN";
+                    for (;;) {
+                        const { done, value } = await reader.read();
+                        if (done) {
+                            if (state !== "DONE") {
+                                out("Ping Terminated.");
+                            }
+                            break;
+                        }
+                        const lines = String.fromCharCode.apply(null, value).split("\n");
+                        lines.forEach(line => {
+                            line = line.trim();
+                            switch (state) {
+                                case "BEGIN":
+                                {
+                                    const m = line.match(/<title>(.*)<\/title>/);
+                                    if (m) {
+                                        if (m[1] === "SUCCESS") {
+                                            state = "CONNECTING";
+                                            out(`Source: ${client}`);
+                                            out(`Target: ${server}`);
+                                            out("");
+                                        }
+                                        else {
+                                            state = "ERROR";
+                                            const m = line.match(/<pre>(.*)<\/pre>/);
+                                            if (m) {
+                                                out(`ERROR: ${m[1]}`);
+                                                state = "DONE";
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                                case "CONNECTING":
+                                    if (line.match(/^PING/)) {
+                                        state = "PRINT";
+                                        out(line);
+                                    }
+                                    break;
+                                case "PRINT":
+                                    if (line) {
+                                        if (line.match(/round-trip/)) {
+                                            state = "DONE";
+                                            out("");
+                                        }
+                                        out(line);
+                                    }
+                                    break;
+                                case "ERROR":
+                                {
+                                    const m = line.match(/<pre>(.*)<\/pre>/);
+                                    if (m) {
+                                        out(`ERROR: ${m[1]}`);
+                                        state = "DONE";
+                                    }
+                                    break;
+                                }
+                                case "DONE":
+                                default:
+                                    break;
+                            }
+                        });
+                    }
+                }
+                catch (_) {
+                    out("Ping Failed.");
+                }
+            }
+        });
+    })();
+    </script>
+</div>

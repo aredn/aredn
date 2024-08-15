@@ -1,0 +1,122 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+    const radio = radios.getActiveConfiguration();
+    let midx = -1;
+    for (let i = 0; i < length(radio); i++) {
+        if (radio[i].mode === radios.RADIO_MESH) {
+            midx = i;
+            break;
+        }
+    }
+%}
+<div class="ctrl" hx-get="status/e/radio-and-antenna" hx-target="#ctrl-modal">
+    <div class="section-title">Radio</div>
+    <div class="section">
+        <div class="t">{{hardware.getRadio().name}}</div>
+        <div class="s">model</div>
+        {% if (midx !== -1) { %}
+        <div class="cols">
+            <div>
+                <div class="t">{{radio[midx].modes[radios.RADIO_MESH].channel}}</div>
+                <div class="s">channel</div>
+            </div>
+            <div>
+                <div class="t">{{hardware.getChannelFrequencyRange(radio[midx].iface, radio[midx].modes[radios.RADIO_MESH].channel, radio[midx].modes[radios.RADIO_MESH].bandwidth)}}</div>
+                <div class="s">frequencies</div>
+            </div>
+            <div>
+                <div class="t">{{radio[midx].modes[radios.RADIO_MESH].bandwidth}} MHz</div>
+                <div class="s">bandwidth</div>
+            </div>
+        </div>
+        <div class="cols">
+            <div>
+                <div class="t">{{radio[midx].modes[radios.RADIO_MESH].txpower + radio[midx].txpoweroffset}} dBm</div>
+                <div class="s">tx power</div>
+            </div>
+            <div>
+                <div class="t">{{int(0.5 + units.meters2distance(uci.get("aredn", "@lqm[0]", "max_distance")))}} {{units.distanceUnit()}}</div>
+                <div class="s">maximum distance</div>
+            </div>
+            <div>
+                <div class="t">{{uci.get("aredn", "@lqm[0]", "min_snr")}}</div>
+                <div class="s">minimum snr</div>
+            </div>
+        </div>
+        {% } %}
+    </div>
+{% if (midx !== -1) { %}
+    <div class="section-title">Antenna</div>
+    <div class="section">
+        {%
+            const antenna = hardware.getAntennaInfo(radio[midx].iface, uci.get("aredn", "@location[0]", "antenna"));
+            const antennaAux = hardware.getAntennaAuxInfo(radio[midx].iface, uci.get("aredn", "@location[0]", "antenna_aux"));
+        %}
+        <div class="t">{{(antenna || { description: "-"}).description}}</div>
+        <div class="s">antenna</div>
+        {% if (antennaAux) { %}
+        <div class="t">{{(antennaAux || { description: "-"}).description}}</div>
+        <div class="s">aux antenna</div>
+        {% } %}
+        <div class="cols">
+            <div>
+                {% if (uci.get("aredn", "@location[0]", "azimuth")) { %}
+                <div class="t">{{uci.get("aredn", "@location[0]", "azimuth")}}&deg;</div>
+                {% } else { %}
+                <div class="t">-</div>
+                {% } %}
+                <div class="s">azimuth</div>
+            </div>
+            <div>
+                {% if (uci.get("aredn", "@location[0]", "height")) { %}
+                <div class="t">{{uci.get("aredn", "@location[0]", "height")}}m</div>
+                {% } else { %}
+                <div class="t">-</div>
+                {% } %}
+                <div class="s">height</div>
+            </div>
+            <div>
+                {% if (uci.get("aredn", "@location[0]", "elevation")) { %}
+                <div class="t">{{uci.get("aredn", "@location[0]", "elevation")}}&deg;</div>
+                {% } else { %}
+                <div class="t">-</div>
+                {% } %}
+                <div class="s">elevation</div>
+            </div>
+        </div>
+    </div>
+{% } %}
+</div>

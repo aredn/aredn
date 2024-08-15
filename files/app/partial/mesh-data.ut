@@ -1,0 +1,127 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+print("<script>\n");
+print("window.mesh = {hosts:{");
+
+const reHostsOlsr = /^([0-9.]+)[ \t]+([^ \t]+)[ \t]+#[ \t]+([^ \t]+)/;
+const reServices = /^([^|]+)\|(tcp|udp)\|(.+)[ \t]+#[ \t]*([^ \t\n]+)/;
+const reRoutes = /^([0-9.]+)\/([0-9]+)\t[0-9.]+\t[0-9]+\t([0-9.]+)/;
+
+let myself = null;
+const h = fs.open("/var/run/hosts_olsr");
+if (h) {
+    let originator = null;
+    let first = true;
+    for (let line = h.read("line"); length(line); line = h.read("line")) {
+        const v = match(trim(line), reHostsOlsr);
+        if (v) {
+            if (originator !== v[3]) {
+                if (originator) {
+                    print("],");
+                }
+                originator = v[3];
+                if (originator === "myself") {
+                    myself = v[1];
+                    print(`"${myself}":[`);
+                }
+                else {
+                    print(`"${originator}":[`);
+                }
+                first = true;
+            }
+            const host = v[2];
+            if (index(host, "mid") !== 0 && index(host, "dtdlink") !== 0 && index(host, "xlink") !== 0) {
+                if (!first) {
+                    print(",");
+                }
+                if (v[1] === originator || (originator == "myself" && v[1] == myself)) {
+                    print(`["${host}"]`);
+                }
+                else {
+                    print(`["${host}","${v[1]}"]`);
+                }
+                first = false;
+            }
+        }
+    }
+    print("]");
+    h.close();
+}
+print("},services:{");
+const s = fs.open("/var/run/services_olsr");
+if (s) {
+    let first = true;
+    let ip = null;
+    for (let line = s.read("line"); length(line); line = s.read("line")) {
+        const v = match(line, reServices);
+        if (v) {
+            if (ip !== v[4]) {
+                if (ip) {
+                    print("],");
+                }
+                ip = v[4];
+                if (ip === "my") {
+                    print(`"${myself}":[`);
+                }
+                else {
+                    print(`"${ip}":[`);
+                }
+                first = true;
+            }
+            if (!first) {
+                print(",");
+            }
+            print(`{n:"${v[3]}",u:"${v[1]}"}`);
+            first = false;
+        }
+    }
+    print("]");
+    s.close();
+}
+print(`},etx:[["${myself}",0.0],`);
+const f = fs.popen("exec /usr/bin/curl http://127.0.0.1:2006/rou -o - 2> /dev/null");
+if (f) {
+  for (let l = f.read("line"); length(l); l = f.read("line")) {
+    const m = match(l, reRoutes);
+    if (m && m[2] > 8 && m[3] <= 50) {
+        print(`["${m[1]}",${sprintf("%.1f", m[3])}],`);
+    }
+  }
+}
+print("].sort((a,b)=>a[1]-b[1])};\n");
+print("</script>\n");
+
+%}

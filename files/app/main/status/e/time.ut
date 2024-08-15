@@ -1,0 +1,154 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+if (request.env.REQUEST_METHOD === "PUT") {
+    configuration.prepareChanges();
+    if ("timezone" in request.args) {
+        const nt = match(request.args.timezone, /^(.*)\t(.*)$/);
+        if (nt) {
+            configuration.setSetting("time_zone_name", nt[1]);
+            configuration.setSetting("time_zone", nt[2]);
+        }
+    }
+    if ("ntp_server" in request.args) {
+        configuration.setSetting("ntp_server", request.args.ntp_server);
+    }
+    if ("ntp_mode" in request.args) {
+        switch (request.args.ntp_mode) {
+            case "daily":
+            case "hourly":
+                uciMesh.set("aredn", "@ntp[0]", "period", request.args.ntp_mode);
+                break;
+            default:
+                break;
+        }
+    }
+    if (request.args.gps_enable) {
+        uciMesh.set("aredn", "@time[0]", "gps_enable", request.args.gps_enable === "on" ? "1" : "0");
+    }
+    configuration.saveSettings();
+    uciMesh.commit("aredn");
+    print(_R("changes"));
+    return;
+}
+if (request.env.REQUEST_METHOD === "DELETE") {
+    configuration.revertModalChanges();
+    print(_R("changes"));
+    return;
+}
+const time_zone_name = configuration.getSettingAsString("time_zone_name", "UTC");
+const tz_db_names = [];
+const f = fs.open("/etc/zoneinfo");
+if (f) {
+    for (let l = f.read("line"); length(l); l = f.read("line")) {
+        l = rtrim(l);
+        const nt = split(l, "\t");
+        push(tz_db_names, { name: nt[0], value: l });
+    }
+    f.close();
+}
+const ntp_server = configuration.getSettingAsString("ntp_server", "");
+const ntp_mode = uciMesh.get("aredn", "@ntp[0]", "period") || "daily";
+%}
+<div class="dialog">
+    {{_R("dialog-header", "Time")}}
+    <div>
+        <div class="cols">
+            <div>
+                <div class="o">Timezone</div>
+                <div class="m">Timezone</div>
+            </div>
+            <div style="flex:0">
+                <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="timezone">
+                    {%
+                        for (let i = 0; i < length(tz_db_names); i++) {
+                            print(`<option value="${tz_db_names[i].value}" ${tz_db_names[i].name == time_zone_name ? "selected" : ""}>${tz_db_names[i].name}</option>`);
+                        }
+                    %}
+                </select>
+            </div>
+        </div>
+        {{_H("The timezone for this node. Setting this correctly means that timed events will run in the appopriate timezone,
+        logs will have the expected times, etc.")}}
+        <hr>
+        <div class="cols">
+            <div>
+                <div class="o">NTP Server</div>
+                <div class="m">The ntp server to sync the time</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="ntp_server" type="text" size="20" value="{{ntp_server}}">
+            </div>
+        </div>
+        {{_H("The default NTP server to use when syncing the node's time. If this cannot be found, the node will search for one on the mesh.")}}
+        <div class="cols">
+            <div>
+                <div class="o">NTP Updates</div>
+                <div class="m">NTP update frequency</div>
+            </div>
+            <div style="flex:0">
+                <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="ntp_mode">
+                    <option value="hourly" {{ntp_mode == "hourly" ? "selected" : ""}}>Hourly</option>
+                    <option value="daily" {{ntp_mode == "daily" ? "selected" : ""}}>Daily</option>
+                </select>
+            </div>
+        </div>
+        {{_H("NTP is used to keep the node's time up to date. Syncing the time every day is probably sufficient
+        but you can increase the frequency to hourly. Having accurate time means your timed events will run when you expected
+        and log information will show meaningful times.")}}
+        {{_R("dialog-advanced")}}
+        <div>
+        {% if (includeAdvanced) { %}
+            <div class="cols">
+                <div>
+                    <div class="o">GPS Time</div>
+                    <div class="m">Use local or network GPS to set time</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "gps_enable", value: uciMesh.get("aredn", "@time[0]", "gps_enable") === "1" })}}
+                </div>
+            </div>
+            {{_H("Use either a local GPS devices to set the time, or search for a GPS device on another local node, and use its
+            GPS to set our time.")}}
+        {% } %}
+        </div>
+    </div>
+    {{_R("dialog-footer")}}
+    <script>
+    (function(){
+    {{_R("open")}}
+    })();
+    </script>
+</div>
