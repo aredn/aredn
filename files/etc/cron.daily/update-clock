@@ -42,6 +42,7 @@ exec 2> /dev/null
 candidate=$(uci -q get system.ntp.server)
 if [ "${candidate}" != "" ]; then
     if $(ntpd -n -q -p ${candidate}); then
+        echo -n "ntp" > /tmp/timesync
         logger -p notice -t update-time "Update clock from ${candidate}"
         exit 0
     fi
@@ -52,10 +53,13 @@ fi
 for candidate in $(grep -i ntp /var/run/services_olsr | sed "s/^.*:\/\/\(.*\):.*$/\1/")
 do
     if $(ntpd -n -q -p ${candidate}); then
+        echo -n "ntp" > /tmp/timesync
         logger -p notice -t update-time "Update clock from ${candidate}"
         exit 0
     fi
 done
+
+rm -f /tmp/timesync
 
 logger -p notice -t update-time "Failed to update clock: No reachable ntpd servers."
 exit 1

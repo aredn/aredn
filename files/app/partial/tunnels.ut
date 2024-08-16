@@ -1,0 +1,133 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+    let wc = 0;
+    let ws = 0;
+    let lc = 0;
+    let ls = 0;
+    uciMesh.foreach("wireguard", "client", function()
+    {
+        ws++;
+    });
+    uciMesh.foreach("vtun", "client", function()
+    {
+        ls++;
+    });
+    uciMesh.foreach("vtun", "server", function(s)
+    {
+        if (index(s.netip, ":") !== -1) {
+            wc++;
+        }
+        else {
+            lc++;
+        }
+    });
+    let wac = 0;
+    let was = 0;
+    let lac = 0;
+    let las = 0;
+    const t = fs.popen("ps -w | grep vtun | grep ' tun '");
+    if (t) {
+        for (let l = t.read("line"); length(l); l = t.read("line")) {
+            if (index(l, "vtund[s]") !== -1) {
+                las++;
+            }
+            else if (index(l, "vtund[c]") !== -1) {
+                lac++;
+            }
+        }
+        t.close();
+    }
+    if (fs.access("/usr/bin/wg")) {
+        const w = fs.popen("/usr/bin/wg show all latest-handshakes");
+        if (w) {
+            for (let l = w.read("line"); length(l); l = w.read("line")) {
+                const v = split(trim(l), /\t/);
+                if (v && int(v[2]) + 300 > time()) {
+                    if (index(v[0], "wgc") === 0) {
+                        was++;
+                    }
+                    else {
+                        wac++;
+                    }
+                }
+            }
+            w.close();
+        }
+    }
+%}
+<div class="ctrl" hx-get="status/e/tunnels" hx-target="#ctrl-modal" hx-swap="innerHTML">
+    <div class="section-title">Tunnels</div>
+    <div class="section">
+        <div class="section-subtitle">Wireguard</div>
+        <div class="cols">
+            <div>
+                <div class="t">{{wac}}</div>
+                <div class="s">active clients</div>
+            </div>
+            <div>
+                <div class="t">{{wc}}</div>
+                <div class="s">allocated clients</div>
+            </div>
+            <div>
+                <div class="t">{{was}}</div>
+                <div class="s">active servers</div>
+            </div>
+            <div>
+                <div class="t">{{ws}}</div>
+                <div class="s">allocated servers</div>
+            </div>
+        </div>
+        <div class="section-subtitle">Legacy</div>
+        <div class="cols">
+            <div>
+                <div class="t">{{lac}}</div>
+                <div class="s">active clients</div>
+            </div>
+            <div>
+                <div class="t">{{lc}}</div>
+                <div class="s">allocated clients</div>
+            </div>
+            <div>
+                <div class="t">{{las}}</div>
+                <div class="s">active servers</div>
+            </div>
+            <div>
+                <div class="t">{{ls}}</div>
+                <div class="s">allocated servers</div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,57 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{{_R("mesh-data")}}
+<div style="width:100%">
+    <div id="meshfilter">
+        <div style="width:115px"></div>
+        <div style="flex:1;text-align:center"><input type="search" autocorrect="off" spellcheck="false" placeholder="Search the mesh ..."></div>
+        <div style="padding-right:60px"><button id="meshpage-help">Help</button></div>
+    </div>
+    <div class="meshpage-help">
+        This page shows a list of all the other nodes on the network, as well as what server and services they provide.
+        Nodes which are closer to you (have less radio hops to reach from here) are toward the top of this page, while nodes further
+        away are toward the bottom. As nodes get further away, they often become harder (or impossible) to reach. We group nodes together
+        with a simple colored border where greener is better, and redder is worse.
+        <p>
+        The search box above can be used to filter the nodes, servers and services on this page, making it easier to find specific things.
+        For example, typing "cam" in the box will filter out everything except names containsing "cam" ... which are probably cameras.
+    </div>
+    <div id="meshpage"></div>
+</div>
+{% if (!config.resourcehash) { %}
+<script src="/a/js/meshpage.js"></script>
+{% } else { %}
+<script src="http://localnode.local.mesh/a/js/meshpage.js.{{versions.meshpage}}" onerror="s=document.createElement('script');s.type='text/javascript';s.onload=()=>htmx.process(document.body);s.src='/a/js/meshpage.js.{{versions.meshpage}}';document.head.appendChild(s)"></script>
+{% } %}

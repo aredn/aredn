@@ -1,0 +1,431 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+function log()
+{
+    return replace(fs.readfile("/tmp/pkg.log"), "\n", "<br>");
+}
+function getPackageOptions()
+{
+    let i = `<option value="-">-</option>`;
+    let r = `<option value="-">-</option>`;
+    const perm_pkgs = {};
+    const installed_pkgs = {};
+
+    map(split(fs.readfile("/etc/permpkg"), "\n"), p => perm_pkgs[p] = true);
+
+    let f = fs.popen("/bin/opkg list-installed");
+    if (f) {
+        const re = /^[^ \t]+/;
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            const m = match(l, re);
+            if (m) {
+                installed_pkgs[m[0]] = true;
+                if (!perm_pkgs[m[0]]) {
+                    r += `<option value="${m[0]}">${m[0]}</option>`;
+                }
+            }
+        }
+        f.close();
+    }
+
+    f = fs.popen("/bin/opkg list");
+    if (f) {
+        const re = /^([^ ]+) - ([-0-9a-fr\.]+)(.*)$/;
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            let m = match(trim(l), re);
+            if (m && !installed_pkgs[m[1]]) {
+                i += `<option value="${m[1]}">${m[1]}</option>`;
+            }
+        }
+        f.close();
+    }
+    return { i: i, r: r };
+}
+function recordPackage(op, pkgname, pkgfile)
+{
+    const store = "/etc/package_store";
+    const catfile = `${store}/catalog.json`;
+    fs.mkdir(store);
+    const catalog = json(fs.readfile(catfile) || '{ "installed": {} }');
+    switch (op) {
+        case "upload":
+            const package = split(pkgname, "_")[0];
+            if (package) {
+                fs.writefile(`${store}/${package}.ipk`, fs.readfile(pkgfile));
+                catalog.installed[package] = "local";
+            }
+            break;
+        case "download":
+            const f = fs.popen(`/bin/opkg status ${pkgname} 2>&1`);
+            if (f) {
+                const status = replace(f.read("all"), "\n", " ");
+                f.close();
+                const m = match(status, /Package: ([^ \t]+)/);
+                if (m) {
+                    catalog.installed[m[1]] = "global";
+                }
+            }
+            break;
+        case "remove":
+            fs.unlink(`${store}/${pkgname}.ipk`);
+            delete catalog.installed[pkgname];
+            break;
+        default:
+            break;
+    }
+    fs.unlink(catfile);
+    for (let k in catalog.installed) {
+        fs.writefile(catfile, sprintf("%J", catalog));
+        break;
+    }
+}
+if (request.env.REQUEST_METHOD === "POST" && request.args["packagefile.ipk"] && request.args.packagename) {
+    const ipk = request.args["packagefile.ipk"];
+    const packagename = fs.readfile(request.args.packagename);
+    if (system(`/bin/opkg -force-overwrite install ${ipk} > /dev/null 2>&1`) === 0) {
+        recordPackage("upload", packagename, ipk);
+        print(`<div id="dialog-messages-success" hx-swap-oob="innerHTML">Package installed</div>`);
+    }
+    else {
+        if (system("/bin/opkg update > /tmp/pkg.log 2>&1") !== 0) {
+            print(`<div id="dialog-messages-error" hx-swap-oob="innerHTML">${log()}</div>`);
+        }
+        else {
+            if (system(`/bin/opkg -force-overwrite install ${ipk} > /tmp/pkg.log 2>&1`) === 0) {
+                recordPackage("upload", packagename, ipk);
+                print(`<div id="dialog-messages-success" hx-swap-oob="innerHTML">Package installed</div>`);
+            
+            }
+            else {
+                print(`<div id="dialog-messages-error" hx-swap-oob="innerHTML">${log()}</div>`);
+            }
+        }
+    }
+    const po = getPackageOptions();
+    print(`<select id="download-package" hx-swap-oob="innerHTML">${po.i}</select>`);
+    print(`<select id="remove-package" hx-swap-oob="innerHTML">${po.r}</select>`);
+    fs.unlink(ipk);
+    fs.unlink(request.args.packagename);
+    fs.unlink("/tmp/pkg.log");
+    return;
+}
+else if (request.env.REQUEST_METHOD === "GET" && index(request.env.QUERY_STRING, "d=") === 0) {
+    response.override = true;
+    uhttpd.send("Status: 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\n\r\n");
+
+    fs.unlink("/tmp/pkg.log");
+    const ipk = substr(request.env.QUERY_STRING, 2);
+    uhttpd.send(`event: progress\r\ndata: 10\r\n\r\n`);
+    if (system(`/bin/opkg -force-overwrite install ${ipk} > /dev/null 2>&1`) === 0) {
+        uhttpd.send(`event: progress\r\ndata: 100\r\n\r\n`);
+        recordPackage("download", ipk);
+        uhttpd.send(`event: close\r\ndata: ${sprintf("%J", getPackageOptions())}\r\n\r\n`);
+    }
+    else {
+        uhttpd.send(`event: progress\r\ndata: 20\r\n\r\n`);
+        if (system("/bin/opkg update > /tmp/pkg.log 2>&1") !== 0) {
+            uhttpd.send(`event: error\r\ndata: ${log()}\r\n\r\n`);
+        }
+        else {
+            uhttpd.send(`event: progress\r\ndata: 40\r\n\r\n`);
+            if (system(`/bin/opkg -force-overwrite install ${ipk} > /tmp/pkg.log 2>&1`) === 0) {
+                uhttpd.send(`event: progress\r\ndata: 100\r\n\r\n`);
+                recordPackage("download", ipk);
+                uhttpd.send(`event: close\r\ndata: ${sprintf("%J", getPackageOptions())}\r\n`);
+            }
+            else {
+                uhttpd.send(`event: error\r\ndata: ${log()}\r\n\r\n`);
+            }
+        }
+    }
+    fs.unlink("/tmp/pkg.log");
+    return;
+}
+else if (request.env.REQUEST_METHOD === "GET" && index(request.env.QUERY_STRING, "r=") === 0) {
+    const ipk = substr(request.env.QUERY_STRING, 2);
+    if (system(`/bin/opkg remove ${ipk} > /tmp/pkg.log 2>&1`) === 0) {
+        recordPackage("remove", ipk);
+        print(`<div id="dialog-messages-success" hx-swap-oob="innerHTML">Package removed</div>`);
+        const po = getPackageOptions();
+        print(`<select id="download-package" hx-swap-oob="innerHTML">${po.i}</select>`);
+        print(`<select id="remove-package" hx-swap-oob="innerHTML">${po.r}</select>`);
+    }
+    else {
+        print(`<div id="dialog-messages-error" hx-swap-oob="innerHTML">${log()}</div>`);
+    }
+    return;
+}
+else if (request.env.REQUEST_METHOD === "GET" && index(request.env.QUERY_STRING, "i=") === 0) {
+    const ipk = substr(request.env.QUERY_STRING, 2);
+    if (system(`/bin/opkg info ${ipk} > /tmp/pkg.log 2>&1`) === 0) {
+        print(`<div id="package-info" hx-swap-oob="innerHTML">${log()}</div>`);
+    }
+    return;
+}
+else if (request.env.REQUEST_METHOD === "GET" && request.env.QUERY_STRING === "v=update") {
+    response.override = true;
+    uhttpd.send("Status: 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\n\r\n");
+
+    const pulines = 7;
+    const f = fs.popen("/bin/opkg update 2>&1");
+    if (!f) {
+        uhttpd.send(`event: error\r\ndata: package update failed\r\n\r\n`);
+        return;
+    }
+    let count = 0;
+    const re = /^Updated/;
+    for (let l = f.read("line"); length(l); l = f.read("line")) {
+        if (match(l, re)) {
+            count++;
+            uhttpd.send(`event: progress\r\ndata: ${100 * count / pulines}\r\n\r\n`);
+        }
+    }
+    uhttpd.send(`event: progress\r\ndata: 100\r\n\r\n`);
+    f.close();
+    uhttpd.send(`event: close\r\ndata: ${sprintf("%J", getPackageOptions())}\r\n\r\n`);
+    return;
+}
+else if (request.env.REQUEST_METHOD === "PUT" && "packageurl" in request.args) {
+    if (match(request.args.packageurl, constants.reUrl)) {
+        configuration.prepareChanges();
+        uciMesh.set("aredn", "@downloads[0]", "packages_default", request.args.packageurl);
+        uciMesh.commit("aredn");
+        print(_R("changes"));
+    }
+    return;
+}
+%}
+{%
+const po = getPackageOptions();
+%}
+<div class="dialog">
+    {{_R("dialog-header", "Packages")}}
+    <div id="package-update">
+        {{_R("dialog-messages")}}
+        <div class="cols">
+            <div>
+                <div class="o">Download Package</div>
+                <div class="m">Download package from an AREDN server.</div>
+            </div>
+            <div style="flex:0">
+                <select id="download-package">{{po.i}}</select>
+            </div>
+            <div style="flex:0">
+                <div id="package-refresh"><button class="icon refresh"></button></div>
+            </div>
+        </div>
+        {{_H("Download packages directly from a central server, either on the Internet or a locally configured mesh server.
+        Refresh the list of available packages using the refresh button to the right of the packages list. Once a
+        package is selected it can be downloaded and installed using the button at the base of the dialog.")}}
+        <div id="package-info"></div>
+        <div class="cols">
+            <div>
+                <div class="o">Upload Package</div>
+                <div class="m">Upload a package file from your computer.</div>
+            </div>
+            <div style="flex:0">
+                <input type="file" accept=".ipk">
+            </div>
+        </div>
+        {{_H("Upload a package file from your computer. Once the package has been selected it can be uploaded and installed
+        using the button at the base of the dialog.")}}
+        <div><hr></div>
+        <div class="cols">
+            <div>
+                <div class="o">Remove Package</div>
+                <div class="m">Uninstall package from node.</div>
+            </div>
+            <div style="flex:0">
+                <select id="remove-package">{{po.r}}</select>
+            </div>
+        </div>
+        {{_H("Remove a currently installed package from the node by first selecting it and
+        then using the button at the based of the dialog to remove it.")}}
+        {{_R("dialog-advanced")}}
+        <div>
+        {% if (includeAdvanced) { %}
+            <div class="cols">
+                <div>
+                    <div class="o">Package URL</div>
+                    <div class="m">URL for downloading packages</div>
+                </div>
+                <div style="flex:0">
+                    <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="packageurl" type="text" size="45" pattern="{{constants.patUrl}}" value="{{uciMesh.get("aredn", "@downloads[0]", "packages_default")}}">
+                </div>
+            </div>
+            {{_H("The base URL used to download packages. By default this points to the main AREDN repository, but you can change this
+            to a local server, especially if you'd like to do this without a connection to the Internet.")}}
+        {% } %}
+        </div>
+        <div style="flex:1"></div>
+        <div class="cols" style="padding-top:16px">
+            <div id="package-upload">
+                <progress value="0" max="100">
+            </div>
+            <div style="flex:0">
+                <button id="fetch-and-update" disabled hx-trigger="none" hx-encoding="multipart/form-data">Fetch and Install</button>
+            </div>
+        </div>
+        {{_H("<br>Depending on the package option selected above, this button will initiate the download, upload, install or remove process.")}}
+    </div>
+    {{_R("dialog-footer", "nocancel")}}
+    <script>
+    (function(){
+        {{_R("open")}}
+        function clearStatus() {
+            htmx.find("#dialog-messages-error").innerHTML = "";
+            htmx.find("#dialog-messages-success").innerHTML = "";
+        }
+        htmx.on("#package-update input[type='file']", "change", e => {
+            clearStatus();
+            htmx.find("#fetch-and-update").innerText = "Fetch and Install";
+            htmx.find("#download-package").value = "-";
+            htmx.find("#remove-package").value = "-";
+            htmx.find("#package-info").innerHTML = "";
+            if (e.target.files[0]) {
+                htmx.find("#fetch-and-update").disabled = false;
+            }
+            else {
+                htmx.find("#fetch-and-update").disabled = true;
+            }
+        });
+        htmx.on("#download-package", "change", e => {
+            clearStatus();
+            htmx.find("#fetch-and-update").innerText = "Fetch and Install";
+            htmx.find("#package-info").innerHTML = "";
+            htmx.find("#remove-package").value = "-";
+            htmx.find("#package-update input[type=file]").value = null;
+            if (e.target.value === "-") {
+                htmx.find("#fetch-and-update").disabled = true;
+            }
+            else {
+                htmx.find("#fetch-and-update").disabled = false;
+                htmx.ajax("GET", `{{request.env.REQUEST_URI}}?i=${e.target.value}`, {
+                    source: e.currentTarget,
+                    swap: "none"
+                });
+            }
+            
+        });
+        htmx.on("#remove-package", "change", e => {
+            clearStatus();
+            htmx.find("#download-package").value = "-";
+            htmx.find("#package-update input[type=file]").value = null;
+            htmx.find("#package-info").innerHTML = "";
+            if (e.target.value === "-") {
+                htmx.find("#fetch-and-update").disabled = true;
+            }
+            else {
+                htmx.find("#fetch-and-update").disabled = false;
+                htmx.find("#fetch-and-update").innerText = "Remove";
+            }
+        });
+        htmx.on("#fetch-and-update", "click", e => {
+            clearStatus();
+            const upload = htmx.find("#package-update input[type=file]").files[0];
+            const download = htmx.find("#download-package").value;
+            const remove = htmx.find("#remove-package").value;
+            if (upload) {
+                htmx.on(e.currentTarget, "htmx:xhr:progress", e => htmx.find("#package-upload progress").setAttribute("value", e.detail.loaded / e.detail.total * 100));
+                htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
+                    source: e.currentTarget,
+                    values: {
+                        packagename: htmx.find("#package-update input[type=file]").value.replace(/^.*\\/, ""),
+                        "packagefile.ipk": upload
+                    },
+                    swap: "none"
+                }).then(_ => htmx.find("#package-upload progress").setAttribute("value", "0"));
+            }
+            else if (download !== "-") {
+                const source = new EventSource(`{{request.env.REQUEST_URI}}?d=${download}`);
+                source.addEventListener("close", e => {
+                    source.close();
+                    htmx.find("#package-upload progress").setAttribute("value", "0");
+                    htmx.find("#dialog-messages-success").innerHTML = "Package installed";
+                    const j = JSON.parse(e.data);
+                    htmx.find("#download-package").innerHTML = j.i;
+                    htmx.find("#remove-package").innerHTML = j.r;
+                });
+                source.addEventListener("error", e => {
+                    source.close();
+                    htmx.find("#package-upload progress").setAttribute("value", "0");
+                    htmx.find("#dialog-messages-error").innerHTML = e.data || "Unknown error";
+                });
+                source.addEventListener("progress", e => {
+                    htmx.find("#package-upload progress").setAttribute("value", e.data);
+                });
+            }
+            else if (remove !== "-") {
+                htmx.ajax("GET", `{{request.env.REQUEST_URI}}?r=${remove}`, {
+                    source: e.currentTarget,
+                    swap: "none"
+                });
+            }
+        });
+        htmx.on("#package-refresh", "click", e => {
+            htmx.find("#package-refresh button").classList.add("rotate");
+            clearStatus();
+            htmx.find("#package-update input[type=file]").value = null;
+            htmx.find("#fetch-and-update").disabled = true;
+            htmx.find("#fetch-and-update").innerText = "Fetch and Install";
+            htmx.find("#package-info").innerHTML = "";
+            const source = new EventSource("{{request.env.REQUEST_URI}}?v=update");
+            source.addEventListener("close", e => {
+                source.close();
+                htmx.find("#package-refresh button").classList.remove("rotate");
+                htmx.find("#package-upload progress").setAttribute("value", "0");
+                const j = JSON.parse(e.data);
+                htmx.find("#download-package").innerHTML = j.i;
+                htmx.find("#remove-package").innerHTML = j.r;
+            });
+            source.addEventListener("error", e => {
+                source.close();
+                htmx.find("#package-refresh button").classList.remove("rotate")
+                htmx.find("#package-upload progress").setAttribute("value", "0");
+                htmx.find("#dialog-messages-error").innerHTML = e.data || "Unknown error";
+            });
+            source.addEventListener("progress", e => {
+                htmx.find("#package-upload progress").setAttribute("value", e.data);
+            });
+        });
+        htmx.on("#dialog-done", "click", _ => {
+            htmx.ajax("GET", "/a/packages", {
+                swap: "none"
+            });
+        });
+    })();
+    </script>
+</div>

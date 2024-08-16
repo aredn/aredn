@@ -45,43 +45,6 @@ require("aredn.info")
 
 local html = aredn.html
 
-local urlprefix
-local target = "unknown"
-local arch = "unknown"
-function defaultPackageRepos(repo)
-    if not urlprefix then
-        urlprefix = "http://downloads.arednmesh.org"
-        local release = "unknown"
-        for line in io.lines("/etc/openwrt_release")
-        do
-            local m = line:match("DISTRIB_RELEASE='(.*)'")
-            if m then
-                release = m
-            end
-            m = line:match("DISTRIB_TARGET='(.*)'")
-            if m then
-                target = m
-            end
-            m = line:match("DISTRIB_ARCH='(.*)'")
-            if m then
-                arch = m
-            end
-        end
-        local a, b = release:match("^(%d+)%.(%d+)%.")
-        if a and b then
-            urlprefix = urlprefix .. "/releases/" .. a .. "/" .. b .. "/" .. release
-        else
-            -- nightly
-            urlprefix = urlprefix .. "/snapshots"
-        end
-    end
-    if repo:match("aredn_core") then
-        return urlprefix .. "/targets/" .. target .. "/packages"
-    else
-        return urlprefix .. "/packages/" .. arch .. "/" .. repo
-    end
-end
-
 local settings = {
     {
         category = "Link Quality Settings",
@@ -314,95 +277,24 @@ local settings = {
     },
     {
         category = "Map Paths",
-        key = "aredn.@map[0].maptiles",
+        key = "aredn.@location[0].map",
         type = "string",
-        desc = "<b>Map Tiles URL</b><br><br><small>aredn.@map[0].maptiles</small>",
-        default = "http://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg"
-    },
-    {
-        category = "Map Paths",
-        key = "aredn.@map[0].leafletcss",
-        type = "string",
-        desc = "<b>Leaflet.css URL</b><br><br><small>aredn.@map[0].leafletcss</small>",
-        default = "http://unpkg.com/leaflet@0.7.7/dist/leaflet.css"
-    },
-    {
-        category = "Map Paths",
-        key = "aredn.@map[0].leafletjs",
-        type = "string",
-        desc = "<b>Leaflet.js URL</b><br><br><small>aredn.@map[0].leafletjs</small>",
-        default = "http://unpkg.com/leaflet@0.7.7/dist/leaflet.js"
+        desc = "<b>Map URL</b><br><br><small>aredn.@location[0].maps</small>",
+        default = "https://worldmap.arednmesh.org/#12/(lat)/(lon)"
     },
     {
         category = "Firmware",
-        key = "aredn.@downloads[0].firmwarepath",
+        key = "aredn.@downloads[0].firmware_aredn",
         type = "string",
-        desc = "<b>Firmware Download URL</b><br><br><small>aredn.@downloads[0].firmwarepath</small>",
-        default = "http://downloads.arednmesh.org/firmware"
+        desc = "<b>Firmware Download URL</b><br><br><small>aredn.@downloads[0].firmware_aredn</small>",
+        default = "http://downloads.arednmesh.org"
     },
     {
         category = "Firmware",
-        key = "aredn.@downloads[0].pkgs_core",
+        key = "aredn.@downloads[0].packages_default",
         type = "string",
-        desc = "<b>Core Packages Download URL</b><br><br><small>aredn.@downloads[0].pkgs_core</small>",
-        default = defaultPackageRepos('aredn_core'),
-        postcallback = "writePackageRepo('core')"
-    },
-    {
-        category = "Firmware",
-        key = "aredn.@downloads[0].pkgs_base",
-        type = "string",
-        desc = "<b>Base Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_base</small>",
-        default = defaultPackageRepos('base'),
-        postcallback = "writePackageRepo('base')"
-    },
-    {
-        category = "Firmware",
-        key = "aredn.@downloads[0].pkgs_arednpackages",
-        type = "string",
-        desc = "<b>AREDN Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_arednpackages</small>",
-        default = defaultPackageRepos('arednpackages'),
-        postcallback = "writePackageRepo('arednpackages')"
-    },
-    {
-        category = "Firmware",
-        key = "aredn.@downloads[0].pkgs_luci",
-        type = "string",
-        desc = "<b>Luci Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_luci</small>",
-        default = defaultPackageRepos('luci'),
-        postcallback = "writePackageRepo('luci')"
-    },
-    {
-        category = "Firmware",
-        key = "aredn.@downloads[0].pkgs_packages",
-        type = "string",
-        desc = "<b>Package Download URL</b> for packages not included in the other sections<br><br><small>aredn.@downloads[0].pkgs_packages</small>",
-        default = defaultPackageRepos('packages'),
-        postcallback = "writePackageRepo('packages')"
-    },
-    {
-        category = "Firmware",
-        key = "aredn.@downloads[0].pkgs_routing",
-        type = "string",
-        desc = "<b>Routing Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_routing</small>",
-        default = defaultPackageRepos('routing'),
-        postcallback = "writePackageRepo('routing')"
-    },
-    {
-        category = "Firmware",
-        key = "aredn.@downloads[0].pkgs_telephony",
-        type = "string",
-        desc = "<b>Telephony Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_telephony</small>",
-        default = defaultPackageRepos('telephony'),
-        postcallback = "writePackageRepo('telephony')"
-    },
-    {
-        category = "Firmware",
-        key = "aredn.@downloads[0].pkgs_freifunk",
-        type = "string",
-        desc = "<b>Freifunk Packages URL</b><br><br><small>aredn.@downloads[0].pkgs_freifunk</small>",
-        default = defaultPackageRepos('freifunk'),
-        postcallback = "writePackageRepo('freifunk')"
+        desc = "<b>Packages Download URL</b><br><br><small>aredn.@downloads[0].packages_default</small>",
+        default = "http://downloads.arednmesh.org"
     },
     {
         category = "Firmware",

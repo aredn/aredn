@@ -47,7 +47,6 @@ local AGETIME = 43200
 local INACTIVETIMEOUT = 10000
 local tmpdir = "/tmp/snrlog"
 local lastdat = "/tmp/snr.dat"
-local autolog = "/tmp/AutoDistReset.log"
 local defnoise = -95
 local cursor = uci.cursor()
 
@@ -124,9 +123,9 @@ function run_snrlog()
         local arp = arpcache[mac]
         if arp then
             local ip = arp["IP address"]
-            local hostname = nslookup(ip)
+            local hostname = nixio.getnameinfo(ip)
             if hostname then
-                datafile = datafile..hostname:lower()
+                datafile = datafile..hostname:lower():gsub("^dtdlink%.", ""):gsub("^mid%d+%.", ""):gsub("^xlink%d+%.", ""):gsub("%.local%.mesh$", "")
             elseif ip then
                 datafile = datafile..ip
             end
@@ -230,12 +229,7 @@ function run_snrlog()
     -- trigger auto distancing if necessary
     if trigger_auto_distance and cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
         reset_auto_distance()
-        file_trim(autolog, MAXLINES)
-        f, err = assert(io.open(autolog, "a"),"Cannot open file (autolog) to write!")
-        if f then
-            f:write(now .. "\n")
-            f:close()
-        end
+        nixio.syslog("notice", "snrlog: reset_auto_distance, " .. now)
     end
 
 end

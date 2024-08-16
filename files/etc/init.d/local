@@ -18,7 +18,6 @@ boot() {
   if [ -z "$poevalue" ]; then
     local dpval=$(jsonfilter -e '@.gpioswitch.poe_passthrough.default' < /etc/board.json)
     if [ ! -z "$dpval" ]; then
-      uci -q add aredn poe
       uci -q set aredn.@poe[0].passthrough="$dpval"
       uci -q commit aredn
       poevalue=$dpval
@@ -30,7 +29,6 @@ boot() {
   local usbvalue=$(uci -q get aredn.@usb[0].passthrough)
   if [ -z "$usbvalue" ]; then
     local duval=$(jsonfilter -e '@.gpioswitch.usb_power_switch.default' < /etc/board.json)
-    uci -q add aredn usb
     uci -q set aredn.@usb[0].passthrough="$duval"
     uci -q commit aredn
     usbvalue=$duval
@@ -38,27 +36,17 @@ boot() {
   /usr/local/bin/usb_passthrough "${usbvalue}"
 
   # package repositories
-  local repos="core base arednpackages packages luci routing telephony"
-  set -- $repos
-  while [ -n "$1" ]; do
-    local ucirepo=$(uci -q get aredn.@downloads[0].pkgs_$1)
-    local distrepo=$(grep aredn_$1 /etc/opkg/distfeeds.conf | cut -d' ' -f3)
-    # get the URLs from distfeeds.conf and set the initial UCI values if not present
-    if [ -z $ucirepo ]; then
-      uci set aredn.@downloads[0].pkgs_$1=$distrepo
-      uci commit aredn
-      uci -c /etc/config.mesh set aredn.@downloads[0].pkgs_$1=$distrepo
-      uci -c /etc/config.mesh commit aredn
-    # check values in distfeeds.conf against UCI settings
-    # and change distfeeds.conf if needed (upgrades?)
-    elif [ $ucirepo != $distrepo ]; then
-      sed -i "s|$distrepo|$ucirepo|g" /etc/opkg/distfeeds.conf
-    fi
-    shift
-  done
-
-  if [ -z "$(uci -q get aredn.@alerts[0])" ]; then
-      uci -q add aredn alerts
-      uci -q commit aredn
+  local packages_default = $(uci -q get "aredn.@downloads[0].packages_default")
+  if [ "${packages_default}" != "" ]; then
+    local repos="core base arednpackages packages luci routing telephony"
+    set -- $repos
+    while [ -n "$1" ]; do
+      local distrepo = $(grep aredn_$1 /etc/opkg/distfeeds.conf | cut -d' ' -f3)
+      local prefixurl = $(echo $distrepo | sed -n 's/\(http[s]\?:\/\/[^/]\+\).*/\1/p')
+      if [ "$packages_default" != "$prefixurl" ]; then
+        sed -i "s|$prefixurl|$packages_default|g" /etc/opkg/distfeeds.conf
+      fi
+      shift
+    done
   fi
 }

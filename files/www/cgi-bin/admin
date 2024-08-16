@@ -155,6 +155,7 @@ if os.getenv("REQUEST_METHOD") == "POST" then
                         os.execute("/usr/local/bin/upgrade_prepare.sh stop > /dev/null 2>&1")
                     end
                 end
+                nixio.fs.mkdir("/tmp/web")
                 nixio.fs.mkdir("/tmp/web/upload")
                 fp = io.open("/tmp/web/upload/file", "w")
             end
@@ -181,11 +182,16 @@ nixio.fs.mkdir("/tmp/web/admin")
 local curl = "curl -A 'node: " .. node .. "' "
 
 local serverpaths = {}
-local uciserverpath = cursor:get("aredn", "@downloads[0]", "firmwarepath")
-if not uciserverpath then
-    uciserverpath = ""
+local aredn_firmware = cursor:get("aredn", "@downloads[0]", "firmware_aredn")
+if aredn_firmware then
+    serverpaths[#serverpaths + 1] = aredn_firmware
+else
+    local uciserverpath = cursor:get("aredn", "@downloads[0]", "firmwarepath")
+    if not uciserverpath then
+        uciserverpath = ""
+    end
+    serverpaths[#serverpaths + 1] = uciserverpath:match("^(.*)/firmware") or uciserverpath
 end
-serverpaths[#serverpaths + 1] = uciserverpath
 
 local hardwaretype = aredn.hardware.get_type()
 local targettype = conn:call("system", "board", {}).release.target
@@ -224,13 +230,13 @@ end
 -- refresh fw
 if parms.button_refresh_fw then
     nixio.fs.remove("/tmp/web/firmware.list")
-    if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
-        fwout("Downloading firmware list from " .. uciserverpath .. "...")
+    if get_default_gw() ~= "none" or serverpaths[1]:match("%.local%.mesh") then
+        fwout("Downloading firmware list from " .. serverpaths[1] .. "...")
         local config_versions
         local config_serverpath
         for _, serverpath in ipairs(serverpaths)
         do
-            config_serverpath = (serverpath:match("^(.*)/firmware") or serverpath) .. "/afs/www/"
+            config_serverpath = serverpath .. "/afs/www/"
             for line in io.popen(curl .. " -o - " .. config_serverpath .. "config.js 2> /dev/null"):lines()
             do
                 local v = line:match("versions: {(.+)}")
@@ -389,7 +395,7 @@ end
 
 -- download fw
 if parms.button_dl_fw and parms.dl_fw ~= "default" then
-    if get_default_gw() ~= "none" or uciserverpath:match("%.local%.mesh") then
+    if get_default_gw() ~= "none" or serverpaths[1]:match("%.local%.mesh") then
         nixio.fs.remove(tmpdir .. "/firmware")
         os.execute("/usr/local/bin/uploadctlservices update > /dev/null 2>&1")
 

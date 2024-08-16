@@ -1,0 +1,83 @@
+#!/usr/bin/lua
+--[[
+
+	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+	Copyright (C) 2024 Tim Wilkinson
+	See Contributors file for additional contributors
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation version 3 of the License.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Additional Terms:
+
+	Additional use restrictions exist on the AREDN(TM) trademark and logo.
+		See AREDNLicense.txt for more info.
+
+	Attributions to the AREDN Project must be retained in the source code.
+	If importing this code into a new or existing project attribution
+	to the AREDN project must be added to the source code.
+
+	You must not misrepresent the origin of the material contained within.
+
+	Modified versions must be modified to attribute to the original source
+	and be marked in reasonable ways as differentiate it from the original
+	version
+
+--]]
+
+require("uci")
+
+local update_hour = 13 -- Run at ~1pm UTC
+local current_releases = "/etc/current_releases"
+
+local cursor = uci.cursor()
+
+local do_version_update = false;
+local time = os.date("!*t")
+if time.hour == update_hour then
+    do_version_update = true
+end
+
+local f = io.open(current_releases)
+if f then
+    f:close()
+else
+    do_version_update = true
+end
+
+-- Update firmware version information
+if  do_version_update then
+    local config_url = cursor:get("aredn", "@downloads[0]", "firmware_aredn") .. "/afs/www/config.js"
+    local release_version
+    local nightly_version
+    for line in io.popen("/usr/bin/curl -o - " .. config_url .. " 2> /dev/null"):lines()
+    do
+        local v = line:match("versions: {(.+)}")
+        if v then
+            for i in v:gmatch("'(%d+-[^']+)'")
+            do
+                nightly_version = i
+            end
+        end
+        v = line:match('default_version: "(.+)"')
+        if v then
+            release_version = v
+        end
+    end
+    if release_version and nightly_version then
+        local f = io.open(current_releases, "w")
+        if f then
+            f:write(release_version .. " " .. nightly_version)
+            f:close()
+        end
+    end
+end

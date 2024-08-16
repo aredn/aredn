@@ -1,0 +1,11 @@
+<div id="nav-status" {{request.headers["hx-boosted"] ? 'hx-swap-oob="true"' : ""}}>{%
+if (request.page !== "status") {
+    print(request.page);
+}
+else if (auth.isAdmin) {
+    print("admin");
+}
+else {
+    print("status");
+}
+%}</div>

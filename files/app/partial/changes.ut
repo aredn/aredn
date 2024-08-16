@@ -1,0 +1,83 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+    let pwchanged = false;
+    if (request.env.REQUEST_METHOD === "PUT") {
+        if (request.args.revert) {
+            configuration.revertChanges();
+        }
+        else if (request.args.commit) {
+            pwchanged = configuration.isPasswordChanged();
+            configuration.commitChanges();
+            print(`<div id="main-container" hx-swap-oob="true">${_R(request.page)}</div>`);
+        }
+    }
+%}
+<div id="changes" {{request.headers["hx-boosted"] ? "" : "hx-swap-oob='true'"}}>{%
+    let changes = 0;
+    let reboot = false;
+    if (pwchanged) {
+        %}<script>location.reload();</script>{%
+    }
+    if (auth.isAdmin) {
+        changes = configuration.countChanges();
+        if (fs.access("/tmp/reboot-required")) {
+            reboot = true;
+        }
+    }
+    if (reboot) {
+    %}
+        <div>
+            Reboot required:
+            <button name="reboot" value="1" hx-get="/a/status/e/reboot" hx-target="body">Reboot</button>
+        </div>
+    {% }
+    else if (changes > 0) {
+    %}
+        <div>
+            Pending changes: {{changes}}
+            <button name="commit" value="1" hx-put="/a/status/e/changes">Commit</button>
+            <button name="revert" value="1" hx-put="/a/status/e/changes">Revert</button>
+        </div>
+        <script>
+        (function(){
+            htmx.on("#changes button[name=commit]", "click", e => {
+                e.target.innerText = "Committing ...";
+                htmx.find("#changes button[name=revert]").style.display = "none";
+                setTimeout(_ => htmx.ajax("GET", "/a/changes", "#changes"), 5000);
+            });
+        })();
+        </script>
+    {% } %}</div>

@@ -1,0 +1,541 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+if (request.env.REQUEST_METHOD === "PUT") {
+    configuration.prepareChanges();
+    if ("tunnel_server" in request.args) {
+        uciMesh.set("vtun", "@network[0]", "dns", request.args.tunnel_server);
+        uciMesh.commit("vtun");
+    }
+    if ("tunnel_range_start" in request.args) {
+        uciMesh.set("vtun", "@network[0]", "start", request.args.tunnel_range_start);
+        uciMesh.commit("vtun");
+    }
+    if ("tunnel_weight" in request.args) {
+        uciMesh.set("aredn", "@tunnel[0]", "weight", request.args.tunnel_weight);
+        uciMesh.commit("aredn");
+    }
+    if ("tunnels" in request.args) {
+        const tunnels = json(request.args.tunnels);
+        const found = { ls: {}, lc: {}, ws: {}, wc: {} };
+        for (let i = 0; i < length(tunnels); i++) {
+            const t = tunnels[i];
+            found[t.type][t.index] = true;
+            switch (t.type) {
+                case "wc":
+                {
+                    if (!uciMesh.get("vtun", t.index)) {
+                        uciMesh.set("vtun", t.index, "server");
+                    }
+                    uciMesh.set("vtun", t.index, "enabled", t.enabled ? "1" : "0");
+                    uciMesh.set("vtun", t.index, "host", t.name);
+                    uciMesh.set("vtun", t.index, "passwd", t.passwd);
+                    const np = split(t.network, ":");
+                    const n = iptoarr(np[0]);
+                    uciMesh.set("vtun", t.index, "node", `${uc(substr(configuration.getName(), 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}:${np[1]}`);
+                    uciMesh.set("vtun", t.index, "clientip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 1}`);
+                    uciMesh.set("vtun", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
+                    uciMesh.set("vtun", t.index, "netip", t.network);
+                    uciMesh.set("vtun", t.index, "weight", t.weight);
+                    break;
+                }
+                case "lc":
+                {
+                    if (!uciMesh.get("vtun", t.index)) {
+                        uciMesh.set("vtun", t.index, "server");
+                    }
+                    uciMesh.set("vtun", t.index, "enabled", t.enabled ? "1" : "0");
+                    uciMesh.set("vtun", t.index, "host", t.name);
+                    uciMesh.set("vtun", t.index, "passwd", t.passwd);
+                    const n = iptoarr(t.network);
+                    uciMesh.set("vtun", t.index, "node", `${uc(substr(configuration.getName(), 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}`);
+                    uciMesh.set("vtun", t.index, "clientip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 1}`);
+                    uciMesh.set("vtun", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
+                    uciMesh.set("vtun", t.index, "netip", t.network);
+                    uciMesh.set("vtun", t.index, "weight", t.weight);
+                    break;
+                }
+                case "ws":
+                {
+                    if (!uciMesh.get("wireguard", t.index)) {
+                        uciMesh.set("wireguard", t.index, "client");
+                    }
+                    uciMesh.set("wireguard", t.index, "enabled", t.enabled ? "1" : "0");
+                    uciMesh.set("wireguard", t.index, "name", t.name);
+                    uciMesh.set("wireguard", t.index, "key", t.key);
+                    uciMesh.set("wireguard", t.index, "clientip", t.network);
+                    uciMesh.set("wireguard", t.index, "weight", t.weight);
+                    break;
+                }
+                case "ls":
+                {
+                    if (!uciMesh.get("vtun", t.index)) {
+                        uciMesh.set("vtun", t.index, "client");
+                    }
+                    uciMesh.set("vtun", t.index, "enabled", t.enabled ? "1" : "0");
+                    uciMesh.set("vtun", t.index, "passwd", t.passwd);
+                    const n = iptoarr(t.network);
+                    uciMesh.set("vtun", t.index, "node", `${uc(substr(t.name, 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}`);
+                    uciMesh.set("vtun", t.index, "clientip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 1}`);
+                    uciMesh.set("vtun", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
+                    uciMesh.set("vtun", t.index, "netip", t.network);
+                    uciMesh.set("vtun", t.index, "weight", t.weight);
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+        uciMesh.foreach("vtun", "server", a => {
+            if (!found.lc[a[".name"]] && !found.wc[a[".name"]]) {
+                uciMesh.delete("vtun", a[".name"]);
+            }
+        });
+        uciMesh.foreach("vtun", "client", a => {
+            if (!found.ls[a[".name"]]) {
+                uciMesh.delete("vtun", a[".name"]);
+            }
+        });
+        uciMesh.foreach("wireguard", "client", a => {
+            if (!found.ws[a[".name"]]) {
+                uciMesh.delete("wireguard", a[".name"]);
+            }
+        });
+        uciMesh.commit("vtun");
+        uciMesh.commit("wireguard");
+    }
+    print(_R("changes"));
+    return;
+}
+if (request.env.REQUEST_METHOD === "DELETE") {
+    configuration.revertModalChanges();
+    print(_R("changes"));
+    return;
+}
+const available = { l: {}, w: {} };
+const l = iptoarr(uciMesh.get("vtun", "@network[0]", "start"));
+const w = [ l[0], l[1], (l[2] === 255 ? 0 : l[2] + 1), l[3] ];
+for (let i = 0; i < 62; i++) {
+    available.l[`${l[0]}.${l[1]}.${l[2]}.${l[3]}`] = 1;
+    l[3] += 4;
+    if (l[3] >= 252) {
+        l[2]++;
+        l[3] = 4;
+    }
+}
+let p = uciMesh.get("aredn", "@supernode[0]", "enable") === 1 ? 6526 : 5525;
+for (let i = 0; i < 126; i++) {
+    available.w[`${w[0]}.${w[1]}.${w[2]}.${w[3]}:${p}`] = 1;
+    w[3] += 2;
+    if (w[3] >= 254) {
+        w[2]++;
+        w[3] = 2;
+    }
+    p++;
+}
+const up = { lg: {}, wg: [] };
+let f = fs.popen("ps -w | grep vtun | grep ' tun '");
+if (f) {
+    for (let l = f.read("line"); length(l); l = f.read("line")) {
+        const m = match(l, /.*:.*-(172-.*) tun tun/);
+        if (m) {
+            up.lg[replace(m[1], "-", ".")] = true;
+        }
+    }
+    f.close();
+}
+const handshaketime = time();
+f = fs.popen("/usr/bin/wg show all latest-handshakes");
+if (f) {
+    for (let l = f.read("line"); length(l); l = f.read("line")) {
+        const m = split(l, /\t/);
+        if (m && int(m[2]) + 300 > handshaketime) {
+            push(up.wg, m[1]);
+        }
+    }
+    f.close();
+}
+const tunnels = [];
+uciMesh.foreach("vtun", "server", a => {
+    const wireguard = index(a.node, ":") !== -1;
+    push(tunnels, {
+        index: a[".name"],
+        type: wireguard ? "wc" : "lc",
+        name: a.host,
+        enabled: a.enabled === "1",
+        notes: a.comment || "",
+        network: a.netip,
+        passwd: a.passwd,
+        weight: a.weight ?? "",
+        up: wireguard ? (length(filter(up.wg, v => index(a.key, v) !== -1)) === 0 ? false : true) : (up.lg[a.netip] ? true : false)
+    });
+    delete available.l[a.clientip];
+    delete available.w[a.clientip];
+});
+uciMesh.foreach("vtun", "client", a => {
+    const n = iptoarr(a.netip);
+    const remove = `-${n[0]}-${n[1]}-${n[2]}-${n[3]}`;
+    push(tunnels, {
+        index: a[".name"],
+        type: "ls",
+        name: replace(a.name, remove, ""),
+        enabled: a.enabled === "1",
+        notes: a.comment || "",
+        network: a.netip,
+        passwd: a.passwd,
+        weight: a.weight ?? "",
+        up: up.lg[a.netip] ? true : false
+    });
+    delete available.l[a.clientip];
+});
+uciMesh.foreach("wireguard", "client", a => {
+    push(tunnels, {
+        index: a[".name"],
+        type: "ws",
+        name: a.name,
+        enabled: a.enabled === "1",
+        notes: a.comment || "",
+        network: a.clientip,
+        key: a.key,
+        passwd: replace(a.key, /^[A-Za-z0-9+\/]+=/, ""),
+        weight: a.weight ?? "",
+        up: length(filter(up.wg, v => index(a.key, v) !== -1)) === 0 ? false : true
+    });
+    delete available.w[a.clientip];
+});
+function t2t(type)
+{
+    switch (type) {
+        case "ws":
+            return "Wireguard<br>Server";
+        case "wc":
+            return "Wireguard<br>Client";
+        case "ls":
+            return "Legacy<br>Server";
+        case "lc":
+            return "Legacy<br>Client";
+        default:
+            return type;
+    }
+}
+%}
+<div class="dialog">
+    {{_R("dialog-header", "Tunnels")}}
+    <div>
+        <div class="cols">
+            <div>
+                <div class="o">Tunnel Server</div>
+                <div class="m">DNS name of this tunnel server</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_server" type="text" size="25" required placeholder="DNS name or IP address" value="{{uciMesh.get("vtun", "@network[0]", "dns")}}">
+            </div>
+        </div>
+        {{_H("Set either the hostname or the Internet IP Address for this tunnel server. This is the target for any tunnels
+        created which will connect to this node (legacy or wireguard).")}}
+        <hr>
+        <div id="tunnel-templates" class="cols">
+            <div>
+                <div class="o">Add tunnel</div>
+                <div class="m">Add a tunnel from a template</div>
+            </div>
+            <div style="flex:0;padding-right:10px">
+                <select style="direction:ltr">
+                    <option value="wc">Wireguard Client</option>
+                    <option value="ws">Wireguard Server</option>
+                    <option value="lc">Legacy Client</option>
+                    <option value="ls">Legacy Server</option>
+                </select>
+            </div>
+            <button>+</button>
+        </div>
+        {{_H("Create a tunnel by selecting the specific type and hitting the +. The tunnel configuration will auto-populate with as much
+        information as possible. For tunnel clients all the fields can be easily populated by copy-n-pasting the entire server configuration
+        from another node into any field.")}}
+        <br>
+        <div id="tunnels">{%
+            for (let i = 0; i < length(tunnels); i++) {
+                const t = tunnels[i];
+                const client = t.type === "lc" || t.type === "wc" ? true : false;
+                const wireguard = t.type === "ws" || t.type === "wc" ? true : false;
+                %}<div class="tunnel cols" data-index="{{t.index}}">
+                    <div class="cols">
+                        <div data-type="{{t.type}}">{{t2t(t.type)}}</div>
+                        <div>
+                            <div class="cols">
+                                <input type="text" name="name" required placeholder="{{client ? 'Server name' : 'Node name'}}" value="{{t.name}}">
+                                <label class="switch {{t.up ? 'up' : ''}}"><input type="checkbox" name="enable" {{t.enabled ? "checked" : ""}}></label>
+                            </div>
+                            <div class="cols pwnw">
+                                {% if (t.type === "ws") { %}
+                                <input type="hidden" name="key" value="{{t.key}}">
+                                {% } %}
+                                <input type="text" name="password" required pattern="{{wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}}" placeholder="{{wireguard ? 'Wireguard key' : 'Password'}}" value="{{t.passwd}}" {{t.type === "ws" ? "disabled" : ""}}>
+                                <input type="text" name="network" required pattern="{{constants.patIP}}{{wireguard ? ':' + constants.patPort : ''}}" placeholder="{{wireguard ? 'Network:Port' : 'Network'}}" value="{{t.network}}" {{client ? "" : "disabled"}}>
+                                <input type="text" name="weight" pattern="([0-9]|[1-9][0-9])" placeholder="Wgt" value="{{t.weight}}">
+                            </div>
+                            <div class="cols">
+                                <input type="text" name="notes" placeholder="Notes..." value="{{t.notes}}">
+                                {{client ? '' : '<button class="clipboard"><div class="icon clipboard"></div></button>'}}
+                            </div>
+                        </div>
+                    </div>
+                    <button class="remove">-</button>
+                </div>{%
+            }
+        %}</div>
+        {{_R("dialog-advanced")}}
+        <div>
+        {% if (includeAdvanced) { %}
+            <div class="cols">
+                <div>
+                    <div class="o">Tunnel Server Network</div>
+                    <div class="m">IP range to use for tunnel connections</div>
+                </div>
+                <div style="flex:0">
+                    {% if (uciMesh.get("aredn", "@supernode[0]", "enable") === "1") { %}
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_start" type="text" size="14" placeholder="172.30.X.X" pattern="172\.30\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.([4-9]|[1-9]\d|1\d{2}|2[0-3]\d|24[0-8])" value="{{uciMesh.get("vtun", "@network[0]", "start")}}">
+                    {% } else { %}
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_start" type="text" size="14" placeholder="172.31.X.X" pattern="172\.31\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.([4-9]|[1-9]\d|1\d{2}|2[0-3]\d|24[0-8])" value="{{uciMesh.get("vtun", "@network[0]", "start")}}">
+                    {% } %}
+                </div>
+            </div>
+            {% if (uciMesh.get("aredn", "@supernode[0]", "enable") === "1") { %}
+            {{_H("The range of IP addresses allocated to the tunnels. Tunnels always start 172.30")}}
+            {% } else { %}
+            {{_H("The range of IP addresses allocated to the tunnels. Tunnels always start 172.31")}}
+            {% } %}
+            {% if (uciMesh.get("aredn", "@supernode[0]", "enable") !== "1") { %}
+            <div class="cols">
+                <div>
+                    <div class="o">Default Tunnel Weight</div>
+                    <div class="m">Default cost of using a tunnel</div>
+                </div>
+                <div style="flex:0">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_weight" type="text" size="4" placeholder="1" pattern="\d+" value="{{uciMesh.get("aredn", "@tunnel[0]", "weight")}}">
+                </div>
+            </div>
+            {{_H("The tunnel weight is the cost of routing traffic via a tunnel. The higher the weight, the less likely a tunnel is used to reach a destination.
+This value is used by default, but each tunnel may overide it.
+")}}
+            {% } %}
+        {% } %}
+        </div>
+    </div>
+    {{_R("dialog-footer")}}
+    <script>
+    !function(){function w(r){var n=new Float64Array(16);if(r)for(var o=0;o<r.length;++o)n[o]=r[o];return n}function l(r){for(var n=0;n<16;++n)r[(n+1)%16]+=(n<15?1:38)*Math.floor(r[n]/65536),r[n]&=65535}function A(r,n,o){for(var a,f=~(o-1),t=0;t<16;++t)a=f&(r[t]^n[t]),r[t]^=a,n[t]^=a}function p(r,n,o){for(var a=0;a<16;++a)r[a]=n[a]+o[a]|0}function d(r,n,o){for(var a=0;a<16;++a)r[a]=n[a]-o[a]|0}function g(r,n,o){for(var a=new Float64Array(31),f=0;f<16;++f)for(var t=0;t<16;++t)a[f+t]+=n[f]*o[t];for(f=0;f<15;++f)a[f]+=38*a[f+16];for(f=0;f<16;++f)r[f]=a[f];l(r),l(r)}function U(r){r[31]=127&r[31]|64,r[0]&=248}function n(r){for(var n,o=new Uint8Array(32),a=w([1]),f=w([9]),t=w(),i=w([1]),u=w(),e=w(),c=w([56129,1]),v=w([9]),y=0;y<32;++y)o[y]=r[y];U(o);for(y=254;0<=y;--y)A(a,f,n=o[y>>>3]>>>(7&y)&1),A(t,i,n),p(u,a,t),d(a,a,t),p(t,f,i),d(f,f,i),g(i,u,u),g(e,a,a),g(a,t,a),g(t,f,u),p(u,a,t),d(a,a,t),g(f,a,a),d(t,i,e),g(a,t,c),p(a,a,i),g(t,t,a),g(a,i,e),g(i,f,v),g(f,u,u),A(a,f,n),A(t,i,n);return function(r,n){for(var o=w(),a=0;a<16;++a)o[a]=n[a];for(a=253;0<=a;--a)g(o,o,o),2!==a&&4!==a&&g(o,o,n);for(a=0;a<16;++a)r[a]=o[a]}(t,t),g(a,a,t),function(r,n){for(var o,a=w(),f=w(),t=0;t<16;++t)f[t]=n[t];l(f),l(f),l(f);for(var i=0;i<2;++i){a[0]=f[0]-65517;for(t=1;t<15;++t)a[t]=f[t]-65535-(a[t-1]>>16&1),a[t-1]&=65535;a[15]=f[15]-32767-(a[14]>>16&1),o=a[15]>>16&1,a[14]&=65535,A(f,a,1-o)}for(t=0;t<16;++t)r[2*t]=255&f[t],r[2*t+1]=f[t]>>8}(o,a),o}function o(){var r,r=(r=new Uint8Array(32),window.crypto.getRandomValues(r),r);return U(r),r}function a(r,n){for(var o=Uint8Array.from([n[0]>>2&63,63&(n[0]<<4|n[1]>>4),63&(n[1]<<2|n[2]>>6),63&n[2]]),a=0;a<4;++a)r[a]=o[a]+65+(25-o[a]>>8&6)-(51-o[a]>>8&75)-(61-o[a]>>8&15)+(62-o[a]>>8&3)}function f(r){for(var n=new Uint8Array(44),o=0;o<32/3;++o)a(n.subarray(4*o),r.subarray(3*o));return a(n.subarray(4*o),Uint8Array.from([r[3*o+0],r[3*o+1],0])),n[43]=61,String.fromCharCode.apply(null,n)}window.wireguard={generateKeypair:function(){var r=o();return{publicKey:f(n(r)),privateKey:f(r)}}}}();
+    (function(){
+        {{_R("open")}}
+        let server = "{{uciMesh.get("vtun", "@network[0]", "dns")}}";
+        const available = {{sprintf("%J", available)}};
+        function updateTunnels()
+        {
+            const tunnels = [];
+            const tuns = htmx.findAll("#tunnels .tunnel");
+            for (let i = 0; i < tuns.length; i++) {
+                const t = tuns[i];
+                const index = t.dataset.index;
+                const name = htmx.find(t, "input[name=name]");
+                const password = htmx.find(t, "input[name=password]");
+                const key = htmx.find(t, "input[name=key]");
+                const type = htmx.find(t, "div[data-type]").dataset.type;
+                const network = htmx.find(t, "input[name=network]");
+                const notes = htmx.find(t, "input[name=notes]");
+                const enable = htmx.find(t, "input[name=enable]");
+                const weight = htmx.find(t, "input[name=weight]");
+                if (name.validity.valid && password.validity.valid && network.validity.valid && notes.validity.valid && weight.validity.valid) {
+                    tunnels.push({
+                        index: index,
+                        type: type,
+                        name: name.value,
+                        enabled: enable.checked,
+                        notes: notes.value || "",
+                        network: network.value,
+                        passwd: password.value,
+                        key: key && key.value,
+                        weight: weight.value
+                    });
+                }
+            }
+            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                swap: "none",
+                values: { tunnels: JSON.stringify(tunnels) }
+            });
+        }
+        htmx.on("input[name=tunnel_server]", "change", e => {
+            if (e.target.validity.valid) {
+                server = e.target.value;
+            }
+        });
+        htmx.on("#tunnel-templates button", "click", _ => {
+            const type = htmx.find("#tunnel-templates select").value;
+            const client = type === "lc" || type === "wc" ? true : false;
+            const wireguard = type === "ws" || type === "wc" ? true : false;
+            const network = client ? "" : Object.keys(available[wireguard ? "w" : "l"])[0];
+            if (!client && !network) {
+                return;
+            }
+            if (network) {
+                delete available.l[network];
+                delete available.w[network];
+            }
+            let password = "";
+            let key = "";
+            let index = "";
+            let htype = type;
+            switch (type) {
+                case "ws":
+                    htype = "Wireguard<br>Server";
+                    const ks = window.wireguard.generateKeypair();
+                    const kc = window.wireguard.generateKeypair();
+                    key = `${ks.privateKey}${ks.publicKey}${kc.privateKey}${kc.publicKey}`;
+                    password = `${ks.publicKey}${kc.privateKey}${kc.publicKey}`;
+                    for (let i = 0; i < 256; i++) {
+                        index = `server_${i}`;
+                        if (!htmx.find(`.tunnel[data-index="${index}"]`)) {
+                            break;
+                        }
+                    }
+                    break;
+                case "ls":
+                    htype = "Legacy<br>Server";
+                    password = "0000-0000-0000".replace(/(0)/g, _ => ((Math.random()*36)|0).toString(36));
+                    for (let i = 0; i < 256; i++) {
+                        index = `server_${i}`;
+                        if (!htmx.find(`.tunnel[data-index="${index}"]`)) {
+                            break;
+                        }
+                    }
+                    break;
+                case "wc":
+                case "lc":
+                    htype = `${type === "wc" ? "Wireguard" : "Legacy"}<br>Client`;
+                    for (let i = 0; i < 256; i++) {
+                        index = `client_${i}`;
+                        if (!htmx.find(`.tunnel[data-index="${index}"]`)) {
+                            break;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+            const div = document.createElement("div");
+            div.innerHTML = `<div class="tunnel cols" data-index="${index}">
+<div class="cols">
+    <div data-type="${type}">${htype}</div>
+    <div>
+        <div class="cols">
+            <input type="text" name="name" required placeholder="${client ? 'Server name' : 'Node name'}" value="">
+            <label class="switch"><input type="checkbox" name="enable" checked></label>
+        </div>
+        <div class="cols pwnw">
+            ${type === "ws" ? '<input type="hidden" name="key" value="' + key + '">' : ''}
+            <input type="text" name="password" required pattern="${wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}" placeholder="${wireguard ? 'Wireguard key' : 'Password'}" ${type === "ws" ? "disabled" : ""} value="${password}">
+            <input type="text" name="network" required pattern="((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}${wireguard ? ':{{constants.patPort}}' : ''}" placeholder="${wireguard ? 'Network:Port' : 'Network'}" ${client ? "" : "disabled"} value="${network}">
+            <input type="text" name="weight" pattern="([0-9]|[1-9][0-9])" placeholder="Wgt" value="">
+        </div>
+        <div class="cols">
+            <input type="text" name="notes" placeholder="Notes..." value="">
+            ${client ? '' : '<button class="clipboard"><div class="icon clipboard"></div></button>'}
+        </div>
+    </div>
+    <button class="remove">-</button>
+</div>`;
+            const t = htmx.find("#tunnels");
+            t.insertBefore(div.firstChild, t.firstChild);
+        });
+        htmx.on("#tunnels", "change", updateTunnels);
+        htmx.on("#tunnels", "click", event => {
+            const target = event.target;
+            if (target.nodeName === "BUTTON") {
+                if (target.classList.contains("remove")) {
+                    const tunnel = htmx.closest(target, ".tunnel");
+                    htmx.remove(tunnel);
+                    updateTunnels();
+                }
+                else if (target.classList.contains("clipboard")) {
+                    const t = htmx.closest(target, ".tunnel");
+                    const name = htmx.find(t, "input[name=name]");
+                    const passwd = htmx.find(t, "input[name=password]");
+                    const network = htmx.find(t, "input[name=network]");
+                    if (name.validity.valid && passwd.validity.valid && network.validity.valid) {
+                        const blob = new Blob([
+                            `<h2>Connection details for ${name.value}</h2>
+                            <div>Name: ${name.value}</div>
+                            <div style="white-space:nowrap">Password: ${passwd.value}</div>
+                            <div>Network: ${network.value}</div>
+                            <div>Server address: ${server}</div>`
+                        ], { type: "text/html" });
+                        window.open(URL.createObjectURL(blob));                  
+                    }
+                }
+            }
+        });
+        htmx.on("#tunnels", "paste", event => {
+            const target = event.target;
+            if (target.nodeName === "INPUT" && !target.disabled) {
+                const txt = event.clipboardData.getData("text/plain");
+                if (!txt) {
+                    return;
+                }
+                const config = {};
+                txt.split("\n").forEach(line => {
+                    if (line.startsWith("Password: ")) {
+                        config.passwd = line.substring(10);
+                    }
+                    else if (line.startsWith("Network: ")) {
+                        config.network = line.substring(9);
+                    }
+                    else if (line.startsWith("Server address: ")) {
+                        config.server = line.substring(16);
+                    }
+                });
+                if (!(config.passwd && config.network && config.server)) {
+                    return;
+                }
+                event.stopPropagation();
+                event.preventDefault();
+                const t = htmx.closest(target, '.tunnel');
+                htmx.find(t, "input[name=name]").value = config.server;
+                htmx.find(t, "input[name=password]").value = config.passwd;
+                htmx.find(t, "input[name=network]").value = config.network;
+                updateTunnels();
+            }
+        });
+    })();
+    </script>
+</div>

@@ -529,6 +529,7 @@ function lqm()
                     lat = nil,
                     lon = nil,
                     distance = nil,
+                    localarea = nil,
                     blocks = {
                         dtd = false,
                         signal = false,
@@ -623,8 +624,8 @@ function lqm()
                     -- Refresh the hostname periodically as it can change
                     track.hostname = canonical_hostname(nixio.getnameinfo(track.ip)) or track.hostname
 
-                    if track.blocked or not track.routable then
-                        -- Remote is blocked not directly routable
+                    if track.blocked then
+                        -- Remote is blocked
                         -- We cannot update so invalidate any information considered stale and set time to attempt refresh
                         track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
                         track.rev_snr = nil
@@ -652,7 +653,16 @@ function lqm()
                             track.lon = tonumber(info.lon) or track.lon
                             if track.lat and track.lon and lat and lon then
                                 track.distance = calc_distance(lat, lon, track.lat, track.lon)
+                                if track.type == "DtD" and track.distance < dtd_distance then
+                                    track.localarea = true
+                                else
+                                    track.localarea = false
+                                end
                             end
+
+                            -- Keep some useful info
+                            track.model = info.node_details.model
+                            track.firmware_version = info.node_details.firmware_version
 
                             if track.type == "RF" then
                                 rflinks[track.mac] = nil

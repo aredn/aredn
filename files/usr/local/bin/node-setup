@@ -117,7 +117,7 @@ local cfg = {
     olsrd_dtd_interface_mode = "ether",
     tun_network_config = "",
     wireguard_network_config = "",
-    dtdlink_interfaces = "list network 'dtdlink'",
+    dtdlink_interfaces = "\tlist network 'dtdlink'",
     vpn_interfaces = "",
     olsrd_pollrate = "0.05",
     tun_devices_config = "",
@@ -137,7 +137,8 @@ local changes = {
     firewall = false,
     tunnels = false,
     wireless = false,
-    localservices = false
+    localservices = false,
+    wpad = false
 }
 
 function valid_config(config)
@@ -147,6 +148,16 @@ function valid_config(config)
     local r = os.execute("/sbin/uci -c /tmp/uci_validate import dummy < /tmp/uci_validate/config")
     remove_all("/tmp/uci_validate")
     return r == 0 and true or false
+end
+
+function is_nat_mode()
+    return is_null(cfg.dmz_mode)
+end
+function is_dmz_mode()
+    return is_notnull(cfg.dmz_mode) and cfg.dmz_mode ~= "1"
+end
+function is_altnet_mode()
+    return cfg.dmz_mode == "1"
 end
 
 function expand_vars(lines)
@@ -228,7 +239,7 @@ if cfg.wan_proto == "dhcp" then
     deleteme.wan_gw = true
     deleteme.wan_mask = true
 end
-if is_notnull(cfg.dmz_mode) or cfg.wan_proto ~= "disabled" then
+if is_dmz_mode() or is_altnet_mode() or cfg.wan_proto ~= "disabled" then
     deleteme.lan_gw = true
 end
 
@@ -285,7 +296,7 @@ if is_null(cfg.dmz_mode) then
 end
 
 -- switch to dmz values if needed
-if is_notnull(cfg.dmz_mode) then
+if is_dmz_mode() then
     cfg.lan_ip = cfg.dmz_lan_ip
     cfg.lan_mask = cfg.dmz_lan_mask
     cfg.dhcp_start = cfg.dmz_dhcp_start
@@ -300,7 +311,7 @@ local dhcptagsfile = "/etc/config.mesh/_setup.dhcptags"
 local dhcpoptionsfile = "/etc/config.mesh/_setup.dhcpoptions"
 local aliasfile = "/etc/config.mesh/aliases"
 local servfile = "/etc/config.mesh/_setup.services"
-if is_null(cfg.dmz_mode) then
+if is_nat_mode() then
     portfile = portfile .. ".nat"
     dhcpfile = dhcpfile .. ".nat"
     dhcptagsfile = dhcptagsfile .. ".nat"
@@ -529,12 +540,23 @@ if tun_start or tun_dns then
     end
     cfg.tun_network_config = cfg.tun_network_config .. "\n"
 end
+local def_tun_weight = tonumber(cm:get("aredn", "@tunnel[0]", "weight") or 1) or 0
+local is_supernode = cm:get("aredn", "@supernode[0]", "enable") == "1"
+if is_supernode then
+    def_tun_weight = 0
+end
+local tun_weights = {}
 local vtunclients = 0
 cm:foreach("vtun", "client",
     function(s)
         if s.enabled == "1" then
             cfg.tun_network_config = cfg.tun_network_config .. string.format("config client\n\toption enabled '1'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
                 s.node:upper(), s.passwd, s.clientip, s.serverip, s.netip)
+            local w = s.weight or def_tun_weight
+            if not tun_weights[w] then
+                tun_weights[w] = {}
+            end
+            table.insert(tun_weights[w], string.format("tun%d", 50 + vtunclients))
             vtunclients = vtunclients + 1
         end
     end
@@ -551,12 +573,18 @@ cm:foreach("wireguard", "client",
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
                 string.format("config wireguard_wgc%d\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
                     wgclients, client_pub)
+            local w = s.weight or def_tun_weight
+            if not tun_weights[w] then
+                tun_weights[w] = {}
+            end
+            table.insert(tun_weights[w], string.format("wgc%d", wgclients))
             wgclients = wgclients + 1
         end
     end
 )
 local vtunservers = 0
 local wgservers = 0
+local vtunclients_roundup = 10 * math.ceil(vtunclients / 10)
 cm:foreach("vtun", "server",
     function(s)
         if s.enabled == "1" then
@@ -570,11 +598,21 @@ cm:foreach("vtun", "server",
                 cfg.wireguard_network_config = cfg.wireguard_network_config ..
                     string.format("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
                         wgservers, server_pub, s.host, p)
+                local w = s.weight or def_tun_weight
+                if not tun_weights[w] then
+                    tun_weights[w] = {}
+                end
+                table.insert(tun_weights[w], string.format("wgs%d", wgservers))
                 wgservers = wgservers + 1
             else
                 cfg.tun_network_config = cfg.tun_network_config ..
                     string.format("config server\n\toption enabled '1'\n\toption host '%s'\n\toption node '%s'\n\toption passwd '%s'\n\toption clientip '%s'\n\toption serverip '%s'\n\toption netip '%s'\n\n",
                         s.host, s.node:upper(), s.passwd, s.clientip, s.serverip, s.netip)
+                local w = s.weight or def_tun_weight
+                if not tun_weights[w] then
+                    tun_weights[w] = {}
+                end
+                table.insert(tun_weights[w], string.format("tun%d", 50 + vtunclients_roundup + vtunservers))
                 vtunservers = vtunservers + 1
             end
         end
@@ -606,15 +644,15 @@ if maxclients + maxservers + wgclients + wgservers > 0 then
     vpnzone = true
     for i = 50, 50 + maxclients + maxservers - 1
     do
-        cfg.vpn_interfaces = cfg.vpn_interfaces .. "        list network 'tun" .. i .. "'\n"
+        cfg.vpn_interfaces = cfg.vpn_interfaces .. "\tlist network 'tun" .. i .. "'\n"
     end
     for i = 0, wgclients-1
     do
-        cfg.vpn_interfaces = cfg.vpn_interfaces .. "        list network 'wgc" .. i .. "'\n"
+        cfg.vpn_interfaces = cfg.vpn_interfaces .. "\tlist network 'wgc" .. i .. "'\n"
     end
     for i = 0, wgservers-1
     do
-        cfg.vpn_interfaces = cfg.vpn_interfaces .. "        list network 'wgs" .. i .. "'\n"
+        cfg.vpn_interfaces = cfg.vpn_interfaces .. "\tlist network 'wgs" .. i .. "'\n"
     end
 end
 
@@ -622,7 +660,7 @@ end
 if nixio.fs.stat("/etc/config.mesh/xlink") then
     uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
         function(section)
-            cfg.dtdlink_interfaces = cfg.dtdlink_interfaces .. "\n        list network '" .. section[".name"] .. "'"
+            cfg.dtdlink_interfaces = cfg.dtdlink_interfaces .. "\n\tlist network '" .. section[".name"] .. "'"
         end
     )
 end
@@ -652,7 +690,7 @@ local nc = uci.cursor("/tmp/new_config")
 -- append to firewall
 local fw = io.open("/tmp/new_config/firewall", "a")
 if fw then
-    if is_notnull(cfg.dmz_mode) then
+    if not is_nat_mode() then
         fw:write("\nconfig forwarding\n        option src    wifi\n        option dest   lan\n")
         fw:write("\nconfig forwarding\n        option src    dtdlink\n        option dest   lan\n")
         if vpnzone then
@@ -673,7 +711,7 @@ if fw then
         do
             if not (line:match("^%s*#") or line:match("^%s*$")) then
                 local dip = line:match("dmz_ip = (%w+)")
-                if dip and cfg.dmz_mode ~= 0 then
+                if dip and is_dmz_mode() then
                     fw:write("\nconfig redirect\n        option src    wifi\n        option proto  tcp\n        option src_dip " .. cfg.wifi_ip .. "\n        option dest_ip " .. dip .. "\n")
                     fw:write("\nconfig redirect\n        option src    wifi\n        option proto  udp\n        option src_dip " .. cfg.wifi_ip .. "\n        option dest_ip " .. dip .. "\n")
                 else
@@ -691,7 +729,7 @@ if fw then
                         if not oport:match("-") then
                             host = host .. "        option dest_port " .. iport .. "\n"
                         end
-                        if is_notnull(cfg.dmz_mode) and intf == "both" then
+                        if is_dmz_mode() and intf == "both" then
                             intf = "wan"
                         end
                         if intf == "both" then
@@ -701,7 +739,7 @@ if fw then
                                 fw:write("\nconfig redirect\n        option src vpn\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
                             end
                             fw:write("config redirect\n        option src wan\n        option dest  lan\n        " .. match .. "        " .. host .. "\n")
-                        elseif intf == "wifi" and is_null(cfg.dmz_mode) then
+                        elseif intf == "wifi" and is_nat_mode() then
                             fw:write("\nconfig redirect\n        option src dtdlink\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
                             fw:write("\nconfig redirect\n        option src wifi\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
                             if vpnzone then
@@ -721,7 +759,7 @@ if fw then
 end
 
 -- setup nat
-if is_null(cfg.dmz_mode) then
+if is_nat_mode() then
     -- zone[0] = lan, zone[1] = wan, zone[2] = wifi, zone[3] = dtdlink, zone[4] = vpn
     local masq_src = cfg.lan_ip .. "/" .. netmask_to_cidr(cfg.lan_mask)
     for z = 2, 4
@@ -999,7 +1037,7 @@ if h and e then
     if is_notnull(cfg.dtdlink_ip) then
         h:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
     end
-    if is_null(cfg.dmz_mode) then
+    if is_nat_mode() then
         h:write(decimal_to_ip(ip_to_decimal(cfg.lan_ip) + 1) .. "\tlocalap\n")
     end
 
@@ -1084,9 +1122,13 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
             of:write(line .. "\n")
         end
 
-        if is_notnull(cfg.dmz_mode) then
+        if is_dmz_mode() then
             local a, b, c, d = cfg.dmz_lan_ip:match("(.*)%.(.*)%.(.*)%.(.*)")
             of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%s.%d\n\toption netmask 255.255.255.%d\n\n", a, b, c, d - 1, nixio.bit.band(255 * 2 ^ cfg.dmz_mode, 255)))
+        end
+        if is_altnet_mode() then
+            local a, b, c, d = cfg.lan_ip:match("(.*)%.(.*)%.(.*)%.(.*)")
+            of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%s.%d\n\toption netmask %s\n\n", a, b, c, d - 1, cfg.lan_mask))
         end
 
         if cfg.wifi_enable ~= "1" and is_notnull(cfg.wifi_ip) then
@@ -1095,6 +1137,11 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
 
         if is_supernode then
             of:write("config Hna4\n\toption netaddr 10.0.0.0\n\toption netmask 255.0.0.0\n\n")
+            local altnetwork = nc:get("aredn", "@supernode[0]", "altnetwork")
+            local altnetmask = nc:get("aredn", "@supernode[0]", "altnetmask")
+            if altnetwork and altnetmask then
+                of:write("config Hna4\n\toption netaddr " .. altnetwork .. "\n\toption netmask " .. altnetmask .. "\n\n")
+            end
         end
 
         if nixio.fs.stat("/etc/config.mesh/xlink") then
@@ -1133,39 +1180,25 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
     
         -- add all the tunnel interfaces
         if vtunclients + vtunservers + wgclients + wgservers > 0 then
-            of:write("config Interface\n")
-            for dev = 50, 50 + vtunclients - 1
+            for weight, ifaces in pairs(tun_weights)
             do
-                of:write("\tlist interface 'tun" .. dev .. "'\n")
-            end
-            for dev = 50 + maxclients, 50 + maxclients + vtunservers - 1
-            do
-                of:write("\tlist interface 'tun" .. dev .. "'\n")
-            end
-            if wgclients > 0 then
-                for dev = 0, wgclients - 1
+                of:write("\nconfig Interface\n")
+                for _, iface in ipairs(ifaces)
                 do
-                    of:write("\tlist interface 'wgc" .. dev .. "'\n")
+                    of:write("\tlist interface '" .. iface .. "'\n")
                 end
-            end
-            if wgservers > 0 then
-                for dev = 0, wgservers - 1
-                do
-                    of:write("\tlist interface 'wgs" .. dev .. "'\n")
+                of:write("\toption Ip4Broadcast '255.255.255.255'\n")
+                weight = tonumber(weight)
+                if weight < 1 then
+                    of:write("\toption Mode 'ether'\n")
+                elseif weight > 1 then
+                    of:write("\toption LinkQualityMult 'default " .. (1 / weight) .. "'\n")
                 end
+                of:write("\toption HelloInterval '" .. cfg.hello_interval .. "'\n")
+                of:write("\toption TcInterval '" .. cfg.tc_interval .. "'\n")
+                of:write("\toption MidInterval '" .. cfg.mid_interval .. "'\n")
+                of:write("\toption HnaInterval '" .. cfg.hna_interval .. "'\n")
             end
-            of:write("\toption Ip4Broadcast '255.255.255.255'\n")
-            local tun_weight = tonumber(nc:get("aredn", "@tunnel[0]", "weight") or 1)
-            local is_supernode = nc:get("aredn", "@supernode[0]", "enable") == "1"
-            if not tun_weight or tun_weight < 1 or is_supernode then
-                of:write("\toption Mode 'ether'\n")
-            elseif tun_weight > 1 then
-                of:write("\toption LinkQualityMult 'default " .. (1 / tun_weight) .. "'\n")
-            end
-            of:write("\toption HelloInterval '" .. cfg.hello_interval .. "'\n")
-            of:write("\toption TcInterval '" .. cfg.tc_interval .. "'\n")
-            of:write("\toption MidInterval '" .. cfg.mid_interval .. "'\n")
-            of:write("\toption HnaInterval '" .. cfg.hna_interval .. "'\n")
         end
         nc:set("aredn", "@tunnel[0]", "maxclients", maxclients)
         nc:set("aredn", "@tunnel[0]", "maxservers", maxservers)
@@ -1197,6 +1230,12 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
                     of:write("\toption HnaInterval '" .. cfg.hna_interval .. "'\n")
                 end
             )
+        end
+
+        -- OLSRD user extras
+        if nixio.fs.stat("/etc/aredn_include/olsrd.user") then
+            of:write("\n")
+            of:write(expand_vars(read_all("/etc/aredn_include/olsrd.user")))
         end
 
         of:close()
@@ -1244,6 +1283,7 @@ end
 
 -- Handle special cases
 local config_special = {
+    dmz_mode = c:get("aredn", "@dmz[0]", "mode"),
     lqm_enable = c:get("aredn", "@lqm[0]", "enable"),
     tunnel_weight = c:get("aredn", "@tunnel[0]", "weight"),
     supernode_enable = c:get("aredn", "@supernode[0]", "enable"),
@@ -1279,6 +1319,9 @@ do
             changes.system = true
         elseif file == "aredn" then
             local oc = uci:cursor()
+            if oc:get("aredn", "@dmz[0]", "mode") ~= config_special.dmz_mode then
+                changes.reboot = true
+            end
             if oc:get("aredn", "@lqm[0]", "enable") ~= config_special.lqm_enable then
                 changes.manager = true
             end
@@ -1312,6 +1355,13 @@ do
         elseif file == "wireless" then
             local oc = uci:cursor()
             if oc:get("wireless", "@wifi-iface[0]", "mode") ~= config_special.wifi_mode_0 or oc:get("wireless", "@wifi-iface[1]", "mode") ~= config_special.wifi_mode_1 then
+                -- Only start the hostapd (etc) if we need to. This doesn't change what is currently running
+                -- only what automatically runs in the future
+                if oc:get("wireless", "@wifi-iface[0]", "mode") == "ap" or oc:get("wireless", "@wifi-iface[1]", "mode") == "ap" then
+                    os.execute("/etc/init.d/wpad enable > /dev/null 2>&1")
+                else
+                    os.execute("/etc/init.d/wpad disable > /dev/null 2>&1")
+                end
                 changes.reboot = true
             else
                 changes.wireless = true

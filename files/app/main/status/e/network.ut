@@ -1,0 +1,391 @@
+{%
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2024 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
+%}
+{%
+if (request.env.REQUEST_METHOD === "PUT") {
+    configuration.prepareChanges();
+    if ("mesh_ip" in request.args) {
+        if (match(request.args.mesh_ip, constants.reIP)) {
+            configuration.setSetting("wifi_ip", request.args.mesh_ip);
+        }
+    }
+    if ("dhcp_mode" in request.args) {
+        const mode = int(request.args.dhcp_mode || 3);
+        if (mode === -1) {
+            configuration.setSetting("lan_dhcp", 0);
+        }
+        else if (mode >= 0 && mode <= 5) {
+            configuration.setSetting("lan_dhcp", 1);
+            configuration.setSetting("dmz_mode", mode);
+        }
+    }
+    if ("lan_dhcp_ip" in request.args) {
+        if (match(request.args.lan_dhcp_ip, constants.reIP)) {
+            configuration.setSetting("lan_ip", request.args.lan_dhcp_ip);
+        }
+    }
+    if ("lan_dhcp_netmask" in request.args) {
+        if (match(request.args.lan_dhcp_netmask, constants.reNetmask)) {
+            configuration.setSetting("lan_mask", request.args.lan_dhcp_mask);
+        }
+    }
+    if ("lan_dhcp_start" in request.args) {
+        if (match(request.args.lan_dhcp_start, /^([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])$/)) {
+            configuration.setSetting("dhcp_start", request.args.lan_dhcp_start);
+        }
+    }
+    if ("lan_dhcp_end" in request.args) {
+        if (match(request.args.lan_dhcp_end, /^([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])$/)) {
+            configuration.setSetting("dhcp_end", request.args.lan_dhcp_end);
+        }
+    }
+    if ("wan_enable" in request.args) {
+        if (request.args.wan_enable === "off") {
+            configuration.setSetting("wan_proto", "disabled");
+        }
+        else {
+            configuration.setSetting("wan_proto", "dhcp");
+        }
+    }
+    if ("wan_mode" in request.args) {
+        if (request.args.wan_mode === "0") {
+            configuration.setSetting("wan_proto", "dhcp");
+        }
+        else {
+            configuration.setSetting("wan_proto", "static");
+        }
+    }
+    if ("wan_ip" in request.args) {
+        if (match(request.args.wan_ip, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
+            configuration.setSetting("wan_ip", request.args.wan_ip);
+        }
+    }
+    if ("wan_mask" in request.args) {
+        if (match(request.args.wan_mask, /^(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))$/)) {
+            configuration.setSetting("wan_mask", request.args.wan_mask);
+        }
+    }
+    if ("wan_gw" in request.args) {
+        if (match(request.args.wan_gw, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
+            configuration.setSetting("wan_gw", request.args.wan_gw);
+        }
+    }
+    if ("wan_dns1" in request.args) {
+        if (match(request.args.wan_dns1, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
+            configuration.setSetting("wan_dns1", request.args.wan_dns1);
+        }
+    }
+    if ("wan_dns2" in request.args) {
+        if (match(request.args.wan_dns2, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
+            configuration.setSetting("wan_dns2", request.args.wan_dns2);
+        }
+    }
+    if ("wan_vlan" in request.args) {
+        const wan_iface = split(configuration.getSettingAsString("wan_intf", ""), ".");
+        const wan_vlan = int(request.args.wan_vlan || 0);
+        if (wan_vlan === 0) {
+            configuration.setSetting("wan_intf", wan_iface[0]);
+        }
+        else if (wan_vlan >= 3 && wan_vlan <= 4095) {
+            configuration.setSetting("wan_intf", `${wan_iface[0]}.${wan_vlan}`);
+        }
+    }
+    if ("olsrd_gw" in request.args) {
+        uciMesh.set("aredn", "@wan[0]", "olsrd_gw", request.args.olsrd_gw === "on" ? 1 : 0);
+    }
+    if ("lan_dhcp_route" in request.args) {
+        uciMesh.set("aredn", "@wan[0]", "lan_dhcp_route", request.args.lan_dhcp_route === "on" ? 1 : 0);
+    }
+    if ("lan_dhcp_defaultroute" in request.args) {
+        uciMesh.set("aredn", "@wan[0]", "lan_dhcp_defaultroute", request.args.lan_dhcp_defaultroute === "on" ? 1 : 0);
+    }
+    uciMesh.commit("aredn");
+    configuration.saveSettings();
+    print(_R("changes"));
+    return;
+}
+if (request.env.REQUEST_METHOD === "DELETE") {
+    configuration.revertModalChanges();
+    print(_R("changes"));
+    return;
+}
+const dmz_mode = configuration.getSettingAsInt("dmz_mode", 3);
+const dhcp = configuration.getDHCP("nat");
+const wan_proto = configuration.getSettingAsString("wan_proto", "disabled");
+const wan_iface = split(configuration.getSettingAsString("wan_intf", ""), ".");
+const wan_vlan = wan_iface[1] ? wan_iface[1] : "";
+const gateway_nat = dmz_mode !== 1 ? dhcp.gateway : "172.27.0.1";
+const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
+%}
+<div class="dialog">
+    {{_R("dialog-header", "Network")}}
+    <div>
+        <div class="cols">
+            <div>
+                <div class="o">Mesh A&zwnj;ddress</div>
+                <div class="m">The primary address of this node</div>
+            </div>
+            <div style="flex:0">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="mesh_ip" type="text" size="14" placeholder="10.X.X.X" pattern="10\.((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){3}" value="{{configuration.getSettingAsString("wifi_ip")}}">
+            </div>
+        </div>
+        {{_H("The primary address of this AREDN node. This will always be of the form 10.X.X.X. The address is generated automatically based on hardware information so it will
+        always be the same even if you reinstall this node from scratch. You shouldn't have to change it.")}}
+        <hr>
+        <div class="hideable">
+            <div class="cols">
+                <div>
+                    <div class="o">LAN Size</div>
+                    <div class="m">Size of LAN subnet</div>
+                </div>
+                <div style="flex:0">
+                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="dhcp_mode">
+                        <option value="-1" {{!dhcp.enabled ? "selected" : ""}}>Disabled</option>
+                        <option value="0" {{dhcp.enabled && dmz_mode == 0 ? "selected" : ""}}>NAT</option>
+                        <option value="2" {{dhcp.enabled && dmz_mode == 2 ? "selected" : ""}}>1 host</option>
+                        <option value="3" {{dhcp.enabled && dmz_mode == 3 ? "selected" : ""}}>5 hosts</option>
+                        <option value="4" {{dhcp.enabled && dmz_mode == 4 ? "selected" : ""}}>13 hosts</option>
+                        <option value="5" {{dhcp.enabled && dmz_mode == 5 ? "selected" : ""}}>29 hosts</option>
+                    </select>
+                </div>
+            </div>
+            {{_H("Select how many hosts you want to support on this nodes LAN network. This determines the size of the netmask associated with that network.
+            You can also select NAT which allows more hosts, firewalls your LAN hosts from the Mesh network, but requires explicity ports to be forwarded when
+            creating services.")}}
+            <div class="compact hideable0">
+                <div class="cols">
+                    <div>
+                        <div class="o">IP A&zwnj;ddress</div>
+                        <div class="m">Gateway IP a&zwnj;ddress for this LAN network</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_ip" type="text" size="15" required pattern="{{constants.patIP}}" value="{{gateway_nat}}">
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">Netmask</div>
+                        <div class="m">Netmask for this LAN network</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_netmask" type="text" size="15" required pattern="{{constants.patNetmask}}" value="{{dhcp.mask}}">
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">DHCP Start</div>
+                        <div class="m">Start of the DHCP range for addresses allocate</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_start" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" value="{{split(dhcp.start, ".")[3]}}">
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">DHCP End</div>
+                        <div class="m">Last address of the DHCP range for addresses allocated</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_end" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" value="{{split(dhcp.end, ".")[3]}}">
+                    </div>
+                </div>
+            </div>
+            <div class="compact hideable1">
+                <div class="cols">
+                    <div>
+                        <div class="o">AltNET IP A&zwnj;ddress</div>
+                        <div class="m">Gateway IP a&zwnj;ddress for AltNET LAN network</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_ip" type="text" size="15" required pattern="((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?\b){4}" value="{{gateway_altnet}}">
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">Netmask</div>
+                        <div class="m">Netmask for AltNET LAN network</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_netmask" type="text" size="15" required pattern="{{constants.patNetmask}}" value="{{dhcp.mask}}">
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">DHCP Start</div>
+                        <div class="m">Start of the DHCP range for addresses allocate</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_start" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" value="{{split(dhcp.start, ".")[3]}}">
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">DHCP End</div>
+                        <div class="m">Last address of the DHCP range for addresses allocated</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_end" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" value="{{split(dhcp.end, ".")[3]}}">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="hideable">
+            <div class="cols">
+                <div>
+                    <div class="o">WAN Enable</div>
+                    <div class="m">Allow node to directly access the Internet</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "wan_enable", value: wan_proto === "disabled" ? false : true })}}
+                </div>
+            </div>
+            {{_H("Enable the WAN interface on this node, to allow it to access the Internet directly.")}}
+            <div class="compact hideable hideable0">
+                <div class="cols">
+                    <div>
+                        <div class="o">Mode</div>
+                        <div class="m">Static or DHCP mode</div>
+                    </div>
+                    <div style="flex:0">
+                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="wan_mode">
+                            <option value="0" {{wan_proto !== "static" ? "selected" : ""}}>DHCP</option>
+                            <option value="1" {{wan_proto === "static" ? "selected" : ""}}>Static</option>
+                        </select>
+                    </div>
+                </div>
+                {{_H("The WAN interface can either use DHCP to retrieve an IP address, or it can be set statically.")}}
+                <div class="hideable1">
+                    <div class="cols">
+                        <div>
+                            <div class="o">A&zwnj;ddress</div>
+                            <div class="m">WAN IP a&zwnj;ddress</div>
+                        </div>
+                        <div style="flex:0">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_ip" type="text" size="15" pattern="{{constants.patIP}}" value="{{configuration.getSettingAsString("wan_ip")}}">
+                        </div>
+                    </div>
+                    {{_H("A fixed IP address to assign to the WAN interace on this node.")}}
+                    <div class="cols">
+                        <div>
+                            <div class="o">Netmask</div>
+                            <div class="m">WAN netmask</div>
+                        </div>
+                        <div style="flex:0">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_mask" type="text" size="15" pattern="(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))" value="{{configuration.getSettingAsString("wan_mask")}}">
+                        </div>
+                    </div>
+                    {{_H("The netmask (e.g. 255.255.255.0) for this interface.")}}
+                    <div class="cols">
+                        <div>
+                            <div class="o">Gateway</div>
+                            <div class="m">Default gateway</div>
+                        </div>
+                        <div style="flex:0">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_gw" type="text" size="15" pattern="{{constants.patIP}}" value="{{configuration.getSettingAsString("wan_gw")}}">
+                        </div>
+                    </div>
+                    {{_H("The default gateway his node should use to access the Internet.")}}
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="cols">
+            <div>
+                <div class="o">DNS</div>
+                <div class="m">Internet DNS servers</div>
+            </div>
+            <div style="flex:0;white-space:nowrap">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="wan_dns1" type="text" size="15" pattern="{{constants.patIP}}" value="{{configuration.getSettingAsString("wan_dns1")}}">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="wan_dns2" type="text" size="15" pattern="{{constants.patIP}}" value="{{configuration.getSettingAsString("wan_dns2")}}">
+            </div>
+        </div>
+        {{_H("For hosts not on the Mesh, use these DNS servers to resolve names to IP addresses.")}}
+        {{_R("dialog-advanced")}}
+        <div class="compact">
+        {% if (includeAdvanced) { %}
+            {% if (length(hardware.getEthernetPorts()) < 2) { %}
+            <div class="cols">
+                <div>
+                    <div class="o">WAN VLAN</div>
+                    <div class="m">Vlan used for Internet access</div>
+                </div>
+                <div style="flex:0">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="wan_vlan" type="text" size="8" placeholder="Untagged" pattern="\d+" value="{{wan_vlan}}">
+                </div>
+            </div>
+            {{_H("By default, the WAN uses an untagged VLAN on multi-port devices, and VLAN 1 on single port devices. This can be changed here if your setup requires something different.
+            Enter the VLAN number required, or leave blank for untagged.")}}
+            {% } %}
+            <div class="cols">
+                <div>
+                    <div class="o">Mesh to WAN</div>
+                    <div class="m">Allow any mesh device to use local WAN.</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "olsrd_gw", value: uciMesh.get("aredn", "@wan[0]", "olsrd_gw") !== "0" })}}
+                </div>
+            </div>
+            {{_H("Allow any node or device on the mesh to use our local Internet connection. This is disabled by default.")}}
+            <div class="cols">
+                <div>
+                    <div class="o">LAN to WAN</div>
+                    <div class="m">Allow any LAN device to use local WAN.</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "lan_dhcp_route", value: uciMesh.get("aredn", "@wan[0]", "lan_dhcp_route") !== "0" })}}
+                </div>
+            </div>
+            {{_H("Allow LAN devices connected to this node to use our Internet connection. This is enabled by default.")}}
+            <div class="cols">
+                <div>
+                    <div class="o">LAN default route</div>
+                    <div class="m">Provide LAN devices with a default route.</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "lan_dhcp_defaultroute", value: uciMesh.get("aredn", "@wan[0]", "lan_dhcp_defaultroute") !== "0" })}}
+                </div>
+            </div>
+            {{_H("Provide a default route to a LAN connected device, even if our local WAN is disabled. By default this is only provided to
+            devices if our local WAN is available.")}}
+        {% } %}
+        </div>
+    </div>
+    {{_R("dialog-footer")}}
+    <script>
+    (function(){
+    {{_R("open")}}
+    })();
+    </script>
+</div>
