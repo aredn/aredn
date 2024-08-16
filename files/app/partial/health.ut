@@ -54,7 +54,11 @@
     const tmsource = fs.readfile("/tmp/timesync");
 %}
 <div class="ctrl" hx-get="status/e/time" hx-target="#ctrl-modal">
+    {% if (uci.get("aredn", "@time[0]", "military") === "1") { %}
+    <div class="t">{{sprintf("%02d:%02d", tm.hour, tm.min)}}</div>
+    {% } else { %}
     <div class="t">{{tm.hour === 0 ? "12" : tm.hour > 12 ? tm.hour - 12 : tm.hour}}:{{sprintf("%02d", tm.min)}} {{tm.hour >= 12 ? "pm" : "am"}}</div>
+    {% } %}
     <div class="s">time{{tmsource ? " (" + tmsource + ")" : ""}}</div>
 </div>
 <div class="noctrl">
