@@ -76,7 +76,7 @@
         return "-";
     }
 %}
-<div class="noctrl">
+<div class="noctrl" hx-target="#ctrl-modal">
     <div class="section-title">Local Nodes</div>
     <div class="section" style="line-height:18px;margin-top:-16px">
         <div class="cols">
@@ -106,7 +106,7 @@
                 for (let i = 0; i < length(llist); i++) {
                     const tracker = trackers[llist[i].mac];
                     const status = calcColor(tracker);
-                    print("<div class='cols " + status + "'>");
+                    print(`<div class="ctrl cols status ${status}" hx-get="status/e/neighbor-device?m=${tracker.mac}">`);
                     const link = links[tracker.ip] || {};
                     const lq = link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier) + "%")) : "-";
                     const nlq = link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
