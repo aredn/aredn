@@ -47,16 +47,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
         uciMesh.set("aredn", "@tunnel[0]", "weight", request.args.tunnel_weight);
         uciMesh.commit("aredn");
     }
-    if ("_0" in request.args) {
-        const tunnels = [];
-        for (let k in request.args) {
-            if (ord(k) === 95) { // _ == 95
-                const t = request.args[k];
-                if (t) {
-                    push(tunnels, json(t));
-                }
-            }
-        }
+    if ("tunnels" in request.args) {
+        const tunnels = json(request.args.tunnels);
         const found = { ls: {}, lc: {}, ws: {}, wc: {} };
         for (let i = 0; i < length(tunnels); i++) {
             const t = tunnels[i];
@@ -371,8 +363,7 @@ This value is used by default, but each tunnel may overide it.
         const available = {{sprintf("%J", available)}};
         function updateTunnels()
         {
-            const tunnels = { _0: "" };
-            let tc = 0;
+            const tunnels = [];
             const tuns = htmx.findAll("#tunnels .tunnel");
             for (let i = 0; i < tuns.length; i++) {
                 const t = tuns[i];
@@ -386,7 +377,7 @@ This value is used by default, but each tunnel may overide it.
                 const enable = htmx.find(t, "input[name=enable]");
                 const weight = htmx.find(t, "input[name=weight]");
                 if (name.validity.valid && password.validity.valid && network.validity.valid && notes.validity.valid && weight.validity.valid) {
-                    tunnels[`_${tc++}`] = JSON.stringify({
+                    tunnels.push({
                         index: index,
                         type: type,
                         name: name.value,
@@ -401,7 +392,7 @@ This value is used by default, but each tunnel may overide it.
             }
             htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
                 swap: "none",
-                values: tunnels
+                values: { tunnels: JSON.stringify(tunnels) }
             });
         }
         htmx.on("input[name=tunnel_server]", "change", e => {
