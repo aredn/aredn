@@ -102,9 +102,13 @@ if (tracker) {
 }
 %}
 <div class="dialog">
-    {{_R("dialog-header", "Neighborhood Device")}}
+    {% if (tracker && tracker.type === "DtD" && tracker.distance < 50) { %}
+    {{_R("dialog-header", "Local Node")}}
+    {% } else { %}
+    {{_R("dialog-header", "Neighborhood Node")}}
+    {% } %}
     <div>
-        {{_H("Provides more detailed information about the state of a link from this node to a neighbor. The current blocked
+        {{_H("Provides more detailed information about the state of a link from this node to another. The current blocked
         state is show in the top/right corner. This can be changed to either <b>always block</b> or <b>never block</b> to override
         the automatic management of the link's use.")}}
         {%
