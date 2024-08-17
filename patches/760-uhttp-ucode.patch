@@ -1,0 +1,51 @@
+--- /dev/null
++++ b/package/network/services/uhttpd/patches/100-ucode-bigbuf.patch
+@@ -0,0 +1,48 @@
++--- a/ucode.c
+++++ b/ucode.c
++@@ -137,20 +137,25 @@
++ }
++ 
++ static uc_value_t *
++-uh_ucode_strconvert(uc_vm_t *vm, size_t nargs, int (*convert)(char *, int, const char *, int))
+++uh_ucode_strconvert(uc_vm_t *vm, size_t nargs, size_t scale, int (*convert)(char *, int, const char *, int))
++ {
++ 	uc_value_t *val = uc_fn_arg(0);
++-	static char out_buf[4096];
+++	char *out_buf = NULL;
+++	int out_buf_len;
++ 	int out_len;
++ 	char *p;
++ 
++ 	if (ucv_type(val) == UC_STRING) {
++-		out_len = convert(out_buf, sizeof(out_buf),
+++		out_buf_len = ucv_string_length(val) * scale;
+++		out_buf = (char *)alloca(out_buf_len);
+++		out_len = convert(out_buf, out_buf_len,
++ 			ucv_string_get(val), ucv_string_length(val));
++ 	}
++ 	else if (val != NULL) {
++ 		p = ucv_to_string(vm, val);
++-		out_len = p ? convert(out_buf, sizeof(out_buf), p, strlen(p)) : 0;
+++		out_buf_len = strlen(p) * scale;
+++		out_buf = (char *)alloca(out_buf_len);
+++		out_len = p ? convert(out_buf, out_buf_len, p, strlen(p)) : 0;
++ 		free(p);
++ 	}
++ 	else {
++@@ -177,13 +182,13 @@
++ static uc_value_t *
++ uh_ucode_urldecode(uc_vm_t *vm, size_t nargs)
++ {
++-	return uh_ucode_strconvert(vm, nargs, ops->urldecode);
+++	return uh_ucode_strconvert(vm, nargs, 1, ops->urldecode);
++ }
++ 
++ static uc_value_t *
++ uh_ucode_urlencode(uc_vm_t *vm, size_t nargs)
++ {
++-	return uh_ucode_strconvert(vm, nargs, ops->urlencode);
+++	return uh_ucode_strconvert(vm, nargs, 3, ops->urlencode);
++ }
++ 
++ static uc_parse_config_t config = {
