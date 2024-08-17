@@ -368,128 +368,129 @@
     {{_R("dialog-header", "Firmware")}}
     <div id="firmware-update">
         {{_R("dialog-messages")}}
-        <div class="cols">
-            <div>
-                <div class="o">Firmware</div>
-                <div class="m">Current firmware version</div>
-            </div>
-            <div style="flex:0">
-                <input type="text" disabled size="35" value="{{configuration.getFirmwareVersion()}}">
-            </div>
-        </div>
-        <div class="cols">
-            <div>
-                <div class="o">Hardware</div>
-                <div class="m">Hardware type</div>
-            </div>
-            <div style="flex:0">
-                <input type="text" disabled size="35" value="{{hardware.getHardwareType()}}">
-            </div>
-        </div>
-        {{_H("The hardware type is useful when finding firmware files to upload or sideload. When using the download feature
-        the node will automatically find the correct firmware.")}}
-        <hr>
-        <div>
+        <div style="overflow-y:scroll;padding-left:2px">
             <div class="cols">
                 <div>
-                    <div class="o">Download Firmware</div>
-                    <div class="m">Download firmware from an AREDN server.</div>
+                    <div class="o">Firmware</div>
+                    <div class="m">Current firmware version</div>
                 </div>
                 <div style="flex:0">
-                    <select id="download-firmware" {{sideload ? 'disabled' : ''}}>
-                        <option value="-">-</option>
-                        {%
-                            const f = fs.open("/tmp/firmware.list");
-                            if (f) {
-                                const list = json(f.read("all"));
-                                f.close();
-                                for (let k in list) {
-                                    print(`<option value="${k}">${k}${index(k, "-") == -1 ? "" : " (nightly)"}</option>`);
+                    <input type="text" disabled size="35" value="{{configuration.getFirmwareVersion()}}">
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Hardware</div>
+                    <div class="m">Hardware type</div>
+                </div>
+                <div style="flex:0">
+                    <input type="text" disabled size="35" value="{{hardware.getHardwareType()}}">
+                </div>
+            </div>
+            {{_H("The hardware type is useful when finding firmware files to upload or sideload. When using the download feature
+            the node will automatically find the correct firmware.")}}
+            <hr>
+            <div>
+                <div class="cols">
+                    <div>
+                        <div class="o">Download Firmware</div>
+                        <div class="m">Download firmware from an AREDN server.</div>
+                    </div>
+                    <div style="flex:0">
+                        <select id="download-firmware" {{sideload ? 'disabled' : ''}}>
+                            <option value="-">-</option>
+                            {%
+                                const f = fs.open("/tmp/firmware.list");
+                                if (f) {
+                                    const list = json(f.read("all"));
+                                    f.close();
+                                    for (let k in list) {
+                                        print(`<option value="${k}">${k}${index(k, "-") == -1 ? "" : " (nightly)"}</option>`);
+                                    }
                                 }
-                            }
-                        %}
-                    </select>
-                </div>
-                <div style="flex:0">
-                    <div id="firmware-refresh"><button class="icon refresh"></button></div>
-                </div>
-            </div>
-            {{_H("Download firmware directly from a central server, either on the Internet or a locally configured mesh server.
-            Refresh the list of available firmware version using the refresh button to the right of the firmware list. Once a
-            firmware is selected it can be downloaded and installed using the button at the base of the dialog.")}}
-            <br>
-            <div class="cols">
-                <div>
-                    <div class="o">Upload Firmware</div>
-                    <div class="m">Upload a firmware file from your computer.</div>
-                </div>
-                <div style="flex:0">
-                    <input type="file" accept=".bin,.gz" {{sideload ? 'disabled' : ''}}>
-                </div>
-            </div>
-            {{_H("Upload a firmware file from your computer. Once the firmware has been selected it can be uploaded and installed
-            using the button at the base of the dialog.")}}
-            <br>
-            <div class="cols">
-                <div>
-                    <div class="o">Sideload Firmware</div>
-                    <div class="m">Use an alternatve way to load firmware onto the node.</div>
-                </div>
-                <div style="flex:0">
-                    <input id="sideload-firmware" type="text" disabled placeholder="/tmp/local_firmware" value="{{sideload ? '/tmp/local_firmware' : ''}}">
-                </div>
-            </div>
-            {{_H("Sideload a firmware file by transferring it onto the node by some other means (e.g. scp) and putting it in the /tmp directory
-            with the name local_firmware. It can then be installed using the button at the base of the dialog.")}}
-            {{_R("dialog-advanced")}}
-            <div>
-            {% if (includeAdvanced) { %}
-                {% if (fs.access("/rom/etc")) { %}
-                <div class="cols">
-                    <div>
-                        <div class="o">Keep Configuration</div>
-                        <div class="m">Keep existing configuration after upgrade.</div>
+                            %}
+                        </select>
                     </div>
                     <div style="flex:0">
-                        {{_R("switch", { name: "keepconfig", value: true })}}
+                        <div id="firmware-refresh"><button class="icon refresh"></button></div>
                     </div>
                 </div>
-                {{_H("Keep the current configuration when updating the node's firmware. This is usually what you want to do, but on
-                rare occasions you might want to return the node to its first boot state.")}}
+                {{_H("Download firmware directly from a central server, either on the Internet or a locally configured mesh server.
+                Refresh the list of available firmware version using the refresh button to the right of the firmware list. Once a
+                firmware is selected it can be downloaded and installed using the button at the base of the dialog.")}}
+                <br>
+                <div class="cols">
+                    <div>
+                        <div class="o">Upload Firmware</div>
+                        <div class="m">Upload a firmware file from your computer.</div>
+                    </div>
+                    <div style="flex:0">
+                        <input type="file" accept=".bin,.gz" {{sideload ? 'disabled' : ''}}>
+                    </div>
+                </div>
+                {{_H("Upload a firmware file from your computer. Once the firmware has been selected it can be uploaded and installed
+                using the button at the base of the dialog.")}}
+                <br>
+                <div class="cols">
+                    <div>
+                        <div class="o">Sideload Firmware</div>
+                        <div class="m">Use an alternatve way to load firmware onto the node.</div>
+                    </div>
+                    <div style="flex:0">
+                        <input id="sideload-firmware" type="text" disabled placeholder="/tmp/local_firmware" value="{{sideload ? '/tmp/local_firmware' : ''}}">
+                    </div>
+                </div>
+                {{_H("Sideload a firmware file by transferring it onto the node by some other means (e.g. scp) and putting it in the /tmp directory
+                with the name local_firmware. It can then be installed using the button at the base of the dialog.")}}
+                {{_R("dialog-advanced")}}
+                <div>
+                {% if (includeAdvanced) { %}
+                    {% if (fs.access("/rom/etc")) { %}
+                    <div class="cols">
+                        <div>
+                            <div class="o">Keep Configuration</div>
+                            <div class="m">Keep existing configuration after upgrade.</div>
+                        </div>
+                        <div style="flex:0">
+                            {{_R("switch", { name: "keepconfig", value: true })}}
+                        </div>
+                    </div>
+                    {{_H("Keep the current configuration when updating the node's firmware. This is usually what you want to do, but on
+                    rare occasions you might want to return the node to its first boot state.")}}
+                    {% } %}
+                    <div class="cols">
+                        <div>
+                            <div class="o">Dangerous Upgrade</div>
+                            <div class="m">Force the firmware onto the device, even if it fails the safety checks.</div>
+                        </div>
+                        <div style="flex:0">
+                            {{_R("switch", { name: "dangerousupgrade", value: false })}}
+                        </div>
+                    </div>
+                    {{_H("Force the firmware to be installed, even if the system thinks it is not compatible. You almost never
+                    want to do this so this should be used with care.")}}
+                    <div class="cols">
+                        <div>
+                            <div class="o">Firmware URL</div>
+                            <div class="m">URL for downloading firmware</div>
+                        </div>
+                        <div style="flex:0">
+                            <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="firmwareurl" type="text" size="45" pattern="{{constants.patUrl}}" value="{{uciMesh.get("aredn", "@downloads[0]", "firmware_aredn")}}">
+                        </div>
+                    </div>
+                    {{_H("The base URL used to download firmware. By default this points to the main AREDN repository, but you can change this
+                    to a local server, especially if you'd like to do this without a connection to the Internet.")}}
                 {% } %}
-                <div class="cols">
-                    <div>
-                        <div class="o">Dangerous Upgrade</div>
-                        <div class="m">Force the firmware onto the device, even if it fails the safety checks.</div>
-                    </div>
-                    <div style="flex:0">
-                        {{_R("switch", { name: "dangerousupgrade", value: false })}}
-                    </div>
-                </div>
-                {{_H("Force the firmware to be installed, even if the system thinks it is not compatible. You almost never
-                want to do this so this should be used with care.")}}
-                <div class="cols">
-                    <div>
-                        <div class="o">Firmware URL</div>
-                        <div class="m">URL for downloading firmware</div>
-                    </div>
-                    <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="firmwareurl" type="text" size="45" pattern="{{constants.patUrl}}" value="{{uciMesh.get("aredn", "@downloads[0]", "firmware_aredn")}}">
-                    </div>
-                </div>
-                {{_H("The base URL used to download firmware. By default this points to the main AREDN repository, but you can change this
-                to a local server, especially if you'd like to do this without a connection to the Internet.")}}
-            {% } %}
-            </div>
-            <div style="flex:1"></div>
-            <div class="cols" style="padding-top:16px">
-                <div id="firmware-upload"><progress value="0" max="100"></div>
-                <div style="flex:0">
-                    <button id="fetch-and-update" {{sideload ? '' : 'disabled'}} hx-trigger="none" hx-encoding="multipart/form-data">{{sideload ? 'Update' : 'Fetch and Update'}}</button>
                 </div>
             </div>
-            {{_H("<br>Depending on how the firmware it to be installed using the options above, this button will initiate the process.")}}
         </div>
+        <div class="cols" style="padding-top:16px">
+            <div id="firmware-upload"><progress value="0" max="100"></div>
+            <div style="flex:0">
+                <button id="fetch-and-update" {{sideload ? '' : 'disabled'}} hx-trigger="none" hx-encoding="multipart/form-data">{{sideload ? 'Update' : 'Fetch and Update'}}</button>
+            </div>
+        </div>
+        {{_H("<br>Depending on how the firmware it to be installed using the options above, this button will initiate the process.")}}
     </div>
     {{_R("dialog-footer", "nocancel" )}}
     <script>
