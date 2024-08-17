@@ -661,8 +661,10 @@ function lqm()
                             end
 
                             -- Keep some useful info
-                            track.model = info.node_details.model
-                            track.firmware_version = info.node_details.firmware_version
+                            if info.node_details then
+                                track.model = info.node_details.model
+                                track.firmware_version = info.node_details.firmware_version
+                            end
 
                             if track.type == "RF" then
                                 rflinks[track.mac] = nil
