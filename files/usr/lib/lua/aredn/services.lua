@@ -180,6 +180,38 @@ local function get(validate)
                 vstate[host.host:lower()] = last
             end
         end
+        -- Load NAT
+        local nat = nil
+        if dmz_mode == "0" then
+            local portfile = "/etc/config.mesh/_setup.ports.nat"
+            if nixio.fs.access(portfile) then
+                nat = {}
+                local lname = name:lower() .. ".local.mesh"
+                for line in io.lines(portfile)
+                do
+                    local _, type, sport, addr, dport, enable = line:match("^(.+):(.+):(.+):(.+):(%d+):(%d)$")
+                    if enable == "1" then
+                        local sp, ep = sport:match("^(%d+)%-(%d+)$")
+                        if not sp then
+                            sp = sport
+                            ep = sport
+                        end
+                        sp = tonumber(sp)
+                        ep = tonumber(ep)
+                        dport = tonumber(dport)
+                        for p = sp, ep
+                        do
+                            if type == "udp" or type == "both" then
+                                nat[lname .. ":udp:" .. p] = { hostname = addr, port = dport + p - sp }
+                            end
+                            if type == "tcp" or type == "both" then
+                                nat[lname .. ":tcp:" .. p] = { hostname = addr, port = dport + p - sp }
+                            end
+                        end
+                    end
+                end
+            end
+        end
         -- Check all the services have a valid host
         for _, service in ipairs(services)
         do
@@ -194,6 +226,12 @@ local function get(validate)
                         -- http so looks like a link. http check it
                         if not hostname:match("%.local%.mesh$") then
                             hostname = hostname .. ".local.mesh"
+                        end
+                        -- nat translation
+                        local m = nat and nat[hostname:lower() .. ":tcp:" .. port]
+                        if m then
+                            hostname = m.hostname
+                            port = m.port
                         end
                         local status, effective_url = io.popen("/usr/bin/curl --max-time 10 --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --location --write-out '%{http_code} %{url_effective}' " .. "http://" .. hostname .. ":" .. port .. path):read("*a"):match("^(%d+) (.*)")
                         if status == "200" or status == "401" then
@@ -211,7 +249,13 @@ local function get(validate)
                         -- tcp
                         local s = nixio.socket("inet", "stream")
                         s:setopt("socket", "sndtimeo", 2)
-                        local r = s:connect(hostname, tonumber(port))
+                        local r
+                        local m = nat[hostname:lower() .. ":tcp:" .. port]
+                        if m then
+                            r = s:connect(m.hostname, tonumber(m.port))
+                        else
+                            r = s:connect(hostname, tonumber(port))
+                        end
                         s:close()
                         if r == true then
                             -- tcp connection succeeded
@@ -220,7 +264,12 @@ local function get(validate)
                             -- udp
                             s = nixio.socket("inet", "dgram")
                             s:setopt("socket", "rcvtimeo", 2)
-                            s:connect(hostname, tonumber(port))
+                            local m = nat[hostname:lower() .. ":udp:" .. port]
+                            if m then
+                                s:connect(m.hostname, tonumber(m.port))
+                            else
+                                s:connect(hostname, tonumber(port))
+                            end
                             s:send("")
                             r = s:recv(0)
                             s:close()
