@@ -186,7 +186,7 @@ local function get(validate)
             local portfile = "/etc/config.mesh/_setup.ports.nat"
             if nixio.fs.access(portfile) then
                 nat = {}
-                local lname = name:lower()
+                local lname = name:lower() .. ".local.mesh"
                 for line in io.lines(portfile)
                 do
                     local _, type, sport, addr, dport, enable = line:match("^(.+):(.+):(.+):(.+):(%d+):(%d)$")
