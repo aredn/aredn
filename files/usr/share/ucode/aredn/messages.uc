@@ -96,7 +96,7 @@ export function haveToDos()
         if (ant || length(ants) === 1) {
             if (!cursor.get("aredn", "@location[0]", "azimuth")) {
                 const ainfo = hardware.getAntennaInfo(wlan, ant || ants[0]);
-                if (ainfo.beamwidth !== 360) {
+                if (ainfo?.beamwidth !== 360) {
                     return true;
                 }
             }
@@ -125,7 +125,7 @@ export function getToDos()
         else if (ant || length(ants) === 1) {
             if (!cursor.get("aredn", "@location[0]", "azimuth")) {
                 const ainfo = hardware.getAntennaInfo(wlan, ant || ants[0]);
-                if (ainfo.beamwidth !== 360) {
+                if (ainfo?.beamwidth !== 360) {
                     push(todos, "Set antenna azimuth");
                 }
             }
