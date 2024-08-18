@@ -85,6 +85,7 @@ function app.run()
             local clat = tonumber(c:get("aredn", "@location[0]", "lat") or 0)
             local clon = tonumber(c:get("aredn", "@location[0]", "lon") or 0)
             if math.abs(clat - j.lat) > CHANGEMARGIN or math.abs(clon - j.lon) > CHANGEMARGIN then
+                nixio.syslog("notice", "Updating lat/lon: " .. j.lat .. "," .. j.lon)
                 -- Calculate gridsquare from lat/lon
                 local alat = j.lat + 90
                 local flat = 65 + math.floor(alat / 10)
