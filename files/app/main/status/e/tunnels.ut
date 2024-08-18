@@ -69,6 +69,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("vtun", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
                     uciMesh.set("vtun", t.index, "netip", t.network);
                     uciMesh.set("vtun", t.index, "weight", t.weight);
+                    uciMesh.set("vtun", t.index, "contact", t.notes);
                     break;
                 }
                 case "lc":
@@ -85,6 +86,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("vtun", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
                     uciMesh.set("vtun", t.index, "netip", t.network);
                     uciMesh.set("vtun", t.index, "weight", t.weight);
+                    uciMesh.set("vtun", t.index, "contact", t.notes);
                     break;
                 }
                 case "ws":
@@ -97,6 +99,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("wireguard", t.index, "key", t.key);
                     uciMesh.set("wireguard", t.index, "clientip", t.network);
                     uciMesh.set("wireguard", t.index, "weight", t.weight);
+                    uciMesh.set("wireguard", t.index, "contact", t.notes);
                     break;
                 }
                 case "ls":
@@ -112,6 +115,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("vtun", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
                     uciMesh.set("vtun", t.index, "netip", t.network);
                     uciMesh.set("vtun", t.index, "weight", t.weight);
+                    uciMesh.set("vtun", t.index, "contact", t.notes);
                     break;
                 }
                 default:
@@ -195,7 +199,7 @@ uciMesh.foreach("vtun", "server", a => {
         type: wireguard ? "wc" : "lc",
         name: a.host,
         enabled: a.enabled === "1",
-        notes: a.comment || "",
+        notes: a.contact || "",
         network: a.netip,
         passwd: a.passwd,
         weight: a.weight ?? "",
@@ -212,7 +216,7 @@ uciMesh.foreach("vtun", "client", a => {
         type: "ls",
         name: replace(a.name, remove, ""),
         enabled: a.enabled === "1",
-        notes: a.comment || "",
+        notes: a.contact || "",
         network: a.netip,
         passwd: a.passwd,
         weight: a.weight ?? "",
@@ -226,7 +230,7 @@ uciMesh.foreach("wireguard", "client", a => {
         type: "ws",
         name: a.name,
         enabled: a.enabled === "1",
-        notes: a.comment || "",
+        notes: a.contact || "",
         network: a.clientip,
         key: a.key,
         passwd: replace(a.key, /^[A-Za-z0-9+\/]+=/, ""),
