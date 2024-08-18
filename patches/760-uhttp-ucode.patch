@@ -20,7 +20,7 @@
 + 	if (ucv_type(val) == UC_STRING) {
 +-		out_len = convert(out_buf, sizeof(out_buf),
 ++		out_buf_len = ucv_string_length(val) * scale;
-++		out_buf = (char *)alloca(out_buf_len);
+++		out_buf = (char *)alloca(out_buf_len + 1);
 ++		out_len = convert(out_buf, out_buf_len,
 + 			ucv_string_get(val), ucv_string_length(val));
 + 	}
@@ -28,7 +28,7 @@
 + 		p = ucv_to_string(vm, val);
 +-		out_len = p ? convert(out_buf, sizeof(out_buf), p, strlen(p)) : 0;
 ++		out_buf_len = strlen(p) * scale;
-++		out_buf = (char *)alloca(out_buf_len);
+++		out_buf = (char *)alloca(out_buf_len + 1);
 ++		out_len = p ? convert(out_buf, out_buf_len, p, strlen(p)) : 0;
 + 		free(p);
 + 	}
