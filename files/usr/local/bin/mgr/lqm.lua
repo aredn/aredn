@@ -743,11 +743,20 @@ function lqm()
 
             -- Ping addresses and penalize quality for excessively slow links
             if should_ping(track) then
-                local success = true
+                local success = false
                 local ptime
 
-                if track.type == "Tunnel" or track.type == "Wireguard" then
-                    -- Measure the "ping" time directly to the device by sending a UDP packet
+                if track.type ~= "Tunnel" and track.type ~= "Wireguard" then
+                    -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
+                    -- table and firewall messing up the response packet.
+                    local pstart = socket.gettime(0)
+                    if os.execute(ARPING .. " -q -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) ~= 0 then
+                        success = true
+                    end
+                    ptime = socket.gettime(0) - pstart
+                end
+                if not success then
+                    -- If that fails, measure the "ping" time directly to the device by sending a UDP packet
                     local sigsock = nixio.socket("inet", "dgram")
                     sigsock:setopt("socket", "rcvtimeo", ping_timeout)
                     sigsock:setopt("socket", "bindtodevice", track.device)
@@ -758,20 +767,11 @@ function lqm()
                     sigsock:send("")
                     -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
                     -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
-                    if sigsock:recv(0) == false then
-                        success = false
+                    if sigsock:recv(0) ~= false then
+                        success = true
                     end
                     ptime = socket.gettime(0) - pstart
                     sigsock:close()
-                else
-                    -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
-                    -- table and firewall messing up the response packet.
-                    local pstart = socket.gettime(0)
-                    if os.execute(ARPING .. " -q -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) == 0 then
-                        -- Failure
-                        success = false
-                    end
-                    ptime = socket.gettime(0) - pstart
                 end
 
                 wait_for_ticks(0)
