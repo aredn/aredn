@@ -583,8 +583,12 @@ function hardware.gps_read_llt(gps, maxlines)
         local j = gps_read(s)
         if j.class == "TPV" then
             info.time = j.time:gsub("T", " "):gsub(".000Z", "")
-            info.lat = j.lat
-            info.lon = j.lon
+            if j.lat then
+                info.lat = tonumber(string.format("%.5f", j.lat))
+            end
+            if j.lon then
+                info.lon = tonumber(string.format("%.5f", j.lon))
+            end
             break
         end
         maxlines = maxlines - 1
