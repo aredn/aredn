@@ -186,11 +186,11 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Reboot the node at a specific hour every day</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="watchdog_daily" type="text" size="20" placeholder="None" pattern="(\d|1\d|2[0-3])" value="{{uciMesh.get("aredn", "@watchdog[0]", "daily") || ""}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="watchdog_daily" type="text" size="20" placeholder="None" pattern="(0\d|1\d|2[0-3]):(0\d|[1-5]\d)" value="{{uciMesh.get("aredn", "@watchdog[0]", "daily") || ""}}">
                     </div>
                 </div>
-                {{_H("For the node to reboot at a specific hour of the day (between 0 and 23), every day. Hopefully this isn't necessary. but it can be a good fallback for nodes which
-                are unreliable and in places difficult to reach.")}}
+                {{_H("Set a specific time of the day (between 00:00 and 23:59) to reboot the node automatically. Hopefully this isn't necessary. but it can be a good fallback for nodes which
+                are unreliable and in places difficult to reach. A node must have its time set using either NTP or GPS for this to be honored.")}}
             </div>
         </div>
     {% if (hardware.hasPOE()) { %}

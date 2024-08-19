@@ -42,6 +42,7 @@ local W = {}
 local tick = 20
 local ping_timeout = 3
 local startup_delay = 600
+local ping_state = {}
 
 -- Set of daemons to monitor
 local default_daemons = "olsrd dnsmasq telnetd dropbear uhttpd"
@@ -52,15 +53,22 @@ end
 function W.get_config(verbose)
     local c = uci.cursor()
 
-    local ping_addresses = {}
     local addresses = c:get("aredn", "@watchdog[0]", "ping_addresses") or ""
+    local new_ping_state = {}
     for address in addresses:gmatch("(%S+)") do
         if address:match("^%d+%.%d+%.%d+%.%d+$") then
             if verbose then
-                nixio.syslog("debug", "pinging " .. address)
+                nixio.syslog("debug", "pinging " .. address)                
             end
-            ping_addresses[#ping_addresses + 1] = address
+            local idx = #new_ping_state + 1
+            new_ping_state[idx] = { address = address, success = true }
+            if not ping_state[idx] or ping_state[idx].address ~= address then
+                ping_state = new_ping_state
+            end
         end
+    end
+    if #ping_state ~= #new_ping_state then
+        ping_state = new_ping_state
     end
 
     local daemons = {}
@@ -72,10 +80,25 @@ function W.get_config(verbose)
         daemons[#daemons + 1] = daemon
     end
 
-    local daily = tonumber(c:get("aredn", "@watchdog[0]", "daily") or nil) or -1
+    local daily = c:get("aredn", "@watchdog[0]", "daily")
+    if daily then
+        local h, m = daily:match("%d%d:%d%d")
+        if h then
+            daily = 60 * tonumber(h) + tonumber(m)
+        else
+            h = daily:match("%d%d?")
+            if h then
+                daily = 60 * tonumber(h)
+            else
+                daily = -1
+            end
+        end
+    else
+        daily = -1
+    end
 
     return {
-        ping_addresses = ping_addresses,
+        pings = ping_state,
         daemons = daemons,
         daily = daily
     }
@@ -107,7 +130,7 @@ function W.start()
         return
     end
 
-    local daily_reboot_armed = false
+    local ping_index = 0
 
     while true
     do
@@ -117,18 +140,18 @@ function W.start()
         -- Update config
         config = W.get_config()
 
-        -- Reboot a device daily at a given time if configured. To avoid rebooting over and
-        -- over we must have just seen the previous hour
-        if config.daily ~= -1 then
+        -- Reboot a device daily at a given time if configured.
+        -- To avoid rebooting at the wrong time we will only do this if the node has been running
+        -- for > 1 hour, and the time has been set by ntp of gps
+        if config.daily ~= -1 and nixio.sysinfo().uptime >= 3600 and nixio.fs.stat("/tmp/timesync") then
             local time = os.date("*t")
-            if time.min >= 55 and (time.hour + 1) % 24 == config.daily then
-                daily_reboot_armed = true
-            elseif daily_reboot_armed and time.hour == config.daily then
+            local timediff = (time.min + time.hour * 60) - daily
+            if timediff < 0 then
+                timediff = timediff + 24 * 60
+            end
+            if timediff < 5 then
                 nixio.syslog("notice", "reboot")
                 os.execute(REBOOT .. " >/dev/null 2>&1")
-                daily_reboot_armed = false
-            else
-                daily_reboot_armed = false
             end
         end
 
@@ -148,19 +171,29 @@ function W.start()
             end
 
             -- Check we can reach any of the ping addresses
-            if #config.ping_addresses > 0 then
+            -- We cycle over them one per iteration so as not to consume too much time
+            if #config.pings > 0 then
+                ping_index = ping_index + 1
+                if ping_index > #config.pings then
+                    ping_index = 1
+                end
+                local target = config.pings[ping_index]
+
+                if os.execute(PING .. " -c 1 -A -q -W " .. ping_timeout .. " " .. target.address .. " > /dev/null 2>&1") == 0 then
+                    target.success = true
+                else
+                    target.success = false
+                    nixio.syslog("err", "ping " .. address .. " failed")
+                end
+                
+                -- All targets have to fail for this whole test to fail
                 success = false
-                for _, address in ipairs(config.ping_addresses)
+                for _, target in ipairs(config.pings)
                 do
-                    if os.execute(PING .. " -c 1 -A -q -W " .. ping_timeout .. " " .. address .. " > /dev/null 2>&1") == 0 then
+                    if target.success then
                         success = true
                         break
-                    else
-                        nixio.syslog("err", "ping " .. address .. " failed")
                     end
-                end
-                if not success then
-                    break
                 end
             end
 
