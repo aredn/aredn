@@ -36,7 +36,8 @@ local ip = require("luci.ip")
 require("aredn.info")
 local socket = require("socket")
 
-local refresh_timeout = 15 * 60 -- refresh high cost data every 15 minutes
+local refresh_timeout_base = 12 * 60 -- refresh high cost data every 12 minutes
+local refresh_timeout_limit = 17 * 60 -- to 17 minutes
 local refresh_retry_timeout = 5 * 60
 local pending_timeout = 5 * 60 -- pending node wait 5 minutes before they are included
 local lastseen_timeout = 60 * 60 -- age out nodes we've not seen for 1 hour
@@ -218,6 +219,10 @@ function force_remove_block(track)
     if handle then
         nft_delete("input_lqm", handle)
     end
+end
+
+function refresh_timeout()
+     return math.random(refresh_timeout_base, refresh_timeout_limit)
 end
 
 -- Distance in meters between two points
@@ -619,7 +624,8 @@ function lqm()
                 end
 
                 -- Refresh remote attributes periodically as this is expensive
-                if now > track.refresh then
+                -- We dont do it the very first time so we can populate the LQM state with a new node quickly
+                if now > track.refresh and track.firstseen ~= track.lastseen then
 
                     -- Refresh the hostname periodically as it can change
                     track.hostname = canonical_hostname(nixio.getnameinfo(track.ip)) or track.hostname
@@ -644,7 +650,7 @@ function lqm()
                             track.rev_snr = nil
                             track.rev_leaf = nil
                         else
-                            track.refresh = is_pending(track) and 0 or now + refresh_timeout
+                            track.refresh = is_pending(track) and 0 or now + refresh_timeout()
 
                             dtdlinks[track.mac] = {}
 
