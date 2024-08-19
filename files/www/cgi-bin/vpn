@@ -650,6 +650,9 @@ if not is_new_supernode then
         local net
         if netw[4] + cnum * 4 > 252 then
             netw[3] = netw[3] + 1
+            if netw[3] == 256 then
+                netw[3] = 0
+            end
             netw[4] = 0
             net = 0
             cnum = 0
