@@ -82,11 +82,11 @@ function W.get_config(verbose)
 
     local daily = c:get("aredn", "@watchdog[0]", "daily")
     if daily then
-        local h, m = daily:match("%d%d:%d%d")
+        local h, m = daily:match("(%d%d):(%d%d)")
         if h then
             daily = 60 * tonumber(h) + tonumber(m)
         else
-            h = daily:match("%d%d?")
+            h = daily:match("(%d%d?)")
             if h then
                 daily = 60 * tonumber(h)
             else
@@ -183,7 +183,7 @@ function W.start()
                     target.success = true
                 else
                     target.success = false
-                    nixio.syslog("err", "ping " .. address .. " failed")
+                    nixio.syslog("err", "ping " .. target.address .. " failed")
                 end
                 
                 -- All targets have to fail for this whole test to fail
