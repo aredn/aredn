@@ -35,10 +35,19 @@
 {%
     const radio = radios.getActiveConfiguration();
     let midx = -1;
+    let lidx = -1;
+    let widx = -1;
     for (let i = 0; i < length(radio); i++) {
-        if (radio[i].mode === radios.RADIO_MESH) {
-            midx = i;
-            break;
+        switch (radio[i].mode) {
+            case radios.RADIO_MESH:
+                midx = i;
+                break;
+            case radios.RADIO_LAN:
+                lidx = i;
+                break;
+            case radios.RADIO_WAN:
+                widx = i;
+                break;
         }
     }
 %}
@@ -47,24 +56,28 @@
     <div class="section">
         <div class="t">{{hardware.getRadio().name}}</div>
         <div class="s">model</div>
-        {% if (midx !== -1) { %}
+    </div>
+    {% if (midx !== -1) {
+        const r = radio[midx].modes[radios.RADIO_MESH]; %}
+    <div class="section-title">Mesh</div>
+    <div class="section">
         <div class="cols">
             <div>
-                <div class="t">{{radio[midx].modes[radios.RADIO_MESH].channel}}</div>
+                <div class="t">{{r.channel}}</div>
                 <div class="s">channel</div>
             </div>
             <div>
-                <div class="t">{{hardware.getChannelFrequencyRange(radio[midx].iface, radio[midx].modes[radios.RADIO_MESH].channel, radio[midx].modes[radios.RADIO_MESH].bandwidth)}}</div>
+                <div class="t">{{hardware.getChannelFrequencyRange(radio[midx].iface, r.channel, r.bandwidth)}}</div>
                 <div class="s">frequencies</div>
             </div>
             <div>
-                <div class="t">{{radio[midx].modes[radios.RADIO_MESH].bandwidth}} MHz</div>
+                <div class="t">{{r.bandwidth}} MHz</div>
                 <div class="s">bandwidth</div>
             </div>
         </div>
         <div class="cols">
             <div>
-                <div class="t">{{radio[midx].modes[radios.RADIO_MESH].txpower + radio[midx].txpoweroffset}} dBm</div>
+                <div class="t">{{r.txpower + radio[midx].txpoweroffset}} dBm</div>
                 <div class="s">tx power</div>
             </div>
             <div>
@@ -76,8 +89,37 @@
                 <div class="s">minimum snr</div>
             </div>
         </div>
-        {% } %}
     </div>
+    {% }
+    if (lidx !== -1) {
+        const r = radio[lidx].modes[radios.RADIO_LAN]; %}
+    <div class="section-title">LAN Hotspot</div>
+    <div class="section">
+        <div class="cols">
+            <div>
+                <div class="t">{{r.channel}}</div>
+                <div class="s">channel</div>
+            </div>
+            <div>
+                <div class="t">{{r.ssid}}</div>
+                <div class="s">ssid</div>
+            </div>
+            <div></div>
+        </div>
+    </div>
+    {% }
+    if (widx !== -1) {
+        const r = radio[widx].modes[radios.RADIO_WAN]; %}
+    <div class="section-title">WAN Client</div>
+    <div class="section">
+        <div class="cols">
+            <div>
+                <div class="t">{{r.ssid}}</div>
+                <div class="s">ssid</div>
+            </div>
+        </div>
+    </div>
+    {% } %}
 {% if (midx !== -1) { %}
     <div class="section-title">Antenna</div>
     <div class="section">
