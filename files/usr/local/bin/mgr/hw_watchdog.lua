@@ -145,7 +145,7 @@ function W.start()
         -- for > 1 hour, and the time has been set by ntp of gps
         if config.daily ~= -1 and nixio.sysinfo().uptime >= 3600 and nixio.fs.stat("/tmp/timesync") then
             local time = os.date("*t")
-            local timediff = (time.min + time.hour * 60) - daily
+            local timediff = (time.min + time.hour * 60) - config.daily
             if timediff < 0 then
                 timediff = timediff + 24 * 60
             end
