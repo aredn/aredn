@@ -250,7 +250,7 @@ local function get(validate)
                         local s = nixio.socket("inet", "stream")
                         s:setopt("socket", "sndtimeo", 2)
                         local r
-                        local m = nat[hostname:lower() .. ":tcp:" .. port]
+                        local m = nat and nat[hostname:lower() .. ":tcp:" .. port]
                         if m then
                             r = s:connect(m.hostname, tonumber(m.port))
                         else
@@ -264,7 +264,7 @@ local function get(validate)
                             -- udp
                             s = nixio.socket("inet", "dgram")
                             s:setopt("socket", "rcvtimeo", 2)
-                            local m = nat[hostname:lower() .. ":udp:" .. port]
+                            local m = nat and nat[hostname:lower() .. ":udp:" .. port]
                             if m then
                                 s:connect(m.hostname, tonumber(m.port))
                             else
