@@ -153,6 +153,13 @@ function should_ping(track)
     return true
 end
 
+function should_update_info(track)
+    if track.blocked and not track.blocks.distance then
+        return false
+    end
+    return true
+end
+
 function nft(cmd)
     os.execute(NFT .. " " .. cmd)
 end
@@ -630,8 +637,7 @@ function lqm()
                     -- Refresh the hostname periodically as it can change
                     track.hostname = canonical_hostname(nixio.getnameinfo(track.ip)) or track.hostname
 
-                    if track.blocked then
-                        -- Remote is blocked
+                    if not should_update_info(track) then
                         -- We cannot update so invalidate any information considered stale and set time to attempt refresh
                         track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
                         track.rev_snr = nil
