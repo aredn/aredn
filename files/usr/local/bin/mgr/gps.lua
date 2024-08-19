@@ -81,7 +81,7 @@ function app.run()
         end
 
         -- Set location if significantly changed
-        if c:get("aredn", "@location[0]", "gps_enable") == "1" then
+        if c:get("aredn", "@location[0]", "gps_enable") == "1" and j.lat and j.lon then
             local clat = tonumber(c:get("aredn", "@location[0]", "lat") or 0)
             local clon = tonumber(c:get("aredn", "@location[0]", "lon") or 0)
             if math.abs(clat - j.lat) > CHANGEMARGIN or math.abs(clon - j.lon) > CHANGEMARGIN then
