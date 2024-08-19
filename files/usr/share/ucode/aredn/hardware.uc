@@ -148,7 +148,7 @@ export function getRfChannels(wifiIface)
     let channels = channelsCache[wifiIface];
     if (!channels) {
         channels = [];
-        const f = fs.popen("/usr/bin/iwinfo " + wifiIface + " freqlist");
+        const f = fs.popen("/usr/sbin/iw " + replace(wifiIface, "wlan", "phy") + " info 2> /dev/null");
         if (f) {
             let freq_adjust = 0;
             let freq_min = 0;
@@ -171,11 +171,11 @@ export function getRfChannels(wifiIface)
                 if (!line) {
                     break;
                 }
-                const fn = match(line, /(\d+\.\d+) GHz \(Band: .*, Channel (-?\d+)\)/);
+                const fn = match(line, /(\d+) MHz \[(-?\d+)\] /);
                 if (fn && index(line, "restricted") == -1 && index(line, "disabled") === -1) {
-                    const freq = int(replace(fn[1], ".", "")) + freq_adjust;
+                    const freq = int(fn[1]) + freq_adjust;
                     if (freq >= freq_min && freq <= freq_max) {
-                        const num = int(replace(fn[2], "0+", ""));
+                        const num = int(fn[2]);
                         push(channels, {
                             label: freq_adjust === 0 ? num + " (" + freq + ")" : "" + freq,
                             number: num,

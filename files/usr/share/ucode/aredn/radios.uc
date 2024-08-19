@@ -70,34 +70,64 @@ export function getActiveConfiguration()
     const radio = getCommonConfiguration();
     const nrradios = length(radio);
     if (nrradios > 0) {
-        const meshrf = cursor.get("network", "wifi", "device");
-        const widx = match(meshrf, /^wlan(\d+)$/);
-        if (widx) {
-            let device;
-            const mode = {
-                channel: 0,
-                bandwidth: 10,
-                ssid: "AREDN",
-                txpower: configuration.getSettingAsInt("wifi_txpower")
-            };
-            cursor.foreach("wireless", "wifi-iface", function(s)
-            {
-                if (s.network === "wifi" && s.ifname === meshrf) {
-                    device = s.device;
-                    mode.ssid = s.ssid;
-                    return false;
-                }
-            });
-            cursor.foreach("wireless", "wifi-device", function(s)
-            {
-                if (s[".name"] === device) {
-                    mode.channel = int(s.channel);
-                    mode.bandwidth = int(s.chanbw);
-                    return false;
-                }
-            });
-            radio[widx[1]].mode = RADIO_MESH;
-            radio[widx[1]].modes = [ null, mode, null, null ];
+        let mdevice;
+        let ldevice;
+        let wdevice;
+
+        const mmode = {
+            channel: 0,
+            bandwidth: 10,
+            ssid: "-",
+            txpower: configuration.getSettingAsInt("wifi_txpower")
+        };
+        const lmode = {
+            channel: 0,
+            ssid: "-"
+        };
+        const wmode = {
+            ssid: "-"
+        };
+
+        cursor.foreach("wireless", "wifi-iface", function(s)
+        {
+            if (s.network === "wifi" && s.mode === "adhoc") {
+                mdevice = s.device;
+                mmode.ssid = s.ssid;
+            }
+            if (s.network === "lan" && s.mode === "ap") {
+                ldevice = s.device;
+                lmode.ssid = s.ssid;
+            }
+            if (s.network === "wan" && s.mode === "sta") {
+                wdevice = s.device;
+                wmode.ssid = s.ssid;
+            }
+        });
+        cursor.foreach("wireless", "wifi-device", function(s)
+        {
+            if (s[".name"] === mdevice) {
+                mmode.channel = int(s.channel);
+                mmode.bandwidth = int(s.chanbw);
+            }
+            if (s[".name"] === ldevice) {
+                lmode.channel = int(s.channel);
+            }
+        });
+
+        if (mdevice) {
+            const idx = int(substr(mdevice, 5));
+            radio[idx].mode = RADIO_MESH;
+            radio[idx].modes = [ null, mmode, null, null ];
+        }
+        if (ldevice) {
+            const idx = int(substr(ldevice, 5));
+            radio[idx].mode = RADIO_LAN;
+            radio[idx].modes = [ null, null, lmode, null ];
+        }
+        if (wdevice) {
+            const idx = int(substr(wdevice, 5));
+            radio[idx].mode = RADIO_WAN;
+            radio[idx].modes = [ null, null, null, wmode ];
         }
     }
     return radio;
