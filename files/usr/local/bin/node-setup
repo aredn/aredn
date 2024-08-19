@@ -1294,7 +1294,9 @@ local config_special = {
     ssh_access = c:get("aredn", "@wan[0]", "ssh_access"),
     telnet_access = c:get("aredn", "@wan[0]", "telnet_access"),
     wifi_mode_0 = c:get("wireless", "@wifi-iface[0]", "mode"),
-    wifi_mode_1 = c:get("wireless", "@wifi-iface[1]", "mode")
+    wifi_mode_1 = c:get("wireless", "@wifi-iface[1]", "mode"),
+    wifi_channel_0 = c:get("wireless", "@wifi-iface[0]", "channel"),
+    wifi_channel_1 = c:get("wireless", "@wifi-iface[1]", "channel")
 }
 local nfiles = {}
 for file in nixio.fs.glob("/tmp/new_config/*")
@@ -1354,6 +1356,9 @@ do
             changes.firewall = true
         elseif file == "wireless" then
             local oc = uci:cursor()
+            if oc:get("wireless", "@wifi-iface[0]", "channel") ~= config_special.wifi_channel_0 or oc:get("wireless", "@wifi-iface[1]", "channel") ~= config_special.wifi_channel_1 then
+                changes.manager = true
+            end
             if oc:get("wireless", "@wifi-iface[0]", "mode") ~= config_special.wifi_mode_0 or oc:get("wireless", "@wifi-iface[1]", "mode") ~= config_special.wifi_mode_1 then
                 -- Only start the hostapd (etc) if we need to. This doesn't change what is currently running
                 -- only what automatically runs in the future
