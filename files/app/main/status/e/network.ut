@@ -48,6 +48,21 @@ if (request.env.REQUEST_METHOD === "PUT") {
         else if (mode >= 0 && mode <= 5) {
             configuration.setSetting("lan_dhcp", 1);
             configuration.setSetting("dmz_mode", mode);
+            if (mode >= 2) {
+                const wifi_ip = iptoarr(configuration.getSettingAsString("wifi_ip"));
+                let wifi_shift = (wifi_ip[0] << 24) + (wifi_ip[1] << 16) + (wifi_ip[2] << 8) + wifi_ip[3];
+                wifi_shift = (wifi_shift << mode) & 0x00ffffff;
+                let dmz_lan_ip = 0x0a000001 + wifi_shift;
+                dmz_lan_ip = arrtoip([ (dmz_lan_ip >> 24) & 0xff, (dmz_lan_ip >> 16) & 0xff, (dmz_lan_ip >> 8) & 0xff, dmz_lan_ip & 0xff ]);
+                let dmz_lan_mask = 0xffffffff << mode;
+                dmz_lan_mask = arrtoip([ (dmz_lan_mask >> 24) & 0xff, (dmz_lan_mask >> 16) & 0xff, (dmz_lan_mask >> 8) & 0xff, dmz_lan_mask & 0xff ]);
+                const dmz_dhcp_start = (wifi_shift + 2) & 0xff;
+                const dmz_dhcp_end = dmz_dhcp_start + (2 << (mode - 1)) - 4;
+                configuration.setSetting("dmz_lan_ip", dmz_lan_ip);
+                configuration.setSetting("dmz_lan_mask", dmz_lan_mask);
+                configuration.setSetting("dmz_dhcp_start", dmz_dhcp_start);
+                configuration.setSetting("dmz_dhcp_end", dmz_dhcp_end);
+            }
         }
     }
     if ("lan_dhcp_ip" in request.args) {
