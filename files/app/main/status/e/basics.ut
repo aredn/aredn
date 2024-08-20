@@ -84,7 +84,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             configuration.setName(name);
             uciMesh.foreach("vtun", "server", s => {
                 const netip = s.netip;
-                if (index(net, ":") === -1) {
+                if (index(netip, ":") !== -1) {
                     const np = split(netip, ":");
                     const n = iptoarr(np[0]);
                     uciMesh.set("vtun", s[".name"], "node", `${uc(substr(name, 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}:${np[1]}`);
