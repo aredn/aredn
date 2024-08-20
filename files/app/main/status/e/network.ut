@@ -49,6 +49,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             configuration.setSetting("lan_dhcp", 1);
             configuration.setSetting("dmz_mode", mode);
             if (mode >= 2) {
+                const o_lan_ip = iptoarr(configuration.getSettingAsString("dmz_lan_ip"));
                 const wifi_ip = iptoarr(configuration.getSettingAsString("wifi_ip"));
                 let wifi_shift = (wifi_ip[0] << 24) + (wifi_ip[1] << 16) + (wifi_ip[2] << 8) + wifi_ip[3];
                 wifi_shift = (wifi_shift << mode) & 0x00ffffff;
@@ -62,6 +63,27 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 configuration.setSetting("dmz_lan_mask", dmz_lan_mask);
                 configuration.setSetting("dmz_dhcp_start", dmz_dhcp_start);
                 configuration.setSetting("dmz_dhcp_end", dmz_dhcp_end);
+                const dhcp = configuration.getDHCP();
+                let f = fs.open(dhcp.aliases);
+                if (f) {
+                    const aliases = [];
+                    const n_lan_ip = iptoarr(configuration.getSettingAsString("dmz_lan_ip"));
+                    for (let l = f.read("line"); length(l); l = f.read("line")) {
+                        const v = match(trim(l), /^(.+) (.+)$/);
+                        if (v) {
+                            const octet = max(dmz_dhcp_start, min(dmz_dhcp_end, n_lan_ip[3] + iptoarr(v[1])[3] - o_lan_ip[3]));
+                            push(aliases, `${arrtoip([ n_lan_ip[0], n_lan_ip[1], n_lan_ip[2], octet ])} ${v[2]}\n`);
+                        }
+                    }
+                    f.close();
+                    f = fs.open(dhcp.aliases, "w");
+                    if (f) {
+                        for (let i = 0; i < length(aliases); i++) {
+                            f.write(aliases[i]);
+                        }
+                        f.close();
+                    }
+                }
             }
         }
     }
