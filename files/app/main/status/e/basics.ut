@@ -206,7 +206,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div class="m">Change the node password</div>
                 </div>
                 <div>
-                    <input name="passwd1" type="password" pattern="[^#'"]+"><button class="icon eye"></button>
+                    {{_R("password", { name: "passwd1", pattern: "[^#'\"]+" })}}
                 </div>
             </div>
             <div class="cols">
@@ -215,7 +215,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div class="m">Passwords must match</div>
                 </div>
                 <div>
-                    <input name="passwd2" type="password" pattern=""><button class="icon eye"></button>
+                    {{_R("password", { name: "passwd2" })}}
                 </div>
             </div>
             {{_H("Set a new password for this device by entering it twice in the boxes. Don't use the # or any quote character. This password
@@ -280,14 +280,6 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 });
             }
         });
-        function toggle()
-        {
-            const t = htmx.find("dialog input[name=passwd1]").type;
-            htmx.find("dialog input[name=passwd1]").type = t === "text" ? "password" : "text";
-            htmx.find("dialog input[name=passwd2]").type = t === "text" ? "password" : "text";
-        }
-        htmx.on("dialog input[name=passwd1] + button", "click", toggle);
-        htmx.on("dialog input[name=passwd2] + button", "click", toggle);
         {% if (includeAdvanced) { %}
         htmx.on("dialog input[name=ssh_add]", "change", e => {
             htmx.find("dialog select[name=ssh_remove]").value = "-";
@@ -337,4 +329,5 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         {% } %}
     })();
     </script>
+    {{_R("password-ctrl")}}
 </div>

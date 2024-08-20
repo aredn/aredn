@@ -363,7 +363,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                                 <div class="m">Hotspot password</div>
                             </div>
                             <div style="flex:0">
-                                <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_password" type="password" required size="10" maxlength="32" value="{{hexdec(wlan[w].modes[2].key) || "AREDN"}}">
+                                <input class="password-toggle" hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_password" type="password" required size="10" maxlength="32" value="{{hexdec(wlan[w].modes[2].key) || "AREDN"}}"><button class="icon eye"></button>
                             </div>
                         </div>
                     </div>
@@ -387,7 +387,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Client password</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" size="10" maxlength="32" value="{{hexdec(wlan[w].modes[3].key)}}">
+                        <input class="password-toggle" hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" size="10" maxlength="32" value="{{hexdec(wlan[w].modes[3].key)}}"><button class="icon eye"></button>
                     </div>
                 </div>
             </div>
@@ -593,4 +593,5 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     {% } %}
     })();
     </script>
+    {{_R("password-ctrl")}}
 </div>

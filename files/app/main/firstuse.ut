@@ -74,18 +74,18 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     </div>
                     <div class="cols">
                         <div>New Password</div>
-                        <div><input type="password" name="passwd1" required pattern="`[^#'"]+" minlength="4"></div>
+                        <div><input class="password-toggle" type="password" name="passwd1" required pattern="`[^#'"]+" minlength="4"><button class="icon eye"></div>
                     </div>
                     <div class="cols">
                         <div>Retype Password</div>
-                        <div><input type="password" name="passwd2" required pattern="" minlength="4"></div>
+                        <div><input class="password-toggle" type="password" name="passwd2" required pattern="" minlength="4"><button class="icon eye"></div>
                     </div>
                     <div>
                         <small>Enter a password, twice, to assign to your node for access to configuration information later</small>
                     </div>
                     <div class="cols">
                         <div></div>
-                        <div><button disabled>Save &amp; Reboot</button></div>
+                        <div><button class="save" disabled>Save &amp; Reboot</button></div>
                     </div>
                 </div>
             </div>
@@ -107,17 +107,17 @@ if (request.env.REQUEST_METHOD === "PUT") {
             passwd2.required = passwd1.value ? "required" : "";
             passwd2.pattern = passwd1.value;
             if (name.validity.valid && passwd1.validity.valid && passwd2.validity.valid) {
-                htmx.find("button").disabled = false;
+                htmx.find("button.save").disabled = false;
             }
             else {
-                htmx.find("button").disabled = true;
+                htmx.find("button.save").disabled = true;
             }
         }
         htmx.on("input[name=name]", "keyup", change);
         htmx.on("input[name=passwd1]", "keyup", change);
         htmx.on("input[name=passwd2]", "keyup", change);
         htmx.on("button", "click", _ => {
-            htmx.find("button").disabled = true;
+            htmx.find("button.save").disabled = true;
             htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
                 values: {
                     name: htmx.find("input[name=name]").value,
@@ -128,5 +128,6 @@ if (request.env.REQUEST_METHOD === "PUT") {
         });
     })();
     </script>
+    {{_R("password-ctrl")}}
 </body>
 </html>
