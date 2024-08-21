@@ -33,7 +33,7 @@
  */
 %}
 {%
-if (request.env.REQUEST_METHOD === "PUT") {
+if ((auth.isFirstUse || !config.authenable) && request.env.REQUEST_METHOD === "PUT") {
     system(`/usr/local/bin/firstuse-setup '${request.args.name}' '${request.args.passwd}'`);
     response.reboot = true;
     print(_R("reboot-firstuse"));
@@ -116,7 +116,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         htmx.on("input[name=name]", "keyup", change);
         htmx.on("input[name=passwd1]", "keyup", change);
         htmx.on("input[name=passwd2]", "keyup", change);
-        htmx.on("button", "click", _ => {
+        htmx.on("button.save", "click", _ => {
             htmx.find("button.save").disabled = true;
             htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
                 values: {
