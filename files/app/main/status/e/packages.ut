@@ -48,13 +48,13 @@ function getPackageOptions()
 
     let f = fs.popen("/bin/opkg list-installed");
     if (f) {
-        const re = /^[^ \t]+/;
+        const re = /^([^ \t]+)[ \t]-[ \t](.+)/;
         for (let l = f.read("line"); length(l); l = f.read("line")) {
             const m = match(l, re);
             if (m) {
-                installed_pkgs[m[0]] = true;
-                if (!perm_pkgs[m[0]]) {
-                    r += `<option value="${m[0]}">${m[0]}</option>`;
+                installed_pkgs[m[1]] = true;
+                if (!perm_pkgs[m[1]]) {
+                    r += `<option value="${m[1]}">${m[1]} (${trim(m[2])})</option>`;
                 }
             }
         }
@@ -283,7 +283,7 @@ const po = getPackageOptions();
                     <div class="m">URL for downloading packages</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="packageurl" type="text" size="45" pattern="{{constants.patUrl}}" value="{{uciMesh.get("aredn", "@downloads[0]", "packages_default")}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="packageurl" type="text" style="width:280px" pattern="{{constants.patUrl}}" value="{{uciMesh.get("aredn", "@downloads[0]", "packages_default")}}">
                 </div>
             </div>
             {{_H("The base URL used to download packages. By default this points to the main AREDN repository, but you can change this
