@@ -300,7 +300,7 @@ function t2t(type)
                 const t = tunnels[i];
                 const client = t.type === "lc" || t.type === "wc" ? true : false;
                 const wireguard = t.type === "ws" || t.type === "wc" ? true : false;
-                %}<div class="tunnel cols {{wireguard ? '' : 'legacy'}}" data-index="{{t.index}}">
+                %}<div class="tunnel cols" data-index="{{t.index}}">
                     <div class="cols">
                         <div data-type="{{t.type}}">{{t2t(t.type)}}</div>
                         <div>
@@ -312,8 +312,8 @@ function t2t(type)
                                 {% if (t.type === "ws") { %}
                                 <input type="hidden" name="key" value="{{t.key}}">
                                 {% } %}
-                                <input type="text" name="password" required pattern="{{wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}}" placeholder="{{wireguard ? 'Wireguard key' : 'Password'}}" value="{{t.passwd}}" {{t.type === "ws" ? "disabled" : ""}}>
-                                <input type="text" name="network" required pattern="{{constants.patIP}}{{wireguard ? ':' + constants.patPort : ''}}" placeholder="{{wireguard ? 'Network:Port' : 'Network'}}" value="{{t.network}}" {{client ? "" : "disabled"}}>
+                                <input type="text" name="password" required pattern="{{wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}}" placeholder="{{wireguard ? 'Wireguard key' : 'Password'}}" value="{{t.passwd}}" {{t.type === "ws" ? "readonly" : ""}}>
+                                <input type="text" name="network" required pattern="{{constants.patIP}}{{wireguard ? ':' + constants.patPort : ''}}" placeholder="{{wireguard ? 'Network:Port' : 'Network'}}" value="{{t.network}}" {{client ? "" : "readonly"}}>
                                 <input type="text" name="weight" pattern="([0-9]|[1-9][0-9])" placeholder="Wgt" value="{{t.weight}}">
                             </div>
                             <div class="cols">
@@ -464,7 +464,7 @@ This value is used by default, but each tunnel may overide it.
                     break;
             }
             const div = document.createElement("div");
-            div.innerHTML = `<div class="tunnel cols" data-index="${index}">
+            div.innerHTML = `<div class="tunnel cols new" data-index="${index}">
 <div class="cols">
     <div data-type="${type}">${htype}</div>
     <div>
@@ -474,8 +474,8 @@ This value is used by default, but each tunnel may overide it.
         </div>
         <div class="cols pwnw">
             ${type === "ws" ? '<input type="hidden" name="key" value="' + key + '">' : ''}
-            <input type="text" name="password" required pattern="${wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}" placeholder="${wireguard ? 'Wireguard key' : 'Password'}" ${type === "ws" ? "disabled" : ""} value="${password}">
-            <input type="text" name="network" required pattern="((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}${wireguard ? ':{{constants.patPort}}' : ''}" placeholder="${wireguard ? 'Network:Port' : 'Network'}" ${client ? "" : "disabled"} value="${network}">
+            <input type="text" name="password" required pattern="${wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}" placeholder="${wireguard ? 'Wireguard key' : 'Password'}" ${type === "ws" ? "readonly" : ""} value="${password}">
+            <input type="text" name="network" required pattern="((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}${wireguard ? ':{{constants.patPort}}' : ''}" placeholder="${wireguard ? 'Network:Port' : 'Network'}" ${client ? "" : "readonly"} value="${network}">
             <input type="text" name="weight" pattern="([0-9]|[1-9][0-9])" placeholder="Wgt" value="">
         </div>
         <div class="cols">
@@ -517,7 +517,7 @@ This value is used by default, but each tunnel may overide it.
         });
         htmx.on("#tunnels", "paste", event => {
             const target = event.target;
-            if (target.nodeName === "INPUT" && !target.disabled) {
+            if (target.nodeName === "INPUT" && !target.readonly) {
                 const txt = event.clipboardData.getData("text/plain");
                 if (!txt) {
                     return;
