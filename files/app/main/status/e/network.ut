@@ -63,6 +63,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 configuration.setSetting("dmz_lan_mask", dmz_lan_mask);
                 configuration.setSetting("dmz_dhcp_start", dmz_dhcp_start);
                 configuration.setSetting("dmz_dhcp_end", dmz_dhcp_end);
+                configuration.setSetting("dmz_dhcp_limit", dmz_dhcp_end - dmz_dhcp_start + 1);
                 const dhcp = configuration.getDHCP();
                 let f = fs.open(dhcp.aliases);
                 if (f) {
