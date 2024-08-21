@@ -57,7 +57,7 @@ function serv(ip, hostname)
                 const nametype = name.match(/^(.*)\[(.*)\]$/);
                 if (nametype) {
                     name = nametype[1];
-                    type = `<div class="icon ${nametype[2]}"></div>`;
+                    type = `<div class="icon ${nametype[2]}" title="${nametype[2]}"></div>`;
                 }
                 const r = url.match(/^(.+:\/\/)([^:]+):(\d+)(.*)$/);
                 switch (r[3]) {
