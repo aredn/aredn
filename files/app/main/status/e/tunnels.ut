@@ -109,6 +109,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     }
                     uciMesh.set("vtun", t.index, "enabled", t.enabled ? "1" : "0");
                     uciMesh.set("vtun", t.index, "passwd", t.passwd);
+                    uciMesh.set("vtun", t.index, "name", t.name);
                     const n = iptoarr(t.network);
                     uciMesh.set("vtun", t.index, "node", `${uc(substr(t.name, 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}`);
                     uciMesh.set("vtun", t.index, "clientip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 1}`);
@@ -434,7 +435,7 @@ This value is used by default, but each tunnel may overide it.
                     key = `${ks.privateKey}${ks.publicKey}${kc.privateKey}${kc.publicKey}`;
                     password = `${ks.publicKey}${kc.privateKey}${kc.publicKey}`;
                     for (let i = 0; i < 256; i++) {
-                        index = `server_${i}`;
+                        index = `client_${i}`;
                         if (!htmx.find(`.tunnel[data-index="${index}"]`)) {
                             break;
                         }
@@ -444,7 +445,7 @@ This value is used by default, but each tunnel may overide it.
                     htype = "Legacy<br>Server";
                     password = "0000-0000-0000".replace(/(0)/g, _ => ((Math.random()*36)|0).toString(36));
                     for (let i = 0; i < 256; i++) {
-                        index = `server_${i}`;
+                        index = `client_${i}`;
                         if (!htmx.find(`.tunnel[data-index="${index}"]`)) {
                             break;
                         }
@@ -454,7 +455,7 @@ This value is used by default, but each tunnel may overide it.
                 case "lc":
                     htype = `${type === "wc" ? "Wireguard" : "Legacy"}<br>Client`;
                     for (let i = 0; i < 256; i++) {
-                        index = `client_${i}`;
+                        index = `server_${i}`;
                         if (!htmx.find(`.tunnel[data-index="${index}"]`)) {
                             break;
                         }
