@@ -189,7 +189,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         const t = themes[i];
                         const m = match(t, /^(.*)\.css$/);
                         if (t !== "default.css" && m) {
-                            print(`<option value="${m[1]}" ${theme === "themes/" + t ? "selected": ""}>${m[1]}</option>`);
+                            print(`<option value="${m[1]}" ${theme === "themes/" + t ? "selected": ""}>${replace(m[1], /[_\-]/, " ")}</option>`);
                         }
                     }
                 %}
