@@ -108,10 +108,38 @@
     </div>
     {% }
     if (widx !== -1) {
-        const r = radio[widx].modes[radios.RADIO_WAN]; %}
+        const r = radio[widx].modes[radios.RADIO_WAN];
+        let wconnected = false;
+        let winternet = false;
+        let f = fs.popen(`/usr/sbin/iw dev wlan${widx} link 2> /dev/null`);
+        if (f) {
+            const mssid = `SSID: ${r.ssid}`;
+            for (let l = f.read("line"); length(l); l = f.read("line")) {
+                if (index(l, mssid) !== -1) {
+                    wconnected = true;
+                }
+            }
+            f.close();
+        }
+        if (wconnected) {
+            if (system(`/bin/ping -I wlan${widx} -W 1 -c 1 1.1.1.1 > /dev/null 2>&1`, 250) === 0) {
+                winternet = true;
+            }
+        }
+    %}
     <div class="section-title">WAN Client</div>
     <div class="section">
         <div class="cols">
+            <div>
+                {% if (wconnected && winternet) { %}
+                <div class="t">internet</div>
+                {% } else if (wconnected) { %}
+                <div class="t">no internet</div>
+                {% } else { %}
+                <div class="t">no connection</div>
+                {% } %}
+                <div class="s">status</div>
+            </div>
             <div style="flex:2">
                 <div class="t">{{r.ssid}}</div>
                 <div class="s">ssid</div>
