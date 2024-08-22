@@ -36,7 +36,7 @@
 --]]
 
 -- Super early new UI redirect
-if os.getenv("HTTP_REFERER"):match("^http.+//[^/]+/?$") then
+if (os.getenv("HTTP_REFERER") or ""):match("^http.+//[^/]+/?$") then
     print("Status: 307 Temporary Redirect")
     print("Cache-Control: no-store\r")
     print("Access-Control-Allow-Origin: *\r")
