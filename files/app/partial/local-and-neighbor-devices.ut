@@ -108,7 +108,7 @@
                     const status = calcColor(tracker);
                     print(`<div class="ctrl cols status ${status}" hx-get="status/e/neighbor-device?m=${tracker.mac}">`);
                     const link = links[tracker.ip] || {};
-                    const lq = link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier) + "%")) : "-";
+                    const lq = link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     const nlq = link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     if (tracker.hostname) {
                         print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" title='Link status: ${status}' href='http://${tracker.hostname}.local.mesh'>${tracker.hostname}</a></div>`);
