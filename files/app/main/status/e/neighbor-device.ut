@@ -251,6 +251,20 @@ if (tracker) {
                     <div>avg tx</div>
                 </div>
             </div>
+            <div class="cols">
+                <div class="i">
+                    <div>{{type(n.rev_ping_success_time) ? sprintf("%.1f ms", n.rev_ping_success_time * 1000) : "-"}}</div>
+                    <div>neighbor ping time</div>
+                </div>
+                <div class="i">
+                    <div>{{type(n.rev_ping_quality) ? sprintf("%d%%", n.rev_ping_quality) : "-"}}</div>
+                    <div>neighbor ping success</div>
+                </div>
+                <div class="i">
+                    <div>{{type(n.rev_quality) ? sprintf("%d%%", 100 - n.rev_quality) : "-"}}</div>
+                    <div>neighbor errors</div>
+                </div>
+            </div>
             {% if (n.type == "RF") { %}
             <div class="cols">
                 <div class="i">
