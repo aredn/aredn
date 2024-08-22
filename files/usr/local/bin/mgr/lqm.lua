@@ -569,7 +569,10 @@ function lqm()
                     avg_tx_fail = nil,
                     node_route_count = 0,
                     leaf = nil,
-                    rev_leaf = nil
+                    rev_leaf = nil,
+                    rev_ping_quality = nil,
+                    rev_ping_success_time = nil,
+                    rev_quality = nil
                 }
             end
             local track = tracker[station.mac]
@@ -642,6 +645,9 @@ function lqm()
                         track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
                         track.rev_snr = nil
                         track.rev_leaf = nil
+                        track.rev_ping_success_time = nil
+                        track.rev_ping_quality = nil
+                        track.rev_quality = nil
                     else
                         local raw = io.popen(CURL .. " --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
                         local info = luci.jsonc.parse(raw:read("*a"))
@@ -655,6 +661,9 @@ function lqm()
                             track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
                             track.rev_snr = nil
                             track.rev_leaf = nil
+                            track.rev_ping_success_time = nil
+                            track.rev_ping_quality = nil
+                            track.rev_quality = nil
                         else
                             track.refresh = is_pending(track) and 0 or now + refresh_timeout()
 
@@ -676,6 +685,18 @@ function lqm()
                             if info.node_details then
                                 track.model = info.node_details.model
                                 track.firmware_version = info.node_details.firmware_version
+                            end
+
+                            if info.lqm and info.lqm.enabled and info.lqm.info and info.lqm.info.trackers then
+                                for _, rtrack in pairs(info.lqm.info.trackers)
+                                do
+                                    if myhostname == canonical_hostname(rtrack.hostname) then
+                                        track.rev_ping_success_time = rtrack.ping_success_time
+                                        track.rev_ping_quality = rtrack.ping_quality
+                                        track.rev_quality = rtrack.quality
+                                        break
+                                    end
+                                end
                             end
 
                             if track.type == "RF" then
