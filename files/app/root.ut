@@ -608,6 +608,9 @@ global.handle_request = function(env)
         else if (substr(rpath, -4) === ".css") {
             uhttpd.send("Content-Type: text/css\r\n");
         }
+        else if (substr(rpath, -4) === ".svg") {
+            uhttpd.send("Content-Type: image/svg+xml\r\n");
+        }
         if (!config.resourcehash) {
             uhttpd.send("Cache-Control: no-store\r\n");
         }
@@ -630,6 +633,9 @@ global.handle_request = function(env)
         }
         else if (substr(rpath, -4) === ".jpg") {
             uhttpd.send("Content-Type: image/jpeg\r\n");
+        }
+        else if (substr(rpath, -4) === ".svg") {
+            uhttpd.send("Content-Type: image/svg+xml\r\n");
         }
         else if (substr(rpath, -4) === ".css") {
             uhttpd.send("Content-Type: text/css\r\n");
