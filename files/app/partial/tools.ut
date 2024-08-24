@@ -36,18 +36,18 @@
     <label title="Node tools">
         <input type="checkbox">
         <div class="icon tools"></div>
+        <div class="menu">
+            {% if (hardware.getRadioCount() > 0) { %}
+            {% const config = radios.getActiveConfiguration();
+            if (config[0]?.mode === radios.RADIO_MESH || config[1]?.mode === radios.RADIO_MESH) { %}
+            <div hx-trigger="click" hx-get="tools/e/wifiscan" hx-target="#ctrl-modal"><div class="icon signal"></div>WiFi Scan</div>
+            <div hx-trigger="click" hx-get="tools/e/wifisignal" hx-target="#ctrl-modal"><div class="icon wifi"></div>WiFi Signal</div>
+            {% }
+            } %}
+            <div hx-trigger="click" hx-get="tools/e/ping" hx-target="#ctrl-modal"><div class="icon bolt"></div>Ping</div>
+            <div hx-trigger="click" hx-get="tools/e/traceroute" hx-target="#ctrl-modal"><div class="icon plane"></div>Traceroute</div>
+            <div hx-trigger="click" hx-get="tools/e/iperf3" hx-target="#ctrl-modal"><div class="icon twoarrow"></div>iPerf3</div>
+            <div hx-trigger="click" hx-put="tools/e/supportdata" hx-swap="none"><div class="icon download"></div>Support Data</div>
+        </div>
     </label>
-    <div class="menu">
-        {% if (hardware.getRadioCount() > 0) { %}
-        {% const config = radios.getActiveConfiguration();
-        if (config[0]?.mode === radios.RADIO_MESH || config[1]?.mode === radios.RADIO_MESH) { %}
-        <div hx-trigger="click" hx-get="tools/e/wifiscan" hx-target="#ctrl-modal"><div class="icon signal"></div>WiFi Scan</div>
-        <div hx-trigger="click" hx-get="tools/e/wifisignal" hx-target="#ctrl-modal"><div class="icon wifi"></div>WiFi Signal</div>
-        {% }
-        } %}
-        <div hx-trigger="click" hx-get="tools/e/ping" hx-target="#ctrl-modal"><div class="icon bolt"></div>Ping</div>
-        <div hx-trigger="click" hx-get="tools/e/traceroute" hx-target="#ctrl-modal"><div class="icon plane"></div>Traceroute</div>
-        <div hx-trigger="click" hx-get="tools/e/iperf3" hx-target="#ctrl-modal"><div class="icon twoarrow"></div>iPerf3</div>
-        <div hx-trigger="click" hx-put="tools/e/supportdata" hx-swap="none"><div class="icon download"></div>Support Data</div>
-    </div>
 </div>
