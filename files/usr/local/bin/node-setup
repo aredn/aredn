@@ -138,7 +138,9 @@ local changes = {
     tunnels = false,
     wireless = false,
     localservices = false,
-    wpad = false
+    wpad = false,
+    poe = false,
+    pou = false
 }
 
 function valid_config(config)
@@ -1296,7 +1298,9 @@ local config_special = {
     wifi_mode_0 = c:get("wireless", "@wifi-iface[0]", "mode"),
     wifi_mode_1 = c:get("wireless", "@wifi-iface[1]", "mode"),
     wifi_channel_0 = c:get("wireless", "@wifi-device[0]", "channel"),
-    wifi_channel_1 = c:get("wireless", "@wifi-device[1]", "channel")
+    wifi_channel_1 = c:get("wireless", "@wifi-device[1]", "channel"),
+    power_eth = c:get("aredn", "@poe[0]", "passthrough"),
+    power_usb = c:get("aredn", "@usb[0]", "passthrough")
 }
 local nfiles = {}
 for file in nixio.fs.glob("/tmp/new_config/*")
@@ -1344,6 +1348,12 @@ do
             end
             if oc:get("aredn", "@wan[0]", "web_access") ~= config_special.web_access or oc:get("aredn", "@wan[0]", "ssh_access") ~= config_special.ssh_access or oc:get("aredn", "@wan[0]", "telnet_access") ~= config_special.telnet_access then
                 changes.firewall = true
+            end
+            if oc:get("aredn", "@poe[0]", "passthrough") ~= config_special.power_eth then
+                change.poe = true;
+            end
+            if oc:get("aredn", "@usb[0]", "passthrough") ~= config_special.power_usb then
+                change.pou = true;
             end
         elseif file == "network" then
             changes.network = true
