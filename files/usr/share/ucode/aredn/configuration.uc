@@ -211,7 +211,7 @@ export function getDHCP(mode)
     if (mode === "nat" || (!mode && setup.dmz_mode === "0")) {
         const root = replace(setup.lan_ip, /\d+$/, "");
         return {
-            enabled: setup.lan_dhcp ? true : false,
+            enabled: setup.lan_dhcp !== "0" ? true : false,
             mode: 0,
             start: `${root}${setup.dhcp_start}`,
             end: `${root}${setup.dhcp_end}`,
@@ -230,7 +230,7 @@ export function getDHCP(mode)
     else if (setup.dmz_mode === "1") {
         const root = replace(setup.lan_ip, /\d+$/, "");
         return {
-            enabled: setup.lan_dhcp ? true : false,
+            enabled: setup.lan_dhcp !== "0" ? true : false,
             mode: 1,
             start: `${root}${setup.dhcp_start}`,
             end: `${root}${setup.dhcp_end}`,
@@ -249,7 +249,7 @@ export function getDHCP(mode)
     else {
         const root = replace(setup.dmz_lan_ip, /\d+$/, "");
         return {
-            enabled: setup.lan_dhcp ? true : false,
+            enabled: setup.lan_dhcp !== "0" ? true : false,
             mode: int(setup.dmz_mode),
             start: `${root}${setup.dmz_dhcp_start}`,
             end: `${root}${setup.dmz_dhcp_end}`,
