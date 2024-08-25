@@ -49,8 +49,8 @@
     document.body.removeEventListener("htmx:load", navinit);
     const logo = htmx.find("#icon-logo");
     htmx.on("htmx:beforeRequest", function(e) {
-        if (e.detail.requestConfig.triggeringEvent?.type === "click") {
-            const ismodal = e.detail.target?.id === "ctrl-modal";
+        if ((e.detail.requestConfig.triggeringEvent || {}).type === "click") {
+            const ismodal = (e.detail.target || {}).id === "ctrl-modal";
             setTimeout(_ => {
                 if (document.body.classList.contains("htmx-request")) {
                     logo.classList.add("animate");
