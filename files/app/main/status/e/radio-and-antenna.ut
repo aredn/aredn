@@ -199,14 +199,14 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         print("<hr>");
                     }
         %}
-        <div id="radio{{w}}" class="hideable compact">
+        <div id="radio{{w}}" class="hideable compact" data-hideable="{{wlan[w].mode}}">
             <div class="cols">
                 <div>
                     <div class="o" {{length(wlan) > 1 ? "style='font-weight:bold'" : ""}}>Radio {{wlan[w].def.band}}</div>
                     <div class="m">Radio purpose</div>
                 </div>
                 <div style="flex:0">
-                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}mode">
+                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}mode" {{_R("hideable-onselect")}}>
                         <option value="0" {{wlan[w].mode === radios.RADIO_OFF ? "selected" : ""}}>Off</option>
                         <option value="1" {{wlan[w].mode === radios.RADIO_MESH ? "selected" : ""}}>Mesh</option>
                         <option value="2" {{wlan[w].mode === radios.RADIO_LAN ? "selected" : ""}}>LAN Hotspot</option>
@@ -342,14 +342,14 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         </select>
                     </div>
                 </div>
-                <div class="hideable">
+                <div class="hideable" data-hideable="{{wlan[w].modes[2].encryption == "psk" ? 0 : wlan[w].modes[2].encryption == "psk2" ? 1 : 2}}">
                     <div class="cols">
                         <div>
                             <div class="o">Encryption</div>
                             <div class="m">Encryption algorithm</div>
                         </div>
                         <div style="flex:0">
-                            <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="radio_lan_encryption">
+                            <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="radio_lan_encryption" {{_R("hideable-onselect")}}>
                                 <option value="0" {{wlan[w].modes[2].encryption == "psk" ? "selected" : ""}}>WPA PSK</option>
                                 <option value="1" {{wlan[w].modes[2].encryption == "psk2" ? "selected" : ""}}>WPA2 PSK</option>
                                 <option value="2" {{wlan[w].modes[2].encryption == "none" ? "selected" : ""}}>None</option>
@@ -362,8 +362,8 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                                 <div class="o">Password</div>
                                 <div class="m">Hotspot password</div>
                             </div>
-                            <div style="flex:0">
-                                <input class="password-toggle" hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_password" type="password" required size="10" maxlength="32" value="{{hexdec(wlan[w].modes[2].key) || "AREDN"}}"><button class="icon eye"></button>
+                            <div class="password-toggle" style="flex:0">
+                                <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_password" type="password" required size="10" maxlength="32" value="{{hexdec(wlan[w].modes[2].key) || "AREDN"}}"><button class="icon eye"></button>
                             </div>
                         </div>
                     </div>
@@ -386,8 +386,8 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="o">Password</div>
                         <div class="m">Client password</div>
                     </div>
-                    <div style="flex:0">
-                        <input class="password-toggle" hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" size="10" maxlength="32" value="{{hexdec(wlan[w].modes[3].key)}}"><button class="icon eye"></button>
+                    <div class="password-toggle" style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" size="10" maxlength="32" value="{{hexdec(wlan[w].modes[3].key)}}"><button class="icon eye"></button>
                     </div>
                 </div>
             </div>

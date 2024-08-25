@@ -568,7 +568,8 @@ body.authenticated #local-and-neighbor-devices .status.ctrl:hover
 {
     filter: var(--nav-icon-filter-select);
 }
-#nav:has(#changes:not(:empty)) #logout-icon .menu div:last-child
+#nav:has(#changes:not(:empty)) #logout-icon .menu div:nth-child(1),
+#nav:has(#changes:not(:empty)) #logout-icon .menu div:nth-child(2)
 {
     display: none;
 }
@@ -914,6 +915,12 @@ body.authenticated #local-and-neighbor-devices .status.ctrl:hover
 #meshpage.filtering .block:has(.host.valid)
 {
     display: flex;
+}
+@supports not selector(:has(*)) {
+    #meshfilter input[type=search],
+    #meshpage-help p {
+        display: none;
+    }
 }
 
 /* meshpage end

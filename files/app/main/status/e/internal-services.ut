@@ -155,14 +155,14 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             </div>
         </div>
         {{_H("Allow access to the node's web interface via the WAN network. Disabling this option will not prevent web acccess to the node from the mesh.")}}
-        <div class="hideable">
+        <div class="hideable" data-hideable='{{uciMesh.get("aredn", "@watchdog[0]", "enable") === "1" ? "on" : "off"}}'>
             <div class="cols">
                 <div>
                     <div class="o">Watchdog</div>
                     <div class="m">Allow watchdog to reboot the node if it becomes unresponsive</div>
                 </div>
                 <div style="flex:0">
-                    {{_R("switch", { name: "watchdog", value: uciMesh.get("aredn", "@watchdog[0]", "enable") === "1" })}}
+                    {{_R("hideable-switch", { name: "watchdog", value: uciMesh.get("aredn", "@watchdog[0]", "enable") === "1" })}}
                 </div>
             </div>
             {{_H("Enables the hardware watchdog timer. This timer will reboot the device if it becomes unresponsive or various critical AREDN components

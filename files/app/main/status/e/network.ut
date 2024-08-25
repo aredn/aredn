@@ -201,14 +201,14 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
         {{_H("The primary address of this AREDN node. This will always be of the form 10.X.X.X. The address is generated automatically based on hardware information so it will
         always be the same even if you reinstall this node from scratch. You shouldn't have to change it.")}}
         <hr>
-        <div class="hideable">
+        <div class="hideable" data-hideable="{{dhcp.enabled ? dmz_mode : -1}}">
             <div class="cols">
                 <div>
                     <div class="o">LAN Size</div>
                     <div class="m">Size of LAN subnet</div>
                 </div>
                 <div style="flex:0">
-                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="dhcp_mode">
+                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="dhcp_mode" {{_R("hideable-onselect")}}>
                         <option value="-1" {{!dhcp.enabled ? "selected" : ""}}>Disabled</option>
                         <option value="0" {{dhcp.enabled && dmz_mode == 0 ? "selected" : ""}}>NAT</option>
                         <option value="2" {{dhcp.enabled && dmz_mode == 2 ? "selected" : ""}}>1 host</option>
@@ -299,25 +299,25 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
             </div>
         </div>
         <hr>
-        <div class="hideable">
+        <div class="hideable" data-hideable='{{wan_proto === "disabled" ? "off" : "on"}}'>
             <div class="cols">
                 <div>
                     <div class="o">WAN Enable</div>
                     <div class="m">Allow node to directly access the Internet</div>
                 </div>
                 <div style="flex:0">
-                    {{_R("switch", { name: "wan_enable", value: wan_proto === "disabled" ? false : true })}}
+                    {{_R("hideable-switch", { name: "wan_enable", value: wan_proto === "disabled" ? false : true })}}
                 </div>
             </div>
             {{_H("Enable the WAN interface on this node, to allow it to access the Internet directly.")}}
-            <div class="compact hideable hideable0">
+            <div class="compact hideable hideable0" data-hideable='{{wan_proto === "static" ? 1 : 0}}'>
                 <div class="cols">
                     <div>
                         <div class="o">Mode</div>
                         <div class="m">Static or DHCP mode</div>
                     </div>
                     <div style="flex:0">
-                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="wan_mode">
+                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="wan_mode" {{_R("hideable-onselect")}}>
                             <option value="0" {{wan_proto !== "static" ? "selected" : ""}}>DHCP</option>
                             <option value="1" {{wan_proto === "static" ? "selected" : ""}}>Static</option>
                         </select>
