@@ -320,16 +320,17 @@ label.switch
 
 /* password start */
 
-div:has(> input.password-toggle)
+.password-toggle
 {
     position: relative;
     flex: 0;
 }
-input.password-toggle
+.password-toggle input
 {
     padding-right: 30px !important;
+    min-width: 100%;
 }
-input.password-toggle + button.icon.eye
+.password-toggle button.icon.eye
 {
     position: absolute !important;
     right: 2px;
@@ -419,24 +420,22 @@ input.password-toggle + button.icon.eye
 
 /* customization start */
 
-#ctrl-modal .hideable:has(> div:first-child input[type='checkbox']:not(:checked)) > .hideable0
+#ctrl-modal .hideable[data-hideable] > .hideable0,
+#ctrl-modal .hideable[data-hideable] > .hideable1,
+#ctrl-modal .hideable[data-hideable] > .hideable2,
+#ctrl-modal .hideable[data-hideable] > .hideable3,
+#ctrl-modal .hideable[data-hideable] > .hideable4,
+#ctrl-modal .hideable[data-hideable] > .hideable5
 {
     display: none;
 }
-
-#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable0,
-#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable1,
-#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable2,
-#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable3,
-#ctrl-modal .hideable:has(> div:first-child select > option) > .hideable4
-{
-    display: none;
-}
-#ctrl-modal .hideable:has(> div:first-child select > option[value="0"]:checked) > .hideable0,
-#ctrl-modal .hideable:has(> div:first-child select > option[value="1"]:checked) > .hideable1,
-#ctrl-modal .hideable:has(> div:first-child select > option[value="2"]:checked) > .hideable2,
-#ctrl-modal .hideable:has(> div:first-child select > option[value="3"]:checked) > .hideable3,
-#ctrl-modal .hideable:has(> div:first-child select > option[value="4"]:checked) > .hideable4
+#ctrl-modal .hideable[data-hideable="on"] > .hideable0,
+#ctrl-modal .hideable[data-hideable="0"] > .hideable0,
+#ctrl-modal .hideable[data-hideable="1"] > .hideable1,
+#ctrl-modal .hideable[data-hideable="2"] > .hideable2,
+#ctrl-modal .hideable[data-hideable="3"] > .hideable3,
+#ctrl-modal .hideable[data-hideable="4"] > .hideable4,
+#ctrl-modal .hideable[data-hideable="5"] > .hideable5
 {
     display: block;
 }
@@ -886,7 +885,7 @@ input.password-toggle + button.icon.eye
     border: 1px solid black;
     outline: none;
 }
-.firstuse input.password-toggle
+.firstuse .password-toggle input
 {
     width: 200px;
 }
@@ -933,7 +932,7 @@ input.password-toggle + button.icon.eye
     font: inherit;
     font-size: 12px;
 }
-.firstuse input.password-toggle + button.icon.eye
+.firstuse .password-toggle button.icon.eye
 {
     top: 6px;
     right: 6px;
