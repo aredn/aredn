@@ -107,7 +107,7 @@ function initSetup()
                 if (!length(line)) {
                     break;
                 }
-                const kv = split(line, " =");
+                const kv = split(line, " =", 2);
                 if (length(kv) === 2) {
                     setup[kv[0]] = trim(kv[1]);
                     push(setupKeys, kv[0]);
@@ -144,7 +144,7 @@ export function setSetting(key, value, def)
 {
     initSetup();
     const old = setup[key];
-    setup[key] = `${value ?? def ?? ""}`;
+    setup[key] = replace(`${value ?? def ?? ""}`, /[\r\n]/g, " ");
     if (old !== setup[key]) {
         setupChanged = true;
         return true;
