@@ -69,11 +69,16 @@ if (request.env.REQUEST_METHOD === "PUT") {
         for (let i = 0; i < length(xs); i++) {
             xlinks[xs[i].name] = xs[i];
         }
+        let defport = "eth0";
+        const ports = hardware.getEthernetPorts();
+        if (length(ports) > 0) {
+            defport = ports[0].k;
+        }
         uciMesh.foreach("xlink", "interface", x => {
             const ux = xlinks[x[".name"]];
             if (ux) {
                 uciMesh.set("xlink", `${ux.name}bridge`, "vlan", ux.vlan);
-                uciMesh.set("xlink", `${ux.name}bridge`, "ports", [ `${ux.port}:t` ]);
+                uciMesh.set("xlink", `${ux.name}bridge`, "ports", [ `${ux.port || defport}:t` ]);
                 uciMesh.commit("xlink");
 
                 uciMesh.set("xlink", ux.name, "ifname", `br0.${ux.vlan}`);
@@ -109,7 +114,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             uciMesh.set("xlink", `${ux.name}bridge`, "bridge-vlan");
             uciMesh.set("xlink", `${ux.name}bridge`, "device", "br0");
             uciMesh.set("xlink", `${ux.name}bridge`, "vlan", ux.vlan);
-            uciMesh.set("xlink", `${ux.name}bridge`, "ports", [ `${ux.port}:t` ]);
+            uciMesh.set("xlink", `${ux.name}bridge`, "ports", [ `${ux.port || defport}:t` ]);
             uciMesh.commit("xlink");
 
             uciMesh.set("xlink", name, "interface");

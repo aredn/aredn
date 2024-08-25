@@ -425,6 +425,7 @@ export function supportsXLink()
     switch (getBoard().model.id) {
         case "mikrotik,hap-ac2":
         case "mikrotik,hap-ac3":
+        case "mikrotik,sxtsq-5-ac":
         case "glinet,gl-b1300":
         case "qemu":
         case "vmware":
@@ -434,6 +435,7 @@ export function supportsXLink()
     }
 };
 
+const default1PortLayout = [ { k: "lan", d: "lan" } ];
 const default5PortLayout = [ { k: "wan", d: "port1" }, { k: "lan1", d: "port2" }, { k: "lan2", d: "port3" }, { k: "lan3", d: "port4" }, { k: "lan4", d: "port5" } ];
 const default3PortLayout = [ { k: "lan2", d: "port1" }, { k: "lan1", d: "port2" }, { k: "wan", d: "port3" } ];
 const defaultNPortLayout = [];
@@ -446,6 +448,8 @@ export function getEthernetPorts()
             return default5PortLayout;
         case "glinet,gl-b1300":
             return default3PortLayout;
+        case "mikrotik,sxtsq-5-ac":
+            return default1PortLayout;
         case "qemu":
         case "vmware":
             if (length(defaultNPortLayout) === 0) {
