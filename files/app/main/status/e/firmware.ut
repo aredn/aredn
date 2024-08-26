@@ -208,7 +208,7 @@
         }
         let f = curl(`${aredn_firmware}/afs/www/config.js`, null, 0, 10);
         if (!f) {
-            uhttpd.send(`event: error\r\ndata: missing firmware config\r\n\r\n`);
+            uhttpd.send(`event: error\r\ndata: failed to download firmware configuration\r\n\r\n`);
             return;
         }
         let firmware_versions = {};
@@ -226,7 +226,7 @@
         f.close();
         const firmware_version_count = length(keys(firmware_versions));
         if (firmware_version_count === 0) {
-            uhttpd.send(`event: error\r\ndata: failed to load firmware versions\r\n\r\n`);
+            uhttpd.send(`event: error\r\ndata: failed to find firmware versions in downloaded configuration\r\n\r\n`);
             return;
         }
         const board_type = replace(hardware.getBoard().model.id, ",", "_");
@@ -309,7 +309,7 @@
         }
         f = curl(inst.overview, null, 0, 5);
         if (!f) {
-            uhttpd.send(`event: error\r\ndata: could not find firmware\r\n\r\n`);
+            uhttpd.send(`event: error\r\ndata: could not download firmware version catalog\r\n\r\n`);
             return;
         }
         const overview = json(f.read("all"));
@@ -332,7 +332,7 @@
             }
         }
         if (!fwimage) {
-            uhttpd.send(`event: error\r\ndata: missing firmware\r\n\r\n`);
+            uhttpd.send(`event: error\r\ndata: missing firmware image in downloaded firmware catalog\r\n\r\n`);
             return;
         }
         shutdownServices();
