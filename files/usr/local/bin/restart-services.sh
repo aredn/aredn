@@ -74,6 +74,10 @@ do
       /sbin/wifi reload > /dev/null 2>&1
     elif [ $srv = "localservices" ]; then
       /etc/local/services > /dev/null 2>&1
+    elif [ $srv = "poe" ]; then
+      /usr/local/bin/poe_passthrough $(/sbin/uci -q get aredn.@poe[0].passthrough) > /dev/null 2>&1
+    elif [ $srv = "pou" ]; then
+      /usr/local/bin/usb_passthrough $(/sbin/uci -q get aredn.@usb[0].passthrough) > /dev/null 2>&1
     elif [ -x /etc/init.d/$srv ]; then
       /etc/init.d/$srv restart > /dev/null 2>&1
     fi
