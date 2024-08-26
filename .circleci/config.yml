@@ -212,7 +212,7 @@ jobs:
       - run:
           name: Generate changelog.md
           #command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'docker run --rm -v ~/:/usr/local/src/your-app ferrarimarco/github-changelog-generator -u ${CIRCLE_PROJECT_USERNAME} -p ${CIRCLE_PROJECT_REPONAME} -t ${GITHUB_TOKEN}'"
-          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'github_changelog_generator -u ${CIRCLE_PROJECT_USERNAME} -p ${CIRCLE_PROJECT_REPONAME} -t ${GITHUB_TOKEN}'"
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'github_changelog_generator --simple-list -u ${CIRCLE_PROJECT_USERNAME} -p ${CIRCLE_PROJECT_REPONAME} -t ${GITHUB_TOKEN}'"
       - run:
           name: Move changelog
           command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'mv ~/CHANGELOG.md ${NIGHTLY_DIR}'"
