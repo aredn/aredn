@@ -571,13 +571,20 @@ export function getHardwareType()
     }
     else if (match(mfg, /[Mm]ikro[Tt]ik/)) {
         mfgprefix = "mikrotik";
-        const bv = fs.open("/sys/firmware/mikrotik/soft_config/bios_version");
-        if (bv) {
-            const v = bv.read("all");
-            bv.close();
-            if (substr(v, 2) === "7.") {
-                targettype += "-v7"
-            }
+        switch (hardwaretype) {
+            case "hap-ac3":
+                // Exception: hAP ac3 doesn't need this
+                break;
+            default:
+                const bv = fs.open("/sys/firmware/mikrotik/soft_config/bios_version");
+                if (bv) {
+                    const v = bv.read("all");
+                    bv.close();
+                    if (substr(v, 2) === "7.") {
+                        targettype += "-v7"
+                    }
+                }
+                break;
         }
     }
     else if (match(mfg, /[Tt][Pp]-[Ll]ink/)) {
