@@ -477,7 +477,9 @@ if (f) {
                                     Object.assign(o, { name: "", mac: "", noprop: true, reserved: true, leased: false });
                                     const item = document.createElement("div");
                                     item.innerHTML = `<div class="cols reservation" data-ip="${o.ip}"><div style="white-space:nowrap"><input name="hostname" type="text" placeholder="hostname" value="${o.name}" required> <select class="dhcp-addresses"></select> <input name="mac" type="text" placeholder="mac a&zwnj;ddress" required pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="${o.mac}"><label> <input type="checkbox" ${o.noprop ? "checked" : ""}></label></div><button>-</button></div>`;
-                                    htmx.find("#dhcp-reservations").appendChild(item.firstChild);
+                                    const ic = item.firstChild;
+                                    htmx.find("#dhcp-reservations").appendChild(ic);
+                                    htmx.find(ic, "input").focus();
                                 }
                                 if (!options.find(o => !o.reserved && !o.leased)) {
                                     target.disabled = true;
