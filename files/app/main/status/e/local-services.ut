@@ -514,6 +514,7 @@ if (f) {
                 htmx.find(div, "select[name=type]").value = t.type || "";
                 const ls = htmx.find("#local-services");
                 ls.insertBefore(div.firstChild, ls.firstChild);
+                htmx.find(ls, "input").focus();
                 refreshHostSelectors();
                 updateServices();
             }
@@ -547,6 +548,7 @@ if (f) {
             </div>`;
             const ha = htmx.find("#host-aliases");
             ha.insertBefore(div.firstChild, ha.firstChild);
+            htmx.find(ha, "input").focus();
             refreshHostSelectors();
             updateAliases();
         });
@@ -607,7 +609,9 @@ if (f) {
     </div>
     <button>-</button>
 </div>`;
-            htmx.find("#port-forwards").appendChild(div.firstChild);
+            const pf = htmx.find("#port-forwards");
+            pf.appendChild(div.firstChild);
+            htmx.find(pf, "input[name=port_sports]").focus();
         });
         htmx.on("#port-forwards", "change", _ => updatePortForwards());
         htmx.on("#port-forwards", "select", _ => updatePortForwards());
