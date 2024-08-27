@@ -415,7 +415,8 @@ uciMesh.foreach("xlink", "interface", x => {
                 update();
             }
         });
-        htmx.on("#ctrl-modal .dialog .xlinks .add", "click", event => {
+        function newXlinkEntry()
+        {
             let name;
             for (let i = 0;; i++) {
                 name = `xlink${i}`;
@@ -474,7 +475,14 @@ uciMesh.foreach("xlink", "interface", x => {
             const fc = div.firstChild;
             ls.appendChild(fc);
             htmx.find(fc, "input").focus();
-        });
+            htmx.on(fc, "keypress", event => {
+                if (event.keyCode === 13 && event.target.nodeName == "INPUT" && htmx.closest(event.target, ".xlink") === htmx.find("#xlink-list .xlink:last-child")) {
+                    event.preventDefault();
+                    newXlinkEntry();
+                }
+            });
+        }
+        htmx.on("#ctrl-modal .dialog .xlinks .add", "click", newXlinkEntry);
     })();
     </script>
 </div>

@@ -411,7 +411,8 @@ This value is used by default, but each tunnel may overide it.
                 server = e.target.value;
             }
         });
-        htmx.on("#tunnel-templates button", "click", _ => {
+        function newTunnelEntry()
+        {
             const type = htmx.find("#tunnel-templates select").value;
             const client = type === "lc" || type === "wc" ? true : false;
             const wireguard = type === "ws" || type === "wc" ? true : false;
@@ -487,9 +488,17 @@ This value is used by default, but each tunnel may overide it.
     <button class="remove">-</button>
 </div>`;
             const t = htmx.find("#tunnels");
-            t.insertBefore(div.firstChild, t.firstChild);
-            htmx.find(t, "input").focus();
-        });
+            const fc = div.firstChild;
+            t.insertBefore(fc, t.firstChild);
+            htmx.find(fc, "input").focus();
+            htmx.on(fc, "keypress", event => {
+                if (event.keyCode === 13 && event.target.nodeName == "INPUT" && htmx.closest(event.target, ".tunnel") === htmx.find("#tunnels .tunnel")) {
+                    event.preventDefault();
+                    newTunnelEntry();
+                }
+            });
+        }
+        htmx.on("#tunnel-templates button", "click", newTunnelEntry);
         htmx.on("#tunnels", "change", updateTunnels);
         htmx.on("#tunnels", "click", event => {
             const target = event.target;
