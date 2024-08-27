@@ -258,7 +258,7 @@ if (f) {
                 <div class="list noborder">{%
                 for (let i = 0; i < length(advtags); i++) {
                     const t = advtags[i];
-                    %}<div class="cols">
+                    %}<div class="cols tag">
                         <div class="row">
                             <input name="tag_name" type="text" required value="{{t.name}}">
                             <select name="tag_type" required>
@@ -296,7 +296,7 @@ if (f) {
                 <div class="list noborder">{%
                 for (let i = 0; i < length(advoptions); i++) {
                     const o = advoptions[i];
-                    %}<div class="cols">
+                    %}<div class="cols option">
                         <div class="row">
                             <select name="option_name">
                                 <option value="{{o.name}}" selected>{{o.name}}</option>
@@ -580,9 +580,21 @@ if (f) {
                 case "BUTTON":
                     switch (target.innerText) {
                         case "+":
-                            const item = document.createElement("div");
-                            item.innerHTML = `<div class="cols"><div class="row"><input name="tag_name" type="text" required value=""> <select name="tag_type" required><option value="">-</option><option value="vendorclass">Vendor Class</option><option value="userclass">User Class</option><option value="mac">MAC Address</option><option value="circuitid">Agent Circuit ID</option><option value="remoteid">Agent Remote ID</option><option value="subscriberid">Subscriber-ID</option></select> <input name="tag_match" type="text" required value=""></div><button>-</button></div>`;
-                            htmx.find("#ctrl-modal .dialog .dhcp-tags .list").appendChild(item.firstChild);
+                            function addNewTag()
+                            {
+                                const item = document.createElement("div");
+                                item.innerHTML = `<div class="cols tag"><div class="row"><input name="tag_name" type="text" required value=""> <select name="tag_type" required><option value="">-</option><option value="vendorclass">Vendor Class</option><option value="userclass">User Class</option><option value="mac">MAC Address</option><option value="circuitid">Agent Circuit ID</option><option value="remoteid">Agent Remote ID</option><option value="subscriberid">Subscriber-ID</option></select> <input name="tag_match" type="text" required value=""></div><button>-</button></div>`;
+                                const fc = item.firstChild;
+                                htmx.find("#ctrl-modal .dialog .dhcp-tags .list").appendChild(fc);
+                                htmx.find(fc, "input").focus();
+                                htmx.on(fc, "keypress", event => {
+                                    if (event.keyCode === 13 && event.target.nodeName == "INPUT" && htmx.closest(event.target, ".tag") === htmx.find(".dhcp-tags .list .tag:last-child")) {
+                                        event.preventDefault();
+                                        addNewTag();
+                                    }
+                                });
+                            }
+                            addNewTag();
                             break;
                         case "-":
                             const row = target.parentNode;
@@ -609,10 +621,22 @@ if (f) {
                 case "BUTTON":
                     switch (target.innerText) {
                         case "+":
-                            const item = document.createElement("div");
-                            item.innerHTML = `<div class="cols"><div class="row"><select name="option_name"><option value="">[all]</option></select> <select name="option_type" required><option value="">-</option><option value="1">1: netmask</option><option value="2">2: time-offset</option><option value="3">3: router</option><option value="6">6: dns-server</option><option value="7">7: log-server</option><option value="9">9: lpr-server</option><option value="13">13: boot-file-size</option><option value="15">15: domain-name</option><option value="16">16: swap-server</option><option value="17">17: root-path</option><option value="18">18: extension-path</option><option value="19">19: ip-forward-enable</option><option value="20">20: non-local-source-routing</option><option value="21">21: policy-filter</option><option value="22">22: max-datagram-reassembly</option><option value="23">23: default-ttl</option><option value="26">26: mtu</option><option value="27">27: all-subnets-local</option><option value="31">31: router-discovery</option><option value="32">32: router-solicitation</option><option value="33">33: static-route</option><option value="34">34: trailer-encapsulation</option><option value="35">35: arp-timeout</option><option value="36">36: ethernet-encap</option><option value="37">37: tcp-ttl</option><option value="38">38: tcp-keepalive</option><option value="40">40: nis-domain</option><option value="41">41: nis-server</option><option value="42">42: ntp-server</option><option value="44">44: netbios-ns</option><option value="45">45: netbios-dd</option><option value="46">46: netbios-nodetype</option><option value="47">47: netbios-scope</option><option value="48">48: x-windows-fs</option><option value="49">49: x-windows-dm</option><option value="58">58: T1</option><option value="59">59: T2</option><option value="60">60: vendor-class</option><option value="64">64: nis+-domain</option><option value="65">65: nis+-server</option><option value="66">66: tftp-server</option><option value="67">67: bootfile-name</option><option value="68">68: mobile-ip-home</option><option value="69">69: smtp-server</option><option value="70">70: pop3-server</option><option value="71">71: nntp-server</option><option value="74">74: irc-server</option><option value="77">77: user-class</option><option value="80">80: rapid-commit</option><option value="93">93: client-arch</option><option value="94">94: client-interface-id</option><option value="97">97: client-machine-id</option><option value="100">100: posix-timezone</option><option value="101">101: tzdb-timezone</option><option value="108">108: ipv6-only</option><option value="119">119: domain-search</option><option value="120">120: sip-server</option><option value="121">121: classless-static-route</option><option value="125">125: vendor-id-encap</option><option value="150">150: tftp-server-address</option><option value="255">255: server-ip-addressk</option></select> <input name="option_value" type="text" required value=""> <input name="option_always" type="checkbox"></div><button>-</button></div>`;
-                            htmx.find("#ctrl-modal .dialog .dhcp-options .list").appendChild(item.firstChild);
-                            refreshAdvOptions();
+                            function addNewOption()
+                            {
+                                const item = document.createElement("div");
+                                item.innerHTML = `<div class="cols option"><div class="row"><select name="option_name"><option value="">[all]</option></select> <select name="option_type" required><option value="">-</option><option value="1">1: netmask</option><option value="2">2: time-offset</option><option value="3">3: router</option><option value="6">6: dns-server</option><option value="7">7: log-server</option><option value="9">9: lpr-server</option><option value="13">13: boot-file-size</option><option value="15">15: domain-name</option><option value="16">16: swap-server</option><option value="17">17: root-path</option><option value="18">18: extension-path</option><option value="19">19: ip-forward-enable</option><option value="20">20: non-local-source-routing</option><option value="21">21: policy-filter</option><option value="22">22: max-datagram-reassembly</option><option value="23">23: default-ttl</option><option value="26">26: mtu</option><option value="27">27: all-subnets-local</option><option value="31">31: router-discovery</option><option value="32">32: router-solicitation</option><option value="33">33: static-route</option><option value="34">34: trailer-encapsulation</option><option value="35">35: arp-timeout</option><option value="36">36: ethernet-encap</option><option value="37">37: tcp-ttl</option><option value="38">38: tcp-keepalive</option><option value="40">40: nis-domain</option><option value="41">41: nis-server</option><option value="42">42: ntp-server</option><option value="44">44: netbios-ns</option><option value="45">45: netbios-dd</option><option value="46">46: netbios-nodetype</option><option value="47">47: netbios-scope</option><option value="48">48: x-windows-fs</option><option value="49">49: x-windows-dm</option><option value="58">58: T1</option><option value="59">59: T2</option><option value="60">60: vendor-class</option><option value="64">64: nis+-domain</option><option value="65">65: nis+-server</option><option value="66">66: tftp-server</option><option value="67">67: bootfile-name</option><option value="68">68: mobile-ip-home</option><option value="69">69: smtp-server</option><option value="70">70: pop3-server</option><option value="71">71: nntp-server</option><option value="74">74: irc-server</option><option value="77">77: user-class</option><option value="80">80: rapid-commit</option><option value="93">93: client-arch</option><option value="94">94: client-interface-id</option><option value="97">97: client-machine-id</option><option value="100">100: posix-timezone</option><option value="101">101: tzdb-timezone</option><option value="108">108: ipv6-only</option><option value="119">119: domain-search</option><option value="120">120: sip-server</option><option value="121">121: classless-static-route</option><option value="125">125: vendor-id-encap</option><option value="150">150: tftp-server-address</option><option value="255">255: server-ip-addressk</option></select> <input name="option_value" type="text" required value=""> <input name="option_always" type="checkbox"></div><button>-</button></div>`;
+                                const fc = item.firstChild;
+                                htmx.find("#ctrl-modal .dialog .dhcp-options .list").appendChild(fc);
+                                refreshAdvOptions();
+                                htmx.find(fc, "input").focus();
+                                htmx.on(fc, "keypress", event => {
+                                    if (event.keyCode === 13 && event.target.nodeName == "INPUT" && htmx.closest(event.target, ".option") === htmx.find(".dhcp-options .list .option:last-child")) {
+                                        event.preventDefault();
+                                        addNewOption();
+                                    }
+                                });
+                            }
+                            addNewOption();
                             break;
                         case "-":
                             const row = target.parentNode;
