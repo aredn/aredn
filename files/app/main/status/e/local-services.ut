@@ -321,7 +321,7 @@ if (f) {
         <div id="port-forwards">{%
             for (let i = 0; i < length(ports); i++) {
                 const p = ports[i];
-                %}<div class="cols noborder">
+                %}<div class="cols noborder forward">
                     <div class="row">
                         <div>
                             {% if (dhcp.mode === 0) { %}
@@ -450,7 +450,8 @@ if (f) {
                 s.innerHTML = o;
             }
         }
-        htmx.on("#service-templates button", "click", _ => {
+        function newEntry()
+        {
             const t = templates[htmx.find("#service-templates select").value];
             if (t) {
                 let template;
@@ -513,12 +514,20 @@ if (f) {
                 div.innerHTML = template;
                 htmx.find(div, "select[name=type]").value = t.type || "";
                 const ls = htmx.find("#local-services");
-                ls.insertBefore(div.firstChild, ls.firstChild);
+                const fc = div.firstChild;
+                ls.insertBefore(fc, ls.firstChild);
                 htmx.find(ls, "input").focus();
                 refreshHostSelectors();
                 updateServices();
+                htmx.on(fc, "keypress", event => {
+                    if (event.keyCode === 13 && event.target.nodeName == "INPUT" && htmx.closest(event.target, ".service") === htmx.find("#local-services .service")) {
+                        event.preventDefault();
+                        newEntry();
+                    }
+                });
             }
-        });
+        }
+        htmx.on("#service-templates button", "click", newEntry);
         htmx.on("#local-services", "click", event => {
             const target = event.target;
             if (target.nodeName === "BUTTON") {
@@ -529,7 +538,8 @@ if (f) {
         });
         htmx.on("#local-services", "change", updateServices);
         htmx.on("#local-services", "select", updateServices);
-        htmx.on("#host-aliases-add button", "click", _ => {
+        function newAliasEntry()
+        {
             const div = document.createElement("div");
             div.innerHTML = `<div class="cols alias">
                 <input type="text" name="hostname" value="" required pattern="[a-zA-Z][a-zA-Z0-9_\-]*">
@@ -547,11 +557,19 @@ if (f) {
                 <button>-</button>
             </div>`;
             const ha = htmx.find("#host-aliases");
-            ha.insertBefore(div.firstChild, ha.firstChild);
+            const fc = div.firstChild;
+            ha.insertBefore(fc, ha.firstChild);
             htmx.find(ha, "input").focus();
             refreshHostSelectors();
             updateAliases();
-        });
+            htmx.on(fc, "keypress", event => {
+                if (event.keyCode === 13 && event.target.nodeName == "INPUT" && htmx.closest(event.target, ".alias") === htmx.find("#host-aliases .alias")) {
+                    event.preventDefault();
+                    newAliasEntry();
+                }
+            });
+        }
+        htmx.on("#host-aliases-add button", "click", newAliasEntry);
         htmx.on("#host-aliases", "click", event => {
             const target = event.target;
             if (target.nodeName === "BUTTON") {
@@ -571,10 +589,11 @@ if (f) {
                 updatePortForwards();
             }
         });
-        htmx.on("#port-forward-add button", "click", _ => {
+        function newForwardEntry()
+        {
             const div = document.createElement("div");
             div.innerHTML =
-`<div class="cols noborder">
+`<div class="cols noborder forward">
     <div class="row">
         <div>
             {% if (dhcp.mode === 0) { %}
@@ -610,9 +629,17 @@ if (f) {
     <button>-</button>
 </div>`;
             const pf = htmx.find("#port-forwards");
-            pf.appendChild(div.firstChild);
-            htmx.find(pf, "input[name=port_sports]").focus();
-        });
+            const fc = div.firstChild;
+            pf.appendChild(fc);
+            htmx.find(fc, "input[name=port_sports]").focus();
+            htmx.on(fc, "keypress", event => {
+                if (event.keyCode === 13 && event.target.nodeName == "INPUT" && htmx.closest(event.target, ".forward") === htmx.find("#port-forwards .forward:last-child")) {
+                    event.preventDefault();
+                    newForwardEntry();
+                }
+            });
+        }
+        htmx.on("#port-forward-add button", "click", newForwardEntry);
         htmx.on("#port-forwards", "change", _ => updatePortForwards());
         htmx.on("#port-forwards", "select", _ => updatePortForwards());
     })();

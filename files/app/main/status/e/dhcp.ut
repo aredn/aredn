@@ -171,7 +171,7 @@ if (f) {
                         <div class="o">Address Reservations</div>
                         <div class="m">Hostnames with fixed addresses</div>
                     </div>
-                    <button {{length(options) === reservations ? "disabled" : ""}}>+</button>
+                    <button class="plus" {{length(options) === reservations ? "disabled" : ""}}>+</button>
                 </div>
             </div>
             {{_H("Creates a permenant mapping between a device MAC address and an IP address on the LAN network.
@@ -470,22 +470,33 @@ if (f) {
                                 item.innerHTML = `<div class="cols reservation" data-ip="${o.ip}"><div style="white-space:nowrap"><input name="hostname" type="text" placeholder="hostname" value="${o.name}" required> <select class="dhcp-addresses"></select> <input name="mac" type="text" placeholder="mac a&zwnj;ddress" required pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="${o.mac}"><label> <input type="checkbox" ${o.noprop ? "checked" : ""}></label></div><button>-</button></div>`;
                                 htmx.find("#dhcp-reservations").appendChild(item.firstChild);
                                 update();
+                                refreshIPSelectors();
                             }
                             else {
-                                const o = options.find(o => !o.reserved && !o.leased);
-                                if (o) {
-                                    Object.assign(o, { name: "", mac: "", noprop: true, reserved: true, leased: false });
-                                    const item = document.createElement("div");
-                                    item.innerHTML = `<div class="cols reservation" data-ip="${o.ip}"><div style="white-space:nowrap"><input name="hostname" type="text" placeholder="hostname" value="${o.name}" required> <select class="dhcp-addresses"></select> <input name="mac" type="text" placeholder="mac a&zwnj;ddress" required pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="${o.mac}"><label> <input type="checkbox" ${o.noprop ? "checked" : ""}></label></div><button>-</button></div>`;
-                                    const ic = item.firstChild;
-                                    htmx.find("#dhcp-reservations").appendChild(ic);
-                                    htmx.find(ic, "input").focus();
+                                function newDHCPEntry()
+                                {
+                                    const o = options.find(o => !o.reserved && !o.leased);
+                                    if (o) {
+                                        Object.assign(o, { name: "", mac: "", noprop: true, reserved: true, leased: false });
+                                        const item = document.createElement("div");
+                                        item.innerHTML = `<div class="cols reservation" data-ip="${o.ip}"><div style="white-space:nowrap"><input name="hostname" type="text" placeholder="hostname" value="${o.name}" required> <select class="dhcp-addresses"></select> <input name="mac" type="text" placeholder="mac a&zwnj;ddress" required pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="${o.mac}"><label> <input type="checkbox" ${o.noprop ? "checked" : ""}></label></div><button>-</button></div>`;
+                                        const fc = item.firstChild;
+                                        htmx.find("#dhcp-reservations").appendChild(fc);
+                                        htmx.find(fc, "input").focus();
+                                        htmx.on(fc, "keypress", event => {
+                                            if (event.keyCode === 13 && event.target.nodeName == "INPUT" && htmx.closest(event.target, ".reservation") === htmx.find("#dhcp-reservations .reservation:last-child")) {
+                                                event.preventDefault();
+                                                newDHCPEntry();
+                                            }
+                                        });
+                                    }
+                                    if (!options.find(o => !o.reserved && !o.leased)) {
+                                        htmx.find("#ctrl-modal .dialog .dhcp .plus").disabled = true;
+                                    }
+                                    refreshIPSelectors();
                                 }
-                                if (!options.find(o => !o.reserved && !o.leased)) {
-                                    target.disabled = true;
-                                }
+                                newDHCPEntry();
                             }
-                            refreshIPSelectors();
                             break;
                         }
                         case "-":
