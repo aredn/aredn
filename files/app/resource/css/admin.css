@@ -244,7 +244,12 @@ label.switch
    
 .switch input[type=checkbox]::before
 {
-    content: "";
+    color: var(--service-fg-color-status);
+    content: var(--service-status-disabled-text);
+    text-align: center;
+    line-height: 1.9em;
+    letter-spacing: -1px;
+    font-size: 12px;
     display: block;
     height: 1.9em;
     width: 1.9em;
@@ -259,11 +264,13 @@ label.switch
 .switch.inactive input[type=checkbox]::before
 {
     background-color: var(--service-bg-color-status-inactive);
+    content: var(--service-status-inactive-text);
 }
    
 .switch input[type=checkbox]:checked::before
 {
     background-color: var(--service-bg-color-status-active);
+    content: var(--service-status-active-text);
     left: calc(100% - (1.9em/2 + .3em));
 }
 
@@ -1144,11 +1151,14 @@ label.switch
     left: calc(100% - (1.7em/2 + .3em));
     background-color: transparent;
     border-color: var(--ctrl-modal-textbox-border-color);
+    color: var(--ctrl-modal-textbox-border-color);
+    content: var(--service-status-active-text);
 }
 .tunnel .switch.up input[type=checkbox]:checked::before
 {
     background-color: var(--service-bg-color-status-active);
     border-color: transparent;
+    content: var(--tunnel-status-up-text);
 }
 .tunnel input[name=name]
 {
