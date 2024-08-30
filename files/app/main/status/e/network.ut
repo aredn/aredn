@@ -331,7 +331,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                             <div class="m">WAN IP a&zwnj;ddress</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_ip" type="text" size="15" pattern="{{constants.patIP}}" value="{{configuration.getSettingAsString("wan_ip")}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_ip" type="text" size="15" pattern="{{constants.patIP}}" required value="{{configuration.getSettingAsString("wan_ip")}}">
                         </div>
                     </div>
                     {{_H("A fixed IP address to assign to the WAN interace on this node.")}}
@@ -341,7 +341,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                             <div class="m">WAN netmask</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_mask" type="text" size="15" pattern="(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))" value="{{configuration.getSettingAsString("wan_mask")}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_mask" type="text" size="15" pattern="(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))" required value="{{configuration.getSettingAsString("wan_mask")}}">
                         </div>
                     </div>
                     {{_H("The netmask (e.g. 255.255.255.0) for this interface.")}}
@@ -351,7 +351,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                             <div class="m">Default gateway</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_gw" type="text" size="15" pattern="{{constants.patIP}}" value="{{configuration.getSettingAsString("wan_gw")}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_gw" type="text" size="15" pattern="{{constants.patIP}}" required value="{{configuration.getSettingAsString("wan_gw")}}">
                         </div>
                     </div>
                     {{_H("The default gateway his node should use to access the Internet.")}}
