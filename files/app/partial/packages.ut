@@ -34,17 +34,19 @@
 %}
 {%
 let count = 0;
-const opkgs = {};
-map(split(fs.readfile("/etc/permpkg"), "\n"), p => opkgs[p] = true);
-const f = fs.popen("/bin/opkg list-installed");
-if (f) {
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const m = match(l, /^[^ \t]+/);
-        if (m && !opkgs[m[0]]) {
-            count++;
+if (!fs.access("/etc/cron.boot/reinstall-packages")) {
+    const opkgs = {};
+    map(split(fs.readfile("/etc/permpkg"), "\n"), p => opkgs[p] = true);
+    const f = fs.popen("/bin/opkg list-installed");
+    if (f) {
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            const m = match(l, /^[^ \t]+/);
+            if (m && !opkgs[m[0]]) {
+                count++;
+            }
         }
+        f.close();
     }
-    f.close();
 }
 %}
 <div class="t">{{count}}</div>
