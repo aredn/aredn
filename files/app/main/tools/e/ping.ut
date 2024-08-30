@@ -45,18 +45,7 @@ const mynode = configuration.getName();
                 <div class="m">IP A&zwnj;ddress, Hostname or Node</div>
             </div>
             <div>
-                <input id="tool-target" type="text" size="40" required>
-                <select id="tool-select">
-                    <option value="">&#x25BC;</option>
-                    <option value="{{mynode}}">{{mynode}}</option>
-                    {%
-                        for (let i = 0; i < length(nodes); i++) {
-                            if (nodes[i] !== mynode) {
-                                print(`<option value="${nodes[i]}">${nodes[i]}</option>`);
-                            }
-                        }
-                    %}
-                </select>
+                <input id="tool-target" type="text" size="40" required list="mesh-nodes">
                 <button id="target-swap"><div class="icon updownarrow"></div></button>
             </div>
         </div>
@@ -66,21 +55,20 @@ const mynode = configuration.getName();
                 <div class="m">Node name or a&zwnj;ddress</div>
             </div>
             <div>
-                <input id="tool-client" type="text" size="40" required value="{{mynode}}">
-                <select id="tool-client-select">
-                    <option value="">&#x25BC;</option>
-                    <option value="{{mynode}}">{{mynode}}</option>
-                    {%
-                        for (let i = 0; i < length(nodes); i++) {
-                            if (nodes[i] !== mynode) {
-                                print(`<option value="${nodes[i]}">${nodes[i]}</option>`);
-                            }
-                        }
-                    %}
-                </select>
+                <input id="tool-client" type="text" size="40" required value="{{mynode}}" list="mesh-nodes">
                 <div style="width:42px"></div>
             </div>
         </div>
+        <datalist id="mesh-nodes">
+            <option value="{{mynode}}">{{mynode}}</option>
+            {%
+                for (let i = 0; i < length(nodes); i++) {
+                    if (nodes[i] !== mynode) {
+                        print(`<option value="${nodes[i]}">${nodes[i]}</option>`);
+                    }
+                }
+            %}
+        </datalist>
         {{_H("Send ping packets between a source host and a target. The source should be node on the mesh, and by default is the current node.
         The target can be a node, an IP address, or any hostname that might be reachable.")}}
         <div class="cols">
@@ -98,18 +86,6 @@ const mynode = configuration.getName();
         {{_R("open")}}
         htmx.find("#tool-target").focus();
         const mynode = "{{mynode}}";
-        htmx.on("#tool-select", "change", e => {
-            if (e.target.value !== "") {
-                htmx.find("#tool-target").value = e.target.value;
-                e.target.value = "";
-            }
-        });
-         htmx.on("#tool-client-select", "change", e => {
-            if (e.target.value !== "") {
-                htmx.find("#tool-client").value = e.target.value;
-                e.target.value = "";
-            }
-        });
         htmx.on("#target-swap", "click", _ => {
             const v = htmx.find("#tool-target").value;
             htmx.find("#tool-target").value = htmx.find("#tool-client").value;
