@@ -160,6 +160,69 @@ if (f) {
     }
     f.close();
 }
+const dhcpOptionTypes = {
+    "1": "netmask",
+    "2": "time-offset",
+    "3": "router",
+    "6": "dns-server",
+    "7": "log-server",
+    "9": "lpr-server",
+    "13": "boot-file-size",
+    "15": "domain-name",
+    "16": "swap-server",
+    "17": "root-path",
+    "18": "extension-path",
+    "19": "ip-forward-enable",
+    "20": "non-local-source-routing",
+    "21": "policy-filter",
+    "22": "max-datagram-reassembly",
+    "23": "default-ttl",
+    "26": "mtu",
+    "27": "all-subnets-local",
+    "31": "router-discovery",
+    "32": "router-solicitation",
+    "33": "static-route",
+    "34": "trailer-encapsulation",
+    "35": "arp-timeout",
+    "36": "ethernet-encap",
+    "37": "tcp-ttl",
+    "38": "tcp-keepalive",
+    "40": "nis-domain",
+    "41": "nis-server",
+    "42": "ntp-server",
+    "44": "netbios-ns",
+    "45": "netbios-dd",
+    "46": "netbios-nodetype",
+    "47": "netbios-scope",
+    "48": "x-windows-fs",
+    "49": "x-windows-dm",
+    "58": "T1",
+    "59": "T2",
+    "60": "vendor-class",
+    "64": "nis+-domain",
+    "65": "nis+-server",
+    "66": "tftp-server",
+    "67": "bootfile-name",
+    "68": "mobile-ip-home",
+    "69": "smtp-server",
+    "70": "pop3-server",
+    "71": "nntp-server",
+    "74": "irc-server",
+    "77": "user-class",
+    "80": "rapid-commit",
+    "93": "client-arch",
+    "94": "client-interface-id",
+    "97": "client-machine-id",
+    "100": "posix-timezone",
+    "101": "tzdb-timezone",
+    "108": "ipv6-only",
+    "119": "domain-search",
+    "120": "sip-server",
+    "121": "classless-static-route",
+    "125": "vendor-id-encap",
+    "150": "tftp-server-address",
+    "255": "server-ip-address"
+};
 %}
 <div class="dialog">
     {{_R("dialog-header", "LAN DHCP")}}
@@ -301,70 +364,7 @@ if (f) {
                             <select name="option_name">
                                 <option value="{{o.name}}" selected>{{o.name}}</option>
                             </select>
-                            <select name="option_type" required>
-                                <option value="">-</option>
-                                <option value="1" {{o.type === 1 ? "selected": ""}}>1: netmask</option>
-                                <option value="2" {{o.type === 2 ? "selected": ""}}>2: time-offset</option>
-                                <option value="3" {{o.type === 4 ? "selected": ""}}>3: router</option>
-                                <option value="6" {{o.type === 6 ? "selected": ""}}>6: dns-server</option>
-                                <option value="7" {{o.type === 7 ? "selected": ""}}>7: log-server</option>
-                                <option value="9" {{o.type === 9 ? "selected": ""}}>9: lpr-server</option>
-                                <option value="13" {{o.type === 13 ? "selected": ""}}>13: boot-file-size</option>
-                                <option value="15" {{o.type === 15 ? "selected": ""}}>15: domain-name</option>
-                                <option value="16" {{o.type === 16 ? "selected": ""}}>16: swap-server</option>
-                                <option value="17" {{o.type === 17 ? "selected": ""}}>17: root-path</option>
-                                <option value="18" {{o.type === 18 ? "selected": ""}}>18: extension-path</option>
-                                <option value="19" {{o.type === 19 ? "selected": ""}}>19: ip-forward-enable</option>
-                                <option value="20" {{o.type === 20 ? "selected": ""}}>20: non-local-source-routing</option>
-                                <option value="21" {{o.type === 21 ? "selected": ""}}>21: policy-filter</option>
-                                <option value="22" {{o.type === 22 ? "selected": ""}}>22: max-datagram-reassembly</option>
-                                <option value="23" {{o.type === 23 ? "selected": ""}}>23: default-ttl</option>
-                                <option value="26" {{o.type === 26 ? "selected": ""}}>26: mtu</option>
-                                <option value="27" {{o.type === 27 ? "selected": ""}}>27: all-subnets-local</option>
-                                <option value="31" {{o.type === 31 ? "selected": ""}}>31: router-discovery</option>
-                                <option value="32" {{o.type === 32 ? "selected": ""}}>32: router-solicitation</option>
-                                <option value="33" {{o.type === 33 ? "selected": ""}}>33: static-route</option>
-                                <option value="34" {{o.type === 34 ? "selected": ""}}>34: trailer-encapsulation</option>
-                                <option value="35" {{o.type === 35 ? "selected": ""}}>35: arp-timeout</option>
-                                <option value="36" {{o.type === 36 ? "selected": ""}}>36: ethernet-encap</option>
-                                <option value="37" {{o.type === 37 ? "selected": ""}}>37: tcp-ttl</option>
-                                <option value="38" {{o.type === 38 ? "selected": ""}}>38: tcp-keepalive</option>
-                                <option value="40" {{o.type === 40 ? "selected": ""}}>40: nis-domain</option>
-                                <option value="41" {{o.type === 41 ? "selected": ""}}>41: nis-server</option>
-                                <option value="42" {{o.type === 42 ? "selected": ""}}>42: ntp-server</option>
-                                <option value="44" {{o.type === 44 ? "selected": ""}}>44: netbios-ns</option>
-                                <option value="45" {{o.type === 45 ? "selected": ""}}>45: netbios-dd</option>
-                                <option value="46" {{o.type === 46 ? "selected": ""}}>46: netbios-nodetype</option>
-                                <option value="47" {{o.type === 47 ? "selected": ""}}>47: netbios-scope</option>
-                                <option value="48" {{o.type === 48 ? "selected": ""}}>48: x-windows-fs</option>
-                                <option value="49" {{o.type === 49 ? "selected": ""}}>49: x-windows-dm</option>
-                                <option value="58" {{o.type === 58 ? "selected": ""}}>58: T1</option>
-                                <option value="59" {{o.type === 59 ? "selected": ""}}>59: T2</option>
-                                <option value="60" {{o.type === 60 ? "selected": ""}}>60: vendor-class</option>
-                                <option value="64" {{o.type === 64 ? "selected": ""}}>64: nis+-domain</option>
-                                <option value="65" {{o.type === 65 ? "selected": ""}}>65: nis+-server</option>
-                                <option value="66" {{o.type === 66 ? "selected": ""}}>66: tftp-server</option>
-                                <option value="67" {{o.type === 67 ? "selected": ""}}>67: bootfile-name</option>
-                                <option value="68" {{o.type === 68 ? "selected": ""}}>68: mobile-ip-home</option>
-                                <option value="69" {{o.type === 69 ? "selected": ""}}>69: smtp-server</option>
-                                <option value="70" {{o.type === 70 ? "selected": ""}}>70: pop3-server</option>
-                                <option value="71" {{o.type === 71 ? "selected": ""}}>71: nntp-server</option>
-                                <option value="74" {{o.type === 74 ? "selected": ""}}>74: irc-server</option>
-                                <option value="77" {{o.type === 77 ? "selected": ""}}>77: user-class</option>
-                                <option value="80" {{o.type === 80 ? "selected": ""}}>80: rapid-commit</option>
-                                <option value="93" {{o.type === 93 ? "selected": ""}}>93: client-arch</option>
-                                <option value="94" {{o.type === 94 ? "selected": ""}}>94: client-interface-id</option>
-                                <option value="97" {{o.type === 97 ? "selected": ""}}>97: client-machine-id</option>
-                                <option value="100" {{o.type === 100 ? "selected": ""}}>100: posix-timezone</option>
-                                <option value="101" {{o.type === 101 ? "selected": ""}}>101: tzdb-timezone</option>
-                                <option value="108" {{o.type === 108 ? "selected": ""}}>108: ipv6-only</option>
-                                <option value="119" {{o.type === 119 ? "selected": ""}}>119: domain-search</option>
-                                <option value="120" {{o.type === 120 ? "selected": ""}}>120: sip-server</option>
-                                <option value="121" {{o.type === 121 ? "selected": ""}}>121: classless-static-route</option>
-                                <option value="125" {{o.type === 125 ? "selected": ""}}>125: vendor-id-encap</option>
-                                <option value="150" {{o.type === 150 ? "selected": ""}}>150: tftp-server-address</option>
-                                <option value="255" {{o.type === 255 ? "selected": ""}}>255: server-ip-addressk</option>
-                            </select>
+                            <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type] ? `${o.type}: ${dhcpOptionTypes[o.type]}` : o.type}}">
                             <input name="option_value" type="text" required value="{{o.value}}">
                             <input name="option_always" type="checkbox" {{o.always ? "checked" : ""}}>
                         </div>
@@ -376,6 +376,13 @@ if (f) {
         {% } %}
         </div>
     </div>
+    <datalist id="dhcp-option-type-list">
+    {%
+        for (let k in dhcpOptionTypes) {
+            print(`<option value="${k}: ${dhcpOptionTypes[k]}"></option>`);
+        }
+    %}
+    </datalist>
     {{_R("dialog-footer")}}
     <script>
     (function(){
@@ -556,17 +563,22 @@ if (f) {
                 values: { advtags: JSON.stringify(advtags) }
             });
         }
+        const dhcpOptionTypes = {%print(dhcpOptionTypes);%};
         function updateOptions()
         {
             const advoptions = [];
             const options = htmx.findAll("#ctrl-modal .dialog .dhcp-options .list .row");
             for (let i = 0; i < options.length; i++) {
                 const name = htmx.find(options[i], "select[name=option_name]");
-                const type = htmx.find(options[i], "select[name=option_type]");
+                const type = htmx.find(options[i], "input[name=option_type]");
                 const value = htmx.find(options[i], "input[name=option_value]");
                 const always = htmx.find(options[i], "input[name=option_always]");
+                const tvalue = type.validity.valid ? `${parseInt(type.value)}` : "";
                 if (name.validity.valid && type.validity.valid && value.validity.valid) {
-                    advoptions.push({ name: name.value, type: type.value, value: value.value, always: !!always.checked });
+                    advoptions.push({ name: name.value, type: tvalue, value: value.value, always: !!always.checked });
+                }
+                if (dhcpOptionTypes[tvalue]) {
+                    type.value = `${tvalue}: ${dhcpOptionTypes[tvalue]}`;
                 }
             }
             htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
@@ -624,7 +636,7 @@ if (f) {
                             function addNewOption()
                             {
                                 const item = document.createElement("div");
-                                item.innerHTML = `<div class="cols option"><div class="row"><select name="option_name"><option value="">[all]</option></select> <select name="option_type" required><option value="">-</option><option value="1">1: netmask</option><option value="2">2: time-offset</option><option value="3">3: router</option><option value="6">6: dns-server</option><option value="7">7: log-server</option><option value="9">9: lpr-server</option><option value="13">13: boot-file-size</option><option value="15">15: domain-name</option><option value="16">16: swap-server</option><option value="17">17: root-path</option><option value="18">18: extension-path</option><option value="19">19: ip-forward-enable</option><option value="20">20: non-local-source-routing</option><option value="21">21: policy-filter</option><option value="22">22: max-datagram-reassembly</option><option value="23">23: default-ttl</option><option value="26">26: mtu</option><option value="27">27: all-subnets-local</option><option value="31">31: router-discovery</option><option value="32">32: router-solicitation</option><option value="33">33: static-route</option><option value="34">34: trailer-encapsulation</option><option value="35">35: arp-timeout</option><option value="36">36: ethernet-encap</option><option value="37">37: tcp-ttl</option><option value="38">38: tcp-keepalive</option><option value="40">40: nis-domain</option><option value="41">41: nis-server</option><option value="42">42: ntp-server</option><option value="44">44: netbios-ns</option><option value="45">45: netbios-dd</option><option value="46">46: netbios-nodetype</option><option value="47">47: netbios-scope</option><option value="48">48: x-windows-fs</option><option value="49">49: x-windows-dm</option><option value="58">58: T1</option><option value="59">59: T2</option><option value="60">60: vendor-class</option><option value="64">64: nis+-domain</option><option value="65">65: nis+-server</option><option value="66">66: tftp-server</option><option value="67">67: bootfile-name</option><option value="68">68: mobile-ip-home</option><option value="69">69: smtp-server</option><option value="70">70: pop3-server</option><option value="71">71: nntp-server</option><option value="74">74: irc-server</option><option value="77">77: user-class</option><option value="80">80: rapid-commit</option><option value="93">93: client-arch</option><option value="94">94: client-interface-id</option><option value="97">97: client-machine-id</option><option value="100">100: posix-timezone</option><option value="101">101: tzdb-timezone</option><option value="108">108: ipv6-only</option><option value="119">119: domain-search</option><option value="120">120: sip-server</option><option value="121">121: classless-static-route</option><option value="125">125: vendor-id-encap</option><option value="150">150: tftp-server-address</option><option value="255">255: server-ip-addressk</option></select> <input name="option_value" type="text" required value=""> <input name="option_always" type="checkbox"></div><button>-</button></div>`;
+                                item.innerHTML = `<div class="cols option"><div class="row"><select name="option_name"><option value="">[all]</option></select> <input name="option_type" type="text" required list="dhcp-option-type-list"> <input name="option_value" type="text" required value=""> <input name="option_always" type="checkbox"></div><button>-</button></div>`;
                                 const fc = item.firstChild;
                                 htmx.find("#ctrl-modal .dialog .dhcp-options .list").appendChild(fc);
                                 refreshAdvOptions();
