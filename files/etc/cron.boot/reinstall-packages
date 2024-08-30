@@ -40,6 +40,16 @@ require("luci.jsonc")
 local package_store = "/etc/package_store"
 local package_catalog = package_store .. "/catalog.json"
 
+local function opkg_with_retry(arg)
+	for i = 1,5
+	do
+		if os.execute("opkg " .. arg) ~= 255 then
+			break
+		end
+		nixio.nanosleep(5, 0)
+	end
+end
+
 if nixio.fs.stat(package_catalog) then
 	-- Make sure we can contact the package server before proceeding.
 	-- We'll wait a few minutes before going ahead anyway
@@ -52,17 +62,17 @@ if nixio.fs.stat(package_catalog) then
 		nixio.nanosleep(60, 0)
 	end
 
-    os.execute("opkg update")
+    opkg_with_retry("update")
     local catalog = luci.jsonc.parse(io.open(package_catalog):read("*a"))
     for ipkg, state in pairs(catalog.installed)
     do
         if state == "local" then
             local file = package_store .. "/" .. ipkg .. ".ipk"
             if nixio.fs.stat(file) then
-                os.execute("opkg install " .. file)
+                opkg_with_retry("install " .. file)
             end
         elseif state == "global" then
-            os.execute("opkg install " .. ipkg)
+            opkg_with_retry("install " .. ipkg)
         end
     end
 end
