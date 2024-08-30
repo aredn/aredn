@@ -364,7 +364,7 @@ const dhcpOptionTypes = {
                             <select name="option_name">
                                 <option value="{{o.name}}" selected>{{o.name}}</option>
                             </select>
-                            <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type] ? `${o.type}: ${dhcpOptionTypes[o.type]}` : o.type}}">
+                            <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type] ? `${o.type}: ${dhcpOptionTypes[o.type]}` : o.type}}" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?">
                             <input name="option_value" type="text" required value="{{o.value}}">
                             <input name="option_always" type="checkbox" {{o.always ? "checked" : ""}}>
                         </div>
@@ -636,7 +636,7 @@ const dhcpOptionTypes = {
                             function addNewOption()
                             {
                                 const item = document.createElement("div");
-                                item.innerHTML = `<div class="cols option"><div class="row"><select name="option_name"><option value="">[all]</option></select> <input name="option_type" type="text" required list="dhcp-option-type-list"> <input name="option_value" type="text" required value=""> <input name="option_always" type="checkbox"></div><button>-</button></div>`;
+                                item.innerHTML = `<div class="cols option"><div class="row"><select name="option_name"><option value="">[all]</option></select> <input name="option_type" type="text" required list="dhcp-option-type-list" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?"> <input name="option_value" type="text" required value=""> <input name="option_always" type="checkbox"></div><button>-</button></div>`;
                                 const fc = item.firstChild;
                                 htmx.find("#ctrl-modal .dialog .dhcp-options .list").appendChild(fc);
                                 refreshAdvOptions();
