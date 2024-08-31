@@ -13,7 +13,7 @@
 
 The 'target' and 'subtarget' identify the directory in which to find the image on at http://downloads.arednmesh.org
 
-## Mikrotik
+## Mikrotik (7)
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 & 5 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
@@ -164,5 +164,6 @@ Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
  4. 20MHz channels only.
  5. x86 images are for advanced users. See "Installing AREDN® Firmware" x86 documentation section.
  6. These devices do not function on negative channels in the 2.4 GHz band.
+ 7. Mikrotik devices come with either a v6 bootloader or a v7 bootloader. See [here](https://openwrt.org/toh/mikrotik/common) for more details. If you are using a v7 bootloader use the v7 sysupgrade instead of the plain one.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/
