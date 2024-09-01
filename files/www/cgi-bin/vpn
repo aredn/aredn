@@ -170,10 +170,13 @@ end
 
 -- helper end
 
+local newui_detected = false
+
 -- load client info from uci
 local gci_vars = { "enabled", "name", "passwd", "netip", "contact" }
 function get_client_info()
     local c = 0
+    local netw = get_server_network_address()
     cursor:foreach("vtun", "client",
         function(section)
             for _, var in ipairs(gci_vars)
@@ -184,6 +187,17 @@ function get_client_info()
                     parms[key] = ""
                 end
             end
+            if section.netip ~= netw[1] .. "." .. netw[2] .. "." .. netw[3] .. "." .. netw[4] then
+                newui_detected = true
+            end
+            netw[4] = netw[4] + 4
+            if netw[4] > 252 then
+                netw[3] = netw[3] + 1
+                if netw[3] == 256 then
+                    netw[3] = 0
+                end
+                netw[4] = 0
+            end
             c = c + 1
         end
     )
@@ -193,6 +207,11 @@ end
 local gci_vars = { "enabled", "name", "key", "clientip", "contact" }
 function get_wgclient_info()
     local c = 0
+    local netwg = get_wireguard_network_address(get_server_network_address())
+    local wg_port = tonumber(cursor:get("vtun", "@options[0]", "port") or 5525)
+    if is_supernode then
+        wg_port = wg_port + 1000
+    end
     cursor:foreach("wireguard", "client",
         function(section)
             for _, var in ipairs(gci_vars)
@@ -202,6 +221,13 @@ function get_wgclient_info()
                 if not parms[key] then
                     parms[key] = ""
                 end
+            end
+            local netwg4 = tonumber(netwg[4]) + 2 * c
+            if netwg4 >= 254 then
+                netwg4 = netwg4 - 252
+            end
+            if section.clientip ~= netwg[1] .. "." .. netwg[2] .. "." .. netwg[3] .. "." .. netwg4 .. ":" .. (wg_port + c) then
+                newui_detected = true
             end
             c = c + 1
         end
@@ -554,6 +580,11 @@ if notunnels then
 -- low memory warning
 elseif isLowMemNode() then
     html.print("<tr><td align=center><span style=background-color:cyan;font-size:140%;>&nbsp; Recommend not to use tunneling due to low memory on this node &nbsp;</span></td></tr>")
+end
+
+-- detected new ui which is incompatible with old ui tunnels
+if newui_detected then
+    html.print("<tr><td align=center><span style=background-color:red;font-size:140%;>&nbsp; Detected use of new UI to change tunnels. The information below may appear incorrect.<br>Do not change tunnel setting here. &nbsp;</span></td></tr>")
 end
 
 -- messages
