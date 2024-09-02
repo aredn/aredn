@@ -97,7 +97,8 @@ if (config.resourcehash) {
         const md = fs.popen(`/usr/bin/md5sum ${pathgz}`);
         resourceVersions[id] = match(md.read("all"), /^([0-9a-f]+)/)[1];
         md.close();
-        fs.symlink(pathgz, `${path}.${resourceVersions[id]}.gz`);
+        const m = match(path, /^(.+)\.([a-z]+)$/);
+        fs.symlink(pathgz, `${m[1]}.${resourceVersions[id]}.${m[2]}.gz`);
     }
     prepareResource("usercss", "css/user.css");
     prepareResource("admincss", "css/admin.css");
@@ -114,8 +115,8 @@ if (config.resourcehash) {
             if (ctheme === `themes/${theme}`) {
                 cthemeversion = resourceVersions.themecss;
             }
-            fs.unlink(`${config.application}/resource/css/theme.css.${resourceVersions.themecss}.gz`);
-            fs.symlink(`themes/${theme}.${resourceVersions.themecss}.gz`, `${config.application}/resource/css/theme.css.${resourceVersions.themecss}.gz`);
+            fs.unlink(`${config.application}/resource/css/theme.${resourceVersions.themecss}.css.gz`);
+            fs.symlink(`themes/${replace(theme, /\.css$/, "")}.${resourceVersions.themecss}.css.gz`, `${config.application}/resource/css/theme.${resourceVersions.themecss}.css.gz`);
         }
     }
     resourceVersions.themecss = cthemeversion;
@@ -598,6 +599,16 @@ global.handle_request = function(env)
         return;
     }
 
+    const localnode = env.HTTP_HOST === "localnode" || env.HTTP_HOST === "localnode.local.mesh";
+    const cachecontrol = localnode || !config.resourcehash ? "no-store" : "max-age=604800";
+    if (localnode && config.resourcehash) {
+        const themecss = fs.readlink(`${config.application}/resource/css/theme.version`);
+        if (env.PATH_INFO !== `/css/theme.${themecss}.css` && index(env.PATH_INFO || "", "/css/theme.") === 0 && uciMethods.get("aredn", "@theme[0]", "portable") === "1") {
+            uhttpd.send(`Status: 302 Found\r\nContent-Type: text/css\r\nCache-Control: no-store\r\nLocation: /a/css/theme.${themecss}.css\r\n\r\n`);
+            return;
+        }
+    }
+
     const rpath = `${config.application}/resource/${env.PATH_INFO || "unknown"}`;
     const gzrpath = `${rpath}.gz`;
     if (fs.access(gzrpath)) {
@@ -611,14 +622,8 @@ global.handle_request = function(env)
         else if (substr(rpath, -4) === ".svg") {
             uhttpd.send("Content-Type: image/svg+xml\r\n");
         }
-        if (!config.resourcehash) {
-            uhttpd.send("Cache-Control: no-store\r\n");
-        }
-        else {
-            uhttpd.send("Cache-Control: max-age=604800\r\n");
-        }
         const res = fs.readfile(gzrpath);
-        uhttpd.send(`Content-Length: ${length(res)}\n`);
+        uhttpd.send(`Cache-Control: ${cachecontrol}\r\nContent-Length: ${length(res)}\n`);
         uhttpd.send("\r\n", res);
         return;
     }
@@ -640,23 +645,12 @@ global.handle_request = function(env)
         else if (substr(rpath, -4) === ".css") {
             uhttpd.send("Content-Type: text/css\r\n");
         }
-        if (!config.resourcehash) {
-            uhttpd.send("Cache-Control: no-store\r\n");
-        }
-        else {
-            uhttpd.send("Cache-Control: max-age=604800\r\n");
-        }
         const res = fs.readfile(rpath);
-        uhttpd.send(`Content-Length: ${length(res)}\n`);
+        uhttpd.send(`Cache-Control: ${cachecontrol}\r\nContent-Length: ${length(res)}\n`);
         uhttpd.send("\r\n", res);
         return;
     }
 
-    if (!config.resourcehash) {
-        uhttpd.send("Status: 404 Not Found\r\nCache-Control: no-store\r\n\r\n");
-    }
-    else {
-        uhttpd.send("Status: 404 Not Found\r\nCache-Control: max-age=600\r\n\r\n");
-    }
+    uhttpd.send(`Status: 404 Not Found\r\nCache-Control: ${cachecontrol}\r\n\r\n`);
 };
 %}

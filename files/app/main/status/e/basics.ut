@@ -57,7 +57,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             fs.symlink(`themes/${theme}.css`, `${config.application}/resource/css/theme.css`);
             if (config.resourcehash) {
                 const themes = fs.lsdir(`${config.application}/resource/css/themes`);
-                const re = regexp(`^${theme}\.css\.(.+)\.gz`);
+                const re = regexp(`^${theme}\.(.+)\.css\.gz`);
                 for (let i = 0; i < length(themes); i++) {
                     const m = match(themes[i], re);
                     if (m) {
@@ -122,6 +122,10 @@ if (request.env.REQUEST_METHOD === "PUT") {
             fs.writefile("/etc/dropbear/authorized_keys", `${keys}${key}`);
         }
         print(getSshKeys());
+    }
+    if ("portable_theme" in request.args) {
+        uciMesh.set("aredn", "@theme[0]", "portable", request.args.portable_theme === "on" ? "1" : "0");
+        uciMesh.commit("aredn");
     }
     configuration.saveSettings();
     print(_R("changes"));
@@ -198,6 +202,18 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         </div>
         {{_H("Select the display theme for this node. This theme determines how everyone see this node when they visit. The
         default theme automatically selects either Light or Dark depending on the viewers browser settings.")}}
+        {% if (request.env.HTTP_HOST === "localnode" || request.env.HTTP_HOST === "localnode.local.mesh") { %}
+        <div class="cols">
+            <div>
+                <div class="o">Portable Theme</div>
+                <div class="m">Use this theme then viewing any node</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "portable_theme", value: uciMesh.get("aredn", "@theme[0]", "portable") === "1" })}}
+            </div>
+        </div>
+        {{_H("The portable theme can be enabled on your localnode. It will then be become the theme used when viewing any node on the mesh.")}}
+        {% } %}
         <hr>
         <div class="password">
             <div class="cols">
