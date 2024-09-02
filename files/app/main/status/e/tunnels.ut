@@ -191,7 +191,7 @@ const handshaketime = time();
 f = fs.popen("/usr/bin/wg show all latest-handshakes");
 if (f) {
     for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const m = split(l, /\t/);
+        const m = split(trim(l), /\t/);
         if (m && int(m[2]) + 300 > handshaketime) {
             push(up.wg, m[1]);
         }
