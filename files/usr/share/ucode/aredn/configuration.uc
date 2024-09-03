@@ -143,6 +143,9 @@ export function getSettingAsInt(key, def)
 export function setSetting(key, value, def)
 {
     initSetup();
+    if (!(key in setup)) {
+        push(setupKeys, key);
+    }
     const old = setup[key];
     setup[key] = replace(`${value ?? def ?? ""}`, /[\r\n]/g, " ");
     if (old !== setup[key]) {

@@ -150,13 +150,13 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
     }
     if ("wan_vlan" in request.args) {
-        const wan_iface = split(configuration.getSettingAsString("wan_intf", ""), ".");
+        const wan_iface = keys(hardware.getDefaultNetworkConfiguration().wan.ports)[0];
         const wan_vlan = int(request.args.wan_vlan || 0);
         if (wan_vlan === 0) {
-            configuration.setSetting("wan_intf", wan_iface[0]);
+            configuration.setSetting("wan_intf", wan_iface);
         }
         else if (wan_vlan >= 3 && wan_vlan <= 4095) {
-            configuration.setSetting("wan_intf", `${wan_iface[0]}.${wan_vlan}`);
+            configuration.setSetting("wan_intf", `${wan_iface}.${wan_vlan}`);
         }
     }
     if ("olsrd_gw" in request.args) {
