@@ -49,6 +49,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         switch (request.args.ntp_mode) {
             case "daily":
             case "hourly":
+            case "continually":
                 uciMesh.set("aredn", "@ntp[0]", "period", request.args.ntp_mode);
                 break;
             default:
@@ -115,7 +116,7 @@ const ntp_mode = uciMesh.get("aredn", "@ntp[0]", "period") || "daily";
                 <input hx-put="{{request.env.REQUEST_URI}}" name="ntp_server" type="text" size="20" value="{{ntp_server}}">
             </div>
         </div>
-        {{_H("The default NTP server to use when syncing the node's time. If this cannot be found, the node will search for one on the mesh.")}}
+        {{_H("The default NTP server to use when syncing the node's time. If this cannot be found and the NTP frequency is hourly or daily, the node will search for one on the mesh.")}}
         <div class="cols">
             <div>
                 <div class="o">NTP Updates</div>
@@ -125,12 +126,13 @@ const ntp_mode = uciMesh.get("aredn", "@ntp[0]", "period") || "daily";
                 <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="ntp_mode">
                     <option value="hourly" {{ntp_mode == "hourly" ? "selected" : ""}}>Hourly</option>
                     <option value="daily" {{ntp_mode == "daily" ? "selected" : ""}}>Daily</option>
+                    <option value="continually" {{ntp_mode == "continually" ? "selected" : ""}}>Continually</option>
                 </select>
             </div>
         </div>
         {{_H("NTP is used to keep the node's time up to date. Syncing the time every day is probably sufficient
-        but you can increase the frequency to hourly. Having accurate time means your timed events will run when you expected
-        and log information will show meaningful times.")}}
+        but you can increase the frequency to hourly or run NTP all the time. Having accurate time means your timed events will run when
+        you expected and log information will show meaningful times.")}}
         <div class="cols">
             <div>
                 <div class="o">24-Hour Clock</div>

@@ -34,7 +34,7 @@ true <<'LICENSE'
 LICENSE
 
 ROOT="/tmp/reboot-required"
-SERVICES="log system firewall network wireless dnsmasq tunnels manager olsrd localservices poe pou"
+SERVICES="log system firewall network wireless dnsmasq tunnels manager olsrd localservices poe pou ntp"
 
 ignore=0
 force=0
@@ -78,6 +78,12 @@ do
       /usr/local/bin/poe_passthrough $(/sbin/uci -q get aredn.@poe[0].passthrough) > /dev/null 2>&1
     elif [ $srv = "pou" ]; then
       /usr/local/bin/usb_passthrough $(/sbin/uci -q get aredn.@usb[0].passthrough) > /dev/null 2>&1
+    elif [ $srv = "ntp" ]; then
+      if /etc/init.d/sysntpd enabled; then
+        /etc/init.d/sysntpd start
+      else
+        /etc/init.d/sysntpd stop
+      fi
     elif [ -x /etc/init.d/$srv ]; then
       /etc/init.d/$srv restart > /dev/null 2>&1
     fi
