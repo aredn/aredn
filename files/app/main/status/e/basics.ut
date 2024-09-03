@@ -175,7 +175,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         {{_H("Private notes about this node which are only visible to the operator. This can be anything
         thought relevant or useful. For example it might include information about custom configurations
         or attached devices.")}}
-        <div class="cols">
+        <div id="select-theme" class="cols">
             <div>
                 <div class="o">Theme</div>
                 <div class="m">Display theme and colors</div>
@@ -184,7 +184,6 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 {%
                     const theme = fs.readlink(`${config.application}/resource/css/theme.css`);
                     const themes = fs.lsdir(`${config.application}/resource/css/themes`);
-                    
                 %}
                 <select name="theme" hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" hx-on:htmx:after-request="location.reload()">
                     <option value="default" {{theme === 'themes/default.css' ? 'selected': ''}}>default</option>
@@ -202,18 +201,24 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         </div>
         {{_H("Select the display theme for this node. This theme determines how everyone see this node when they visit. The
         default theme automatically selects either Light or Dark depending on the viewers browser settings.")}}
-        {% if (request.env.HTTP_HOST === "localnode" || request.env.HTTP_HOST === "localnode.local.mesh") { %}
-        <div class="cols">
-            <div>
-                <div class="o">Portable Theme</div>
-                <div class="m">Use localnode's theme when viewing any node</div>
+        {% 
+            let localnode = false;
+            if (request.env.HTTP_HOST === "localnode" || request.env.HTTP_HOST === "localnode.local.mesh") {
+                localnode = true;
+            }
+        %}
+        <div id="portable-theme" style="{{localnode ? '' : 'display:none'}}">
+            <div class="cols">
+                <div>
+                    <div class="o">Portable Theme</div>
+                    <div class="m">Use localnode's theme when viewing any node</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "portable_theme", value: uciMesh.get("aredn", "@theme[0]", "portable") === "1" })}}
+                </div>
             </div>
-            <div style="flex:0">
-                {{_R("switch", { name: "portable_theme", value: uciMesh.get("aredn", "@theme[0]", "portable") === "1" })}}
-            </div>
+            {{_H("When the portable theme is enabled on your localnode, it becomes the theme used when viewing any node on the mesh.")}}
         </div>
-        {{_H("When the portable theme is enabled on your localnode, it becomes the theme used when viewing any node on the mesh.")}}
-        {% } %}
         <hr>
         <div class="password">
             <div class="cols">
@@ -343,6 +348,18 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             htmx.find("dialog #ssh_change").innerHTML = "Upload or Remove Key";
         });
         {% } %}
+        fetch("http://localnode.local.mesh/a/whoami").then(r => {
+            if (r.ok) {
+                r.json().then(j => {
+                    if (j.name === "{{configuration.getName()}}") {
+                        htmx.find("#portable-theme").style.display = "";
+                    }
+                    else if (j.portableTheme === true) {
+                        htmx.find("#select-theme .m").innerHTML = "Display theme and colors seen by others. You see your portable theme.";
+                    }
+                });
+            }
+        });
     })();
     </script>
     {{_R("password-ctrl")}}
