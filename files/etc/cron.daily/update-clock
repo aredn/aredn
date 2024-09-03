@@ -39,6 +39,12 @@ LICENSE
 
 exec 2> /dev/null
 
+# If real ntp is running, we don't need to do this
+if [ "$(pidof ntpd)" != "" ]; then
+  echo -n "ntp" > /tmp/timesync
+  exit 0
+fi
+
 candidate=$(uci -q get system.ntp.server)
 if [ "${candidate}" != "" ]; then
     if $(ntpd -n -q -p ${candidate}); then

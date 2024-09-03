@@ -124,7 +124,8 @@ local cfg = {
     hello_interval = "4.0",
     tc_interval = "10.0",
     mid_interval = "10.0",
-    hna_interval = "10.0"
+    hna_interval = "10.0",
+    ntp_enabled = "0"
 }
 -- Track the changes so we can make better decissions about what to restart/reboot
 local changes = {
@@ -665,6 +666,11 @@ if nixio.fs.stat("/etc/config.mesh/xlink") then
             cfg.dtdlink_interfaces = cfg.dtdlink_interfaces .. "\n\tlist network '" .. section[".name"] .. "'"
         end
     )
+end
+
+-- NTP
+if cm:get("aredn", "@ntp[0]", "period") == "continually" then
+    cfg.ntp_enabled = "1"
 end
 
 remove_all("/tmp/new_config")
@@ -1300,7 +1306,8 @@ local config_special = {
     wifi_channel_0 = c:get("wireless", "@wifi-device[0]", "channel"),
     wifi_channel_1 = c:get("wireless", "@wifi-device[1]", "channel"),
     power_eth = c:get("aredn", "@poe[0]", "passthrough"),
-    power_usb = c:get("aredn", "@usb[0]", "passthrough")
+    power_usb = c:get("aredn", "@usb[0]", "passthrough"),
+    ntp_period = c:get("aredn", "@ntp[0]", "period")
 }
 local nfiles = {}
 for file in nixio.fs.glob("/tmp/new_config/*")
@@ -1323,6 +1330,7 @@ do
         if file == "system" then
             changes.log = true
             changes.system = true
+            changes.ntp = true
         elseif file == "aredn" then
             local oc = uci:cursor()
             if oc:get("aredn", "@dmz[0]", "mode") ~= config_special.dmz_mode then
@@ -1354,6 +1362,24 @@ do
             end
             if oc:get("aredn", "@usb[0]", "passthrough") ~= config_special.power_usb then
                 changes.pou = true
+            end
+            if oc:get("aredn", "@ntp[0]", "period") ~= config_special.ntp_period then
+                changes.ntp = true
+                local period = oc:get("aredn", "@ntp[0]", "period")
+                if period == "continually" then
+                    os.execute("/etc/init.d/sysntp enable > /dev/null 2>&1")
+                else
+                    os.execute("/etc/init.d/sysntp disable > /dev/null 2>&1")
+                end
+                if period == "daily" then
+                    if nixio.fs.stat("/etc/cron.hourly/update-clock") then
+                        nixio.fs.rename("/etc/cron.hourly/update-clock", "/etc/cron.daily/update-clock")
+                    end
+                else
+                    if nixio.fs.stat("/etc/cron.daily/update-clock") then
+                        nixio.fs.rename("/etc/cron.daily/update-clock", "/etc/cron.hourly/update-clock")
+                    end
+                end
             end
         elseif file == "network" then
             changes.network = true
