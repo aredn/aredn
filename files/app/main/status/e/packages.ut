@@ -355,6 +355,7 @@ const po = getPackageOptions();
         });
         htmx.on("#fetch-and-update", "click", e => {
             clearStatus();
+            htmx.find("#fetch-and-update").disabled = true;
             const upload = htmx.find("#package-update input[type=file]").files[0];
             const download = htmx.find("#download-package").value;
             const remove = htmx.find("#remove-package").value;
@@ -392,6 +393,9 @@ const po = getPackageOptions();
                 htmx.ajax("GET", `{{request.env.REQUEST_URI}}?r=${remove}`, {
                     source: e.currentTarget,
                     swap: "none"
+                }).then(_ => {
+                    htmx.find("#fetch-and-update").innerText = "Fetch and Install";
+                    htmx.find("#remove-package").value = "-";
                 });
             }
         });
