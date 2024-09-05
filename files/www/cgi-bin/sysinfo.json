@@ -209,7 +209,10 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"nodes=1") then
 end
 
 -- Output the HTTP header for JSON
-json_header()
+print("Content-type: application/json\r")
+print("Cache-Control: no-store\r")
+print("Access-Control-Allow-Origin: *\r")
+print("\n")
 
 -- Output the info table as json
 print(json.stringify(info,true))

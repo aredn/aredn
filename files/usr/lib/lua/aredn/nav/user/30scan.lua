@@ -1,3 +1,0 @@
-if aredn.hardware.get_iface_name("wifi"):match("wlan(%d+)") then
-  return { href = "scan", display = "WiFi Scan", hint = "See what wireless networks are nearby", enable = not config_mode }
-end
