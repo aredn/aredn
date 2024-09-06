@@ -196,7 +196,7 @@ const uciMethods =
             cursor.set(a, b, c);
         }
         else {
-            cursor.set(a, b, c, replace(d, "'", ""));
+            cursor.set(a, b, c, replace(replace(d, "'", ""), /[\r\n]/g, " "));
         }
     },
 
@@ -263,7 +263,7 @@ const uciMeshMethods =
             cursorm.set(a, b, c);
         }
         else {
-            cursorm.set(a, b, c, replace(d, /['<>]/g, ""));
+            cursorm.set(a, b, c, replace(replace(d, /['<>]/g, ""), /[\r\n]/g, " "));
         }
     },
 
