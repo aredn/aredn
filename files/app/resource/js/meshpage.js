@@ -114,5 +114,7 @@ help.addEventListener("click", () => {
     document.querySelector(".meshpage-help").classList.toggle("visible");
 });
 
+document.querySelector("input[type=search]").focus();
+
 }
 render();
