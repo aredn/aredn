@@ -81,11 +81,11 @@ Rocket M5GPS XM || 5 | ath79 | generic | ubnt_rocket-m | 64MB | stable | release
 Rocket M2 XM with USB port || 2 | ath79 | generic | ubnt_rocket-m | 64MB | untested | released
 Rocket M5 XM with USB port || 5 | ath79 | generic | ubnt_rocket-m | 64MB | untested | released
 Rocket M2 XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | stable | released
-Rocket M5 XW || 5 | ath79 | generic | ubnt_rocket-m5-xw | 64MB | stable | released
+Rocket M5 XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | released
 Rocket M2 Titanium TI || 2 | ath79 | - | - | 64MB | untested | released
 Rocket M2 Titanium XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | untested | released
 Rocket M5 Titanium TI || 5 | ath79 | - | - | 64MB | untested | released
-Rocket M5 Titanium XW || 5 | ath79 | generic | ubnt_rocket-m5-xw | 64MB | stable | released
+Rocket M5 Titanium XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | released
 **Sunset Devices** | | | | | | | |
 AirGrid M2 XM || 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | untested | sunset
 AirGrid M5 XM || 5 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | untested | sunset
