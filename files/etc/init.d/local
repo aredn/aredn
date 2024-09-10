@@ -36,13 +36,13 @@ boot() {
   /usr/local/bin/usb_passthrough "${usbvalue}"
 
   # package repositories
-  local packages_default = $(uci -q get "aredn.@downloads[0].packages_default")
+  local packages_default=$(uci -q get "aredn.@downloads[0].packages_default")
   if [ "${packages_default}" != "" ]; then
     local repos="core base arednpackages packages luci routing telephony"
     set -- $repos
     while [ -n "$1" ]; do
-      local distrepo = $(grep aredn_$1 /etc/opkg/distfeeds.conf | cut -d' ' -f3)
-      local prefixurl = $(echo $distrepo | sed -n 's/\(http[s]\?:\/\/[^/]\+\).*/\1/p')
+      local distrepo=$(grep aredn_$1 /etc/opkg/distfeeds.conf | cut -d' ' -f3)
+      local prefixurl=$(echo $distrepo | sed -n 's/\(http[s]\?:\/\/[^/]\+\).*/\1/p')
       if [ "$packages_default" != "$prefixurl" ]; then
         sed -i "s|$prefixurl|$packages_default|g" /etc/opkg/distfeeds.conf
       fi
