@@ -152,7 +152,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         uciMesh.set("aredn", "@location[0]", "elevation", request.args.radio_elevation);
     }
     if ("radio_lqm_enable" in request.args) {
-        uciMesh.set("aredn", "@lqm[0]", "lqm_enable", request.args.radio_lqm_enable === "on" ? 1 : 0);
+        uciMesh.set("aredn", "@lqm[0]", "enable", request.args.radio_lqm_enable === "on" ? 1 : 0);
     }
     if ("radio_mindistance" in request.args) {
         uciMesh.set("aredn", "@lqm[0]", "min_distance", request.args.radio_mindistance);
@@ -278,7 +278,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern="[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" value="{{wlan[w].modes[1].ssid}}"><span style="color:var(--ctrl-modal-fg-color)">-{{wlan[w].modes[1].bandwidth}}-v3</span>
                     </div>
                 </div>
-                {% if (uciMesh.get("aredn", "@lqm[0]", "lqm_enable") !== "0") { %}
+                {% if (uciMesh.get("aredn", "@lqm[0]", "enable") !== "0") { %}
                 <div class="cols">
                     <div>
                         <div class="o">Minimum SNR</div>
@@ -479,7 +479,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div class="m">Enable Link Quality Management</div>
                 </div>
                 <div style="flex:0">
-                    {{_R("switch", { name: "radio_lqm_enable", value: uciMesh.get("aredn", "@lqm[0]", "lqm_enable") !== "0" })}}
+                    {{_R("switch", { name: "radio_lqm_enable", value: uciMesh.get("aredn", "@lqm[0]", "enable") !== "0" })}}
                 </div>
             </div>
             {{_H("Link Quality Management (LQM) is an automatic management system which monitors the efficiency of each neighbor link
