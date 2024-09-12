@@ -50,6 +50,8 @@ local function opkg_with_retry(arg)
 	end
 end
 
+opkg_with_retry("list-installed | sed s/\\ .*// > /etc/permpkg")
+
 if nixio.fs.stat(package_catalog) then
 	-- Make sure we can contact the package server before proceeding.
 	-- We'll wait a few minutes before going ahead anyway
