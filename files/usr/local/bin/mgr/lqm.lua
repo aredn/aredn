@@ -789,31 +789,38 @@ function lqm()
                     ptime = socket.gettime(0) - pstart
                 end
                 if not success then
-                    -- If that fails, measure the "ping" time directly to the device by sending a UDP packet
-                    local sigsock = nixio.socket("inet", "dgram")
-                    sigsock:setopt("socket", "rcvtimeo", ping_timeout)
-                    sigsock:setopt("socket", "bindtodevice", track.device)
-                    sigsock:setopt("socket", "dontroute", 1)
-                    -- Must connect or we wont see the error
-                    sigsock:connect(track.ip, 8080)
-                    local pstart = socket.gettime(0)
-                    sigsock:send("")
-                    -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
-                    -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
-                    if sigsock:recv(0) ~= false then
-                        success = true
+                    if track.routable then
+                        -- If that fails, measure the "ping" time directly to the device by sending a UDP packet
+                        local sigsock = nixio.socket("inet", "dgram")
+                        sigsock:setopt("socket", "rcvtimeo", ping_timeout)
+                        sigsock:setopt("socket", "bindtodevice", track.device)
+                        sigsock:setopt("socket", "dontroute", 1)
+                        -- Must connect or we wont see the error
+                        sigsock:connect(track.ip, 8080)
+                        local pstart = socket.gettime(0)
+                        sigsock:send("")
+                        -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
+                        -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
+                        if sigsock:recv(0) ~= false then
+                            success = true
+                        end
+                        ptime = socket.gettime(0) - pstart
+                        sigsock:close()
+                    else
+                        -- We can't ping non-routable targets so don't consider them errors
+                        ptime = nil
                     end
-                    ptime = socket.gettime(0) - pstart
-                    sigsock:close()
                 end
 
                 wait_for_ticks(0)
 
                 track.ping_quality = track.ping_quality and (track.ping_quality + 1) or 100
-                if success then
-                    track.ping_success_time = track.ping_success_time and (track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)) or ptime
-                else
-                    track.ping_quality = track.ping_quality - config.ping_penalty
+                if ptime then
+                    if success then
+                        track.ping_success_time = track.ping_success_time and (track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)) or ptime
+                    else
+                        track.ping_quality = track.ping_quality - config.ping_penalty
+                    end
                 end
                 track.ping_quality = math.max(0, math.min(100, track.ping_quality))
                 if not success and track.type == "DtD" and track.firstseen == now then
