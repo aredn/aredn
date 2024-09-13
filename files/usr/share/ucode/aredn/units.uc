@@ -38,7 +38,7 @@ let metric = null;
 function isMetric()
 {
     if (metric === null) {
-        const lang = request?.env?.HTTP_ACCEPT_LANGUAGE || "en-US";
+        const lang = split(request?.env?.HTTP_ACCEPT_LANGUAGE || "en-US", ",")[0];
         if (index(lang, "-US") !== -1 || index(lang, "-GB") !== -1) {
             metric = false;
         }
