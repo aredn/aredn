@@ -403,12 +403,14 @@ export function countChanges()
     return count;
 };
 
+// The order of these is important
 const specialCharacters = [
-    [ "&", "&amp;" ], // Must be first
+    [ "&", "&amp;" ],
     [ '"', "&quot;" ],
     [ "'", "&apos;" ],
     [ "<", "&lt;" ],
-    [ ">", "&gt;" ]
+    [ ">", "&gt;" ],
+    [ "\n", "<br>" ]
 ];
 
 export function escapeString(s)
