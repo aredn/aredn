@@ -72,10 +72,10 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
     configuration.prepareChanges();
     if ("description_node" in request.args) {
-        configuration.setSetting("description_node", replace(request.args.description_node || "", "'", "’"));
+        configuration.setSetting("description_node", configuration.escapeString(trim(request.args.description_node)));
     }
     if ("notes" in request.args) {
-        uciMesh.set("aredn", "@notes[0]", "private", replace(request.args.notes || "", "'", "’"));
+        uciMesh.set("aredn", "@notes[0]", "private", configuration.escapeString(trim(request.args.notes)));
         uciMesh.commit("aredn");
     }
     if ("node_name" in request.args) {

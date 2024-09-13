@@ -402,3 +402,27 @@ export function countChanges()
     }
     return count;
 };
+
+const specialCharacters = [
+    [ "&", "&amp;" ], // Must be first
+    [ '"', "&quot;" ],
+    [ "'", "&apos;" ],
+    [ "<", "&lt;" ],
+    [ ">", "&gt;" ]
+];
+
+export function escapeString(s)
+{
+    for (let i = 0; i < length(specialCharacters); i++) {
+        s = replace(s, specialCharacters[i][0], specialCharacters[i][1]);
+    }
+    return s;
+};
+
+export function unescapeString(s)
+{
+    for (let i = length(specialCharacters) - 1; i >= 0; i--) {
+        s = replace(s, specialCharacters[i][1], specialCharacters[i][0]);
+    }
+    return s;
+};
