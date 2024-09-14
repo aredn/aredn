@@ -2,41 +2,55 @@ function render()
 {
 
 const search = document.querySelector("#meshfilter input");
-const page = document.getElementById("meshpage");
 const help = document.getElementById("meshpage-help");
 const etx = mesh.etx;
 const hosts = mesh.hosts;
 const services = mesh.services;
+let page = document.getElementById("meshpage");
+if (!page) {
+    page = document.createElement("div");
+    page.id = "meshpage";
+    document.getElementById("main").appendChild(page);
+}
 
 let filtering;
 let cfilter;
 function filter()
 {
     clearTimeout(filtering);
-    filtering = setTimeout(function() {
-        const filter = search.value.toLowerCase();
-        if (filter === cfilter) {
-            return;
-        }
-        cfilter = filter;
-        const filtered = document.querySelectorAll(".valid");
-        for (let i = 0; i < filtered.length; i++) {
-            filtered[i].classList.remove("valid");
-        }
-        if (filter === "") {
-            page.classList.remove("filtering");
+    filtering = setTimeout(doFilter, 200);
+}
+function doFilter() {
+    const filter = search.value.toLowerCase();
+    if (filter === cfilter) {
+        return;
+    }
+    cfilter = filter;
+    if (history) {
+        if (search.value) {
+            history.replaceState(null, "", `${location.origin}${location.pathname}?q=${search.value}`);
         }
         else {
-            page.classList.add("filtering");
-            const targets = document.querySelectorAll("[data-search]");
-            for (let i = 0; i < targets.length; i++) {
-                const target = targets[i];
-                if (target.dataset.search.indexOf(filter) !== -1) {
-                    target.classList.add("valid");
-                }
+            history.replaceState(null, "", `${location.origin}${location.pathname}`);
+        }
+    }
+    const filtered = document.querySelectorAll(".valid");
+    for (let i = 0; i < filtered.length; i++) {
+        filtered[i].classList.remove("valid");
+    }
+    if (filter === "") {
+        page.classList.remove("filtering");
+    }
+    else {
+        page.classList.add("filtering");
+        const targets = document.querySelectorAll("[data-search]");
+        for (let i = 0; i < targets.length; i++) {
+            const target = targets[i];
+            if (target.dataset.search.indexOf(filter) !== -1) {
+                target.classList.add("valid");
             }
         }
-    }, 200);
+    }
 }
 search.addEventListener("keyup", filter);
 search.addEventListener("click", filter);
@@ -110,11 +124,12 @@ for (let i = 0; i < etx.length; i++) {
 }
 page.innerHTML = data + "</div>";
 
+document.querySelector("input[type=search]").focus();
+doFilter();
+
 help.addEventListener("click", () => {
     document.querySelector(".meshpage-help").classList.toggle("visible");
 });
-
-document.querySelector("input[type=search]").focus();
 
 }
 render();
