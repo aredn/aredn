@@ -33,16 +33,6 @@
  */
 %}
 {%
-function escapeNote(s)
-{
-    return replace(replace(replace(replace(trim(s), "<", "&lt;"), ">", "&gt;"), "'", "&apos;"), '"', "&quot;");
-}
-
-function unescapeNote(s)
-{
-    return replace(replace(replace(replace(s, "&lt;", "<"), "&gt;", ">"), "&apos;", "'"), "&quot;", '"');
-}
-
 if (request.env.REQUEST_METHOD === "PUT") {
     configuration.prepareChanges();
     if ("tunnel_server" in request.args) {
@@ -79,7 +69,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("vtun", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
                     uciMesh.set("vtun", t.index, "netip", t.network);
                     uciMesh.set("vtun", t.index, "weight", t.weight);
-                    uciMesh.set("vtun", t.index, "contact", escapeNote(t.notes));
+                    uciMesh.set("vtun", t.index, "contact", configuration.escapeString(trim(t.notes)));
                     break;
                 }
                 case "lc":
@@ -96,7 +86,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("vtun", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
                     uciMesh.set("vtun", t.index, "netip", t.network);
                     uciMesh.set("vtun", t.index, "weight", t.weight);
-                    uciMesh.set("vtun", t.index, "contact", escapeNote(t.notes));
+                    uciMesh.set("vtun", t.index, "contact", configuration.escapeString(trim(t.notes)));
                     break;
                 }
                 case "ws":
@@ -109,7 +99,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("wireguard", t.index, "key", t.key);
                     uciMesh.set("wireguard", t.index, "clientip", t.network);
                     uciMesh.set("wireguard", t.index, "weight", t.weight);
-                    uciMesh.set("wireguard", t.index, "contact", escapeNote(t.notes));
+                    uciMesh.set("wireguard", t.index, "contact", configuration.escapeString(trim(t.notes)));
                     break;
                 }
                 case "ls":
@@ -126,7 +116,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("vtun", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
                     uciMesh.set("vtun", t.index, "netip", t.network);
                     uciMesh.set("vtun", t.index, "weight", t.weight);
-                    uciMesh.set("vtun", t.index, "contact", escapeNote(t.notes));
+                    uciMesh.set("vtun", t.index, "contact", configuration.escapeString(trim(t.notes)));
                     break;
                 }
                 default:
@@ -216,7 +206,7 @@ uciMesh.foreach("vtun", "server", a => {
         type: wireguard ? "wc" : "lc",
         name: a.host,
         enabled: a.enabled === "1",
-        notes: unescapeNote(a.contact || ""),
+        notes: configuration.unescapeString(a.contact || ""),
         network: a.netip,
         passwd: a.passwd,
         weight: a.weight ?? "",
@@ -233,13 +223,13 @@ uciMesh.foreach("vtun", "client", a => {
         type: "ls",
         name: replace(a.name, remove, ""),
         enabled: a.enabled === "1",
-        notes: unescapeNote(a.contact || ""),
+        notes: configuration.unescapeString(a.contact || ""),
         network: a.netip,
         passwd: a.passwd,
         weight: a.weight ?? "",
         up: up.lg[a.netip] ? true : false
     });
-    delete available.l[a.clientip];
+    delete available.l[a.netip];
 });
 uciMesh.foreach("wireguard", "client", a => {
     push(tunnels, {
@@ -247,7 +237,7 @@ uciMesh.foreach("wireguard", "client", a => {
         type: "ws",
         name: a.name,
         enabled: a.enabled === "1",
-        notes: unescapeNote(a.contact || ""),
+        notes: configuration.unescapeString(a.contact || ""),
         network: a.clientip,
         key: a.key,
         passwd: replace(a.key, /^[A-Za-z0-9+\/]+=/, ""),
