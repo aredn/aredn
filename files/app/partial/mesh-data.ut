@@ -45,11 +45,16 @@ const h = fs.open("/var/run/hosts_olsr");
 if (h) {
     let originator = null;
     let first = true;
+    let fallback = null;
     for (let line = h.read("line"); length(line); line = h.read("line")) {
         const v = match(trim(line), reHostsOlsr);
         if (v) {
             if (originator !== v[3]) {
                 if (originator) {
+                    if (first && fallback) {
+                        print(`["${fallback}"]`);
+                    }
+                    fallback = null;
                     print("],");
                 }
                 originator = v[3];
@@ -75,7 +80,13 @@ if (h) {
                 }
                 first = false;
             }
+            else if (originator === "myself" && index(host, "dtdlink") === 0) {
+                fallback = replace(host, /^dtdlink\.(.+)\.local\.mesh$/, "$1");
+            }
         }
+    }
+    if (first && fallback) {
+        print(`["${fallback}"]`);
     }
     print("]");
     h.close();
