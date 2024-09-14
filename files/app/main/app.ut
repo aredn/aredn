@@ -87,6 +87,9 @@
                 }
             });
             document.body.addEventListener("click", e => {
+                if (e.target.id === "dialog-done" || e.target.id === "dialog-cancel") {
+                    return;
+                }
                 if (!document.getSelection().isCollapsed) {
                     e.stopPropagation();
                 }
