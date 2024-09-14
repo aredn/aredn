@@ -78,6 +78,7 @@
     {% if (auth.isAdmin) { %}
     <script>
         (function(){
+            const m = document.getElementById("ctrl-modal");
             document.body.addEventListener("click", e => {
                 const a = htmx.findAll(".popup-menu input[type=checkbox]:checked");
                 for (let i = 0; i < a.length; i++) {
@@ -87,10 +88,7 @@
                 }
             });
             document.body.addEventListener("click", e => {
-                if (e.target.id === "dialog-done" || e.target.id === "dialog-cancel") {
-                    return;
-                }
-                if (!document.getSelection().isCollapsed) {
+                if (!(m.open || document.getSelection().isCollapsed)) {
                     e.stopPropagation();
                 }
             }, true);
