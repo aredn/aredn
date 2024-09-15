@@ -212,8 +212,6 @@ uciMesh.foreach("vtun", "server", a => {
         weight: a.weight ?? "",
         up: wireguard ? (length(filter(up.wg, v => index(a.passwd, v) !== -1)) === 0 ? false : true) : (up.lg[a.netip] ? true : false)
     });
-    delete available.l[a.clientip];
-    delete available.w[a.clientip];
 });
 uciMesh.foreach("vtun", "client", a => {
     const n = iptoarr(a.netip);
