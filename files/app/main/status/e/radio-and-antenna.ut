@@ -189,7 +189,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
 {% const wlan = radios.getConfiguration(); %}
 <div class="dialog radio-and-antenna">
     {{_R("dialog-header", "Radios &amp; Antennas")}}
-    <div>
+    <div class="hideable-g" data-hideable='{{uciMesh.get("aredn", "@lqm[0]", "enable") === "1" ? "on" : "off"}}'>
         {%
             const hasradios = length(wlan) > 0;
             if (hasradios) {
@@ -278,42 +278,42 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern="[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" value="{{wlan[w].modes[1].ssid}}"><span style="color:var(--ctrl-modal-fg-color)">-{{wlan[w].modes[1].bandwidth}}-v3</span>
                     </div>
                 </div>
-                {% if (uciMesh.get("aredn", "@lqm[0]", "enable") !== "0") { %}
-                <div class="cols">
-                    <div>
-                        <div class="o">Minimum SNR</div>
-                        <div class="m">Acceptable SNR for connection (dB)</div>
+                <div class="hideable0-b">
+                    <div class="cols">
+                        <div>
+                            <div class="o">Minimum SNR</div>
+                            <div class="m">Acceptable SNR for connection (dB)</div>
+                        </div>
+                        <div style="flex:0">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minsnr" type="text" size="3" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_snr")}}">
+                        </div>
                     </div>
-                    <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minsnr" type="text" size="3" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_snr")}}">
+                    {{_H("Low SNR results in higher latency, lower bandwidth and high retranmissions. Setting a minimum SNR allows links with
+                    these characteristics to be ignored.")}}
+                    <div class="cols">
+                        <div>
+                            <div class="o">Maximum Distance</div>
+                            <div class="m">Maximum distance allowed to other nodes in {{units.distanceUnit()}}</div>
+                        </div>
+                        <div style="flex:0">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_maxdistance" type="text" size="3" pattern="\d+" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "max_distance")))}}">
+                        </div>
                     </div>
+                    {{_H("Distance beyond which neighbor node connections will be ignored. Longer distances to nodes can result in poor performance.
+                    This will effect all neighbors, not just the distant ones, so it often makes sense to keep this distance to a minimum.")}}
+                    <div class="cols">
+                        <div>
+                            <div class="o">Minimum Quality</div>
+                            <div class="m">Minimum connection quaility percentage</div>
+                        </div>
+                        <div style="flex:0;white-space:nowrap">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minquality" type="text" size="3" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_quality")}}">
+                        </div>
+                    </div>
+                    {{_H("The node management system maintains an estimate of how well each neighbor link performs. This link <b>quality</b> is used
+                    to determine which links to use. Lowering the minimum quality can impact performance, but may also be necessary under specific
+                    circumstances.")}}
                 </div>
-                {{_H("Low SNR results in higher latency, lower bandwidth and high retranmissions. Setting a minimum SNR allows links with
-                these characteristics to be ignored.")}}
-                <div class="cols">
-                    <div>
-                        <div class="o">Maximum Distance</div>
-                        <div class="m">Maximum distance allowed to other nodes in {{units.distanceUnit()}}</div>
-                    </div>
-                    <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_maxdistance" type="text" size="3" pattern="\d+" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "max_distance")))}}">
-                    </div>
-                </div>
-                {{_H("Distance beyond which neighbor node connections will be ignored. Longer distances to nodes can result in poor performance.
-                This will effect all neighbors, not just the distant ones, so it often makes sense to keep this distance to a minimum.")}}
-                <div class="cols">
-                    <div>
-                        <div class="o">Minimum Quality</div>
-                        <div class="m">Minimum connection quaility percentage</div>
-                    </div>
-                    <div style="flex:0;white-space:nowrap">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minquality" type="text" size="3" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_quality")}}">
-                    </div>
-                </div>
-                {{_H("The node management system maintains an estimate of how well each neighbor link performs. This link <b>quality</b> is used
-                to determine which links to use. Lowering the minimum quality can impact performance, but may also be necessary under specific
-                circumstances.")}}
-                {% } %}
             </div>
             <div class="hideable2" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
                 {{_H("In LAN Hotpot mode, the WiFi acts as a wireless hotspot. Any device connecting will appear as a LAN device attached to the node.")}}
@@ -473,92 +473,90 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         {{_R("dialog-advanced")}}
         <div>
         {% if (includeAdvanced) { %}
-            <div class="hideable" data-hideable='{{uciMesh.get("aredn", "@lqm[0]", "enable") === "1" ? "on" : "off"}}'>
+            <div class="cols">
+                <div>
+                    <div class="o">LQM enable</div>
+                    <div class="m">Enable Link Quality Management</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("hideable-switch-g", { name: "radio_lqm_enable", value: uciMesh.get("aredn", "@lqm[0]", "enable") !== "0" })}}
+                </div>
+            </div>
+            {{_H("Link Quality Management (LQM) is an automatic management system which monitors the efficiency of each neighbor link
+            and optimizes their use for best performance. When disabled, it still gathers data on each link, but this information is
+            not used to effect operation.")}}
+            <div class="hideable0-b">
+                {% if (hasradios) { %}
                 <div class="cols">
                     <div>
-                        <div class="o">LQM enable</div>
-                        <div class="m">Enable Link Quality Management</div>
+                        <div class="o">Minimum Distance</div>
+                        <div class="m">Minimum distance to other nodes in {{units.distanceUnit()}}</div>
                     </div>
                     <div style="flex:0">
-                        {{_R("hideable-switch", { name: "radio_lqm_enable", value: uciMesh.get("aredn", "@lqm[0]", "enable") !== "0" })}}
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mindistance" type="text" size="3" pattern="\d+" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "min_distance")))}}">
                     </div>
                 </div>
-                {{_H("Link Quality Management (LQM) is an automatic management system which monitors the efficiency of each neighbor link
-                and optimizes their use for best performance. When disabled, it still gathers data on each link, but this information is
-                not used to effect operation.")}}
-                <div class="hideable0">
-                    {% if (hasradios) { %}
-                    <div class="cols">
-                        <div>
-                            <div class="o">Minimum Distance</div>
-                            <div class="m">Minimum distance to other nodes in {{units.distanceUnit()}}</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mindistance" type="text" size="3" pattern="\d+" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "min_distance")))}}">
-                        </div>
+                {{_H("Exclude nodes which are too close to this node.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">RTS Threshold</div>
+                        <div class="m">RTS Threshold in bytes before using RTS/CTS when hidden nodes are detected</div>
                     </div>
-                    {{_H("Exclude nodes which are too close to this node.")}}
-                    <div class="cols">
-                        <div>
-                            <div class="o">RTS Threshold</div>
-                            <div class="m">RTS Threshold in bytes before using RTS/CTS when hidden nodes are detected</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_rts_threshold" type="text" size="4" pattern="([1-9]|[1-9]\d{1,2}|1\d{3}|2[0-2]\d{2}|23[0-3]\d|234[0-7])" value="{{uciMesh.get("aredn", "@lqm[0]", "rts_threshold")}}">
-                        </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_rts_threshold" type="text" size="4" pattern="([1-9]|[1-9]\d{1,2}|1\d{3}|2[0-2]\d{2}|23[0-3]\d|234[0-7])" value="{{uciMesh.get("aredn", "@lqm[0]", "rts_threshold")}}">
                     </div>
-                    {{_H("When hidden nodes are detected, the RTS/CTS protocol is automatically enabled to improve performance. By default this is used for all packets
-                    being sent, but this can be optimized to only packets over a specific size (between 1 and 2347 bytes).  Setting the value to
-                    2347 disables the protocol.")}}
-                    <div class="cols">
-                        <div>
-                            <div class="o">Max Packet Size</div>
-                            <div class="m">Maximum packet size in bytes sent over WiFi</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mtu" type="text" size="4" pattern="(25[6-9]|2[6-9]\d|[3-9]\d{2}|1[0-4]\d{2}|1500)" placeholder="1500" value="{{uciMesh.get("aredn", "@lqm[0]", "mtu")}}">
-                        </div>
+                </div>
+                {{_H("When hidden nodes are detected, the RTS/CTS protocol is automatically enabled to improve performance. By default this is used for all packets
+                being sent, but this can be optimized to only packets over a specific size (between 1 and 2347 bytes).  Setting the value to
+                2347 disables the protocol.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">Max Packet Size</div>
+                        <div class="m">Maximum packet size in bytes sent over WiFi</div>
                     </div>
-                    {{_H("By default, WiFi uses the same packet size (1500 bytes) as Ethernet. However, in some noisy environment performance can be
-                    improved by reducing the packet size. A value must be between 256 and 1500.")}}
-                    <div class="cols">
-                        <div>
-                            <div class="o">SNR Margin</div>
-                            <div class="m">SNR Margin in dB above Min SNR a signal must reach to be re-activated</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_margin_snr" type="text" size="1" pattern="\d" value="{{uciMesh.get("aredn", "@lqm[0]", "margin_snr")}}">
-                        </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mtu" type="text" size="4" pattern="(25[6-9]|2[6-9]\d|[3-9]\d{2}|1[0-4]\d{2}|1500)" placeholder="1500" value="{{uciMesh.get("aredn", "@lqm[0]", "mtu")}}">
                     </div>
-                    {{_H("The SNR margin avoids a link switching quickly between blocked and unblocked when the SNR is the same as the minimum SNR. Once
-                    a link falls below the minimum SNR, it must move above minimum SNR + SNR margin to become active again.")}}
-                    {% } %}
-                    <div class="cols">
-                        <div>
-                            <div class="o">Quality Margin</div>
-                            <div class="m">Quality Margin percentage increase before neighbor can be re-activated</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_margin_quality" type="text" size="2" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "margin_quality")}}">
-                        </div>
+                </div>
+                {{_H("By default, WiFi uses the same packet size (1500 bytes) as Ethernet. However, in some noisy environment performance can be
+                improved by reducing the packet size. A value must be between 256 and 1500.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">SNR Margin</div>
+                        <div class="m">SNR Margin in dB above Min SNR a signal must reach to be re-activated</div>
                     </div>
-                    <div class="cols">
-                        <div>
-                            <div class="o">Ping Penalty</div>
-                            <div class="m">Ping Penalty quality percentage to add when neighbor cannot be pinged</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_ping_penalty" type="text" size="2" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "ping_penalty")}}">
-                        </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_margin_snr" type="text" size="1" pattern="\d" value="{{uciMesh.get("aredn", "@lqm[0]", "margin_snr")}}">
                     </div>
-                    <div class="cols">
-                        <div>
-                            <div class="o">Minimum Routes</div>
-                            <div class="m">Minimum number of routes on a link required to disable blocking</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_min_routes" type="text" size="2" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_routes")}}">
-                        </div>
+                </div>
+                {{_H("The SNR margin avoids a link switching quickly between blocked and unblocked when the SNR is the same as the minimum SNR. Once
+                a link falls below the minimum SNR, it must move above minimum SNR + SNR margin to become active again.")}}
+                {% } %}
+                <div class="cols">
+                    <div>
+                        <div class="o">Quality Margin</div>
+                        <div class="m">Quality Margin percentage increase before neighbor can be re-activated</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_margin_quality" type="text" size="2" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "margin_quality")}}">
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">Ping Penalty</div>
+                        <div class="m">Ping Penalty quality percentage to add when neighbor cannot be pinged</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_ping_penalty" type="text" size="2" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "ping_penalty")}}">
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">Minimum Routes</div>
+                        <div class="m">Minimum number of routes on a link required to disable blocking</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_min_routes" type="text" size="2" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_routes")}}">
                     </div>
                 </div>
             </div>
