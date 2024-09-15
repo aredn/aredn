@@ -49,8 +49,15 @@
         For example, typing "cam" in the box will filter out everything except names containsing "cam" ... which are probably cameras.
         </p>
     </div>
-    <div id="meshpage"></div>
 </div>
+<script>
+if (location.search) {
+    const q = location.search.match(/^\?q=(.+)/);
+    if (q) {
+        document.querySelector("input[type=search]").value = q[1];
+    }
+}
+</script>
 {% if (!config.resourcehash) { %}
 <script src="/a/js/meshpage.js"></script>
 {% } else { %}
