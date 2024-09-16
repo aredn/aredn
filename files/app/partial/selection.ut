@@ -36,13 +36,14 @@
     <a title="Node status" href="status">
         <div class="icon status {{request.page === "status"}}"></div>
     </a>
-    <a title="See what is on the mesh" href="mesh">
+    <a title="See what is on the local mesh" href="mesh">
         <div class="icon mesh {{request.page === "mesh"}}"></div>
     </a>
+    <hr>
     {% 
     const ip = (match(fs.readfile("/tmp/dnsmasq.d/supernode.conf"), /^#([0-9.]+)/) || [])[1];
     if (ip) { %}
-    <a title="See what is on the whole AREDN mesh" href="http://{{ip}}/a/mesh">
+    <a title="See what is on the cloud mesh from a supernode" href="http://{{ip}}/a/mesh">
         <div class="icon cloudmesh"></div>
     </a>
     {% } %}
