@@ -554,8 +554,8 @@ global.handle_request = function(env)
                         datafile = `/tmp/uhttpd.${hexenc(rid)}`;
                         const x = fs.open(datafile, "wx");
                         if (x) {
+                            x.write(res);
                             x.close();
-                            fs.writefile(datafile, res);
                             const z = fs.popen("exec /bin/gzip -c " + datafile);
                             res = z.read("all");
                             z.close();
