@@ -545,47 +545,35 @@ global.handle_request = function(env)
                 res = `<div><b>ERROR: ${e.message}</b><div><pre>${e.stacktrace[0].context}</pre></div>`;
             }
             if (!response.override) {
-                if (index(env.HTTP_ACCEPT_ENCODING || "", "gzip") === -1 || !config.compress) {
-                    response.headers["Content-Length"] = `${length(res)}`;
-                    uhttpd.send(
-                        `Status: ${response.statusCode} OK\r\n`,
-                        join("", map(keys(response.headers), k => k + ": " + response.headers[k] + "\r\n")),
-                        "\r\n",
-                        res
-                    );
-                }
-                else {
+                let datafile = null;
+                if (env.HTTP_ACCEPT_ENCODING && index(env.HTTP_ACCEPT_ENCODING, "gzip") !== -1 && config.compress) {
                     const r = fs.open("/dev/urandom");
-                    let datafile;
                     if (r) {
                         const rid = r.read(8);
                         r.close();
                         datafile = `/tmp/uhttpd.${hexenc(rid)}`;
-                    }
-                    else {
-                        datafile = `/tmp/uhttpd.${time()}${math.rand()}`;
-                    }
-                    try {
-                        fs.writefile(datafile, res);
-                        const z = fs.popen("exec /bin/gzip -c " + datafile);
-                        try {
+                        const x = fs.open(datafile, "wx");
+                        if (x) {
+                            x.close();
+                            fs.writefile(datafile, res);
+                            const z = fs.popen("exec /bin/gzip -c " + datafile);
                             res = z.read("all");
-                            response.headers["Content-Length"] = `${length(res)}`;
-                            uhttpd.send(
-                                `Status: ${response.statusCode} OK\r\nContent-Encoding: gzip\r\n`,
-                                join("", map(keys(response.headers), k => k + ": " + response.headers[k] + "\r\n")),
-                                "\r\n",
-                                res
-                            );
+                            z.close();
+                            fs.unlink(datafile);
                         }
-                        catch (_) {
+                        else {
+                            datafile = null;
                         }
-                        z.close();
                     }
-                    catch (_) {
-                    }
-                    fs.unlink(datafile);
                 }
+                response.headers["Content-Length"] = `${length(res)}`;
+                uhttpd.send(
+                    `Status: ${response.statusCode} OK\r\n`,
+                    (datafile ? `Content-Encoding: gzip\r\n` : ``),
+                    join("", map(keys(response.headers), k => k + ": " + response.headers[k] + "\r\n")),
+                    "\r\n",
+                    res
+                );
             }
             if (response.reboot) {
                 system("(sleep 2; exec /sbin/reboot)&");
