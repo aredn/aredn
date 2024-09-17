@@ -36,7 +36,7 @@
     function curl(url, filename, start, len)
     {
         const name = filename ? filename : `/tmp/download.${time()}`;
-        const f = fs.popen(`/usr/bin/curl --progress-bar -o ${name} ${url} 2>&1`);
+        const f = fs.popen(`/usr/bin/curl --progress-bar --remove-on-error -o ${name} ${url} 2>&1`);
         if (!f) {
             return null;
         }
@@ -236,8 +236,17 @@
             const data = firmware_versions[ver];
             f = curl(`${aredn_firmware}/afs/www/${data}/overview.json`, null, 10 + count * 90 / firmware_version_count, 90 / firmware_version_count);
             if (f) {
-                const info = json(f.read("all"));
+                let info;
+                try {
+                    info = json(f.read("all"));
+                }
+                catch (_) {
+                }
                 f.close();
+                if (!info) {
+                    uhttpd.send(`event: error\r\ndata: firmware version downloaded is corrupt\r\n\r\n`);
+                    return;
+                }
                 for (let i = 0; i < length(info.profiles); i++) {
                     const profile = info.profiles[i];
                     if (profile.id === board_type || ((board_type === "qemu" || board_type === "vmware") && profile.id == "generic" && profile.target === "x86/64")) {
@@ -300,8 +309,17 @@
             uhttpd.send(`event: error\r\ndata: missing firmware list\r\n\r\n`);
             return;
         }
-        const list = json(f.read("all"));
+        let list;
+        try {
+            list = json(f.read("all"));
+        }
+        catch (_) {
+        }
         f.close();
+        if (!list) {
+            uhttpd.send(`event: error\r\ndata: firmware list is corrupt\r\n\r\n`);
+            return;
+        }
         const inst = list[version];
         if (!inst) {
             uhttpd.send(`event: error\r\ndata: bad firmware version\r\n\r\n`);
@@ -312,8 +330,17 @@
             uhttpd.send(`event: error\r\ndata: could not download firmware version catalog\r\n\r\n`);
             return;
         }
-        const overview = json(f.read("all"));
+        let overview;
+        try {
+            overview = json(f.read("all"));
+        }
+        catch (_) {
+        }
         f.close();
+        if (!overview) {
+            uhttpd.send(`event: error\r\ndata: downloaded firmware version catalog is corrupt\r\n\r\n`);
+            return;
+        }
         let fwimage = null;
 
         let booter_version = null;
@@ -389,7 +416,12 @@
                             {%
                                 const f = fs.open("/tmp/firmware.list");
                                 if (f) {
-                                    const list = json(f.read("all"));
+                                    let list = {};
+                                    try {
+                                        list = json(f.read("all"));
+                                    }
+                                    catch (_) {
+                                    }
                                     f.close();
                                     for (let k in list) {
                                         print(`<option value="${k}">${k}${index(k, "-") == -1 ? "" : " (nightly)"}</option>`);
