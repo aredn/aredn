@@ -199,6 +199,7 @@ if (f) {
     f.close();
 }
 const tunnels = [];
+let servercount = 0;
 uciMesh.foreach("vtun", "server", a => {
     const wireguard = index(a.node, ":") !== -1;
     push(tunnels, {
@@ -228,6 +229,7 @@ uciMesh.foreach("vtun", "client", a => {
         up: up.lg[a.netip] ? true : false
     });
     delete available.l[a.netip];
+    servercount++;
 });
 uciMesh.foreach("wireguard", "client", a => {
     push(tunnels, {
@@ -243,6 +245,7 @@ uciMesh.foreach("wireguard", "client", a => {
         up: length(filter(up.wg, v => index(a.key, v) !== -1)) === 0 ? false : true
     });
     delete available.w[a.clientip];
+    servercount++;
 });
 function t2t(type)
 {
@@ -335,9 +338,9 @@ function t2t(type)
                 </div>
                 <div style="flex:0">
                     {% if (uciMesh.get("aredn", "@supernode[0]", "enable") === "1") { %}
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_start" type="text" size="14" placeholder="172.30.X.X" pattern="172\.30\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(0|4|8|[13579][26]|[2468][048]|1[13579][26]|1[02468][048]|2[13][26]|2[024][048]|252)" value="{{uciMesh.get("vtun", "@network[0]", "start")}}">
+                    <input {{servercount > 0 ? "disabled": ""}} hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_start" type="text" size="14" placeholder="172.30.X.X" pattern="172\.30\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(0|4|8|[13579][26]|[2468][048]|1[13579][26]|1[02468][048]|2[13][26]|2[024][048]|252)" value="{{uciMesh.get("vtun", "@network[0]", "start")}}">
                     {% } else { %}
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_start" type="text" size="14" placeholder="172.31.X.X" pattern="172\.31\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(0|4|8|[13579][26]|[2468][048]|1[13579][26]|1[02468][048]|2[13][26]|2[024][048]|252)" value="{{uciMesh.get("vtun", "@network[0]", "start")}}">
+                    <input {{servercount > 0 ? "disabled": ""}} hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_start" type="text" size="14" placeholder="172.31.X.X" pattern="172\.31\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(0|4|8|[13579][26]|[2468][048]|1[13579][26]|1[02468][048]|2[13][26]|2[024][048]|252)" value="{{uciMesh.get("vtun", "@network[0]", "start")}}">
                     {% } %}
                 </div>
             </div>
@@ -373,6 +376,7 @@ This value is used by default, but each tunnel may overide it.
         function updateTunnels()
         {
             const tunnels = [];
+            let servercount = 0;
             const tuns = htmx.findAll("#tunnels .tunnel");
             for (let i = 0; i < tuns.length; i++) {
                 const t = tuns[i];
@@ -398,11 +402,18 @@ This value is used by default, but each tunnel may overide it.
                         weight: weight.value
                     });
                 }
+                if (type === "ls" || type === "ws") {
+                    servercount++;
+                }
             }
             htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
                 swap: "none",
                 values: { tunnels: JSON.stringify(tunnels) }
             });
+            const start = htmx.find("input[name=tunnel_range_start]");
+            if (start) {
+                start.disabled = servercount > 0 ? true : false;
+            }
         }
         htmx.on("input[name=tunnel_server]", "change", e => {
             if (e.target.validity.valid) {
@@ -495,6 +506,10 @@ This value is used by default, but each tunnel may overide it.
                     newTunnelEntry();
                 }
             });
+            const start = htmx.find("input[name=tunnel_range_start]");
+            if (start && !client) {
+                start.disabled = true;
+            }
         }
         htmx.on("#tunnel-templates button", "click", newTunnelEntry);
         htmx.on("#tunnels", "change", updateTunnels);
