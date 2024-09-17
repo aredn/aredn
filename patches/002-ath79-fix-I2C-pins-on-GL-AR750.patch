@@ -1,0 +1,38 @@
+From 5d804deeeccd0a8f2efbc514266799bbf77e1187 Mon Sep 17 00:00:00 2001
+From: Ryan Salsbury <ryanrs@gmail.com>
+Date: Mon, 16 Sep 2024 17:49:21 -0700
+Subject: [PATCH] ath79: fix I2C pins on GL-AR750
+
+Change I2C pin flags to GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN, and
+change SDA to GPIO1.
+
+On my late production GL-AR750 (purchased 2024):
+SCL = GPIO16
+SDA = GPIO1
+
+Bug report:
+I2C bus doesn't work in GL-AR750
+https://github.com/openwrt/openwrt/issues/16319
+
+Signed-off-by: Ryan Salsbury <ryanrs@gmail.com>
+---
+ target/linux/ath79/dts/qca9531_glinet_gl-ar750.dts | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/target/linux/ath79/dts/qca9531_glinet_gl-ar750.dts b/target/linux/ath79/dts/qca9531_glinet_gl-ar750.dts
+index 4d809b922a7c9..8c9cf1ca464ff 100644
+--- a/target/linux/ath79/dts/qca9531_glinet_gl-ar750.dts
++++ b/target/linux/ath79/dts/qca9531_glinet_gl-ar750.dts
+@@ -63,8 +63,10 @@
+ 	i2c {
+ 		compatible = "i2c-gpio";
+ 
+-		sda-gpios = <&gpio 17 GPIO_ACTIVE_LOW>;
+-		scl-gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
++		sda-gpios = <&gpio  1 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
++		scl-gpios = <&gpio 16 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
++		i2c-gpio,delay-us = <5>;
++		i2c-gpio,timeout-ms = <50>;
+ 	};
+ };
+ 
