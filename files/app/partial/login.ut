@@ -34,7 +34,8 @@
 %}
 {% if (!auth.isAdmin) { %}
 <dialog id="login">
-    Password <input type="password"><button>OK</button>
+    <div>Password <input type="password"><button>Dismiss</button></div>
+    <div class="error"><div></div></div>
 </dialog>
 <div id="login-icon" class="popup-menu">
     <label title="Login as admin">
@@ -47,34 +48,54 @@
 </div>
 <script>
     const loginDialog = document.getElementById('login');
+    const loginInput = loginDialog.querySelector("input");
+    const loginButton = loginDialog.querySelector("button");
+    const loginError = loginDialog.querySelector(".error > div");
     document.querySelector("#login-icon .menu > div").addEventListener("click", function()
     {
+        loginInput.value = "";
+        loginButton.innerText = "Dismiss";
+        loginError.innerText = "";
         loginDialog.showModal();
     });
-    loginDialog.addEventListener("close", function()
-    {
-        loginDialog.querySelector("input").value = "";
-    });
     function doAuth() {
-        fetch(`${location.origin}/a/authenticate`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ version: 1, password: document.querySelector("#login input").value })
-        }).then(function(response) {
-            if (response.status === 200) {
-                response.json().then(function(json) {
-                    if (json.authenticated) {
-                        location.replace(location.origin);
-                    }
-                });
-            }
-        });
-        loginDialog.close();
+        if (loginInput.value === "") {
+            loginDialog.close();
+        }
+        else {
+            fetch(`${location.origin}/a/authenticate`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ version: 1, password: document.querySelector("#login input").value })
+            }).then(function(response) {
+                loginInput.value = "";
+                loginButton.innerText = "Dismiss";
+                if (response.status === 200) {
+                    response.json().then(function(json) {
+                        if (json.authenticated) {
+                            loginDialog.close();
+                            location.replace(location.origin);
+                        }
+                        else {
+                            loginError.innerText = "Incorrect password";
+                        }
+                    });
+                }
+                else {
+                    loginError.innerText = "Login failure";
+                }
+            });
+        }
     }
     loginDialog.querySelector('button').addEventListener("click", doAuth);
     loginDialog.querySelector('input').addEventListener("change", doAuth);
+    loginDialog.querySelector('input').addEventListener("input", function()
+    {
+        loginError.innerText = "";
+        loginButton.innerText = loginInput.value ? "OK" : "Dismiss";
+    });
 </script>
 {% } else { %}
 <div id="logout-icon" class="popup-menu">
