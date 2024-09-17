@@ -70,10 +70,10 @@
                 },
                 body: JSON.stringify({ version: 1, password: document.querySelector("#login input").value })
             }).then(function(response) {
-                loginInput.value = "";
-                loginButton.innerText = "Dismiss";
                 if (response.status === 200) {
                     response.json().then(function(json) {
+                        loginInput.value = "";
+                        loginButton.innerText = "Dismiss";
                         if (json.authenticated) {
                             loginDialog.close();
                             location.replace(location.origin);
@@ -84,6 +84,8 @@
                     });
                 }
                 else {
+                    loginInput.value = "";
+                    loginButton.innerText = "Dismiss";
                     loginError.innerText = "Login failure";
                 }
             });
