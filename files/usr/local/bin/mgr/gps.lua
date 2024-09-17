@@ -76,7 +76,7 @@ function app.run()
 
         -- Update time and date
         if c:get("aredn", "@time[0]", "gps_enable") == "1" and j.time then
-            os.execute("/bin/date -u -s '" .. j.time .. "' > /dev/nul 2>&1")
+            os.execute("/bin/date -u -s '" .. j.time .. "' > /dev/null 2>&1")
             write_all("/tmp/timesync", "gps")
         end
 
