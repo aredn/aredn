@@ -461,8 +461,8 @@ do
         end
 
         local proto = cfg[net .. "_proto"] or ""
-        local ipaddr = cfg[net .. "_ip"] or ""
-        local netmask = cfg[net .. "_mask"] or ""
+        local ipaddr = deleteme[net .. "_ip"] and "" or cfg[net .. "_ip"] or ""
+        local netmask = deleteme[net .. "_mask"] and "" or cfg[net .. "_mask"] or ""
         local mtu = cfg[net .. "_mtu"] or ""
         local dns1 = ""
         local dns2 = ""
@@ -470,7 +470,7 @@ do
             dns1 = cfg.wan_dns1 or ""
             dns2 = cfg.wan_dns2 or ""
         end
-        local gateway = cfg[net .. "_gw"] or ""
+        local gateway = deleteme[net .. "_gw"] and "" or cfg[net .. "_gw"] or ""
 
         config = config .. "config device\n"
         if not wireless then
