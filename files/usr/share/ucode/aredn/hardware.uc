@@ -399,7 +399,7 @@ export function getTxPowerOffset(wifiIface)
     if (radio && radio.pwroffset) {
         return radio.pwroffset;
     }
-    const f = fs.popen("/usr/bin/iwinfo " + wifiIface + " info");
+    const f = fs.popen("/usr/bin/iwinfo " + wifiIface + " info 2> /dev/null");
     if (f) {
         for (;;) {
             const line = f.read("line");
