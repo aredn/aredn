@@ -97,15 +97,17 @@
         f.close();
     }
 
-    f = fs.open(dhcp.reservations);
-    if (f) {
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            const v = match(trim(l), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
-            if (v && v[4] !== "#NOPROP") {
-                push(devices, `<div class="device">${v[3]}</div>`);
+    if (dhcp.enabled) {
+        f = fs.open(dhcp.reservations);
+        if (f) {
+            for (let l = f.read("line"); length(l); l = f.read("line")) {
+                const v = match(trim(l), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
+                if (v && v[4] !== "#NOPROP") {
+                    push(devices, `<div class="device">${v[3]}</div>`);
+                }
             }
+            f.close();
         }
-        f.close();
     }
 %}
 <div class="ctrl" hx-get="status/e/local-services" hx-target="#ctrl-modal">
