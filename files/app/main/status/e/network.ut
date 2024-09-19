@@ -108,16 +108,11 @@ if (request.env.REQUEST_METHOD === "PUT") {
             configuration.setSetting("dhcp_end", request.args.lan_dhcp_end);
         }
     }
-    if ("wan_enable" in request.args) {
-        if (request.args.wan_enable === "off") {
-            configuration.setSetting("wan_proto", "disabled");
-        }
-        else {
-            configuration.setSetting("wan_proto", "dhcp");
-        }
-    }
     if ("wan_mode" in request.args) {
         if (request.args.wan_mode === "0") {
+            configuration.setSetting("wan_proto", "disabled");
+        }
+        else if (request.args.wan_mode === "1") {
             configuration.setSetting("wan_proto", "dhcp");
         }
         else {
@@ -299,63 +294,52 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
             </div>
         </div>
         <hr>
-        <div class="hideable" data-hideable='{{wan_proto === "disabled" ? "off" : "on"}}'>
+        <div class="compact hideable" data-hideable='{{wan_proto === "static" ? 2 : wan_proto === "dhcp" ? 1 : 0}}'>
             <div class="cols">
                 <div>
-                    <div class="o">WAN Enable</div>
-                    <div class="m">Allow node to directly access the Internet</div>
+                    <div class="o">WAN Mode</div>
+                    <div class="m">Disabled, static or DHCP mode</div>
                 </div>
                 <div style="flex:0">
-                    {{_R("hideable-switch", { name: "wan_enable", value: wan_proto === "disabled" ? false : true })}}
+                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="wan_mode" {{_R("hideable-onselect")}}>
+                        <option value="0" {{wan_proto === "disabled" ? "selected" : ""}}>Disabled</option>
+                        <option value="1" {{wan_proto === "dhcp" ? "selected" : ""}}>DHCP</option>
+                        <option value="2" {{wan_proto === "static" ? "selected" : ""}}>Static</option>
+                    </select>
                 </div>
             </div>
-            {{_H("Enable the WAN interface on this node, to allow it to access the Internet directly.")}}
-            <div class="compact hideable hideable0" data-hideable='{{wan_proto === "static" ? 1 : 0}}'>
+            {{_H("The WAN interface can either use DHCP to retrieve an IP address, or it can be set statically.")}}
+            <div class="hideable2">
                 <div class="cols">
                     <div>
-                        <div class="o">Mode</div>
-                        <div class="m">Static or DHCP mode</div>
+                        <div class="o">A&zwnj;ddress</div>
+                        <div class="m">WAN IP a&zwnj;ddress</div>
                     </div>
                     <div style="flex:0">
-                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="wan_mode" {{_R("hideable-onselect")}}>
-                            <option value="0" {{wan_proto !== "static" ? "selected" : ""}}>DHCP</option>
-                            <option value="1" {{wan_proto === "static" ? "selected" : ""}}>Static</option>
-                        </select>
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="wan_ip" type="text" size="15" pattern="{{constants.patIP}}" required value="{{configuration.getSettingAsString("wan_ip")}}">
                     </div>
                 </div>
-                {{_H("The WAN interface can either use DHCP to retrieve an IP address, or it can be set statically.")}}
-                <div class="hideable1">
-                    <div class="cols">
-                        <div>
-                            <div class="o">A&zwnj;ddress</div>
-                            <div class="m">WAN IP a&zwnj;ddress</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_ip" type="text" size="15" pattern="{{constants.patIP}}" required value="{{configuration.getSettingAsString("wan_ip")}}">
-                        </div>
+                {{_H("A fixed IP address to assign to the WAN interace on this node.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">Netmask</div>
+                        <div class="m">WAN netmask</div>
                     </div>
-                    {{_H("A fixed IP address to assign to the WAN interace on this node.")}}
-                    <div class="cols">
-                        <div>
-                            <div class="o">Netmask</div>
-                            <div class="m">WAN netmask</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_mask" type="text" size="15" pattern="(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))" required value="{{configuration.getSettingAsString("wan_mask")}}">
-                        </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="wan_mask" type="text" size="15" pattern="(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))" required value="{{configuration.getSettingAsString("wan_mask")}}">
                     </div>
-                    {{_H("The netmask (e.g. 255.255.255.0) for this interface.")}}
-                    <div class="cols">
-                        <div>
-                            <div class="o">Gateway</div>
-                            <div class="m">Default gateway</div>
-                        </div>
-                        <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="wan_gw" type="text" size="15" pattern="{{constants.patIP}}" required value="{{configuration.getSettingAsString("wan_gw")}}">
-                        </div>
-                    </div>
-                    {{_H("The default gateway his node should use to access the Internet.")}}
                 </div>
+                {{_H("The netmask (e.g. 255.255.255.0) for this interface.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">Gateway</div>
+                        <div class="m">Default gateway</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="wan_gw" type="text" size="15" pattern="{{constants.patIP}}" required value="{{configuration.getSettingAsString("wan_gw")}}">
+                    </div>
+                </div>
+                {{_H("The default gateway his node should use to access the Internet.")}}
             </div>
         </div>
         <hr>
