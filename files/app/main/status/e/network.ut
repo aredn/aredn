@@ -206,6 +206,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="dhcp_mode" {{_R("hideable-onselect")}}>
                         <option value="-1" {{!dhcp.enabled ? "selected" : ""}}>Disabled</option>
                         <option value="0" {{dhcp.enabled && dmz_mode == 0 ? "selected" : ""}}>NAT</option>
+                        <option value="1" {{dhcp.enabled && dmz_mode == 1 ? "selected" : ""}}>44Net</option>
                         <option value="2" {{dhcp.enabled && dmz_mode == 2 ? "selected" : ""}}>1 host</option>
                         <option value="3" {{dhcp.enabled && dmz_mode == 3 ? "selected" : ""}}>5 hosts</option>
                         <option value="4" {{dhcp.enabled && dmz_mode == 4 ? "selected" : ""}}>13 hosts</option>
@@ -257,17 +258,17 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
             <div class="compact hideable1">
                 <div class="cols">
                     <div>
-                        <div class="o">AltNET IP A&zwnj;ddress</div>
-                        <div class="m">Gateway IP a&zwnj;ddress for AltNET LAN network</div>
+                        <div class="o">44Net IP A&zwnj;ddress</div>
+                        <div class="m">Gateway IP a&zwnj;ddress for 44Net LAN network</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_ip" type="text" size="15" required pattern="((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?\b){4}" value="{{gateway_altnet}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_ip" type="text" size="15" required pattern="44\.(\d|[1-9]\d|1[0-8]\d|19[01])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])" pattern="((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?\b){4}" value="{{gateway_altnet}}">
                     </div>
                 </div>
                 <div class="cols">
                     <div>
                         <div class="o">Netmask</div>
-                        <div class="m">Netmask for AltNET LAN network</div>
+                        <div class="m">Netmask for 44Net LAN network</div>
                     </div>
                     <div style="flex:0">
                         <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_netmask" type="text" size="15" required pattern="{{constants.patNetmask}}" value="{{dhcp.mask}}">
