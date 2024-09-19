@@ -136,6 +136,10 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("radio_wan_ssid" in request.args) {
         configuration.setSetting("wifi3_ssid", hexenc(request.args.radio_wan_ssid));
     }
+    if ("radio_wan_encryption" in request.args) {
+        const encrypt = [ "psk", "psk2", "none" ];
+        configuration.setSetting("wifi3_encryption", encrypt[int(request.args.radio_wan_encryption)]);
+    }
     if ("radio_wan_password" in request.args) {
         configuration.setSetting("wifi3_key", hexenc(request.args.radio_wan_password));
     }
@@ -275,7 +279,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">AREDN mesh identifier</div>
                     </div>
                     <div style="flex:0;white-space:nowrap">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern="[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" value="{{wlan[w].modes[1].ssid}}"><span style="color:var(--ctrl-modal-fg-color)">-{{wlan[w].modes[1].bandwidth}}-v3</span>
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" required size="10" maxlength="32" pattern="[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" value="{{wlan[w].modes[1].ssid}}"><span style="color:var(--ctrl-modal-fg-color)">-{{wlan[w].modes[1].bandwidth}}-v3</span>
                     </div>
                 </div>
                 <div class="hideable0-g">
@@ -323,7 +327,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Hotspot SSID</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_ssid" type="text" size="10" maxlength="32" pattern=[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" value="{{hexdec(wlan[w].modes[2].ssid)}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_ssid" type="text" required size="10" maxlength="32" pattern=[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" value="{{hexdec(wlan[w].modes[2].ssid)}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -378,16 +382,33 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">WAN client</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_ssid" type="text" size="10" maxlength="32" pattern='[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]' value="{{hexdec(wlan[w].modes[3].ssid)}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_ssid" type="text" required size="10" maxlength="32" pattern='[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]' value="{{hexdec(wlan[w].modes[3].ssid)}}">
                     </div>
                 </div>
-                <div class="cols">
-                    <div>
-                        <div class="o">Password</div>
-                        <div class="m">Client password</div>
+                <div class="hideable" data-hideable="{{wlan[w].modes[3].encryption == "psk" ? 0 : wlan[w].modes[3].encryption == "psk2" ? 1 : 2}}">
+                    <div class="cols">
+                        <div>
+                            <div class="o">Encryption</div>
+                            <div class="m">Encryption algorithm</div>
+                        </div>
+                        <div style="flex:0">
+                            <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="radio_wan_encryption" {{_R("hideable-onselect")}}>
+                                <option value="0" {{wlan[w].modes[3].encryption == "psk" ? "selected" : ""}}>WPA PSK</option>
+                                <option value="1" {{wlan[w].modes[3].encryption == "psk2" ? "selected" : ""}}>WPA2 PSK</option>
+                                <option value="2" {{wlan[w].modes[3].encryption == "none" ? "selected" : ""}}>None</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="password-toggle" style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" size="10" maxlength="32" value="{{hexdec(wlan[w].modes[3].key)}}"><button class="icon eye"></button>
+                    <div class="hideable0 hideable1">
+                        <div class="cols">
+                            <div>
+                                <div class="o">Password</div>
+                                <div class="m">Client password</div>
+                            </div>
+                            <div class="password-toggle" style="flex:0">
+                                <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" required size="10" maxlength="32" value="{{hexdec(wlan[w].modes[3].key)}}"><button class="icon eye"></button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

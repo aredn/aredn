@@ -962,17 +962,17 @@ do
         ssid = h2s(cfg.wifi2_ssid)
         mode = "ap"
         encryption = cfg.wifi2_encryption
-        key = h2s(cfg.wifi2_key)
+        if encryption ~= "none" then
+            key = h2s(cfg.wifi2_key)
+        end
         network = "lan"
     elseif cfg.wifi3_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi3_hwmode)) then
         -- wan client
         ssid = h2s(cfg.wifi3_ssid)
         mode = "sta"
-        if cfg.wifi3_key and cfg.wifi3_key ~= "" then
-            encryption = "psk2"
+        encryption = cfg.wifi3_encryption
+        if encryption ~= "none" then
             key = h2s(cfg.wifi3_key)
-        else
-            encryption = "none"
         end
         network = "wan"
         htmode = nil

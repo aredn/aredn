@@ -152,6 +152,7 @@ export function getConfiguration()
             ssid: configuration.getSettingAsString("wifi2_ssid", "")
         },
         {
+            encryption: configuration.getSettingAsString("wifi3_encryption", "psk2"),
             key: configuration.getSettingAsString("wifi3_key", ""),
             ssid: configuration.getSettingAsString("wifi3_ssid", "")
         }];
