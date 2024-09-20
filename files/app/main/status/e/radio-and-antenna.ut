@@ -117,6 +117,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("radio_maxdistance" in request.args) {
         uciMesh.set("aredn", "@lqm[0]", "max_distance", units.distance2meters(request.args.radio_maxdistance));
     }
+    if ("wifi_distance" in request.args) {
+        configuration.setSetting("wifi_distance", int(units.distance2meters(request.args.wifi_distance)));
+    }
     if ("radio_minquality" in request.args) {
         uciMesh.set("aredn", "@lqm[0]", "min_quality", request.args.radio_minquality);
     }
@@ -279,6 +282,17 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     </div>
                 </div>
                 <div class="hideable0-g">
+                    <div class="cols">
+                        <div>
+                            <div class="o">Maximum Distance</div>
+                            <div class="m">Distance to farthest neighbor in {{units.distanceUnit()}}</div>
+                        </div>
+                        <div style="flex:0">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="wifi_distance" type="text" size="3" pattern="\d+" value="{{int(0.5 + units.meters2distance(configuration.getSettingAsInt("wifi_distance", 0)))}}">
+                        </div>
+                    </div>
+                </div>
+                <div class="hideable1-g">
                     <div class="cols">
                         <div>
                             <div class="o">Minimum SNR</div>
@@ -485,7 +499,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             {{_H("Link Quality Management (LQM) is an automatic management system which monitors the efficiency of each neighbor link
             and optimizes their use for best performance. When disabled, it still gathers data on each link, but this information is
             not used to effect operation.")}}
-            <div class="hideable0-g">
+            <div class="hideable1-g">
                 {% if (hasradios) { %}
                 <div class="cols">
                     <div>
