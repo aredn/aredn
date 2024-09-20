@@ -287,8 +287,10 @@ function t2t(type)
                 <select style="direction:ltr">
                     <option value="wc">Wireguard Client</option>
                     <option value="ws">Wireguard Server</option>
+                    {% if (uciMesh.get("aredn", "@supernode[0]", "enable") !== "1") { %}
                     <option value="lc">Legacy Client</option>
                     <option value="ls">Legacy Server</option>
+                    {% } %}
                 </select>
             </div>
             <button>+</button>
