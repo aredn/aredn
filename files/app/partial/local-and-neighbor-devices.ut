@@ -121,7 +121,7 @@
                 for (let i = 0; i < length(llist); i++) {
                     const tracker = trackers[llist[i].mac];
                     const status = calcColor(tracker);
-                    print(`<div class="ctrl cols status ${status}" hx-get="status/e/neighbor-device?m=${tracker.mac}" title='Link status: ${status}'>`);
+                    print(`<div class="ctrl cols status ${status}" hx-get="status/e/neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
                     const link = links[tracker.ip] || {};
                     const lq = link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     const nlq = link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
@@ -151,7 +151,7 @@
             for (let i = 0; i < length(nlist); i++) {
                 const tracker = trackers[nlist[i].mac];
                 const status = calcColor(tracker);
-                print(`<div class="ctrl cols status ${status}" hx-get="status/e/neighbor-device?m=${tracker.mac}">`);
+                print(`<div class="ctrl cols status ${status}" hx-get="status/e/neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
                 const link = links[tracker.ip] || {};
                 const lq = link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                 const nlq = link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
@@ -182,10 +182,10 @@
                         break;
                 }
                 if (tracker.hostname) {
-                    print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" title='${title}status: ${status}' href='http://${tracker.hostname}.local.mesh'>${tracker.hostname}<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" href='http://${tracker.hostname}.local.mesh'>${tracker.hostname}<div class="icon ${icon}"></div></a></div>`);
                 }
                 else {
-                    print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" title='${title}status: ${status}' href='http://${tracker.ip}'>${tracker.ip}<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" href='http://${tracker.ip}'>${tracker.ip}<div class="icon ${icon}"></div></a></div>`);
                 }
                 print("<div class='ts cols stats'>");
                 let d = "-";
