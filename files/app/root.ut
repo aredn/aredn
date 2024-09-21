@@ -400,6 +400,10 @@ global.handle_request = function(env)
                 for (let l = f.read("line"); length(l); l = f.read("line")) {
                     if (index(l, "overlay") !== -1 || index(l, "ext4") !== -1) {
                         tpath = `${config.application}/main/firstuse.ut`;
+                        const mac2 = uci.cursor("/etc/local/uci").get("hsmmmesh", "settings", "mac2");
+                        if (!match(mac2, /^\d+\.\d+\.\d+$/)) {
+                            tpath = `${config.application}/main/firstuse-start.ut`;
+                        }
                         break;
                     }
                 }
