@@ -33,11 +33,19 @@
  */
 %}
 {%
+import * as xuci from "uci";
+
 if ((auth.isFirstUse || !config.authenable) && request.env.REQUEST_METHOD === "PUT") {
-    system(`/usr/local/bin/firstuse-setup '${request.args.name}' '${request.args.passwd}'`);
-    response.reboot = true;
-    print(_R("reboot-firstuse"));
-    return;
+    for (let i = 0; i < 10; i++) {
+        const mac2 = xuci.cursor("/etc/local/uci").get("hsmmmesh", "settings", "mac2");
+        if (match(mac2, /^\d+\.\d+\.\d+$/)) {
+            system(`/usr/local/bin/firstuse-setup '${request.args.name}' '${request.args.passwd}'`);
+            response.reboot = true;
+            print(_R("reboot-firstuse"));
+            return;
+        }
+        sleep(1000);
+    }
 }
 %}
 <!DOCTYPE>
