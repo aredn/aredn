@@ -196,7 +196,15 @@ const uciMethods =
             cursor.set(a, b, c);
         }
         else {
-            cursor.set(a, b, c, replace(replace(d, "'", ""), /[\r\n]/g, " "));
+            if (type(d) === "array") {
+                for (let i = 0; i < length(d); i++) {
+                    d[i] = replace(replace(d[i], /['<>]/g, ""), /[\r\n]/g, " ");
+                }
+            }
+            else {
+                d = replace(replace(d, /['<>]/g, ""), /[\r\n]/g, " ");
+            }
+            cursor.set(a, b, c, d);
         }
     },
 
@@ -263,7 +271,15 @@ const uciMeshMethods =
             cursorm.set(a, b, c);
         }
         else {
-            cursorm.set(a, b, c, replace(replace(d, /['<>]/g, ""), /[\r\n]/g, " "));
+            if (type(d) === "array") {
+                for (let i = 0; i < length(d); i++) {
+                    d[i] = replace(replace(d[i], /['<>]/g, ""), /[\r\n]/g, " ");
+                }
+            }
+            else {
+                d = replace(replace(d, /['<>]/g, ""), /[\r\n]/g, " ");
+            }
+            cursorm.set(a, b, c, d);
         }
     },
 
