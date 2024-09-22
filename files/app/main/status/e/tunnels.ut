@@ -375,10 +375,29 @@ This value is used by default, but each tunnel may overide it.
         {{_R("open")}}
         let server = "{{uciMesh.get("vtun", "@network[0]", "dns")}}";
         const available = {{sprintf("%J", available)}};
+        function updateTunnelsDone()
+        {
+            let invalid = false;
+            const tuns = htmx.findAll("#tunnels .tunnel");
+            for (let i = 0; i < tuns.length; i++) {
+                const t = tuns[i];
+                const name = htmx.find(t, "input[name=name]");
+                const password = htmx.find(t, "input[name=password]");
+                const network = htmx.find(t, "input[name=network]");
+                const notes = htmx.find(t, "input[name=notes]");
+                const weight = htmx.find(t, "input[name=weight]");
+                if (!(name.validity.valid && password.validity.valid && network.validity.valid && notes.validity.valid && weight.validity.valid)) {
+                    invalid = true;
+                    break;
+                }
+            }
+            htmx.find("#dialog-done").disabled = invalid;
+        }
         function updateTunnels()
         {
             const tunnels = [];
             let servercount = 0;
+            let invalid = 0;
             const tuns = htmx.findAll("#tunnels .tunnel");
             for (let i = 0; i < tuns.length; i++) {
                 const t = tuns[i];
@@ -404,18 +423,24 @@ This value is used by default, but each tunnel may overide it.
                         weight: weight.value
                     });
                 }
+                else {
+                    invalid++;
+                }
                 if (type === "ls" || type === "ws") {
                     servercount++;
                 }
             }
-            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                swap: "none",
-                values: { tunnels: JSON.stringify(tunnels) }
-            });
+            if (invalid === 0) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    swap: "none",
+                    values: { tunnels: JSON.stringify(tunnels) }
+                });
+            }
             const start = htmx.find("input[name=tunnel_range_start]");
             if (start) {
                 start.disabled = servercount > 0 ? true : false;
             }
+            updateTunnelsDone();
         }
         htmx.on("input[name=tunnel_server]", "change", e => {
             if (e.target.validity.valid) {
@@ -547,9 +572,11 @@ This value is used by default, but each tunnel may overide it.
             if (start && !client) {
                 start.disabled = true;
             }
+            updateTunnelsDone();
         }
         htmx.on("#tunnel-templates button", "click", newTunnelEntry);
         htmx.on("#tunnels", "change", updateTunnels);
+        htmx.on("#tunnels", "input", updateTunnelsDone);
         htmx.on("#tunnels", "click", event => {
             const target = event.target;
             if (target.nodeName === "BUTTON") {

@@ -369,8 +369,58 @@ if (f) {
         {{_R("open")}}
         const templates = {{templates}};
         const hosts = {{hosts}};
-        function updateServices() {
+        function updateDone()
+        {
+            let invalid = false;
+            const svc = htmx.findAll("#local-services .service");
+            for (let i = 0; i < svc.length; i++) {
+                const s = svc[i];
+                const name = htmx.find(s, "input[name=name]");
+                const protocol = htmx.find(s, "input[name=protocol]");
+                const port = htmx.find(s, "input[name=port]");
+                const path = htmx.find(s, "input[name=path]");
+                if (protocol && port && path) {
+                    if (!(name.validity.valid && protocol.validity.valid && port.validity.valid && path.validity.valid)) {
+                        invalid = true;
+                        break;
+                    }
+                }
+                else {
+                     if (!name.validity.valid) {
+                        invalid = true;
+                        break;
+                    }
+                }
+            }
+            if (!invalid) {
+                const al = htmx.findAll("#host-aliases .alias");
+                for (let i = 0; i < al.length; i++) {
+                    const s = al[i];
+                    const hostname = htmx.find(s, "input[name=hostname]");
+                    if (!hostname.validity.valid) {
+                        invalid = true;
+                        break;
+                    }
+                }
+            }
+            if (!invalid) {
+                const rows = htmx.findAll("#port-forwards .cols .row");
+                for (let i = 0; i < rows.length; i++) {
+                    const r = rows[i];
+                    const sports = htmx.find(r, "[name=port_sports]");
+                    const dport = htmx.find(r, "[name=port_dport]");
+                    if (!(sports.validity.valid && dport.validity.valid)) {
+                        invalid = true;
+                        break;
+                    }
+                }
+            }
+            htmx.find("#dialog-done").disabled = invalid;
+        }
+        function updateServices()
+        {
             const services = [];
+            let invalid = 0;
             const svc = htmx.findAll("#local-services .service");
             for (let i = 0; i < svc.length; i++) {
                 const s = svc[i];
@@ -384,21 +434,32 @@ if (f) {
                     if (name.validity.valid && protocol.validity.valid && port.validity.valid && path.validity.valid) {
                         services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|1|${protocol.value}|${host.value}|${port.value}|${path.value}`);
                     }
+                    else {
+                        invalid++;
+                    }
                 }
                 else {
                      if (name.validity.valid) {
                         services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|0||${host.value}||`);
                     }
+                    else {
+                        invalid++;
+                    }
                 }
             }
-            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                swap: "none",
-                values: { services: JSON.stringify(services) }
-            });
+            if (invalid === 0) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    swap: "none",
+                    values: { services: JSON.stringify(services) }
+                });
+                htmx.find("#dialog-done").disabled = false;
+            }
+            updateDone();
         }
         function updateAliases()
         {
             const aliases = [];
+            let invalid = 0;
             const al = htmx.findAll("#host-aliases .alias");
             for (let i = 0; i < al.length; i++) {
                 const s = al[i];
@@ -407,15 +468,22 @@ if (f) {
                 if (hostname.validity.valid) {
                     aliases.push(`${address.value} ${hostname.value}`);
                 }
+                else {
+                    invalid++;
+                }
             }
-            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                swap: "none",
-                values: { aliases: JSON.stringify(aliases) }
-            });
+            if (invalid === 0) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    swap: "none",
+                    values: { aliases: JSON.stringify(aliases) }
+                });
+            }
+            updateDone();
         }
         function updatePortForwards()
         {
             const ports = [];
+            let invalid = 0;
             const rows = htmx.findAll("#port-forwards .cols .row");
             for (let i = 0; i < rows.length; i++) {
                 const r = rows[i];
@@ -428,11 +496,17 @@ if (f) {
                 if (sports.validity.valid && dport.validity.valid) {
                     ports.push(`${src.value}:${type.value}:${sports.value}:${dst.value}:${dport.value}:${enabled.checked ? "1" : "0"}`);
                 }
+                else {
+                    invalid++;
+                }
             }
-            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                swap: "none",
-                values: { ports: JSON.stringify(ports) }
-            });
+            if (invalid === 0) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    swap: "none",
+                    values: { ports: JSON.stringify(ports) }
+                });
+            }
+            updateDone();
         }
         function refreshHostSelectors()
         {
@@ -542,6 +616,7 @@ if (f) {
         });
         htmx.on("#local-services", "change", updateServices);
         htmx.on("#local-services", "select", updateServices);
+        htmx.on("#local-services", "input", updateDone);
         function newAliasEntry()
         {
             const div = document.createElement("div");
@@ -585,6 +660,7 @@ if (f) {
         });
         htmx.on("#host-aliases", "change", _ => { refreshHostSelectors(); updateAliases(); });
         htmx.on("#host-aliases", "select", _ => { refreshHostSelectors(); updateAliases(); });
+        htmx.on("#host-aliases", "input", updateDone);
         htmx.on("#port-forwards", "click", event => {
             const target = event.target;
             if (target.nodeName === "BUTTON") {
@@ -644,10 +720,12 @@ if (f) {
                     newForwardEntry();
                 }
             });
+            updateDone();
         }
         htmx.on("#port-forward-add button", "click", newForwardEntry);
-        htmx.on("#port-forwards", "change", _ => updatePortForwards());
-        htmx.on("#port-forwards", "select", _ => updatePortForwards());
+        htmx.on("#port-forwards", "change", updatePortForwards);
+        htmx.on("#port-forwards", "select", updatePortForwards);
+        htmx.on("#port-forwards", "input", updateDone);
     })();
     </script>
 </div>
