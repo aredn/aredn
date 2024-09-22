@@ -93,14 +93,11 @@ if wifi_mac == "" or mac2 == "" then
         end
     end
     if not hardware_mac then
+        -- Fallback, create a random mac address instead
+        hardware_mac = capture([[hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/urandom]]):match("^(%S+)")
         if not aredn.hardware.has_wifi() then
-            -- Non wifi device, create a random mac address instead
-            hardware_mac = capture([[hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/urandom]]):match("^(%S+)")
             -- Disable wifi
             os.execute("sed -i -e 's/wifi_enable = 1/wifi_enable = 0/' /etc/config.mesh/_setup")
-        else
-            io.stderr:write("ERROR: hardware mac not found\n")
-            os.exit(-1)
         end
     end
 end
