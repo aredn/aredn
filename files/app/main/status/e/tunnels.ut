@@ -299,37 +299,39 @@ function t2t(type)
         information as possible. For tunnel clients all the fields can be easily populated by copy-n-pasting the entire server configuration
         from another node into any field.")}}
         <br>
-        <div id="tunnels">{%
-            for (let i = 0; i < length(tunnels); i++) {
-                const t = tunnels[i];
-                const client = t.type === "lc" || t.type === "wc" ? true : false;
-                const wireguard = t.type === "ws" || t.type === "wc" ? true : false;
-                %}<div class="tunnel cols" data-index="{{t.index}}">
-                    <div class="cols">
-                        <div data-type="{{t.type}}">{{t2t(t.type)}}</div>
-                        <div>
-                            <div class="cols">
-                                <input type="text" name="name" required placeholder="{{client ? 'Server name' : 'Node name'}}" value="{{t.name}}">
-                                <label class="switch {{t.up ? 'up' : ''}}"><input type="checkbox" name="enable" {{t.enabled ? "checked" : ""}}></label>
-                            </div>
-                            <div class="cols pwnw">
-                                {% if (t.type === "ws") { %}
-                                <input type="hidden" name="key" value="{{t.key}}">
-                                {% } %}
-                                <input type="text" name="password" required pattern="{{wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}}" placeholder="{{wireguard ? 'Wireguard key' : 'Password'}}" value="{{t.passwd}}" {{t.type === "ws" ? "readonly" : ""}}>
-                                <input type="text" name="network" required pattern="{{constants.patIP}}{{wireguard ? ':' + constants.patPort : ''}}" placeholder="{{wireguard ? 'Network:Port' : 'Network'}}" value="{{t.network}}" {{client ? "" : "readonly"}}>
-                                <input type="text" name="weight" pattern="([0-9]|[1-9][0-9])" placeholder="Wgt" value="{{t.weight}}">
-                            </div>
-                            <div class="cols">
-                                <input type="text" name="notes" placeholder="Notes..." value="{{t.notes}}">
-                                {{client ? '' : '<button class="clipboard"><div class="icon clipboard"></div></button>'}}
+        <form>
+            <div id="tunnels">{%
+                for (let i = 0; i < length(tunnels); i++) {
+                    const t = tunnels[i];
+                    const client = t.type === "lc" || t.type === "wc" ? true : false;
+                    const wireguard = t.type === "ws" || t.type === "wc" ? true : false;
+                    %}<div class="tunnel cols" data-index="{{t.index}}">
+                        <div class="cols">
+                            <div data-type="{{t.type}}">{{t2t(t.type)}}</div>
+                            <div>
+                                <div class="cols">
+                                    <input type="text" name="name" required placeholder="{{client ? 'Server name' : 'Node name'}}" value="{{t.name}}">
+                                    <label class="switch {{t.up ? 'up' : ''}}"><input type="checkbox" name="enable" {{t.enabled ? "checked" : ""}}></label>
+                                </div>
+                                <div class="cols pwnw">
+                                    {% if (t.type === "ws") { %}
+                                    <input type="hidden" name="key" value="{{t.key}}">
+                                    {% } %}
+                                    <input type="text" name="password" required pattern="{{wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}}" placeholder="{{wireguard ? 'Wireguard key' : 'Password'}}" value="{{t.passwd}}" {{t.type === "ws" ? "readonly" : ""}}>
+                                    <input type="text" name="network" required pattern="{{constants.patIP}}{{wireguard ? ':' + constants.patPort : ''}}" placeholder="{{wireguard ? 'Network:Port' : 'Network'}}" value="{{t.network}}" {{client ? "" : "readonly"}}>
+                                    <input type="text" name="weight" pattern="([0-9]|[1-9][0-9])" placeholder="Wgt" value="{{t.weight}}">
+                                </div>
+                                <div class="cols">
+                                    <input type="text" name="notes" placeholder="Notes..." value="{{t.notes}}">
+                                    {{client ? '' : '<button class="clipboard"><div class="icon clipboard"></div></button>'}}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <button class="remove">-</button>
-                </div>{%
-            }
-        %}</div>
+                        <button class="remove">-</button>
+                    </div>{%
+                }
+            %}</div>
+        </form>
         {{_R("dialog-advanced")}}
         <div>
         {% if (includeAdvanced) { %}
@@ -375,24 +377,6 @@ This value is used by default, but each tunnel may overide it.
         {{_R("open")}}
         let server = "{{uciMesh.get("vtun", "@network[0]", "dns")}}";
         const available = {{sprintf("%J", available)}};
-        function updateTunnelsDone()
-        {
-            let invalid = false;
-            const tuns = htmx.findAll("#tunnels .tunnel");
-            for (let i = 0; i < tuns.length; i++) {
-                const t = tuns[i];
-                const name = htmx.find(t, "input[name=name]");
-                const password = htmx.find(t, "input[name=password]");
-                const network = htmx.find(t, "input[name=network]");
-                const notes = htmx.find(t, "input[name=notes]");
-                const weight = htmx.find(t, "input[name=weight]");
-                if (!(name.validity.valid && password.validity.valid && network.validity.valid && notes.validity.valid && weight.validity.valid)) {
-                    invalid = true;
-                    break;
-                }
-            }
-            htmx.find("#dialog-done").disabled = invalid;
-        }
         function updateTunnels()
         {
             const tunnels = [];
@@ -440,7 +424,6 @@ This value is used by default, but each tunnel may overide it.
             if (start) {
                 start.disabled = servercount > 0 ? true : false;
             }
-            updateTunnelsDone();
         }
         htmx.on("input[name=tunnel_server]", "change", e => {
             if (e.target.validity.valid) {
@@ -572,11 +555,10 @@ This value is used by default, but each tunnel may overide it.
             if (start && !client) {
                 start.disabled = true;
             }
-            updateTunnelsDone();
+            htmx.find("#dialog-done").disabled = true;
         }
         htmx.on("#tunnel-templates button", "click", newTunnelEntry);
         htmx.on("#tunnels", "change", updateTunnels);
-        htmx.on("#tunnels", "input", updateTunnelsDone);
         htmx.on("#tunnels", "click", event => {
             const target = event.target;
             if (target.nodeName === "BUTTON") {

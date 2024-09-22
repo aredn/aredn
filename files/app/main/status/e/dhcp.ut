@@ -239,35 +239,37 @@ const dhcpOptionTypes = {
             </div>
             {{_H("Creates a permenant mapping between a device MAC address and an IP address on the LAN network.
             The given hostname is available to everyone on the mesh unless the entry is marked as <b>do not propagate</b>")}}
-            <div id="dhcp-reservations">
-                <div class="cols reservation-label">
-                    <div style="white-space:nowrap">
-                        <div>hostname</div>
-                        <div>ip address</div>
-                        <div>mac a&zwnj;ddress</div>
-                        <div>do not propagate</div>
-                    </div>
-                    <div></div>
-                </div>
-            {% if (reservations > 0) {
-                for (let i = 0; i < length(options); i++) {
-                    const o = options[i];
-                    if (o.reserved) {
-            %}
-                        <div class="cols reservation" data-ip="{{o.ip}}">
-                            <div style="white-space:nowrap">
-                                <input name="hostname" type="text" required placeholder="hostname" value="{{o.name}}">
-                                <select class="dhcp-addresses">
-                                </select>
-                                <input name="mac" type="text" required placeholder="mac a&zwnj;ddress" pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="{{o.mac}}">
-                                <label><input type="checkbox" {{o.noprop ? "checked" : ""}}></label>
-                            </div>
-                            <button>-</button>
+            <form>
+                <div id="dhcp-reservations">
+                    <div class="cols reservation-label">
+                        <div style="white-space:nowrap">
+                            <div>hostname</div>
+                            <div>ip address</div>
+                            <div>mac a&zwnj;ddress</div>
+                            <div>do not propagate</div>
                         </div>
-            {%      }
-                }
-            } %}
-            </div>
+                        <div></div>
+                    </div>
+                {% if (reservations > 0) {
+                    for (let i = 0; i < length(options); i++) {
+                        const o = options[i];
+                        if (o.reserved) {
+                %}
+                            <div class="cols reservation" data-ip="{{o.ip}}">
+                                <div style="white-space:nowrap">
+                                    <input name="hostname" type="text" required placeholder="hostname" value="{{o.name}}">
+                                    <select class="dhcp-addresses">
+                                    </select>
+                                    <input name="mac" type="text" required placeholder="mac a&zwnj;ddress" pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="{{o.mac}}">
+                                    <label><input type="checkbox" {{o.noprop ? "checked" : ""}}></label>
+                                </div>
+                                <button>-</button>
+                            </div>
+                {%      }
+                    }
+                } %}
+                </div>
+            </form>
             <hr>
             <div class="o">Active Leases</div>
             <div class="m">Addresses currently in use</div>

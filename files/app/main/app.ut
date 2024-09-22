@@ -92,6 +92,25 @@
                     e.stopPropagation();
                 }
             }, true);
+            function dialogDone()
+            {
+                const d = htmx.find("#dialog-done");
+                if (d) {
+                    setTimeout(function() {
+                        let invalid = false;
+                        const f = htmx.findAll(m, "form");
+                        for (let i = 0; i < f.length; i++) {
+                            if (!f[i].checkValidity()) {
+                                invalid = true;
+                                break;
+                            }
+                        }
+                        d.disabled = invalid;
+                    }, 10);
+                }
+            }
+            m.addEventListener("input", dialogDone);
+            m.addEventListener("click", dialogDone);
         })();
     </script>
     {% } %}
