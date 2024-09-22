@@ -95,7 +95,7 @@ if wifi_mac == "" or mac2 == "" then
     if not hardware_mac then
         if not aredn.hardware.has_wifi() then
             -- Non wifi device, create a random mac address instead
-            hardware_mac = capture([[hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/random]]):match("^(%S+)")
+            hardware_mac = capture([[hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/urandom]]):match("^(%S+)")
             -- Disable wifi
             os.execute("sed -i -e 's/wifi_enable = 1/wifi_enable = 0/' /etc/config.mesh/_setup")
         else
@@ -115,13 +115,21 @@ if mac2 == "" then
     aredn.info.set_nvram("mac2", mac2)
 end
 
-if node == "" then
-    aredn.info.set_nvram("node", "NOCALL-" .. mac2:gsub("%.", "-"))
-end
-
 if dtdmac == "" then
-    local a, b, c = aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")):match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
-    dtdmac = string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
+    local a, b, c
+    for i = 1,5
+    do
+        a, b, c = aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")):match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
+        if a then
+            break
+        end
+        sleep(5)
+    end
+    if a then
+        dtdmac = string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
+    else
+        dtdmac = mac2
+    end
     if dtdmac == mac2 then
         a = tonumber(a, 16) + 1
         if a > 255 then
