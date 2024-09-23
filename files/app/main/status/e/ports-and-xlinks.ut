@@ -64,8 +64,10 @@ function loadPorts(type, def)
 if (request.env.REQUEST_METHOD === "PUT") {
     configuration.prepareChanges();
     if ("xlinks" in request.args) {
-        const xlinks = {};
         const xs = json(request.args.xlinks);
+        delete request.args.xlinks;
+
+        const xlinks = {};
         for (let i = 0; i < length(xs); i++) {
             xlinks[xs[i].name] = xs[i];
         }
@@ -74,48 +76,46 @@ if (request.env.REQUEST_METHOD === "PUT") {
         if (length(ports) > 0) {
             defport = ports[0].k;
         }
+        const ucixlinks = {};
         uciMesh.foreach("xlink", "interface", x => {
-            const ux = xlinks[x[".name"]];
+            ucixlinks[x[".name"]] = { peer: x.peer };
+        });
+        for (let name in ucixlinks) {
+            const x = ucixlinks[name];
+            const ux = xlinks[name];
             if (ux) {
-                uciMesh.set("xlink", `${ux.name}bridge`, "vlan", ux.vlan);
-                uciMesh.set("xlink", `${ux.name}bridge`, "ports", [ `${ux.port || defport}:t` ]);
-                uciMesh.commit("xlink");
-
-                uciMesh.set("xlink", ux.name, "ifname", `br0.${ux.vlan}`);
-                uciMesh.set("xlink", ux.name, "ipaddr", ux.ipaddr);
-                if (uciMesh.get("xlink", ux.name, "peer") !== ux.peer) {
-                    uciMesh.set("xlink", ux.name, "peer", ux.peer);
-                    uciMesh.commit("xlink");
-                    uciMesh.set("xlink", ux.name, "peer", ux.peer);
+                uciMesh.set("xlink", `${name}bridge`, "vlan", ux.vlan);
+                uciMesh.set("xlink", `${name}bridge`, "ports", [ `${ux.port || defport}:t` ]);
+                uciMesh.set("xlink", name, "ifname", `br0.${ux.vlan}`);
+                uciMesh.set("xlink", name, "ipaddr", ux.ipaddr);
+                if (x.peer !== ux.peer) {
+                    uciMesh.set("xlink", name, "peer", ux.peer);
                     if (ux.peer) {
-                        uciMesh.set("xlink", `${ux.name}route`, "route");
-                        uciMesh.set("xlink", `${ux.name}route`, "interface", ux.name);
-                        uciMesh.set("xlink", `${ux.name}route`, "target", ux.peer);
+                        uciMesh.set("xlink", `${name}route`, "route");
+                        uciMesh.set("xlink", `${name}route`, "interface", name);
+                        uciMesh.set("xlink", `${name}route`, "target", ux.peer);
                     }
                     else {
                         uciMesh.delete("xlink", `${name}route`);
                     }
-                    uciMesh.commit("xlink");
                 }
-                uciMesh.set("xlink", ux.name, "weight", ux.weight);
-                uciMesh.set("xlink", ux.name, "netmask", network.CIDRToNetmask(ux.cidr));
-                delete xlinks[ux.name];
+                uciMesh.set("xlink", name, "weight", ux.weight);
+                uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
+                delete xlinks[name];
             }
             else {
-                const name = x[".name"];
                 uciMesh.delete("xlink", name);
                 uciMesh.delete("xlink", `${name}bridge`);
                 uciMesh.delete("xlink", `${name}route`);
             }
-            uciMesh.commit("xlink");
-        });
+        }
+
         for (let name in xlinks) {
             const ux = xlinks[name];
             uciMesh.set("xlink", `${ux.name}bridge`, "bridge-vlan");
             uciMesh.set("xlink", `${ux.name}bridge`, "device", "br0");
             uciMesh.set("xlink", `${ux.name}bridge`, "vlan", ux.vlan);
             uciMesh.set("xlink", `${ux.name}bridge`, "ports", [ `${ux.port || defport}:t` ]);
-            uciMesh.commit("xlink");
 
             uciMesh.set("xlink", name, "interface");
             uciMesh.set("xlink", name, "ifname", `br0.${ux.vlan}`);
@@ -127,13 +127,11 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 uciMesh.set("xlink", `${ux.name}route`, "route");
                 uciMesh.set("xlink", `${ux.name}route`, "interface", ux.name);
                 uciMesh.set("xlink", `${ux.name}route`, "target", ux.peer);
-                uciMesh.commit("xlink");
             }
             uciMesh.set("xlink", name, "proto", "static");
             uciMesh.set("xlink", name, "macaddr", replace("x2:xx:xx:xx:xx:xx", "x", _ => sprintf("%X",math.rand()&15)));
-            uciMesh.commit("xlink");
         }
-        delete request.args.xlinks;
+        uciMesh.commit("xlink");
     }
     const k = keys(request.args);
     if (length(k) > 0) {
