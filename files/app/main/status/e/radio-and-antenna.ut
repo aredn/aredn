@@ -595,6 +595,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         htmx.on(radio0, "htmx:beforeRequest", function() {
             if (radio0.value === radio1.value && radio1.value !== 0) {
                 radio1.value = 0;
+                htmx.closest(radio1, '.hideable').dataset.hideable = 0;
             }
             htmx.find("#radio0 select[name=radio_channel]").value = "{{wlan[0].def.channel}}";
             htmx.find("#radio0 select[name=radio_lan_channel]").value = "{{wlan[0].def.channel}}";
@@ -602,6 +603,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         htmx.on(radio1, "htmx:beforeRequest", function() {
             if (radio1.value === radio0.value && radio0.value !== 0) {
                 radio0.value = 0;
+                htmx.closest(radio0, '.hideable').dataset.hideable = 0;
             }
             htmx.find("#radio1 select[name=radio_channel]").value = "{{wlan[1].def.channel}}";
             htmx.find("#radio1 select[name=radio_lan_channel]").value = "{{wlan[1].def.channel}}";
