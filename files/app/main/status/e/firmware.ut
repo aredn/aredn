@@ -385,6 +385,8 @@
     fs.unlink("/tmp/do-not-keep-configuration");
 
     const sideload = fs.access("/tmp/local_firmware");
+
+    const watchdog = uci.get("aredn", "@watchdog[0]", "enable") === "1";
 %}
 <div class="dialog">
     {{_R("dialog-header", "Firmware")}}
@@ -507,7 +509,7 @@
         <div class="cols" style="padding-top:16px">
             <div id="firmware-upload"><progress value="0" max="100"></div>
             <div style="flex:0">
-                <button id="fetch-and-update" {{sideload ? '' : 'disabled'}} hx-trigger="none" hx-encoding="multipart/form-data">{{sideload ? 'Update' : 'Fetch and Update'}}</button>
+                <button id="fetch-and-update" {{sideload && !watchdog ? '' : 'disabled'}} hx-trigger="none" hx-encoding="multipart/form-data">{{sideload ? 'Update' : 'Fetch and Update'}}</button>
             </div>
         </div>
         {{_H("<br>Depending on how the firmware it to be installed using the options above, this button will initiate the process.")}}
@@ -516,8 +518,12 @@
     <script>
     (function(){
         {{_R("open")}}
+        const watchdog = {{watchdog}};
+        if (watchdog) {
+            htmx.find("#dialog-messages-error").innerHTML = "You must disable the watchdog before upgrading"
+        }
         htmx.on("#firmware-update input[type='file']", "change", e => {
-            if (e.target.files[0]) {
+            if (e.target.files[0] && !watchdog) {
                 htmx.find("#fetch-and-update").disabled = false;
             }
             else {
@@ -526,7 +532,7 @@
             htmx.find("#download-firmware").value = "-";
         });
         htmx.on("#download-firmware", "change", e => {
-            if (e.target.value === "-") {
+            if (e.target.value === "-" || watchdog) {
                 htmx.find("#fetch-and-update").disabled = true;
             }
             else {
