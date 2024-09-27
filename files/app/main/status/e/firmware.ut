@@ -386,7 +386,7 @@
 
     const sideload = fs.access("/tmp/local_firmware");
 
-    const watchdog = uci.get("aredn", "@watchdog[0]", "enable") === "1";
+    const needreboot = (uci.get("aredn", "@watchdog[0]", "enable") === "1") || (fs.access("/tmp/reboot-required") ? true : false);
 %}
 <div class="dialog">
     {{_R("dialog-header", "Firmware")}}
@@ -433,7 +433,7 @@
                         </select>
                     </div>
                     <div style="flex:0">
-                        <div id="firmware-refresh"><button class="icon refresh"></button></div>
+                        <div id="firmware-refresh"><button class="icon refresh" {{needreboot ? "disabled" : ""}}></button></div>
                     </div>
                 </div>
                 {{_H("Download firmware directly from a central server, either on the Internet or a locally configured mesh server.
@@ -446,7 +446,7 @@
                         <div class="m">Upload a firmware file from your computer.</div>
                     </div>
                     <div style="flex:0">
-                        <input type="file" accept=".bin,.gz" {{sideload ? 'disabled' : ''}}>
+                        <input type="file" accept=".bin,.gz" {{sideload || needreboot ? 'disabled' : ''}}>
                     </div>
                 </div>
                 {{_H("Upload a firmware file from your computer. Once the firmware has been selected it can be uploaded and installed
@@ -509,7 +509,7 @@
         <div class="cols" style="padding-top:16px">
             <div id="firmware-upload"><progress value="0" max="100"></div>
             <div style="flex:0">
-                <button id="fetch-and-update" {{sideload && !watchdog ? '' : 'disabled'}} hx-trigger="none" hx-encoding="multipart/form-data">{{sideload ? 'Update' : 'Fetch and Update'}}</button>
+                <button id="fetch-and-update" {{sideload && !needreboot ? '' : 'disabled'}} hx-trigger="none" hx-encoding="multipart/form-data">{{sideload ? 'Update' : 'Fetch and Update'}}</button>
             </div>
         </div>
         {{_H("<br>Depending on how the firmware it to be installed using the options above, this button will initiate the process.")}}
@@ -518,12 +518,14 @@
     <script>
     (function(){
         {{_R("open")}}
-        const watchdog = {{watchdog}};
-        if (watchdog) {
-            htmx.find("#dialog-messages-error").innerHTML = "You must disable the watchdog before upgrading"
-        }
+        const needreboot = {{needreboot}};
+        {% if (uci.get("aredn", "@watchdog[0]", "enable") === "1") { %}
+        htmx.find("#dialog-messages-error").innerHTML = "<center>Please disable the watchdog and reboot before upgrading.</center>"
+        {% } else if (needreboot) { %}
+        htmx.find("#dialog-messages-error").innerHTML = "<center>Please reboot before upgrading.</center>"
+        {% } %}
         htmx.on("#firmware-update input[type='file']", "change", e => {
-            if (e.target.files[0] && !watchdog) {
+            if (e.target.files[0] && !needreboot) {
                 htmx.find("#fetch-and-update").disabled = false;
             }
             else {
@@ -532,7 +534,7 @@
             htmx.find("#download-firmware").value = "-";
         });
         htmx.on("#download-firmware", "change", e => {
-            if (e.target.value === "-" || watchdog) {
+            if (e.target.value === "-" || needreboot) {
                 htmx.find("#fetch-and-update").disabled = true;
             }
             else {
