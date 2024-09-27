@@ -617,6 +617,9 @@
             }
         });
         htmx.on("#firmware-refresh", "click", e => {
+            if (htmx.find("#firmware-refresh button").disabled) {
+                return;
+            }
             htmx.find("#firmware-refresh button").classList.add("rotate");
             htmx.find("#dialog-messages-error").innerHTML = "";
             const source = new EventSource("{{request.env.REQUEST_URI}}?v=update");
