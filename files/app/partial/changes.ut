@@ -57,15 +57,7 @@
             reboot = true;
         }
     }
-    if (reboot) {
-    %}
-        <div>
-            Reboot required:
-            <button name="reboot" value="1" hx-get="/a/status/e/reboot" hx-target="body">Reboot</button>
-        </div>
-        <script>clearTimeout(window.commitRefresh);</script>
-    {% }
-    else if (changes > 0) {
+    if (changes > 0) {
     %}
         <div>
             Pending changes: {{changes}}
@@ -81,4 +73,12 @@
             });
         })();
         </script>
+    {% }
+    else if (reboot) {
+    %}
+        <div>
+            Reboot required:
+            <button name="reboot" value="1" hx-get="/a/status/e/reboot" hx-target="body">Reboot</button>
+        </div>
+        <script>clearTimeout(window.commitRefresh);</script>
     {% } %}</div>
