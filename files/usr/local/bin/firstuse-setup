@@ -73,11 +73,15 @@ do
         elseif line:match("^wifi_chanbw") then
             line = "wifi_chanbw = " .. defaultwifi.bandwidth
         elseif line:match("^wifi_intf") then
-            line = "wifi_intf = wlan0"
+            line = ""
         end
     end
     lines[#lines + 1] = line
 end
+if defaultwifi then
+    lines[#lines + 1] = "wifi_intf = wlan0"
+end
+
 -- dhcp dmz
 local dmz_dhcp_base, net = ("1" .. decimal_to_ip((ip_to_decimal("10." .. mac2) * 8) % 0x1000000)):match("(%d+%.%d+%.%d+%.)(%d+)")
 net = tonumber(net)
