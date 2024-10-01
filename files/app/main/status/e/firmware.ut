@@ -103,11 +103,9 @@
                             }
                         }
                         fo.close();
-                        configuration.setUpgrade("1");
                         if (system("tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist > /dev/null 2>&1") < 0) {
                             fs.unlink("/tmp/arednsysupgradebackup.tgz");
                         }
-                        configuration.setUpgrade("0");
                         fs.unlink("/tmp/sysupgradefilelist");
                     }
                     fi.close();

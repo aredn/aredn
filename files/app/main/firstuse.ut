@@ -36,8 +36,7 @@
 if ((auth.isFirstUse || !config.authenable) && request.env.REQUEST_METHOD === "PUT") {
     system(`/usr/local/bin/setpasswd '${request.args.passwd}'`);
     configuration.setName(request.args.name);
-    configuration.setUpgrade("1");
-    response.reboot = "/usr/local/bin/aredn_postupgrade";
+    response.reboot = "/usr/local/bin/aredn_reboot_setup";
     print(_R("reboot-firstuse"));
     return;
 }

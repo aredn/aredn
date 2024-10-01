@@ -39,12 +39,6 @@ require("aredn.info")
 require("aredn.hardware")
 require("uci")
 
-local needsrun = aredn.info.get_nvram("nodeupgraded")
-if needsrun == "" or needsrun == "0" then
-    print "Node not upgraded, exiting"
-    os.exit(0)
-end
-
 local mac2 = aredn.info.get_nvram("mac2")
 local dtdmac = aredn.info.get_nvram("dtdmac")
 
@@ -129,10 +123,10 @@ end
 
 os.execute("/usr/local/bin/node-setup")
 
-aredn.info.set_nvram("nodeupgraded", "0")
-
-print "Rebooting node"
--- Make sure to remove the user settings we carried into this upgrade so we dont apply them again
-os.execute("/sbin/mount_root done")
-os.remove("/sysupgrade.tgz")
-os.execute("reboot")
+if nixio.fs.stat("/tmp/reboot-required") then
+    print "Rebooting node"
+    -- Make sure to remove the user settings we carried into this upgrade so we dont apply them again
+    os.execute("/sbin/mount_root done")
+    os.remove("/sysupgrade.tgz")
+    os.execute("reboot")
+end
