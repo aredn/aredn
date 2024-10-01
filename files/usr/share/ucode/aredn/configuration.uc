@@ -198,6 +198,18 @@ export function setUpgrade(v)
     cursor.commit("hsmmmesh");
 };
 
+export function getDefaultIP()
+{
+    initCursor();
+    const mac2 = cursor.get("hsmmmesh", "settings", "mac2");
+    if (mac2) {
+        return `10.${mac2}`;
+    }
+    else {
+        return "192.168.1.1";
+    }
+};
+
 export function setPassword(passwd)
 {
     fs.writefile("/tmp/newpassword", passwd);

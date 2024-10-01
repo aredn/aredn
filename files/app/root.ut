@@ -594,10 +594,7 @@ global.handle_request = function(env)
                 );
             }
             if (response.reboot) {
-                system("(sleep 2; exec /sbin/reboot)&");
-            }
-            if (response.upgrade) {
-                system(`(sleep 2; ${response.upgrade})&`);
+                system(`(sleep 2; ${response.reboot})&`);
             }
             return;
         }

@@ -174,7 +174,7 @@
                 print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${upgrade.error}</div>`);
             }
             else {
-                response.upgrade = upgrade.upgrade;
+                response.reboot = upgrade.upgrade;
                 print(_R("reboot-firmware"));
             }
         }
@@ -190,7 +190,7 @@
                 restoreServices();
             }
             else {
-                response.upgrade = upgrade.upgrade;
+                response.reboot = upgrade.upgrade;
                 print(_R("reboot-firmware"));
             }
         }
@@ -376,7 +376,7 @@
             restoreServices();
         }
         else {
-            response.upgrade = upgrade.upgrade;
+            response.reboot = upgrade.upgrade;
             uhttpd.send(`event: close\r\ndata: ${sprintf("%J", { v:_R("reboot-firmware")})}\r\n\r\n`);
         }
         return;
