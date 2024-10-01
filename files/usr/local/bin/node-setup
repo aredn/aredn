@@ -1324,7 +1324,11 @@ for file in nixio.fs.glob("/etc/config/*")
 do
     if not nfiles[nixio.fs.basename(file)] then
         nixio.fs.remove(file)
-        changes.reboot = true
+        if file == "/etc/config/ubootenv" then
+            -- Ignore
+        else
+            changes.reboot = true
+        end
     end
 end
 for file, _ in pairs(nfiles)
