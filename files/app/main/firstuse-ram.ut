@@ -33,7 +33,7 @@
  */
 %}
 {%
-if ((auth.isFirstUse || !config.authenable) && request.env.REQUEST_METHOD === "POST") {
+if (!(configuration.isConfigured() && config.authenable) && request.env.REQUEST_METHOD === "POST") {
     print(_R("reboot-firstuse-ram"));
     response.reboot = `/usr/local/bin/aredn_sysupgrade -n -q ${request.args.firmwarefile}`;
     return;

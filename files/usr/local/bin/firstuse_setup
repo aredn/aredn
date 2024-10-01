@@ -35,8 +35,6 @@
 --]]
 
 require("uci")
-require("aredn.utils")
-require("aredn.hardware")
 
 if #arg ~= 2 then
     io.stderr:write("Usage: firstuse <node name> <password>\n")
@@ -52,8 +50,5 @@ os.execute("/usr/local/bin/setpasswd '" .. passwd .. "'")
 -- Set the node name
 local c = uci.cursor("/etc/local/uci")
 c:set("hsmmmesh", "settings", "node", name)
-c:set("hsmmmesh", "settings", "nodeupgraded", "1")
+c:set("hsmmmesh", "settings", "configured", "1")
 c:commit("hsmmmesh")
-
--- Finish the setup and reboot
-os.execute("/usr/local/bin/aredn_reboot_setup")
