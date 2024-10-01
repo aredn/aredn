@@ -225,12 +225,10 @@ os.remove("/sysupgrade.tgz")
 
 -- If the node has been configured by the user we can complete the setup
 if aredn.info.get_nvram("configured") ~= "0" then
-    os.execute("sleep 600")
     os.execute("/usr/local/bin/node-setup")
     -- Reboot when necessary
     if nixio.fs.stat("/tmp/reboot-required") then
         print "Rebooting node"
-        os.execute("sleep 600")
         os.execute("/sbin/reboot")
     end
 end
