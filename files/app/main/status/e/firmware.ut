@@ -35,8 +35,9 @@
 {%
     function curl(url, filename, start, len)
     {
+        const agent = `Node: ${configuration.getName()} Version: ${configuration.getFirmwareVersion()}`;
         const name = filename ? filename : `/tmp/download.${time()}`;
-        const f = fs.popen(`/usr/bin/curl --progress-bar --remove-on-error -o ${name} ${url} 2>&1`);
+        const f = fs.popen(`/usr/bin/curl --progress-bar --remove-on-error --user-agent '${agent}' -o ${name} ${url} 2>&1`);
         if (!f) {
             return null;
         }
