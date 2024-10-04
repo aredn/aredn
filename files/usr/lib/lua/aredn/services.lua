@@ -233,7 +233,9 @@ local function get(validate)
                             hostname = m.hostname
                             port = m.port
                         end
-                        local status, effective_url = io.popen("/usr/bin/curl --max-time 10 --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --cookie-jar /tmp/service-test-cookies --location --write-out '%{http_code} %{url_effective}' " .. "http://" .. hostname .. ":" .. port .. path):read("*a"):match("^(%d+) (.*)")
+                        local cf = io.popen("/usr/bin/curl --max-time 10 --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --cookie-jar /tmp/service-test-cookies --location --write-out '%{http_code} %{url_effective}' " .. "http://" .. hostname .. ":" .. port .. path)
+                        local status, effective_url = cf:read("*a"):match("^(%d+) (.*)")
+                        cf:close()
                         os.remove("/tmp/service-test-cookies")
                         if status == "200" or status == "401" then
                             vstate[service] = last
