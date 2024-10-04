@@ -44,7 +44,7 @@ if (!file) {
 }
 else {
     const tm = localtime();
-    uhttpd.send(`Status: 200 OK\r\nContent-Type: application/x-gzip\r\nContent-Disposition: attachment; filename=backup-${configuration.getName()}-${tm.year}-${tm.mon}-${tm.mday}-${tm.hour}-${tm.min}.tar.gz\r\nCache-Control: no-store\r\n\r\n`);
+    uhttpd.send(`Status: 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=backup-${configuration.getName()}-${tm.year}-${tm.mon}-${tm.mday}-${tm.hour}-${tm.min}.backup\r\nCache-Control: no-store\r\n\r\n`);
     uhttpd.send(fs.readfile(file));
     fs.unlink(file);
 }
