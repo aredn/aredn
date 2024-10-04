@@ -486,6 +486,8 @@
                         <button hx-put="/a/status/e/backup-config">Backup</button>
                     </div>
                 </div>
+                {{_H("Backup the current configuration. This can be used to transfer a configuration to new hardware or as a safety precaution in case
+                of hardware failure.")}}
                 <br>
                 <div class="cols compact">
                     <div>
@@ -493,9 +495,11 @@
                         <div class="m">Upload a previous configuration.</div>
                     </div>
                     <div style="flex:0">
-                        <input id="restore-config" type="file" accept=".gz">
+                        <input id="restore-config" type="file" accept=".backup">
                     </div>
                 </div>
+                {{_H("Restore a previous backup to this node. This will replace whatever the current node's configuration is. Be aware that
+                no attempt is made to valiate the backup's integrity. Restoring to different hardware could result in unexpected behaviour.")}}
                 {{_R("dialog-advanced")}}
                 <div>
                 {% if (includeAdvanced) { %}
