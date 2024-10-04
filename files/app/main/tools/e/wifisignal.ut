@@ -138,11 +138,19 @@ for (let i = 0; i < length(stations); i++) {
             <div style="flex:0">
                 <div id="wifi-bar">
                     <div>- dBm<br><small>snr: -</small></div>
-                    <div class="bars">
-                        <div><div></div><div style="background-color:var(--conn-fg-color-idle)"></div></div>
-                        <div><div></div><div style="background-color:var(--conn-fg-color-good)"></div></div>
-                        <div><div></div><div style="background-color:var(--conn-fg-color-bad)"></div></div>
+                    <div style="height:220px;display:flex">
+                        <div class="bars">
+                            <div><div class="l"></div><div class="b" style="background-color:var(--conn-fg-color-idle)"></div></div>
+                            <div><div class="l"></div><div class="b" style="background-color:var(--conn-fg-color-good)"></div></div>
+                            <div><div class="l"></div><div class="b" style="background-color:var(--conn-fg-color-bad)"></div></div>
+                        </div>
+                        <div class="bars">
+                            <div><div class="b" style="background-color:var(--conn-fg-color-idle)"></div><div class="l"></div></div>
+                            <div><div class="b" style="background-color:var(--conn-fg-color-good)"></div><div class="l"></div></div>
+                            <div><div class="b" style="background-color:var(--conn-fg-color-bad)"></div><div class="l"></div></div>
+                        </div>
                     </div>
+                    <div style="font-size:12px;padding:4px 16px 0 28px;">Local<div style="float:right">Remote</div></div>
                 </div>
             </div>
             <div class="chart">
@@ -205,9 +213,12 @@ for (let i = 0; i < length(stations); i++) {
         const device = htmx.find("#wifi-device");
         const target = htmx.find("#wifi-chart");
         const bart = htmx.find("#wifi-bar > div");
-        const bar1 = htmx.find("#wifi-bar .bars > div:nth-child(1)");
-        const bar2 = htmx.find("#wifi-bar .bars > div:nth-child(2)");
-        const bar3 = htmx.find("#wifi-bar .bars > div:nth-child(3)");
+        const bar1 = htmx.find("#wifi-bar .bars:first-child > div:nth-child(1)");
+        const bar2 = htmx.find("#wifi-bar .bars:first-child > div:nth-child(2)");
+        const bar3 = htmx.find("#wifi-bar .bars:first-child > div:nth-child(3)");
+        const rbar1 = htmx.find("#wifi-bar .bars:nth-child(2) > div:nth-child(1)");
+        const rbar2 = htmx.find("#wifi-bar .bars:nth-child(2) > div:nth-child(2)");
+        const rbar3 = htmx.find("#wifi-bar .bars:nth-child(2) > div:nth-child(3)");
         const chart = htmx.find("#wifi-chart svg");
         const signal = htmx.find("#wifi-chart svg .signal");
         const rsignal = htmx.find("#wifi-chart svg .rsignal");
@@ -227,6 +238,8 @@ for (let i = 0; i < length(stations); i++) {
 
         let smax = sf;
         let smin = st;
+        let rsmax = sf;
+        let rsmin = st;
         let last = null;
         const maxpoints = 300;
         function p(v) {
@@ -248,6 +261,12 @@ for (let i = 0; i < length(stations); i++) {
             bar1.firstElementChild.innerText = "";
             bar2.firstElementChild.innerText = "";
             bar3.firstElementChild.innerText = "";
+            rbar1.style.height = "";
+            rbar2.style.height = "";
+            rbar3.style.height = "";
+            rbar1.lastElementChild.innerText = "";
+            rbar2.lastElementChild.innerText = "";
+            rbar3.lastElementChild.innerText = "";
             signal.points.clear();
             rsignal.points.clear();
         }
@@ -283,6 +302,12 @@ for (let i = 0; i < length(stations); i++) {
                 if (s < smin) {
                     smin = s;
                 }
+                if (rs > rsmax) {
+                    rsmax = rs;
+                }
+                if (rs < rsmin) {
+                    rsmin = rs;
+                }
                 const snr = s - j.n;
                 bart.innerHTML = `${s} dBm<br><small>snr: ${snr}</small>`;
                 bar1.style.height = p(smax);
@@ -291,6 +316,14 @@ for (let i = 0; i < length(stations); i++) {
                 bar1.firstElementChild.innerText = smax;
                 bar2.firstElementChild.innerText = s;
                 bar3.firstElementChild.innerText = smin;
+                if (last !== "average") {
+                    rbar1.style.height = p(rsmax);
+                    rbar2.style.height = p(rs);
+                    rbar3.style.height = p(rsmin);
+                    rbar1.lastElementChild.innerText = rsmax;
+                    rbar2.lastElementChild.innerText = rs;
+                    rbar3.lastElementChild.innerText = rsmin;
+                }
             }
             else {
                 bart.innerHTML = `- dBm<br><small>snr: -</small>`;
