@@ -33,7 +33,7 @@
 
 import * as hardware from "aredn.hardware";
 
-export const debug = true;
+export const debug = false;
 
 export const application = "/app";
 export let preload = true;
