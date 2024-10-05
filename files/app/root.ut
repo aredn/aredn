@@ -100,6 +100,7 @@ if (config.resourcehash) {
     }
     prepareResource("usercss", "css/user.css");
     prepareResource("admincss", "css/admin.css");
+    prepareResource("mobilecss", "css/mobile.css");
     prepareResource("themecss", "css/theme.css");
     prepareResource("htmx", "js/htmx.min.js");
     prepareResource("meshpage", "js/meshpage.js");
@@ -530,13 +531,14 @@ global.handle_request = function(env)
             }
             const response = { statusCode: 200, headers: { "Content-Type": "text/html", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } };
             const fn = pageCache[tpath] || loadfile(tpath, { raw_mode: false });
+            const isMobile = config.forcemobile || !!match(env.HTTP_USER_AGENT, /(iPhone|Android)/);
             let res = "";
             try {
                 res = render(call, fn, null, {
                     config: config,
                     constants: constants,
                     versions: resourceVersions,
-                    request: { env: env, headers: env.headers, args: args, page: page },
+                    request: { env: env, headers: env.headers, args: args, page: page, mobile: isMobile },
                     response: response,
                     uci: uciMethods,
                     uciMesh: uciMeshMethods,
