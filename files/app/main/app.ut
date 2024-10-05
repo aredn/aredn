@@ -62,9 +62,10 @@
     {% } %}
     <link rel="icon" type="image/svg+xml" href="http://localnode.local.mesh/a/img/favicon.svg">
     <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{configuration.getName()}} {{auth.isAdmin && request.page === "status" ? "admin" : request.page}}</title>
 </head>
-<body class="{{auth.isAdmin ? "authenticated" : ""}}" hx-indicator="body">
+<body class="{{auth.isAdmin ? "authenticated" : ""}} {{request.mobile ? "mobile" : ""}}" hx-indicator="body">
     <dialog id="ctrl-modal" onclose="event.target.innerHTML = ''"></dialog>
     {% if (!request.mobile) { %}
     <div id="all">
