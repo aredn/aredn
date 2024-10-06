@@ -25,6 +25,7 @@
 }
 #m-nav
 {
+    display: flex;
     height: 80px;
     min-height: 80px;
     background-color: var(--nav-bg-color);
@@ -60,10 +61,19 @@
    font-size: 10px;
 }
 
-#m-nav .icon
+#m-nav > div
 {
-    height: 100%;
-    width: 70px;
+    flex: 1;
+}
+#m-nav .icon,
+#m-nav #login-icon .icon,
+#m-nav #logout-icon .icon
+{
+    height: 80px;
+    min-height: 80px;
+    width: 42px;
+    min-width: 42px;
+    margin: 0 auto;
     filter: var(--nav-icon-filter);
     background-position: center center;
     background-repeat: no-repeat;
@@ -71,6 +81,30 @@
 #m-nav .icon.true
 {
     filter: var(--nav-icon-filter-select);
+}
+#m-nav #login-icon,
+#m-nav #logout-icon
+{
+    width: 100px;
+}
+#m-nav #login-icon .menu,
+#m-nav #logout-icon .menu
+{
+    top: auto;
+    bottom: 60px;
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+#m-all #login
+{
+    min-width: 50%;
+    padding: 50px 10px;
+}
+#m-all #login input
+{
+    width: 100px;
+    font-size: inherit;
 }
 
 body.mobile #ctrl-modal[open]

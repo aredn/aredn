@@ -134,9 +134,26 @@
             </div>
         </div>
         <div id="m-nav">
-            <a title="Node status" href="status">
-                <div class="icon status {{request.page === "status"}}"></div>
-            </a>
+            <div>
+                <a href="status">
+                    <div class="icon status {{request.page === "status"}}"></div>
+                </a>
+            </div>
+            <div>
+                <a href="mesh">
+                    <div class="icon mesh {{request.page === "mesh"}}"></div>
+                </a>
+            </div>
+            <div>
+                {%if (auth.isAdmin) { %}
+                <a href="tools">
+                    <div class="icon tools"></div>
+                </a>
+                {% } %}
+            </div>
+            <div>
+            {{_R("login")}}
+            </div>
         </div>
     </div>
     {% } %}
