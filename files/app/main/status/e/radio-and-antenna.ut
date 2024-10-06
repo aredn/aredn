@@ -438,31 +438,32 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Antenna azimuth in degrees</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_azimuth" type="text" size="10" pattern="\d+" value="{{uciMesh.get("aredn", "@location[0]", "azimuth")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_azimuth" type="text" size="10" pattern="(\d|[1-9]\d|[12]\d{2}|3[0-5]\d|360)" value="{{uciMesh.get("aredn", "@location[0]", "azimuth")}}">
                     </div>
                 </div>
-                {{_H("The azimuth, or heading, of the primary radio antenna measured in degrees from north.")}}
+                {{_H("The azimuth, or heading, of the primary radio antenna measured in degrees (0 to 360) clockwise from north.")}}
                 {% } %}
                 <div class="cols">
                     <div>
                         <div class="o">Height</div>
-                        <div class="m">Antenna height in meters</div>
+                        <div class="m">Antenna height above ground in meters</div>
                     </div>
                     <div style="flex:0">
                         <input hx-put="{{request.env.REQUEST_URI}}" name="radio_height" type="text" size="10" pattern="\d+" value="{{uciMesh.get("aredn", "@location[0]", "height")}}">
                     </div>
                 </div>
-                {{_H("The height of the antenna above ground level in meters.")}}
+                {{_H("The height of the antenna above ground level in meters. This is usually the height up a tower or a building.")}}
                 <div class="cols">
                     <div>
                         <div class="o">Elevation</div>
                         <div class="m">Antenna elevation in degrees</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_elevation" type="text" size="10" pattern="-?\d+" value="{{uciMesh.get("aredn", "@location[0]", "elevation")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_elevation" type="text" size="10" pattern="(-[1-9]|-?[1-9]\d|-?1[0-7]\d|-?180|\d)" value="{{uciMesh.get("aredn", "@location[0]", "elevation")}}">
                     </div>
                 </div>
-                {{_H("Elevation of the antenna, measured in degress, above or below the horizontal.")}}
+                {{_H("Elevation of the antenna, measured in degrees (-180 to 180), below (less than zero) or above the horizontal. Some antennas include electronic
+                downtilt. Any such offset should be included in the number entered here.")}}
                 {% } %}
             </div>
         </div>
