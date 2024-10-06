@@ -534,7 +534,7 @@ global.handle_request = function(env)
             }
             const response = { statusCode: 200, headers: { "Content-Type": "text/html", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } };
             const fn = pageCache[tpath] || loadfile(tpath, { raw_mode: false });
-            const isMobile = config.forcemobile || !!match(env.HTTP_USER_AGENT, /(iPhone|Android)/);
+            const isMobile = !!(config.forcemobile || match(env.HTTP_USER_AGENT, /iphone/i) || match(env.HTTP_USER_AGENT, /android.*mobile/i));
             let res = "";
             try {
                 res = render(call, fn, null, {

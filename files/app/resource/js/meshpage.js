@@ -10,7 +10,7 @@ let page = document.getElementById("meshpage");
 if (!page) {
     page = document.createElement("div");
     page.id = "meshpage";
-    document.getElementById("main").appendChild(page);
+    (document.getElementById("main") || document.getElementById("m-main")).appendChild(page);
 }
 
 let filtering;
