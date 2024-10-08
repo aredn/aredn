@@ -492,6 +492,35 @@ label.switch
 
 /* customization end */
 
+/* control add/rm start */
+
+#ctrl-modal .adr
+{
+    display: flex;
+    flex-wrap: nowrap;
+}
+#ctrl-modal .adr > div:first-child
+{
+    display: flex;
+    flex: 1 0 0%;
+    flex-wrap: wrap;
+}
+#ctrl-modal .adr > :last-child
+{
+    width: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    padding: 0;
+}
+#ctrl-modal .adr > div:first-child > *
+{
+    margin-right: 2px;
+    flex: 0 0 auto;
+    align-self: flex-end;
+}
+
+/* control add/rm end */
+
 /* dhcp start */
 
 #ctrl-modal .noborder input,
@@ -508,6 +537,7 @@ label.switch
 #ctrl-modal .reservation-label div:first-child div:first-child,
 #ctrl-modal .lease-label div:first-child div:first-child
 {
+    flex-grow: 1;
     width: 155px;
     border-color: var(--ctrl-modal-textbox-bg-color);
 }
@@ -516,6 +546,7 @@ label.switch
 #ctrl-modal .reservation-label div:first-child div:nth-child(2),
 #ctrl-modal .lease-label div:first-child div:nth-child(2)
 {
+    flex-grow: 0.2;
     width: 120px;
     border-color: var(--ctrl-modal-textbox-bg-color);
 }
@@ -524,22 +555,24 @@ label.switch
 #ctrl-modal .reservation-label div:first-child div:nth-child(3),
 #ctrl-modal .lease-label div:first-child div:nth-child(3)
 {
+    flex-grow: 0.2;
     width: 145px;
     border-color: var(--ctrl-modal-textbox-bg-color);
 }
-#ctrl-modal .reservation-label div:first-child div:nth-child(4)
+#ctrl-modal .reservation-label div:first-child div:nth-child(4),
+#ctrl-modal .reservation > div:first-child label
 {
     white-space: normal;
-    width: 50px;
+    width: 45px;
+    align-self: center;
     text-align: center;
 }
 #ctrl-modal .reservation input[type=checkbox],
-#ctrl-modal .dhcp-options .row input[type=checkbox]
+#ctrl-modal .dhcp-options input[type=checkbox]
 {
     width: 14px;
     height: 14px;
     accent-color: var(--ctrl-modal-checkbox-color);
-    margin-left: 10px;
 }
 #ctrl-modal .reservation-label div:first-child div,
 #ctrl-modal .lease-label div:first-child div,
@@ -548,7 +581,6 @@ label.switch
 #ctrl-modal .dhcpoption-label div:first-child div,
 #ctrl-modal .port-forwards-label div:first-child div
 {
-    display: inline-block;
     font-size: 10px;
     text-align: right;
     color: var(--ctrl-modal-fg-message-color);
@@ -557,35 +589,30 @@ label.switch
 {
     padding-top: 20px;
 }
-#ctrl-modal .dhcp-options .row :first-child,
-#ctrl-modal .dhcp-tags .row :first-child
+#ctrl-modal .dhcp-options .adr > div > :first-child,
+#ctrl-modal .dhcp-tags .adr > div > :first-child
 {
+    flex-grow: 1;
     width: 80px;
-    max-width: 80px;
-    overflow-x: hidden;
 }
-#ctrl-modal .dhcp-options .row :nth-child(2),
-#ctrl-modal .dhcp-tags .row :nth-child(2)
+#ctrl-modal .dhcp-options .adr > div > :nth-child(2),
+#ctrl-modal .dhcp-tags .adr > div > :nth-child(2)
 {
     width: 210px;
 }
-#ctrl-modal .dhcp-options .row :nth-child(3)
+#ctrl-modal .dhcp-options .adr > div > :nth-child(3),
+#ctrl-modal .dhcp-tags .adr > div > :nth-child(3)
 {
+    flex-grow: 1;
     width: 120px;
-    max-width: 120px;
-    overflow-x: hidden;
 }
-#ctrl-modal .dhcp-tags .row :nth-child(3)
+#ctrl-modal .dhcp-options .adr > div > :last-child,
+#ctrl-modal .dhcp-tags .adr > div > :last-child,
+#ctrl-modal .dhcpoption-label .adr > div > :last-child
 {
-    width: 155px;
-    max-width: 155px;
-    overflow-x: hidden;
-}
-#ctrl-modal .dhcpoption-label .row :last-child
-{
-    position: relative;
-    top: -2px;
-    right: -10px;
+    width: 35px;
+    align-self: center;
+    text-align: center;
 }
 #ctrl-modal .dhcp-tags:has(.list:empty) .dhcptag-label,
 #ctrl-modal .dhcp-options:has(.list:empty) .dhcpoption-label
