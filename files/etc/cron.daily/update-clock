@@ -45,14 +45,14 @@ if [ "$(pidof ntpd)" != "" ]; then
   exit 0
 fi
 
-candidate=$(uci -q get system.ntp.server)
-if [ "${candidate}" != "" ]; then
+for candidate in $(uci -q get system.ntp.server)
+do
     if $(ntpd -n -q -p ${candidate}); then
         echo -n "ntp" > /tmp/timesync
         logger -p notice -t update-time "Update clock from ${candidate}"
         exit 0
     fi
-fi
+done
 
 # NTP servers tend to be poorly advertised, so we have to use a bit of
 # heuristics to find them
