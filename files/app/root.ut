@@ -424,6 +424,10 @@ global.handle_request = function(env)
         else if (secured) {
             tpath = `${config.application}/main${env.PATH_INFO}.ut`;
         }
+        else if ((env.HTTP_HOST === "localnode" || env.HTTP_HOST === "localnode.local.mesh") && env.REQUEST_URI == "/a/status" && !env.headers["hx-boosted"]) {
+            uhttpd.send(`Status: 302 Found\r\nLocation: http://${configuration.getName()}.local.mesh\r\n\r\n`);
+            return;
+        }
         else {
             tpath = `${config.application}/main/${page}.ut`;
             if (!pageCache[tpath] && !fs.access(tpath)) {
@@ -434,6 +438,10 @@ global.handle_request = function(env)
         if (pageCache[tpath] || fs.access(tpath)) {
             auth.runAuthentication(env);
             if (secured && !auth.isAdmin && config.authenable) {
+                uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
+                return;
+            }
+            if (env.REQUEST_METHOD !== "GET" && config.authenable && !(auth.isAdmin || auth.isFirstUse)) {
                 uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
                 return;
             }

@@ -446,3 +446,48 @@ export function unescapeString(s)
     }
     return s;
 };
+
+const backupFilename = "/tmp/backup.tar.gz";
+
+export function backup()
+{
+    const fi = fs.open("/etc/arednsysupgrade.conf");
+    if (!fi) {
+        return null;
+    }
+    const fo = fs.open("/tmp/sysupgradefilelist", "w");
+    if (!fo) {
+        fi.close();
+        return null;
+    }
+    for (let l = fi.read("line"); length(l); l = fi.read("line")) {
+        if (!match(l, "^#") && !match(l, "^/etc/config/") && fs.access(trim(l))) {
+            fo.write(l);
+        }
+    }
+    fo.close();
+    fi.close();
+    const s = system(`/bin/tar -czf ${backupFilename} -T /tmp/sysupgradefilelist > /dev/null 2>&1`);
+    fs.unlink("/tmp/sysupgradefilelist");
+    if (s < 0) {
+        fs.unlink(backupFilename);
+        return null;
+    }
+    return backupFilename;
+};
+
+export function restore(file)
+{
+    const status = {};
+    const data = fs.readfile(file);
+    if (!data) {
+        status.error = "Failed to read configuration file";
+    }
+    else {
+        if (!fs.writefile("/sysupgrade.tgz", data)) {
+            status.error = "Failed to copy configuration file";
+        }
+    }
+    fs.unlink(file);
+    return status;
+};

@@ -388,6 +388,9 @@ uciMesh.foreach("xlink", "interface", x => {
             });
         }
         htmx.on("#ctrl-modal .dialog #xlink-list", "change", event => {
+            if (!htmx.closest(htmx.find("#ctrl-modal .dialog #xlink-list"), "form").checkValidity()) {
+                return;
+            }
             const target = htmx.closest(event.target, "[data-name]");
             const xlink = xlinks.find(x => x.name == target.dataset.name);
             const vlan = htmx.find(target, "[name=vlan]");
@@ -396,15 +399,13 @@ uciMesh.foreach("xlink", "interface", x => {
             const weight = htmx.find(target, "[name=weight]");
             const port = htmx.find(target, "[name=port]");
             const cidr = htmx.find(target, "[name=cidr]");
-            if (vlan.validity.valid && ipaddr.validity.valid && peer.validity.valid && weight.validity.valid) {
-                xlink.vlan = parseInt(vlan.value);
-                xlink.ipaddr = ipaddr.value;
-                xlink.peer = peer.value;
-                xlink.weight = parseInt(weight.value);
-                xlink.port = port ? port.value : null;
-                xlink.cidr = parseInt(cidr.value);
-                update();
-            }
+            xlink.vlan = parseInt(vlan.value);
+            xlink.ipaddr = ipaddr.value;
+            xlink.peer = peer.value;
+            xlink.weight = parseInt(weight.value);
+            xlink.port = port ? port.value : null;
+            xlink.cidr = parseInt(cidr.value);
+            update();
         });
         htmx.on("#ctrl-modal .dialog #xlink-list", "click", event => {
             if (event.target.nodeName === "BUTTON") {
