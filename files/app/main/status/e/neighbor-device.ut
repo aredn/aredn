@@ -332,7 +332,12 @@ if (tracker) {
                         }
                     }
                     if (length(s) > 90) {
-                        splice(s, 0, length(s) - 90);
+                        const l = length(s);
+                        const c = l / 90;
+                        for (let i = 0; i < 90; i++) {
+                            s[i] = s[int(i * c)];
+                        }
+                        splice(s, 90);
                     }
                     const slength = length(s);
                     const slength2 = slength * 0.75;
