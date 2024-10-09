@@ -41,8 +41,10 @@ exec 2> /dev/null
 
 # If real ntp is running, we don't need to do this
 if [ "$(pidof ntpd)" != "" ]; then
-  echo -n "ntp" > /tmp/timesync
-  exit 0
+    if [ -f /var/state/ntp-stratum ] && [ $(cat /var/state/ntp-stratum) -lt 16 ]; then
+        echo -n "ntp" > /tmp/timesync
+        exit 0
+    fi
 fi
 
 for candidate in $(uci -q get system.ntp.server)
