@@ -437,13 +437,15 @@ global.handle_request = function(env)
 
         if (pageCache[tpath] || fs.access(tpath)) {
             auth.runAuthentication(env);
-            if (secured && !auth.isAdmin && config.authenable) {
-                uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
-                return;
-            }
-            if (env.REQUEST_METHOD !== "GET" && config.authenable && !(auth.isAdmin || auth.isFirstUse)) {
-                uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
-                return;
+            if (config.authenable && !auth.isAdmin) {
+                if (secured) {
+                    uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
+                    return;
+                }
+                if (env.REQUEST_METHOD !== "GET" && configuration.isConfigured() && page !== "authenticate") {
+                    uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
+                    return;
+                }
             }
             const args = {};
             if (env.CONTENT_TYPE === "application/x-www-form-urlencoded") {
