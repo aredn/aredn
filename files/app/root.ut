@@ -309,7 +309,6 @@ const uciMeshMethods =
 };
 
 const auth = {
-    isFirstUse: false,
     isAdmin: false,
     key: null,
     age: 315360000, // 10 years
@@ -403,11 +402,9 @@ global.handle_request = function(env)
     const page = path[1] || "status";
     const secured = index(path[2], "/e/") === 0;
 
-    auth.isFirstUse = !!fs.access("/etc/config/unconfigured");
-
     if (path[2] == "" || secured) {
         let tpath;
-        if (auth.isFirstUse) {
+        if (!configuration.isConfigured()) {
             tpath = `${config.application}/main/firstuse-ram.ut`;
             const f = fs.open("/proc/mounts");
             if (f) {
@@ -602,10 +599,7 @@ global.handle_request = function(env)
                 );
             }
             if (response.reboot) {
-                system("(sleep 2; exec /sbin/reboot)&");
-            }
-            if (response.upgrade) {
-                system(`(sleep 2; ${response.upgrade})&`);
+                system(`(sleep 2; ${response.reboot})&`);
             }
             return;
         }

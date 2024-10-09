@@ -191,11 +191,29 @@ export function getFirmwareVersion()
     return firmwareVersion;
 };
 
-export function setUpgrade(v)
+export function isConfigured()
 {
     initCursor();
-    cursor.set("hsmmmesh", "settings", "nodeupgraded", v);
+    return cursor.get("hsmmmesh", "settings", "configured") !== "0";
+};
+
+export function setConfigured(v)
+{
+    initCursor();
+    cursor.set("hsmmmesh", "settings", "configured", v);
     cursor.commit("hsmmmesh");
+};
+
+export function getDefaultIP()
+{
+    initCursor();
+    const mac2 = cursor.get("hsmmmesh", "settings", "mac2");
+    if (mac2) {
+        return `10.${mac2}`;
+    }
+    else {
+        return "192.168.1.1";
+    }
 };
 
 export function setPassword(passwd)
@@ -365,7 +383,7 @@ export function commitChanges()
         removeConfig(currentConfig);
         if (fs.access("/tmp/newpassword")) {
             const pw = fs.readfile("/tmp/newpassword");
-            system(`{ echo '${pw}'; sleep 1; echo '${pw}'; } | passwd > /dev/null 2>&1`);
+            system(`/usr/local/bin/setpasswd '${pw}'`);
             fs.unlink("/tmp/newpassword");
         }
         const n = fs.popen("exec /usr/local/bin/node-setup");
