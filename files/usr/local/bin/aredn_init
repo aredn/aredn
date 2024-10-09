@@ -229,6 +229,8 @@ if aredn.info.get_nvram("configured") ~= "0" then
     -- Reboot when necessary
     if nixio.fs.stat("/tmp/reboot-required") then
         print "Rebooting node"
+        os.execute("/sbin/mount_root done")
+        os.execute("/bin/sync")
         os.execute("/sbin/reboot")
     end
 end

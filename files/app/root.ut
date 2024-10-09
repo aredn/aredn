@@ -441,7 +441,7 @@ global.handle_request = function(env)
                 uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
                 return;
             }
-            if (env.REQUEST_METHOD !== "GET" && config.authenable && !(auth.isAdmin || auth.isFirstUse)) {
+            if (env.REQUEST_METHOD !== "GET" && config.authenable && !(auth.isAdmin || !configuration.isConfigured())) {
                 uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
                 return;
             }
