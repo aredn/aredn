@@ -37,7 +37,6 @@
 
 local nxo = require("nixio")
 local ipc = require("luci.ip")
-require('luci.http')
 require("uci")
 
 function round2(num, idp)
@@ -61,14 +60,6 @@ function string:split(delim)
 	local function helper(line) table.insert(t, line) return "" end
 		helper((self:gsub("(.-)"..delim, helper)))
 	return t
-end
-
-function parseQueryString(qs)
-	local qsa={}
-	if qs ~=nil then
-		qsa = luci.http.urldecode_params(qs)
-	end
-	return qsa
 end
 
 function setContains(set, key)

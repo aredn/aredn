@@ -35,9 +35,18 @@
 --]]
 
 require("nixio")
-require("aredn.http")
 require("aredn.utils")
 require("aredn.info")
+local h = require("socket.http")
+local json = require("luci.jsonc")
+
+function fetch_json(url)
+  resp, status_code, headers, status_message=h.request(url)
+  if status_code==200 then
+    local j=json.parse(resp)
+    return j
+  end
+end
 
 -------------------------------------
 -- Public API is attached to table

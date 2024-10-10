@@ -2,9 +2,7 @@
 --[[
 
 	Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2021 Tim Wilkinson
-	Original Perl Copyright (C) 2015 Conrad Lara
-	Original Perl Copyright (c) 2013 David Rivenburg et al. BroadBand-HamNet
+	Copyright (C) 2024 Tim Wilkinson
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -36,49 +34,9 @@
 
 --]]
 
-require("aredn.http")
-require("aredn.hardware")
-local html = require("aredn.html")
-require("aredn.info")
-
-local node = aredn.info.get_nvram("node")
-if not node then
-    node = "NOCALL"
-end
-
-http_header()
-html.header(node .. " system information", false)
-html.print("<body><pre>")
-html.print(" node: " .. node)
-html.print("model: " .. aredn.hardware.get_board_id())
-html.print("")
-
-if not aredn.hardware.supported() then
-    html.print("<font color=\"red\">!!!! UNSUPPORTED DEVICE !!!!</font>")
-    html.print("boardid: " .. aredn.hardware.get_board_id())
-    html.print("")
-end
-
-local f = io.popen("ifconfig -a")
-if f then
-    for line in f:lines()
-    do
-        local a, b = line:match("^(%S+) .*HWaddr (%S+)")
-        if b then
-            html.print(string.format("%-6s %s", a, b))
-        end
-    end
-    f:close()
-end
-
-html.print("")
-html.print("/proc/cpuinfo")
-html.print(read_all("/proc/cpuinfo"))
-
-html.print("nvram")
-html.print(capture("uci -c /etc/local/uci show 2>&1"))
-
-html.print("</pre>")
-html.footer()
-html.print("</body></html>")
-http_footer()
+print("Status: 307 Temporary Redirect")
+print("Cache-Control: no-store\r")
+print("Access-Control-Allow-Origin: *\r")
+print("Location: /a/status\r")
+print "\r"
+io.flush()

@@ -2,8 +2,7 @@
 --[[
 
 	Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2021 Tim Wilkinson
-	Original Perl Copyright (C) 2015 Conrad Lara
+	Copyright (C) 2024 Tim Wilkinson
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -35,19 +34,9 @@
 
 --]]
 
-require("aredn.utils")
-
-print("Content-type:text\r")
-print("\r")
-
-local ispermitencblock = capture("opkg list-installed blockknownencryption|wc -l"):chomp()
-
-if ispermitencblock ~= "0" then
-    print("Encrypted Traffic: Blocked")
-else
-    print("Encrypted Traffic: Allowed")
-end
-
-print("Active firewall rules:")
-print(capture("nft list ruleset"))
-
+print("Status: 307 Temporary Redirect")
+print("Cache-Control: no-store\r")
+print("Access-Control-Allow-Origin: *\r")
+print("Location: /a/status\r")
+print "\r"
+io.flush()
