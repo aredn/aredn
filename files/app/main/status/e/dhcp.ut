@@ -241,8 +241,8 @@ const dhcpOptionTypes = {
             The given hostname is available to everyone on the mesh unless the entry is marked as <b>do not propagate</b>")}}
             <form>
                 <div id="dhcp-reservations">
-                    <div class="cols reservation-label">
-                        <div style="white-space:nowrap">
+                    <div class="reservation-label adr">
+                        <div>
                             <div>hostname</div>
                             <div>ip address</div>
                             <div>mac a&zwnj;ddress</div>
@@ -255,8 +255,8 @@ const dhcpOptionTypes = {
                         const o = options[i];
                         if (o.reserved) {
                 %}
-                            <div class="cols reservation" data-ip="{{o.ip}}">
-                                <div style="white-space:nowrap">
+                            <div class="reservation adr" data-ip="{{o.ip}}">
+                                <div>
                                     <input name="hostname" type="text" required placeholder="hostname" value="{{o.name}}">
                                     <select class="dhcp-addresses">
                                     </select>
@@ -277,8 +277,8 @@ const dhcpOptionTypes = {
             to a permanent mapping to allow IP Addresses to be fixed to specific devices.")}}
             {% if (active > 0) {
             %}
-                        <div class="cols lease-label">
-                            <div style="white-space:nowrap">
+                        <div class="lease-label adr">
+                            <div>
                                 <div>hostname</div>
                                 <div>ip address</div>
                                 <div>mac a&zwnj;ddress</div>
@@ -290,8 +290,8 @@ const dhcpOptionTypes = {
                     const o = options[i];
                     if (o.leased) {
             %}
-                        <div class="cols lease" data-ip="{{o.ip}}">
-                            <div style="white-space:nowrap">
+                        <div class="lease adr" data-ip="{{o.ip}}">
+                            <div>
                                 <input readonly type="text" value="{{o.name}}">
                                 <input readonly type="text" value="{{o.ip}}">
                                 <input readonly type="text" value="{{o.mac}}">
@@ -313,17 +313,19 @@ const dhcpOptionTypes = {
                     </div>
                     <button>+</button>
                 </div>
-                <div class="cols dhcptag-label">
+                <div class="dhcptag-label adr">
                     <div class="row">
                         <div>tag</div>
                         <div>type</div>
                         <div>match</div>
+                        <div></div>
                     </div>
+                    <div></div>
                 </div>
                 <div class="list noborder">{%
                 for (let i = 0; i < length(advtags); i++) {
                     const t = advtags[i];
-                    %}<div class="cols tag">
+                    %}<div class="tag adr">
                         <div class="row">
                             <input name="tag_name" type="text" required value="{{t.name}}">
                             <select name="tag_type" required>
@@ -336,6 +338,7 @@ const dhcpOptionTypes = {
                                 <option value="subscriberid" {{t.type == "subscriberid" ? "selected": ""}}>Subscriber-ID</option>
                             </select>
                             <input name="tag_match" type="text" required value="{{t.match}}">
+                            <div></div>
                         </div>
                         <button>-</button>
                     </div>{%
@@ -350,25 +353,26 @@ const dhcpOptionTypes = {
                     </div>
                     <button>+</button>
                 </div>
-                <div class="cols dhcpoption-label">
+                <div class="dhcpoption-label adr">
                     <div class="row">
                         <div>tag</div>
                         <div>option</div>
                         <div>value</div>
                         <div>always</div>
                     </div>
+                    <div></div>
                 </div>
                 <div class="list noborder">{%
                 for (let i = 0; i < length(advoptions); i++) {
                     const o = advoptions[i];
-                    %}<div class="cols option">
+                    %}<div class="option adr">
                         <div class="row">
                             <select name="option_name">
                                 <option value="{{o.name}}" selected>{{o.name}}</option>
                             </select>
                             <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type] ? `${o.type}: ${dhcpOptionTypes[o.type]}` : o.type}}" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?">
                             <input name="option_value" type="text" required value="{{o.value}}">
-                            <input name="option_always" type="checkbox" {{o.always ? "checked" : ""}}>
+                            <label><input name="option_always" type="checkbox" {{o.always ? "checked" : ""}}></label>
                         </div>
                         <button>-</button>
                     </div>{%
@@ -476,7 +480,7 @@ const dhcpOptionTypes = {
                                 o.reserved = true;
                                 o.noprop = true;
                                 const item = document.createElement("div");
-                                item.innerHTML = `<div class="cols reservation" data-ip="${o.ip}"><div style="white-space:nowrap"><input name="hostname" type="text" placeholder="hostname" value="${o.name}" required> <select class="dhcp-addresses"></select> <input name="mac" type="text" placeholder="mac a&zwnj;ddress" required pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="${o.mac}"><label> <input type="checkbox" ${o.noprop ? "checked" : ""}></label></div><button>-</button></div>`;
+                                item.innerHTML = `<div class="reservation adr" data-ip="${o.ip}"><div style="white-space:nowrap"><input name="hostname" type="text" placeholder="hostname" value="${o.name}" required> <select class="dhcp-addresses"></select> <input name="mac" type="text" placeholder="mac a&zwnj;ddress" required pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="${o.mac}"><label> <input type="checkbox" ${o.noprop ? "checked" : ""}></label></div><button>-</button></div>`;
                                 htmx.find("#dhcp-reservations").appendChild(item.firstChild);
                                 update();
                                 refreshIPSelectors();
@@ -488,7 +492,7 @@ const dhcpOptionTypes = {
                                     if (o) {
                                         Object.assign(o, { name: "", mac: "", noprop: true, reserved: true, leased: false });
                                         const item = document.createElement("div");
-                                        item.innerHTML = `<div class="cols reservation" data-ip="${o.ip}"><div style="white-space:nowrap"><input name="hostname" type="text" placeholder="hostname" value="${o.name}" required> <select class="dhcp-addresses"></select> <input name="mac" type="text" placeholder="mac a&zwnj;ddress" required pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="${o.mac}"><label> <input type="checkbox" ${o.noprop ? "checked" : ""}></label></div><button>-</button></div>`;
+                                        item.innerHTML = `<div class="reservation adr" data-ip="${o.ip}"><div style="white-space:nowrap"><input name="hostname" type="text" placeholder="hostname" value="${o.name}" required> <select class="dhcp-addresses"></select> <input name="mac" type="text" placeholder="mac a&zwnj;ddress" required pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="${o.mac}"><label> <input type="checkbox" ${o.noprop ? "checked" : ""}></label></div><button>-</button></div>`;
                                         const fc = item.firstChild;
                                         htmx.find("#dhcp-reservations").appendChild(fc);
                                         htmx.find(fc, "input").focus();
@@ -597,7 +601,7 @@ const dhcpOptionTypes = {
                             function addNewTag()
                             {
                                 const item = document.createElement("div");
-                                item.innerHTML = `<div class="cols tag"><div class="row"><input name="tag_name" type="text" required value=""> <select name="tag_type" required><option value="">-</option><option value="vendorclass">Vendor Class</option><option value="userclass">User Class</option><option value="mac">MAC Address</option><option value="circuitid">Agent Circuit ID</option><option value="remoteid">Agent Remote ID</option><option value="subscriberid">Subscriber-ID</option></select> <input name="tag_match" type="text" required value=""></div><button>-</button></div>`;
+                                item.innerHTML = `<div class="tag adr"><div class="row"><input name="tag_name" type="text" required value=""> <select name="tag_type" required><option value="">-</option><option value="vendorclass">Vendor Class</option><option value="userclass">User Class</option><option value="mac">MAC Address</option><option value="circuitid">Agent Circuit ID</option><option value="remoteid">Agent Remote ID</option><option value="subscriberid">Subscriber-ID</option></select> <input name="tag_match" type="text" required value=""><div></div></div><button>-</button></div>`;
                                 const fc = item.firstChild;
                                 htmx.find("#ctrl-modal .dialog .dhcp-tags .list").appendChild(fc);
                                 htmx.find(fc, "input").focus();
@@ -638,7 +642,7 @@ const dhcpOptionTypes = {
                             function addNewOption()
                             {
                                 const item = document.createElement("div");
-                                item.innerHTML = `<div class="cols option"><div class="row"><select name="option_name"><option value="">[all]</option></select> <input name="option_type" type="text" required list="dhcp-option-type-list" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?"> <input name="option_value" type="text" required value=""> <input name="option_always" type="checkbox"></div><button>-</button></div>`;
+                                item.innerHTML = `<div class="option adr"><div class="row"><select name="option_name"><option value="">[all]</option></select> <input name="option_type" type="text" required list="dhcp-option-type-list" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?"> <input name="option_value" type="text" required value=""> <label><input name="option_always" type="checkbox"></label></div><button>-</button></div>`;
                                 const fc = item.firstChild;
                                 htmx.find("#ctrl-modal .dialog .dhcp-options .list").appendChild(fc);
                                 refreshAdvOptions();

@@ -32,6 +32,7 @@
  * version
  */
 %}
+{% if (!request.mobile) { %}
 {{_R("oldui")}}
 <div id="c1">
     <div id="general">
@@ -94,3 +95,55 @@
     </div>
     {% } %}
 </div>
+{% } else { %}
+<div id="general">
+    {{_R("general")}}
+</div>
+<div id="location">
+    <hr>
+    {{_R("location")}}
+</div>
+<div id="services">
+    <hr>
+    {% if (auth.isAdmin) { %}
+    {{_R("internal-services" )}}
+    {% } %}
+    {{_R("local-services")}}
+</div>
+<div id="local-and-neighbor-devices">
+    <hr>
+    <div hx-get="u-local-and-neighbor-devices" hx-trigger="every 60s [document.visibilityState === 'visible']">
+    {{_R("local-and-neighbor-devices")}}
+    </div>
+</div>
+<div id="radio-and-antenna">
+    <hr>
+    {{_R("radio-and-antenna")}}
+</div>
+<div id="mesh-summary">
+    <hr>
+    <div hx-get="u-mesh-summary" hx-trigger="every 120s [document.visibilityState === 'visible']">
+    {{_R("mesh-summary")}}
+    </div>
+</div>
+<div id="dhcp">
+    <hr>
+    <div hx-get="u-dhcp" hx-trigger="every 120s [document.visibilityState === 'visible']">
+    {{_R("dhcp")}}
+    </div>
+</div>
+{% if (length(hardware.getEthernetPorts()) > 0) { %}
+<div id="ports-and-xlinks">
+    <hr>
+    {{_R("ports-and-xlinks")}}
+</div>
+{% } %}
+{% if (fs.access("/usr/bin/wg") || fs.access("/usr/sbin/vtund")) { %}
+<div id="tunnels">
+    <hr>
+    <div hx-get="u-tunnels" hx-trigger="every 120s [document.visibilityState === 'visible']">
+    {{_R("tunnels")}}
+    </div>
+</div>
+{% } %}
+{% } %}

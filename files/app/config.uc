@@ -33,14 +33,15 @@
 
 import * as hardware from "aredn.hardware";
 
-export const debug = false;
+export const debug = true;
 
 export const application = "/app";
 export let preload = true;
 export let compress = true;
 export let resourcehash = true;
 export let authenable = true;
-
+export let forceauth = false;
+export let forcemobile = false;
 
 if (hardware.isLowMemNode()) {
     preload = false;
@@ -49,5 +50,8 @@ if (debug) {
     preload = false;
     compress = false;
     resourcehash = false;
+    authenable = false;
+}
+if (forceauth) {
     authenable = false;
 }

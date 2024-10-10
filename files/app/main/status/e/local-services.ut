@@ -209,11 +209,11 @@ if (f) {
                     for (let i = 0; i < length(services); i++) {
                         const s = services[i];
                 %}
-                <div class="service">
+                <div class="service adr">
                     <div class="cols">
                         <div class="cols">
                             <input name="name" type="text" placeholder="{{s.link === false ? 'service information' : 'service name'}}" required pattern='[^:"|<>]+' value="{{s.name}}">
-                            <div style="flex:0">
+                            <div style="flex:0;margin-left:2px">
                                 <select name="type">
                                     <option value="">-</option>
                                     {%
@@ -224,41 +224,42 @@ if (f) {
                                 </select>
                             </div>
                         </div>
-                        <button>-</button>
-                    </div>
-                    <div class="cols">
-                        <div></div>
-                        {% if (s.link === false) { %}
-                        <div class="link">
-                            <select name="hostname">
-                            {%
-                                for (j = 0; j < length(hosts); j++) {
-                                    print(`<option value="${hosts[j]}" ${hosts[j] === s.hostname ? "selected" : ""}>${hosts[j]}</option>`);
-                                }
-                                for (let j = 0; j < length(aliases.map); j++) {
-                                    print(`<option value="${aliases.map[j].hostname}" ${aliases.map[j].hostname === s.hostname ? "selected" : ""}>${aliases.map[j].hostname}</option>`);
-                                }
-                            %}
-                            </select>
+                        <div class="cols">
+                            {% if (s.link === false) { %}
+                            <div></div>
+                            <div class="link">
+                                <select name="hostname">
+                                {%
+                                    for (j = 0; j < length(hosts); j++) {
+                                        print(`<option value="${hosts[j]}" ${hosts[j] === s.hostname ? "selected" : ""}>${hosts[j]}</option>`);
+                                    }
+                                    for (let j = 0; j < length(aliases.map); j++) {
+                                        print(`<option value="${aliases.map[j].hostname}" ${aliases.map[j].hostname === s.hostname ? "selected" : ""}>${aliases.map[j].hostname}</option>`);
+                                    }
+                                %}
+                                </select>
+                            </div>
+                            {% } else { %}
+                            <div style="flex:0"></div>
+                            <div>
+                                <input name="protocol" type="text" placeholder="proto" required pattern="[a-z]+" value="{{s.protocol}}">
+                                :// <select name="hostname">
+                                {%
+                                    for (j = 0; j < length(hosts); j++) {
+                                        print(`<option value="${hosts[j]}" ${hosts[j] === s.hostname ? "selected" : ""}>${hosts[j]}</option>`);
+                                    }
+                                    for (let j = 0; j < length(aliases.map); j++) {
+                                        print(`<option value="${aliases.map[j].hostname}" ${aliases.map[j].hostname === s.hostname ? "selected" : ""}>${aliases.map[j].hostname}</option>`);
+                                    }
+                                %}
+                                </select>
+                                : <input name="port" type="text" placeholder="port" required pattern="([1-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])" value="{{s.port}}">
+                                / <input name="path" type="text" placeholder="path" pattern="[\-\/\?\&\._=#a-zA-Z0-9]*" value="{{s.path}}">
+                            </div>
+                            {% } %}
                         </div>
-                        {% } else { %}
-                        <div>
-                            <input name="protocol" type="text" placeholder="proto" required pattern="[a-z]+" value="{{s.protocol}}">
-                            :// <select name="hostname">
-                            {%
-                                for (j = 0; j < length(hosts); j++) {
-                                    print(`<option value="${hosts[j]}" ${hosts[j] === s.hostname ? "selected" : ""}>${hosts[j]}</option>`);
-                                }
-                                for (let j = 0; j < length(aliases.map); j++) {
-                                    print(`<option value="${aliases.map[j].hostname}" ${aliases.map[j].hostname === s.hostname ? "selected" : ""}>${aliases.map[j].hostname}</option>`);
-                                }
-                            %}
-                            </select>
-                            : <input name="port" type="text" placeholder="port" required pattern="([1-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])" value="{{s.port}}">
-                            / <input name="path" type="text" placeholder="path" pattern="[\-\/\?\&\._=#a-zA-Z0-9]*" value="{{s.path}}">
-                        </div>
-                        {% } %}
                     </div>
+                    <button>-</button>
                 </div>
             {% } %}</div>
         </form>
@@ -276,18 +277,20 @@ if (f) {
             <div id="host-aliases">{%
                 for (let i = 0; i < length(aliases.map); i++) {
                 %}
-                    <div class="cols alias">
-                        <input type="text" name="hostname" value="{{aliases.map[i].hostname}}" required pattern="(\*\.)?[a-zA-Z][a-zA-Z0-9_\-]*">
-                        <div>
-                            <select name="address">
-                            {%
-                                for (let j = as[3]; j <= ae[3]; j++) {
-                                    const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
-                                    const n = aliases.leases[a];
-                                    print(`<option value="${a}" ${a === aliases.map[i].address ? "selected" : ""}>${n ? n : a}</option>`);
-                                }
-                            %}
-                            </select>
+                    <div class="alias adr">
+                        <div class="cols">
+                            <input type="text" name="hostname" value="{{aliases.map[i].hostname}}" required pattern="(\*\.)?[a-zA-Z][a-zA-Z0-9_\-]*">
+                            <div>
+                                <select name="address">
+                                {%
+                                    for (let j = as[3]; j <= ae[3]; j++) {
+                                        const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
+                                        const n = aliases.leases[a];
+                                        print(`<option value="${a}" ${a === aliases.map[i].address ? "selected" : ""}>${n ? n : a}</option>`);
+                                    }
+                                %}
+                                </select>
+                            </div>
                         </div>
                         <button>-</button>
                     </div>
@@ -317,19 +320,17 @@ if (f) {
         The top line of each entry describes where the traffic originates, the bottom line where it is destined.")}}
         {% } %}
         <div class="cols port-forwards-label">
-            <div class="row">
-                <div>addresses</div>
-                <div>ports</div>
-                <div>protocol</div>
-                <div>enabled</div>
-            </div>
+            <div>addresses</div>
+            <div>ports</div>
+            <div>protocol</div>
+            <div>enabled</div>
         </div>
         <form>
             <div id="port-forwards">{%
                 for (let i = 0; i < length(ports); i++) {
                     const p = ports[i];
-                    %}<div class="cols noborder forward">
-                        <div class="row">
+                    %}<div class="noborder forward adr">
+                        <div>
                             <div>
                                 {% if (dhcp.mode === 0) { %}
                                 <select name="port_src">
@@ -468,11 +469,11 @@ if (f) {
             if (t) {
                 let template;
                 if (t.link === false) {
-                    template = `<div class="service">
+                    template = `<div class="service adr">
     <div class="cols">
         <div class="cols">
             <input name="name" type="text" placeholder="service name" required pattern='[^:"|<>]+' value="${t.text || t.name}">
-            <div style="flex:0">
+            <div style="flex:0;margin-left:2px">
                 <select name="type">
                     <option value="">-</option>
                     {%
@@ -483,22 +484,22 @@ if (f) {
                 </select>
             </div>
         </div>
-        <button>-</button>
-    </div>
-    <div class="cols">
-        <div></div>
-        <div class="link">
-            <select name="hostname"></select>
+        <div class="cols">
+            <div></div>
+            <div class="link">
+                <select name="hostname"></select>
+            </div>
         </div>
     </div>
+    <button>-</button>
 </div>`;
                 }
                 else {
-                    template = `<div class="service">
+                    template = `<div class="service adr">
     <div class="cols">
         <div class="cols">
             <input name="name" type="text" placeholder="service name" required pattern='[^:"|<>]+' value="${t.text || t.name}">
-            <div style="flex:0">
+            <div style="flex:0;margin-left:2px">
                 <select name="type">
                     <option value="">-</option>
                     {%
@@ -509,17 +510,17 @@ if (f) {
                 </select>
             </div>
         </div>
-        <button>-</button>
-    </div>
-    <div class="cols">
-        <div></div>
-        <div>
-            <input name="protocol" type="text" placeholder="proto" required pattern="[a-z]+" value="${t.protocol || ''}">
-            :// <select name="hostname"></select>
-            : <input name="port" type="text" placeholder="port" required pattern="([1-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])" value="${t.port || ''}">
-            / <input name="path" type="text" placeholder="path" pattern="[\\-\\/\\?\\&\\._=#a-zA-Z0-9]*" value="${t.path || ''}">
+        <div class="cols">
+            <div style="flex:0"></div>
+            <div>
+                <input name="protocol" type="text" placeholder="proto" required pattern="[a-z]+" value="${t.protocol || ''}">
+                :// <select name="hostname"></select>
+                : <input name="port" type="text" placeholder="port" required pattern="([1-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])" value="${t.port || ''}">
+                / <input name="path" type="text" placeholder="path" pattern="[\\-\\/\\?\\&\\._=#a-zA-Z0-9]*" value="${t.path || ''}">
+            </div>
         </div>
     </div>
+    <button>-</button>
 </div>`;
                 }
                 const div = document.createElement("div");
@@ -543,7 +544,7 @@ if (f) {
         htmx.on("#local-services", "click", event => {
             const target = event.target;
             if (target.nodeName === "BUTTON") {
-                const service = target.parentNode.parentNode;
+                const service = target.parentNode;
                 htmx.remove(service);
                 updateServices();
             }
@@ -553,18 +554,20 @@ if (f) {
         function newAliasEntry()
         {
             const div = document.createElement("div");
-            div.innerHTML = `<div class="cols alias">
-                <input type="text" name="hostname" value="" required pattern="[a-zA-Z][a-zA-Z0-9_\-]*">
-                <div>
-                    <select name="address">
-                    {%
-                        for (let j = as[3]; j <= ae[3]; j++) {
-                            const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
-                            const n = aliases.leases[a];
-                            print(`<option value="${a}">${n ? n : a}</option>`);
-                        }
-                    %}
-                    </select>
+            div.innerHTML = `<div class="alias adr">
+                <div class="cols">
+                    <input type="text" name="hostname" value="" required pattern="[a-zA-Z][a-zA-Z0-9_\-]*">
+                    <div>
+                        <select name="address">
+                        {%
+                            for (let j = as[3]; j <= ae[3]; j++) {
+                                const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
+                                const n = aliases.leases[a];
+                                print(`<option value="${a}">${n ? n : a}</option>`);
+                            }
+                        %}
+                        </select>
+                    </div>
                 </div>
                 <button>-</button>
             </div>`;
@@ -605,8 +608,8 @@ if (f) {
         {
             const div = document.createElement("div");
             div.innerHTML =
-`<div class="cols noborder forward">
-    <div class="row">
+`<div class="noborder forward adr">
+    <div>
         <div>
             {% if (dhcp.mode === 0) { %}
             <select name="port_src">
