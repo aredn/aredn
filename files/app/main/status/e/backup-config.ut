@@ -33,24 +33,19 @@
  */
 %}
 {%
-    response.reboot = "/sbin/reboot";
-    const address = configuration.getSettingAsString("wifi_ip", request.env.HTTP_HOST);
+if (request.env.REQUEST_METHOD === "PUT") {
+    response.headers["HX-Redirect"] = request.env.REQUEST_URI;
+    return;
+}
+response.override = true;
+const file = configuration.backup();
+if (!file) {
+    uhttpd.send(`Status: 404 Not Found\r\nCache-Control: no-store\r\n\r\n`);
+}
+else {
+    const tm = localtime();
+    uhttpd.send(`Status: 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=backup-${configuration.getName()}-${tm.year}-${tm.mon}-${tm.mday}-${tm.hour}-${tm.min}.backup\r\nCache-Control: no-store\r\n\r\n`);
+    uhttpd.send(fs.readfile(file));
+    fs.unlink(file);
+}
 %}
-<title>{{configuration.getName()}} rebooting</title>
-<div class="reboot">
-    <div>
-        <div id="icon-logo"></div>
-        <div></div>
-        <div>AREDN<span>TM</span></div>
-        <div>Amateur Radio Emergency Data Network</div>
-    </div>
-    <div>
-        <div>Rebooting</div>
-        <div>Your node is rebooting.<br>This browser will reconnect automatically once complete.</div>
-        <div>
-            <div><progress id="cdprogress" max="120"></div>
-            <div id="countdown">&nbsp;</div>
-        </div>
-    </div>
-    {{_R("reboot-mon", { delay: 20, countdown: 120, timeout: 5, location: `http://${address}/a/status` })}}
-</div>

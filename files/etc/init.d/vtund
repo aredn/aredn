@@ -118,9 +118,8 @@ apply_uci_config() {
 }
 
 start() {
-	# only if vtun is installed and ind mesh mode
-        configmode=$(uci -q -c /etc/local/uci/ get hsmmmesh.settings.config)
-	if [ -x "/usr/sbin/vtund" -a "$configmode" = "mesh" ]
+	# only if vtun is installed
+	if [ -x "/usr/sbin/vtund" ]
 	then
 		apply_uci_config
 		config_load vtun

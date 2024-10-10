@@ -438,31 +438,32 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Antenna azimuth in degrees</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_azimuth" type="text" size="10" pattern="\d+" value="{{uciMesh.get("aredn", "@location[0]", "azimuth")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_azimuth" type="text" size="10" pattern="(\d|[1-9]\d|[12]\d{2}|3[0-5]\d|360)" value="{{uciMesh.get("aredn", "@location[0]", "azimuth")}}">
                     </div>
                 </div>
-                {{_H("The azimuth, or heading, of the primary radio antenna measured in degrees from north.")}}
+                {{_H("The azimuth, or heading, of the primary radio antenna measured in degrees (0 to 360) clockwise from north.")}}
                 {% } %}
                 <div class="cols">
                     <div>
                         <div class="o">Height</div>
-                        <div class="m">Antenna height in meters</div>
+                        <div class="m">Antenna height above ground in meters</div>
                     </div>
                     <div style="flex:0">
                         <input hx-put="{{request.env.REQUEST_URI}}" name="radio_height" type="text" size="10" pattern="\d+" value="{{uciMesh.get("aredn", "@location[0]", "height")}}">
                     </div>
                 </div>
-                {{_H("The height of the antenna above ground level in meters.")}}
+                {{_H("The height of the antenna above ground level in meters. This is usually the height up a tower or a building.")}}
                 <div class="cols">
                     <div>
                         <div class="o">Elevation</div>
                         <div class="m">Antenna elevation in degrees</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_elevation" type="text" size="10" pattern="-?\d+" value="{{uciMesh.get("aredn", "@location[0]", "elevation")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_elevation" type="text" size="10" pattern="(-[1-9]|-?[1-8]\d|-?90|\d)" value="{{uciMesh.get("aredn", "@location[0]", "elevation")}}">
                     </div>
                 </div>
-                {{_H("Elevation of the antenna, measured in degress, above or below the horizontal.")}}
+                {{_H("Elevation of the antenna, measured in degrees (-90 to 90), below (less than zero) or above the horizontal. Some antennas include electronic
+                downtilt. Any such offset should be included in the number entered here.")}}
                 {% } %}
             </div>
         </div>
@@ -595,6 +596,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         htmx.on(radio0, "htmx:beforeRequest", function() {
             if (radio0.value === radio1.value && radio1.value !== 0) {
                 radio1.value = 0;
+                htmx.closest(radio1, '.hideable').dataset.hideable = 0;
             }
             htmx.find("#radio0 select[name=radio_channel]").value = "{{wlan[0].def.channel}}";
             htmx.find("#radio0 select[name=radio_lan_channel]").value = "{{wlan[0].def.channel}}";
@@ -602,6 +604,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         htmx.on(radio1, "htmx:beforeRequest", function() {
             if (radio1.value === radio0.value && radio0.value !== 0) {
                 radio0.value = 0;
+                htmx.closest(radio0, '.hideable').dataset.hideable = 0;
             }
             htmx.find("#radio1 select[name=radio_channel]").value = "{{wlan[1].def.channel}}";
             htmx.find("#radio1 select[name=radio_lan_channel]").value = "{{wlan[1].def.channel}}";

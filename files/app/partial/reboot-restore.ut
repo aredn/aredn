@@ -32,25 +32,24 @@
  * version
  */
 %}
-{%
-    response.reboot = "/sbin/reboot";
-    const address = configuration.getSettingAsString("wifi_ip", request.env.HTTP_HOST);
-%}
-<title>{{configuration.getName()}} rebooting</title>
-<div class="reboot">
-    <div>
-        <div id="icon-logo"></div>
-        <div></div>
-        <div>AREDN<span>TM</span></div>
-        <div>Amateur Radio Emergency Data Network</div>
-    </div>
-    <div>
-        <div>Rebooting</div>
-        <div>Your node is rebooting.<br>This browser will reconnect automatically once complete.</div>
+<title>{{configuration.getName()}} restoring</title>
+<div id="all" hx-swap-oob="true">
+    <div class="reboot">
         <div>
-            <div><progress id="cdprogress" max="120"></div>
-            <div id="countdown">&nbsp;</div>
+            <div id="icon-logo"></div>
+            <div></div>
+            <div>AREDN<span>TM</span></div>
+            <div>Amateur Radio Emergency Data Network</div>
         </div>
+        <div>
+            <div>Restoring</div>
+            <div>Your node is restoring.<br>This browser will reconnect automatically once complete.</div>
+            <div>
+                <div><progress id="cdprogress" max="120"></div>
+                <div id="countdown">&nbsp;</div>
+            </div>
+        </div>
+        <script>document.getElementById("ctrl-modal").close();</script>
+        {{_R("reboot-mon", { delay: 20, countdown: 120, timeout: 5, location: `http://${request.env.HTTP_HOST}/a/status` })}}
     </div>
-    {{_R("reboot-mon", { delay: 20, countdown: 120, timeout: 5, location: `http://${address}/a/status` })}}
 </div>

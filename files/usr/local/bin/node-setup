@@ -1306,6 +1306,7 @@ local config_special = {
     web_access = c:get("aredn", "@wan[0]", "web_access"),
     ssh_access = c:get("aredn", "@wan[0]", "ssh_access"),
     telnet_access = c:get("aredn", "@wan[0]", "telnet_access"),
+    lan_dhcp_route = c:get("aredn", "@wan[0]", "lan_dhcp_route"),
     wifi_mode_0 = c:get("wireless", "@wifi-iface[0]", "mode"),
     wifi_mode_1 = c:get("wireless", "@wifi-iface[1]", "mode"),
     wifi_channel_0 = c:get("wireless", "@wifi-device[0]", "channel"),
@@ -1324,7 +1325,11 @@ for file in nixio.fs.glob("/etc/config/*")
 do
     if not nfiles[nixio.fs.basename(file)] then
         nixio.fs.remove(file)
-        changes.reboot = true
+        if file == "/etc/config/ubootenv" then
+            -- Ignore
+        else
+            changes.reboot = true
+        end
     end
 end
 for file, _ in pairs(nfiles)
@@ -1386,6 +1391,9 @@ do
                     end
                 end
             end
+            if oc:get("aredn", "@wan[0]", "lan_dhcp_route") ~= config_special.lan_dhcp_route then
+                changes.firewall = true
+            end
         elseif file == "network" then
             changes.network = true
             changes.tunnels = true -- restarting network devices requires tunnels to restart
@@ -1423,7 +1431,6 @@ do
 end
 nixio.fs.rmdir("/tmp/new_config")
 
-aredn.info.set_nvram("config", "mesh")
 aredn.info.set_nvram("node", node)
 aredn.info.set_nvram("tactical", tactical)
 

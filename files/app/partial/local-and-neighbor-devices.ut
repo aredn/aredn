@@ -97,7 +97,11 @@
         <div class="cols">
             <div class="heading" style="flex:0.75"></div>
             <div class="heading ts cols stats">
+                {% if (!request.mobile) { %}
                 <div>lq</div><div>nlq</div><div>snr</div><div>n snr</div><div>errors</div><div>mbps</div><div>{{units.distanceUnit()}}</div>
+                {% } else { %}
+                <div>lq</div><div>nlq</div><div>snr</div><div>n snr</div><div>errors</div>
+                {% } %}
             </div>
         </div>
         {%
@@ -126,13 +130,18 @@
                     const lq = link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     const nlq = link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     if (tracker.hostname) {
-                        print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" href='http://${tracker.hostname}.local.mesh'>${tracker.hostname}</a></div>`);
+                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${tracker.hostname}.local.mesh'>${tracker.hostname}</a></div>`);
                     }
                     else {
-                        print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" href='http://${tracker.ip}'>${tracker.ip}</a></div>`);
+                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${tracker.ip}'>${tracker.ip}</a></div>`);
                     }
                     print("<div class='ts cols stats'>");
-                    print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${100 - tracker.quality}%</div><div></div><div></div>`);
+                    if (!request.mobile) {
+                        print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${100 - tracker.quality}%</div><div></div><div></div>`);
+                    }
+                    else {
+                        print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${100 - tracker.quality}%</div>`);
+                    }
                     print("</div></div>");
                 }
             }
@@ -182,10 +191,10 @@
                         break;
                 }
                 if (tracker.hostname) {
-                    print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" href='http://${tracker.hostname}.local.mesh'>${tracker.hostname}<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${tracker.hostname}.local.mesh'>${tracker.hostname}<div class="icon ${icon}"></div></a></div>`);
                 }
                 else {
-                    print(`<div style='flex:0.75'><a onclick="event.stopPropagation()" href='http://${tracker.ip}'>${tracker.ip}<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${tracker.ip}'>${tracker.ip}<div class="icon ${icon}"></div></a></div>`);
                 }
                 print("<div class='ts cols stats'>");
                 let d = "-";
@@ -216,7 +225,7 @@
         sort(hlist, (a, b) => a.hostname == b.hostname ? 0 : a.hostname < b.hostname ? -1 : 1);
         for (let i = 0; i < length(hlist); i++) {
             const hostname = hlist[i].hostname;
-            print(`<div class="idle" style='flex:0.75'><a onclick="event.stopPropagation()" title='Link status: hidden' href='http://${hostname}.local.mesh'>${hostname}</a></div>`);
+            print(`<div class="idle" class='h'><a onclick="event.stopPropagation()" title='Link status: hidden' href='http://${hostname}.local.mesh'>${hostname}</a></div>`);
         }
     %}
     </div>

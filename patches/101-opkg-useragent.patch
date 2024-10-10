@@ -1,0 +1,37 @@
+--- /dev/null
++++ b/package/system/opkg/patches/001-add-useragent
+@@ -0,0 +1,34 @@
++--- a/libopkg/opkg_conf.c
+++++ b/libopkg/opkg_conf.c
++@@ -73,6 +73,7 @@
++ 	{"size", OPKG_OPT_TYPE_BOOL, &_conf.size},
++ 	{"strip_abi", OPKG_OPT_TYPE_BOOL, &_conf.strip_abi},
++ 	{"tmp_dir", OPKG_OPT_TYPE_STRING, &_conf.tmp_dir},
+++	{"user_agent", OPKG_OPT_TYPE_STRING, &_conf.user_agent},
++ 	{"verbosity", OPKG_OPT_TYPE_INT, &_conf.verbosity},
++ 	{"verify_program", OPKG_OPT_TYPE_STRING, &_conf.verify_program},
++ 	{NULL, 0, NULL}
++--- a/libopkg/opkg_conf.h
+++++ b/libopkg/opkg_conf.h
++@@ -102,6 +102,8 @@
++ 	char *proxy_user;
++ 	char *proxy_passwd;
++ 
+++	char* user_agent;
+++
++ 	char *signature_ca_file;
++ 	char *signature_ca_path;
++ 
++--- a/libopkg/opkg_download.c
+++++ b/olibopk/gpkg_download.c
++@@ -170,6 +170,10 @@
++ 			argv[i++] = "-Y";
++ 			argv[i++] = "on";
++ 		}
+++		if (conf->user_agent) {
+++			argv[i++] = "-U";
+++			argv[i++] = conf->user_agent;
+++		}
++ 		argv[i++] = "-O";
++ 		argv[i++] = tmp_file_location;
++ 		argv[i++] = src;

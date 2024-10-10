@@ -33,24 +33,46 @@
  */
 %}
 {%
-    response.reboot = "/sbin/reboot";
-    const address = configuration.getSettingAsString("wifi_ip", request.env.HTTP_HOST);
+
+const wifiiface = uci.get("network", "wifi", "device");
+const mac = substr(request.env.QUERY_STRING || "", 4) || "00:00:00:00:00:00:";
+
+let f = fs.popen(`iw ${wifiiface} survey dump`);
+if (f) {
+    const reN = /noise:[ \t]+([0-9\-]+) dBm/;
+    let ff = false;
+    for (let l = f.read("line"); length(l); l = f.read("line")) {
+        if (index(l, "[in use]") !== -1) {
+            ff = true;
+        }
+        else if (ff) {
+            const m = match(l, reN);
+            if (m) {
+                noise = int(m[1]);
+                break;
+            }
+        }
+    }
+    f.close();
+}
+let signal = 0;
+f = fs.popen(`/usr/sbin/iw ${wifiiface} station get ${mac} 2>/dev/null`);
+if (f) {
+    const reS = /signal:[ \t]+([0-9\-]+)/;
+    for (let l = f.read("line"); length(l); l = f.read("line")) {
+        const m = match(l, reS);
+        if (m) {
+            signal = int(m[1]);
+            break;
+        }
+    }
+    f.close();
+}
+if (signal < 0) {
+    print(`{"s":${signal},"n":${noise}\}`);
+}
+else {
+    print("");
+}
+
 %}
-<title>{{configuration.getName()}} rebooting</title>
-<div class="reboot">
-    <div>
-        <div id="icon-logo"></div>
-        <div></div>
-        <div>AREDN<span>TM</span></div>
-        <div>Amateur Radio Emergency Data Network</div>
-    </div>
-    <div>
-        <div>Rebooting</div>
-        <div>Your node is rebooting.<br>This browser will reconnect automatically once complete.</div>
-        <div>
-            <div><progress id="cdprogress" max="120"></div>
-            <div id="countdown">&nbsp;</div>
-        </div>
-    </div>
-    {{_R("reboot-mon", { delay: 20, countdown: 120, timeout: 5, location: `http://${address}/a/status` })}}
-</div>

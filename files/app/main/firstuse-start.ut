@@ -32,25 +32,38 @@
  * version
  */
 %}
-{%
-    response.reboot = "/sbin/reboot";
-    const address = configuration.getSettingAsString("wifi_ip", request.env.HTTP_HOST);
-%}
-<title>{{configuration.getName()}} rebooting</title>
-<div class="reboot">
-    <div>
-        <div id="icon-logo"></div>
-        <div></div>
-        <div>AREDN<span>TM</span></div>
-        <div>Amateur Radio Emergency Data Network</div>
-    </div>
-    <div>
-        <div>Rebooting</div>
-        <div>Your node is rebooting.<br>This browser will reconnect automatically once complete.</div>
-        <div>
-            <div><progress id="cdprogress" max="120"></div>
-            <div id="countdown">&nbsp;</div>
+<!DOCTYPE>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="/a/css/theme.css" rel="stylesheet">
+    <link href="/a/css/user.css" rel="stylesheet">
+    <link href="/a/css/admin.css" rel="stylesheet">
+    <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
+</head>
+<body>
+    <div id="all">
+        <div class="firstuse">
+            <div>
+                <div id="icon-logo""></div>
+                <div></div>
+                <div>AREDN<span>TM</span></div>
+                <div>Amateur Radio Emergency Data Network</div>
+            </div>
+            <div>
+                <div>Welcome</div>
+                <div>
+                    <div>AREDN&reg; is starting up. Please wait ...</div>
+                </div>
+            </div>
         </div>
     </div>
-    {{_R("reboot-mon", { delay: 20, countdown: 120, timeout: 5, location: `http://${address}/a/status` })}}
-</div>
+    <script>
+    (function(){
+        setTimeout(function() {
+            location.replace(location.origin);
+        }, 5000);
+    })();
+    </script>
+</body>
+</html>

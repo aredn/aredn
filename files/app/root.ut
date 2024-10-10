@@ -79,8 +79,6 @@ if (config.preload) {
     }
     cp("/main/");
     cp("/partial/");
-    cp("/main/status/e/");
-    cp("/main/tools/e/");
 
     radios.getCommonConfiguration();
 }
@@ -102,6 +100,7 @@ if (config.resourcehash) {
     }
     prepareResource("usercss", "css/user.css");
     prepareResource("admincss", "css/admin.css");
+    prepareResource("mobilecss", "css/mobile.css");
     prepareResource("themecss", "css/theme.css");
     prepareResource("htmx", "js/htmx.min.js");
     prepareResource("meshpage", "js/meshpage.js");
@@ -196,7 +195,15 @@ const uciMethods =
             cursor.set(a, b, c);
         }
         else {
-            cursor.set(a, b, c, replace(replace(d, "'", ""), /[\r\n]/g, " "));
+            if (type(d) === "array") {
+                for (let i = 0; i < length(d); i++) {
+                    d[i] = replace(replace(`${d[i]}`, /['<>]/g, ""), /[\r\n]/g, " ");
+                }
+            }
+            else {
+                d = replace(replace(`${d}`, /['<>]/g, ""), /[\r\n]/g, " ");
+            }
+            cursor.set(a, b, c, d);
         }
     },
 
@@ -263,7 +270,15 @@ const uciMeshMethods =
             cursorm.set(a, b, c);
         }
         else {
-            cursorm.set(a, b, c, replace(replace(d, /['<>]/g, ""), /[\r\n]/g, " "));
+            if (type(d) === "array") {
+                for (let i = 0; i < length(d); i++) {
+                    d[i] = replace(replace(`${d[i]}`, /['<>]/g, ""), /[\r\n]/g, " ");
+                }
+            }
+            else {
+                d = replace(replace(`${d}`, /['<>]/g, ""), /[\r\n]/g, " ");
+            }
+            cursorm.set(a, b, c, d);
         }
     },
 
@@ -295,7 +310,6 @@ const uciMeshMethods =
 };
 
 const auth = {
-    isFirstUse: false,
     isAdmin: false,
     key: null,
     age: 315360000, // 10 years
@@ -337,6 +351,9 @@ const auth = {
                     break;
                 }
             }
+        }
+        if (config.forceauth) {
+            this.isAdmin = true;
         }
     },
 
@@ -389,17 +406,19 @@ global.handle_request = function(env)
     const page = path[1] || "status";
     const secured = index(path[2], "/e/") === 0;
 
-    auth.isFirstUse = !!fs.access("/etc/config/unconfigured");
-
     if (path[2] == "" || secured) {
         let tpath;
-        if (auth.isFirstUse) {
+        if (!configuration.isConfigured()) {
             tpath = `${config.application}/main/firstuse-ram.ut`;
             const f = fs.open("/proc/mounts");
             if (f) {
                 for (let l = f.read("line"); length(l); l = f.read("line")) {
                     if (index(l, "overlay") !== -1 || index(l, "ext4") !== -1) {
                         tpath = `${config.application}/main/firstuse.ut`;
+                        const mac2 = uci.cursor("/etc/local/uci").get("hsmmmesh", "settings", "mac2");
+                        if (!match(mac2, /^\d+\.\d+\.\d+$/)) {
+                            tpath = `${config.application}/main/firstuse-start.ut`;
+                        }
                         break;
                     }
                 }
@@ -408,6 +427,10 @@ global.handle_request = function(env)
         }
         else if (secured) {
             tpath = `${config.application}/main${env.PATH_INFO}.ut`;
+        }
+        else if ((env.HTTP_HOST === "localnode" || env.HTTP_HOST === "localnode.local.mesh") && env.REQUEST_URI == "/a/status" && !env.headers["hx-boosted"]) {
+            uhttpd.send(`Status: 302 Found\r\nLocation: http://${configuration.getName()}.local.mesh\r\n\r\n`);
+            return;
         }
         else {
             tpath = `${config.application}/main/${page}.ut`;
@@ -418,9 +441,15 @@ global.handle_request = function(env)
 
         if (pageCache[tpath] || fs.access(tpath)) {
             auth.runAuthentication(env);
-            if (secured && !auth.isAdmin && config.authenable) {
-                uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
-                return;
+            if (config.authenable && !auth.isAdmin) {
+                if (secured) {
+                    uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
+                    return;
+                }
+                if (env.REQUEST_METHOD !== "GET" && configuration.isConfigured() && page !== "authenticate") {
+                    uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
+                    return;
+                }
             }
             const args = {};
             if (env.CONTENT_TYPE === "application/x-www-form-urlencoded") {
@@ -512,13 +541,14 @@ global.handle_request = function(env)
             }
             const response = { statusCode: 200, headers: { "Content-Type": "text/html", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } };
             const fn = pageCache[tpath] || loadfile(tpath, { raw_mode: false });
+            const isMobile = !!(config.forcemobile || match(env.HTTP_USER_AGENT, /iphone/i) || match(env.HTTP_USER_AGENT, /android.*mobile/i));
             let res = "";
             try {
                 res = render(call, fn, null, {
                     config: config,
                     constants: constants,
                     versions: resourceVersions,
-                    request: { env: env, headers: env.headers, args: args, page: page },
+                    request: { env: env, headers: env.headers, args: args, page: page, mobile: isMobile },
                     response: response,
                     uci: uciMethods,
                     uciMesh: uciMeshMethods,
@@ -576,10 +606,7 @@ global.handle_request = function(env)
                 );
             }
             if (response.reboot) {
-                system("(sleep 2; exec /sbin/reboot)&");
-            }
-            if (response.upgrade) {
-                system(`(sleep 2; ${response.upgrade})&`);
+                system(`(sleep 2; ${response.reboot})&`);
             }
             return;
         }

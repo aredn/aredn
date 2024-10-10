@@ -26,12 +26,14 @@
     display: flex;
     flex-direction: column;
     width: 520px;
+    min-width: 520px;
     flex: 1;
     color: var(--ctrl-modal-fg-color);
 }
 #ctrl-modal .dialog.wide
 {
     width: 720px;
+    min-width: 720px;
 }
 #ctrl-modal .dialog > div:first-child
 {
@@ -40,6 +42,7 @@
 #ctrl-modal .dialog > div:nth-child(2)
 {
     flex: 1;
+    overflow-x: hidden;
     overflow-y: scroll;
     overscroll-behavior: contain;
     padding: 0 10px;
@@ -355,6 +358,7 @@ label.switch
     border-radius: 12px !important;
     scale: 0.8 !important;
     background-color: transparent !important;
+    background-repeat: no-repeat;
     filter: var(--icon-filter);
 }
 
@@ -488,6 +492,35 @@ label.switch
 
 /* customization end */
 
+/* control add/rm start */
+
+#ctrl-modal .adr
+{
+    display: flex;
+    flex-wrap: nowrap;
+}
+#ctrl-modal .adr > div:first-child
+{
+    display: flex;
+    flex: 1 0 0%;
+    flex-wrap: wrap;
+}
+#ctrl-modal .adr > :last-child
+{
+    width: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    padding: 0;
+}
+#ctrl-modal .adr > div:first-child > *
+{
+    margin-right: 2px;
+    flex: 0 0 auto;
+    align-self: flex-end;
+}
+
+/* control add/rm end */
+
 /* dhcp start */
 
 #ctrl-modal .noborder input,
@@ -504,6 +537,7 @@ label.switch
 #ctrl-modal .reservation-label div:first-child div:first-child,
 #ctrl-modal .lease-label div:first-child div:first-child
 {
+    flex-grow: 1;
     width: 155px;
     border-color: var(--ctrl-modal-textbox-bg-color);
 }
@@ -512,6 +546,7 @@ label.switch
 #ctrl-modal .reservation-label div:first-child div:nth-child(2),
 #ctrl-modal .lease-label div:first-child div:nth-child(2)
 {
+    flex-grow: 0.2;
     width: 120px;
     border-color: var(--ctrl-modal-textbox-bg-color);
 }
@@ -520,31 +555,32 @@ label.switch
 #ctrl-modal .reservation-label div:first-child div:nth-child(3),
 #ctrl-modal .lease-label div:first-child div:nth-child(3)
 {
+    flex-grow: 0.2;
     width: 145px;
     border-color: var(--ctrl-modal-textbox-bg-color);
 }
-#ctrl-modal .reservation-label div:first-child div:nth-child(4)
+#ctrl-modal .reservation-label div:first-child div:nth-child(4),
+#ctrl-modal .reservation > div:first-child label
 {
     white-space: normal;
-    width: 50px;
+    width: 45px;
+    align-self: center;
     text-align: center;
 }
 #ctrl-modal .reservation input[type=checkbox],
-#ctrl-modal .dhcp-options .row input[type=checkbox]
+#ctrl-modal .dhcp-options input[type=checkbox]
 {
     width: 14px;
     height: 14px;
     accent-color: var(--ctrl-modal-checkbox-color);
-    margin-left: 10px;
 }
 #ctrl-modal .reservation-label div:first-child div,
 #ctrl-modal .lease-label div:first-child div,
 #ctrl-modal .xlink-label div:first-child div,
 #ctrl-modal .dhcptag-label div:first-child div,
 #ctrl-modal .dhcpoption-label div:first-child div,
-#ctrl-modal .port-forwards-label div:first-child div
+#ctrl-modal .port-forwards-label div
 {
-    display: inline-block;
     font-size: 10px;
     text-align: right;
     color: var(--ctrl-modal-fg-message-color);
@@ -553,35 +589,30 @@ label.switch
 {
     padding-top: 20px;
 }
-#ctrl-modal .dhcp-options .row :first-child,
-#ctrl-modal .dhcp-tags .row :first-child
+#ctrl-modal .dhcp-options .adr > div > :first-child,
+#ctrl-modal .dhcp-tags .adr > div > :first-child
 {
+    flex-grow: 1;
     width: 80px;
-    max-width: 80px;
-    overflow-x: hidden;
 }
-#ctrl-modal .dhcp-options .row :nth-child(2),
-#ctrl-modal .dhcp-tags .row :nth-child(2)
+#ctrl-modal .dhcp-options .adr > div > :nth-child(2),
+#ctrl-modal .dhcp-tags .adr > div > :nth-child(2)
 {
     width: 210px;
 }
-#ctrl-modal .dhcp-options .row :nth-child(3)
+#ctrl-modal .dhcp-options .adr > div > :nth-child(3),
+#ctrl-modal .dhcp-tags .adr > div > :nth-child(3)
 {
+    flex-grow: 1;
     width: 120px;
-    max-width: 120px;
-    overflow-x: hidden;
 }
-#ctrl-modal .dhcp-tags .row :nth-child(3)
+#ctrl-modal .dhcp-options .adr > div > :last-child,
+#ctrl-modal .dhcp-tags .adr > div > :last-child,
+#ctrl-modal .dhcpoption-label .adr > div > :last-child
 {
-    width: 155px;
-    max-width: 155px;
-    overflow-x: hidden;
-}
-#ctrl-modal .dhcpoption-label .row :last-child
-{
-    position: relative;
-    top: -2px;
-    right: -10px;
+    width: 35px;
+    align-self: center;
+    text-align: center;
 }
 #ctrl-modal .dhcp-tags:has(.list:empty) .dhcptag-label,
 #ctrl-modal .dhcp-options:has(.list:empty) .dhcpoption-label
@@ -709,11 +740,12 @@ label.switch
 #local-services .service .cols:first-child input
 {
     flex: 1;
-    margin-right: 4px;
 }
 #local-services .service .cols:first-child > .cols
 {
     flex: 1;
+    flex-wrap: nowrap;
+    min-width: 100%;
     padding-right: 10px;
 }
 #local-services .service .cols:first-child > div select
@@ -723,8 +755,8 @@ label.switch
 }
 #local-services .service .cols:last-child div:nth-child(2)
 {
-    white-space: nowrap;
-    padding-right: 34px;
+    display: flex;
+    align-items: center;
     font-size: 10px;
 }
 #local-services .service .cols:last-child input[name=protocol],
@@ -753,6 +785,7 @@ label.switch
 }
 #ctrl-modal #local-services .link select
 {
+    flex: 1;
     width: 100%;
 }
 #ctrl-modal #host-aliases .cols input
@@ -764,42 +797,65 @@ label.switch
 #ctrl-modal #host-aliases .cols div
 {
     flex: 0;
-    position: relative;
-    top: 2px;
     padding-right: 6px;
 }
-#ctrl-modal #port-forwards > .cols
+#ctrl-modal .port-forwards-label
+{
+    display: flex;
+}
+#ctrl-modal .port-forwards-label div
+{
+    margin-right: 2px;
+}
+#ctrl-modal #port-forwards > .adr
 {
     padding-bottom: 6px;
 }
+#ctrl-modal #port-forwards > .adr > .cols > .cols
+{
+    flex-wrap: nowrap;
+    min-width: 100%;
+}
+#ctrl-modal #port-forwards > .adr > .cols > .cols > *
+{
+    margin: 2px 2px 0 0;
+}
 #ctrl-modal #port-forwards label.switch input
 {
-    top: 1px;
-    height: 28px;
+    top: -3px;
     margin-left: 0;
 }
 #ctrl-modal #port-forwards select[name=port_src],
-#ctrl-modal #port-forwards input[name=port_src],
 #ctrl-modal #port-forwards select[name=port_dst],
-#ctrl-modal .port-forwards-label div:first-child div:first-child
+#ctrl-modal .port-forwards-label div:nth-child(1)
 {
     width: 180px;
-    max-width: 180px;
-    overflow-x: hidden;
+    min-width: 180px;
+    flex-grow: 1;
 }
 #ctrl-modal #port-forwards input[name=port_sports],
 #ctrl-modal #port-forwards input[name=port_dport],
-#ctrl-modal .port-forwards-label div:first-child div:nth-child(2)
+#ctrl-modal .port-forwards-label div:nth-child(2)
 {
     width: 110px;
+    min-width: 110px;
+    flex-grow: 1;
 }
-#ctrl-modal .port-forwards-label div:first-child div:nth-child(3)
+#ctrl-modal #port-forwards select[name=port_type],
+#ctrl-modal #port-forwards div:nth-child(3),
+#ctrl-modal .port-forwards-label div:nth-child(3)
 {
     width: 92px;
+    min-width: 92px;
+    flex: 0;
 }
-#ctrl-modal .port-forwards-label div:first-child div:nth-child(4)
+#ctrl-modal #port-forwards label,
+#ctrl-modal #port-forwards div:nth-child(4),
+#ctrl-modal .port-forwards-label div:nth-child(4)
 {
     width: 56px;
+    min-width: 56px;
+    flex: 0;
 }
 #ctrl-modal:has(#port-forwards:empty) .port-forwards-label
 {
@@ -1436,8 +1492,8 @@ label.switch
 }
 #wifi-bar
 {
-    height: 300px;
-    width: 120px;
+    height: 305px;
+    width: 130px;
     padding: 10px 0;
     color: var(--ctrl-modal-fg-title-color);
     background-color: var(--ctrl-modal-bg-secondary-color);
@@ -1453,28 +1509,26 @@ label.switch
 #wifi-bar .bars
 {
     position: relative;
-    height: calc(100% - 42px);
+    width: 60px;
 }
 #wifi-bar .bars > div
 {
     position: absolute;
-    width: 100%;
+    display: flex;
     bottom: 0;
     left: 10px;
     transition: height 1s linear;
-
 }
-#wifi-bar .bars div div
+#wifi-bar .bars .l
 {
-    display: inline-block;
     width: 24px;
     vertical-align: top;
-    padding-right: 5px;
+    text-align: center;
 }
-#wifi-bar .bars div div:nth-child(2)
+#wifi-bar .bars .b
 {
     border-radius: 10px;
-    width: 50px;
+    width: 25px;
     height: 100%;
 }
 #wifi-chart .cols .cols:nth-child(2) .o,
@@ -1489,7 +1543,7 @@ label.switch
 }
 #wifi-chart .chart > div
 {
-    height: 300px;
+    height: 305px;
     padding: 10px;
     background-color: var(--ctrl-modal-bg-secondary-color);
     border-radius: 10px;
@@ -1509,6 +1563,12 @@ label.switch
 {
     fill: none;
     stroke: var(--conn-fg-color-good);
+    stroke-width: 1px;
+}
+#wifi-chart .rsignal
+{
+    fill: none;
+    stroke: var(--conn-fg-color-bad);
     stroke-width: 1px;
 }
 #wifi-chart text

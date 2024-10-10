@@ -98,7 +98,7 @@ const templates = [
     { name: "Sunba Smart camera", type: "camera", protocol: "http", port: 80, path: "ISAPI/Custom/snapshot?authInfo=USERNAME:PASSWORD" },
     { name: "NTP Server", type: "time", protocol: "ntp", port: 123 },
     { name: "Streaming video", type: "video", protocol: "rtsp", port: 554 },
-    { name: "Winlink Server", type: "winlink", protocol: "winlink", port: 8772 },
+    { name: "Winlink Post Office", type: "winlink", protocol: "winlink", port: 8772 },
     { name: "Phone info", type: "phone", link: false, text: "xYOUR-PHONE-EXTENSION" },
     { name: "Map", type: "map", protocol: "http", port: 80 },
     { name: "MeshChat", type: "chat", protocol: "http", port: 80, path: "meshchat" },
@@ -204,62 +204,65 @@ if (f) {
         {{_H("Create a service by selecting from the templates above and hitting +. The two most generic templates are
         <b>Generic URL</b> and <b>Simple text</b> and can be used for any services. You can also use the other templates to
         help create services for specific cameras, mail servers, phones, etc. and these will pre-populate various service fields.")}}
-        <div id="local-services">{%
-                for (let i = 0; i < length(services); i++) {
-                    const s = services[i];
-            %}
-            <div class="service">
-                <div class="cols">
+        <form>
+            <div id="local-services">{%
+                    for (let i = 0; i < length(services); i++) {
+                        const s = services[i];
+                %}
+                <div class="service adr">
                     <div class="cols">
-                        <input name="name" type="text" placeholder="{{s.link === false ? 'service information' : 'service name'}}" required pattern='[^-:"|<>]+' value="{{s.name}}">
-                        <div style="flex:0">
-                            <select name="type">
-                                <option value="">-</option>
+                        <div class="cols">
+                            <input name="name" type="text" placeholder="{{s.link === false ? 'service information' : 'service name'}}" required pattern='[^:"|<>]+' value="{{s.name}}">
+                            <div style="flex:0;margin-left:2px">
+                                <select name="type">
+                                    <option value="">-</option>
+                                    {%
+                                        for (t in types) {
+                                            print(`<option value="${t}" ${t === s.type ? "selected" : ""}>${t}</option>`);
+                                        }
+                                    %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="cols">
+                            {% if (s.link === false) { %}
+                            <div></div>
+                            <div class="link">
+                                <select name="hostname">
                                 {%
-                                    for (t in types) {
-                                        print(`<option value="${t}" ${t === s.type ? "selected" : ""}>${t}</option>`);
+                                    for (j = 0; j < length(hosts); j++) {
+                                        print(`<option value="${hosts[j]}" ${hosts[j] === s.hostname ? "selected" : ""}>${hosts[j]}</option>`);
+                                    }
+                                    for (let j = 0; j < length(aliases.map); j++) {
+                                        print(`<option value="${aliases.map[j].hostname}" ${aliases.map[j].hostname === s.hostname ? "selected" : ""}>${aliases.map[j].hostname}</option>`);
                                     }
                                 %}
-                            </select>
+                                </select>
+                            </div>
+                            {% } else { %}
+                            <div style="flex:0"></div>
+                            <div>
+                                <input name="protocol" type="text" placeholder="proto" required pattern="[a-z]+" value="{{s.protocol}}">
+                                :// <select name="hostname">
+                                {%
+                                    for (j = 0; j < length(hosts); j++) {
+                                        print(`<option value="${hosts[j]}" ${hosts[j] === s.hostname ? "selected" : ""}>${hosts[j]}</option>`);
+                                    }
+                                    for (let j = 0; j < length(aliases.map); j++) {
+                                        print(`<option value="${aliases.map[j].hostname}" ${aliases.map[j].hostname === s.hostname ? "selected" : ""}>${aliases.map[j].hostname}</option>`);
+                                    }
+                                %}
+                                </select>
+                                : <input name="port" type="text" placeholder="port" required pattern="([1-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])" value="{{s.port}}">
+                                / <input name="path" type="text" placeholder="path" pattern="[\-\/\?\&\._=#a-zA-Z0-9]*" value="{{s.path}}">
+                            </div>
+                            {% } %}
                         </div>
                     </div>
                     <button>-</button>
                 </div>
-                <div class="cols">
-                    <div></div>
-                    {% if (s.link === false) { %}
-                    <div class="link">
-                        <select name="hostname">
-                        {%
-                            for (j = 0; j < length(hosts); j++) {
-                                print(`<option value="${hosts[j]}" ${hosts[j] === s.hostname ? "selected" : ""}>${hosts[j]}</option>`);
-                            }
-                            for (let j = 0; j < length(aliases.map); j++) {
-                                print(`<option value="${aliases.map[j].hostname}" ${aliases.map[j].hostname === s.hostname ? "selected" : ""}>${aliases.map[j].hostname}</option>`);
-                            }
-                        %}
-                        </select>
-                    </div>
-                    {% } else { %}
-                    <div>
-                        <input name="protocol" type="text" placeholder="proto" required pattern="[a-z]+" value="{{s.protocol}}">
-                        :// <select name="hostname">
-                        {%
-                            for (j = 0; j < length(hosts); j++) {
-                                print(`<option value="${hosts[j]}" ${hosts[j] === s.hostname ? "selected" : ""}>${hosts[j]}</option>`);
-                            }
-                            for (let j = 0; j < length(aliases.map); j++) {
-                                print(`<option value="${aliases.map[j].hostname}" ${aliases.map[j].hostname === s.hostname ? "selected" : ""}>${aliases.map[j].hostname}</option>`);
-                            }
-                        %}
-                        </select>
-                        : <input name="port" type="text" placeholder="port" required pattern="([1-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])" value="{{s.port}}">
-                        / <input name="path" type="text" placeholder="path" pattern="[\-\/\?\&\._=#a-zA-Z0-9]*" value="{{s.path}}">
-                    </div>
-                    {% } %}
-                </div>
-            </div>
-        {% } %}</div>
+            {% } %}</div>
+        </form>
         <hr>
         <div id="host-aliases-add" class="cols">
             <div>
@@ -270,27 +273,31 @@ if (f) {
         </div>
         {{_H("Assign a hostname to an LAN IP address on this node. Multiple hostnames can be assigned to the same IP address. You are
         encouraged to prefix your hostnames with your callsign so it will be unique on the network.")}}
-        <div id="host-aliases">{%
-            for (let i = 0; i < length(aliases.map); i++) {
-            %}
-                <div class="cols alias">
-                    <input type="text" name="hostname" value="{{aliases.map[i].hostname}}" required pattern="(\*\.)?[a-zA-Z][a-zA-Z0-9_\-]*">
-                    <div>
-                        <select name="address">
-                        {%
-                            for (let j = as[3]; j <= ae[3]; j++) {
-                                const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
-                                const n = aliases.leases[a];
-                                print(`<option value="${a}" ${a === aliases.map[i].address ? "selected" : ""}>${n ? n : a}</option>`);
-                            }
-                        %}
-                        </select>
+        <form>
+            <div id="host-aliases">{%
+                for (let i = 0; i < length(aliases.map); i++) {
+                %}
+                    <div class="alias adr">
+                        <div class="cols">
+                            <input type="text" name="hostname" value="{{aliases.map[i].hostname}}" required pattern="(\*\.)?[a-zA-Z][a-zA-Z0-9_\-]*">
+                            <div>
+                                <select name="address">
+                                {%
+                                    for (let j = as[3]; j <= ae[3]; j++) {
+                                        const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
+                                        const n = aliases.leases[a];
+                                        print(`<option value="${a}" ${a === aliases.map[i].address ? "selected" : ""}>${n ? n : a}</option>`);
+                                    }
+                                %}
+                                </select>
+                            </div>
+                        </div>
+                        <button>-</button>
                     </div>
-                    <button>-</button>
-                </div>
-            {%
-            }
-        %}</div>
+                {%
+                }
+            %}</div>
+        </form>
         <hr>
         <div id="port-forward-add" class="cols">
             <div>
@@ -312,56 +319,59 @@ if (f) {
         traffic may be included. When forwarding a port range, specify the range as <b>start-end</b>.
         The top line of each entry describes where the traffic originates, the bottom line where it is destined.")}}
         {% } %}
-        <div class="cols port-forwards-label">
-            <div class="row">
-                <div>addresses</div>
-                <div>ports</div>
-                <div>protocol</div>
-                <div>enabled</div>
-            </div>
+        <div class="port-forwards-label">
+            <div>addresses</div>
+            <div>ports</div>
+            <div>protocol</div>
+            <div>enabled</div>
+            <div style="min-width:24px"></div>
         </div>
-        <div id="port-forwards">{%
-            for (let i = 0; i < length(ports); i++) {
-                const p = ports[i];
-                %}<div class="cols noborder forward">
-                    <div class="row">
-                        <div>
-                            {% if (dhcp.mode === 0) { %}
-                            <select name="port_src">
-                                <option value="wifi" {{p.src == "wifi" ? "selected" : ""}}>Mesh</option>
-                                <option value="wan" {{p.src == "wan" ? "selected" : ""}}>WAN</option>
-                                <option value="both" {{p.src == "both" ? "selected" : ""}}>Mesh &amp; WAN</option>
-                            </select>
-                            {% } else { %}
-                            <select name="port_src" disabled>
-                                <option value="wan">WAN</option>
-                            </select>
-                            {% } %}
-                            <input name="port_sports" type="text" required placeholder="Port or range" pattern="([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])(?:-([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?" value="{{p.sports}}">
-                            <select name="port_type">
-                                <option value="tcp" {{p.type == "tcp" ? "selected" : ""}}>TCP</option>
-                                <option value="udp" {{p.type == "udp" ? "selected" : ""}}>UDP</option>
-                                <option value="both" {{p.type == "both" ? "selected" : ""}}>TCP &amp; UDP</option>
-                            </select>
-                            <label class="switch"><input type="checkbox" name="port_enable" {{p.enabled ? "checked" : ""}}></label>
+        <form>
+            <div id="port-forwards">{%
+                for (let i = 0; i < length(ports); i++) {
+                    const p = ports[i];
+                    %}<div class="noborder forward adr">
+                        <div class="cols">
+                            <div class="cols">
+                                {% if (dhcp.mode === 0) { %}
+                                <select name="port_src">
+                                    <option value="wifi" {{p.src == "wifi" ? "selected" : ""}}>Mesh</option>
+                                    <option value="wan" {{p.src == "wan" ? "selected" : ""}}>WAN</option>
+                                    <option value="both" {{p.src == "both" ? "selected" : ""}}>Mesh &amp; WAN</option>
+                                </select>
+                                {% } else { %}
+                                <select name="port_src" disabled>
+                                    <option value="wan">WAN</option>
+                                </select>
+                                {% } %}
+                                <input name="port_sports" type="text" required placeholder="Port or range" pattern="([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])(?:-([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?" value="{{p.sports}}">
+                                <select name="port_type">
+                                    <option value="tcp" {{p.type == "tcp" ? "selected" : ""}}>TCP</option>
+                                    <option value="udp" {{p.type == "udp" ? "selected" : ""}}>UDP</option>
+                                    <option value="both" {{p.type == "both" ? "selected" : ""}}>TCP &amp; UDP</option>
+                                </select>
+                                <label class="switch"><input type="checkbox" name="port_enable" {{p.enabled ? "checked" : ""}}></label>
+                            </div>
+                            <div class="cols">
+                                <select name="port_dst">
+                                {%
+                                    for (let j = as[3]; j <= ae[3]; j++) {
+                                        const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
+                                        const n = aliases.leases[a];
+                                        print(`<option value="${a}" ${a === p.dst ? "selected" : ""}>${n ? n : a}</option>`);
+                                    }
+                                %}
+                                </select>
+                                <input name="port_dport" type="text" required placeholder="LAN Port" pattern="{{constants.patPort}}" value="{{p.dport}}">
+                                <div></div>
+                                <div></div>
+                            </div>
                         </div>
-                        <div>
-                            <select name="port_dst">
-                            {%
-                                for (let j = as[3]; j <= ae[3]; j++) {
-                                    const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
-                                    const n = aliases.leases[a];
-                                    print(`<option value="${a}" ${a === p.dst ? "selected" : ""}>${n ? n : a}</option>`);
-                                }
-                            %}
-                            </select>
-                            <input name="port_dport" type="text" required placeholder="LAN Port" pattern="{{constants.patPort}}" value="{{p.dport}}">
-                        </div>
-                    </div>
-                    <button>-</button>
-                </div>{%
-            }
-        %}</div>
+                        <button>-</button>
+                    </div>{%
+                }
+            %}</div>
+        </form>
     </div>
     {{_R("dialog-footer")}}
     <script>
@@ -369,7 +379,11 @@ if (f) {
         {{_R("open")}}
         const templates = {{templates}};
         const hosts = {{hosts}};
-        function updateServices() {
+        function updateServices()
+        {
+            if (!htmx.closest(htmx.find("#local-services"), "form").checkValidity()) {
+                return;
+            }
             const services = [];
             const svc = htmx.findAll("#local-services .service");
             for (let i = 0; i < svc.length; i++) {
@@ -381,14 +395,10 @@ if (f) {
                 const port = htmx.find(s, "input[name=port]");
                 const path = htmx.find(s, "input[name=path]");
                 if (protocol && port && path) {
-                    if (name.validity.valid && protocol.validity.valid && port.validity.valid && path.validity.valid) {
-                        services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|1|${protocol.value}|${host.value}|${port.value}|${path.value}`);
-                    }
+                    services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|1|${protocol.value}|${host.value}|${port.value}|${path.value}`);
                 }
                 else {
-                     if (name.validity.valid) {
-                        services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|0||${host.value}||`);
-                    }
+                    services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|0||${host.value}||`);
                 }
             }
             htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
@@ -398,15 +408,16 @@ if (f) {
         }
         function updateAliases()
         {
+            if (!htmx.closest(htmx.find("#host-aliases"), "form").checkValidity()) {
+                return;
+            }
             const aliases = [];
             const al = htmx.findAll("#host-aliases .alias");
             for (let i = 0; i < al.length; i++) {
                 const s = al[i];
                 const hostname = htmx.find(s, "input[name=hostname]");
                 const address = htmx.find(s, "select[name=address]");
-                if (hostname.validity.valid) {
-                    aliases.push(`${address.value} ${hostname.value}`);
-                }
+                aliases.push(`${address.value} ${hostname.value}`);
             }
             htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
                 swap: "none",
@@ -415,8 +426,11 @@ if (f) {
         }
         function updatePortForwards()
         {
+            if (!htmx.closest(htmx.find("#port-forwards"), "form").checkValidity()) {
+                return;
+            }
             const ports = [];
-            const rows = htmx.findAll("#port-forwards .cols .row");
+            const rows = htmx.findAll("#port-forwards .forward");
             for (let i = 0; i < rows.length; i++) {
                 const r = rows[i];
                 const src = htmx.find(r, "[name=port_src]");
@@ -425,9 +439,7 @@ if (f) {
                 const dst = htmx.find(r, "[name=port_dst]");
                 const dport = htmx.find(r, "[name=port_dport]");
                 const enabled = htmx.find(r, "[name=port_enable]");
-                if (sports.validity.valid && dport.validity.valid) {
-                    ports.push(`${src.value}:${type.value}:${sports.value}:${dst.value}:${dport.value}:${enabled.checked ? "1" : "0"}`);
-                }
+                ports.push(`${src.value}:${type.value}:${sports.value}:${dst.value}:${dport.value}:${enabled.checked ? "1" : "0"}`);
             }
             htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
                 swap: "none",
@@ -460,11 +472,11 @@ if (f) {
             if (t) {
                 let template;
                 if (t.link === false) {
-                    template = `<div class="service">
+                    template = `<div class="service adr">
     <div class="cols">
         <div class="cols">
-            <input name="name" type="text" placeholder="service name" required pattern='[^-:"|<>]+' value="${t.text || t.name}">
-            <div style="flex:0">
+            <input name="name" type="text" placeholder="service name" required pattern='[^:"|<>]+' value="${t.text || t.name}">
+            <div style="flex:0;margin-left:2px">
                 <select name="type">
                     <option value="">-</option>
                     {%
@@ -475,22 +487,22 @@ if (f) {
                 </select>
             </div>
         </div>
-        <button>-</button>
-    </div>
-    <div class="cols">
-        <div></div>
-        <div class="link">
-            <select name="hostname"></select>
+        <div class="cols">
+            <div></div>
+            <div class="link">
+                <select name="hostname"></select>
+            </div>
         </div>
     </div>
+    <button>-</button>
 </div>`;
                 }
                 else {
-                    template = `<div class="service">
+                    template = `<div class="service adr">
     <div class="cols">
         <div class="cols">
-            <input name="name" type="text" placeholder="service name" required pattern='[^-:"|<>]+' value="${t.text || t.name}">
-            <div style="flex:0">
+            <input name="name" type="text" placeholder="service name" required pattern='[^:"|<>]+' value="${t.text || t.name}">
+            <div style="flex:0;margin-left:2px">
                 <select name="type">
                     <option value="">-</option>
                     {%
@@ -501,17 +513,17 @@ if (f) {
                 </select>
             </div>
         </div>
-        <button>-</button>
-    </div>
-    <div class="cols">
-        <div></div>
-        <div>
-            <input name="protocol" type="text" placeholder="proto" required pattern="[a-z]+" value="${t.protocol || ''}">
-            :// <select name="hostname"></select>
-            : <input name="port" type="text" placeholder="port" required pattern="([1-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])" value="${t.port || ''}">
-            / <input name="path" type="text" placeholder="path" pattern="[\\-\\/\\?\\&\\._=#a-zA-Z0-9]*" value="${t.path || ''}">
+        <div class="cols">
+            <div style="flex:0"></div>
+            <div>
+                <input name="protocol" type="text" placeholder="proto" required pattern="[a-z]+" value="${t.protocol || ''}">
+                :// <select name="hostname"></select>
+                : <input name="port" type="text" placeholder="port" required pattern="([1-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])" value="${t.port || ''}">
+                / <input name="path" type="text" placeholder="path" pattern="[\\-\\/\\?\\&\\._=#a-zA-Z0-9]*" value="${t.path || ''}">
+            </div>
         </div>
     </div>
+    <button>-</button>
 </div>`;
                 }
                 const div = document.createElement("div");
@@ -535,7 +547,7 @@ if (f) {
         htmx.on("#local-services", "click", event => {
             const target = event.target;
             if (target.nodeName === "BUTTON") {
-                const service = target.parentNode.parentNode;
+                const service = target.parentNode;
                 htmx.remove(service);
                 updateServices();
             }
@@ -545,18 +557,20 @@ if (f) {
         function newAliasEntry()
         {
             const div = document.createElement("div");
-            div.innerHTML = `<div class="cols alias">
-                <input type="text" name="hostname" value="" required pattern="[a-zA-Z][a-zA-Z0-9_\-]*">
-                <div>
-                    <select name="address">
-                    {%
-                        for (let j = as[3]; j <= ae[3]; j++) {
-                            const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
-                            const n = aliases.leases[a];
-                            print(`<option value="${a}">${n ? n : a}</option>`);
-                        }
-                    %}
-                    </select>
+            div.innerHTML = `<div class="alias adr">
+                <div class="cols">
+                    <input type="text" name="hostname" value="" required pattern="[a-zA-Z][a-zA-Z0-9_\-]*">
+                    <div>
+                        <select name="address">
+                        {%
+                            for (let j = as[3]; j <= ae[3]; j++) {
+                                const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
+                                const n = aliases.leases[a];
+                                print(`<option value="${a}">${n ? n : a}</option>`);
+                            }
+                        %}
+                        </select>
+                    </div>
                 </div>
                 <button>-</button>
             </div>`;
@@ -597,8 +611,8 @@ if (f) {
         {
             const div = document.createElement("div");
             div.innerHTML =
-`<div class="cols noborder forward">
-    <div class="row">
+`<div class="noborder forward adr">
+    <div>
         <div>
             {% if (dhcp.mode === 0) { %}
             <select name="port_src">
@@ -644,10 +658,11 @@ if (f) {
                     newForwardEntry();
                 }
             });
+            htmx.find("#dialog-done").disabled = true;
         }
         htmx.on("#port-forward-add button", "click", newForwardEntry);
-        htmx.on("#port-forwards", "change", _ => updatePortForwards());
-        htmx.on("#port-forwards", "select", _ => updatePortForwards());
+        htmx.on("#port-forwards", "change", updatePortForwards);
+        htmx.on("#port-forwards", "select", updatePortForwards);
     })();
     </script>
 </div>
