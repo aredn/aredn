@@ -86,10 +86,14 @@ if (request.env.REQUEST_METHOD === "PUT") {
                         const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
                         f = fs.popen(`/usr/bin/curl --connect-timeout 1 http://${ip}/a/s-snr?mac=${wifimac} 2>/dev/null`);
                         if (f) {
-                            const j = json(f.read("all"));
-                            f.close();
-                            response.rs = j.s;
-                            response.rn = j.n;
+                            try {
+                                const j = json(f.read("all"));
+                                f.close();
+                                response.rs = j.s;
+                                response.rn = j.n;
+                            }
+                            catch (_) {
+                            }
                         }
                         break;
                     }
@@ -138,7 +142,7 @@ for (let i = 0; i < length(stations); i++) {
             <div style="flex:0">
                 <div id="wifi-bar">
                     <div>- dBm<br><small>snr: -</small></div>
-                    <div style="height:220px;display:flex">
+                    <div style="display:flex;height:220px;padding-bottom:8px">
                         <div class="bars">
                             <div><div class="l"></div><div class="b" style="background-color:var(--conn-fg-color-idle)"></div></div>
                             <div><div class="l"></div><div class="b" style="background-color:var(--conn-fg-color-good)"></div></div>
@@ -183,19 +187,19 @@ for (let i = 0; i < length(stations); i++) {
                 </div>
             </div>
             <div class="cols">
-                <div>
+                <div style="flex:0">
                     <div class="o">Volume</div>
                 </div>
                 <div>
-                    <input type="range" name="volume" min="0" max="10">
+                    <input style="width:90%" type="range" name="volume" min="0" max="10">
                 </div>
             </div>
             <div class="cols">
-                <div>
+                <div style="flex:0">
                     <div class="o">Pitch</div>
                 </div>
                 <div>
-                    <input type="range" name="pitch" min="5" max="100">
+                    <input style="width:90%" type="range" name="pitch" min="5" max="100">
                 </div>
             </div>
         </div>
@@ -240,14 +244,15 @@ for (let i = 0; i < length(stations); i++) {
         let smin = st;
         let rsmax = sf;
         let rsmin = st;
+        let rsl = sf;
         let last = null;
         const maxpoints = 300;
         function p(v) {
             if (v <= sf) {
                 return "0%";
             }
-            const low = Math.max(sf, 1.05 * smin);
-            const range = 0.98 * smax - low;
+            const low = Math.max(sf, 1.05 * Math.min(smin, rsmin));
+            const range = 0.98 * Math.max(smax, rsmax) - low;
             return `${Math.min(100, 100 * (v - low) / range)}%`;
         }
         function reset() {
@@ -287,7 +292,7 @@ for (let i = 0; i < length(stations); i++) {
                 reset();
             }
             let s = j.s[last];
-            let rs = j.rs || s;
+            let rs = j.rs < 0 ? j.rs : undefined;
             if (!s) {
                 if (last === "average") {
                     s = Math.round(Object.values(j.s).reduce((t, v, _, a) => t + v / a.length, 0));
@@ -295,7 +300,6 @@ for (let i = 0; i < length(stations); i++) {
                 if (!s) {
                     s = -120;
                 }
-                rs = s;
             }
             if (s >= sf) {
                 if (s > smax) {
@@ -304,11 +308,13 @@ for (let i = 0; i < length(stations); i++) {
                 if (s < smin) {
                     smin = s;
                 }
-                if (rs > rsmax) {
-                    rsmax = rs;
-                }
-                if (rs < rsmin) {
-                    rsmin = rs;
+                if (rs !== undefined) {
+                    if (rs > rsmax) {
+                        rsmax = rs;
+                    }
+                    if (rs < rsmin) {
+                        rsmin = rs;
+                    }
                 }
                 const snr = s - j.n;
                 bart.innerHTML = `${s} dBm<br><small>snr: ${snr}</small>`;
@@ -318,13 +324,14 @@ for (let i = 0; i < length(stations); i++) {
                 bar1.firstElementChild.innerText = smax;
                 bar2.firstElementChild.innerText = s;
                 bar3.firstElementChild.innerText = smin;
-                if (last !== "average") {
+                if (last !== "average" && rs !== undefined) {
                     rbar1.style.height = p(rsmax);
                     rbar2.style.height = p(rs);
                     rbar3.style.height = p(rsmin);
                     rbar1.lastElementChild.innerText = rsmax;
                     rbar2.lastElementChild.innerText = rs;
                     rbar3.lastElementChild.innerText = rsmin;
+                    rsl = rs;
                 }
             }
             else {
@@ -347,7 +354,7 @@ for (let i = 0; i < length(stations); i++) {
             signal.points.appendItem(point);
             const rpoint = chart.createSVGPoint();
             rpoint.x = 10 + rsignal.points.length / maxpoints * 180;
-            rpoint.y = 90 - 80 * ((rs > -120 ? rs : -120) + 120) / 120;
+            rpoint.y = 90 - 80 * ((rsl > -120 ? rsl : -120) + 120) / 120;
             rsignal.points.appendItem(rpoint);
             oscillator.frequency.value = (s - sf) * htmx.find("#wifi-chart input[name=pitch]").value;
             gain.gain.value = htmx.find("#wifi-chart input[name=volume]").value;
