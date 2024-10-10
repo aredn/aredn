@@ -55,7 +55,7 @@ if (f) {
     }
     f.close();
 }
-let signal = noise;
+let signal = 0;
 f = fs.popen(`/usr/sbin/iw ${wifiiface} station get ${mac} 2>/dev/null`);
 if (f) {
     const reS = /signal:[ \t]+([0-9\-]+)/;
@@ -68,6 +68,11 @@ if (f) {
     }
     f.close();
 }
-print(`{"s":${signal},"n":${noise}\}`);
+if (signal < 0) {
+    print(`{"s":${signal},"n":${noise}\}`);
+}
+else {
+    print("");
+}
 
 %}
