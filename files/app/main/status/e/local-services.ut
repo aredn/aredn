@@ -319,19 +319,20 @@ if (f) {
         traffic may be included. When forwarding a port range, specify the range as <b>start-end</b>.
         The top line of each entry describes where the traffic originates, the bottom line where it is destined.")}}
         {% } %}
-        <div class="cols port-forwards-label">
+        <div class="port-forwards-label">
             <div>addresses</div>
             <div>ports</div>
             <div>protocol</div>
             <div>enabled</div>
+            <div style="min-width:24px"></div>
         </div>
         <form>
             <div id="port-forwards">{%
                 for (let i = 0; i < length(ports); i++) {
                     const p = ports[i];
                     %}<div class="noborder forward adr">
-                        <div>
-                            <div>
+                        <div class="cols">
+                            <div class="cols">
                                 {% if (dhcp.mode === 0) { %}
                                 <select name="port_src">
                                     <option value="wifi" {{p.src == "wifi" ? "selected" : ""}}>Mesh</option>
@@ -351,7 +352,7 @@ if (f) {
                                 </select>
                                 <label class="switch"><input type="checkbox" name="port_enable" {{p.enabled ? "checked" : ""}}></label>
                             </div>
-                            <div>
+                            <div class="cols">
                                 <select name="port_dst">
                                 {%
                                     for (let j = as[3]; j <= ae[3]; j++) {
@@ -362,6 +363,8 @@ if (f) {
                                 %}
                                 </select>
                                 <input name="port_dport" type="text" required placeholder="LAN Port" pattern="{{constants.patPort}}" value="{{p.dport}}">
+                                <div></div>
+                                <div></div>
                             </div>
                         </div>
                         <button>-</button>
@@ -427,7 +430,7 @@ if (f) {
                 return;
             }
             const ports = [];
-            const rows = htmx.findAll("#port-forwards .cols .row");
+            const rows = htmx.findAll("#port-forwards .forward");
             for (let i = 0; i < rows.length; i++) {
                 const r = rows[i];
                 const src = htmx.find(r, "[name=port_src]");
