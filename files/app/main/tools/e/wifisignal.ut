@@ -244,6 +244,7 @@ for (let i = 0; i < length(stations); i++) {
         let smin = st;
         let rsmax = sf;
         let rsmin = st;
+        let rsl = sf;
         let last = null;
         const maxpoints = 300;
         function p(v) {
@@ -330,6 +331,7 @@ for (let i = 0; i < length(stations); i++) {
                     rbar1.lastElementChild.innerText = rsmax;
                     rbar2.lastElementChild.innerText = rs;
                     rbar3.lastElementChild.innerText = rsmin;
+                    rsl = rs;
                 }
             }
             else {
@@ -352,7 +354,7 @@ for (let i = 0; i < length(stations); i++) {
             signal.points.appendItem(point);
             const rpoint = chart.createSVGPoint();
             rpoint.x = 10 + rsignal.points.length / maxpoints * 180;
-            rpoint.y = 90 - 80 * ((rs > -120 ? rs : -120) + 120) / 120;
+            rpoint.y = 90 - 80 * ((rsl > -120 ? rsl : -120) + 120) / 120;
             rsignal.points.appendItem(rpoint);
             oscillator.frequency.value = (s - sf) * htmx.find("#wifi-chart input[name=pitch]").value;
             gain.gain.value = htmx.find("#wifi-chart input[name=volume]").value;
