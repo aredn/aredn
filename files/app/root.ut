@@ -310,7 +310,6 @@ const uciMeshMethods =
 };
 
 const auth = {
-    isFirstUse: false,
     isAdmin: false,
     key: null,
     age: 315360000, // 10 years
@@ -407,11 +406,9 @@ global.handle_request = function(env)
     const page = path[1] || "status";
     const secured = index(path[2], "/e/") === 0;
 
-    auth.isFirstUse = !!fs.access("/etc/config/unconfigured");
-
     if (path[2] == "" || secured) {
         let tpath;
-        if (auth.isFirstUse) {
+        if (!configuration.isConfigured()) {
             tpath = `${config.application}/main/firstuse-ram.ut`;
             const f = fs.open("/proc/mounts");
             if (f) {
@@ -431,6 +428,10 @@ global.handle_request = function(env)
         else if (secured) {
             tpath = `${config.application}/main${env.PATH_INFO}.ut`;
         }
+        else if ((env.HTTP_HOST === "localnode" || env.HTTP_HOST === "localnode.local.mesh") && env.REQUEST_URI == "/a/status" && !env.headers["hx-boosted"]) {
+            uhttpd.send(`Status: 302 Found\r\nLocation: http://${configuration.getName()}.local.mesh\r\n\r\n`);
+            return;
+        }
         else {
             tpath = `${config.application}/main/${page}.ut`;
             if (!pageCache[tpath] && !fs.access(tpath)) {
@@ -440,9 +441,15 @@ global.handle_request = function(env)
 
         if (pageCache[tpath] || fs.access(tpath)) {
             auth.runAuthentication(env);
-            if (secured && !auth.isAdmin && config.authenable) {
-                uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
-                return;
+            if (config.authenable && !auth.isAdmin) {
+                if (secured) {
+                    uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
+                    return;
+                }
+                if (env.REQUEST_METHOD !== "GET" && configuration.isConfigured() && page !== "authenticate") {
+                    uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
+                    return;
+                }
             }
             const args = {};
             if (env.CONTENT_TYPE === "application/x-www-form-urlencoded") {
@@ -599,10 +606,7 @@ global.handle_request = function(env)
                 );
             }
             if (response.reboot) {
-                system("(sleep 2; exec /sbin/reboot)&");
-            }
-            if (response.upgrade) {
-                system(`(sleep 2; ${response.upgrade})&`);
+                system(`(sleep 2; ${response.reboot})&`);
             }
             return;
         }

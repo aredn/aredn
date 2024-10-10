@@ -379,9 +379,11 @@ This value is used by default, but each tunnel may overide it.
         const available = {{sprintf("%J", available)}};
         function updateTunnels()
         {
+            if (!htmx.closest(htmx.find("#tunnels"), "form").checkValidity()) {
+                return;
+            }
             const tunnels = [];
             let servercount = 0;
-            let invalid = 0;
             const tuns = htmx.findAll("#tunnels .tunnel");
             for (let i = 0; i < tuns.length; i++) {
                 const t = tuns[i];
@@ -394,77 +396,68 @@ This value is used by default, but each tunnel may overide it.
                 const notes = htmx.find(t, "input[name=notes]");
                 const enable = htmx.find(t, "input[name=enable]");
                 const weight = htmx.find(t, "input[name=weight]");
-                if (name.validity.valid && password.validity.valid && network.validity.valid && notes.validity.valid && weight.validity.valid) {
-                    tunnels.push({
-                        index: index,
-                        type: type,
-                        name: name.value,
-                        enabled: enable.checked,
-                        notes: notes.value || "",
-                        network: network.value,
-                        passwd: password.value,
-                        key: key && key.value,
-                        weight: weight.value
-                    });
-                }
-                else {
-                    invalid++;
-                }
+                tunnels.push({
+                    index: index,
+                    type: type,
+                    name: name.value,
+                    enabled: enable.checked,
+                    notes: notes.value || "",
+                    network: network.value,
+                    passwd: password.value,
+                    key: key && key.value,
+                    weight: weight.value
+                });
                 if (type === "ls" || type === "ws") {
                     servercount++;
                 }
             }
-            if (invalid === 0) {
-                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                    swap: "none",
-                    values: { tunnels: JSON.stringify(tunnels) }
-                });
-            }
-            const start = htmx.find("input[name=tunnel_range_start]");
-            if (start) {
-                start.disabled = servercount > 0 ? true : false;
-            }
+            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                swap: "none",
+                values: { tunnels: JSON.stringify(tunnels) }
+            });
+            {% if (includeAdvanced) { %}
+            htmx.find("input[name=tunnel_range_start]").disabled = servercount > 0 ? true : false;
+            {% } %}
         }
         htmx.on("input[name=tunnel_server]", "change", e => {
             if (e.target.validity.valid) {
                 server = e.target.value;
             }
         });
-        const rangeStart = htmx.find("input[name=tunnel_range_start]");
-        if (rangeStart) {
-            htmx.on(rangeStart, "change", e => {
-                available.l = {};
-                available.w = {};
-                if (e.target.validity.valid) {
-                    const l = e.target.value.split(".").map(v => parseInt(v));
-                    const w = [ l[0], l[1], (l[2] === 255 ? 0 : l[2] + 1), l[3] ];
-                    for (let i = 0; i < 62; i++) {
-                        available.l[`${l[0]}.${l[1]}.${l[2]}.${l[3]}`] = 1;
-                        l[3] += 4;
-                        if (l[3] >= 252) {
-                            l[2]++;
-                            if (l[2] === 256) {
-                                l[2] = 0;
-                            }
-                            l[3] = 4;
+        {% if (includeAdvanced) { %}
+        htmx.on("input[name=tunnel_range_start]", "change", e => {
+            available.l = {};
+            available.w = {};
+            if (e.target.validity.valid) {
+                const l = e.target.value.split(".").map(v => parseInt(v));
+                const w = [ l[0], l[1], (l[2] === 255 ? 0 : l[2] + 1), l[3] ];
+                for (let i = 0; i < 62; i++) {
+                    available.l[`${l[0]}.${l[1]}.${l[2]}.${l[3]}`] = 1;
+                    l[3] += 4;
+                    if (l[3] >= 252) {
+                        l[2]++;
+                        if (l[2] === 256) {
+                            l[2] = 0;
                         }
-                    }
-                    let p = {{uciMesh.get("aredn", "@supernode[0]", "enable") === "1" ? 6526 : 5525}};
-                    for (let i = 0; i < 126; i++) {
-                        available.w[`${w[0]}.${w[1]}.${w[2]}.${w[3]}:${p}`] = 1;
-                        w[3] += 2;
-                        if (w[3] >= 254) {
-                            w[2]++;
-                            if (w[2] === 256) {
-                                w[2] = 0;
-                            }
-                            w[3] = 2;
-                        }
-                        p++;
+                        l[3] = 4;
                     }
                 }
-            });
-        }
+                let p = {{uciMesh.get("aredn", "@supernode[0]", "enable") === "1" ? 6526 : 5525}};
+                for (let i = 0; i < 126; i++) {
+                    available.w[`${w[0]}.${w[1]}.${w[2]}.${w[3]}:${p}`] = 1;
+                    w[3] += 2;
+                    if (w[3] >= 254) {
+                        w[2]++;
+                        if (w[2] === 256) {
+                            w[2] = 0;
+                        }
+                        w[3] = 2;
+                    }
+                    p++;
+                }
+            }
+        });
+        {% } %}
         function newTunnelEntry()
         {
             const type = htmx.find("#tunnel-templates select").value;
@@ -551,10 +544,11 @@ This value is used by default, but each tunnel may overide it.
                     newTunnelEntry();
                 }
             });
-            const start = htmx.find("input[name=tunnel_range_start]");
-            if (start && !client) {
-                start.disabled = true;
+            {% if (includeAdvanced) { %}
+            if (!client) {
+                htmx.find("input[name=tunnel_range_start]").disabled = true;
             }
+            {% } %}
             htmx.find("#dialog-done").disabled = true;
         }
         htmx.on("#tunnel-templates button", "click", newTunnelEntry);

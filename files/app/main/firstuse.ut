@@ -33,11 +33,11 @@
  */
 %}
 {%
-import * as xuci from "uci";
-
-if ((auth.isFirstUse || !config.authenable) && request.env.REQUEST_METHOD === "PUT") {
-    system(`/usr/local/bin/firstuse-setup '${request.args.name}' '${request.args.passwd}'`);
-    response.reboot = true;
+if (!(configuration.isConfigured() && config.authenable) && request.env.REQUEST_METHOD === "PUT") {
+    system(`/usr/local/bin/setpasswd '${request.args.passwd}'`);
+    configuration.setName(request.args.name);
+    configuration.setConfigured("1");
+    response.reboot = "/sbin/reboot";
     print(_R("reboot-firstuse"));
     return;
 }

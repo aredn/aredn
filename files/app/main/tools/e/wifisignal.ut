@@ -35,7 +35,8 @@
 {%
 if (request.env.REQUEST_METHOD === "PUT") {
     const wifiiface = uci.get("network", "wifi", "device");
-    let f = fs.popen(`iw ${wifiiface} station dump`);
+    const qmac = request.args.mac;
+    let f = fs.popen(`iw ${wifiiface} station ${qmac === "average" ? "dump" : "get " + qmac}`);
     if (f) {
         const signals = {};
         let mac = null;
@@ -73,7 +74,29 @@ if (request.env.REQUEST_METHOD === "PUT") {
             }
             f.close();
         }
-        printf("%J", { s: signals, n: noise });
+        const response = { s: signals, n: noise };
+        if (qmac !== "average") {
+            const reArp = regexp(`^([\.0-9]+) +0x. +0x. +${mac}`, "i");
+            let f = fs.open("/proc/net/arp");
+            if (f) {
+                for (let l = f.read("line"); length(l); l = f.read("line")) {
+                    const m = match(l, reArp);
+                    if (m) {
+                        const ip = m[1];
+                        const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
+                        f = fs.popen(`/usr/bin/curl --connect-timeout 1 http://${ip}/a/s-snr?mac=${wifimac} 2>/dev/null`);
+                        if (f) {
+                            const j = json(f.read("all"));
+                            f.close();
+                            response.rs = j.s;
+                            response.rn = j.n;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        printf("%J", response);
     }
     return;
 }
@@ -115,11 +138,19 @@ for (let i = 0; i < length(stations); i++) {
             <div style="flex:0">
                 <div id="wifi-bar">
                     <div>- dBm<br><small>snr: -</small></div>
-                    <div class="bars">
-                        <div><div></div><div style="background-color:var(--conn-fg-color-idle)"></div></div>
-                        <div><div></div><div style="background-color:var(--conn-fg-color-good)"></div></div>
-                        <div><div></div><div style="background-color:var(--conn-fg-color-bad)"></div></div>
+                    <div style="height:220px;display:flex">
+                        <div class="bars">
+                            <div><div class="l"></div><div class="b" style="background-color:var(--conn-fg-color-idle)"></div></div>
+                            <div><div class="l"></div><div class="b" style="background-color:var(--conn-fg-color-good)"></div></div>
+                            <div><div class="l"></div><div class="b" style="background-color:var(--conn-fg-color-bad)"></div></div>
+                        </div>
+                        <div class="bars">
+                            <div><div class="b" style="background-color:var(--conn-fg-color-idle)"></div><div class="l"></div></div>
+                            <div><div class="b" style="background-color:var(--conn-fg-color-good)"></div><div class="l"></div></div>
+                            <div><div class="b" style="background-color:var(--conn-fg-color-bad)"></div><div class="l"></div></div>
+                        </div>
                     </div>
+                    <div style="font-size:12px;padding:4px 16px 0 28px;">Local<div style="float:right">Remote</div></div>
                 </div>
             </div>
             <div class="chart">
@@ -135,6 +166,7 @@ for (let i = 0; i < length(stations); i++) {
                         <text x="8" y="77">-100</text>
                         <text x="8" y="90">-120</text>
                         <text x="105" y="96">Last 5 minutes</text>
+                        <polyline class="rsignal" />
                         <polyline class="signal" />
                     </svg>
                 </div>
@@ -181,11 +213,15 @@ for (let i = 0; i < length(stations); i++) {
         const device = htmx.find("#wifi-device");
         const target = htmx.find("#wifi-chart");
         const bart = htmx.find("#wifi-bar > div");
-        const bar1 = htmx.find("#wifi-bar .bars > div:nth-child(1)");
-        const bar2 = htmx.find("#wifi-bar .bars > div:nth-child(2)");
-        const bar3 = htmx.find("#wifi-bar .bars > div:nth-child(3)");
+        const bar1 = htmx.find("#wifi-bar .bars:first-child > div:nth-child(1)");
+        const bar2 = htmx.find("#wifi-bar .bars:first-child > div:nth-child(2)");
+        const bar3 = htmx.find("#wifi-bar .bars:first-child > div:nth-child(3)");
+        const rbar1 = htmx.find("#wifi-bar .bars:nth-child(2) > div:nth-child(1)");
+        const rbar2 = htmx.find("#wifi-bar .bars:nth-child(2) > div:nth-child(2)");
+        const rbar3 = htmx.find("#wifi-bar .bars:nth-child(2) > div:nth-child(3)");
         const chart = htmx.find("#wifi-chart svg");
         const signal = htmx.find("#wifi-chart svg .signal");
+        const rsignal = htmx.find("#wifi-chart svg .rsignal");
     
         let oscillator;
         let gain;
@@ -202,6 +238,8 @@ for (let i = 0; i < length(stations); i++) {
 
         let smax = sf;
         let smin = st;
+        let rsmax = sf;
+        let rsmin = st;
         let last = null;
         const maxpoints = 300;
         function p(v) {
@@ -216,6 +254,8 @@ for (let i = 0; i < length(stations); i++) {
             last = device.value;
             smax = sf;
             smin = st;
+            rsmax = sf;
+            rsmin = st;
             bart.innerText = "dBm";
             bar1.style.height = "";
             bar2.style.height = "";
@@ -223,19 +263,31 @@ for (let i = 0; i < length(stations); i++) {
             bar1.firstElementChild.innerText = "";
             bar2.firstElementChild.innerText = "";
             bar3.firstElementChild.innerText = "";
+            rbar1.style.height = "";
+            rbar2.style.height = "";
+            rbar3.style.height = "";
+            rbar1.lastElementChild.innerText = "";
+            rbar2.lastElementChild.innerText = "";
+            rbar3.lastElementChild.innerText = "";
             signal.points.clear();
+            rsignal.points.clear();
         }
         const timer = setInterval(async _ => {
             if (!document.contains(target)) {
                 clearInterval(timer);
                 return;
             }
-            const r = await fetch("{{request.env.REQUEST_URI}}", { method: "PUT" });
+            const r = await fetch(`{{request.env.REQUEST_URI}}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `mac=${device.value}`
+            });
             const j = await r.json();
             if (last !== device.value) {
                 reset();
             }
             let s = j.s[last];
+            let rs = j.rs || s;
             if (!s) {
                 if (last === "average") {
                     s = Math.round(Object.values(j.s).reduce((t, v, _, a) => t + v / a.length, 0));
@@ -243,6 +295,7 @@ for (let i = 0; i < length(stations); i++) {
                 if (!s) {
                     s = -120;
                 }
+                rs = s;
             }
             if (s >= sf) {
                 if (s > smax) {
@@ -250,6 +303,12 @@ for (let i = 0; i < length(stations); i++) {
                 }
                 if (s < smin) {
                     smin = s;
+                }
+                if (rs > rsmax) {
+                    rsmax = rs;
+                }
+                if (rs < rsmin) {
+                    rsmin = rs;
                 }
                 const snr = s - j.n;
                 bart.innerHTML = `${s} dBm<br><small>snr: ${snr}</small>`;
@@ -259,6 +318,14 @@ for (let i = 0; i < length(stations); i++) {
                 bar1.firstElementChild.innerText = smax;
                 bar2.firstElementChild.innerText = s;
                 bar3.firstElementChild.innerText = smin;
+                if (last !== "average") {
+                    rbar1.style.height = p(rsmax);
+                    rbar2.style.height = p(rs);
+                    rbar3.style.height = p(rsmin);
+                    rbar1.lastElementChild.innerText = rsmax;
+                    rbar2.lastElementChild.innerText = rs;
+                    rbar3.lastElementChild.innerText = rsmin;
+                }
             }
             else {
                 bart.innerHTML = `- dBm<br><small>snr: -</small>`;
@@ -267,14 +334,21 @@ for (let i = 0; i < length(stations); i++) {
             }
             if (signal.points.length >= maxpoints) {
                 signal.points.removeItem(0);
+                rsignal.points.removeItem(0);
                 for (let i = 0; i < signal.points.length; i++) {
-                    signal.points[i].x = 10 + i / maxpoints * 180;
+                    const nx = 10 + i / maxpoints * 180;
+                    signal.points[i].x = nx;
+                    rsignal.points[i].x = nx;
                 }
             }
             const point = chart.createSVGPoint();
             point.x = 10 + signal.points.length / maxpoints * 180;
             point.y = 90 - 80 * ((s > -120 ? s : -120) + 120) / 120;
             signal.points.appendItem(point);
+            const rpoint = chart.createSVGPoint();
+            rpoint.x = 10 + rsignal.points.length / maxpoints * 180;
+            rpoint.y = 90 - 80 * ((rs > -120 ? rs : -120) + 120) / 120;
+            rsignal.points.appendItem(rpoint);
             oscillator.frequency.value = (s - sf) * htmx.find("#wifi-chart input[name=pitch]").value;
             gain.gain.value = htmx.find("#wifi-chart input[name=volume]").value;
         }, 1000);

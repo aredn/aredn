@@ -45,6 +45,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("ntp_server" in request.args) {
         configuration.setSetting("ntp_server", request.args.ntp_server);
     }
+    if ("ntp_server2" in request.args) {
+        configuration.setSetting("ntp_server2", request.args.ntp_server2);
+    }
     if ("ntp_mode" in request.args) {
         switch (request.args.ntp_mode) {
             case "daily":
@@ -84,6 +87,7 @@ if (f) {
     f.close();
 }
 const ntp_server = configuration.getSettingAsString("ntp_server", "");
+const ntp_server2 = configuration.getSettingAsString("ntp_server2", "");
 const ntp_mode = uciMesh.get("aredn", "@ntp[0]", "period") || "daily";
 %}
 <div class="dialog">
@@ -114,8 +118,10 @@ const ntp_mode = uciMesh.get("aredn", "@ntp[0]", "period") || "daily";
             </div>
             <div style="flex:0">
                 <input hx-put="{{request.env.REQUEST_URI}}" name="ntp_server" type="text" size="20" value="{{ntp_server}}">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="ntp_server2" type="text" size="20" value="{{ntp_server2}}">
             </div>
         </div>
+        <br>
         {{_H("The default NTP server to use when syncing the node's time. If this cannot be found and the NTP frequency is hourly or daily, the node will search for one on the mesh.")}}
         <div class="cols">
             <div>

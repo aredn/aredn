@@ -212,7 +212,7 @@ if (f) {
                 <div class="service adr">
                     <div class="cols">
                         <div class="cols">
-                            <input name="name" type="text" placeholder="{{s.link === false ? 'service information' : 'service name'}}" required pattern='[^-:"|<>]+' value="{{s.name}}">
+                            <input name="name" type="text" placeholder="{{s.link === false ? 'service information' : 'service name'}}" required pattern='[^:"|<>]+' value="{{s.name}}">
                             <div style="flex:0;margin-left:2px">
                                 <select name="type">
                                     <option value="">-</option>
@@ -378,8 +378,10 @@ if (f) {
         const hosts = {{hosts}};
         function updateServices()
         {
+            if (!htmx.closest(htmx.find("#local-services"), "form").checkValidity()) {
+                return;
+            }
             const services = [];
-            let invalid = 0;
             const svc = htmx.findAll("#local-services .service");
             for (let i = 0; i < svc.length; i++) {
                 const s = svc[i];
@@ -390,57 +392,41 @@ if (f) {
                 const port = htmx.find(s, "input[name=port]");
                 const path = htmx.find(s, "input[name=path]");
                 if (protocol && port && path) {
-                    if (name.validity.valid && protocol.validity.valid && port.validity.valid && path.validity.valid) {
-                        services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|1|${protocol.value}|${host.value}|${port.value}|${path.value}`);
-                    }
-                    else {
-                        invalid++;
-                    }
+                    services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|1|${protocol.value}|${host.value}|${port.value}|${path.value}`);
                 }
                 else {
-                     if (name.validity.valid) {
-                        services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|0||${host.value}||`);
-                    }
-                    else {
-                        invalid++;
-                    }
+                    services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|0||${host.value}||`);
                 }
             }
-            if (invalid === 0) {
-                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                    swap: "none",
-                    values: { services: JSON.stringify(services) }
-                });
-                htmx.find("#dialog-done").disabled = false;
-            }
+            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                swap: "none",
+                values: { services: JSON.stringify(services) }
+            });
         }
         function updateAliases()
         {
+            if (!htmx.closest(htmx.find("#host-aliases"), "form").checkValidity()) {
+                return;
+            }
             const aliases = [];
-            let invalid = 0;
             const al = htmx.findAll("#host-aliases .alias");
             for (let i = 0; i < al.length; i++) {
                 const s = al[i];
                 const hostname = htmx.find(s, "input[name=hostname]");
                 const address = htmx.find(s, "select[name=address]");
-                if (hostname.validity.valid) {
-                    aliases.push(`${address.value} ${hostname.value}`);
-                }
-                else {
-                    invalid++;
-                }
+                aliases.push(`${address.value} ${hostname.value}`);
             }
-            if (invalid === 0) {
-                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                    swap: "none",
-                    values: { aliases: JSON.stringify(aliases) }
-                });
-            }
+            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                swap: "none",
+                values: { aliases: JSON.stringify(aliases) }
+            });
         }
         function updatePortForwards()
         {
+            if (!htmx.closest(htmx.find("#port-forwards"), "form").checkValidity()) {
+                return;
+            }
             const ports = [];
-            let invalid = 0;
             const rows = htmx.findAll("#port-forwards .cols .row");
             for (let i = 0; i < rows.length; i++) {
                 const r = rows[i];
@@ -450,19 +436,12 @@ if (f) {
                 const dst = htmx.find(r, "[name=port_dst]");
                 const dport = htmx.find(r, "[name=port_dport]");
                 const enabled = htmx.find(r, "[name=port_enable]");
-                if (sports.validity.valid && dport.validity.valid) {
-                    ports.push(`${src.value}:${type.value}:${sports.value}:${dst.value}:${dport.value}:${enabled.checked ? "1" : "0"}`);
-                }
-                else {
-                    invalid++;
-                }
+                ports.push(`${src.value}:${type.value}:${sports.value}:${dst.value}:${dport.value}:${enabled.checked ? "1" : "0"}`);
             }
-            if (invalid === 0) {
-                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                    swap: "none",
-                    values: { ports: JSON.stringify(ports) }
-                });
-            }
+            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                swap: "none",
+                values: { ports: JSON.stringify(ports) }
+            });
         }
         function refreshHostSelectors()
         {
@@ -493,7 +472,7 @@ if (f) {
                     template = `<div class="service adr">
     <div class="cols">
         <div class="cols">
-            <input name="name" type="text" placeholder="service name" required pattern='[^-:"|<>]+' value="${t.text || t.name}">
+            <input name="name" type="text" placeholder="service name" required pattern='[^:"|<>]+' value="${t.text || t.name}">
             <div style="flex:0;margin-left:2px">
                 <select name="type">
                     <option value="">-</option>
@@ -519,7 +498,7 @@ if (f) {
                     template = `<div class="service adr">
     <div class="cols">
         <div class="cols">
-            <input name="name" type="text" placeholder="service name" required pattern='[^-:"|<>]+' value="${t.text || t.name}">
+            <input name="name" type="text" placeholder="service name" required pattern='[^:"|<>]+' value="${t.text || t.name}">
             <div style="flex:0;margin-left:2px">
                 <select name="type">
                     <option value="">-</option>
