@@ -640,11 +640,18 @@ label.switch
 }
 #ctrl-modal .neighbor .o
 {
+    display: flex;
     font-size: calc(var(--font-base-size) + 4px);
     padding: 8px;
     border-radius: 6px;
     margin-bottom: 4px;
     background-color: var(--ctrl-modal-bg-secondary-color);
+}
+#ctrl-modal .neighbor .o > div
+{
+    flex: 1;
+    white-space: nowrap;
+    overflow-x: hidden;
 }
 #ctrl-modal .neighbor > div:not(.o)
 {
@@ -664,6 +671,7 @@ label.switch
 }
 #ctrl-modal .neighbor select
 {
+    margin-left: 5px;
     padding: 2px 4px;
     vertical-align: top;
     float: right;
@@ -1162,11 +1170,10 @@ label.switch
 {
     border-color: inherit !important;
 }
-.tunnel > .cols > div:first-child
+#ctrl-modal .tunnel > .cols > div:first-child
 {
     flex: 0;
     font-size: 12px;
-    margin: 0 10px 0 0;
     padding: 0 4px;
     border-radius: 6px;;
     writing-mode: vertical-rl;
@@ -1174,20 +1181,29 @@ label.switch
     text-align: center;
     color: var(--tunnel-fg-color);
     cursor: default;
+    align-self: auto;
+}
+#ctrl-modal .tunnel > .cols > .cols
+{
+    flex: 1;
+}
+.tunnel > .cols > .cols > .cols
+{
+    min-width: 100%;
 }
 .tunnel > .cols > div:first-child[data-type=ws]
 {
     background-color: var(--tunnel-bg-wireguard-server-color);
 }
-.tunnel > .cols > div:first-child[data-type=wc]
+.tunnel div[data-type=wc]
 {
     background-color: var(--tunnel-bg-wireguard-client-color);
 }
-.tunnel > .cols > div:first-child[data-type=ls]
+.tunnel div[data-type=ls]
 {
     background-color: var(--tunnel-bg-legacy-server-color);
 }
-.tunnel > .cols > div:first-child[data-type=lc]
+.tunnel div[data-type=lc]
 {
     background-color: var(--tunnel-bg-legacy-client-color);
 }
@@ -1298,8 +1314,7 @@ label.switch
 }
 #ctrl-modal .ports table thead td div
 {
-    width: 54px;
-    padding: 5px 0;
+    padding: 5px 10px;
     margin: 0 auto;
     border-radius: 14px;
     color: var(--service-fg-color-status);
