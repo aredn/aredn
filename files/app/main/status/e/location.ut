@@ -99,7 +99,7 @@ const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
                 <div class="m">Node's latitude</div>
             </div>
             <div style="flex:0">
-                <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="lat" type="text" size="10" pattern="-?\d+(\.\d+)?" value="{{lat}}">
+                <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="lat" type="text" size="10" pattern="-?\d+(\.\d+)?" hx-validate="true" value="{{lat}}">
             </div>
         </div>
         {{_H("The latitude of this node. This information is used to determine the distance between this node and others and is required to
@@ -110,7 +110,7 @@ const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
                 <div class="m">Node's longitude</div>
             </div>
             <div style="flex:0">
-                <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="lon" type="text" size="10" pattern="-?\d+(\.\d+)?" value="{{lon}}">
+                <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="lon" type="text" size="10" pattern="-?\d+(\.\d+)?" hx-validate="true" value="{{lon}}">
             </div>
         </div>
         {{_H("The longitude of this node. This information is used to determine the distance between this node and others and is required to
@@ -121,7 +121,7 @@ const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
                 <div class="m">Maidenhead gridsquare</div>
             </div>
             <div style="flex:0">
-                <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="gridsquare" type="text" size="7" pattern="[A-X][A-X]\d\d[a-x][a-x]" value="{{gridsquare}}">
+                <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="gridsquare" type="text" size="7" pattern="[A-X][A-X]\d\d[a-x][a-x]" hx-validate="true" value="{{gridsquare}}">
             </div>
         </div>
         {{_H("A gridsquare is a 6 character (2 uppercase letters, 2 digits, 2 lowercase letters) designation of the node's location.
@@ -146,7 +146,7 @@ const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
                     <div class="m">URL for embedded map</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="mapurl" type="text" size="45" pattern="{{constants.patUrl}}" value="{{map}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="mapurl" type="text" size="45" pattern="{{constants.patUrl}}" hx-validate="true" value="{{map}}">
                 </div>
             </div>
             {{_H("The map URL is used to embed maps in this page (see above) and in other node pages. The (lat) and (lon) parameters in
