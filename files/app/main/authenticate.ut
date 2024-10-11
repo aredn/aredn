@@ -34,23 +34,19 @@
 %}
 {%
 response.headers["Content-Type"] = "application/json";
-if (request.env.REQUEST_METHOD === "POST") {
-    try {
-        const j = json(uhttpd.recv(1024));
-        if (j.version === 1) {
-            if (j.logout) {
-                auth.deauthenticate();
-                print('{"authenticated":false}\n');
-                return;
-            }
-            if (auth.authenticate(j.password)) {
-                print('{"authenticated":true}\n');
-                return;
-            }
-        }
+try {
+    if (match(request.env.QUERY_STRING, /^version=1&logout=1$/)) {
+        auth.deauthenticate();
+        print('{"authenticated":false}\n');
+        return;
     }
-    catch (_) {
+    const m = match(request.env.QUERY_STRING, /^version=1&password=(.+)$/);
+    if (m && auth.authenticate(uhttpd.urldecode(m[1]))) {
+        print('{"authenticated":true}\n');
+        return;
     }
+}
+catch (_) {
 }
 print('{"authenticated":false}\n');
 %}
