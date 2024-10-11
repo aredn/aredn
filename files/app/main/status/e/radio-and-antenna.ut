@@ -278,7 +278,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">AREDN mesh identifier</div>
                     </div>
                     <div style="flex:0;white-space:nowrap">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern="[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" value="{{wlan[w].modes[1].ssid}}"><span style="color:var(--ctrl-modal-fg-color)">-{{wlan[w].modes[1].bandwidth}}-v3</span>
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern="[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" hx-validate="true" value="{{wlan[w].modes[1].ssid}}"><span style="color:var(--ctrl-modal-fg-color)">-{{wlan[w].modes[1].bandwidth}}-v3</span>
                     </div>
                 </div>
                 <div class="hideable0-g">
@@ -288,7 +288,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Distance to farthest neighbor in {{units.distanceUnit()}}</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="wifi_distance" type="text" size="3" pattern="\d+" value="{{int(0.5 + units.meters2distance(configuration.getSettingAsInt("wifi_distance", 0)))}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="wifi_distance" type="text" size="3" pattern="\d+" hx-validate="true" value="{{int(0.5 + units.meters2distance(configuration.getSettingAsInt("wifi_distance", 0)))}}">
                         </div>
                     </div>
                 </div>
@@ -299,7 +299,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Acceptable SNR for connection (dB)</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minsnr" type="text" size="3" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_snr")}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minsnr" type="text" size="3" pattern="\d\d?" hx-validate="true" value="{{uciMesh.get("aredn", "@lqm[0]", "min_snr")}}">
                         </div>
                     </div>
                     {{_H("Low SNR results in higher latency, lower bandwidth and high retranmissions. Setting a minimum SNR allows links with
@@ -310,7 +310,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Maximum distance allowed to other nodes in {{units.distanceUnit()}}</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_maxdistance" type="text" size="3" pattern="\d+" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "max_distance")))}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_maxdistance" type="text" size="3" pattern="\d+" hx-validate="true" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "max_distance")))}}">
                         </div>
                     </div>
                     {{_H("Distance beyond which neighbor node connections will be ignored. Longer distances to nodes can result in poor performance.
@@ -321,7 +321,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Minimum connection quaility percentage</div>
                         </div>
                         <div style="flex:0;white-space:nowrap">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minquality" type="text" size="3" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_quality")}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minquality" type="text" size="3" pattern="\d\d?" hx-validate="true" value="{{uciMesh.get("aredn", "@lqm[0]", "min_quality")}}">
                         </div>
                     </div>
                     {{_H("The node management system maintains an estimate of how well each neighbor link performs. This link <b>quality</b> is used
@@ -337,7 +337,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Hotspot SSID</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_ssid" type="text" size="10" maxlength="32" pattern=[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" value="{{hexdec(wlan[w].modes[2].ssid)}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_ssid" type="text" size="10" maxlength="32" pattern=[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" hx-validate="true" value="{{hexdec(wlan[w].modes[2].ssid)}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -377,7 +377,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                                 <div class="m">Hotspot password</div>
                             </div>
                             <div class="password-toggle" style="flex:0">
-                                <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_password" type="password" required size="10" maxlength="32" value="{{hexdec(wlan[w].modes[2].key) || "AREDN"}}"><button class="icon eye"></button>
+                                <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_password" type="password" required size="10" maxlength="32" hx-validate="true" value="{{hexdec(wlan[w].modes[2].key) || "AREDN"}}"><button class="icon eye"></button>
                             </div>
                         </div>
                     </div>
@@ -392,7 +392,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">WAN client</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_ssid" type="text" size="10" maxlength="32" pattern='[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]' value="{{hexdec(wlan[w].modes[3].ssid)}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_ssid" type="text" size="10" maxlength="32" pattern='[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]' hx-validate="true" value="{{hexdec(wlan[w].modes[3].ssid)}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -401,7 +401,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Client password</div>
                     </div>
                     <div class="password-toggle" style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" size="10" maxlength="32" value="{{hexdec(wlan[w].modes[3].key)}}"><button class="icon eye"></button>
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" size="10" maxlength="32" hx-validate="true" value="{{hexdec(wlan[w].modes[3].key)}}"><button class="icon eye"></button>
                     </div>
                 </div>
             </div>
@@ -438,7 +438,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Antenna azimuth in degrees</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_azimuth" type="text" size="10" pattern="(\d|[1-9]\d|[12]\d{2}|3[0-5]\d|360)" value="{{uciMesh.get("aredn", "@location[0]", "azimuth")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_azimuth" type="text" size="10" pattern="(\d|[1-9]\d|[12]\d{2}|3[0-5]\d|360)" hx-validate="true" value="{{uciMesh.get("aredn", "@location[0]", "azimuth")}}">
                     </div>
                 </div>
                 {{_H("The azimuth, or heading, of the primary radio antenna measured in degrees (0 to 360) clockwise from north.")}}
@@ -449,7 +449,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Antenna height above ground in meters</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_height" type="text" size="10" pattern="\d+" value="{{uciMesh.get("aredn", "@location[0]", "height")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_height" type="text" size="10" pattern="\d+" hx-validate="true" value="{{uciMesh.get("aredn", "@location[0]", "height")}}">
                     </div>
                 </div>
                 {{_H("The height of the antenna above ground level in meters. This is usually the height up a tower or a building.")}}
@@ -459,7 +459,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Antenna elevation in degrees</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_elevation" type="text" size="10" pattern="(-[1-9]|-?[1-8]\d|-?90|\d)" value="{{uciMesh.get("aredn", "@location[0]", "elevation")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_elevation" type="text" size="10" pattern="(-[1-9]|-?[1-8]\d|-?90|\d)" hx-validate="true" value="{{uciMesh.get("aredn", "@location[0]", "elevation")}}">
                     </div>
                 </div>
                 {{_H("Elevation of the antenna, measured in degrees (-90 to 90), below (less than zero) or above the horizontal. Some antennas include electronic
@@ -480,7 +480,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Minimum connection quaility percentage</div>
                     </div>
                     <div style="flex:0;white-space:nowrap">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minquality" type="text" size="3" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_quality")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_minquality" type="text" size="3" pattern="\d\d?" hx-validate="true" value="{{uciMesh.get("aredn", "@lqm[0]", "min_quality")}}">
                     </div>
                 </div>
             </div>
@@ -508,7 +508,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Minimum distance to other nodes in {{units.distanceUnit()}}</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mindistance" type="text" size="3" pattern="\d+" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "min_distance")))}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mindistance" type="text" size="3" pattern="\d+" hx-validate="true" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "min_distance")))}}">
                     </div>
                 </div>
                 {{_H("Exclude nodes which are too close to this node.")}}
@@ -518,7 +518,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">RTS Threshold in bytes before using RTS/CTS when hidden nodes are detected</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_rts_threshold" type="text" size="4" pattern="([1-9]|[1-9]\d{1,2}|1\d{3}|2[0-2]\d{2}|23[0-3]\d|234[0-7])" value="{{uciMesh.get("aredn", "@lqm[0]", "rts_threshold")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_rts_threshold" type="text" size="4" pattern="([1-9]|[1-9]\d{1,2}|1\d{3}|2[0-2]\d{2}|23[0-3]\d|234[0-7])" hx-validate="true" value="{{uciMesh.get("aredn", "@lqm[0]", "rts_threshold")}}">
                     </div>
                 </div>
                 {{_H("When hidden nodes are detected, the RTS/CTS protocol is automatically enabled to improve performance. By default this is used for all packets
@@ -530,7 +530,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Maximum packet size in bytes sent over WiFi</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mtu" type="text" size="4" pattern="(25[6-9]|2[6-9]\d|[3-9]\d{2}|1[0-4]\d{2}|1500)" placeholder="1500" value="{{uciMesh.get("aredn", "@lqm[0]", "mtu")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mtu" type="text" size="4" pattern="(25[6-9]|2[6-9]\d|[3-9]\d{2}|1[0-4]\d{2}|1500)" hx-validate="true" placeholder="1500" value="{{uciMesh.get("aredn", "@lqm[0]", "mtu")}}">
                     </div>
                 </div>
                 {{_H("By default, WiFi uses the same packet size (1500 bytes) as Ethernet. However, in some noisy environment performance can be
@@ -541,7 +541,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">SNR Margin in dB above Min SNR a signal must reach to be re-activated</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_margin_snr" type="text" size="1" pattern="\d" value="{{uciMesh.get("aredn", "@lqm[0]", "margin_snr")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_margin_snr" type="text" size="1" pattern="\d" hx-validate="true" value="{{uciMesh.get("aredn", "@lqm[0]", "margin_snr")}}">
                     </div>
                 </div>
                 {{_H("The SNR margin avoids a link switching quickly between blocked and unblocked when the SNR is the same as the minimum SNR. Once
@@ -553,7 +553,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Quality Margin percentage increase before neighbor can be re-activated</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_margin_quality" type="text" size="2" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "margin_quality")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_margin_quality" type="text" size="2" pattern="\d\d?" hx-validate="true" value="{{uciMesh.get("aredn", "@lqm[0]", "margin_quality")}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -562,7 +562,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Ping Penalty quality percentage to add when neighbor cannot be pinged</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_ping_penalty" type="text" size="2" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "ping_penalty")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_ping_penalty" type="text" size="2" pattern="\d\d?" hx-validate="true" value="{{uciMesh.get("aredn", "@lqm[0]", "ping_penalty")}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -571,7 +571,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Minimum number of routes on a link required to disable blocking</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_min_routes" type="text" size="2" pattern="\d\d?" value="{{uciMesh.get("aredn", "@lqm[0]", "min_routes")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_min_routes" type="text" size="2" pattern="\d\d?" hx-validate="true" value="{{uciMesh.get("aredn", "@lqm[0]", "min_routes")}}">
                     </div>
                 </div>
             </div>
