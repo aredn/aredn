@@ -63,13 +63,7 @@
             loginDialog.close();
         }
         else {
-            fetch(`${location.origin}/a/authenticate`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ version: 1, password: document.querySelector("#login input").value })
-            }).then(function(response) {
+            fetch(`${location.origin}/a/authenticate?version=1&password=${encodeURIComponent(document.querySelector("#login input").value)}`).then(function(response) {
                 if (response.status === 200) {
                     response.json().then(function(json) {
                         loginInput.value = "";
@@ -115,13 +109,7 @@
 <script>
     document.querySelector("#logout-icon .menu > div:first-child").addEventListener("click", function()
     {
-        fetch(`${location.origin}/a/authenticate`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ version: 1, logout: true })
-        }).then(function(response) {
+        fetch(`${location.origin}/a/authenticate?version=1&logout=1`).then(function(response) {
             location.reload();
         });
     });
