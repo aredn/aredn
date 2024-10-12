@@ -53,7 +53,6 @@ local speed_time = 10 --
 local speed_limit = 1000 -- close connection if it's too slow (< 1kB/s for 10 seconds)
 local default_short_retries = 20 -- More link-level retries helps overall tcp performance (factory default is 7)
 local default_long_retries = 20 -- (factory default is 4)
-local default_min_routes = 8 -- Minimum number of routes (nodes x2 usually) on a link which *must* be left active. Avoids cutting off poorly behaving leaf nodes.
 local wireguard_alive_time = 300 -- 5 minutes
 
 local NFT = "/usr/sbin/nft"
@@ -80,7 +79,6 @@ function update_config()
         min_quality = tonumber(c:get("aredn", "@lqm[0]", "min_quality")),
         margin_quality = tonumber(c:get("aredn", "@lqm[0]", "margin_quality")),
         ping_penalty = tonumber(c:get("aredn", "@lqm[0]", "ping_penalty")),
-        min_routes = tonumber(c:get("aredn", "@lqm[0]", "min_routes") or default_min_routes),
         user_blocks = c:get("aredn", "@lqm[0]", "user_blocks") or "",
         user_allows = c:get("aredn", "@lqm[0]", "user_allows") or ""
     }
@@ -111,10 +109,6 @@ function is_user_blocked(track)
     return false
 end
 
-function is_leaf(track)
-    return (track.leaf == "minor" and track.rev_leaf == "major") or (track.leaf == "major" and track.rev_leaf == "minor")
-end
-
 function should_block(track)
     if track.user_allow then
         return false
@@ -122,8 +116,6 @@ function should_block(track)
         return track.blocks.user
     elseif is_pending(track) then
         return track.blocks.dtd or track.blocks.user
-    elseif is_leaf(track) then
-        return false
     else
         return track.blocks.dtd or track.blocks.signal or track.blocks.distance or track.blocks.user or track.blocks.dup or track.blocks.quality
     end
@@ -533,6 +525,7 @@ function lqm()
                     device = station.device,
                     firstseen = now,
                     lastseen = now,
+                    rev_lastseen = now,
                     pending = now + pending_timeout,
                     refresh = 0,
                     mac = station.mac,
@@ -568,8 +561,6 @@ function lqm()
                     avg_tx_retries = nil,
                     avg_tx_fail = nil,
                     node_route_count = 0,
-                    leaf = nil,
-                    rev_leaf = nil,
                     rev_ping_quality = nil,
                     rev_ping_success_time = nil,
                     rev_quality = nil
@@ -644,7 +635,6 @@ function lqm()
                         -- We cannot update so invalidate any information considered stale and set time to attempt refresh
                         track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
                         track.rev_snr = nil
-                        track.rev_leaf = nil
                         track.rev_ping_success_time = nil
                         track.rev_ping_quality = nil
                         track.rev_quality = nil
@@ -660,12 +650,12 @@ function lqm()
                             -- considered stale
                             track.refresh = is_pending(track) and 0 or now + refresh_retry_timeout
                             track.rev_snr = nil
-                            track.rev_leaf = nil
                             track.rev_ping_success_time = nil
                             track.rev_ping_quality = nil
                             track.rev_quality = nil
                         else
                             track.refresh = is_pending(track) and 0 or now + refresh_timeout()
+                            track.rev_lastseen = now
 
                             dtdlinks[track.mac] = {}
 
@@ -720,7 +710,6 @@ function lqm()
                                             end
                                             if myhostname == rhostname then
                                                 track.rev_snr = (track.rev_snr and rtrack.snr) and round(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * rtrack.snr) or rtrack.snr
-                                                track.rev_leaf = rtrack.leaf
                                             end
                                         end
                                     end
@@ -877,7 +866,6 @@ function lqm()
         -- At this point we have gather all the data we need to determine which links are best to use and
         -- which links should be blocked.
         --
-        local leafs = 0
         for _, track in pairs(tracker)
         do
             for _ = 1,1
@@ -891,17 +879,6 @@ function lqm()
                     pair = false,
                     quality = false
                 }
-
-                -- A leaf link is one where most (but not 0) of the nodes are on one end or the other
-                -- We try to keep leaf links active even if they wouldn't otherwise be, so they dont get cut off.
-                track.leaf = nil
-                if track.node_route_count > 0 then
-                    if total_node_route_count - track.node_route_count <= config.min_routes then
-                        track.leaf = "minor"
-                    elseif track.node_route_count <= config.min_routes then
-                        track.leaf = "major"
-                    end
-                end
     
                 -- Always allow if user requested it
                 for val in string.gmatch(config.user_allows, "([^,]+)")
@@ -991,11 +968,6 @@ function lqm()
                     end
                 end
             end
-
-            -- Count block leafs
-            if is_leaf(track) and (track.blocks.distance or track.blocks.signal or track.blocks.quality) then
-                leafs = leafs + 1
-            end
         end
 
         -- Eliminate link pairs, where we might have links to multiple radios at the same site
@@ -1075,6 +1047,7 @@ function lqm()
 
             -- Remove any trackers which are too old or if they disconnect when first seen
             if ((now > track.lastseen + lastseen_timeout) or
+                (now > track.rev_lastseen + lastseen_timeout) or
                 (not is_connected(track) and track.firstseen + pending_timeout > now) or
                 (track.quality0_seen and now > track.quality0_seen + lastseen_timeout)
             ) then
@@ -1152,7 +1125,7 @@ function lqm()
 
         -- Save valid (unblocked) rf mac list for use by OLSR
         if config.enable and phy ~= "none" then
-            if pending_count > 0 or leafs > 0 then
+            if pending_count > 0 then
                 os.remove( "/tmp/lqm." .. phy .. ".macs")
             else
                 local tmpfile = "/tmp/lqm." .. phy .. ".macs.tmp"
