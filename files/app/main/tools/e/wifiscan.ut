@@ -89,7 +89,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const re = regexp(`^Station ([0-9a-fA-F:]+) \\(on ${wifiiface}\\)`);
         const reSi = /signal:[ \t]+(-[0-9]+)/;
         let station;
-        const dmode = radiomode.mode === radios.RADIO_MESH ? "Connected Ad-Hoc Station" : "AP";
+        const dmode = radio.mode === radios.RADIO_MESH ? "Connected Ad-Hoc Station" : "AP";
         for (let l = f.read("line"); length(l); l = f.read("line")) {
             let m = match(l, re);
             if (m) {

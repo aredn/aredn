@@ -930,6 +930,19 @@ do
     end
     local is_mesh_rf = false
     local htmode = "HT20"
+    if nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. devname .. "/ath10k") then
+        htmode = "VHT20"
+        if wlan == cfg.wifi_intf then
+            local bw = tonumber(cfg.wifi_chanbw)
+            if bw == 40 then
+                htmode = "VHT40"
+            elseif bw == 80 then
+                htmode = "VHT80"
+            elseif bw == 160 then
+                htmode = "VHT160"
+            end
+        end
+    end
     local disabled = "0"
     local chanbw = nil
     local country = nil
@@ -994,7 +1007,11 @@ do
     if distance then
         config = config .. "	option distance '" .. distance .. "'\n"
     end
-    config = config .. "	option hwmode '" .. hwmode .. "'\n"
+    if hwmode == "11g" then
+        config = config .. "	option band '2g'\n"
+    else
+        config = config .. "	option band '5g'\n"
+    end
     if htmode then
         config = config .. "	option htmode '" .. htmode .. "'\n"
     end
