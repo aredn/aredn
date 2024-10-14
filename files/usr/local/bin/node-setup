@@ -930,6 +930,9 @@ do
     end
     local is_mesh_rf = false
     local htmode = "HT20"
+    if aredn.hardware.get_board_type():match("ac") then
+        htmode = "VHT20"
+    end
     local disabled = "0"
     local chanbw = nil
     local country = nil
@@ -994,7 +997,11 @@ do
     if distance then
         config = config .. "	option distance '" .. distance .. "'\n"
     end
-    config = config .. "	option hwmode '" .. hwmode .. "'\n"
+    if hwmode == "11g" then
+        config = config .. "	option band '2g'\n"
+    else
+        config = config .. "	option band '5g'\n"
+    end
     if htmode then
         config = config .. "	option htmode '" .. htmode .. "'\n"
     end
