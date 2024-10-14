@@ -650,7 +650,7 @@
                 const source = new EventSource(`{{request.env.REQUEST_URI}}?v=${download}`);
                 source.addEventListener("close", e => {
                     source.close();
-                    const all = htmx.find("#all");
+                    const all = htmx.find("#all") || htmx.find("#m-all");
                     all.outerHTML = JSON.parse(e.data).v;
                     const scripts = document.querySelectorAll("#all script");
                     for (let i = 0; i < scripts.length; i++) {
