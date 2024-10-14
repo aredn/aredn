@@ -39,6 +39,7 @@ import * as math from "math";
 import * as uci from "uci";
 import * as ubus from "ubus";
 import * as log from "log";
+import * as zlib from "zlib";
 import * as lucihttp from "lucihttp";
 import * as configuration from "aredn.configuration";
 import * as hardware from "aredn.hardware";
@@ -575,31 +576,15 @@ global.handle_request = function(env)
                 res = `<div><b>ERROR: ${e.message}</b><div><pre>${e.stacktrace[0].context}</pre></div>`;
             }
             if (!response.override) {
-                let datafile = null;
+                let gzip = false;
                 if (env.HTTP_ACCEPT_ENCODING && index(env.HTTP_ACCEPT_ENCODING, "gzip") !== -1 && config.compress) {
-                    const r = fs.open("/dev/urandom");
-                    if (r) {
-                        const rid = r.read(8);
-                        r.close();
-                        datafile = `/tmp/uhttpd.${hexenc(rid)}`;
-                        const x = fs.open(datafile, "wx");
-                        if (x) {
-                            x.write(res);
-                            x.close();
-                            const z = fs.popen("exec /bin/gzip -c " + datafile);
-                            res = z.read("all");
-                            z.close();
-                            fs.unlink(datafile);
-                        }
-                        else {
-                            datafile = null;
-                        }
-                    }
+                    gzip = true;
+                    res = zlib.deflate(res, true);
                 }
                 response.headers["Content-Length"] = `${length(res)}`;
                 uhttpd.send(
                     `Status: ${response.statusCode} OK\r\n`,
-                    (datafile ? `Content-Encoding: gzip\r\n` : ``),
+                    (gzip ? `Content-Encoding: gzip\r\n` : ``),
                     join("", map(keys(response.headers), k => k + ": " + response.headers[k] + "\r\n")),
                     "\r\n",
                     res
