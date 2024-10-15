@@ -62,7 +62,10 @@
             return "idle";
         }
         const quality = tracker.quality;
-        if (quality < 40) {
+        if (!type(quality)) {
+            return "unknown";
+        }
+        else if (quality < 40) {
             return "bad";
         }
         else if (quality < 50) {
@@ -137,10 +140,10 @@
                     }
                     print("<div class='ts cols stats'>");
                     if (!request.mobile) {
-                        print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${100 - tracker.quality}%</div><div></div><div></div>`);
+                        print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div></div><div></div>`);
                     }
                     else {
-                        print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${100 - tracker.quality}%</div>`);
+                        print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div>`);
                     }
                     print("</div></div>");
                 }
