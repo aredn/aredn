@@ -195,7 +195,7 @@ export function getRfChannels(wifiIface)
 export function getRfBandwidths(wifiIface)
 {
     const radio = getRadioIntf(wifiIface);
-    const invaid = {};
+    const invalid = {};
     map(radio.exclude_bandwidths || [], v => invalid[v] = true);
     const bw = [];
     if (!invalid["5"]) {
