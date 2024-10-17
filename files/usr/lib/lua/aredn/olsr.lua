@@ -73,6 +73,11 @@ function model.getOLSRMid()
   return mid and mid['mid'] or {}
 end
 
+function model.getOLSRTopology()
+  local topology=fetch_json("http://127.0.0.1:9090/topology")
+  return topology and topology['topology'] or {}
+end
+
 function model.getOLSRInterfaceType(iface)
   local it=""
   if string.match(iface,"wlan") then

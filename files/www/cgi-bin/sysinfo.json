@@ -207,6 +207,11 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"nodes=1") then
 	info['nodes']=aredn.info.getOLSRInfo()
 end
 
+-- TOPOLOGY
+if string.find(nixio.getenv("QUERY_STRING"):lower(),"topology=1") then
+	info['topology']=aredn.olsr.getOLSRTopology()
+end
+
 -- Output the HTTP header for JSON
 print("Content-type: application/json\r")
 print("Cache-Control: no-store\r")
