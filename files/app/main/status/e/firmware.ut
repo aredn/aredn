@@ -35,8 +35,9 @@
 {%
     function curl(url, filename, start, len)
     {
+        const agent = `Node: ${configuration.getName()} Version: ${configuration.getFirmwareVersion()}`;
         const name = filename ? filename : `/tmp/download.${time()}`;
-        const f = fs.popen(`/usr/bin/curl --progress-bar --remove-on-error -o ${name} ${url} 2>&1`);
+        const f = fs.popen(`/usr/bin/curl --progress-bar --remove-on-error --user-agent '${agent}' -o ${name} ${url} 2>&1`);
         if (!f) {
             return null;
         }
@@ -103,11 +104,9 @@
                             }
                         }
                         fo.close();
-                        configuration.setUpgrade("1");
-                        if (system("tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist > /dev/null 2>&1") < 0) {
+                        if (system("/bin/tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist > /dev/null 2>&1") < 0) {
                             fs.unlink("/tmp/arednsysupgradebackup.tgz");
                         }
-                        configuration.setUpgrade("0");
                         fs.unlink("/tmp/sysupgradefilelist");
                     }
                     fi.close();
@@ -174,7 +173,7 @@
                 print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${upgrade.error}</div>`);
             }
             else {
-                response.upgrade = upgrade.upgrade;
+                response.reboot = upgrade.upgrade;
                 print(_R("reboot-firmware"));
             }
         }
@@ -190,8 +189,19 @@
                 restoreServices();
             }
             else {
-                response.upgrade = upgrade.upgrade;
+                response.reboot = upgrade.upgrade;
                 print(_R("reboot-firmware"));
+            }
+        }
+        else if (request.args.restorefile) {
+            const restore = configuration.restore(request.args.restorefile);
+            if (restore.error) {
+                print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${restore.error}</div>`);
+                print(`<div id="firmware-upload" hx-swap-oob="true><progress value="0" max="100"></div>`);
+            }
+            else {
+                response.upgrade = "/bin/reboot";
+                print(_R("reboot-restore"));
             }
         }
         return;
@@ -376,7 +386,7 @@
             restoreServices();
         }
         else {
-            response.upgrade = upgrade.upgrade;
+            response.reboot = upgrade.upgrade;
             uhttpd.send(`event: close\r\ndata: ${sprintf("%J", { v:_R("reboot-firmware")})}\r\n\r\n`);
         }
         return;
@@ -385,6 +395,8 @@
     fs.unlink("/tmp/do-not-keep-configuration");
 
     const sideload = fs.access("/tmp/local_firmware");
+
+    const needreboot = (uci.get("aredn", "@watchdog[0]", "enable") === "1") || (fs.access("/tmp/reboot-required") ? true : false);
 %}
 <div class="dialog">
     {{_R("dialog-header", "Firmware")}}
@@ -411,7 +423,7 @@
                         <div class="m">Download firmware from an AREDN server.</div>
                     </div>
                     <div style="flex:0">
-                        <select id="download-firmware" {{sideload ? 'disabled' : ''}}>
+                        <select id="download-firmware" {{sideload || needreboot ? 'disabled' : ''}}>
                             <option value="-">-</option>
                             {%
                                 const f = fs.open("/tmp/firmware.list");
@@ -431,7 +443,7 @@
                         </select>
                     </div>
                     <div style="flex:0">
-                        <div id="firmware-refresh"><button class="icon refresh"></button></div>
+                        <div id="firmware-refresh"><button class="icon refresh" {{needreboot ? "disabled" : ""}}></button></div>
                     </div>
                 </div>
                 {{_H("Download firmware directly from a central server, either on the Internet or a locally configured mesh server.
@@ -444,7 +456,7 @@
                         <div class="m">Upload a firmware file from your computer.</div>
                     </div>
                     <div style="flex:0">
-                        <input type="file" accept=".bin,.gz" {{sideload ? 'disabled' : ''}}>
+                        <input id="upload-firmware" type="file" accept=".bin,.gz" {{sideload || needreboot ? 'disabled' : ''}}>
                     </div>
                 </div>
                 {{_H("Upload a firmware file from your computer. Once the firmware has been selected it can be uploaded and installed
@@ -461,6 +473,31 @@
                 </div>
                 {{_H("Sideload a firmware file by transferring it onto the node by some other means (e.g. scp) and putting it in the /tmp directory
                 with the name local_firmware. It can then be installed using the button at the base of the dialog.")}}
+                <hr>
+                <div></div>
+                <div class="cols compact">
+                    <div>
+                        <div class="o">Backup Configuration</div>
+                        <div class="m">Backup this node's configuration.</div>
+                    </div>
+                    <div style="flex:0">
+                        <button hx-put="/a/status/e/backup-config" hx-indicator="head">Backup</button>
+                    </div>
+                </div>
+                {{_H("Backup the current configuration. This can be used to transfer a configuration to new hardware or as a safety precaution in case
+                of hardware failure.")}}
+                <br>
+                <div class="cols compact">
+                    <div>
+                        <div class="o">Restore Configuration</div>
+                        <div class="m">Upload a previous configuration.</div>
+                    </div>
+                    <div style="flex:0">
+                        <input id="restore-config" type="file" accept=".backup">
+                    </div>
+                </div>
+                {{_H("Restore a previous backup to this node. This will replace whatever the current node's configuration is. Be aware that
+                no attempt is made to valiate the backup's integrity. Restoring to different hardware could result in unexpected behaviour.")}}
                 {{_R("dialog-advanced")}}
                 <div>
                 {% if (includeAdvanced) { %}
@@ -494,7 +531,7 @@
                             <div class="m">URL for downloading firmware</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="firmwareurl" type="text" style="width:280px" pattern="{{constants.patUrl}}" value="{{uciMesh.get("aredn", "@downloads[0]", "firmware_aredn")}}">
+                            <input id="firmware-url" hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="firmwareurl" type="text" pattern="{{constants.patUrl}}" hx-validate="true" value="{{uciMesh.get("aredn", "@downloads[0]", "firmware_aredn")}}">
                         </div>
                     </div>
                     {{_H("The base URL used to download firmware. By default this points to the main AREDN repository, but you can change this
@@ -507,7 +544,7 @@
         <div class="cols" style="padding-top:16px">
             <div id="firmware-upload"><progress value="0" max="100"></div>
             <div style="flex:0">
-                <button id="fetch-and-update" {{sideload ? '' : 'disabled'}} hx-trigger="none" hx-encoding="multipart/form-data">{{sideload ? 'Update' : 'Fetch and Update'}}</button>
+                <button id="fetch-and-update" {{sideload && !needreboot ? '' : 'disabled'}} hx-trigger="none" hx-encoding="multipart/form-data">{{sideload ? 'Update' : 'Fetch and Update'}}</button>
             </div>
         </div>
         {{_H("<br>Depending on how the firmware it to be installed using the options above, this button will initiate the process.")}}
@@ -516,30 +553,58 @@
     <script>
     (function(){
         {{_R("open")}}
-        htmx.on("#firmware-update input[type='file']", "change", e => {
-            if (e.target.files[0]) {
-                htmx.find("#fetch-and-update").disabled = false;
+        const needreboot = {{needreboot}};
+        {% if (uci.get("aredn", "@watchdog[0]", "enable") === "1") { %}
+        htmx.find("#dialog-messages-error").innerHTML = "<center>Please disable the watchdog and reboot before upgrading.</center>"
+        {% } else if (needreboot) { %}
+        htmx.find("#dialog-messages-error").innerHTML = "<center>Please reboot before upgrading.</center>"
+        {% } %}
+        htmx.on("#upload-firmware", "change", e => {
+            const f = htmx.find("#fetch-and-update")
+            if (e.target.files[0] && !needreboot) {
+                f.innerHTML = "Fetch and Update";
+                f.disabled = false;
             }
             else {
-                htmx.find("#fetch-and-update").disabled = true;
+                f.disabled = true;
             }
+            htmx.find("#restore-config").value = null;
             htmx.find("#download-firmware").value = "-";
+            htmx.find("#dialog-messages-error").innerHTML = "";
         });
         htmx.on("#download-firmware", "change", e => {
-            if (e.target.value === "-") {
-                htmx.find("#fetch-and-update").disabled = true;
+            const f = htmx.find("#fetch-and-update")
+            if (e.target.value === "-" || needreboot) {
+                f.disabled = true;
             }
             else {
-                htmx.find("#fetch-and-update").disabled = false;
+                f.innerHTML = "Fetch and Update";
+                f.disabled = false;
             }
-            htmx.find("#firmware-update input[type=file]").value = null;
+            htmx.find("#restore-config").value = null;
+            htmx.find("#upload-firmware").value = null;
+            htmx.find("#dialog-messages-error").innerHTML = "";
+        });
+        htmx.on("#restore-config", "change", e => {
+            const f = htmx.find("#fetch-and-update")
+            if (e.target.files[0] && !needreboot) {
+                f.innerHTML = "Restore";
+                f.disabled = false;
+            }
+            else {
+                f.disabled = true;
+            }
+            htmx.find("#upload-firmware").value = null;
+            htmx.find("#download-firmware").value = "-";
+            htmx.find("#dialog-messages-error").innerHTML = "AREDN&reg; makes no attempt to validate the integrity of the restore file or its compatibility with this hardware.";
         });
         htmx.on("#fetch-and-update", "click", e => {
             htmx.find("#dialog-messages-error").innerHTML = "";
             htmx.find("#dialog-done").disabled = true;
             htmx.find("#fetch-and-update").disabled = true;
-            const upload = htmx.find("#firmware-update input[type=file]").files[0];
+            const upload = htmx.find("#upload-firmware").files[0];
             const download = htmx.find("#download-firmware").value;
+            const restore = htmx.find("#restore-config").files[0];
             if ({{sideload || false}}) {
                 htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
                     values: {
@@ -558,8 +623,9 @@
                     swap: "none"
                 }).then(_ => {
                 {% } %}
+                    const p = htmx.find("#firmware-upload progress");
+                    p.removeAttribute("value");
                     htmx.on(currentTarget, "htmx:xhr:progress", e => {
-                        const p = htmx.find("#firmware-upload progress");
                         const v = e.detail.loaded / e.detail.total * 100;
                         if (v > 99) {
                             p.removeAttribute("value");
@@ -584,7 +650,7 @@
                 const source = new EventSource(`{{request.env.REQUEST_URI}}?v=${download}`);
                 source.addEventListener("close", e => {
                     source.close();
-                    const all = htmx.find("#all");
+                    const all = htmx.find("#all") || htmx.find("#m-all");
                     all.outerHTML = JSON.parse(e.data).v;
                     const scripts = document.querySelectorAll("#all script");
                     for (let i = 0; i < scripts.length; i++) {
@@ -607,8 +673,32 @@
                     }
                 });
             }
+            else if (restore) {
+                const p = htmx.find("#firmware-upload progress");
+                p.removeAttribute("value");
+                htmx.on(e.currentTarget, "htmx:xhr:progress", e => {
+                    const v = e.detail.loaded / e.detail.total * 100;
+                    if (v > 99) {
+                        p.removeAttribute("value");
+                    }
+                    else {
+                        p.setAttribute("value", v);
+                    }
+                });
+                htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
+                    source: e.currentTarget,
+                    values: {
+                        restorefile: restore
+                    },
+                    target: "#dialog-done",
+                    swap: "none"
+                }).then( _ => htmx.find("#dialog-done").disabled = false);
+            }
         });
         htmx.on("#firmware-refresh", "click", e => {
+            if (htmx.find("#firmware-refresh button").disabled) {
+                return;
+            }
             htmx.find("#firmware-refresh button").classList.add("rotate");
             htmx.find("#dialog-messages-error").innerHTML = "";
             const source = new EventSource("{{request.env.REQUEST_URI}}?v=update");
@@ -618,7 +708,7 @@
                 const selector = htmx.find("#download-firmware");
                 selector.innerHTML = e.data;
                 selector.value = "-";
-                htmx.find("#firmware-update input[type=file]").value = null;
+                htmx.find("#upload-firmware").value = null;
                 htmx.find("#fetch-and-update").disabled = true;
                 htmx.find("#firmware-upload progress").setAttribute("value", "0");
             });

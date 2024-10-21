@@ -1,9 +1,5 @@
 #!/bin/sh
 
-configmode=$(uci -q -c /etc/local/uci/ get hsmmmesh.settings.config)
-
-if [ "$configmode" != "mesh" ] ; then exit 0; fi
-
 xlink=$(uci -q -c /etc/config.mesh/ show xlink | grep "ifname='${DEVICE}'")
 
 # This section will generate rtnetlink errors when the rule doesn't exist.

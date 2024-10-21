@@ -40,6 +40,9 @@
     {% if (!config.resourcehash) { %}
     <link href="/a/css/theme.css" rel="stylesheet">
     <link href="/a/css/user.css" rel="stylesheet">
+    {% if (request.mobile) { %}
+    <link href="/a/css/mobile.css" rel="stylesheet">
+    {% } %}
     {% if (auth.isAdmin) { %}
     <link href="/a/css/admin.css" rel="stylesheet">
     <script src="/a/js/htmx.min.js"></script>
@@ -49,6 +52,9 @@
     %}
     <link href="http://localnode.local.mesh/a/css/theme.{{versions.themecss}}.css" rel="stylesheet" onerror="s=document.createElement('link');s.rel='stylesheet';s.href='/a/css/theme.{{versions.themecss}}.css';document.head.appendChild(s)">
     <link href="http://localnode.local.mesh/a/css/user.{{versions.usercss}}.css" rel="stylesheet" onerror="s=document.createElement('link');s.rel='stylesheet';s.href='/a/css/user.{{versions.usercss}}.css';document.head.appendChild(s)">
+    {% if (request.mobile) { %}
+    <link href="http://localnode.local.mesh/a/css/mobile.{{versions.mobilecss}}.css" rel="stylesheet" onerror="s=document.createElement('link');s.rel='stylesheet';s.href='/a/css/mobile.{{versions.mobilecss}}.css';document.head.appendChild(s)">
+    {% } %}
     {% if (auth.isAdmin) { %}
     <link href="http://localnode.local.mesh/a/css/admin.{{versions.admincss}}.css" rel="stylesheet" onerror="s=document.createElement('link');s.rel='stylesheet';s.href='/a/css/admin.{{versions.admincss}}.css';document.head.appendChild(s)">
     <script src="http://localnode.local.mesh/a/js/htmx.min.{{versions.htmx}}.js" onerror="s=document.createElement('script');s.type='text/javascript';s.onload=()=>htmx.process(document.body);s.src='/a/js/htmx.min.{{versions.htmx}}.js';document.head.appendChild(s)"></script>
@@ -56,10 +62,12 @@
     {% } %}
     <link rel="icon" type="image/svg+xml" href="http://localnode.local.mesh/a/img/favicon.svg">
     <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>{{configuration.getName()}} {{auth.isAdmin && request.page === "status" ? "admin" : request.page}}</title>
 </head>
-<body class="{{auth.isAdmin ? "authenticated" : ""}}" hx-indicator="body">
+<body class="{{auth.isAdmin ? "authenticated" : ""}} {{request.mobile ? "mobile" : ""}}" hx-indicator="body">
     <dialog id="ctrl-modal" onclose="event.target.innerHTML = ''"></dialog>
+    {% if (!request.mobile) { %}
     <div id="all">
         <div id="nav">
             {{_R("nav")}}
@@ -92,7 +100,66 @@
                     e.stopPropagation();
                 }
             }, true);
+            function dialogDone()
+            {
+                const d = htmx.find("#dialog-done");
+                if (d) {
+                    setTimeout(function() {
+                        let invalid = false;
+                        const f = htmx.findAll(m, "form");
+                        for (let i = 0; i < f.length; i++) {
+                            if (!f[i].checkValidity()) {
+                                invalid = true;
+                                break;
+                            }
+                        }
+                        d.disabled = invalid;
+                    }, 10);
+                }
+            }
+            m.addEventListener("input", dialogDone);
+            m.addEventListener("click", dialogDone);
         })();
+    </script>
+    {% } %}
+    {% } else { %}
+    <div id="m-all">
+        <div id="m-title">
+            <a href="http://localnode.local.mesh"><div id="icon-logo"></div></a><div></div>
+            {{_R("changes")}}
+            <div class="nav-node-name">{{configuration.getName()}}</div>
+        </div>
+        <div id="m-main">
+            <div id="main-container">
+                {{_R(request.page)}}
+            </div>
+        </div>
+        <div id="m-nav">
+            <div>
+                <a href="status">
+                    <div class="icon status {{request.page === "status"}}"></div>
+                </a>
+            </div>
+            <div>
+                <a href="mesh">
+                    <div class="icon mesh {{request.page === "mesh"}}"></div>
+                </a>
+            </div>
+            <div>
+                {%if (auth.isAdmin) { %}
+                <a href="tools">
+                    <div class="icon tools"></div>
+                </a>
+                {% } %}
+            </div>
+            <div>
+            {{_R("login")}}
+            </div>
+        </div>
+    </div>
+    <script>
+        document.querySelector("#m-all").addEventListener("click", _ => body.focus());
+        document.querySelector("#ctrl-modal").addEventListener("click", _ => body.focus());
     </script>
     {% } %}
 </body>

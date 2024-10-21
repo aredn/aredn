@@ -190,7 +190,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                 <div class="m">The primary address of this node</div>
             </div>
             <div style="flex:0">
-                <input hx-put="{{request.env.REQUEST_URI}}" name="mesh_ip" type="text" size="14" placeholder="10.X.X.X" pattern="10\.((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){3}" value="{{configuration.getSettingAsString("wifi_ip")}}">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="mesh_ip" type="text" size="14" placeholder="10.X.X.X" pattern="10\.((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){3}" hx-validate="true" value="{{configuration.getSettingAsString("wifi_ip")}}">
             </div>
         </div>
         {{_H("The primary address of this AREDN node. This will always be of the form 10.X.X.X. The address is generated automatically based on hardware information so it will
@@ -224,7 +224,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Gateway IP a&zwnj;ddress for this LAN network</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_ip" type="text" size="15" required pattern="{{constants.patIP}}" value="{{gateway_nat}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_ip" type="text" size="15" required pattern="{{constants.patIP}}" hx-validate="true" value="{{gateway_nat}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -233,7 +233,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Netmask for this LAN network</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_netmask" type="text" size="15" required pattern="{{constants.patNetmask}}" value="{{dhcp.mask}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_netmask" type="text" size="15" required pattern="{{constants.patNetmask}}" hx-validate="true" value="{{dhcp.mask}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -242,7 +242,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Start of the DHCP range for addresses allocate</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_start" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" value="{{split(dhcp.start, ".")[3]}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_start" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" hx-validate="true" value="{{split(dhcp.start, ".")[3]}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -251,7 +251,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Last address of the DHCP range for addresses allocated</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_end" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" value="{{split(dhcp.end, ".")[3]}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_end" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" hx-validate="true" value="{{split(dhcp.end, ".")[3]}}">
                     </div>
                 </div>
             </div>
@@ -271,7 +271,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Netmask for 44Net LAN network</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_netmask" type="text" size="15" required pattern="{{constants.patNetmask}}" value="{{dhcp.mask}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_netmask" type="text" size="15" required pattern="{{constants.patNetmask}}" hx-validate="true" value="{{dhcp.mask}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -280,7 +280,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Start of the DHCP range for addresses allocate</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_start" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" value="{{split(dhcp.start, ".")[3]}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_start" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" hx-validate="true" value="{{split(dhcp.start, ".")[3]}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -289,7 +289,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Last address of the DHCP range for addresses allocated</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_end" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" value="{{split(dhcp.end, ".")[3]}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_end" type="text" size="4" required pattern="([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])" hx-validate="true" value="{{split(dhcp.end, ".")[3]}}">
                     </div>
                 </div>
             </div>
@@ -317,7 +317,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">WAN IP a&zwnj;ddress</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="wan_ip" type="text" size="15" pattern="{{constants.patIP}}" required value="{{configuration.getSettingAsString("wan_ip")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="wan_ip" type="text" size="15" pattern="{{constants.patIP}}" hx-validate="true" required value="{{configuration.getSettingAsString("wan_ip")}}">
                     </div>
                 </div>
                 {{_H("A fixed IP address to assign to the WAN interace on this node.")}}
@@ -327,7 +327,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">WAN netmask</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="wan_mask" type="text" size="15" pattern="(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))" required value="{{configuration.getSettingAsString("wan_mask")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="wan_mask" type="text" size="15" pattern="(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))" hx-validate="true" required value="{{configuration.getSettingAsString("wan_mask")}}">
                     </div>
                 </div>
                 {{_H("The netmask (e.g. 255.255.255.0) for this interface.")}}
@@ -337,7 +337,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Default gateway</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="wan_gw" type="text" size="15" pattern="{{constants.patIP}}" required value="{{configuration.getSettingAsString("wan_gw")}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="wan_gw" type="text" size="15" pattern="{{constants.patIP}}" hx-validate="true" required value="{{configuration.getSettingAsString("wan_gw")}}">
                     </div>
                 </div>
                 {{_H("The default gateway his node should use to access the Internet.")}}
@@ -350,8 +350,8 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                 <div class="m">Internet DNS servers</div>
             </div>
             <div style="flex:0;white-space:nowrap">
-                <input hx-put="{{request.env.REQUEST_URI}}" name="wan_dns1" type="text" size="15" pattern="{{constants.patIP}}" value="{{configuration.getSettingAsString("wan_dns1")}}">
-                <input hx-put="{{request.env.REQUEST_URI}}" name="wan_dns2" type="text" size="15" pattern="{{constants.patIP}}" value="{{configuration.getSettingAsString("wan_dns2")}}">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="wan_dns1" type="text" size="15" pattern="{{constants.patIP}}" hx-validate="true" value="{{configuration.getSettingAsString("wan_dns1")}}">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="wan_dns2" type="text" size="15" pattern="{{constants.patIP}}" hx-validate="true" value="{{configuration.getSettingAsString("wan_dns2")}}">
             </div>
         </div>
         {{_H("For hosts not on the Mesh, use these DNS servers to resolve names to IP addresses.")}}
@@ -365,7 +365,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     <div class="m">Vlan used for Internet access</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="wan_vlan" type="text" size="8" placeholder="Untagged" pattern="\d+" value="{{wan_vlan}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="wan_vlan" type="text" size="8" placeholder="Untagged" pattern="\d+" hx-validate="true" value="{{wan_vlan}}">
                 </div>
             </div>
             {{_H("By default, the WAN uses an untagged VLAN on multi-port devices, and VLAN 1 on single port devices. This can be changed here if your setup requires something different.

@@ -64,8 +64,10 @@ function loadPorts(type, def)
 if (request.env.REQUEST_METHOD === "PUT") {
     configuration.prepareChanges();
     if ("xlinks" in request.args) {
-        const xlinks = {};
         const xs = json(request.args.xlinks);
+        delete request.args.xlinks;
+
+        const xlinks = {};
         for (let i = 0; i < length(xs); i++) {
             xlinks[xs[i].name] = xs[i];
         }
@@ -74,48 +76,46 @@ if (request.env.REQUEST_METHOD === "PUT") {
         if (length(ports) > 0) {
             defport = ports[0].k;
         }
+        const ucixlinks = {};
         uciMesh.foreach("xlink", "interface", x => {
-            const ux = xlinks[x[".name"]];
+            ucixlinks[x[".name"]] = { peer: x.peer };
+        });
+        for (let name in ucixlinks) {
+            const x = ucixlinks[name];
+            const ux = xlinks[name];
             if (ux) {
-                uciMesh.set("xlink", `${ux.name}bridge`, "vlan", ux.vlan);
-                uciMesh.set("xlink", `${ux.name}bridge`, "ports", [ `${ux.port || defport}:t` ]);
-                uciMesh.commit("xlink");
-
-                uciMesh.set("xlink", ux.name, "ifname", `br0.${ux.vlan}`);
-                uciMesh.set("xlink", ux.name, "ipaddr", ux.ipaddr);
-                if (uciMesh.get("xlink", ux.name, "peer") !== ux.peer) {
-                    uciMesh.set("xlink", ux.name, "peer", ux.peer);
-                    uciMesh.commit("xlink");
-                    uciMesh.set("xlink", ux.name, "peer", ux.peer);
+                uciMesh.set("xlink", `${name}bridge`, "vlan", ux.vlan);
+                uciMesh.set("xlink", `${name}bridge`, "ports", [ `${ux.port || defport}:t` ]);
+                uciMesh.set("xlink", name, "ifname", `br0.${ux.vlan}`);
+                uciMesh.set("xlink", name, "ipaddr", ux.ipaddr);
+                if (x.peer !== ux.peer) {
+                    uciMesh.set("xlink", name, "peer", ux.peer);
                     if (ux.peer) {
-                        uciMesh.set("xlink", `${ux.name}route`, "route");
-                        uciMesh.set("xlink", `${ux.name}route`, "interface", ux.name);
-                        uciMesh.set("xlink", `${ux.name}route`, "target", ux.peer);
+                        uciMesh.set("xlink", `${name}route`, "route");
+                        uciMesh.set("xlink", `${name}route`, "interface", name);
+                        uciMesh.set("xlink", `${name}route`, "target", ux.peer);
                     }
                     else {
                         uciMesh.delete("xlink", `${name}route`);
                     }
-                    uciMesh.commit("xlink");
                 }
-                uciMesh.set("xlink", ux.name, "weight", ux.weight);
-                uciMesh.set("xlink", ux.name, "netmask", network.CIDRToNetmask(ux.cidr));
-                delete xlinks[ux.name];
+                uciMesh.set("xlink", name, "weight", ux.weight);
+                uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
+                delete xlinks[name];
             }
             else {
-                const name = x[".name"];
                 uciMesh.delete("xlink", name);
                 uciMesh.delete("xlink", `${name}bridge`);
                 uciMesh.delete("xlink", `${name}route`);
             }
-            uciMesh.commit("xlink");
-        });
+        }
+
         for (let name in xlinks) {
             const ux = xlinks[name];
             uciMesh.set("xlink", `${ux.name}bridge`, "bridge-vlan");
             uciMesh.set("xlink", `${ux.name}bridge`, "device", "br0");
             uciMesh.set("xlink", `${ux.name}bridge`, "vlan", ux.vlan);
             uciMesh.set("xlink", `${ux.name}bridge`, "ports", [ `${ux.port || defport}:t` ]);
-            uciMesh.commit("xlink");
 
             uciMesh.set("xlink", name, "interface");
             uciMesh.set("xlink", name, "ifname", `br0.${ux.vlan}`);
@@ -127,13 +127,11 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 uciMesh.set("xlink", `${ux.name}route`, "route");
                 uciMesh.set("xlink", `${ux.name}route`, "interface", ux.name);
                 uciMesh.set("xlink", `${ux.name}route`, "target", ux.peer);
-                uciMesh.commit("xlink");
             }
             uciMesh.set("xlink", name, "proto", "static");
             uciMesh.set("xlink", name, "macaddr", replace("x2:xx:xx:xx:xx:xx", "x", _ => sprintf("%X",math.rand()&15)));
-            uciMesh.commit("xlink");
         }
-        delete request.args.xlinks;
+        uciMesh.commit("xlink");
     }
     const k = keys(request.args);
     if (length(k) > 0) {
@@ -311,63 +309,65 @@ uciMesh.foreach("xlink", "interface", x => {
                     <button class="add">+</button>
                 </div>
             </div>
-            <div id="xlink-list">
-                <div class="cols xlink-label">
-                    <div style="white-space:nowrap">
-                        <div>vlan</div>
-                        <div>ip a&zwnj;ddress</div>
-                        <div>peer a&zwnj;ddress</div>
-                        <div>cidr</div>
-                        <div>weight</div>
-                        {% if (haveports) { %}
-                        <div>port</div>
-                        {% } %}
-                    </div>
-                    <div></div>
-                </div>
-                {% for (let i = 0; i < length(xlinks); i++) {
-                    const x = xlinks[i];
-                %}
-                    <div class="cols xlink" data-name="{{x.name}}">
+            <form>
+                <div id="xlink-list">
+                    <div class="xlink-label adr">
                         <div>
-                            <input name="vlan" type="text" size="5" required pattern="([4-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" placeholder="VLan" value="{{x.vlan}}">
-                            <input name="ipaddr" type="text" size="25" required pattern="{{constants.patIP}}" placeholder="IP A&zwnj;ddress" value="{{x.ipaddr}}">
-                            <input name="peer" type="text" size="25" pattern="{{constants.patIP}}" placeholder="IP A&zwnj;ddress" value="{{x.peer}}">
-                            <select name="cidr">
-                                <option value="32" {{x.cidr === 32 ? "selected" : ""}}>PtP</option>
-                                <option value="31" {{x.cidr === 31 ? "selected" : ""}}>/ 31</option>
-                                <option value="30" {{x.cidr === 30 ? "selected" : ""}}>/ 30</option>
-                                <option value="29" {{x.cidr === 29 ? "selected" : ""}}>/ 29</option>
-                                <option value="28" {{x.cidr === 28 ? "selected" : ""}}>/ 28</option>
-                                <option value="27" {{x.cidr === 27 ? "selected" : ""}}>/ 27</option>
-                                <option value="26" {{x.cidr === 26 ? "selected" : ""}}>/ 26</option>
-                                <option value="25" {{x.cidr === 25 ? "selected" : ""}}>/ 25</option>
-                                <option value="24" {{x.cidr === 24 ? "selected" : ""}}>/ 24</option>
-                                <option value="23" {{x.cidr === 23 ? "selected" : ""}}>/ 23</option>
-                                <option value="22" {{x.cidr === 22 ? "selected" : ""}}>/ 22</option>
-                                <option value="21" {{x.cidr === 21 ? "selected" : ""}}>/ 21</option>
-                                <option value="20" {{x.cidr === 20 ? "selected" : ""}}>/ 20</option>
-                                <option value="19" {{x.cidr === 19 ? "selected" : ""}}>/ 19</option>
-                                <option value="18" {{x.cidr === 18 ? "selected" : ""}}>/ 18</option>
-                                <option value="17" {{x.cidr === 17 ? "selected" : ""}}>/ 17</option>
-                                <option value="16" {{x.cidr === 16 ? "selected" : ""}}>/ 16</option>
-                            </select>
-                            <input name="weight" type="text" size="2" required pattern="([0-9]|[1-9][0-9]|100)" placeholder="Wt" value="{{x.weight}}">
+                            <div>vlan</div>
+                            <div>ip a&zwnj;ddress</div>
+                            <div>peer a&zwnj;ddress</div>
+                            <div>cidr</div>
+                            <div>weight</div>
                             {% if (haveports) { %}
-                            <select name="port">
-                            {%
-                                for (let i = 0; i < length(ports); i++) {
-                                    const p = ports[i];
-                                    print(`<option value="${p.name}" ${x.port === p.name ? "selected" : ""}>${p.display}</option>`);
-                                }
-                            %}
-                            </select>
+                            <div>port</div>
                             {% } %}
                         </div>
-                        <button>-</button>
+                        <div></div>
                     </div>
-                {% } %}
-            </div>
+                    {% for (let i = 0; i < length(xlinks); i++) {
+                        const x = xlinks[i];
+                    %}
+                        <div class="xlink adr" data-name="{{x.name}}">
+                            <div>
+                                <input name="vlan" type="text" size="5" required pattern="([4-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" placeholder="VLan" value="{{x.vlan}}">
+                                <input name="ipaddr" type="text" size="25" required pattern="{{constants.patIP}}" placeholder="IP A&zwnj;ddress" value="{{x.ipaddr}}">
+                                <input name="peer" type="text" size="25" pattern="{{constants.patIP}}" placeholder="IP A&zwnj;ddress" value="{{x.peer}}">
+                                <select name="cidr">
+                                    <option value="32" {{x.cidr === 32 ? "selected" : ""}}>PtP</option>
+                                    <option value="31" {{x.cidr === 31 ? "selected" : ""}}>/ 31</option>
+                                    <option value="30" {{x.cidr === 30 ? "selected" : ""}}>/ 30</option>
+                                    <option value="29" {{x.cidr === 29 ? "selected" : ""}}>/ 29</option>
+                                    <option value="28" {{x.cidr === 28 ? "selected" : ""}}>/ 28</option>
+                                    <option value="27" {{x.cidr === 27 ? "selected" : ""}}>/ 27</option>
+                                    <option value="26" {{x.cidr === 26 ? "selected" : ""}}>/ 26</option>
+                                    <option value="25" {{x.cidr === 25 ? "selected" : ""}}>/ 25</option>
+                                    <option value="24" {{x.cidr === 24 ? "selected" : ""}}>/ 24</option>
+                                    <option value="23" {{x.cidr === 23 ? "selected" : ""}}>/ 23</option>
+                                    <option value="22" {{x.cidr === 22 ? "selected" : ""}}>/ 22</option>
+                                    <option value="21" {{x.cidr === 21 ? "selected" : ""}}>/ 21</option>
+                                    <option value="20" {{x.cidr === 20 ? "selected" : ""}}>/ 20</option>
+                                    <option value="19" {{x.cidr === 19 ? "selected" : ""}}>/ 19</option>
+                                    <option value="18" {{x.cidr === 18 ? "selected" : ""}}>/ 18</option>
+                                    <option value="17" {{x.cidr === 17 ? "selected" : ""}}>/ 17</option>
+                                    <option value="16" {{x.cidr === 16 ? "selected" : ""}}>/ 16</option>
+                                </select>
+                                <input name="weight" type="text" size="2" required pattern="([0-9]|[1-9][0-9]|100)" placeholder="Wt" value="{{x.weight}}">
+                                {% if (haveports) { %}
+                                <select name="port">
+                                {%
+                                    for (let i = 0; i < length(ports); i++) {
+                                        const p = ports[i];
+                                        print(`<option value="${p.name}" ${x.port === p.name ? "selected" : ""}>${p.display}</option>`);
+                                    }
+                                %}
+                                </select>
+                                {% } %}
+                            </div>
+                            <button>-</button>
+                        </div>
+                    {% } %}
+                </div>
+            </form>
         </div>
         {{_H("<p>XLinks provide a way of routing AREDN traffic across external non-AREDN networks. Each is created with a specific VLAN,
         IP address for both ends, a weight of how likely to link is to be used, and an optional network size and port (on multi-port
@@ -388,6 +388,9 @@ uciMesh.foreach("xlink", "interface", x => {
             });
         }
         htmx.on("#ctrl-modal .dialog #xlink-list", "change", event => {
+            if (!htmx.closest(htmx.find("#ctrl-modal .dialog #xlink-list"), "form").checkValidity()) {
+                return;
+            }
             const target = htmx.closest(event.target, "[data-name]");
             const xlink = xlinks.find(x => x.name == target.dataset.name);
             const vlan = htmx.find(target, "[name=vlan]");
@@ -396,15 +399,13 @@ uciMesh.foreach("xlink", "interface", x => {
             const weight = htmx.find(target, "[name=weight]");
             const port = htmx.find(target, "[name=port]");
             const cidr = htmx.find(target, "[name=cidr]");
-            if (vlan.validity.valid && ipaddr.validity.valid && peer.validity.valid && weight.validity.valid) {
-                xlink.vlan = parseInt(vlan.value);
-                xlink.ipaddr = ipaddr.value;
-                xlink.peer = peer.value;
-                xlink.weight = parseInt(weight.value);
-                xlink.port = port ? port.value : null;
-                xlink.cidr = parseInt(cidr.value);
-                update();
-            }
+            xlink.vlan = parseInt(vlan.value);
+            xlink.ipaddr = ipaddr.value;
+            xlink.peer = peer.value;
+            xlink.weight = parseInt(weight.value);
+            xlink.port = port ? port.value : null;
+            xlink.cidr = parseInt(cidr.value);
+            update();
         });
         htmx.on("#ctrl-modal .dialog #xlink-list", "click", event => {
             if (event.target.nodeName === "BUTTON") {
@@ -436,7 +437,7 @@ uciMesh.foreach("xlink", "interface", x => {
             xlinks.push(x);
             const div = document.createElement("div");
             const ls = htmx.find("#ctrl-modal .dialog #xlink-list");
-            div.innerHTML = `<div class="cols xlink" data-name="${x.name}">
+            div.innerHTML = `<div class="xlink adr" data-name="${x.name}">
 <div>
     <input name="vlan" type="text" size="5" required pattern="([4-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" placeholder="VLan">
     <input name="ipaddr" type="text" size="25" required pattern="${patIP}" placeholder="IP A&zwnj;ddress">

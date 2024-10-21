@@ -88,16 +88,18 @@ export function haveToDos()
     }
     if (hardware.getRadioCount() > 0) {
         const wlan = cursor.get("network", "wifi", "device");
-        const ants = hardware.getAntennas(wlan);
-        const ant = cursor.get("aredn", "@location[0]", "antenna");
-        if (length(ants) > 1 && !ant) {
-            return true;
-        }
-        if (ant || length(ants) === 1) {
-            if (!cursor.get("aredn", "@location[0]", "azimuth")) {
-                const ainfo = hardware.getAntennaInfo(wlan, ant || ants[0]);
-                if (ainfo?.beamwidth !== 360) {
-                    return true;
+        if (wlan !== "br-nomesh") {
+            const ants = hardware.getAntennas(wlan);
+            const ant = cursor.get("aredn", "@location[0]", "antenna");
+            if (length(ants) > 1 && !ant) {
+                return true;
+            }
+            if (ant || length(ants) === 1) {
+                if (!cursor.get("aredn", "@location[0]", "azimuth")) {
+                    const ainfo = hardware.getAntennaInfo(wlan, ant || ants[0]);
+                    if (ainfo?.beamwidth !== 360) {
+                        return true;
+                    }
                 }
             }
         }

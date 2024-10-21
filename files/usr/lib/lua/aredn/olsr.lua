@@ -35,9 +35,18 @@
 --]]
 
 require("nixio")
-require("aredn.http")
 require("aredn.utils")
 require("aredn.info")
+local h = require("socket.http")
+local json = require("luci.jsonc")
+
+function fetch_json(url)
+  resp, status_code, headers, status_message=h.request(url)
+  if status_code==200 then
+    local j=json.parse(resp)
+    return j
+  end
+end
 
 -------------------------------------
 -- Public API is attached to table
@@ -62,6 +71,11 @@ end
 function model.getOLSRMid()
   local mid=fetch_json("http://127.0.0.1:9090/mid")
   return mid and mid['mid'] or {}
+end
+
+function model.getOLSRTopology()
+  local topology=fetch_json("http://127.0.0.1:9090/topology")
+  return topology and topology['topology'] or {}
 end
 
 function model.getOLSRInterfaceType(iface)

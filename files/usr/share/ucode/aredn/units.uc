@@ -49,9 +49,9 @@ function isMetric()
     return metric;
 };
 
-export function distanceUnit()
+export function distanceUnit(v)
 {
-    return isMetric() ? "km" : "miles";
+    return isMetric() ? "km" : v === 1 ? "mile" : "miles";
 };
 
 export function meters2distance(meters)

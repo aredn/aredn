@@ -195,12 +195,37 @@ export function getRfChannels(wifiIface)
 export function getRfBandwidths(wifiIface)
 {
     const radio = getRadioIntf(wifiIface);
-    if (radio.bandwidths) {
-        return radio.bandwidths;
+    const invalid = {};
+    map(radio.exclude_bandwidths || [], v => invalid[v] = true);
+    const bw = [];
+    if (!invalid["5"]) {
+        push(bw, 5);
     }
-    else {
-        return [ 5, 10, 20 ];
+    if (!invalid["10"]) {
+        push(bw, 10);
     }
+    if (!invalid["20"]) {
+        push(bw, 20);
+    }
+    if (fs.access(`/sys/kernel/debug/ieee80211/${replace(wifiIface, "wlan", "phy")}/ath10k`)) {
+        const f = fs.popen(`/usr/bin/iwinfo ${wifiIface} htmodelist 2> /dev/null`);
+        if (f) {
+            let line = f.read("line");
+            if (line) {
+                if (index(line, "VHT40") !== -1 && !invalid["40"]) {
+                    push(bw, 40);
+                }
+                if (index(line, "VHT80") !== -1 && !invalid["80"]) {
+                    push(bw, 80);
+                }
+            }
+            while (!line) {
+                line = f.read("line");
+            }
+            f.close();
+        }
+    }
+    return bw;
 };
 
 export function getDefaultChannel(wifiIface)

@@ -81,12 +81,24 @@
                 <div class="s">tx power</div>
             </div>
             <div>
-                <div class="t">{{int(0.5 + units.meters2distance(uci.get("aredn", "@lqm[0]", "max_distance")))}} {{units.distanceUnit()}}</div>
+                {%if (uci.get("aredn", "@lqm[0]", "enable") === "1") {
+                    const wifi_distance = int(0.5 + units.meters2distance(uci.get("aredn", "@lqm[0]", "max_distance")));
+                %}
+                <div class="t">{{wifi_distance}} {{units.distanceUnit(wifi_distance)}}</div>
+                {% } else if (configuration.getSettingAsInt("wifi_distance", 0) === 0) { %}
+                <div class="t">auto</div>
+                {% } else {
+                    const wifi_distance = int(0.5 + units.meters2distance(configuration.getSettingAsInt("wifi_distance", 0)));
+                %}
+                <div class="t">{{wifi_distance}} {{units.distanceUnit(wifi_distance)}}</div>
+                {% } %}
                 <div class="s">maximum distance</div>
             </div>
             <div>
+                {% if (uci.get("aredn", "@lqm[0]", "enable") === "1") { %}
                 <div class="t">{{uci.get("aredn", "@lqm[0]", "min_snr")}}</div>
                 <div class="s">minimum snr</div>
+                {% } %}
             </div>
         </div>
     </div>
@@ -132,11 +144,11 @@
         <div class="cols">
             <div>
                 {% if (wconnected && winternet) { %}
-                <div class="t">internet</div>
+                <div class="t">Internet</div>
                 {% } else if (wconnected) { %}
-                <div class="t">no internet</div>
+                <div class="t">No Internet</div>
                 {% } else { %}
-                <div class="t">no connection</div>
+                <div class="t">No Connection</div>
                 {% } %}
                 <div class="s">status</div>
             </div>

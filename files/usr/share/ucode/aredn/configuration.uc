@@ -191,11 +191,29 @@ export function getFirmwareVersion()
     return firmwareVersion;
 };
 
-export function setUpgrade(v)
+export function isConfigured()
 {
     initCursor();
-    cursor.set("hsmmmesh", "settings", "nodeupgraded", v);
+    return cursor.get("hsmmmesh", "settings", "configured") !== "0";
+};
+
+export function setConfigured(v)
+{
+    initCursor();
+    cursor.set("hsmmmesh", "settings", "configured", v);
     cursor.commit("hsmmmesh");
+};
+
+export function getDefaultIP()
+{
+    initCursor();
+    const mac2 = cursor.get("hsmmmesh", "settings", "mac2");
+    if (mac2) {
+        return `10.${mac2}`;
+    }
+    else {
+        return "192.168.1.1";
+    }
 };
 
 export function setPassword(passwd)
@@ -365,7 +383,7 @@ export function commitChanges()
         removeConfig(currentConfig);
         if (fs.access("/tmp/newpassword")) {
             const pw = fs.readfile("/tmp/newpassword");
-            system(`{ echo '${pw}'; sleep 1; echo '${pw}'; } | passwd > /dev/null 2>&1`);
+            system(`/usr/local/bin/setpasswd '${pw}'`);
             fs.unlink("/tmp/newpassword");
         }
         const n = fs.popen("exec /usr/local/bin/node-setup");
@@ -427,4 +445,49 @@ export function unescapeString(s)
         s = replace(s, specialCharacters[i][1], specialCharacters[i][0]);
     }
     return s;
+};
+
+const backupFilename = "/tmp/backup.tar.gz";
+
+export function backup()
+{
+    const fi = fs.open("/etc/arednsysupgrade.conf");
+    if (!fi) {
+        return null;
+    }
+    const fo = fs.open("/tmp/sysupgradefilelist", "w");
+    if (!fo) {
+        fi.close();
+        return null;
+    }
+    for (let l = fi.read("line"); length(l); l = fi.read("line")) {
+        if (!match(l, "^#") && !match(l, "^/etc/config/") && fs.access(trim(l))) {
+            fo.write(l);
+        }
+    }
+    fo.close();
+    fi.close();
+    const s = system(`/bin/tar -czf ${backupFilename} -T /tmp/sysupgradefilelist > /dev/null 2>&1`);
+    fs.unlink("/tmp/sysupgradefilelist");
+    if (s < 0) {
+        fs.unlink(backupFilename);
+        return null;
+    }
+    return backupFilename;
+};
+
+export function restore(file)
+{
+    const status = {};
+    const data = fs.readfile(file);
+    if (!data) {
+        status.error = "Failed to read configuration file";
+    }
+    else {
+        if (!fs.writefile("/sysupgrade.tgz", data)) {
+            status.error = "Failed to copy configuration file";
+        }
+    }
+    fs.unlink(file);
+    return status;
 };

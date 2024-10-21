@@ -1,5 +1,51 @@
 __RELEASE NOTES__
 
+# 3.24.10.0
+
+The biggest change in this release if you haven't been keeping tabs on AREDN, is the "new UI". The old UI, written in LUA not only looked old, it was hampering the implementation of new features.  Now written in Javascript, among other things it's more economical on bandwidth used to display the user interface.  It's also much easier to add new features. The new UI has taken 6 months and the work of many, many people. We’d like to thank everyone involved with developing, documenting, and especially debugging this; we really appreciate our community.
+
+Because it's new, navigating around it may initially be a challenge. Steve, AB7PA, keeper of the AREDN docs, has done a stellar job in documenting the new UI. It's highly recommended you at least skim them, here http://docs.arednmesh.org/en/latest/ Within the new UI you will also find a Help button for every dialog. Please press it and read the inline help at least once. Finally, we recorded a walkthrough of the new UI which you can find here https://www.youtube.com/watch?v=KG_2ploIYzg (note that there have been a few minor changes since we did this).
+
+After upgrading, you may be returned to the old UI or you might see the new UI. In either case you will see a green button in the upper-right-hand corner of your browser window which lets you toggle between them. In the new UI you will initially be in Guest mode. To log into Admin mode, click on the little guy in the upper-right-hand corner, click on Login and enter the node's password (no need for a user name).
+
+## Enhancements
+
+* New UI. All the enhancements below are in the new UI only. The old UI remains unchanged.
+* New custom UI when first installing nodes.
+* Ability to remove unused tunnels
+* Added a weight to tunnels, now on a per-tunnel basis (the "weight" artificially degrades the tunnel's ETX; if an RF route exists and its ETX value is better, it will be preferred)
+* Themes support: default, high contrast, color-blind, dark, and light.
+* Portable themes let you set a theme on your localnode and see it on every other node. So if you’re color blind for example, you can set that once and see it everywhere.
+* If a node can get to http://downloads.aredenmesh.org it will indicate if a code update is available. Nightly nodes will be notified of nightly updates, while release nodes will be notified of release updates.
+* Added update progress indicator when downloading or uploading firmware.
+* Added ability to switch between 12 hour and 24 hour displays
+* DHCP aliases are now rewritten when DHCP range changes
+* Now show Metric units if your locale isn't "en-us" or “en-gb”
+* Added the option to prevent LQM from blocking poorly performing links. This allows you to keep LQM active and let it manage link performance, without it shutting down crucial connections.
+* Added topic-sensitive Help in every configuration dialog.
+* Added always-running NTPD option
+* Added GPS support (see https://github.com/kn6plv/WhereAndWhen for how to install a GPS receiver) which is shared by all DTD connected nodes.
+
+## New Device Support
+
+* Ubiquiti Nanobeam 5AC WA
+* Support for newer Mikrotik devices with can only use the Mikrotik v7 bootloader
+
+## Fixes and Improvements
+
+* Fixed Ubiquiti AC devices failing wifi scan if on 10MHz
+* Fixed time drifting problem on Basebox 5, QRT 5, non-AC mANT 19S
+* User firewall rules are now preserved across upgrades
+* Fix supernode locator. Now correctly finds the closest one.
+
+## Notes
+
+* The way the tunnel addresses are allocated has changed in the new UI. In some unlikely cases you may need to remove a tunnel and re-add it.
+* While we provide both UIs in this release, trying to use both interchangeably can cause problems. Once you start using the new UI, please don’t go back and use the old one.
+* There remain problems with the TP-Link CPE710.
+* GL.iNet GL-B1300 does not support negative channels on the 2.4 GHz band.
+* The Litebeam M5 is no longer supported.
+
 # 3.24.6.0
 
 ## Enhancements

@@ -1,0 +1,5 @@
+#! /bin/sh
+if [ "$(uci -c /etc/local/uci -q get hsmmmesh.settings.configured)" = "" ]; then
+    uci -c /etc/local/uci -q set hsmmmesh.settings.configured=1
+    uci -c /etc/local/uci -q commit hsmmmesh
+fi

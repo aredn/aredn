@@ -167,7 +167,8 @@ if (tracker) {
             const l = neighbor.l;
         %}
         <div class="neighbor">
-            <div class="o"><a href="{{n.hostname ? `http://${n.hostname}.local.mesh` : n.ip}}" target="_blank">{{n.hostname || n.ip}}</a>
+            <div class="o">
+                <div><a href="{{n.hostname ? `http://${n.hostname}.local.mesh` : n.ip}}" target="_blank">{{n.hostname || n.ip}}</a></div>
                 <select name="{{n.mac}}" hx-put={{request.env.REQUEST_URI}} hx-swap="none">
                     <option value="always" {{n.user_allow ? "selected" : ""}}>never block</option>
                     <option value="available" {{n.user_allow || n.blocks.user ? "" : "selected"}}>{{n.blocked ? "blocked" : "unblocked"}}</option>
@@ -332,7 +333,12 @@ if (tracker) {
                         }
                     }
                     if (length(s) > 90) {
-                        splice(s, 0, length(s) - 90);
+                        const l = length(s);
+                        const c = l / 90;
+                        for (let i = 0; i < 90; i++) {
+                            s[i] = s[int(i * c)];
+                        }
+                        splice(s, 90);
                     }
                     const slength = length(s);
                     const slength2 = slength * 0.75;
