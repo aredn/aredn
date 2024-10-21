@@ -184,15 +184,10 @@ end
 if cfg.dmz_mode == "" then
     local dmz_dhcp_base, net = ("1" .. decimal_to_ip((ip_to_decimal("10." .. mac2) * 8) % 0x1000000)):match("(%d+%.%d+%.%d+%.)(%d+)")
     net = tonumber(net)
-    local dmz_lan_ip = dmz_dhcp_base .. (net + 1)
-    local dmz_dhcp_start = net + 2
-    local dmz_dhcp_limit = 5 -- dmz_mode == 3
-    local dmz_dhcp_end = dmz_dhcp_start + dmz_dhcp_limit - 1
     cfg.dmz_mode = 3
-    cfg.dmz_dhcp_end = dmz_dhcp_end
-    cfg.dmz_dhcp_limit = dmz_dhcp_limit
-    cfg.dmz_dhcp_start = dmz_dhcp_start
     cfg.dmz_lan_ip = dmz_dhcp_base .. (net + 1)
+    cfg.dmz_dhcp_start = net + 2
+    cfg.dmz_dhcp_end = net + 6
     cfg.dmz_lan_mask = "255.255.255.248"
 end
 

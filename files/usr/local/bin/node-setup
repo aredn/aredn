@@ -268,6 +268,20 @@ else
     deleteme.remote_log_proto = true
 end
 
+-- sensible dmz_mode default
+if is_null(cfg.dmz_mode) then
+    cfg.dmz_mode = "0"
+end
+
+-- switch to dmz values if needed
+if is_dmz_mode() then
+    cfg.lan_ip = cfg.dmz_lan_ip
+    cfg.lan_mask = cfg.dmz_lan_mask
+    cfg.dhcp_start = cfg.dmz_dhcp_start
+    cfg.dhcp_end = cfg.dmz_dhcp_end
+end
+cfg.dhcp_limit = cfg.dhcp_end - cfg.dhcp_start + 1
+
 -- verify that we have all the variables we need
 for file in nixio.fs.glob("/etc/config.mesh/*")
 do
@@ -291,20 +305,6 @@ do
             end
         end
     end
-end
-
--- sensible dmz_mode default
-if is_null(cfg.dmz_mode) then
-    cfg.dmz_mode = "0"
-end
-
--- switch to dmz values if needed
-if is_dmz_mode() then
-    cfg.lan_ip = cfg.dmz_lan_ip
-    cfg.lan_mask = cfg.dmz_lan_mask
-    cfg.dhcp_start = cfg.dmz_dhcp_start
-    cfg.dhcp_end = cfg.dmz_dhcp_end
-    cfg.dhcp_limit = cfg.dmz_dhcp_limit
 end
 
 -- select ports and dhcp files based on mode
@@ -1167,10 +1167,10 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
 
         if is_supernode then
             of:write("config Hna4\n\toption netaddr 10.0.0.0\n\toption netmask 255.0.0.0\n\n")
-            local altnetwork = nc:get("aredn", "@supernode[0]", "altnetwork")
-            local altnetmask = nc:get("aredn", "@supernode[0]", "altnetmask")
-            if altnetwork and altnetmask then
-                of:write("config Hna4\n\toption netaddr " .. altnetwork .. "\n\toption netmask " .. altnetmask .. "\n\n")
+            local is_44net = nc:get("aredn", "@supernode[0]", "44net")
+            if is_44net == "1" then
+                of:write("config Hna4\n\toption netaddr 44.0.0.0\n\toption netmask 255.128.0.0\n\n")
+                of:write("config Hna4\n\toption netaddr 44.128.0.0\n\toption netmask 255.192.0.0\n\n")
             end
         end
 
