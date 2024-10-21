@@ -254,7 +254,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                 <div class="cols">
                     <div>
                         <div class="o">DHCP Start</div>
-                        <div class="m">Start offset from the network address from which DHCP addresses are allocated</div>
+                        <div class="m" id="lan_dhcp_start_m">Start offset from base for allocating DHCP addresses</div>
                     </div>
                     <div style="flex:0">
                         <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_start" type="text" size="4" required pattern="[]" hx-validate="true" value="{{dhcp_start}}">
@@ -263,7 +263,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                 <div class="cols">
                     <div>
                         <div class="o">DHCP End</div>
-                        <div class="m">Last offset from the network address from which DHCP addresses are allocated</div>
+                        <div class="m" id="lan_dhcp_end_m">End offset from base for allocating DHCP addresses</div>
                     </div>
                     <div style="flex:0">
                         <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_end" type="text" size="4" required pattern="[]" hx-validate="true" value="{{dhcp_end}}">
@@ -292,7 +292,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                 <div class="cols">
                     <div>
                         <div class="o">DHCP Start</div>
-                        <div class="m">Start of the DHCP range for addresses allocate</div>
+                        <div class="m" id="lan44_dhcp_start_m">Start offset from base for allocating DHCP addresses</div>
                     </div>
                     <div style="flex:0">
                         <input hx-put="{{request.env.REQUEST_URI}}" name="lan44_dhcp_start" type="text" size="4" required pattern="[]" hx-validate="true" value="{{dhcp_start}}">
@@ -301,7 +301,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                 <div class="cols">
                     <div>
                         <div class="o">DHCP End</div>
-                        <div class="m">Last address of the DHCP range for addresses allocated</div>
+                        <div class="m" id="lan44_dhcp_end_m">End offset from base for allocating DHCP addresses</div>
                     </div>
                     <div style="flex:0">
                         <input hx-put="{{request.env.REQUEST_URI}}" name="lan44_dhcp_end" type="text" size="4" required pattern="[]" hx-validate="true" value="{{dhcp_end}}">
@@ -424,13 +424,15 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
     <script>
     (function(){
         {{_R("open")}}
-        function validateRange(ip, netmask, start, end)
+        function validateRange(ip, netmask, start, end, startid, endid)
         {
             let netmaskp = ".*";
             let startp = ".*";
             let endp = ".*";
+            let ipp = ".*";
             const startv = parseInt(start.value);
             const endv = parseInt(end.value);
+            const ipv = ip.value;
             if (startv > endv) {
                 startp = "[]";
                 endp = "[]";
@@ -493,29 +495,40 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     endp = "[]";
                 }
                 else {
-                    const i = ip.value.split(".");
+                    const i = ipv.split(".");
                     const netip = (parseInt(i[3]) + 256 * parseInt(i[2])) & size;
                     if (startv < 1 || endv >= size || (netip >= startv && netip <= endv)) {
                         startp = "[]";
                         endp = "[]";
                     }
+                    const baseip = (parseInt(i[3]) + 256 * parseInt(i[2])) & (65535 - size);
+                    const base = `${i[0]}.${i[1]}.${baseip >> 8}.${baseip & 255}`;
+                    if (ipv === base) {
+                        ipp = "[]";
+                    }
+                    startid.innerHTML = `Start offset from ${base} for allocating DHCP addresses`;
+                    endid.innerHTML = `End offset from ${base} for allocating DHCP addresses`;
                 }
             }
             netmask.pattern = netmaskp;
             start.pattern = startp;
             end.pattern = endp;
+            ip.pattern = ipp;
+
         }
         function validateLANRange()
         {
-            validateRange(htmx.find("input[name=lan_dhcp_ip]"), htmx.find("input[name=lan_dhcp_netmask]"), htmx.find("input[name=lan_dhcp_start]"), htmx.find("input[name=lan_dhcp_end]"));
+            validateRange(htmx.find("input[name=lan_dhcp_ip]"), htmx.find("input[name=lan_dhcp_netmask]"), htmx.find("input[name=lan_dhcp_start]"), htmx.find("input[name=lan_dhcp_end]"), htmx.find("#lan_dhcp_start_m"), htmx.find("#lan_dhcp_end_m"));
         }
         function validateLAN44Range()
         {
-            validateRange(htmx.find("input[name=lan44_dhcp_ip]"), htmx.find("input[name=lan44_dhcp_netmask]"), htmx.find("input[name=lan44_dhcp_start]"), htmx.find("input[name=lan44_dhcp_end]"));
+            validateRange(htmx.find("input[name=lan44_dhcp_ip]"), htmx.find("input[name=lan44_dhcp_netmask]"), htmx.find("input[name=lan44_dhcp_start]"), htmx.find("input[name=lan44_dhcp_end]"), htmx.find("#lan44_dhcp_start_m"), htmx.find("#lan44_dhcp_end_m"));
         }
+        htmx.on("input[name=lan_dhcp_ip]", "input", validateLANRange);
         htmx.on("input[name=lan_dhcp_netmask]", "input", validateLANRange);
         htmx.on("input[name=lan_dhcp_start]", "input", validateLANRange);
         htmx.on("input[name=lan_dhcp_end]", "input", validateLANRange);
+        htmx.on("input[name=lan44_dhcp_ip]", "input", validateLAN44Range);
         htmx.on("input[name=lan44_dhcp_netmask]", "input", validateLAN44Range);
         htmx.on("input[name=lan44_dhcp_start]", "input", validateLAN44Range);
         htmx.on("input[name=lan44_dhcp_end]", "input", validateLAN44Range);
