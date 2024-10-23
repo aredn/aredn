@@ -601,7 +601,7 @@ global.handle_request = function(env)
                 changelock.close();
             }
             if (response.reboot) {
-                system(`(sleep 2; ${response.reboot})&`);
+                system(`(sleep 2; sync; ${response.reboot})&`);
             }
             return;
         }
