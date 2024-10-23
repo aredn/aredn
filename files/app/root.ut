@@ -54,12 +54,11 @@ import * as constants from "./constants.uc";
 
 const pageCache = {};
 const resourceVersions = {};
+const lockfile = "/tmp/ui.lock";
 
 log.openlog("uhttpd.aredn", log.LOG_PID, log.LOG_USER);
 
-const light = fs.readfile(`${config.application}/resource/css/themes/light.css`);
-const dark = fs.readfile(`${config.application}/resource/css/themes/dark.css`);
-fs.writefile(`${config.application}/resource/css/themes/default.css`, `${light}@media (prefers-color-scheme: dark) {\n${dark}\n}`);
+fs.writefile(`${config.application}/resource/css/themes/default.css`, `${fs.readfile(`${config.application}/resource/css/themes/light.css`)}@media (prefers-color-scheme: dark) {\n${fs.readfile(`${config.application}/resource/css/themes/dark.css`)}\n}`);
 if (!fs.access(`${config.application}/resource/css/theme.css`)) {
     fs.symlink("themes/default.css", `${config.application}/resource/css/theme.css`);
 }
@@ -80,8 +79,6 @@ if (config.preload) {
     }
     cp("/main/");
     cp("/partial/");
-
-    radios.getCommonConfiguration();
 }
 
 if (config.resourcehash) {
@@ -144,6 +141,8 @@ else {
     }
     fs.unlink(`${config.application}/resource/css/theme.version`);
 }
+
+fs.writefile(lockfile, "");
 
 global._R = function(path, arg)
 {
@@ -452,6 +451,14 @@ global.handle_request = function(env)
                     return;
                 }
             }
+            let changelock = null;
+            if (env.REQUEST_METHOD !== "GET") {
+                changelock = fs.open(lockfile);
+                if (!(changelock && changelock.lock("x"))) {
+                    uhttpd.send("Status: 500 Internal server error\r\n\r\n");
+                    return;
+                }
+            }
             const args = {};
             if (env.CONTENT_TYPE === "application/x-www-form-urlencoded") {
                 let b = "";
@@ -589,6 +596,9 @@ global.handle_request = function(env)
                     "\r\n",
                     res
                 );
+            }
+            if (changelock) {
+                changelock.close();
             }
             if (response.reboot) {
                 system(`(sleep 2; ${response.reboot})&`);
