@@ -102,15 +102,12 @@ function initSetup()
         setupKeys = [];
         const f = fs.open("/etc/config.mesh/_setup");
         if (f) {
-            for (;;) {
-                const line = f.read("line");
-                if (!length(line)) {
-                    break;
-                }
-                const kv = split(line, " =", 2);
+            for (let l = f.read("line"); length(l); l = f.read("line")) {
+                const kv = split(l, "=", 2);
                 if (length(kv) === 2) {
-                    setup[kv[0]] = trim(kv[1]);
-                    push(setupKeys, kv[0]);
+                    const k = trim(kv[0]);
+                    setup[k] = trim(kv[1]);
+                    push(setupKeys, k);
                 }
             }
             f.close();
@@ -121,7 +118,9 @@ function initSetup()
 export function reset()
 {
     setup = null;
+    setupKeys = null;
     cursor = null;
+    setupChanged = false;
 };
 
 export function getSettingAsString(key, def)
