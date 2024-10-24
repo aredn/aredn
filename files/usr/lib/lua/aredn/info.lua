@@ -620,17 +620,14 @@ end
 -- Returns LAN Mode (dmz_mode)
 -------------------------------------
 function model.getLANMode()
-	lm=os.capture("cat /etc/config.mesh/_setup|grep dmz_mode|cut -d'=' -f2|tr -d ' ' ")
-	lm=lm:chomp()
-	return lm
+	return uci.cursor("/etc/config.mesh"):get("setup", "globals", "dmz_mode")
 end
 
 -------------------------------------
 -- is LAN DHCP enabled
 -------------------------------------
 function model.isLANDHCPEnabled()
-	r=os.capture("cat /etc/config.mesh/_setup|grep lan_dhcp|cut -d'=' -f2|tr -d ' ' ")
-	r=r:chomp()
+	local r = uci.cursor("/etc/config.mesh"):get("setup", "globals", "lan_dhcp")
 	if r=="0" then
 		return false
 	else

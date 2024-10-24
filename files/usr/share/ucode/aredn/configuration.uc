@@ -37,8 +37,7 @@ import * as math from "math";
 import * as network from "aredn.network";
 
 let cursor;
-let setup;
-let setupKeys;
+let scursor;
 let setupChanged = false;
 let firmwareVersion = null;
 
@@ -54,7 +53,6 @@ const configDirs = [
     "/tmp"
 ];
 const configFiles = [
-    "/etc/config.mesh/_setup",
     "/etc/config.mesh/_setup.dhcp.dmz",
     "/etc/config.mesh/_setup.dhcp.nat",
     "/etc/config.mesh/_setup.dhcpoptions.dmz",
@@ -74,6 +72,7 @@ const configFiles = [
     "/etc/config.mesh/firewall.user",
     "/etc/config.mesh/network",
     "/etc/config.mesh/olsrd",
+    "/etc/config.mesh/setup",
     "/etc/config.mesh/snmpd",
     "/etc/config.mesh/system",
     "/etc/config.mesh/uhttpd",
@@ -97,42 +96,28 @@ function initCursor()
 
 function initSetup()
 {
-    if (!setup) {
-        setup = {};
-        setupKeys = [];
-        const f = fs.open("/etc/config.mesh/_setup");
-        if (f) {
-            for (let l = f.read("line"); length(l); l = f.read("line")) {
-                const kv = split(l, "=", 2);
-                if (length(kv) === 2) {
-                    const k = trim(kv[0]);
-                    setup[k] = trim(kv[1]);
-                    push(setupKeys, k);
-                }
-            }
-            f.close();
-        }
+    if (!scursor) {
+        scursor = uci.cursor("/etc/config.mesh");
     }
 };
 
 export function reset()
 {
-    setup = null;
-    setupKeys = null;
     cursor = null;
+    scursor = null;
     setupChanged = false;
 };
 
 export function getSettingAsString(key, def)
 {
     initSetup();
-    return setup[key] || def;
+    return scursor.get("setup", "globals", key) || def;
 };
 
 export function getSettingAsInt(key, def)
 {
     initSetup();
-    const v = int(setup[key]);
+    const v = int(scursor.get("setup", "globals", key));
     if (type(v) === "int") {
         return v;
     }
@@ -142,12 +127,10 @@ export function getSettingAsInt(key, def)
 export function setSetting(key, value, def)
 {
     initSetup();
-    if (!(key in setup)) {
-        push(setupKeys, key);
-    }
-    const old = setup[key];
-    setup[key] = replace(`${value ?? def ?? ""}`, /[\r\n]/g, " ");
-    if (old !== setup[key]) {
+    const o = scursor.get("setup", "globals", key);
+    const n = replace(`${value ?? def ?? ""}`, /[\r\n]/g, " ");
+    if (o !== n) {
+        scursor.set("setup", "globals", key, n);
         setupChanged = true;
         return true;
     }
@@ -157,15 +140,8 @@ export function setSetting(key, value, def)
 export function saveSettings()
 {
     if (setupChanged) {
-        const f = fs.open("/etc/config.mesh/_setup", "w");
-        if (f) {
-            for (let i = 0; i < length(setupKeys); i++) {
-                const k = setupKeys[i];
-                f.write(`${k} = ${setup[k] || ""}\n`);
-            }
-            f.close();
-            setupChanged = false;
-        }
+        scursor.commit("setup");
+        setupChanged = false;
     }
 };
 
@@ -228,6 +204,7 @@ export function isPasswordChanged()
 export function getDHCP(mode)
 {
     initSetup();
+    const setup = scursor.get_all("setup", "globals");
     if (mode === "nat" || (!mode && setup.dmz_mode === "0")) {
         const root = replace(setup.lan_ip, /\d+$/, "");
         return {
@@ -314,7 +291,7 @@ function removeConfig(configRoot)
 
 function revertConfig(configRoot)
 {
-    if (fs.access(`${configRoot}/etc/config.mesh/_setup`)) {
+    if (fs.access(`${configRoot}/etc/config.mesh/setup`)) {
         for (let i = 0; i < length(configFiles); i++) {
             const to = configFiles[i];
             const from = `${configRoot}${to}`;
@@ -335,14 +312,14 @@ function revertConfig(configRoot)
 
 export function prepareChanges()
 {
-    if (!fs.access(`${currentConfig}/etc/config.mesh/_setup`)) {
+    if (!fs.access(`${currentConfig}/etc/config.mesh/setup`)) {
         copyConfig(currentConfig);
     }
 };
 
 export function prepareModalChanges()
 {
-    if (fs.access(`${modalConfig}/etc/config.mesh/_setup`)) {
+    if (fs.access(`${modalConfig}/etc/config.mesh/setup`)) {
         removeConfig(modalConfig);
     }
     copyConfig(modalConfig);
@@ -373,7 +350,7 @@ function fileChanges(from, to)
 export function commitChanges()
 {
     const status = {};
-    if (fs.access(`${currentConfig}/etc/config.mesh/_setup`)) {
+    if (fs.access(`${currentConfig}/etc/config.mesh/setup`)) {
         if (fileChanges(`${currentConfig}/etc/local/uci/hsmmmesh`, "/etc/local/uci/hsmmmesh") > 0) {
             fs.mkdir("/tmp/reboot-required");
             fs.writefile("/tmp/reboot-required/reboot", "");
@@ -412,7 +389,7 @@ export function revertModalChanges()
 export function countChanges()
 {
     let count = 0;
-    if (fs.access(`${currentConfig}/etc/config.mesh/_setup`)) {
+    if (fs.access(`${currentConfig}/etc/config.mesh/setup`)) {
         for (let i = 0; i < length(configFiles); i++) {
             count += fileChanges(`${currentConfig}${configFiles[i]}`, configFiles[i]);
         }
