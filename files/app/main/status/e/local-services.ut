@@ -37,14 +37,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
     configuration.prepareChanges();
     if ("services" in request.args) {
         const services = json(request.args.services);
-        const dhcp = configuration.getDHCP();
-        let f = fs.open(dhcp.services, "w");
-        if (f) {
-            for (let i = 0; i < length(services); i++) {
-                f.write(`${services[i]}\n`);
-            }
-            f.close();
-        }
+        uciMesh.set("setup", "services", "service", services);
+        uciMesh.commit("setup");
     }
     if ("aliases" in request.args) {
         const aliases = json(request.args.aliases);
@@ -111,36 +105,34 @@ const services = [];
 const dhcp = configuration.getDHCP();
 const as = iptoarr(dhcp.start);
 const ae = iptoarr(dhcp.end);
-let f = fs.open(dhcp.services);
-if (f) {
-    const reService = regexp("^([^|]+)\\|1\\|([^|]+)\\|([^|]+)\\|(\\d+)\\|(.*)$");
-    const reLink = regexp("^([^|]+)\\|0\\|\\|([^|]+)\\|\\|$");
-    const reType = regexp("^(.+) \\[([a-z]+)\\]$");
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const v = match(trim(l), reService);
-        if (v) {
-            let type = null;
-            const v2 = match(v[1], reType);
-            if (v2) {
-                v[1] = v2[1];
-                type = v2[2];
-            }
-            push(services, { name: v[1], type: type, link: true, protocol: v[2], hostname: v[3], port: v[4], path: v[5] });
+const reService = regexp("^([^|]+)\\|1\\|([^|]+)\\|([^|]+)\\|(\\d+)\\|(.*)$");
+const reLink = regexp("^([^|]+)\\|0\\|\\|([^|]+)\\|\\|$");
+const reType = regexp("^(.+) \\[([a-z]+)\\]$");
+const svcs = uciMesh.get("setup", "services", "service");
+for (let i = 0; i < length(svcs); i++) {
+    const l = trim(svcs[i]);
+    const v = match(l, reService);
+    if (v) {
+        let type = null;
+        const v2 = match(v[1], reType);
+        if (v2) {
+            v[1] = v2[1];
+            type = v2[2];
         }
-        else {
-            const k = match(trim(l), reLink);
-            if (k) {
-                let type = null;
-                const k2 = match(k[1], reType);
-                if (k2) {
-                    k[1] = k2[1];
-                    type = k2[2];
-                }
-                push(services, { name: k[1], type: type, link: false, hostname: k[2] });
+        push(services, { name: v[1], type: type, link: true, protocol: v[2], hostname: v[3], port: v[4], path: v[5] });
+    }
+    else {
+        const k = match(l, reLink);
+        if (k) {
+            let type = null;
+            const k2 = match(k[1], reType);
+            if (k2) {
+                k[1] = k2[1];
+                type = k2[2];
             }
+            push(services, { name: k[1], type: type, link: false, hostname: k[2] });
         }
     }
-    f.close();
 }
 const hosts = [ configuration.getName() ];
 const aliases = { start: dhcp.start, end: dhcp.end, leases: {}, map: [] };

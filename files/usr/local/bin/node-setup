@@ -311,21 +311,18 @@ local dhcpfile  = "/etc/config.mesh/_setup.dhcp"
 local dhcptagsfile = "/etc/config.mesh/_setup.dhcptags"
 local dhcpoptionsfile = "/etc/config.mesh/_setup.dhcpoptions"
 local aliasfile = "/etc/config.mesh/aliases"
-local servfile = "/etc/config.mesh/_setup.services"
 if is_nat_mode() then
     portfile = portfile .. ".nat"
     dhcpfile = dhcpfile .. ".nat"
     dhcptagsfile = dhcptagsfile .. ".nat"
     dhcpoptionsfile = dhcpoptionsfile .. ".nat"
     aliasfile = aliasfile .. ".nat"
-    servfile = servfile .. ".nat"
 else
     portfile = portfile .. ".dmz"
     dhcpfile = dhcpfile .. ".dmz"
     dhcptagsfile = dhcptagsfile .. ".dmz"
     dhcpoptionsfile = dhcpoptionsfile .. ".dmz"
     aliasfile = aliasfile .. ".dmz"
-    servfile = servfile .. ".dmz"
 end
 
 -- check for old aliases file, copy it to .dmz and create symlink

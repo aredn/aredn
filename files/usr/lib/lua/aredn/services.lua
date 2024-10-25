@@ -127,25 +127,18 @@ local function get(validate)
     end
 
     -- load the services
-    local servfile = "/etc/config.mesh/_setup.services.nat"
-    if dmz_mode ~= "0" then
-        servfile = "/etc/config.mesh/_setup.services.dmz"
-    end
-    if nixio.fs.access(servfile) then
-        for line in io.lines(servfile)
-        do
-            if not (line:match("^%s*#") or line:match("^%s*$")) then
-                local name, link, proto, host, port, sffx = line:match("(.*)|(.*)|(.*)|(.*)|(.*)|(.*)")
-                if name and name ~= "" and host ~= "" then
-                    if proto == "" then
-                        proto = "http"
-                    end
-                    if link == "0" then
-                        port = "0"
-                    end
-                    services[#services + 1] = string.format("%s://%s:%s/%s|tcp|%s", proto, host, port, sffx, name)
-                end
+    local svcs = uci.cursor("/etc/config.mesh"):get_all("setup", "services", "service")
+    for _, svc in ipairs(svcs)
+    do
+        local name, link, proto, host, port, sffx = svc:match("(.*)|(.*)|(.*)|(.*)|(.*)|(.*)")
+        if name and name ~= "" and host ~= "" then
+            if proto == "" then
+                proto = "http"
             end
+            if link == "0" then
+                port = "0"
+            end
+            services[#services + 1] = string.format("%s://%s:%s/%s|tcp|%s", proto, host, port, sffx, name)
         end
     end
     --
