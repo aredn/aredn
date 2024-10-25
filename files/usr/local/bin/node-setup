@@ -203,13 +203,11 @@ function expand_vars(lines)
     return table.concat(nlines, "")
 end
 
--- load the verify the selected configuration
-
-for line in io.lines("/etc/config.mesh/_setup")
+-- load the configuration
+local cms = cm:get_all("setup", "globals")
+for k, v in pairs(cms)
 do
-    if not (line:match("^%s*#") or line:match("^%s*$")) then
-        line = line:gsub("<NODE>", node):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
-        local k, v = line:match("^([^%s]*)%s*=%s*(.*)%s*$")
+    if not k:match("^%.") then
         cfg[k] = v
     end
 end
@@ -428,14 +426,10 @@ do
                     vlan = "4:u"
                 end
                 -- handle wan vlan override
-                for line in io.lines("/etc/config.mesh/_setup")
-                do
-                    local wport, wvlan = line:match("^wan_intf = (%w+%.)(%d+)")
-                    if wvlan then
-                        vlan = wvlan .. ":t"
-                        ports = { wport .. wvlan }
-                        break
-                    end
+                local wport, wvlan = cm:get("setup", "globals", "wan_intf"):match("(%w+%.)(%d+)")
+                if wvlan then
+                    vlan = wvlan .. ":t"
+                    ports = { wport .. wvlan }
                 end
             end
         elseif net == "dtdlink" then
@@ -684,7 +678,7 @@ nixio.fs.mkdir("/tmp/new_config")
 for file in nixio.fs.glob("/etc/config.mesh/*")
 do
     local bfile = nixio.fs.basename(file)
-    if bfile == "vtun" or bfile == "wireguard" or bfile == "xlink" or bfile == "olsrd" or bfile == "firewall.user" or bfile:match("^_setup") or bfile:match("^aliases") then
+    if bfile == "setup" or bfile == "vtun" or bfile == "wireguard" or bfile == "xlink" or bfile == "olsrd" or bfile == "firewall.user" or bfile:match("^_setup") or bfile:match("^aliases") then
         -- Dont copy these
     else
         local f = io.open("/tmp/new_config/" .. bfile, "w")
