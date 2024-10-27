@@ -107,6 +107,7 @@ local dtdmac = aredn.info.get_nvram("dtdmac")
 local wifi_mon_enable = false
 local deleteme = {}
 local cfg = {
+    description_node = "",
     lan_intf = lanintf,
     wan_intf = aredn.hardware.get_board_network_ifname("wan"),
     bridge_network_config = "",
@@ -291,13 +292,11 @@ do
                 if parm:upper() == parm then
                     -- nvram variable
                     if aredn.info.get_nvram(parm:lower()) == "" then
-                        print ("nv parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
-                        return -1
+                        print ("WARNING: nv parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
                     end
                 else
                     if not cfg[parm] and not deleteme[parm] then
-                        print ("parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
-                        return -1
+                        print ("WARNING: parameter '" .. parm .. "' in file '" .. file .. "' does not exist")
                     end
                 end
             end
@@ -426,7 +425,7 @@ do
                     vlan = "4:u"
                 end
                 -- handle wan vlan override
-                local wport, wvlan = cm:get("setup", "globals", "wan_intf"):match("(%w+%.)(%d+)")
+                local wport, wvlan = (cm:get("setup", "globals", "wan_intf") or ""):match("(%w+%.)(%d+)")
                 if wvlan then
                     vlan = wvlan .. ":t"
                     ports = { wport .. wvlan }
