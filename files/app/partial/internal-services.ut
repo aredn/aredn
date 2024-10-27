@@ -37,6 +37,7 @@
     const sn = uci.get("aredn", "@supernode[0]", "enable") === "1" ? "active" : "disabled";
     const cm = uci.get("aredn", "@supernode[0]", "support") === "0" ? "disabled" : "active";
     const wd = uci.get("aredn", "@watchdog[0]", "enable") === "1" ? "active" : "disabled";
+    const wwd = uci.get("aredn", "@wireless_watchdog[0]", "enable") === "1" ? "active" : "disabled";
     const ip = uci.get("aredn", "@iperf[0]", "enable") === "0" ? "disabled" : "active";
     const s = fs.stat("/tmp/metrics-ran");
     const mt = s && time() - s.mtime < 3600000 ? "active" : "inactive";
@@ -62,6 +63,9 @@
         <div class="service"><div class="status {{ws}}"></div>WAN ssh</div>
         <div class="service"><div class="status {{wt}}"></div>WAN telnet</div>
         <div class="service"><div class="status {{ww}}"></div>WAN web</div>
+        {% if (hardware.getRadioCount() > 0) { %}
+        <div class="service"><div class="status {{wwd}}"></div>Wireless Watchdog</div>
+        {% } %}
         {% if (hardware.hasPOE()) { %}
         <div class="service"><div class="status {{poe}}"></div>PoE out</div>
         {% } %}

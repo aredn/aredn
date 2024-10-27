@@ -62,6 +62,12 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("watchdog_daily" in request.args) {
         uciMesh.set("aredn", "@watchdog[0]", "daily", request.args.watchdog_daily);
     }
+    if (request.args.wireless_watchdog) {
+        uciMesh.set("aredn", "@wireless_watchdog[0]", "enable", request.args.wireless_watchdog === "on" ? "1" : "0");
+    }
+    if ("wireless_watchdog_daily" in request.args) {
+        uciMesh.set("aredn", "@wireless_watchdog[0]", "daily", request.args.wireless_watchdog_daily);
+    }
     if ("power_poe" in request.args) {
         uciMesh.set("aredn", "@poe[0]", "passthrough", request.args.power_poe === "on" ? "1" : "0");
     }
@@ -193,7 +199,33 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 are unreliable and in places difficult to reach. A node must have its time set using either NTP or GPS for this to be honored.")}}
             </div>
         </div>
-    {% if (hardware.hasPOE()) { %}
+    {% if (hardware.getRadioCount() > 0) { %}
+        <div class="hideable" data-hideable='{{uciMesh.get("aredn", "@wireless_watchdog[0]", "enable") === "1" ? "on" : "off"}}'>
+            <div class="cols">
+                <div>
+                    <div class="o">Wireless Watchdog</div>
+                    <div class="m">Allow watchdog to restart the wifi if it becomes unresponsive</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("hideable-switch", { name: "wireless_watchdog", value: uciMesh.get("aredn", "@wireless_watchdog[0]", "enable") === "1" })}}
+                </div>
+            </div>
+            {{_H("Enable the wireless watchdog. This monitors the wifi mesh radio and tries to fix connection problems when they're detected.")}}
+            <div class="hideable1">
+                <div class="cols">
+                    <div>
+                        <div class="o">Daily Wireless Watchdog time</div>
+                        <div class="m">Restart the wifi at a specific time every day</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="wireless_watchdog_daily" type="text" size="20" placeholder="None" pattern="(0\d|1\d|2[0-3]):(0\d|[1-5]\d)" hx-validate="true" value="{{uciMesh.get("aredn", "@wireless_watchdog[0]", "daily") || ""}}">
+                    </div>
+                </div>
+                {{_H("Set a specific time of the day (between 00:00 and 23:59) to restart the wifi automatically.")}}
+            </div>
+        </div>
+    {% }
+       if (hardware.hasPOE()) { %}
         <div class="cols">
             <div>
                 <div class="o">PoE Passthrough</div>

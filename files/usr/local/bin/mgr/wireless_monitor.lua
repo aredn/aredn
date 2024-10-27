@@ -51,8 +51,7 @@ local action_limits = {
     unresponsive_trigger1 = 5,
     unresponsive_trigger2 = 10,
     zero_trigger1 = 10 * 60, -- 10 minutes
-    zero_trigger2 = 30 * 60, -- 30 minutes
-    default_scan = 3 -- 3am
+    zero_trigger2 = 30 * 60 -- 30 minutes
 }
 -- Start action state assuming the node is active and no actions are pending
 local action_state = {
@@ -190,14 +189,18 @@ end
 function M.run_actions()
 
     -- Once per day we do a wifi scan as a fallback for failed connections
-    local time = os.date("*t")
-    if time.hour == action_limits.default_scan then
-        if default_scan_enabled then
-            default_scan_enabled = false
-            M.reset_network("scan-all")
+    local c = uci.cursor()
+    if c:get("aredn", "@wireless_watchdog[0]", "enable") == "1" then
+        local h, m = (c:get("aredn", "@wireless_watchdog[0]", "daily") or ""):match("(%d%d):(%d%d)")
+        local time = os.date("*t")
+        if time.hour == tonumber(h) then
+            if default_scan_enabled then
+                default_scan_enabled = false
+                M.reset_network("scan-all")
+            end
+        else
+            default_scan_enabled = true
         end
-    else
-        default_scan_enabled = true
     end
 
     -- No action if we have stations and they're responsive
