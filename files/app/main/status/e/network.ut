@@ -186,10 +186,11 @@ if (request.env.REQUEST_METHOD === "DELETE") {
 }
 const dmz_mode = configuration.getSettingAsInt("dmz_mode", 3);
 const dhcp = configuration.getDHCP("nat");
-const ds = split(dhcp.start, ".");
-const de = split(dhcp.end, ".");
-const dhcp_start = int(ds[3]);
-const dhcp_end = int(de[3]) + 256 * (de[2] - ds[2]);
+const db = iptoarr(dhcp.base);
+const ds = iptoarr(dhcp.start);
+const de = iptoarr(dhcp.end);
+const dhcp_start = (ds[2] - db[2]) * 256 + (ds[3] - db[3]);
+const dhcp_end = (de[2] - db[2]) * 256 + (de[3] - db[3]);
 const wan_proto = configuration.getSettingAsString("wan_proto", "disabled");
 const wan_iface = split(configuration.getSettingAsString("wan_intf", ""), ".");
 const wan_vlan = wan_iface[1] ? wan_iface[1] : "";
@@ -495,6 +496,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     endp = "[]";
                 }
                 else {
+                    const v = ip.validity.valid;
                     const i = ipv.split(".");
                     const netip = (parseInt(i[3]) + 256 * parseInt(i[2])) & size;
                     if (startv < 1 || endv >= size || (netip >= startv && netip <= endv)) {
@@ -506,14 +508,16 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     if (ipv === base) {
                         ipp = "[]";
                     }
-                    startid.innerHTML = `Start offset from ${base} for allocating DHCP addresses`;
-                    endid.innerHTML = `End offset from ${base} for allocating DHCP addresses`;
+                    startid.innerHTML = `Start offset from ${v ? base : "-"} for allocating DHCP addresses`;
+                    endid.innerHTML = `End offset from ${v ? base : "-"} for allocating DHCP addresses`;
                 }
             }
             netmask.pattern = netmaskp;
             start.pattern = startp;
             end.pattern = endp;
-            ip.pattern = ipp;
+            if (ip.name !== "lan44_dhcp_ip") {
+                ip.pattern = ipp;
+            }
         }
         function validateLANRange()
         {

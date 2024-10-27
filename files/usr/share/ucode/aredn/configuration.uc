@@ -206,12 +206,17 @@ export function getDHCP(mode)
     initSetup();
     const setup = scursor.get_all("setup", "globals");
     if (mode === "nat" || (!mode && setup.dmz_mode === "0")) {
-        const root = replace(setup.lan_ip, /\d+$/, "");
+        const i = iptoarr(setup.lan_ip);
+        const m = iptoarr(setup.lan_mask);
+        const b = ((i[2] & m[2]) * 256 + (i[3] & m[3]));
+        const s = b + int(setup.dhcp_start);
+        const e = b + int(setup.dhcp_end);
         return {
             enabled: setup.lan_dhcp !== "0" ? true : false,
             mode: 0,
-            start: `${root}${setup.dhcp_start}`,
-            end: `${root}${setup.dhcp_end}`,
+            base: `${i[0]}.${i[1]}.${(b >> 8) & 255}.${b & 255}`,
+            start: `${i[0]}.${i[1]}.${(s >> 8) & 255}.${s & 255}`,
+            end: `${i[0]}.${i[1]}.${(e >> 8) & 255}.${e & 255}`,
             gateway: setup.lan_ip,
             mask: setup.lan_mask,
             cidr: network.netmaskToCIDR(setup.lan_mask),
@@ -225,12 +230,17 @@ export function getDHCP(mode)
         };
     }
     else if (setup.dmz_mode === "1") {
-        const root = replace(setup.lan_ip, /\d+$/, "");
+        const i = iptoarr(setup.lan_ip);
+        const m = iptoarr(setup.lan_mask);
+        const b = ((i[2] & m[2]) * 256 + (i[3] & m[3]));
+        const s = b + int(setup.dhcp_start);
+        const e = b + int(setup.dhcp_end);
         return {
             enabled: setup.lan_dhcp !== "0" ? true : false,
             mode: 1,
-            start: `${root}${setup.dhcp_start}`,
-            end: `${root}${setup.dhcp_end}`,
+            base: `${i[0]}.${i[1]}.${(b >> 8) & 255}.${b & 255}`,
+            start: `${i[0]}.${i[1]}.${(s >> 8) & 255}.${s & 255}`,
+            end: `${i[0]}.${i[1]}.${(e >> 8) & 255}.${e & 255}`,
             gateway: setup.lan_ip,
             mask: setup.lan_mask,
             cidr: network.netmaskToCIDR(setup.lan_mask),
@@ -244,12 +254,17 @@ export function getDHCP(mode)
         };
     }
     else {
-        const root = replace(setup.dmz_lan_ip, /\d+$/, "");
+        const i = iptoarr(setup.dmz_lan_ip);
+        const m = iptoarr(setup.dmz_lan_mask);
+        const b = ((i[2] & m[2]) * 256 + (i[3] & m[3]));
+        const s = b + int(setup.dmz_dhcp_start);
+        const e = b + int(setup.dmz_dhcp_end);
         return {
             enabled: setup.lan_dhcp !== "0" ? true : false,
             mode: int(setup.dmz_mode),
-            start: `${root}${setup.dmz_dhcp_start}`,
-            end: `${root}${setup.dmz_dhcp_end}`,
+            base: `${i[0]}.${i[1]}.${(b >> 8) & 255}.${b & 255}`,
+            start: `${i[0]}.${i[1]}.${(s >> 8) & 255}.${s & 255}`,
+            end: `${i[0]}.${i[1]}.${(e >> 8) & 255}.${e & 255}`,
             gateway: setup.dmz_lan_ip,
             mask: setup.dmz_lan_mask,
             cidr: network.netmaskToCIDR(setup.dmz_lan_mask),

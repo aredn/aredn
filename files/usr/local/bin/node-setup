@@ -1152,7 +1152,8 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         end
         if is_altnet_mode() then
             local a, b, c, d = cfg.lan_ip:match("(.*)%.(.*)%.(.*)%.(.*)")
-            of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%s.%d\n\toption netmask %s\n\n", a, b, c, d - 1, cfg.lan_mask))
+            local m, n, o, p = cfg.lan_mask:match("(.*)%.(.*)%.(.*)%.(.*)")
+            of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%d.%d\n\toption netmask %s\n\n", a, b, nixio.bit.band(c, o), nixio.bit.band(d, p), cfg.lan_mask))
         end
 
         if cfg.wifi_enable ~= "1" and is_notnull(cfg.wifi_ip) then
