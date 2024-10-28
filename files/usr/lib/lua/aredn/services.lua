@@ -66,7 +66,7 @@ local function get(validate)
         names[#names + 1] = name
     end
 
-    local dmz_mode = uci.cursor("/etc/config.mesh"):get("aredn", "@dmz[0]", "mode")
+    local dmz_mode = uci.cursor("/etc/config.mesh"):get("setup", "globals", "dmz_mode")
     if dmz_mode ~= "0" then
         if nixio.fs.stat("/etc/config.mesh/aliases.dmz") then
             for line in io.lines("/etc/config.mesh/aliases.dmz")
