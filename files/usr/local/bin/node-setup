@@ -1307,7 +1307,7 @@ end
 
 -- Handle special cases
 local config_special = {
-    dmz_mode = c:get("aredn", "@dmz[0]", "mode"),
+    dmz_mode = c:get("setup", "globals", "dmz_mode"),
     lqm_enable = c:get("aredn", "@lqm[0]", "enable"),
     tunnel_weight = c:get("aredn", "@tunnel[0]", "weight"),
     supernode_enable = c:get("aredn", "@supernode[0]", "enable"),
@@ -1354,7 +1354,7 @@ do
             changes.ntp = true
         elseif file == "aredn" then
             local oc = uci:cursor()
-            if oc:get("aredn", "@dmz[0]", "mode") ~= config_special.dmz_mode then
+            if oc:get("setup", "globals", "dmz_mode") ~= config_special.dmz_mode then
                 changes.reboot = true
             end
             if oc:get("aredn", "@lqm[0]", "enable") ~= config_special.lqm_enable then
