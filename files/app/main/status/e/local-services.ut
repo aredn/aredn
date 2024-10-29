@@ -37,7 +37,15 @@ if (request.env.REQUEST_METHOD === "PUT") {
     configuration.prepareChanges();
     if ("services" in request.args) {
         const services = json(request.args.services);
-        uciMesh.set("setup", "services", "service", services);
+        if (!uciMesh.get("setup", "services")) {
+            uciMesh.set("setup", "services", "services");
+        }
+        if (length(services)) {
+            uciMesh.set("setup", "services", "service", services);
+        }
+        else {
+            uciMesh.delete("setup", "services", "service");
+        }
         uciMesh.commit("setup");
     }
     if ("aliases" in request.args) {
@@ -108,7 +116,7 @@ const ae = iptoarr(dhcp.end);
 const reService = regexp("^([^|]+)\\|1\\|([^|]+)\\|([^|]+)\\|(\\d+)\\|(.*)$");
 const reLink = regexp("^([^|]+)\\|0\\|\\|([^|]+)\\|\\|$");
 const reType = regexp("^(.+) \\[([a-z]+)\\]$");
-const svcs = uciMesh.get("setup", "services", "service");
+const svcs = uciMesh.get("setup", "services", "service") || [];
 for (let i = 0; i < length(svcs); i++) {
     const l = trim(svcs[i]);
     const v = match(l, reService);
