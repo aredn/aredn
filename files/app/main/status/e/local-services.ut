@@ -37,7 +37,15 @@ if (request.env.REQUEST_METHOD === "PUT") {
     configuration.prepareChanges();
     if ("services" in request.args) {
         const services = json(request.args.services);
-        uciMesh.set("setup", "services", "service", services);
+        if (!uciMesh.get("setup", "services")) {
+            uciMesh.set("setup", "services", "services");
+        }
+        if (length(services)) {
+            uciMesh.set("setup", "services", "service", services);
+        }
+        else {
+            uciMesh.delete("setup", "services", "service");
+        }
         uciMesh.commit("setup");
     }
     if ("aliases" in request.args) {
