@@ -127,7 +127,7 @@ local function get(validate)
     end
 
     -- load the services
-    local svcs = uci.cursor("/etc/config.mesh"):get_all("setup", "services", "service")
+    local svcs = uci.cursor("/etc/config.mesh"):get_all("setup", "services", "service") or {}
     for _, svc in ipairs(svcs)
     do
         local name, link, proto, host, port, sffx = svc:match("(.*)|(.*)|(.*)|(.*)|(.*)|(.*)")
