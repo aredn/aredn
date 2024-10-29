@@ -360,7 +360,7 @@ const po = getPackageOptions();
             const download = htmx.find("#download-package").value;
             const remove = htmx.find("#remove-package").value;
             if (upload) {
-                htmx.on(e.currentTarget, "htmx:xhr:progress", e => htmx.find("#package-upload progress").setAttribute("value", e.detail.loaded / e.detail.total * 100));
+                htmx.on(e.currentTarget, "htmx:xhr:progress", e => htmx.find("#package-upload progress").setAttribute("value", Math.round(e.detail.loaded / e.detail.total * 100)));
                 htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
                     source: e.currentTarget,
                     values: {
