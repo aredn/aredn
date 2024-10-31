@@ -1,0 +1,55 @@
+#!/bin/sh
+true <<'LICENSE'
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2024 Tim Wilkinson
+  See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+LICENSE
+
+cat > /tmp/run_uci_defaults << __EOF__
+
+require("nixio")
+require("uci")
+
+local c = uci.cursor("/etc/config.mesh")
+
+if tonumber(c:get("setup", "globals", "dmz_mode") or 0) > 1 then
+    local dmz_lan_mask = c:get("setup", "globals", "dmz_lan_mask")
+    local dmz_dhcp_start = tonumber(c:get("setup", "globals", "dmz_dhcp_start"))
+    local dmz_dhcp_end = tonumber(c:get("setup", "globals", "dmz_dhcp_end"))
+    local mask = 255 - tonumber(dmz_lan_mask:match("%.(%d+)$"))
+    c:set("setup", "globals", "dmz_dhcp_start", nixio.bit.band(dmz_dhcp_start, mask))
+    c:set("setup", "globals", "dmz_dhcp_end", nixio.bit.band(dmz_dhcp_end, mask))
+    c:commit("setup")
+end
+
+__EOF__
+/usr/bin/lua /tmp/run_uci_defaults
+rm -f /tmp/run_uci_defaults
