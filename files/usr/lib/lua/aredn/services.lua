@@ -109,7 +109,10 @@ local function get(validate)
                 local dtdip = line:match("^(%d+%.%d+%.%d+%.%d+)%s+dtdlink%.")
                 if dtdip then
                     hosts[#hosts + 1] = { ip = dtdip, host = "dtdlink." .. name .. ".local.mesh" }
-                    break
+                end
+                local lanip = line:match("^(%d+%.%d+%.%d+%.%d+)%s+localnode$")
+                if lanip then
+                    hosts[#hosts + 1] = { ip = lanip, host = "lan." .. name .. ".local.mesh" }
                 end
             end
         end
@@ -169,8 +172,12 @@ local function get(validate)
         do
             if os.execute("/bin/ping -q -c 1 -W 1 " .. host.ip .. " > /dev/null 2>&1") == 0 then
                 vstate[host.host:lower()] = last
+                services[#services + 1] = string.format("pseudo://%s:80/|tcp|pseudo", host.host)
+                services[#services + 1] = string.format("pseudos://%s:443/|tcp|pseudos", host.host)
             elseif os.execute("/usr/sbin/arping -q -f -c 1 -w 1 -I " .. laniface .. " " .. host.ip .. " > /dev/null 2>&1") == 0 then
                 vstate[host.host:lower()] = last
+                services[#services + 1] = string.format("pseudo://%s:80/|tcp|pseudo", host.host)
+                services[#services + 1] = string.format("pseudos://%s:443/|tcp|pseudos", host.host)
             end
         end
         -- Load NAT
@@ -215,7 +222,7 @@ local function get(validate)
                     if port == "0" then
                         -- no port so not a link - we can only check the hostname so have to assume the service is good
                         vstate[service] = last
-                    elseif proto == "http" then
+                    elseif proto == "http" or proto == "pseudo" then
                         -- http so looks like a link. http check it
                         if not hostname:match("%.local%.mesh$") then
                             hostname = hostname .. ".local.mesh"
@@ -298,13 +305,15 @@ local function get(validate)
         services = {}
         for _, service in ipairs(old_services)
         do
-            local vs = vstate[service]
-            if not vs then
-                -- New services will be valid for a while, even if they're not there yet
-                services[#services + 1] = service
-                vstate[service] = last
-            elseif vs > now then
-                services[#services + 1] = service
+            if not service:match("^pseudo:") and not service:match("^pseudos:")then
+                local vs = vstate[service]
+                if not vs then
+                    -- New services will be valid for a while, even if they're not there yet
+                    services[#services + 1] = service
+                    vstate[service] = last
+                elseif vs > now then
+                    services[#services + 1] = service
+                end
             end
         end
 
