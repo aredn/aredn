@@ -36,21 +36,22 @@
     const reService = /^([^|]+)\|1\|([^|]+)\|([^|]+)\|(\d+)\|(.*)$/;
     const reLink = /^([^|]+)\|0\|\|([^|]+)\|\|$/;
     const reType = /^(.+) \[([a-z]+)\]$/;
-    const reOlsr = /PlParam "service" ".*\|([^|]+)"/;
 
     const services = [];
     const devices = [];
     const leases = {};
-    const activesvc = {};
+    const valid = {};
 
     const dhcp = configuration.getDHCP();
 
-    let f = fs.open("/var/etc/olsrd.conf");
+    let f = fs.open("/tmp/service-validation-state");
     if (f) {
+        const now = time();
         for (let l = f.read("line"); length(l); l = f.read("line")) {
-            const m = match(l, reOlsr);
-            if (m) {
-                activesvc[m[1]] = true;
+            const m = match(trim(l), /^(\d+) (.+)$/);
+            const n = split(m[2], "|");
+            if (length(n) > 1) {
+                valid[n[0]] = (int(m[1]) > now);
             }
         }
         f.close();
@@ -61,7 +62,7 @@
         const v = match(l, reService);
         if (v) {
             let type = "";
-            if (!activesvc[v[1]]) {
+            if (valid[`${v[2]}://${v[3]}:${v[4]}/${v[5]}`] === false) {
                 type += ` <div class="icon warning" title="Service cannot be reached"></div>`;
             }
             const v2 = match(v[1], reType);
@@ -101,7 +102,15 @@
             for (let l = f.read("line"); length(l); l = f.read("line")) {
                 const v = match(trim(l), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
                 if (v && v[4] !== "#NOPROP") {
-                    push(devices, `<div class="device">${v[3]}</div>`);
+                    if (valid[`pseudo://${v[3]}:80/`] === true) {
+                        push(devices, `<div class="device"><a target="_blank" href="http://${v[3]}.local.mesh" onclick="event.stopPropagation()">${v[3]} <div class="icon link" title="link"></div></a></div>`);
+                    }
+                    else if (valid[`pseudos://${v[3]}:443/`] === true) {
+                        push(devices, `<div class="device"><a target="_blank" href="https://${v[3]}.local.mesh" onclick="event.stopPropagation()">${v[3]} <div class="icon link" title="link"></div></a></div>`);
+                    }
+                    else {
+                        push(devices, `<div class="device">${v[3]}</div>`);
+                    }
                 }
             }
             f.close();
