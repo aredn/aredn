@@ -57,17 +57,17 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 dmz_lan_ip = arrtoip([ (dmz_lan_ip >> 24) & 0xff, (dmz_lan_ip >> 16) & 0xff, (dmz_lan_ip >> 8) & 0xff, dmz_lan_ip & 0xff ]);
                 let dmz_lan_mask = 0xffffffff << mode;
                 dmz_lan_mask = arrtoip([ (dmz_lan_mask >> 24) & 0xff, (dmz_lan_mask >> 16) & 0xff, (dmz_lan_mask >> 8) & 0xff, dmz_lan_mask & 0xff ]);
-                const dmz_dhcp_start = (wifi_shift + 2) & 0xff;
-                const dmz_dhcp_end = dmz_dhcp_start + (2 << (mode - 1)) - 4;
                 configuration.setSetting("dmz_lan_ip", dmz_lan_ip);
                 configuration.setSetting("dmz_lan_mask", dmz_lan_mask);
-                configuration.setSetting("dmz_dhcp_start", dmz_dhcp_start);
-                configuration.setSetting("dmz_dhcp_end", dmz_dhcp_end);
+                configuration.setSetting("dmz_dhcp_start", 2);
+                configuration.setSetting("dmz_dhcp_end", (2 << (mode - 1)) - 2);
                 const dhcp = configuration.getDHCP();
                 let f = fs.open(dhcp.aliases);
                 if (f) {
                     const aliases = [];
-                    const n_lan_ip = iptoarr(configuration.getSettingAsString("dmz_lan_ip"));
+                    const dmz_dhcp_start = (wifi_shift + 2) & 0xff;
+                    const dmz_dhcp_end = dmz_dhcp_start + (2 << (mode - 1)) - 4;
+                    const n_lan_ip = iptoarr(dmz_lan_ip);
                     for (let l = f.read("line"); length(l); l = f.read("line")) {
                         const v = match(trim(l), /^(.+) (.+)$/);
                         if (v) {
