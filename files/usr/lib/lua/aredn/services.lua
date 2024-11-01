@@ -305,7 +305,7 @@ local function get(validate)
         services = {}
         for _, service in ipairs(old_services)
         do
-            if not service:match("^pseudo:") and not service:match("^pseudos:")then
+            if not service:match("^pseudo:") and not service:match("^pseudos:") then
                 local vs = vstate[service]
                 if not vs then
                     -- New services will be valid for a while, even if they're not there yet
