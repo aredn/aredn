@@ -240,7 +240,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Gateway IP a&zwnj;ddress for this LAN network</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_ip" type="text" size="15" required pattern="{{constants.patIP}}" hx-validate="true" value="{{gateway_nat}}">
+                        <input name="lan_dhcp_ip" type="text" size="15" required pattern="{{constants.patIP}}" value="{{gateway_nat}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -249,7 +249,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Netmask for this LAN network</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_netmask" type="text" size="15" required pattern="255\.255\.(((0|128|192|224|240|248|252|254)\.0)|255\.(0|128|192|224|240|248|252))" hx-validate="true" value="{{dhcp.mask}}">
+                        <input name="lan_dhcp_netmask" type="text" size="15" required pattern="255\.255\.(((0|128|192|224|240|248|252|254)\.0)|255\.(0|128|192|224|240|248|252))" value="{{dhcp.mask}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -258,7 +258,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m" id="lan_dhcp_start_m">Start offset from base for allocating DHCP addresses</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_start" type="text" size="4" required pattern="[]" hx-validate="true" value="{{dhcp_start}}">
+                        <input name="lan_dhcp_start" type="text" size="4" required pattern="[]" value="{{dhcp_start}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -267,7 +267,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m" id="lan_dhcp_end_m">End offset from base for allocating DHCP addresses</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan_dhcp_end" type="text" size="4" required pattern="[]" hx-validate="true" value="{{dhcp_end}}">
+                        <input name="lan_dhcp_end" type="text" size="4" required pattern="[]" value="{{dhcp_end}}">
                     </div>
                 </div>
             </div>
@@ -278,7 +278,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Gateway IP a&zwnj;ddress for 44Net LAN network</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan44_dhcp_ip" type="text" size="15" required pattern="44\.(\d|[1-9]\d|1[0-8]\d|19[01])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])" value="{{gateway_altnet}}">
+                        <input name="lan44_dhcp_ip" type="text" size="15" required pattern="44\.(\d|[1-9]\d|1[0-8]\d|19[01])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])" value="{{gateway_altnet}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -287,7 +287,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m">Netmask for 44Net LAN network</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan44_dhcp_netmask" type="text" size="15" required pattern="255\.255\.255\.(0|128|192|224|240|248|252)" hx-validate="true" value="{{dhcp.mask}}">
+                        <input name="lan44_dhcp_netmask" type="text" size="15" required pattern="255\.255\.255\.(0|128|192|224|240|248|252)" value="{{dhcp.mask}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -296,7 +296,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m" id="lan44_dhcp_start_m">Start offset from base for allocating DHCP addresses</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan44_dhcp_start" type="text" size="4" required pattern="[]" hx-validate="true" value="{{dhcp_start}}">
+                        <input name="lan44_dhcp_start" type="text" size="4" required pattern="[]" value="{{dhcp_start}}">
                     </div>
                 </div>
                 <div class="cols">
@@ -305,7 +305,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <div class="m" id="lan44_dhcp_end_m">End offset from base for allocating DHCP addresses</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="lan44_dhcp_end" type="text" size="4" required pattern="[]" hx-validate="true" value="{{dhcp_end}}">
+                        <input name="lan44_dhcp_end" type="text" size="4" required pattern="[]" value="{{dhcp_end}}">
                     </div>
                 </div>
             </div>
@@ -521,11 +521,45 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
         }
         function validateLANRange()
         {
-            validateRange(htmx.find("input[name=lan_dhcp_ip]"), htmx.find("input[name=lan_dhcp_netmask]"), htmx.find("input[name=lan_dhcp_start]"), htmx.find("input[name=lan_dhcp_end]"), htmx.find("#lan_dhcp_start_m"), htmx.find("#lan_dhcp_end_m"));
+            const ip = htmx.find("input[name=lan_dhcp_ip]");
+            const netmask = htmx.find("input[name=lan_dhcp_netmask]");
+            const start = htmx.find("input[name=lan_dhcp_start]");
+            const end = htmx.find("input[name=lan_dhcp_end]");
+            const startm = htmx.find("#lan_dhcp_start_m");
+            const endm = htmx.find("#lan_dhcp_end_m");
+            validateRange(ip, netmask, start, end, startm, endm);
+            if (ip.validity.valid && netmask.validity.valid && start.validity.valid && end.validity.valid) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    values: {
+                        lan_dhcp_ip: ip.value,
+                        lan_dhcp_netmask: netmask.value,
+                        lan_dhcp_start: start.value,
+                        lan_dhcp_end: end.value
+                    },
+                    swap: "none"
+                });
+            }
         }
         function validateLAN44Range()
         {
-            validateRange(htmx.find("input[name=lan44_dhcp_ip]"), htmx.find("input[name=lan44_dhcp_netmask]"), htmx.find("input[name=lan44_dhcp_start]"), htmx.find("input[name=lan44_dhcp_end]"), htmx.find("#lan44_dhcp_start_m"), htmx.find("#lan44_dhcp_end_m"));
+            const ip = htmx.find("input[name=lan44_dhcp_ip]");
+            const netmask = htmx.find("input[name=lan44_dhcp_netmask]");
+            const start = htmx.find("input[name=lan44_dhcp_start]");
+            const end = htmx.find("input[name=lan44_dhcp_end]");
+            const startm = htmx.find("#lan44_dhcp_start_m");
+            const endm = htmx.find("#lan44_dhcp_end_m");
+            validateRange(ip, netmask, start, end, startm, endm);
+            if (ip.validity.valid && netmask.validity.valid && start.validity.valid && end.validity.valid) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    values: {
+                        lan44_dhcp_ip: ip.value,
+                        lan44_dhcp_netmask: netmask.value,
+                        lan44_dhcp_start: start.value,
+                        lan44_dhcp_end: end.value
+                    },
+                    swap: "none"
+                });
+            }
         }
         htmx.on("input[name=lan_dhcp_ip]", "input", validateLANRange);
         htmx.on("input[name=lan_dhcp_netmask]", "input", validateLANRange);
