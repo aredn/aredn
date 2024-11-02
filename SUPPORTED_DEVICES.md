@@ -13,6 +13,11 @@
 
 The 'target' and 'subtarget' identify the directory in which to find the image on at http://downloads.arednmesh.org
 
+## Aruba (1)
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+:------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
+AP-105 | AP-105 | 2 & 5 | ath79 | aruba | aruba_ap-105 | 128MB | stable | released
+
 ## Mikrotik (7)
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
