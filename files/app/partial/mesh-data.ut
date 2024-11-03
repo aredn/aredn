@@ -68,7 +68,7 @@ if (h) {
                 first = true;
             }
             const host = v[2];
-            if (index(host, "mid") !== 0 && index(host, "dtdlink") !== 0 && index(host, "xlink") !== 0) {
+            if (index(host, "mid") !== 0 && index(host, "dtdlink.") !== 0 && index(host, "xlink") !== 0 && index(host, "lan.") !== 0) {
                 if (!first) {
                     print(",");
                 }
@@ -80,7 +80,7 @@ if (h) {
                 }
                 first = false;
             }
-            else if (originator === "myself" && index(host, "dtdlink") === 0) {
+            else if (originator === "myself" && index(host, "dtdlink.") === 0) {
                 fallback = replace(host, /^dtdlink\.(.+)\.local\.mesh$/, "$1");
             }
         }
