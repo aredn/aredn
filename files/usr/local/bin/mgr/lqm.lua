@@ -264,8 +264,9 @@ f:close()
 local radiomode = "none"
 local wlan = aredn.hardware.get_iface_name("wifi")
 local phy = "none"
-if wlan:match("^wlan(%d+)$") then
-    phy = iwinfo.nl80211.phyname(wlan)
+local wlanid = wlan:match("^wlan(%d+)$")
+if wlanid then
+    phy = "phy" .. wlanid
     radiomode = "adhoc"
 end
 
