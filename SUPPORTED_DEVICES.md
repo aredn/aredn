@@ -47,32 +47,32 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | untested | released
 LiteAP 5AC | LAP-120 <br> LAP-120-US <br> LBE-5AC-16-120 <br> LBE-5AC-16-120-US | 5 | ath79 | generic | ubnt_lap-120 | 64MB | stable | released
-LiteBeam AC5 Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | released
-LiteBeam AC5 LR | LBE-5AC-LR <br> LBE-5AC-LR-US | 5 | ath79 | generic | ubnt_litebeam-ac-lr | 64MB | stable | released
+LiteBeam 5AC Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | released
+LiteBeam 5AC LR | LBE-5AC-LR <br> LBE-5AC-LR-US | 5 | ath79 | generic | ubnt_litebeam-ac-lr | 64MB | stable | released
 LiteBeam M5 || 5 | ath79 | - | - | 64MB | untested | not supported
 NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | stable | released
-NanoBeam AC 5 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | stable | released
-NanoBeam AC 5 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | released
-NanoBeam AC 5 Gen 2 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | released
-NanoBeam AC 5 Gen 2 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2-xc | 128MB | untested | released
+NanoBeam 5AC (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | stable | released
+NanoBeam 5AC (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | released
+NanoBeam 5AC Gen 2 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | released
+NanoBeam 5AC Gen 2 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2-xc | 128MB | untested | released
 NanoBeam M5-16 || 5 | ath79 | generic | ubnt_nanobeam-m5-16 | 64MB | stable | released
 NanoBeam M5-19 || 5 | ath79 | generic | ubnt_nanobeam-m5-19 | 64MB | stable | released
-NanoStation AC 5 | NS-5AC <br> NS-5AC-US | 5 | ath79 | generic | ubnt_nanostation-ac | 64MB | stable | released
+NanoStation 5AC | NS-5AC <br> NS-5AC-US | 5 | ath79 | generic | ubnt_nanostation-ac | 64MB | stable | released
 NanoStation Loco M2 XW || 2 | ath79 | generic | ubnt_nanostation-loco-m-xw | 64MB | untested | released
 NanoStation Loco M5 XW || 5 | ath79 | generic | ubnt_nanostation-loco-m-xw | 64MB | stable | released
 NanoStation M2 XW || 2 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 NanoStation M5 XW || 5 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
-PowerBeam AC 5 Gen2 || 5 | ath79 | generic | ubnt_powerbeam-5ac-gen2 | 128MB | untested | released
-PowerBeam AC 5 400 || 5 | ath79 | generic | ubnt_powerbeam-5ac-400 | 128MB | untested | released
-PowerBeam AC 5 500 | PBE-5AC-500 <br> PBE-5AC-500-US | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | released
-PowerBeam AC 5 620 || 5 | ath79 | generic | ubnt_powerbeam-5ac-620 | 128MB | untested | released
+PowerBeam 5AC Gen2 || 5 | ath79 | generic | ubnt_powerbeam-5ac-gen2 | 128MB | untested | released
+PowerBeam 5AC 400 || 5 | ath79 | generic | ubnt_powerbeam-5ac-400 | 128MB | untested | released
+PowerBeam 5AC 500 | PBE-5AC-500 <br> PBE-5AC-500-US | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | released
+PowerBeam 5AC 620 || 5 | ath79 | generic | ubnt_powerbeam-5ac-620 | 128MB | untested | released
 PowerBeam-M2-400 || 2 | ath79 | generic | ubnt_powerbeam-m2-xw | 64MB | stable | released
 PowerBeam-M5-300 || 5 | ath79 | generic | ubnt_powerbeam-m5-300 | 64MB | stable | released
 PowerBeam-M5-400 || 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
 PowerBeam-M5-400ISO || 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
 PowerBeam-M5-620 || 5 | ath79 | generic | ubnt_powerbeam-m5-xw | 64MB | stable | released
 PowerBridge || 5 | ath79 | generic | ubnt_powerbridge-m | 64MB | untested | released
-Rocket AC Lite 5 | R5AC-LITE <br> R5AC-LITE-US | 5 | ath79 | generic | ubnt_rocket-5ac-lite | 128MB | stable | released
+Rocket 5AC Lite | R5AC-LITE <br> R5AC-LITE-US | 5 | ath79 | generic | ubnt_rocket-5ac-lite | 128MB | stable | released
 Rocket M9 XM || 900 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
 Rocket M2 XM || 2 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
 Rocket M3 XM || 3 | ath79 | generic | ubnt_rocket-m | 64MB | stable | released
