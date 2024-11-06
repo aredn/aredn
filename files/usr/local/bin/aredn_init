@@ -162,7 +162,7 @@ do
 end
 
 -- Override with the current config
-local all = uci.cursor("/etc/config.mesh"):get_all("setup", "globals")
+local all = uci.cursor("/etc/config.mesh"):get_all("setup", "globals") or {}
 for k, v in pairs(all)
 do
     if not k:match("^%.") then
