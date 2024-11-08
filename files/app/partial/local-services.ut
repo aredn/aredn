@@ -61,25 +61,28 @@
         const l = trim(svcs[i]);
         const v = match(l, reService);
         if (v) {
-            let type = "";
-            if (valid[`${v[2]}://${v[3]}:${v[4]}/${v[5]}`] === false) {
-                type += ` <div class="icon warning" title="Service cannot be reached"></div>`;
-            }
-            const v2 = match(v[1], reType);
-            if (v2) {
-                v[1] = v2[1];
-                type += ` <div class="icon ${v2[2]}" title="${v2[2]}"></div>`;
-            }
-            switch (v[4]) {
-                case "80":
-                    push(services, `<div class="service"><a target="_blank" href="http://${v[3]}.local.mesh/${v[5]}" onclick="event.stopPropagation()">${v[1]}${type}</a></div>`);
-                    break;
-                case "443":
-                    push(services, `<div class="service"><a target="_blank" href="https://${v[3]}.local.mesh/${v[5]}" onclick="event.stopPropagation()">${v[1]}${type}</a></div>`);
-                    break;
-                default:
-                    push(services, `<div class="service"><a target="_blank" href="${v[2]}://${v[3]}.local.mesh:${v[4]}/${v[5]}" onclick="event.stopPropagation()">${v[1]}${type}</a></div>`);
-                    break;
+            const reachable = valid[`${v[2]}://${v[3]}:${v[4]}/${v[5]}`] !== false;
+            if (reachable || auth.isAdmin) {
+                let type = "";
+                if (!reachable) {
+                    type += ` <div class="icon warning" title="Service cannot be reached"></div>`;
+                }
+                const v2 = match(v[1], reType);
+                if (v2) {
+                    v[1] = v2[1];
+                    type += ` <div class="icon ${v2[2]}" title="${v2[2]}"></div>`;
+                }
+                switch (v[4]) {
+                    case "80":
+                        push(services, `<div class="service"><a target="_blank" href="http://${v[3]}.local.mesh/${v[5]}" onclick="event.stopPropagation()">${v[1]}${type}</a></div>`);
+                        break;
+                    case "443":
+                        push(services, `<div class="service"><a target="_blank" href="https://${v[3]}.local.mesh/${v[5]}" onclick="event.stopPropagation()">${v[1]}${type}</a></div>`);
+                        break;
+                    default:
+                        push(services, `<div class="service"><a target="_blank" href="${v[2]}://${v[3]}.local.mesh:${v[4]}/${v[5]}" onclick="event.stopPropagation()">${v[1]}${type}</a></div>`);
+                        break;
+                }
             }
         }
         else {
@@ -97,23 +100,61 @@
     }
 
     if (dhcp.enabled) {
-        f = fs.open(dhcp.reservations);
+        const leased = {};
+        f = fs.open(dhcp.leases);
         if (f) {
             for (let l = f.read("line"); length(l); l = f.read("line")) {
-                const v = match(trim(l), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
-                if (v && v[4] !== "#NOPROP") {
-                    if (valid[`pseudo://${v[3]}:80/`] === true) {
-                        push(devices, `<div class="device"><a target="_blank" href="http://${v[3]}.local.mesh" onclick="event.stopPropagation()">${v[3]} <div class="icon link" title="link"></div></a></div>`);
-                    }
-                    else if (valid[`pseudos://${v[3]}:443/`] === true) {
-                        push(devices, `<div class="device"><a target="_blank" href="https://${v[3]}.local.mesh" onclick="event.stopPropagation()">${v[3]} <div class="icon link" title="link"></div></a></div>`);
+                const m = split(trim(l), " ");
+                if (length(m) === 5) {
+                    if (m[3] === "*") {
+                        leased[lc(m[1])] = { n: m[2], p: 0, s: auth.isAdmin, v: true };
                     }
                     else {
-                        push(devices, `<div class="device">${v[3]}</div>`);
+                        leased[lc(m[1])] = { n: m[3], p: 0, s: auth.isAdmin, v: true };
                     }
                 }
             }
             f.close();
+        }
+        f = fs.open(dhcp.reservations);
+        if (f) {
+            for (let l = f.read("line"); length(l); l = f.read("line")) {
+                const v = match(trim(l), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
+                if (v && (v[4] !== "#NOPROP" || auth.isAdmin)) {
+                    const k = lc(v[1]);
+                    const l = leased[k] || (leased[k] = { n: null, p: 0, s: true, v: false });
+                    l.n = v[3];
+                    l.s = true;
+                    if (valid[`pseudo://${v[3]}:80/`] === true) {
+                        l.p = 80;
+                    }
+                    else if (valid[`pseudos://${v[3]}:443/`] === true) {
+                        l.p = 443;
+                    }
+                }
+            }
+            f.close();
+        }
+        for (let k in leased) {
+            const l = leased[k];
+            if (l.s) {
+                if (!l.v) {
+                    if (auth.isAdmin) {
+                        push(devices, `<div class="device">${l.n} <div class="icon warning" title="No active lease"></div></div>`);
+                    }
+                }
+                else {
+                    if (l.p === 80) {
+                        push(devices, `<div class="device"><a target="_blank" href="http://${l.n}.local.mesh" onclick="event.stopPropagation()">${l.n} <div class="icon link" title="Connect"></div></a></div>`);
+                    }
+                    else if (l.p === 443) {
+                        push(devices, `<div class="device"><a target="_blank" href="https://${l.n}.local.mesh" onclick="event.stopPropagation()">${l.n} <div class="icon link" title="Connect"></div></a></div>`);
+                    }
+                    else {
+                        push(devices, `<div class="device">${l.n}</div>`);
+                    }
+                }
+            }
         }
     }
 %}
