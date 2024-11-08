@@ -15,6 +15,9 @@ A clear and concise description of what the bug is.
 ### Expected behavior
 A clear and concise description of what you expected to happen.
 
+### Support data
+Please add the support data for all nodes mentioned in this bug report (**Required**)
+
 ### Screenshots
 Please include a screenshot of your system information (if possible) if the specific system environment is relevant to the bug.
 
