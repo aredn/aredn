@@ -97,11 +97,44 @@
     }
 
     if (dhcp.enabled) {
+        const leased = {};
+        f = fs.open(dhcp.leases);
+        if (f) {
+            for (let l = f.read("line"); length(l); l = f.read("line")) {
+                const m = split(trim(l), " ");
+                if (length(m) === 5) {
+                    if (m[3] === "*") {
+                        leased[lc(m[1])] = { n: m[2], p: 0, a: auth.isAdmin, v: true };
+                    }
+                    else {
+                        leased[lc(m[1])] = { n: m[3], p: 0, a: auth.isAdmin, v: true };
+                    }
+                }
+            }
+            f.close();
+        }
         f = fs.open(dhcp.reservations);
         if (f) {
             for (let l = f.read("line"); length(l); l = f.read("line")) {
                 const v = match(trim(l), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
-                if (v && v[4] !== "#NOPROP") {
+                if (v && (v[4] !== "#NOPROP" || auth.isAdmin)) {
+                    const k = lc(v[1]);
+                    const l = leased[k] || (leased[k] = { n: null, p: 0, a: true, v: false });
+                    l.n = v[3];
+                    if (valid[`pseudo://${v[3]}:80/`] === true) {
+                        l.p = 80;
+                    }
+                    else if (valid[`pseudos://${v[3]}:443/`] === true) {
+                        l.p = 443;
+                    }
+                }
+            }
+            f.close();
+        }
+        for (let k in leases) {
+            const l = leases[k];
+            
+        }
                     if (valid[`pseudo://${v[3]}:80/`] === true) {
                         push(devices, `<div class="device"><a target="_blank" href="http://${v[3]}.local.mesh" onclick="event.stopPropagation()">${v[3]} <div class="icon link" title="link"></div></a></div>`);
                     }
