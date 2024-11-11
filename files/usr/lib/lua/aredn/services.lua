@@ -173,11 +173,11 @@ local function get(validate)
             if os.execute("/bin/ping -q -c 1 -W 1 " .. host.ip .. " > /dev/null 2>&1") == 0 then
                 vstate[host.host:lower()] = last
                 services[#services + 1] = string.format("pseudo://%s:80/|tcp|pseudo", host.host)
-                services[#services + 1] = string.format("pseudos://%s:443/|tcp|pseudos", host.host)
+                services[#services + 1] = string.format("pseudo://%s:443/|tcp|pseudo", host.host)
             elseif os.execute("/usr/sbin/arping -q -f -c 1 -w 1 -I " .. laniface .. " " .. host.ip .. " > /dev/null 2>&1") == 0 then
                 vstate[host.host:lower()] = last
                 services[#services + 1] = string.format("pseudo://%s:80/|tcp|pseudo", host.host)
-                services[#services + 1] = string.format("pseudos://%s:443/|tcp|pseudos", host.host)
+                services[#services + 1] = string.format("pseudo://%s:443/|tcp|pseudo", host.host)
             end
         end
         -- Load NAT
@@ -222,7 +222,7 @@ local function get(validate)
                     if port == "0" then
                         -- no port so not a link - we can only check the hostname so have to assume the service is good
                         vstate[service] = last
-                    elseif proto == "http" or proto == "pseudo" then
+                    elseif proto == "http" or (proto == "pseudo" and port == "80") then
                         -- http so looks like a link. http check it
                         if not hostname:match("%.local%.mesh$") then
                             hostname = hostname .. ".local.mesh"
@@ -305,7 +305,7 @@ local function get(validate)
         services = {}
         for _, service in ipairs(old_services)
         do
-            if not service:match("^pseudo:") and not service:match("^pseudos:") then
+            if not service:match("^pseudo:") then
                 local vs = vstate[service]
                 if not vs then
                     -- New services will be valid for a while, even if they're not there yet
@@ -320,6 +320,7 @@ local function get(validate)
         -- Store state for next time
         local f = io.open(validation_state, "w")
         if f then
+            f:write(now .. "\n")
             for key, last in pairs(vstate)
             do
                 f:write(last .. " " .. key .. "\n")

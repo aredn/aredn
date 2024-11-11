@@ -52,18 +52,21 @@ function periodic()
     local days = 0
     while true
     do
-        run_scripts("/etc/cron.hourly")
+        local start = os.time()
         hours = hours - 1
         if hours <= 0 then
-            run_scripts("/etc/cron.daily")
-            hours = 24
             days = days - 1
             if days <= 0 then
                 run_scripts("/etc/cron.weekly")
                 days = 7
             end
+            run_scripts("/etc/cron.daily")
+            hours = 24
         end
-        wait_for_ticks(60 * 60)
+        run_scripts("/etc/cron.hourly")
+
+        -- Allowing for possible clock changes and time taken to run tasks, wait for no more than an hour
+        wait_for_ticks(math.min(3600, math.max(0, 3600 - (os.time() - start))))
     end
 end
 

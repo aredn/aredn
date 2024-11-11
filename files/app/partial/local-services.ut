@@ -46,12 +46,17 @@
 
     let f = fs.open("/tmp/service-validation-state");
     if (f) {
-        const now = time();
+        const when = int(trim(f.read("line")));
         for (let l = f.read("line"); length(l); l = f.read("line")) {
             const m = match(trim(l), /^(\d+) (.+)$/);
-            const n = split(m[2], "|");
-            if (length(n) > 1) {
-                valid[n[0]] = (int(m[1]) > now);
+            if (m) {
+                const n = split(m[2], "|");
+                if (length(n) > 1) {
+                    valid[n[0]] = (int(m[1]) > when);
+                }
+                else {
+                    valid[m[2]] = (int(m[1]) > when);
+                }
             }
         }
         f.close();
@@ -125,10 +130,12 @@
                     const l = leased[k] || (leased[k] = { n: null, p: 0, s: true, v: false });
                     l.n = v[3];
                     l.s = true;
-                    if (valid[`pseudo://${v[3]}:80/`] === true) {
+                    if (valid[`pseudo://${l.n}:80/`] === true) {
+                        l.v = true;
                         l.p = 80;
                     }
-                    else if (valid[`pseudos://${v[3]}:443/`] === true) {
+                    else if (valid[`pseudo://${l.n}:443/`] === true) {
+                        l.v = true;
                         l.p = 443;
                     }
                 }
@@ -139,8 +146,11 @@
             const l = leased[k];
             if (l.s) {
                 if (!l.v) {
-                    if (auth.isAdmin) {
-                        push(devices, `<div class="device">${l.n} <div class="icon warning" title="No active lease"></div></div>`);
+                    if (valid[l.n]) {
+                        push(devices, `<div class="device">${l.n}</div>`);
+                    }
+                    else if (auth.isAdmin) {
+                        push(devices, `<div class="device">${l.n} <div class="icon warning" title="Not found"></div></div>`);
                     }
                 }
                 else {
