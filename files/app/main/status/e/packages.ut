@@ -235,6 +235,7 @@ const po = getPackageOptions();
     {{_R("dialog-header", "Packages")}}
     <div id="package-update">
         {{_R("dialog-messages")}}
+        {% if (!hardware.isLowMemNode()) { %}
         <div class="cols">
             <div>
                 <div class="o">Download Package</div>
@@ -263,6 +264,7 @@ const po = getPackageOptions();
         {{_H("Upload a package file from your computer. Once the package has been selected it can be uploaded and installed
         using the button at the base of the dialog.")}}
         <div><hr></div>
+        {% } %}
         <div class="cols">
             <div>
                 <div class="o">Remove Package</div>
@@ -274,6 +276,7 @@ const po = getPackageOptions();
         </div>
         {{_H("Remove a currently installed package from the node by first selecting it and
         then using the button at the based of the dialog to remove it.")}}
+        {% if (!hardware.isLowMemNode()) { %}
         {{_R("dialog-advanced")}}
         <div>
         {% if (includeAdvanced) { %}
@@ -290,13 +293,14 @@ const po = getPackageOptions();
             to a local server, especially if you'd like to do this without a connection to the Internet.")}}
         {% } %}
         </div>
+        {% } %}
         <div style="flex:1"></div>
         <div class="cols" style="padding-top:16px">
             <div id="package-upload">
                 <progress value="0" max="100">
             </div>
             <div style="flex:0">
-                <button id="fetch-and-update" disabled hx-trigger="none" hx-encoding="multipart/form-data">Fetch and Install</button>
+                <button id="fetch-and-update" disabled hx-trigger="none" hx-encoding="multipart/form-data">{{!hardware.isLowMemNode() ? 'Fetch and Install' : 'Remove'}}</button>
             </div>
         </div>
         {{_H("<br>Depending on the package option selected above, this button will initiate the download, upload, install or remove process.")}}
@@ -394,7 +398,7 @@ const po = getPackageOptions();
                     source: e.currentTarget,
                     swap: "none"
                 }).then(_ => {
-                    htmx.find("#fetch-and-update").innerText = "Fetch and Install";
+                    htmx.find("#fetch-and-update").innerText = !hardware.isLowMemNode() ? "Fetch and Install" : "Remove";
                     htmx.find("#remove-package").value = "-";
                 });
             }
