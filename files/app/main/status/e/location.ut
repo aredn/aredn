@@ -201,8 +201,26 @@ const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
                 });
             }
         }
+        function llpaste() {
+            const txt = event.clipboardData.getData("text/plain");
+            if (!txt) {
+                return;
+            }
+            event.stopPropagation();
+            event.preventDefault();
+            const ll = txt.split(",");
+            const latv = parseFloat(ll[0]);
+            const lonv = parseFloat(ll[1]);
+            if (!isNaN(latv) && !isNaN(lonv)) {
+                lat.value = latv;
+                lon.value = lonv;
+                llchange();
+            }
+        }
         lat.addEventListener("change", llchange);
         lon.addEventListener("change", llchange);
+        lat.addEventListener("paste", llpaste);
+        lon.addEventListener("paste", llpaste);
         gridsquare.addEventListener("change", function() {
             if (gridsquare.value !== "") {
                 gridsquare2latlon();
