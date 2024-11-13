@@ -383,33 +383,36 @@ This value is used by default, but each tunnel may overide it.
             const tunnels = [];
             let servercount = 0;
             const tuns = htmx.findAll("#tunnels .tunnel");
+            const isvalid = htmx.closest(htmx.find("#tunnels"), "form").checkValidity();
             for (let i = 0; i < tuns.length; i++) {
                 const t = tuns[i];
-                const index = t.dataset.index;
-                const name = htmx.find(t, "input[name=name]");
-                const password = htmx.find(t, "input[name=password]");
-                const key = htmx.find(t, "input[name=key]");
                 const type = htmx.find(t, "div[data-type]").dataset.type;
-                const network = htmx.find(t, "input[name=network]");
-                const notes = htmx.find(t, "input[name=notes]");
-                const enable = htmx.find(t, "input[name=enable]");
-                const weight = htmx.find(t, "input[name=weight]");
-                tunnels.push({
-                    index: index,
-                    type: type,
-                    name: name.value,
-                    enabled: enable.checked,
-                    notes: notes.value || "",
-                    network: network.value,
-                    passwd: password.value,
-                    key: key && key.value,
-                    weight: weight.value
-                });
+                if (isvalid) {
+                    const index = t.dataset.index;
+                    const name = htmx.find(t, "input[name=name]");
+                    const password = htmx.find(t, "input[name=password]");
+                    const key = htmx.find(t, "input[name=key]");
+                    const network = htmx.find(t, "input[name=network]");
+                    const notes = htmx.find(t, "input[name=notes]");
+                    const enable = htmx.find(t, "input[name=enable]");
+                    const weight = htmx.find(t, "input[name=weight]");
+                    tunnels.push({
+                        index: index,
+                        type: type,
+                        name: name.value,
+                        enabled: enable.checked,
+                        notes: notes.value || "",
+                        network: network.value,
+                        passwd: password.value,
+                        key: key && key.value,
+                        weight: weight.value
+                    });
+                }
                 if (type === "ls" || type === "ws") {
                     servercount++;
                 }
             }
-            if (htmx.closest(htmx.find("#tunnels"), "form").checkValidity()) {
+            if (isvalid) {
                 htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
                     swap: "none",
                     values: { tunnels: JSON.stringify(tunnels) }
