@@ -272,11 +272,12 @@ function t2t(type)
                 <div class="m">DNS name of this tunnel server</div>
             </div>
             <div style="flex:0">
-                <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_server" type="text" size="25" required placeholder="DNS name or IP address" value="{{uciMesh.get("vtun", "@network[0]", "dns")}}">
+                <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_server" type="text" size="25" {{servercount > 0 ? "required": ""}} placeholder="DNS name or IP address" value="{{uciMesh.get("vtun", "@network[0]", "dns")}}">
             </div>
         </div>
         {{_H("Set either the hostname or the Internet IP Address for this tunnel server. This is the target for any tunnels
-        created which will connect to this node (legacy or wireguard).")}}
+        created which will connect to this node (legacy or wireguard). This only needs to be set if you are creating server tunnels.
+        It is not required for client tunnels.")}}
         <hr>
         <div id="tunnel-templates" class="cols">
             <div>
@@ -379,9 +380,6 @@ This value is used by default, but each tunnel may overide it.
         const available = {{sprintf("%J", available)}};
         function updateTunnels()
         {
-            if (!htmx.closest(htmx.find("#tunnels"), "form").checkValidity()) {
-                return;
-            }
             const tunnels = [];
             let servercount = 0;
             const tuns = htmx.findAll("#tunnels .tunnel");
@@ -411,10 +409,13 @@ This value is used by default, but each tunnel may overide it.
                     servercount++;
                 }
             }
-            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                swap: "none",
-                values: { tunnels: JSON.stringify(tunnels) }
-            });
+            if (htmx.closest(htmx.find("#tunnels"), "form").checkValidity()) {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    swap: "none",
+                    values: { tunnels: JSON.stringify(tunnels) }
+                });
+            }
+            htmx.find("input[name=tunnel_server]").required = servercount > 0 ? true : false;
             {% if (includeAdvanced) { %}
             htmx.find("input[name=tunnel_range_start]").disabled = servercount > 0 ? true : false;
             {% } %}
@@ -551,6 +552,7 @@ This value is used by default, but each tunnel may overide it.
             }
             {% } %}
             htmx.find("#dialog-done").disabled = true;
+            updateTunnels();
         }
         htmx.on("#tunnel-templates button", "click", newTunnelEntry);
         htmx.on("#tunnels", "change", updateTunnels);
