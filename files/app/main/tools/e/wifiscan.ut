@@ -249,15 +249,23 @@ else {
         <table>
             <thead>
                 <tr>
+                {% if (!request.mobile) { %}
                 <td>SNR</td><td>Signal</td><td style="width:50px">Chan</td><td>Enc</td><td>SSID</td><td>Hostname</td><td>BSSID</td><td>802.11 Mode</td>
+                {% } else { %}
+                <td>Signal</td><td style="width:50px">Chan</td><td>SSID</td><td>Hostname</td>
+                {% } %}
                 </tr>
             </thead>
             <tbody>
                 {% for (let i = 0; i < length(last_scan); i++) {
                     const s = last_scan[i];
-                %}
+                    if (!request.mobile) {
+                    %}
                     <tr><td>{{95 + s.signal}}</td><td>{{s.signal}}</td><td>{{s.chan}}</td><td>-</td><td>{{s.ssid}}</td><td>{{s.hostname || s.ip || "-"}}</td><td>{{s.mac}}</td><td>{{s.mode}}</td></tr>
-                {% } %}
+                    {% } else { %}
+                    <tr><td>{{s.signal}}</td><td>{{s.chan}}</td><td>{{s.ssid}}</td><td>{{s.hostname || s.ip || "-"}}</td></tr>
+                    {% }
+                } %}
             </tbody>
         </table>
     </div>

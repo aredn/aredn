@@ -144,7 +144,7 @@ const mynode = configuration.getName();
                                 case "CONNECTING":
                                     if (line.match(/^traceroute/)) {
                                         state = "PRINT";
-                                        out(line);
+                                        out(line.replace(".local.mesh", ""));
                                     }
                                     break;
                                 case "PRINT":
@@ -159,7 +159,7 @@ const mynode = configuration.getName();
                                         else {
                                             const m = line.match(/^[0-9]+ +(.+\.local\.mesh) /);
                                             if (m) {
-                                                line = line.replace(m[1], `<a href="http://${m[1]}">${m[1]}</a>`);
+                                                line = line.replace(m[1], `<a href="http://${m[1]}">${m[1].replace(".local.mesh", "")}</a>`);
                                             }
                                             out(line);
                                         }
