@@ -146,11 +146,9 @@
                 </a>
             </div>
             <div>
-                {%if (auth.isAdmin) { %}
-                <a href="tools">
-                    <div class="icon tools"></div>
-                </a>
-                {% } %}
+                <div style="margin: 0 calc(50% - 21px);">
+                {{_R("tools")}}
+                </div>
             </div>
             <div>
             {{_R("login")}}
@@ -158,8 +156,43 @@
         </div>
     </div>
     <script>
-        document.querySelector("#m-all").addEventListener("click", _ => body.focus());
-        document.querySelector("#ctrl-modal").addEventListener("click", _ => body.focus());
+    (function(){
+        const m = document.getElementById("ctrl-modal");
+        document.body.addEventListener("click", e => {
+            const a = htmx.findAll(".popup-menu input[type=checkbox]:checked");
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] !== e.target) {
+                    a[i].checked = false;
+                }
+            }
+        });
+        document.body.addEventListener("click", e => {
+            if (!(m.open || document.getSelection().isCollapsed)) {
+                e.stopPropagation();
+            }
+        }, true);
+        function dialogDone()
+        {
+            const d = htmx.find("#dialog-done");
+            if (d) {
+                setTimeout(function() {
+                    let invalid = false;
+                    const f = htmx.findAll(m, "form");
+                    for (let i = 0; i < f.length; i++) {
+                        if (!f[i].checkValidity()) {
+                            invalid = true;
+                            break;
+                        }
+                    }
+                    d.disabled = invalid;
+                }, 10);
+            }
+        }
+        m.addEventListener("input", dialogDone);
+        m.addEventListener("click", dialogDone);
+        document.querySelector("#m-all").addEventListener("click", _ => document.body.focus());
+        document.querySelector("#ctrl-modal").addEventListener("click", _ => document.body.focus());
+    })();
     </script>
     {% } %}
 </body>

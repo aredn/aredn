@@ -56,7 +56,7 @@ const mynode = configuration.getName();
             </div>
             <div>
                 <input id="tool-client" type="text" size="40" required value="{{mynode}}" list="mesh-nodes">
-                <div style="width:42px"></div>
+                <div id="target-swap-dummy" style="width:42px"></div>
             </div>
         </div>
         <datalist id="mesh-nodes">
@@ -84,7 +84,9 @@ const mynode = configuration.getName();
     <script>
     (function(){
         {{_R("open")}}
+        {% if (!request.mobile) { %}
         htmx.find("#tool-target").focus();
+        {% } %}
         const mynode = "{{mynode}}";
         htmx.on("#target-swap", "click", _ => {
             const v = htmx.find("#tool-target").value;

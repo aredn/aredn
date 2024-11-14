@@ -32,12 +32,13 @@
  * version
  */
 %}
+{%if (auth.isAdmin) { %}
 <div id="tools" class="popup-menu">
     <label title="Node tools">
         <input type="checkbox">
         <div class="icon tools"></div>
         <div class="menu" hx-on:htmx:after-request="htmx.find('#tools input').checked = false">
-            {% if (hardware.getRadioCount() > 0) { %}
+            {% if (hardware.getRadioCount() > 0 && !request.mobile) { %}
             {% const config = radios.getActiveConfiguration();
             if (config[0]?.mode !== radios.RADIO_OFF || config[1]?.mode !== radios.RADIO_OFF) { %}
             <div hx-trigger="click" hx-get="tools/e/wifiscan" hx-target="#ctrl-modal"><div class="icon signal"></div>WiFi Scan</div>
@@ -53,3 +54,4 @@
         </div>
     </label>
 </div>
+{% } %}
