@@ -480,3 +480,135 @@ export function restore(file)
     fs.unlink(file);
     return status;
 };
+
+export function supportdata(supportdatafilename)
+{
+    const wifiiface = uci.cursor().get("network", "wifi", "device");
+
+    const files = [
+        "/etc/board.json",
+        "/etc/config/",
+        "/etc/config.mesh/",
+        "/etc/ethers",
+        "/etc/hosts",
+        "/etc/local/",
+        "/etc/mesh-release",
+        "/etc/os-release",
+        "/var/run/hosts_olsr",
+        "/var/run/services_olsr",
+        "/tmp/etc/",
+        "/tmp/dnsmasq.d/",
+        "/tmp/lqm.info",
+        "/tmp/wireless_monitor.info",
+        "/tmp/service-validation-state",
+        "/tmp/sysinfo/",
+        "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
+        "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to"
+    ];
+    const sensitive = [
+        "/etc/config/vtun",
+        "/etc/config.mesh/vtun",
+        "/etc/config/network",
+        "/etc/config.mesh/wireguard",
+        "/etc/config/wireless",
+        "/etc/config.mesh/_setup",
+        "/etc/config.mesh/setup",
+    ];
+    const cmds = [
+        "cat /proc/cpuinfo",
+        "cat /proc/meminfo",
+        "df -k",
+        "dmesg",
+        "ifconfig",
+        "ethtool eth0",
+        "ethtool eth1",
+        "ip link",
+        "ip addr",
+        "ip neigh",
+        "ip route list",
+        "ip route list table 29",
+        "ip route list table 30",
+        "ip route list table 31",
+        "ip route list table main",
+        "ip route list table default",
+        "ip rule list",
+        "netstat -aln",
+        "iwinfo",
+        `${wifiiface ? "iwinfo " + wifiiface + " assoclist" : null}`,
+        `${wifiiface ? "iw phy " + (replace(wifiiface, "wlan", "phy")) + " info" : null}`,
+        `${wifiiface ? "iw dev " + wifiiface + " info" : null}`,
+        `${wifiiface ? "iw dev " + wifiiface + " scan" : null}`,
+        `${wifiiface ? "iw dev " + wifiiface + " station dump" : null}`,
+        "wg show all",
+        "wg show all latest-handshakes",
+        "nft list ruleset",
+        "md5sum /www/cgi-bin/*",
+        "echo /all | nc 127.0.0.1 2006",
+        "opkg list-installed",
+        "ps -w",
+        "/usr/local/bin/get_hardwaretype",
+        "/usr/local/bin/get_boardid",
+        "/usr/local/bin/get_model",
+        "/usr/local/bin/get_hardware_mfg",
+        "logread",
+    ];
+    if (trim(fs.popen("/usr/local/bin/get_hardware_mfg").read("all")) === "Ubiquiti") {
+        push(cmds, "cat /dev/mtd0|grep 'U-Boot'|head -n1");
+    }
+
+    system("/bin/rm -rf /tmp/sd");
+    system("/bin/mkdir -p /tmp/sd");
+
+    for (let i = 0; i < length(files); i++) {
+        const file = files[i];
+        const s = fs.stat(file);
+        if (s) {
+            if (s.type === "directory") {
+                system(`/bin/mkdir -p /tmp/sd${file}`);
+                system(`/bin/cp -rp ${file}/* /tmp/sd/${file}`);
+            }
+            else {
+                system(`/bin/mkdir -p /tmp/sd${fs.dirname(file)}`);
+                system(`/bin/cp -p ${file} /tmp/sd/${file}`);
+            }
+        }
+    }
+
+    for (let i = 0; i < length(sensitive); i++) {
+        const file = sensitive[i];
+        const f = fs.open(file);
+        if (f) {
+            const lines = [];
+            for (let l = f.read("line"); length(l); l = f.read("line")) {
+                l = replace(l, /option passwd.+/, "option passwd '***HIDDEN***'\n");
+                l = replace(l, /option public_key.+/, "option public_key '***HIDDEN***'\n");
+                l = replace(l, /option private_key.+/, "option private_key '***HIDDEN***'\n");
+                l = replace(l, /option key.+/, "option key '***HIDDEN***'\n");
+                push(lines, l);
+            }
+            f.close();
+            fs.writefile(`/tmp/sd${file}`, join("", lines));
+        }
+    }
+
+    const f = fs.open("/tmp/sd/data.txt", "w");
+    if (f) {
+        for (let i = 0; i < length(cmds); i++) {
+            const cmd = cmds[i];
+            if (cmd) {
+                const p = fs.popen(`(${cmd}) 2> /dev/null`);
+                if (p) {
+                    f.write(`\n===\n========== ${cmd} ==========\n===\n`);
+                    f.write(p.read("all"));
+                    p.close();
+                }
+            }
+        }
+        f.close();
+    }
+
+    system(`/bin/tar -zcf ${supportdatafilename} -C /tmp/sd ./`);
+    system("/bin/rm -rf /tmp/sd");
+
+    return supportdatafilename;
+};
