@@ -1,4 +1,4 @@
-{%
+#!/usr/bin/ucode
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
  * Copyright (C) 2024 Tim Wilkinson
@@ -31,17 +31,9 @@
  * and be marked in reasonable ways as differentiate it from the original
  * version
  */
-%}
-{%
-if (request.env.REQUEST_METHOD === "PUT") {
-    response.headers["HX-Redirect"] = request.env.REQUEST_URI;
-    return;
-}
+
+import * as configuration from "aredn.configuration";
 
 const filename = configuration.supportdata("/tmp/supportdata.tar.gz");
-const tm = localtime();
-response.override = true;
-uhttpd.send(`Status: 200 OK\r\nContent-Type: application/x-gzip\r\nContent-Disposition: attachment; filename=supportdata-${configuration.getName()}-${tm.year}-${tm.mon}-${tm.mday}-${tm.hour}-${tm.min}.tar.gz\r\nCache-Control: no-store\r\n\r\n`);
-uhttpd.send(fs.readfile(filename));
 
-%}
+print(`Generated suppport data file: ${filename}\n`);
