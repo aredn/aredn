@@ -1,8 +1,0 @@
-#! /bin/sh
-VER=$(jsonfilter -e '@.system.compat_version' < /etc/board.json)
-if [ "${VER}" != "" ]; then
-    uci -c /etc/config.mesh -q set setup.globals.compat_version=${VER}
-    uci -c /etc/config.mesh commit setup
-    uci -q set system.@system[0].compat_version=${VER}
-    uci -q commit system
-fi
