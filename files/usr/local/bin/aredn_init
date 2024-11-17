@@ -175,6 +175,12 @@ if wifi_enable == 0 then
     cfg.wifi_enable = wifi_enable
 end
 
+-- Make sure compat version is correct
+local system = aredn.hardware.get_board().system
+if system and system.compat_version then
+    cfg.compat_version = system.compat_version
+end
+
 -- Radio
 if aredn.hardware.get_radio_count() > 0 and cfg.wifi_intf == "" then
     local wifi_intf = "wlan0"
