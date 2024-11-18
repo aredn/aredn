@@ -97,6 +97,7 @@ const templates = [
     { name: "Axis camera", type: "camera", protocol: "http", port: 80, path: "jpg/image.jpg" },
     { name: "Sunba Lite camera", type: "camera", protocol: "http", port: 80, path: "webcapture.jpg?command=snap&channel=1&user=USERNAME&password=PASSWORD" },
     { name: "Sunba Performance camera", type: "camera", protocol: "http", port: 80, path: "images/snapshot.jpg" },
+    { name: "Sunba Performance camera (redirect)", type: "camera", protocol: "http", port: 80, path: "a/redirect?http://USERNAME:PASSWORD@CAMERANAME/images/snapshot.jpg" },
     { name: "Sunba Smart camera", type: "camera", protocol: "http", port: 80, path: "ISAPI/Custom/snapshot?authInfo=USERNAME:PASSWORD" },
     { name: "NTP Server", type: "time", protocol: "ntp", port: 123 },
     { name: "Streaming video", type: "video", protocol: "rtsp", port: 554 },
@@ -108,6 +109,8 @@ const templates = [
     { name: "Proxmox Server", type: "server", protocol: "https", port: 8006 },
     { name: "Generic HTTP", protocol: "http", port: 80 },
     { name: "Generic HTTPS", protocol: "https", port: 443 },
+    { name: "HTTP Proxy", protocol: "http", port: 80, path: "a/httpproxy?URL" },
+    { name: "Redirect", protocol: "http", port: 80, path: "a/redirect?URL" },
 ];
 const services = [];
 const dhcp = configuration.getDHCP();
