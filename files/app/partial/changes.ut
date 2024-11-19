@@ -66,11 +66,12 @@
         </div>
         <script>
         (function(){
-            htmx.on("#changes button[name=commit]", "click", e => {
+            const commit = htmx.find("#changes button[name=commit]");
+            htmx.on(commit, "click", e => {
                 e.target.innerText = "Committing ...";
                 htmx.find("#changes button[name=revert]").style.display = "none";
-                window.commitRefresh = setTimeout(_ => htmx.ajax("GET", "/a/changes", "#changes"), 5000);
             });
+            htmx.on(commit, "htmx:afterRequest", _ => htmx.ajax("GET", "/a/changes", "#changes"));
         })();
         </script>
     {% }
@@ -80,5 +81,4 @@
             Reboot required:
             <button name="reboot" value="1" hx-get="/a/status/e/reboot" hx-target="body">Reboot</button>
         </div>
-        <script>clearTimeout(window.commitRefresh);</script>
     {% } %}</div>
