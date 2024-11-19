@@ -854,15 +854,19 @@ end
 
 do
     local dhcp_option_list = {}
+    local route44net = ""
+    if nc:get("aredn", "@wan[0]", "lan_dhcp_44route") == "1" then
+        route44net = ",44.0.0.0/9," .. cfg.lan_ip .. ",44.128.0.0/10," .. cfg.lan_ip
+    end
     if nc:get("aredn", "@wan[0]", "lan_dhcp_route") == "1" or nc:get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" then
         -- Provide stateless routes and default route
-        table.insert(dhcp_option_list, "121,10.0.0.0/8," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip)
-        table.insert(dhcp_option_list, "249,10.0.0.0/8," .. cfg.lan_ip .. ",0.0.0.0/0," .. cfg.lan_ip)
+        table.insert(dhcp_option_list, "121,10.0.0.0/8," .. cfg.lan_ip .. route44net .. ",0.0.0.0/0," .. cfg.lan_ip)
+        table.insert(dhcp_option_list, "249,10.0.0.0/8," .. cfg.lan_ip .. route44net .. ",0.0.0.0/0," .. cfg.lan_ip)
     else
         -- Provide stateless routes to the mesh, and a blank default route (option 3 has no values) to
         -- suppress default route being sent
-        table.insert(dhcp_option_list, "121,10.0.0.0/8," .. cfg.lan_ip)
-        table.insert(dhcp_option_list, "249,10.0.0.0/8," .. cfg.lan_ip)
+        table.insert(dhcp_option_list, "121,10.0.0.0/8," .. cfg.lan_ip .. route44net)
+        table.insert(dhcp_option_list, "249,10.0.0.0/8," .. cfg.lan_ip .. route44net)
         table.insert(dhcp_option_list, "3")
     end
 

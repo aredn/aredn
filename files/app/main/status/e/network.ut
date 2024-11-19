@@ -171,6 +171,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("lan_dhcp_route" in request.args) {
         uciMesh.set("aredn", "@wan[0]", "lan_dhcp_route", request.args.lan_dhcp_route === "on" ? 1 : 0);
     }
+    if ("lan_dhcp_44route" in request.args) {
+        uciMesh.set("aredn", "@wan[0]", "lan_dhcp_44route", request.args.lan_dhcp_44route === "on" ? 1 : 0);
+    }
     if ("lan_dhcp_defaultroute" in request.args) {
         uciMesh.set("aredn", "@wan[0]", "lan_dhcp_defaultroute", request.args.lan_dhcp_defaultroute === "on" ? 1 : 0);
     }
@@ -407,6 +410,16 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                 </div>
             </div>
             {{_H("Allow LAN devices connected to this node to use our Internet connection. This is enabled by default.")}}
+            <div class="cols">
+                <div>
+                    <div class="o">LAN to 44Net</div>
+                    <div class="m">Allow any LAN device to access 44Net addresses.</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "lan_dhcp_44route", value: uciMesh.get("aredn", "@wan[0]", "lan_dhcp_44route") !== "0" })}}
+                </div>
+            </div>
+            {{_H("Provide a 44Net route to LAN connected devices, even if your default route is disabled. This is enabled by default.")}}
             <div class="cols">
                 <div>
                     <div class="o">LAN default route</div>
