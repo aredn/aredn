@@ -572,15 +572,18 @@ This value is used by default, but each tunnel may overide it.
                     const name = htmx.find(t, "input[name=name]");
                     const passwd = htmx.find(t, "input[name=password]");
                     const network = htmx.find(t, "input[name=network]");
+                    const type = htmx.find(t, "div[data-type]").dataset.type;
                     if (name.validity.valid && passwd.validity.valid && network.validity.valid) {
                         const blob = new Blob([
                             `<h2>Connection details for ${name.value}</h2>
                             <div>Name: ${name.value}</div>
-                            <div style="white-space:nowrap">Password: ${passwd.value}</div>
+                            <div style="white-space:nowrap">${type == "ls" ? "Password" : "Wireguard key"}: ${passwd.value}</div>
                             <div>Network: ${network.value}</div>
                             <div>Server address: ${server}</div>`
                         ], { type: "text/html" });
-                        window.open(URL.createObjectURL(blob));                  
+                        window.open(URL.createObjectURL(blob));
+                        event.stopPropagation();
+                        event.preventDefault();
                     }
                 }
             }
@@ -596,6 +599,9 @@ This value is used by default, but each tunnel may overide it.
                 txt.split("\n").forEach(line => {
                     if (line.startsWith("Password: ")) {
                         config.passwd = line.substring(10);
+                    }
+                    else if (line.startsWith("Wireguard key: ")) {
+                        config.passwd = line.substring(15);
                     }
                     else if (line.startsWith("Network: ")) {
                         config.network = line.substring(9);
