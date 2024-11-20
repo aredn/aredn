@@ -114,6 +114,7 @@ const templates = [
 ];
 const services = [];
 const dhcp = configuration.getDHCP();
+const localnode = dhcp.gateway;
 const as = iptoarr(dhcp.start);
 const ae = iptoarr(dhcp.end);
 const reService = regexp("^([^|]+)\\|1\\|([^|]+)\\|([^|]+)\\|(\\d+)\\|(.*)$");
@@ -357,6 +358,7 @@ if (f) {
                             </div>
                             <div class="cols">
                                 <select name="port_dst">
+                                <option value="{{localnode}}" {{localnode === p.dst ? "selected" : ""}}>localnode</option>
                                 {%
                                     for (let j = as[3]; j <= ae[3]; j++) {
                                         const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
@@ -638,6 +640,7 @@ if (f) {
         </div>
         <div>
             <select name="port_dst">
+            <option value="{{localnode}}">localnode</option>
             {%
                 for (let j = as[3]; j <= ae[3]; j++) {
                     const a = `${as[0]}.${as[1]}.${as[2]}.${j}`;
