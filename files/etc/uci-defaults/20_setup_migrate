@@ -78,10 +78,34 @@ if not c:get("setup", "services") then
     end
 end
 
+-- Migrate the old school _setup.dhcp.{nat,dmz} files
+if not c:get("setup", "dhcpreservations") then
+    local file = "/etc/config.mesh/_setup.dhcp."
+    if (nixio.fs.stat(file .. "nat", "size") or -1) > 0 then
+        file = file .. "nat"
+    elseif (nixio.fs.stat(file .. "dmz", "size") or -1) > 0 then
+        file = file .. "dmz"
+    else
+        file = nil
+    end
+    if file then
+        local dhcp = {}
+        for line in io.lines(file)
+        do
+            dhcp[#dhcp + 1] = line
+        end
+        c:set("setup", "dhcpreservations", "dhcpreservations")
+        c:set("setup", "dhcpreservations", "reservation", dhcp)
+        c:commit("setup")
+    end
+end
+
 -- Dont remove this yet otherwise we cannot revert this node
 -- os.remove("/etc/config.mesh/_setup")
 -- os.remove("/etc/config.mesh/_setup.service.dmz")
 -- os.remove("/etc/config.mesh/_setup.service.nat")
+-- os.remove("/etc/config.mesh/_setup.dhcp.dmz")
+-- os.remove("/etc/config.mesh/_setup.dhcp.nat")
 
 __EOF__
 /usr/bin/lua /tmp/setup_migrate

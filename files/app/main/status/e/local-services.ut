@@ -148,20 +148,17 @@ for (let i = 0; i < length(svcs); i++) {
 }
 const hosts = [ configuration.getName() ];
 const aliases = { start: dhcp.start, end: dhcp.end, leases: {}, map: [] };
-f = fs.open(dhcp.reservations);
-if (f) {
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const v = match(trim(l), /^[^ ]+ ([^ ]+) ([^ ]+) ?(.*)/);
-        if (v) {
-            aliases.leases[`${as[0]}.${as[1]}.${as[2]}.${as[3] - 2 + int(v[1])}`] = v[2];
-            if (v[3] !== "#NOPROP") {
-                push(hosts, v[2]);
-            }
+const res = uciMesh.get("setup", "dhcpreservations", "reservation") || [];
+for (let i = 0; i < length(res); i++) {
+    const v = match(trim(res[i]), /^[^ ]+ ([^ ]+) ([^ ]+) ?(.*)/);
+    if (v) {
+        aliases.leases[`${as[0]}.${as[1]}.${as[2]}.${as[3] - 2 + int(v[1])}`] = v[2];
+        if (v[3] !== "#NOPROP") {
+            push(hosts, v[2]);
         }
     }
-    f.close();
 }
-f = fs.open(dhcp.aliases);
+let f = fs.open(dhcp.aliases);
 if (f) {
     for (let l = f.read("line"); length(l); l = f.read("line")) {
         const v = match(trim(l), /^(.+) (.+)$/);
