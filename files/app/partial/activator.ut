@@ -32,10 +32,16 @@
  * version
  */
 %}
-<div class="ctrl-modal-footer">
-    <hr/>
-    {% if (inner !== "nocancel" && auth.isAdmin) { %}
-    <button id="dialog-cancel" hx-delete="{{request.env.REQUEST_URI}}" onclick="setTimeout(_ => document.getElementById('ctrl-modal').close(), 10)">Cancel</button>
-    {% } %}
-    <button id="dialog-done" onclick="setTimeout(_ => document.getElementById('ctrl-modal').close(), 10)">Done</button>
-</div>
+{% if (!auth.isAdmin) { %}
+<script>
+(function(){
+const l = document.getElementById("{{inner}}");
+function x(e) {
+    l.removeEventListener("click", x);
+    window.injectCallback = () => { htmx.process(l); htmx.trigger(e.target, "click") }
+    fetch("/a/inject").then(v => v.text()).then(v => eval(v));
+}
+l.addEventListener("click", x);
+})();
+</script>
+{% } %}

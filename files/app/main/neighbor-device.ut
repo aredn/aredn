@@ -169,11 +169,13 @@ if (tracker) {
         <div class="neighbor">
             <div class="o">
                 <div><a href="{{n.hostname ? `http://${n.hostname}.local.mesh` : n.ip}}" target="_blank">{{n.hostname || n.ip}}</a></div>
+                {% if (auth.isAdmin) { %}
                 <select name="{{n.mac}}" hx-put={{request.env.REQUEST_URI}} hx-swap="none">
                     <option value="always" {{n.user_allow ? "selected" : ""}}>never block</option>
                     <option value="available" {{n.user_allow || n.blocks.user ? "" : "selected"}}>{{n.blocked ? "blocked" : "unblocked"}}</option>
                     <option value="user" {{n.blocks.user ? "selected" : ""}}>always block</option>
                 </select>
+                {% } %}
             </div>
             <div class="cols">
                 <div class="i">

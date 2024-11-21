@@ -98,6 +98,44 @@
         }
         return "-";
     }
+    const llist = [];
+    const nlist = [];
+    const hlist = lqm.getHidden();
+    const t = lqm.getTrackers();
+    const trackers = {};
+    for (mac in t) {
+        const tmac = t[mac];
+        if (tmac.ip) {
+            trackers[tmac.ip] = tmac;
+        }
+    }
+    const links = olsr.getLinks();
+    for (let i = 0; i < length(links); i++) {
+        const link = links[i];
+        const tracker = trackers[link.remoteIP];
+        if (link.ifName === "br-dtdlink") {
+            if (tracker && tracker.distance >= 100) {
+                push(nlist, { name: tracker.hostname || `|${link.remoteIP}`, tracker: tracker, link: link });
+            }
+            else {
+                push(llist, { name: (tracker && tracker.hostname) || `|${link.remoteIP}`, tracker: tracker, link: link });
+            }
+        }
+        else {
+            push(nlist, { name: (tracker && tracker.hostname) || `|${link.remoteIP}`, tracker: tracker, link: link });
+        }
+        delete trackers[link.remoteIP];
+    }
+    for (let remoteIP in trackers)
+    {
+        const tracker = trackers[remoteIP];
+        if (tracker.type == "DtD" && tracker.distance < 100) {
+            push(llist, { name: tracker.hostname || `|${remoteIP}`, tracker: tracker, link: null });
+        }
+        else {
+            push(nlist, { name: tracker.hostname || `|${remoteIP}`, tracker: tracker, link: null });
+        }
+    }
 %}
 <div class="noctrl" hx-target="#ctrl-modal">
     <div class="section-title">Local Nodes</div>
@@ -113,44 +151,6 @@
             </div>
         </div>
         {%
-            const llist = [];
-            const nlist = [];
-            const hlist = lqm.getHidden();
-            const t = lqm.getTrackers();
-            const trackers = {};
-            for (mac in t) {
-                const tmac = t[mac];
-                if (tmac.ip) {
-                    trackers[tmac.ip] = tmac;
-                }
-            }
-            const links = olsr.getLinks();
-            for (let i = 0; i < length(links); i++) {
-                const link = links[i];
-                const tracker = trackers[link.remoteIP];
-                if (link.ifName === "br-dtdlink") {
-                    if (tracker && tracker.distance >= 100) {
-                        push(nlist, { name: tracker.hostname || `|${link.remoteIP}`, tracker: tracker, link: link });
-                    }
-                    else {
-                        push(llist, { name: (tracker && tracker.hostname) || `|${link.remoteIP}`, tracker: tracker, link: link });
-                    }
-                }
-                else {
-                    push(nlist, { name: (tracker && tracker.hostname) || `|${link.remoteIP}`, tracker: tracker, link: link });
-                }
-                delete trackers[link.remoteIP];
-            }
-            for (let remoteIP in trackers)
-            {
-                const tracker = trackers[remoteIP];
-                if (tracker.type == "DtD" && tracker.distance < 100) {
-                    push(llist, { name: tracker.hostname || `|${remoteIP}`, tracker: tracker, link: null });
-                }
-                else {
-                    push(nlist, { name: tracker.hostname || `|${remoteIP}`, tracker: tracker, link: null });
-                }
-            }
             if (length(llist) > 0) {
                 sort(llist, (a, b) => a.name == b.name ? 0 : a.name < b.name ? -1 : 1);
                 for (let i = 0; i < length(llist); i++) {
@@ -159,7 +159,7 @@
                     const link = entry.link;
                     const status = calcColor(tracker);
                     if (tracker) {
-                        print(`<div class="ctrl cols status ${status}" hx-get="status/e/neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
+                        print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
                     }
                     else {
                         print(`<div class="ctrl cols status unknown" title="Link status: unknown">`);
@@ -201,7 +201,7 @@
                 const link = entry.link;
                 const status = calcColor(tracker);
                 if (tracker) {
-                    print(`<div class="ctrl cols status ${status}" hx-get="status/e/neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
+                    print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
                 }
                 else {
                     print(`<div class="ctrl cols status unknown" title="Link status: unknown">`);
