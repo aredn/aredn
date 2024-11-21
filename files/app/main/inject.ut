@@ -32,10 +32,44 @@
  * version
  */
 %}
-<div class="ctrl-modal-footer">
-    <hr/>
-    {% if (inner !== "nocancel" && auth.isAdmin) { %}
-    <button id="dialog-cancel" hx-delete="{{request.env.REQUEST_URI}}" onclick="setTimeout(_ => document.getElementById('ctrl-modal').close(), 10)">Cancel</button>
+(function(){
+    let lk = document.createElement("link");
+    lk.rel = "stylesheet";
+    {% if (config.resourcehash) { %}
+    lk.onerror = () => {
+        lk = document.createElement("link");
+        lk.rel = "stylesheet";
+        {% if (config.resourcehash) { %}
+        lk.href = "/a/css/admin.{{versions.admincss}}.css";
+        {% } else { %}
+        lk.href = "/a/css/admin.css";
+        {% } %}
+        document.head.appendChild(lk);
+    };
+    lk.href = "http://localnode.local.mesh/a/css/admin.{{versions.admincss}}.css";
+    {% } else { %}
+    lk.href = "/a/css/admin.css";
     {% } %}
-    <button id="dialog-done" onclick="setTimeout(_ => document.getElementById('ctrl-modal').close(), 10)">Done</button>
-</div>
+    document.head.appendChild(lk);
+
+    let hx = document.createElement("script");
+    hx.type = 'text/javascript';
+    hx.onload = window.injectCallback;
+    {% if (config.resourcehash) { %}
+    hx.onerror = () => {
+        hx = document.createElement('script');
+        hx.type = "text/javascript";
+        hx.onload = window.injectCallback;
+        {% if (config.resourcehash) { %}
+        hx.src = "/a/js/htmx.min.{{versions.htmx}}.js";
+        {% } else { %}
+        hx.src = "/a/js/htmx.min.js";
+        {% } %}
+        document.head.appendChild(hx);
+    }
+    hx.src = "http://localnode.local.mesh/a/js/htmx.min.{{versions.htmx}}.js";
+    {% } else { %}
+    hx.src = "/a/js/htmx.min.js";
+    {% } %}
+    document.head.appendChild(hx);
+})();
