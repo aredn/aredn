@@ -38,7 +38,7 @@
 const l = document.getElementById("{{inner.id}}");
 function x(e) {
     l.removeEventListener("click", x);
-    window[`_{{inner.id}}`] = () => { {{inner.activate}}.forEach(a => htmx.process(htmx.find(l, a))); htmx.trigger(e.target, "click") }
+    window["_{{inner.id}}"] = () => { {{inner.activate}}.forEach(a => htmx.process(htmx.find(l, a))); htmx.trigger(e.target, "click") }
     fetch("/a/inject?{{inner.id}}").then(v => v.text()).then(v => eval(v));
 }
 l.addEventListener("click", x);
