@@ -108,9 +108,13 @@ if (tracker) {
     {{_R("dialog-header", "Neighborhood Node")}}
     {% } %}
     <div>
+        {% if (auth.isAdmin) { %}
         {{_H("Provides more detailed information about the state of a link from this node to another. The current blocked
         state is show in the top/right corner. This can be changed to either <b>always block</b> or <b>never block</b> to override
         the automatic management of the link's use.")}}
+        {% } else { %}
+        {{_H("Provides more detailed information about the state of a link from this node to another.")}}
+        {% } %}
         {%
         function state(n)
         {

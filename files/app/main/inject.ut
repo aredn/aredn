@@ -51,15 +51,19 @@
     lk.href = "/a/css/admin.css";
     {% } %}
     document.head.appendChild(lk);
-
+    document.body.setAttribute("hx-disable", true);
+    function loaded() {
+        document.body.removeAttribute("hx-disable");
+        window[`_{{request.env.QUERY_STRING}}`]();
+    }
     let hx = document.createElement("script");
     hx.type = 'text/javascript';
-    hx.onload = window.injectCallback;
+    hx.onload = loaded;
     {% if (config.resourcehash) { %}
     hx.onerror = () => {
         hx = document.createElement('script');
         hx.type = "text/javascript";
-        hx.onload = window.injectCallback;
+        hx.onload = loaded;
         {% if (config.resourcehash) { %}
         hx.src = "/a/js/htmx.min.{{versions.htmx}}.js";
         {% } else { %}
