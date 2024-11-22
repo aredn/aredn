@@ -88,7 +88,7 @@
         (function(){
             const m = document.getElementById("ctrl-modal");
             document.body.addEventListener("click", e => {
-                const a = htmx.findAll(".popup-menu input[type=checkbox]:checked");
+                const a = document.querySelectorAll(".popup-menu input[type=checkbox]:checked");
                 for (let i = 0; i < a.length; i++) {
                     if (a[i] !== e.target) {
                         a[i].checked = false;
@@ -102,11 +102,11 @@
             }, true);
             function dialogDone()
             {
-                const d = htmx.find("#dialog-done");
+                const d = document.getElementById("dialog-done");
                 if (d) {
                     setTimeout(function() {
                         let invalid = false;
-                        const f = htmx.findAll(m, "form");
+                        const f = document.querySelectorAll(m, "form");
                         for (let i = 0; i < f.length; i++) {
                             if (!f[i].checkValidity()) {
                                 invalid = true;
@@ -159,7 +159,7 @@
     (function(){
         const m = document.getElementById("ctrl-modal");
         document.body.addEventListener("click", e => {
-            const a = htmx.findAll(".popup-menu input[type=checkbox]:checked");
+            const a = document.querySelectorAll(".popup-menu input[type=checkbox]:checked");
             for (let i = 0; i < a.length; i++) {
                 if (a[i] !== e.target) {
                     a[i].checked = false;
@@ -173,11 +173,11 @@
         }, true);
         function dialogDone()
         {
-            const d = htmx.find("#dialog-done");
+            const d = document.getElementById("dialog-done");
             if (d) {
                 setTimeout(function() {
                     let invalid = false;
-                    const f = htmx.findAll(m, "form");
+                    const f = document.querySelectorAll(m, "form");
                     for (let i = 0; i < f.length; i++) {
                         if (!f[i].checkValidity()) {
                             invalid = true;
