@@ -126,7 +126,7 @@ function should_nonpair_block(track)
 end
 
 function should_ping(track)
-    if not track.ip or is_user_blocked(track) or track.lastseen < now or track.firstseen == track.lastseen then
+    if not track.ip or is_user_blocked(track) or track.lastseen < now then
         return false
     end
     if track.type == "Tunnel" or track.type == "Wireguard" then
