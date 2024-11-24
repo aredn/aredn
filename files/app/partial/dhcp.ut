@@ -46,13 +46,7 @@
             }
             f.close();
         }
-        f = fs.open(dhcp.reservations);
-        if (f) {
-            while (length(f.read("line"))) {
-                dr++;
-            }
-            f.close();
-        }
+        dr = length(uciMesh.get("setup", "dhcpreservations", "reservation") || []);
         f = fs.open(dhcp.dhcptags);
         if (f) {
             while (length(f.read("line"))) {

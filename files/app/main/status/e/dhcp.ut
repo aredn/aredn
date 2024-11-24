@@ -38,20 +38,24 @@ if (request.env.REQUEST_METHOD === "PUT") {
         configuration.prepareChanges();
         const options = json(request.args.options);
         const dhcp = configuration.getDHCP();
-        let f = fs.open(dhcp.reservations, "w");
-        if (f) {
-            const base = iptoarr(dhcp.start)[3];
-            for (let i = 0; i < length(options); i++) {
-                const o = options[i];
-                if (o.reserved) {
-                    const ip = iptoarr(o.ip)[3];
-                    if (length(o.name) > 0 && ip >= base && match(o.mac, /^([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]$/)) {
-                        f.write(`${o.mac} ${ip - base + 2} ${o.name}${o.noprop ? " #NOPROP" : ""}\n`);
-                    }
+        const base = iptoarr(dhcp.start)[3];
+        const reservations = [];
+        for (let i = 0; i < length(options); i++) {
+            const o = options[i];
+            if (o.reserved) {
+                const ip = iptoarr(o.ip)[3];
+                if (length(o.name) > 0 && ip >= base && match(o.mac, /^([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]$/)) {
+                    push(reservations, `${o.mac} ${ip - base + 2} ${o.name}${o.noprop ? " #NOPROP" : ""}`);
                 }
             }
-            f.close();
         }
+        if (length(reservations)) {
+            uciMesh.set("setup", "dhcpreservations", "reservation", reservations);
+        }
+        else {
+            uciMesh.delete("setup", "dhcpreservations", "reservation");
+        }
+        uciMesh.commit("setup");
     }
     if ("advtags" in request.args) {
         configuration.prepareChanges();
@@ -99,25 +103,21 @@ for (let i = start[3]; i <= end[3]; i++) {
 }
 let reservations = 0;
 let active = 0;
-let f = fs.open(dhcp.reservations);
-if (f) {
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        // mac, last-ip, name, flags
-        const v = match(trim(l), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
-        if (v) {
-            const o = options[int(v[2]) - 2];
-            if (o) {
-                o.mac = v[1];
-                o.name = v[3];
-                o.noprop = v[4] == "#NOPROP";
-                o.reserved = true;
-                reservations++;
-            }
+const res = uciMesh.get("setup", "dhcpreservations", "reservation") || [];
+for (let i = 0; i < length(res); i++) {
+    const v = match(trim(res[i]), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
+    if (v) {
+        const o = options[int(v[2]) - 2];
+        if (o) {
+            o.mac = v[1];
+            o.name = v[3];
+            o.noprop = v[4] == "#NOPROP";
+            o.reserved = true;
+            reservations++;
         }
     }
-    f.close();
 }
-f = fs.open(dhcp.leases);
+let f = fs.open(dhcp.leases);
 if (f) {
     for (let l = f.read("line"); length(l); l = f.read("line")) {
         // ?, mac, ip, name, ?
