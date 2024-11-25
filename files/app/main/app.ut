@@ -63,6 +63,7 @@
     <link rel="icon" type="image/svg+xml" href="http://localnode.local.mesh/a/img/favicon.svg">
     <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="theme-color" content = "#e8e8e8">
     <title>{{configuration.getName()}} {{auth.isAdmin && request.page === "status" ? "admin" : request.page}}</title>
 </head>
 <body class="{{auth.isAdmin ? "authenticated" : ""}} {{request.mobile ? "mobile" : ""}}" hx-indicator="body">
@@ -83,6 +84,47 @@
             </div>
         </div>
     </div>
+    {% } else { %}
+    <div id="m-all">
+        <div id="m-title">
+            <a href="http://localnode.local.mesh"><div id="icon-logo"></div></a><div></div>
+            {{_R("changes")}}
+            <div class="nav-node-name">{{configuration.getName()}}</div>
+        </div>
+        <div id="m-main">
+            <div id="main-container">
+                {{_R(request.page)}}
+            </div>
+        </div>
+        <div id="m-nav">
+            <div>
+                <a href="status">
+                    <div class="icon status {{request.page === "status"}}"></div>
+                </a>
+            </div>
+            <div>
+                <a href="mesh">
+                    <div class="icon mesh {{request.page === "mesh"}}"></div>
+                </a>
+            </div>
+            <div>
+                <div style="margin: 0 calc(50% - 21px);">
+                {{_R("tools")}}
+                </div>
+            </div>
+            <div>
+            {{_R("login")}}
+            </div>
+        </div>
+    </div>
+     <script>
+        (function(){
+            document.querySelector("#m-all").addEventListener("click", _ => document.body.focus());
+            document.querySelector("#ctrl-modal").addEventListener("click", _ => document.body.focus());
+            document.addEventListener("DOMContentLoaded", _ => document.querySelector("meta[name=theme-color]").content = getComputedStyle(document.body).getPropertyValue("--nav-bg-color"));
+        })();
+    </script>
+    {% } %}
     {% if (auth.isAdmin) { %}
     <script>
         (function(){
@@ -120,79 +162,6 @@
             m.addEventListener("input", dialogDone);
             m.addEventListener("click", dialogDone);
         })();
-    </script>
-    {% } %}
-    {% } else { %}
-    <div id="m-all">
-        <div id="m-title">
-            <a href="http://localnode.local.mesh"><div id="icon-logo"></div></a><div></div>
-            {{_R("changes")}}
-            <div class="nav-node-name">{{configuration.getName()}}</div>
-        </div>
-        <div id="m-main">
-            <div id="main-container">
-                {{_R(request.page)}}
-            </div>
-        </div>
-        <div id="m-nav">
-            <div>
-                <a href="status">
-                    <div class="icon status {{request.page === "status"}}"></div>
-                </a>
-            </div>
-            <div>
-                <a href="mesh">
-                    <div class="icon mesh {{request.page === "mesh"}}"></div>
-                </a>
-            </div>
-            <div>
-                <div style="margin: 0 calc(50% - 21px);">
-                {{_R("tools")}}
-                </div>
-            </div>
-            <div>
-            {{_R("login")}}
-            </div>
-        </div>
-    </div>
-    <script>
-    (function(){
-        const m = document.getElementById("ctrl-modal");
-        document.body.addEventListener("click", e => {
-            const a = document.querySelectorAll(".popup-menu input[type=checkbox]:checked");
-            for (let i = 0; i < a.length; i++) {
-                if (a[i] !== e.target) {
-                    a[i].checked = false;
-                }
-            }
-        });
-        document.body.addEventListener("click", e => {
-            if (!(m.open || document.getSelection().isCollapsed)) {
-                e.stopPropagation();
-            }
-        }, true);
-        function dialogDone()
-        {
-            const d = document.getElementById("dialog-done");
-            if (d) {
-                setTimeout(function() {
-                    let invalid = false;
-                    const f = document.querySelectorAll(m, "form");
-                    for (let i = 0; i < f.length; i++) {
-                        if (!f[i].checkValidity()) {
-                            invalid = true;
-                            break;
-                        }
-                    }
-                    d.disabled = invalid;
-                }, 10);
-            }
-        }
-        m.addEventListener("input", dialogDone);
-        m.addEventListener("click", dialogDone);
-        document.querySelector("#m-all").addEventListener("click", _ => document.body.focus());
-        document.querySelector("#ctrl-modal").addEventListener("click", _ => document.body.focus());
-    })();
     </script>
     {% } %}
 </body>
