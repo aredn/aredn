@@ -161,67 +161,67 @@ if (f) {
     f.close();
 }
 const dhcpOptionTypes = {
-    "1": "netmask",
-    "2": "time-offset",
-    "3": "router",
-    "6": "dns-server",
-    "7": "log-server",
-    "9": "lpr-server",
-    "13": "boot-file-size",
-    "15": "domain-name",
-    "16": "swap-server",
-    "17": "root-path",
-    "18": "extension-path",
-    "19": "ip-forward-enable",
-    "20": "non-local-source-routing",
-    "21": "policy-filter",
-    "22": "max-datagram-reassembly",
-    "23": "default-ttl",
-    "26": "mtu",
-    "27": "all-subnets-local",
-    "31": "router-discovery",
-    "32": "router-solicitation",
-    "33": "static-route",
-    "34": "trailer-encapsulation",
-    "35": "arp-timeout",
-    "36": "ethernet-encap",
-    "37": "tcp-ttl",
-    "38": "tcp-keepalive",
-    "40": "nis-domain",
-    "41": "nis-server",
-    "42": "ntp-server",
-    "44": "netbios-ns",
-    "45": "netbios-dd",
-    "46": "netbios-nodetype",
-    "47": "netbios-scope",
-    "48": "x-windows-fs",
-    "49": "x-windows-dm",
-    "58": "T1",
-    "59": "T2",
-    "60": "vendor-class",
-    "64": "nis+-domain",
-    "65": "nis+-server",
-    "66": "tftp-server",
-    "67": "bootfile-name",
-    "68": "mobile-ip-home",
-    "69": "smtp-server",
-    "70": "pop3-server",
-    "71": "nntp-server",
-    "74": "irc-server",
-    "77": "user-class",
-    "80": "rapid-commit",
-    "93": "client-arch",
-    "94": "client-interface-id",
-    "97": "client-machine-id",
-    "100": "posix-timezone",
-    "101": "tzdb-timezone",
-    "108": "ipv6-only",
-    "119": "domain-search",
-    "120": "sip-server",
-    "121": "classless-static-route",
-    "125": "vendor-id-encap",
-    "150": "tftp-server-address",
-    "255": "server-ip-address"
+    "1": ["netmask", "mask"],
+    "2": ["time-offset", "int32"],
+    "3": ["router", "ip"],
+    "6": ["dns-server", "ips"],
+    "7": ["log-server", "ip"],
+    "9": ["lpr-server", "ip"],
+    "13": ["boot-file-size", "1...65535"],
+    "15": ["domain-name", "text"],
+    "16": ["swap-server", "ip"],
+    "17": ["root-path", "text"],
+    "18": ["extension-path", "text"],
+    "19": ["ip-forward-enable", "flag"],
+    "20": ["non-local-source-routing", "flag"],
+    "21": ["policy-filter", "ipips"],
+    "22": ["max-datagram-reassembly", "(57[6-9]|5[89]\\d|[6-9]\\d{2}|[1-9]\\d{3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])", "576...65535"],
+    "23": ["default-ttl", "1...255"],
+    "26": ["mtu", "(6[89]|[7-9]\\d|[1-9]\\d{2,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])"],
+    "27": ["all-subnets-local", "flag"],
+    "31": ["router-discovery", "flag"],
+    "32": ["router-solicitation", "ip"],
+    "33": ["static-route", "ipips"],
+    "34": ["trailer-encapsulation", "flag"],
+    "35": ["arp-timeout", "uint32"],
+    "36": ["ethernet-encap", "flag"],
+    "37": ["tcp-ttl", "1...255"],
+    "38": ["tcp-keepalive", "uint32"],
+    "40": ["nis-domain", "text"],
+    "41": ["nis-server", "ip"],
+    "42": ["ntp-server", "ip"],
+    "44": ["netbios-ns", "ip"],
+    "45": ["netbios-dd", "ip"],
+    "46": ["netbios-nodetype", "1|2|4|8", "1, 2, 4 or 8"],
+    "47": ["netbios-scope", "?"],
+    "48": ["x-windows-fs", "ip"],
+    "49": ["x-windows-dm", "ip"],
+    "58": ["T1", "time"],
+    "59": ["T2", "time"],
+    "60": ["vendor-class", "text"],
+    "64": ["nis+-domain", "text"],
+    "65": ["nis+-server", "ip"],
+    "66": ["tftp-server", "ip"],
+    "67": ["bootfile-name", "text"],
+    "68": ["mobile-ip-home", "ip"],
+    "69": ["smtp-server", "ip"],
+    "70": ["pop3-server", "ip"],
+    "71": ["nntp-server", "ip"],
+    "74": ["irc-server", "ip"],
+    "77": ["user-class", "text"],
+    "80": ["rapid-commit", "flag"],
+    "93": ["client-arch", "uint16"],
+    "94": ["client-interface-id", "?"],
+    "97": ["client-machine-id", "?"],
+    "100": ["posix-timezone", "?"],
+    "101": ["tzdb-timezone", "?"],
+    "108": ["ipv6-only", "?"],
+    "119": ["domain-search", "text"],
+    "120": ["sip-server", "ip"],
+    "121": ["classless-static-route", "((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}/([1-9]|[12]\\d|3[0-2]),((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}(,((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}/([1-9]|[12]\\d|3[0-2]),((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4})*", "IP Address/CIDR,IP Address..."],
+    "125": ["vendor-id-encap", "?"],
+    "150": ["tftp-server-address", "ip"],
+    "255": ["server-ip-address", "ip"]
 };
 %}
 <div class="dialog">
@@ -305,87 +305,91 @@ const dhcpOptionTypes = {
         {{_R("dialog-advanced")}}
         <div>
         {% if (includeAdvanced) { %}
-            <div class="dhcp-tags">
-                <div class="cols">
-                    <div>
-                        <div class="o">Tags</div>
-                        <div class="m">Tags for advanced options</div>
+            <form>
+                <div class="dhcp-tags">
+                    <div class="cols">
+                        <div>
+                            <div class="o">Tags</div>
+                            <div class="m">Tags for advanced options</div>
+                        </div>
+                        <button>+</button>
                     </div>
-                    <button>+</button>
-                </div>
-                <div class="dhcptag-label adr">
-                    <div class="row">
-                        <div>tag</div>
-                        <div>type</div>
-                        <div>match</div>
-                        <div></div>
-                    </div>
-                    <div></div>
-                </div>
-                <div class="list noborder">{%
-                for (let i = 0; i < length(advtags); i++) {
-                    const t = advtags[i];
-                    %}<div class="tag adr">
+                    <div class="dhcptag-label adr">
                         <div class="row">
-                            <input name="tag_name" type="text" required value="{{t.name}}">
-                            <select name="tag_type" required>
-                                <option value="">-</option>
-                                <option value="vendorclass" {{t.type == "vendorclass" ? "selected": ""}}>Vendor Class</option>
-                                <option value="userclass" {{t.type == "userclass" ? "selected": ""}}>User Class</option>
-                                <option value="mac" {{t.type == "mac" ? "selected": ""}}>MAC Address</option>
-                                <option value="circuitid" {{t.type == "circuitid" ? "selected": ""}}>Agent Circuit ID</option>
-                                <option value="remoteid" {{t.type == "remoteid" ? "selected": ""}}>Agent Remote ID</option>
-                                <option value="subscriberid" {{t.type == "subscriberid" ? "selected": ""}}>Subscriber-ID</option>
-                            </select>
-                            <input name="tag_match" type="text" required value="{{t.match}}">
+                            <div>tag</div>
+                            <div>type</div>
+                            <div>match</div>
                             <div></div>
                         </div>
-                        <button>-</button>
-                    </div>{%
-                }
-                %}</div>
-            </div>
-            <div class="dhcp-options">
-                <div class="cols">
-                    <div>
-                        <div class="o">Options</div>
-                        <div class="m">Advanced options</div>
+                        <div></div>
                     </div>
-                    <button>+</button>
+                    <div class="list noborder">{%
+                    for (let i = 0; i < length(advtags); i++) {
+                        const t = advtags[i];
+                        %}<div class="tag adr">
+                            <div class="row">
+                                <input name="tag_name" type="text" required value="{{t.name}}">
+                                <select name="tag_type" required>
+                                    <option value="">-</option>
+                                    <option value="vendorclass" {{t.type == "vendorclass" ? "selected": ""}}>Vendor Class</option>
+                                    <option value="userclass" {{t.type == "userclass" ? "selected": ""}}>User Class</option>
+                                    <option value="mac" {{t.type == "mac" ? "selected": ""}}>MAC Address</option>
+                                    <option value="circuitid" {{t.type == "circuitid" ? "selected": ""}}>Agent Circuit ID</option>
+                                    <option value="remoteid" {{t.type == "remoteid" ? "selected": ""}}>Agent Remote ID</option>
+                                    <option value="subscriberid" {{t.type == "subscriberid" ? "selected": ""}}>Subscriber-ID</option>
+                                </select>
+                                <input name="tag_match" type="text" required value="{{t.match}}">
+                                <div></div>
+                            </div>
+                            <button>-</button>
+                        </div>{%
+                    }
+                    %}</div>
                 </div>
-                <div class="dhcpoption-label adr">
-                    <div class="row">
-                        <div>tag</div>
-                        <div>option</div>
-                        <div>value</div>
-                        <div>always</div>
-                    </div>
-                    <div></div>
-                </div>
-                <div class="list noborder">{%
-                for (let i = 0; i < length(advoptions); i++) {
-                    const o = advoptions[i];
-                    %}<div class="option adr">
-                        <div class="row">
-                            <select name="option_name">
-                                <option value="{{o.name}}" selected>{{o.name}}</option>
-                            </select>
-                            <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type] ? `${o.type}: ${dhcpOptionTypes[o.type]}` : o.type}}" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?">
-                            <input name="option_value" type="text" required value="{{o.value}}">
-                            <label><input name="option_always" type="checkbox" {{o.always ? "checked" : ""}}></label>
+            </form>
+            <form>
+                <div class="dhcp-options">
+                    <div class="cols">
+                        <div>
+                            <div class="o">Options</div>
+                            <div class="m">Advanced options</div>
                         </div>
-                        <button>-</button>
-                    </div>{%
-                }
-                %}</div>
-            </div>
+                        <button>+</button>
+                    </div>
+                    <div class="dhcpoption-label adr">
+                        <div class="row">
+                            <div>tag</div>
+                            <div>option</div>
+                            <div>value</div>
+                            <div>always</div>
+                        </div>
+                        <div></div>
+                    </div>
+                    <div class="list noborder">{%
+                    for (let i = 0; i < length(advoptions); i++) {
+                        const o = advoptions[i];
+                        %}<div class="option adr">
+                            <div class="row">
+                                <select name="option_name">
+                                    <option value="{{o.name}}" selected>{{o.name}}</option>
+                                </select>
+                                <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type][0] ? `${o.type}: ${dhcpOptionTypes[o.type][0]}` : o.type}}" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?">
+                                <input name="option_value" type="text" required value="{{o.value}}">
+                                <label><input name="option_always" type="checkbox" {{o.always ? "checked" : ""}}></label>
+                            </div>
+                            <button>-</button>
+                        </div>{%
+                    }
+                    %}</div>
+                </div>
+            </form>
         {% } %}
         </div>
     </div>
     <datalist id="dhcp-option-type-list">
     {%
         for (let k in dhcpOptionTypes) {
-            print(`<option value="${k}: ${dhcpOptionTypes[k]}"></option>`);
+            print(`<option value="${k}: ${dhcpOptionTypes[k][0]}"></option>`);
         }
     %}
     </datalist>
@@ -552,8 +556,41 @@ const dhcpOptionTypes = {
                 options[i].innerHTML = "<option value=''>[all]</option>" + tagnames.map(t => `<option value="${t}" ${t === v ? "selected": ""}>${t}</option>`).join("");
             }
         }
+        function refreshTags()
+        {
+            const tags = htmx.findAll("#ctrl-modal .dialog .dhcp-tags .list .row");
+            for (let i = 0; i < tags.length; i++) {
+                const type = htmx.find(tags[i], "select[name=tag_type]");
+                const match = htmx.find(tags[i], "input[name=tag_match]");
+                switch (type.value) {
+                    case "mac":
+                        match.pattern = "(?:(?:[0-9a-fA-F]{2}|\\*):){5}(?:[0-9a-fA-F]{2}|\\*)";
+                        match.placeholder = "*:*:*:*:*:*";
+                        break;
+                    case "circuitid":
+                    case "remoteid":
+                        match.pattern = "(?:(?:[0-9a-fA-F]{2}|\\*):)*(?:[0-9a-fA-F]{2}|\\*)";
+                        match.placeholder = "12:3a:bc";
+                        break;
+                    case "subscriberid":
+                        match.pattern = "(?:[ -\\[\\]-~]|\\\\[\\\\benrt])+";
+                        match.placeholder = "";
+                        break;
+                    case "-":
+                    case "vendorclass":
+                    case "userclass":
+                    default:
+                        match.pattern = ".+";
+                        match.placeholder = "";
+                        break;
+                }
+            }
+        }
         function updateTags()
         {
+            if (!htmx.closest(htmx.find("#ctrl-modal .dialog .dhcp-tags"), "form").checkValidity()) {
+                return;
+            }
             const advtags = [];
             const tags = htmx.findAll("#ctrl-modal .dialog .dhcp-tags .list .row");
             for (let i = 0; i < tags.length; i++) {
@@ -570,8 +607,59 @@ const dhcpOptionTypes = {
             });
         }
         const dhcpOptionTypes = {%print(dhcpOptionTypes);%};
+        const dhcpOptionTypesPatterns = {
+            "?": [".*",],
+            ip: ["((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}", "IP Address"],
+            ips: ["((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}(,((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4})*", "IP Addresses"],
+            ipips: ["((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4} ((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}(,((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4} ((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4})*", "IP IP list"],
+            mask: ["((128|192|224|240|248|252|254)\\.0\\.0\\.0)|(255\\.(((0|128|192|224|240|248|252|254)\\.0\\.0)|(255\\.(((0|128|192|224|240|248|252|254)\\.0)|255\\.(0|128|192|224|240|248|252|254)))))", "Network mask"],
+            mac: ["(?:(?:[0-9a-fA-F]{2}|\\*):){5}(?:[0-9a-fA-F]{2}|\\*)", "xx:xx:xx:xx:xx:xx"],
+            flag: ["0|1", "0 or 1"],
+            text: [".+", "Text..."],
+            "1...65535": ["([1-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])", "1...65535"],
+            uint16: ["(\\d|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])", "0...65535"],
+            int32: ["-?\\d+", "Integer"],
+            uint32: ["\\d+", "Unsigned integer"],
+            "1...255": ["([1-9]|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])", "1...255"],
+            "time": ["\d+[sSmMhHdDwWmM]", "Time (s, m, h, d, w, m)"]
+        };
+        function refreshOptions()
+        {
+            const options = htmx.findAll("#ctrl-modal .dialog .dhcp-options .list .row");
+            for (let i = 0; i < options.length; i++) {
+                const name = htmx.find(options[i], "select[name=option_name]");
+                const type = htmx.find(options[i], "input[name=option_type]");
+                const value = htmx.find(options[i], "input[name=option_value]");
+                const always = htmx.find(options[i], "input[name=option_always]");
+                if (!type.validity.valid) {
+                    value.pattern = "";
+                }
+                else {
+                    const types =  dhcpOptionTypes[`${parseInt(type.value)}`];
+                    const pat = dhcpOptionTypesPatterns[types[1]];
+                    if (pat) {
+                        value.pattern = pat[0];
+                        value.placeholder = pat[1];
+                    }
+                    else {
+                        value.pattern = types[1];
+                        value.placeholder = types[2] || "";
+                    }
+                }
+                if (name.value === "") {
+                    always.checked = false;
+                    always.disabled = true;
+                }
+                else {
+                    always.disabled = false;
+                }
+            }
+        }
         function updateOptions()
         {
+            if (!htmx.closest(htmx.find("#ctrl-modal .dialog .dhcp-options"), "form").checkValidity()) {
+                return;
+            }
             const advoptions = [];
             const options = htmx.findAll("#ctrl-modal .dialog .dhcp-options .list .row");
             for (let i = 0; i < options.length; i++) {
@@ -584,7 +672,7 @@ const dhcpOptionTypes = {
                     advoptions.push({ name: name.value, type: tvalue, value: value.value, always: !!always.checked });
                 }
                 if (dhcpOptionTypes[tvalue]) {
-                    type.value = `${tvalue}: ${dhcpOptionTypes[tvalue]}`;
+                    type.value = `${tvalue}: ${dhcpOptionTypes[tvalue][0]}`;
                 }
             }
             htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
@@ -631,6 +719,7 @@ const dhcpOptionTypes = {
         });
         htmx.on("#ctrl-modal .dialog .dhcp-tags", "change", _ => {
             refreshAdvOptions();
+            refreshTags();
             updateTags();
         });
         htmx.on("#ctrl-modal .dialog .dhcp-options", "click", event => {
@@ -642,7 +731,7 @@ const dhcpOptionTypes = {
                             function addNewOption()
                             {
                                 const item = document.createElement("div");
-                                item.innerHTML = `<div class="option adr"><div class="row"><select name="option_name"><option value="">[all]</option></select> <input name="option_type" type="text" required list="dhcp-option-type-list" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?"> <input name="option_value" type="text" required value=""> <label><input name="option_always" type="checkbox"></label></div><button>-</button></div>`;
+                                item.innerHTML = `<div class="option adr"><div class="row"><select name="option_name"><option value="">[all]</option></select> <input name="option_type" type="text" required list="dhcp-option-type-list" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?"> <input name="option_value" type="text" required value=""> <label><input name="option_always" type="checkbox" disabled></label></div><button>-</button></div>`;
                                 const fc = item.firstChild;
                                 htmx.find("#ctrl-modal .dialog .dhcp-options .list").appendChild(fc);
                                 refreshAdvOptions();
@@ -670,8 +759,11 @@ const dhcpOptionTypes = {
             }
         });
         htmx.on("#ctrl-modal .dialog .dhcp-options", "change", _ => {
+            refreshOptions();
             updateOptions();
         });
+        refreshTags();
+        refreshOptions();
         refreshAdvOptions();
         {% } %}
     })();
