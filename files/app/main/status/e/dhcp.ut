@@ -164,61 +164,61 @@ const dhcpOptionTypes = {
     "1": ["netmask", "mask"],
     "2": ["time-offset", "int32"],
     "3": ["router", "ip"],
-    "6": ["dns-server", "ip"],
+    "6": ["dns-server", "ips"],
     "7": ["log-server", "ip"],
     "9": ["lpr-server", "ip"],
-    "13": ["boot-file-size", "uint16"],
+    "13": ["boot-file-size", "1...65535"],
     "15": ["domain-name", "text"],
     "16": ["swap-server", "ip"],
     "17": ["root-path", "text"],
     "18": ["extension-path", "text"],
     "19": ["ip-forward-enable", "flag"],
     "20": ["non-local-source-routing", "flag"],
-    "21": ["policy-filter", "?"],
-    "22": ["max-datagram-reassembly"],
-    "23": ["default-ttl", "1-255"],
+    "21": ["policy-filter", "ipips"],
+    "22": ["max-datagram-reassembly", "(57[6-9]|5[89]\\d|[6-9]\\d{2}|[1-9]\\d{3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])", "576...65535"],
+    "23": ["default-ttl", "1...255"],
     "26": ["mtu", "(6[89]|[7-9]\\d|[1-9]\\d{2,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])"],
     "27": ["all-subnets-local", "flag"],
     "31": ["router-discovery", "flag"],
-    "32": ["router-solicitation", "?"],
-    "33": ["static-route", "ip"],
+    "32": ["router-solicitation", "ip"],
+    "33": ["static-route", "ipips"],
     "34": ["trailer-encapsulation", "flag"],
     "35": ["arp-timeout", "uint32"],
     "36": ["ethernet-encap", "flag"],
-    "37": ["tcp-ttl", "1-255"],
+    "37": ["tcp-ttl", "1...255"],
     "38": ["tcp-keepalive", "uint32"],
     "40": ["nis-domain", "text"],
     "41": ["nis-server", "ip"],
     "42": ["ntp-server", "ip"],
-    "44": ["netbios-ns", "?"],
-    "45": ["netbios-dd", "?"],
-    "46": ["netbios-nodetype", "?"],
+    "44": ["netbios-ns", "ip"],
+    "45": ["netbios-dd", "ip"],
+    "46": ["netbios-nodetype", "1|2|4|8", "1, 2, 4 or 8"],
     "47": ["netbios-scope", "?"],
-    "48": ["x-windows-fs", "?"],
-    "49": ["x-windows-dm", "?"],
-    "58": ["T1", "?"],
-    "59": ["T2", "?"],
-    "60": ["vendor-class", "?"],
+    "48": ["x-windows-fs", "ip"],
+    "49": ["x-windows-dm", "ip"],
+    "58": ["T1", "time"],
+    "59": ["T2", "time"],
+    "60": ["vendor-class", "text"],
     "64": ["nis+-domain", "text"],
     "65": ["nis+-server", "ip"],
     "66": ["tftp-server", "ip"],
     "67": ["bootfile-name", "text"],
-    "68": ["mobile-ip-home", "?"],
+    "68": ["mobile-ip-home", "ip"],
     "69": ["smtp-server", "ip"],
     "70": ["pop3-server", "ip"],
     "71": ["nntp-server", "ip"],
     "74": ["irc-server", "ip"],
-    "77": ["user-class", "?"],
+    "77": ["user-class", "text"],
     "80": ["rapid-commit", "flag"],
-    "93": ["client-arch", "?"],
+    "93": ["client-arch", "uint16"],
     "94": ["client-interface-id", "?"],
     "97": ["client-machine-id", "?"],
     "100": ["posix-timezone", "?"],
     "101": ["tzdb-timezone", "?"],
     "108": ["ipv6-only", "?"],
-    "119": ["domain-search", "?"],
+    "119": ["domain-search", "text"],
     "120": ["sip-server", "ip"],
-    "121": ["classless-static-route"],
+    "121": ["classless-static-route", "((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}/([1-9]|[12]\\d|3[0-2]),((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}(,((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}/([1-9]|[12]\\d|3[0-2]),((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4})*", "IP Address/CIDR,IP Address..."],
     "125": ["vendor-id-encap", "?"],
     "150": ["tftp-server-address", "ip"],
     "255": ["server-ip-address", "ip"]
@@ -608,16 +608,20 @@ const dhcpOptionTypes = {
         }
         const dhcpOptionTypes = {%print(dhcpOptionTypes);%};
         const dhcpOptionTypesPatterns = {
-            "?": ".*",
-            ip: "((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}",
-            mask: "((128|192|224|240|248|252|254)\\.0\\.0\\.0)|(255\\.(((0|128|192|224|240|248|252|254)\\.0\\.0)|(255\\.(((0|128|192|224|240|248|252|254)\\.0)|255\\.(0|128|192|224|240|248|252|254)))))",
-            mac: "(?:(?:[0-9a-fA-F]{2}|\\*):){5}(?:[0-9a-fA-F]{2}|\\*)",
-            flag: "0|1",
-            text: ".+",
-            uint16: "([1-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])",
-            int32: "-?\\d+",
-            uint32: "\\d+",
-            "1-255": "([1-9]|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])",
+            "?": [".*",],
+            ip: ["((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}", "IP Address"],
+            ips: ["((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}(,((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4})*", "IP Addresses"],
+            ipips: ["((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4} ((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}(,((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4} ((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4})*", "IP IP list"],
+            mask: ["((128|192|224|240|248|252|254)\\.0\\.0\\.0)|(255\\.(((0|128|192|224|240|248|252|254)\\.0\\.0)|(255\\.(((0|128|192|224|240|248|252|254)\\.0)|255\\.(0|128|192|224|240|248|252|254)))))", "Network mask"],
+            mac: ["(?:(?:[0-9a-fA-F]{2}|\\*):){5}(?:[0-9a-fA-F]{2}|\\*)", "xx:xx:xx:xx:xx:xx"],
+            flag: ["0|1", "0 or 1"],
+            text: [".+", "Text..."],
+            "1...65535": ["([1-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])", "1...65535"],
+            uint16: ["(\\d|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])", "0...65535"],
+            int32: ["-?\\d+", "Integer"],
+            uint32: ["\\d+", "Unsigned integer"],
+            "1...255": ["([1-9]|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])", "1...255"],
+            "time": ["\d+[sSmMhHdDwWmM]", "Time (s, m, h, d, w, m)"]
         };
         function refreshOptions()
         {
@@ -631,8 +635,16 @@ const dhcpOptionTypes = {
                     value.pattern = "";
                 }
                 else {
-                    const dot = dhcpOptionTypes[`${parseInt(type.value)}`][1];
-                    value.pattern = dhcpOptionTypesPatterns[dot] || dot;
+                    const types =  dhcpOptionTypes[`${parseInt(type.value)}`];
+                    const pat = dhcpOptionTypesPatterns[types[1]];
+                    if (pat) {
+                        value.pattern = pat[0];
+                        value.placeholder = pat[1];
+                    }
+                    else {
+                        value.pattern = types[1];
+                        value.placeholder = types[2] || "";
+                    }
                 }
                 if (name.value === "") {
                     always.checked = false;
