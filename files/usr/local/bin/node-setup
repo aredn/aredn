@@ -1064,6 +1064,7 @@ if h and e then
 
     local reservations = cm:get_all("setup", "dhcpreservations", "reservation") or {}
     for _, reservation in ipairs(reservations)
+    do
         local mac, ip, host, noprop = reservation:match("(%S+)%s+(%S+)%s+(%S+)%s*(%S*)")
         if mac and ip and host and noprop then
             ip = decimal_to_ip(netaddr + ip)
