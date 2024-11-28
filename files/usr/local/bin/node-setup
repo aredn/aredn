@@ -1061,6 +1061,11 @@ if h and e then
     e:write("# use /etc/ethers.user for custom entries\n")
 
     local netaddr = nixio.bit.band(ip_to_decimal(cfg.lan_ip), ip_to_decimal(cfg.lan_mask))
+    -- In NAT or AltNET mode the DHCP start can be something other than 2 which is what is assumed in the
+    -- code which creates the DHCP reservations. So we adjust our netaddr base to account for this
+    if is_nat_mode() or is_altnet_mode() then
+        netaddr = netaddr + cfg.dhcp_start - 2
+    end
 
     local reservations = cm:get_all("setup", "dhcpreservations", "reservation") or {}
     for _, reservation in ipairs(reservations)
