@@ -884,6 +884,10 @@ do
                     then -- place unforced options in the anonymous section
                 for _, option in ipairs(forcelist[UNFORCED]) do
                     table.insert(dhcp_option_list, option_item(tag, option))
+                    -- If we detect a rapid-commit option to enable the necessary config flag
+                    if option.num == "80" and option.val == "1" then
+                        nc:set("dhcp", "@dhcp[0]", "rapidcommit", "1")
+                    end
                 end
                 forcelist[UNFORCED] = nil
             end

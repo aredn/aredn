@@ -209,7 +209,7 @@ const dhcpOptionTypes = {
     "71": ["nntp-server", "ips"],
     "74": ["irc-server", "ips"],
     "77": ["user-class", "text"],
-    "80": ["rapid-commit", "(empty)"], // FIXME also needs --dhcp-rapid-commit
+    "80": ["rapid-commit", "flag"],
     "93": ["client-arch", "uint16"],
     "94": ["client-interface-id", "^1(?:,(?:\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])){2}$", "1,0...255,0...255"],
     "97": ["client-machine-id", "^0,(?:[0-9A-Fa-f]{2}:?\\b){16}$", "0,xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"],
@@ -609,7 +609,6 @@ const dhcpOptionTypes = {
         const dhcpOptionTypes = {%print(dhcpOptionTypes);%};
         const dhcpOptionTypesPatterns = {
             "?": [".*",],
-            "(empty)": ["^$", "(empty)"],
             ip: ["^(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$", "IP Address"],
             ips: ["^(?:(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4},?\\b)+$", "IP Addresses"],
             ipips: ["^(?:(?:(?:(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}),?\\b){2})+$", "IP,IP pairs"],
@@ -649,10 +648,6 @@ const dhcpOptionTypes = {
                                 value.min = pat[2];
                                 value.max = pat[3];
                                 break;
-                            case "^$": // (empty)
-                                value.value = "";
-                                value.disabled = true;
-                                // fall through...
                             default:
                                 value.type = "text";
                                 value.pattern = pat[0];
