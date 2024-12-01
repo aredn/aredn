@@ -153,7 +153,7 @@ if (f) {
 f = fs.open(dhcp.dhcpoptions);
 if (f) {
     for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const m = match(replace(l, /\n+$/, ""), /^(\S*)\s(force|onrequest)\s(\d+)\s(.+)$/);
+        const m = match(replace(l, /\n+$/, ""), /^(\S*)\s(force|onrequest)\s(\d+)\s(.*)$/);
         if (m) {
             push(advoptions, { name: m[1], always: m[2] === "force", type: int(m[3]), value: m[4] });
         }
@@ -163,21 +163,21 @@ if (f) {
 const dhcpOptionTypes = {
     "1": ["netmask", "mask"],
     "2": ["time-offset", "int32"],
-    "3": ["router", "ip"],
+    "3": ["router", "ips"],
     "6": ["dns-server", "ips"],
-    "7": ["log-server", "ip"],
-    "9": ["lpr-server", "ip"],
+    "7": ["log-server", "ips"],
+    "9": ["lpr-server", "ips"],
     "13": ["boot-file-size", "1...65535"],
-    "15": ["domain-name", "text"],
+    "15": ["domain-name", "dns"],
     "16": ["swap-server", "ip"],
     "17": ["root-path", "text"],
     "18": ["extension-path", "text"],
     "19": ["ip-forward-enable", "flag"],
     "20": ["non-local-source-routing", "flag"],
     "21": ["policy-filter", "ipips"],
-    "22": ["max-datagram-reassembly", "(57[6-9]|5[89]\\d|[6-9]\\d{2}|[1-9]\\d{3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])", "576...65535"],
+    "22": ["max-datagram-reassembly", "576...65535"],
     "23": ["default-ttl", "1...255"],
-    "26": ["mtu", "(6[89]|[7-9]\\d|[1-9]\\d{2,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])"],
+    "26": ["mtu", "68...65535"],
     "27": ["all-subnets-local", "flag"],
     "31": ["router-discovery", "flag"],
     "32": ["router-solicitation", "ip"],
@@ -188,38 +188,38 @@ const dhcpOptionTypes = {
     "37": ["tcp-ttl", "1...255"],
     "38": ["tcp-keepalive", "uint32"],
     "40": ["nis-domain", "text"],
-    "41": ["nis-server", "ip"],
-    "42": ["ntp-server", "ip"],
-    "44": ["netbios-ns", "ip"],
-    "45": ["netbios-dd", "ip"],
-    "46": ["netbios-nodetype", "1|2|4|8", "1, 2, 4 or 8"],
-    "47": ["netbios-scope", "?"],
-    "48": ["x-windows-fs", "ip"],
-    "49": ["x-windows-dm", "ip"],
+    "41": ["nis-server", "ips"],
+    "42": ["ntp-server", "ips"],
+    "44": ["netbios-ns", "ips"],
+    "45": ["netbios-dd", "ips"],
+    "46": ["netbios-nodetype", "^[1248]$", "1, 2, 4 or 8"],
+    "47": ["netbios-scope", "dns"],
+    "48": ["x-windows-fs", "ips"],
+    "49": ["x-windows-dm", "ips"],
     "58": ["T1", "time"],
     "59": ["T2", "time"],
     "60": ["vendor-class", "text"],
     "64": ["nis+-domain", "text"],
-    "65": ["nis+-server", "ip"],
-    "66": ["tftp-server", "ip"],
+    "65": ["nis+-server", "ips"],
+    "66": ["tftp-server", "dns"],
     "67": ["bootfile-name", "text"],
-    "68": ["mobile-ip-home", "ip"],
-    "69": ["smtp-server", "ip"],
-    "70": ["pop3-server", "ip"],
-    "71": ["nntp-server", "ip"],
-    "74": ["irc-server", "ip"],
+    "68": ["mobile-ip-home", "ips"],
+    "69": ["smtp-server", "ips"],
+    "70": ["pop3-server", "ips"],
+    "71": ["nntp-server", "ips"],
+    "74": ["irc-server", "ips"],
     "77": ["user-class", "text"],
-    "80": ["rapid-commit", "flag"],
+    "80": ["rapid-commit", "(empty)"], // FIXME also needs --dhcp-rapid-commit
     "93": ["client-arch", "uint16"],
-    "94": ["client-interface-id", "?"],
-    "97": ["client-machine-id", "?"],
-    "100": ["posix-timezone", "?"],
-    "101": ["tzdb-timezone", "?"],
-    "108": ["ipv6-only", "?"],
+    "94": ["client-interface-id", "^1(?:,(?:\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])){2}$", "1,0...255,0...255"],
+    "97": ["client-machine-id", "^0,(?:[0-9A-Fa-f]{2}:?\\b){16}$", "0,xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"],
+    "100": ["posix-timezone", "^[A-Za-z]{3,}[+\\-]?(?:2[0-4]?|[01]?\\d)(?::[0-5]\\d){0,2}(?:[A-Za-z]{3,}(?:[+\\-]?(?:2[0-4]?|[01]?\\d)(?::[0-5]\\d){0,2})?(?:,(?:J(?:[1-9]|[1-9]\\d|[12]\\d{2}|3[0-5]\\d|36[0-5])|(?:\\d|[1-9]\\d|[12]\\d{2}|3[0-5]\\d|36[0-5])|(?:M(?:[1-9]|1[0-2])\\.[1-5]\\.[0-6]))(?:\\/(?:(?:-[1-9]|-?[1-9]\\d|-?1[0-5]\\d|-?16[0-7]|\\d))(?::[0-5]\\d){0,2})?){0,2})?$", "POSIX timezone"],
+    "101": ["tzdb-timezone", "^(?:(?:[A-Za-z_\\-]+\\/[A-Za-z_\\-]+(?:\\/[A-Za-z_\\-]+)?)|(?:Etc\\/[A-Za-z0-9+\\-]+(?:\\/[A-Za-z0-9]+)?|(?:CET|CST6CDT|EET|EST|EST5EDT|MET|MST|MST7MDT|PST8PDT|HST)))$", "TZ Identifier"],
+    "108": ["ipv6-only", "uint32"],
     "119": ["domain-search", "text"],
-    "120": ["sip-server", "ip"],
-    "121": ["classless-static-route", "((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}/([1-9]|[12]\\d|3[0-2]),((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}(,((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}/([1-9]|[12]\\d|3[0-2]),((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4})*", "IP Address/CIDR,IP Address..."],
-    "125": ["vendor-id-encap", "?"],
+    "120": ["sip-server", "^(?:0,(?:(?:(?!-))(?:(?:xn--)?[A-Za-z0-9][A-Za-z0-9\\-]{0,61}[A-Za-z0-9]{0,1}\\.)*(?:xn--)?(?:[A-Za-z0-9\\-]{1,61}|[A-Za-z0-9\\-]{1,30}\\.[A-Za-z]{2,}),?\\b)+)|(?:1,(?:(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4},?\\b)+)$", "0,DNS Names or 1,IP Addresses"],
+    "121": ["classless-static-route", "^(?:(?:(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}\\/(?:[1-9]|[12]\\d|3[0-2]),(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}),?\\b)+$", "IP Address/CIDR,IP Address[,...]"],
+    "125": ["vendor-id-encap", "^vi-encap:\\d+,(?:\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5]),(?:\"[^\"]*\"|(?:[0-9A-Fa-f]{2}:?\\b)+|(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|-?\\d+)$", "vi-encap:int,0...255,data"], // https://lists.thekelleys.org.uk/pipermail/dnsmasq-discuss/2010q4/004454.html
     "150": ["tftp-server-address", "ip"],
     "255": ["server-ip-address", "ip"]
 };
@@ -609,19 +609,23 @@ const dhcpOptionTypes = {
         const dhcpOptionTypes = {%print(dhcpOptionTypes);%};
         const dhcpOptionTypesPatterns = {
             "?": [".*",],
-            ip: ["((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}", "IP Address"],
-            ips: ["((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}(,((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4})*", "IP Addresses"],
-            ipips: ["((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4} ((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}(,((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4} ((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4})*", "IP IP list"],
-            mask: ["((128|192|224|240|248|252|254)\\.0\\.0\\.0)|(255\\.(((0|128|192|224|240|248|252|254)\\.0\\.0)|(255\\.(((0|128|192|224|240|248|252|254)\\.0)|255\\.(0|128|192|224|240|248|252|254)))))", "Network mask"],
-            mac: ["(?:(?:[0-9a-fA-F]{2}|\\*):){5}(?:[0-9a-fA-F]{2}|\\*)", "xx:xx:xx:xx:xx:xx"],
-            flag: ["0|1", "0 or 1"],
+            "(empty)": ["^$", "(empty)"],
+            ip: ["^(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$", "IP Address"],
+            ips: ["^(?:(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4},?\\b)+$", "IP Addresses"],
+            ipips: ["^(?:(?:(?:(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}),?\\b){2})+$", "IP,IP pairs"],
+            mask: ["^(?:(?:1(?:28|92)|2(?:24|4[08]|5[24]))(?:\\.0){3})|(?:255\\.(?:(?:(?:0|1(?:28|92)|2(?:24|4[08]|5[24]))(?:\\.0){2})|(?:255\\.(?:(?:(?:0|1(?:28|92)|2(?:24|4[08]|5[24]))\\.0)|255\\.(?:0|1(?:28|92)|2(?:24|4[08]|5[24]))))))$", "Network mask"],
+            mac: ["^(?:[0-9a-fA-F]{2}:?\\b){6}$", "xx:xx:xx:xx:xx:xx"],
+            flag: ["^[01]$", "0 or 1"],
             text: [".+", "Text..."],
-            "1...65535": ["([1-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])", "1...65535"],
-            uint16: ["(\\d|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])", "0...65535"],
-            int32: ["-?\\d+", "Integer"],
-            uint32: ["\\d+", "Unsigned integer"],
-            "1...255": ["([1-9]|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])", "1...255"],
-            "time": ["\d+[sSmMhHdDwWmM]", "Time (s, m, h, d, w, m)"]
+            uint16: ["(number)", "0...65535", 0, 65535],
+            int32: ["(number)", "Integer", -2147483648, 2147483647],
+            uint32: ["(number)", "Unsigned integer", 0, 4294967295],
+            "1...255": ["(number)", "1...255", 1, 255],
+            "1...65535": ["(number)", "1...65535", 1, 65535],
+            "68...65535": ["(number)", "68...65535", 68, 65535],
+            "576...65535": ["(number)", "576...65535", 576, 65535],
+            "time": ["\\d+[sSmMhHdDwW]?", "Time (s, m, h, d, w)"],
+            dns: ["^(?:(?!-))(?:(?:xn--)?[A-Za-z0-9][A-Za-z0-9\\-]{0,61}[A-Za-z0-9]{0,1}\\.)*(?:xn--)?(?:[A-Za-z0-9\\-]{1,61}|[A-Za-z0-9\\-]{1,30}\\.[A-Za-z]{2,})$", "Host DNS name"]
         };
         function refreshOptions()
         {
@@ -637,8 +641,25 @@ const dhcpOptionTypes = {
                 else {
                     const types =  dhcpOptionTypes[`${parseInt(type.value)}`];
                     const pat = dhcpOptionTypesPatterns[types[1]];
+                    value.disabled = false;
                     if (pat) {
-                        value.pattern = pat[0];
+                        switch (pat[0]) {
+                            case "(number)":
+                                value.type = "number";
+                                value.min = pat[2];
+                                value.max = pat[3];
+                                break;
+                            case "^$": // (empty)
+                                value.value = "";
+                                value.disabled = true;
+                                // fall through...
+                            default:
+                                value.type = "text";
+                                value.pattern = pat[0];
+                                value.min = "";
+                                value.max = "";
+                                break;
+                        }
                         value.placeholder = pat[1];
                     }
                     else {
