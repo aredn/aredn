@@ -49,6 +49,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 }
             }
         }
+        if (!uciMesh.get("setup", "dhcpreservations")) {
+            uciMesh.set("setup", "dhcpreservations", "reservation");
+        }
         if (length(reservations)) {
             uciMesh.set("setup", "dhcpreservations", "reservation", reservations);
         }
