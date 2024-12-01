@@ -433,7 +433,7 @@ export function unescapeString(s)
     return s;
 };
 
-const backupFilename = "/tmp/backup.tar.gz";
+const backupFilename = "/tmp/node-backup.backup";
 
 export function backup()
 {
