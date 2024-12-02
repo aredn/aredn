@@ -195,7 +195,7 @@ const dhcpOptionTypes = {
     "42": ["ntp-server", "ips"],
     "44": ["netbios-ns", "ips"],
     "45": ["netbios-dd", "ips"],
-    "46": ["netbios-nodetype", "^[1248]$", "1, 2, 4 or 8"],
+    "46": ["netbios-nodetype", "[1248]", "1, 2, 4 or 8"],
     "47": ["netbios-scope", "dns"],
     "48": ["x-windows-fs", "ips"],
     "49": ["x-windows-dm", "ips"],
@@ -212,17 +212,17 @@ const dhcpOptionTypes = {
     "71": ["nntp-server", "ips"],
     "74": ["irc-server", "ips"],
     "77": ["user-class", "text"],
-    "80": ["rapid-commit", "flag"],
+    "80": ["rapid-commit", "none"],
     "93": ["client-arch", "uint16"],
-    "94": ["client-interface-id", "^1(?:,(?:\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])){2}$", "1,0...255,0...255"],
-    "97": ["client-machine-id", "^0,(?:[0-9A-Fa-f]{2}:?\\b){16}$", "0,xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"],
-    "100": ["posix-timezone", "^[A-Za-z]{3,}[+\\-]?(?:2[0-4]?|[01]?\\d)(?::[0-5]\\d){0,2}(?:[A-Za-z]{3,}(?:[+\\-]?(?:2[0-4]?|[01]?\\d)(?::[0-5]\\d){0,2})?(?:,(?:J(?:[1-9]|[1-9]\\d|[12]\\d{2}|3[0-5]\\d|36[0-5])|(?:\\d|[1-9]\\d|[12]\\d{2}|3[0-5]\\d|36[0-5])|(?:M(?:[1-9]|1[0-2])\\.[1-5]\\.[0-6]))(?:\\/(?:(?:-[1-9]|-?[1-9]\\d|-?1[0-5]\\d|-?16[0-7]|\\d))(?::[0-5]\\d){0,2})?){0,2})?$", "POSIX timezone"],
-    "101": ["tzdb-timezone", "^(?:(?:[A-Za-z_\\-]+\\/[A-Za-z_\\-]+(?:\\/[A-Za-z_\\-]+)?)|(?:Etc\\/[A-Za-z0-9+\\-]+(?:\\/[A-Za-z0-9]+)?|(?:CET|CST6CDT|EET|EST|EST5EDT|MET|MST|MST7MDT|PST8PDT|HST)))$", "TZ Identifier"],
+    "94": ["client-interface-id", "1(?:,(?:\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])){2}", "1,0...255,0...255"],
+    "97": ["client-machine-id", "0,(?:[0-9A-Fa-f]{2}:?\\b){16}", "0,xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"],
+    "100": ["posix-timezone", "[A-Za-z]{3,}[+\\-]?(?:2[0-4]?|[01]?\\d)(?::[0-5]\\d){0,2}(?:[A-Za-z]{3,}(?:[+\\-]?(?:2[0-4]?|[01]?\\d)(?::[0-5]\\d){0,2})?(?:,(?:J(?:[1-9]|[1-9]\\d|[12]\\d{2}|3[0-5]\\d|36[0-5])|(?:\\d|[1-9]\\d|[12]\\d{2}|3[0-5]\\d|36[0-5])|(?:M(?:[1-9]|1[0-2])\\.[1-5]\\.[0-6]))(?:\\/(?:(?:-[1-9]|-?[1-9]\\d|-?1[0-5]\\d|-?16[0-7]|\\d))(?::[0-5]\\d){0,2})?){0,2})?", "POSIX timezone"],
+    "101": ["tzdb-timezone", "(?:(?:[A-Za-z_\\-]+\\/[A-Za-z_\\-]+(?:\\/[A-Za-z_\\-]+)?)|(?:Etc\\/[A-Za-z0-9+\\-]+(?:\\/[A-Za-z0-9]+)?|(?:CET|CST6CDT|EET|EST|EST5EDT|MET|MST|MST7MDT|PST8PDT|HST)))", "TZ Identifier"],
     "108": ["ipv6-only", "uint32"],
     "119": ["domain-search", "text"],
-    "120": ["sip-server", "^(?:0,(?:(?:(?!-))(?:(?:xn--)?[A-Za-z0-9][A-Za-z0-9\\-]{0,61}[A-Za-z0-9]{0,1}\\.)*(?:xn--)?(?:[A-Za-z0-9\\-]{1,61}|[A-Za-z0-9\\-]{1,30}\\.[A-Za-z]{2,}),?\\b)+)|(?:1,(?:(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4},?\\b)+)$", "0,DNS Names or 1,IP Addresses"],
-    "121": ["classless-static-route", "^(?:(?:(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}\\/(?:[1-9]|[12]\\d|3[0-2]),(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}),?\\b)+$", "IP Address/CIDR,IP Address[,...]"],
-    "125": ["vendor-id-encap", "^vi-encap:\\d+,(?:\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5]),(?:\"[^\"]*\"|(?:[0-9A-Fa-f]{2}:?\\b)+|(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|-?\\d+)$", "vi-encap:int,0...255,data"], // https://lists.thekelleys.org.uk/pipermail/dnsmasq-discuss/2010q4/004454.html
+    "120": ["sip-server", "(?:0,(?:(?:(?!-))(?:(?:xn--)?[A-Za-z0-9][A-Za-z0-9\\-]{0,61}[A-Za-z0-9]{0,1}\\.)*(?:xn--)?(?:[A-Za-z0-9\\-]{1,61}|[A-Za-z0-9\\-]{1,30}\\.[A-Za-z]{2,}),?\\b)+)|(?:1,(?:(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4},?\\b)+)", "0,DNS Names or 1,IP Addresses"],
+    "121": ["classless-static-route", "(?:(?:(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}\\/(?:[1-9]|[12]\\d|3[0-2]),(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}),?\\b)+", "IP Address/CIDR,IP Address[,...]"],
+    "125": ["vendor-id-encap", "vi-encap:\\d+,(?:\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5]),(?:\"[^\"]*\"|(?:[0-9A-Fa-f]{2}:?\\b)+|(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|-?\\d+)", "vi-encap:int,0...255,data"], // https://lists.thekelleys.org.uk/pipermail/dnsmasq-discuss/2010q4/004454.html
     "150": ["tftp-server-address", "ip"],
     "255": ["server-ip-address", "ip"]
 };
@@ -612,12 +612,13 @@ const dhcpOptionTypes = {
         const dhcpOptionTypes = {%print(dhcpOptionTypes);%};
         const dhcpOptionTypesPatterns = {
             "?": [".*",],
-            ip: ["^(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$", "IP Address"],
-            ips: ["^(?:(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4},?\\b)+$", "IP Addresses"],
-            ipips: ["^(?:(?:(?:(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}),?\\b){2})+$", "IP,IP pairs"],
-            mask: ["^(?:(?:1(?:28|92)|2(?:24|4[08]|5[24]))(?:\\.0){3})|(?:255\\.(?:(?:(?:0|1(?:28|92)|2(?:24|4[08]|5[24]))(?:\\.0){2})|(?:255\\.(?:(?:(?:0|1(?:28|92)|2(?:24|4[08]|5[24]))\\.0)|255\\.(?:0|1(?:28|92)|2(?:24|4[08]|5[24]))))))$", "Network mask"],
-            mac: ["^(?:[0-9a-fA-F]{2}:?\\b){6}$", "xx:xx:xx:xx:xx:xx"],
-            flag: ["^[01]$", "0 or 1"],
+            ip: ["(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}", "IP Address"],
+            ips: ["(?:(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4},?\\b)+", "IP Addresses"],
+            ipips: ["(?:(?:(?:(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}),?\\b){2})+", "IP,IP pairs"],
+            mask: ["(?:(?:1(?:28|92)|2(?:24|4[08]|5[24]))(?:\\.0){3})|(?:255\\.(?:(?:(?:0|1(?:28|92)|2(?:24|4[08]|5[24]))(?:\\.0){2})|(?:255\\.(?:(?:(?:0|1(?:28|92)|2(?:24|4[08]|5[24]))\\.0)|255\\.(?:0|1(?:28|92)|2(?:24|4[08]|5[24]))))))", "Network mask"],
+            mac: ["(?:[0-9a-fA-F]{2}:?\\b){6}", "xx:xx:xx:xx:xx:xx"],
+            flag: ["[01]", "0 or 1"],
+            none: ["(hidden)", "None"],
             text: [".+", "Text..."],
             uint16: ["(number)", "0...65535", 0, 65535],
             int32: ["(number)", "Integer", -2147483648, 2147483647],
@@ -627,7 +628,7 @@ const dhcpOptionTypes = {
             "68...65535": ["(number)", "68...65535", 68, 65535],
             "576...65535": ["(number)", "576...65535", 576, 65535],
             "time": ["\\d+[sSmMhHdDwW]?", "Time (s, m, h, d, w)"],
-            dns: ["^(?:(?!-))(?:(?:xn--)?[A-Za-z0-9][A-Za-z0-9\\-]{0,61}[A-Za-z0-9]{0,1}\\.)*(?:xn--)?(?:[A-Za-z0-9\\-]{1,61}|[A-Za-z0-9\\-]{1,30}\\.[A-Za-z]{2,})$", "Host DNS name"]
+            dns: ["(?:(?!-))(?:(?:xn--)?[A-Za-z0-9][A-Za-z0-9\\-]{0,61}[A-Za-z0-9]{0,1}\\.)*(?:xn--)?(?:[A-Za-z0-9\\-]{1,61}|[A-Za-z0-9\\-]{1,30}\\.[A-Za-z]{2,})", "Host DNS name"]
         };
         function refreshOptions()
         {
@@ -641,24 +642,32 @@ const dhcpOptionTypes = {
                     value.pattern = "";
                 }
                 else {
-                    const types =  dhcpOptionTypes[`${parseInt(type.value)}`];
+                    const types = dhcpOptionTypes[`${parseInt(type.value)}`];
                     const pat = dhcpOptionTypesPatterns[types[1]];
                     value.disabled = false;
                     if (pat) {
+                        value.type = "text";
+                        value.pattern = "";
+                        value.min = "";
+                        value.max = "";
+                        value.placeholder = pat[1];
+                        value.required = true;
+                        value.style.visibility = null;
                         switch (pat[0]) {
                             case "(number)":
                                 value.type = "number";
                                 value.min = pat[2];
                                 value.max = pat[3];
                                 break;
+                            case "(hidden)":
+                                value.style.visibility = "hidden";
+                                value.value = "";
+                                value.required = false;
+                                break;
                             default:
-                                value.type = "text";
                                 value.pattern = pat[0];
-                                value.min = "";
-                                value.max = "";
                                 break;
                         }
-                        value.placeholder = pat[1];
                     }
                     else {
                         value.pattern = types[1];
