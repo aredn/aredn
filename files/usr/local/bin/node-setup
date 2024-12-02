@@ -814,7 +814,9 @@ local function option_item(tag, option)
         table.insert(parts, "tag:" .. tag)
     end
     table.insert(parts, option.num)
-    table.insert(parts, option.val)
+    if option.val ~= "" then
+        table.insert(parts, option.val)
+    end
     return table.concat(parts, ",")
 end
 
