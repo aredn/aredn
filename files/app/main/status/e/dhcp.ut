@@ -50,7 +50,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             }
         }
         if (!uciMesh.get("setup", "dhcpreservations")) {
-            uciMesh.set("setup", "dhcpreservations", "reservation");
+            uciMesh.set("setup", "dhcpreservations", "dhcpreservations");
         }
         if (length(reservations)) {
             uciMesh.set("setup", "dhcpreservations", "reservation", reservations);
@@ -63,28 +63,40 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("advtags" in request.args) {
         configuration.prepareChanges();
         const advtags = json(request.args.advtags);
-        const dhcp = configuration.getDHCP();
-        let f = fs.open(dhcp.dhcptags, "w");
-        if (f) {
-            for (let i = 0; i < length(advtags); i++) {
-                const t = advtags[i];
-                f.write(`${t.name} ${t.type} ${t.match}\n`);
-            }
-            f.close();
+        const tags = [];
+        for (let i = 0; i < length(advtags); i++) {
+            const t = advtags[i];
+            push(tags, `${t.name} ${t.type} ${t.match}`);
         }
+        if (!uciMesh.get("setup", "dhcptags")) {
+            uciMesh.set("setup", "dhcptags", "dhcptags");
+        }
+        if (length(tags)) {
+            uciMesh.set("setup", "dhcptags", "tag", tags);
+        }
+        else {
+            uciMesh.delete("setup", "dhcptags", "tag");
+        }
+        uciMesh.commit("setup");
     }
     if ("advoptions" in request.args) {
         configuration.prepareChanges();
         const advoptions = json(request.args.advoptions);
-        const dhcp = configuration.getDHCP();
-        let f = fs.open(dhcp.dhcpoptions, "w");
-        if (f) {
-            for (let i = 0; i < length(advoptions); i++) {
-                const o = advoptions[i];
-                f.write(`${o.name} ${o.always ? "force" : "onrequest"} ${o.type} ${o.value}\n`);
-            }
-            f.close();
+        const options = [];
+        for (let i = 0; i < length(advoptions); i++) {
+            const o = advoptions[i];
+            push(options, `${o.name} ${o.always ? "force" : "onrequest"} ${o.type} ${o.value}`);
         }
+        if (!uciMesh.get("setup", "dhcpoptions")) {
+            uciMesh.set("setup", "dhcpoptions", "dhcpoptions");
+        }
+        if (length(options)) {
+            uciMesh.set("setup", "dhcpoptions", "option", options);
+        }
+        else {
+            uciMesh.delete("setup", "dhcpoptions", "option");
+        }
+        uciMesh.commit("setup");
     }
     print(_R("changes"));
     return;
@@ -120,7 +132,7 @@ for (let i = 0; i < length(res); i++) {
         }
     }
 }
-let f = fs.open(dhcp.leases);
+const f = fs.open(dhcp.leases);
 if (f) {
     for (let l = f.read("line"); length(l); l = f.read("line")) {
         // ?, mac, ip, name, ?
@@ -142,27 +154,21 @@ if (f) {
     }
     f.close();
 }
-f = fs.open(dhcp.dhcptags);
-if (f) {
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const m = match(replace(l, /\n+$/, ""), /^([^\W_]+)\s(\w+)\s(.+)$/);
-        if (m) {
-            const p = replace(replace(replace(m[3], /"/g, "&quot;"), /</g, "&lt;"), />/g, "&gt;");
-            push(advtags, { name: m[1], type: m[2], match: p });
-        }
-    }
-    f.close();
+const tags = uciMesh.get("setup", "dhcptags", "tag") || [];
+for (let i = 0; i < length(tags); i++) {
+    const m = match(replace(tags[i], /\n+$/, ""), /^([^\W_]+)\s(\w+)\s(.+)$/);
+    if (m) {
+        const p = replace(replace(replace(m[3], /"/g, "&quot;"), /</g, "&lt;"), />/g, "&gt;");
+        push(advtags, { name: m[1], type: m[2], match: p });
+    } 
 }
-f = fs.open(dhcp.dhcpoptions);
-if (f) {
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const m = match(replace(l, /\n+$/, ""), /^(\S*)\s(force|onrequest)\s(\d+)\s(.*)$/);
-        if (m) {
-            const p = replace(replace(replace(m[4], /"/g, "&quot;"), /</g, "&lt;"), />/g, "&gt;");
-            push(advoptions, { name: m[1], always: m[2] === "force", type: int(m[3]), value: p });
-        }
+const opts = uciMesh.get("setup", "dhcpoptions", "option") || [];
+for (let i = 0; i < length(opts); i++) {
+    const m = match(replace(opts[i], /\n+$/, ""), /^(\S*)\s(force|onrequest)\s(\d+)\s(.*)$/);
+    if (m) {
+        const p = replace(replace(replace(m[4], /"/g, "&quot;"), /</g, "&lt;"), />/g, "&gt;");
+        push(advoptions, { name: m[1], always: m[2] === "force", type: int(m[3]), value: p });
     }
-    f.close();
 }
 const dhcpOptionTypes = {
     "1": ["netmask", "mask"],

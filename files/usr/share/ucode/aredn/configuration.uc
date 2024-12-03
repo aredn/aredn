@@ -222,8 +222,6 @@ export function getDHCP(mode)
             cidr: network.netmaskToCIDR(setup.lan_mask),
             leases: "/tmp/dhcp.leases",
             ports: "/etc/config.mesh/_setup.ports.nat",
-            dhcptags: "/etc/config.mesh/_setup.dhcptags.nat",
-            dhcpoptions: "/etc/config.mesh/_setup.dhcpoptions.nat",
             aliases: "/etc/config.mesh/aliases.nat"
         };
     }
@@ -244,8 +242,6 @@ export function getDHCP(mode)
             cidr: network.netmaskToCIDR(setup.lan_mask),
             leases: "/tmp/dhcp.leases",
             ports: "/etc/config.mesh/_setup.ports.dmz",
-            dhcptags: "/etc/config.mesh/_setup.dhcptags.dmz",
-            dhcpoptions: "/etc/config.mesh/_setup.dhcpoptions.dmz",
             aliases: "/etc/config.mesh/aliases.dmz"
         };
     }
@@ -265,10 +261,7 @@ export function getDHCP(mode)
             mask: setup.dmz_lan_mask,
             cidr: network.netmaskToCIDR(setup.dmz_lan_mask),
             leases: "/tmp/dhcp.leases",
-            services: "/etc/config.mesh/_setup.services.dmz",
             ports: "/etc/config.mesh/_setup.ports.dmz",
-            dhcptags: "/etc/config.mesh/_setup.dhcptags.dmz",
-            dhcpoptions: "/etc/config.mesh/_setup.dhcpoptions.dmz",
             aliases: "/etc/config.mesh/aliases.dmz"
         };
     }
