@@ -158,7 +158,8 @@ if (f) {
     for (let l = f.read("line"); length(l); l = f.read("line")) {
         const m = match(replace(l, /\n+$/, ""), /^(\S*)\s(force|onrequest)\s(\d+)\s(.*)$/);
         if (m) {
-            push(advoptions, { name: m[1], always: m[2] === "force", type: int(m[3]), value: m[4] });
+            const p = replace(replace(replace(m[4], /"/g, "&quot;"), /</g, "&lt;"), />/g, "&gt;");
+            push(advoptions, { name: m[1], always: m[2] === "force", type: int(m[3]), value: p });
         }
     }
     f.close();
@@ -222,7 +223,7 @@ const dhcpOptionTypes = {
     "119": ["domain-search", "text"],
     "120": ["sip-server", "(?:0,(?:(?:(?!-))(?:(?:xn--)?[A-Za-z0-9][A-Za-z0-9\\-]{0,61}[A-Za-z0-9]{0,1}\\.)*(?:xn--)?(?:[A-Za-z0-9\\-]{1,61}|[A-Za-z0-9\\-]{1,30}\\.[A-Za-z]{2,}),?\\b)+)|(?:1,(?:(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4},?\\b)+)", "0,DNS Names or 1,IP Addresses"],
     "121": ["classless-static-route", "(?:(?:(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}\\/(?:[1-9]|[12]\\d|3[0-2]),(?:(?:25[0-5]|(?:2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}),?\\b)+", "IP Address/CIDR,IP Address[,...]"],
-    "125": ["vendor-id-encap", "vi-encap:\\d+,(?:\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5]),(?:\"[^\"]*\"|(?:[0-9A-Fa-f]{2}:?\\b)+|(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|-?\\d+)", "vi-encap:int,0...255,data"], // https://lists.thekelleys.org.uk/pipermail/dnsmasq-discuss/2010q4/004454.html
+    "125": ["vendor-id-encap", "(?:vi-encap:)?\\d+,(?:\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5]),(?:\"(?:[^\"\\\\]|\\\\.)*\"|(?:[0-9A-Fa-f]{2}:?\\b)+|(?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|-?\\d+)", "int,0...255,data"], // https://lists.thekelleys.org.uk/pipermail/dnsmasq-discuss/2010q4/004454.html
     "150": ["tftp-server-address", "ip"],
     "255": ["server-ip-address", "ip"]
 };
@@ -376,7 +377,7 @@ const dhcpOptionTypes = {
                                 <select name="option_name">
                                     <option value="{{o.name}}" selected>{{o.name}}</option>
                                 </select>
-                                <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type][0] ? `${o.type}: ${dhcpOptionTypes[o.type][0]}` : o.type}}" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?">
+                                <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type] ? `${o.type}: ${dhcpOptionTypes[o.type][0]}` : o.type}}" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?">
                                 <input name="option_value" type="text" required value="{{o.value}}">
                                 <label><input name="option_always" type="checkbox" {{o.always ? "checked" : ""}}></label>
                             </div>
@@ -642,36 +643,42 @@ const dhcpOptionTypes = {
                     value.pattern = "";
                 }
                 else {
-                    const types = dhcpOptionTypes[`${parseInt(type.value)}`];
-                    const pat = dhcpOptionTypesPatterns[types[1]];
                     value.disabled = false;
-                    if (pat) {
-                        value.type = "text";
-                        value.pattern = "";
-                        value.min = "";
-                        value.max = "";
-                        value.placeholder = pat[1];
-                        value.required = true;
-                        value.style.visibility = null;
-                        switch (pat[0]) {
-                            case "(number)":
-                                value.type = "number";
-                                value.min = pat[2];
-                                value.max = pat[3];
-                                break;
-                            case "(hidden)":
-                                value.style.visibility = "hidden";
-                                value.value = "";
-                                value.required = false;
-                                break;
-                            default:
-                                value.pattern = pat[0];
-                                break;
+                    value.min = "";
+                    value.max = "";
+                    value.required = true;
+                    value.style.visibility = null;
+                    value.type = "text";
+                    const types = dhcpOptionTypes[`${parseInt(type.value)}`];
+                    if (types) {
+                        const pat = dhcpOptionTypesPatterns[types[1]];
+                        if (pat) {
+                            value.pattern = "";
+                            value.placeholder = pat[1];
+                            switch (pat[0]) {
+                                case "(number)":
+                                    value.type = "number";
+                                    value.min = pat[2];
+                                    value.max = pat[3];
+                                    break;
+                                case "(hidden)":
+                                    value.style.visibility = "hidden";
+                                    value.value = "";
+                                    value.required = false;
+                                    break;
+                                default:
+                                    value.pattern = pat[0];
+                                    break;
+                            }
+                        }
+                        else {
+                            value.pattern = types[1];
+                            value.placeholder = types[2] || "";
                         }
                     }
                     else {
-                        value.pattern = types[1];
-                        value.placeholder = types[2] || "";
+                        value.pattern = ".*";
+                        value.placeholder = "";
                     }
                 }
                 if (name.value === "") {

@@ -93,6 +93,9 @@ end
 
 local FORCED = "force"
 local UNFORCED = "onrequest"
+local OPT_RAPID_COMMIT = "80"
+local OPT_VENDOR_ID_ENCAP = "125"
+local VI_ENCAP = "vi-encap:"
 
 local c = uci.cursor()
 local cm = uci.cursor("/etc/config.mesh")
@@ -815,6 +818,12 @@ local function option_item(tag, option)
     end
     table.insert(parts, option.num)
     if option.val ~= "" then
+        if option.num == OPT_VENDOR_ID_ENCAP and option.val:sub(1,#VI_ENCAP) ~= VI_ENCAP then
+            option.val = VI_ENCAP .. option.val
+        end
+--        if string.find(option.val, '"') then
+--            option.val = '"' .. option.val:gsub('"', '\\"') .. '"'
+--        end
         table.insert(parts, option.val)
     end
     return table.concat(parts, ",")
@@ -828,7 +837,6 @@ local function create_classifying_section(condition, cond_list)
         if (condition == "subscriberid") then
             secname = "subscrid"
             pat = '"' .. pat:gsub('"', '\\"') .. '"'
-            print(props.pattern, "->", pat)
         end
         nc:add("dhcp", secname)
         local section_ref = string.format("@%s[%d]", secname, i-1)
@@ -887,7 +895,7 @@ do
                 for _, option in ipairs(forcelist[UNFORCED]) do
                     table.insert(dhcp_option_list, option_item(tag, option))
                     -- If we detect a rapid-commit option to enable the necessary config flag
-                    if option.num == "80" and option.val == "1" then
+                    if option.num == OPT_RAPID_COMMIT then
                         nc:set("dhcp", "@dhcp[0]", "rapidcommit", "1")
                     end
                 end
