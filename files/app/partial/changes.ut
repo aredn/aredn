@@ -71,7 +71,11 @@
                 e.target.innerText = "Committing ...";
                 htmx.find("#changes button[name=revert]").style.display = "none";
             });
-            htmx.on(commit, "htmx:timeout", _ => htmx.ajax("GET", "/a/changes", { source: commit, target: "#changes" }));
+            function retry()
+            {
+                htmx.ajax("GET", "/a/changes", { timeout: 5000, target: "#changes" }).then(null, retry);
+            }
+            htmx.on(commit, "htmx:timeout", retry);
         })();
         </script>
     {% }

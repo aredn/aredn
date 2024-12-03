@@ -462,6 +462,9 @@ global.handle_request = function(env)
                 }
             }
             let changelock = null;
+/*
+ * The lock file mechanism is failing when the network configuration changes while it's active.
+ * Not obvious why this happens, but disable this for now.
             if (env.REQUEST_METHOD !== "GET") {
                 changelock = fs.open(lockfile);
                 if (!(changelock && changelock.lock("x"))) {
@@ -469,6 +472,7 @@ global.handle_request = function(env)
                     return;
                 }
             }
+*/
             const args = {};
             if (env.CONTENT_TYPE === "application/x-www-form-urlencoded") {
                 let b = "";
