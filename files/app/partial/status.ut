@@ -42,58 +42,60 @@
         {{_R("location")}}
     </div>
 </div>
-<div id="c2">
-    <div hx-get="u-messages" hx-trigger="every 300s [document.visibilityState === 'visible']">
-    {% if (messages.haveMessages() || (auth.isAdmin && messages.haveToDos())) { %}
-        <div id="messages">
-        {{_R("messages")}}
-        </div>
-    {% } %}
-    </div>
-    <div id="services">
-        {% if (auth.isAdmin) { %}
-        {{_R("internal-services" )}}
+<div id="c2c3">
+    <div id="c2">
+        <div hx-get="u-messages" hx-trigger="every 300s [document.visibilityState === 'visible']">
+        {% if (messages.haveMessages() || (auth.isAdmin && messages.haveToDos())) { %}
+            <div id="messages">
+            {{_R("messages")}}
+            </div>
         {% } %}
-        {{_R("local-services")}}
-    </div>
-    <div id="local-and-neighbor-devices">
-        <hr>
-        <div hx-get="u-local-and-neighbor-devices" hx-trigger="every 60s [document.visibilityState === 'visible']">
-        {{_R("local-and-neighbor-devices")}}
         </div>
-    </div>
-    {{_R("activator", { id: "local-and-neighbor-devices", activate: [ ".noctrl:first-child",  ".noctrl:nth-child(2)" ] })}}
-</div>
-<div id="c3">
-    <div id="radio-and-antenna">
-        {{_R("radio-and-antenna")}}
-    </div>
-    <div id="mesh-summary">
-        <hr>
-        <div hx-get="u-mesh-summary" hx-trigger="every 120s [document.visibilityState === 'visible']">
-        {{_R("mesh-summary")}}
+        <div id="services">
+            {% if (auth.isAdmin) { %}
+            {{_R("internal-services" )}}
+            {% } %}
+            {{_R("local-services")}}
         </div>
-    </div>
-    <div id="dhcp">
-        <hr>
-        <div hx-get="u-dhcp" hx-trigger="every 120s [document.visibilityState === 'visible']">
-        {{_R("dhcp")}}
+        <div id="local-and-neighbor-devices">
+            <hr>
+            <div hx-get="u-local-and-neighbor-devices" hx-trigger="every 60s [document.visibilityState === 'visible']">
+            {{_R("local-and-neighbor-devices")}}
+            </div>
         </div>
+        {{_R("activator", { id: "local-and-neighbor-devices", activate: [ ".noctrl:first-child",  ".noctrl:nth-child(2)" ] })}}
     </div>
-    {% if (length(hardware.getEthernetPorts()) > 0) { %}
-    <div id="ports-and-xlinks">
-        <hr>
-        {{_R("ports-and-xlinks")}}
-    </div>
-    {% } %}
-    {% if (fs.access("/usr/bin/wg") || fs.access("/usr/sbin/vtund")) { %}
-    <div id="tunnels">
-        <hr>
-        <div hx-get="u-tunnels" hx-trigger="every 120s [document.visibilityState === 'visible']">
-        {{_R("tunnels")}}
+    <div id="c3">
+        <div id="radio-and-antenna">
+            {{_R("radio-and-antenna")}}
         </div>
+        <div id="mesh-summary">
+            <hr>
+            <div hx-get="u-mesh-summary" hx-trigger="every 120s [document.visibilityState === 'visible']">
+            {{_R("mesh-summary")}}
+            </div>
+        </div>
+        <div id="dhcp">
+            <hr>
+            <div hx-get="u-dhcp" hx-trigger="every 120s [document.visibilityState === 'visible']">
+            {{_R("dhcp")}}
+            </div>
+        </div>
+        {% if (length(hardware.getEthernetPorts()) > 0) { %}
+        <div id="ports-and-xlinks">
+            <hr>
+            {{_R("ports-and-xlinks")}}
+        </div>
+        {% } %}
+        {% if (fs.access("/usr/bin/wg") || fs.access("/usr/sbin/vtund")) { %}
+        <div id="tunnels">
+            <hr>
+            <div hx-get="u-tunnels" hx-trigger="every 120s [document.visibilityState === 'visible']">
+            {{_R("tunnels")}}
+            </div>
+        </div>
+        {% } %}
     </div>
-    {% } %}
 </div>
 {% } else { %}
 <div id="general">
