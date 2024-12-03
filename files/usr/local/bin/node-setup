@@ -309,18 +309,12 @@ end
 
 -- select ports and dhcp files based on mode
 local portfile  = "/etc/config.mesh/_setup.ports"
-local dhcptagsfile = "/etc/config.mesh/_setup.dhcptags"
-local dhcpoptionsfile = "/etc/config.mesh/_setup.dhcpoptions"
 local aliasfile = "/etc/config.mesh/aliases"
 if is_nat_mode() then
     portfile = portfile .. ".nat"
-    dhcptagsfile = dhcptagsfile .. ".nat"
-    dhcpoptionsfile = dhcpoptionsfile .. ".nat"
     aliasfile = aliasfile .. ".nat"
 else
     portfile = portfile .. ".dmz"
-    dhcptagsfile = dhcptagsfile .. ".dmz"
-    dhcpoptionsfile = dhcpoptionsfile .. ".dmz"
     aliasfile = aliasfile .. ".dmz"
 end
 
@@ -774,38 +768,31 @@ if is_nat_mode() then
 end
 
 -- setup node lan dhcp
-local function load_dhcp_tags(dhcptagsfile)
+local function load_dhcp_tags()
     local dhcp_tags = {}
-
-    for line in io.lines(dhcptagsfile)
+    local tags = cm:get_all("setup", "dhcptags", "tag") or {}
+    for _, tag in ipairs(tags)
     do
-        if not (line:match("^%s*#") or line:match("^%s*$")) then
-            local name, condition, pattern = line:match("(%S+)%s+(%S+)%s+(.*)")
-            if pattern then
-                table.insert(get_subtable(dhcp_tags, condition),
-                             {name = name, pattern = pattern})
-            end
+        local name, condition, pattern = tag:match("(%S+)%s+(%S+)%s+(.*)")
+        if pattern then
+            table.insert(get_subtable(dhcp_tags, condition), { name = name, pattern = pattern })
         end
     end
     return dhcp_tags
 end
 
-local function load_dhcp_options(dhcpoptionsfile)
+local function load_dhcp_options()
     local dhcp_options = {}
-    if nixio.fs.access(dhcpoptionsfile) then
-        for line in io.lines(dhcpoptionsfile)
-        do
-            if not (line:match("^%s*#") or line:match("^%s*$")) then
-                local tag, force, opt_num, opt_val = line:match("(%S*)%s+(%w+)%s+(%d+)%s+(.*)")
-                if opt_val then
-                    local by_tag = get_subtable(dhcp_options, tag)
-                    if tag == "" and force == FORCED then
-                        force = UNFORCED -- force is unsupported for untagged options
-                    end
-                    table.insert(get_subtable(by_tag, force),
-                                 {num = opt_num, val = opt_val})
-                end
+    local opts = cm:get_all("setup", "dhcpoptions", "option") or {}
+    for _, option in ipairs(opts)
+    do
+        local tag, force, opt_num, opt_val = option:match("(%S*)%s+(%w+)%s+(%d+)%s+(.*)")
+        if opt_val then
+            local by_tag = get_subtable(dhcp_options, tag)
+            if tag == "" and force == FORCED then
+                force = UNFORCED -- force is unsupported for untagged options
             end
+            table.insert(get_subtable(by_tag, force), { num = opt_num, val = opt_val })
         end
     end
     return dhcp_options
@@ -877,13 +864,10 @@ do
         table.insert(dhcp_option_list, "3")
     end
 
-    local advanced_options = load_dhcp_options(dhcpoptionsfile)
-
-    if nixio.fs.access(dhcptagsfile) then
-        for condition, cond_list in pairs(load_dhcp_tags(dhcptagsfile))
-        do
-            create_classifying_section(condition, cond_list)
-        end
+    local advanced_options = load_dhcp_options()
+    for condition, cond_list in pairs(load_dhcp_tags())
+    do
+        create_classifying_section(condition, cond_list)
     end
 
     for tag, forcelist in pairs(advanced_options)

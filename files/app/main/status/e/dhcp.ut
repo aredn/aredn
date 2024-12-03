@@ -50,7 +50,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             }
         }
         if (!uciMesh.get("setup", "dhcpreservations")) {
-            uciMesh.set("setup", "dhcpreservations", "reservation");
+            uciMesh.set("setup", "dhcpreservations", "dhcpreservations");
         }
         if (length(reservations)) {
             uciMesh.set("setup", "dhcpreservations", "reservation", reservations);
@@ -66,7 +66,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const tags = [];
         for (let i = 0; i < length(advtags); i++) {
             const t = advtags[i];
-            push(tags, `${t.name} ${t.type} ${t.match}\n`);
+            push(tags, `${t.name} ${t.type} ${t.match}`);
         }
         if (!uciMesh.get("setup", "dhcptags")) {
             uciMesh.set("setup", "dhcptags", "dhcptags");
@@ -85,12 +85,12 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const options = [];
         for (let i = 0; i < length(advoptions); i++) {
             const o = advoptions[i];
-            push(options, `${o.name} ${o.always ? "force" : "onrequest"} ${o.type} ${o.value}\n`);
+            push(options, `${o.name} ${o.always ? "force" : "onrequest"} ${o.type} ${o.value}`);
         }
         if (!uciMesh.get("setup", "dhcpoptions")) {
             uciMesh.set("setup", "dhcpoptions", "dhcpoptions");
         }
-        if (length(tags)) {
+        if (length(options)) {
             uciMesh.set("setup", "dhcpoptions", "option", options);
         }
         else {
@@ -167,7 +167,7 @@ for (let i = 0; i < length(opts); i++) {
     const m = match(replace(opts[i], /\n+$/, ""), /^(\S*)\s(force|onrequest)\s(\d+)\s(.*)$/);
     if (m) {
         const p = replace(replace(replace(m[4], /"/g, "&quot;"), /</g, "&lt;"), />/g, "&gt;");
-        push(advoptions, { name: m[1], always: m[2] === "force", type: int(m[3]), value: p] });
+        push(advoptions, { name: m[1], always: m[2] === "force", type: int(m[3]), value: p });
     }
 }
 const dhcpOptionTypes = {

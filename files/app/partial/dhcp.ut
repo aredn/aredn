@@ -39,7 +39,7 @@
     let at = 0;
     let ao = 0;
     if (dhcp.enabled) {
-        let f = fs.open(dhcp.leases);
+        const f = fs.open(dhcp.leases);
         if (f) {
             while (length(f.read("line"))) {
                 da++;
@@ -47,20 +47,8 @@
             f.close();
         }
         dr = length(uciMesh.get("setup", "dhcpreservations", "reservation") || []);
-        f = fs.open(dhcp.dhcptags);
-        if (f) {
-            while (length(f.read("line"))) {
-                at++;
-            }
-            f.close();
-        }
-        f = fs.open(dhcp.dhcpoptions);
-        if (f) {
-            while (length(f.read("line"))) {
-                ao++;
-            }
-            f.close();
-        }
+        at = length(uciMesh.get("setup", "dhcptags", "tag") || []);
+        ao = length(uciMesh.get("setup", "dhcpoptions", "option") || []);
     }
 %}
 {% if (dhcp.enabled) { %}
