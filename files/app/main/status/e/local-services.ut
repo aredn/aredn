@@ -50,25 +50,29 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
     if ("aliases" in request.args) {
         const aliases = json(request.args.aliases);
-        const dhcp = configuration.getDHCP();
-        let f = fs.open(dhcp.aliases, "w");
-        if (f) {
-            for (let i = 0; i < length(aliases); i++) {
-                f.write(`${aliases[i]}\n`);
-            }
-            f.close();
+        if (!uciMesh.get("setup", "aliases")) {
+            uciMesh.set("setup", "aliases", "aliases");
         }
+        if (length(aliases)) {
+            uciMesh.set("setup", "aliases", "alias", aliases);
+        }
+        else {
+            uciMesh.delete("setup", "aliases", "alias");
+        }
+        uciMesh.commit("setup");
     }
     if ("ports" in request.args) {
         const ports = json(request.args.ports);
-        const dhcp = configuration.getDHCP();
-        let f = fs.open(dhcp.ports, "w");
-        if (f) {
-            for (let i = 0; i < length(ports); i++) {
-                f.write(`${ports[i]}\n`);
-            }
-            f.close();
+        if (!uciMesh.get("setup", "ports")) {
+            uciMesh.set("setup", "ports", "ports");
         }
+        if (length(ports)) {
+            uciMesh.set("setup", "ports", "port", ports);
+        }
+        else {
+            uciMesh.delete("setup", "ports", "port");
+        }
+        uciMesh.commit("setup");
     }
     print(_R("changes"));
     return;
@@ -158,26 +162,20 @@ for (let i = 0; i < length(res); i++) {
         }
     }
 }
-let f = fs.open(dhcp.aliases);
-if (f) {
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const v = match(trim(l), /^(.+) (.+)$/);
-        if (v) {
-            push(aliases.map, { hostname: v[2], address: v[1] });
-        }
+const als = uciMesh.get("setup", "aliases", "alias") || [];
+for (let i = 0; i < length(als); i++) {
+    const v = match(trim(als[i]), /^(.+) (.+)$/);
+    if (v) {
+        push(aliases.map, { hostname: v[2], address: v[1] });
     }
-    f.close();
 }
 const ports = [];
-f = fs.open(dhcp.ports);
-if (f) {
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const m = match(trim(l), /^(wan|wifi|both):(tcp|udp|both):([0-9\-]+):([.0-9]+):([0-9]+):([01])$/);
-        if (m) {
-            push(ports, { src: m[1], type: m[2], sports: m[3], dst: m[4], dport: m[5], enabled: m[6] === "1" });
-        }
+const pts = uciMesh.get("setup", "ports", "port") || [];
+for (let l = 0; l < length(pts); l++) {
+    const m = match(trim(pts[l]), /^(wan|wifi|both):(tcp|udp|both):([0-9\-]+):([.0-9]+):([0-9]+):([01])$/);
+    if (m) {
+        push(ports, { src: m[1], type: m[2], sports: m[3], dst: m[4], dport: m[5], enabled: m[6] === "1" });
     }
-    f.close();
 }
 %}
 <div class="dialog">

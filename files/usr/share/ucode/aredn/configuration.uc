@@ -219,10 +219,7 @@ export function getDHCP(mode)
             end: `${i[0]}.${i[1]}.${(e >> 8) & 255}.${e & 255}`,
             gateway: setup.lan_ip,
             mask: setup.lan_mask,
-            cidr: network.netmaskToCIDR(setup.lan_mask),
-            leases: "/tmp/dhcp.leases",
-            ports: "/etc/config.mesh/_setup.ports.nat",
-            aliases: "/etc/config.mesh/aliases.nat"
+            cidr: network.netmaskToCIDR(setup.lan_mask)
         };
     }
     else if (setup.dmz_mode === "1") {
@@ -239,10 +236,7 @@ export function getDHCP(mode)
             end: `${i[0]}.${i[1]}.${(e >> 8) & 255}.${e & 255}`,
             gateway: setup.lan_ip,
             mask: setup.lan_mask,
-            cidr: network.netmaskToCIDR(setup.lan_mask),
-            leases: "/tmp/dhcp.leases",
-            ports: "/etc/config.mesh/_setup.ports.dmz",
-            aliases: "/etc/config.mesh/aliases.dmz"
+            cidr: network.netmaskToCIDR(setup.lan_mask)
         };
     }
     else {
@@ -259,10 +253,7 @@ export function getDHCP(mode)
             end: `${i[0]}.${i[1]}.${(e >> 8) & 255}.${e & 255}`,
             gateway: setup.dmz_lan_ip,
             mask: setup.dmz_lan_mask,
-            cidr: network.netmaskToCIDR(setup.dmz_lan_mask),
-            leases: "/tmp/dhcp.leases",
-            ports: "/etc/config.mesh/_setup.ports.dmz",
-            aliases: "/etc/config.mesh/aliases.dmz"
+            cidr: network.netmaskToCIDR(setup.dmz_lan_mask)
         };
     }
 };

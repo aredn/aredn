@@ -62,27 +62,20 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 configuration.setSetting("dmz_dhcp_start", 2);
                 configuration.setSetting("dmz_dhcp_end", (2 << (mode - 1)) - 2);
                 const dhcp = configuration.getDHCP();
-                let f = fs.open(dhcp.aliases);
-                if (f) {
+                const als = uciMesh.get("setup", "aliases", "alias");
+                if (als) {
                     const aliases = [];
                     const dmz_dhcp_start = (wifi_shift + 2) & 0xff;
                     const dmz_dhcp_end = dmz_dhcp_start + (2 << (mode - 1)) - 4;
                     const n_lan_ip = iptoarr(dmz_lan_ip);
-                    for (let l = f.read("line"); length(l); l = f.read("line")) {
-                        const v = match(trim(l), /^(.+) (.+)$/);
+                    for (let l = 0; l < length(als); l++) {
+                        const v = match(trim(als[l]), /^(.+) (.+)$/);
                         if (v) {
                             const octet = max(dmz_dhcp_start, min(dmz_dhcp_end, n_lan_ip[3] + iptoarr(v[1])[3] - o_lan_ip[3]));
                             push(aliases, `${arrtoip([ n_lan_ip[0], n_lan_ip[1], n_lan_ip[2], octet ])} ${v[2]}\n`);
                         }
                     }
-                    f.close();
-                    f = fs.open(dhcp.aliases, "w");
-                    if (f) {
-                        for (let i = 0; i < length(aliases); i++) {
-                            f.write(aliases[i]);
-                        }
-                        f.close();
-                    }
+                    uciMesh.set("setup", "aliases", "alias", aliases);
                 }
             }
         }
