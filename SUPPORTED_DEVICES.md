@@ -49,8 +49,8 @@ Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | untested | relea
 LiteAP 5AC | LAP-120 <br> LAP-120-US <br> LBE-5AC-16-120 <br> LBE-5AC-16-120-US | 5 | ath79 | generic | ubnt_lap-120 | 64MB | stable | released
 LiteBeam 5AC Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | released
 LiteBeam 5AC LR | LBE-5AC-LR <br> LBE-5AC-LR-US | 5 | ath79 | generic | ubnt_litebeam-ac-lr | 64MB | stable | released
-LiteBeam M5 || 5 | ath79 | - | - | 64MB | untested | not supported
-NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | stable | released
+LiteBeam M5 || 5 | ath79 | - | - | 64MB | untested | not supported (8)
+NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | untested | not supported (8)
 NanoBeam 5AC (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | stable | released
 NanoBeam 5AC (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | released
 NanoBeam 5AC Gen 2 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | released
@@ -165,5 +165,6 @@ Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
  5. x86 images are for advanced users. See "Installing AREDN® Firmware" x86 documentation section.
  6. These devices do not function on negative channels in the 2.4 GHz band.
  7. Mikrotik devices come with either a v6 bootloader or a v7 bootloader. See [here](https://openwrt.org/toh/mikrotik/common) for more details. If you are using a v7 bootloader use the v7 sysupgrade instead of the plain one.
+ 8. These devices were supported in older releases, but not supported in the current one.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/
