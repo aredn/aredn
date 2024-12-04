@@ -32,16 +32,25 @@
  * version
  */
 %}
-<div>
-    <input style="position:absolute;top:-10000px">
-    {% if (type(inner) === "object") { %}
-    {% if (inner.help !== false) { %}
-    <button id="dialog-help" class="{{request.headers["include-help"] === "1" ? "enabled" : ""}}" hx-get="{{request.env.REQUEST_URI}}" hx-trigger="click delay:10ms" hx-target="#ctrl-modal" hx-headers='{"Include-Help":"{{includeHelp ? "0" : "1"}}","Include-Advanced":"{{request.headers['include-advanced'] === "1" ? "1" : "0"}}"}'>Help</button>
-    {% } %}
-    <div class="t">{{inner.label}}</div>
-    {% } else { %}
-    <button id="dialog-help" class="{{request.headers["include-help"] === "1" ? "enabled" : ""}}" hx-get="{{request.env.REQUEST_URI}}" hx-trigger="click delay:10ms" hx-target="#ctrl-modal" hx-headers='{"Include-Help":"{{includeHelp ? "0" : "1"}}","Include-Advanced":"{{request.headers['include-advanced'] === "1" ? "1" : "0"}}"}'>Help</button>
-    <div class="t">{{inner}}</div>
-    {% } %}
-    <hr/>
+<div class="dialog wide">
+    {{_R("tool-header", { label: "Syslog", help: false })}}
+    <div class="simple-tool">
+        <div class="tool-console syslog">
+            <pre>{%
+            const f = fs.popen("exec /sbin/logread");
+            for (let l = f.read("line"); length(l); l = f.read("line")) {
+                print(`<div>${trim(l)}</div>`);
+            }
+            f.close();
+            %}</pre>
+        </div>
+    </div>
+    {{_R("tool-footer")}}
+    <script>
+    (function(){
+        {{_R("open")}}
+        const log = htmx.find(".tool-console pre");
+        log.scrollTop = log.scrollHeight;
+    })();
+    </script>
 </div>
