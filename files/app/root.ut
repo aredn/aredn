@@ -554,7 +554,7 @@ global.handle_request = function(env)
             const isMobile = !!(config.forcemobile || match(env.HTTP_USER_AGENT, /iphone/i) || match(env.HTTP_USER_AGENT, /android.*mobile/i));
             let res = "";
             let changelock = null;
-            if (env.REQUEST_METHOD !== "GET") {
+            if (config.uilock && env.REQUEST_METHOD !== "GET") {
                 changelock = fs.open(lockfile);
                 if (!(changelock && changelock.lock("x"))) {
                     uhttpd.send("Status: 500 Internal server error\r\n\r\n");
