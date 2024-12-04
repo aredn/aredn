@@ -106,7 +106,7 @@
 
     if (dhcp.enabled) {
         const leased = {};
-        f = fs.open(dhcp.leases);
+        f = fs.open("/tmp/dhcp.leases");
         if (f) {
             for (let l = f.read("line"); length(l); l = f.read("line")) {
                 const m = split(trim(l), " ");

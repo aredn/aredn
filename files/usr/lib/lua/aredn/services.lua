@@ -183,11 +183,11 @@ local function get(validate)
         -- Load NAT
         local nat = nil
         if dmz_mode == "0" then
-            local portfile = "/etc/config.mesh/_setup.ports.nat"
-            if nixio.fs.access(portfile) then
+            local ports = uci.cursor("/etc/config.mesh"):get_all("setup", "ports", "port")
+            if ports then
                 nat = {}
                 local lname = name:lower() .. ".local.mesh"
-                for line in io.lines(portfile)
+                for _, line in ipairs(ports)
                 do
                     local _, type, sport, addr, dport, enable = line:match("^(.+):(.+):(.+):(.+):(%d+):(%d)$")
                     if enable == "1" then
