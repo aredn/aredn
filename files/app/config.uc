@@ -42,7 +42,10 @@ export let resourcehash = true;
 export let authenable = true;
 export let forceauth = false;
 export let forcemobile = false;
-export let uilock = true;
+// Do not enable.
+// This can causes nodes to hang when the network restarts and the WAN is unavailable.
+// Why? Unknown.
+export let uilock = false;
 
 if (hardware.isLowMemNode()) {
     preload = false;
