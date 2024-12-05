@@ -555,7 +555,7 @@ global.handle_request = function(env)
             let res = "";
             let changelock = null;
             if (config.uilock && env.REQUEST_METHOD !== "GET") {
-                changelock = fs.open(lockfile);
+                changelock = fs.open(lockfile, "re");
                 if (!(changelock && changelock.lock("x"))) {
                     uhttpd.send("Status: 500 Internal server error\r\n\r\n");
                     return;
@@ -600,7 +600,7 @@ global.handle_request = function(env)
                 let gzip = false;
                 if (env.HTTP_ACCEPT_ENCODING && index(env.HTTP_ACCEPT_ENCODING, "gzip") !== -1 && config.compress) {
                     gzip = true;
-                    res = zlib.deflate(res, true);
+                    res = zlib.deflate(res, true, 9);
                 }
                 response.headers["Content-Length"] = `${length(res)}`;
                 uhttpd.send(
