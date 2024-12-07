@@ -1124,7 +1124,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         if is_supernode then
             of:write("config Hna4\n\toption netaddr 10.0.0.0\n\toption netmask 255.0.0.0\n\n")
             local is_44net = nc:get("aredn", "@supernode[0]", "44net")
-            if is_44net == "1" then
+            if is_44net ~= "0" then
                 of:write("config Hna4\n\toption netaddr 44.0.0.0\n\toption netmask 255.128.0.0\n\n")
                 of:write("config Hna4\n\toption netaddr 44.128.0.0\n\toption netmask 255.192.0.0\n\n")
             end
