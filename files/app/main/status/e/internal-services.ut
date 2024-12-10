@@ -68,6 +68,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("wireless_watchdog_daily" in request.args) {
         uciMesh.set("aredn", "@wireless_watchdog[0]", "daily", request.args.wireless_watchdog_daily);
     }
+    if ("wireless_watchdog_lqm" in request.args) {
+        uciMesh.set("aredn", "@wireless_watchdog[0]", "lqm", request.args.wireless_watchdog_lqm);
+    }
     if ("power_poe" in request.args) {
         uciMesh.set("aredn", "@poe[0]", "passthrough", request.args.power_poe === "on" ? "1" : "0");
     }
@@ -164,8 +167,8 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         <div class="hideable" data-hideable='{{uciMesh.get("aredn", "@watchdog[0]", "enable") === "1" ? "on" : "off"}}'>
             <div class="cols">
                 <div>
-                    <div class="o">Watchdog</div>
-                    <div class="m">Allow watchdog to reboot the node if it becomes unresponsive</div>
+                    <div class="o">Hardware Watchdog</div>
+                    <div class="m">Allow hardware watchdog to reboot the node if it becomes unresponsive</div>
                 </div>
                 <div style="flex:0">
                     {{_R("hideable-switch", { name: "watchdog", value: uciMesh.get("aredn", "@watchdog[0]", "enable") === "1" })}}
@@ -222,6 +225,16 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     </div>
                 </div>
                 {{_H("Set a specific time of the day (between 00:00 and 23:59) to restart the wifi automatically.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">Wireless Watchdog LQM</div>
+                        <div class="m">Restart LQM as part of the wireless watchdog</div>
+                    </div>
+                    <div style="flex:0">
+                        {{_R("hideable-switch", { name: "wireless_watchdog_lqm", value: uciMesh.get("aredn", "@wireless_watchdog[0]", "lqm") === "1" })}}
+                    </div>
+                </div>
+                {{_H("Restart LQM when we restart the wifi.")}}
             </div>
         </div>
     {% }

@@ -192,14 +192,24 @@ function M.run_actions()
     local c = uci.cursor()
     if c:get("aredn", "@wireless_watchdog[0]", "enable") == "1" then
         local h, m = (c:get("aredn", "@wireless_watchdog[0]", "daily") or ""):match("(%d%d):(%d%d)")
-        local time = os.date("*t")
-        if time.hour == tonumber(h) then
-            if default_scan_enabled then
-                default_scan_enabled = false
-                M.reset_network("scan-all")
+        if h then
+            local time = os.date("*t")
+            local timediff = (time.min + time.hour * 60) - (m + h * 60)
+            if timediff < 0 then
+                timediff = timediff + 24 * 60
             end
-        else
-            default_scan_enabled = true
+            if timediff < 5 then
+                if default_scan_enabled then
+                    default_scan_enabled = false
+                    M.reset_network("scan-all")
+                    if c:get("aredn", "@wireless_watchdog[0]", "lqm") == "1" then
+                        -- Mark LQM for reset
+                        io.open("/tmp/lqm.reset", "w"):close()
+                    end
+                end
+            else
+                default_scan_enabled = true
+            end
         end
     end
 

@@ -276,10 +276,7 @@ function iw_set(cmd)
     end
 end
 
-function lqm()
-    -- Let things startup for a while before we begin
-    wait_for_ticks(math.max(0, 30 - nixio.sysinfo().uptime))
-
+function lqm_run()
     -- Create filters (cannot create during install as they disappear on reboot)
     nft("flush chain ip fw4 input_lqm 2> /dev/null")
     nft("delete chain ip fw4 input_lqm 2> /dev/null")
@@ -324,7 +321,10 @@ function lqm()
     local last_short_retries = -1
     local last_long_retries = -1
     local pending_count = 0
-    while true
+
+    os.remove("/tmp/lqm.reset")
+    -- Run until reset is detected
+    while not nixio.fs.stat("/tmp/lqm.reset")
     do
         now = nixio.sysinfo().uptime
 
@@ -1146,6 +1146,16 @@ function lqm()
         end
 
         wait_for_ticks(60) -- 1 minute
+    end
+    os.remove("/tmp/lqm.reset")
+end
+
+function lqm()
+    -- Let things startup for a while before we begin
+    wait_for_ticks(math.max(0, 30 - nixio.sysinfo().uptime))
+    while true
+    do
+        lqm_run()
     end
 end
 
