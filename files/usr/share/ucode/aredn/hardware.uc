@@ -219,7 +219,7 @@ export function getRfBandwidths(wifiIface)
                     push(bw, 80);
                 }
             }
-            while (!line) {
+            while (line) {
                 line = f.read("line");
             }
             f.close();
