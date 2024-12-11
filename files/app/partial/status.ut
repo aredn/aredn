@@ -98,6 +98,13 @@
     </div>
 </div>
 {% } else { %}
+<div hx-get="u-messages" hx-trigger="every 300s [document.visibilityState === 'visible']">
+{% if (messages.haveMessages() || (auth.isAdmin && messages.haveToDos())) { %}
+    <div id="messages">
+    {{_R("messages")}}
+    </div>
+{% } %}
+</div>
 <div id="general">
     {{_R("general")}}
 </div>
