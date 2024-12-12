@@ -63,7 +63,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     configuration.setSetting("wifi2_channel", wlan[0].def.channel);
                 }
                 if (configuration.getSettingAsString("wifi2_key", "") === "") {
-                    configuration.setSetting("wifi2_key", hexenc("AREDN"));
+                    configuration.setSetting("wifi2_key", hexenc("AREDNmesh"));
                 }
                 break;
             case radios.RADIO_WAN:
@@ -87,7 +87,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     configuration.setSetting("wifi2_channel", wlan[1].def.channel);
                 }
                 if (configuration.getSettingAsString("wifi2_key", "") === "") {
-                    configuration.setSetting("wifi2_key", hexenc("AREDN"));
+                    configuration.setSetting("wifi2_key", hexenc("AREDNmesh"));
                 }
                 break;
             case radios.RADIO_WAN:
@@ -377,7 +377,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                                 <div class="m">Hotspot password</div>
                             </div>
                             <div class="password-toggle" style="flex:0">
-                                <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_password" type="password" required size="10" maxlength="32" hx-validate="true" value="{{hexdec(wlan[w].modes[2].key) || "AREDN"}}"><button class="icon eye"></button>
+                                <input hx-put="{{request.env.REQUEST_URI}}" name="radio_lan_password" type="password" required size="10" minlength="8" maxlength="32" hx-validate="true" value="{{hexdec(wlan[w].modes[2].key) || "AREDN"}}"><button class="icon eye"></button>
                             </div>
                         </div>
                     </div>
@@ -401,7 +401,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Client password</div>
                     </div>
                     <div class="password-toggle" style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" size="10" maxlength="32" hx-validate="true" value="{{hexdec(wlan[w].modes[3].key)}}"><button class="icon eye"></button>
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_wan_password" type="password" size="10" minlength="8" maxlength="32" hx-validate="true" value="{{hexdec(wlan[w].modes[3].key)}}"><button class="icon eye"></button>
                     </div>
                 </div>
             </div>
