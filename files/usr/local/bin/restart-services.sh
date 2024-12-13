@@ -71,7 +71,8 @@ do
       /etc/init.d/vtund restart > /dev/null 2>&1
       /etc/init.d/vtundsrv restart > /dev/null 2>&1
     elif [ $srv = "wireless" ]; then
-      /sbin/wifi reload > /dev/null 2>&1
+      /sbin/wifi down > /dev/null 2>&1
+      /sbin/wifi up > /dev/null 2>&1
     elif [ $srv = "localservices" ]; then
       /etc/local/services > /dev/null 2>&1
     elif [ $srv = "poe" ]; then
