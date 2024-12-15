@@ -1,31 +1,19 @@
---- a/package/kernel/mac80211/files/lib/wifi/mac80211.sh
-+++ b/package/kernel/mac80211/files/lib/wifi/mac80211.sh
-@@ -167,6 +167,12 @@
- 			dev_id="set wireless.radio${devidx}.macaddr=$(cat /sys/class/ieee80211/${dev}/macaddress)"
- 		fi
+--- a/package/network/config/wifi-scripts/files/lib/wifi/mac80211.uc
++++ b/package/network/config/wifi-scripts/files/lib/wifi/mac80211.uc
+@@ -98,13 +98,14 @@
+ set ${s}.htmode='${htmode}'
+ set ${s}.country='${country || ''}'
+ set ${s}.num_global_macaddr='${num_global_macaddr || ''}'
+-set ${s}.disabled='${defaults ? 0 : 1}'
++set ${s}.disabled='0'
  
-+		if [ "${mode_band}" = "a" ]; then
-+			arednssid="MeshNode5G"
-+		else
-+			arednssid="MeshNode2G"
-+		fi
-+
- 		uci -q batch <<-EOF
- 			set wireless.radio${devidx}=wifi-device
- 			set wireless.radio${devidx}.type=mac80211
-@@ -203,13 +203,13 @@
- 			set wireless.${name}.channel=${channel}
- 			set wireless.${name}.band=${mode_band}
- 			set wireless.${name}.htmode=$htmode
--			set wireless.${name}.disabled=1
+ set ${si}=wifi-iface
+ set ${si}.device='${name}'
+ set ${si}.network='lan'
+ set ${si}.mode='ap'
+-set ${si}.ssid='${defaults?.ssid || "OpenWrt"}'
++set ${si}.ssid='${defaults?.ssid || (band_name == "2g" ? "MeshNode2G" : "MeshNode5G")}'
++set ${si}.ifname=${replace(name, "radio", "wlan")}
+ set ${si}.encryption='${defaults?.encryption || "none"}'
+ set ${si}.key='${defaults?.key || ""}'
  
- 			set wireless.default_${name}=wifi-iface
- 			set wireless.default_${name}.device=${name}
- 			set wireless.default_${name}.network=lan
- 			set wireless.default_${name}.mode=ap
--			set wireless.default_${name}.ssid=OpenWrt
-+			set wireless.default_${name}.ssid=${arednssid}
-+			set wireless.default_${name}.ifname=$(echo ${name} | sed s/radio/wlan/)
- 			set wireless.default_${name}.encryption=none
- EOF
- 		uci -q commit wireless
