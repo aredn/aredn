@@ -32,17 +32,6 @@
    KCONFIG:= \
  	CONFIG_NF_FLOW_TABLE_INET \
  	CONFIG_NF_FLOW_TABLE_IPV4 \
-@@ -1162,9 +1162,8 @@
-   FILES:= \
- 	$(LINUX_DIR)/net/netfilter/nf_flow_table_inet.ko \
- 	$(LINUX_DIR)/net/ipv4/netfilter/nf_flow_table_ipv4.ko \
--	$(LINUX_DIR)/net/ipv6/netfilter/nf_flow_table_ipv6.ko \
- 	$(LINUX_DIR)/net/netfilter/nft_flow_offload.ko
--  AUTOLOAD:=$(call AutoProbe,nf_flow_table_inet nf_flow_table_ipv4 nf_flow_table_ipv6 nft_flow_offload)
-+  AUTOLOAD:=$(call AutoProbe,nf_flow_table_inet nf_flow_table_ipv4 nft_flow_offload)
- endef
- 
- $(eval $(call KernelPackage,nft-offload))
 
 --- /dev/null
 +++ b/package/network/config/firewall4/patches/001-disable-ipv6.patch
@@ -183,6 +172,6 @@
 + {%+ if (zone.masq ^ zone.masq6): -%}
 +-	meta nfproto {{ fw4.nfproto(zone.masq ? 4 : 6) }} {%+ endif -%}
 ++	{%+ endif -%}
-+ {%+  include("zone-match.uc", { egress: true, rule }) -%}
-+ ct state invalid {%+ if (zone.counter): -%}
-+ 	counter {%+ endif -%}
++ {%+ include("zone-match.uc", { egress: true, rule }) -%}
++ ct state invalid {%+ if ((zone.log & 1) && zone.log_limit): -%}
++ 	limit name "{{ zone.name }}.log_limit" log prefix "drop {{ zone.name }} invalid ct state: "

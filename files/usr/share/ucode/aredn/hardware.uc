@@ -166,12 +166,8 @@ export function getRfChannels(wifiIface)
                     freq_max = 3495;
                 }
             }
-            for (;;) {
-                const line = f.read("line");
-                if (!line) {
-                    break;
-                }
-                const fn = match(line, /(\d+) MHz \[(-?\d+)\] /);
+            for (let line = f.read("line"); line; line = f.read("line")) {
+                const fn = match(line, /([0-9.]+) MHz \[(-?\d+)\] /);
                 if (fn && index(line, "restricted") == -1 && index(line, "disabled") === -1) {
                     const freq = int(fn[1]) + freq_adjust;
                     if (freq >= freq_min && freq <= freq_max) {

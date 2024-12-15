@@ -1,170 +1,86 @@
-diff --git a/include/image-commands.mk b/include/image-commands.mk
-index 77a35f3eec0070..b8810bfbab305b 100644
---- a/include/image-commands.mk
-+++ b/include/image-commands.mk
-@@ -383,6 +383,11 @@ define Build/kernel-bin
- 	cp $< $@
- endef
- 
-+define Build/kernel-pack-npk
-+	bash -c 'source $(STAGING_DIR_HOST)/share/npkpy-venv/bin/activate; python $(STAGING_DIR_HOST)/share/npkpy-venv/bin/pack_npk_kernel.py --kernel $@ --output $@.npk'
-+	mv $@.npk $@
-+endef
-+
- define Build/linksys-image
- 	$(TOPDIR)/scripts/linksys-image.sh \
- 		"$(call param_get_default,type,$(1),$(DEVICE_NAME))" \
-diff --git a/target/linux/ath79/image/common-mikrotik.mk b/target/linux/ath79/image/common-mikrotik.mk
-index b37c8b7197067c..3d8d354d443654 100644
---- a/target/linux/ath79/image/common-mikrotik.mk
-+++ b/target/linux/ath79/image/common-mikrotik.mk
-@@ -13,6 +13,10 @@ define Device/mikrotik_nor
-   IMAGE/sysupgrade.bin := append-kernel | kernel2minor -s 1024 -e | \
- 	pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \
- 	check-size | append-metadata
-+  IMAGES += sysupgrade-v7.bin
-+  IMAGE/sysupgrade-v7.bin := append-kernel | kernel-pack-npk | \
-+	  kernel2minor -b -s 1024 -e | pad-to $$$$(BLOCKSIZE) | \
-+	  append-rootfs | pad-rootfs | check-size | append-metadata
- endef
- 
- define Device/mikrotik_nand
-diff --git a/target/linux/generic/files/drivers/mtd/mtdsplit/mtdsplit_minor.c b/target/linux/generic/files/drivers/mtd/mtdsplit/mtdsplit_minor.c
-index af6822e11ab344..db7198169e44e6 100644
---- a/target/linux/generic/files/drivers/mtd/mtdsplit/mtdsplit_minor.c
-+++ b/target/linux/generic/files/drivers/mtd/mtdsplit/mtdsplit_minor.c
-@@ -35,6 +35,7 @@
- #define YAFFS_OBJECTID_ROOT	0x1
- #define YAFFS_SUM_UNUSED	0xFFFF
- #define YAFFS_NAME		"kernel"
-+#define YAFFS_NAME_BOOTIMAGE	"bootimage"
- 
- #define MINOR_NR_PARTS		2
- 
-@@ -77,7 +78,8 @@ static int mtdsplit_parse_minor(struct mtd_info *master,
- 	if (hdr.yaffs_sum_unused != YAFFS_SUM_UNUSED)
- 		return -EINVAL;
- 
--	if (memcmp(hdr.yaffs_name, YAFFS_NAME, sizeof(YAFFS_NAME)))
-+	if ((memcmp(hdr.yaffs_name, YAFFS_NAME, sizeof(YAFFS_NAME)) != 0) &&
-+			(memcmp(hdr.yaffs_name, YAFFS_NAME_BOOTIMAGE, sizeof(YAFFS_NAME)) != 0))
- 		return -EINVAL;
- 
- 	err = mtd_find_rootfs_from(master, master->erasesize, master->size,
-diff --git a/target/linux/ipq40xx/image/mikrotik.mk b/target/linux/ipq40xx/image/mikrotik.mk
-index f0e1f1aad34d92..6142b4ad3371ad 100644
---- a/target/linux/ipq40xx/image/mikrotik.mk
-+++ b/target/linux/ipq40xx/image/mikrotik.mk
-@@ -5,9 +5,13 @@ define Device/mikrotik_nor
- 	KERNEL_NAME := vmlinux
- 	KERNEL := kernel-bin | append-dtb-elf
- 	IMAGES = sysupgrade.bin
-+	IMAGES += sysupgrade-v7.bin
- 	IMAGE/sysupgrade.bin := append-kernel | kernel2minor -s 1024 | \
- 		pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \
- 		check-size | append-metadata
-+	IMAGE/sysupgrade-v7.bin := append-kernel | kernel-pack-npk | \
-+		kernel2minor -b -s 1024 | pad-to $$$$(BLOCKSIZE) | \
-+		append-rootfs | pad-rootfs | check-size | append-metadata
- endef
- 
- define Device/mikrotik_nand
+From 2b5961558c14d5cfa68cf99b8d1d51f8fd9ba734 Mon Sep 17 00:00:00 2001
+From: John Thomson <git@johnthomson.fastmail.com.au>
+Date: Thu, 27 Oct 2022 20:56:05 +1000
+Subject: [PATCH 1/6] ramips: mt7621: mikrotik: initram use lzma loader
+
+Use OpenWrt's lzma loader for initramfs image
+Due to mips kernel self extractor inability to relocate,
+and RouterBoot on 760igs refusing to netboot an ELF with:
+Entry point address:               0x80b91000
+or greater: 0x80b81000 and below okay.
+
+Note that this is only a bootloader ELF entry point limitation,
+a 50MiB Linux + initramfs vmlinux will boot fine on 760igs.
+
+With this lzma loader, netboot will occasionally freeze after
+decompressing the kernel, but before starting vmlinux. It was considered
+that an occasional netboot freeze was simpler to workaround than an
+image that refuses to boot unless minimized.
+
+Signed-off-by: John Thomson <git@johnthomson.fastmail.com.au>
+---
+ target/linux/ramips/image/mt7621.mk | 3 +++
+ 1 file changed, 3 insertions(+)
+
 diff --git a/target/linux/ramips/image/mt7621.mk b/target/linux/ramips/image/mt7621.mk
-index 0d25fc1eb31790..b72e9dd16f0195 100644
+index 9654e237a8af22..63a67ce8fbcda7 100644
 --- a/target/linux/ramips/image/mt7621.mk
 +++ b/target/linux/ramips/image/mt7621.mk
-@@ -1545,9 +1545,16 @@ define Device/MikroTik
+@@ -2000,6 +2000,9 @@ define Device/MikroTik
    DEVICE_PACKAGES := kmod-usb3 -uboot-envtools
    KERNEL_NAME := vmlinuz
    KERNEL := kernel-bin | append-dtb-elf
 +  LOADER_TYPE := elf
 +  KERNEL_INITRAMFS_NAME := vmlinux-initramfs
 +  KERNEL_INITRAMFS := $(KERNEL_DTB) | loader-kernel
-   IMAGE/sysupgrade.bin := append-kernel | kernel2minor -s 1024 | \
+   IMAGE/sysupgrade.bin := append-kernel | yaffs-filesystem -L | \
  	pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | check-size | \
  	append-metadata
-+  IMAGES += sysupgrade-v7.bin
-+  IMAGE/sysupgrade-v7.bin := append-kernel | kernel-pack-npk | \
-+	  kernel2minor -b -s 1024 | pad-to $$$$(BLOCKSIZE) | \
-+	  append-rootfs | pad-rootfs | check-size | append-metadata
+
+From 831c93f0aa04617902dc6ce229e945c2af3591d6 Mon Sep 17 00:00:00 2001
+From: John Thomson <git@johnthomson.fastmail.com.au>
+Date: Sun, 22 Jan 2023 21:34:43 +1000
+Subject: [PATCH 2/6] build: add Mikrotik NOR RouterBOOT v7 image build
+
+Signed-off-by: John Thomson <git@johnthomson.fastmail.com.au>
+---
+ include/image-commands.mk |  5 +++++
+ tools/Makefile            |  1 +
+ tools/npkpy/Makefile      | 33 +++++++++++++++++++++++++++++++++
+ 3 files changed, 39 insertions(+)
+ create mode 100644 tools/npkpy/Makefile
+
+diff --git a/include/image-commands.mk b/include/image-commands.mk
+index 2568fb3ade5f3d..dbb032b9a4f93a 100644
+--- a/include/image-commands.mk
++++ b/include/image-commands.mk
+@@ -470,6 +470,11 @@ define Build/kernel-bin
+ 	cp $< $@
  endef
  
- define Device/mikrotik_ltap-2hnd
++define Build/kernel-pack-npk
++	sh -c '. $(STAGING_DIR_HOST)/share/npkpy-venv/bin/activate; python $(STAGING_DIR_HOST)/share/npkpy-venv/bin/pack_npk_kernel.py --kernel $@ --output $@.npk'
++	mv $@.npk $@
++endef
++
+ define Build/linksys-image
+ 	let \
+ 		size="$$(stat -c%s $@)" \
 diff --git a/tools/Makefile b/tools/Makefile
-index bf525d34a052cd..7f9947756af5bc 100644
+index b16c5d9c5b1e6c..ea494911a1d9d3 100644
 --- a/tools/Makefile
 +++ b/tools/Makefile
-@@ -84,5 +84,6 @@ tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USES_MINOR),y) += kernel2minor
+@@ -86,6 +86,7 @@ tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USES_MINOR),y) += yafut
  tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USE_SPARSE),y) += sparse
  tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USE_LLVM_BUILD),y) += llvm-bpf
+ tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USE_MOLD),y) += mold
 +tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USES_MINOR),y) += npkpy
  
  # builddir dependencies
  $(curdir)/autoconf/compile := $(curdir)/m4/compile
-diff --git a/tools/kernel2minor/patches/001-bootimage-path-option.patch b/tools/kernel2minor/patches/001-bootimage-path-option.patch
-new file mode 100644
-index 00000000000000..6da5d6b408db8b
---- /dev/null
-+++ b/tools/kernel2minor/patches/001-bootimage-path-option.patch
-@@ -0,0 +1,55 @@
-+--- a/kernel2minor.c
-++++ b/kernel2minor.c
-+@@ -38,6 +38,7 @@ static int info_block_size = 0;
-+ #define INFO_BLOCK_VAR_LEN 8
-+ //имя файла ядра в файловой система yaffs2
-+ #define KERNEl_YAFFS_FILE_NAME "kernel"
-++#define BOOTIMAGE_YAFFS_FILE_NAME "bootimage"
-+ /* размер блока данных по которому считается ECC. для yaffs2 это 256 */
-+ #define ECC_BLOCK_SIZE 256
-+ 
-+@@ -56,6 +57,7 @@ int verbose = 0; //говорливос�
-+ //добавить к образу блок с данными описывающими его параметры(размер, blocksize, chunksize, etc...)
-+ int add_image_info_block = 0; //это нужно для образов используемых перепрошивальщиком openwrt(для nand флешей)
-+ int align_size = 0; //нужно для openwrt-шного sysupgrade-а. размер блока который будет добавлен к нам сторонним скриптом(sysupgrade-ом)
-++int use_bootimage = 0;
-+ 
-+ //параметры для создаваемой нами файловой системы yaffs2. рассчитываются ф-ей calc_needed_vars.
-+ static int chunk_data_size = 0;
-+@@ -83,6 +85,7 @@ void print_help(void){
-+       "-s", "FLASH Unit(Chunk) size", chunk_size_str,
-+       "-i", "Add image info block", add_image_info_block ? info_block_size_str : "No",
-+       "-p", "Platform name", platform_name_str,
-++      "-b", "Use \"bootimage\" for packed file name", "",
-+       "-v", "Verbose output", verbose ? "Yes" : "No",
-+       "-h", "Show help and exit", "" };
-+   printf("Version := %s\nUsage:\n", PROGRAM_VERSION);
-+@@ -365,7 +368,10 @@ int fill_and_write_obj_header(int r, int
-+   memset(buf, 0xff, buf_size);
-+   verb_printf("%u: Writing chunk = 0 for obj(%u) HEADER, seq = %u\n", (*n)++, obj_id, seq_number);
-+   //заполним заголовок объекта
-+-  cook_object_header(buf, KERNEl_YAFFS_FILE_NAME);
-++  if (use_bootimage)
-++  	cook_object_header(buf, BOOTIMAGE_YAFFS_FILE_NAME);
-++  else
-++  	cook_object_header(buf, KERNEl_YAFFS_FILE_NAME);
-+   //заполним данные tags + ecc(oob part)
-+   cook_tags(buf, buf_size, chunk_data_size, obj_id, seq_number, chunk_id, n_bytes, 1);
-+   len = write(r, buf, buf_size);
-+@@ -592,7 +598,7 @@ int main(int argc, char *argv[]){
-+   int r = 0;
-+   int ch; //для парсинга параметров
-+   //загружаем параметры командной строки
-+-  while( (ch = getopt(argc, argv, "k:r:s:i:p:cevh")) != -1){
-++  while( (ch = getopt(argc, argv, "k:r:s:i:p:cebvh")) != -1){
-+     switch(ch){
-+       case 'k': snprintf(kernel_file, sizeof(kernel_file) - 1, "%s", optarg); break;
-+       case 'r': snprintf(res_file, sizeof(res_file) - 1, "%s", optarg); break;
-+@@ -601,6 +607,7 @@ int main(int argc, char *argv[]){
-+       case 's': chunk_size = atoi(optarg); break;
-+       case 'i': add_image_info_block = 1; align_size = atoi(optarg); break;
-+       case 'p': strncpy(platform_name, optarg, sizeof(platform_name)); break;
-++      case 'b': use_bootimage = 1; break;
-+       case 'v': verbose = 1; break;
-+       case 'h': print_help(); exit(0); break;
-+     }
 diff --git a/tools/npkpy/Makefile b/tools/npkpy/Makefile
 new file mode 100644
-index 00000000000000..78fe83aaec2d77
+index 00000000000000..c3bd7921016c7a
 --- /dev/null
 +++ b/tools/npkpy/Makefile
 @@ -0,0 +1,33 @@
@@ -189,7 +105,7 @@ index 00000000000000..78fe83aaec2d77
 +
 +define Host/Compile
 +	python -m venv $(STAGING_DIR_HOST)/share/npkpy-venv
-+	bash -c 'source $(STAGING_DIR_HOST)/share/npkpy-venv/bin/activate; pip install --editable $(HOST_BUILD_DIR)'
++	sh -c '. $(STAGING_DIR_HOST)/share/npkpy-venv/bin/activate; pip install --editable $(HOST_BUILD_DIR)'
 +endef
 +
 +define Host/Install
@@ -201,3 +117,129 @@ index 00000000000000..78fe83aaec2d77
 +endef
 +
 +$(eval $(call HostBuild))
+
+From 71d80889ba3c2c6d2a380f11e6268a9f98e5ee6b Mon Sep 17 00:00:00 2001
+From: John Thomson <git@johnthomson.fastmail.com.au>
+Date: Thu, 16 May 2024 10:16:53 +1000
+Subject: [PATCH 3/6] image: adapt mikrotik yafut to allow switch to bootimage
+ YAFFS path
+
+Adjust the YAFFS file path written depending on the sysupgrade
+filename.
+Default to kernel (for ELF), switch to bootimage (for NPK) if image name
+has v7.
+
+Signed-off-by: John Thomson <git@johnthomson.fastmail.com.au>
+---
+ include/image-commands.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/image-commands.mk b/include/image-commands.mk
+index dbb032b9a4f93a..fa2bce1038e747 100644
+--- a/include/image-commands.mk
++++ b/include/image-commands.mk
+@@ -460,7 +460,7 @@ define Build/yaffs-filesystem
+ 		filesystem_size="filesystem_blocks * 64 * 1024" \
+ 		filesystem_size_with_reserve="(filesystem_blocks + 2) * 64 * 1024"; \
+ 		head -c $$filesystem_size_with_reserve /dev/zero | tr "\000" "\377" > $@.img \
+-		&& yafut -d $@.img -w -i $@ -o kernel -C 1040 -B 64k -E -P -S $(1) \
++		&& yafut -d $@.img -w -i $@ -o $(if $(findstring v7,$@),bootimage,kernel) -C 1040 -B 64k -E -P -S $(1) \
+ 		&& truncate -s $$filesystem_size $@.img \
+ 		&& mv $@.img $@
+ endef
+
+From bbab5a78cc0779777ebc39eb2440dd629b66b373 Mon Sep 17 00:00:00 2001
+From: John Thomson <git@johnthomson.fastmail.com.au>
+Date: Mon, 23 Jan 2023 07:16:04 +1000
+Subject: [PATCH 4/6] ipq40xx: mikrotik: generate a RouterBOOT v7 NOR
+ compatible sysupgrade
+
+RouterBOOT v7 for NOR devices does not support the historic yaffs
+"kernel" ELF boot method.
+Generate a compatible kernel
+
+Signed-off-by: John Thomson <git@johnthomson.fastmail.com.au>
+---
+ target/linux/ipq40xx/image/mikrotik.mk | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/target/linux/ipq40xx/image/mikrotik.mk b/target/linux/ipq40xx/image/mikrotik.mk
+index 8c2c6fa08edfe9..5d6e3c9808a4f6 100644
+--- a/target/linux/ipq40xx/image/mikrotik.mk
++++ b/target/linux/ipq40xx/image/mikrotik.mk
+@@ -5,9 +5,13 @@ define Device/mikrotik_nor
+ 	KERNEL_NAME := vmlinux
+ 	KERNEL := kernel-bin | append-dtb-elf
+ 	IMAGES = sysupgrade.bin
++	IMAGES += sysupgrade-v7.bin
+ 	IMAGE/sysupgrade.bin := append-kernel | yaffs-filesystem -L | \
+ 		pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \
+ 		check-size | append-metadata
++	IMAGE/sysupgrade-v7.bin := append-kernel | kernel-pack-npk | \
++		yaffs-filesystem -L | pad-to $$$$(BLOCKSIZE) | \
++		append-rootfs | pad-rootfs | check-size | append-metadata
+ endef
+ 
+ define Device/mikrotik_nand
+
+From 97c46fd224269381cfacd231919724669c58c3d9 Mon Sep 17 00:00:00 2001
+From: John Thomson <git@johnthomson.fastmail.com.au>
+Date: Mon, 23 Jan 2023 07:16:04 +1000
+Subject: [PATCH 5/6] ramips: mikrotik: generate a RouterBOOT v7 NOR compatible
+ sysupgrade
+
+RouterBOOT v7 for NOR devices does not support the historic yaffs
+"kernel" ELF boot method.
+Generate a compatible kernel
+
+Signed-off-by: John Thomson <git@johnthomson.fastmail.com.au>
+---
+ target/linux/ramips/image/mt7621.mk | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/target/linux/ramips/image/mt7621.mk b/target/linux/ramips/image/mt7621.mk
+index 63a67ce8fbcda7..32b96130b7bfc7 100644
+--- a/target/linux/ramips/image/mt7621.mk
++++ b/target/linux/ramips/image/mt7621.mk
+@@ -2006,6 +2006,10 @@ define Device/MikroTik
+   IMAGE/sysupgrade.bin := append-kernel | yaffs-filesystem -L | \
+ 	pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | check-size | \
+ 	append-metadata
++  IMAGES += sysupgrade-v7.bin
++  IMAGE/sysupgrade-v7.bin := append-kernel | kernel-pack-npk | \
++	  yaffs-filesystem -L | pad-to $$$$(BLOCKSIZE) | \
++	  append-rootfs | pad-rootfs | check-size | append-metadata
+ endef
+ 
+ define Device/mikrotik_ltap-2hnd
+
+From ab83ff59d7a00b7a992600c5743421fafe3987d7 Mon Sep 17 00:00:00 2001
+From: John Thomson <git@johnthomson.fastmail.com.au>
+Date: Thu, 27 Oct 2022 20:56:05 +1000
+Subject: [PATCH 6/6] ath79: mikrotik: generate a RouterBOOT v7 NOR compatible
+ sysupgrade
+
+RouterBOOT v7 for NOR devices does not support the historic yaffs
+"kernel" ELF boot method.
+Generate a compatible kernel
+
+Signed-off-by: John Thomson <git@johnthomson.fastmail.com.au>
+---
+ target/linux/ath79/image/common-mikrotik.mk | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/target/linux/ath79/image/common-mikrotik.mk b/target/linux/ath79/image/common-mikrotik.mk
+index 94c29d8cb6ab04..1dfd515d25e51e 100644
+--- a/target/linux/ath79/image/common-mikrotik.mk
++++ b/target/linux/ath79/image/common-mikrotik.mk
+@@ -13,6 +13,10 @@ define Device/mikrotik_nor
+   IMAGE/sysupgrade.bin := append-kernel | yaffs-filesystem -M | \
+ 	pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \
+ 	check-size | append-metadata
++  IMAGES += sysupgrade-v7.bin
++  IMAGE/sysupgrade-v7.bin := append-kernel | kernel-pack-npk | \
++	  yaffs-filesystem -M | pad-to $$$$(BLOCKSIZE) | \
++	  append-rootfs | pad-rootfs | check-size | append-metadata
+ endef
+ 
+ define Device/mikrotik_nand

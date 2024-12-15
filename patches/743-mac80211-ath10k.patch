@@ -1,6 +1,6 @@
---- a/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
-+++ b/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
-@@ -1086,7 +1086,7 @@
+--- a/package/network/config/wifi-scripts/files/lib/netifd/wireless/mac80211.sh
++++ b/package/network/config/wifi-scripts/files/lib/netifd/wireless/mac80211.sh
+@@ -1144,7 +1144,7 @@
  	staidx=0
  
  	[ -n "$chanbw" ] && {
@@ -9,12 +9,12 @@
  			[ -f "$file" ] && echo "$chanbw" > "$file"
  		done
  	}
-@@ -1104,6 +1104,8 @@
+@@ -1162,6 +1162,8 @@
  	iw phy "$phy" set antenna $txantenna $rxantenna >/dev/null 2>&1
  	if [ $distance -eq 0 -a -d /sys/kernel/debug/ieee80211/$phy/ath9k ]; then
- 		iw phy "$phy" set distance auto
+ 		iw phy "$phy" set distance auto >/dev/null 2>&1
 +	elif [ $distance -eq 0 -a -d /sys/kernel/debug/ieee80211/$phy/ath10k ]; then
-+		iw phy "$phy" set distance auto
++		iw phy "$phy" set distance auto >/dev/null 2>&1
  	else
- 		iw phy "$phy" set distance "$distance"
+ 		iw phy "$phy" set distance "$distance" >/dev/null 2>&1
  	fi

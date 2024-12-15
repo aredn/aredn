@@ -3,9 +3,9 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 --- /dev/null
 +++ openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 @@ -0,0 +1,272 @@
-+diff -urpN a/ath10k-5.15/debug.c b/ath10k-5.15/debug.c
-+--- a/ath10k-5.15/debug.c	2022-05-13 22:42:36.000000000 +0100
-++++ b/ath10k-5.15/debug.c	2022-11-29 12:22:12.836789627 +0000
++diff -urpN a/ath10k-6.10/debug.c b/ath10k-6.10/debug.c
++--- a/ath10k-6.10/debug.c	2022-05-13 22:42:36.000000000 +0100
+++++ b/ath10k-6.10/debug.c	2022-11-29 12:22:12.836789627 +0000
 +@@ -4403,6 +4403,54 @@ static const struct file_operations fops
 + 	.llseek = default_llseek,
 + };
@@ -71,9 +71,9 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 + 	debugfs_create_file("fw_stats", 0400, ar->debug.debugfs_phy, ar,
 + 			    &fops_fw_stats);
 + 
-+diff -urpN a/ath10k-5.15/mac.c b/ath10k-5.15/mac.c
-+--- a/ath10k-5.15/mac.c	2022-11-29 12:18:41.281151667 +0000
-++++ b/ath10k-5.15/mac.c	2022-11-29 12:21:15.199940728 +0000
++diff -urpN a/ath10k-6.10/mac.c b/ath10k-6.10/mac.c
++--- a/ath10k-6.10/mac.c	2022-11-29 12:18:41.281151667 +0000
+++++ b/ath10k-6.10/mac.c	2022-11-29 12:21:15.199940728 +0000
 +@@ -697,6 +697,8 @@ chan_to_phymode(const struct cfg80211_ch
 + 	switch (chandef->chan->band) {
 + 	case NL80211_BAND_2GHZ:
@@ -201,9 +201,9 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 + 	if (test_bit(WMI_SERVICE_TDLS_UAPSD_BUFFER_STA, ar->wmi.svc_map))
 + 		ieee80211_hw_set(ar->hw, SUPPORTS_TDLS_BUFFER_STA);
 + 
-+diff -urpN a/ath10k-5.15/spectral.c b/ath10k-5.15/spectral.c
-+--- a/ath10k-5.15/spectral.c	2022-11-29 12:18:41.285151725 +0000
-++++ b/ath10k-5.15/spectral.c	2022-11-29 12:21:15.199940728 +0000
++diff -urpN a/ath10k-6.10/spectral.c b/ath10k-6.10/spectral.c
++--- a/ath10k-6.10/spectral.c	2022-11-29 12:18:41.285151725 +0000
+++++ b/ath10k-6.10/spectral.c	2022-11-29 12:21:15.199940728 +0000
 +@@ -90,6 +90,12 @@ int ath10k_spectral_process_fft(struct a
 + 	 * but the results/plots suggest that its actually 22/44/88 MHz.
 + 	 */
@@ -217,9 +217,9 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 + 	case 20:
 + 		fft_sample->chan_width_mhz = 22;
 + 		break;
-+diff -urpN a/ath10k-5.15/wmi.c b/ath10k-5.15/wmi.c
-+--- a/ath10k-5.15/wmi.c	2022-11-29 12:18:41.277151608 +0000
-++++ b/ath10k-5.15/wmi.c	2022-11-29 12:21:15.203940797 +0000
++diff -urpN a/ath10k-6.10/wmi.c b/ath10k-6.10/wmi.c
++--- a/ath10k-6.10/wmi.c	2022-11-29 12:18:41.277151608 +0000
+++++ b/ath10k-6.10/wmi.c	2022-11-29 12:21:15.203940797 +0000
 +@@ -1786,6 +1786,10 @@ void ath10k_wmi_put_wmi_channel(struct a
 + 		flags |= WMI_CHAN_FLAG_HT40_PLUS;
 + 	if (arg->chan_radar)
@@ -244,9 +244,9 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 + 
 + 		ath10k_wmi_put_wmi_channel(ar, ci, ch, -1);
 + 	}
-+diff -urpN a/ath10k-5.15/wmi.h b/ath10k-5.15/wmi.h
-+--- a/ath10k-5.15/wmi.h	2022-11-29 12:18:41.277151608 +0000
-++++ b/ath10k-5.15/wmi.h	2022-11-29 12:21:15.207940866 +0000
++diff -urpN a/ath10k-6.10/wmi.h b/ath10k-6.10/wmi.h
++--- a/ath10k-6.10/wmi.h	2022-11-29 12:18:41.277151608 +0000
+++++ b/ath10k-6.10/wmi.h	2022-11-29 12:21:15.207940866 +0000
 +@@ -2146,6 +2146,8 @@ struct wmi_channel_arg {
 + 	bool allow_ht;
 + 	bool allow_vht;
@@ -278,8 +278,8 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 --- /dev/null
 +++ openwrt/package/kernel/ath10k-ct/patches/999-0004-ath10k-coverage.patch
 @@ -0,0 +1,34 @@
-+--- a/ath10k-5.15/hw.c
-++++ b/ath10k-5.15/hw.c
++--- a/ath10k-6.10/hw.c
+++++ b/ath10k-6.10/hw.c
 +@@ -655,23 +655,6 @@
 + 	slottime_reg = ar->fw_coverage.reg_slottime_orig;
 + 	timeout_reg = ar->fw_coverage.reg_ack_cts_timeout_orig;
@@ -315,8 +315,8 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 --- /dev/null
 --- openwrt/package/kernel/ath10k-ct/patches/999-0005-ath10k-force-ibss.patch
 @@ -0,0 +1,12 @@
-+--- a/ath10k-5.15/mac.c
-++++ b/ath10k-5.15/mac.c
++--- a/ath10k-6.10/mac.c
+++++ b/ath10k-6.10/mac.c
 +@@ -11533,6 +11533,9 @@
 + 		} else {
 + 			ret = ath10k_copy_comb(ar, ath10k_10x_if_comb,
@@ -330,8 +330,8 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 --- /dev/null
 +++ openwrt/package/kernel/ath10k-ct/patches/999-0006-ath10k-no-noisy-warning.patch
 @@ -0,0 +1,13 @@
-+--- a/ath10k-5.15/htt_rx.c
-++++ b/ath10k-5.15/htt_rx.c
++--- a/ath10k-6.10/htt_rx.c
+++++ b/ath10k-6.10/htt_rx.c
 +@@ -4173,8 +4173,8 @@
 + 	spin_lock_bh(&ar->data_lock);
 + 	peer = ath10k_peer_find_by_id(ar, peer_id);

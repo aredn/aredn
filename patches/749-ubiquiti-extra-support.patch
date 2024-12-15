@@ -180,17 +180,6 @@
  	ubnt,powerbeam-5ac-gen2|\
  	ubnt,powerbeam-m2-xw|\
  	ubnt,powerbeam-m5-xw|\
---- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-+++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-@@ -47,6 +47,8 @@
- 	ubnt,nanobeam-ac-xc|\
- 	ubnt,nanostation-ac|\
- 	ubnt,nanostation-ac-loco|\
-+	ubnt,powerbeam-5ac-400|\
-+	ubnt,powerbeam-5ac-620|\
- 	ubnt,powerbeam-5ac-500|\
- 	ubnt,powerbeam-5ac-gen2|\
- 	ubnt,rocket-5ac-lite|\
 --- a/target/linux/ath79/image/generic-ubnt.mk
 +++ b/target/linux/ath79/image/generic-ubnt.mk
 @@ -87,6 +87,15 @@
@@ -206,12 +195,12 @@
 +endef
 +TARGET_DEVICES += ubnt_nanobeam-ac-gen2-xc
 +
- define Device/ubnt_nanobeam-m5-xw
-   $(Device/ubnt-xw)
-   DEVICE_MODEL := NanoBeam M5
+ define Device/ubnt_nanostation-ac
+   $(Device/ubnt-wa)
+   DEVICE_MODEL := Nanostation AC
 --- /dev/null
 +++ b/target/linux/ath79/dts/qca9558_ubnt_nanobeam-ac-gen2-xc.dts
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,101 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Device Tree file for Ubiquiti Nanobeam NBE-5AC-19 (XC)
@@ -313,16 +302,6 @@
 +	phy-mode = "sgmii";
 +	phy-handle = <&phy4>;
 +};
-+
-+&art {
-+	compatible = "nvmem-cells";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+
-+	macaddr_art_0: macaddr@0 {
-+		reg = <0x0 0x6>;
-+	};
-+};
 --- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
 @@ -96,6 +96,7 @@
@@ -342,26 +321,6 @@
  	ubnt,powerbeam-5ac-500|\
  	ubnt,powerbeam-5ac-gen2)
  		label_mac=$(mtd_get_mac_binary art 0x5006)
---- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-+++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-@@ -43,6 +43,7 @@
- 	ubnt,litebeam-ac-gen2|\
- 	ubnt,nanobeam-ac|\
- 	ubnt,nanobeam-ac-gen2|\
-+	ubnt,nanobeam-ac-gen2-xc|\
- 	ubnt,nanobeam-ac-xc|\
- 	ubnt,nanostation-ac|\
- 	ubnt,nanostation-ac-loco|\
---- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-+++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-@@ -49,6 +49,7 @@
- 	ubnt,nanostation-ac-loco|\
- 	ubnt,powerbeam-5ac-400|\
- 	ubnt,powerbeam-5ac-500|\
-+	ubnt,powerbeam-5ac-620|\
- 	ubnt,powerbeam-5ac-gen2|\
- 	ubnt,rocket-5ac-lite|\
- 	ubnt,unifiac-pro|\
 --- a/target/linux/ath79/image/generic-ubnt.mk
 +++ b/target/linux/ath79/image.generic-ubnt.mk
 @@ -63,6 +63,15 @@
@@ -399,8 +358,8 @@
  	ubnt,lap-120|\
  	ubnt,litebeam-ac-gen2|\
 +	ubnt,litebeam-ac-lr|\
+ 	ubnt,litebeam-m5-xw|\
  	ubnt,nanobeam-ac|\
- 	ubnt,nanobeam-2ac-13|\
  	ubnt,nanobeam-ac-xc|\
 @@ -825,6 +826,7 @@
  		label_mac=$(cat /sys/class/ieee80211/phy0/macaddress)
@@ -410,25 +369,3 @@
  	ubnt,nanobeam-ac-gen2|\
  	ubnt,nanobeam-ac-xc|\
  	ubnt,nanobeam-ac-gen2-xc|\
---- a/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-+++ b/target/linux/ath79/generic/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
-@@ -42,6 +42,7 @@
- 	ubnt,unifiac-mesh-pro|\
- 	ubnt,lap-120|\
- 	ubnt,litebeam-ac-gen2|\
-+	ubnt,litebeam-ac-lr|\
- 	ubnt,nanobeam-ac|\
- 	ubnt,nanobeam-2ac-13|\
- 	ubnt,nanobeam-ac-gen2|\
---- a/target/linux/ath79/image/generic-ubnt.mk
-+++ b/target/linux/ath79/image/generic-ubnt.mk
-@@ -28,9 +28,6 @@
- define Device/ubnt_bullet-m-xw
-   $(Device/ubnt-xw)
-   DEVICE_MODEL := Bullet M
--  DEVICE_ALT0_VENDOR := Ubiquiti
--  DEVICE_ALT0_MODEL := Rocket M
--  DEVICE_ALT0_VARIANT := XW
-   DEVICE_PACKAGES += rssileds
-   SUPPORTED_DEVICES += bullet-m-xw
- endef

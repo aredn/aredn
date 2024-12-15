@@ -1,3 +1,64 @@
+--- a/tools/Makefile
++++ b/tools/Makefile
+@@ -87,6 +87,7 @@
+ tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USE_LLVM_BUILD),y) += llvm-bpf
+ tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USE_MOLD),y) += mold
+ tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USES_MINOR),y) += npkpy
++tools-$(if $(CONFIG_BUILD_ALL_HOST_TOOLS)$(CONFIG_USES_MINOR),y) += kernel2minor
+ 
+ # builddir dependencies
+ $(curdir)/autoconf/compile := $(curdir)/m4/compile
+
+--- /dev/null
++++ b/tools/kernel2minor/Makefile
+@@ -0,0 +1,29 @@
++#
++# Copyright (C) 2016 adron@yapic.net
++#
++# This is free software, licensed under the GNU General Public License v2.
++# See /LICENSE for more information.
++#
++include $(TOPDIR)/rules.mk
++
++PKG_NAME:=kernel2minor
++PKG_VERSION:=0.25
++PKG_RELEASE:=1
++
++PKG_SOURCE_URL:=https://github.com/adron-s/kernel2minor.git
++PKG_MIRROR_HASH:=6083c46c2fe0da37bacd04d5d5439c0e2a9d00e58ff47a63acfd5057d2aa2145
++PKG_SOURCE_PROTO:=git
++PKG_SOURCE_VERSION:=1e5a52c7941945f6d64807ebca4a5923ba5466bd
++PKG_HASH:=33ca413403a3341af0c9a8e6d9bb58f4ad080a5339e8a8729b83637d35bfaf1b
++
++include $(INCLUDE_DIR)/host-build.mk
++
++define Host/Install
++	$(INSTALL_BIN) $(HOST_BUILD_DIR)/kernel2minor $(STAGING_DIR_HOST)/bin/
++endef
++
++define Host/Clean
++	rm -f $(STAGING_DIR_HOST)/bin/kernel2minor
++endef
++
++$(eval $(call HostBuild))
+--- a/include/image-commands.mk
++++ b/include/image-commands.mk
+@@ -465,6 +465,14 @@
+ 		&& mv $@.img $@
+ endef
+ 
++define Build/kernel2minor
++	$(eval temp_file := $(shell mktemp))
++	cp $@ $(temp_file)
++	kernel2minor -k $(temp_file) -r $(temp_file).new $(1)
++	mv $(temp_file).new $@
++	rm -f $(temp_file)
++endef
++
+ define Build/kernel-bin
+ 	rm -f $@
+ 	cp $< $@
+
 --- a/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
 +++ b/target/linux/ath79/mikrotik/base-files/lib/upgrade/platform.sh
 @@ -7,7 +7,8 @@

@@ -372,7 +372,7 @@ const auth = {
         if (!this.isAdmin) {
             this.initKey();
             const s = split(this.key, /[:$]/); // s[3] = salt, s[4] = hashed
-            const f = fs.popen(`exec /usr/bin/mkpasswd -S '${s[3]}' '${password}'`);
+            const f = fs.popen(`exec /usr/bin/mkpasswd -m md5 -S '${s[3]}' '${password}'`);
             if (f) {
                 const pwd = rtrim(f.read("all"));
                 f.close();
