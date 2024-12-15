@@ -1,33 +1,34 @@
---- a/target/linux/generic/config-5.15
-+++ b/target/linux/generic/config-5.15
-@@ -3853,8 +3853,8 @@
- # CONFIG_MTD_SPINAND_MT29F is not set
- # CONFIG_MTD_SPI_NAND is not set
- # CONFIG_MTD_SPI_NOR is not set
--# CONFIG_MTD_SPI_NOR_SWP_DISABLE is not set
--CONFIG_MTD_SPI_NOR_SWP_DISABLE_ON_VOLATILE=y
-+CONFIG_MTD_SPI_NOR_SWP_DISABLE=y
-+# CONFIG_MTD_SPI_NOR_SWP_DISABLE_ON_VOLATILE is not set
- # CONFIG_MTD_SPI_NOR_SWP_KEEP is not set
- # CONFIG_MTD_SPI_NOR_USE_4K_SECTORS is not set
- # CONFIG_MTD_SPI_NOR_USE_VARIABLE_ERASE is not set
-
+//--- a/target/linux/ath79/generic/config-defaultx
+//+++ b/target/linux/ath79/generic/config-defaultx
+@@ -16,7 +16,8 @@
+ CONFIG_MTD_REDBOOT_PARTS=y
+ CONFIG_MTD_SPI_NOR_SWP_DISABLE=y
+ # CONFIG_MTD_SPI_NOR_SWP_DISABLE_ON_VOLATILE is not set
+-CONFIG_MTD_SPI_NOR_USE_VARIABLE_ERASE=y
++CONFIG_MTD_SPI_NOR_USE_4K_SECTORS=y
++CONFIG_MTD_SPI_NOR_USE_VARIABLE_ERASE=y
+ CONFIG_MTD_SPLIT_EVA_FW=y
+ CONFIG_NVMEM_SYSFS=y
+ CONFIG_NVMEM_U_BOOT_ENV=y
+ //
+ // We have to mark various flash chips with FLAGS(SPI_NOR_HAS_LOCK) so they are unlocked
+ // before we try to write to them.
+ //
 --- /dev/null
-+++ b/target/linux/generic/backport-5.15/420-flash-fixes.patch
-@@ -0,0 +1,11 @@
++++ b/target/linux/generic/backport-6.6/420-flash-fixes.patch
+@@ -0,0 +1,10 @@
 +--- a/drivers/mtd/spi-nor/spansion.c
 ++++ b/drivers/mtd/spi-nor/spansion.c
-+@@ -254,7 +254,7 @@
-+ 	{ "s25fl016k",  INFO(0xef4015,      0,  64 * 1024,  32,
-+ 			     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
-+ 	{ "s25fl064k",  INFO(0xef4017,      0,  64 * 1024, 128,
-+-			     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
-++			     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_HAS_LOCK) },
-+ 	{ "s25fl116k",  INFO(0x014015,      0,  64 * 1024,  32,
-+ 			     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
-+ 	{ "s25fl132k",  INFO(0x014016,      0,  64 * 1024,  64, SECT_4K) },
++@@ -826,6 +826,7 @@
++ 		NO_SFDP_FLAGS(SECT_4K | SPI_NOR_DUAL_READ |
++ 			      SPI_NOR_QUAD_READ) },
++ 	{ "s25fl064k",  INFO(0xef4017,      0,  64 * 1024, 128)
+++		FLAGS(SPI_NOR_HAS_LOCK)
++ 		NO_SFDP_FLAGS(SECT_4K | SPI_NOR_DUAL_READ |
++ 			      SPI_NOR_QUAD_READ) },
++ 	{ "s25fl116k",  INFO(0x014015,      0,  64 * 1024,  32)
 --- /dev/null
-+++ b/target/linux/ath79/patches-5.15/941-mikrotik-nand-flash.patch
++++ b/target/linux/ath79/patches-6.6/941-mikrotik-nand-flash.patch
 @@ -0,0 +1,11 @@
 +--- a/drivers/mtd/nand/raw/nand_amd.c
 ++++ b/drivers/mtd/nand/raw/nand_amd.c
