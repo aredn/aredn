@@ -108,7 +108,7 @@
                 </a>
             </div>
             <div>
-                <div style="margin: 0 calc(50% - 21px);">
+                <div style="margin: 0 calc(50% - 20px);">
                 {{_R("tools")}}
                 </div>
             </div>
@@ -119,8 +119,29 @@
     </div>
      <script>
         (function(){
-            document.querySelector("#m-all").addEventListener("click", _ => document.body.focus());
-            document.querySelector("#ctrl-modal").addEventListener("click", _ => document.body.focus());
+            document.getElementById("m-all").addEventListener("click", _ => document.body.focus());
+            document.getElementById("ctrl-modal").addEventListener("click", _ => document.body.focus());
+            function closePopups(e) {
+                const a = document.querySelectorAll(".popup-menu input[type=checkbox]:checked");
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== e.target) {
+                        a[i].checked = false;
+                    }
+                }
+            }
+            let lastScrollTop = -1;
+            document.getElementById("m-main").addEventListener("scroll", e => {
+                closePopups(e);
+                const newScrollTop = e.target.scrollTop;
+                if (newScrollTop > 0 && newScrollTop > lastScrollTop) {
+                    document.body.classList.add("hide-bars");
+                }
+                else if (newScrollTop < e.target.scrollHeight - e.target.clientHeight && newScrollTop < lastScrollTop) {
+                    document.body.classList.remove("hide-bars");
+                }
+                lastScrollTop = newScrollTop;
+            });
+            document.body.addEventListener("click", closePopups);
             document.addEventListener("DOMContentLoaded", _ => document.querySelector("meta[name=theme-color]").content = getComputedStyle(document.body).getPropertyValue("--nav-bg-color"));
         })();
     </script>
@@ -129,14 +150,6 @@
     <script>
         (function(){
             const m = document.getElementById("ctrl-modal");
-            document.body.addEventListener("click", e => {
-                const a = document.querySelectorAll(".popup-menu input[type=checkbox]:checked");
-                for (let i = 0; i < a.length; i++) {
-                    if (a[i] !== e.target) {
-                        a[i].checked = false;
-                    }
-                }
-            });
             document.body.addEventListener("click", e => {
                 if (!(m.open || document.getSelection().isCollapsed)) {
                     e.stopPropagation();

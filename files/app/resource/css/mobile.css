@@ -11,6 +11,7 @@
     display: flex;
     height: 80px;
     background-color: var(--nav-bg-color);
+    transition: margin-top 0.4s;
 }
 #m-title #icon-logo
 {
@@ -47,6 +48,16 @@ body.mobile hr
     height: 80px;
     min-height: 80px;
     background-color: var(--nav-bg-color);
+    transition: height 0.4s, min-height 0.4s;
+}
+body.hide-bars #m-title
+{
+    margin-top: -80px;
+}
+body.hide-bars #m-nav
+{
+    height: 0px;
+    min-height: 0px;
 }
 
 #m-main #main-container
@@ -126,7 +137,7 @@ body.mobile hr
 #m-nav #tools .menu
 {
     left: -26px;
-    bottom: 80px;
+    bottom: 66px;
     border-left: none;
     border-bottom-left-radius: 0;
     border-top-left-radius: 10px;
@@ -144,7 +155,16 @@ body.mobile hr
 }
 #m-all #tools label
 {
+    position: relative;
     left: auto;
+}
+#m-all #tools label .icon
+{
+    bottom: -14px;
+}
+#m-all #tools:hover label .icon.tools
+{
+    filter: var(--icon-filter);;
 }
 
 body.mobile #ctrl-modal[open]
