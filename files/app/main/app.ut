@@ -119,8 +119,19 @@
     </div>
      <script>
         (function(){
-            document.querySelector("#m-all").addEventListener("click", _ => document.body.focus());
-            document.querySelector("#ctrl-modal").addEventListener("click", _ => document.body.focus());
+            document.getElementById("m-all").addEventListener("click", _ => document.body.focus());
+            document.getElementById("ctrl-modal").addEventListener("click", _ => document.body.focus());
+            let lastScrollTop = -1;
+            document.getElementById("m-main").addEventListener("scroll", e => {
+                const newScrollTop = e.target.scrollTop;
+                if (newScrollTop > 0 && newScrollTop > lastScrollTop) {
+                    document.body.classList.add("hide-bars");
+                }
+                else if (newScrollTop < e.target.scrollHeight - e.target.clientHeight && newScrollTop < lastScrollTop) {
+                    document.body.classList.remove("hide-bars");
+                }
+                lastScrollTop = newScrollTop;
+            });
             document.addEventListener("DOMContentLoaded", _ => document.querySelector("meta[name=theme-color]").content = getComputedStyle(document.body).getPropertyValue("--nav-bg-color"));
         })();
     </script>
