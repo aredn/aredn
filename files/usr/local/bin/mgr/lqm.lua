@@ -48,8 +48,6 @@ local ping_time_run_avg = 0.8 -- ping time runnng average
 local bitrate_run_avg = 0.8 -- rx/tx running average
 local dtd_distance = 50 -- distance (meters) after which nodes connected with DtD links are considered different sites
 local connect_timeout = 5 -- timeout (seconds) when fetching information from other nodes
-local speed_time = 10 --
-local speed_limit = 1000 -- close connection if it's too slow (< 1kB/s for 10 seconds)
 local default_short_retries = 20 -- More link-level retries helps overall tcp performance (factory default is 7)
 local default_long_retries = 20 -- (factory default is 4)
 local wireguard_alive_time = 300 -- 5 minutes
@@ -57,7 +55,7 @@ local wireguard_alive_time = 300 -- 5 minutes
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
 local ARPING = "/usr/sbin/arping"
-local CURL = "/usr/bin/curl"
+local UFETCH = "/bin/uclient-fetch"
 local IPCMD = "/sbin/ip"
 
 local now = 0
@@ -240,6 +238,11 @@ function calc_distance(lat1, lon1, lat2, lon2)
     return math.floor(r2 * math.asin(math.sqrt(v)))
 end
 
+function gettime()
+    local sec, usec = nixio.gettimeofday()
+    return sec + usec / 1000000;
+end
+
 function av(c, f, n, o)
     if c and o and n then
         return f * c + (1 - f) * (n - o)
@@ -282,11 +285,6 @@ function iw_set(cmd)
     if phy ~= "none" then
         os.execute(IW .. " " .. phy .. " set " .. cmd .. " > /dev/null 2>&1")
     end
-end
-
-function gettimems()
-    local sec, usec = nixio.gettimeofday()
-    return sec * 1000 + usec / 1000;
 end
 
 function lqm_run()
@@ -653,7 +651,7 @@ function lqm_run()
                         track.rev_ping_quality = nil
                         track.rev_quality = nil
                     else
-                        local raw = io.popen(CURL .. " --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
+                        local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -O - 2> /dev/null")
                         local info = luci.jsonc.parse(raw:read("*a"))
                         raw:close()
 
@@ -785,11 +783,11 @@ function lqm_run()
                 if track.type ~= "Tunnel" and track.type ~= "Wireguard" then
                     -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
                     -- table and firewall messing up the response packet.
-                    local pstart = gettimems()
+                    local pstart = gettime()
                     if os.execute(ARPING .. " -q -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) ~= 0 then
                         success = true
                     end
-                    ptime = gettimems() - pstart
+                    ptime = gettime() - pstart
                 end
                 if not success then
                     if track.routable then
@@ -800,14 +798,14 @@ function lqm_run()
                         sigsock:setopt("socket", "dontroute", 1)
                         -- Must connect or we wont see the error
                         sigsock:connect(track.ip, 8080)
-                        local pstart = gettimems()
+                        local pstart = gettime()
                         sigsock:send("")
                         -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
                         -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
                         if sigsock:recv(0) ~= false then
                             success = true
                         end
-                        ptime = gettimems() - pstart
+                        ptime = gettime() - pstart
                         sigsock:close()
                     else
                         -- We can't ping non-routable targets so don't consider them errors
