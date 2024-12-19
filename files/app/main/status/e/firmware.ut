@@ -33,15 +33,19 @@
  */
 %}
 {%
-    function curl(url, filename, start, len)
+    function fetch(url, filename, start, len)
     {
         const agent = `Node: ${configuration.getName()} Version: ${configuration.getFirmwareVersion()}`;
         const name = filename ? filename : `/tmp/download.${time()}`;
-        const f = fs.popen(`/usr/bin/curl --progress-bar --remove-on-error --user-agent '${agent}' -o ${name} ${url} 2>&1`);
+        if (filename) {
+            fs.unlink(filename);
+        }
+        const f = fs.popen(`exec /bin/uclient-fetch -U '${agent}' -O ${name} ${url} 2>&1`);
         if (!f) {
             return null;
         }
         uhttpd.send(`event: progress\r\ndata: ${start}\r\n\r\n`);
+        let success = false;
         for (;;) {
             const l = f.read("\r");
             if (!length(l)) {
@@ -51,8 +55,15 @@
             if (m) {
                 uhttpd.send(`event: progress\r\ndata: ${start + len * m[1] / 100}\r\n\r\n`);
             }
+            if (index(l, "Download completed") !== -1) {
+                success = true;
+            }
         }
         f.close();
+        if (!success) {
+            fs.unlink(name);
+            return null;
+        }
         if (!fs.access(name)) {
             return null;
         }
@@ -216,7 +227,7 @@
             uhttpd.send(`event: error\r\ndata: missing firmware download url\r\n\r\n`);
             return;
         }
-        let f = curl(`${aredn_firmware}/afs/www/config.js`, null, 0, 10);
+        let f = fetch(`${aredn_firmware}/afs/www/config.js`, null, 0, 10);
         if (!f) {
             uhttpd.send(`event: error\r\ndata: failed to download firmware configuration\r\n\r\n`);
             return;
@@ -244,7 +255,7 @@
         let count = 0;
         for (let ver in firmware_versions) {
             const data = firmware_versions[ver];
-            f = curl(`${aredn_firmware}/afs/www/${data}/overview.json`, null, 10 + count * 90 / firmware_version_count, 90 / firmware_version_count);
+            f = fetch(`${aredn_firmware}/afs/www/${data}/overview.json`, null, 10 + count * 90 / firmware_version_count, 90 / firmware_version_count);
             if (f) {
                 let info;
                 try {
@@ -335,7 +346,7 @@
             uhttpd.send(`event: error\r\ndata: bad firmware version\r\n\r\n`);
             return;
         }
-        f = curl(inst.overview, null, 0, 5);
+        f = fetch(inst.overview, null, 0, 5);
         if (!f) {
             uhttpd.send(`event: error\r\ndata: could not download firmware version catalog\r\n\r\n`);
             return;
@@ -373,7 +384,7 @@
             return;
         }
         shutdownServices();
-        let r = curl(fwimage.url, "/tmp/firmwarefile", 5, 95);
+        let r = fetch(fwimage.url, "/tmp/firmwarefile", 5, 95);
         if (!r) {
             uhttpd.send(`event: error\r\ndata: failed to start firmware download\r\n\r\n`);
             restoreServices();
