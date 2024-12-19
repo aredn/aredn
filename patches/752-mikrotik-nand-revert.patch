@@ -77,7 +77,7 @@
  
 -	tar xf "$1" ${board_dir}/kernel -O | yafut -d "$fw_mtd" -w -i - -o kernel -m 0755 || return
 +	mtd erase kernel
-+	tar xf "$1" ${board_dir}/kernel -O | nandwrite -o "$fw_mtd" -
++	tar xf "$1" ${board_dir}/kernel -O | nandwrite -N -o "$fw_mtd" -
  
  	nand_do_upgrade "$1"
  }
