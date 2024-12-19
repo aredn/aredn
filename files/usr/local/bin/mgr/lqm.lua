@@ -34,7 +34,6 @@
 
 local ip = require("luci.ip")
 require("aredn.info")
-local socket = require("socket")
 
 local refresh_timeout_base = 12 * 60 -- refresh high cost data every 12 minutes
 local refresh_timeout_limit = 17 * 60 -- to 17 minutes
@@ -283,6 +282,11 @@ function iw_set(cmd)
     if phy ~= "none" then
         os.execute(IW .. " " .. phy .. " set " .. cmd .. " > /dev/null 2>&1")
     end
+end
+
+function gettimems()
+    local sec, usec = nixio.gettimeofday()
+    return sec * 1000 + usec / 1000;
 end
 
 function lqm_run()
@@ -781,11 +785,11 @@ function lqm_run()
                 if track.type ~= "Tunnel" and track.type ~= "Wireguard" then
                     -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
                     -- table and firewall messing up the response packet.
-                    local pstart = socket.gettime(0)
+                    local pstart = gettimems()
                     if os.execute(ARPING .. " -q -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) ~= 0 then
                         success = true
                     end
-                    ptime = socket.gettime(0) - pstart
+                    ptime = gettimems() - pstart
                 end
                 if not success then
                     if track.routable then
@@ -796,14 +800,14 @@ function lqm_run()
                         sigsock:setopt("socket", "dontroute", 1)
                         -- Must connect or we wont see the error
                         sigsock:connect(track.ip, 8080)
-                        local pstart = socket.gettime(0)
+                        local pstart = gettimems()
                         sigsock:send("")
                         -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
                         -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
                         if sigsock:recv(0) ~= false then
                             success = true
                         end
-                        ptime = socket.gettime(0) - pstart
+                        ptime = gettimems() - pstart
                         sigsock:close()
                     else
                         -- We can't ping non-routable targets so don't consider them errors
