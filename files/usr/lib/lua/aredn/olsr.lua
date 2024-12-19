@@ -37,15 +37,13 @@
 require("nixio")
 require("aredn.utils")
 require("aredn.info")
-local h = require("socket.http")
-local json = require("luci.jsonc")
+require("luci.jsonc")
 
 function fetch_json(url)
-  resp, status_code, headers, status_message=h.request(url)
-  if status_code==200 then
-    local j=json.parse(resp)
-    return j
-  end
+  local raw = io.popen("/usr/bin/curl --retry 0 --connect-timeout 5 -s \"" .. url .. "\" -o - 2> /dev/null")
+  local j = luci.jsonc.parse(raw:read("*a"))
+  raw:close()
+  return j
 end
 
 -------------------------------------
