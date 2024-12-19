@@ -125,7 +125,7 @@ if (s) {
     s.close();
 }
 print(`},etx:[["${myself}",0.0],`);
-const f = fs.popen("exec /usr/bin/curl http://127.0.0.1:2006/rou -o - 2> /dev/null");
+const f = fs.popen("exec /bin/uclient-fetch http://127.0.0.1:2006/rou -O - 2> /dev/null");
 if (f) {
   for (let l = f.read("line"); length(l); l = f.read("line")) {
     const m = match(l, reRoutes);
