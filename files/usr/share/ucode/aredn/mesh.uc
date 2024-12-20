@@ -37,7 +37,7 @@ export function getNodeList()
 {
     const re = /^10.+\tdtdlink\.(.+)\.local\.mesh\t#.+$/;
     const nodes = [];
-    const f = fs.open("/var/run/hosts_olsr");
+    const f = fs.open("/tmp/dnshosts.d/hosts_olsr");
     if (!f) {
         return nodes;
     }
@@ -61,7 +61,7 @@ export function getNodeCounts()
     let nodes = 0;
     let devices = 0;
     let services = 0;
-    let f = fs.open("/var/run/hosts_olsr");
+    let f = fs.open("/tmp/dnshosts.d/hosts_olsr");
     if (f) {
         const re = /\t(lan|mid\d+|xlink\d+)\./;
         for (let l = f.read("line"); length(l); l = f.read("line")) {

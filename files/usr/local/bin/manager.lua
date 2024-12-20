@@ -85,6 +85,9 @@ for i, task in ipairs(tasks)
 do
 	task.routine = coroutine.create(task.app)
 	task.time = 0
+	nixio.openlog("manager." .. task.name)
+	nixio.syslog("notice", "Starting task")
+	nixio.closelog()
 end
 
 while true
@@ -103,7 +106,7 @@ do
 			elseif newdelay == "exit" then
 				task.routine = null
 				task.time = math.huge
-				nixio.syslog("notice", "Terminating manager task: " .. task.name)
+				nixio.syslog("notice", "Terminating task")
 			else
 				task.time = newdelay + os.time()
 			end

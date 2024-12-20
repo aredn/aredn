@@ -1145,7 +1145,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
             of:write("config LoadPlugin\n\toption library 'olsrd_dyn_gw.so.0.5'\n\toption Interval '60'\n\tlist Ping '8.8.8.8'\n\tlist Ping '8.8.4.4'\n\n")
         end
 
-        of:write("config LoadPlugin 'nameservice'\n\toption library 'olsrd_nameservice.so.0.4'\n\toption interval '30'\n\toption timeout '300'\n\toption sighup_pid_file '/var/run/dnsmasq/dnsmasq.pid'\n\toption name_change_script '/usr/local/bin/olsrd-namechange'\n")
+        of:write("config LoadPlugin 'nameservice'\n\toption library 'olsrd_nameservice.so.0.4'\n\toption interval '30'\n\toption timeout '300'\n\toption hosts_file '/tmp/dnshosts.d/hosts_olsr'\n")
         aredn.services.reset_validation()
         local names, hosts, services = aredn.services.get()
         for _, name in ipairs(names)
