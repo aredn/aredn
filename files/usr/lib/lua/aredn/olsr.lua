@@ -180,7 +180,7 @@ function model.getHostAsLines(attempts)
   end
   for _ = 1, attempts
   do
-    local f = io.open("/var/run/hosts_olsr")
+    local f = io.open("/tmp/dnshosts.d/hosts_olsr")
     if f then
       return f:lines()
     end
