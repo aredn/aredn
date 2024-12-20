@@ -185,9 +185,13 @@ end
 if aredn.hardware.get_radio_count() > 0 and cfg.wifi_intf == "" then
     local wifi_intf = "wlan0"
     local defaultwifi = aredn.hardware.get_default_channel(wifi_intf)
-    cfg.wifi_intf = wifi_intf
-    cfg.wifi_channel = defaultwifi.channel
-    cfg.wifi_chanbw = defaultwifi.bandwidth
+    if defaultwifi then
+        cfg.wifi_intf = wifi_intf
+        cfg.wifi_channel = defaultwifi.channel
+        cfg.wifi_chanbw = defaultwifi.bandwidth
+    else
+        cfg.wifi_enable = 0
+    end
 end
 
 -- DHCP

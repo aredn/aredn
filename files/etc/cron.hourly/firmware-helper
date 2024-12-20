@@ -59,7 +59,7 @@ if  do_version_update then
     local config_url = cursor:get("aredn", "@downloads[0]", "firmware_aredn") .. "/afs/www/config.js"
     local release_version
     local nightly_version
-    for line in io.popen("/usr/bin/curl -o - " .. config_url .. " 2> /dev/null"):lines()
+    for line in io.popen("exec /bin/uclient-fetch -O - " .. config_url .. " 2> /dev/null"):lines()
     do
         local v = line:match("versions: {(.+)}")
         if v then
