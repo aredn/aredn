@@ -587,7 +587,7 @@ end
 -------------------------------------
 function model.getLocalHosts()
   local localhosts = {}
-  myhosts=os.capture('/bin/grep "# myself" /var/run/hosts_olsr|grep -v dtdlink')
+  myhosts=os.capture('/bin/grep "# myself" /tmp/dnshosts.d/hosts_olsr|grep -v dtdlink')
   local lines = myhosts:splitNewLine()
   data = {}
   for k,v in pairs(lines) do
