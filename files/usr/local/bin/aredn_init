@@ -236,10 +236,18 @@ os.remove("/sysupgrade.tgz")
 if aredn.info.get_nvram("configured") ~= "0" then
     os.execute("/usr/local/bin/node-setup")
     -- Reboot when necessary
-    if nixio.fs.stat("/tmp/reboot-required") then
-        print "Rebooting node"
-        os.execute("/sbin/mount_root done")
-        os.execute("/bin/sync")
-        os.execute("/sbin/reboot")
+    if nixio.fs.stat("/tmp/reboot-required/reboot") then
+        if nixio.fs.stat("/etc/local/aredn_init_rebooted") then
+            print "Rebooting node requested, but would loop so ignoring"
+            os.remove("/etc/local/aredn_init_rebooted")
+        else
+            print "Rebooting node"
+            os.execute("/sbin/mount_root done")
+            io.open("/etc/local/aredn_init_rebooted", "w"):close()
+            os.execute("/bin/sync")
+            os.execute("/sbin/reboot")
+        end
+    else
+        os.remove("/etc/local/aredn_init_rebooted")
     end
 end
