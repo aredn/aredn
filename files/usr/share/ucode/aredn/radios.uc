@@ -46,20 +46,22 @@ export function getCommonConfiguration()
     const nrradios = hardware.getRadioCount();
     for (let i = 0; i < nrradios; i++) {
         const iface = `wlan${i}`;
-        radio[i] = {
-            iface: iface,
-            mode: 0,
-            modes: [],
-            ant: null,
-            antaux: null,
-            def: hardware.getDefaultChannel(iface),
-            bws: hardware.getRfBandwidths(iface),
-            channels: hardware.getRfChannels(iface),
-            ants: hardware.getAntennas(iface),
-            antsaux: hardware.getAntennasAux(iface),
-            txpoweroffset: hardware.getTxPowerOffset(iface),
-            txmaxpower: hardware.getMaxTxPower(iface)
-        };
+        if (!hardware.getRadioIntf(iface).disabled) {
+            push(radio, {
+                iface: iface,
+                mode: 0,
+                modes: [],
+                ant: null,
+                antaux: null,
+                def: hardware.getDefaultChannel(iface),
+                bws: hardware.getRfBandwidths(iface),
+                channels: hardware.getRfChannels(iface),
+                ants: hardware.getAntennas(iface),
+                antsaux: hardware.getAntennasAux(iface),
+                txpoweroffset: hardware.getTxPowerOffset(iface),
+                txmaxpower: hardware.getMaxTxPower(iface)
+            });
+        }
     }
     return radio;
 };
