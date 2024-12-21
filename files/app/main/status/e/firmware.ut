@@ -136,21 +136,21 @@
     {
         if (hardware.isLowMemNode()) {
             system([ "/etc/init.d/manager", "stop" ]);
+            system([ "/etc/init.d/sysntp", "stop" ]);
             system([ "/etc/init.d/telnet", "stop" ]);
             system([ "/etc/init.d/dropbear", "stop" ]);
             system([ "/etc/init.d/urngd", "stop" ]);
             system([ "/etc/init.d/log", "stop" ]);
-            system([ "/etc/init.d/rpcd", "stop" ]);
         }
     };
     function restoreServices()
     {
         if (hardware.isLowMemNode()) {
-            system([ "/etc/init.d/rpcd", "start" ]);
             system([ "/etc/init.d/log", "start" ]);
             system([ "/etc/init.d/urngd", "start" ]);
             system([ "/etc/init.d/telnet", "start" ]);
             system([ "/etc/init.d/dropbear", "start" ]);
+            system([ "/etc/init.d/sysntp", "start" ]);
             system([ "/etc/init.d/manager", "start" ]);
         }
     };
