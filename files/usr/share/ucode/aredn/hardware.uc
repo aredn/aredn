@@ -132,7 +132,7 @@ export function getRadioCount()
     }
 };
 
-function getRadioIntf(wifiIface)
+export function getRadioIntf(wifiIface)
 {
     const radio = getRadio();
     if (radio[wifiIface]) {
