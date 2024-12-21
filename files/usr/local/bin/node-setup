@@ -891,120 +891,124 @@ do
     if devpathc > 0 then
         devpath = devpath .. "+" .. devpathc
     end
-    local is_mesh_rf = false
-    local htmode = "HT20"
-    if nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. devname .. "/ath10k") then
-        htmode = "VHT20"
-        if wlan == cfg.wifi_intf then
-            local bw = tonumber(cfg.wifi_chanbw)
-            if bw == 40 then
-                htmode = "VHT40"
-            elseif bw == 80 then
-                htmode = "VHT80"
-            elseif bw == 160 then
-                htmode = "VHT160"
+    if aredn.hardware.get_radio_intf(wlan).disabled then
+        config = config .. "config\twifi-device '" .. radio .. "'\n\toption type 'mac80211'\n\toption disabled '1'\n\toption path '" .. devpath .. "'\n\n"
+    else
+        local is_mesh_rf = false
+        local htmode = "HT20"
+        if nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. devname .. "/ath10k") then
+            htmode = "VHT20"
+            if wlan == cfg.wifi_intf then
+                local bw = tonumber(cfg.wifi_chanbw)
+                if bw == 40 then
+                    htmode = "VHT40"
+                elseif bw == 80 then
+                    htmode = "VHT80"
+                elseif bw == 160 then
+                    htmode = "VHT160"
+                end
             end
         end
-    end
-    local disabled = "0"
-    local chanbw = nil
-    local country = nil
-    local channel = nil
-    local distance = nil
-    local hwmode = "11g"
-    if iwinfo.nl80211.freqlist(devname)[1].mhz > 5000 then
-        hwmode="11a"
-    end
-    local network = nil
-    local mode = nil
-    local ssid = nil
-    local encryption = nil
-    local key = nil
-
-    if wlan == cfg.wifi_intf then
-        -- mesh RF adhoc configuration
-        is_mesh_rf = true
-        channel = cfg.wifi_channel
-        chanbw = cfg.wifi_chanbw
-        country = "HX"
-        distance = cfg.wifi_distance
-        ssid = cfg.wifi_ssid .. "-" .. chanbw .. "-v3"
-        mode = "adhoc"
-        encryption = "none"
-        network = "wifi"
-    elseif cfg.wifi2_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi2_hwmode)) then
-        -- lan AP interface
-        channel = cfg.wifi2_channel
-        ssid = h2s(cfg.wifi2_ssid)
-        mode = "ap"
-        encryption = cfg.wifi2_encryption
-        key = h2s(cfg.wifi2_key)
-        network = "lan"
-    elseif cfg.wifi3_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi3_hwmode)) then
-        -- wan client
-        ssid = h2s(cfg.wifi3_ssid)
-        mode = "sta"
-        if cfg.wifi3_key and cfg.wifi3_key ~= "" then
-            encryption = "psk2"
-            key = h2s(cfg.wifi3_key)
-        else
-            encryption = "none"
+        local disabled = "0"
+        local chanbw = nil
+        local country = nil
+        local channel = nil
+        local distance = nil
+        local hwmode = "11g"
+        if iwinfo.nl80211.freqlist(devname)[1].mhz > 5000 then
+            hwmode="11a"
         end
-        network = "wan"
-        htmode = nil
-    else
-        disabled = "1"
-    end
+        local network = nil
+        local mode = nil
+        local ssid = nil
+        local encryption = nil
+        local key = nil
 
-    config = config .. "config	wifi-device '" .. radio .. "'\n	option type 'mac80211'\n"
-    config = config .. "	option disabled '" .. disabled .. "'\n"
-    if channel then
-        config = config .. "	option channel '" .. channel .. "'\n"
-    end
-    if chanbw then
-        config = config .. "	option chanbw '" .. chanbw .. "'\n"
-    end
-    if country then
-        config = config .. "	option country '" .. country .. "'\n"
-    end
-    if distance then
-        config = config .. "	option distance '" .. distance .. "'\n"
-    end
-    if hwmode == "11g" then
-        config = config .. "	option band '2g'\n"
-    else
-        config = config .. "	option band '5g'\n"
-    end
-    if htmode then
-        config = config .. "	option htmode '" .. htmode .. "'\n"
-    end
-    config = config .. "	option path '" .. devpath .. "'\n\n"
+        if wlan == cfg.wifi_intf then
+            -- mesh RF adhoc configuration
+            is_mesh_rf = true
+            channel = cfg.wifi_channel
+            chanbw = cfg.wifi_chanbw
+            country = "HX"
+            distance = cfg.wifi_distance
+            ssid = cfg.wifi_ssid .. "-" .. chanbw .. "-v3"
+            mode = "adhoc"
+            encryption = "none"
+            network = "wifi"
+        elseif cfg.wifi2_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi2_hwmode)) then
+            -- lan AP interface
+            channel = cfg.wifi2_channel
+            ssid = h2s(cfg.wifi2_ssid)
+            mode = "ap"
+            encryption = cfg.wifi2_encryption
+            key = h2s(cfg.wifi2_key)
+            network = "lan"
+        elseif cfg.wifi3_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi3_hwmode)) then
+            -- wan client
+            ssid = h2s(cfg.wifi3_ssid)
+            mode = "sta"
+            if cfg.wifi3_key and cfg.wifi3_key ~= "" then
+                encryption = "psk2"
+                key = h2s(cfg.wifi3_key)
+            else
+                encryption = "none"
+            end
+            network = "wan"
+            htmode = nil
+        else
+            disabled = "1"
+        end
 
-    config = config .. "config	wifi-iface\n"
-    config = config .. "	option ifname '" .. wlan .. "'\n"
-    config = config .. "	option device '" .. radio .. "'\n"
-    if network then
-        config = config .. "	option network '" .. network .. "'\n"
-    end
-    if mode then
-        config = config .. "	option mode '" .. mode .. "'\n"
-    end
-    if ssid then
-        config = config .. "	option ssid '" .. ssid .. "'\n"
-    end
-    if encryption then
-        config = config .. "	option encryption '" .. encryption .. "'\n"
-    end
-    if key then
-        config = config .. "	option key '" .. key .. "'\n"
-    end
-    config = config .. "\n"
+        config = config .. "config	wifi-device '" .. radio .. "'\n	option type 'mac80211'\n"
+        config = config .. "	option disabled '" .. disabled .. "'\n"
+        if channel then
+            config = config .. "	option channel '" .. channel .. "'\n"
+        end
+        if chanbw then
+            config = config .. "	option chanbw '" .. chanbw .. "'\n"
+        end
+        if country then
+            config = config .. "	option country '" .. country .. "'\n"
+        end
+        if distance then
+            config = config .. "	option distance '" .. distance .. "'\n"
+        end
+        if hwmode == "11g" then
+            config = config .. "	option band '2g'\n"
+        else
+            config = config .. "	option band '5g'\n"
+        end
+        if htmode then
+            config = config .. "	option htmode '" .. htmode .. "'\n"
+        end
+        config = config .. "	option path '" .. devpath .. "'\n\n"
 
-    if is_mesh_rf and wifi_mon_enable then
-        config = config .. "config wifi-iface\n"
-        config = config .. "       option ifname '" .. wlan .. "-1'\n"
-        config = config .. "       option device '" .. radio .. "'\n"
-        config = config .. "       option network 'wifi_mon'\n     option mode 'monitor'\n\n"
+        config = config .. "config	wifi-iface\n"
+        config = config .. "	option ifname '" .. wlan .. "'\n"
+        config = config .. "	option device '" .. radio .. "'\n"
+        if network then
+            config = config .. "	option network '" .. network .. "'\n"
+        end
+        if mode then
+            config = config .. "	option mode '" .. mode .. "'\n"
+        end
+        if ssid then
+            config = config .. "	option ssid '" .. ssid .. "'\n"
+        end
+        if encryption then
+            config = config .. "	option encryption '" .. encryption .. "'\n"
+        end
+        if key then
+            config = config .. "	option key '" .. key .. "'\n"
+        end
+        config = config .. "\n"
+
+        if is_mesh_rf and wifi_mon_enable then
+            config = config .. "config wifi-iface\n"
+            config = config .. "       option ifname '" .. wlan .. "-1'\n"
+            config = config .. "       option device '" .. radio .. "'\n"
+            config = config .. "       option network 'wifi_mon'\n     option mode 'monitor'\n\n"
+        end
     end
 end
 write_all("/tmp/new_config/wireless", config)
