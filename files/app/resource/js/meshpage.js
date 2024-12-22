@@ -1,11 +1,8 @@
-function render()
+(function()
 {
 
 const search = document.querySelector("#meshfilter input");
 const help = document.getElementById("meshpage-help");
-const etx = mesh.etx;
-const hosts = mesh.hosts;
-const services = mesh.services;
 let page = document.getElementById("meshpage");
 if (!page) {
     page = document.createElement("div");
@@ -59,7 +56,7 @@ search.addEventListener("keypress", event => event.keyCode == 13 && event.preven
 function serv(ip, hostname)
 {
     let view = "";
-    const s = services[ip];
+    const s = mesh.services[ip];
     if (s) {
         const re = new RegExp(`//${hostname}:`, "i");
         for (let i = 0; i < s.length; i++) {
@@ -94,42 +91,49 @@ function serv(ip, hostname)
 
 const blocks = [ 1, 2, 3, 5, 10, 1000 ];
 const labels = [ "Excellent", "Good", "Fair", "Slow", "Poor", "Improbable" ];
-let data = `<div class="block block1"><div class="label">${labels[0]}</div>`;
-for (let i = 0; i < etx.length; i++) {
-    const item = etx[i];
-    const ip = item[0];
-    const hostlist = hosts[ip];
-    if (hostlist) {
-        const hostname = (hostlist.find(h => !h[1]) || [])[0];
-        if (hostname) {
-            if (item[1] >= blocks[0]) {
-                while (item[1] >= blocks[0]) {
-                    blocks.shift();
-                    labels.shift();
+
+window.meshRender = function()
+{
+    const etx = mesh.etx;
+    const hosts = mesh.hosts;
+
+    let data = `<div class="block block1"><div class="label">${labels[0]}</div>`;
+    for (let i = 0; i < etx.length; i++) {
+        const item = etx[i];
+        const ip = item[0];
+        const hostlist = hosts[ip];
+        if (hostlist) {
+            const hostname = (hostlist.find(h => !h[1]) || [])[0];
+            if (hostname) {
+                if (item[1] >= blocks[0]) {
+                    while (item[1] >= blocks[0]) {
+                        blocks.shift();
+                        labels.shift();
+                    }
+                    data += `</div><div class="block block${blocks[0]}"><div class="label">${labels[0]}</div>`;
                 }
-                data += `</div><div class="block block${blocks[0]}"><div class="label">${labels[0]}</div>`;
-            }
-            let lanview = "";
-            for (let j = 0; j < hostlist.length; j++) {
-                const lanhost = hostlist[j];
-                if (lanhost[1] && lanhost[1] !== ip) {
-                    if (lanhost[0].indexOf("*.") !== 0) {
-                        lanview += `<div class="lanhost" data-search="${lanhost[0].toLowerCase()}"><div class="name">&nbsp;&nbsp;${lanhost[0]}</div><div class="services">${serv(ip, lanhost[0])}</div></div>`;
+                let lanview = "";
+                for (let j = 0; j < hostlist.length; j++) {
+                    const lanhost = hostlist[j];
+                    if (lanhost[1] && lanhost[1] !== ip) {
+                        if (lanhost[0].indexOf("*.") !== 0) {
+                            lanview += `<div class="lanhost" data-search="${lanhost[0].toLowerCase()}"><div class="name">&nbsp;&nbsp;${lanhost[0]}</div><div class="services">${serv(ip, lanhost[0])}</div></div>`;
+                        }
                     }
                 }
+                data += `<div class="node"><div class="host" data-search="${hostname.toLowerCase()}"><div class="name"><a href="http://${hostname}.local.mesh">${hostname}</a><span class="etx">${item[1]}</span></div><div class="services">${serv(ip, hostname)}</div></div>${lanview ? '<div class="lanhosts">' + lanview + '</div>' : ''}</div>`;
             }
-            data += `<div class="node"><div class="host" data-search="${hostname.toLowerCase()}"><div class="name"><a href="http://${hostname}.local.mesh">${hostname}</a><span class="etx">${item[1]}</span></div><div class="services">${serv(ip, hostname)}</div></div>${lanview ? '<div class="lanhosts">' + lanview + '</div>' : ''}</div>`;
         }
     }
+    page.innerHTML = data + "</div>";
+    document.querySelector("input[type=search]").focus();
+    cfilter = null;
+    doFilter();
 }
-page.innerHTML = data + "</div>";
-
-document.querySelector("input[type=search]").focus();
-doFilter();
+meshRender();
 
 help.addEventListener("click", () => {
     document.querySelector(".meshpage-help").classList.toggle("visible");
 });
 
-}
-render();
+})();

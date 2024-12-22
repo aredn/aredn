@@ -34,7 +34,7 @@
 %}
 {% if (!request.mobile) { %}
 <div id="c1">
-    <div id="general">
+    <div id="general" hx-get="u-general" hx-trigger="visibilitychange[document.visibilityState === 'visible'] from:document">
         {{_R("general")}}
     </div>
     <div id="location">
@@ -51,7 +51,7 @@
             </div>
         {% } %}
         </div>
-        <div id="services">
+        <div id="services" hx-get="u-services" hx-trigger="every 120s [document.visibilityState === 'visible']">
             {% if (auth.isAdmin) { %}
             {{_R("internal-services" )}}
             {% } %}
@@ -59,7 +59,7 @@
         </div>
         <div id="local-and-neighbor-devices">
             <hr>
-            <div hx-get="u-local-and-neighbor-devices" hx-trigger="every 60s [document.visibilityState === 'visible']">
+            <div hx-get="u-local-and-neighbor-devices" hx-trigger="every 60s [document.visibilityState === 'visible'], visibilitychange[document.visibilityState === 'visible'] from:document">
             {{_R("local-and-neighbor-devices")}}
             </div>
         </div>
@@ -105,14 +105,14 @@
     </div>
 {% } %}
 </div>
-<div id="general">
+<div id="general"" hx-get="u-general" hx-trigger="visibilitychange[document.visibilityState === 'visible'] from:document">
     {{_R("general")}}
 </div>
 <div id="location">
     <hr>
     {{_R("location")}}
 </div>
-<div id="services">
+<div id="services" hx-get="u-services" hx-trigger="every 120s [document.visibilityState === 'visible']">
     <hr>
     {% if (auth.isAdmin) { %}
     {{_R("internal-services" )}}
