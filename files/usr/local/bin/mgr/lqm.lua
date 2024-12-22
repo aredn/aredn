@@ -164,7 +164,7 @@ function nft_delete(chain, handle)
     os.execute(NFT .. " delete rule ip fw4 " .. chain .. " handle " .. handle)
 end
 
-function nft_handle(chain, query)
+function _nft_handle(chain, query)
     for line in io.popen(NFT .. " -a list chain ip fw4 " .. chain):lines()
     do
         local handle = line:match(query .. ".*# handle (%d+)$")
@@ -173,6 +173,15 @@ function nft_handle(chain, query)
         end
     end
     return nil
+end
+
+function nft_handle(chain, query)
+    local ok, result = pcall(_nft_handle, chain, query)
+    if not ok then
+        -- Retry to handle occasional EINTR
+        ok, result = pcall(_nft_handle, chain, query)
+    end
+    return ok and result or nil
 end
 
 function update_block(track)
