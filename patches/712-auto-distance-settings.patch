@@ -1,15 +1,15 @@
---- a/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
-+++ b/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
-@@ -1102,7 +1102,11 @@
- 	wireless_set_data phy="$phy" txantenna="$txantenna" rxantenna="$rxantenna"
+--- a/package/network/config/wifi-scripts/files/lib/netifd/wireless/mac80211.sh
++++ b/package/network/config/wifi-scripts/files/lib/netifd/wireless/mac80211.sh
+@@ -1160,7 +1160,11 @@
+ 	wireless_set_data phy="$phy" radio="$radio" txantenna="$txantenna" rxantenna="$rxantenna"
  
  	iw phy "$phy" set antenna $txantenna $rxantenna >/dev/null 2>&1
 -	iw phy "$phy" set distance "$distance" >/dev/null 2>&1
 +	if [ $distance -eq 0 -a -d /sys/kernel/debug/ieee80211/$phy/ath9k ]; then
-+		iw phy "$phy" set distance auto
++		iw phy "$phy" set distance auto >/dev/null 2>&1
 +	else
-+		iw phy "$phy" set distance "$distance"
++		iw phy "$phy" set distance "$distance" >/dev/null 2>&1
 +	fi
  
- 	if [ -n "$txpower" ]; then
- 		iw phy "$phy" set txpower fixed "${txpower%%.*}00"
+ 	[ -n "$frag" ] && iw phy "$phy" set frag "${frag%%.*}"
+ 	[ -n "$rts" ] && iw phy "$phy" set rts "${rts%%.*}"
