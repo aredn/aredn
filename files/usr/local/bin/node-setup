@@ -891,7 +891,8 @@ do
     if devpathc > 0 then
         devpath = devpath .. "+" .. devpathc
     end
-    if aredn.hardware.get_radio_intf(wlan).disabled then
+    local rif = aredn.hardware.get_radio_intf(wlan)
+    if not rif or rif.disabled then
         config = config .. "config\twifi-device '" .. radio .. "'\n\toption type 'mac80211'\n\toption disabled '1'\n\toption path '" .. devpath .. "'\n\n"
     else
         local is_mesh_rf = false
