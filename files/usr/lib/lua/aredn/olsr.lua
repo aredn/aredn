@@ -40,7 +40,7 @@ require("aredn.info")
 require("luci.jsonc")
 
 function fetch_json(url)
-  local raw = io.popen("exec /bin/uclient-fetch -T 5 -s \"" .. url .. "\" -O - 2> /dev/null")
+  local raw = io.popen("exec /bin/uclient-fetch -T 5 \"" .. url .. "\" -O - 2> /dev/null")
   local j = luci.jsonc.parse(raw:read("*a"))
   raw:close()
   return j
