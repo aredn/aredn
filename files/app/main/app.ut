@@ -129,20 +129,21 @@
                     }
                 }
             }
+            document.body.addEventListener("click", closePopups);
+            document.addEventListener("DOMContentLoaded", _ => document.querySelector("meta[name=theme-color]").content = getComputedStyle(document.body).getPropertyValue("--nav-bg-color"));
             let lastScrollTop = -1;
-            document.getElementById("m-main").addEventListener("scroll", e => {
+            window.addEventListener("scroll", e => {
+                const target = document.documentElement;
                 closePopups(e);
-                const newScrollTop = e.target.scrollTop;
+                const newScrollTop = target.scrollTop;
                 if (newScrollTop > 0 && newScrollTop > lastScrollTop) {
                     document.body.classList.add("hide-bars");
                 }
-                else if (newScrollTop < e.target.scrollHeight - e.target.clientHeight && newScrollTop < lastScrollTop) {
+                else if (newScrollTop < target.scrollHeight - target.clientHeight && newScrollTop < lastScrollTop) {
                     document.body.classList.remove("hide-bars");
                 }
                 lastScrollTop = newScrollTop;
             });
-            document.body.addEventListener("click", closePopups);
-            document.addEventListener("DOMContentLoaded", _ => document.querySelector("meta[name=theme-color]").content = getComputedStyle(document.body).getPropertyValue("--nav-bg-color"));
         })();
     </script>
     {% } %}

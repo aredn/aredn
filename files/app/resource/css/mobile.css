@@ -1,3 +1,8 @@
+body.mobile
+{
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
 #m-all
 {
     display: flex;
@@ -8,10 +13,14 @@
 }
 #m-title
 {
+    position: fixed;
     display: flex;
+    top: 0;
     height: 80px;
+    width: 100%;
+    z-index: 2;
     background-color: var(--nav-bg-color);
-    transition: margin-top 0.4s;
+    transition: top 0.4s;
 }
 #m-title #icon-logo
 {
@@ -39,26 +48,33 @@ body.mobile hr
 #m-main
 {
     flex: 1;
-    overflow-x: hidden;
-    overflow-y: scroll;
+    height: 100%;
+}
+#main-container
+{
+    overflow: hidden;
+    padding: 80px 0 100px 0;
 }
 #m-nav
 {
+    position: fixed;
     display: flex;
+    bottom: 0;
+    width: 100%;
     height: 80px;
     min-height: 80px;
+    z-index: 2;
     background-color: var(--nav-bg-color);
     overflow: hidden;
-    transition: height 0.4s, min-height 0.4s;
+    transition: bottom 0.4s;
 }
-body.hide-bars #m-title
+body.hide-bars #m-title:has(#changes:empty)
 {
-    margin-top: -80px;
+    top: -80px;
 }
 body.hide-bars #m-nav
 {
-    height: 0px;
-    min-height: 0px;
+    bottom: -80px;
 }
 
 #m-main #main-container
@@ -130,11 +146,21 @@ body.hide-bars #m-nav
 {
     width: 100px;
 }
+#m-nav #login-icon .menu
+{
+    margin-left: -15px;
+}
+#m-nav #logout-icon .menu
+{
+    margin-left: -30px;
+}
 #m-nav #login-icon .menu,
 #m-nav #logout-icon .menu
 {
+    position: fixed;
     top: auto;
-    bottom: 70px;
+    bottom: 80px;
+    right: auto;
     border-bottom-left-radius: 0;
     border-top: none;
     border-top-left-radius: 10px;
@@ -142,8 +168,10 @@ body.hide-bars #m-nav
 }
 #m-nav #tools .menu
 {
-    left: -26px;
-    bottom: 66px;
+    position: fixed;
+    bottom: 80px;
+    left: auto;
+    margin-left: -30px;
     border-left: none;
     border-bottom-left-radius: 0;
     border-top-left-radius: 10px;
