@@ -141,12 +141,12 @@
     <div class="section-title">Local Nodes</div>
     <div class="section" style="line-height:18px;margin-top:-16px">
         <div class="cols">
-            <div class="heading" style="flex:0.75"></div>
+            <div class="heading"></div>
             <div class="heading ts cols stats">
                 {% if (!request.mobile) { %}
                 <div>lq</div><div>nlq</div><div>snr</div><div>n snr</div><div>errors</div><div>mbps</div><div>{{units.distanceUnit()}}</div>
                 {% } else { %}
-                <div>lq</div><div>nlq</div><div>snr</div><div>n snr</div><div>errors</div>
+                <div>lq</div><div>nlq</div>
                 {% } %}
             </div>
         </div>
@@ -178,7 +178,7 @@
                         print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div></div><div></div>`);
                     }
                     else {
-                        print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div>`);
+                        print(`<div>${lq}</div><div>${nlq}</div>`);
                     }
                     print("</div></div>");
                 }
@@ -242,7 +242,10 @@
                     print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}<div class="icon ${icon}"></div></a></div>`);
                 }
                 print("<div class='ts cols stats'>");
-                if (tracker) {
+                if (request.mobile) {
+                    print(`<div>${lq}</div><div>${nlq}</div>`);
+                }
+                else if (tracker) {
                     let d = "-";
                     if ("distance" in tracker) {
                         d = units.meters2distance(tracker.distance);
