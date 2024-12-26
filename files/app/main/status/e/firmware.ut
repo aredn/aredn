@@ -196,27 +196,49 @@
             shutdownServices();
         }
         else if (request.args.firmwarefile) {
-            const upgrade = prepareUpgrade(request.args.firmwarefile);
-            if (upgrade.error) {
+            const fsize = int(fs.readfile(`${request.args.firmwarefile}.size`));
+            if (fsize != fs.stat(request.args.firmwarefile).size) {
+                print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: Firmware file length incorrect: ${fsize} != ${fs.stat(request.args.firmwarefile).size}</div>`);
+                print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
                 fs.unlink(request.args.firmwarefile);
-                print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${upgrade.error}</div>`);
-                print(`<div id="firmware-upload" hx-swap-oob="true><progress value="0" max="100"></div>`);
+                fs.unlink(`${request.args.firmwarefile}.size`);
                 restoreServices();
             }
             else {
-                response.reboot = upgrade.upgrade;
-                print(_R("reboot-firmware"));
+                const upgrade = prepareUpgrade(request.args.firmwarefile);
+                if (upgrade.error) {
+                    print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${upgrade.error}</div>`);
+                    print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
+                    fs.unlink(request.args.firmwarefile);
+                    fs.unlink(`${request.args.firmwarefile}.size`);
+                    restoreServices();
+                }
+                else {
+                    response.reboot = upgrade.upgrade;
+                    print(_R("reboot-firmware"));
+                }
             }
         }
         else if (request.args.restorefile) {
-            const restore = configuration.restore(request.args.restorefile);
-            if (restore.error) {
-                print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${restore.error}</div>`);
-                print(`<div id="firmware-upload" hx-swap-oob="true><progress value="0" max="100"></div>`);
+            const fsize = int(fs.readfile(`${request.args.restorefile}.size`));
+            if (fsize != fs.stat(request.args.restorefile).size) {
+                print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: Restore file length incorrect: ${fsize} != ${fs.stat(request.args.restorefile).size}</div>`);
+                print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
+                fs.unlink(request.args.restorefile);
+                fs.unlink(`${request.args.restorefile}.size`);
             }
             else {
-                response.upgrade = "/bin/reboot";
-                print(_R("reboot-restore"));
+                const restore = configuration.restore(request.args.restorefile);
+                if (restore.error) {
+                    print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${restore.error}</div>`);
+                    print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
+                    fs.unlink(request.args.restorefile);
+                    fs.unlink(`${request.args.restorefile}.size`);
+                }
+                else {
+                    response.upgrade = "/bin/reboot";
+                    print(_R("reboot-restore"));
+                }
             }
         }
         return;
@@ -652,7 +674,8 @@
                     htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
                         source: currentTarget,
                         values: {
-                            firmwarefile: upload
+                            firmwarefile: upload,
+                            "firmwarefile.size": upload.size
                         },
                         target: "#dialog-done",
                         swap: "none"
@@ -703,7 +726,8 @@
                 htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
                     source: e.currentTarget,
                     values: {
-                        restorefile: restore
+                        restorefile: restore,
+                        "restorefile.size": restore.size
                     },
                     target: "#dialog-done",
                     swap: "none"
