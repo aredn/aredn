@@ -89,11 +89,10 @@ function serv(ip, hostname)
     return view;
 }
 
-const blocks = [ 1, 2, 3, 5, 10, 1000 ];
-const labels = [ "Excellent", "Good", "Fair", "Slow", "Poor", "Improbable" ];
-
 window.meshRender = function()
 {
+    const blocks = [ 1, 2, 3, 5, 10, 1000 ];
+    const labels = [ "Excellent", "Good", "Fair", "Slow", "Poor", "Improbable" ];
     const etx = mesh.etx;
     const hosts = mesh.hosts;
 
