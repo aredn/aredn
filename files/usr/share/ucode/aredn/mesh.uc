@@ -62,11 +62,14 @@ export function getNodeCounts()
     let devices = 0;
     const f = fs.open("/var/run/hosts_olsr");
     if (f) {
+        const re = /\t(lan|mid\d+|xlink\d+)\./;
         for (let l = f.read("line"); length(l); l = f.read("line")) {
-            if (substr(l, 0, 3) == "10." && index(l, "\tmid") === -1) {
-                devices++;
+            if (substr(l, 0, 3) == "10.") {
                 if (index(l, "\tdtdlink.") !== -1) {
                     nodes++;
+                }
+                else if (!match(l, re)) {
+                    devices++;
                 }
             }
         }
