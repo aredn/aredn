@@ -39,7 +39,8 @@ local refresh_timeout_base = 12 * 60 -- refresh high cost data every 12 minutes
 local refresh_timeout_limit = 17 * 60 -- to 17 minutes
 local refresh_retry_timeout = 5 * 60
 local pending_timeout = 5 * 60 -- pending node wait 5 minutes before they are included
-local lastseen_timeout = 60 * 60 -- age out nodes we've not seen for 1 hour
+local lastseen_reset_timeout = 60 * 60 -- reset node info we've not seen for 1 hour
+local lastseen_timeout = 24 * 60 * 60 -- age out nodes we've not seen for 24 hours
 local snr_run_avg = 0.8 -- snr running average
 local quality_min_packets = 100 -- minimum number of tx packets before we can safely calculate the link quality
 local tx_quality_run_avg = 0.8 -- tx quality running average
@@ -123,7 +124,7 @@ function should_nonpair_block(track)
 end
 
 function should_ping(track)
-    if not track.ip or is_user_blocked(track) or track.lastseen < now then
+    if not track.ip or is_user_blocked(track) then
         return false
     end
     if track.type == "Tunnel" or track.type == "Wireguard" then
@@ -618,15 +619,13 @@ function lqm_run()
 
             track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, station.tx_bitrate, track.tx_bitrate)
             track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, station.rx_bitrate, track.rx_bitrate)
-
-            track.lastseen = now
         end
 
         -- Update link tracking state
         local ip2tracker = {}
         pending_count = 0
         for _, track in pairs(tracker)
-        do            
+        do
             if not track.ip then
                 track.routable = false
             else
@@ -828,7 +827,9 @@ function lqm_run()
                     end
                 end
                 track.ping_quality = math.max(0, math.min(100, track.ping_quality))
-                if not success and track.type == "DtD" and track.firstseen == now then
+                if success then
+                    track.lastseen = now
+                elseif track.type == "DtD" and track.firstseen == now then
                     -- If local ping immediately fail, ditch this tracker. This can happen sometimes when we
                     -- find arp entries which aren't valid.
                     tracker[track.mac] = nil
@@ -1059,6 +1060,15 @@ function lqm_run()
                         distance = config.max_distance
                     end
                 end
+            end
+
+            -- If the node has been gone for a while, we unblock it so it can reconnect when it returns
+            if ((now > track.lastseen + lastseen_reset_timeout) or
+                (now > track.rev_lastseen + lastseen_reset_timeout) or
+                (track.quality0_seen and now > track.quality0_seen + lastseen_reset_timeout)
+            ) then
+                force_remove_block(track)
+                track.pending = now + pending_timeout
             end
 
             -- Remove any trackers which are too old or if they disconnect when first seen

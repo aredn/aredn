@@ -166,6 +166,22 @@ if (tracker) {
             }
             return v;
         }
+        function lastseen(n)
+        {
+            const s = lqmInfo.now - n.lastseen;
+            if (s < 0) {
+                return "now";
+            }
+            const m = int(s / 60);
+            const h = int(m / 60);
+            if (h > 0) {
+                return `${h} ${h == 1 ? "hour" : "hours"} ago`;
+            }
+            if (m > 0) {
+                return `${m} ${m == 1 ? "minute" : "minutes"} ago`;
+            }
+            return "now";
+        }
         if (neighbor) {
             const n = neighbor.n;
             const l = neighbor.l;
@@ -320,7 +336,10 @@ if (tracker) {
                     <div>{{n.node_route_count}}</div>
                     <div>active routes</div>
                 </div>
-                <div></div>
+                <div class="i">
+                    <div>{{lastseen(n)}}</div>
+                    <div>last seen</div>
+                </div>
             </div>
             {%
             const snr = `/tmp/snrlog/${uc(selected)}-${lc(n.hostname)}`;
