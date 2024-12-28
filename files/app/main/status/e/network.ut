@@ -42,11 +42,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
     if ("dhcp_mode" in request.args) {
         const mode = int(request.args.dhcp_mode || 3);
-        if (mode === -1) {
-            configuration.setSetting("lan_dhcp", 0);
-        }
-        else if (mode >= 0 && mode <= 5) {
-            configuration.setSetting("lan_dhcp", 1);
+        if (mode >= 0 && mode <= 5) {
             configuration.setSetting("dmz_mode", mode);
             if (mode >= 2) {
                 const o_lan_ip = iptoarr(configuration.getSettingAsString("dmz_lan_ip"));
@@ -208,21 +204,20 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
         {{_H("The primary address of this AREDN node. This will always be of the form 10.X.X.X. The address is generated automatically based on hardware information so it will
         always be the same even if you reinstall this node from scratch. You shouldn't have to change it.")}}
         <hr>
-        <div class="hideable" data-hideable="{{dhcp.enabled ? dmz_mode : -1}}">
+        <div class="hideable" data-hideable="{{dmz_mode}}">
             <div class="cols">
                 <div>
-                    <div class="o">LAN Size</div>
-                    <div class="m">Size of LAN subnet</div>
+                    <div class="o">LAN Type</div>
+                    <div class="m">Type and size of LAN subnet</div>
                 </div>
                 <div style="flex:0">
                     <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="dhcp_mode" {{_R("hideable-onselect")}}>
-                        <option value="-1" {{!dhcp.enabled ? "selected" : ""}}>Disabled</option>
-                        <option value="0" {{dhcp.enabled && dmz_mode == 0 ? "selected" : ""}}>NAT</option>
-                        <option value="1" {{dhcp.enabled && dmz_mode == 1 ? "selected" : ""}}>44Net</option>
-                        <option value="2" {{dhcp.enabled && dmz_mode == 2 ? "selected" : ""}}>1 host</option>
-                        <option value="3" {{dhcp.enabled && dmz_mode == 3 ? "selected" : ""}}>5 hosts</option>
-                        <option value="4" {{dhcp.enabled && dmz_mode == 4 ? "selected" : ""}}>13 hosts</option>
-                        <option value="5" {{dhcp.enabled && dmz_mode == 5 ? "selected" : ""}}>29 hosts</option>
+                        <option value="0" {dmz_mode == 0 ? "selected" : ""}}>NAT</option>
+                        <option value="1" {{dmz_mode == 1 ? "selected" : ""}}>44Net</option>
+                        <option value="2" {{dmz_mode == 2 ? "selected" : ""}}>1 host</option>
+                        <option value="3" {{dmz_mode == 3 ? "selected" : ""}}>5 hosts</option>
+                        <option value="4" {{dmz_mode == 4 ? "selected" : ""}}>13 hosts</option>
+                        <option value="5" {{dmz_mode == 5 ? "selected" : ""}}>29 hosts</option>
                     </select>
                 </div>
             </div>
@@ -248,6 +243,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <input name="lan_dhcp_netmask" type="text" size="15" required pattern="255\.255\.(((0|128|192|224|240|248|252|254)\.0)|255\.(0|128|192|224|240|248|252))" value="{{dhcp.mask}}">
                     </div>
                 </div>
+                {% if (dhcp.enabled) { %}
                 <div class="cols">
                     <div>
                         <div class="o">DHCP Start</div>
@@ -266,6 +262,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <input name="lan_dhcp_end" type="text" size="4" required pattern="[]" value="{{dhcp_end}}">
                     </div>
                 </div>
+                {% } %}
             </div>
             <div class="compact hideable1">
                 <div class="cols">
@@ -286,6 +283,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <input name="lan44_dhcp_netmask" type="text" size="15" required pattern="255\.255\.255\.(0|128|192|224|240|248|252)" value="{{dhcp.mask}}">
                     </div>
                 </div>
+                {% if (dhcp.enabled) { %}
                 <div class="cols">
                     <div>
                         <div class="o">DHCP Start</div>
@@ -304,6 +302,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                         <input name="lan44_dhcp_end" type="text" size="4" required pattern="[]" value="{{dhcp_end}}">
                     </div>
                 </div>
+                {% } %}
             </div>
         </div>
         <hr>

@@ -34,6 +34,11 @@
 %}
 {%
 if (request.env.REQUEST_METHOD === "PUT") {
+    if ("dhcp_server" in request.args) {
+        configuration.prepareChanges();
+        configuration.setSetting("lan_dhcp", request.args.dhcp_server === "on" ? 1 : 0);
+        configuration.saveSettings();
+    }
     if ("options" in request.args) {
         configuration.prepareChanges();
         const options = json(request.args.options);
@@ -237,163 +242,179 @@ const dhcpOptionTypes = {
 <div class="dialog">
     {{_R("dialog-header", "LAN DHCP")}}
     <div>
-        <div class="dhcp">
-            <div>
-                <div class="cols">
-                    <div>
-                        <div class="o">Address Reservations</div>
-                        <div class="m">Hostnames with fixed addresses</div>
-                    </div>
-                    <button class="plus" {{length(options) === reservations ? "disabled" : ""}}>+</button>
+        <div class="hideable" data-hideable='{{dhcp.enabled ? "on" : "off"}}'>
+            <div class="cols">
+                <div>
+                    <div class="o">DHCP Server</div>
+                    <div class="m">Provide addresses to devices on the LAN network</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("hideable-switch", { name: "dhcp_server", value: dhcp.enabled })}}
                 </div>
             </div>
-            {{_H("Creates a permenant mapping between a device MAC address and an IP address on the LAN network.
-            The given hostname is available to everyone on the mesh unless the entry is marked as <b>do not propagate</b>")}}
-            <form>
-                <div id="dhcp-reservations">
-                    <div class="reservation-label adr">
+            {{_H("When enabled, provide addresses to devices attached to this node's LAN network. If disabled, the LAN network
+            is still active, but addresses will not be automatically provided. Multiple DHCP servers can be active on the same
+            LAN network (e.g. if you have multiple nodes connected together) but it is not defined which DHCP server will provide
+            what address to which device even when address reservations are configured.")}}
+            <div class="dhcp hideable1">
+                <hr>
+                <div>
+                    <div class="cols">
                         <div>
-                            <div>hostname</div>
-                            <div>ip address</div>
-                            <div>mac a&zwnj;ddress</div>
-                            <div>do not propagate</div>
+                            <div class="o">Address Reservations</div>
+                            <div class="m">Hostnames with fixed addresses</div>
                         </div>
-                        <div></div>
+                        <button class="plus" {{length(options) === reservations ? "disabled" : ""}}>+</button>
                     </div>
-                {% if (reservations > 0) {
-                    for (let i = 0; i < length(options); i++) {
-                        const o = options[i];
-                        if (o.reserved) {
-                %}
-                            <div class="reservation adr" data-ip="{{o.ip}}">
-                                <div>
-                                    <input name="hostname" type="text" required placeholder="hostname" value="{{o.name}}">
-                                    <select class="dhcp-addresses">
-                                    </select>
-                                    <input name="mac" type="text" required placeholder="mac a&zwnj;ddress" pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="{{o.mac}}">
-                                    <label><input type="checkbox" {{o.noprop ? "checked" : ""}}></label>
-                                </div>
-                                <button>-</button>
-                            </div>
-                {%      }
-                    }
-                } %}
                 </div>
-            </form>
-            <hr>
-            <div class="o">Active Leases</div>
-            <div class="m">Addresses currently in use</div>
-            {{_H("The list of active leases currently allocated to LAN devices. Any of these leases can be promoted
-            to a permanent mapping to allow IP Addresses to be fixed to specific devices.")}}
-            {% if (active > 0) {
-            %}
-                        <div class="lease-label adr">
+                {{_H("Creates a permenant mapping between a device MAC address and an IP address on the LAN network.
+                The given hostname is available to everyone on the mesh unless the entry is marked as <b>do not propagate</b>")}}
+                <form>
+                    <div id="dhcp-reservations">
+                        <div class="reservation-label adr">
                             <div>
                                 <div>hostname</div>
                                 <div>ip address</div>
                                 <div>mac a&zwnj;ddress</div>
+                                <div>do not propagate</div>
                             </div>
                             <div></div>
                         </div>
-            {%
-                for (let i = 0; i < length(options); i++) {
-                    const o = options[i];
-                    if (o.leased) {
-            %}
-                        <div class="lease adr" data-ip="{{o.ip}}">
-                            <div>
-                                <input readonly type="text" value="{{o.name}}">
-                                <input readonly type="text" value="{{o.ip}}">
-                                <input readonly type="text" value="{{o.mac}}">
-                            </div>
-                            <button {{o.reserved ? "disabled" : ""}}>+</button>
-                        </div>
-            {%      }
-                }
-            } %}
-        </div>
-        {{_R("dialog-advanced")}}
-        <div>
-        {% if (includeAdvanced) { %}
-            <form>
-                <div class="dhcp-tags">
-                    <div class="cols">
-                        <div>
-                            <div class="o">Tags</div>
-                            <div class="m">Tags for advanced options</div>
-                        </div>
-                        <button>+</button>
+                    {% if (reservations > 0) {
+                        for (let i = 0; i < length(options); i++) {
+                            const o = options[i];
+                            if (o.reserved) {
+                    %}
+                                <div class="reservation adr" data-ip="{{o.ip}}">
+                                    <div>
+                                        <input name="hostname" type="text" required placeholder="hostname" value="{{o.name}}">
+                                        <select class="dhcp-addresses">
+                                        </select>
+                                        <input name="mac" type="text" required placeholder="mac a&zwnj;ddress" pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="{{o.mac}}">
+                                        <label><input type="checkbox" {{o.noprop ? "checked" : ""}}></label>
+                                    </div>
+                                    <button>-</button>
+                                </div>
+                    {%      }
+                        }
+                    } %}
                     </div>
-                    <div class="dhcptag-label adr">
-                        <div class="row">
-                            <div>tag</div>
-                            <div>type</div>
-                            <div>match</div>
-                            <div></div>
-                        </div>
-                        <div></div>
-                    </div>
-                    <div class="list noborder">{%
-                    for (let i = 0; i < length(advtags); i++) {
-                        const t = advtags[i];
-                        %}<div class="tag adr">
-                            <div class="row">
-                                <input name="tag_name" type="text" required value="{{t.name}}">
-                                <select name="tag_type" required>
-                                    <option value="">-</option>
-                                    <option value="vendorclass" {{t.type == "vendorclass" ? "selected": ""}}>Vendor Class</option>
-                                    <option value="userclass" {{t.type == "userclass" ? "selected": ""}}>User Class</option>
-                                    <option value="mac" {{t.type == "mac" ? "selected": ""}}>MAC Address</option>
-                                    <option value="circuitid" {{t.type == "circuitid" ? "selected": ""}}>Agent Circuit ID</option>
-                                    <option value="remoteid" {{t.type == "remoteid" ? "selected": ""}}>Agent Remote ID</option>
-                                    <option value="subscriberid" {{t.type == "subscriberid" ? "selected": ""}}>Subscriber-ID</option>
-                                </select>
-                                <input name="tag_match" type="text" required value="{{t.match}}">
+                </form>
+                <hr>
+                <div class="o">Active Leases</div>
+                <div class="m">Addresses currently in use</div>
+                {{_H("The list of active leases currently allocated to LAN devices. Any of these leases can be promoted
+                to a permanent mapping to allow IP Addresses to be fixed to specific devices.")}}
+                {% if (active > 0) {
+                %}
+                            <div class="lease-label adr">
+                                <div>
+                                    <div>hostname</div>
+                                    <div>ip address</div>
+                                    <div>mac a&zwnj;ddress</div>
+                                </div>
                                 <div></div>
                             </div>
-                            <button>-</button>
-                        </div>{%
-                    }
-                    %}</div>
-                </div>
-            </form>
-            <form>
-                <div class="dhcp-options">
-                    <div class="cols">
-                        <div>
-                            <div class="o">Options</div>
-                            <div class="m">Advanced options</div>
-                        </div>
-                        <button>+</button>
-                    </div>
-                    <div class="dhcpoption-label adr">
-                        <div class="row">
-                            <div>tag</div>
-                            <div>option</div>
-                            <div>value</div>
-                            <div>always</div>
-                        </div>
-                        <div></div>
-                    </div>
-                    <div class="list noborder">{%
-                    for (let i = 0; i < length(advoptions); i++) {
-                        const o = advoptions[i];
-                        %}<div class="option adr">
-                            <div class="row">
-                                <select name="option_name">
-                                    <option value="{{o.name}}" selected>{{o.name}}</option>
-                                </select>
-                                <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type] ? `${o.type}: ${dhcpOptionTypes[o.type][0]}` : o.type}}" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?">
-                                <input name="option_value" type="text" required value="{{o.value}}">
-                                <label><input name="option_always" type="checkbox" {{o.always ? "checked" : ""}}></label>
+                {%
+                    for (let i = 0; i < length(options); i++) {
+                        const o = options[i];
+                        if (o.leased) {
+                %}
+                            <div class="lease adr" data-ip="{{o.ip}}">
+                                <div>
+                                    <input readonly type="text" value="{{o.name}}">
+                                    <input readonly type="text" value="{{o.ip}}">
+                                    <input readonly type="text" value="{{o.mac}}">
+                                </div>
+                                <button {{o.reserved ? "disabled" : ""}}>+</button>
                             </div>
-                            <button>-</button>
-                        </div>{%
+                {%      }
                     }
-                    %}</div>
+                } %}
+                {{_R("dialog-advanced")}}
+                <div>
+                {% if (includeAdvanced) { %}
+                    <form>
+                        <div class="dhcp-tags">
+                            <div class="cols">
+                                <div>
+                                    <div class="o">Tags</div>
+                                    <div class="m">Tags for advanced options</div>
+                                </div>
+                                <button>+</button>
+                            </div>
+                            <div class="dhcptag-label adr">
+                                <div class="row">
+                                    <div>tag</div>
+                                    <div>type</div>
+                                    <div>match</div>
+                                    <div></div>
+                                </div>
+                                <div></div>
+                            </div>
+                            <div class="list noborder">{%
+                            for (let i = 0; i < length(advtags); i++) {
+                                const t = advtags[i];
+                                %}<div class="tag adr">
+                                    <div class="row">
+                                        <input name="tag_name" type="text" required value="{{t.name}}">
+                                        <select name="tag_type" required>
+                                            <option value="">-</option>
+                                            <option value="vendorclass" {{t.type == "vendorclass" ? "selected": ""}}>Vendor Class</option>
+                                            <option value="userclass" {{t.type == "userclass" ? "selected": ""}}>User Class</option>
+                                            <option value="mac" {{t.type == "mac" ? "selected": ""}}>MAC Address</option>
+                                            <option value="circuitid" {{t.type == "circuitid" ? "selected": ""}}>Agent Circuit ID</option>
+                                            <option value="remoteid" {{t.type == "remoteid" ? "selected": ""}}>Agent Remote ID</option>
+                                            <option value="subscriberid" {{t.type == "subscriberid" ? "selected": ""}}>Subscriber-ID</option>
+                                        </select>
+                                        <input name="tag_match" type="text" required value="{{t.match}}">
+                                        <div></div>
+                                    </div>
+                                    <button>-</button>
+                                </div>{%
+                            }
+                            %}</div>
+                        </div>
+                    </form>
+                    <form>
+                        <div class="dhcp-options">
+                            <div class="cols">
+                                <div>
+                                    <div class="o">Options</div>
+                                    <div class="m">Advanced options</div>
+                                </div>
+                                <button>+</button>
+                            </div>
+                            <div class="dhcpoption-label adr">
+                                <div class="row">
+                                    <div>tag</div>
+                                    <div>option</div>
+                                    <div>value</div>
+                                    <div>always</div>
+                                </div>
+                                <div></div>
+                            </div>
+                            <div class="list noborder">{%
+                            for (let i = 0; i < length(advoptions); i++) {
+                                const o = advoptions[i];
+                                %}<div class="option adr">
+                                    <div class="row">
+                                        <select name="option_name">
+                                            <option value="{{o.name}}" selected>{{o.name}}</option>
+                                        </select>
+                                        <input name="option_type" type="text" required list="dhcp-option-type-list" value="{{dhcpOptionTypes[o.type] ? `${o.type}: ${dhcpOptionTypes[o.type][0]}` : o.type}}" pattern="([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(: .+)?">
+                                        <input name="option_value" type="text" required value="{{o.value}}">
+                                        <label><input name="option_always" type="checkbox" {{o.always ? "checked" : ""}}></label>
+                                    </div>
+                                    <button>-</button>
+                                </div>{%
+                            }
+                            %}</div>
+                        </div>
+                    </form>
+                {% } %}
                 </div>
-            </form>
-        {% } %}
+            </div>
         </div>
     </div>
     <datalist id="dhcp-option-type-list">
