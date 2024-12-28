@@ -256,81 +256,83 @@ const dhcpOptionTypes = {
             is still active, but addresses will not be automatically provided. Multiple DHCP servers can be active on the same
             LAN network (e.g. if you have multiple nodes connected together) but it is not defined which DHCP server will provide
             what address to which device even when address reservations are configured.")}}
-            <div class="dhcp hideable1">
-                <hr>
-                <div>
-                    <div class="cols">
-                        <div>
-                            <div class="o">Address Reservations</div>
-                            <div class="m">Hostnames with fixed addresses</div>
-                        </div>
-                        <button class="plus" {{length(options) === reservations ? "disabled" : ""}}>+</button>
-                    </div>
-                </div>
-                {{_H("Creates a permenant mapping between a device MAC address and an IP address on the LAN network.
-                The given hostname is available to everyone on the mesh unless the entry is marked as <b>do not propagate</b>")}}
-                <form>
-                    <div id="dhcp-reservations">
-                        <div class="reservation-label adr">
+            <div class="hideable1">
+                <div class="dhcp">
+                    <hr>
+                    <div>
+                        <div class="cols">
                             <div>
-                                <div>hostname</div>
-                                <div>ip address</div>
-                                <div>mac a&zwnj;ddress</div>
-                                <div>do not propagate</div>
+                                <div class="o">Address Reservations</div>
+                                <div class="m">Hostnames with fixed addresses</div>
                             </div>
-                            <div></div>
+                            <button class="plus" {{length(options) === reservations ? "disabled" : ""}}>+</button>
                         </div>
-                    {% if (reservations > 0) {
-                        for (let i = 0; i < length(options); i++) {
-                            const o = options[i];
-                            if (o.reserved) {
-                    %}
-                                <div class="reservation adr" data-ip="{{o.ip}}">
-                                    <div>
-                                        <input name="hostname" type="text" required placeholder="hostname" value="{{o.name}}">
-                                        <select class="dhcp-addresses">
-                                        </select>
-                                        <input name="mac" type="text" required placeholder="mac a&zwnj;ddress" pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="{{o.mac}}">
-                                        <label><input type="checkbox" {{o.noprop ? "checked" : ""}}></label>
-                                    </div>
-                                    <button>-</button>
-                                </div>
-                    {%      }
-                        }
-                    } %}
                     </div>
-                </form>
-                <hr>
-                <div class="o">Active Leases</div>
-                <div class="m">Addresses currently in use</div>
-                {{_H("The list of active leases currently allocated to LAN devices. Any of these leases can be promoted
-                to a permanent mapping to allow IP Addresses to be fixed to specific devices.")}}
-                {% if (active > 0) {
-                %}
-                            <div class="lease-label adr">
+                    {{_H("Creates a permenant mapping between a device MAC address and an IP address on the LAN network.
+                    The given hostname is available to everyone on the mesh unless the entry is marked as <b>do not propagate</b>")}}
+                    <form>
+                        <div id="dhcp-reservations">
+                            <div class="reservation-label adr">
                                 <div>
                                     <div>hostname</div>
                                     <div>ip address</div>
                                     <div>mac a&zwnj;ddress</div>
+                                    <div>do not propagate</div>
                                 </div>
                                 <div></div>
                             </div>
-                {%
-                    for (let i = 0; i < length(options); i++) {
-                        const o = options[i];
-                        if (o.leased) {
-                %}
-                            <div class="lease adr" data-ip="{{o.ip}}">
-                                <div>
-                                    <input readonly type="text" value="{{o.name}}">
-                                    <input readonly type="text" value="{{o.ip}}">
-                                    <input readonly type="text" value="{{o.mac}}">
+                        {% if (reservations > 0) {
+                            for (let i = 0; i < length(options); i++) {
+                                const o = options[i];
+                                if (o.reserved) {
+                        %}
+                                    <div class="reservation adr" data-ip="{{o.ip}}">
+                                        <div>
+                                            <input name="hostname" type="text" required placeholder="hostname" value="{{o.name}}">
+                                            <select class="dhcp-addresses">
+                                            </select>
+                                            <input name="mac" type="text" required placeholder="mac a&zwnj;ddress" pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" value="{{o.mac}}">
+                                            <label><input type="checkbox" {{o.noprop ? "checked" : ""}}></label>
+                                        </div>
+                                        <button>-</button>
+                                    </div>
+                        {%      }
+                            }
+                        } %}
+                        </div>
+                    </form>
+                    <hr>
+                    <div class="o">Active Leases</div>
+                    <div class="m">Addresses currently in use</div>
+                    {{_H("The list of active leases currently allocated to LAN devices. Any of these leases can be promoted
+                    to a permanent mapping to allow IP Addresses to be fixed to specific devices.")}}
+                    {% if (active > 0) {
+                    %}
+                                <div class="lease-label adr">
+                                    <div>
+                                        <div>hostname</div>
+                                        <div>ip address</div>
+                                        <div>mac a&zwnj;ddress</div>
+                                    </div>
+                                    <div></div>
                                 </div>
-                                <button {{o.reserved ? "disabled" : ""}}>+</button>
-                            </div>
-                {%      }
-                    }
-                } %}
+                    {%
+                        for (let i = 0; i < length(options); i++) {
+                            const o = options[i];
+                            if (o.leased) {
+                    %}
+                                <div class="lease adr" data-ip="{{o.ip}}">
+                                    <div>
+                                        <input readonly type="text" value="{{o.name}}">
+                                        <input readonly type="text" value="{{o.ip}}">
+                                        <input readonly type="text" value="{{o.mac}}">
+                                    </div>
+                                    <button {{o.reserved ? "disabled" : ""}}>+</button>
+                                </div>
+                    {%      }
+                        }
+                    } %}
+                </div>
                 {{_R("dialog-advanced")}}
                 <div>
                 {% if (includeAdvanced) { %}
