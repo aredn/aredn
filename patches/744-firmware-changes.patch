@@ -1,0 +1,144 @@
+//--- a/package/firmware/ath10k-ct-firmware/Makefile
+//+++ b/package/firmware/ath10k-ct-firmware/Makefile
+@@ -620,7 +620,7 @@
+ 
+ $(eval $(call BuildPackage,ath10k-firmware-qca9887-ct))
+ $(eval $(call BuildPackage,ath10k-firmware-qca9887-ct-full-htt))
+-$(eval $(call BuildPackage,ath10k-firmware-qca988x-ct))
++$(eval $(call BuildPackage,ath10k-firmware-qca988x-ct))
+ $(eval $(call BuildPackage,ath10k-firmware-qca988x-ct-full-htt))
+ $(eval $(call BuildPackage,ath10k-firmware-qca99x0-ct))
+ $(eval $(call BuildPackage,ath10k-firmware-qca99x0-ct-full-htt))
+@@ -628,9 +628,9 @@
+ $(eval $(call BuildPackage,ath10k-firmware-qca9984-ct))
+ $(eval $(call BuildPackage,ath10k-firmware-qca9984-ct-full-htt))
+ $(eval $(call BuildPackage,ath10k-firmware-qca9984-ct-htt))
+-$(eval $(call BuildPackage,ath10k-firmware-qca4019-ct))
++#$(eval $(call BuildPackage,ath10k-firmware-qca4019-ct))
+ $(eval $(call BuildPackage,ath10k-firmware-qca4019-ct-full-htt))
+ $(eval $(call BuildPackage,ath10k-firmware-qca4019-ct-htt))
+-$(eval $(call BuildPackage,ath10k-firmware-qca9888-ct))
++#$(eval $(call BuildPackage,ath10k-firmware-qca9888-ct))
+ $(eval $(call BuildPackage,ath10k-firmware-qca9888-ct-full-htt))
+ $(eval $(call BuildPackage,ath10k-firmware-qca9888-ct-htt))
+--- a/target/linux/ipq40xx/Makefile
++++ b/target/linux/ipq40xx/Makefile
+@@ -17,7 +17,7 @@
+ 	kmod-usb-dwc3-qcom \
+ 	kmod-leds-gpio kmod-gpio-button-hotplug \
+ 	kmod-ath10k-ct wpad-mini \
+-	kmod-usb3 kmod-usb-dwc3 ath10k-firmware-qca4019-ct \
++	kmod-usb3 kmod-usb-dwc3 ath10k-firmware-qca4019-ddwrt \
+ 	uboot-envtools
+ 
+ $(eval $(call BuildTarget))
+--- a/target/linux/ath79/image/generic-tp-link.mk
++++ b/target/linux/ath79/image/generic-tp-link.mk
+@@ -387,7 +387,7 @@
+   IMAGE_SIZE := 15680k
+   DEVICE_MODEL := CPE710
+   DEVICE_VARIANT := v1
+-  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9888-ct
++  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9888-ddwrt
+   TPLINK_BOARD_ID := CPE710V1
+ endef
+ TARGET_DEVICES += tplink_cpe710-v1
+@@ -398,7 +398,7 @@
+   IMAGE_SIZE := 15680k
+   DEVICE_MODEL := CPE710
+   DEVICE_VARIANT := v2
+-  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9888-ct
++  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9888-ddwrt
+   TPLINK_BOARD_ID := CPE710V2
+ endef
+ TARGET_DEVICES += tplink_cpe710-v2
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image/generic-ubnt.mk
+@@ -34,7 +34,7 @@
+ define Device/ubnt_bullet-ac
+   $(Device/ubnt-2wa)
+   DEVICE_MODEL := Bullet AC
+-  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct rssileds
++  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct-full-htt rssileds
+ endef
+ TARGET_DEVICES += ubnt_bullet-ac
+ 
+@@ -75,7 +75,7 @@
+   $(Device/ubnt-wa)
+   DEVICE_MODEL := LiteBeam AC
+   DEVICE_VARIANT := Gen2
+-  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct
++  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct-full-htt
+ endef
+ TARGET_DEVICES += ubnt_litebeam-ac-gen2
+ 
+@@ -91,7 +91,7 @@
+   $(Device/ubnt-wa)
+   DEVICE_MODEL := NanoBeam AC
+   DEVICE_VARIANT := Gen1
+-  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct rssileds
++  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct-full-htt rssileds
+ endef
+ TARGET_DEVICES += ubnt_nanobeam-ac
+ 
+@@ -99,7 +99,7 @@
+   $(Device/ubnt-wa)
+   DEVICE_MODEL := NanoBeam AC
+   DEVICE_VARIANT := Gen2
+-  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct rssileds
++  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct-full-htt rssileds
+ endef
+ TARGET_DEVICES += ubnt_nanobeam-ac-gen2
+ 
+@@ -108,21 +108,21 @@
+   SOC := qca9558
+   DEVICE_MODEL := NanoBeam AC
+   DEVICE_VARIANT := Gen1 (XC)
+-  DEVICE_PACKAGES += kmod-ath10k-ct ath10k-firmware-qca988x-ct rssileds
++  DEVICE_PACKAGES += kmod-ath10k-ct ath10k-firmware-qca988x-ct-full-htt rssileds
+ endef
+ TARGET_DEVICES += ubnt_nanobeam-ac-xc
+ 
+ define Device/ubnt_nanostation-ac
+   $(Device/ubnt-wa)
+   DEVICE_MODEL := Nanostation AC
+-  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct rssileds
++  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct-full-htt rssileds
+ endef
+ TARGET_DEVICES += ubnt_nanostation-ac
+ 
+ define Device/ubnt_nanostation-ac-loco
+   $(Device/ubnt-wa)
+   DEVICE_MODEL := Nanostation AC loco
+-  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct
++  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct-full-htt
+ endef
+ TARGET_DEVICES += ubnt_nanostation-ac-loco
+ 
+@@ -156,7 +156,7 @@
+   SOC := qca9558
+   DEVICE_MODEL := PowerBeam 5AC
+   DEVICE_VARIANT := 500
+-  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct
++  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct-full-htt
+ endef
+ TARGET_DEVICES += ubnt_powerbeam-5ac-500
+ 
+@@ -164,7 +164,7 @@
+   $(Device/ubnt-wa)
+   DEVICE_MODEL := PowerBeam 5AC
+   DEVICE_VARIANT := Gen2
+-  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct rssileds
++  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct-full-htt rssileds
+ endef
+ TARGET_DEVICES += ubnt_powerbeam-5ac-gen2
+ 
+@@ -198,7 +198,7 @@
+   SOC := qca9558
+   DEVICE_MODEL := Rocket 5AC
+   DEVICE_VARIANT := Lite
+-  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct
++  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct-full-htt
+ endef
+ TARGET_DEVICES += ubnt_rocket-5ac-lite
+ 
