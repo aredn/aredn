@@ -398,7 +398,7 @@ const specialCharacters = [
     [ "'", "&apos;" ],
     [ "<", "&lt;" ],
     [ ">", "&gt;" ],
-    [ "\n", "<br>" ]
+    [ "\n", "&#10;" ]
 ];
 
 export function escapeString(s)
