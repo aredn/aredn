@@ -398,7 +398,7 @@ const specialCharacters = [
     [ "'", "&apos;" ],
     [ "<", "&lt;" ],
     [ ">", "&gt;" ],
-    [ "\n", "<br>" ]
+    [ "\n", "&#10;" ]
 ];
 
 export function escapeString(s)
@@ -475,7 +475,7 @@ export function supportdata(supportdatafilename)
         "/etc/local/",
         "/etc/mesh-release",
         "/etc/os-release",
-        "/var/run/hosts_olsr",
+        "/tmp/dnshosts.d/",
         "/var/run/services_olsr",
         "/tmp/etc/",
         "/tmp/dnsmasq.d/",

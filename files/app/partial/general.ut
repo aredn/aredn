@@ -37,12 +37,12 @@
     <div class="radio-image"><img src="/a/img/radio.png"></div>
     {% } %}
     <div class="node-description">
-        <div class="t">{{configuration.getSettingAsString("description_node", "None")}}</div>
+        <div class="t">{{replace(configuration.getSettingAsString("description_node", "None"), "&#10;", "<br>")}}</div>
         <div class="s">description</div>
     </div>
     {% if (auth.isAdmin) { %}
     <div>
-        <div class="t">{{uci.get("aredn", "@notes[0]", "private") || "-"}}</div>
+        <div class="t">{{replace(uci.get("aredn", "@notes[0]", "private") || "-", "&#10;", "<br>")}}</div>
         <div class="s">notes</div>
     </div>
     {% } %}
