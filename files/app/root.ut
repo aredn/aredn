@@ -625,9 +625,9 @@ global.handle_request = function(env)
 
     const localnode = env.HTTP_HOST === "localnode" || env.HTTP_HOST === "localnode.local.mesh";
     if (localnode && config.resourcehash && index(env.PATH_INFO, "/css/theme.") === 0 && fs.access(gzrpath) && uciMethods.get("aredn", "@theme[0]", "portable") === "1") {
-        const themecss = fs.readlink(`${config.application}/resource/css/theme.version`);
-        if (env.PATH_INFO !== `/css/theme.${themecss}.css`) {
-            uhttpd.send(`Status: 302 Found\r\nContent-Type: text/css\r\nCache-Control: no-store\r\nLocation: /a/css/theme.${themecss}.css\r\n\r\n`);
+        const themecss = `/css/theme.${fs.readlink(`${config.application}/resource/css/theme.version`)}.css`;
+        if (env.PATH_INFO !== themecss && fs.access(`${config.application}/resource${themecss}.gz`)) {
+            uhttpd.send(`Status: 302 Found\r\nContent-Type: text/css\r\nCache-Control: no-store\r\nLocation: /a${themecss}\r\n\r\n`);
             return;
         }
     }
