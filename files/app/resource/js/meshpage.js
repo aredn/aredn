@@ -89,7 +89,7 @@ function serv(ip, hostname)
     return view;
 }
 
-window.meshRender = function()
+window.meshRender = function(first)
 {
     const blocks = [ 1, 2, 3, 5, 10, 1000 ];
     const labels = [ "Excellent", "Good", "Fair", "Slow", "Poor", "Improbable" ];
@@ -125,11 +125,13 @@ window.meshRender = function()
         }
     }
     page.innerHTML = data + "</div>";
-    document.querySelector("input[type=search]").focus();
+    if (first) {
+        document.querySelector("input[type=search]").focus();
+    }
     cfilter = null;
     doFilter();
 }
-meshRender();
+meshRender(true);
 
 help.addEventListener("click", () => {
     document.querySelector(".meshpage-help").classList.toggle("visible");
