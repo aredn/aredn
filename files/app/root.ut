@@ -624,15 +624,14 @@ global.handle_request = function(env)
     const gzrpath = `${rpath}.gz`;
 
     const localnode = env.HTTP_HOST === "localnode" || env.HTTP_HOST === "localnode.local.mesh";
-    const cachecontrol = localnode || !config.resourcehash ? "no-store" : "max-age=604800";
-    if (localnode && config.resourcehash && fs.access(gzrpath)) {
-        const themecss = fs.readlink(`${config.application}/resource/css/theme.version`);
-        if (env.PATH_INFO !== `/css/theme.${themecss}.css` && index(env.PATH_INFO, "/css/theme.") === 0 && uciMethods.get("aredn", "@theme[0]", "portable") === "1") {
-            uhttpd.send(`Status: 302 Found\r\nContent-Type: text/css\r\nCache-Control: no-store\r\nLocation: /a/css/theme.${themecss}.css\r\n\r\n`);
+    if (localnode && config.resourcehash && index(env.PATH_INFO, "/css/theme.") === 0 && fs.access(gzrpath) && uciMethods.get("aredn", "@theme[0]", "portable") === "1") {
+        const themecss = `/css/theme.${fs.readlink(`${config.application}/resource/css/theme.version`)}.css`;
+        if (env.PATH_INFO !== themecss && fs.access(`${config.application}/resource${themecss}.gz`)) {
+            uhttpd.send(`Status: 302 Found\r\nContent-Type: text/css\r\nCache-Control: no-store\r\nLocation: /a${themecss}\r\n\r\n`);
             return;
         }
     }
-    
+    const cachecontrol = config.resourcehash ? "max-age=604800" : "no-store";
     if (fs.access(gzrpath)) {
         uhttpd.send("Status: 200 OK\r\nContent-Encoding: gzip\r\n");
         if (substr(rpath, -3) === ".js") {
