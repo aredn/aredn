@@ -60,7 +60,8 @@ export function getNodeCounts()
 {
     let nodes = 0;
     let devices = 0;
-    const f = fs.open("/var/run/hosts_olsr");
+    let services = 0;
+    let f = fs.open("/var/run/hosts_olsr");
     if (f) {
         const re = /\t(lan|mid\d+|xlink\d+)\./;
         for (let l = f.read("line"); length(l); l = f.read("line")) {
@@ -75,8 +76,19 @@ export function getNodeCounts()
         }
         f.close();
     }
+    f = fs.open("/var/run/services_olsr");
+    if (f) {
+        for (let l = f.read("line"); length(l); l = f.read("line")) {
+            const c = substr(l, 0, 1);
+            if (c !== "#" && c !== "\n") {
+                services++;
+            }
+        }
+        f.close();
+    }
     return {
         nodes: nodes,
-        devices: devices
+        devices: devices,
+        services: services
     };
 };
