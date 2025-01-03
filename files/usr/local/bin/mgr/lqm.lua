@@ -34,13 +34,13 @@
 
 local ip = require("luci.ip")
 require("aredn.info")
-local socket = require("socket")
 
 local refresh_timeout_base = 12 * 60 -- refresh high cost data every 12 minutes
 local refresh_timeout_limit = 17 * 60 -- to 17 minutes
 local refresh_retry_timeout = 5 * 60
 local pending_timeout = 5 * 60 -- pending node wait 5 minutes before they are included
-local lastseen_timeout = 60 * 60 -- age out nodes we've not seen for 1 hour
+local lastseen_reset_timeout = 60 * 60 -- reset node info we've not seen for 1 hour
+local lastseen_timeout = 24 * 60 * 60 -- age out nodes we've not seen for 24 hours
 local snr_run_avg = 0.8 -- snr running average
 local quality_min_packets = 100 -- minimum number of tx packets before we can safely calculate the link quality
 local tx_quality_run_avg = 0.8 -- tx quality running average
@@ -49,8 +49,6 @@ local ping_time_run_avg = 0.8 -- ping time runnng average
 local bitrate_run_avg = 0.8 -- rx/tx running average
 local dtd_distance = 50 -- distance (meters) after which nodes connected with DtD links are considered different sites
 local connect_timeout = 5 -- timeout (seconds) when fetching information from other nodes
-local speed_time = 10 --
-local speed_limit = 1000 -- close connection if it's too slow (< 1kB/s for 10 seconds)
 local default_short_retries = 20 -- More link-level retries helps overall tcp performance (factory default is 7)
 local default_long_retries = 20 -- (factory default is 4)
 local wireguard_alive_time = 300 -- 5 minutes
@@ -58,7 +56,7 @@ local wireguard_alive_time = 300 -- 5 minutes
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
 local ARPING = "/usr/sbin/arping"
-local CURL = "/usr/bin/curl"
+local UFETCH = "/bin/uclient-fetch"
 local IPCMD = "/sbin/ip"
 
 local now = 0
@@ -126,7 +124,7 @@ function should_nonpair_block(track)
 end
 
 function should_ping(track)
-    if not track.ip or is_user_blocked(track) or track.lastseen < now then
+    if not track.ip or is_user_blocked(track) then
         return false
     end
     if track.type == "Tunnel" or track.type == "Wireguard" then
@@ -239,6 +237,11 @@ function calc_distance(lat1, lon1, lat2, lon2)
     local p = 0.017453292519943295 --  Math.PI / 180
     local v = 0.5 - math.cos((lat2 - lat1) * p) / 2 + math.cos(lat1 * p) * math.cos(lat2 * p) * (1 - math.cos((lon2 - lon1) * p)) / 2
     return math.floor(r2 * math.asin(math.sqrt(v)))
+end
+
+function gettime()
+    local sec, usec = nixio.gettimeofday()
+    return sec + usec / 1000000;
 end
 
 function av(c, f, n, o)
@@ -612,15 +615,13 @@ function lqm_run()
 
             track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, station.tx_bitrate, track.tx_bitrate)
             track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, station.rx_bitrate, track.rx_bitrate)
-
-            track.lastseen = now
         end
 
         -- Update link tracking state
         local ip2tracker = {}
         pending_count = 0
         for _, track in pairs(tracker)
-        do            
+        do
             if not track.ip then
                 track.routable = false
             else
@@ -649,7 +650,7 @@ function lqm_run()
                         track.rev_ping_quality = nil
                         track.rev_quality = nil
                     else
-                        local raw = io.popen(CURL .. " --retry 0 --connect-timeout " .. connect_timeout .. " --speed-time " .. speed_time .. " --speed-limit " .. speed_limit .. " -s \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -o - 2> /dev/null")
+                        local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -O - 2> /dev/null")
                         local info = luci.jsonc.parse(raw:read("*a"))
                         raw:close()
 
@@ -781,11 +782,11 @@ function lqm_run()
                 if track.type ~= "Tunnel" and track.type ~= "Wireguard" then
                     -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
                     -- table and firewall messing up the response packet.
-                    local pstart = socket.gettime(0)
+                    local pstart = gettime()
                     if os.execute(ARPING .. " -q -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) ~= 0 then
                         success = true
                     end
-                    ptime = socket.gettime(0) - pstart
+                    ptime = gettime() - pstart
                 end
                 if not success then
                     if track.routable then
@@ -796,14 +797,14 @@ function lqm_run()
                         sigsock:setopt("socket", "dontroute", 1)
                         -- Must connect or we wont see the error
                         sigsock:connect(track.ip, 8080)
-                        local pstart = socket.gettime(0)
+                        local pstart = gettime()
                         sigsock:send("")
                         -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
                         -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
                         if sigsock:recv(0) ~= false then
                             success = true
                         end
-                        ptime = socket.gettime(0) - pstart
+                        ptime = gettime() - pstart
                         sigsock:close()
                     else
                         -- We can't ping non-routable targets so don't consider them errors
@@ -822,7 +823,9 @@ function lqm_run()
                     end
                 end
                 track.ping_quality = math.max(0, math.min(100, track.ping_quality))
-                if not success and track.type == "DtD" and track.firstseen == now then
+                if success then
+                    track.lastseen = now
+                elseif track.type == "DtD" and track.firstseen == now then
                     -- If local ping immediately fail, ditch this tracker. This can happen sometimes when we
                     -- find arp entries which aren't valid.
                     tracker[track.mac] = nil
@@ -1053,6 +1056,15 @@ function lqm_run()
                         distance = config.max_distance
                     end
                 end
+            end
+
+            -- If the node has been gone for a while, we unblock it so it can reconnect when it returns
+            if ((now > track.lastseen + lastseen_reset_timeout) or
+                (now > track.rev_lastseen + lastseen_reset_timeout) or
+                (track.quality0_seen and now > track.quality0_seen + lastseen_reset_timeout)
+            ) then
+                force_remove_block(track)
+                track.pending = now + pending_timeout
             end
 
             -- Remove any trackers which are too old or if they disconnect when first seen

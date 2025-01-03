@@ -41,7 +41,7 @@
     </a>
     <hr>
     {% 
-    const ip = (match(fs.readfile("/tmp/dnsmasq.d/supernode.conf"), /^#([0-9.]+)/) || [])[1];
+    const ip = (match(fs.readfile("/tmp/dnsmasq.d/supernode.conf"), /^#([^\n]+).*$/) || [])[1];
     if (ip) { %}
     <a title="See what is on the cloud mesh from a supernode" href="http://{{ip}}/a/mesh">
         <div class="icon cloudmesh"></div>
