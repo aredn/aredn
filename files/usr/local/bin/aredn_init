@@ -130,11 +130,12 @@ if dtdmac == "" then
         dtdmac = mac2
     end
     if dtdmac == mac2 then
-        a = tonumber(a, 16) + 1
+        local a, b, c = dtdmac:match("^(%d+)%.(%d+)%.(%d+)$")
+        a = tonumber(a) + 1
         if a > 255 then
             a = 0
         end
-        dtdmac = string.format("%d.%d.%d", a, tonumber(b, 16), tonumber(c, 16))
+        dtdmac = string.format("%d.%s.%s", a, b, c)
     end
     aredn.info.set_nvram("dtdmac", dtdmac)
 end
@@ -225,7 +226,7 @@ if cfg.dmz_mode == "0" or cfg.wan_proto == "disabled" then
 end
 -- end special condition overrides
 
--- If this was an upgrade, make sure to remove the carried configutation so we dont apply it again
+-- If this was an upgrade, make sure to remove the carried configuration so we dont apply it again
 os.remove("/sysupgrade.tgz")
 
 -- If the node has been configured by the user we can complete the setup
