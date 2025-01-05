@@ -32,7 +32,7 @@
 
 --]]
 
-local ip = require("luci.ip")
+local luciip = require("luci.ip")
 require("aredn.info")
 local socket = require("socket")
 
@@ -351,12 +351,16 @@ function lqm_run()
         for line in io.popen(IPCMD .. " neigh show"):lines()
         do
             local ip, dev, mac, probes, state = line:match("^(%S+) dev (%S+) lladdr (%S+) .+ probes (%d+) (.+)$")
-            if ip and (tonumber(probes) < 4 or state ~= "STALE") then
-                arps[#arps + 1] = {
-                    Device = dev,
-                    ["HW address"] = mac:lower(),
-                    ["IP address"] = ip
-                }
+            if ip then
+                -- Filter neighbors so we ignore entries which aren't immediately routable
+                local rt = luciip.route(ip)
+                if rt and tostring(rt.gw) == ip then
+                    arps[#arps + 1] = {
+                        Device = dev,
+                        ["HW address"] = mac:lower(),
+                        ["IP address"] = ip
+                    }
+                end
             end
         end
 
@@ -627,7 +631,7 @@ function lqm_run()
                 ip2tracker[track.ip] = track
 
                 -- Update if link is routable
-                local rt = ip.route(track.ip)
+                local rt = luciip.route(track.ip)
                 if rt and tostring(rt.gw) == track.ip then
                     track.routable = true
                 else
