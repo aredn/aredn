@@ -523,6 +523,7 @@ export function supportdata(supportdatafilename)
         "wg show all",
         "wg show all latest-handshakes",
         "nft list ruleset",
+        "brctl show",
         "md5sum /www/cgi-bin/*",
         "echo /all | nc 127.0.0.1 2006",
         "opkg list-installed",
