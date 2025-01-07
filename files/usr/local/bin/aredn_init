@@ -156,7 +156,9 @@ do
     if not (line:match("^%s*#") or line:match("^%s*$")) then
         line = line:gsub("<NODE>", name):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
         local k, v = line:match("^(%S+)%s*=%s*(.*)%s*$")
-        cfg[k] = v
+        if #v > 0 then
+            cfg[k] = v
+        end
         -- add default config key
         keys[#keys + 1] = k
     end
@@ -184,7 +186,7 @@ end
 
 -- Radio
 if aredn.hardware.get_radio_count() > 0 then
-    if not cfg.wifi_intf or cfg.wifi_intf == "" then
+    if not cfg.wifi_intf then
         local wifi_intf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
         if wifi_intf then
             local defaultwifi = aredn.hardware.get_default_channel(wifi_intf)
@@ -192,6 +194,9 @@ if aredn.hardware.get_radio_count() > 0 then
             -- Sometimes intf can be blank but the channel and chanbw have valid values
             cfg.wifi_channel = cfg.wifi_channel or defaultwifi.channel
             cfg.wifi_chanbw = cfg.wifi_chanbw or defaultwifi.bandwidth
+            if not cfg.wifi_enable then
+                cfg.wifi_enable = 1
+            end
         else
             cfg.wifi_intf = "br-nomesh"
             cfg.wifi_enable = 0
@@ -203,7 +208,7 @@ else
 end
 
 -- DHCP
-if cfg.dmz_mode == "" then
+if not cfg.dmz_mode then
     local dmz_dhcp_base, net = ("1" .. decimal_to_ip((ip_to_decimal("10." .. mac2) * 8) % 0x1000000)):match("(%d+%.%d+%.%d+%.)(%d+)")
     cfg.dmz_mode = 3
     cfg.dmz_lan_ip = dmz_dhcp_base .. (tonumber(net) + 1)
@@ -245,9 +250,17 @@ if aredn.info.get_nvram("configured") ~= "0" then
     os.execute("/usr/local/bin/node-setup")
     -- Reboot when necessary
     if nixio.fs.stat("/tmp/reboot-required") then
-        print "Rebooting node"
-        os.execute("/sbin/mount_root done")
-        os.execute("/bin/sync")
-        os.execute("/sbin/reboot")
+        if nixio.fs.stat("/etc/local/aredn_init_rebooted") then
+            print "Rebooting node requested, but would loop so ignoring"
+            os.remove("/etc/local/aredn_init_rebooted")
+        else
+            print "Rebooting node"
+            os.execute("/sbin/mount_root done")
+            io.open("/etc/local/aredn_init_rebooted", "w"):close()
+            os.execute("/bin/sync")
+            os.execute("/sbin/reboot")
+        end
+    else
+        os.remove("/etc/local/aredn_init_rebooted")
     end
 end
