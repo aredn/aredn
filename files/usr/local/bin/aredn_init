@@ -183,12 +183,23 @@ if system and system.compat_version then
 end
 
 -- Radio
-if aredn.hardware.get_radio_count() > 0 and cfg.wifi_intf == "" then
-    local wifi_intf = "wlan0"
-    local defaultwifi = aredn.hardware.get_default_channel(wifi_intf)
-    cfg.wifi_intf = wifi_intf
-    cfg.wifi_channel = defaultwifi.channel
-    cfg.wifi_chanbw = defaultwifi.bandwidth
+if aredn.hardware.get_radio_count() > 0 then
+    if not cfg.wifi_intf or cfg.wifi_intf == "" then
+        local wifi_intf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
+        if wifi_intf then
+            local defaultwifi = aredn.hardware.get_default_channel(wifi_intf)
+            cfg.wifi_intf = wifi_intf
+            -- Sometimes intf can be blank but the channel and chanbw have valid values
+            cfg.wifi_channel = cfg.wifi_channel or defaultwifi.channel
+            cfg.wifi_chanbw = cfg.wifi_chanbw or defaultwifi.bandwidth
+        else
+            cfg.wifi_intf = "br-nomesh"
+            cfg.wifi_enable = 0
+        end
+    end
+else
+    cfg.wifi_intf = "br-nomesh"
+    cfg.wifi_enable = 0
 end
 
 -- DHCP
