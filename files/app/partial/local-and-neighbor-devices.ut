@@ -167,11 +167,11 @@
                     const lq = link && link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     const nlq = link && link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     if (substr(entry.name, 0, 1) !== "|") {
-                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}</a></div>`);
+                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'><span>${entry.name}</span></a></div>`);
                     }
                     else {
                         const ip = substr(entry.name, 1);
-                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}</a></div>`);
+                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'><span>${ip}</span></a></div>`);
                     }
                     print("<div class='ts cols stats'>");
                     if (!request.mobile) {
@@ -235,11 +235,11 @@
                         break;
                 }
                 if (substr(entry.name, 0, 1) !== "|") {
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'><span>${entry.name}<div class="icon ${icon}"></div></span></a></div>`);
                 }
                 else {
                     const ip = substr(entry.name, 1);
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'><span>${ip}<div class="icon ${icon}"></div></span></a></div>`);
                 }
                 print("<div class='ts cols stats'>");
                 if (request.mobile) {
@@ -278,7 +278,7 @@
         sort(hlist, (a, b) => a.hostname == b.hostname ? 0 : a.hostname < b.hostname ? -1 : 1);
         for (let i = 0; i < length(hlist); i++) {
             const hostname = hlist[i].hostname;
-            print(`<div class="idle" class='h'><a onclick="event.stopPropagation()" title='Link status: hidden' href='http://${hostname}.local.mesh'>${hostname}</a></div>`);
+            print(`<div class="idle" class='h'><a onclick="event.stopPropagation()" title='Link status: hidden' href='http://${hostname}.local.mesh'><span>${hostname}</span></a></div>`);
         }
     %}
     </div>
