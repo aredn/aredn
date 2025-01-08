@@ -258,7 +258,7 @@ end
 
 -- Canonical hostname
 function canonical_hostname(hostname)
-    return hostname and hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("%.local%.mesh$", "")
+    return hostname and hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("^lan%.", ""):gsub("%.local%.mesh$", "")
 end
 
 local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode")
@@ -356,12 +356,18 @@ function lqm_run()
             local ip, dev, mac, probes, state = line:match("^(%S+) dev (%S+) lladdr (%S+) .+ probes (%d+) (.+)$")
             if ip then
                 -- Filter neighbors so we ignore entries which aren't immediately routable
+                local routable = false;
                 local rt = luciip.route(ip)
                 if rt and tostring(rt.gw) == ip then
-                    arps[#arps + 1] = {
+                    routable = true;
+                end
+                mac = mac:lower()
+                if routable or not arps[mac] or arps[mac].Routable == false then
+                    arps[mac] = {
                         Device = dev,
-                        ["HW address"] = mac:lower(),
-                        ["IP address"] = ip
+                        ["HW address"] = mac,
+                        ["IP address"] = ip,
+                        Routable = routable
                     }
                 end
             end
@@ -460,9 +466,9 @@ function lqm_run()
         )
 
         -- DtD & Xlinks
-        for _, entry in ipairs(arps)
+        for _, entry in pairs(arps)
         do
-            if entry.Device:match("%.2$") or entry.Device:match("^br%-dtdlink") then
+            if (entry.Device:match("%.2$") or entry.Device:match("^br%-dtdlink")) and entry.Routable then
                 stations[#stations + 1] = {
                     type = "DtD",
                     device = entry.Device,
@@ -508,12 +514,9 @@ function lqm_run()
                         tx_bitrate = 0,
                         rx_bitrate = 0
                     }
-                    for _, entry in ipairs(arps)
-                    do
-                        if entry["HW address"] == station.mac and entry.Device:match("^wlan") then
-                            station.ip = entry["IP address"]
-                            break
-                        end
+                    local entry = arps[station.mac]
+                    if entry and entry.Device:match("^wlan") then
+                        station.ip = entry["IP address"]
                     end
                 else
                     for k, v in pairs(kv)
