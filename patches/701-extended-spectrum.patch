@@ -297,8 +297,8 @@
 --- /dev/null
 +++ b/package/kernel/ath10k-ct/patches/999-0000-ath10k-part97-chan-extend.patch
 @@ -0,0 +1,100 @@
-+--- a/ath10k-5.15/core.h
-++++ b/ath10k-5.15/core.h
++--- a/ath10k-6.10/core.h
+++++ b/ath10k-6.10/core.h
 +@@ -49,8 +49,8 @@
 + #define WMI_READY_TIMEOUT (5 * HZ)
 + #define ATH10K_FLUSH_TIMEOUT_HZ (5 * HZ)
@@ -310,8 +310,8 @@
 + 
 + /* Antenna noise floor */
 + #define ATH10K_DEFAULT_NOISE_FLOOR -95
-+--- a/ath10k-5.15/mac.c
-++++ b/ath10k-5.15/mac.c
++--- a/ath10k-6.10/mac.c
+++++ b/ath10k-6.10/mac.c
 +@@ -9089,6 +9089,10 @@
 + }
 + 
@@ -384,8 +384,8 @@
 + 	/* If you add more, you may need to change ATH10K_MAX_5G_CHAN */
 + 	/* And you will definitely need to change ATH10K_NUM_CHANS in core.h */
 + };
-+--- a/ath10k-5.15/wmi.h
-++++ b/ath10k-5.15/wmi.h
++--- a/ath10k-6.10/wmi.h
+++++ b/ath10k-6.10/wmi.h
 +@@ -3355,6 +3355,10 @@
 + 
 + /* passively scan all channels including active channels */
@@ -400,8 +400,8 @@
 --- /dev/null
 +++ b/package/kernel/ath10k-ct/patches/999-0001-ath10k-neg-chans.patch
 @@ -0,0 +1,19 @@
-+--- a/ath10k-5.15/wmi.c
-++++ b/ath10k-5.15/wmi.c
++--- a/ath10k-6.10/wmi.c
+++++ b/ath10k-6.10/wmi.c
 +@@ -2709,13 +2709,15 @@
 + 	 */
 + 	if (channel >= 1 && channel <= 14) {

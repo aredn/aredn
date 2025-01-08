@@ -37,15 +37,13 @@
 require("nixio")
 require("aredn.utils")
 require("aredn.info")
-local h = require("socket.http")
-local json = require("luci.jsonc")
+require("luci.jsonc")
 
 function fetch_json(url)
-  resp, status_code, headers, status_message=h.request(url)
-  if status_code==200 then
-    local j=json.parse(resp)
-    return j
-  end
+  local raw = io.popen("exec /bin/uclient-fetch -T 5 \"" .. url .. "\" -O - 2> /dev/null")
+  local j = luci.jsonc.parse(raw:read("*a"))
+  raw:close()
+  return j
 end
 
 -------------------------------------
@@ -182,7 +180,7 @@ function model.getHostAsLines(attempts)
   end
   for _ = 1, attempts
   do
-    local f = io.open("/var/run/hosts_olsr")
+    local f = io.open("/tmp/dnshosts.d/hosts_olsr")
     if f then
       return f:lines()
     end

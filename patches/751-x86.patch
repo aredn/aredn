@@ -1,14 +1,13 @@
 --- a/target/linux/x86/base-files/etc/board.d/02_network
 +++ b/target/linux/x86/base-files/etc/board.d/02_network
-@@ -45,6 +45,11 @@
- 	macaddr="$(cat /sys/class/net/eth0/address)" 2>/dev/null
- 	[ -n "$macaddr" ] && ucidef_set_interface_macaddr "wan" "$macaddr"
- 	;;
+@@ -115,6 +115,10 @@
+         ucidef_set_network_device_path "eth3" "pci0000:00/0000:00:10.0/0000:07:00.0"
+         ucidef_set_interfaces_lan_wan "eth0 eth1 eth2 eth3" "wan0"
+         ;;
 +*)
 +	ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
 +	ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
 +	;;
-+	
  esac
  board_config_flush
  

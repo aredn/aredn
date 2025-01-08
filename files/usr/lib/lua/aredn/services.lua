@@ -213,6 +213,7 @@ local function get(validate)
             end
         end
         -- Check all the services have a valid host
+        local havecurl = nixio.fs.stat("/usr/bin/curl") ~= nil
         for _, service in ipairs(services)
         do
             local proto, hostname, port, path = service:match("^(%w+)://([%w%-%.]+):(%d+)(.*)|...|[^|]+$")
@@ -222,7 +223,7 @@ local function get(validate)
                     if port == "0" then
                         -- no port so not a link - we can only check the hostname so have to assume the service is good
                         vstate[service] = last
-                    elseif proto == "http" or (proto == "pseudo" and port == "80") then
+                    elseif havecurl and (proto == "http" or (proto == "pseudo" and port == "80")) then
                         -- http so looks like a link. http check it
                         if not hostname:match("%.local%.mesh$") then
                             hostname = hostname .. ".local.mesh"

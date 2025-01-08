@@ -35,7 +35,7 @@ import * as fs from "fs";
 
 export function getLinks()
 {
-    const f = fs.popen("exec /usr/bin/curl http://127.0.0.1:9090/links -o - 2> /dev/null");
+    const f = fs.popen("exec /bin/uclient-fetch http://127.0.0.1:9090/links -O - 2> /dev/null");
     try {
         const links = json(f.read("all")).links;
         f.close();
@@ -49,7 +49,7 @@ export function getLinks()
 
 export function getRoutes()
 {
-    const f = fs.popen("exec /usr/bin/curl http://127.0.0.1:9090/routes -o - 2> /dev/null");
+    const f = fs.popen("exec /bin/uclient-fetch http://127.0.0.1:9090/routes -O - 2> /dev/null");
     try {
         const routes = json(f.read("all")).routes;
         f.close();
@@ -63,7 +63,7 @@ export function getRoutes()
 
 export function getHNAs()
 {
-    const f = fs.popen("exec /usr/bin/curl http://127.0.0.1:9090/hna -o - 2> /dev/null");
+    const f = fs.popen("exec /bin/uclient-fetch http://127.0.0.1:9090/hna -O - 2> /dev/null");
     try {
         const hna = json(f.read("all")).hna;
         f.close();
@@ -77,7 +77,7 @@ export function getHNAs()
 
 export function getMids()
 {
-    const f = fs.popen("exec /usr/bin/curl http://127.0.0.1:9090/mid -o - 2> /dev/null");
+    const f = fs.popen("exec /bin/uclient-fetch http://127.0.0.1:9090/mid -O - 2> /dev/null");
     try {
         const mid = json(f.read("all")).mid;
         f.close();

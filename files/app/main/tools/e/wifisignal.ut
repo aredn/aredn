@@ -84,7 +84,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     if (m) {
                         const ip = m[1];
                         const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
-                        f = fs.popen(`/usr/bin/curl --connect-timeout 1 http://${ip}/a/s-snr?mac=${wifimac} 2>/dev/null`);
+                        f = fs.popen(`/bin/uclient-fetch -T 1 http://${ip}/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
                         if (f) {
                             try {
                                 const j = json(f.read("all"));

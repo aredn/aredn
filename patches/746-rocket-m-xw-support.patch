@@ -26,40 +26,14 @@
 
 --- /dev/null
 +++ b/target/linux/ath79/dts/ar9342_ubnt_rocket-m-xw.dts
-@@ -0,0 +1,34 @@
-+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
 +
-+#include "ar9342_ubnt_xw.dtsi"
++#include "ar9342_ubnt_bullet-m-xw.dts"
 +
 +/ {
 +	compatible = "ubnt,rocket-m-xw", "ubnt,xw", "qca,ar9342";
 +	model = "Ubiquiti Rocket M5 (XW)";
-+};
-+
-+&mdio0 {
-+	status = "okay";
-+
-+	phy-mask = <4>;
-+
-+	phy4: ethernet-phy@4 {
-+		reg = <4>;
-+	};
-+};
-+
-+&eth0 {
-+	status = "okay";
-+
-+	/* default for ar934x, except for 1000M and 10M */
-+	pll-data = <0x02000000 0x00000101 0x00001313>;
-+
-+	phy-mode = "rgmii-id";
-+	phy-handle = <&phy4>;
-+
-+	gmac-config {
-+		device = <&gmac>;
-+		rxd-delay = <3>;
-+		rxdv-delay = <3>;
-+	};
 +};
 --- /dev/null
 +++ b/target/linux/ath79/dts/ar9342_ubnt_rocket-m2-xw.dts
@@ -90,3 +64,15 @@
 +
 +	phy-handle = <&phy1>;
 +};
+--- a/target/linux/ath79/image/generic-ubnt.mk
++++ b/target/linux/ath79/image/generic-ubnt.mk
+@@ -28,9 +28,6 @@
+ define Device/ubnt_bullet-m-xw
+   $(Device/ubnt-xw)
+   DEVICE_MODEL := Bullet M
+-  DEVICE_ALT0_VENDOR := Ubiquiti
+-  DEVICE_ALT0_MODEL := Rocket M
+-  DEVICE_ALT0_VARIANT := XW
+   DEVICE_PACKAGES += rssileds
+   SUPPORTED_DEVICES += bullet-m-xw
+ endef

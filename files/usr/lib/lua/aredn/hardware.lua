@@ -182,7 +182,16 @@ function hardware.get_board_network_ifname(type)
             return network.device
         end
         if network.ports then
-            return table.concat(network.ports, " ")
+            local found = {}
+            local ports = ""
+            for _, port in ipairs(network.ports)
+            do
+                if not found[port] then
+                    found[port] = true
+                    ports = ports .. " " .. port
+                end
+            end
+            return ports:sub(2)
         end
     end
     return ""

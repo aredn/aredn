@@ -98,6 +98,14 @@
         }
         return "-";
     }
+    function canonicalLookupIP(ip)
+    {
+        const hostname = network.nslookup(ip);
+        if (!hostname) {
+            return null;
+        }
+        return replace(replace(replace(replace(replace(lc(hostname), /^dtdlink\./, ""), /^mid\d+\./, ""), /^xlink\d+\./, ""), /^lan\./, ""), /\.local\.mesh$/, "");
+    }
     const llist = [];
     const nlist = [];
     const hlist = lqm.getHidden();
@@ -113,27 +121,41 @@
     for (let i = 0; i < length(links); i++) {
         const link = links[i];
         const tracker = trackers[link.remoteIP];
+        let name = tracker && tracker.hostname;
+        if (!name) {
+            name = canonicalLookupIP(link.remoteIP);
+            if (!name) {
+                name = `|${link.remoteIP}`;
+            }
+        }
         if (link.ifName === "br-dtdlink") {
             if (tracker && tracker.distance >= 100) {
-                push(nlist, { name: tracker.hostname || `|${link.remoteIP}`, tracker: tracker, link: link });
+                push(nlist, { name: name, tracker: tracker, link: link });
             }
             else {
-                push(llist, { name: (tracker && tracker.hostname) || `|${link.remoteIP}`, tracker: tracker, link: link });
+                push(llist, { name: name, tracker: tracker, link: link });
             }
         }
         else {
-            push(nlist, { name: (tracker && tracker.hostname) || `|${link.remoteIP}`, tracker: tracker, link: link });
+            push(nlist, { name: name, tracker: tracker, link: link });
         }
         delete trackers[link.remoteIP];
     }
     for (let remoteIP in trackers)
     {
         const tracker = trackers[remoteIP];
+        let name = tracker && tracker.hostname;
+        if (!name) {
+            name = canonicalLookupIP(remoteIP);
+            if (!name) {
+                name = `|${remoteIP}`;
+            }
+        }
         if (tracker.type == "DtD" && tracker.distance < 100) {
-            push(llist, { name: tracker.hostname || `|${remoteIP}`, tracker: tracker, link: null });
+            push(llist, { name: name, tracker: tracker, link: null });
         }
         else {
-            push(nlist, { name: tracker.hostname || `|${remoteIP}`, tracker: tracker, link: null });
+            push(nlist, { name: name, tracker: tracker, link: null });
         }
     }
 %}
@@ -235,11 +257,11 @@
                         break;
                 }
                 if (substr(entry.name, 0, 1) !== "|") {
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
                 }
                 else {
                     const ip = substr(entry.name, 1);
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
                 }
                 print("<div class='ts cols stats'>");
                 if (request.mobile) {

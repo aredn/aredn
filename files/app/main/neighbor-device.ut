@@ -150,10 +150,6 @@ if (tracker) {
                 return "blocked";
             }
             if (n.routable) {
-                if ((n.blocks.signal || n.blocks.distance || n.blocks.quality) && (
-                   (n.leaf === "major" && n.rev_leaf === "minor") || (n.leaf === "minor" && n.rev_leaf === "major"))) {
-                    return "routing leaf";
-                }
                 return "routing";
             }
             return "unused";
@@ -165,6 +161,22 @@ if (tracker) {
                 return `<a href="${replace(replace(map_url, "(lat)", n.lat), "(lon)", n.lon)}" target="_blank">${v}</a>`;
             }
             return v;
+        }
+        function lastseen(n)
+        {
+            const s = lqmInfo.now - n.lastseen;
+            if (s <= 0) {
+                return "now";
+            }
+            const m = int(s / 60);
+            const h = int(m / 60);
+            if (h > 0) {
+                return `${h} ${h == 1 ? "hour" : "hours"} ago`;
+            }
+            if (m > 0) {
+                return `${m} ${m == 1 ? "minute" : "minutes"} ago`;
+            }
+            return "now";
         }
         if (neighbor) {
             const n = neighbor.n;
@@ -320,7 +332,10 @@ if (tracker) {
                     <div>{{n.node_route_count}}</div>
                     <div>active routes</div>
                 </div>
-                <div></div>
+                <div class="i">
+                    <div>{{lastseen(n)}}</div>
+                    <div>last seen</div>
+                </div>
             </div>
             {%
             const snr = `/tmp/snrlog/${uc(selected)}-${lc(n.hostname)}`;
