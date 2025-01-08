@@ -763,9 +763,6 @@ local function load_dhcp_options()
         local tag, force, opt_num, opt_val = option:match("(%S*)%s+(%w+)%s+(%d+)%s+(.*)")
         if opt_val then
             local by_tag = get_subtable(dhcp_options, tag)
-            if tag == "" and force == FORCED then
-                force = UNFORCED -- force is unsupported for untagged options
-            end
             table.insert(get_subtable(by_tag, force), { num = opt_num, val = opt_val })
         end
     end
@@ -822,6 +819,7 @@ end
 
 do
     local dhcp_option_list = {}
+    local dhcp_option_force_list = {}
     local route44net = ""
     if nc:get("aredn", "@wan[0]", "lan_dhcp_44route") == "1" then
         route44net = ",44.0.0.0/9," .. cfg.lan_ip .. ",44.128.0.0/10," .. cfg.lan_ip
@@ -850,7 +848,7 @@ do
             if tag == "" -- tag-section name cannot be empty
                     or tablesize(forcelist) > 1 -- section name must be unique
                     then -- place unforced options in the anonymous section
-                for _, option in ipairs(forcelist[UNFORCED]) do
+                for _, option in ipairs(forcelist[UNFORCED] or {}) do
                     table.insert(dhcp_option_list, option_item(tag, option))
                     -- If we detect a rapid-commit option to enable the necessary config flag
                     if option.num == OPT_RAPID_COMMIT then
@@ -858,6 +856,14 @@ do
                     end
                 end
                 forcelist[UNFORCED] = nil
+                for _, option in ipairs(forcelist[FORCED] or {}) do
+                    table.insert(dhcp_option_force_list, option_item(tag, option))
+                    -- If we detect a rapid-commit option to enable the necessary config flag
+                    if option.num == OPT_RAPID_COMMIT then
+                        nc:set("dhcp", "@dhcp[0]", "rapidcommit", "1")
+                    end
+                end
+                forcelist[FORCED] = nil
             end
             for force, optlist in pairs(forcelist)
             do
@@ -868,6 +874,9 @@ do
 
     if #dhcp_option_list > 0 then
         nc:set("dhcp", "@dhcp[0]", "dhcp_option", dhcp_option_list)
+    end
+    if #dhcp_option_force_list > 0 then
+        nc:set("dhcp", "@dhcp[0]", "dhcp_option_force", dhcp_option_force_list)
     end
 end
 
