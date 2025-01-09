@@ -1,0 +1,11 @@
+--- a/package/network/services/dnsmasq/files/dnsmasq.init
++++ b/package/network/services/dnsmasq/files/dnsmasq.init
+@@ -1244,7 +1244,7 @@
+ 	procd_set_param command $PROG -C $CONFIGFILE -k -x /var/run/dnsmasq/dnsmasq."${cfg}".pid
+ 	procd_set_param file $CONFIGFILE
+ 	[ -n "$user_dhcpscript" ] && procd_set_param env USER_DHCPSCRIPT="$user_dhcpscript"
+-	procd_set_param respawn
++	procd_set_param respawn 1 5 50
+ 
+ 	local instance_ifc instance_netdev
+ 	config_get instance_ifc "$cfg" interface
