@@ -1,0 +1,105 @@
+--- a/package/network/services/dnsmasq/files/dnsmasq.init
++++ b/package/network/services/dnsmasq/files/dnsmasq.init
+@@ -1244,7 +1244,7 @@
+ 	procd_set_param command $PROG -C $CONFIGFILE -k -x /var/run/dnsmasq/dnsmasq."${cfg}".pid
+ 	procd_set_param file $CONFIGFILE
+ 	[ -n "$user_dhcpscript" ] && procd_set_param env USER_DHCPSCRIPT="$user_dhcpscript"
+-	procd_set_param respawn
++	procd_set_param respawn 1 5 50
+ 
+ 	local instance_ifc instance_netdev
+ 	config_get instance_ifc "$cfg" interface
+
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/111-optimize-hostread.patch
+@@ -0,0 +1,90 @@
++--- a/src/dnsmasq.h
+++++ b/src/dnsmasq.h
++@@ -1458,6 +1458,7 @@
++ int rr_on_list(struct rrlist *list, unsigned short rr);
++ int legal_hostname(char *name);
++ char *canonicalise(char *in, int *nomem);
+++int ccheck_name(char *in);
++ unsigned char *do_rfc1035_name(unsigned char *p, char *sval, char *limit);
++ void *safe_malloc(size_t size);
++ void safe_strncpy(char *dest, const char *src, size_t size);
++--- a/src/cache.c
+++++ b/src/cache.c
++@@ -1273,21 +1273,17 @@
++       while (atnl == 0)
++ 	{
++ 	  struct crec *cache;
++-	  int fqdn, nomem;
++-	  char *canon;
++ 	  
++ 	  if ((atnl = gettok(f, token)) == -1)
++ 	    break;
++ 
++-	  fqdn = !!strchr(token, '.');
++-
++-	  if ((canon = canonicalise(token, &nomem)))
+++	  if (ccheck_name(token))
++ 	    {
++ 	      /* If set, add a version of the name with a default domain appended */
++-	      if (option_bool(OPT_EXPAND) && domain_suffix && !fqdn && 
++-		  (cache = whine_malloc(SIZEOF_BARE_CREC + strlen(canon) + 2 + strlen(domain_suffix))))
+++	      if (option_bool(OPT_EXPAND) && domain_suffix && !strchr(token, '.') && 
+++		  (cache = whine_malloc(SIZEOF_BARE_CREC + strlen(token) + 2 + strlen(domain_suffix))))
++ 		{
++-		  strcpy(cache->name.sname, canon);
+++		  strcpy(cache->name.sname, token);
++ 		  strcat(cache->name.sname, ".");
++ 		  strcat(cache->name.sname, domain_suffix);
++ 		  cache->flags = flags;
++@@ -1296,19 +1292,18 @@
++ 		  name_count++;
++ 		  names_done++;
++ 		}
++-	      if ((cache = whine_malloc(SIZEOF_BARE_CREC + strlen(canon) + 1)))
+++	      if ((cache = whine_malloc(SIZEOF_BARE_CREC + strlen(token) + 1)))
++ 		{
++-		  strcpy(cache->name.sname, canon);
+++		  strcpy(cache->name.sname, token);
++ 		  cache->flags = flags;
++ 		  cache->ttd = daemon->local_ttl;
++ 		  add_hosts_entry(cache, &addr, addrlen, index, rhash, hashsz);
++ 		  name_count++;
++ 		  names_done++;
++ 		}
++-	      free(canon);
++ 	      
++ 	    }
++-	  else if (!nomem)
+++	  else
++ 	    my_syslog(LOG_ERR, _("bad name at %s line %d"), filename, lineno); 
++ 	}
++ 
++--- a/src/util.c	
+++++ b/src/util.c
++@@ -130,7 +130,7 @@
++ 
++ /* returns 1 if name is OK and ascii printable
++  * returns 2 if name should be processed by IDN */
++-static int check_name(char *in)
+++int ccheck_name(char *in)
++ {
++   /* remove trailing . 
++      also fail empty string and label > 63 chars */
++@@ -206,7 +206,7 @@
++   char c;
++   int first;
++ 
++-  if (!check_name(name))
+++  if (!ccheck_name(name))
++     return 0;
++ 
++   for (first = 1; (c = *name); name++, first = 0)
++@@ -238,7 +238,7 @@
++   if (nomem)
++     *nomem = 0;
++   
++-  if (!(rc = check_name(in)))
+++  if (!(rc = ccheck_name(in)))
++     return NULL;
++   
++ #if defined(HAVE_IDN) || defined(HAVE_LIBIDN2)
