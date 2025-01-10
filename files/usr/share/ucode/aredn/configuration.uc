@@ -475,7 +475,7 @@ export function supportdata(supportdatafilename)
         "/etc/local/",
         "/etc/mesh-release",
         "/etc/os-release",
-        "/tmp/dnshosts.d/",
+        "/var/run/hosts_olsr",
         "/var/run/services_olsr",
         "/tmp/etc/",
         "/tmp/dnsmasq.d/",
