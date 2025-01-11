@@ -1133,7 +1133,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
             of:write(string.format("\nconfig Hna4\n\toption netaddr %s.%s.%d.%d\n\toption netmask %s\n\n", a, b, nixio.bit.band(c, o), nixio.bit.band(d, p), cfg.lan_mask))
         end
 
-        if cfg.wifi_enable ~= "1" and is_notnull(cfg.wifi_ip) then
+        if is_notnull(cfg.wifi_ip) then
             of:write(string.format("config Hna4\n\toption netaddr %s\n\toption netmask 255.255.255.255\n\n", cfg.wifi_ip))
         end
 
