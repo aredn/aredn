@@ -62,11 +62,25 @@ export function getBoard()
     return boardJson;
 };
 
+export function getBoardModel()
+{
+    const model = getBoard().model;
+    if (model) {
+        return model;
+    }
+    switch (ubus.connect().call("system", "board", {}).release.target) {
+        case "x86/64":
+            return { id: "pc", name: "pc" };
+        default:
+            return { id: "unknown", name: "unknown" };
+    }
+};
+
 export function getBoardId()
 {
     let name = "";
-    const board = getBoard();
-    if (index(board.model.name, "Ubiquiti") === 0) {
+    const model = getBoardModel();
+    if (index(model.name, "Ubiquiti") === 0) {
         name = fs.readfile("/sys/devices/pci0000:00/0000:00:00.0/subsystem_device");
         if (!name || name === "" || name === "0x0000") {
             const f = fs.open("/dev/mtd7");
@@ -79,7 +93,7 @@ export function getBoardId()
         }
     }
     if (!name || name === "" || name === "0x0000") {
-        name = board.model.name;
+        name = model.name;
     }
     return trim(name);
 };
@@ -443,13 +457,14 @@ export function getTxPowerOffset(wifiIface)
 
 export function supportsXLink()
 {
-    switch (getBoard().model.id) {
+    switch (getBoardModel().id) {
         case "mikrotik,hap-ac2":
         case "mikrotik,hap-ac3":
         case "mikrotik,sxtsq-5-ac":
         case "glinet,gl-b1300":
         case "qemu":
         case "vmware":
+        case "pc":
             return true;
         default:
             return false;
@@ -463,7 +478,7 @@ const defaultNPortLayout = [];
 
 export function getEthernetPorts()
 {
-    switch (getBoard().model.id) {
+    switch (getBoardModel().id) {
         case "mikrotik,hap-ac2":
         case "mikrotik,hap-ac3":
             return default5PortLayout;
@@ -473,6 +488,7 @@ export function getEthernetPorts()
             return default1PortLayout;
         case "qemu":
         case "vmware":
+        case "pc":
             if (length(defaultNPortLayout) === 0) {
                 const dir = fs.opendir("/sys/class/net");
                 if (dir) {
@@ -512,7 +528,7 @@ export function getDefaultNetworkConfiguration()
         wan: { vlan: 0, ports: {} }
     };
     const board = getBoard();
-    const network = board.network;
+    const network = board.network || {};
     for (let k in network) {
         const net = c[k];
         if (net) {
@@ -538,7 +554,7 @@ export function getDefaultNetworkConfiguration()
 export function hasPOE()
 {
     const board = getBoard();
-    if (board?.gpioswitch?.poe_passthrough?.pin) {
+    if (board.gpioswitch?.poe_passthrough?.pin) {
         return true;
     }
     const gpios = fs.lsdir("/sys/class/gpio/");
@@ -553,7 +569,7 @@ export function hasPOE()
 export function hasUSBPower()
 {
     const board = getBoard();
-    if (board?.gpioswitch?.usb_power_switch?.pin) {
+    if (board.gpioswitch?.usb_power_switch?.pin) {
         return true;
     }
     if (fs.access("/sys/class/gpio/usb-power")) {
@@ -578,7 +594,7 @@ export function isLowMemNode()
 
 export function getHardwareType()
 {
-    const model = getBoard().model;
+    const model = getBoardModel();
     let targettype = ubus.connect().call("system", "board", {}).release.target;
     let hardwaretype = model.id;
     let m = match(hardwaretype, /,(.*)/);
