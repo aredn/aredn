@@ -1,0 +1,55 @@
+//
+// Experiemental fix to avoid occasions when the ethernet controller doesnt start up.
+// The old driver used 'at803x-override-sgmii-link-check' to work around a bug where an ethernet
+// link wouldnt start after it has been auto-negotiated. This flag no longer does anything as this patch
+// was deprecated as the linux driver has been rewritten.
+// There is a bug, possibly the same bug as its related to the same startup case, where if the chips goes to sleep
+// it doesnt not then correct wakeup the RX ethernet MAC. That certainly is the sympton we see where everything
+// works but no RX traffic is ever received.
+// Unfortunately there is no way to force the condition to happen, so we dont know if this will fix it until we're sure
+// we dont see the issue anymore.
+//
+--- a/target/linux/ath79/dts/qca9558_ubnt_nanobeam-ac-gen2-xc.dts
++++ b/target/linux/ath79/dts/qca9558_ubnt_nanobeam-ac-gen2-xc.dts
+@@ -85,7 +85,7 @@
+ 	phy4: ethernet-phy@4 {
+ 		phy-mode = "sgmii";
+ 		reg = <4>;
+-		at803x-override-sgmii-link-check;
++		qca,disable-hibernation-mode;
+ 	};
+ };
+ 
+--- a/target/linux/ath79/dts/qca9558_ubnt_rocket-5ac-lite.dts
++++ b/target/linux/ath79/dts/qca9558_ubnt_rocket-5ac-lite.dts
+@@ -24,7 +24,7 @@
+ 	phy4: ethernet-phy@4 {
+ 		phy-mode = "sgmii";
+ 		reg = <4>;
+-		at803x-override-sgmii-link-check;
++		qca,disable-hibernation-mode;
+ 	};
+ };
+ 
+--- a/target/linux/ath79/dts/qca9558_ubnt_powerbeam-5ac-500.dts
++++ b/target/linux/ath79/dts/qca9558_ubnt_powerbeam-5ac-500.dts
+@@ -24,7 +24,7 @@
+ 	phy4: ethernet-phy@4 {
+ 		phy-mode = "sgmii";
+ 		reg = <4>;
+-		at803x-override-sgmii-link-check;
++		qca,disable-hibernation-mode;
+ 	};
+ };
+ 
+--- a/target/linux/ath79/dts/qca9558_ubnt_nanobeam-ac-xc.dts
++++ b/target/linux/ath79/dts/qca9558_ubnt_nanobeam-ac-xc.dts
+@@ -87,7 +87,7 @@
+ 	phy4: ethernet-phy@4 {
+ 		phy-mode = "sgmii";
+ 		reg = <4>;
+-		at803x-override-sgmii-link-check;
++		qca,disable-hibernation-mode;
+ 	};
+ };
+ 
