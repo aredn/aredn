@@ -5,34 +5,24 @@
  
  	config IPV6
 -		def_bool y
-+		def_bool n
++		bool "ipv6"
  
  	comment "Stripping options"
  
 --- a/include/netfilter.mk
 +++ b/include/netfilter.mk
-@@ -325,7 +325,7 @@
+@@ -326,7 +326,11 @@
  $(eval $(if $(NF_KMOD),$(call nf_add,NFT_CORE,CONFIG_NFT_OBJREF, $(P_XT)nft_objref),))
  $(eval $(if $(NF_KMOD),$(call nf_add,NFT_CORE,CONFIG_NFT_QUOTA, $(P_XT)nft_quota),))
  $(eval $(if $(NF_KMOD),$(call nf_add,NFT_CORE,CONFIG_NFT_REDIR, $(P_XT)nft_redir),))
--$(eval $(if $(NF_KMOD),$(call nf_add,NFT_CORE,CONFIG_NFT_REJECT, $(P_XT)nft_reject $(P_V4)nft_reject_ipv4 $(P_V6)nft_reject_ipv6),))
++ifdef CONFIG_IPV6
+ $(eval $(if $(NF_KMOD),$(call nf_add,NFT_CORE,CONFIG_NFT_REJECT, $(P_XT)nft_reject $(P_V4)nft_reject_ipv4 $(P_V6)nft_reject_ipv6),))
++else
 +$(eval $(if $(NF_KMOD),$(call nf_add,NFT_CORE,CONFIG_NFT_REJECT, $(P_XT)nft_reject $(P_V4)nft_reject_ipv4),))
++endif
  $(eval $(if $(NF_KMOD),$(call nf_add,NFT_CORE,CONFIG_NFT_REJECT_INET, $(P_XT)nft_reject_inet),))
  
  $(eval $(if $(NF_KMOD),$(call nf_add,NFT_BRIDGE,CONFIG_NFT_BRIDGE_META, $(P_EBT)nft_meta_bridge),))
-
---- a/package/kernel/linux/modules/netfilter.mk
-+++ b/package/kernel/linux/modules/netfilter.mk
-@@ -1153,7 +1153,7 @@
- define KernelPackage/nft-offload
-   SUBMENU:=$(NF_MENU)
-   TITLE:=Netfilter nf_tables routing/NAT offload support
--  DEPENDS:=@IPV6 +kmod-nf-flow +kmod-nft-nat
-+  DEPENDS:=+kmod-nf-flow +kmod-nft-nat
-   KCONFIG:= \
- 	CONFIG_NF_FLOW_TABLE_INET \
- 	CONFIG_NF_FLOW_TABLE_IPV4 \
-
 --- /dev/null
 +++ b/package/network/config/firewall4/patches/001-disable-ipv6.patch
 @@ -0,0 +1,139 @@
