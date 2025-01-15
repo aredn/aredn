@@ -329,7 +329,7 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 + 	case ATH10K_FW_WMI_OP_VERSION_10_4:
 --- /dev/null
 +++ openwrt/package/kernel/ath10k-ct/patches/999-0006-ath10k-no-noisy-warning.patch
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,26 @@
 +--- a/ath10k-6.10/htt_rx.c
 ++++ b/ath10k-6.10/htt_rx.c
 +@@ -4173,8 +4173,8 @@
@@ -343,3 +343,16 @@ Index: openwrt/package/kernel/ath10k-ct/patches/999-0002-ath10k-5_10Mhz.patch
 + 		goto out;
 + 	}
 + 
++--- a/ath10k-6.10/wmi.c
+++++ b/ath10k-6.10/wmi.c
++@@ -4342,8 +4342,8 @@
++ 			case ATH10K_BEACON_SENT:
++ 				break;
++ 			case ATH10K_BEACON_SCHEDULED:
++-				ath10k_warn(ar, "SWBA overrun on vdev %d, skipped old beacon\n",
++-					    arvif->vdev_id);
+++				/* ath10k_warn(ar, "SWBA overrun on vdev %d, skipped old beacon\n",
+++					    arvif->vdev_id); */
++ 				break;
++ 			case ATH10K_BEACON_SENDING:
++ 				ath10k_warn(ar, "SWBA overrun on vdev %d, skipped new beacon\n",
