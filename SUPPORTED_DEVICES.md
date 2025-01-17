@@ -125,6 +125,7 @@ TPLink CPE605 v1.0 || 5 | ath79 | generic | tplink_cpe605-v1 | 64MB | untested |
 TPLink CPE610 v1.0 || 5 | ath79 | generic | tplink_cpe610-v1 | 64MB | untested | released
 TPLink CPE610 v2.0 || 5 | ath79 | generic | tplink_cpe610-v2 | 64MB | untested | released
 TPLink CPE710 v1.0 | CPE710 V1.0 | 5 | ath79 | generic | tplink_cpe710-v1 | 128MB | stable | released
+TPLink CPE710 v2.0 | CPE710 V2.0 | 5 | ath79 | generic | tplink_cpe710-v2 | 128MB | untested | nightly
 TPLink WBS210 v1.0 || 2 | ath79 | generic | tplink_wbs210-v1 | 64MB | untested | released
 TPLink WBS210 v2.0 || 2 | ath79 | generic | tplink_wbs210-v2 | 64MB | untested | released
 TPLink WBS510 v1.0 || 5 | ath79 | generic | tplink_wbs510-v1 | 64MB | untested | released
