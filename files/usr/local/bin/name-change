@@ -32,4 +32,7 @@ true <<'LICENSE'
   version.
 
 LICENSE
-exec /bin/kill -1 $(/bin/cat /var/run/dnsmasq/dnsmasq.*.pid)
+if [ "$(pidof name-change)" = "$$" ]; then
+  sleep 30
+  kill -1 $(cat /var/run/dnsmasq/dnsmasq.*.pid)
+fi
