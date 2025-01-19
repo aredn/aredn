@@ -740,6 +740,7 @@
                 });
             }
             else if (restore) {
+                const currentTarget = e.currentTarget;
                 const p = htmx.find("#firmware-upload progress");
                 p.removeAttribute("value");
                 htmx.on(e.currentTarget, "htmx:xhr:progress", e => {
@@ -756,7 +757,7 @@
                 fr.onloadend = () => {
                     const md5sum = md5(new Uint8Array(fr.result));
                     htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
-                        source: e.currentTarget,
+                        source: currentTarget,
                         values: {
                             restorefile: restore,
                             "restorefile.md5": md5sum
