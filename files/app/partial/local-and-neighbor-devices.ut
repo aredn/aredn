@@ -38,10 +38,14 @@
     for (let i = 0; i < length(o); i++) {
         links[o[i].remoteIP] = o[i];
     }
+    const lqmNow = lqm.get().now;
     function calcColor(tracker)
     {
         if (!tracker) {
             return "unknown";
+        }
+        if (tracker.lastseen < lqmNow) {
+            return "disconnected";
         }
         if (tracker.blocked) {
             if (tracker.blocks.user) {
@@ -186,8 +190,8 @@
                     else {
                         print(`<div class="ctrl cols status unknown" title="Link status: unknown">`);
                     }
-                    const lq = link && link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
-                    const nlq = link && link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
+                    const lq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
+                    const nlq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     if (substr(entry.name, 0, 1) !== "|") {
                         print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}</a></div>`);
                     }
@@ -228,8 +232,8 @@
                 else {
                     print(`<div class="ctrl cols status unknown" title="Link status: unknown">`);
                 }
-                const lq = link && link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
-                const nlq = link && link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
+                const lq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
+                const nlq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                 let icon = "";
                 let title = "";
                 switch (tracker && tracker.type || "Unknown") {
