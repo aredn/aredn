@@ -23,6 +23,18 @@
  $(eval $(if $(NF_KMOD),$(call nf_add,NFT_CORE,CONFIG_NFT_REJECT_INET, $(P_XT)nft_reject_inet),))
  
  $(eval $(if $(NF_KMOD),$(call nf_add,NFT_BRIDGE,CONFIG_NFT_BRIDGE_META, $(P_EBT)nft_meta_bridge),))
+--- a/package/kernel/linux/modules/netfilter.mk
++++ b/package/kernel/linux/modules/netfilter.mk
+@@ -1207,7 +1207,7 @@
+ define KernelPackage/nft-offload
+   SUBMENU:=$(NF_MENU)
+   TITLE:=Netfilter nf_tables routing/NAT offload support
+-  DEPENDS:=@IPV6 +kmod-nf-flow +kmod-nft-nat
++  DEPENDS:=+kmod-nf-flow +kmod-nft-nat
+   KCONFIG:= \
+ 	CONFIG_NF_FLOW_TABLE_INET \
+ 	CONFIG_NFT_FLOW_OFFLOAD
+
 --- /dev/null
 +++ b/package/network/config/firewall4/patches/001-disable-ipv6.patch
 @@ -0,0 +1,139 @@
