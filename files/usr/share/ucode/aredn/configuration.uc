@@ -468,21 +468,21 @@ export function supportdata(supportdatafilename)
 
     const files = [
         "/etc/board.json",
-        "/etc/config/",
-        "/etc/config.mesh/",
+        "/etc/config",
+        "/etc/config.mesh",
         "/etc/ethers",
         "/etc/hosts",
-        "/etc/local/",
+        "/etc/local",
         "/etc/mesh-release",
         "/etc/os-release",
         "/var/run/hosts_olsr",
         "/var/run/services_olsr",
-        "/tmp/etc/",
-        "/tmp/dnsmasq.d/",
+        "/tmp/etc",
+        "/tmp/dnsmasq.d",
         "/tmp/lqm.info",
         "/tmp/wireless_monitor.info",
         "/tmp/service-validation-state",
-        "/tmp/sysinfo/",
+        "/tmp/sysinfo",
         "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
         "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to"
     ];
@@ -547,11 +547,11 @@ export function supportdata(supportdatafilename)
         if (s) {
             if (s.type === "directory") {
                 system(`/bin/mkdir -p /tmp/sd${file}`);
-                system(`/bin/cp -rp ${file}/* /tmp/sd/${file}`);
+                system(`/bin/cp -rp ${file}/* /tmp/sd${file}/`);
             }
             else {
                 system(`/bin/mkdir -p /tmp/sd${fs.dirname(file)}`);
-                system(`/bin/cp -p ${file} /tmp/sd/${file}`);
+                system(`/bin/cp -p ${file} /tmp/sd${file}`);
             }
         }
     }
