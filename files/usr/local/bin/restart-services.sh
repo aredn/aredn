@@ -34,7 +34,7 @@ true <<'LICENSE'
 LICENSE
 
 ROOT="/tmp/reboot-required"
-SERVICES="log system firewall network wireless dnsmasq tunnels manager olsrd localservices poe pou ntp"
+SERVICES="log system firewall network wireless dnsmasq tunnels lqm manager olsrd localservices poe pou ntp"
 
 ignore=0
 force=0
@@ -85,6 +85,8 @@ do
       else
         /etc/init.d/sysntpd stop
       fi
+    elif [ $srv = "lqm" ]; then
+      touch /tmp/lqm.reset
     elif [ -x /etc/init.d/$srv ]; then
       /etc/init.d/$srv restart > /dev/null 2>&1
     fi

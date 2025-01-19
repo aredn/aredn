@@ -146,7 +146,8 @@ local changes = {
     localservices = false,
     wpad = false,
     poe = false,
-    pou = false
+    pou = false,
+    lqm = false
 }
 
 function valid_config(config)
@@ -1386,6 +1387,7 @@ do
         elseif file == "network" then
             changes.network = true
             changes.tunnels = true -- restarting network devices requires tunnels to restart
+            changes.lqm = true -- and lqm because device assignment could change
         elseif file == "dhcp" then
             changes.dnsmasq = true
         elseif file == "olsrd" then
@@ -1412,6 +1414,7 @@ do
             end
         elseif file == "vtun" then
             changes.tunnels = true
+            changes.lqm = true
         else
             changes.reboot = true
         end
