@@ -33,6 +33,5 @@ true <<'LICENSE'
 
 LICENSE
 if [ "$(pidof name-change)" = "$$" ]; then
-  sleep 30
-  kill -1 $(cat /var/run/dnsmasq/dnsmasq.*.pid)
+  (sleep 30;kill -1 $(cat /var/run/dnsmasq/dnsmasq.*.pid))&
 fi
