@@ -41,6 +41,24 @@ require("uci")
 io.open("/etc/config.mesh/setup", "a"):close()
 local c = uci.cursor("/etc/config.mesh")
 
+local dmz_mode = nil
+function dmz_file(file)
+    if dmz_mode == nil then
+        if (nixio.fs.stat(file .. "dmz", "size") or -1) > 0 then
+            return file .. "dmz"
+        elseif (nixio.fs.stat(file .. "nat", "size") or -1) > 0 then
+            return file .. "nat"
+        end
+    else
+        if dmz_mode >= 2 and (nixio.fs.stat(file .. "dmz", "size") or -1) > 0 then
+            return file .. "dmz"
+        elseif (nixio.fs.stat(file .. "nat", "size") or -1) > 0 then
+            return file .. "nat"
+        end
+    end
+    return nil
+end
+
 -- Migrate the old school _setup file
 if not c:get("setup", "globals") and nixio.fs.stat("/etc/config.mesh/_setup") then
     c:set("setup", "globals", "globals")
@@ -50,6 +68,9 @@ if not c:get("setup", "globals") and nixio.fs.stat("/etc/config.mesh/_setup") th
             local k, v = line:match("^(%S+)%s*=%s*(.*)%s*$")
             if v then
                 c:set("setup", "globals", k, v)
+                if k == "dmz_mode" then
+                    dmz_mode = tonumber(v) or -1
+                end
             end
         end
     end
@@ -57,14 +78,7 @@ end
 
 -- Migrate the old school _setup.services.{nat,dmz} files
 if not c:get("setup", "services") then
-    local file = "/etc/config.mesh/_setup.services."
-    if (nixio.fs.stat(file .. "nat", "size") or -1) > 0 then
-        file = file .. "nat"
-    elseif (nixio.fs.stat(file .. "dmz", "size") or -1) > 0 then
-        file = file .. "dmz"
-    else
-        file = nil
-    end
+    local file = dmz_file("/etc/config.mesh/_setup.services.")
     c:set("setup", "services", "services")
     if file then
         local services = {}
@@ -80,14 +94,7 @@ end
 
 -- Migrate the old school _setup.dhcp.{nat,dmz} files
 if not c:get("setup", "dhcpreservations") then
-    local file = "/etc/config.mesh/_setup.dhcp."
-    if (nixio.fs.stat(file .. "nat", "size") or -1) > 0 then
-        file = file .. "nat"
-    elseif (nixio.fs.stat(file .. "dmz", "size") or -1) > 0 then
-        file = file .. "dmz"
-    else
-        file = nil
-    end
+    local file = dmz_file("/etc/config.mesh/_setup.dhcp.")
     c:set("setup", "dhcpreservations", "dhcpreservations")
     if file then
         local dhcp = {}
@@ -103,14 +110,7 @@ end
 
 -- Migrate the old school _setup.dhcptags.{nat,dmz} files
 if not c:get("setup", "dhcptags") then
-    local file = "/etc/config.mesh/_setup.dhcptags."
-    if (nixio.fs.stat(file .. "nat", "size") or -1) > 0 then
-        file = file .. "nat"
-    elseif (nixio.fs.stat(file .. "dmz", "size") or -1) > 0 then
-        file = file .. "dmz"
-    else
-        file = nil
-    end
+    local file = dmz_file("/etc/config.mesh/_setup.dhcptags.")
     c:set("setup", "dhcptags", "dhcptags")
     if file then
         local dhcp = {}
@@ -126,14 +126,7 @@ end
 
 -- Migrate the old school _setup.dhcpoptions.{nat,dmz} files
 if not c:get("setup", "dhcpoptions") then
-    local file = "/etc/config.mesh/_setup.dhcpoptions."
-    if (nixio.fs.stat(file .. "nat", "size") or -1) > 0 then
-        file = file .. "nat"
-    elseif (nixio.fs.stat(file .. "dmz", "size") or -1) > 0 then
-        file = file .. "dmz"
-    else
-        file = nil
-    end
+    local file = dmz_file("/etc/config.mesh/_setup.dhcpoptions.")
     c:set("setup", "dhcpoptions", "dhcpoptions")
     if file then
         local dhcp = {}
@@ -149,14 +142,7 @@ end
 
 -- Migrate the old school _setup.ports.{nat,dmz} files
 if not c:get("setup", "ports") then
-    local file = "/etc/config.mesh/ports."
-    if (nixio.fs.stat(file .. "nat", "size") or -1) >= 0 then
-        file = file .. "nat"
-    elseif (nixio.fs.stat(file .. "dmz", "size") or -1) >= 0 then
-        file = file .. "dmz"
-    else
-        file = nil
-    end
+    local file = dmz_file("/etc/config.mesh/ports.")
     c:set("setup", "ports", "ports")
     if file then
         local ports = {}
@@ -172,14 +158,7 @@ end
 
 -- Migrate the old school _setup.aliases.{nat,dmz} files
 if not c:get("setup", "aliases") then
-    local file = "/etc/config.mesh/aliases."
-    if (nixio.fs.stat(file .. "nat", "size") or -1) >= 0 then
-        file = file .. "nat"
-    elseif (nixio.fs.stat(file .. "dmz", "size") or -1) >= 0 then
-        file = file .. "dmz"
-    else
-        file = nil
-    end
+    local file = dmz_file("/etc/config.mesh/aliases.")
     c:set("setup", "aliases", "aliases")
     if file then
         local aliases = {}
