@@ -70,8 +70,22 @@
         (function(){
             const commit = htmx.find("#changes button[name=commit]");
             htmx.on(commit, "click", e => {
-                e.target.innerText = "Committing ...";
+                const target = e.target;
                 htmx.find("#changes button[name=revert]").style.display = "none";
+                target.style.width = "110px";
+                target.style.textAlign = "left";
+                target.innerText = "Committing ";
+                let dots = ".";
+                const timer = setInterval(_ => {
+                    if (!document.contains(target)) {
+                        clearInterval(timer);
+                    }
+                    target.innerText = "Committing " + dots;
+                    dots += ".";
+                    if (dots.length > 3) {
+                        dots = "";
+                    }
+                }, 300);
             });
             function retry()
             {
