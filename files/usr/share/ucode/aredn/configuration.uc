@@ -467,6 +467,8 @@ export function supportdata(supportdatafilename)
     const wifiiface = uci.cursor().get("network", "wifi", "device");
 
     const files = [
+        "/proc/cpuinfo",
+        "/proc/meminfo",
         "/etc/board.json",
         "/etc/config",
         "/etc/config.mesh",
@@ -484,7 +486,8 @@ export function supportdata(supportdatafilename)
         "/tmp/service-validation-state",
         "/tmp/sysinfo",
         "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
-        "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to"
+        "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
+        "/proc/net/nf_conntrack"
     ];
     const sensitive = [
         "/etc/config/vtun",
@@ -496,9 +499,8 @@ export function supportdata(supportdatafilename)
         "/etc/config.mesh/setup",
     ];
     const cmds = [
-        "cat /proc/cpuinfo",
-        "cat /proc/meminfo",
         "df -k",
+        "free",
         "dmesg",
         "ifconfig",
         "ethtool eth0",
