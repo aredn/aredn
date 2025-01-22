@@ -129,8 +129,7 @@ local cfg = {
     tc_interval = "10.0",
     mid_interval = "10.0",
     hna_interval = "10.0",
-    ntp_enabled = "0",
-    dnsmasq_cachesize = "1000"
+    ntp_enabled = "0"
 }
 -- Track the changes so we can make better decissions about what to restart/reboot
 local changes = {
@@ -237,7 +236,6 @@ local is_supernode = (cm:get("aredn", "@supernode[0]", "enable") == "1")
 if is_supernode then
     cfg.olsrd_dtd_interface_mode = "isolated"
     cfg.olsrd_pollrate = "0.01"
-    cfg.dnsmasq_cachesize = "50000"
 end
 
 -- delete some config lines if necessary
