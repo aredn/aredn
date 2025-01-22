@@ -107,7 +107,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install mmc-utils
 	cd $(OPENWRT_DIR); ./scripts/feeds install mtr
 	cd $(OPENWRT_DIR); ./scripts/feeds install qemu-ga
-	cd $(OPENWRT_DIR); ./scripts/feeds install rpcap
+	cd $(OPENWRT_DIR); ./scripts/feeds install rpcapd
 	touch $@
 
 # prepare patch
