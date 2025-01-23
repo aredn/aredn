@@ -36,7 +36,7 @@
 --]]
 
 local watchdogfile = "/tmp/olsrd.watchdog"
-local sleeptime = 3 * 60 -- 3 minutes
+local sleeptime = 1 * 60 -- 1 minute
 local timeout = 10 * 60 -- 10 minutes
 
 function olsrd_watchdog()
@@ -45,8 +45,11 @@ function olsrd_watchdog()
         wait_for_ticks(sleeptime)
         if nixio.fs.stat(watchdogfile) then
             local watchtime = tonumber(read_all(watchdogfile))
-            -- If watchtime hasn't update recently then we restart OLSRD
-            if watchtime + timeout < os.time() then
+            -- If watchtime hasn't update recently or we cannot talk to it, then we restart OLSRD
+			local sigsock = nixio.socket("inet", "stream")
+			local connection = sigsock:connect("127.0.0.1", 2006)
+			sigsock:close()
+            if watchtime + timeout < os.time() or connection ~= true then
                 nixio.syslog("err", "olsrd watchdog timeout - restarting")
                 os.remove(watchdogfile)
                 os.execute("/etc/init.d/olsrd restart")
