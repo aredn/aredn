@@ -34,7 +34,7 @@ true <<'LICENSE'
 LICENSE
 
 ROOT="/tmp/reboot-required"
-SERVICES="log system firewall network wireless dnsmasq tunnels lqm manager olsrd localservices poe pou ntp"
+SERVICES="log system firewall network wireless dnsmasq tunnels lqm manager babel olsrd localservices poe pou ntp"
 
 ignore=0
 force=0
