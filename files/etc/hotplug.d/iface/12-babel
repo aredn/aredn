@@ -1,0 +1,40 @@
+#!/bin/sh
+
+BABEL_PORT=6697
+BABEL_PATH=/var/run/babel.sock
+
+case "${ACTION}" in
+    ifdown)
+        socat - UNIX-CLIENT:${BABEL_PATH} <<__END__
+flush interface ${DEVICE}
+__END__
+        ;;
+    ifup)
+        XLINK=$(uci -q -c /etc/config.mesh/ show xlink | grep "ifname='${DEVICE}'")
+        if [ "${XLINK}" != "" ]; then
+            socat - UNIX-CLIENT:${BABEL_PATH} <<__END__
+interface ${DEVICE} type auto
+__END__
+        elif [ "${INTERFACE}" == "wifi" ]; then
+            socat - UNIX-CLIENT:${BABEL_PATH} <<__END__
+interface ${DEVICE} type wireless
+interface ${DEVICE} link-quality yes
+interface ${DEVICE} rxcost 256
+interface ${DEVICE} unicast true
+__END__
+        elif [ "${INTERFACE}" == "dtdlink" ] ; then
+            socat - UNIX-CLIENT:${BABEL_PATH} <<__END__
+interface ${DEVICE} type wired
+interface ${DEVICE} split-horizon true
+__END__
+        elif [ "${INTERFACE:0:3}" = "tun" ] || [ "${INTERFACE:0:2}" = "wg" ]; then
+            socat - UNIX-CLIENT:${BABEL_PATH} <<__END__
+interface ${DEVICE} type tunnel
+interface ${DEVICE} enable-timestamps true
+interface ${DEVICE} max-rtt-penalty 96
+__END__
+        fi
+        ;;
+    *)
+        ;;
+esac
