@@ -56,8 +56,7 @@ else
     if not server:match("%.") then
         server = server .. ".local.mesh"
     end
-    local ip = uci.cursor("/etc/config.mesh"):get("setup", "globals", "dtdlink_ip")
-    local running = io.popen("/bin/traceroute -q 1 -w 1 -s " .. ip .. " " .. server .. " 2>&1")
+    local running = io.popen("/bin/traceroute -q 1 -w 1 " .. server .. " 2>&1")
     if not running then
         print("<html><head><title>ERROR</title></head><body><pre>traceroute failed</pre></body></html>")
     else
