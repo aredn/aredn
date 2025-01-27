@@ -1012,6 +1012,7 @@ write_all("/tmp/new_config/wireless", config)
 -- generate the host and ethers files
 local h = io.open("/etc/hosts", "w")
 local e = io.open("/etc/ethers", "w")
+local ah = io.open("/tmp/arednlink.hosts", "w")
 if h and e then
     h:write("# automatically generated file - do not edit\n")
     h:write("# use /etc/hosts.user for custom entries\n")
@@ -1019,11 +1020,13 @@ if h and e then
     if is_notnull(cfg.wifi_ip) then
         h:write(cfg.lan_ip .. "\tlocalnode\n")
         h:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
+        ah:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
     else
         h:write(cfg.lan_ip .. "\tlocalnode " .. node .. " " .. tactical .. "\n")
     end
     if is_notnull(cfg.dtdlink_ip) then
         h:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
+        ah:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
     end
     if is_nat_mode() then
         h:write(decimal_to_ip(ip_to_decimal(cfg.lan_ip) + 1) .. "\tlocalap\n")
@@ -1048,6 +1051,9 @@ if h and e then
             if validate_same_subnet(ip, cfg.lan_ip, cfg.lan_mask) and validate_ip_netmask(ip, cfg.lan_mask) then
                 h:write(ip .. "\t" .. host .. " " .. noprop .. "\n")
                 e:write(mac .. "\t" .. ip .. "\n")
+                if noprop == "" then
+                    ah:write(ip .. "\t" .. host .. "\n")
+                end
             end
         end
     end
@@ -1064,6 +1070,7 @@ if h and e then
                 host = host .. ".local.mesh"
             end
             h:write(ip .. "\t" .. host .. " #ALIAS\n")
+            ah:write(ip .. "\t" .. host .. "\n")
         end
     end
 
@@ -1073,6 +1080,7 @@ if h and e then
         for line in io.lines("/etc/hosts.user")
         do
             h:write(line .. "\n")
+            ah:write(line .. "\n")
         end
     end
     if nixio.fs.access("/etc/ethers.user", "r") then
@@ -1084,6 +1092,7 @@ if h and e then
     
     h:close()
     e:close()
+    ah:close()
 end
 
 -- generate olsrd.conf
@@ -1147,6 +1156,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
 
         of:write("config LoadPlugin 'nameservice'\n\toption library 'olsrd_nameservice.so.0.4'\n\toption interval '60'\n\toption timeout '600'\n\toption name_change_script '/usr/local/bin/name-change'\n")
         aredn.services.reset_validation()
+        local as = io.open("/tmp/arednlink.services", "w")
         local names, hosts, services = aredn.services.get()
         for _, name in ipairs(names)
         do
@@ -1161,8 +1171,10 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         for _, service in ipairs(services)
         do
             of:write("\tlist service '" .. service .. "'\n")
+            as:write(service .. "\n")
         end
         of:write("\n")
+        as:close()
     
         -- add all the tunnel interfaces
         if vtunclients + vtunservers + wgclients + wgservers > 0 then
@@ -1227,6 +1239,18 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         of:close()
     end
 end
+
+-- Update arednlink
+local _, diff = filecopy("/tmp/arednlink.hosts", "/etc/arednlink/hosts", true)
+if diff then
+    changes.arednlink = true
+end
+local _, diff = filecopy("/tmp/arednlink.services", "/etc/arednlink/services", true)
+if diff then
+    changes.arednlink = true
+end
+os.remove("/tmp/arednlink.hosts")
+os.remove("/tmp/arednlink.services")
 
 -- Update user firewall
 local _, diff = filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user", true)
