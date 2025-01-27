@@ -45,6 +45,7 @@ const currentConfig = "/tmp/config.current";
 const modalConfig = "/tmp/config.modal";
 const configDirs = [
     "/etc",
+    "/etc/arednlink",
     "/etc/config.mesh",
     "/etc/local",
     "/etc/local/uci",
@@ -79,6 +80,8 @@ const configFiles = [
     "/etc/config.mesh/vtun",
     "/etc/config.mesh/wireguard",
     "/etc/config.mesh/xlink",
+    "/etc/arednlink/hosts",
+    "/etc/arednlink/services",
     "/etc/local/uci/hsmmmesh",
     "/etc/aredn_include/dtdlink.network.user",
     "/etc/aredn_include/lan.network.user",
@@ -479,6 +482,8 @@ export function supportdata(supportdatafilename)
         "/etc/os-release",
         "/var/run/hosts_olsr",
         "/var/run/services_olsr",
+        "/etc/arednlink/hosts",
+        "/etc/arednlink/services",
         "/tmp/etc",
         "/tmp/dnsmasq.d",
         "/tmp/lqm.info",
