@@ -25,10 +25,7 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
     ip rule del pref 30010 iif $DEVICE lookup 29
     ip rule del pref 30020 iif $DEVICE lookup 30
     ip rule del pref 30090 iif $DEVICE lookup main
-    # LAN can route over the mesh if it cannot route of WAN and it can have a default route
-    if [ $is_inet -ne 1 ] || [ $is_defaultrt -eq 1 ]; then
-      ip rule add pref 30099 iif $DEVICE lookup 31
-    fi
+    ip rule del pref 30099 iif $DEVICE lookup 31
   fi
 
   if [ "$INTERFACE" == "loopback" ] ; then
@@ -67,7 +64,10 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 30010 iif $DEVICE lookup 29
     ip rule add pref 30020 iif $DEVICE lookup 30
     ip rule add pref 30090 iif $DEVICE lookup main
-    ip rule add pref 30099 iif $DEVICE lookup 31
+    # LAN can route over the mesh if it cannot route of WAN and it can have a default route
+    if [ $is_inet -ne 1 ] && [ $is_defaultrt -eq 1 ]; then
+      ip rule add pref 30099 iif $DEVICE lookup 31
+    fi
 
     # Lets go ahead and set the route to the local network here since we only need to be able to route to it after the interface comes up.
     lan_ipaddr=$(uci -q get network.lan.ipaddr)
