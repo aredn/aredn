@@ -1020,13 +1020,15 @@ if h and e then
     if is_notnull(cfg.wifi_ip) then
         h:write(cfg.lan_ip .. "\tlocalnode\n")
         h:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
-        ah:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
+        ah:write(cfg.wifi_ip .. "\t" .. node .. ".local.mesh\n")
+        ah:write(cfg.lan_ip .. "\tlan." .. node .. ".local.mesh\n")
+        ah:write(cfg.wifi_ip .. "\tbabel." .. node .. ".local.mesh\n")
     else
         h:write(cfg.lan_ip .. "\tlocalnode " .. node .. " " .. tactical .. "\n")
     end
     if is_notnull(cfg.dtdlink_ip) then
         h:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
-        ah:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
+        ah:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh\n")
     end
     if is_nat_mode() then
         h:write(decimal_to_ip(ip_to_decimal(cfg.lan_ip) + 1) .. "\tlocalap\n")
