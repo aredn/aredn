@@ -533,6 +533,7 @@ export function supportdata(supportdatafilename)
         "nft list ruleset",
         "brctl show",
         "babel-dump",
+        "/usr/local/bin/arednlink-dump",
         "echo /all | nc 127.0.0.1 2006",
         "opkg list-installed",
         "ps -w",
