@@ -1,6 +1,7 @@
+#!/bin/sh
 true <<'LICENSE'
   Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2022 Tim Wilkinson
+  Copyright (C) 2025 Tim Wilkinson
   See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
@@ -50,11 +51,40 @@ case "$(/usr/local/bin/get_boardid)" in
 esac
 
 #
+# Generate the backup
+#
+backup="-n"
+if [ -f /tmp/sysupgradefilelist ]; then
+  # Stop babel if it's installed.
+  # We need to do this here so we get the state information into the backup file.
+  if [ -f /etc/init.d/babeld ]; then
+    /etc/init.d/babeld stop
+  fi
+  cp /dev/null /tmp/sysupgradefilelist2
+  cat /tmp/sysupgradefilelist | while read f
+  do
+    if [ -f "${f}" ]; then
+      echo "${f}" >> /tmp/sysupgradefilelist2
+    fi
+  done
+  tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist2 > /dev/null 2>&1
+  if [ -f /tmp/arednsysupgradebackup.tgz ]; then
+    backup="-f /tmp/arednsysupgradebackup.tgz"
+  else
+    if [ -f /etc/init.d/babeld ]; then
+      /etc/init.d/babeld start
+    fi
+    echo "ERROR: Failed to create backup - aborting firmware upgrade" 1>&2
+    exit 1
+  fi
+fi
+
+#
 # Let users force upgrade a node
 #
 force=""
-if [ -f /tmp/force-upgrade-this-is-dangerous ]; then
+if [ -f "/tmp/force-upgrade-this-is-dangerous" ]; then
   force="--force"
 fi
 
-/sbin/sysupgrade ${force} $*
+/sbin/sysupgrade ${force} ${backup} $*
