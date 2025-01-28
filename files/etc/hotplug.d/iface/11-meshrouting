@@ -13,7 +13,7 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
 
   echo "Deleting specific routing rules that may exist."
 
-  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:3}" == "tun" ] || [ "$xlink" != "" ] ; then
+  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:3}" == "tun" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$xlink" != "" ] ; then
     ip rule del pref 20010 iif $DEVICE lookup 29
     ip rule del pref 20020 iif $DEVICE lookup 30
     ip rule del pref 20080 iif $DEVICE lookup 31
@@ -39,7 +39,9 @@ fi
 
 if [ "$ACTION" = "ifup" ] ; then
 
-  is_olsrgw=$(/sbin/uci -q get aredn.@wan[0].olsrd_gw)
+  is_olsrgw=$(/sbin/uci -q get aredn.@wan[0].olsrd_gw) # MESH -> WAN
+  is_inet=$(/sbin/uci -q get aredn.@wan[0].lan_dhcp_route) # LAN -> WAN
+  is_defaultrt=$(/sbin/uci -q get aredn.@wan[0].lan_dhcp_defaultroute) # LAN default route
 
   # Set routes for wifi or device to device linking
   # unreachable rule is needed  to ensure packets do not traverse a rule later that considers routing to another network.
@@ -62,7 +64,10 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 30010 iif $DEVICE lookup 29
     ip rule add pref 30020 iif $DEVICE lookup 30
     ip rule add pref 30090 iif $DEVICE lookup main
-    ip rule add pref 30099 iif $DEVICE lookup 31
+    # LAN can route over the mesh if it cannot route of WAN and it can have a default route
+    if [ $is_inet -ne 1 ] && [ $is_defaultrt -eq 1 ]; then
+      ip rule add pref 30099 iif $DEVICE lookup 31
+    fi
 
     # Lets go ahead and set the route to the local network here since we only need to be able to route to it after the interface comes up.
     lan_ipaddr=$(uci -q get network.lan.ipaddr)
