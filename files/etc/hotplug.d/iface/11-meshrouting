@@ -40,8 +40,7 @@ fi
 if [ "$ACTION" = "ifup" ] ; then
 
   is_olsrgw=$(/sbin/uci -q get aredn.@wan[0].olsrd_gw) # MESH -> WAN
-  is_inet=$(/sbin/uci -q get aredn.@wan[0].lan_dhcp_route) # LAN -> WAN
-  is_defaultrt=$(/sbin/uci -q get aredn.@wan[0].lan_dhcp_defaultroute) # LAN default route
+  is_mesh_wan_gw=$(/sbin/uci -q get aredn.@wan[0].mesh_wan_gw) # LAN -> MESH-WAN
 
   # Set routes for wifi or device to device linking
   # unreachable rule is needed  to ensure packets do not traverse a rule later that considers routing to another network.
@@ -64,8 +63,7 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 30010 iif $DEVICE lookup 29
     ip rule add pref 30020 iif $DEVICE lookup 30
     ip rule add pref 30090 iif $DEVICE lookup main
-    # LAN can route over the mesh if it cannot route of WAN and it can have a default route
-    if [ $is_inet -ne 1 ] && [ $is_defaultrt -eq 1 ]; then
+    if [ $is_mesh_wan_gw -eq 1 ]; then
       ip rule add pref 30099 iif $DEVICE lookup 31
     fi
 

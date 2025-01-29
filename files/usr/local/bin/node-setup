@@ -825,7 +825,7 @@ do
     if nc:get("aredn", "@wan[0]", "lan_dhcp_44route") == "1" then
         route44net = ",44.0.0.0/9," .. cfg.lan_ip .. ",44.128.0.0/10," .. cfg.lan_ip
     end
-    if nc:get("aredn", "@wan[0]", "lan_dhcp_route") == "1" or nc:get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" then
+    if nc:get("aredn", "@wan[0]", "lan_dhcp_route") == "1" or nc:get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" or nc:get("aredn", "@wan[0]", "mesh_wan_gw") == "1" then
         -- Provide stateless routes and default route
         table.insert(dhcp_option_list, "121,10.0.0.0/8," .. cfg.lan_ip .. route44net .. ",0.0.0.0/0," .. cfg.lan_ip)
         table.insert(dhcp_option_list, "249,10.0.0.0/8," .. cfg.lan_ip .. route44net .. ",0.0.0.0/0," .. cfg.lan_ip)
@@ -1295,6 +1295,8 @@ local config_special = {
     ssh_access = c:get("aredn", "@wan[0]", "ssh_access"),
     telnet_access = c:get("aredn", "@wan[0]", "telnet_access"),
     lan_dhcp_route = c:get("aredn", "@wan[0]", "lan_dhcp_route"),
+    olsrd_gw = c:get("aredn", "@wan[0]", "olsrd_gw"),
+    mesh_wan_gw = c:get("aredn", "@wan[0]", "mesh_wan_gw"),
     wifi_mode_0 = c:get("wireless", "@wifi-iface[0]", "mode"),
     wifi_mode_1 = c:get("wireless", "@wifi-iface[1]", "mode"),
     wifi_channel_0 = c:get("wireless", "@wifi-device[0]", "channel"),
@@ -1381,6 +1383,9 @@ do
             end
             if oc:get("aredn", "@wan[0]", "lan_dhcp_route") ~= config_special.lan_dhcp_route then
                 changes.firewall = true
+            end
+            if oc:get("aredn", "@wan[0]", "olsrd_gw") ~= config_special.olsrd_gw or oc:get("aredn", "@wan[0]", "mesh_wan_gw") ~= config_special.mesh_wan_gw then
+                changes.network = true
             end
         elseif file == "network" then
             changes.network = true
