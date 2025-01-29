@@ -33,6 +33,16 @@ true <<'LICENSE'
 
 LICENSE
 
+if [ "$#" != "1" ]; then
+  echo "Usage: aredn_sysupgrade <firmwarefile>" 1>&2
+  exit 1
+fi
+
+if [ ! -f "$1" ]; then
+  echo "ERROR: Missing firmware file: $1" 1>&2
+  exit 1
+fi
+
 #
 # Pre-upgrade special cases
 #
@@ -54,20 +64,25 @@ esac
 # Generate the backup
 #
 backup="-n"
-if [ -f /tmp/sysupgradefilelist ]; then
+if [ ! -f /tmp/do-not-keep-configuration ]; then
   # Stop babel if it's installed.
   # We need to do this here so we get the state information into the backup file.
   if [ -f /etc/init.d/babeld ]; then
     /etc/init.d/babeld stop
+    sleep 1 # Give it a moment or three to stop
+    if [ ! -f /etc/state/babel-state ]; then
+      sleep 2
+    fi
   fi
-  cp /dev/null /tmp/sysupgradefilelist2
-  cat /tmp/sysupgradefilelist | while read f
+  cp /dev/null /tmp/sysupgradefilelist
+  cat /etc/arednsysupgrade.conf | while read f
   do
     if [ -f "${f}" ]; then
-      echo "${f}" >> /tmp/sysupgradefilelist2
+      echo "${f}" >> /tmp/sysupgradefilelist
     fi
   done
-  tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist2 > /dev/null 2>&1
+  rm -f /tmp/arednsysupgradebackup.tgz
+  tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist > /dev/null 2>&1
   if [ -f /tmp/arednsysupgradebackup.tgz ]; then
     backup="-f /tmp/arednsysupgradebackup.tgz"
   else
@@ -87,4 +102,4 @@ if [ -f "/tmp/force-upgrade-this-is-dangerous" ]; then
   force="--force"
 fi
 
-/sbin/sysupgrade ${force} ${backup} $*
+/sbin/sysupgrade ${force} ${backup} -q "$1"
