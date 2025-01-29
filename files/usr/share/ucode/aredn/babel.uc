@@ -68,10 +68,10 @@ export function getInterfaces()
     return r;
 };
 
-export function getNeighbors()
+function getXNeighbors(cmd)
 {
     const c = socket.connect(MANAGER);
-    c.send("dump-neighbors\nquit\n");
+    c.send(`${cmd}\nquit\n`);
     let d = "";
     for (;;) {
         const v = c.recv();
@@ -95,6 +95,16 @@ export function getNeighbors()
         }
     }
     return n;
+}
+
+export function getNeighbors()
+{
+    return getXNeighbors("dump-neighbors");
+};
+
+export function getRoutableNeighbors()
+{
+    return getXNeighbors("dump-routable-neighbors");
 };
 
 export function getHostRoutes()
