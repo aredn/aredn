@@ -103,16 +103,7 @@
             }
         }
         if (!error) {
-            fs.unlink("/tmp/arednsysupgradebackup.tgz");
-            if (!fs.access("/tmp/do-not-keep-configuration")) {
-                fs.writefile("/tmp/sysupgradefilelist", fs.readfile("/etc/arednsysupgrade.conf"));
-                if (!fs.access("/tmp/sysupgradefilelist")) {
-                    error = "Failed to create backup file list.";
-                }
-            }
-            if (!error) {
-                return { upgrade: `/usr/local/bin/aredn_sysupgrade -q ${firmwarefile}` };
-            }
+            return { upgrade: `/usr/local/bin/aredn_sysupgrade ${firmwarefile}` };
         }
         return { error: error };
     };
