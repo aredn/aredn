@@ -45,19 +45,26 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("ntp_server" in request.args) {
         configuration.setSetting("ntp_server", request.args.ntp_server);
     }
-    if ("ntp_server2" in request.args) {
-        configuration.setSetting("ntp_server2", request.args.ntp_server2);
+    if ("ntp_active_server" in request.args) {
+        configuration.setSetting("ntp_active_server", request.args.ntp_active_server);
     }
     if ("ntp_mode" in request.args) {
         switch (request.args.ntp_mode) {
-            case "daily":
-            case "hourly":
-            case "continually":
-                uciMesh.set("aredn", "@ntp[0]", "period", request.args.ntp_mode);
+            case "0":
+                uciMesh.set("aredn", "@ntp[0]", "period", "daily");
+                break;
+            case "1":
+                uciMesh.set("aredn", "@ntp[0]", "period", "hourly");
+                break;
+            case "2":
+                uciMesh.set("aredn", "@ntp[0]", "period", "continually");
                 break;
             default:
                 break;
         }
+    }
+    if ("ntp_active_server" in request.args) {
+        configuration.setSetting("ntp_active_server", request.args.ntp_active_server === "on" ? "1" : "0");
     }
     if (request.args.gps_enable) {
         uciMesh.set("aredn", "@time[0]", "gps_enable", request.args.gps_enable === "on" ? "1" : "0");
@@ -88,12 +95,25 @@ if (f) {
 }
 const ntp_server = configuration.getSettingAsString("ntp_server", "");
 const ntp_server2 = configuration.getSettingAsString("ntp_server2", "");
-const ntp_mode = uciMesh.get("aredn", "@ntp[0]", "period") || "daily";
+const ntp_active_server = configuration.getSettingAsString("ntp_active_server", "0");
+let ntp_mode;
+switch (uciMesh.get("aredn", "@ntp[0]", "period")) {
+    case "daily":
+        ntp_mode = "1";
+        break;
+    case "continually":
+        ntp_mode = "2";
+        break;
+    case "hourly":
+    default:
+        ntp_mode = "0";
+        break;
+}
 %}
 <div class="dialog">
     {{_R("dialog-header", "Time")}}
-    <div>
-        <div class="cols">
+    <div class="hideable" data-hideable="{{ntp_mode}}">
+        <div class="cols hideable">
             <div>
                 <div class="o">Timezone</div>
                 <div class="m">Timezone</div>
@@ -129,16 +149,28 @@ const ntp_mode = uciMesh.get("aredn", "@ntp[0]", "period") || "daily";
                 <div class="m">NTP update frequency</div>
             </div>
             <div style="flex:0">
-                <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="ntp_mode">
-                    <option value="hourly" {{ntp_mode == "hourly" ? "selected" : ""}}>Hourly</option>
-                    <option value="daily" {{ntp_mode == "daily" ? "selected" : ""}}>Daily</option>
-                    <option value="continually" {{ntp_mode == "continually" ? "selected" : ""}}>Continually</option>
+                <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="ntp_mode" {{_R("hideable-onselect")}}>
+                    <option value="0" {{ntp_mode == "0" ? "selected" : ""}}>Hourly</option>
+                    <option value="1" {{ntp_mode == "1" ? "selected" : ""}}>Daily</option>
+                    <option value="2" {{ntp_mode == "2" ? "selected" : ""}}>Continually</option>
                 </select>
             </div>
         </div>
         {{_H("NTP is used to keep the node's time up to date. Syncing the time every day is probably sufficient
         but you can increase the frequency to hourly or run NTP all the time. Having accurate time means your timed events will run when
         you expected and log information will show meaningful times.")}}
+        <div class="hideable2">
+            <div class="cols">
+                <div>
+                    <div class="o">NTP Server</div>
+                    <div class="m">Allows LAN devices to use this node as an NTP server</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "ntp_active_server", value: ntp_active_server === "1" })}}
+                </div>
+            </div>
+            {{_H("Allow this node to act as an NTP server for LAN devices.")}}
+        </div>
         <div class="cols">
             <div>
                 <div class="o">24-Hour Clock</div>
