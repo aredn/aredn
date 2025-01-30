@@ -67,8 +67,8 @@ backup="-n"
 if [ ! -f /tmp/do-not-keep-configuration ]; then
   # Stop babel if it's installed.
   # We need to do this here so we get the state information into the backup file.
-  if [ -f /etc/init.d/babeld ]; then
-    /etc/init.d/babeld stop
+  if [ -f /etc/init.d/babel ]; then
+    /etc/init.d/babel stop
     sleep 1 # Give it a moment or three to stop
     if [ ! -f /etc/state/babel-state ]; then
       sleep 2
@@ -86,8 +86,8 @@ if [ ! -f /tmp/do-not-keep-configuration ]; then
   if [ -f /tmp/arednsysupgradebackup.tgz ]; then
     backup="-f /tmp/arednsysupgradebackup.tgz"
   else
-    if [ -f /etc/init.d/babeld ]; then
-      /etc/init.d/babeld start
+    if [ -f /etc/init.d/babel ]; then
+      /etc/init.d/babel start
     fi
     echo "ERROR: Failed to create backup - aborting firmware upgrade" 1>&2
     exit 1
