@@ -17,6 +17,7 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
     ip rule del pref 20010 iif $DEVICE lookup 29
     ip rule del pref 20020 iif $DEVICE lookup 20
     ip rule del pref 20030 iif $DEVICE lookup 30
+    ip rule del pref 20070 iif $DEVICE lookup 21
     ip rule del pref 20080 iif $DEVICE lookup 31
     ip rule del pref 20090 iif $DEVICE lookup main
     ip rule del pref 20099 iif $DEVICE unreachable 
@@ -26,16 +27,18 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
     ip rule del pref 30010 iif $DEVICE lookup 29
     ip rule del pref 30020 iif $DEVICE lookup 20
     ip rule del pref 30030 iif $DEVICE lookup 30
-    ip rule del pref 30090 iif $DEVICE lookup main
-    ip rule del pref 30099 iif $DEVICE lookup 31
+    ip rule del pref 30060 iif $DEVICE lookup main
+    ip rule del pref 30070 iif $DEVICE lookup 21
+    ip rule del pref 30080 iif $DEVICE lookup 31
   fi
 
   if [ "$INTERFACE" == "loopback" ] ; then
     ip rule del pref 30210 lookup 29
     ip rule del pref 30220 lookup 20
     ip rule del pref 30230 lookup 30
-    ip rule del pref 30290 lookup main
-    ip rule del pref 30299 lookup 31
+    ip rule del pref 30260 lookup main
+    ip rule del pref 30270 lookup 21
+    ip rule del pref 30280 lookup 31
   fi
 
 fi
@@ -54,6 +57,7 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 20010 iif $DEVICE lookup 29
     ip rule add pref 20020 iif $DEVICE lookup 20
     ip rule add pref 20030 iif $DEVICE lookup 30
+    #ip rule add pref 20070 iif $DEVICE lookup 21
     ip rule add pref 20080 iif $DEVICE lookup 31
     if [ $is_olsrgw -eq 1 ] ; then
       ip rule add pref 20090 iif $DEVICE lookup main
@@ -67,9 +71,10 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 30010 iif $DEVICE lookup 29
     ip rule add pref 30020 iif $DEVICE lookup 20
     ip rule add pref 30030 iif $DEVICE lookup 30
-    ip rule add pref 30090 iif $DEVICE lookup main
+    ip rule add pref 30060 iif $DEVICE lookup main
     if [ $is_mesh_wan_gw -eq 1 ]; then
-      ip rule add pref 30099 iif $DEVICE lookup 31
+      #ip rule add pref 30070 iif $DEVICE lookup 21
+      ip rule add pref 30080 iif $DEVICE lookup 31
     fi
 
     # Lets go ahead and set the route to the local network here since we only need to be able to route to it after the interface comes up.
@@ -93,8 +98,9 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 30210 lookup 29
     ip rule add pref 30220 lookup 20
     ip rule add pref 30230 lookup 30
-    ip rule add pref 30290 lookup main
-    ip rule add pref 30299 lookup 31
+    ip rule add pref 30260 lookup main
+    #ip rule add pref 30270 lookup 21
+    ip rule add pref 30280 lookup 31
   fi
 
 fi
