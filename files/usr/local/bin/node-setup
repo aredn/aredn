@@ -1397,6 +1397,7 @@ do
             end
             if oc:get("aredn", "@wan[0]", "olsrd_gw") ~= config_special.olsrd_gw or oc:get("aredn", "@wan[0]", "mesh_wan_gw") ~= config_special.mesh_wan_gw then
                 changes.network = true
+                changes.babeld = true
             end
         elseif file == "network" then
             changes.network = true
@@ -1407,7 +1408,7 @@ do
         elseif file == "olsrd" then
             changes.olsrd = true
         elseif file == "babel" then
-            changes.babel = true
+            changes.babeld = true
         elseif file == "firewall" then
             changes.firewall = true
         elseif file == "wireless" then
