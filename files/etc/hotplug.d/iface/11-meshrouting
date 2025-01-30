@@ -57,7 +57,7 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 20010 iif $DEVICE lookup 29
     ip rule add pref 20020 iif $DEVICE lookup 20
     ip rule add pref 20030 iif $DEVICE lookup 30
-    #ip rule add pref 20070 iif $DEVICE lookup 21
+    ip rule add pref 20070 iif $DEVICE lookup 21
     ip rule add pref 20080 iif $DEVICE lookup 31
     if [ $is_olsrgw -eq 1 ] ; then
       ip rule add pref 20090 iif $DEVICE lookup main
@@ -73,7 +73,7 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 30030 iif $DEVICE lookup 30
     ip rule add pref 30060 iif $DEVICE lookup main
     if [ $is_mesh_wan_gw -eq 1 ]; then
-      #ip rule add pref 30070 iif $DEVICE lookup 21
+      ip rule add pref 30070 iif $DEVICE lookup 21
       ip rule add pref 30080 iif $DEVICE lookup 31
     fi
 
@@ -99,7 +99,7 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 30220 lookup 20
     ip rule add pref 30230 lookup 30
     ip rule add pref 30260 lookup main
-    #ip rule add pref 30270 lookup 21
+    ip rule add pref 30270 lookup 21
     ip rule add pref 30280 lookup 31
   fi
 
