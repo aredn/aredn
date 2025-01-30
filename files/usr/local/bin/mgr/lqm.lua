@@ -353,7 +353,7 @@ function lqm_run()
         local arps = {}
         for line in io.popen(IPCMD .. " neigh show"):lines()
         do
-            local ip, dev, mac, probes, state = line:match("^(%S+) dev (%S+) lladdr (%S+) .+ probes (%d+) (.+)$")
+            local ip, dev, mac, probes, state = line:match("^([0-9%.]+) dev (%S+) lladdr (%S+) .+ probes (%d+) (.+)$")
             if ip then
                 -- Filter neighbors so we ignore entries which aren't immediately routable
                 local routable = false;
