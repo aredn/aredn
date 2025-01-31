@@ -523,11 +523,13 @@ cm:foreach("wireguard", "client",
         if s.enabled == "1" then
             local server_priv, _, _, client_pub = s.key:match("^(.+=)(.+=)(.+=)(.+=)$")
             local addr, port = s.clientip:match("^(%d+%.%d+%.%d+%.%d+):(%d+)$")
+            local a, b, c, d = addr:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
+            local ll = string.format("fe80::%02x%02x:%02x%02x/64", a, b, c, d)
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
                 string.format("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\n",
-                    wgclients, server_priv, port, addr)
+                    wgclients, server_priv, port, addr, ll)
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                string.format("config wireguard_wgc%d\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
+                string.format("config wireguard_wgc%d\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
                     wgclients, client_pub)
             local w = s.weight or def_tun_weight
             if not tun_weights[w] then
@@ -548,11 +550,13 @@ cm:foreach("vtun", "server",
                 local server_pub, client_priv, client_pub = s.passwd:match("^(.+=)(.+=)(.+=)$")
                 local abc, d, p = s.netip:match("^(%d+%.%d+%.%d+)%.(%d+):(%d+)")
                 d = tonumber(d) + 1
+                local a, b, c = abc:match("(%d+)%.(%d+)%.(%d+)")
+                local ll = string.format("fe80::%02x%02x:%02x%02x/64", a, b, c, d)
                 cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                    string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\tlist addresses '%s'\n\n",
-                        wgservers, client_priv, (abc .. "." .. d))
+                    string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\n",
+                        wgservers, client_priv, (abc .. "." .. d), ll)
                 cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                    string.format("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
+                    string.format("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
                         wgservers, server_pub, s.host, p)
                 local w = s.weight or def_tun_weight
                 if not tun_weights[w] then
