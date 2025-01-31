@@ -33,10 +33,12 @@
 
 import * as fs from "fs";
 import * as socket from "socket";
+import * as rtnl from "rtnl";
 
 export const MANAGER = { path: "/var/run/babel.sock" };
 export const LINK = { path: "/var/run/arednlink.sock" };
 export const ROUTING_TABLE = 20;
+export const ROUTING_TABLE_DEFAULT = ROUTING_TABLE + 1;
 
 export function getInterfaces()
 {
@@ -110,19 +112,26 @@ export function getRoutableNeighbors()
 export function getHostRoutes()
 {
     const routes = [];
-    const f = fs.popen(`/sbin/ip route show table ${ROUTING_TABLE}`);
-    if (f) {
-        // 10.21.59.98 via 10.21.59.98 dev br-dtdlink onlink 
-        const re = /^([0-9.]+) via ([^ ]+) dev ([^ ]+) /;
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            const m = match(l, re);
-            if (m) {
-                push(routes, { dst: m[1], via: m[2], iface: m[3] });
-            }
+    const rs = rtnl.request(rtnl.const.RTM_GETROUTE, rtnl.const.NLM_F_DUMP, { family: rtnl.const.AF_INET });
+    for (let i = length(rs) - 1; i >= 0; i--) {
+        const r = rs[i];
+        if (r.table === ROUTING_TABLE && index(r.dst, "/32") !== -1) {
+            push(routes, { dst: substr(r.dst, 0, -3), gateway: r.gateway, oif: r.oif });
         }
-        f.close();
     }
     return routes;
+};
+
+export function getDefaultRoute()
+{
+    const rs = rtnl.request(rtnl.const.RTM_GETROUTE, rtnl.const.NLM_F_DUMP, { family: rtnl.const.AF_INET });
+    for (let i = length(rs) - 1; i >= 0; i--) {
+        const r = rs[i];
+        if (r.table === ROUTING_TABLE_DEFAULT && !r.dst) {
+            return { gateway: r.gateway, oif: r.oif };
+        }
+    }
+    return null;
 };
 
 export function uploadNames(namefile)
