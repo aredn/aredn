@@ -68,13 +68,15 @@ local function get(validate)
 
     local dmz_mode = uci.cursor("/etc/config.mesh"):get("setup", "globals", "dmz_mode")
     if dmz_mode ~= "0" then
-        if nixio.fs.stat("/etc/config.mesh/aliases.dmz") then
-            for line in io.lines("/etc/config.mesh/aliases.dmz")
-            do
-                local ip, host = line:match("(.*) (.*)")
-                if host then
-                    hosts[#hosts + 1] = { ip = ip, host = host }
+        local aliases = uci.cursor("/etc/config.mesh"):get_all("setup", "aliases", "alias") or {}
+        for _, line in ipairs(aliases)
+        do
+            local ip, host = line:match("(%S+)%s+(%S+)")
+            if ip then
+                if host:match("%.") and not host:match("%.local%.mesh$") then
+                    host = host .. ".local.mesh"
                 end
+                hosts[#hosts + 1] = { ip = ip, host = host }
             end
         end
         if nixio.fs.stat("/etc/ethers") then
