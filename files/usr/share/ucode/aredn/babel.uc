@@ -113,7 +113,7 @@ export function getHostRoutes()
     const f = fs.popen(`/sbin/ip route show table ${ROUTING_TABLE}`);
     if (f) {
         // 10.21.59.98 via 10.21.59.98 dev br-dtdlink onlink 
-        const re = /^([0-9.]+) via (.+) dev (.+) onlink/;
+        const re = /^([0-9.]+) via ([^ ]+) dev ([^ ]+) /;
         for (let l = f.read("line"); length(l); l = f.read("line")) {
             const m = match(l, re);
             if (m) {
