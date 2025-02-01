@@ -332,13 +332,23 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                 <div class="i">
                 {% if (!supernode) { %}
                     <div>{{n.node_route_count}}</div>
-                    <div>active routes</div>
+                    <div>olsr routes</div>
                 {% } %}
                 </div>
+                <div class="i">
+                {% if (!supernode) { %}
+                    <div>{{n.babel_route_count}}</div>
+                    <div>babel routes</div>
+                {% } %}
+                </div>
+            </div>
+            <div class="cols">
                 <div class="i">
                     <div>{{lastseen(n)}}</div>
                     <div>last seen</div>
                 </div>
+                <div></div>
+                <div></div>
             </div>
             {%
             const snr = `/tmp/snrlog/${uc(selected)}-${lc(n.hostname)}`;
