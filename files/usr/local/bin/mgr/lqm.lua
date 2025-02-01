@@ -63,6 +63,7 @@ local now = 0
 local config = {}
 
 local total_node_route_count = nil
+local total_babel_route_count = nil
 
 function update_config()
     local c = uci.cursor() -- each time as /etc/config/aredn may have changed
@@ -581,6 +582,7 @@ function lqm_run()
                     avg_tx_retries = nil,
                     avg_tx_fail = nil,
                     node_route_count = 0,
+                    babel_route_count = 0,
                     rev_ping_quality = nil,
                     rev_ping_success_time = nil,
                     rev_quality = nil
@@ -859,6 +861,7 @@ function lqm_run()
             end
 
             track.node_route_count = 0
+            track.babel_route_count = 0
         end
 
         --
@@ -877,6 +880,18 @@ function lqm_run()
                     if track then
                         track.node_route_count = track.node_route_count + 1
                         total_node_route_count = total_node_route_count + 1
+                    end
+                end
+            end
+            total_babel_route_count = 0
+            for line in io.popen(IPCMD .. " route show table 20"):lines()
+            do
+                local gw = line:match("^10%.%d+%.%d+%.%d+ via (%d+%.%d+%.%d+%.%d+) dev")
+                if gw then
+                    local track = ip2tracker[gw];
+                    if track then
+                        track.babel_route_count = track.babel_route_count + 1
+                        total_babel_route_count = total_babel_route_count + 1
                     end
                 end
             end
