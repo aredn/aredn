@@ -45,16 +45,19 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("ntp_server" in request.args) {
         configuration.setSetting("ntp_server", request.args.ntp_server);
     }
+    if ("ntp_server2" in request.args) {
+        configuration.setSetting("ntp_server2", request.args.ntp_server2);
+    }
     if ("ntp_active_server" in request.args) {
         configuration.setSetting("ntp_active_server", request.args.ntp_active_server);
     }
     if ("ntp_mode" in request.args) {
         switch (request.args.ntp_mode) {
             case "0":
-                uciMesh.set("aredn", "@ntp[0]", "period", "daily");
+                uciMesh.set("aredn", "@ntp[0]", "period", "hourly");
                 break;
             case "1":
-                uciMesh.set("aredn", "@ntp[0]", "period", "hourly");
+                uciMesh.set("aredn", "@ntp[0]", "period", "daily");
                 break;
             case "2":
                 uciMesh.set("aredn", "@ntp[0]", "period", "continually");
