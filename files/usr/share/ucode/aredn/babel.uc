@@ -38,7 +38,8 @@ import * as rtnl from "rtnl";
 export const MANAGER = { path: "/var/run/babel.sock" };
 export const LINK = { path: "/var/run/arednlink.sock" };
 export const ROUTING_TABLE = 20;
-export const ROUTING_TABLE_DEFAULT = ROUTING_TABLE + 1;
+export const ROUTING_TABLE_SUPERNODE = 21;
+export const ROUTING_TABLE_DEFAULT = 22;
 
 export function getInterfaces()
 {
@@ -128,6 +129,18 @@ export function getDefaultRoute()
     for (let i = length(rs) - 1; i >= 0; i--) {
         const r = rs[i];
         if (r.table === ROUTING_TABLE_DEFAULT && !r.dst) {
+            return { gateway: r.gateway, oif: r.oif };
+        }
+    }
+    return null;
+};
+
+export function getSupernode()
+{
+    const rs = rtnl.request(rtnl.const.RTM_GETROUTE, rtnl.const.NLM_F_DUMP, { family: rtnl.const.AF_INET });
+    for (let i = length(rs) - 1; i >= 0; i--) {
+        const r = rs[i];
+        if (r.table === ROUTING_TABLE_SUPERNODE) {
             return { gateway: r.gateway, oif: r.oif };
         }
     }

@@ -627,10 +627,10 @@ end
 
 -- Supernode blackhole routes
 if is_supernode then
-    cfg.supernode_network_config = "config route\n\toption target '10.0.0.0/8'\n\toption type 'blackhole'\n\toption table '22'\n\n"
+    cfg.supernode_network_config = "config route\n\toption target '10.0.0.0/8'\n\toption type 'blackhole'\n\toption table '21'\n\n"
     local is_44net = cm:get("aredn", "@supernode[0]", "44net")
     if is_44net ~= "0" then
-        cfg.supernode_network_config = cfg.supernode_network_config .. "config route\n\toption target '44.0.0.0/9'\n\toption type 'blackhole'\n\toption table '22'\n\nconfig route\n\toption target '44.128.0.0/10'\n\toption type 'blackhole'\n\toption table '22'\n\n"
+        cfg.supernode_network_config = cfg.supernode_network_config .. "config route\n\toption target '44.0.0.0/9'\n\toption type 'blackhole'\n\toption table '21'\n\nconfig route\n\toption target '44.128.0.0/10'\n\toption type 'blackhole'\n\toption table '21'\n\n"
     end
 end
 
