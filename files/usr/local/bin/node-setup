@@ -121,7 +121,6 @@ local cfg = {
     olsrd_dtd_interface_mode = "ether",
     tun_network_config = "",
     wireguard_network_config = "",
-    supernode_network_config = "",
     dtdlink_interfaces = "\tlist network 'dtdlink'",
     vpn_interfaces = "",
     olsrd_pollrate = "0.05",
@@ -623,15 +622,6 @@ if nixio.fs.stat("/etc/config.mesh/xlink") then
             cfg.dtdlink_interfaces = cfg.dtdlink_interfaces .. "\n\tlist network '" .. section[".name"] .. "'"
         end
     )
-end
-
--- Supernode blackhole routes
-if is_supernode then
-    cfg.supernode_network_config = "config route\n\toption target '10.0.0.0/8'\n\toption type 'blackhole'\n\toption table '21'\n\n"
-    local is_44net = cm:get("aredn", "@supernode[0]", "44net")
-    if is_44net ~= "0" then
-        cfg.supernode_network_config = cfg.supernode_network_config .. "config route\n\toption target '44.0.0.0/9'\n\toption type 'blackhole'\n\toption table '21'\n\nconfig route\n\toption target '44.128.0.0/10'\n\toption type 'blackhole'\n\toption table '21'\n\n"
-    end
 end
 
 -- NTP
