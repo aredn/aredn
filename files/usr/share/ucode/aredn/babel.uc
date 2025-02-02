@@ -44,6 +44,9 @@ export const ROUTING_TABLE_DEFAULT = 22;
 export function getInterfaces()
 {
     const c = socket.connect(MANAGER);
+    if (!c) {
+        return null;
+    }
     c.send("dump-interfaces\nquit\n");
     let d = "";
     for (;;) {
@@ -74,6 +77,9 @@ export function getInterfaces()
 function getXNeighbors(cmd)
 {
     const c = socket.connect(MANAGER);
+    if (!c) {
+        return null;
+    }
     c.send(`${cmd}\nquit\n`);
     let d = "";
     for (;;) {
@@ -150,6 +156,9 @@ export function getSupernode()
 export function uploadNames(namefile)
 {
     const c = socket.connect(LINK);
+    if (!c) {
+        return false;
+    }
     c.send(`upload-names ${namefile}\nquit\n`);
     let d = "";
     for (;;) {
@@ -166,6 +175,9 @@ export function uploadNames(namefile)
 export function uploadServices(servicefile)
 {
     const c = socket.connect(LINK);
+    if (!c) {
+        return false;
+    }
     c.send(`upload-services ${servicefile}\nquit\n`);
     let d = "";
     for (;;) {
@@ -177,11 +189,4 @@ export function uploadServices(servicefile)
     }
     c.close();
     return index(d, "ok") === -1 ? false : true;
-};
-
-export function forceNamesAndServicesUpdate()
-{
-    const c = socket.connect(LINK);
-    c.send(`force-update\nquit\n`);
-    c.close();
 };
