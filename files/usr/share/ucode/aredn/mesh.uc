@@ -58,19 +58,19 @@ export function getNodeList()
 
 export function getNodeCounts()
 {
-    let nodes = 0;
-    let devices = 0;
-    let services = 0;
+    let onodes = 0;
+    let odevices = 0;
+    let oservices = 0;
     let f = fs.open("/var/run/hosts_olsr");
     if (f) {
         const re = /\t(lan|mid\d+|xlink\d+)\./;
         for (let l = f.read("line"); length(l); l = f.read("line")) {
             if (substr(l, 0, 3) == "10.") {
                 if (index(l, "\tdtdlink.") !== -1) {
-                    nodes++;
+                    onodes++;
                 }
                 else if (!match(l, re)) {
-                    devices++;
+                    odevices++;
                 }
             }
         }
@@ -81,14 +81,50 @@ export function getNodeCounts()
         for (let l = f.read("line"); length(l); l = f.read("line")) {
             const c = substr(l, 0, 1);
             if (c !== "#" && c !== "\n") {
-                services++;
+                oservices++;
             }
         }
         f.close();
     }
+    let bnodes = 0;
+    let bdevices = 0;
+    let bservices = 0;
+    let d = fs.opendir("/var/run/arednlink/hosts");
+    if (d) {
+        for (let entry = d.read(); entry; entry = d.read()) {
+            if (entry !== "." && entry !== "..") {
+                bnodes++;
+                let f = fs.open(`/var/run/arednlink/hosts/${entry}`);
+                if (f) {
+                    const re = /\t(lan|babel|mid\d+|xlink\d+)\./;
+                    for (let l = f.read("line"); l; l = f.read("line")) {
+                        if (!match(l, re)) {
+                            bdevices++;
+                        }
+                    }
+                    f.close();
+                }
+                f = fs.open(`/var/run/arednlink/services/${entry}`);
+                if (f) {
+                    while(f.read("line")) {
+                        bservices++;
+                    }
+                    f.close();
+                }
+            }
+        }
+        d.close();
+    }
     return {
-        nodes: nodes,
-        devices: devices,
-        services: services
+        olsr: {
+            nodes: onodes,
+            devices: odevices,
+            services: oservices
+        },
+        babel: {
+            nodes: bnodes,
+            devices: bdevices,
+            services: bservices
+        }
     };
 };
