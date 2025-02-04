@@ -96,7 +96,7 @@ export function getNodeCounts()
                 bnodes++;
                 let f = fs.open(`/var/run/arednlink/hosts/${entry}`);
                 if (f) {
-                    const re = /\t(lan|babel|mid\d+|xlink\d+)\./;
+                    const re = /\t(lan|dtdlink|babel|mid\d+|xlink\d+)\./;
                     for (let l = f.read("line"); l; l = f.read("line")) {
                         if (!match(l, re)) {
                             bdevices++;
