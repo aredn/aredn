@@ -98,7 +98,7 @@ export function getNodeCounts()
                 if (f) {
                     const re = /\t[^\.]+\.local\.mesh/;
                     for (let l = f.read("line"); l; l = f.read("line")) {
-                        if (!match(l, re)) {
+                        if (match(l, re)) {
                             bdevices++;
                         }
                     }
