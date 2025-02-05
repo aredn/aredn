@@ -241,17 +241,22 @@ export function getRfBandwidths(wifiIface)
 export function getDefaultChannel(wifiIface)
 {
     const rfchannels = getRfChannels(wifiIface);
+    const rfbandwidths = getRfBandwidths(wifiIface);
+    let bw = 0;
+    if (index(rfbandwidths, 10) !== -1) {
+        bw = 10;
+    }
+    else if (index(rfbandwidths, 20) !== -1) {
+        bw = 20;
+    }
+    else if (index(rfbandwidths, 5) !== -1) {
+        bw = 5;
+    }
     for (let i = 0; i < length(rfchannels); i++) {
         const c = rfchannels[i];
         if (c.frequency == 912) {
             return { channel: 5, bandwidth: 5, band: "900MHz" };
         }
-        const bws = {};
-        const b = getRfBandwidths(wifiIface);
-        for (let j = 0; j < length(b); j++) {
-            bws[b[j]] = b[j];
-        }
-        const bw = bws[10] || bws[20] || bws[5] || 0;
         if (c.frequency === 2397) {
             return { channel: -2, bandwidth: bw, band: "2.4GHz" };
         }
