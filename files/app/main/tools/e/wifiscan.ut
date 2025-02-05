@@ -41,9 +41,10 @@ const config = radios.getActiveConfiguration();
 let count = 0;
 let selected = -1;
 for (let i = 0; i < length(config); i++) {
-    if (config[i].mode.mode !== radios.RADIO_OFF) {
+    const mode = config[i].mode.mode;
+    if (mode !== radios.RADIO_OFF) {
         count++;
-        if (selected === -1 || config[i].mode.mode == radios.RADIO_MESH) {
+        if (selected === -1 || (mode == radios.RADIO_MESH || mode == radios.RADIO_MESHAP || mode == radios.RADIO_MESHSTA)) {
             selected = i;
         }
     }
@@ -57,7 +58,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if (!radio) {
         return;
     }
-    const radiomode = filter(radio.modes, m => m)[0];
+    const radiomode = radio.mode;
     const wifiiface = radio.iface;
     const myssid = radiomode.ssid;
     const mychan = radiomode.channel ?? -1;
@@ -89,7 +90,6 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const re = regexp(`^Station ([0-9a-fA-F:]+) \\(on ${wifiiface}\\)`);
         const reSi = /signal:[ \t]+(-[0-9]+)/;
         let station;
-        const dmode = radio.mode.mode === radios.RADIO_MESH ? "Connected Ad-Hoc Station" : "AP";
         for (let l = f.read("line"); length(l); l = f.read("line")) {
             let m = match(l, re);
             if (m) {
@@ -101,8 +101,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
                         mac: m[1],
                         signal: 9999,
                         key: "",
-                        joined: false,
-                        mode: dmode,
+                        joined: true,
+                        mode: "Station",
                         ssid: myssid,
                         ip: ip,
                         hostname: hostname
@@ -165,22 +165,17 @@ if (request.env.REQUEST_METHOD === "PUT") {
                         mode: "AP",
                         ssid: "",
                         ip: ip,
-                        hostname: hostname
+                        hostname: hostname,
+                        ibss: false
                     };
                     scan[m[1]] = station;
                 }
-                if (radiomode.mode.mode === radios.RADIO_MESH && index(l, "joined") !== -1) {
-                    station.mode = "My Ad-Hoc Network";
+                if (index(l, "joined") !== -1) {
                     station.joined = true;
-                    station.hostname = nodename;
                 }
             }
             m = match(l, reF);
             if (m) {
-                if (radiomode.mode.mode === radios.RADIO_MESH && m[1] == myfreq) {
-                    station.mode = "My Ad-Hoc Network";
-                    station.joined = true;
-                }
                 const chan = hardware.getChannelFromFrequency(int(m[1]));
                 if (chan) {
                     station.chan[chan] = true;
@@ -198,16 +193,55 @@ if (request.env.REQUEST_METHOD === "PUT") {
             if (m) {
                 station.key = m[1];
             }
-            if (index(l, "capability: IBSS") !== -1 && station.mode === "AP") {
-                station.mode = "Foreign Ad-Hoc Network";
+            if (index(l, "capability: IBSS")) {
+                station.ibss = true;
             }
         }
         f.close();
     }
 
     for (let k in scan) {
-        scan[k].chan = join(" ", sort(keys(scan[k].chan)));
-        scan[k].hostname = scan[k].hostname ? replace(scan[k].hostname, ".local.mesh", "") : null;
+        const s = scan[k];
+        s.mode = "AP";
+        switch (radiomode.mode) {
+            case radios.RADIO_MESH:
+                if (s.joined) {
+                    s.mode = "My Ad-Hoc Mesh";
+                    s.hostname = nodename;
+                }
+                else if (s.chan[mychan] && s.ssid == myssid) {
+                    s.mode = "My Ad-Hoc Mesh";
+                }
+                break;
+            case radios.RADIO_MESHAP:
+                if (s.joined) {
+                    s.mode = "My Mesh AP";
+                    s.hostname = nodename;
+                }
+                break;
+            case radios.RADIO_MESHSTA:
+                if (s.joined) {
+                    s.mode = "My Mesh Station";
+                    s.hostname = nodename;
+                }
+                break;
+            default:
+                if (s.joined) {
+                    s.mode = "Remote Station";
+                }
+                break;
+        }
+        if (s.mode === "AP") {
+            if (s.ibss && match(s.ssid, /^[^-]+-(5|10|20|40|80)-v3$/)) {
+                s.mode = "Ad-Hoc Mesh";
+            }
+            else if (match(s.ssid, /^[^-]+--?[0-9]+-(5|10|20|40|80)-v3$/)) {
+                s.mode = "AP Mesh";
+            }
+        }
+   
+        s.chan = join(" ", sort(keys(s.chan)));
+        s.hostname = s.hostname ? replace(s.hostname, ".local.mesh", "") : null;
     }
 
     last_scan = sort(

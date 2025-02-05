@@ -77,6 +77,10 @@ export function getActiveConfiguration()
         let ldevice;
         let wdevice;
 
+        for (let i = 0; i < nrradios; i++) {
+            radio[i].mode = { mode: RADIO_OFF };
+        }
+
         const mmode = {
             mode: RADIO_MESH,
             channel: 0,

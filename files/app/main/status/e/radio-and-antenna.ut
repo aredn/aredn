@@ -44,9 +44,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
         "3": radios.RADIO_WAN
     };
     const wlan = radios.getConfiguration();
-    let radio0_mode = "radio0_mode" in request.args ? modemap[int(request.args.radio0_mode)] : wlan[0].mode;
-    let radio1_mode = "radio1_mode" in request.args ? modemap[int(request.args.radio1_mode)] : wlan[1]?.mode;
-    if (substr(radio0_mode, 0, 4) === substr(radio1_mode, 0, 4)) {
+    let radio0_mode = modemap[request.args.radio0_mode] || wlan[0].mode.mode;
+    let radio1_mode = modemap[request.args.radio1_mode] || wlan[1]?.mode?.mode;
+    if (radio0_mode && radio1_mode && substr(radio0_mode, 0, 4) === substr(radio1_mode, 0, 4)) {
         if ("radio0_mode" in request.args) {
             radio1_mode = radios.RADIO_OFF;
         }

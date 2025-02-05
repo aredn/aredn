@@ -40,10 +40,14 @@
         <div class="menu" hx-on:htmx:after-request="htmx.find('#tools input').checked = false">
             {% if (hardware.getRadioCount() > 0) { %}
             {% const config = radios.getActiveConfiguration();
-            if (config[0]?.mode !== radios.RADIO_OFF || config[1]?.mode !== radios.RADIO_OFF) { %}
+            const mode0 = config[0]?.mode?.mode;
+            const mode1 = config[1]?.mode?.mode;
+            if (mode0 !== radios.RADIO_OFF || mode1 !== radios.RADIO_OFF) { %}
             <div hx-trigger="click" hx-get="tools/e/wifiscan" hx-target="#ctrl-modal"><div class="icon signal"></div>WiFi Scan</div>
             {% }
-            if (config[0]?.mode.mode === radios.RADIO_MESH || config[1]?.mode.mode === radios.RADIO_MESH) { %}
+            if (mode0 === radios.RADIO_MESH || mode1 === radios.RADIO_MESH ||
+                mode0 === radios.RADIO_MESHAP || mode1 === radios.RADIO_MESHAP ||
+                mode0 === radios.RADIO_MESHSTA || mode1 === radios.RADIO_MESHSTA) { %}
             <div hx-trigger="click" hx-get="tools/e/wifisignal" hx-target="#ctrl-modal"><div class="icon wifi"></div>WiFi Signal</div>
             {% }
             } %}
