@@ -1,5 +1,9 @@
 __RELEASE NOTES__
 
+# 3.25.2.0
+
+...
+
 # 3.24.10.0
 
 The biggest change in this release if you haven't been keeping tabs on AREDN, is the "new UI". The old UI, written in LUA not only looked old, it was hampering the implementation of new features.  Now written in Javascript, among other things it's more economical on bandwidth used to display the user interface.  It's also much easier to add new features. The new UI has taken 6 months and the work of many, many people. We’d like to thank everyone involved with developing, documenting, and especially debugging this; we really appreciate our community.
