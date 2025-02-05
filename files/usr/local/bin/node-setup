@@ -2,7 +2,7 @@
 --[[
 
     Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-    Copyright (C) 2021-2023 Tim Wilkinson
+    Copyright (C) 2021-2025 Tim Wilkinson
     Orignal Perl Copyright (C) 2015 Conrad Lara
     See Contributors file for additional contributors
 
@@ -101,7 +101,6 @@ local c = uci.cursor()
 local cm = uci.cursor("/etc/config.mesh")
 
 local ieee80211 = "/sys/class/ieee80211/"
-local lanintf = aredn.hardware.get_board_network_ifname("lan")
 local node = aredn.info.get_nvram("node")
 local tactical = aredn.info.get_nvram("tactical")
 local mac2 = aredn.info.get_nvram("mac2")
@@ -111,7 +110,7 @@ local wifi_mon_enable = false
 local deleteme = {}
 local cfg = {
     description_node = "",
-    lan_intf = lanintf,
+    lan_intf = aredn.hardware.get_board_network_ifname("lan"),
     wan_intf = aredn.hardware.get_board_network_ifname("wan"),
     bridge_network_config = "",
     lan_network_config = "",
@@ -202,17 +201,27 @@ do
     end
 end
 
-if cfg.wifi_enable == "1" then
-    if not cfg.wifi_intf or cfg.wifi_intf == "" then
-        cfg.wifi_intf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
-    end
-    local mtu = c:get("aredn", "@lqm[0]", "mtu")
-    mtu = tonumber(mtu)
-    if mtu and mtu >= 256 and mtu <= 1500 then
-        cfg.wifi_mtu = mtu
-    end
-else
-    cfg.wifi_intf = "br-nomesh"
+-- Select the mesh configuration
+local mesh_wifi = "br-nomesh"
+local mesh_ssid = ""
+local mesh_channel = ""
+local mesh_chanbw = ""
+local mesh_txpower = nil
+local mesh_distance = ""
+if cfg.radio0_mode == "mesh" or cfg.radio0_mode == "meshap" or cfg.radio0_mode == "meshsta" then
+    mesh_wifi = "wlan0"
+    mesh_channel = tonumber(cfg.radio0_channel)
+    mesh_chanbw = tonumber(cfg.radio0_bandwidth)
+    mesh_ssid = cfg.radio0_ssid
+    mesh_txpower = tonumber(cfg.radio0_txpower)
+    mesh_distance = tonumber(cfg.radio0_distance)
+elseif cfg.radio1_mode == "mesh" or cfg.radio1_mode == "meshap" or cfg.radio1_mode == "meshsta" then
+    mesh_wifi = "wlan1"
+    mesh_channel = tonumber(cfg.radio1_channel)
+    mesh_chanbw = tonumber(cfg.radio1_bandwidth)
+    mesh_ssid = cfg.radio1_ssid
+    mesh_txpower = tonumber(cfg.radio1_txpower)
+    mesh_distance = tonumber(cfg.radio1_distance)
 end
 
 -- Supernode options
@@ -355,21 +364,12 @@ do
             end
         elseif net == "wan" then
             -- wifi can be used for the WAN (we become a wifi client)
-            if cfg.wifi3_enable == "1" then
-                -- WAN uses wifi
+            if cfg.radio0_mode == "wan" then
                 wireless = true
                 ports = { "wlan0" }
-                for devname in nixio.fs.dir(ieee80211)
-                do
-                    local hwmode = "11g"
-                    if iwinfo.nl80211.freqlist(devname)[1].mhz > 5000 then
-                        hwmode="11a"
-                    end
-                    if hwmode == cfg.wifi3_hwmode then
-                        ports = { "wlan" .. devname:match("^phy(%d+)$") }
-                        break
-                    end
-                end
+            elseif cfg.radio1_mode == "wan" then
+                wireless = true
+                ports = { "wlan1" }
             else
                 -- If the WAN has been given a vlan to use (usually 1) we use that here.
                 local wvlan = ports[1]:match("%.(%d+)$")
@@ -392,7 +392,7 @@ do
             cfg.dtdlink_mask = "255.0.0.0"
         elseif net == "wifi" then
             wireless = true
-            ports = { cfg.wifi_intf }
+            ports = { mesh_wifi }
         end
 
         if vlan then
@@ -422,7 +422,7 @@ do
         config = config .. "config device\n"
         if not wireless then
             config = config .. "	option name 'br-" .. net .. "'\n	option type 'bridge'\n"
-        elseif cfg.wifi_enable ~= "1" then
+        else
             netmask = "255.255.255.255"
         end
         if nixio.fs.stat("/etc/aredn_include/fixedmac." .. net) then
@@ -898,13 +898,12 @@ do
         local htmode = "HT20"
         if nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. devname .. "/ath10k") then
             htmode = "VHT20"
-            if wlan == cfg.wifi_intf then
-                local bw = tonumber(cfg.wifi_chanbw)
-                if bw == 40 then
+            if wlan == mesh_wifi then
+                if mesh_chanbw == 40 then
                     htmode = "VHT40"
-                elseif bw == 80 then
+                elseif mesh_chanbw == 80 then
                     htmode = "VHT80"
-                elseif bw == 160 then
+                elseif mesh_chanbw == 160 then
                     htmode = "VHT160"
                 end
             end
@@ -924,32 +923,54 @@ do
         local encryption = nil
         local key = nil
 
-        if wlan == cfg.wifi_intf then
+        if cfg[radio .. "_mode"] == "mesh" then
             -- mesh RF adhoc configuration
             is_mesh_rf = true
-            channel = cfg.wifi_channel
-            chanbw = cfg.wifi_chanbw
+            channel = mesh_channel
+            chanbw = mesh_chanbw
             country = "HX"
-            distance = cfg.wifi_distance
-            ssid = cfg.wifi_ssid .. "-" .. chanbw .. "-v3"
+            distance = mesh_distance
+            ssid = mesh_ssid .. "-" .. chanbw .. "-v3"
             mode = "adhoc"
             encryption = "none"
             network = "wifi"
-        elseif cfg.wifi2_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi2_hwmode)) then
-            -- lan AP interface
-            channel = cfg.wifi2_channel
-            ssid = h2s(cfg.wifi2_ssid)
+        elseif cfg[radio .. "_mode"] == "meshap" then
+            -- mesh RF access point configuration
+            is_mesh_rf = true
+            channel = mesh_channel
+            chanbw = mesh_chanbw
+            country = "HX"
+            distance = mesh_distance
+            ssid = mesh_ssid .. "-" .. channel .. "-" .. chanbw .. "-v3"
             mode = "ap"
-            encryption = cfg.wifi2_encryption
-            key = h2s(cfg.wifi2_key)
-            network = "lan"
-        elseif cfg.wifi3_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi3_hwmode)) then
-            -- wan client
-            ssid = h2s(cfg.wifi3_ssid)
+            encryption = "none"
+            network = "wifi"
+        elseif cfg[radio .. "_mode"] == "meshsta" then
+            -- mesh RF station configuration
+            is_mesh_rf = true
+            channel = mesh_channel
+            chanbw = mesh_chanbw
+            country = "HX"
+            distance = mesh_distance
+            ssid = mesh_ssid .. "-" .. channel .. "-" .. chanbw .. "-v3"
             mode = "sta"
-            if cfg.wifi3_key and cfg.wifi3_key ~= "" then
+            encryption = "none"
+            network = "wifi"
+        elseif cfg[radio .. "_mode"] == "lan" then
+            -- lan AP interface
+            channel = cfg[radio .. "_channel"]
+            ssid = h2s(cfg[radio .. "_ssid"])
+            mode = "ap"
+            encryption = cfg[radio .. "_encryption"]
+            key = h2s(cfg[radio .. "_key"])
+            network = "lan"
+        elseif cfg[radio .. "_mode"] == "wan" then
+            -- wan client
+            ssid = h2s(cfg[radio .. "_ssid"])
+            mode = "sta"
+            if cfg[radio .. "_key"] and cfg[radio .. "_key"] ~= "" then
                 encryption = "psk2"
-                key = h2s(cfg.wifi3_key)
+                key = h2s(cfg[radio .. "_key"])
             else
                 encryption = "none"
             end
@@ -1268,21 +1289,13 @@ end
 local sf = io.open("/tmp/local_services", "w")
 if sf then
     sf:write("#!/bin/sh\n")
-    if cfg.wifi_proto ~= "disabled" then
-        local wifi_channel = tonumber(cfg.wifi_channel)
-        if is_null(cfg.wifi_txpower) or tonumber(cfg.wifi_txpower) > aredn.hardware.wifi_maxpower(cfg.wifi_intf, wifi_channel) then
-            cfg.wifi_txpower = aredn.hardware.wifi_maxpower(cfg.wifi_intf, wifi_channel)
-        elseif tonumber(cfg.wifi_txpower) < 1 then
-            cfg.wifi_txpower = 1
+    if mesh_wifi ~= "br-nomesh" then
+        if is_null(mesh_txpower) or tonumber(mesh_txpower) > aredn.hardware.wifi_maxpower(mesh_wifi, mesh_channel) then
+            mesh_txpower = aredn.hardware.wifi_maxpower(mesh_wifi, mesh_channel)
+        elseif tonumber(mesh_txpower) < 1 then
+            mesh_txpower = 1
         end
-        if cfg.wifi_enable == "1" then
-            sf:write("/usr/sbin/iw dev " .. cfg.wifi_intf .. " set txpower fixed " .. cfg.wifi_txpower .. "00\n")
-        end
-        if is_notnull(cfg.aprs_lat) and is_notnull(cfg.aprs_lon) then
-            nc:set("aredn", "@location[0]", "lat", cfg.aprs_lat)
-            nc:set("aredn", "@location[0]", "lon", cfg.aprs_lon)
-            nc:commit("aredn")
-        end
+        sf:write("/usr/sbin/iw dev " .. mesh_wifi .. " set txpower fixed " .. mesh_txpower .. "00\n")
     end
     sf:close()
     local _, diff = filecopy("/tmp/local_services", "/etc/local/services", true)
