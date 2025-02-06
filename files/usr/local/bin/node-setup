@@ -923,6 +923,7 @@ do
         local encryption = nil
         local key = nil
         local celldensity = nil
+        local txpower = nil
 
         if cfg[radio .. "_mode"] == "mesh" then
             -- mesh RF adhoc configuration
@@ -930,6 +931,7 @@ do
             channel = mesh_channel
             chanbw = mesh_chanbw
             country = "HX"
+            txpower = mesh_txpower
             distance = mesh_distance
             ssid = mesh_ssid .. "-" .. chanbw .. "-v3"
             mode = "adhoc"
@@ -941,6 +943,7 @@ do
             channel = mesh_channel
             chanbw = mesh_chanbw
             country = "HX"
+            txpower = mesh_txpower
             distance = mesh_distance
             ssid = mesh_ssid .. "-" .. channel .. "-" .. chanbw .. "-v3"
             mode = "ap"
@@ -954,6 +957,7 @@ do
             chanbw = mesh_chanbw
             country = "HX"
             distance = mesh_distance
+            txpower = mesh_txpower
             ssid = mesh_ssid .. "-" .. channel .. "-" .. chanbw .. "-v3"
             mode = "sta"
             encryption = "none"
@@ -996,6 +1000,9 @@ do
         end
         if distance then
             config = config .. "	option distance '" .. distance .. "'\n"
+        end
+        if txpower then
+            config = config .. "	option txpower '" .. txpower .. "'\n"
         end
         if hwmode == "11g" then
             config = config .. "	option band '2g'\n"
