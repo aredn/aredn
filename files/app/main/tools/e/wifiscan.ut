@@ -181,18 +181,15 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 break;
             case radios.RADIO_MESHAP:
                 if (s.joined) {
-                    s.mode = "My Mesh AP";
+                    s.mode = "My Mesh Station";
                 }
                 break;
             case radios.RADIO_MESHSTA:
                 if (s.joined) {
-                    s.mode = "My Mesh Station";
+                    s.mode = "My Mesh AP";
                 }
                 break;
             default:
-                if (s.joined) {
-                    s.mode = "Remote Station";
-                }
                 break;
         }
         if (s.mode === "AP") {
@@ -200,7 +197,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 s.mode = "Ad-Hoc Mesh";
             }
             else if (match(s.ssid, /^[^-]+--?[0-9]+-(5|10|20|40|80)-v3$/)) {
-                s.mode = "AP Mesh";
+                s.mode = "Mesh AP";
             }
         }
    
