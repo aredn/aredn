@@ -76,7 +76,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
         const response = { s: signals, n: noise };
         if (qmac !== "average") {
-            const reArp = regexp(`^([\.0-9]+) +0x. +0x. +${mac}`, "i");
+            const reArp = regexp(`^([\.0-9]+) +0x. +0x. +${qmac}`, "i");
             let f = fs.open("/proc/net/arp");
             if (f) {
                 for (let l = f.read("line"); length(l); l = f.read("line")) {
