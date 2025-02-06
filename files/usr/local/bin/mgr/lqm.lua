@@ -622,8 +622,8 @@ function lqm_run()
             track.tx_retries = tx_retries
             track.tx_fail = tx_fail
 
-            track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, station.tx_bitrate, track.tx_bitrate)
-            track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, station.rx_bitrate, track.rx_bitrate)
+            track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, station.tx_bitrate, 0)
+            track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, station.rx_bitrate, 0)
         end
 
         -- Update link tracking state
