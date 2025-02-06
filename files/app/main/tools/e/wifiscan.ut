@@ -66,10 +66,12 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const nodename = configuration.getName();
     const scan = {};
 
-    let ubnt_ac = false;
-    const board_type = hardware.getBoard().model.id;
-    if (index(board_type, "ubnt,") === 0 && index(board_type, "ac") !== -1) {
-        ubnt_ac = true
+    let disconnect_reconnect = false;
+    if (radiomode === radios.RADIO_MESH) {
+        const board_type = hardware.getBoard().model.id;
+        if (index(board_type, "ubnt,") === 0 && index(board_type, "ac") !== -1) {
+            disconnect_reconnect = true
+        }
     }
 
     const reArp = /^([\.0-9]+) +0x. +0x. +([0-9a-fA-F:]+)/;
@@ -84,44 +86,26 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
         f.close();
     }
-    
-    f = fs.popen(`/usr/sbin/iw dev ${wifiiface} station dump`);
-    if (f) {
-        const re = regexp(`^Station ([0-9a-fA-F:]+) \\(on ${wifiiface}\\)`);
-        const reSi = /signal:[ \t]+(-[0-9]+)/;
-        let station;
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            let m = match(l, re);
-            if (m) {
-                station = scan[m[1]];
-                if (!station) {
-                    const ip = arp[m[1]];
-                    const hostname = ip ? network.nslookup(ip) : null;
-                    station = {
-                        mac: m[1],
-                        signal: 9999,
-                        key: "",
-                        joined: true,
-                        mode: "Station",
-                        ssid: myssid,
-                        ip: ip,
-                        hostname: hostname
-                    };
-                    if (mychan !== -1) {
-                        station.chan = { [mychan]: true };
-                    }
-                    scan[m[1]] = station;
-                }
-            }
-            m = match(l, reSi);
-            if (m) {
-                station.signal = int(m[1]);
-            }
+
+    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+    for (let i = 0; i < length(info); i++) {
+        if (info[i].dev === wifiiface) {
+            const mac = info[i].mac;
+            const ip = arp[mac];
+            scan[mac] = {
+                mac: mac,
+                signal: info[i].sta_info.signal_avg,
+                joined: true,
+                mode: "Station",
+                ssid: myssid,
+                chan: mychan !== -1 ? { [mychan]: true } : {},
+                ip: ip,
+                hostname: ip ? network.nslookup(ip) : null
+            };
         }
-        f.close();
     }
 
-    if (ubnt_ac) {
+    if (disconnect_reconnect) {
         system(`/usr/sbin/iw dev ${wifiiface} ibss leave > /dev/null 2>&1`);
         system("/sbin/wifi up > /dev/null 2>&1");
         for (let attempt = 10; attempt > 0; attempt--) {
@@ -141,63 +125,46 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
     }
 
-    f = fs.popen(`/usr/sbin/iw dev ${wifiiface} scan passive`);
-    if (f) {
-        const re = /^BSS ([0-9a-fA-F:]+)/;
-        const reF = /freq: ([0-9]+)/;
-        const reSs = /SSID: (.+)\n/;
-        const reSi = /signal: (.+)\n/;
-        const reC = /Group cipher: (.+)\n/;
-        let station = {};
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            let m = match(l, re);
-            if (m) {
-                station = scan[m[1]];
-                if (!station) {
-                    const ip = arp[m[1]];
-                    const hostname = ip ? network.nslookup(ip) : null;
-                    station = {
-                        mac: m[1],
-                        signal: 9999,
-                        chan: {},
-                        key: "",
-                        joined: false,
-                        mode: "AP",
-                        ssid: "",
-                        ip: ip,
-                        hostname: hostname,
-                        ibss: false
-                    };
-                    scan[m[1]] = station;
-                }
-                if (index(l, "joined") !== -1) {
-                    station.joined = true;
-                }
+    nl80211.request(nl80211.const.NL80211_CMD_TRIGGER_SCAN, 0, { dev: wifiiface });
+    nl80211.waitfor();
+    const wscan = nl80211.request(nl80211.const.NL80211_CMD_GET_SCAN, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+    for (let i = 0; i < length(wscan); i++) {
+        const w = wscan[i];
+        if (w.dev === wifiiface) {
+            const bss = w.bss;
+            const mac = bss.bssid;
+            let station = scan[mac];
+            if (!station) {
+                const ip = arp[mac];
+                station = {
+                    mac: mac,
+                    signal: 9999,
+                    chan: {},
+                    joined: false,
+                    mode: "AP",
+                    ssid: "",
+                    ip: ip,
+                    hostname: ip ? network.nslookup(ip) : null,
+                    ibss: false
+                };
+                scan[mac] = station;
             }
-            m = match(l, reF);
-            if (m) {
-                const chan = hardware.getChannelFromFrequency(int(m[1]));
-                if (chan) {
-                    station.chan[chan] = true;
-                }
+            const chan = hardware.getChannelFromFrequency(bss.frequency);
+            if (chan) {
+                station.chan[chan] = true;
             }
-            m = match(l, reSs);
-            if (m) {
-                station.ssid = m[1];
-            }
-            m = match(l, reSi);
-            if (m) {
-                station.signal = int(m[1]);
-            }
-            m = match(l, reC);
-            if (m) {
-                station.key = m[1];
-            }
-            if (index(l, "capability: IBSS")) {
+            if (bss.capability & 2) {
                 station.ibss = true;
             }
+            station.signal = bss.signal_mbm / 100;
+            const ies = bss.information_elements;
+            for (let j = 0; j < length(ies); j++) {
+                if (ies[j].type === 0) {
+                    station.ssid = ies[j].data;
+                    break;
+                }
+            }
         }
-        f.close();
     }
 
     for (let k in scan) {
@@ -207,7 +174,6 @@ if (request.env.REQUEST_METHOD === "PUT") {
             case radios.RADIO_MESH:
                 if (s.joined) {
                     s.mode = "My Ad-Hoc Mesh";
-                    s.hostname = nodename;
                 }
                 else if (s.chan[mychan] && s.ssid == myssid) {
                     s.mode = "My Ad-Hoc Mesh";
@@ -216,13 +182,11 @@ if (request.env.REQUEST_METHOD === "PUT") {
             case radios.RADIO_MESHAP:
                 if (s.joined) {
                     s.mode = "My Mesh AP";
-                    s.hostname = nodename;
                 }
                 break;
             case radios.RADIO_MESHSTA:
                 if (s.joined) {
                     s.mode = "My Mesh Station";
-                    s.hostname = nodename;
                 }
                 break;
             default:

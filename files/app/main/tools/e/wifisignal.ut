@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2024,2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -36,72 +36,59 @@
 if (request.env.REQUEST_METHOD === "PUT") {
     const wifiiface = uci.get("network", "wifi", "device");
     const qmac = request.args.mac;
-    let f = fs.popen(`iw ${wifiiface} station ${qmac === "average" ? "dump" : "get " + qmac}`);
-    if (f) {
-        const signals = {};
-        let mac = null;
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            if (index(l, "Station") === 0) {
-                const m = match(l, / ([0-9a-fA-F:]+) /);
-                if (m) {
-                    mac = m[1];
-                }
-            }
-            if (index(l, "signal:") !== -1) {
-                const m = match(l, /[\t ]([0-9\-]+)[\t ]/);
-                if (m) {
-                    signals[mac] = int(m[1]);
-                }
+
+    const signals = {};
+    const info = qmac === "average" ? 
+        nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifiiface }) :
+        nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: wifiiface, mac: qmac });
+
+    if (info) {
+        if (type(info) === "array") {
+            for (let i = 0; i < length(info); i++) {
+                signals[info[i].mac] = info[i].sta_info.signal_avg;
             }
         }
-        f.close();
-        let noise = -95;
-        f = fs.popen(`iw ${wifiiface} survey dump`);
-        if (f) {
-            const reN = /noise:[ \t]+([0-9\-]+) dBm/;
-            let ff = false;
-            for (let l = f.read("line"); length(l); l = f.read("line")) {
-                if (index(l, "[in use]") !== -1) {
-                    ff = true;
-                }
-                else if (ff) {
-                    const m = match(l, reN);
-                    if (m) {
-                        noise = int(m[1]);
-                        break;
-                    }
-                }
-            }
-            f.close();
+        else {
+            signals[info.mac] = info.sta_info.signal_avg;
         }
-        const response = { s: signals, n: noise };
-        if (qmac !== "average") {
-            const reArp = regexp(`^([\.0-9]+) +0x. +0x. +${mac}`, "i");
-            let f = fs.open("/proc/net/arp");
-            if (f) {
-                for (let l = f.read("line"); length(l); l = f.read("line")) {
-                    const m = match(l, reArp);
-                    if (m) {
-                        const ip = m[1];
-                        const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
-                        f = fs.popen(`/bin/uclient-fetch -T 1 http://${ip}/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
-                        if (f) {
-                            try {
-                                const j = json(f.read("all"));
-                                f.close();
-                                response.rs = j.s;
-                                response.rn = j.n;
-                            }
-                            catch (_) {
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-        printf("%J", response);
     }
+
+    let noise = -95;
+    const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+    for (let i = 0; i < length(survey); i++) {
+        if (survey[i].dev == wifiiface && survey[i].survey_info.noise) {
+            noise = survey[i].survey_info.noise;
+            break;
+        }
+    }
+        
+    const response = { s: signals, n: noise };
+    if (qmac !== "average") {
+        const reArp = regexp(`^([\.0-9]+) +0x. +0x. +${qmac}`, "i");
+        let f = fs.open("/proc/net/arp");
+        if (f) {
+            for (let l = f.read("line"); length(l); l = f.read("line")) {
+                const m = match(l, reArp);
+                if (m) {
+                    const ip = m[1];
+                    const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
+                    f = fs.popen(`/bin/uclient-fetch -T 1 http://${ip}/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
+                    if (f) {
+                        try {
+                            const j = json(f.read("all"));
+                            f.close();
+                            response.rs = j.s;
+                            response.rn = j.n;
+                        }
+                        catch (_) {
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    printf("%J", response);
     return;
 }
 const stations = fs.lsdir("/tmp/snrlog");

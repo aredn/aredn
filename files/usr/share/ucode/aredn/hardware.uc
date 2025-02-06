@@ -1,6 +1,6 @@
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2024,2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -34,6 +34,7 @@
 import * as fs from "fs";
 import * as uci from "uci";
 import * as ubus from "ubus";
+import * as nl80211 from "nl80211";
 
 let radioJson;
 let boardJson;
@@ -157,47 +158,71 @@ export function getRadioIntf(wifiIface)
     }
 };
 
+export function getChannelFromFrequency(freq)
+{
+    if (freq < 256) {
+        return null;
+    }
+    if (freq === 2484) {
+        return 14;
+    }
+    if (freq === 2407) {
+        return 0;
+    }
+    if (freq < 2484) {
+        return (freq - 2407) / 5;
+    }
+    if (freq < 5000) {
+        return null;
+    }
+    if (freq < 5380) {
+        return (freq - 5000) / 5;
+    }
+    if (freq < 5500) {
+        return freq - 2000;
+    }
+    if (freq < 6000) {
+        return (freq - 5000) / 5;
+    }
+};
+
 export function getRfChannels(wifiIface)
 {
     let channels = channelsCache[wifiIface];
     if (!channels) {
         channels = [];
-        const f = fs.popen("/usr/sbin/iw " + replace(wifiIface, "wlan", "phy") + " info 2> /dev/null");
-        if (f) {
-            let freq_adjust = 0;
-            let freq_min = 0;
-            let freq_max = 0x7FFFFFFF;
-            if (wifiIface === "wlan0") {
-                const radio = getRadio();
-                if (index(radio.name, "M9") !== -1) {
-                    freq_adjust = -1520;
-                    freq_min = 907;
-                    freq_max = 922;
-                }
-                else if (index(radio.name, "M3") !== -1) {
-                    freq_adjust = -2000;
-                    freq_min = 3380;
-                    freq_max = 3495;
-                }
+        const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+        const freqs = (info.wiphy_bands[1] || info.wiphy_bands[0]).freqs;
+        let freq_adjust = 0;
+        let freq_min = 0;
+        let freq_max = 0x7FFFFFFF;
+        if (wifiIface === "wlan0") {
+            const radio = getRadio();
+            if (index(radio.name, "M9") !== -1) {
+                freq_adjust = -1520;
+                freq_min = 907;
+                freq_max = 922;
             }
-            for (let line = f.read("line"); line; line = f.read("line")) {
-                const fn = match(line, /([0-9.]+) MHz \[(-?\d+)\] /);
-                if (fn && index(line, "restricted") == -1 && index(line, "disabled") === -1) {
-                    const freq = int(fn[1]) + freq_adjust;
-                    if (freq >= freq_min && freq <= freq_max) {
-                        const num = int(fn[2]);
-                        push(channels, {
-                            label: freq_adjust === 0 ? num + " (" + freq + ")" : "" + freq,
-                            number: num,
-                            frequency: freq
-                        });
-                    }
-                }
+            else if (index(radio.name, "M3") !== -1) {
+                freq_adjust = -2000;
+                freq_min = 3380;
+                freq_max = 3495;
             }
-            sort(channels, (a, b) => a.frequency - b.frequency);
-            f.close();
-            channelsCache[wifiIface] = channels;
         }
+        for (let i = 0; i < length(freqs); i++) {
+            const f = freqs[i];
+            const freq = f.freq + freq_adjust;
+            if (freq >= freq_min && freq <= freq_max) {
+                const num = getChannelFromFrequency(freq);
+                push(channels, {
+                    label: freq_adjust === 0 ? num + " (" + freq + ")" : "" + freq,
+                    number: num,
+                    frequency: freq
+                });
+            }
+        }
+        sort(channels, (a, b) => a.frequency - b.frequency);
+        channelsCache[wifiIface] = channels;
     }
     return channels;
 };
@@ -385,34 +410,6 @@ export function getChannelFrequencyRange(wifiIface, channel, bandwidth)
     return null;
 };
 
-export function getChannelFromFrequency(freq)
-{
-    if (freq < 256) {
-        return null;
-    }
-    if (freq === 2484) {
-        return 14;
-    }
-    if (freq === 2407) {
-        return 0;
-    }
-    if (freq < 2484) {
-        return (freq - 2407) / 5;
-    }
-    if (freq < 5000) {
-        return null;
-    }
-    if (freq < 5380) {
-        return (freq - 5000) / 5;
-    }
-    if (freq < 5500) {
-        return freq - 2000;
-    }
-    if (freq < 6000) {
-        return (freq - 5000) / 5;
-    }
-};
-
 export function getMaxTxPower(wifiIface, channel)
 {
     const radio = getRadioIntf(wifiIface);
@@ -439,7 +436,7 @@ export function getTxPowerOffset(wifiIface)
     if (radio && radio.pwroffset) {
         return radio.pwroffset;
     }
-    const f = fs.popen("/usr/bin/iwinfo " + wifiIface + " info 2> /dev/null");
+    const f = fs.popen(`/usr/bin/iwinfo ${wifiIface} info 2> /dev/null`);
     if (f) {
         for (;;) {
             const line = f.read("line");

@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2024,2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -37,37 +37,20 @@
 const wifiiface = uci.get("network", "wifi", "device");
 const mac = substr(request.env.QUERY_STRING || "", 4) || "00:00:00:00:00:00:";
 
-let f = fs.popen(`iw ${wifiiface} survey dump`);
-if (f) {
-    const reN = /noise:[ \t]+([0-9\-]+) dBm/;
-    let ff = false;
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        if (index(l, "[in use]") !== -1) {
-            ff = true;
-        }
-        else if (ff) {
-            const m = match(l, reN);
-            if (m) {
-                noise = int(m[1]);
-                break;
-            }
-        }
+let noise = -95;
+const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+for (let i = 0; i < length(survey); i++) {
+    if (survey[i].dev == wifiiface && survey[i].survey_info.noise) {
+        noise = survey[i].survey_info.noise;
+        break;
     }
-    f.close();
 }
 let signal = 0;
-f = fs.popen(`/usr/sbin/iw ${wifiiface} station get ${mac} 2>/dev/null`);
-if (f) {
-    const reS = /signal:[ \t]+([0-9\-]+)/;
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const m = match(l, reS);
-        if (m) {
-            signal = int(m[1]);
-            break;
-        }
-    }
-    f.close();
+const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: wifiiface, mac: mac });
+if (info) {
+    signal = info.sta_info.signal_avg;
 }
+
 if (signal < 0) {
     print(`{"s":${signal},"n":${noise}\}`);
 }

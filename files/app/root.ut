@@ -41,6 +41,8 @@ import * as ubus from "ubus";
 import * as log from "log";
 import * as zlib from "zlib";
 import * as lucihttp from "lucihttp";
+import * as nl80211 from "nl80211";
+import * as rtnl from "rtnl";
 import * as configuration from "aredn.configuration";
 import * as hardware from "aredn.hardware";
 import * as lqm from "aredn.lqm";
@@ -573,6 +575,8 @@ global.handle_request = function(env)
                     uciMesh: uciMeshMethods,
                     ubus: ubusMethods,
                     auth: auth,
+                    nl80211: nl80211,
+                    rtnl: rtnl,
                     includeHelp: (env.headers || {})["include-help"] === "1",
                     includeAdvanced: (env.headers || {})["include-advanced"] === "1",
                     fs: fs,
