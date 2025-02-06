@@ -54,7 +54,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
 
     let noise = -95;
-    const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+    const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiiface }) || [];
     for (let i = 0; i < length(survey); i++) {
         if (survey[i].dev == wifiiface && survey[i].survey_info.noise) {
             noise = survey[i].survey_info.noise;
