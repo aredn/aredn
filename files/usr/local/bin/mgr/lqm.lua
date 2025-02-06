@@ -280,7 +280,7 @@ local phy = "none"
 local wlanid = wlan:match("^wlan(%d+)$")
 if wlanid then
     phy = "phy" .. wlanid
-    radiomode = "adhoc"
+    radiomode = "mesh"
 end
 
 function iw_set(cmd)
@@ -487,7 +487,7 @@ function lqm_run()
         end
 
         -- RF
-        if radiomode == "adhoc" then
+        if radiomode == "mesh" then
             local kv = {
                 ["signal avg:"] = "signal",
                 ["tx packets:"] = "tx_packets",

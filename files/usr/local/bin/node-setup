@@ -922,6 +922,7 @@ do
         local ssid = nil
         local encryption = nil
         local key = nil
+        local celldensity = nil
 
         if cfg[radio .. "_mode"] == "mesh" then
             -- mesh RF adhoc configuration
@@ -945,6 +946,7 @@ do
             mode = "ap"
             encryption = "none"
             network = "wifi"
+            celldensity = 2
         elseif cfg[radio .. "_mode"] == "meshsta" then
             -- mesh RF station configuration
             is_mesh_rf = true
@@ -956,6 +958,7 @@ do
             mode = "sta"
             encryption = "none"
             network = "wifi"
+            celldensity = 2
         elseif cfg[radio .. "_mode"] == "lan" then
             -- lan AP interface
             channel = cfg[radio .. "_channel"]
@@ -1001,6 +1004,9 @@ do
         end
         if htmode then
             config = config .. "	option htmode '" .. htmode .. "'\n"
+        end
+        if celldensity then
+            config = config .. "	option cell_density '" .. celldensity .. "'\n"
         end
         config = config .. "	option path '" .. devpath .. "'\n\n"
 
