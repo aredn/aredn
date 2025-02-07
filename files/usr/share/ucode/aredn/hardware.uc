@@ -149,6 +149,9 @@ export function getRadioCount()
 
 export function getRadioIntf(wifiIface)
 {
+    if (substr(wifiIface, 0, 4) !== "wlan") {
+        return null;
+    }
     const radio = getRadio();
     if (radio[wifiIface]) {
         return radio[wifiIface];
