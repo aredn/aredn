@@ -187,12 +187,14 @@ function update_block(track)
     if should_block(track) then
         track.blocked = true
         if track.type == "Tunnel" or track.type == "Wireguard" then
-            if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop") then
+            if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 6696 drop") then
+                nft_insert("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 6696 drop 2> /dev/null")
                 nft_insert("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop 2> /dev/null")
                 return "blocked"
             end
         else
-            if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop") then
+            if not nft_handle("input_lqm", "udp dport 6696 ether saddr " .. track.mac .. " drop") then
+                nft_insert("input_lqm", "udp dport 6696 ether saddr " .. track.mac .. " drop 2> /dev/null")
                 nft_insert("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop 2> /dev/null")
                 return "blocked"
             end
@@ -203,10 +205,18 @@ function update_block(track)
             local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
             if handle then
                 nft_delete("input_lqm", handle)
+            end
+            local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 6696 drop")
+            if handle then
+                nft_delete("input_lqm", handle)
                 return "unblocked"
             end
         else
             local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop")
+            if handle then
+                nft_delete("input_lqm", handle)
+            end
+            local handle = nft_handle("input_lqm", "udp dport 6696 ether saddr " .. track.mac .. " drop")
             if handle then
                 nft_delete("input_lqm", handle)
                 return "unblocked"
@@ -222,7 +232,15 @@ function force_remove_block(track)
     if handle then
         nft_delete("input_lqm", handle)
     end
+    local handle = nft_handle("input_lqm", "udp dport 6696 ether saddr " .. track.mac .. " drop")
+    if handle then
+        nft_delete("input_lqm", handle)
+    end
     handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
+    if handle then
+        nft_delete("input_lqm", handle)
+    end
+    handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 6696 drop")
     if handle then
         nft_delete("input_lqm", handle)
     end
