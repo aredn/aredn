@@ -324,22 +324,31 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                 <div></div>
             </div>
             {% } %}
+            {% if (supernode) { %}
             <div class="cols">
                 <div class="i">
                     <div>{{state(n)}}</div>
                     <div>state</div>
                 </div>
                 <div class="i">
-                {% if (!supernode) { %}
-                    <div>{{n.node_route_count}}</div>
-                    <div>olsr routes</div>
-                {% } %}
+                    <div>{{lastseen(n)}}</div>
+                    <div>last seen</div>
+                </div>
+                <div></div>
+            </div>
+            {% } else { %}
+            <div class="cols">
+                <div class="i">
+                    <div>{{state(n)}}</div>
+                    <div>state</div>
                 </div>
                 <div class="i">
-                {% if (!supernode) { %}
+                    <div>{{n.node_route_count}}</div>
+                    <div>olsr routes</div>
+                </div>
+                <div class="i">
                     <div>{{n.babel_route_count}}</div>
                     <div>babel routes</div>
-                {% } %}
                 </div>
             </div>
             <div class="cols">
@@ -350,6 +359,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                 <div></div>
                 <div></div>
             </div>
+            {% } %}
             {%
             const snr = `/tmp/snrlog/${uc(selected)}-${lc(n.hostname)}`;
             if (fs.access(snr)) {
