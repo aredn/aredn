@@ -1301,6 +1301,8 @@ local config_special = {
     wifi_mode_1 = c:get("wireless", "@wifi-iface[1]", "mode"),
     wifi_channel_0 = c:get("wireless", "@wifi-device[0]", "channel"),
     wifi_channel_1 = c:get("wireless", "@wifi-device[1]", "channel"),
+    chanbw_0 = c:get("wireless", "@wifi-device[0]", "chanbw"),
+    chanbw_1 = c:get("wireless", "@wifi-device[1]", "chanbw"),
     power_eth = c:get("aredn", "@poe[0]", "passthrough"),
     power_usb = c:get("aredn", "@usb[0]", "passthrough"),
     ntp_period = c:get("aredn", "@ntp[0]", "period")
@@ -1401,6 +1403,9 @@ do
             local oc = uci:cursor()
             if oc:get("wireless", "@wifi-device[0]", "channel") ~= config_special.wifi_channel_0 or oc:get("wireless", "@wifi-device[1]", "channel") ~= config_special.wifi_channel_1 then
                 changes.manager = true
+            end
+            if oc:get("wireless", "@wifi-device[0]", "chanbw") ~= config_special.chanbw_0 or oc:get("wireless", "@wifi-device[1]", "chanbw") ~= config_special.chanbw_1 then
+                changes.lqm = true
             end
             if oc:get("wireless", "@wifi-iface[0]", "mode") ~= config_special.wifi_mode_0 or oc:get("wireless", "@wifi-iface[1]", "mode") ~= config_special.wifi_mode_1 then
                 -- Only start the hostapd (etc) if we need to. This doesn't change what is currently running
