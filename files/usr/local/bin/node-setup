@@ -924,6 +924,7 @@ do
         local key = nil
         local celldensity = nil
         local txpower = nil
+        local snrreject = nil
 
         if cfg[radio .. "_mode"] == "mesh" then
             -- mesh RF adhoc configuration
@@ -950,6 +951,7 @@ do
             encryption = "none"
             network = "wifi"
             celldensity = 2
+            snrreject = tonumber(nc:get("aredn", "@lqm[0]", "min_snr")) - tonumber(nc:get("aredn", "@lqm[0]", "margin_snr"))
         elseif cfg[radio .. "_mode"] == "meshsta" then
             -- mesh RF station configuration
             is_mesh_rf = true
@@ -1012,6 +1014,9 @@ do
         end
         if celldensity then
             config = config .. "	option cell_density '" .. celldensity .. "'\n"
+        end
+        if snrreject then
+            config = config .. "	option rssi_reject_assoc_rssi '" .. (snrreject - 100) .. "'\n	option rssi_ignore_probe_request '" .. (snrreject - 100) .. "'\n"
         end
         config = config .. "	option path '" .. devpath .. "'\n\n"
 
@@ -1325,6 +1330,8 @@ end
 local config_special = {
     dmz_mode = c:get("setup", "globals", "dmz_mode"),
     lqm_enable = c:get("aredn", "@lqm[0]", "enable"),
+    min_snr = c:get("aredn", "@lqm[0]", "min_snr"),
+    margin_snr = c:get("aredn", "@lqm[0]", "margin_snr"),
     tunnel_weight = c:get("aredn", "@tunnel[0]", "weight"),
     supernode_enable = c:get("aredn", "@supernode[0]", "enable"),
     watchdog_enable = c:get("aredn", "@watchdog[0]", "enable"),
@@ -1428,6 +1435,9 @@ do
             if oc:get("aredn", "@wan[0]", "olsrd_gw") ~= config_special.olsrd_gw or oc:get("aredn", "@wan[0]", "mesh_wan_gw") ~= config_special.mesh_wan_gw then
                 changes.network = true
                 changes.babel = true
+            end
+            if oc:get("aredn", "@lqm[0]", "min_snr") ~= config_special.min_snr or oc:get("aredn", "@lqm[0]", "margin_snr") ~= config_special.margin_snr then
+                changes.wireless = true
             end
         elseif file == "network" then
             changes.network = true
