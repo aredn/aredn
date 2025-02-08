@@ -327,22 +327,6 @@ function lqm_run()
         iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
     end
 
-    -- If the channel bandwidth is less than 20, we need to adjust what we report as the values from 'iw' will not
-    -- be correct
-    local channel_bw_scale = 1
-    local chanbw = read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k/chanbw")
-    if not chanbw then
-        chanbw = read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/chanbw")
-    end
-    if chanbw then
-        chanbw = tonumber(chanbw)
-        if chanbw == 10 then
-            channel_bw_scale = 0.5
-        elseif chanbw == 5 then
-            channel_bw_scale = 0.25
-        end
-    end
-
     local noise = -95
     local tracker = {}
     local dtdlinks = {}
@@ -360,6 +344,22 @@ function lqm_run()
         now = nixio.sysinfo().uptime
 
         update_config()
+
+        -- If the channel bandwidth is less than 20, we need to adjust what we report as the values from 'iw' will not
+        -- be correct
+        local channel_bw_scale = 1
+        local chanbw = read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath10k/chanbw")
+        if not chanbw then
+            chanbw = read_all("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k/chanbw")
+        end
+        if chanbw then
+            chanbw = tonumber(chanbw)
+            if chanbw == 10 then
+                channel_bw_scale = 0.5
+            elseif chanbw == 5 then
+                channel_bw_scale = 0.25
+            end
+        end
 
         local cursor = uci.cursor()
         local cursorm = uci.cursor("/etc/config.mesh")
