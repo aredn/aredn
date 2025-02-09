@@ -322,10 +322,8 @@ function lqm_run()
     iw_set("distance auto")
     -- Or any hidden nodes
     iw_set("rts off")
-    if config.enable then
-        -- Set the default retries
-        iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
-    end
+    -- Set the default retries
+    iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
 
     local noise = -95
     local tracker = {}
@@ -1128,7 +1126,7 @@ function lqm_run()
         end
         -- Update the wifi distance
         local coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3))
-        if config.enable and coverage ~= last_coverage then
+        if coverage ~= last_coverage then
             iw_set("coverage " .. coverage)
             last_coverage = coverage
         end
@@ -1162,7 +1160,7 @@ function lqm_run()
         do
             hidden[#hidden + 1] = ninfo
         end
-        if config.enable and (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
+        if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
             if #hidden > 0 then
                 iw_set("rts " .. config.rts_threshold)
             else
