@@ -2,7 +2,148 @@ __RELEASE NOTES__
 
 # 3.25.2.0
 
-...
+## Features
+
+* New Mobile UI
+* Backup and Restore node configurations
+* Responsive design for desktop UI on smaller screens
+* Improved logged-out experience to provide more information
+* Improved WiFi Signal tool which shows SNR at both ends of link
+* Support for ARDC’s 44-Net
+* Upgraded to the latest OpenWRT release: 24.10
+
+## Notes
+
+* By default LAN devices are no longer permitted to access the Internet over the mesh. This can be re-enabled if required.
+* The old UI is no longer available.
+* We recommend the High Contrast theme when using the mobile UI outside.
+* The new WiFi Signal tool requires both ends of a link be running the latest firmware.
+
+## Enhancements
+
+* Added more USB controller modules [\#1878](https://github.com/aredn/aredn/pull/1878)
+* Added usbutils loadable package [\#1875](https://github.com/aredn/aredn/pull/1875)
+* Improved firewalling of LAN [\#1862](https://github.com/aredn/aredn/pull/1862)
+* Made further improvements to LAN to WAN firewalling. [\#1863](https://github.com/aredn/aredn/pull/1863)
+* Enabled 44NET LAN configurations [\#1548](https://github.com/aredn/aredn/pull/1548)
+* Enabled kmod-eeprom-at24 package [\#1529](https://github.com/aredn/aredn/pull/1529)
+* Made watchdog improvements [\#1322](https://github.com/aredn/aredn/pull/1322)
+* Report IP Address at the end of command line setup. [\#1861](https://github.com/aredn/aredn/pull/1861)
+* Now allow local NTP server to run as a service for LAN devices [\#1865](https://github.com/aredn/aredn/pull/1865)
+* Now allow ping and traceroute to auto select the best interface [\#1856](https://github.com/aredn/aredn/pull/1856)
+* Animated the commit message like the scan message [\#1839](https://github.com/aredn/aredn/pull/1839)
+* Added rpcapd loadable package to aid remote node monitoring [\#1838](https://github.com/aredn/aredn/pull/1838)
+* Added disconnect reporting [\#1831](https://github.com/aredn/aredn/pull/1831)
+* Throttle dnsmasq restarts when names change [\#1826](https://github.com/aredn/aredn/pull/1826)
+* Improved messaging in various parts of the network setup [\#1817](https://github.com/aredn/aredn/pull/1817)
+* Attempt to guess PC hardware and better support unknown hardware (for VMs). [\#1816](https://github.com/aredn/aredn/pull/1816)
+* Include main IP address in HNA4 records [\#1814](https://github.com/aredn/aredn/pull/1814)
+* Dnsmasq performance improvements. [\#1813](https://github.com/aredn/aredn/pull/1813)
+* QEMU User Agent available as a module for x86 build [\#1798](https://github.com/aredn/aredn/pull/1798)
+* Improved mesh device and service counts [\#1796](https://github.com/aredn/aredn/pull/1796)
+* Moved the LAN DHCP enable/disable option into the LAN DHCP panel [\#1788](https://github.com/aredn/aredn/pull/1788)
+* Improved tunnel "email" messaging [\#1773](https://github.com/aredn/aredn/pull/1773)
+* Support forcing DHCP options without a specific tag [\#1769](https://github.com/aredn/aredn/pull/1769)
+* Open a new tab for help and website menu links [\#1760](https://github.com/aredn/aredn/pull/1760)
+* Improvements to the wifi watchdog [\#1757](https://github.com/aredn/aredn/pull/1757)
+* Added a basic syslog tool [\#1744](https://github.com/aredn/aredn/pull/1744)
+* Supernodes now support 44net by default [\#1753](https://github.com/aredn/aredn/pull/1753)
+* Now provide 44net route override [\#1703](https://github.com/aredn/aredn/pull/1703)
+* Added rapid-commit (dhcp) option [\#1733](https://github.com/aredn/aredn/pull/1733)
+* Added command line tool to generate support data [\#1695](https://github.com/aredn/aredn/pull/1695)
+* Added command line backup util [\#1729](https://github.com/aredn/aredn/pull/1729)
+* Sped up commits [\#1721](https://github.com/aredn/aredn/pull/1721)
+* Added DHCP option validation [\#1718](https://github.com/aredn/aredn/pull/1718)
+* Now support DHCP options without values [\#1735](https://github.com/aredn/aredn/pull/1735)
+* Gave high contrast theme wider dialogs (now we support that) [\#1716](https://github.com/aredn/aredn/pull/1716)
+* Now support non-admin neighbor info in mobile view. [\#1714](https://github.com/aredn/aredn/pull/1714)
+* Improved help for mobile wifi 	signal tool. [\#1693](https://github.com/aredn/aredn/pull/1693)
+* Improved display of blocked neighbors [\#1709](https://github.com/aredn/aredn/pull/1709)
+* Provide proxy and redirect for problematic services [\#1699](https://github.com/aredn/aredn/pull/1699)
+* Now allow scanning of non-mesh and multiple wifi devices [\#1578](https://github.com/aredn/aredn/pull/1578)
+* Made tunnel server name optional if you have no server tunnels [\#1688](https://github.com/aredn/aredn/pull/1688)
+* Now support pasting lat,lon coordinates into either lat or lon map field [\#1687](https://github.com/aredn/aredn/pull/1687)
+* Now support Y.X style radio heights [\#1673](https://github.com/aredn/aredn/pull/1673)
+* Now filter the LAN name from node hosts [\#1669](https://github.com/aredn/aredn/pull/1669)
+* Added pseudo services for Local Devices [\#1665](https://github.com/aredn/aredn/pull/1665)
+* Now allow packages to be removed on low memory nodes. [\#1684](https://github.com/aredn/aredn/pull/1684)
+* Improved detection and display of services and devices [\#1683](https://github.com/aredn/aredn/pull/1683)
+* Improved which local devices and service we show when logged out or logged in. [\#1682](https://github.com/aredn/aredn/pull/1682)
+* Provide UI for the wifi watchdog system. [\#1655](https://github.com/aredn/aredn/pull/1655)
+* Improved tunnel messaging [\#1648](https://github.com/aredn/aredn/pull/1648)
+* Added topology info to sysinfo.json [\#1637](https://github.com/aredn/aredn/pull/1637)
+* Improved startup of LQM so we get some information early [\#1632](https://github.com/aredn/aredn/pull/1632)
+* Support wider channels (experimental) [\#1631](https://github.com/aredn/aredn/pull/1631) [\#1635](https://github.com/aredn/aredn/pull/1635)
+* Split the Wifi Signal gauge to 	show the local and remote signal information [\#1602](https://github.com/aredn/aredn/pull/1602) [\#1628](https://github.com/aredn/aredn/pull/1628)
+* Improved detection of disconnected nodes [\#1617](https://github.com/aredn/aredn/pull/1617)
+* Periodically sync time if continuous NTPD is unsynchronized [\#1611](https://github.com/aredn/aredn/pull/1611)
+* Now include cookies when testing services. [\#1600](https://github.com/aredn/aredn/pull/1600)
+* Improved antenna settings messaging [\#1605](https://github.com/aredn/aredn/pull/1605)
+* Added VHT support (experimental) [\#1630](https://github.com/aredn/aredn/pull/1630)
+* Decimate the neighbor graph data so we can show more history [\#1598](https://github.com/aredn/aredn/pull/1598)
+* Added capability to backup and restore node configurations [\#1597](https://github.com/aredn/aredn/pull/1597)
+* Added secondary NTP server option [\#1583](https://github.com/aredn/aredn/pull/1583)
+
+## New Device Support
+
+* TP-Link CPE710v2 [\#1823](https://github.com/aredn/aredn/pull/1823)
+* Mikrotik NetMetal 5
+* Tupavco antenna [\#1646](https://github.com/aredn/aredn/pull/1646)
+* Ubiquiti Litebeam M5
+
+## Fixes
+
+* Fix tx/rx bitrate reporting which was 1/2 what it should be. [\#1882](https://github.com/aredn/aredn/pull/1882)
+* Improve api performance when reading radio info. [\#1881](https://github.com/aredn/aredn/pull/1881)
+* Added fix to br-nomesh which can be created in a partially working state [\#1844](https://github.com/aredn/aredn/pull/1844)
+* We no longer allow access to port 9090 from the mesh. (It crashes OLSRD) [\#1879](https://github.com/aredn/aredn/pull/1879)
+* Added lockdown and monitor for OLSR [\#1852](https://github.com/aredn/aredn/pull/1852)
+* Reapplied older patch for Rocket 5AC Lite [\#1872](https://github.com/aredn/aredn/pull/1872)
+* Improved setup migrations [\#1834](https://github.com/aredn/aredn/pull/1834)
+* Restart LQM when tunnel configuration changes. [\#1832](https://github.com/aredn/aredn/pull/1832)
+* Don't display supernode route count 	(supernodes don't calculate this) [\#1825](https://github.com/aredn/aredn/pull/1825)
+* Increased dnsmasq cache sizes for supernodes to avoid memory corruption [\#1811](https://github.com/aredn/aredn/pull/1811)
+* Bumped restart timeouts so dnsmasq will respawn if it crashes. [\#1810](https://github.com/aredn/aredn/pull/1810)
+* Fixed corner case when setting up node's initial Addresses [\#1804](https://github.com/aredn/aredn/pull/1804)
+* Fixed display problem when arp contains bad entries [\#1802](https://github.com/aredn/aredn/pull/1802)
+* Fixed resource caching in browser memory [\#1795](https://github.com/aredn/aredn/pull/1795)
+* Don't refocus the mesh page when we refresh so page doesn't jump to the top [\#1794](https://github.com/aredn/aredn/pull/1794)
+* Fixed layout of LAN type so it looks the same on all browsers [\#1866](https://github.com/aredn/aredn/pull/1866)
+* Made sure we hide any overflowed nav controls [\#1780](https://github.com/aredn/aredn/pull/1780)
+* Fixed port forward layout [\#1775](https://github.com/aredn/aredn/pull/1775)
+* Now force wifi lan/wan password to be at least 8 characters [\#1767](https://github.com/aredn/aredn/pull/1767)
+* Fixed the source Addresses for pings and traces [\#1765](https://github.com/aredn/aredn/pull/1765)
+* Fixed port forward wrapping [\#1758](https://github.com/aredn/aredn/pull/1758)
+* Fixed an unresponsiveness when network changes [\#1740](https://github.com/aredn/aredn/pull/1740)
+* Made 3 column layout responsive if browser is narrow [\#1741](https://github.com/aredn/aredn/pull/1741)
+* Made more fixes and improvements to DHCP option validation [\#1736](https://github.com/aredn/aredn/pull/1736)
+* Fixed creating new first reservation 	[\#1734](https://github.com/aredn/aredn/pull/1734)
+* Fixed DHCP option input field number styling [\#1731](https://github.com/aredn/aredn/pull/1731)
+* Made fixes and tweaks for DHCP option in-browser validation [\#1730](https://github.com/aredn/aredn/pull/1730)
+* Fixed the assumption that the DHCP range always starts at an offset of 2\. [\#1726](https://github.com/aredn/aredn/pull/1726)
+* Added localnode back into port forwarding UI [\#1706](https://github.com/aredn/aredn/pull/1706)
+* Made various bug fixes for alt networks and larger dhcp ranges [\#1652](https://github.com/aredn/aredn/pull/1652)
+* Made fixes for blank variables breaking upgrades [\#1654](https://github.com/aredn/aredn/pull/1654)
+* Fixed DMZ DHCP values [\#1664](https://github.com/aredn/aredn/pull/1664)
+* Fixed migration of services on nodes without any services [\#1660](https://github.com/aredn/aredn/pull/1660)
+* Now allow ":" in service names [\#1638](https://github.com/aredn/aredn/pull/1638)
+* Fixed firewall restart when lan-to-wan changed [\#1606](https://github.com/aredn/aredn/pull/1606)
+* Now redirect localnode to actual hostname (better logged-in behavior) [\#1599](https://github.com/aredn/aredn/pull/1599)
+* Only show TODOs to admin [\#1595](https://github.com/aredn/aredn/pull/1595)
+* Mark devices supported in previous releases, but not in the current one. [\#1748](https://github.com/aredn/aredn/pull/1748)
+* Refine PUT/POST locking. [\#1742](https://github.com/aredn/aredn/pull/1742)
+* Tweak node detection keepalive [\#1713](https://github.com/aredn/aredn/pull/1713)
+* Refine htmx activation mechanism 	[\#1712](https://github.com/aredn/aredn/pull/1712)
+* Make sure we don't lose the compat\_version [\#1697](https://github.com/aredn/aredn/pull/1697)
+* Supported Devices List Edits (UBNT 5AC)-Issue \#1674 [\#1675](https://github.com/aredn/aredn/pull/1675)
+* Remove setting old dmz value [\#1657](https://github.com/aredn/aredn/pull/1657)
+* Mark bandwidths invalid on various devices (rather than marking what is valid) [\#1639](https://github.com/aredn/aredn/pull/1639)
+* Make sure to silence the wifi signal on the way out [\#1623](https://github.com/aredn/aredn/pull/1623)
+* Work around HTMX bug where downloading files doesn't stop the logo spinning [\#1622](https://github.com/aredn/aredn/pull/1622)
+* Remove special casing for /a/authenticate page [\#1619](https://github.com/aredn/aredn/pull/1619)
+* Fix missing validation for single hx-put input fields [\#1618](https://github.com/aredn/aredn/pull/1618)
+* Block PUT, POST, DELETE unless logged in or firstboot. [\#1582](https://github.com/aredn/aredn/pull/1582)
+* Added user agents (containing firmware version info) to package and firmware updates [\#1593](https://github.com/aredn/aredn/pull/1593)
 
 # 3.24.10.0
 
