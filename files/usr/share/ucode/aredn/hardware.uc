@@ -460,6 +460,12 @@ export function getTxPowerOffset(wifiIface)
     return 0;
 };
 
+export function getMaxDistance(wifiIface)
+{
+    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+    return (info.wiphy_coverage_class * 3) / (2 * 0.0033);
+};
+
 export function supportsXLink()
 {
     switch (getBoardModel().id) {

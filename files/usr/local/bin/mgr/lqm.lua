@@ -307,6 +307,27 @@ function iw_set(cmd)
     end
 end
 
+function update_deny_list(tracker)
+    local f = "/var/run/hostapd-" .. wlan .. ".maclist"
+    local o = read_all(f)
+    if not o then
+        return false
+    end
+    local n = ""
+    for mac, track in pairs(tracker)
+    do
+        if track.blocked then
+            n = n .. mac .. "\n"
+        end
+    end
+    if o == n then
+        return false
+    end
+    write_all(f, n)
+    os.execute("/usr/bin/killall -HUP hostapd")
+    return true
+end
+
 function lqm_run()
     -- Create filters (cannot create during install as they disappear on reboot)
     nft("flush chain ip fw4 input_lqm 2> /dev/null")
@@ -324,6 +345,8 @@ function lqm_run()
     iw_set("rts off")
     -- Set the default retries
     iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
+    -- Clear the deny list
+    update_deny_list({})
 
     local noise = -95
     local tracker = {}
@@ -577,7 +600,8 @@ function lqm_run()
                         signal = false,
                         distance = false,
                         pair = false,
-                        quality = false
+                        quality = false,
+                        user = false
                     },
                     blocked = false,
                     snr = nil,
@@ -928,7 +952,8 @@ function lqm_run()
                     signal = false,
                     distance = false,
                     pair = false,
-                    quality = false
+                    quality = false,
+                    user = false
                 }
     
                 -- Always allow if user requested it
@@ -1111,10 +1136,17 @@ function lqm_run()
                 (not is_connected(track) and track.firstseen + pending_timeout > now) or
                 (track.quality0_seen and now > track.quality0_seen + lastseen_timeout)
             ) then
-                force_remove_block(track)
-                tracker[track.mac] = nil
+                -- But *DONT* remove any user blocked trackers. If we block these devices at a low level (via
+                -- the deny list for example) then we never see them again at this level and we loose the ability
+                -- to unblock them without a reboot.
+                if not is_user_blocked(track) then
+                    force_remove_block(track)
+                    tracker[track.mac] = nil
+                end
             end
         end
+        -- Update denied mac list
+        update_deny_list(tracker)
 
         -- Default distances if we haven't calcuated anything
         if distance < 0 then
