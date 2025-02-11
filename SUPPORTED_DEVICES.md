@@ -38,7 +38,7 @@ RB911G-5HPnD | RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | untested | relea
 QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | released (1)
 RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | untested | released
 RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | released (1)
-RB922UAGS-5HPacD <br> NetMetal 5 | 922UAGS-5HPacD-NM <br> 922UAGS-5HPacD-NM-US | 5 | ath79 | mikrotik |  mikrotik_routerboard-922uags-5hpacd | 128MB | stable | nightly
+RB922UAGS-5HPacD <br> NetMetal 5 | 922UAGS-5HPacD-NM <br> 922UAGS-5HPacD-NM-US | 5 | ath79 | mikrotik |  mikrotik_routerboard-922uags-5hpacd | 128MB | stable | released
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | released
 mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | released
 mANTBox 2 12s | RB911G-2HPnD-12S | 2 | ath79 | mikrotik | mikrotik-911g-2hpnd-12s | 64MB | stable | released
@@ -50,7 +50,7 @@ Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | untested | relea
 LiteAP 5AC | LAP-120 <br> LAP-120-US <br> LBE-5AC-16-120 <br> LBE-5AC-16-120-US | 5 | ath79 | generic | ubnt_lap-120 | 64MB | stable | released
 LiteBeam 5AC Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | released
 LiteBeam 5AC LR | LBE-5AC-LR <br> LBE-5AC-LR-US | 5 | ath79 | generic | ubnt_litebeam-ac-lr | 64MB | stable | released
-LiteBeam M5 || 5 | ath79 | generic | ubnt_litebeam-m5-xw | 64MB | untested | nightly
+LiteBeam M5 || 5 | ath79 | generic | ubnt_litebeam-m5-xw | 64MB | untested | released
 NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | stable | released
 NanoBeam 5AC (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | stable | released
 NanoBeam 5AC (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | released
@@ -125,7 +125,7 @@ TPLink CPE605 v1.0 || 5 | ath79 | generic | tplink_cpe605-v1 | 64MB | untested |
 TPLink CPE610 v1.0 || 5 | ath79 | generic | tplink_cpe610-v1 | 64MB | untested | released
 TPLink CPE610 v2.0 || 5 | ath79 | generic | tplink_cpe610-v2 | 64MB | untested | released
 TPLink CPE710 v1.0 | CPE710 V1.0 | 5 | ath79 | generic | tplink_cpe710-v1 | 128MB | stable | released
-TPLink CPE710 v2.0 | CPE710 V2.0 | 5 | ath79 | generic | tplink_cpe710-v2 | 128MB | untested | nightly
+TPLink CPE710 v2.0 | CPE710 V2.0 | 5 | ath79 | generic | tplink_cpe710-v2 | 128MB | stable | released
 TPLink WBS210 v1.0 || 2 | ath79 | generic | tplink_wbs210-v1 | 64MB | untested | released
 TPLink WBS210 v2.0 || 2 | ath79 | generic | tplink_wbs210-v2 | 64MB | untested | released
 TPLink WBS510 v1.0 || 5 | ath79 | generic | tplink_wbs510-v1 | 64MB | untested | released
