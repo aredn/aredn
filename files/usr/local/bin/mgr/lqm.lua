@@ -295,9 +295,11 @@ f:close()
 local radiomode = "none"
 local wlan = aredn.hardware.get_iface_name("wifi")
 local phy = "none"
+local radio = "none"
 local wlanid = wlan:match("^wlan(%d+)$")
 if wlanid then
     phy = "phy" .. wlanid
+    radio = "radio" .. wlanid
     radiomode = "mesh"
 end
 
@@ -305,6 +307,26 @@ function iw_set(cmd)
     if phy ~= "none" then
         os.execute(IW .. " " .. phy .. " set " .. cmd .. " > /dev/null 2>&1")
     end
+end
+
+function update_allow_list()
+    local f = "/var/run/hostapd-" .. wlan .. ".maclist"
+    local o = read_all(f)
+    if not o then
+        return false
+    end
+    local n = ""
+
+    local peer = uci.cursor("/etc/config.mesh"):get("setup", "globals", radio .. "_peer")
+    if peer then
+        n = peer .. "\n"
+    end
+    if o == n then
+        return false
+    end
+    write_all(f, n)
+    os.execute("/usr/bin/killall -HUP hostapd")
+    return true
 end
 
 function update_deny_list(tracker)
@@ -345,8 +367,6 @@ function lqm_run()
     iw_set("rts off")
     -- Set the default retries
     iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
-    -- Clear the deny list
-    update_deny_list({})
 
     local noise = -95
     local tracker = {}
@@ -357,6 +377,15 @@ function lqm_run()
     local last_short_retries = -1
     local last_long_retries = -1
     local pending_count = 0
+    local ptp = uci.cursor("/etc/config.mesh"):get("setup", "globals", radio .. "_mode") == "meshptp"
+
+    if ptp then
+        -- In ptp mode we allow a single mac address
+        update_allow_list()
+    else
+        -- Clear the deny list
+        update_deny_list({})
+    end
 
     os.remove("/tmp/lqm.reset")
     -- Run until reset is detected
@@ -1146,8 +1175,10 @@ function lqm_run()
                 end
             end
         end
-        -- Update denied mac list
-        update_deny_list(tracker)
+        if not ptp then
+            -- Update denied mac list
+            update_deny_list(tracker)
+        end
 
         -- Default distances if we haven't calcuated anything
         if distance < 0 then

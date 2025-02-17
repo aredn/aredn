@@ -37,7 +37,8 @@ import * as uci from "uci";
 
 export const RADIO_OFF = "off";
 export const RADIO_MESH = "mesh";
-export const RADIO_MESHAP = "meshap";
+export const RADIO_MESHPTMP = "meshap";
+export const RADIO_MESHPTP = "meshptp";
 export const RADIO_MESHSTA = "meshsta";
 export const RADIO_LAN = "lan";
 export const RADIO_WAN = "wan";
@@ -103,7 +104,7 @@ export function getActiveConfiguration()
             if (s.network === "wifi") {
                 switch (s.mode) {
                     case "ap":
-                        mmode.mode = RADIO_MESHAP;
+                        mmode.mode = s.macfilter === "allow" ? RADIO_MESHPTP : RADIO_MESHPTMP;
                         mdevice = s.device;
                         mmode.ssid = s.ssid;
                         break;

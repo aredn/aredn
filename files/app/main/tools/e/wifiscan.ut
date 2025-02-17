@@ -44,7 +44,7 @@ for (let i = 0; i < length(config); i++) {
     const mode = config[i].mode.mode;
     if (mode !== radios.RADIO_OFF) {
         count++;
-        if (selected === -1 || (mode == radios.RADIO_MESH || mode == radios.RADIO_MESHAP || mode == radios.RADIO_MESHSTA)) {
+        if (selected === -1 || (mode == radios.RADIO_MESH || mode == radios.RADIO_MESHPTMP || mode == radios.RADIO_MESHPTP || mode == radios.RADIO_MESHSTA)) {
             selected = i;
         }
     }
@@ -179,7 +179,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     s.mode = "My Ad-Hoc Mesh";
                 }
                 break;
-            case radios.RADIO_MESHAP:
+            case radios.RADIO_MESHPTMP:
+            case radios.RADIO_MESHPTP:
                 if (s.joined) {
                     s.mode = "My Mesh Station";
                 }

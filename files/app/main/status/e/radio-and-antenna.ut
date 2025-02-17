@@ -38,8 +38,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const modemap = {
         "0": radios.RADIO_OFF,
         "1": radios.RADIO_MESH,
-        "4": radios.RADIO_MESHAP,
-        "5": radios.RADIO_MESHSTA,
+        "4": radios.RADIO_MESHPTMP,
+        "5": radios.RADIO_MESHPTP,
+        "6": radios.RADIO_MESHSTA,
         "2": radios.RADIO_LAN,
         "3": radios.RADIO_WAN
     };
@@ -56,7 +57,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
     switch (radio0_mode) {
         case radios.RADIO_MESH:
-        case radios.RADIO_MESHAP:
+        case radios.RADIO_MESHPTMP:
+        case radios.RADIO_MESHPTP:
         case radios.RADIO_MESHSTA:
             configuration.setSetting("radio0_mode", radio0_mode);
             if ("radio0_channel" in request.args) {
@@ -64,6 +66,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
             }
             else if (!configuration.getSettingAsString("radio0_channel")) {
                 configuration.setSetting("radio0_channel", wlan[0].def.channel);
+            }
+            if ("radio0_peer" in request.args) {
+                configuration.setSetting("radio0_peer", request.args.radio0_peer);
             }
             if ("radio0_ssid" in request.args) {
                 configuration.setSetting("radio0_ssid", request.args.radio0_ssid);
@@ -117,7 +122,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
     switch (radio1_mode) {
         case radios.RADIO_MESH:
-        case radios.RADIO_MESHAP:
+        case radios.RADIO_MESHPTMP:
+        case radios.RADIO_MESHPTP:
         case radios.RADIO_MESHSTA:
             configuration.setSetting("radio1_mode", radio1_mode);
             if ("radio1_channel" in request.args) {
@@ -125,6 +131,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
             }
             else if (!configuration.getSettingAsString("radio1_channel")) {
                 configuration.setSetting("radio1_channel", wlan[0].def.channel);
+            }
+            if ("radio1_peer" in request.args) {
+                configuration.setSetting("radio1_peer", request.args.radio1_peer);
             }
             if ("radio1_ssid" in request.args) {
                 configuration.setSetting("radio1_ssid", request.args.radio1_ssid);
@@ -247,7 +256,8 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     const modemap = {
                         "mesh": 1,
                         "meshap": 4,
-                        "meshsta": 5,
+                        "meshptp": 5,
+                        "meshsta": 6,
                         "lan": 2,
                         "wan": 3
                     };
@@ -263,8 +273,9 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}mode" {{_R("hideable-onselect")}}>
                         <option value="0" {{wlan[w].mode.mode === radios.RADIO_OFF ? "selected" : ""}}>Off</option>
                         <option value="1" {{wlan[w].mode.mode === radios.RADIO_MESH ? "selected" : ""}}>Mesh</option>
-                        <option value="4" {{wlan[w].mode.mode === radios.RADIO_MESHAP ? "selected" : ""}}>Mesh PtMP</option>
-                        <option value="5" {{wlan[w].mode.mode === radios.RADIO_MESHSTA ? "selected" : ""}}>Mesh Station</option>
+                        <option value="4" {{wlan[w].mode.mode === radios.RADIO_MESHPTMP ? "selected" : ""}}>Mesh PtMP</option>
+                        <option value="5" {{wlan[w].mode.mode === radios.RADIO_MESHPTP ? "selected" : ""}}>Mesh PtP</option>
+                        <option value="6" {{wlan[w].mode.mode === radios.RADIO_MESHSTA ? "selected" : ""}}>Mesh Station</option>
                         <option value="2" {{wlan[w].mode.mode === radios.RADIO_LAN ? "selected" : ""}}>LAN Hotspot</option>
                         <option value="3" {{wlan[w].mode.mode === radios.RADIO_WAN ? "selected" : ""}}>WAN Client</option>
                     </select>
@@ -272,7 +283,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             </div>
             {{_H("Select the purpose of the radio. Each radio can be assigned to a specific purpose, but devices with multiple radios
             cannot have the same purpose for multiple radios (except <b>off</b>).")}}
-            <div class="hideable1 hideable4 hideable5" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
+            <div class="hideable1 hideable4 hideable5 hideable6" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
                 <div class="cols">
                     <div>
                         <div class="o">Channel</div>
@@ -308,6 +319,18 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 </div>
                 {{_H("Select the bandwidth of the radio. Be aware that larger bandwidth settings will consume more channels. Avoid overlapping
                 channels as this will impact performance.")}}
+                <div class="cols peer hideable5">
+                    <div>
+                        <div class="o">Peer Node</div>
+                        <div class="m">MAC a&zwnj;ddress of remote Mesh Station</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}peer" type="text" required placeholder="mac a&zwnj;ddress" pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" hx-validate="true" value="{{configuration.getSettingAsString(`${prefix}peer`, "")}}">
+                    </div>
+                </div>
+                <div class="peer hideable5">
+                {{_H("Specify the MAC a&zwnj;ddress of the node which is allowed to peer with this node. The other node must be configured as a Mesh Station.")}}
+                </div>
                 <div class="cols">
                     <div>
                         <div class="o">Transmit Power</div>
@@ -341,7 +364,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Distance to farthest neighbor in {{units.distanceUnit()}}</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" pattern="\d+" hx-validate="true" value="{{int(0.5 + units.meters2distance(configuration.getSettingAsInt("{{prefix}}distance", 0)))}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" pattern="\d+" hx-validate="true" value="{{int(0.5 + units.meters2distance(configuration.getSettingAsInt(`${prefix}distance`, 0)))}}">
                         </div>
                     </div>
                 </div>
@@ -642,7 +665,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         const bws{{w}} = htmx.find(`#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_bandwidth]`);
         const bwssid{{w}} = htmx.find(`#ctrl-modal .dialog.radio-and-antenna input[name=radio{{w}}_ssid] + span`);
         function change{{w}}() {
-            if (radio{{w}}.value == "4" || radio{{w}}.value == "5") {
+            if (radio{{w}}.value == "4" || radio{{w}}.value == "5" || radio{{w}}.value == "6") {
                 bwssid{{w}}.innerHTML = `-${chan{{w}}.value}-${bws{{w}}.value}-v3`;
             }
             else {
