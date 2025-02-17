@@ -923,16 +923,17 @@ function lqm_run()
                     end
                 end
             end
-            total_babel_route_count = 0
-            for line in io.popen(IPCMD .. " route show table 20"):lines()
-            do
-                local gw = line:match("^10%.%d+%.%d+%.%d+ via (%d+%.%d+%.%d+%.%d+) dev")
-                if gw then
-                    local track = ip2tracker[gw];
-                    if track then
-                        track.babel_route_count = track.babel_route_count + 1
-                        total_babel_route_count = total_babel_route_count + 1
-                    end
+        end
+        -- We will do this for babel, at least for now, to gather more data
+        total_babel_route_count = 0
+        for line in io.popen(IPCMD .. " route show table 20"):lines()
+        do
+            local gw = line:match("^10%.%d+%.%d+%.%d+ via (%d+%.%d+%.%d+%.%d+) dev")
+            if gw then
+                local track = ip2tracker[gw];
+                if track then
+                    track.babel_route_count = track.babel_route_count + 1
+                    total_babel_route_count = total_babel_route_count + 1
                 end
             end
         end
