@@ -34,7 +34,7 @@ true <<'LICENSE'
 LICENSE
 
 ROOT="/tmp/reboot-required"
-SERVICES="log system firewall network wireless dnsmasq tunnels lqm manager olsrd localservices poe pou ntp"
+SERVICES="log system firewall network wireless dnsmasq tunnels lqm manager babel olsrd arednlink localservices poe pou ntp"
 
 ignore=0
 force=0
@@ -87,6 +87,8 @@ do
       fi
     elif [ $srv = "lqm" ]; then
       touch /tmp/lqm.reset
+    elif [ $srv = "arednlink" ]; then
+      /usr/local/bin/arednlink-update
     elif [ -x /etc/init.d/$srv ]; then
       /etc/init.d/$srv restart > /dev/null 2>&1
     fi

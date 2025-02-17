@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2024,2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -38,8 +38,10 @@
     let lidx = -1;
     let widx = -1;
     for (let i = 0; i < length(radio); i++) {
-        switch (radio[i].mode) {
+        switch (radio[i].mode?.mode) {
             case radios.RADIO_MESH:
+            case radios.RADIO_MESHAP:
+            case radios.RADIO_MESHSTA:
                 midx = i;
                 break;
             case radios.RADIO_LAN:
@@ -58,8 +60,8 @@
         <div class="s">model</div>
     </div>
     {% if (midx !== -1) {
-        const r = radio[midx].modes[radios.RADIO_MESH]; %}
-    <div class="section-title">Mesh</div>
+        const r = radio[midx].mode; %}
+    <div class="section-title">{{r.mode === "mesh" ? "Mesh" : r.mode === "meshap" ? "Mesh PTMP" : "Mesh Station"}}</div>
     <div class="section">
         <div class="cols">
             <div>
@@ -80,31 +82,30 @@
                 <div class="t">{{r.txpower + radio[midx].txpoweroffset}} dBm</div>
                 <div class="s">tx power</div>
             </div>
+            {%if (uci.get("aredn", "@lqm[0]", "enable") === "1") {
+                const wifi_distance = int(0.5 + units.meters2distance(uci.get("aredn", "@lqm[0]", "max_distance")));
+            %}
             <div>
-                {%if (uci.get("aredn", "@lqm[0]", "enable") === "1") {
-                    const wifi_distance = int(0.5 + units.meters2distance(uci.get("aredn", "@lqm[0]", "max_distance")));
-                %}
                 <div class="t">{{wifi_distance}} {{units.distanceUnit(wifi_distance)}}</div>
-                {% } else if (configuration.getSettingAsInt("wifi_distance", 0) === 0) { %}
-                <div class="t">auto</div>
-                {% } else {
-                    const wifi_distance = int(0.5 + units.meters2distance(configuration.getSettingAsInt("wifi_distance", 0)));
-                %}
-                <div class="t">{{wifi_distance}} {{units.distanceUnit(wifi_distance)}}</div>
-                {% } %}
                 <div class="s">maximum distance</div>
             </div>
             <div>
-                {% if (uci.get("aredn", "@lqm[0]", "enable") === "1") { %}
                 <div class="t">{{uci.get("aredn", "@lqm[0]", "min_snr")}}</div>
                 <div class="s">minimum snr</div>
-                {% } %}
             </div>
+            {% } else {
+                const wifi_distance = int(0.5 + units.meters2distance(hardware.getMaxDistance(radio[midx].iface)));
+            %}
+            <div style="flex:2">
+                <div class="t">{{wifi_distance}} {{units.distanceUnit(wifi_distance)}}</div>
+                <div class="s">maximum distance (auto)</div>
+            </div>
+            {% } %}
         </div>
     </div>
     {% }
     if (lidx !== -1) {
-        const r = radio[lidx].modes[radios.RADIO_LAN]; %}
+        const r = radio[lidx].mode; %}
     <div class="section-title">LAN Hotspot</div>
     <div class="section">
         <div class="cols">
@@ -120,7 +121,7 @@
     </div>
     {% }
     if (widx !== -1) {
-        const r = radio[widx].modes[radios.RADIO_WAN];
+        const r = radio[widx].mode;
         let wconnected = false;
         let winternet = false;
         let f = fs.popen(`/usr/sbin/iw dev wlan${widx} link 2> /dev/null`);

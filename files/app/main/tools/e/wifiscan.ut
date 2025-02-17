@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2024,2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -41,9 +41,10 @@ const config = radios.getActiveConfiguration();
 let count = 0;
 let selected = -1;
 for (let i = 0; i < length(config); i++) {
-    if (config[i].mode !== radios.RADIO_OFF) {
+    const mode = config[i].mode.mode;
+    if (mode !== radios.RADIO_OFF) {
         count++;
-        if (selected === -1 || config[i].mode == radios.RADIO_MESH) {
+        if (selected === -1 || (mode == radios.RADIO_MESH || mode == radios.RADIO_MESHAP || mode == radios.RADIO_MESHSTA)) {
             selected = i;
         }
     }
@@ -57,7 +58,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if (!radio) {
         return;
     }
-    const radiomode = filter(radio.modes, m => m)[0];
+    const radiomode = radio.mode;
     const wifiiface = radio.iface;
     const myssid = radiomode.ssid;
     const mychan = radiomode.channel ?? -1;
@@ -65,10 +66,12 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const nodename = configuration.getName();
     const scan = {};
 
-    let ubnt_ac = false;
-    const board_type = hardware.getBoard().model.id;
-    if (index(board_type, "ubnt,") === 0 && index(board_type, "ac") !== -1) {
-        ubnt_ac = true
+    let disconnect_reconnect = false;
+    if (radiomode === radios.RADIO_MESH) {
+        const board_type = hardware.getBoard().model.id;
+        if (index(board_type, "ubnt,") === 0 && index(board_type, "ac") !== -1) {
+            disconnect_reconnect = true
+        }
     }
 
     const reArp = /^([\.0-9]+) +0x. +0x. +([0-9a-fA-F:]+)/;
@@ -83,45 +86,26 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
         f.close();
     }
-    
-    f = fs.popen(`/usr/sbin/iw dev ${wifiiface} station dump`);
-    if (f) {
-        const re = regexp(`^Station ([0-9a-fA-F:]+) \\(on ${wifiiface}\\)`);
-        const reSi = /signal:[ \t]+(-[0-9]+)/;
-        let station;
-        const dmode = radio.mode === radios.RADIO_MESH ? "Connected Ad-Hoc Station" : "AP";
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            let m = match(l, re);
-            if (m) {
-                station = scan[m[1]];
-                if (!station) {
-                    const ip = arp[m[1]];
-                    const hostname = ip ? network.nslookup(ip) : null;
-                    station = {
-                        mac: m[1],
-                        signal: 9999,
-                        key: "",
-                        joined: false,
-                        mode: dmode,
-                        ssid: myssid,
-                        ip: ip,
-                        hostname: hostname
-                    };
-                    if (mychan !== -1) {
-                        station.chan = { [mychan]: true };
-                    }
-                    scan[m[1]] = station;
-                }
-            }
-            m = match(l, reSi);
-            if (m) {
-                station.signal = int(m[1]);
-            }
+
+    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+    for (let i = 0; i < length(info); i++) {
+        if (info[i].dev === wifiiface) {
+            const mac = info[i].mac;
+            const ip = arp[mac];
+            scan[mac] = {
+                mac: mac,
+                signal: info[i].sta_info.signal_avg,
+                joined: true,
+                mode: "Station",
+                ssid: myssid,
+                chan: mychan !== -1 ? { [mychan]: true } : {},
+                ip: ip,
+                hostname: ip ? network.nslookup(ip) : null
+            };
         }
-        f.close();
     }
 
-    if (ubnt_ac) {
+    if (disconnect_reconnect) {
         system(`/usr/sbin/iw dev ${wifiiface} ibss leave > /dev/null 2>&1`);
         system("/sbin/wifi up > /dev/null 2>&1");
         for (let attempt = 10; attempt > 0; attempt--) {
@@ -141,73 +125,84 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
     }
 
-    f = fs.popen(`/usr/sbin/iw dev ${wifiiface} scan passive`);
-    if (f) {
-        const re = /^BSS ([0-9a-fA-F:]+)/;
-        const reF = /freq: ([0-9]+)/;
-        const reSs = /SSID: (.+)\n/;
-        const reSi = /signal: (.+)\n/;
-        const reC = /Group cipher: (.+)\n/;
-        let station = {};
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            let m = match(l, re);
-            if (m) {
-                station = scan[m[1]];
-                if (!station) {
-                    const ip = arp[m[1]];
-                    const hostname = ip ? network.nslookup(ip) : null;
-                    station = {
-                        mac: m[1],
-                        signal: 9999,
-                        chan: {},
-                        key: "",
-                        joined: false,
-                        mode: "AP",
-                        ssid: "",
-                        ip: ip,
-                        hostname: hostname
-                    };
-                    scan[m[1]] = station;
+    nl80211.request(nl80211.const.NL80211_CMD_TRIGGER_SCAN, 0, { dev: wifiiface });
+    nl80211.waitfor();
+    const wscan = nl80211.request(nl80211.const.NL80211_CMD_GET_SCAN, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+    for (let i = 0; i < length(wscan); i++) {
+        const w = wscan[i];
+        if (w.dev === wifiiface) {
+            const bss = w.bss;
+            const mac = bss.bssid;
+            let station = scan[mac];
+            if (!station) {
+                const ip = arp[mac];
+                station = {
+                    mac: mac,
+                    signal: 9999,
+                    chan: {},
+                    joined: false,
+                    mode: "AP",
+                    ssid: "",
+                    ip: ip,
+                    hostname: ip ? network.nslookup(ip) : null,
+                    ibss: false
+                };
+                scan[mac] = station;
+            }
+            const chan = hardware.getChannelFromFrequency(bss.frequency);
+            if (chan) {
+                station.chan[chan] = true;
+            }
+            if (bss.capability & 2) {
+                station.ibss = true;
+            }
+            station.signal = bss.signal_mbm / 100;
+            const ies = bss.information_elements;
+            for (let j = 0; j < length(ies); j++) {
+                if (ies[j].type === 0) {
+                    station.ssid = ies[j].data;
+                    break;
                 }
-                if (radiomode.mode === radios.RADIO_MESH && index(l, "joined") !== -1) {
-                    station.mode = "My Ad-Hoc Network";
-                    station.joined = true;
-                    station.hostname = nodename;
-                }
-            }
-            m = match(l, reF);
-            if (m) {
-                if (radiomode.mode === radios.RADIO_MESH && m[1] == myfreq) {
-                    station.mode = "My Ad-Hoc Network";
-                    station.joined = true;
-                }
-                const chan = hardware.getChannelFromFrequency(int(m[1]));
-                if (chan) {
-                    station.chan[chan] = true;
-                }
-            }
-            m = match(l, reSs);
-            if (m) {
-                station.ssid = m[1];
-            }
-            m = match(l, reSi);
-            if (m) {
-                station.signal = int(m[1]);
-            }
-            m = match(l, reC);
-            if (m) {
-                station.key = m[1];
-            }
-            if (index(l, "capability: IBSS") !== -1 && station.mode === "AP") {
-                station.mode = "Foreign Ad-Hoc Network";
             }
         }
-        f.close();
     }
 
     for (let k in scan) {
-        scan[k].chan = join(" ", sort(keys(scan[k].chan)));
-        scan[k].hostname = scan[k].hostname ? replace(scan[k].hostname, ".local.mesh", "") : null;
+        const s = scan[k];
+        s.mode = "AP";
+        switch (radiomode.mode) {
+            case radios.RADIO_MESH:
+                if (s.joined) {
+                    s.mode = "My Ad-Hoc Mesh";
+                }
+                else if (s.chan[mychan] && s.ssid == myssid) {
+                    s.mode = "My Ad-Hoc Mesh";
+                }
+                break;
+            case radios.RADIO_MESHAP:
+                if (s.joined) {
+                    s.mode = "My Mesh Station";
+                }
+                break;
+            case radios.RADIO_MESHSTA:
+                if (s.joined) {
+                    s.mode = "My Mesh PtMP";
+                }
+                break;
+            default:
+                break;
+        }
+        if (s.mode === "AP") {
+            if (s.ibss && match(s.ssid, /^[^-]+-(5|10|20|40|80)-v3$/)) {
+                s.mode = "Ad-Hoc Mesh";
+            }
+            else if (match(s.ssid, /^[^-]+--?[0-9]+-(5|10|20|40|80)-v3$/)) {
+                s.mode = "Mesh PtMP";
+            }
+        }
+   
+        s.chan = join(" ", sort(keys(s.chan)));
+        s.hostname = s.hostname ? replace(s.hostname, ".local.mesh", "") : null;
     }
 
     last_scan = sort(
@@ -250,7 +245,7 @@ else {
             <thead>
                 <tr>
                 {% if (!request.mobile) { %}
-                <td>SNR</td><td>Signal</td><td style="width:50px">Chan</td><td>Enc</td><td>SSID</td><td>Hostname</td><td>BSSID</td><td>802.11 Mode</td>
+                <td>SNR</td><td>Signal</td><td style="width:50px">Chan</td><td>Enc</td><td>SSID</td><td>Hostname</td><td>BSSID</td><td>Mode</td>
                 {% } else { %}
                 <td>Signal</td><td style="width:50px">Chan</td><td>SSID</td><td>Hostname</td>
                 {% } %}
@@ -275,7 +270,7 @@ else {
         <span style="padding-right:10px">Radio
             <select id="scanwlan">
             {% for (let i = 0; i < length(config); i++) {
-                if (config[i].mode !== radios.RADIO_OFF) {
+                if (config[i].mode.mode !== radios.RADIO_OFF) {
                     print(`<option value="${i}" ${i === selected ? "selected" : ""}>${config[i].iface}</option>`);
                 }
             } %}

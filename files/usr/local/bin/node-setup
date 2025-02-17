@@ -2,7 +2,7 @@
 --[[
 
     Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-    Copyright (C) 2021-2023 Tim Wilkinson
+    Copyright (C) 2021-2025 Tim Wilkinson
     Orignal Perl Copyright (C) 2015 Conrad Lara
     See Contributors file for additional contributors
 
@@ -101,7 +101,6 @@ local c = uci.cursor()
 local cm = uci.cursor("/etc/config.mesh")
 
 local ieee80211 = "/sys/class/ieee80211/"
-local lanintf = aredn.hardware.get_board_network_ifname("lan")
 local node = aredn.info.get_nvram("node")
 local tactical = aredn.info.get_nvram("tactical")
 local mac2 = aredn.info.get_nvram("mac2")
@@ -111,7 +110,7 @@ local wifi_mon_enable = false
 local deleteme = {}
 local cfg = {
     description_node = "",
-    lan_intf = lanintf,
+    lan_intf = aredn.hardware.get_board_network_ifname("lan"),
     wan_intf = aredn.hardware.get_board_network_ifname("wan"),
     bridge_network_config = "",
     lan_network_config = "",
@@ -132,22 +131,7 @@ local cfg = {
     ntp_enabled = "0"
 }
 -- Track the changes so we can make better decissions about what to restart/reboot
-local changes = {
-    reboot = false,
-    system = false,
-    manager = false,
-    network = false,
-    olsr = false,
-    dnsmasq = false,
-    firewall = false,
-    tunnels = false,
-    wireless = false,
-    localservices = false,
-    wpad = false,
-    poe = false,
-    pou = false,
-    lqm = false
-}
+local changes = {}
 
 function valid_config(config)
     remove_all("/tmp/uci_validate")
@@ -217,17 +201,27 @@ do
     end
 end
 
-if cfg.wifi_enable == "1" then
-    if not cfg.wifi_intf or cfg.wifi_intf == "" then
-        cfg.wifi_intf = aredn.hardware.get_board_network_ifname("wifi"):match("^(%S+)")
-    end
-    local mtu = c:get("aredn", "@lqm[0]", "mtu")
-    mtu = tonumber(mtu)
-    if mtu and mtu >= 256 and mtu <= 1500 then
-        cfg.wifi_mtu = mtu
-    end
-else
-    cfg.wifi_intf = "br-nomesh"
+-- Select the mesh configuration
+local mesh_wifi = "br-nomesh"
+local mesh_ssid = ""
+local mesh_channel = ""
+local mesh_chanbw = ""
+local mesh_txpower = nil
+local mesh_distance = ""
+if cfg.radio0_mode == "mesh" or cfg.radio0_mode == "meshap" or cfg.radio0_mode == "meshsta" then
+    mesh_wifi = "wlan0"
+    mesh_channel = tonumber(cfg.radio0_channel)
+    mesh_chanbw = tonumber(cfg.radio0_bandwidth)
+    mesh_ssid = cfg.radio0_ssid
+    mesh_txpower = tonumber(cfg.radio0_txpower)
+    mesh_distance = tonumber(cfg.radio0_distance)
+elseif cfg.radio1_mode == "mesh" or cfg.radio1_mode == "meshap" or cfg.radio1_mode == "meshsta" then
+    mesh_wifi = "wlan1"
+    mesh_channel = tonumber(cfg.radio1_channel)
+    mesh_chanbw = tonumber(cfg.radio1_bandwidth)
+    mesh_ssid = cfg.radio1_ssid
+    mesh_txpower = tonumber(cfg.radio1_txpower)
+    mesh_distance = tonumber(cfg.radio1_distance)
 end
 
 -- Supernode options
@@ -370,21 +364,12 @@ do
             end
         elseif net == "wan" then
             -- wifi can be used for the WAN (we become a wifi client)
-            if cfg.wifi3_enable == "1" then
-                -- WAN uses wifi
+            if cfg.radio0_mode == "wan" then
                 wireless = true
                 ports = { "wlan0" }
-                for devname in nixio.fs.dir(ieee80211)
-                do
-                    local hwmode = "11g"
-                    if iwinfo.nl80211.freqlist(devname)[1].mhz > 5000 then
-                        hwmode="11a"
-                    end
-                    if hwmode == cfg.wifi3_hwmode then
-                        ports = { "wlan" .. devname:match("^phy(%d+)$") }
-                        break
-                    end
-                end
+            elseif cfg.radio1_mode == "wan" then
+                wireless = true
+                ports = { "wlan1" }
             else
                 -- If the WAN has been given a vlan to use (usually 1) we use that here.
                 local wvlan = ports[1]:match("%.(%d+)$")
@@ -407,7 +392,7 @@ do
             cfg.dtdlink_mask = "255.0.0.0"
         elseif net == "wifi" then
             wireless = true
-            ports = { cfg.wifi_intf }
+            ports = { mesh_wifi }
         end
 
         if vlan then
@@ -437,7 +422,7 @@ do
         config = config .. "config device\n"
         if not wireless then
             config = config .. "	option name 'br-" .. net .. "'\n	option type 'bridge'\n"
-        elseif cfg.wifi_enable ~= "1" then
+        else
             netmask = "255.255.255.255"
         end
         if nixio.fs.stat("/etc/aredn_include/fixedmac." .. net) then
@@ -537,13 +522,15 @@ cm:foreach("wireguard", "client",
         if s.enabled == "1" then
             local server_priv, _, _, client_pub = s.key:match("^(.+=)(.+=)(.+=)(.+=)$")
             local addr, port = s.clientip:match("^(%d+%.%d+%.%d+%.%d+):(%d+)$")
-            cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                string.format("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\n",
-                    wgclients, server_priv, port, addr)
-            cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                string.format("config wireguard_wgc%d\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
-                    wgclients, client_pub)
+            local a, b, c, d = addr:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
+            local ll = string.format("fe80::%02x%02x:%02x%02x/64", a, b, c, d)
             local w = s.weight or def_tun_weight
+            cfg.wireguard_network_config = cfg.wireguard_network_config ..
+                string.format("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption weight '%s'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\n",
+                    wgclients, server_priv, w, port, addr, ll)
+            cfg.wireguard_network_config = cfg.wireguard_network_config ..
+                string.format("config wireguard_wgc%d\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
+                    wgclients, client_pub)
             if not tun_weights[w] then
                 tun_weights[w] = {}
             end
@@ -562,13 +549,15 @@ cm:foreach("vtun", "server",
                 local server_pub, client_priv, client_pub = s.passwd:match("^(.+=)(.+=)(.+=)$")
                 local abc, d, p = s.netip:match("^(%d+%.%d+%.%d+)%.(%d+):(%d+)")
                 d = tonumber(d) + 1
-                cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                    string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\tlist addresses '%s'\n\n",
-                        wgservers, client_priv, (abc .. "." .. d))
-                cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                    string.format("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\n",
-                        wgservers, server_pub, s.host, p)
+                local a, b, c = abc:match("(%d+)%.(%d+)%.(%d+)")
+                local ll = string.format("fe80::%02x%02x:%02x%02x/64", a, b, c, d)
                 local w = s.weight or def_tun_weight
+                cfg.wireguard_network_config = cfg.wireguard_network_config ..
+                    string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption weight '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\n",
+                        wgservers, client_priv, w, (abc .. "." .. d), ll)
+                cfg.wireguard_network_config = cfg.wireguard_network_config ..
+                    string.format("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
+                        wgservers, server_pub, s.host, p)
                 if not tun_weights[w] then
                     tun_weights[w] = {}
                 end
@@ -909,13 +898,12 @@ do
         local htmode = "HT20"
         if nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. devname .. "/ath10k") then
             htmode = "VHT20"
-            if wlan == cfg.wifi_intf then
-                local bw = tonumber(cfg.wifi_chanbw)
-                if bw == 40 then
+            if wlan == mesh_wifi then
+                if mesh_chanbw == 40 then
                     htmode = "VHT40"
-                elseif bw == 80 then
+                elseif mesh_chanbw == 80 then
                     htmode = "VHT80"
-                elseif bw == 160 then
+                elseif mesh_chanbw == 160 then
                     htmode = "VHT160"
                 end
             end
@@ -934,33 +922,77 @@ do
         local ssid = nil
         local encryption = nil
         local key = nil
+        local celldensity = nil
+        local txpower = nil
+        local snrreject = nil
+        local multicasttounicast = nil
+        local macfilter = nil
+        local macaddr = nil
+        local isolate = nil
 
-        if wlan == cfg.wifi_intf then
+        if cfg[radio .. "_mode"] == "mesh" then
             -- mesh RF adhoc configuration
             is_mesh_rf = true
-            channel = cfg.wifi_channel
-            chanbw = cfg.wifi_chanbw
+            channel = mesh_channel
+            chanbw = mesh_chanbw
             country = "HX"
-            distance = cfg.wifi_distance
-            ssid = cfg.wifi_ssid .. "-" .. chanbw .. "-v3"
+            txpower = mesh_txpower
+            distance = mesh_distance
+            ssid = mesh_ssid .. "-" .. chanbw .. "-v3"
             mode = "adhoc"
             encryption = "none"
             network = "wifi"
-        elseif cfg.wifi2_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi2_hwmode)) then
-            -- lan AP interface
-            channel = cfg.wifi2_channel
-            ssid = h2s(cfg.wifi2_ssid)
+        elseif cfg[radio .. "_mode"] == "meshap" then
+            -- mesh RF access point configuration
+            is_mesh_rf = true
+            channel = mesh_channel
+            chanbw = mesh_chanbw
+            country = "HX"
+            txpower = mesh_txpower
+            distance = mesh_distance
+            ssid = mesh_ssid .. "-" .. channel .. "-" .. chanbw .. "-v3"
             mode = "ap"
-            encryption = cfg.wifi2_encryption
-            key = h2s(cfg.wifi2_key)
-            network = "lan"
-        elseif cfg.wifi3_enable == "1" and (ifacecount == 1 or (ifacecount > 1 and hwmode == cfg.wifi3_hwmode)) then
-            -- wan client
-            ssid = h2s(cfg.wifi3_ssid)
+            encryption = "none"
+            network = "wifi"
+            celldensity = 2
+            multicasttounicast=1
+            macfilter="deny"
+            snrreject = tonumber(nc:get("aredn", "@lqm[0]", "min_snr")) - tonumber(nc:get("aredn", "@lqm[0]", "margin_snr"))
+            -- Make AP's the best for better arednlink performance
+            macaddr = read_all("/sys/class/ieee80211/" .. devname .. "/macaddress")
+            if macaddr then
+                macaddr = macaddr:gsub("^..:", "fe:")
+                isolate=1
+            end
+        elseif cfg[radio .. "_mode"] == "meshsta" then
+            -- mesh RF station configuration
+            is_mesh_rf = true
+            -- While the wifi doesnt neeed 'channel' and 'chanbw' to configure the station, we read these values in other code so keep them
+            channel = mesh_channel
+            chanbw = mesh_chanbw
+            country = "HX"
+            distance = mesh_distance
+            txpower = mesh_txpower
+            ssid = mesh_ssid .. "-" .. mesh_channel .. "-" .. mesh_chanbw .. "-v3"
             mode = "sta"
-            if cfg.wifi3_key and cfg.wifi3_key ~= "" then
+            encryption = "none"
+            network = "wifi"
+            celldensity = 2
+        elseif cfg[radio .. "_mode"] == "lan" then
+            -- lan AP interface
+            channel = cfg[radio .. "_channel"]
+            ssid = h2s(cfg[radio .. "_ssid"])
+            mode = "ap"
+            encryption = cfg[radio .. "_encryption"]
+            key = h2s(cfg[radio .. "_key"])
+            network = "lan"
+        elseif cfg[radio .. "_mode"] == "wan" then
+            -- wan client
+            ssid = h2s(cfg[radio .. "_ssid"])
+            mode = "sta"
+            if cfg[radio .. "_key"] and cfg[radio .. "_key"] ~= "" then
                 encryption = "psk2"
-                key = h2s(cfg.wifi3_key)
+                key = h2s(cfg[radio .. "_key"])
             else
                 encryption = "none"
             end
@@ -984,6 +1016,9 @@ do
         if distance then
             config = config .. "	option distance '" .. distance .. "'\n"
         end
+        if txpower then
+            config = config .. "	option txpower '" .. txpower .. "'\n"
+        end
         if hwmode == "11g" then
             config = config .. "	option band '2g'\n"
         else
@@ -991,6 +1026,12 @@ do
         end
         if htmode then
             config = config .. "	option htmode '" .. htmode .. "'\n"
+        end
+        if celldensity then
+            config = config .. "	option cell_density '" .. celldensity .. "'\n"
+        end
+        if snrreject then
+            config = config .. "	option rssi_reject_assoc_rssi '" .. (snrreject - 100) .. "'\n	option rssi_ignore_probe_request '" .. (snrreject - 100) .. "'\n"
         end
         config = config .. "	option path '" .. devpath .. "'\n\n"
 
@@ -1006,11 +1047,23 @@ do
         if ssid then
             config = config .. "	option ssid '" .. ssid .. "'\n"
         end
+        if macaddr then
+            config = config .. "	option macaddr '" .. macaddr .. "'\n"
+        end
         if encryption then
             config = config .. "	option encryption '" .. encryption .. "'\n"
         end
         if key then
             config = config .. "	option key '" .. key .. "'\n"
+        end
+        if multicasttounicast then
+            config = config .. "	option multicast_to_unicast_all '" .. multicasttounicast .. "'\n"
+        end
+        if macfilter then
+            config = config .. "	option macfilter '" .. macfilter .. "'\n"
+        end
+        if isolate then
+            config = config .. "	option isolate '" .. isolate .. "'\n"
         end
         config = config .. "\n"
 
@@ -1027,6 +1080,7 @@ write_all("/tmp/new_config/wireless", config)
 -- generate the host and ethers files
 local h = io.open("/etc/hosts", "w")
 local e = io.open("/etc/ethers", "w")
+local ah = io.open("/tmp/arednlink.hosts", "w")
 if h and e then
     h:write("# automatically generated file - do not edit\n")
     h:write("# use /etc/hosts.user for custom entries\n")
@@ -1034,11 +1088,15 @@ if h and e then
     if is_notnull(cfg.wifi_ip) then
         h:write(cfg.lan_ip .. "\tlocalnode\n")
         h:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
+        ah:write(cfg.wifi_ip .. "\t" .. node .. ".local.mesh\n")
+        ah:write(cfg.lan_ip .. "\tlan." .. node .. ".local.mesh\n")
+        ah:write(cfg.wifi_ip .. "\tbabel." .. node .. ".local.mesh\n")
     else
         h:write(cfg.lan_ip .. "\tlocalnode " .. node .. " " .. tactical .. "\n")
     end
     if is_notnull(cfg.dtdlink_ip) then
         h:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
+        ah:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh\n")
     end
     if is_nat_mode() then
         h:write(decimal_to_ip(ip_to_decimal(cfg.lan_ip) + 1) .. "\tlocalap\n")
@@ -1063,6 +1121,9 @@ if h and e then
             if validate_same_subnet(ip, cfg.lan_ip, cfg.lan_mask) and validate_ip_netmask(ip, cfg.lan_mask) then
                 h:write(ip .. "\t" .. host .. " " .. noprop .. "\n")
                 e:write(mac .. "\t" .. ip .. "\n")
+                if noprop == "" then
+                    ah:write(ip .. "\t" .. host .. "\n")
+                end
             end
         end
     end
@@ -1075,10 +1136,11 @@ if h and e then
     do
         local ip, host = line:match("(%S+)%s+(%S+)")
         if ip then
-            if host:match("%.") and not host:match("%.local%.mesh$") then
+            if not host:match("%.") then
                 host = host .. ".local.mesh"
             end
             h:write(ip .. "\t" .. host .. " #ALIAS\n")
+            ah:write(ip .. "\t" .. host .. "\n")
         end
     end
 
@@ -1088,6 +1150,7 @@ if h and e then
         for line in io.lines("/etc/hosts.user")
         do
             h:write(line .. "\n")
+            ah:write(line .. "\n")
         end
     end
     if nixio.fs.access("/etc/ethers.user", "r") then
@@ -1099,6 +1162,7 @@ if h and e then
     
     h:close()
     e:close()
+    ah:close()
 end
 
 -- generate olsrd.conf
@@ -1162,6 +1226,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
 
         of:write("config LoadPlugin 'nameservice'\n\toption library 'olsrd_nameservice.so.0.4'\n\toption interval '60'\n\toption timeout '600'\n\toption name_change_script '/usr/local/bin/name-change'\n")
         aredn.services.reset_validation()
+        local as = io.open("/tmp/arednlink.services", "w")
         local names, hosts, services = aredn.services.get()
         for _, name in ipairs(names)
         do
@@ -1176,8 +1241,10 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         for _, service in ipairs(services)
         do
             of:write("\tlist service '" .. service .. "'\n")
+            as:write(service .. "\n")
         end
         of:write("\n")
+        as:close()
     
         -- add all the tunnel interfaces
         if vtunclients + vtunservers + wgclients + wgservers > 0 then
@@ -1243,6 +1310,18 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
     end
 end
 
+-- Update arednlink
+local _, diff = filecopy("/tmp/arednlink.hosts", "/etc/arednlink/hosts", true)
+if diff then
+    changes.arednlink = true
+end
+local _, diff = filecopy("/tmp/arednlink.services", "/etc/arednlink/services", true)
+if diff then
+    changes.arednlink = true
+end
+os.remove("/tmp/arednlink.hosts")
+os.remove("/tmp/arednlink.services")
+
 -- Update user firewall
 local _, diff = filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user", true)
 if diff then
@@ -1253,21 +1332,13 @@ end
 local sf = io.open("/tmp/local_services", "w")
 if sf then
     sf:write("#!/bin/sh\n")
-    if cfg.wifi_proto ~= "disabled" then
-        local wifi_channel = tonumber(cfg.wifi_channel)
-        if is_null(cfg.wifi_txpower) or tonumber(cfg.wifi_txpower) > aredn.hardware.wifi_maxpower(cfg.wifi_intf, wifi_channel) then
-            cfg.wifi_txpower = aredn.hardware.wifi_maxpower(cfg.wifi_intf, wifi_channel)
-        elseif tonumber(cfg.wifi_txpower) < 1 then
-            cfg.wifi_txpower = 1
+    if mesh_wifi ~= "br-nomesh" then
+        if is_null(mesh_txpower) or tonumber(mesh_txpower) > aredn.hardware.wifi_maxpower(mesh_wifi, mesh_channel) then
+            mesh_txpower = aredn.hardware.wifi_maxpower(mesh_wifi, mesh_channel)
+        elseif tonumber(mesh_txpower) < 1 then
+            mesh_txpower = 1
         end
-        if cfg.wifi_enable == "1" then
-            sf:write("/usr/sbin/iw dev " .. cfg.wifi_intf .. " set txpower fixed " .. cfg.wifi_txpower .. "00\n")
-        end
-        if is_notnull(cfg.aprs_lat) and is_notnull(cfg.aprs_lon) then
-            nc:set("aredn", "@location[0]", "lat", cfg.aprs_lat)
-            nc:set("aredn", "@location[0]", "lon", cfg.aprs_lon)
-            nc:commit("aredn")
-        end
+        sf:write("/usr/sbin/iw dev " .. mesh_wifi .. " set txpower fixed " .. mesh_txpower .. "00\n")
     end
     sf:close()
     local _, diff = filecopy("/tmp/local_services", "/etc/local/services", true)
@@ -1286,6 +1357,8 @@ end
 local config_special = {
     dmz_mode = c:get("setup", "globals", "dmz_mode"),
     lqm_enable = c:get("aredn", "@lqm[0]", "enable"),
+    min_snr = c:get("aredn", "@lqm[0]", "min_snr"),
+    margin_snr = c:get("aredn", "@lqm[0]", "margin_snr"),
     tunnel_weight = c:get("aredn", "@tunnel[0]", "weight"),
     supernode_enable = c:get("aredn", "@supernode[0]", "enable"),
     watchdog_enable = c:get("aredn", "@watchdog[0]", "enable"),
@@ -1386,6 +1459,10 @@ do
             end
             if oc:get("aredn", "@wan[0]", "olsrd_gw") ~= config_special.olsrd_gw or oc:get("aredn", "@wan[0]", "mesh_wan_gw") ~= config_special.mesh_wan_gw then
                 changes.network = true
+                changes.babel = true
+            end
+            if oc:get("aredn", "@lqm[0]", "min_snr") ~= config_special.min_snr or oc:get("aredn", "@lqm[0]", "margin_snr") ~= config_special.margin_snr then
+                changes.wireless = true
             end
         elseif file == "network" then
             changes.network = true
@@ -1395,6 +1472,8 @@ do
             changes.dnsmasq = true
         elseif file == "olsrd" then
             changes.olsrd = true
+        elseif file == "babel" then
+            changes.babel = true
         elseif file == "firewall" then
             changes.firewall = true
         elseif file == "wireless" then

@@ -63,6 +63,7 @@ local now = 0
 local config = {}
 
 local total_node_route_count = nil
+local total_babel_route_count = nil
 
 function update_config()
     local c = uci.cursor() -- each time as /etc/config/aredn may have changed
@@ -186,12 +187,14 @@ function update_block(track)
     if should_block(track) then
         track.blocked = true
         if track.type == "Tunnel" or track.type == "Wireguard" then
-            if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop") then
+            if not nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 6696 drop") then
+                nft_insert("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 6696 drop 2> /dev/null")
                 nft_insert("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop 2> /dev/null")
                 return "blocked"
             end
         else
-            if not nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop") then
+            if not nft_handle("input_lqm", "udp dport 6696 ether saddr " .. track.mac .. " drop") then
+                nft_insert("input_lqm", "udp dport 6696 ether saddr " .. track.mac .. " drop 2> /dev/null")
                 nft_insert("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop 2> /dev/null")
                 return "blocked"
             end
@@ -202,10 +205,18 @@ function update_block(track)
             local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
             if handle then
                 nft_delete("input_lqm", handle)
+            end
+            local handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 6696 drop")
+            if handle then
+                nft_delete("input_lqm", handle)
                 return "unblocked"
             end
         else
             local handle = nft_handle("input_lqm", "udp dport 698 ether saddr " .. track.mac .. " drop")
+            if handle then
+                nft_delete("input_lqm", handle)
+            end
+            local handle = nft_handle("input_lqm", "udp dport 6696 ether saddr " .. track.mac .. " drop")
             if handle then
                 nft_delete("input_lqm", handle)
                 return "unblocked"
@@ -221,7 +232,15 @@ function force_remove_block(track)
     if handle then
         nft_delete("input_lqm", handle)
     end
+    local handle = nft_handle("input_lqm", "udp dport 6696 ether saddr " .. track.mac .. " drop")
+    if handle then
+        nft_delete("input_lqm", handle)
+    end
     handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 698 drop")
+    if handle then
+        nft_delete("input_lqm", handle)
+    end
+    handle = nft_handle("input_lqm", "iifname \\\"" .. track.device .. "\\\" udp dport 6696 drop")
     if handle then
         nft_delete("input_lqm", handle)
     end
@@ -279,13 +298,34 @@ local phy = "none"
 local wlanid = wlan:match("^wlan(%d+)$")
 if wlanid then
     phy = "phy" .. wlanid
-    radiomode = "adhoc"
+    radiomode = "mesh"
 end
 
 function iw_set(cmd)
     if phy ~= "none" then
         os.execute(IW .. " " .. phy .. " set " .. cmd .. " > /dev/null 2>&1")
     end
+end
+
+function update_deny_list(tracker)
+    local f = "/var/run/hostapd-" .. wlan .. ".maclist"
+    local o = read_all(f)
+    if not o then
+        return false
+    end
+    local n = ""
+    for mac, track in pairs(tracker)
+    do
+        if track.blocked then
+            n = n .. mac .. "\n"
+        end
+    end
+    if o == n then
+        return false
+    end
+    write_all(f, n)
+    os.execute("/usr/bin/killall -HUP hostapd")
+    return true
 end
 
 function lqm_run()
@@ -303,10 +343,10 @@ function lqm_run()
     iw_set("distance auto")
     -- Or any hidden nodes
     iw_set("rts off")
-    if config.enable then
-        -- Set the default retries
-        iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
-    end
+    -- Set the default retries
+    iw_set("retry short " .. default_short_retries .. " long " .. default_long_retries)
+    -- Clear the deny list
+    update_deny_list({})
 
     local noise = -95
     local tracker = {}
@@ -353,7 +393,7 @@ function lqm_run()
         local arps = {}
         for line in io.popen(IPCMD .. " neigh show"):lines()
         do
-            local ip, dev, mac, probes, state = line:match("^(%S+) dev (%S+) lladdr (%S+) .+ probes (%d+) (.+)$")
+            local ip, dev, mac, probes, state = line:match("^([0-9%.]+) dev (%S+) lladdr (%S+) .+ probes (%d+) (.+)$")
             if ip then
                 -- Filter neighbors so we ignore entries which aren't immediately routable
                 local routable = false;
@@ -486,7 +526,7 @@ function lqm_run()
         end
 
         -- RF
-        if radiomode == "adhoc" then
+        if radiomode == "mesh" then
             local kv = {
                 ["signal avg:"] = "signal",
                 ["tx packets:"] = "tx_packets",
@@ -560,7 +600,8 @@ function lqm_run()
                         signal = false,
                         distance = false,
                         pair = false,
-                        quality = false
+                        quality = false,
+                        user = false
                     },
                     blocked = false,
                     snr = nil,
@@ -581,6 +622,7 @@ function lqm_run()
                     avg_tx_retries = nil,
                     avg_tx_fail = nil,
                     node_route_count = 0,
+                    babel_route_count = 0,
                     rev_ping_quality = nil,
                     rev_ping_success_time = nil,
                     rev_quality = nil
@@ -859,6 +901,7 @@ function lqm_run()
             end
 
             track.node_route_count = 0
+            track.babel_route_count = 0
         end
 
         --
@@ -881,6 +924,19 @@ function lqm_run()
                 end
             end
         end
+        -- We will do this for babel, at least for now, to gather more data
+        total_babel_route_count = 0
+        for line in io.popen(IPCMD .. " route show table 20"):lines()
+        do
+            local gw = line:match("^10%.%d+%.%d+%.%d+ via (%d+%.%d+%.%d+%.%d+) dev")
+            if gw then
+                local track = ip2tracker[gw];
+                if track then
+                    track.babel_route_count = track.babel_route_count + 1
+                    total_babel_route_count = total_babel_route_count + 1
+                end
+            end
+        end
 
         --
         -- At this point we have gather all the data we need to determine which links are best to use and
@@ -897,7 +953,8 @@ function lqm_run()
                     signal = false,
                     distance = false,
                     pair = false,
-                    quality = false
+                    quality = false,
+                    user = false
                 }
     
                 -- Always allow if user requested it
@@ -1080,10 +1137,17 @@ function lqm_run()
                 (not is_connected(track) and track.firstseen + pending_timeout > now) or
                 (track.quality0_seen and now > track.quality0_seen + lastseen_timeout)
             ) then
-                force_remove_block(track)
-                tracker[track.mac] = nil
+                -- But *DONT* remove any user blocked trackers. If we block these devices at a low level (via
+                -- the deny list for example) then we never see them again at this level and we loose the ability
+                -- to unblock them without a reboot.
+                if not is_user_blocked(track) then
+                    force_remove_block(track)
+                    tracker[track.mac] = nil
+                end
             end
         end
+        -- Update denied mac list
+        update_deny_list(tracker)
 
         -- Default distances if we haven't calcuated anything
         if distance < 0 then
@@ -1095,7 +1159,7 @@ function lqm_run()
         end
         -- Update the wifi distance
         local coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3))
-        if config.enable and coverage ~= last_coverage then
+        if coverage ~= last_coverage then
             iw_set("coverage " .. coverage)
             last_coverage = coverage
         end
@@ -1129,7 +1193,7 @@ function lqm_run()
         do
             hidden[#hidden + 1] = ninfo
         end
-        if config.enable and (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
+        if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
             if #hidden > 0 then
                 iw_set("rts " .. config.rts_threshold)
             else

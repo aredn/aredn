@@ -103,32 +103,7 @@
             }
         }
         if (!error) {
-            fs.unlink("/tmp/arednsysupgradebackup.tgz");
-            if (!fs.access("/tmp/do-not-keep-configuration")) {
-                const fi = fs.open("/etc/arednsysupgrade.conf");
-                if (fi) {
-                    const fo = fs.open("/tmp/sysupgradefilelist", "w");
-                    if (fo) {
-                        for (let l = fi.read("line"); length(l); l = fi.read("line")) {
-                            if (!match(l, "^#") && fs.access(trim(l))) {
-                                fo.write(l);
-                            }
-                        }
-                        fo.close();
-                        if (system("/bin/tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist > /dev/null 2>&1") < 0) {
-                            fs.unlink("/tmp/arednsysupgradebackup.tgz");
-                        }
-                        fs.unlink("/tmp/sysupgradefilelist");
-                    }
-                    fi.close();
-                }
-                if (!fs.access("/tmp/arednsysupgradebackup.tgz")) {
-                    error = "Failed to create backup.";
-                }
-            }
-            if (!error) {
-                return { upgrade: `/usr/local/bin/aredn_sysupgrade ${fs.access("/tmp/arednsysupgradebackup.tgz") ? "-f /tmp/arednsysupgradebackup.tgz" : "-n"} -q ${firmwarefile}` };
-            }
+            return { upgrade: `/usr/local/bin/aredn_sysupgrade ${firmwarefile}` };
         }
         return { error: error };
     };

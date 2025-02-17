@@ -73,7 +73,7 @@ local function get(validate)
         do
             local ip, host = line:match("(%S+)%s+(%S+)")
             if ip then
-                if host:match("%.") and not host:match("%.local%.mesh$") then
+                if not host:match("%.") then
                     host = host .. ".local.mesh"
                 end
                 hosts[#hosts + 1] = { ip = ip, host = host }
@@ -227,7 +227,7 @@ local function get(validate)
                         vstate[service] = last
                     elseif havecurl and (proto == "http" or (proto == "pseudo" and port == "80")) then
                         -- http so looks like a link. http check it
-                        if not hostname:match("%.local%.mesh$") then
+                        if not hostname:match("%.") then
                             hostname = hostname .. ".local.mesh"
                         end
                         -- nat translation
