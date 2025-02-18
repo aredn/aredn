@@ -84,7 +84,7 @@
                 <div class="s">tx power</div>
             </div>
             {%if (uci.get("aredn", "@lqm[0]", "enable") === "1") {
-                const wifi_distance = int(0.5 + units.meters2distance(uci.get("aredn", "@lqm[0]", "max_distance")));
+                const wifi_distance = util.ceil(units.meters2distance(uci.get("aredn", "@lqm[0]", "max_distance")));
             %}
             <div>
                 <div class="t">{{wifi_distance}} {{units.distanceUnit(wifi_distance)}}</div>
@@ -95,7 +95,7 @@
                 <div class="s">minimum snr</div>
             </div>
             {% } else {
-                const wifi_distance = int(0.5 + units.meters2distance(hardware.getMaxDistance(radio[midx].iface)));
+                const wifi_distance = util.ceil(units.meters2distance(hardware.getMaxDistance(radio[midx].iface)));
             %}
             <div style="flex:2">
                 <div class="t">{{wifi_distance}} {{units.distanceUnit(wifi_distance)}}</div>

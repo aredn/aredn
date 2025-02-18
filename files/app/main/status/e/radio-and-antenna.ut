@@ -33,8 +33,8 @@
  */
 %}
 {%
+let fullupdate = false;
 if (request.env.REQUEST_METHOD === "PUT") {
-    let fullupdate = false;
     configuration.prepareChanges();
     const modemap = {
         "0": radios.RADIO_OFF,
@@ -62,8 +62,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_MESHPTP:
         case radios.RADIO_MESHSTA:
             if (configuration.setSetting("radio0_mode", radio0_mode)) {
-                configuration.setSetting("radio0_channel", wlan[0].mode.channel ?? wlan[0].def.channel);
-                configuration.setSetting("radio0_bandwidth", wlan[0].mode.bandwidth ?? wlan[0].def.bandwidth);
+                configuration.setSetting("radio0_channel", wlan[0].mode.channel || wlan[0].def.channel);
+                configuration.setSetting("radio0_bandwidth", wlan[0].mode.bandwidth || wlan[0].def.bandwidth);
                 configuration.setSetting("radio0_ssid", "AREDN");
                 fullupdate = true;
             }
@@ -88,7 +88,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             break;
         case radios.RADIO_LAN:
             if (configuration.setSetting("radio0_mode", radio0_mode)) {
-                configuration.setSetting("radio0_channel", wlan[0].mode.channel ?? wlan[0].def.channel);
+                configuration.setSetting("radio0_channel", wlan[0].mode.channel || wlan[0].def.channel);
                 configuration.setSetting("radio0_ssid", hexenc("AREDN-LAN"));
                 configuration.setSetting("radio0_key", hexenc("AREDNmesh"));
                 fullupdate = true;
@@ -132,8 +132,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_MESHPTP:
         case radios.RADIO_MESHSTA:
             if (configuration.setSetting("radio1_mode", radio1_mode)) {
-                configuration.setSetting("radio1_channel", wlan[1].mode.channel ?? wlan[1].def.channel);
-                configuration.setSetting("radio1_bandwidth", wlan[1].mode.bandwidth ?? wlan[1].def.bandwidth);
+                configuration.setSetting("radio1_channel", wlan[1].mode.channel || wlan[1].def.channel);
+                configuration.setSetting("radio1_bandwidth", wlan[1].mode.bandwidth || wlan[1].def.bandwidth);
                 configuration.setSetting("radio1_ssid", "AREDN");
                 fullupdate = true;
             }
@@ -158,7 +158,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             break;
         case radios.RADIO_LAN:
             if (configuration.setSetting("radio1_mode", radio1_mode)) {
-                configuration.setSetting("radio1_channel", wlan[1].mode.channel ?? wlan[1].def.channel);
+                configuration.setSetting("radio1_channel", wlan[1].mode.channel || wlan[1].def.channel);
                 configuration.setSetting("radio1_ssid", hexenc("AREDN-LAN"));
                 configuration.setSetting("radio1_key", hexenc("AREDNmesh"));
                 fullupdate = true;
@@ -255,7 +255,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
 }
 %}
 {% const wlan = radios.getConfiguration(); %}
-<div class="dialog radio-and-antenna">
+<div id="radio-and-antenna-dialog" class="dialog radio-and-antenna" {{fullupdate ? "hx-swap-oob='true'" : ""}}>
     {{_R("dialog-header", "Radios &amp; Antennas")}}
     <div class="hideable-g" data-hideable='{{uciMesh.get("aredn", "@lqm[0]", "enable") === "1" ? "on" : "off"}}'>
         {%
@@ -367,7 +367,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">AREDN mesh identifier</div>
                     </div>
                     <div style="flex:0;white-space:nowrap">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="20" pattern="[^!#;+\]\/"\t\-][^+\]\/"\t\-]{0,18}[^ !#;+\]\/"\t\-]$|^[^ !#;+\]\/"\t\-]" hx-validate="true" value="{{ssid}}"><span style="color:var(--ctrl-modal-fg-color)">-{{wlan[w].mode.bandwidth}}-v3</span>
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="20" pattern="[^!#;+\]\/"\t\-][^+\]\/"\t\-]{0,18}[^ !#;+\]\/"\t\-]$|^[^ !#;+\]\/"\t\-]" hx-validate="true" value="{{ssid}}"><span style="color:var(--ctrl-modal-fg-color)">{{wlan[w].mode.mode === radios.RADIO_MESH ? "" : `-${wlan[w].mode.channel}`}}-{{wlan[w].mode.bandwidth}}-v3</span>
                     </div>
                 </div>
                 <div class="hideable0-g">
@@ -377,7 +377,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Distance to farthest neighbor in {{units.distanceUnit()}}</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" pattern="\d+(\.\d)?" hx-validate="true" value="{{int(10 * units.meters2distance(configuration.getSettingAsInt(`${prefix}distance`, 0)) + 0.5) / 10.0}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" pattern="\d+(\.\d)?" hx-validate="true" value="{{util.round(10 * units.meters2distance(configuration.getSettingAsInt(`${prefix}distance`, 0))) / 10.0}}">
                         </div>
                     </div>
                 </div>
@@ -399,7 +399,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Maximum distance allowed to other nodes in {{units.distanceUnit()}}</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_maxdistance" type="text" size="3" pattern="\d+(\.\d)?" hx-validate="true" value="{{int(10 * units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "max_distance")) + 0.5) / 10.0}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_maxdistance" type="text" size="3" pattern="\d+(\.\d)?" hx-validate="true" value="{{util.round(10 * units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "max_distance"))) / 10.0}}">
                         </div>
                     </div>
                     {{_H("Distance beyond which neighbor node connections will be ignored. Longer distances to nodes can result in poor performance.
@@ -597,7 +597,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">Minimum distance to other nodes in {{units.distanceUnit()}}</div>
                     </div>
                     <div style="flex:0">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mindistance" type="text" size="3" pattern="\d+" hx-validate="true" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "min_distance")))}}">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_mindistance" type="text" size="3" pattern="\d+" hx-validate="true" value="{{util.round(units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "min_distance")))}}">
                     </div>
                 </div>
                 {{_H("Exclude nodes which are too close to this node.")}}
