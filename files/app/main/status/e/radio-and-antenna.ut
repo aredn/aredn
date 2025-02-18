@@ -364,7 +364,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Distance to farthest neighbor in {{units.distanceUnit()}}</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" pattern="\d+" hx-validate="true" value="{{int(0.5 + units.meters2distance(configuration.getSettingAsInt(`${prefix}distance`, 0)))}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" pattern="\d+(\.\d)?" hx-validate="true" value="{{int(10 * units.meters2distance(configuration.getSettingAsInt(`${prefix}distance`, 0)) + 0.5) / 10.0}}">
                         </div>
                     </div>
                 </div>
@@ -386,7 +386,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Maximum distance allowed to other nodes in {{units.distanceUnit()}}</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_maxdistance" type="text" size="3" pattern="\d+" hx-validate="true" value="{{int(0.5 + units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "max_distance")))}}">
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="radio_maxdistance" type="text" size="3" pattern="\d+(\.\d)?" hx-validate="true" value="{{int(10 * units.meters2distance(uciMesh.get("aredn", "@lqm[0]", "max_distance")) + 0.5) / 10.0}}">
                         </div>
                     </div>
                     {{_H("Distance beyond which neighbor node connections will be ignored. Longer distances to nodes can result in poor performance.
