@@ -204,7 +204,7 @@ const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
         function llpaste() {
             const txt = event.clipboardData.getData("text/plain");
             if (!txt) {
-                return;
+                return null;
             }
             event.stopPropagation();
             event.preventDefault();
@@ -215,12 +215,28 @@ const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
                 lat.value = latv;
                 lon.value = lonv;
                 llchange();
+                return null;
+            }
+            return parseFloat(txt);
+        }
+        function latpaste() {
+            const v = llpaste();
+            if (!isNaN(v)) {
+                lat.value = v;
+                llchange();
+            }
+        }
+        function lonpaste() {
+            const v = llpaste();
+            if (!isNaN(v)) {
+                lon.value = v;
+                llchange();
             }
         }
         lat.addEventListener("change", llchange);
         lon.addEventListener("change", llchange);
-        lat.addEventListener("paste", llpaste);
-        lon.addEventListener("paste", llpaste);
+        lat.addEventListener("paste", latpaste);
+        lon.addEventListener("paste", lonpaste);
         gridsquare.addEventListener("change", function() {
             if (gridsquare.value !== "") {
                 gridsquare2latlon();
