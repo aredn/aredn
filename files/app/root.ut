@@ -411,6 +411,25 @@ const ubusMethods =
     }
 };
 
+const utilMethods =
+{
+    ceil: function(v)
+    {
+        const iv = int(v);
+        return iv == v ? iv : iv + 1;
+    },
+
+    round: function(v)
+    {
+        return int(v + 0.5);
+    },
+
+    floor: function(v)
+    {
+        return int(v);
+    }
+};
+
 const rePath = /^\/([-a-z]*)(.*)$/;
 
 global.handle_request = function(env)
@@ -590,7 +609,8 @@ global.handle_request = function(env)
                     math: math,
                     log: log,
                     messages: messages,
-                    mesh: mesh
+                    mesh: mesh,
+                    util: utilMethods
                 });
             }
             catch (e) {
