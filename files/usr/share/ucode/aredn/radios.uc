@@ -146,11 +146,11 @@ export function getActiveConfiguration()
             const idx = int(substr(mdevice, 5));
             radio[idx].mode = mmode;
         }
-        else if (ldevice) {
+        if (ldevice) {
             const idx = int(substr(ldevice, 5));
             radio[idx].mode = lmode;
         }
-        else if (wdevice) {
+        if (wdevice) {
             const idx = int(substr(wdevice, 5));
             radio[idx].mode = wmode;
         }
