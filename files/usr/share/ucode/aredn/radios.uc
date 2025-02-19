@@ -86,8 +86,7 @@ export function getActiveConfiguration()
             mode: RADIO_MESH,
             channel: 0,
             bandwidth: 10,
-            ssid: "-",
-            txpower: configuration.getSettingAsInt("wifi_txpower")
+            ssid: "-"
         };
         const lmode = {
             mode: RADIO_LAN,
@@ -136,6 +135,7 @@ export function getActiveConfiguration()
             if (s[".name"] === mdevice) {
                 mmode.channel = int(s.channel);
                 mmode.bandwidth = int(s.chanbw);
+                mmode.txpower = int(s.txpower);
             }
             if (s[".name"] === ldevice) {
                 lmode.channel = int(s.channel);
