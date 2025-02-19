@@ -77,7 +77,7 @@ if [ ! -f /tmp/do-not-keep-configuration ]; then
   cp /dev/null /tmp/sysupgradefilelist
   cat /etc/arednsysupgrade.conf | while read f
   do
-    if [ -f "${f}" ]; then
+    if [ -e "${f}" ]; then
       echo "${f}" >> /tmp/sysupgradefilelist
     fi
   done
