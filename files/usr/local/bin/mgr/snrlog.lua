@@ -227,7 +227,7 @@ function run_snrlog()
     f:close()
 
     -- trigger auto distancing if necessary
-    if trigger_auto_distance and cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
+    if false and trigger_auto_distance and cursor:get("aredn", "@lqm[0]", "enable") ~= "1" then
         reset_auto_distance()
         nixio.syslog("notice", "snrlog: reset_auto_distance, " .. now)
     end
