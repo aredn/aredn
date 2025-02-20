@@ -51,7 +51,7 @@
             if (!length(l)) {
                 break;
             }
-            const m = match(trim(l), /([0-9\.]+)%$/);
+            const m = match(l, /([0-9]+)%/);
             if (m) {
                 uhttpd.send(`event: progress\r\ndata: ${start + len * m[1] / 100}\r\n\r\n`);
             }
