@@ -1175,7 +1175,12 @@ function lqm_run()
                 end
             end
         end
-        if not ptp then
+        if ptp then
+            -- In ptp mode we allow a single mac address.
+            -- Update this every time in case the file gets overwritten (which happens when
+            -- hostapd gets restarted)
+            update_allow_list()
+        else
             -- Update denied mac list
             update_deny_list(tracker)
         end
