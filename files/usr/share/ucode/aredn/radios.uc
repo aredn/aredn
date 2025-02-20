@@ -50,7 +50,7 @@ export function getCommonConfiguration()
     for (let i = 0; i < nrradios; i++) {
         const iface = `wlan${i}`;
         if (!hardware.getRadioIntf(iface).disabled) {
-            push(radio, {
+            const r = {
                 iface: iface,
                 mode: null,
                 ant: null,
@@ -58,11 +58,28 @@ export function getCommonConfiguration()
                 def: hardware.getDefaultChannel(iface),
                 bws: hardware.getRfBandwidths(iface),
                 channels: hardware.getRfChannels(iface),
+                channels20: [],
+                channels40: [],
+                channels80: [],
                 ants: hardware.getAntennas(iface),
                 antsaux: hardware.getAntennasAux(iface),
                 txpoweroffset: hardware.getTxPowerOffset(iface),
                 txmaxpower: hardware.getMaxTxPower(iface)
-            });
+            };
+            // Calculate 20, 40, 80 channels
+            for (let j = 0; j < length(r.channels); j++) {
+                const c = r.channels[j];
+                if (c.number % 4 === 1) {
+                    push(r.channels20, c);
+                }
+                if (c.number % 8 === 3) {
+                    push(r.channels40, c);
+                }
+                if (c.number % 16 === 7) {
+                    push(r.channels80, c);
+                }
+            }
+            push(radio, r);
         }
     }
     return radio;
