@@ -729,7 +729,7 @@ function lqm_run()
                         track.rev_quality = nil
                     else
                         local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -O - 2> /dev/null")
-                        local info = luci.jsonc.parse(raw:read("*a"))
+                        local info = luci.jsonc.parse(raw:read("*a") or "")
                         raw:close()
 
                         wait_for_ticks(0)

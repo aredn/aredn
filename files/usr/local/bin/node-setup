@@ -1491,7 +1491,8 @@ do
                oc:get("wireless", "@wifi-iface[0]", "macfilter") ~= config_special.wifi_macfilter_0 or oc:get("wireless", "@wifi-iface[1]", "macfilter") ~= config_special.wifi_macfilter_1 then
                 -- Only start the hostapd (etc) if we need to. This doesn't change what is currently running
                 -- only what automatically runs in the future
-                if oc:get("wireless", "@wifi-iface[0]", "mode") == "ap" or oc:get("wireless", "@wifi-iface[1]", "mode") == "ap" then
+                if oc:get("wireless", "@wifi-iface[0]", "mode") == "ap" or oc:get("wireless", "@wifi-iface[1]", "mode") == "ap" or
+                   oc:get("wireless", "@wifi-iface[0]", "mode") == "sta" or oc:get("wireless", "@wifi-iface[1]", "mode") == "sta" then
                     os.execute("/etc/init.d/wpad enable > /dev/null 2>&1")
                 else
                     os.execute("/etc/init.d/wpad disable > /dev/null 2>&1")
