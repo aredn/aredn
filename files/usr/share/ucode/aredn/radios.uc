@@ -58,7 +58,6 @@ export function getCommonConfiguration()
                 def: hardware.getDefaultChannel(iface),
                 bws: hardware.getRfBandwidths(iface),
                 channels: hardware.getRfChannels(iface),
-                channels20: [],
                 channels40: [],
                 channels80: [],
                 ants: hardware.getAntennas(iface),
@@ -66,16 +65,12 @@ export function getCommonConfiguration()
                 txpoweroffset: hardware.getTxPowerOffset(iface),
                 txmaxpower: hardware.getMaxTxPower(iface)
             };
-            // Calculate 20, 40, 80 channels
+            // Calculate 40, 80 channels
+            const a40 = [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173, 184, 192 ];
             for (let j = 0; j < length(r.channels); j++) {
                 const c = r.channels[j];
-                if (c.number % 4 === 1) {
-                    push(r.channels20, c);
-                }
-                if (c.number % 8 === 3) {
+                if (index(a40, c.number) !== -1) {
                     push(r.channels40, c);
-                }
-                if (c.number % 16 === 7) {
                     push(r.channels80, c);
                 }
             }

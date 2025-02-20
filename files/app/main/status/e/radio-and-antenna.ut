@@ -313,10 +313,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" style="direction:ltr" class="mesh-channel">
                         {%
                             let channels = wlan[w].channels;
-                            if (bandwidth == 20) {
-                                channels = wlan[w].channels20;
-                            }
-                            else if (bandwidth == 40) {
+                            if (bandwidth == 40) {
                                 channels = wlan[w].channels40;
                             }
                             else if (bandwidth == 80) {
@@ -695,10 +692,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             const channel = parseInt(chan{{w}}.value);
             let options = "";
             let channels = {{wlan[w].channels}};
-            if (bandwidth == 20) {
-                channels = {{wlan[w].channels20}};
-            }
-            else if (bandwidth == 40) {
+            if (bandwidth == 40) {
                 channels = {{wlan[w].channels40}};
             }
             else if (bandwidth == 80) {
