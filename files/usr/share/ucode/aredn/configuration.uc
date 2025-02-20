@@ -493,7 +493,9 @@ export function supportdata(supportdatafilename)
         "/tmp/sysinfo",
         "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
         "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
-        "/proc/net/nf_conntrack"
+        "/proc/net/nf_conntrack",
+        "/var/run/hostapd-wlan0.maclist",
+        "/var/run/hostapd-wlan1.maclist"
     ];
     const sensitive = [
         "/etc/config/vtun",
