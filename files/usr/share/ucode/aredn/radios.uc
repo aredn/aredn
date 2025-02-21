@@ -63,7 +63,8 @@ export function getCommonConfiguration()
                 ants: hardware.getAntennas(iface),
                 antsaux: hardware.getAntennasAux(iface),
                 txpoweroffset: hardware.getTxPowerOffset(iface),
-                txmaxpower: hardware.getMaxTxPower(iface)
+                txmaxpower: hardware.getMaxTxPower(iface),
+                macaddress: hardware.getMACAddress(iface)
             };
             // Calculate 40, 80 channels
             const a40 = [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173, 184, 192 ];
