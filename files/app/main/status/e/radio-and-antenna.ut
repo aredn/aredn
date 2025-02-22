@@ -282,6 +282,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     const key_decoded = hexdec(wlan[w].mode.key);
                     const key_lan = mode == "lan" && key_decoded ? key_decoded : "AREDNmesh";
                     const key_wan = mode == "wan" && key_decoded ? key_decoded : "wifipassword";
+                    const macaddress = wlan[w].macaddress;
         %}
         <div id="radio{{w}}" class="hideable compact" data-hideable="{{modemap[mode] || 0}}">
             <div class="cols">
@@ -303,6 +304,16 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             </div>
             {{_H("Select the purpose of the radio. Each radio can be assigned to a specific purpose, but devices with multiple radios
             cannot have the same purpose for multiple radios (except <b>off</b>).")}}
+            <div class="cols">
+                <div>
+                    <div class="o">MAC Address</div>
+                    <div class="m">Mac address</div>
+                </div>
+                <div style="flex:0;white-space:nowrap">
+                    <span>{{macaddress}}</span>
+                </div>
+            </div>
+            {{_H("MAC address of this radio.")}}
             <div class="hideable1 hideable4 hideable5 hideable6" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
                 <div class="cols">
                     <div>

@@ -466,6 +466,11 @@ export function getMaxDistance(wifiIface)
     return (info.wiphy_coverage_class * 3) / (2 * 0.0033);
 };
 
+export function getMACAddress(wifiIface)
+{
+    return trim(fs.readfile(`/sys/class/ieee80211/${replace(wifiIface, "wlan", "phy")}/macaddress`) || "00:00:00:00:00:00");
+};
+
 export function supportsXLink()
 {
     switch (getBoardModel().id) {
