@@ -323,6 +323,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div style="flex:0">
                         <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" style="direction:ltr" class="mesh-channel">
                         {%
+                            const chanfilter = mode === radios.RADIO_MESHPTMP || mode ===  radios.RADIO_MESHPTP || mode ===  radios.RADIO_MESHSTA ? wlan[w].managedOOB : null;
                             let channels = wlan[w].channels;
                             if (bandwidth == 40) {
                                 channels = wlan[w].channels40;
@@ -331,7 +332,9 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                                 channels = wlan[w].channels80;
                             }
                             for (let i = 0; i < length(channels); i++) {
-                                print(`<option value="${channels[i].number}" ${channels[i].number == channel ? "selected" : ""}>${channels[i].label}</option>`);
+                                if (!chanfilter || index(chanfilter, channels[i].number) === -1) {
+                                    print(`<option value="${channels[i].number}" ${channels[i].number == channel ? "selected" : ""}>${channels[i].label}</option>`);
+                                }
                             }
                         %}
                         </select>
@@ -702,6 +705,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             const bandwidth = parseInt(bws{{w}}.value);
             const channel = parseInt(chan{{w}}.value);
             let options = "";
+            const chanfilter = radio{{w}}.value == "4" || radio{{w}}.value == "5" || radio{{w}}.value == "6" ? {{wlan[w].managedOOB}} : null;
             let channels = {{wlan[w].channels}};
             if (bandwidth == 40) {
                 channels = {{wlan[w].channels40}};
@@ -711,12 +715,14 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             }
             let nchannel = channels[0].number;
             for (let i = 0; i < channels.length; i++) {
-                if (channels[i].number == channel) {
-                    nchannel = channel;
-                    options += `<option value="${channels[i].number}" selected>${channels[i].label}</option>`;
-                }
-                else {
-                    options += `<option value="${channels[i].number}">${channels[i].label}</option>`;
+                if (!chanfilter || chanfilter.indexOf(channels[i].number) === -1) {
+                    if (channels[i].number == channel) {
+                        nchannel = channel;
+                        options += `<option value="${channels[i].number}" selected>${channels[i].label}</option>`;
+                    }
+                    else {
+                        options += `<option value="${channels[i].number}">${channels[i].label}</option>`;
+                    }
                 }
             }
             chan{{w}}.value = nchannel;
