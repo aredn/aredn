@@ -66,38 +66,45 @@ local function get(validate)
         names[#names + 1] = name
     end
 
-    local dmz_mode = uci.cursor("/etc/config.mesh"):get("setup", "globals", "dmz_mode")
-    if dmz_mode ~= "0" then
-        local aliases = uci.cursor("/etc/config.mesh"):get_all("setup", "aliases", "alias") or {}
-        for _, line in ipairs(aliases)
-        do
-            local ip, host = line:match("(%S+)%s+(%S+)")
-            if ip then
-                if not host:match("%.") then
-                    host = host .. ".local.mesh"
+    local cm = uci.cursor("/etc/config.mesh")
+    local dmz_mode = cm:get("setup", "globals", "dmz_mode")
+    local wifi_ip = cm:get("setup", "globals", "wifi_ip")
+
+    -- If we are not validating, but are using nat, we do a nat address substitute when building the host list
+    local nat_ip = nil
+    if not validate and dmz_mode == "0" then
+        nat_ip = wifi_ip
+    end
+
+    local aliases = cm:get_all("setup", "aliases", "alias") or {}
+    for _, line in ipairs(aliases)
+    do
+        local ip, host = line:match("(%S+)%s+(%S+)")
+        if ip then
+            if not host:match("%.") then
+                host = host .. ".local.mesh"
+            end
+            hosts[#hosts + 1] = { ip = nat_ip or ip, host = host }
+        end
+    end
+    if nixio.fs.stat("/etc/ethers") then
+        local noprop_ip = {}
+        if nixio.fs.stat("/etc/hosts") then
+            for line in io.lines("/etc/hosts")
+            do
+                local ip = line:match("^(%S+)%s.*#NOPROP$")
+                if ip then
+                    noprop_ip[ip] = true
                 end
-                hosts[#hosts + 1] = { ip = ip, host = host }
             end
         end
-        if nixio.fs.stat("/etc/ethers") then
-            local noprop_ip = {}
-            if nixio.fs.stat("/etc/hosts") then
-                for line in io.lines("/etc/hosts")
-                do
-                    local ip = line:match("^(%S+)%s.*#NOPROP$")
-                    if ip then
-                        noprop_ip[ip] = true
-                    end
-                end
-            end
-            for line in io.lines("/etc/ethers")
-            do
-                local ip = line:match("[0-9a-fA-F:]+%s+([%d%.]+)")
-                if ip and not noprop_ip[ip] then
-                    local host = nixio.getnameinfo(ip)
-                    if host then
-                        hosts[#hosts + 1] = { ip = ip, host = host }
-                    end
+        for line in io.lines("/etc/ethers")
+        do
+            local ip = line:match("[0-9a-fA-F:]+%s+([%d%.]+)")
+            if ip and not noprop_ip[ip] then
+                local host = nixio.getnameinfo(ip)
+                if host then
+                    hosts[#hosts + 1] = { ip = nat_ip or ip, host = host }
                 end
             end
         end
@@ -114,13 +121,13 @@ local function get(validate)
                 end
                 local lanip = line:match("^(%d+%.%d+%.%d+%.%d+)%s+localnode$")
                 if lanip then
-                    hosts[#hosts + 1] = { ip = lanip, host = "lan." .. name .. ".local.mesh" }
+                    hosts[#hosts + 1] = { ip = nat_ip or lanip, host = "lan." .. name .. ".local.mesh" }
                 end
             end
         end
         if nixio.fs.stat("/etc/config.mesh/xlink") then
             local count = 0
-            uci.cursor("/etc/config.mesh"):foreach("xlink", "interface",
+            cm:foreach("xlink", "interface",
                 function(section)
                     if section.ipaddr then
                         hosts[#hosts + 1] = { ip = section.ipaddr, host = "xlink" .. count .. "." .. name .. ".local.mesh" }
@@ -132,7 +139,7 @@ local function get(validate)
     end
 
     -- load the services
-    local svcs = uci.cursor("/etc/config.mesh"):get_all("setup", "services", "service") or {}
+    local svcs = cm:get_all("setup", "services", "service") or {}
     for _, svc in ipairs(svcs)
     do
         local name, link, proto, host, port, sffx = svc:match("(.*)|(.*)|(.*)|(.*)|(.*)|(.*)")
@@ -185,7 +192,7 @@ local function get(validate)
         -- Load NAT
         local nat = nil
         if dmz_mode == "0" then
-            local ports = uci.cursor("/etc/config.mesh"):get_all("setup", "ports", "port")
+            local ports = cm:get_all("setup", "ports", "port")
             if ports then
                 nat = {}
                 local lname = name:lower() .. ".local.mesh"
@@ -295,6 +302,11 @@ local function get(validate)
         hosts = {}
         for _, host in ipairs(old_hosts)
         do
+            -- In NAT mode we use our wifi IP in the host entry so we can still
+            -- resolve the hostname to this location, then let the local nat do its thing
+            if dmz_mode == "0" then
+                host.ip = wifi_ip
+            end
             local lname = host.host:lower()
             local vs = vstate[lname]
             if not vs then
