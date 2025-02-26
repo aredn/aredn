@@ -227,7 +227,8 @@ function model.getMeshRadioDevice()
 	local radio=""
 	local wifiinterfaces=aredn_uci.getUciConfType("wireless","wifi-iface")
 	for pos,i in pairs(wifiinterfaces) do
-		if wifiinterfaces[pos]['mode']=="adhoc" then
+		local mode=wifiinterfaces[pos]['mode']
+		if mode=="adhoc" or mode=="sta" or mode=="ap" then
 			radio=wifiinterfaces[pos]['device']
 			break
 		end
