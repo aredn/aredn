@@ -1,0 +1,6 @@
+#!/bin/sh
+# Wifi does not always get an IPv4 address. Until the root cause is identified, we will
+# fixup here.
+if [ "$ACTION" = "ifup" -a "$INTERFACE" = "wifi" -a "${DEVICE:0:4}" = "wlan" ] ; then
+  ip addr add $(uci get network.wifi.ipaddr)/32 broadcast 255.255.255.255 dev ${DEVICE}
+fi
