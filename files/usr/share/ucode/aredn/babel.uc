@@ -33,7 +33,6 @@
 
 import * as fs from "fs";
 import * as socket from "socket";
-import * as rtnl from "rtnl";
 
 export const MANAGER = { path: "/var/run/babel.sock" };
 export const LINK = { path: "/var/run/arednlink.sock" };
@@ -116,20 +115,6 @@ export function getRoutableNeighbors()
     return getXNeighbors("dump-routable-neighbors");
 };
 
-// Looks like this might be leaking, so do it the old fashioned way (see below)
-export function _OLDgetHostRoutes()
-{
-    const routes = [];
-    const rs = rtnl.request(rtnl.const.RTM_GETROUTE, rtnl.const.NLM_F_DUMP, { family: rtnl.const.AF_INET });
-    for (let i = length(rs) - 1; i >= 0; i--) {
-        const r = rs[i];
-        if (r.table === ROUTING_TABLE && index(r.dst, "/32") !== -1) {
-            push(routes, { dst: substr(r.dst, 0, -3), gateway: r.gateway, oif: r.oif });
-        }
-    }
-    return routes;
-};
-
 export function getHostRoutes()
 {
     const routes = [];
@@ -147,29 +132,38 @@ export function getHostRoutes()
     return routes;
 };
 
-
 export function getDefaultRoute()
 {
-    const rs = rtnl.request(rtnl.const.RTM_GETROUTE, rtnl.const.NLM_F_DUMP, { family: rtnl.const.AF_INET });
-    for (let i = length(rs) - 1; i >= 0; i--) {
-        const r = rs[i];
-        if (r.table === ROUTING_TABLE_DEFAULT && !r.dst) {
-            return { gateway: r.gateway, oif: r.oif };
+    const f = fs.popen(`/sbin/ip route show table ${ROUTING_TABLE_DEFAULT}`);
+    let def = null;
+    if (f) {
+        const re = /^default via ([^ ]+) dev ([^ ]+) /;
+        for (let l = f.read("line"); l; l = f.read("line")) {
+            const m = match(l, re);
+            if (m) {
+                def = { gateway: m[1], oif: m[2] };
+            }
         }
+        f.close();
     }
-    return null;
+    return def;
 };
 
 export function getSupernode()
 {
-    const rs = rtnl.request(rtnl.const.RTM_GETROUTE, rtnl.const.NLM_F_DUMP, { family: rtnl.const.AF_INET });
-    for (let i = length(rs) - 1; i >= 0; i--) {
-        const r = rs[i];
-        if (r.table === ROUTING_TABLE_SUPERNODE) {
-            return { gateway: r.gateway, oif: r.oif };
+    const f = fs.popen(`/sbin/ip route show table ${ROUTING_TABLE_SUPERNODE}`);
+    let sn = null;
+    if (f) {
+        const re = /^10.0.0.0\/8 via ([^ ]+) dev ([^ ]+) /;
+        for (let l = f.read("line"); l; l = f.read("line")) {
+            const m = match(l, re);
+            if (m) {
+                sn = { gateway: m[1], oif: m[2] };
+            }
         }
+        f.close();
     }
-    return null;
+    return sn;
 };
 
 export function uploadNames(namefile)
