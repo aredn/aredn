@@ -41,6 +41,7 @@ local ARPING = "/usr/sbin/arping"
 local M = {}
 
 local wifi
+local wifi_mode
 local phy
 local chipset
 local frequency
@@ -87,8 +88,10 @@ end
 function M.reset_network(mode)
     nixio.syslog("notice", "reset_network: " .. mode)
     if mode == "rejoin" then
-        -- Only observered on Mikrotik AC devices
-        if mikrotik_ac then
+        if wifi_mode ~= "adhoc" then
+            nixio.syslog("notice", "-- ignoring (" .. wifi_mode .. " is not adhoc)")
+        elseif mikrotik_ac then
+            -- Only observered on Mikrotik AC devices
             os.execute(IW .. " " .. wifi .. " ibss leave > /dev/null 2>&1")
             os.execute(IW .. " " .. wifi .. " ibss join " .. ssid .. " " .. frequency .. " fixed-freq > /dev/null 2>&1")
         else
@@ -289,6 +292,14 @@ function M.start_monitor()
         nixio.syslog("err", "Startup failed")
         exit_app()
         return
+    end
+
+    local c = uci.cursor()
+    wifi_mode = "adhoc"
+    if c:get("wireless", "@wifi-iface[0]", "ifname") == wifi then
+        wifi_mode = c:get("wireless", "@wifi-iface[0]", "mode")
+    elseif c:get("wireless", "@wifi-iface[1]", "ifname") == wifi then
+        wifi_mode = c:get("wireless", "@wifi-iface[1]", "mode")
     end
 
     -- Select chipset
