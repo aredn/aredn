@@ -116,7 +116,8 @@ export function getRoutableNeighbors()
     return getXNeighbors("dump-routable-neighbors");
 };
 
-export function getHostRoutes()
+// Looks like this might be leaking, so do it the old fashioned way (see below)
+export function _OLDgetHostRoutes()
 {
     const routes = [];
     const rs = rtnl.request(rtnl.const.RTM_GETROUTE, rtnl.const.NLM_F_DUMP, { family: rtnl.const.AF_INET });
@@ -128,6 +129,24 @@ export function getHostRoutes()
     }
     return routes;
 };
+
+export function getHostRoutes()
+{
+    const routes = [];
+    const f = fs.popen(`/sbin/ip route show table ${ROUTING_TABLE}`);
+    if (f) {
+        const re = /^([^ /]+) via .+ dev ([^ ]+) /;
+        for (let l = f.read("line"); l; l = f.read("line")) {
+            const m = match(l, re);
+            if (m) {
+                push(routes, { dst: m[1], oif: m[2] });
+            }
+        }
+        f.close();
+    }
+    return routes;
+};
+
 
 export function getDefaultRoute()
 {
