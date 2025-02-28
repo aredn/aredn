@@ -435,9 +435,7 @@ function model.getChannelBW(radio)
 	if not ctx then
 			error("Failed to get uci cursor")
 	end
-	local chanbw=""
-	chanbw = ctx:get("wireless", radio, "chanbw")
-	return chanbw
+	return ctx:get("wireless", radio, "chanbw") or ""
 end
 
 -------------------------------------
