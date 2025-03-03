@@ -4,4 +4,9 @@
 START=10
 boot() {
     mkdir -p /tmp/dnsmasq.d
+
+    # Make sure hostapd is off if the radios are off. Saves a bunch of memory
+    if [ "$(uci -q get wireless.radio0.disabled)" != "0" -a "$(uci -q get wireless.radio1.disabled)" != "0" ]; then
+        /etc/init.d/wpad disable
+    fi
 }
