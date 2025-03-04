@@ -1,0 +1,16 @@
+--- a/target/linux/generic/files/drivers/platform/mikrotik/rb_hardconfig.c
++++ b/target/linux/generic/files/drivers/platform/mikrotik/rb_hardconfig.c
+@@ -592,12 +592,6 @@
+ 	ret = -ENODATA;
+ 	switch (magic) {
+ 	case RB_MAGIC_LZ77:
+-		/* no known instances of lz77 without 8001/8201 data, skip SOLO */
+-		if (tag_id == RB_WLAN_ERD_ID_SOLO) {
+-			pr_debug(RB_HC_PR_PFX "skipped LZ77 decompress in search for SOLO tag\n");
+-			break;
+-		}
+-		fallthrough;
+ 	case RB_MAGIC_LZOR:
+ 		/* Skip magic */
+ 		lbuf += sizeof(magic);
+
