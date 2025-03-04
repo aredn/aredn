@@ -546,17 +546,30 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
             const end = htmx.find("input[name=lan_dhcp_end]");
             const startm = htmx.find("#lan_dhcp_start_m");
             const endm = htmx.find("#lan_dhcp_end_m");
-            validateRange(ip, netmask, start, end, startm, endm);
-            if (ip.validity.valid && netmask.validity.valid && start.validity.valid && end.validity.valid) {
-                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                    values: {
-                        lan_dhcp_ip: ip.value,
-                        lan_dhcp_netmask: netmask.value,
-                        lan_dhcp_start: start.value,
-                        lan_dhcp_end: end.value
-                    },
-                    swap: "none"
-                });
+            if (start) {
+                validateRange(ip, netmask, start, end, startm, endm);
+                if (ip.validity.valid && netmask.validity.valid && start.validity.valid && end.validity.valid) {
+                    htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                        values: {
+                            lan_dhcp_ip: ip.value,
+                            lan_dhcp_netmask: netmask.value,
+                            lan_dhcp_start: start.value,
+                            lan_dhcp_end: end.value
+                        },
+                        swap: "none"
+                    });
+                }
+            }
+            else {
+                if (ip.validity.valid && netmask.validity.valid) {
+                    htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                        values: {
+                            lan_dhcp_ip: ip.value,
+                            lan_dhcp_netmask: netmask.value,
+                        },
+                        swap: "none"
+                    });
+                }
             }
         }
         function validateLAN44Range()
