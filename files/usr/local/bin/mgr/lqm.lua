@@ -62,6 +62,7 @@ local IPCMD = "/sbin/ip"
 
 local now = 0
 local config = {}
+local max_distance = default_max_distance;
 
 local total_node_route_count = nil
 local total_babel_route_count = nil
@@ -304,7 +305,7 @@ if wlanid then
     radio = "radio" .. wlanid
     radiomode = "mesh"
 end
-if aredn.hardware.get_board_id():lower():match("ac") then
+if aredn.hardware.get_radio().name:lower():match("ac") then
     ac = true
 end
 
@@ -373,6 +374,7 @@ function lqm_run()
         if distance <= 0 then
             distance = default_max_distance
         end
+        max_distance = distance
         local coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3))
         iw_set("coverage " .. coverage)
     else
@@ -1161,7 +1163,11 @@ function lqm_run()
                             distance = track.distance
                         end
                     elseif is_pending(track) then
-                        distance = config.max_distance
+                        if config.enable then
+                            distance = config.max_distance
+                        else
+                            distance = max_distance
+                        end
                     end
                 end
             end
@@ -1204,8 +1210,10 @@ function lqm_run()
         if distance < 0 then
             if config.auto_distance > 0 then
                 distance = config.auto_distance
-            else
+            elseif config.enable then
                 distance = config.max_distance
+            else
+                distance = max_distance
             end
         end
         -- Update the wifi distance
