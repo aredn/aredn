@@ -81,7 +81,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 configuration.setSetting("radio0_txpower", request.args.radio0_txpower);
             }
             if ("radio0_distance" in request.args) {
-                configuration.setSetting("radio0_distance", int(units.distance2meters(request.args.radio0_distance)));
+                configuration.setSetting("radio0_distance", int(units.distance2meters(request.args.radio0_distance || 0)));
             }
             break;
         case radios.RADIO_LAN:
@@ -149,7 +149,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 configuration.setSetting("radio1_txpower", request.args.radio1_txpower);
             }
             if ("radio1_distance" in request.args) {
-                configuration.setSetting("radio1_distance", int(units.distance2meters(request.args.radio1_distance)));
+                configuration.setSetting("radio1_distance", int(units.distance2meters(request.args.radio1_distance || 0)));
             }
             break;
         case radios.RADIO_LAN:
@@ -402,7 +402,14 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <div class="m">Distance to farthest neighbor in {{units.distanceUnit()}}</div>
                         </div>
                         <div style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" pattern="\d+(\.\d)?" hx-validate="true" value="{{util.round(10 * units.meters2distance(configuration.getSettingAsInt(`${prefix}distance`, 0))) / 10.0}}">
+                            {% let maxdistance = configuration.getSettingAsInt(`${prefix}distance`, 0);
+                            if (maxdistance > 0) {
+                                maxdistance = util.round(10 * units.meters2distance(maxdistance)) / 10.0;
+                            }
+                            else {
+                                maxdistance = "";
+                            } %}
+                            <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" pattern="\d+(\.\d)?" hx-validate="true" value="{{maxdistance}}">
                         </div>
                     </div>
                 </div>

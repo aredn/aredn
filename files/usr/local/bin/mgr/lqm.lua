@@ -52,6 +52,7 @@ local connect_timeout = 5 -- timeout (seconds) when fetching information from ot
 local default_short_retries = 20 -- More link-level retries helps overall tcp performance (factory default is 7)
 local default_long_retries = 20 -- (factory default is 4)
 local wireguard_alive_time = 300 -- 5 minutes
+local default_max_distance = 80467 -- 50 miles
 
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
@@ -297,10 +298,14 @@ local wlan = aredn.hardware.get_iface_name("wifi")
 local phy = "none"
 local radio = "none"
 local wlanid = wlan:match("^wlan(%d+)$")
+local ac = false;
 if wlanid then
     phy = "phy" .. wlanid
     radio = "radio" .. wlanid
     radiomode = "mesh"
+end
+if aredn.hardware.get_board_id():lower():match("ac") then
+    ac = true
 end
 
 function iw_set(cmd)
@@ -362,7 +367,17 @@ function lqm_run()
     nft_insert("input", "jump input_lqm comment \\\"block low quality links\\\"")
 
     -- We dont know any distances yet
-    iw_set("distance auto")
+    if ac then
+        -- And AC doesn't support auto
+        local distance = tonumber(uci.cursor("/etc/config.mesh"):get("setup", "globals", radio .. "_distance") or 0)
+        if distance <= 0 then
+            distance = default_max_distance
+        end
+        local coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3))
+        iw_set("coverage " .. coverage)
+    else
+        iw_set("distance auto")
+    end
     -- Or any hidden nodes
     iw_set("rts off")
     -- Set the default retries
