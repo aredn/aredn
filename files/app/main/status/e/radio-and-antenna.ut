@@ -81,7 +81,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 configuration.setSetting("radio0_txpower", request.args.radio0_txpower);
             }
             if ("radio0_distance" in request.args) {
-                configuration.setSetting("radio0_distance", int(units.distance2meters(request.args.radio0_distance || 0)));
+                configuration.setSetting("radio0_distance", int(units.distance2meters(request.args.radio0_distance) || wlan[0].maxdistance));
             }
             break;
         case radios.RADIO_LAN:
@@ -149,7 +149,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 configuration.setSetting("radio1_txpower", request.args.radio1_txpower);
             }
             if ("radio1_distance" in request.args) {
-                configuration.setSetting("radio1_distance", int(units.distance2meters(request.args.radio1_distance || 0)));
+                configuration.setSetting("radio1_distance", int(units.distance2meters(request.args.radio1_distance) || wlan[1].maxdistance));
             }
             break;
         case radios.RADIO_LAN:
@@ -217,6 +217,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
 {% const wlan = radios.getConfiguration(); %}
 <div class="dialog radio-and-antenna">
     {{_R("dialog-header", "Radios &amp; Antennas")}}
+    <div>
     {%
         const hasradios = length(wlan) > 0;
         if (hasradios) {
@@ -250,273 +251,274 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 const key_wan = mode == "wan" && key_decoded ? key_decoded : "wifipassword";
                 const macaddress = wlan[w].macaddress;
     %}
-    <div id="radio{{w}}" class="hideable compact" data-hideable="{{modemap[mode] || 0}}">
-        <div class="cols">
-            <div>
-                <div class="o" {{length(wlan) > 1 ? "style='font-weight:bold'" : ""}}>Radio {{wlan[w].def.band}}</div>
-                <div class="m">Radio purpose</div>
-            </div>
-            <div style="flex:0">
-                <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}mode" {{_R("hideable-onselect")}}>
-                    <option value="0" {{mode === radios.RADIO_OFF ? "selected" : ""}}>Off</option>
-                    <option value="1" {{mode === radios.RADIO_MESH ? "selected" : ""}}>Mesh</option>
-                    <option value="4" {{mode === radios.RADIO_MESHPTMP ? "selected" : ""}}>Mesh PtMP</option>
-                    <option value="5" {{mode === radios.RADIO_MESHPTP ? "selected" : ""}}>Mesh PtP</option>
-                    <option value="6" {{mode === radios.RADIO_MESHSTA ? "selected" : ""}}>Mesh Station</option>
-                    <option value="2" {{mode === radios.RADIO_LAN ? "selected" : ""}}>LAN Hotspot</option>
-                    <option value="3" {{mode === radios.RADIO_WAN ? "selected" : ""}}>WAN Client</option>
-                </select>
-            </div>
-        </div>
-        {{_H("Select the purpose of the radio. Each radio can be assigned to a specific purpose, but devices with multiple radios
-        cannot have the same purpose for multiple radios (except <b>off</b>).")}}
-        <div class="cols">
-            <div>
-                <div class="o">MAC Address</div>
-                <div class="m">Mac address</div>
-            </div>
-            <div style="flex:0;white-space:nowrap">
-                <span>{{macaddress}}</span>
-            </div>
-        </div>
-        {{_H("MAC address of this radio.")}}
-        <div class="hideable1 hideable4 hideable5 hideable6" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
+        <div id="radio{{w}}" class="hideable compact" data-hideable="{{modemap[mode] || 0}}">
             <div class="cols">
                 <div>
-                    <div class="o">Channel</div>
-                    <div class="m">Channel and frequency of this connection</div>
+                    <div class="o" {{length(wlan) > 1 ? "style='font-weight:bold'" : ""}}>Radio {{wlan[w].def.band}}</div>
+                    <div class="m">Radio purpose</div>
                 </div>
                 <div style="flex:0">
-                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" style="direction:ltr" class="mesh-channel">
-                    {%
-                        const chanfilter = mode === radios.RADIO_MESHPTMP || mode ===  radios.RADIO_MESHPTP || mode ===  radios.RADIO_MESHSTA ? wlan[w].managedOOB : null;
-                        let channels = wlan[w].channels;
-                        if (bandwidth == 40) {
-                            channels = wlan[w].channels40;
-                        }
-                        else if (bandwidth == 80) {
-                            channels = wlan[w].channels80;
-                        }
-                        for (let i = 0; i < length(channels); i++) {
-                            if (!chanfilter || index(chanfilter, channels[i].number) === -1) {
-                                print(`<option value="${channels[i].number}" ${channels[i].number == channel ? "selected" : ""}>${channels[i].label}</option>`);
-                            }
-                        }
-                    %}
+                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}mode" {{_R("hideable-onselect")}}>
+                        <option value="0" {{mode === radios.RADIO_OFF ? "selected" : ""}}>Off</option>
+                        <option value="1" {{mode === radios.RADIO_MESH ? "selected" : ""}}>Mesh</option>
+                        <option value="4" {{mode === radios.RADIO_MESHPTMP ? "selected" : ""}}>Mesh PtMP</option>
+                        <option value="5" {{mode === radios.RADIO_MESHPTP ? "selected" : ""}}>Mesh PtP</option>
+                        <option value="6" {{mode === radios.RADIO_MESHSTA ? "selected" : ""}}>Mesh Station</option>
+                        <option value="2" {{mode === radios.RADIO_LAN ? "selected" : ""}}>LAN Hotspot</option>
+                        <option value="3" {{mode === radios.RADIO_WAN ? "selected" : ""}}>WAN Client</option>
                     </select>
                 </div>
             </div>
-            {{_H("Select the central channel/frequency for the radio.")}}
-            <div class="cols">
+            {{_H("Select the purpose of the radio. Each radio can be assigned to a specific purpose, but devices with multiple radios
+            cannot have the same purpose for multiple radios (except <b>off</b>).")}}
+            <div class="cols" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
                 <div>
-                    <div class="o">Channel Width</div>
-                    <div class="m">Channel bandwidth</div>
-                </div>
-                <div style="flex:0">
-                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}bandwidth" hx-include=".mesh-channel[name='{{prefix}}channel']" style="direction:ltr">
-                    {%
-                        for (let i = 0; i < length(wlan[w].bws); i++) {
-                            print(`<option value="${wlan[w].bws[i]}" ${wlan[w].bws[i] == bandwidth ? "selected" : ""}>${wlan[w].bws[i]} MHz</option>`);
-                        }
-                    %}
-                    </select>
-                </div>
-            </div>
-            {{_H("Select the bandwidth of the radio. Be aware that larger bandwidth settings will consume more channels. Avoid overlapping
-            channels as this will impact performance.")}}
-            <div class="cols peer hideable5">
-                <div>
-                    <div class="o">Peer Node</div>
-                    <div class="m">MAC a&zwnj;ddress of remote Mesh Station</div>
-                </div>
-                <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}peer" type="text" required placeholder="mac a&zwnj;ddress" pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" hx-validate="true" value="{{configuration.getSettingAsString(`${prefix}peer`, "")}}">
-                </div>
-            </div>
-            <div class="peer hideable5">
-            {{_H("Specify the MAC a&zwnj;ddress of the node which is allowed to peer with this node. The other node must be configured as a Mesh Station.")}}
-            </div>
-            <div class="cols">
-                <div>
-                    <div class="o">Transmit Power</div>
-                    <div class="m">Transmit power</div>
-                </div>
-                <div style="flex:0">
-                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}txpower">
-                    {%
-                        for (let i = wlan[w].txmaxpower; i > 0; i--) {
-                            print(`<option value="${i}" ${i == txpower ? "selected" : ""}>${i + wlan[w].txpoweroffset}</option>`);
-                        }
-                    %}
-                    </select>
-                </div>
-            </div>
-            {{_H("Select the transmission power for the radio. Ideally use only enough power to maintain the link at the capacity required.")}}
-            <div class="cols">
-                <div>
-                    <div class="o">SSID</div>
-                    <div class="m">AREDN mesh identifier</div>
+                    <div class="o">MAC Address</div>
+                    <div class="m">Mac address</div>
                 </div>
                 <div style="flex:0;white-space:nowrap">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="20" pattern="[^!#;+\]\/"\t\-][^+\]\/"\t\-]{0,18}[^ !#;+\]\/"\t\-]$|^[^ !#;+\]\/"\t\-]" hx-validate="true" value="{{ssid_mesh}}"><span style="color:var(--ctrl-modal-fg-color)">{{mode === radios.RADIO_MESH ? "" : `-${channel}`}}-{{bandwidth}}-v3</span>
+                    <span>{{macaddress}}</span>
                 </div>
             </div>
-            <div class="cols">
-                <div>
-                    <div class="o">Maximum Distance</div>
-                    <div class="m">Distance to farthest neighbor in {{units.distanceUnit()}}</div>
-                </div>
-                <div style="flex:0">
-                    {% let maxdistance = configuration.getSettingAsInt(`${prefix}distance`, 0);
-                    if (maxdistance > 0) {
-                        maxdistance = util.round(10 * units.meters2distance(maxdistance)) / 10.0;
-                    }
-                    else {
-                        maxdistance = "";
-                    } %}
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" pattern="\d+(\.\d)?" hx-validate="true" value="{{maxdistance}}">
-                </div>
-            </div>
-            {{_H("Set the farthest distance to the most remote neighbor. This distance is used by the radio when it cannot determine
-            how far a neighbor radio is, or when no radios are connected. Setting this distance appropriately is extremely important
-            when radios are initially connecting and their location is not yet known. In particular, a too low value can result
-            in radios failing to connect when they otherwise should.")}}
-        </div>
-        <div class="hideable2" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
-            {{_H("In LAN Hotpot mode, the WiFi acts as a wireless hotspot. Any device connecting will appear as a LAN device attached to the node.")}}
-            <div class="cols">
-                <div>
-                    <div class="o">SSID</div>
-                    <div class="m">Hotspot SSID</div>
-                </div>
-                <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern=[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" hx-validate="true" value="{{ssid_lan}}">
-                </div>
-            </div>
-            <div class="cols">
-                <div>
-                    <div class="o">Channel</div>
-                    <div class="m">Hotspot channel</div>
-                </div>
-                <div style="flex:0">
-                    <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel">
-                    {%
-                        for (let i = 0; i < length(wlan[w].channels); i++) {
-                            print(`<option value="${wlan[w].channels[i].number}" ${wlan[w].channels[i].number == channel ? "selected" : ""}>${wlan[w].channels[i].number}</option>`);
-                        }
-                    %}
-                    </select>
-                </div>
-            </div>
-            <div class="hideable" data-hideable="{{encryption == "psk" ? 0 : encryption == "psk2" ? 1 : 2}}">
+            {{_H("MAC address of this radio.")}}
+            <div class="hideable1 hideable4 hideable5 hideable6" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
                 <div class="cols">
                     <div>
-                        <div class="o">Encryption</div>
-                        <div class="m">Encryption algorithm</div>
+                        <div class="o">Channel</div>
+                        <div class="m">Channel and frequency of this connection</div>
                     </div>
                     <div style="flex:0">
-                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}encryption" {{_R("hideable-onselect")}}>
-                            <option value="0" {{encryption == "psk" ? "selected" : ""}}>WPA PSK</option>
-                            <option value="1" {{encryption == "psk2" ? "selected" : ""}}>WPA2 PSK</option>
-                            <option value="2" {{encryption == "none" ? "selected" : ""}}>None</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="hideable0 hideable1">
-                    <div class="cols">
-                        <div>
-                            <div class="o">Password</div>
-                            <div class="m">Hotspot password</div>
-                        </div>
-                        <div class="password-toggle" style="flex:0">
-                            <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}password" type="password" required size="10" minlength="8" maxlength="32" hx-validate="true" value="{{key_lan}}"><button class="icon eye"></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="hideable3" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
-            {{_H("In WAN Client mode, the WiFi connection is used to connect to another wireless network. This network is expected to provide
-            access to the Internet.")}}
-            <div class="cols">
-                <div>
-                    <div class="o">SSID</div>
-                    <div class="m">WAN client</div>
-                </div>
-                <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern='[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]' hx-validate="true" value="{{ssid_wan}}">
-                </div>
-            </div>
-            <div class="cols">
-                <div>
-                    <div class="o">Password</div>
-                    <div class="m">Client password</div>
-                </div>
-                <div class="password-toggle" style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}password" type="password" size="10" minlength="8" maxlength="32" hx-validate="true" value="{{key_wan}}"><button class="icon eye"></button>
-                </div>
-            </div>
-        </div>
-        <hr>
-        <div {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
-            <div class="cols">
-                <div>
-                    <div class="o">Antenna</div>
-                    <div class="m">Antenna</div>
-                </div>
-                <div style="flex:0;white-space:nowrap">
-                    {% if (length(wlan[w].ants) === 1) { %}
-                        <span>{{wlan[w].ants[0].description}}<span>
-                    {% } else { %}
-                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="radio_antenna">
+                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" style="direction:ltr" class="mesh-channel">
                         {%
-                            const model = wlan[w].ant?.model;
-                            for (let i = 0; i < length(wlan[w].ants); i++) {
-                                print(`<option value="${wlan[w].ants[i].model}" ${wlan[w].ants[i].model == model ? "selected" : ""}>${wlan[w].ants[i].description}</option>`);
+                            const chanfilter = mode === radios.RADIO_MESHPTMP || mode ===  radios.RADIO_MESHPTP || mode ===  radios.RADIO_MESHSTA ? wlan[w].managedOOB : null;
+                            let channels = wlan[w].channels;
+                            if (bandwidth == 40) {
+                                channels = wlan[w].channels40;
+                            }
+                            else if (bandwidth == 80) {
+                                channels = wlan[w].channels80;
+                            }
+                            for (let i = 0; i < length(channels); i++) {
+                                if (!chanfilter || index(chanfilter, channels[i].number) === -1) {
+                                    print(`<option value="${channels[i].number}" ${channels[i].number == channel ? "selected" : ""}>${channels[i].label}</option>`);
+                                }
                             }
                         %}
                         </select>
-                    {% } %}
+                    </div>
+                </div>
+                {{_H("Select the central channel/frequency for the radio.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">Channel Width</div>
+                        <div class="m">Channel bandwidth</div>
+                    </div>
+                    <div style="flex:0">
+                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}bandwidth" hx-include=".mesh-channel[name='{{prefix}}channel']" style="direction:ltr">
+                        {%
+                            for (let i = 0; i < length(wlan[w].bws); i++) {
+                                print(`<option value="${wlan[w].bws[i]}" ${wlan[w].bws[i] == bandwidth ? "selected" : ""}>${wlan[w].bws[i]} MHz</option>`);
+                            }
+                        %}
+                        </select>
+                    </div>
+                </div>
+                {{_H("Select the bandwidth of the radio. Be aware that larger bandwidth settings will consume more channels. Avoid overlapping
+                channels as this will impact performance.")}}
+                <div class="cols peer hideable5">
+                    <div>
+                        <div class="o">Peer Node</div>
+                        <div class="m">MAC a&zwnj;ddress of remote Mesh Station</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}peer" type="text" required placeholder="mac a&zwnj;ddress" pattern="([0-9a-fA-F][0-9a-fA-F]:){5}[0-9a-fA-F][0-9a-fA-F]" hx-validate="true" value="{{configuration.getSettingAsString(`${prefix}peer`, "")}}">
+                    </div>
+                </div>
+                <div class="peer hideable5">
+                {{_H("Specify the MAC a&zwnj;ddress of the node which is allowed to peer with this node. The other node must be configured as a Mesh Station.")}}
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">Transmit Power</div>
+                        <div class="m">Transmit power</div>
+                    </div>
+                    <div style="flex:0">
+                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}txpower">
+                        {%
+                            for (let i = wlan[w].txmaxpower; i > 0; i--) {
+                                print(`<option value="${i}" ${i == txpower ? "selected" : ""}>${i + wlan[w].txpoweroffset}</option>`);
+                            }
+                        %}
+                        </select>
+                    </div>
+                </div>
+                {{_H("Select the transmission power for the radio. Ideally use only enough power to maintain the link at the capacity required.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">SSID</div>
+                        <div class="m">AREDN mesh identifier</div>
+                    </div>
+                    <div style="flex:0;white-space:nowrap">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="20" pattern="[^!#;+\]\/"\t\-][^+\]\/"\t\-]{0,18}[^ !#;+\]\/"\t\-]$|^[^ !#;+\]\/"\t\-]" hx-validate="true" value="{{ssid_mesh}}"><span style="color:var(--ctrl-modal-fg-color)">{{mode === radios.RADIO_MESH ? "" : `-${channel}`}}-{{bandwidth}}-v3</span>
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">Maximum Distance</div>
+                        <div class="m">Distance to farthest neighbor in {{units.distanceUnit()}}</div>
+                    </div>
+                    <div style="flex:0">
+                        {% let maxdistance = wlan[w].mode.distance;
+                        if (maxdistance > 0) {
+                            maxdistance = util.round(10 * units.meters2distance(maxdistance)) / 10.0;
+                        }
+                        else {
+                            maxdistance = "";
+                        } %}
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}distance" type="text" size="3" placeholder="{{util.round(10 * units.meters2distance(wlan[w].maxdistance)) / 10.0}}" pattern="\d+(\.\d)?" hx-validate="true" value="{{maxdistance}}">
+                    </div>
+                </div>
+                {{_H("Set the farthest distance to the most remote neighbor. This distance is used by the radio when it cannot determine
+                how far a neighbor radio is, or when no radios are connected. Setting this distance appropriately is extremely important
+                when radios are initially connecting and their location is not yet known. In particular, a too low value can result
+                in radios failing to connect when they otherwise should.")}}
+            </div>
+            <div class="hideable2" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
+                {{_H("In LAN Hotpot mode, the WiFi acts as a wireless hotspot. Any device connecting will appear as a LAN device attached to the node.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">SSID</div>
+                        <div class="m">Hotspot SSID</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern=[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" hx-validate="true" value="{{ssid_lan}}">
+                    </div>
+                </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">Channel</div>
+                        <div class="m">Hotspot channel</div>
+                    </div>
+                    <div style="flex:0">
+                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel">
+                        {%
+                            for (let i = 0; i < length(wlan[w].channels); i++) {
+                                print(`<option value="${wlan[w].channels[i].number}" ${wlan[w].channels[i].number == channel ? "selected" : ""}>${wlan[w].channels[i].number}</option>`);
+                            }
+                        %}
+                        </select>
+                    </div>
+                </div>
+                <div class="hideable" data-hideable="{{encryption == "psk" ? 0 : encryption == "psk2" ? 1 : 2}}">
+                    <div class="cols">
+                        <div>
+                            <div class="o">Encryption</div>
+                            <div class="m">Encryption algorithm</div>
+                        </div>
+                        <div style="flex:0">
+                            <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}encryption" {{_R("hideable-onselect")}}>
+                                <option value="0" {{encryption == "psk" ? "selected" : ""}}>WPA PSK</option>
+                                <option value="1" {{encryption == "psk2" ? "selected" : ""}}>WPA2 PSK</option>
+                                <option value="2" {{encryption == "none" ? "selected" : ""}}>None</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="hideable0 hideable1">
+                        <div class="cols">
+                            <div>
+                                <div class="o">Password</div>
+                                <div class="m">Hotspot password</div>
+                            </div>
+                            <div class="password-toggle" style="flex:0">
+                                <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}password" type="password" required size="10" minlength="8" maxlength="32" hx-validate="true" value="{{key_lan}}"><button class="icon eye"></button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            {% if (length(wlan[w].ants) !== 1) { %}
-            {{_H("Select the external antenna attached to the primary radio.")}}
-            {% } %}
-            {% if (w === 0) { %}
-            {% if (!(length(wlan[w].ants) === 1 && wlan[w].ants[0].beamwidth === 360)) { %}
-            <div class="cols">
-                <div>
-                    <div class="o">Azimuth</div>
-                    <div class="m">Antenna azimuth in degrees</div>
+            <div class="hideable3" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
+                {{_H("In WAN Client mode, the WiFi connection is used to connect to another wireless network. This network is expected to provide
+                access to the Internet.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">SSID</div>
+                        <div class="m">WAN client</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern='[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]' hx-validate="true" value="{{ssid_wan}}">
+                    </div>
                 </div>
-                <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="radio_azimuth" type="text" size="10" pattern="(\d|[1-9]\d|[12]\d{2}|3[0-5]\d|360)(\.\d)?" hx-validate="true" value="{{uciMesh.get("aredn", "@location[0]", "azimuth")}}">
-                </div>
-            </div>
-            {{_H("The azimuth, or heading, of the primary radio antenna measured in degrees (0 to 360) clockwise from north.")}}
-            {% } %}
-            <div class="cols">
-                <div>
-                    <div class="o">Height</div>
-                    <div class="m">Antenna height above ground in meters</div>
-                </div>
-                <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="radio_height" type="text" size="10" pattern="\d+(\.\d+)?" hx-validate="true" value="{{uciMesh.get("aredn", "@location[0]", "height")}}">
+                <div class="cols">
+                    <div>
+                        <div class="o">Password</div>
+                        <div class="m">Client password</div>
+                    </div>
+                    <div class="password-toggle" style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}password" type="password" size="10" minlength="8" maxlength="32" hx-validate="true" value="{{key_wan}}"><button class="icon eye"></button>
+                    </div>
                 </div>
             </div>
-            {{_H("The height of the antenna above ground level in meters. This is usually the height up a tower or a building.")}}
-            <div class="cols">
-                <div>
-                    <div class="o">Elevation</div>
-                    <div class="m">Antenna elevation in degrees</div>
+            <hr>
+            <div {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
+                <div class="cols">
+                    <div>
+                        <div class="o">Antenna</div>
+                        <div class="m">Antenna</div>
+                    </div>
+                    <div style="flex:0;white-space:nowrap">
+                        {% if (length(wlan[w].ants) === 1) { %}
+                            <span>{{wlan[w].ants[0].description}}<span>
+                        {% } else { %}
+                            <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="radio_antenna">
+                            {%
+                                const model = wlan[w].ant?.model;
+                                for (let i = 0; i < length(wlan[w].ants); i++) {
+                                    print(`<option value="${wlan[w].ants[i].model}" ${wlan[w].ants[i].model == model ? "selected" : ""}>${wlan[w].ants[i].description}</option>`);
+                                }
+                            %}
+                            </select>
+                        {% } %}
+                    </div>
                 </div>
-                <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="radio_elevation" type="text" size="10" pattern="(-[1-9]|-?[1-8]\d|-?90|\d)(\.\d)?" hx-validate="true" value="{{uciMesh.get("aredn", "@location[0]", "elevation")}}">
+                {% if (length(wlan[w].ants) !== 1) { %}
+                {{_H("Select the external antenna attached to the primary radio.")}}
+                {% } %}
+                {% if (w === 0) { %}
+                {% if (!(length(wlan[w].ants) === 1 && wlan[w].ants[0].beamwidth === 360)) { %}
+                <div class="cols">
+                    <div>
+                        <div class="o">Azimuth</div>
+                        <div class="m">Antenna azimuth in degrees</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_azimuth" type="text" size="10" pattern="(\d|[1-9]\d|[12]\d{2}|3[0-5]\d|360)(\.\d)?" hx-validate="true" value="{{uciMesh.get("aredn", "@location[0]", "azimuth")}}">
+                    </div>
                 </div>
+                {{_H("The azimuth, or heading, of the primary radio antenna measured in degrees (0 to 360) clockwise from north.")}}
+                {% } %}
+                <div class="cols">
+                    <div>
+                        <div class="o">Height</div>
+                        <div class="m">Antenna height above ground in meters</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_height" type="text" size="10" pattern="\d+(\.\d+)?" hx-validate="true" value="{{uciMesh.get("aredn", "@location[0]", "height")}}">
+                    </div>
+                </div>
+                {{_H("The height of the antenna above ground level in meters. This is usually the height up a tower or a building.")}}
+                <div class="cols">
+                    <div>
+                        <div class="o">Elevation</div>
+                        <div class="m">Antenna elevation in degrees</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="radio_elevation" type="text" size="10" pattern="(-[1-9]|-?[1-8]\d|-?90|\d)(\.\d)?" hx-validate="true" value="{{uciMesh.get("aredn", "@location[0]", "elevation")}}">
+                    </div>
+                </div>
+                {{_H("Elevation of the antenna, measured in degrees (-90 to 90), below (less than zero) or above the horizontal. Some antennas include electronic
+                downtilt. Any such offset should be included in the number entered here.")}}
+                {% } %}
             </div>
-            {{_H("Elevation of the antenna, measured in degrees (-90 to 90), below (less than zero) or above the horizontal. Some antennas include electronic
-            downtilt. Any such offset should be included in the number entered here.")}}
-            {% } %}
         </div>
     {%
             }

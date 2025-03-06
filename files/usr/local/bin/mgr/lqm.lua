@@ -50,7 +50,9 @@ local connect_timeout = 5 -- timeout (seconds) when fetching information from ot
 local default_short_retries = 20 -- More link-level retries helps overall tcp performance (factory default is 7)
 local default_long_retries = 20 -- (factory default is 4)
 local wireguard_alive_time = 600 -- 10 minutes
-local default_max_distance = 80467 -- 50 miles
+local default_max_distance = 80550 -- 50.1 miles
+local rts_threshold = 1 -- RTS setting when hidden nodes are detected
+local ping_penalty = 5 -- Cost of a failed ping to measure of a link's quality
 
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
@@ -85,46 +87,10 @@ function update_config()
     local cm = uci.cursor("/etc/config.mesh")
     local max_distance = tonumber(cm:get("setup", "globals", radio .. "_distance") or default_max_distance)
     config = {
-        rts_threshold = tonumber(c:get("aredn", "@lqm[0]", "rts_threshold") or "1"),
         max_distance = max_distance > 0 and max_distance or default_max_distance,
-        ping_penalty = tonumber(c:get("aredn", "@lqm[0]", "ping_penalty")),
         user_blocks = c:get("aredn", "@lqm[0]", "user_blocks") or ""
     }
 end
-
---[[
-function nft(cmd)
-    os.execute(NFT .. " " .. cmd)
-end
-
-function nft_insert(chain, cmd)
-    os.execute(NFT .. " insert rule ip fw4 " .. chain .. " " .. cmd)
-end
-
-function nft_delete(chain, handle)
-    os.execute(NFT .. " delete rule ip fw4 " .. chain .. " handle " .. handle)
-end
-
-function _nft_handle(chain, query)
-    for line in io.popen(NFT .. " -a list chain ip fw4 " .. chain):lines()
-    do
-        local handle = line:match(query .. ".*# handle (%d+)$")
-        if handle then
-            return handle
-        end
-    end
-    return nil
-end
-
-function nft_handle(chain, query)
-    local ok, result = pcall(_nft_handle, chain, query)
-    if not ok then
-        -- Retry to handle occasional EINTR
-        ok, result = pcall(_nft_handle, chain, query)
-    end
-    return ok and result or nil
-end
-]]--
 
 function refresh_timeout()
      return math.random(refresh_timeout_base, refresh_timeout_limit)
@@ -219,18 +185,6 @@ function update_deny_list(tracker)
 end
 
 function lqm_run()
-    -- Create filters (cannot create during install as they disappear on reboot)
-    --[[
-    nft("flush chain ip fw4 input_lqm 2> /dev/null")
-    nft("delete chain ip fw4 input_lqm 2> /dev/null")
-    nft("add chain ip fw4 input_lqm 2> /dev/null")
-    local handle = nft_handle("input", "jump input_lqm comment")
-    if handle then
-        nft_delete("input", handle)
-    end
-    nft_insert("input", "jump input_lqm comment \\\"block low quality links\\\"")
-    ]]--
-
     local noise = -95
     local tracker = {}
     local rflinks = {}
@@ -245,7 +199,7 @@ function lqm_run()
     -- We dont know any distances yet
     if ac then
         -- And AC doesn't support auto
-        last_coverage = math.min(255, math.floor((config.max_distance * 2 * 0.0033) / 3))
+        last_coverage = math.min(255, math.floor(config.max_distance / 450))
         iw_set("coverage " .. last_coverage)
     else
         iw_set("distance auto")
@@ -752,7 +706,7 @@ function lqm_run()
                     if success then
                         track.ping_success_time = track.ping_success_time and (track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)) or ptime
                     else
-                        track.ping_quality = track.ping_quality - config.ping_penalty
+                        track.ping_quality = track.ping_quality - ping_penalty
                     end
                 end
                 track.ping_quality = math.max(0, math.min(100, track.ping_quality))
@@ -855,8 +809,10 @@ function lqm_run()
         -- Update the wifi distance
         if distance < 0 then
             distance = config.max_distance
+        else
+            distance = math.min(distance, config.max_distance)
         end
-        local coverage = math.min(255, math.floor((distance * 2 * 0.0033) / 3))
+        local coverage = math.min(255, math.floor(distance / 450))
         if coverage ~= last_coverage then
             iw_set("coverage " .. coverage)
             last_coverage = coverage
@@ -891,9 +847,9 @@ function lqm_run()
         do
             hidden[#hidden + 1] = ninfo
         end
-        if (#hidden == 0) ~= (#hidden_nodes == 0) and config.rts_threshold >= 0 and config.rts_threshold <= 2347 then
+        if (#hidden == 0) ~= (#hidden_nodes == 0) then
             if #hidden > 0 then
-                iw_set("rts " .. config.rts_threshold)
+                iw_set("rts " .. rts_threshold)
             else
                 iw_set("rts off")
             end

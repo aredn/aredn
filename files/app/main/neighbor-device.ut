@@ -39,7 +39,6 @@
     for (let i = 0; i < length(userb); i++) {
         blockedmacs[uc(userb[i])] = true;
     }
-    const usera = split(uciMesh.get("aredn", "@lqm[0]", "user_allows"), ",");
     for (let mac in request.args) {
         if (request.args[mac] === "user") {
             blockedmacs[uc(mac)] = true;
@@ -81,6 +80,7 @@ if (tracker) {
         }
     }
 }
+const showblock = auth.isAdmin && (neighbor && neighbor.n && neighbor.n.type == "RF") && (configuration.getSettingAsString("radio0_mode", "") === "ptmp" || configuration.getSettingAsString("radio1_mode", "") === "ptmp");
 const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
 %}
 <div class="dialog">
@@ -90,10 +90,9 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
     {{_R("dialog-header", "Neighborhood Node")}}
     {% } %}
     <div>
-        {% if (auth.isAdmin) { %}
+        {% if (showblock) { %}
         {{_H("Provides more detailed information about the state of a link from this node to another. The current blocked
-        state is show in the top/right corner. This can be changed to either <b>always block</b> or <b>never block</b> to override
-        the automatic management of the link's use.")}}
+        state is show in the top/right corner. This can be changed to <b>user block</b> to stop this node connecting.")}}
         {% } else { %}
         {{_H("Provides more detailed information about the state of a link from this node to another.")}}
         {% } %}
@@ -142,7 +141,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         <div class="neighbor">
             <div class="o">
                 <div><a href="{{n.hostname ? `http://${n.hostname}.local.mesh` : n.ip}}" target="_blank">{{n.hostname || n.ip}}</a></div>
-                {% if (auth.isAdmin) { %}
+                {% if (showblock) { %}
                 <select name="{{n.mac}}" hx-put={{request.env.REQUEST_URI}} hx-swap="none">
                     <option value="available" {{n.user_blocks ? "" : "selected"}}>unblocked</option>
                     <option value="user" {{n.user_blocks ? "selected" : ""}}>user block</option>
@@ -301,24 +300,24 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>state</div>
                 </div>
                 <div class="i">
-                    <div>{{n.node_route_count}}</div>
-                    <div>olsr routes</div>
-                </div>
-                <div></div>
-            </div>
-            <div class="cols">
-                <div class="i">
-                    <div>{{n.babel_metric ?? "-"}}</div>
-                    <div>babel metric</div>
-                </div>
-                <div class="i">
                     <div>{{n.babel_route_count}}</div>
                     <div>babel routes</div>
                 </div>
                 <div class="i">
+                    <div>{{n.babel_metric ?? "-"}}</div>
+                    <div>babel metric</div>
+                </div>
+            </div>
+            <div class="cols">
+                <div class="i">
                     <div>{{lastseen(n)}}</div>
                     <div>last seen</div>
                 </div>
+                <div class="i">
+                    <div>{{n.node_route_count}}</div>
+                    <div>olsr routes</div>
+                </div>
+                <div></div>
             </div>
             {% } %}
             {%

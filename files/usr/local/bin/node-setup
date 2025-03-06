@@ -202,6 +202,7 @@ do
 end
 
 -- Select the mesh configuration
+local default_mesh_distance = 80550 -- 50.1 miles
 local mesh_wifi = "br-nomesh"
 local mesh_ssid = ""
 local mesh_channel = ""
@@ -214,14 +215,17 @@ if cfg.radio0_mode == "mesh" or cfg.radio0_mode == "meshap" or cfg.radio0_mode =
     mesh_chanbw = tonumber(cfg.radio0_bandwidth)
     mesh_ssid = cfg.radio0_ssid
     mesh_txpower = tonumber(cfg.radio0_txpower)
-    mesh_distance = tonumber(cfg.radio0_distance)
+    mesh_distance = tonumber(cfg.radio0_distance or 0)
 elseif cfg.radio1_mode == "mesh" or cfg.radio1_mode == "meshap" or cfg.radio1_mode == "meshptp" or cfg.radio1_mode == "meshsta" then
     mesh_wifi = "wlan1"
     mesh_channel = tonumber(cfg.radio1_channel)
     mesh_chanbw = tonumber(cfg.radio1_bandwidth)
     mesh_ssid = cfg.radio1_ssid
     mesh_txpower = tonumber(cfg.radio1_txpower)
-    mesh_distance = tonumber(cfg.radio1_distance)
+    mesh_distance = tonumber(cfg.radio1_distance or 0)
+end
+if mesh_distance == 0 then
+    mesh_distance = default_mesh_distance
 end
 
 -- Supernode options
@@ -924,7 +928,7 @@ do
         local key = nil
         local celldensity = nil
         local txpower = nil
-        local snrreject = nil
+        local rssireject = nil
         local multicasttounicast = nil
         local macfilter = nil
         local macaddr = nil
@@ -961,7 +965,6 @@ do
             else
                 macfilter="deny"
             end
-            snrreject = tonumber(nc:get("aredn", "@lqm[0]", "min_snr")) - tonumber(nc:get("aredn", "@lqm[0]", "margin_snr"))
             -- Make AP's the best for better arednlink performance
             macaddr = read_all("/sys/class/ieee80211/" .. devname .. "/macaddress")
             if macaddr then
@@ -1034,8 +1037,8 @@ do
         if celldensity then
             config = config .. "	option cell_density '" .. celldensity .. "'\n"
         end
-        if snrreject then
-            config = config .. "	option rssi_reject_assoc_rssi '" .. (snrreject - 100) .. "'\n	option rssi_ignore_probe_request '" .. (snrreject - 100) .. "'\n"
+        if rssireject then
+            config = config .. "	option rssi_reject_assoc_rssi '" .. rssireject .. "'\n	option rssi_ignore_probe_request '" .. rssireject .. "'\n"
         end
         config = config .. "	option path '" .. devpath .. "'\n\n"
 
@@ -1371,9 +1374,6 @@ end
 -- Handle special cases
 local config_special = {
     dmz_mode = c:get("setup", "globals", "dmz_mode"),
-    lqm_enable = c:get("aredn", "@lqm[0]", "enable"),
-    min_snr = c:get("aredn", "@lqm[0]", "min_snr"),
-    margin_snr = c:get("aredn", "@lqm[0]", "margin_snr"),
     tunnel_weight = c:get("aredn", "@tunnel[0]", "weight"),
     supernode_enable = c:get("aredn", "@supernode[0]", "enable"),
     watchdog_enable = c:get("aredn", "@watchdog[0]", "enable"),
@@ -1426,9 +1426,6 @@ do
             if oc:get("setup", "globals", "dmz_mode") ~= config_special.dmz_mode then
                 changes.reboot = true
             end
-            if oc:get("aredn", "@lqm[0]", "enable") ~= config_special.lqm_enable then
-                changes.manager = true
-            end
             if oc:get("aredn", "@tunnel[0]", "weight") ~= config_special.tunnel_weight then
                 changes.olsrd = true
             end
@@ -1477,9 +1474,6 @@ do
             if oc:get("aredn", "@wan[0]", "olsrd_gw") ~= config_special.olsrd_gw or oc:get("aredn", "@wan[0]", "mesh_wan_gw") ~= config_special.mesh_wan_gw then
                 changes.network = true
                 changes.babel = true
-            end
-            if oc:get("aredn", "@lqm[0]", "min_snr") ~= config_special.min_snr or oc:get("aredn", "@lqm[0]", "margin_snr") ~= config_special.margin_snr then
-                changes.wireless = true
             end
         elseif file == "network" then
             changes.network = true

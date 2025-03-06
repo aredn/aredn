@@ -65,6 +65,7 @@ export function getCommonConfiguration()
                 txpoweroffset: hardware.getTxPowerOffset(iface),
                 txmaxpower: hardware.getMaxTxPower(iface),
                 macaddress: hardware.getMACAddress(iface),
+                maxdistance: 80550,
                 managedOOB: [ -4, -3, -2, -1, 0, 180, 181, 182, 183, 184 ]
             };
             // Calculate 40, 80 channels
@@ -186,7 +187,8 @@ export function getConfiguration()
             ssid: configuration.getSettingAsString("radio0_ssid"),
             txpower: configuration.getSettingAsInt("radio0_txpower"),
             key: configuration.getSettingAsString("radio0_key"),
-            encryption: configuration.getSettingAsString("radio0_encryption")
+            encryption: configuration.getSettingAsString("radio0_encryption"),
+            distance: configuration.getSettingAsString("radio0_distance")
         };
         radio[0].ant = hardware.getAntennaInfo(radio[0].iface, cursor.get("aredn", "@location[0]", "antenna"));
         radio[0].antaux = hardware.getAntennaAuxInfo(radio[0].iface, cursor.get("aredn", "@location[0]", "antenna_aux"));
@@ -200,7 +202,8 @@ export function getConfiguration()
             ssid: configuration.getSettingAsString("radio1_ssid"),
             txpower: configuration.getSettingAsInt("radio1_txpower"),
             key: configuration.getSettingAsString("radio1_key"),
-            encryption: configuration.getSettingAsString("radio1_encryption")
+            encryption: configuration.getSettingAsString("radio1_encryption"),
+            distance: configuration.getSettingAsString("radio1_distance")
         };
     }
     return radio;
