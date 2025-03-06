@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2024-2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -39,27 +39,15 @@
     for (let i = 0; i < length(userb); i++) {
         blockedmacs[uc(userb[i])] = true;
     }
-    const usera = split(uciMesh.get("aredn", "@lqm[0]", "user_allows"), ",");
-    const allowedmacs = {};
-    for (let i = 0; i < length(usera); i++) {
-        allowedmacs[uc(usera[i])] = true;
-    }
     for (let mac in request.args) {
-        if (request.args[mac] === "always") {
-            delete blockedmacs[uc(mac)];
-            allowedmacs[uc(mac)] = true;
-        }
-        else if (request.args[mac] === "user") {
+        if (request.args[mac] === "user") {
             blockedmacs[uc(mac)] = true;
-            delete allowedmacs[uc(mac)];
         }
         else {
             delete blockedmacs[uc(mac)];
-            delete allowedmacs[uc(mac)];
         }
     }
     uciMesh.set("aredn", "@lqm[0]", "user_blocks", join(",", keys(blockedmacs)));
-    uciMesh.set("aredn", "@lqm[0]", "user_allows", join(",", keys(allowedmacs)));
     uciMesh.commit("aredn");
     print(_R("changes"));
     return;
@@ -75,21 +63,13 @@ const user = split(uciMesh.get("aredn", "@lqm[0]", "user_blocks"), ",");
 for (let i = 0; i < length(user); i++) {
     blockedmacs[uc(user[i])] = true;
 }
-const usera = split(uciMesh.get("aredn", "@lqm[0]", "user_allows"), ",");
-const allowedmacs = {};
-for (let i = 0; i < length(usera); i++) {
-    allowedmacs[uc(usera[i])] = true;
-}
 const lqmInfo = lqm.get();
 const trackers = lqm.getTrackers();
 const tracker = trackers[selected];
 let neighbor = null;
 if (tracker) {
-    if (allowedmacs[uc(tracker.mac)]) {
-        tracker.user_allow = true;
-    }
-    else if (blockedmacs[uc(tracker.mac)]) {
-        tracker.blocks.user = true;
+    if (blockedmacs[uc(tracker.mac)]) {
+        tracker.user_blocks = true;
     }
     neighbor = { name: tracker.hostname || `|${tracker.ip}`, n: tracker, l: null };
     const o = olsr.getLinks();
@@ -100,6 +80,7 @@ if (tracker) {
         }
     }
 }
+const showblock = auth.isAdmin && (neighbor && neighbor.n && neighbor.n.type == "RF") && (configuration.getSettingAsString("radio0_mode", "") === "meshap" || configuration.getSettingAsString("radio1_mode", "") === "meshap");
 const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
 %}
 <div class="dialog">
@@ -109,10 +90,9 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
     {{_R("dialog-header", "Neighborhood Node")}}
     {% } %}
     <div>
-        {% if (auth.isAdmin) { %}
+        {% if (showblock) { %}
         {{_H("Provides more detailed information about the state of a link from this node to another. The current blocked
-        state is show in the top/right corner. This can be changed to either <b>always block</b> or <b>never block</b> to override
-        the automatic management of the link's use.")}}
+        state is show in the top/right corner. This can be changed to <b>user block</b> to stop this node connecting.")}}
         {% } else { %}
         {{_H("Provides more detailed information about the state of a link from this node to another.")}}
         {% } %}
@@ -122,33 +102,8 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             if (n.lastseen < lqmInfo.now) {
                 return "disconnected";
             }
-            if (n.blocks.user) {
+            if (n.user_blocks) {
                 return "blocked by user";
-            }
-            if (n.blocked) {
-                if (n.blocks.signal) {
-                    return "blocked: low snr";
-                }
-                if (n.blocks.distance) {
-                    return "blocked: too far away";
-                }
-                if (n.blocks.quality) {
-                    if ("tx_quality" in n) {
-                        if ("ping_quality" in n && n.ping_quality < n.tx_quality) {
-                            return "blocked: poor tx latency";
-                        }
-                        else {
-                            return "blocked: too many tx error";
-                        }
-                    }
-                    else {
-                        return "blocked: poor tx latency";
-                    }
-                }
-                if (n.blocks.dup || n.blocks.dtd) {
-                    return "blocked: duplicate link";
-                }
-                return "blocked";
             }
             if (n.routable) {
                 return "routing";
@@ -186,11 +141,10 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         <div class="neighbor">
             <div class="o">
                 <div><a href="{{n.hostname ? `http://${n.hostname}.local.mesh` : n.ip}}" target="_blank">{{n.hostname || n.ip}}</a></div>
-                {% if (auth.isAdmin) { %}
+                {% if (showblock) { %}
                 <select name="{{n.mac}}" hx-put={{request.env.REQUEST_URI}} hx-swap="none">
-                    <option value="always" {{n.user_allow ? "selected" : ""}}>never block</option>
-                    <option value="available" {{n.user_allow || n.blocks.user ? "" : "selected"}}>{{n.blocked ? "blocked" : "unblocked"}}</option>
-                    <option value="user" {{n.blocks.user ? "selected" : ""}}>always block</option>
+                    <option value="available" {{n.user_blocks ? "" : "selected"}}>unblocked</option>
+                    <option value="user" {{n.user_blocks ? "selected" : ""}}>user block</option>
                 </select>
                 {% } %}
             </div>
@@ -346,12 +300,12 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>state</div>
                 </div>
                 <div class="i">
-                    <div>{{n.node_route_count}}</div>
-                    <div>olsr routes</div>
-                </div>
-                <div class="i">
                     <div>{{n.babel_route_count}}</div>
                     <div>babel routes</div>
+                </div>
+                <div class="i">
+                    <div>{{n.babel_metric ?? "-"}}</div>
+                    <div>babel metric</div>
                 </div>
             </div>
             <div class="cols">
@@ -359,7 +313,10 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>{{lastseen(n)}}</div>
                     <div>last seen</div>
                 </div>
-                <div></div>
+                <div class="i">
+                    <div>{{n.node_route_count}}</div>
+                    <div>olsr routes</div>
+                </div>
                 <div></div>
             </div>
             {% } %}

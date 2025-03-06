@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2024-2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -46,24 +46,6 @@
         }
         if (tracker.lastseen < lqmNow) {
             return "disconnected";
-        }
-        if (tracker.blocked) {
-            if (tracker.blocks.user) {
-                return "blocked by user";
-            }
-            if (tracker.blocks.signal) {
-                return "blocked low signal";
-            }
-            if (tracker.blocks.signal) {
-                return "blocked too far";
-            }
-            if (tracker.blocks.quality) {
-                return "blocked by errors or latency";
-            }
-            if (tracker.blocks.dup || tracker.blocks.dtd) {
-                return "blocked as duplicate";
-            }
-            return "blocked";
         }
         if (!tracker.routable) {
             return "idle";
