@@ -205,10 +205,6 @@ function M.run_actions()
                 if default_scan_enabled then
                     default_scan_enabled = false
                     M.reset_network("scan-all")
-                    if c:get("aredn", "@wireless_watchdog[0]", "lqm") == "1" then
-                        -- Mark LQM for reset
-                        io.open("/tmp/lqm.reset", "w"):close()
-                    end
                 end
             else
                 default_scan_enabled = true
