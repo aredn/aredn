@@ -218,6 +218,22 @@ function model.getSSID()
 	return myssid
 end
 
+-------------------------------------
+-- Returns current RF Mode
+-------------------------------------
+function model.getMeshRadioMode()
+	local wifiinterfaces=aredn_uci.getUciConfType("wireless","wifi-iface")
+	for pos,i in pairs(wifiinterfaces) do
+		local mode=wifiinterfaces[pos]['mode']
+		if mode=="adhoc" then
+			return mode
+		end
+		if (mode=="sta" or mode=="ap") and wifiinterfaces[pos]['network'] == "wifi" then
+			return mode
+		end
+	end
+	return ""
+end
 
 -------------------------------------
 -- Determine Radio Device for Mesh
@@ -228,7 +244,11 @@ function model.getMeshRadioDevice()
 	local wifiinterfaces=aredn_uci.getUciConfType("wireless","wifi-iface")
 	for pos,i in pairs(wifiinterfaces) do
 		local mode=wifiinterfaces[pos]['mode']
-		if mode=="adhoc" or mode=="sta" or mode=="ap" then
+		if mode=="adhoc" then
+			radio=wifiinterfaces[pos]['device']
+			break
+		end
+		if (mode=="sta" or mode=="ap") and wifiinterfaces[pos]['network'] == "wifi" then
 			radio=wifiinterfaces[pos]['device']
 			break
 		end
