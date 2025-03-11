@@ -478,6 +478,7 @@ export function supportsXLink()
         case "mikrotik,hap-ac3":
         case "mikrotik,sxtsq-5-ac":
         case "glinet,gl-b1300":
+        case "openwrt,one":
         case "qemu":
         case "vmware":
         case "pc":
@@ -490,6 +491,7 @@ export function supportsXLink()
 const default1PortLayout = [ { k: "lan", d: "lan" } ];
 const default5PortLayout = [ { k: "wan", d: "port1" }, { k: "lan1", d: "port2" }, { k: "lan2", d: "port3" }, { k: "lan3", d: "port4" }, { k: "lan4", d: "port5" } ];
 const default3PortLayout = [ { k: "lan2", d: "port1" }, { k: "lan1", d: "port2" }, { k: "wan", d: "port3" } ];
+const openwrtone2PortLayout = [ { k: "eth1", d: "1G" }, { k: "eth0", d: "2.5G" } ];
 const defaultNPortLayout = [];
 
 export function getEthernetPorts()
@@ -500,6 +502,8 @@ export function getEthernetPorts()
             return default5PortLayout;
         case "glinet,gl-b1300":
             return default3PortLayout;
+        case "openwrt,one":
+            return openwrtone2PortLayout;
         case "mikrotik,sxtsq-5-ac":
             return default1PortLayout;
         case "qemu":
