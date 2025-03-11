@@ -259,12 +259,13 @@ export function getRfBandwidths(wifiIface)
     if (!invalid["20"]) {
         push(bw, 20);
     }
-    if (fs.access(`/sys/kernel/debug/ieee80211/${replace(wifiIface, "wlan", "phy")}/ath10k`) || fs.access(`/sys/kernel/debug/ieee80211/${replace(wifiIface, "wlan", "phy")}/mt76`) {
-        const f = fs.popen(`/usr/bin/iwinfo ${wifiIface} htmodelist 2> /dev/null`);
+    const phy = replace(wifiIface, "wlan", "phy");
+    if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`) || fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
+        const f = fs.popen(`/usr/bin/iwinfo ${phy} htmodelist 2> /dev/null`);
         if (f) {
             let line = f.read("line");
             if (line) {
-                if (index(line, "VHT40") !== -1 && !invalid["40"]) {
+                if (index(line, "HT40") !== -1 && !invalid["40"]) {
                     push(bw, 40);
                 }
                 if (index(line, "VHT80") !== -1 && !invalid["80"]) {
