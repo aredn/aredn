@@ -396,6 +396,7 @@ do
             cfg.dtdlink_mask = "255.0.0.0"
         elseif net == "wifi" then
             wireless = true
+            cfg.wifi_proto = "static"
             ports = { mesh_wifi }
         end
 
@@ -909,6 +910,17 @@ do
                     htmode = "VHT80"
                 elseif mesh_chanbw == 160 then
                     htmode = "VHT160"
+                end
+            end
+        elseif nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. devname .. "/mt76") then
+            htmode = "HE20"
+            if wlan == mesh_wifi then
+                if mesh_chanbw == 40 then
+                    htmode = "HE40"
+                elseif mesh_chanbw == 80 then
+                    htmode = "HE80"
+                elseif mesh_chanbw == 160 then
+                    htmode = "HE160"
                 end
             end
         end
