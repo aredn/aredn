@@ -195,7 +195,21 @@ export function getRfChannels(wifiIface)
     if (!channels) {
         channels = [];
         const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
-        const freqs = (info.wiphy_bands[1] || info.wiphy_bands[0]).freqs;
+        let best = { band: 0, count: 0 };
+        for (let i = 0; i < length(info.wiphy_bands); i++) {
+            const f = info.wiphy_bands[i]?.freqs;
+            let count = 0;
+            for (let j = 0; j < length(f); j++) {
+                if (!f[j].disabled) {
+                    count++;
+                }
+            }
+            if (count > best.count) {
+                best.band = i;
+                best.count = count;
+            }
+        }
+        const freqs = info.wiphy_bands[best.band].freqs;
         let freq_adjust = 0;
         let freq_min = 0;
         let freq_max = 0x7FFFFFFF;
