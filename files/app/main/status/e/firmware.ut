@@ -33,6 +33,17 @@
  */
 %}
 {%
+    function ping(url)
+    {
+        const host = match(url, /^https?:\/\/([^\/:]+).*$/);
+        if (!host) {
+            return null;
+        }
+        if (system(`exec /bin/ping -c 1 -W 2 -q -A ${host[1]}`, 3000) !== 0) {
+            return host[1];
+        }
+        return false;
+    }
     function fetch(url, filename, start, len)
     {
         const agent = `Node: ${configuration.getName()} Version: ${configuration.getFirmwareVersion()}`;
@@ -241,7 +252,13 @@
         }
         let f = fetch(`${aredn_firmware}/afs/www/config.js`, null, 0, 10);
         if (!f) {
-            uhttpd.send(`event: error\r\ndata: failed to download firmware configuration\r\n\r\n`);
+            const err = ping(aredn_firmware);
+            if (err) {
+                uhttpd.send(`event: error\r\ndata: cannot ping server: ${err}\r\n\r\n`);
+            }
+            else {
+                uhttpd.send(`event: error\r\ndata: failed to download firmware configuration\r\n\r\n`);
+            }
             return;
         }
         let firmware_versions = {};
