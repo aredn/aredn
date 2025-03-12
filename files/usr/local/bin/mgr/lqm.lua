@@ -592,7 +592,7 @@ function lqm_run()
                             track.firmware_version = info.node_details.firmware_version
                         end
 
-                        if info.lqm and info.lqm.info.trackers then
+                        if info.lqm and info.lqm.info and info.lqm.info.trackers then
                             for _, rtrack in pairs(info.lqm.info.trackers)
                             do
                                 if myhostname == canonical_hostname(rtrack.hostname) then
