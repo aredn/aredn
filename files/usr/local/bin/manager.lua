@@ -45,6 +45,20 @@ require("aredn.olsr")
 require("luci.jsonc")
 require("ubus")
 
+-- Patch to work around the EINTR bug with pipes and lines
+local lines = getmetatable(io.output()).lines
+getmetatable(io.output()).lines = function(self, ...)
+	local iter = lines(self, ...)
+	return function()
+		local ok, ret = pcall(iter)
+		if ok then
+			return ret
+		else
+			return nil
+		end
+	end
+end
+
 -- aggressive gc on low memory devices
 if nixio.sysinfo().totalram < 32 * 1024 * 1024 then
 	collectgarbage("setstepmul", 1000)
