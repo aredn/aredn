@@ -945,6 +945,9 @@ do
         local macfilter = nil
         local macaddr = nil
         local isolate = nil
+        local disassoclowack = nil
+        local maxinactivity = nil
+        local maxlisteninterval = nil
 
         if cfg[radio .. "_mode"] == "mesh" then
             -- mesh RF adhoc configuration
@@ -970,7 +973,10 @@ do
             mode = "ap"
             encryption = "none"
             network = "wifi"
-            multicasttounicast=1
+            multicasttounicast = 1
+            disassoclowack = 0
+            maxinactivity = 600
+            maxlisteninterval = 1
             if cfg[radio .. "_mode"] == "meshptp" then
                 macfilter="allow"
             else
@@ -1082,6 +1088,16 @@ do
         if isolate then
             config = config .. "	option isolate '" .. isolate .. "'\n"
         end
+        if disassoclowack then
+            config = config .. "	option disassoc_low_ack '" .. disassoclowack .. "'\n"
+        end
+        if maxinactivity then
+            config = config .. "	option max_inactivity '" .. maxinactivity .. "'\n"
+        end
+        if maxlisteninterval then
+            config = config .. "	option max_listen_interval '" .. maxlisteninterval .. "'\n"
+        end
+
         config = config .. "\n"
 
         if is_mesh_rf and wifi_mon_enable then
