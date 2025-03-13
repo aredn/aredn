@@ -226,13 +226,6 @@ do
 end
 c:commit("setup")
 
--- set variables in special conditions
-if cfg.dmz_mode == "0" or cfg.wan_proto == "disabled" then
-    c:set("aredn", "@wan[0]", "olsrd_gw", "0")
-    c:commit("aredn")
-end
--- end special condition overrides
-
 -- If this was an upgrade, make sure to remove the carried configuration so we dont apply it again
 os.remove("/sysupgrade.tgz")
 
