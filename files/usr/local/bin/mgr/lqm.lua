@@ -669,11 +669,14 @@ function lqm_run()
                 if track.type ~= "Tunnel" and track.type ~= "Wireguard" then
                     -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
                     -- table and firewall messing up the response packet.
-                    local pstart = gettime()
-                    if os.execute(ARPING .. " -q -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip) ~= 0 then
-                        success = true
+                    for line in io.popen(ARPING .. " -q -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip):lines()
+                    do
+                        local t = line:match("^Unicast reply .* (%S+)ms$")
+                        if t then
+                            ptime = tonumber(t) / 1000
+                            success = true
+                        end
                     end
-                    ptime = gettime() - pstart
                 end
                 if not success then
                     if track.routable then
