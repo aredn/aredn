@@ -91,12 +91,12 @@ function serv(ip, hostname)
 
 window.meshRender = function(first)
 {
-    const blocks = [ 1, 2, 3, 5, 10, 1000 ];
+    const blocks = [].concat(window.meshBlocks);
     const labels = [ "Excellent", "Good", "Fair", "Slow", "Poor", "Improbable" ];
     const etx = mesh.etx;
     const hosts = mesh.hosts;
 
-    let data = `<div class="block block1"><div class="label">${labels[0]}</div>`;
+    let data = `<div class="block block-excellent"><div class="label">${labels[0]}</div>`;
     for (let i = 0; i < etx.length; i++) {
         const item = etx[i];
         const ip = item[0];
@@ -109,7 +109,7 @@ window.meshRender = function(first)
                         blocks.shift();
                         labels.shift();
                     }
-                    data += `</div><div class="block block${blocks[0]}"><div class="label">${labels[0]}</div>`;
+                    data += `</div><div class="block block-${labels[0].toLowerCase()}"><div class="label">${labels[0]}</div>`;
                 }
                 let lanview = "";
                 for (let j = 0; j < hostlist.length; j++) {
