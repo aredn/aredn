@@ -38,7 +38,6 @@ print("window.mesh = {hosts:{");
 
 const reHosts = /^([0-9.]+)[ \t]+([^ \t]+)/;
 const reServices = /^([^|]+)\|(tcp|udp)\|(.+)$/;
-const reServiceHost = /:\/\/([^:]+)/;
 const reRoute = /^([^ /]+) via .+ metric ([^ ]+) /;
 
 const hd = fs.opendir("/var/run/arednlink/hosts/");
@@ -85,14 +84,20 @@ if (sd) {
         if (entry !== "." && entry !== "..") {
             const f = fs.open(`/var/run/arednlink/services/${entry}`);
             if (f) {
-                print(`"${entry}":[`);
+                let empty = true;
                 for (let l = f.read("line"); length(l); l = f.read("line")) {
                     const m = match(trim(l), reServices);
                     if (m) {
+                        if (empty) {
+                            empty = false;
+                            print(`"${entry}":[`);
+                        }
                         print(`{n:"${m[3]}",u:"${m[1]}"},`);
                     }
                 }
-                print(`],`);
+                if (!empty) {
+                    print(`],`);
+                }
                 f.close();
             }
         }
@@ -100,7 +105,7 @@ if (sd) {
     sd.close();
 }
 
-print(`},etx:[`);
+print(`},etx:[["${configuration.getSettingAsString("wifi_ip")}",0],`);
 const f = fs.popen("exec /sbin/ip route show table 20 2>/dev/null");
 if (f) {
     for (let l = f.read("line"); length(l); l = f.read("line")) {
