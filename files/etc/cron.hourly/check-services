@@ -36,6 +36,7 @@
 
 require("uci")
 require("aredn.services")
+require("aredn.utils")
 
 local cursor = uci.cursor()
 
@@ -102,7 +103,7 @@ end
 
 local change = false
 
--- Apply the changes
+-- Apply OLSR changes
 if nnames or not_empty(cnames) then
     cursor:set("olsrd", "nameservice", "name", names)
     change = true
@@ -128,11 +129,38 @@ if nservices or not_empty(cservices) then
     change = true
 end
 
+-- Apply Arednlink changes
+if nnames or not_empty(cnames) or nservices or not_empty(cservices) then
+    local ip = uci.cursor("/etc/config.mesh"):get("setup", "globals", "wifi_ip")
+    local data = ""
+    for _, host in ipairs(names)
+    do
+        data = data .. ip .. "\t" .. host .. "\n"
+    end
+    for i, host in ipairs(hosts)
+    do
+        local h = host.host:gsub("%.local%.mesh$", "")
+        if not (h:match("^xlink%d") or h:match("^mid%d")) then
+            data = data .. host.ip .. "\t" .. h .. "\n"
+        end
+    end
+    write_all("/etc/arednlink/hosts", data)
+    change = true
+end
+if nservices or not_empty(cservices) then
+    if #services > 0 then
+        write_all("/etc/arednlink/services", table.concat(services, "\n") .. "\n")
+    else
+        write_all("/etc/arednlink/services", "")
+    end
+    change = true
+end
+
 -- If services have changed we need to restart olsrd
 if change then
     cursor:commit("olsrd")
     print("Change")
-    os.execute("/usr/local/bin/restart-services.sh --force olsrd")
+    os.execute("/usr/local/bin/restart-services.sh --force olsrd arednlink")
 else
     print("Unchange")
 end
