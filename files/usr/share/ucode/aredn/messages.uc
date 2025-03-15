@@ -113,7 +113,7 @@ export function getToDos()
     const cursor = uci.cursor();
     const todos = [];
     if (hardware.isLowMemNode()) {
-        push(todos, "This is a sunsetted node and may not be supported in the future. We recommend you upgrade the hardware.");
+        push(todos, "AREDN® is migrating to a new routing protocol called Babel. Unfortunately this node is too old to support this. We recommend you upgrade the hardware in the near future.");
     }
     if (!cursor.get("aredn", "@location[0]", "lat") || !cursor.get("aredn", "@location[0]", "lon")) {
         push(todos, "Set the latitude and longitude");
