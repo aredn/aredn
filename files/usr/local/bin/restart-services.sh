@@ -88,7 +88,9 @@ do
     elif [ $srv = "lqm" ]; then
       touch /tmp/lqm.reset
     elif [ $srv = "arednlink" ]; then
-      /usr/local/bin/arednlink-update
+      if [ -x /usr/local/bin/arednlink ]; then
+        /usr/local/bin/arednlink-update
+      fi
     elif [ -x /etc/init.d/$srv ]; then
       /etc/init.d/$srv restart > /dev/null 2>&1
     fi
