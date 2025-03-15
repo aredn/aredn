@@ -1173,15 +1173,15 @@ if h and e then
     do
         local ip, host = line:match("(%S+)%s+(%S+)")
         if ip then
-            if not host:match("%.") then
-                host = host .. ".local.mesh"
-            end
-            h:write(ip .. "\t" .. host .. " #ALIAS\n")
             if is_nat_mode() then
                 ah:write(cfg.wifi_ip .. "\t" .. host .. "\n")
             else
                 ah:write(ip .. "\t" .. host .. "\n")
             end
+            if not host:match("%.") then
+                host = host .. ".local.mesh"
+            end
+            h:write(ip .. "\t" .. host .. " #ALIAS\n")
         end
     end
 
