@@ -149,23 +149,6 @@ export function getDefaultRoute()
     return def;
 };
 
-export function getSupernode()
-{
-    const f = fs.popen(`/sbin/ip route show table ${ROUTING_TABLE_SUPERNODE}`);
-    let sn = null;
-    if (f) {
-        const re = /^10.0.0.0\/8 via ([^ ]+) dev ([^ ]+) /;
-        for (let l = f.read("line"); l; l = f.read("line")) {
-            const m = match(l, re);
-            if (m) {
-                sn = { gateway: m[1], oif: m[2] };
-            }
-        }
-        f.close();
-    }
-    return sn;
-};
-
 export function uploadNames(namefile)
 {
     const c = socket.connect(LINK);
