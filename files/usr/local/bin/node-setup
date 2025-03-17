@@ -1122,11 +1122,7 @@ if h and e then
         h:write(cfg.lan_ip .. "\tlocalnode\n")
         h:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
         ah:write(cfg.wifi_ip .. "\t" .. node .. "\n")
-        if is_nat_mode() then
-            ah:write(cfg.wifi_ip .. "\tlan." .. node .. "\n")
-        else
-            ah:write(cfg.lan_ip .. "\tlan." .. node .. "\n")
-        end
+        ah:write(cfg.lan_ip .. "\tlan." .. node .. "\n")
     else
         h:write(cfg.lan_ip .. "\tlocalnode " .. node .. " " .. tactical .. "\n")
     end
@@ -1155,11 +1151,7 @@ if h and e then
                 h:write(ip .. "\t" .. host .. " " .. noprop .. "\n")
                 e:write(mac .. "\t" .. ip .. "\n")
                 if noprop == "" then
-                    if is_nat_mode() then
-                        ah:write(cfg.wifi_ip .. "\t" .. host .. "\n")
-                    else
-                        ah:write(ip .. "\t" .. host .. "\n")
-                    end
+                    ah:write(ip .. "\t" .. host .. "\n")
                 end
             end
         end
@@ -1173,11 +1165,7 @@ if h and e then
     do
         local ip, host = line:match("(%S+)%s+(%S+)")
         if ip then
-            if is_nat_mode() then
-                ah:write(cfg.wifi_ip .. "\t" .. host .. "\n")
-            else
-                ah:write(ip .. "\t" .. host .. "\n")
-            end
+            ah:write(ip .. "\t" .. host .. "\n")
             if not host:match("%.") then
                 host = host .. ".local.mesh"
             end
