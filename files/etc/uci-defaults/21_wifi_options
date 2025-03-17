@@ -78,6 +78,9 @@ if [ "${count}" = "1" ]; then
         radio0_bandwidth="$(${UCIGET} setup.globals.wifi_chanbw)"
         radio0_txpower="$(${UCIGET} setup.globals.wifi_txpower)"
         radio0_distance="$(${UCIGET} setup.globals.wifi_distance)"
+        if [ "$(${UCIGET} aredn.@lqm[0].enable)" = "1" -a "$(${UCIGET} aredn.@lqm[0].max_distance)" != "" ]; then
+            radio0_distance="$(${UCIGET} aredn.@lqm[0].max_distance)"
+        fi
     elif [ "${wifi2_enable}" = "1" ]; then
         radio0_mode="lan"
         radio0_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
@@ -104,6 +107,9 @@ elif [ "${count}" = "2" ]; then
             radio0_bandwidth="$(${UCIGET} setup.globals.wifi_chanbw)"
             radio0_txpower="$(${UCIGET} setup.globals.wifi_txpower)"
             radio0_distance="$(${UCIGET} setup.globals.wifi_distance)"
+            if [ "$(${UCIGET} aredn.@lqm[0].enable)" = "1" -a "$(${UCIGET} aredn.@lqm[0].max_distance)" != "" ]; then
+                radio0_distance="$(${UCIGET} aredn.@lqm[0].max_distance)"
+            fi
             if [ "${wifi2_enable}" = "1" ]; then
                 radio1_mode="lan"
                 radio1_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
@@ -122,6 +128,9 @@ elif [ "${count}" = "2" ]; then
             radio1_bandwidth="$(${UCIGET} setup.globals.wifi_chanbw)"
             radio1_txpower="$(${UCIGET} setup.globals.wifi_txpower)"
             radio1_distance="$(${UCIGET} setup.globals.wifi_distance)"
+            if [ "$(${UCIGET} aredn.@lqm[0].enable)" = "1" -a "$(${UCIGET} aredn.@lqm[0].max_distance)" != "" ]; then
+                radio1_distance="$(${UCIGET} aredn.@lqm[0].max_distance)"
+            fi
             if [ "${wifi2_enable}" = "1" ]; then
                 radio0_mode="lan"
                 radio0_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
