@@ -298,6 +298,12 @@ function M.start_monitor()
         wifi_mode = c:get("wireless", "@wifi-iface[1]", "mode")
     end
 
+    if wifi_mode ~= "adhoc" then
+        nixio.syslog("err", "Only runs in adhoc mode")
+        exit_app()
+        return
+    end
+
     -- Select chipset
     if nixio.fs.stat("/sys/kernel/debug/ieee80211/" .. phy .. "/ath9k") then
         chipset = "ath9k"
