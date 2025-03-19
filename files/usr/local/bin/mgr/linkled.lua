@@ -51,7 +51,7 @@ function linkled()
         while true
         do
 			local raw = io.popen("/usr/bin/wget -O - http://127.0.0.1:9090/neighbors 2> /dev/null")
-			local nei = luci.jsonc.parse(raw:read("*a"))
+			local nei = luci.jsonc.parse(raw:read("*a") or "")
 			raw:close()
             if nei and #nei.neighbors > 0 then
 				-- Led on when link established. Retest every 10 seconds
