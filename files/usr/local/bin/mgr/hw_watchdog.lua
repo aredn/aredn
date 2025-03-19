@@ -43,11 +43,20 @@ local tick = 20
 local ping_timeout = 3
 local startup_delay = 600
 local ping_state = {}
+local max_last_ping = 300
 
 -- Set of daemons to monitor
-local default_daemons = "olsrd dnsmasq telnetd dropbear uhttpd"
-if uci.cursor():get("vtun", "server_0", "host") or uci.cursor():get("vtun", "client_0", "name") then
-    default_daemons = default_daemons .. " vtund"
+local default_daemons = "dnsmasq telnetd dropbear uhttpd"
+if nixio.fs.stat("/usr/sbin/vtund") then
+    if uci.cursor():get("vtun", "server_0", "host") or uci.cursor():get("vtun", "client_0", "name") then
+        default_daemons = default_daemons .. " vtund"
+    end
+end
+if nixio.fs.stat("/usr/sbin/olsrd") then
+    default_daemons = default_daemons .. " olsrd"
+end
+if nixio.fs.stat("/usr/sbin/babeld") then
+    default_daemons = default_daemons .. " babeld"
 end
 
 function W.get_config(verbose)
@@ -61,7 +70,7 @@ function W.get_config(verbose)
                 nixio.syslog("debug", "pinging " .. address)                
             end
             local idx = #new_ping_state + 1
-            new_ping_state[idx] = { address = address, success = true }
+            new_ping_state[idx] = { address = address, last = 0 }
             if not ping_state[idx] or ping_state[idx].address ~= address then
                 ping_state = new_ping_state
             end
@@ -155,46 +164,48 @@ function W.start()
             end
         end
 
-        for _ = 1, 1
+        -- Check various daemons are running
+        for _, daemon in ipairs(config.daemons)
         do
-            -- Check various daemons are running
-            for _, daemon in ipairs(config.daemons)
-            do
-                if os.execute(PIDOF .. " " .. daemon .. " > /dev/null ") ~= 0 then
-                    nixio.syslog("err", "pidof " .. daemon .. " failed")
-                    success = false
-                    break
-                end
-            end
-            if not success then
+            if os.execute(PIDOF .. " " .. daemon .. " > /dev/null ") ~= 0 then
+                nixio.syslog("err", "pidof " .. daemon .. " failed")
+                success = false
                 break
             end
+        end
 
-            -- Check we can reach any of the ping addresses
-            -- We cycle over them one per iteration so as not to consume too much time
-            if #config.pings > 0 then
-                ping_index = ping_index + 1
-                if ping_index > #config.pings then
-                    ping_index = 1
-                end
-                local target = config.pings[ping_index]
+        -- Check we can reach any of the ping addresses
+        -- We cycle over them one per iteration so as not to consume too much time
+        if #config.pings > 0 then
+            ping_index = ping_index + 1
+            if ping_index > #config.pings then
+                ping_index = 1
+            end
+            local target = config.pings[ping_index]
 
-                if os.execute(PING .. " -c 1 -A -q -W " .. ping_timeout .. " " .. target.address .. " > /dev/null 2>&1") == 0 then
-                    target.success = true
-                else
-                    target.success = false
-                    nixio.syslog("err", "ping " .. target.address .. " failed")
-                end
-                
-                -- All targets have to fail for this whole test to fail
-                success = false
-                for _, target in ipairs(config.pings)
-                do
-                    if target.success then
-                        success = true
-                        break
+            if os.execute(PING .. " -c 1 -A -q -W " .. ping_timeout .. " " .. target.address .. " > /dev/null 2>&1") == 0 then
+                target.last = now
+            else
+                nixio.syslog("err", "ping " .. target.address .. " failed" .. (target.last == 0 and " (always)" or ""))
+            end
+
+            -- All targets have to fail for this whole test to fail
+            local good = 0
+            local bad = 0
+            for _, target in ipairs(config.pings)
+            do
+                -- Ignore pings which have never succeeded
+                if target.last ~= 0 then
+                    if target.last + max_last_ping < now then
+                        bad = bad + 1
+                    else
+                        good = good + 1
                     end
                 end
+            end
+            -- We fail if we have no good pings and at least one bad ping
+            if good == 0 and bad > 0 then
+                success = false
             end
 
         end
