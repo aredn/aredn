@@ -41,8 +41,9 @@ if [ "${SUPERNODE_ENABLE}" = "1" ]; then
     nft insert rule ip fw4 input_vpn udp dport 53 accept comment \"dns access\" 2> /dev/null
     nft insert rule ip fw4 input_vpn tcp dport 53 accept comment \"dns access\" 2> /dev/null
     ip route add blackhole 10.0.0.0/8 table 21
-    if [ "${NET44_ENABLE}" = "1" ]; then
-        ip route add blackhole 44.0.0.0/9 table 21
-        ip route add blackhole 44.128.0.0/10 table 21
+    if [ "${NET44_ENABLE}" = "1" -a -f /etc/44net.conf ]; then
+        while read line; do
+            ip route add blackhole ${line} table 21
+        done < /etc/44net.conf
     fi
 fi
