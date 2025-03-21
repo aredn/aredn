@@ -783,6 +783,17 @@ function lqm_run()
                 end
             end
         end
+        for line in io.popen(IPCMD .. " route show table 21"):lines()
+        do
+            local gw = line:match("^10%.0%.0%.0/8 via (%d+%.%d+%.%d+%.%d+) dev")
+            if gw then
+                local track = ip2tracker[gw];
+                if track then
+                    track.babel_route_count = track.babel_route_count + 1
+                    total_babel_route_count = total_babel_route_count + 1
+                end
+            end
+        end
 
         -- Remove any trackers which are too old or if they disconnect when first seen
         for _, track in pairs(tracker)
