@@ -816,8 +816,11 @@ do
     local dhcp_option_list = {}
     local dhcp_option_force_list = {}
     local route44net = ""
-    if nc:get("aredn", "@wan[0]", "lan_dhcp_44route") == "1" then
-        route44net = ",44.0.0.0/9," .. cfg.lan_ip .. ",44.128.0.0/10," .. cfg.lan_ip
+    if nc:get("aredn", "@wan[0]", "lan_dhcp_44route") == "1" and nixio.fs.stat("/etc/44net.conf") then
+        for line in io.lines("/etc/44net.conf")
+        do
+            route44net = route44net .. "," .. line .. "," .. cfg.lan_ip
+        end
     end
     if nc:get("aredn", "@wan[0]", "lan_dhcp_route") == "1" or nc:get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" or nc:get("aredn", "@wan[0]", "mesh_wan_gw") == "1" then
         -- Provide stateless routes and default route
@@ -1240,9 +1243,15 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         if is_supernode then
             of:write("config Hna4\n\toption netaddr 10.0.0.0\n\toption netmask 255.0.0.0\n\n")
             local is_44net = nc:get("aredn", "@supernode[0]", "44net")
-            if is_44net ~= "0" then
-                of:write("config Hna4\n\toption netaddr 44.0.0.0\n\toption netmask 255.128.0.0\n\n")
-                of:write("config Hna4\n\toption netaddr 44.128.0.0\n\toption netmask 255.192.0.0\n\n")
+            if is_44net ~= "0" and nixio.fs.stat("/etc/44net.conf") then
+                for line in io.lines("/etc/44net.conf")
+                do
+                    local network = capture("/bin/ipcalc.sh " .. line .. "|grep NETWORK"):match("=(%S+)")
+                    local netmask = capture("/bin/ipcalc.sh " .. line .. "|grep NETMASK"):match("=(%S+)")
+                    if network and netmask then
+                        of:write("config Hna4\n\toption netaddr " .. network .. "\n\toption netmask " .. netmask .. "\n\n")
+                    end
+                end
             end
         end
 
