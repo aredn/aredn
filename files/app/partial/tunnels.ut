@@ -91,7 +91,9 @@
 <div class="ctrl" hx-get="status/e/tunnels" hx-target="#ctrl-modal" hx-swap="innerHTML">
     <div class="section-title">Tunnels</div>
     <div class="section">
+        {% if (uci.get("aredn", "@supernode[0]", "enable") !== "1" && (lc > 0 || ls > 0)) { %}
         <div class="section-subtitle">Wireguard</div>
+        {% } %}
         <div class="cols">
             <div>
                 <div class="t">{{wac}}</div>
