@@ -59,6 +59,7 @@ local IW = "/usr/sbin/iw"
 local ARPING = "/usr/sbin/arping"
 local UFETCH = "/bin/uclient-fetch"
 local IPCMD = "/sbin/ip"
+local PING6 = "/bin/ping6"
 
 local now = 0
 local config = {}
@@ -449,6 +450,7 @@ function lqm_run()
                     mac = station.mac,
                     ip = nil,
                     hostname = nil,
+                    canonical_ip = nil,
                     lat = nil,
                     lon = nil,
                     distance = nil,
@@ -482,9 +484,11 @@ function lqm_run()
             if station.ip and station.ip ~= track.ip then
                 track.ip = station.ip
                 track.hostname = nil
+                track.canonical_ip = nil
             end
             if not track.hostname and track.ip then
                 track.hostname = canonical_hostname(nixio.getnameinfo(track.ip))
+                track.canonical_ip = track.hostname and iplookup(track.hostname)
             end
 
             -- Running average SNR
@@ -532,18 +536,19 @@ function lqm_run()
                 ip2tracker[track.ip] = track
 
                 -- Update if link is routable
-                local rts = luciip.routes({ dest_exact = track.ip })
+                track.routable = false
+                local rts = luciip.routes({ dest_exact = track.canonical_ip or track.ip })
                 if #rts then
-                    track.routable = true
                     for _, rt in ipairs(rts)
                     do
                         if rt.table == 20 then
                             track.babel_metric = rt.metric
-                            break
+                        end
+                        local gw = tostring(rt.gw)
+                        if gw == track.ip or gw == track.canonical_ip then
+                            track.routable = true
                         end
                     end
-                else
-                    track.routable = false
                 end
 
                 -- Refresh remote attributes periodically as this is expensive
@@ -555,6 +560,7 @@ function lqm_run()
 
                     -- Refresh the hostname periodically as it can change
                     track.hostname = canonical_hostname(nixio.getnameinfo(track.ip)) or track.hostname
+                    track.canonical_ip = track.hostname and iplookup(track.hostname)
 
                     local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -O - 2> /dev/null")
                     local info = luci.jsonc.parse(raw:read("*a") or "")
@@ -679,7 +685,20 @@ function lqm_run()
                     end
                 end
                 if not success then
-                    if track.routable then
+                    if track.type == "Wireguard" then
+                        local a, b, c, d = track.ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
+                        local ll = string.format("fe80::%02x%02x:%02x%02x", a, b, c, d)
+                        for line in io.popen(PING6 .. " -c 1 -W " .. round(ping_timeout) .. " -I " .. track.device .. " " .. ll):lines()
+                        do
+                            local t = line:match("^64 bytes from .* time=(%S+) ms$")
+                            if t then
+                                track.routable = true
+                                ptime = tonumber(t) / 1000
+                                success = true
+                            end
+                        end
+                    end
+                    if not success and track.routable then
                         -- If that fails, measure the "ping" time directly to the device by sending a UDP packet
                         local sigsock = nixio.socket("inet", "dgram")
                         sigsock:setopt("socket", "rcvtimeo", ping_timeout)
