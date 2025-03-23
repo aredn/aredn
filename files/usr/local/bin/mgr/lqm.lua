@@ -251,9 +251,10 @@ function lqm_run()
         lon = tonumber(lon)
 
         local arps = {}
+        local ipv6neigh = {}
         for line in io.popen(IPCMD .. " neigh show"):lines()
         do
-            local ip, dev, mac, probes, state = line:match("^([0-9%.]+) dev (%S+) lladdr (%S+) .+ probes (%d+) (.+)$")
+            local ip, dev, mac = line:match("^([0-9%.]+) dev (%S+) lladdr (%S+) .+$")
             if ip then
                 -- Filter neighbors so we ignore entries which aren't immediately routable
                 local routable = false;
@@ -270,6 +271,14 @@ function lqm_run()
                         Routable = routable
                     }
                 end
+            end
+            local ipv6, dev, mac = line:match("^([0-9a-f:]+) dev (%S+) lladdr (%S+) .+$")
+            if ipv6 then
+                ipv6neigh[mac] = {
+                    ipv6 = ipv6,
+                    device = dev,
+                    mac = mac
+                }
             end
         end
 
@@ -298,6 +307,9 @@ function lqm_run()
                         local a, b, c, d = dev.ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
                         dev.mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
                     end
+                end
+                if i.family == "inet6" then
+                    dev.ipv6 = i.addr
                 end
             end
         end
@@ -449,6 +461,7 @@ function lqm_run()
                     refresh = 0,
                     mac = station.mac,
                     ip = nil,
+                    ipv6 = nil,
                     hostname = nil,
                     canonical_ip = nil,
                     lat = nil,
@@ -489,6 +502,15 @@ function lqm_run()
             if not track.hostname and track.ip then
                 track.hostname = canonical_hostname(nixio.getnameinfo(track.ip))
                 track.canonical_ip = track.hostname and iplookup(track.hostname)
+            end
+            if not track.ipv6ll then
+                local ipv6 = ipv6neigh[track.mac]
+                if ipv6 then
+                    track.ipv6ll = ipv6.ipv6
+                elseif track.type == "Wireguard" and track.ip then
+                    local a, b, c, d = track.ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
+                    track.ipv6ll = string.format("fe80::%02x%02x:%02x%02x", a, b, c, d)
+                end
             end
 
             -- Running average SNR
@@ -669,10 +691,20 @@ function lqm_run()
 
             -- Ping addresses and penalize quality for excessively slow links
             if track.ip and not track.user_blocks then
-                local success = false
-                local ptime
-
-                if track.type ~= "Tunnel" and track.type ~= "Wireguard" then
+                local ptime = nil
+                -- Once the Babel transition is completed, a IPv6 Link-layer ping is all we will need here as it will work for everything
+                if track.ipv6ll then
+                    for line in io.popen(PING6 .. " -c 1 -W " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ipv6ll):lines()
+                    do
+                        local t = line:match("^64 bytes from .* time=(%S+) ms$")
+                        if t then
+                            track.routable = true
+                            ptime = tonumber(t) / 1000
+                        end
+                    end
+                end
+                -- But for now we need older mechanisms as well
+                if not ptime and track.type ~= "Tunnel" and track.type ~= "Wireguard" then
                     -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
                     -- table and firewall messing up the response packet.
                     for line in io.popen(ARPING .. " -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip):lines()
@@ -680,59 +712,37 @@ function lqm_run()
                         local t = line:match("^Unicast reply .* (%S+)ms$")
                         if t then
                             ptime = tonumber(t) / 1000
-                            success = true
                         end
                     end
                 end
-                if not success then
-                    if track.type == "Wireguard" then
-                        local a, b, c, d = track.ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
-                        local ll = string.format("fe80::%02x%02x:%02x%02x", a, b, c, d)
-                        for line in io.popen(PING6 .. " -c 1 -W " .. round(ping_timeout) .. " -I " .. track.device .. " " .. ll):lines()
-                        do
-                            local t = line:match("^64 bytes from .* time=(%S+) ms$")
-                            if t then
-                                track.routable = true
-                                ptime = tonumber(t) / 1000
-                                success = true
-                            end
-                        end
-                    end
-                    if not success and track.routable then
-                        -- If that fails, measure the "ping" time directly to the device by sending a UDP packet
-                        local sigsock = nixio.socket("inet", "dgram")
-                        sigsock:setopt("socket", "rcvtimeo", ping_timeout)
-                        sigsock:setopt("socket", "bindtodevice", track.device)
-                        sigsock:setopt("socket", "dontroute", 1)
-                        -- Must connect or we wont see the error
-                        sigsock:connect(track.ip, 8080)
-                        local pstart = gettime()
-                        sigsock:send("")
-                        -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
-                        -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
-                        if sigsock:recv(0) ~= false then
-                            success = true
-                        end
+                if not ptime and track.routable then
+                    -- If that fails, measure the "ping" time directly to the device by sending a UDP packet
+                    local sigsock = nixio.socket("inet", "dgram")
+                    sigsock:setopt("socket", "rcvtimeo", ping_timeout)
+                    sigsock:setopt("socket", "bindtodevice", track.device)
+                    sigsock:setopt("socket", "dontroute", 1)
+                    -- Must connect or we wont see the error
+                    sigsock:connect(track.ip, 8080)
+                    local pstart = gettime()
+                    sigsock:send("")
+                    -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
+                    -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
+                    if sigsock:recv(0) ~= false then
                         ptime = gettime() - pstart
-                        sigsock:close()
-                    else
-                        -- We can't ping non-routable targets so don't consider them errors
-                        ptime = nil
                     end
+                    sigsock:close()
                 end
 
                 wait_for_ticks(0)
 
                 track.ping_quality = track.ping_quality and (track.ping_quality + 1) or 100
                 if ptime then
-                    if success then
-                        track.ping_success_time = track.ping_success_time and (track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)) or ptime
-                    else
-                        track.ping_quality = track.ping_quality - ping_penalty
-                    end
+                    track.ping_success_time = track.ping_success_time and (track.ping_success_time * ping_time_run_avg + ptime * (1 - ping_time_run_avg)) or ptime
+                else
+                    track.ping_quality = track.ping_quality - ping_penalty
                 end
                 track.ping_quality = math.max(0, math.min(100, track.ping_quality))
-                if success then
+                if ptime then
                     track.lastseen = now
                 elseif track.type == "DtD" and track.firstseen == now then
                     -- If local ping immediately fail, ditch this tracker. This can happen sometimes when we
