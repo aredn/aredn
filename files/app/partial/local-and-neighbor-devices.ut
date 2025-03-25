@@ -168,7 +168,7 @@
                     const status = calcColor(tracker);
                     let babel = "";
                     if (tracker) {
-                        if (tracker.babel_route_count > 0) {
+                        if (tracker.babel_route_count > 0 || tracker.babel) {
                             babel = '<div class="icon babel" title="babel route"></div>';
                         }
                         print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
@@ -247,7 +247,7 @@
                         break;
                 }
                 let babel = "";
-                if (tracker && tracker.babel_route_count > 0) {
+                if (tracker && (tracker.babel_route_count > 0 || tracker.babel)) {
                     babel = '<div class="icon babel" title="babel route"></div>';
                 }
                 if (substr(entry.name, 0, 1) !== "|") {

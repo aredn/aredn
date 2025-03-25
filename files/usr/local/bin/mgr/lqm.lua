@@ -131,7 +131,8 @@ local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode
 local myip = uci.cursor():get("network", "wifi", "ipaddr")
 local is_supernode = uci.cursor():get("aredn", "@supernode[0]", "enable") == "1"
 
-local wgsupport = nixio.fs.stat("/usr/bin/wg")
+local wgsupport = nixio.fs.stat("/usr/bin/wg") and true or false
+local babelsupport = nixio.fs.stat("/usr/sbin/babeld") and true or false
 
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
@@ -488,6 +489,7 @@ function lqm_run()
                     rev_ping_quality = nil,
                     rev_ping_success_time = nil,
                     rev_quality = nil,
+                    babel = nil,
                     babel_metric = nil
                 }
             end
@@ -630,6 +632,11 @@ function lqm_run()
                                     break
                                 end
                             end
+                        end
+
+                        -- Babel?
+                        if info.lqm and info.lqm.info then
+                            track.babel = info.lqm.info.babel
                         end
 
                         if track.type == "RF" then
@@ -908,7 +915,8 @@ function lqm_run()
                 distance = distance,
                 coverage = coverage,
                 hidden_nodes = hidden_nodes,
-                total_node_route_count = total_node_route_count
+                total_node_route_count = total_node_route_count,
+                babel = babelsupport
             }, true))
             f:close()
         end
