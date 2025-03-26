@@ -13,3 +13,15 @@
 + #define HAVE_TFTP
 + #define HAVE_SCRIPT
 + #define HAVE_AUTH
+--- a/package/network/services/dnsmasq/Makefile
++++ b/package/network/services/dnsmasq/Makefile
+@@ -134,8 +134,7 @@
+ Package/dnsmasq-dhcpv6/conffiles = $(Package/dnsmasq/conffiles)
+ Package/dnsmasq-full/conffiles = $(Package/dnsmasq/conffiles)
+ 
+-COPTS = -DHAVE_UBUS -DHAVE_POLL_H \
+-	$(if $(CONFIG_IPV6),,-DNO_IPV6)
++COPTS = -DHAVE_UBUS -DHAVE_POLL_H -DNO_IPV6
+ 
+ ifeq ($(BUILD_VARIANT),nodhcpv6)
+ 	COPTS += -DNO_DHCP6
