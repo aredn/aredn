@@ -25,3 +25,19 @@
  
  ifeq ($(BUILD_VARIANT),nodhcpv6)
  	COPTS += -DNO_DHCP6
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/111.disable-ipv6-forwarding.patch
+@@ -0,0 +1,13 @@
++--- a/src/forward.c
+++++ b/src/forward.c
++@@ -302,6 +302,10 @@
++ 	  !strchr(daemon->namebuff, '.') &&
++ 	  strlen(daemon->namebuff) != 0)
++ 	flags = check_for_local_domain(daemon->namebuff, now) ? F_NOERR : F_NXDOMAIN;
+++
+++      /* Never forward AAAA */
+++      if (!flags && (gotname & F_IPV6) && !(gotname &= ~F_IPV6))
+++        flags = F_NOERR;
++       
++       /* Configured answer. */
++       if (flags || ede == EDE_NOT_READY)
