@@ -41,67 +41,69 @@ require("aredn.olsr")
 local dns_file = "/tmp/dnsmasq.d/supernode.conf"
 
 local c = uci.cursor()
+local dest
 
--- Supernodes themselves dont need supernode nameservers
-if c:get("aredn", "@supernode[0]", "enable") == "1" then
-    os.exit(0)
-end
+-- If we're not a supernode and we have supernode support enabled, look for a supernode
+if c:get("aredn", "@supernode[0]", "enable") ~= "1" and c:get("aredn", "@supernode[0]", "support") ~= "0" then
 
--- Ignore supernodes?
-if c:get("aredn", "@supernode[0]", "support") == "0" then
-	os.exit(0)
-end
-
--- Find the closest supernode to use as a nameserver (Babel)
-local bbest = { destination = nil, metric = 99999999 }
-for name in nixio.fs.dir("/var/run/arednlink/hosts")
-do
-	for line in io.lines("/var/run/arednlink/hosts/" .. name)
+	-- Find the closest supernode to use as a nameserver (Babel)
+	local bbest = { destination = nil, metric = 99999999 }
+	for name in nixio.fs.dir("/var/run/arednlink/hosts")
 	do
-		if line:match("^[0-9%.]+%s+supernode%.") then
-			local metric = capture("/sbin/ip route show table 20 | grep " .. name):match(" metric (%d+)")
-			if metric then
-				metric = tonumber(metric)
-				if metric < bbest.metric then
-					bbest.metric = metric
-					bbest.destination = name
+		for line in io.lines("/var/run/arednlink/hosts/" .. name)
+		do
+			if line:match("^[0-9%.]+%s+supernode%.") then
+				local metric = capture("/sbin/ip route show table 20 | grep " .. name):match(" metric (%d+)")
+				if metric then
+					metric = tonumber(metric)
+					if metric < bbest.metric then
+						bbest.metric = metric
+						bbest.destination = name
+					end
 				end
+				break
 			end
-			break
 		end
 	end
-end
-local dest = bbest.destination
+	dest = bbest.destination
 
-if not dest then
-	-- Find the closest supernode to use as a nameserver (OLSR)
-	local sn = {}
-	for _, hna in ipairs(aredn.olsr.getOLSRHNA())
-	do
-		if hna.genmask == 8 and hna.destination == "10.0.0.0" then
-			sn[hna.gateway] = true
+	if not dest then
+		-- Find the closest supernode to use as a nameserver (OLSR)
+		local sn = {}
+		for _, hna in ipairs(aredn.olsr.getOLSRHNA())
+		do
+			if hna.genmask == 8 and hna.destination == "10.0.0.0" then
+				sn[hna.gateway] = true
+			end
 		end
-	end
-	local best = { destination = nil, etx = 99999999 }
-	for _, route in ipairs(aredn.olsr.getOLSRRoutes())
-	do
-		if sn[route.destination] and route.etx < best.etx then
-			best = route
+		local best = { destination = nil, etx = 99999999 }
+		for _, route in ipairs(aredn.olsr.getOLSRRoutes())
+		do
+			if sn[route.destination] and route.etx < best.etx then
+				best = route
+			end
 		end
+		if not best.destination then
+			os.exit(0)
+		end
+		dest = best.destination
 	end
-	if not best.destination then
-		os.exit(0)
-	end
-	dest = best.destination
+
 end
-local desthost = nixio.getnameinfo(dest) or dest
+
+local desthost = dest and (nixio.getnameinfo(dest) or dest)
+local revdest = dest and ("," .. dest) or ""
 
 -- Update the dns and restart network if necessary
-local dns = "#" .. desthost .. "\nserver=/local.mesh/" .. dest .. "\nrev-server=10.0.0.0/8," .. dest .. "\nrev-server=172.31.0.0/16," .. dest  .. "\nrev-server=172.30.0.0/16," .. dest
+local dns = ""
+if desthost then
+	dns = dns .. "#" .. desthost .. "\n"
+end
+dns = dns .. "server=/local.mesh/" .. (dest or "") .. "\nrev-server=10.0.0.0/8" .. revdest .. "\nrev-server=172.31.0.0/16" .. revdest  .. "\nrev-server=172.30.0.0/16" .. revdest
 if nixio.fs.stat("/etc/44net.conf") then
 	for line in io.lines("/etc/44net.conf")
 	do
-		dns = dns .. "\nrev-server=" .. line .. "," .. dest
+		dns = dns .. "\nrev-server=" .. line .. revdest
 	end
 end
 dns = dns .. "\n"
