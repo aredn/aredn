@@ -121,8 +121,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("ssh_add" in request.args) {
         configuration.prepareChanges();
         const key = fs.readfile(request.args.ssh_add);
-        const re_ed25519 = /^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp256) [a-zA-Z0-9+\/=]+ .+$/;
-        const re_no_ed25519 = /^(ssh-rsa|ecdsa-sha2-nistp256) [a-zA-Z0-9+\/=]+ .+$/;
+        const re_ed25519 = /^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp(256|384|521)) [a-zA-Z0-9+\/=]+ .+$/;
+        const re_no_ed25519 = /^(ssh-rsa|ecdsa-sha2-nistp(256|384|521)) [a-zA-Z0-9+\/=]+ .+$/;
         const re = detectEd25519() ? re_ed25519 : re_no_ed25519;
         if (key && match(trim(key), re)) {
             const keys = fs.readfile("/etc/dropbear/authorized_keys") || "";
