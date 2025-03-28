@@ -2,10 +2,12 @@
 # Modify configuration for low memory devices
 
 MEM=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
-if [ $MEM -le 32768 ]; then
+if [ $MEM -le 65536 ]; then
     # Reduce parallel requests
     /sbin/uci -c /etc/config.mesh -q set uhttpd.main.max_requests=1
     /sbin/uci -c /etc/config.mesh -q commit uhttpd
+fi
+if [ $MEM -le 32768 ]; then
     # Disable wpad
     /etc/init.d/wpad disable
 fi
