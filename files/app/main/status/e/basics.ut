@@ -49,6 +49,10 @@ function getSshKeys()
     }
     return options;
 }
+function detectEd25519()
+{
+    return fs.access("/etc/dropbear/dropbear_ed25519_host_key");
+}
 if (request.env.REQUEST_METHOD === "PUT") {
     if ("theme" in request.args) {
         const theme = request.args.theme;
@@ -117,7 +121,10 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("ssh_add" in request.args) {
         configuration.prepareChanges();
         const key = fs.readfile(request.args.ssh_add);
-        if (key && match(trim(key), /^(ssh-rsa|ecdsa-sha2-nistp256) [a-zA-Z0-9+\/=]+ .+$/)) {
+        const re_ed25519 = /^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp(256|384|521)) [a-zA-Z0-9+\/=]+ .+$/;
+        const re_no_ed25519 = /^(ssh-rsa|ecdsa-sha2-nistp(256|384|521)) [a-zA-Z0-9+\/=]+ .+$/;
+        const re = detectEd25519() ? re_ed25519 : re_no_ed25519;
+        if (key && match(trim(key), re)) {
             const keys = fs.readfile("/etc/dropbear/authorized_keys") || "";
             fs.writefile("/etc/dropbear/authorized_keys", `${keys}${key}`);
         }
@@ -258,7 +265,8 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 </div>
             </div>
             {{_H("Console access to the node is possible using SSH. To avoid typing a password you can upload an SSH public key which allows
-            password-less login. Multiple keys can be uploaded above, and keys can also be selectively removed.")}}
+            password-less login. Multiple keys can be uploaded above, and keys can also be selectively removed.
+            Allowed key types are: " + (detectEd25519() ? "ssh-rsa, ssh-ed25519, ecdsa-sha2-nistp256/384/521" : "ssh-rsa, ecdsa-sha2-nistp256/384/521") + ".")}}
             <div class="cols">
                 <div></div>
                 <div style="flex:0">
