@@ -490,7 +490,8 @@ function lqm_run()
                     rev_ping_success_time = nil,
                     rev_quality = nil,
                     babel = nil,
-                    babel_metric = nil
+                    babel_metric = nil,
+                    babel_config = nil
                 }
             end
             local track = tracker[station.mac]
@@ -694,6 +695,34 @@ function lqm_run()
                     track.user_blocks = true
                     break
                 end
+            end
+
+            -- Include babel info for this link.
+            track.babel_config = {
+                hello_interval = tonumber(cursor:get("babel", "default", "hello_interval")),
+                update_interval = tonumber(cursor:get("babel", "default", "update_interval"))
+            }
+            if track.type == "Wireguard" then
+                track.babel_config.rxcost = tonumber(cursor:get("babel", "tunnel", "rxcost"))
+                local weight = tonumber(cursor:get("network", track.device, "weight") or nil)
+                if weight then
+                    track.babel_config.rxcost = track.babel_config.rxcost + tonumber(cursor:get("babel", "tunnel", "rxscale")) * weight
+                end
+            elseif track.type == "Xlink" then
+                track.babel_config.rxcost = tonumber(cursor:get("babel", "xlink", "rxcost"))
+                local weight = nil
+                for x = 0, 15
+                do
+                    if cursor:get("network", "xlink" .. x, "ifname") == track.device then
+                        weight = tonumber(cursor:get("network", "xlink" .. x, "weight") or nil)
+                        break
+                    end
+                end
+                if weight then
+                    track.babel_config.rxcost = track.babel_config.rxcost + tonumber(cursor:get("babel", "xlink", "rxscale")) * weight
+                end
+            else
+                track.babel_config.rxcost = tonumber(cursor:get("babel", "default", "rxcost"))
             end
 
             -- Ping addresses and penalize quality for excessively slow links
