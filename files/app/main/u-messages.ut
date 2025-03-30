@@ -32,9 +32,10 @@
  * version
  */
 %}
-{% if (messages.haveMessages() || (auth.isAdmin && messages.haveToDos())) { %}
+{% const args = { msgs: messages.getMessages(), todos: auth.isAdmin && messages.getToDos() };
+if (length(args.msgs) || length(args.todos)) { %}
 <div id="messages">
-    {{_R("messages")}}
+    {{_R("messages", args)}}
     </div>
 </div>
 {% } %}

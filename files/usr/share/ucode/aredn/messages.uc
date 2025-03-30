@@ -37,17 +37,6 @@ import * as configuration from "aredn.configuration";
 import * as hardware from "aredn.hardware";
 import * as radios from "aredn.radios";
 
-export function haveMessages()
-{
-    if (fs.access("/etc/cron.boot/reinstall-packages") && fs.access("/etc/package_store/catalog.json")) {
-        return true;
-    }
-    if (fs.stat("/tmp/aredn_message")?.size || fs.stat("/tmp/local_message")?.size) {
-        return true;
-    }
-    return false;
-};
-
 function parseMessages(nodename, msgs, text)
 {
     if (text) {
@@ -74,51 +63,16 @@ export function getMessages()
     }
     parseMessages(nodename, msgs, fs.readfile("/tmp/aredn_message"));
     parseMessages(nodename, msgs, fs.readfile("/tmp/local_message"));
+    const d = fs.opendir("/tmp/other_messages/");
+    if (d) {
+        for (let entry = d.read(); entry; entry = d.read()) {
+            if (entry !== "." && entry !== "..") {
+                parseMessages(nodename, msgs, fs.readfile(`/tmp/other_messages/${entry}`));
+            }
+        }
+        d.close();
+    }
     return msgs;
-};
-
-export function haveToDos()
-{
-    const cursor = uci.cursor();
-    if (!cursor.get("aredn", "@location[0]", "lat") ||
-        !cursor.get("aredn", "@location[0]", "lon") ||
-        configuration.getSettingAsString("time_zone_name", "Not Set") === "Not Set" ||
-        hardware.isLowMemNode()
-    ) {
-        return true;
-    }
-    if (hardware.getRadioCount() > 0) {
-        const wlan = cursor.get("network", "wifi", "device");
-        if (wlan !== "br-nomesh") {
-            const ants = hardware.getAntennas(wlan);
-            const ant = cursor.get("aredn", "@location[0]", "antenna");
-            if (length(ants) > 1 && !ant) {
-                return true;
-            }
-            if (ant || length(ants) === 1) {
-                if (!cursor.get("aredn", "@location[0]", "azimuth")) {
-                    const ainfo = hardware.getAntennaInfo(wlan, ant || ants[0]);
-                    if (ainfo?.beamwidth !== 360) {
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    const mcursor = uci.cursor("/etc/config.mesh");
-    if (mcursor.get("vtun", "@client[0]")) {
-        return true;
-    }
-    let legacy = false;
-    cursor.foreach("vtun", "server", s => {
-        if (index(s.netip, ":") === -1) {
-            legacy = true;
-        }
-    });
-    if (legacy) {
-        return true;
-    }
-    return false;
 };
 
 export function getToDos()
