@@ -33,8 +33,8 @@
  */
 %}
 {%
-    const allmsgs = messages.getMessages();
-    const todos = messages.getToDos();
+    const allmsgs = inner.msgs;
+    const todos = inner.todos;
 %}
 <div class="noctrl">
     {% if (allmsgs.system) { %}
@@ -73,19 +73,18 @@
     %}
     </div>
     {% }
-    for (let _ in allmsgs) {
-        %}<div class="section-title">Other Messages</div>
-        <div class="section">{%
-        for (let k in allmsgs) {
-            const msgs = allmsgs[k];
+    for (let k in allmsgs) {
+        const msgs = allmsgs[k];
+        if (length(msgs) && (auth.isAdmin || !match(k, /^PRIVATE /))) {
+            print(`<div class="section-title"><span class="up">${replace(k, /^PRIVATE /, "")}</span> Messages</div>`);
+            print(`<div class="section">`);
             for (let i = 0; i < length(msgs); i++) {
-                print(`<div><b>${k}: </b>${msgs[i]}</div>`);
+                print(`<div>{msgs[i]}</div>`);
             }
+            print(`</div>`);
         }
-        %}</div>{%
-        break;
     }
-    if (auth.isAdmin && length(todos) > 0) { %}
+    if (auth.isAdmin && length(todos)) { %}
     <div class="section-title">To Do</div>
     <div class="section">
     {%
