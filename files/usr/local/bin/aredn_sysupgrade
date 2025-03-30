@@ -33,46 +33,69 @@ true <<'LICENSE'
 
 LICENSE
 
-if [ "$#" != "1" ]; then
-  echo "Usage: aredn_sysupgrade <firmwarefile>" 1>&2
+. /lib/functions.sh
+include /lib/upgrade/
+
+if [ $# -eq 0 -o $# -gt 3 ]; then
+  echo "Usage: aredn_sysupgrade [--firstuse] [--force] <firmwarefile>" 1>&2
   exit 1
 fi
 
+#
+# Allow firstuse upgrade
+#
+backup=""
+if [ "$1" = "--firstuse" ]; then
+  backup="-n"
+  shift
+fi
+
+#
+# Let users force upgrade a node
+#
+force=""
+if [ "$1" = "--force" ]; then
+  force="--force"
+  shift
+fi
+
+#
+# Validate the firmware
+#
 if [ ! -f "$1" ]; then
   echo "ERROR: Missing firmware file: $1" 1>&2
   exit 1
 fi
+error="Unknown error"
+if $(platform_check_image "$1" > /dev/null 2>&1); then
+	json=$(/usr/libexec/validate_firmware_image "$*" 2> /dev/null)
+	if [ "$(echo "$json" | jsonfilter -e '@.valid')" = "true" ]; then
+    error=""
+	elif [ "$(echo "$json" | jsonfilter -e '@.tests.fwtool_signature')" = "false" ]; then
+		error="Firmware signature failed"
+	elif [ "$(echo "$json" | jsonfilter -e '@.tests.fwtool_device_match')" = "false" ]; then
+		if [ "${force}" = "--force" ]; then
+			error=""
+		else
+			error="Firmware device match failed";
+		fi
+	fi
+else
+  error="Image check failed"
+fi
+if [ "${error}" != "" ]; then
+  echo "ERROR: ${error}: $1" 1>&2
+  exit 1
+fi
 
 #
-# Pre-upgrade special cases
+# Generate the backup unless first use
 #
-case "$(/usr/local/bin/get_boardid)" in
-    MikroTik\ hAP\ ac3)
-        # If we're running from RAM we must now format the flash otherwise
-        # the install will fail
-        if [ "$(cat /proc/mounts | grep overlay)" = "" ]; then
-            ubidetach -m 1
-            ubiformat /dev/mtd1 -y
-            ubiattach -m 1
-        fi
-        ;;
-    *)
-        ;;
-esac
-
-#
-# Generate the backup
-#
-backup="-n"
-if [ ! -f /tmp/do-not-keep-configuration ]; then
+if [ "${backup}" != "-n" ]; then
   # Stop babel if it's installed.
   # We need to do this here so we get the state information into the backup file.
   if [ -f /etc/init.d/babel ]; then
     /etc/init.d/babel stop
-    sleep 1 # Give it a moment or three to stop
-    if [ ! -f /etc/state/babel-state ]; then
-      sleep 2
-    fi
   fi
   cp /dev/null /tmp/sysupgradefilelist
   cat /etc/arednsysupgrade.conf | while read f
@@ -95,11 +118,20 @@ if [ ! -f /tmp/do-not-keep-configuration ]; then
 fi
 
 #
-# Let users force upgrade a node
+# Pre-upgrade special cases
 #
-force=""
-if [ -f "/tmp/force-upgrade-this-is-dangerous" ]; then
-  force="--force"
-fi
+case "$(/usr/local/bin/get_boardid)" in
+  MikroTik\ hAP\ ac3)
+    # If we're running from RAM we must now format the flash otherwise
+    # the install will fail
+    if [ "$(cat /proc/mounts | grep overlay)" = "" ]; then
+        ubidetach -m 1
+        ubiformat /dev/mtd1 -y
+        ubiattach -m 1
+    fi
+    ;;
+  *)
+    ;;
+esac
 
 /sbin/sysupgrade ${force} ${backup} -q "$1"

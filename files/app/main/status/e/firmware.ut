@@ -114,7 +114,9 @@
             }
         }
         if (!error) {
-            return { upgrade: `/usr/local/bin/aredn_sysupgrade ${firmwarefile}` };
+            const firstuse = fs.access("/tmp/do-not-keep-configuration") ? "--firstuse" : "";
+            const force = fs.access("/tmp/force-upgrade-this-is-dangerous") ? "--force" : "";
+            return { upgrade: `/usr/local/bin/aredn_sysupgrade ${firstuse} ${force} ${firmwarefile}` };
         }
         return { error: error };
     };
@@ -552,7 +554,6 @@
                 {{_R("dialog-advanced")}}
                 <div>
                 {% if (includeAdvanced) { %}
-                    {% if (fs.access("/rom/etc")) { %}
                     <div class="cols">
                         <div>
                             <div class="o">Keep Configuration</div>
@@ -564,7 +565,6 @@
                     </div>
                     {{_H("Keep the current configuration when updating the node's firmware. This is usually what you want to do, but on
                     rare occasions you might want to return the node to its first boot state.")}}
-                    {% } %}
                     <div class="cols">
                         <div>
                             <div class="o">Dangerous Upgrade</div>
