@@ -44,7 +44,7 @@ export let forceauth = false;
 export let forcemobile = false;
 export let uilock = true;
 
-if (hardware.isLowMemNode()) {
+if (hardware.isLowMemNode() || hardware.is64MemNode()) {
     preload = false;
 }
 if (debug) {
