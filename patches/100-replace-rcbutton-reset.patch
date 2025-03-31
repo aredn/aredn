@@ -1,0 +1,44 @@
+--- a/package/base-files/files/etc/rc.button/reset
++++ b/package/base-files/files/etc/rc.button/reset
+@@ -1,31 +1,15 @@
+ #!/bin/sh
+ 
+-. /lib/functions.sh
++[ "${ACTION}" = "released" ] || exit 0
+ 
+-OVERLAY="$( grep ' /overlay ' /proc/mounts )"
+-
+-case "$ACTION" in
+-pressed)
+-	[ -z "$OVERLAY" ] && return 0
+-
+-	return 5
+-;;
+-timeout)
+-	. /etc/diag.sh
+-	set_state failsafe
+-;;
+-released)
+-	if [ "$SEEN" -lt 1 ]
+-	then
+-		echo "REBOOT" > /dev/console
+-		sync
+-		reboot
+-	elif [ "$SEEN" -ge 5 -a -n "$OVERLAY" ]
+-	then
+-		echo "FACTORY RESET" > /dev/console
+-		jffs2reset -y && reboot &
+-	fi
+-;;
+-esac
++if [ "$SEEN" -ge 3 -a "$SEEN" -le 7 ]; then
++    /usr/local/bin/setpasswd hsmm
++    uci -c /etc/config.mesh set setup.globals.lan_dhcp=1
++    uci -c /etc/config.mesh commit setup
++    /usr/local/bin/node-setup
++    /usr/local/bin/restart-services.sh
++elif [ "$SEEN" -ge 12 -a "$SEEN" -le 20 ]; then
++    /sbin/firstboot -y && /sbin/reboot
++fi
+ 
+ return 0
