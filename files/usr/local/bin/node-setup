@@ -332,12 +332,14 @@ else
 end
 
 -- generate the network configurations
+local wan_wifi_enabled = cfg.radio0_mode == "wan" or cfg.radio1_mode == "wan"
 for _, net in ipairs({ "lan", "wan", "dtdlink", "wifi" })
 do
     local wireless = false
     local config = ""
-    -- user override
-    if nixio.fs.stat("/etc/aredn_include/" .. net .. ".network.user") then
+    -- User override
+    -- Ignore if wan override if wan wifi is enabled
+    if nixio.fs.stat("/etc/aredn_include/" .. net .. ".network.user") and not (net == "wan" and wan_wifi_enabled) then
         if nixio.fs.stat("/etc/aredn_include/fixedmac." .. net) then
             for line in io.lines("/etc/aredn_include/fixedmac." .. net)
             do

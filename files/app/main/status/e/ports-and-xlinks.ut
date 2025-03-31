@@ -240,6 +240,11 @@ uciMesh.foreach("xlink", "interface", x => {
         cidr: network.netmaskToCIDR(x.netmask)
     });
 });
+let wifiwan = false;
+const radio = radios.getConfiguration();
+if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(radio) > 1 && radio[1].mode.mode === radios.RADIO_WAN))) {
+    wifiwan = true;
+}
 %}
 <div class="dialog">
     {{_R("dialog-header", `${haveports ? "Ports &amp; " : ""}XLinks`)}}
@@ -278,6 +283,7 @@ uciMesh.foreach("xlink", "interface", x => {
                                 }
                             %}
                         </tr>
+                        {% if (!wifiwan) { %}
                         <tr>
                             <td><div>wan</div><div>vlan: <input hx-put="{{request.env.REQUEST_URI}}" type="text" name="port_wan_vlan" hx-include=".ports [name^='port_wan_']" size="5" placeholder="untagged" pattern="([14-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-4])" value="{{wan_vlan != 0 ? wan_vlan : ''}}"></div></td>
                             {%
@@ -287,6 +293,7 @@ uciMesh.foreach("xlink", "interface", x => {
                                 }
                             %}
                         </tr>
+                        {% } %}
                     </tbody>
                 </table>
             </div>
