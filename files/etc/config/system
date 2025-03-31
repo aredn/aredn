@@ -6,22 +6,3 @@ config 'system'
 config 'timeserver' 'ntp'
         list 'server'     'us.pool.ntp.org'
         option enable_server 0
-
-config button
-        option button 'reset'
-        option action 'released'
-        option handler '/usr/local/bin/recoverymode'
-        option min '3'
-        option max '7'
-
-config button
-        option button 'reset'
-        option action 'released'
-        option handler 'firstboot -y && reboot'
-        option min '12'
-        option max '20'
-
-config map
-        option leafletjs 'http://unpkg.com/leaflet@0.7.7/dist/leaflet.js'
-        option leafletcss 'http://unpkg.com/leaflet@0.7.7/dist/leaflet.css'
-        option maptiles 'http://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg'
