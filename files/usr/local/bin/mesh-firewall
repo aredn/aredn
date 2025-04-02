@@ -46,15 +46,8 @@ fi
 
 #Is this node a meshgw
 export MESHFW_MESHGW
-MESHFW_MESHGW=$(/sbin/uci -q get aredn.@wan[0].olsrd_gw)
+MESHFW_MESHGW=$(/sbin/uci -q get aredn.@wan[0].mesh_to_local_wan)
 
-# Are tunnels 'enabled'
-if [ -x "/usr/sbin/vtund" ]
-then
-  export MESHFW_TUNNELS_ENABLED=1
-else
-  export MESHFW_TUNNELS_ENABLED=0
-fi
 # Is Wireguard 'enabled'
 if [ -x "/usr/bin/wg" ]
 then

@@ -98,30 +98,6 @@
             trackers[tmac.ip] = tmac;
         }
     }
-    const links = olsr.getLinks();
-    for (let i = 0; i < length(links); i++) {
-        const link = links[i];
-        const tracker = trackers[link.remoteIP];
-        let name = tracker && tracker.hostname;
-        if (!name) {
-            name = canonicalLookupIP(link.remoteIP);
-            if (!name) {
-                name = `|${link.remoteIP}`;
-            }
-        }
-        if (link.ifName === "br-dtdlink") {
-            if (tracker && tracker.distance >= 100) {
-                push(nlist, { name: name, tracker: tracker, link: link });
-            }
-            else {
-                push(llist, { name: name, tracker: tracker, link: link });
-            }
-        }
-        else {
-            push(nlist, { name: name, tracker: tracker, link: link });
-        }
-        delete trackers[link.remoteIP];
-    }
     for (let remoteIP in trackers)
     {
         const tracker = trackers[remoteIP];
@@ -161,11 +137,7 @@
                     const tracker = entry.tracker;
                     const link = entry.link;
                     const status = calcColor(tracker);
-                    let babel = "";
                     if (tracker) {
-                        if (tracker.babel_route_count > 0 || tracker.babel) {
-                            babel = '<div class="icon babel" title="babel route"></div>';
-                        }
                         print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
                     }
                     else {
@@ -174,11 +146,11 @@
                     const lq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     const nlq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                     if (substr(entry.name, 0, 1) !== "|") {
-                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}</a>${babel}</div>`);
+                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}</a></div>`);
                     }
                     else {
                         const ip = substr(entry.name, 1);
-                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}</a>${babel}</div>`);
+                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}</a></div>`);
                     }
                     print("<div class='ts cols stats'>");
                     if (!request.mobile) {
@@ -230,10 +202,6 @@
                         title = "Xlink ";
                         icon = "plane";
                         break;
-                    case "Tunnel":
-                        title = "Legacy tunnel ";
-                        icon = "globe";
-                        break;
                     case "Wireguard":
                         title = "Wireguard tunnel ";
                         icon = "globe";
@@ -241,16 +209,12 @@
                     default:
                         break;
                 }
-                let babel = "";
-                if (tracker && (tracker.babel_route_count > 0 || tracker.babel)) {
-                    babel = '<div class="icon babel" title="babel route"></div>';
-                }
                 if (substr(entry.name, 0, 1) !== "|") {
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}${babel}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}<div class="icon ${icon}"></div></a></div>`);
                 }
                 else {
                     const ip = substr(entry.name, 1);
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}${babel}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}<div class="icon ${icon}"></div></a></div>`);
                 }
                 print("<div class='ts cols stats'>");
                 if (request.mobile) {

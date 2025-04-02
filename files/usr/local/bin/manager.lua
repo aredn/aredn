@@ -41,7 +41,6 @@ require("nixio")
 require("aredn.utils")
 require("iwinfo")
 require("aredn.hardware")
-require("aredn.olsr")
 require("luci.jsonc")
 require("ubus")
 

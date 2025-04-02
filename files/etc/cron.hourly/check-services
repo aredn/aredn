@@ -40,28 +40,6 @@ require("aredn.utils")
 
 local cursor = uci.cursor()
 
--- Current nameservice state
-local ns = cursor:get_all("olsrd", "nameservice")
-if not ns then
-    print("Missing nameservice")
-    return
-end
-local cnames = {}
-for _, name in ipairs(ns.name)
-do
-    cnames[name] = true
-end
-local chosts = {}
-for _, iphost in ipairs(ns.hosts or {})
-do
-    chosts[iphost] = true
-end
-local cservices = {}
-for _, service in ipairs(ns.service or {})
-do
-    cservices[service] = true
-end
-
 -- Work out the differences between the validated state and the current state
 local names, hosts, services = aredn.services.get(true)
 local nnames = false
@@ -71,16 +49,6 @@ do
         cnames[name] = nil
     else
         nnames = true
-    end
-end
-local nhosts = false
-for _, host in ipairs(hosts)
-do
-    local iphost = host.ip .. " " .. host.host
-    if chosts[iphost] then
-        chosts[iphost] = nil
-    else
-        nhosts = true
     end
 end
 local nservices = false
@@ -102,33 +70,6 @@ function not_empty(h)
 end
 
 local change = false
-
--- Apply OLSR changes
-if nnames or not_empty(cnames) then
-    cursor:set("olsrd", "nameservice", "name", names)
-    change = true
-end
-if nhosts or not_empty(chosts) then
-    local hostslist = {}
-    for i, host in ipairs(hosts)
-    do
-        hostslist[i] = host.ip .. " " .. host.host
-    end
-    if #hostslist > 0 then
-        cursor:set("olsrd", "nameservice", "hosts", hostslist)
-    else
-        cursor:delete("olsrd", "nameservice", "hosts")
-    end
-    change = true
-end
-if nservices or not_empty(cservices) then
-    if #services > 0 then
-        cursor:set("olsrd", "nameservice", "service", services)
-    else
-        cursor:delete("olsrd", "nameservice", "service")
-    end
-    change = true
-end
 
 -- Apply Arednlink changes
 if nnames or not_empty(cnames) or nservices or not_empty(cservices) then
@@ -157,11 +98,10 @@ if nservices or not_empty(cservices) then
     change = true
 end
 
--- If services have changed we need to restart olsrd
+-- If services have changed
 if change then
-    cursor:commit("olsrd")
     print("Change")
-    os.execute("/usr/local/bin/restart-services.sh --force olsrd arednlink")
+    os.execute("/usr/local/bin/restart-services.sh --force arednlink")
 else
     print("Unchange")
 end

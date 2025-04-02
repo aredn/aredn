@@ -125,7 +125,9 @@ local config = {
             mesh_wan_gw = 0,
             ssh_access = 1,
             telnet_access = 1,
-            web_access = 1
+            web_access = 1,
+            mesh_to_local_wan = shell("uci -c /etc/config.mesh get aredn.@wan[0].olsrd_gw"),
+            lan_to_remote_wan = shell("uci -c /etc/config.mesh get aredn.@wan[0].mesh_wan_gw")
         },
         watchdog = {
             enable = 0,
@@ -138,7 +140,6 @@ local config = {
     },
     dhcp = {},
     dropbear = {},
-    olsrd = {},
     snmpd = {},
     uhttpd = {},
     vtun = {

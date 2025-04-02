@@ -65,7 +65,7 @@ function app.run()
 ]])
         f:close()
         filecopy(CONFIG0, CONFIG1, true)
-        os.execute("nft insert rule ip fw4 input_dtdlink tcp dport 2947 accept comment \"gpsd\" 2> /dev/null")
+        os.execute("nft insert rule inet fw4 input_dtdlink tcp dport 2947 accept comment \"gpsd\" 2> /dev/null")
         os.execute("/etc/init.d/gpsd restart")
     end
 

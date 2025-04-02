@@ -332,57 +332,42 @@ end
 -- Return locally hosted services (for sysinfo.json)
 -------------------------------------
 function model.local_services()
-	require("aredn.services")
-	local lclsrvs = {}
-	local _, _, services = aredn.services.get()
-	for _, service in ipairs(services)
+	local services = {}
+	for line in io.lines("/etc/arednlink/services")
 	do
-		local link, protocol, name = service:match("^([^|]*)|(.+)|([^\t]*).*")
-		if link and protocol and name then
-			table.insert(lclsrvs, {
+		local link, protocol, name, ip = string.match(line, "^([^|]*)|(.+)|([^\t]*)\t#(.*)")
+		if link then
+			services[#services + 1] = {
 				name = name,
 				protocol = protocol,
-				link = link
-			})
+				ip = ip
+				link = link:match(":0/") and "" or link
+			}
 		end
 	end
-	return lclsrvs
+	return services
 end
 
 -------------------------------------
 -- Return *All* Network Services
 -------------------------------------
 function model.all_services()
-	local services={}
-	local lines={}
-	local pos, val
-	for line in aredn.olsr.getServicesAsLines() do
-		table.insert(lines,line)
-	end
-	if #lines > 0 then
-		for pos,val in pairs(lines) do
-			local service={}
-			local link,protocol,name,ip = string.match(val,"^([^|]*)|(.+)|([^\t]*)\t#(.*)")
-			if link and protocol and name then
-				if string.match(link,":0/") then
-					service['link']=""
-				else
-					service['link']=link
-				end
-				service['protocol']=protocol
-				service['name']=name
-				if ip==" my own service" then
-					service['ip']=model.getInterfaceIPAddress("wifi")
-				else
-					service['ip']=ip
-				end
-				table.insert(services,service)
+	local services = {}
+	for name in nixio.fs.dir("/var/run/arednlink/services")
+	do
+		for line in io.lines("/var/run/arednlink/services/" .. name)
+		do
+			local link, protocol, name, ip = string.match(line, "^([^|]*)|(.+)|([^\t]*)\t#(.*)")
+			if link then
+				services[#services + 1] = {
+					name = name,
+					protocol = protocol,
+					ip = ip
+					link = link:match(":0/") and "" or link
+				}
 			end
-		end
-	else
-		service['error']="Cannot read services file"
-		table.insert(services,service)
-	end
+        end
+    end
 	return services
 end
 
@@ -390,38 +375,17 @@ end
 -- Return *All* Hosts
 -------------------------------------
 function model.all_hosts()
-	require("aredn.olsr")
-	local hosts={}
-	local lines={}
-	local pos, val
-	for line in aredn.olsr.getHostAsLines() do
-		table.insert(lines,line)
-	end
-	if #lines > 0 then
-		for pos,val in pairs(lines) do
-			local host={}
-
-			-- local data,comment = string.match(val,"^([^#;]+)[#;]*(.*)$")
-			local data,comment = string.match(val,"^([^#;]+)[#;]*(.*)$")
-
-			if data then
-				--local ip, name=string.match(data,"^%s*([%x%.%:]+)%s+(%S.*)\t%s*$")
-				local ip, name=string.match(data,"^([%x%.%:]+)%s+(%S.*)\t%s*$")
-				if ip and name then
-					if not string.match(name,"^(dtdlink[.]).*") then
-						if not string.match(name,"^(mid%d+[.]).*") then
-							host['name']=name
-							host['ip']=ip
-							table.insert(hosts,host)
-						end
-					end
-				end
-			end
-		end
-	else
-		host['error']="Cannot read hosts file"
-		table.insert(hosts,host)
-	end
+	local hosts = {}
+	for name in nixio.fs.dir("/var/run/arednlink/hosts")
+	do
+		for line in io.lines("/var/run/arednlink/hosts/" .. name)
+		do
+            local ip, host = line:match("^([0-9%.]+)%s+([^ %.]+)$")
+            if ip then
+				hosts[#hosts + 1] = { name = host, ip = ip }
+            end
+        end
+    end
 	return hosts
 end
 
@@ -532,18 +496,6 @@ function model.getFSFree()
 end
 
 -------------------------------------
--- Returns OLSR info
--------------------------------------
-function model.getOLSRInfo()
-	local info={}
-	tot=os.capture('/sbin/ip route list table 30|wc -l')
-	info['entries']=tot:chomp()
-	nodes=os.capture('/sbin/ip route list table 30|grep -E "/"|wc -l')
-	info['nodes']=nodes:chomp()
-	return info
-end
-
--------------------------------------
 -- Returns Interface IP Address
 -- @param interface name of interface 'wifi' | 'lan' | 'wan'
 -------------------------------------
@@ -602,37 +554,10 @@ function model.getCurrentDHCPLeases()
 end
 
 -------------------------------------
--- Returns Local Hosts
--------------------------------------
-function model.getLocalHosts()
-  local localhosts = {}
-  myhosts=os.capture('/bin/grep "# myself" /var/run/hosts_olsr|grep -v dtdlink')
-  local lines = myhosts:splitNewLine()
-  data = {}
-  for k,v in pairs(lines) do
-    data = v:splitWhiteSpace()
-    local ip = data[1]
-    local hostname = data[2]
-    if ip and hostname then
-      local entry = {}
-      entry['ip'] = ip
-      entry['hostname'] = hostname
-      if hostname:lower() == string.lower( model.getNodeName() ) then
-        entry['cnxtype'] = "RF"
-      else
-        entry['cnxtype'] = "LAN"
-      end
-      table.insert(localhosts, entry)
-    end
-  end
-  return localhosts
-end
-
--------------------------------------
 -- Returns Mesh gateway setting
 -------------------------------------
 function model.getMeshGatewaySetting()
-	return uci.cursor():get("aredn", "@wan[0]", "olsrd_gw") or ""
+	return uci.cursor():get("aredn", "@wan[0]", "mesh_to_local_wan") or ""
 end
 
 -------------------------------------
@@ -655,7 +580,7 @@ function model.isLANDHCPEnabled()
 end
 
 -------------------------------------
--- is Mesh olsr gateway enabled
+-- is Mesh gateway enabled
 -------------------------------------
 function model.isMeshGatewayEnabled()
 	local r = model.getMeshGatewaySetting()

@@ -37,7 +37,6 @@
 require("uci")
 require("aredn.utils")
 require("aredn.info")
-require("aredn.olsr")
 require("aredn.hardware")
 require("nixio")
 local ipc = require("luci.ip")
@@ -55,7 +54,7 @@ end
 info={}
 
 -- API version
-info['api_version']="1.14"
+info['api_version']="2.0"
 
 
 -- NODE name
@@ -175,11 +174,6 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"services_local=1") then
 	info['services_local']=aredn.info.local_services()
 end
 
--- LOCAL NEIGHBORS LINK INFO
-if string.find(nixio.getenv("QUERY_STRING"):lower(),"link_info=1") then
-	info['link_info']=aredn.olsr.getCurrentNeighbors(true)
-end
-
 -- LQM INFO
 if string.find(nixio.getenv("QUERY_STRING"):lower(),"lqm=1") then
 	local lqm = {
@@ -193,16 +187,6 @@ if string.find(nixio.getenv("QUERY_STRING"):lower(),"lqm=1") then
 		lqm.info = json.parse(io.open("/tmp/lqm.info", "r"):read("*a"))
 	end
 	info['lqm']=lqm
-end
-
--- MESH NODES COUNT
-if string.find(nixio.getenv("QUERY_STRING"):lower(),"nodes=1") then
-	info['nodes']=aredn.info.getOLSRInfo()
-end
-
--- TOPOLOGY
-if string.find(nixio.getenv("QUERY_STRING"):lower(),"topology=1") then
-	info['topology']=aredn.olsr.getOLSRTopology()
 end
 
 -- Output the HTTP header for JSON

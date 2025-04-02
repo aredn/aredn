@@ -34,7 +34,7 @@ true <<'LICENSE'
 LICENSE
 
 ROOT="/tmp/reboot-required"
-SERVICES="log system firewall network wireless dnsmasq tunnels lqm manager babel olsrd arednlink localservices poe pou ntp"
+SERVICES="log system firewall network wireless dnsmasq lqm manager babel arednlink localservices poe pou ntp"
 
 ignore=0
 force=0
@@ -67,10 +67,7 @@ for srv in $SERVICES
 do
   if [ -f $ROOT/$srv -o $force = 1 ]; then
     echo "Restarting $srv"
-    if [ $srv = "tunnels" ]; then
-      /etc/init.d/vtund restart > /dev/null 2>&1
-      /etc/init.d/vtundsrv restart > /dev/null 2>&1
-    elif [ $srv = "wireless" ]; then
+    if [ $srv = "wireless" ]; then
       /sbin/wifi down > /dev/null 2>&1
       /sbin/wifi up > /dev/null 2>&1
     elif [ $srv = "localservices" ]; then

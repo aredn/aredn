@@ -46,18 +46,7 @@ local ping_state = {}
 local max_last_ping = 300
 
 -- Set of daemons to monitor
-local default_daemons = "dnsmasq telnetd dropbear uhttpd"
-if nixio.fs.stat("/usr/sbin/vtund") then
-    if uci.cursor():get("vtun", "server_0", "host") or uci.cursor():get("vtun", "client_0", "name") then
-        default_daemons = default_daemons .. " vtund"
-    end
-end
-if nixio.fs.stat("/usr/sbin/olsrd") then
-    default_daemons = default_daemons .. " olsrd"
-end
-if nixio.fs.stat("/usr/sbin/babeld") then
-    default_daemons = default_daemons .. " babeld"
-end
+local default_daemons = "dnsmasq telnetd dropbear uhttpd babeld"
 
 function W.get_config(verbose)
     local c = uci.cursor()

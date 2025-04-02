@@ -56,7 +56,6 @@ local ping_penalty = 5 -- Cost of a failed ping to measure of a link's quality
 
 local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
-local ARPING = "/usr/sbin/arping"
 local UFETCH = "/bin/uclient-fetch"
 local IPCMD = "/sbin/ip"
 local PING6 = "/bin/ping6"
@@ -64,7 +63,6 @@ local PING6 = "/bin/ping6"
 local now = 0
 local config = {}
 
-local total_node_route_count = nil
 local total_babel_route_count = nil
 
 -- Get radio
@@ -132,7 +130,6 @@ local myip = uci.cursor():get("network", "wifi", "ipaddr")
 local is_supernode = uci.cursor():get("aredn", "@supernode[0]", "enable") == "1"
 
 local wgsupport = nixio.fs.stat("/usr/bin/wg") and true or false
-local babelsupport = nixio.fs.stat("/usr/sbin/babeld") and true or false
 
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
@@ -333,19 +330,10 @@ function lqm_run()
 
         local stations = {}
 
-        -- Legacy and wireguard tunnels
+        -- Wireguard tunnels
         for _, dev in pairs(devices)
         do
-            if dev.name:match("^tun%d+") then
-                stations[#stations + 1] = {
-                    type = "Tunnel",
-                    device = dev.name,
-                    ip = dev.dstip,
-                    mac = dev.mac,
-                    tx_packets = dev.tx_packets,
-                    tx_fail = dev.tx_fail
-                }
-            elseif dev.name:match("^wgc%d+") and wgtuns[dev.name] then
+            if dev.name:match("^wgc%d+") and wgtuns[dev.name] then
                 local ip123, ip4 = dev.ip:match("^(%d+%.%d+%.%d+%.)(%d+)$")
                 stations[#stations + 1] = {
                     type = "Wireguard",
@@ -484,7 +472,6 @@ function lqm_run()
                     avg_tx = nil,
                     avg_tx_retries = nil,
                     avg_tx_fail = nil,
-                    node_route_count = 0,
                     babel_route_count = 0,
                     rev_ping_quality = nil,
                     rev_ping_success_time = nil,
@@ -552,7 +539,6 @@ function lqm_run()
         for _, track in pairs(tracker)
         do
             -- Clear route counters
-            track.node_route_count = 0
             track.babel_route_count = 0
 
             if not track.ip then
@@ -587,7 +573,7 @@ function lqm_run()
                     track.hostname = canonical_hostname(nixio.getnameinfo(track.ip)) or track.hostname
                     track.canonical_ip = track.hostname and iplookup(track.hostname)
 
-                    local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -O - 2> /dev/null")
+                    local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?lqm=1\" -O - 2> /dev/null")
                     local info = luci.jsonc.parse(raw:read("*a") or "")
                     raw:close()
 
@@ -664,23 +650,6 @@ function lqm_run()
                                         end
                                     end
                                 end
-                            elseif info.link_info then
-                                rflinks[track.mac] = {}
-                                -- If there's no LQM information we fallback on using link information.
-                                for ip, link in pairs(info.link_info)
-                                do
-                                    local rhostname = canonical_hostname(link.hostname)
-                                    if link.linkType == "RF" then
-                                        rflinks[track.mac][ip] = {
-                                            ip = ip,
-                                            hostname = rhostname
-                                        }
-                                    end
-                                    if rhostname and link.linkType == "RF" and link.signal and link.noise and myhostname == rhostname then
-                                        local snr = link.signal - link.noise
-                                        track.rev_snr = track.rev_snr and round(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * snr) or snr
-                                    end
-                                end
                             end
                         end
                     end
@@ -728,47 +697,14 @@ function lqm_run()
             -- Ping addresses and penalize quality for excessively slow links
             if track.ip and not track.user_blocks then
                 local ptime = nil
-                -- Once the Babel transition is completed, a IPv6 Link-layer ping is all we will need here as it will work for everything
-                if track.ipv6ll then
-                    for line in io.popen(PING6 .. " -c 1 -W " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ipv6ll):lines()
-                    do
-                        local t = line:match("^64 bytes from .* time=(%S+) ms$")
-                        if t then
-                            track.routable = true
-                            ptime = tonumber(t) / 1000
-                        end
+                for line in io.popen(PING6 .. " -c 1 -W " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ipv6ll):lines()
+                do
+                    local t = line:match("^64 bytes from .* time=(%S+) ms$")
+                    if t then
+                        track.routable = true
+                        ptime = tonumber(t) / 1000
                     end
                 end
-                -- But for now we need older mechanisms as well
-                if not ptime and track.type ~= "Tunnel" and track.type ~= "Wireguard" then
-                    -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
-                    -- table and firewall messing up the response packet.
-                    for line in io.popen(ARPING .. " -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip):lines()
-                    do
-                        local t = line:match("^Unicast reply .* (%S+)ms$")
-                        if t then
-                            ptime = tonumber(t) / 1000
-                        end
-                    end
-                end
-                if not ptime and track.routable then
-                    -- If that fails, measure the "ping" time directly to the device by sending a UDP packet
-                    local sigsock = nixio.socket("inet", "dgram")
-                    sigsock:setopt("socket", "rcvtimeo", ping_timeout)
-                    sigsock:setopt("socket", "bindtodevice", track.device)
-                    sigsock:setopt("socket", "dontroute", 1)
-                    -- Must connect or we wont see the error
-                    sigsock:connect(track.ip, 8080)
-                    local pstart = gettime()
-                    sigsock:send("")
-                    -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
-                    -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
-                    if sigsock:recv(0) ~= false then
-                        ptime = gettime() - pstart
-                    end
-                    sigsock:close()
-                end
-
                 wait_for_ticks(0)
 
                 track.ping_quality = track.ping_quality and (track.ping_quality + 1) or 100
@@ -818,44 +754,29 @@ function lqm_run()
         --
         -- Pull in the routing table to see how many node routes are associated with each tracker.
         -- We don't do this for supernodes as the table is very big and we don't use the information.
-        -- Don't pull the data from OLSR as this can be too distruptive to its operation on slower nodes
-        -- with large routing tables.
         --
         if not is_supernode then
-            total_node_route_count = 0
-            for line in io.popen(IPCMD .. " route show table 30"):lines()
+            total_babel_route_count = 0
+            for line in io.popen(IPCMD .. " route show table 20"):lines()
             do
                 local gw = line:match("^10%.%d+%.%d+%.%d+ via (%d+%.%d+%.%d+%.%d+) dev")
                 if gw then
                     local track = ip2tracker[gw];
                     if track then
-                        track.node_route_count = track.node_route_count + 1
-                        total_node_route_count = total_node_route_count + 1
+                        track.babel_route_count = track.babel_route_count + 1
+                        total_babel_route_count = total_babel_route_count + 1
                     end
                 end
             end
-        end
-        -- We will do this for babel, at least for now, to gather more data
-        total_babel_route_count = 0
-        for line in io.popen(IPCMD .. " route show table 20"):lines()
-        do
-            local gw = line:match("^10%.%d+%.%d+%.%d+ via (%d+%.%d+%.%d+%.%d+) dev")
-            if gw then
-                local track = ip2tracker[gw];
-                if track then
-                    track.babel_route_count = track.babel_route_count + 1
-                    total_babel_route_count = total_babel_route_count + 1
-                end
-            end
-        end
-        for line in io.popen(IPCMD .. " route show table 21"):lines()
-        do
-            local gw = line:match("^10%.0%.0%.0/8 via (%d+%.%d+%.%d+%.%d+) dev")
-            if gw then
-                local track = ip2tracker[gw];
-                if track then
-                    track.babel_route_count = track.babel_route_count + 1
-                    total_babel_route_count = total_babel_route_count + 1
+            for line in io.popen(IPCMD .. " route show table 21"):lines()
+            do
+                local gw = line:match("^10%.0%.0%.0/8 via (%d+%.%d+%.%d+%.%d+) dev")
+                if gw then
+                    local track = ip2tracker[gw];
+                    if track then
+                        track.babel_route_count = track.babel_route_count + 1
+                        total_babel_route_count = total_babel_route_count + 1
+                    end
                 end
             end
         end
@@ -944,8 +865,7 @@ function lqm_run()
                 distance = distance,
                 coverage = coverage,
                 hidden_nodes = hidden_nodes,
-                total_node_route_count = total_node_route_count,
-                babel = babelsupport
+                total_babel_route_count = total_babel_route_count
             }, true))
             f:close()
         end

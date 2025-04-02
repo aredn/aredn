@@ -1,7 +1,7 @@
 --[[
 
 	Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2024 Tim Wilkinson
+	Copyright (C) 2024,2025 Tim Wilkinson
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -38,38 +38,43 @@ local M = {}
 function M.dns_monitor()
     while true
     do
-        local changed = M.find_subdomains()
-        if changed then
+        local need_supernodes = false
+        local c = uci.cursor()
+        if c:get("aredn", "@supernode[0]", "enable") ~= "1" and c:get("aredn", "@supernode[0]", "support") ~= "0" then
+            need_supernodes = true
+        end
+        local subdomains, supernodes = M.find_special_domains(need_supernodes)
+        local changed1 = M.update_subdomains(subdomains)
+        local changed2 = M.update_supernode(M.find_best_supernode(supernodes))
+        if changed1 or changed2 then
             os.execute("/etc/init.d/dnsmasq restart")
         end
         wait_for_ticks(300)
     end
 end
 
-function M.find_subdomains()
-    -- Do nothing if olsrd is not running
-    if capture("pidof olsrd") == "" then
-        return false
-    end
-
-    local reload = false
-
-    -- Load the hosts file
+function M.find_special_domains(need_supernodes)
     local subdomains = ""
-    for line in aredn.olsr.getHostAsLines()
-    do
-        local v = line:splitWhiteSpace()
-        local ip = v[1]
-        local name = v[2]
-        if ip and name and name:sub(1,2) == "*." then
-            if not name:match("%.local%.mesh$") then
-                name = name .. ".local.mesh"
+    local supernodes = {}
+    for name in nixio.fs.dir("/var/run/arednlink/hosts")
+	do
+		for line in io.lines("/var/run/arednlink/hosts/" .. name)
+		do
+            local ip, subname = line:match("^([0-9%.]+)%s+%*%.(%S+)$")
+            if ip then
+                subdomains = subdomains .. "address=/." .. subname .. "/" ..  ip .. "\n"
+            elseif need_supernodes then
+                ip, subname = line:match("^([0-9%.]+)%s+supernode%.(%S+)$")
+                if ip then
+                    supernodes[#supernodes + 1] = { name = subname, ip = ip }
+                end
             end
-            subdomains = subdomains .. "address=/." .. name:sub(3) .. "/" ..  ip .. "\n"
         end
     end
+    return subdomains, supernodes
+end
 
-    -- Write out the subdomains
+function M.update_subdomains(subdomains)
     local osubdomains = ""
     f = io.open("/tmp/dnsmasq.d/subdomains.conf")
     if f then
@@ -81,11 +86,65 @@ function M.find_subdomains()
         if w then
             w:write(subdomains)
             w:close()
-            reload = true
+            return true
         end
     end
+    return false
+end
 
-    return reload
+function M.update_supernode(supernode)
+    local revdest = ""
+    local dest = ""
+    local dns = ""
+    if supernode then
+        dns = dns .. "#" .. supernode.name .. "\n"
+        dest = supernode.ip
+        revdest = "," .. dest
+    end
+    dns = dns .. "server=/local.mesh/" .. dest .. "\nrev-server=10.0.0.0/8" .. revdest .. "\nrev-server=172.31.0.0/16" .. revdest  .. "\nrev-server=172.30.0.0/16" .. revdest
+    if nixio.fs.stat("/etc/44net.conf") then
+        for line in io.lines("/etc/44net.conf")
+        do
+            dns = dns .. "\nrev-server=" .. line .. revdest
+        end
+    end
+    dns = dns .. "\n"
+    local odns = ""
+    local f = io.open("/tmp/dnsmasq.d/supernode.conf")
+    if f then
+        odns = f:read("*a")
+        f:close()
+    end
+    if odns ~= dns then
+        f = io.open("/tmp/dnsmasq.d/supernode.conf", "w+")
+        if f then
+            f:write(dns)
+            f:close()
+            return true
+        end
+    end
+    return false
+end
+
+function M.find_best_supernode(supernodes)
+    if #supernodes == 0 then
+        return nil
+    elseif #supernodes == 1 then
+        return supernodes[1]
+    end
+    local best = { metric = 99999999, supernode = nil }
+    for _, supernode in ipairs(supernodes)
+    do
+        local metric = capture("/sbin/ip route show table 20 | grep " .. supernode.ip):match(" metric (%d+)")
+        if metric then
+            metric = tonumber(metric)
+            if metric < best.metric then
+                best.metric = metric
+                best.supernode = supernode
+            end
+        end
+    end
+    return best.supernode
 end
 
 return M.dns_monitor

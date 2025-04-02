@@ -120,28 +120,6 @@
         }
         return { error: error };
     };
-    function shutdownServices()
-    {
-        if (hardware.isLowMemNode()) {
-            system([ "/etc/init.d/manager", "stop" ]);
-            system([ "/etc/init.d/sysntp", "stop" ]);
-            system([ "/etc/init.d/telnet", "stop" ]);
-            system([ "/etc/init.d/dropbear", "stop" ]);
-            system([ "/etc/init.d/urngd", "stop" ]);
-            system([ "/etc/init.d/log", "stop" ]);
-        }
-    };
-    function restoreServices()
-    {
-        if (hardware.isLowMemNode()) {
-            system([ "/etc/init.d/log", "start" ]);
-            system([ "/etc/init.d/urngd", "start" ]);
-            system([ "/etc/init.d/telnet", "start" ]);
-            system([ "/etc/init.d/dropbear", "start" ]);
-            system([ "/etc/init.d/sysntp", "start" ]);
-            system([ "/etc/init.d/manager", "start" ]);
-        }
-    };
     if (request.env.REQUEST_METHOD === "PUT") {
         if (request.args.keepconfig) {
             if (request.args.keepconfig === "off") {
@@ -180,9 +158,6 @@
                 print(_R("reboot-firmware"));
             }
         }
-        else if (request.args.firmwarefileprepare) {
-            shutdownServices();
-        }
         else if (request.args.firmwarefile) {
             const fmd5 = fs.readfile(`${request.args.firmwarefile}.md5`);
             fs.unlink(`${request.args.firmwarefile}.md5`);
@@ -196,7 +171,6 @@
                 print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: Firmware upload md5 checksum incorrect: ${fmd5} != ${digest ? digest[1] : "missing"}</div>`);
                 print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
                 fs.unlink(request.args.firmwarefile);
-                restoreServices();
             }
             else {
                 const upgrade = prepareUpgrade(request.args.firmwarefile);
@@ -204,7 +178,6 @@
                     print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${upgrade.error}</div>`);
                     print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
                     fs.unlink(request.args.firmwarefile);
-                    restoreServices();
                 }
                 else {
                     response.reboot = upgrade.upgrade;
@@ -225,7 +198,6 @@
                 print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: Restore upload md5 checksum incorrect: ${fmd5} != ${digest ? digest[1] : "missing"}</div>`);
                 print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
                 fs.unlink(request.args.restorefile);
-                restoreServices();
             }
             else {
                 const restore = configuration.restore(request.args.restorefile);
@@ -414,11 +386,9 @@
             uhttpd.send(`event: error\r\ndata: missing firmware image in downloaded firmware catalog\r\n\r\n`);
             return;
         }
-        shutdownServices();
         let r = fetch(fwimage.url, "/tmp/firmwarefile", 5, 95);
         if (!r) {
             uhttpd.send(`event: error\r\ndata: failed to start firmware download\r\n\r\n`);
-            restoreServices();
             return;
         }
         f = fs.popen("/usr/bin/sha256sum /tmp/firmwarefile");
@@ -429,14 +399,12 @@
         }
         if (!digest || digest[1] != fwimage.sha) {
             uhttpd.send(`event: error\r\ndata: sha256 check for firmware download failed\r\n\r\n`);
-            restoreServices();
             return;
         }
         const upgrade = prepareUpgrade("/tmp/firmwarefile");
         if (upgrade.error) {
             fs.unlink("/tmp/firmwarefile");
             uhttpd.send(`event: error\r\ndata: ${upgrade.error}\r\n\r\n`);
-            restoreServices();
         }
         else {
             response.reboot = upgrade.upgrade;
@@ -667,42 +635,31 @@
             }
             else if (upload) {
                 const currentTarget = e.currentTarget;
-                {% if (hardware.isLowMemNode()) { %}
-                htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
-                    values: {
-                        firmwarefileprepare: 1
-                    },
-                    swap: "none"
-                }).then(_ => {
-                {% } %}
-                    const p = htmx.find("#firmware-upload progress");
-                    p.removeAttribute("value");
-                    htmx.on(currentTarget, "htmx:xhr:progress", e => {
-                        const v = e.detail.loaded / e.detail.total * 100;
-                        if (v > 99) {
-                            p.removeAttribute("value");
-                        }
-                        else {
-                            p.setAttribute("value", Math.round(v));
-                        }
-                    });
-                    const fr = new FileReader();
-                    fr.readAsArrayBuffer(upload);
-                    fr.onloadend = () => {
-                        const md5sum = md5(new Uint8Array(fr.result));
-                        htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
-                            source: currentTarget,
-                            values: {
-                                firmwarefile: upload,
-                                "firmwarefile.md5": md5sum
-                            },
-                            target: "#dialog-done",
-                            swap: "none"
-                        }).then( _ => htmx.find("#dialog-done").disabled = false);
-                    };
-                {% if (hardware.isLowMemNode()) { %}
+                const p = htmx.find("#firmware-upload progress");
+                p.removeAttribute("value");
+                htmx.on(currentTarget, "htmx:xhr:progress", e => {
+                    const v = e.detail.loaded / e.detail.total * 100;
+                    if (v > 99) {
+                        p.removeAttribute("value");
+                    }
+                    else {
+                        p.setAttribute("value", Math.round(v));
+                    }
                 });
-                {% } %}
+                const fr = new FileReader();
+                fr.readAsArrayBuffer(upload);
+                fr.onloadend = () => {
+                    const md5sum = md5(new Uint8Array(fr.result));
+                    htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
+                        source: currentTarget,
+                        values: {
+                            firmwarefile: upload,
+                            "firmwarefile.md5": md5sum
+                        },
+                        target: "#dialog-done",
+                        swap: "none"
+                    }).then( _ => htmx.find("#dialog-done").disabled = false);
+                };
             }
             else if (download !== "-") {
                 const source = new EventSource(`{{request.env.REQUEST_URI}}?v=${download}`);

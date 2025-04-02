@@ -72,13 +72,6 @@ if (tracker) {
         tracker.user_blocks = true;
     }
     neighbor = { name: tracker.hostname || `|${tracker.ip}`, n: tracker, l: null };
-    const o = olsr.getLinks();
-    for (let i = 0; i < length(o); i++) {
-        if (o[i].remoteIP === tracker.ip) {
-            neighbor.l = o[i];
-            break;
-        }
-    }
 }
 const showblock = auth.isAdmin && (neighbor && neighbor.n && neighbor.n.type == "RF") && (configuration.getSettingAsString("radio0_mode", "") === "meshap" || configuration.getSettingAsString("radio1_mode", "") === "meshap");
 const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
@@ -286,7 +279,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                 </div>
                 <div class="i">
                     <div>{{n.babel_route_count}}</div>
-                    <div>babel routes</div>
+                    <div>routes</div>
                 </div>
                 <div class="i">
                     <div>{{lastseen(n)}}</div>
@@ -301,11 +294,11 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                 </div>
                 <div class="i">
                     <div>{{n.babel_route_count}}</div>
-                    <div>babel routes</div>
+                    <div>routes</div>
                 </div>
                 <div class="i">
                     <div>{{n.babel_metric ?? "-"}}</div>
-                    <div>babel metric</div>
+                    <div>metric</div>
                 </div>
             </div>
             <div class="cols">
@@ -313,10 +306,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>{{lastseen(n)}}</div>
                     <div>last seen</div>
                 </div>
-                <div class="i">
-                    <div>{{n.node_route_count}}</div>
-                    <div>olsr routes</div>
-                </div>
+                <div></div>
                 <div></div>
             </div>
             {% } %}
