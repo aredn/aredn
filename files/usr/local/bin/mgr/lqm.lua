@@ -248,66 +248,45 @@ function lqm_run()
         lat = tonumber(lat)
         lon = tonumber(lon)
 
-        local arps = {}
-        local ipv6neigh = {}
-        for line in io.popen(IPCMD .. " neigh show"):lines()
-        do
-            local ip, dev, mac = line:match("^([0-9%.]+) dev (%S+) lladdr (%S+) .+$")
-            if ip then
-                -- Filter neighbors so we ignore entries which aren't immediately routable
-                local routable = false;
-                local rt = luciip.route(ip)
-                if rt and tostring(rt.gw) == ip then
-                    routable = true;
-                end
-                mac = mac:lower()
-                if routable or not arps[mac] or arps[mac].Routable == false then
-                    arps[mac] = {
-                        Device = dev,
-                        ["HW address"] = mac,
-                        ["IP address"] = ip,
-                        Routable = routable
-                    }
+        -- Find the Xlink interfaces so we can correctly identify the types
+        local xlinks = {}
+        cursorm:foreach("xlink", "interface",
+            function(section)
+                if section.ifname then
+                    xlinks[section.ifname] = true
                 end
             end
-            local ipv6, dev, mac = line:match("^([0-9a-f:]+) dev (%S+) lladdr (%S+) .+$")
-            if ipv6 then
-                ipv6neigh[mac] = {
-                    ipv6 = ipv6,
-                    device = dev,
-                    mac = mac
-                }
+        )
+
+        -- Babel neighbors
+        function device2type(device)
+            if device == "br-dtdlink" then
+                return "DtD"
+            elseif device:match("^wlan") then
+                return "RF"
+            elseif device:match("^wg") then
+                return "Wireguard"
+            elseif xlinks[device] then
+                return "Xlink"
+            else
+                return nil
             end
         end
-
-        -- Find all our devices and know our macs so we can exclude them
-        local devices = {}
-        for _, i in ipairs(nixio.getifaddrs())
+    
+        for line in io.popen("echo dump-neighbors | /usr/bin/socat UNIX-CLIENT:/var/run/babel.sock -"):lines()
         do
-            if i.name then
-                local dev = devices[i.name]
-                if not dev then
-                    dev = { name = i.name }
-                    devices[i.name] = dev
-                end
-                if i.family == "packet" then
-                    if i.addr then
-                        dev.mac = i.addr:lower()
-                    end
-                    dev.tx_packets = i.data.tx_packets
-                    dev.tx_fail = i.data.tx_errors
-                end
-                if i.family == "inet" then
-                    dev.ip = i.addr
-                    dev.dstip = i.dstaddr
-                    if not dev.mac then
-                        -- Fake a mac from the ip if we need one
-                        local a, b, c, d = dev.ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
-                        dev.mac = string.format("00:00:%02X:%02X:%02X:%02X", a, b, c, d)
-                    end
-                end
-                if i.family == "inet6" then
-                    dev.ipv6 = i.addr
+            local address, device = line:match("^add.*address (%S+) if (%S+)")
+            if address then
+                local type = device2type(device)
+                local mac = luciip.new(address):tomac():string():lower()
+                if type and mac and not tracker[mac] then
+                    tracker[mac] = {
+                        type = type,
+                        device = device,
+                        mac = mac,
+                        ipv6ll = address,
+                        refresh = 0
+                    }
                 end
             end
         end
@@ -328,65 +307,7 @@ function lqm_run()
             end
         end
 
-        local stations = {}
-
-        -- Wireguard tunnels
-        for _, dev in pairs(devices)
-        do
-            if dev.name:match("^wgc%d+") and wgtuns[dev.name] then
-                local ip123, ip4 = dev.ip:match("^(%d+%.%d+%.%d+%.)(%d+)$")
-                stations[#stations + 1] = {
-                    type = "Wireguard",
-                    device = dev.name,
-                    ip = ip123 .. (tonumber(ip4) + 1),
-                    mac = dev.mac,
-                    tx_packets = dev.tx_packets,
-                    tx_fail = dev.tx_fail
-                }
-            elseif dev.name:match("^wgs%d+") and wgtuns[dev.name] then
-                local ip123, ip4 = dev.ip:match("^(%d+%.%d+%.%d+%.)(%d+)$")
-                stations[#stations + 1] = {
-                    type = "Wireguard",
-                    device = dev.name,
-                    ip = ip123 .. (tonumber(ip4) - 1),
-                    mac = dev.mac,
-                    tx_packets = dev.tx_packets,
-                    tx_fail = dev.tx_fail
-                }
-            end
-        end
-
-        -- Xlink interfaces
-        local xlinks = {}
-        cursorm:foreach("xlink", "interface",
-            function(section)
-                if section.ifname then
-                    xlinks[section.ifname] = true
-                end
-            end
-        )
-
-        -- DtD & Xlinks
-        for _, entry in pairs(arps)
-        do
-            if (entry.Device:match("%.2$") or entry.Device:match("^br%-dtdlink")) and entry.Routable then
-                stations[#stations + 1] = {
-                    type = "DtD",
-                    device = entry.Device,
-                    ip = entry["IP address"],
-                    mac = entry["HW address"]
-                }
-            elseif xlinks[entry.Device] then
-                stations[#stations + 1] = {
-                    type = "Xlink",
-                    device = entry.Device,
-                    ip = entry["IP address"],
-                    mac = entry["HW address"]
-                }
-            end
-        end
-
-        -- RF
+        -- Update RF information
         if radiomode == "mesh" then
             local kv = {
                 ["signal avg:"] = "signal",
@@ -396,7 +317,7 @@ function lqm_run()
                 ["tx bitrate:"] = "tx_bitrate",
                 ["rx bitrate:"] = "rx_bitrate"
             }
-            local station = {}
+            local track = {}
             local cnoise = iwinfo.nl80211.noise(wlan)
             if cnoise and cnoise < -70 then
                 noise = round(noise * 0.9 + cnoise * 0.1)
@@ -405,31 +326,15 @@ function lqm_run()
             do
                 local mac = line:match("^Station ([0-9a-fA-F:]+) ")
                 if mac then
-                    station = {
-                        type = "RF",
-                        device = wlan,
-                        mac = mac:lower(),
-                        signal = nil,
-                        noise = noise,
-                        ip = nil,
-                        tx_bitrate = 0,
-                        rx_bitrate = 0
-                    }
-                    local entry = arps[station.mac]
-                    if entry and entry.Device:match("^wlan") then
-                        station.ip = entry["IP address"]
-                    end
+                    track = tracker[mac:lower()] or track
                 else
                     for k, v in pairs(kv)
                     do
                         local val = line:match(k .. "%s*([%d%-]+)")
                         if val then
-                            station[v] = tonumber(val)
+                            track[v] = tonumber(val)
                             if v == "tx_bitrate" or v == "rx_bitrate" then
-                                station[v] = station[v] * channel_bw_scale
-                            end
-                            if v == "signal" then
-                                stations[#stations + 1] = station
+                                track[v] = track[v] * channel_bw_scale
                             end
                         end
                     end
@@ -437,97 +342,119 @@ function lqm_run()
             end
         end
 
-        -- Update the trackers based on the latest station information
-        for _, station in ipairs(stations)
+        -- Update running averages (BROKEN - FIX ME)
+        for _, track in pairs(tracker)
         do
-            if not tracker[station.mac] then
-                tracker[station.mac] = {
-                    type = station.type,
-                    device = station.device,
-                    firstseen = now,
-                    lastseen = now,
-                    rev_lastseen = nil,
-                    refresh = 0,
-                    mac = station.mac,
-                    ip = nil,
-                    ipv6 = nil,
-                    hostname = nil,
-                    canonical_ip = nil,
-                    lat = nil,
-                    lon = nil,
-                    distance = nil,
-                    localarea = nil,
-                    user_blocks = false;
-                    snr = nil,
-                    rev_snr = nil,
-                    last_tx = nil,
-                    tx_quality = nil,
-                    ping_quality = nil,
-                    ping_success_time = nil,
-                    tx_bitrate = nil,
-                    rx_bitrate = nil,
-                    quality = nil,
-                    last_tx_fail = nil,
-                    last_tx_retries = nil,
-                    avg_tx = nil,
-                    avg_tx_retries = nil,
-                    avg_tx_fail = nil,
-                    babel_route_count = 0,
-                    rev_ping_quality = nil,
-                    rev_ping_success_time = nil,
-                    rev_quality = nil,
-                    babel = nil,
-                    babel_metric = nil,
-                    babel_config = nil
-                }
-            end
-            local track = tracker[station.mac]
+            if track.type == "RF" then
+                local tx = track.tx_packets
+                local tx_retries = track.tx_retries
+                local tx_fail = track.tx_fail
 
-            -- IP and Hostname
-            if station.ip and station.ip ~= track.ip then
-                track.ip = station.ip
-                track.hostname = nil
-                track.canonical_ip = nil
+                if tx and track.tx and tx >= track.tx + quality_min_packets then
+                    track.avg_tx = av(track.avg_tx, tx_quality_run_avg, tx, track.tx)
+                    track.avg_tx_retries = av(track.avg_tx_retries, tx_quality_run_avg, tx_retries, track.tx_retries)
+                    track.avg_tx_fail = av(track.avg_tx_fail, tx_quality_run_avg, tx_fail, track.tx_fail)
+
+                    local bad = math.max((track.avg_tx_fail or 0), (track.avg_tx_retries or 0))
+                    track.tx_quality = 100 * (1 - math.min(1, math.max(track.avg_tx > 0 and bad / track.avg_tx or 0, 0)))
+                end
+
+                track.tx = tx
+                track.tx_retries = tx_retries
+                track.tx_fail = tx_fail
+
+                track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, track.tx_bitrate, 0)
+                track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, track.rx_bitrate, 0)
             end
-            if not track.hostname and track.ip then
-                track.hostname = canonical_hostname(nixio.getnameinfo(track.ip))
-                track.canonical_ip = track.hostname and iplookup(track.hostname)
-            end
-            if not track.ipv6ll then
-                local ipv6 = ipv6neigh[track.mac]
-                if ipv6 then
-                    track.ipv6ll = ipv6.ipv6
-                elseif track.type == "Wireguard" and track.ip then
-                    local a, b, c, d = track.ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
-                    track.ipv6ll = string.format("fe80::%02x%02x:%02x%02x", a, b, c, d)
+        end
+
+        -- Refresh remote attributes periodically as this is expensive
+        -- We dont do it the very first time so we can populate the LQM state with a new node quickly
+        for _, track in pairs(tracker)
+        do
+            if track.refresh == 0 then
+                refresh = true
+                track.refresh = now
+            elseif now > track.refresh and track.ipv6ll then
+                local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://[" .. track.ipv6ll .. "%" .. track.device .. "]:8080/cgi-bin/sysinfo.json?lqm=1\" -O - 2> /dev/null")
+                local info = luci.jsonc.parse(raw:read("*a") or "")
+                raw:close()
+
+                wait_for_ticks(0)
+
+                if not info then
+                    -- Failed to fetch information. Set time for retry and invalidate any information
+                    -- considered stale
+                    track.refresh = now + refresh_retry_timeout
+                    track.rev_snr = nil
+                    track.rev_ping_success_time = nil
+                    track.rev_ping_quality = nil
+                    track.rev_quality = nil
+                else
+                    track.refresh = now + refresh_timeout()
+                    track.rev_lastseen = now
+
+                    track.hostname = info.node:lower()
+                    track.ip = iplookup(track.hostname)
+
+                    -- Update the distance to the remote node
+                    track.lat = tonumber(info.lat) or track.lat
+                    track.lon = tonumber(info.lon) or track.lon
+                    if track.lat and track.lon and lat and lon then
+                        track.distance = calc_distance(lat, lon, track.lat, track.lon)
+                        if track.type == "DtD" and track.distance < dtd_distance then
+                            track.localarea = true
+                        else
+                            track.localarea = false
+                        end
+                    end
+
+                    -- Keep some useful info
+                    if info.node_details then
+                        track.model = info.node_details.model
+                        track.firmware_version = info.node_details.firmware_version
+                    end
+
+                    if info.lqm and info.lqm.info and info.lqm.info.trackers then
+                        for _, rtrack in pairs(info.lqm.info.trackers)
+                        do
+                            if myhostname == canonical_hostname(rtrack.hostname) then
+                                track.rev_ping_success_time = rtrack.ping_success_time
+                                track.rev_ping_quality = rtrack.ping_quality
+                                track.rev_quality = rtrack.quality
+                                break
+                            end
+                        end
+                    end
+
+                    if track.type == "RF" then
+                        rflinks[track.mac] = nil
+                        if info.lqm and info.lqm.info and info.lqm.info.trackers then
+                            rflinks[track.mac] = {}
+                            for _, rtrack in pairs(info.lqm.info.trackers)
+                            do
+                                if rtrack.type == "RF" or not rtrack.type then
+                                    local rhostname = canonical_hostname(rtrack.hostname)
+                                    if rtrack.ip and rtrack.routable then
+                                        local rdistance = nil
+                                        if tonumber(rtrack.lat) and tonumber(rtrack.lon) and lat and lon then
+                                            rdistance = calc_distance(lat, lon, tonumber(rtrack.lat), tonumber(rtrack.lon))
+                                        end
+                                        rflinks[track.mac][rtrack.ip] = {
+                                            ip = rtrack.ip,
+                                            hostname = rhostname,
+                                            distance = rdistance
+                                        }
+                                    end
+                                    if myhostname == rhostname then
+                                        track.rev_snr = (track.rev_snr and rtrack.snr) and round(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * rtrack.snr) or rtrack.snr
+                                    end
+                                end
+                            end
+                        end
+                    end
                 end
             end
-
-            -- Running average SNR
-            if station.signal and station.noise then
-                track.snr = round(av(track.snr, snr_run_avg, station.signal - station.noise, 0))
-            end
-
-            -- Running average estimate of link quality
-            local tx = station.tx_packets
-            local tx_retries = station.tx_retries
-            local tx_fail = station.tx_fail
-
-            if tx and track.tx and tx >= track.tx + quality_min_packets then
-                track.avg_tx = av(track.avg_tx, tx_quality_run_avg, tx, track.tx)
-                track.avg_tx_retries = av(track.avg_tx_retries, tx_quality_run_avg, tx_retries, track.tx_retries)
-                track.avg_tx_fail = av(track.avg_tx_fail, tx_quality_run_avg, tx_fail, track.tx_fail)
-
-                local bad = math.max((track.avg_tx_fail or 0), (track.avg_tx_retries or 0))
-                track.tx_quality = 100 * (1 - math.min(1, math.max(track.avg_tx > 0 and bad / track.avg_tx or 0, 0)))
-            end
-
-            track.tx = tx
-            track.tx_retries = tx_retries
-            track.tx_fail = tx_fail
-
-            track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, station.tx_bitrate, 0)
-            track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, station.rx_bitrate, 0)
         end
 
         -- Max RF distance
@@ -558,99 +485,6 @@ function lqm_run()
                         local gw = tostring(rt.gw)
                         if gw == track.ip or gw == track.canonical_ip then
                             track.routable = true
-                        end
-                    end
-                end
-
-                -- Refresh remote attributes periodically as this is expensive
-                -- We dont do it the very first time so we can populate the LQM state with a new node quickly
-                if track.refresh == 0 then
-                    refresh = true
-                    track.refresh = now
-                elseif now > track.refresh then
-
-                    -- Refresh the hostname periodically as it can change
-                    track.hostname = canonical_hostname(nixio.getnameinfo(track.ip)) or track.hostname
-                    track.canonical_ip = track.hostname and iplookup(track.hostname)
-
-                    local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?lqm=1\" -O - 2> /dev/null")
-                    local info = luci.jsonc.parse(raw:read("*a") or "")
-                    raw:close()
-
-                    wait_for_ticks(0)
-
-                    if not info then
-                        -- Failed to fetch information. Set time for retry and invalidate any information
-                        -- considered stale
-                        track.refresh = now + refresh_retry_timeout
-                        track.rev_snr = nil
-                        track.rev_ping_success_time = nil
-                        track.rev_ping_quality = nil
-                        track.rev_quality = nil
-                    else
-                        track.refresh = now + refresh_timeout()
-                        track.rev_lastseen = now
-
-                        -- Update the distance to the remote node
-                        track.lat = tonumber(info.lat) or track.lat
-                        track.lon = tonumber(info.lon) or track.lon
-                        if track.lat and track.lon and lat and lon then
-                            track.distance = calc_distance(lat, lon, track.lat, track.lon)
-                            if track.type == "DtD" and track.distance < dtd_distance then
-                                track.localarea = true
-                            else
-                                track.localarea = false
-                            end
-                        end
-
-                        -- Keep some useful info
-                        if info.node_details then
-                            track.model = info.node_details.model
-                            track.firmware_version = info.node_details.firmware_version
-                        end
-
-                        if info.lqm and info.lqm.info and info.lqm.info.trackers then
-                            for _, rtrack in pairs(info.lqm.info.trackers)
-                            do
-                                if myhostname == canonical_hostname(rtrack.hostname) then
-                                    track.rev_ping_success_time = rtrack.ping_success_time
-                                    track.rev_ping_quality = rtrack.ping_quality
-                                    track.rev_quality = rtrack.quality
-                                    break
-                                end
-                            end
-                        end
-
-                        -- Babel?
-                        if info.lqm and info.lqm.info then
-                            track.babel = info.lqm.info.babel
-                        end
-
-                        if track.type == "RF" then
-                            rflinks[track.mac] = nil
-                            if info.lqm and info.lqm.info and info.lqm.info.trackers then
-                                rflinks[track.mac] = {}
-                                for _, rtrack in pairs(info.lqm.info.trackers)
-                                do
-                                    if rtrack.type == "RF" or not rtrack.type then
-                                        local rhostname = canonical_hostname(rtrack.hostname)
-                                        if rtrack.ip and rtrack.routable then
-                                            local rdistance = nil
-                                            if tonumber(rtrack.lat) and tonumber(rtrack.lon) and lat and lon then
-                                                rdistance = calc_distance(lat, lon, tonumber(rtrack.lat), tonumber(rtrack.lon))
-                                            end
-                                            rflinks[track.mac][rtrack.ip] = {
-                                                ip = rtrack.ip,
-                                                hostname = rhostname,
-                                                distance = rdistance
-                                            }
-                                        end
-                                        if myhostname == rhostname then
-                                            track.rev_snr = (track.rev_snr and rtrack.snr) and round(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * rtrack.snr) or rtrack.snr
-                                        end
-                                    end
-                                end
-                            end
                         end
                     end
                 end
@@ -695,19 +529,17 @@ function lqm_run()
             end
 
             -- Ping addresses and penalize quality for excessively slow links
-            if track.ip and not track.user_blocks then
+            if track.ipv6ll and not track.user_blocks then
                 local ptime = nil
-                if track.ipv6ll then
-                    for line in io.popen(PING6 .. " -c 1 -W " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ipv6ll):lines()
-                    do
-                        local t = line:match("^64 bytes from .* time=(%S+) ms$")
-                        if t then
-                            track.routable = true
-                            ptime = tonumber(t) / 1000
-                        end
+                for line in io.popen(PING6 .. " -c 1 -W " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ipv6ll):lines()
+                do
+                    local t = line:match("^64 bytes from .* time=(%S+) ms$")
+                    if t then
+                        track.routable = true
+                        ptime = tonumber(t) / 1000
                     end
-                    wait_for_ticks(0)
                 end
+                wait_for_ticks(0)
 
                 track.ping_quality = track.ping_quality and (track.ping_quality + 1) or 100
                 if ptime then
