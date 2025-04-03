@@ -90,22 +90,20 @@
     const llist = [];
     const nlist = [];
     const hlist = lqm.getHidden();
-    const t = lqm.getTrackers();
-    const trackers = {};
-    for (mac in t) {
-        const tmac = t[mac];
-        if (tmac.ip) {
-            trackers[tmac.ip] = tmac;
-        }
-    }
-    for (let remoteIP in trackers)
+    const trackers = lqm.getTrackers();
+    for (let mac in trackers)
     {
-        const tracker = trackers[remoteIP];
+        const tracker = trackers[mac];
         let name = tracker && tracker.hostname;
         if (!name) {
-            name = canonicalLookupIP(remoteIP);
-            if (!name) {
-                name = `|${remoteIP}`;
+            if (tracker.ip) {
+                name = canonicalLookupIP(tracker.ip);
+                if (!name) {
+                    name = `|${tracker.ip}`;
+                }
+            }
+            else {
+                name = `|${tracker.mac}`;
             }
         }
         if (tracker.type == "DtD" && tracker.distance < 100) {

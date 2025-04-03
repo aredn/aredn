@@ -54,7 +54,6 @@ local default_max_distance = 80550 -- 50.1 miles
 local rts_threshold = 1 -- RTS setting when hidden nodes are detected
 local ping_penalty = 5 -- Cost of a failed ping to measure of a link's quality
 
-local NFT = "/usr/sbin/nft"
 local IW = "/usr/sbin/iw"
 local UFETCH = "/bin/uclient-fetch"
 local IPCMD = "/sbin/ip"
@@ -128,8 +127,6 @@ end
 local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode")
 local myip = uci.cursor():get("network", "wifi", "ipaddr")
 local is_supernode = uci.cursor():get("aredn", "@supernode[0]", "enable") == "1"
-
-local wgsupport = nixio.fs.stat("/usr/bin/wg") and true or false
 
 -- Clear old data
 local f = io.open("/tmp/lqm.info", "w")
@@ -242,6 +239,7 @@ function lqm_run()
 
         local cursor = uci.cursor()
         local cursorm = uci.cursor("/etc/config.mesh")
+        local refresh = false
 
         local lat = cursor:get("aredn", "@location[0]", "lat")
         local lon = cursor:get("aredn", "@location[0]", "lon")
@@ -291,22 +289,6 @@ function lqm_run()
             end
         end
 
-        -- Find the wireguard tunnels that are active
-        local wgtuns = {}
-        if wgsupport then
-            local f = io.popen("/usr/bin/wg show all latest-handshakes")
-            if f then
-                for line in f:lines()
-                do
-                    local iface, handshake = line:match("^(%S+)%s+%S+%s+(%d+)%s*$")
-                    if iface and tonumber(handshake) + wireguard_alive_time > os.time() then
-                        wgtuns[iface] = true
-                    end
-                end
-                f:close()
-            end
-        end
-
         -- Update RF information
         if radiomode == "mesh" then
             local kv = {
@@ -342,29 +324,52 @@ function lqm_run()
             end
         end
 
-        -- Update running averages (BROKEN - FIX ME)
+        -- Update running averages
         for _, track in pairs(tracker)
         do
             if track.type == "RF" then
-                local tx = track.tx_packets
-                local tx_retries = track.tx_retries
-                local tx_fail = track.tx_fail
-
-                if tx and track.tx and tx >= track.tx + quality_min_packets then
-                    track.avg_tx = av(track.avg_tx, tx_quality_run_avg, tx, track.tx)
-                    track.avg_tx_retries = av(track.avg_tx_retries, tx_quality_run_avg, tx_retries, track.tx_retries)
-                    track.avg_tx_fail = av(track.avg_tx_fail, tx_quality_run_avg, tx_fail, track.tx_fail)
-
-                    local bad = math.max((track.avg_tx_fail or 0), (track.avg_tx_retries or 0))
-                    track.tx_quality = 100 * (1 - math.min(1, math.max(track.avg_tx > 0 and bad / track.avg_tx or 0, 0)))
+                if track.tx_packets then
+                    if not track.last_tx_packets then
+                        track.avg_tx = 0
+                    else
+                        track.avg_tx = track.avg_tx * tx_quality_run_avg + (track.tx_packets - track.last_tx_packets) * (1 - tx_quality_run_avg)
+                    end
+                    track.last_tx_packets = track.tx_packets
                 end
-
-                track.tx = tx
-                track.tx_retries = tx_retries
-                track.tx_fail = tx_fail
-
-                track.tx_bitrate = av(track.tx_bitrate, bitrate_run_avg, track.tx_bitrate, 0)
-                track.rx_bitrate = av(track.rx_bitrate, bitrate_run_avg, track.rx_bitrate, 0)
+                if track.tx_retries then
+                    if not track.last_tx_retries then
+                        track.avg_tx_retries = 0
+                    else
+                        track.avg_tx_retries = track.avg_tx_retries * tx_quality_run_avg + (track.tx_retries - track.last_tx_retries) * (1 - tx_quality_run_avg)
+                    end
+                    track.last_tx_retries = track.tx_retries
+                end
+                if track.tx_fail then
+                    if not track.last_tx_fail then
+                        track.avg_tx_fail = 0
+                    else
+                        track.avg_tx_fail = track.avg_tx_fail * tx_quality_run_avg + (track.tx_fail - track.last_tx_fail) * (1 - tx_quality_run_avg)
+                    end
+                    track.last_tx_fail = track.tx_fail
+                end
+                if track.tx_bitrate then
+                    if not track.avg_tx_bitrate then
+                        track.avg_tx_bitrate = track.avg_tx_bitrate
+                    else
+                        track.avg_tx_bitrate = track.avg_tx_bitrate * bitrate_run_avg + track.tx_bitrate * (1 - bitrate_run_avg)
+                    end
+                end
+                if track.rx_bitrate then
+                    if not track.avg_rx_bitrate then
+                        track.avg_rx_bitrate = track.avg_rx_bitrate
+                    else
+                        track.avg_rx_bitrate = track.avg_rx_bitrate * bitrate_run_avg + track.rx_bitrate * (1 - bitrate_run_avg)
+                    end
+                end
+                if track.avg_tx > 0 then
+                    local bad = math.max(track.avg_tx_fail or 0, track.avg_tx_retries or 0)
+                    track.tx_quality = 100 * (1 - math.min(1, bad / track.avg_tx))
+                end
             end
         end
 
@@ -395,7 +400,24 @@ function lqm_run()
                     track.rev_lastseen = now
 
                     track.hostname = info.node:lower()
-                    track.ip = iplookup(track.hostname)
+                    track.canonical_ip = iplookup(track.hostname)
+                    if track.type == "Wireguard" then
+                        local address = cursor:get_all("network", track.device, "addresses")[1]
+                        local abc, d = address:match("^(%d+%.%d+%.%d+%.)(%d+)")
+                        if track.device:match("^wgs") then
+                            track.ip = abc .. tonumber(d) - 1
+                        else
+                            track.ip = abc .. tonumber(d) + 1
+                        end
+                    else
+                        for _, iface in ipairs(info.interfaces)
+                        do
+                            if iface.mac and iface.mac:lower() == track.mac then
+                                track.ip = iface.ip
+                                break
+                            end
+                        end
+                    end
 
                     -- Update the distance to the remote node
                     track.lat = tonumber(info.lat) or track.lat
@@ -462,7 +484,6 @@ function lqm_run()
 
         -- Update link tracking state
         local ip2tracker = {}
-        local refresh = false
         for _, track in pairs(tracker)
         do
             -- Clear route counters
