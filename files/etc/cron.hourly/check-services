@@ -2,7 +2,7 @@
 --[[
 
 	Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2022-2023 Tim Wilkinson
+	Copyright (C) 2022-2025 Tim Wilkinson
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -38,68 +38,25 @@ require("uci")
 require("aredn.services")
 require("aredn.utils")
 
-local cursor = uci.cursor()
-
--- Work out the differences between the validated state and the current state
+local ip = uci.cursor("/etc/config.mesh"):get("setup", "globals", "wifi_ip")
 local names, hosts, services = aredn.services.get(true)
-local nnames = false
-for _, name in ipairs(names)
+local data = ""
+for _, host in ipairs(names)
 do
-    if cnames[name] then
-        cnames[name] = nil
-    else
-        nnames = true
-    end
+    data = data .. ip .. "\t" .. host .. "\n"
 end
-local nservices = false
-for _, service in ipairs(services)
+for _, host in ipairs(hosts)
 do
-    if cservices[service] then
-        cservices[service] = nil
-    else
-        nservices = true
+    local h = host.host:gsub("%.local%.mesh$", "")
+    if not (h:match("^xlink%d") or h:match("^mid%d")) then
+        data = data .. host.ip .. "\t" .. h .. "\n"
     end
 end
-
-function not_empty(h)
-    for _, _ in pairs(h)
-    do
-        return true
-    end
-    return false
-end
-
-local change = false
-
--- Apply Arednlink changes
-if nnames or not_empty(cnames) or nservices or not_empty(cservices) then
-    local ip = uci.cursor("/etc/config.mesh"):get("setup", "globals", "wifi_ip")
-    local data = ""
-    for _, host in ipairs(names)
-    do
-        data = data .. ip .. "\t" .. host .. "\n"
-    end
-    for i, host in ipairs(hosts)
-    do
-        local h = host.host:gsub("%.local%.mesh$", "")
-        if not (h:match("^xlink%d") or h:match("^mid%d")) then
-            data = data .. host.ip .. "\t" .. h .. "\n"
-        end
-    end
-    write_all("/etc/arednlink/hosts", data)
-    change = true
-end
-if nservices or not_empty(cservices) then
-    if #services > 0 then
-        write_all("/etc/arednlink/services", table.concat(services, "\n") .. "\n")
-    else
-        write_all("/etc/arednlink/services", "")
-    end
-    change = true
-end
+local _, hosts_changed = write_all("/etc/arednlink/hosts", data, true)
+local _, services_changed = write_all("/etc/arednlink/services", #services == 0 and "" or (table.concat(services, "\n") .. "\n"), true)
 
 -- If services have changed
-if change then
+if hosts_changed or services_changed then
     print("Change")
     os.execute("/usr/local/bin/restart-services.sh --force arednlink")
 else

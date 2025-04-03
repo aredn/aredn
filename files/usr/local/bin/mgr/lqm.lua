@@ -697,15 +697,17 @@ function lqm_run()
             -- Ping addresses and penalize quality for excessively slow links
             if track.ip and not track.user_blocks then
                 local ptime = nil
-                for line in io.popen(PING6 .. " -c 1 -W " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ipv6ll):lines()
-                do
-                    local t = line:match("^64 bytes from .* time=(%S+) ms$")
-                    if t then
-                        track.routable = true
-                        ptime = tonumber(t) / 1000
+                if track.ipv6ll then
+                    for line in io.popen(PING6 .. " -c 1 -W " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ipv6ll):lines()
+                    do
+                        local t = line:match("^64 bytes from .* time=(%S+) ms$")
+                        if t then
+                            track.routable = true
+                            ptime = tonumber(t) / 1000
+                        end
                     end
+                    wait_for_ticks(0)
                 end
-                wait_for_ticks(0)
 
                 track.ping_quality = track.ping_quality and (track.ping_quality + 1) or 100
                 if ptime then

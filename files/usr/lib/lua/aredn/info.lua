@@ -340,7 +340,7 @@ function model.local_services()
 			services[#services + 1] = {
 				name = name,
 				protocol = protocol,
-				ip = ip
+				ip = ip,
 				link = link:match(":0/") and "" or link
 			}
 		end
@@ -362,7 +362,7 @@ function model.all_services()
 				services[#services + 1] = {
 					name = name,
 					protocol = protocol,
-					ip = ip
+					ip = ip,
 					link = link:match(":0/") and "" or link
 				}
 			end
