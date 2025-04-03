@@ -44,7 +44,7 @@ export function getNodeList()
             if (entry !== "." && entry !== "..") {
                 let f = fs.open(`/var/run/arednlink/hosts/${entry}`);
                 if (f) {
-                    const m = match(re, f.read("line"));
+                    const m = match(f.read("line"), re);
                     if (m) {
                         const n = m[1];
                         const ln = lc(n);
