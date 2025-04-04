@@ -478,10 +478,7 @@ if is_supernode and tun_start and tun_start:match("^172%.31%.") then
     cm:set("wireguard", "@network[0]", "start", tun_start)
     cm:commit("wireguard")
 end
-local def_tun_weight = tonumber(cm:get("aredn", "@tunnel[0]", "weight") or 1) or 0
-if is_supernode then
-    def_tun_weight = 0
-end
+local def_tun_cost = tonumber(cm:get("babel", "tunnel", "rxcost") or 1) or 0
 local wgclients = 0
 cm:foreach("wireguard", "client",
     function(s)
@@ -490,9 +487,9 @@ cm:foreach("wireguard", "client",
             local addr, port = s.clientip:match("^(%d+%.%d+%.%d+%.%d+):(%d+)$")
             local a, b, c, d = addr:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
             local ll = string.format("fe80::%02x%02x:%02x%02x/64", a, b, c, d)
-            local w = s.weight or def_tun_weight
+            local w = s.cost or def_tun_cost
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                string.format("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption weight '%s'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\n",
+                string.format("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\n",
                     wgclients, server_priv, w, port, addr, ll)
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
                 string.format("config wireguard_wgc%d\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
@@ -510,9 +507,9 @@ cm:foreach("wireguard", "server",
             d = tonumber(d) + 1
             local a, b, c = abc:match("(%d+)%.(%d+)%.(%d+)")
             local ll = string.format("fe80::%02x%02x:%02x%02x/64", a, b, c, d)
-            local w = s.weight or def_tun_weight
+            local w = s.cost or def_tun_cost
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
-                string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption weight '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\n",
+                string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\n",
                     wgservers, client_priv, w, (abc .. "." .. d), ll)
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
                 string.format("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
@@ -1178,7 +1175,6 @@ end
 -- Handle special cases
 local config_special = {
     dmz_mode = c:get("setup", "globals", "dmz_mode"),
-    tunnel_weight = c:get("aredn", "@tunnel[0]", "weight"),
     supernode_enable = c:get("aredn", "@supernode[0]", "enable"),
     watchdog_enable = c:get("aredn", "@watchdog[0]", "enable"),
     watchdog_pings = c:get("aredn", "@watchdog[0]", "ping_addresses"),
@@ -1278,7 +1274,6 @@ do
             end
         elseif file == "network" then
             changes.network = true
-            changes.tunnels = true -- restarting network devices requires tunnels to restart
             changes.lqm = true -- and lqm because device assignment could change
         elseif file == "dhcp" then
             changes.dnsmasq = true
@@ -1305,8 +1300,6 @@ do
             else
                 changes.wireless = true
             end
-        elseif file == "wireguard" then
-            changes.lqm = true
         else
             changes.reboot = true
         end
