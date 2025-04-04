@@ -129,7 +129,6 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         }
         if (neighbor) {
             const n = neighbor.n;
-            const l = neighbor.l;
         %}
         <div class="neighbor">
             <div class="o">
@@ -165,7 +164,9 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>{{n.firmware_version}}</div>
                     <div>firmware</div>
                 </div>
-                <div>
+                <div class="i">
+                    <div>{{n.ipv6ll}}</div>
+                    <div>link address</div>
                 </div>
             </div>
             {% } %}
@@ -184,23 +185,20 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                 </div>
             </div>
             {%
-                if (l && l.lossMultiplier) {
-                    const lq = min(100, int(100 * l.linkQuality * 65536 / l.lossMultiplier));
-                    const nlq = min(100, int(100 * l.neighborLinkQuality * 65536 / l.lossMultiplier));
-                    const etx = 10000.0 / (lq * nlq);
+                if (n.lq) {
             %}
             <div class="cols">
                 <div class="i">
-                    <div>{{lq}}%</div>
-                    <div>lq | rx success</div>
+                    <div>{{n.lq}}%</div>
+                    <div>rx success</div>
                 </div>
                 <div class="i">
-                    <div>{{nlq}}%</div>
-                    <div>nlq | tx success</div>
+                    <div>{{n.rxcost}}</div>
+                    <div>rx cost</div>
                 </div>
                 <div class="i">
-                    <div>{{sprintf("%.1f", etx)}}</div>
-                    <div>etx</div>
+                    <div>{{n.txcost}}</div>
+                    <div>tx cost</div>
                 </div>
             </div>
             {% } %}

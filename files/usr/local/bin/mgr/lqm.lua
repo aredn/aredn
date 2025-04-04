@@ -180,6 +180,20 @@ function update_deny_list(tracker)
     return true
 end
 
+function reach_to_lq(reach)
+    reach = tonumber(reach, 16)
+    local count = 0
+    local flag = 1
+    for i = 1, 16
+    do
+        if nixio.bit.check(reach, flag) then
+            count = count + 1
+        end
+        flag = flag * 2
+    end
+    return math.ceil(100 * count / 16)
+end
+
 function lqm_run()
     local noise = -95
     local tracker = {}
@@ -273,18 +287,31 @@ function lqm_run()
     
         for line in io.popen("echo dump-neighbors | /usr/bin/socat UNIX-CLIENT:/var/run/babel.sock -"):lines()
         do
-            local address, device = line:match("^add.*address (%S+) if (%S+)")
+            local address, device, reach, rxcost, txcost = line:match("^add.*address (%S+) if (%S+) reach (%S+) .* rxcost (%S+) txcost (%S+)")
             if address then
                 local type = device2type(device)
                 local mac = luci.ip.new(address):tomac():string():lower()
-                if type and mac and not tracker[mac] then
-                    tracker[mac] = {
+                local track = tracker[mac]
+                if not track and type then
+                    track = {
                         type = type,
                         device = device,
                         mac = mac,
                         ipv6ll = address,
                         refresh = 0
                     }
+                    tracker[mac] = track
+                end
+                if track then
+                    track.lq = reach_to_lq(reach)
+                    track.rxcost = tonumber(rxcost)
+                    track.txcost = tonumber(txcost)
+                    if type == "Wireguard" then
+                        local rtt = line:match("rtt (%S+)")
+                        if rtt then
+                            track.rtt = tonumber(rtt)
+                        end
+                    end
                 end
             end
         end
