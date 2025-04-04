@@ -43,8 +43,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
         uciMesh.set("wireguard", "@network[0]", "start", request.args.tunnel_range_start);
         uciMesh.commit("wireguard");
     }
-    if ("tunnel_weight" in request.args) {
-        uciMesh.set("aredn", "@tunnel[0]", "weight", request.args.tunnel_weight);
+    if ("tunnel_rxcost" in request.args) {
+        uciMesh.set("babel", "tunnel", "rxcost", request.args.tunnel_rxcost);
         uciMesh.commit("aredn");
     }
     if ("tunnels" in request.args) {
@@ -68,7 +68,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("wireguard", t.index, "clientip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 1}`);
                     uciMesh.set("wireguard", t.index, "serverip", `${n[0]}.${n[1]}.${n[2]}.${n[3] + 2}`);
                     uciMesh.set("wireguard", t.index, "netip", t.network);
-                    uciMesh.set("wireguard", t.index, "weight", t.weight);
+                    uciMesh.set("wireguard", t.index, "cost", t.cost);
                     uciMesh.set("wireguard", t.index, "contact", configuration.escapeString(trim(t.notes)));
                     break;
                 }
@@ -81,7 +81,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("wireguard", t.index, "name", t.name);
                     uciMesh.set("wireguard", t.index, "key", t.key);
                     uciMesh.set("wireguard", t.index, "clientip", t.network);
-                    uciMesh.set("wireguard", t.index, "weight", t.weight);
+                    uciMesh.set("wireguard", t.index, "cost", t.cost);
                     uciMesh.set("wireguard", t.index, "contact", configuration.escapeString(trim(t.notes)));
                     break;
                 }
@@ -148,7 +148,7 @@ uciMesh.foreach("wireguard", "server", a => {
         notes: configuration.unescapeString(a.contact || ""),
         network: a.netip,
         passwd: a.passwd,
-        weight: a.weight ?? "",
+        cost: a.cost ?? "",
         up: length(filter(up.wg, v => index(a.passwd, v) !== -1)) === 0 ? false : true
     });
 });
@@ -162,7 +162,7 @@ uciMesh.foreach("wireguard", "client", a => {
         network: a.clientip,
         key: a.key,
         passwd: replace(a.key, /^[A-Za-z0-9+\/]+=/, ""),
-        weight: a.weight ?? "",
+        cost: a.cost ?? "",
         up: length(filter(up.wg, v => index(a.key, v) !== -1)) === 0 ? false : true
     });
     delete available[a.clientip];
@@ -233,7 +233,7 @@ function t2t(type)
                                     {% } %}
                                     <input type="text" name="password" required pattern="{{wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}}" placeholder="{{wireguard ? 'Wireguard key' : 'Password'}}" value="{{t.passwd}}" {{t.type === "ws" ? "readonly" : ""}}>
                                     <input type="text" name="network" required pattern="{{constants.patIP}}{{wireguard ? ':' + constants.patPort : ''}}" placeholder="{{wireguard ? 'Network:Port' : 'Network'}}" value="{{t.network}}" {{client ? "" : "readonly"}}>
-                                    <input type="text" name="weight" pattern="([0-9]|[1-9][0-9])" placeholder="Wgt" value="{{t.weight}}">
+                                    <input type="text" name="cost" pattern="([0-9]|[1-9][0-9])" placeholder="Cost" value="{{t.cost}}">
                                 </div>
                                 <div class="cols">
                                     <input type="text" name="notes" placeholder="Notes..." value="{{t.notes}}">
@@ -270,14 +270,14 @@ function t2t(type)
             {% if (uciMesh.get("aredn", "@supernode[0]", "enable") !== "1") { %}
             <div class="cols">
                 <div>
-                    <div class="o">Default Tunnel Weight</div>
+                    <div class="o">Default Tunnel Cost</div>
                     <div class="m">Default cost of using a tunnel</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_weight" type="text" size="4" placeholder="1" pattern="\d+" hx-validate="true" value="{{uciMesh.get("aredn", "@tunnel[0]", "weight")}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_rxcost" type="text" size="4" placeholder="1" pattern="\d+" hx-validate="true" value="{{uciMesh.get("babel", "tunnel", "rxcost")}}">
                 </div>
             </div>
-            {{_H("The tunnel weight is the cost of routing traffic via a tunnel. The higher the weight, the less likely a tunnel is used to reach a destination.
+            {{_H("The cost of routing traffic via a tunnel. The higher the cost, the less likely a tunnel is used to reach a destination.
 This value is used by default, but each tunnel may overide it.
 ")}}
             {% } %}
@@ -308,7 +308,7 @@ This value is used by default, but each tunnel may overide it.
                     const network = htmx.find(t, "input[name=network]");
                     const notes = htmx.find(t, "input[name=notes]");
                     const enable = htmx.find(t, "input[name=enable]");
-                    const weight = htmx.find(t, "input[name=weight]");
+                    const cost = htmx.find(t, "input[name=cost]");
                     tunnels.push({
                         index: index,
                         type: type,
@@ -318,7 +318,7 @@ This value is used by default, but each tunnel may overide it.
                         network: network.value,
                         passwd: password.value,
                         key: key && key.value,
-                        weight: weight.value
+                        cost: cost.value
                     });
                 }
                 if (type === "ws") {
@@ -418,7 +418,7 @@ This value is used by default, but each tunnel may overide it.
             ${type === "ws" ? '<input type="hidden" name="key" value="' + key + '">' : ''}
             <input type="text" name="password" required pattern="${wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}" placeholder="${wireguard ? 'Wireguard key' : 'Password'}" ${type === "ws" ? "readonly" : ""} value="${password}">
             <input type="text" name="network" required pattern="((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}${wireguard ? ':{{constants.patPort}}' : ''}" placeholder="${wireguard ? 'Network:Port' : 'Network'}" ${client ? "" : "readonly"} value="${network}">
-            <input type="text" name="weight" pattern="([0-9]|[1-9][0-9])" placeholder="Wgt" value="">
+            <input type="text" name="cost" pattern="([0-9]|[1-9][0-9])" placeholder="Cost" value="">
         </div>
         <div class="cols">
             <input type="text" name="notes" placeholder="Notes..." value="">

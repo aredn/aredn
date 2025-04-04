@@ -1,0 +1,78 @@
+#!/bin/sh
+true <<'LICENSE'
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2025 Tim Wilkinson
+  See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+LICENSE
+
+cat > /tmp/migrate_weights << __EOF__
+
+require("uci")
+
+local c = uci.cursor("/etc/config.mesh")
+
+c:foreach("wireguard", "server",
+    function(server)
+        local name = server[".name"]
+        local weight = c:get("wireguard", name, "weight")
+        if weight then
+            c:set("wireguard", name, "cost", 100 * tonumber(weight))
+            c:delete("wireguard", name, "weight")
+        end
+    end
+)
+c:foreach("wireguard", "client",
+    function(client)
+        local name = client[".name"]
+        local weight = c:get("wireguard", name, "weight")
+        if weight then
+            c:set("wireguard", name, "cost", 100 * tonumber(weight))
+            c:delete("wireguard", name, "weight")
+        end
+    end
+)
+c:foreach("xlink", "interface",
+    function(iface)
+        local name = iface[".name"]
+        local weight = c:get("xlink", name, "weight")
+        if weight then
+            c:set("xlink", name, "cost", 150 * tonumber(weight))
+            c:delete("xlink", name, "weight")
+        end
+    end
+)
+
+c:commit("wireguard")
+c:commit("xlink")
+
+__EOF__
+/usr/bin/lua /tmp/migrate_weights
+rm -f /tmp/migrate_weights
