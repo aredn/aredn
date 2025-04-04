@@ -107,14 +107,6 @@ function gettime()
     return sec + usec / 1000000;
 end
 
-function av(c, f, n, o)
-    if c and o and n then
-        return f * c + (1 - f) * (n - o)
-    else
-        return n
-    end
-end
-
 function round(v)
     return math.floor(v + 0.5)
 end
@@ -747,12 +739,12 @@ function lqm_run()
                 distance = distance,
                 coverage = coverage,
                 hidden_nodes = hidden_nodes,
-                total_babel_route_count = total_babel_route_count
+                total_route_count = total_babel_route_count
             }, true))
             f:close()
         end
 
-        wait_for_ticks(refresh and 1 or 60) -- 1 second or 1 minute
+        wait_for_ticks(refresh and 1 or 30) -- 1 second or 30
     end
     os.remove("/tmp/lqm.reset")
 end
