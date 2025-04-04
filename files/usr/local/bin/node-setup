@@ -117,7 +117,6 @@ local cfg = {
     wan_network_config = "",
     dtdlink_network_config = "",
     wifi_network_config = "",
-    tun_network_config = "",
     wireguard_network_config = "",
     dtdlink_interfaces = "\tlist network 'dtdlink'",
     vpn_interfaces = "",
@@ -470,28 +469,14 @@ do
     cfg[net .. "_network_config"] = config
 end
 
--- Generate the tunnel configurations
 local is_supernode = cm:get("aredn", "@supernode[0]", "enable") == "1"
-local tun_port = cm:get("vtun", "@options[0]", "port")
-if tun_port then
-    cfg.tun_network_config = cfg.tun_network_config .. "config options\n\toption port '" .. tun_port .. "'\n\n"
-end
-local tun_start = cm:get("vtun", "@network[0]", "start")
-local tun_dns = cm:get("vtun", "@network[0]", "dns")
-if tun_start or tun_dns then
-    cfg.tun_network_config = cfg.tun_network_config .. "config network\n"
-    if tun_start then
-        if is_supernode and tun_start:match("^172%.31%.") then
-            tun_start = "172.30." .. tun_start:sub(8, #tun_start)
-            cm:set("vtun", "@network[0]", "start", tun_start)
-            cm:commit("vtun")
-        end
-        cfg.tun_network_config = cfg.tun_network_config .. "\toption start '" .. tun_start .. "'\n"
-    end
-    if tun_dns then
-        cfg.tun_network_config = cfg.tun_network_config .. "\toption dns '" .. tun_dns .. "'\n"
-    end
-    cfg.tun_network_config = cfg.tun_network_config .. "\n"
+
+-- Generate the tunnel configurations
+local tun_start = cm:get("wireguard", "@network[0]", "start")
+if is_supernode and tun_start and tun_start:match("^172%.31%.") then
+    tun_start = "172.30." .. tun_start:sub(8, #tun_start)
+    cm:set("wireguard", "@network[0]", "start", tun_start)
+    cm:commit("wireguard")
 end
 local def_tun_weight = tonumber(cm:get("aredn", "@tunnel[0]", "weight") or 1) or 0
 if is_supernode then
@@ -517,7 +502,7 @@ cm:foreach("wireguard", "client",
     end
 )
 local wgservers = 0
-cm:foreach("vtun", "server",
+cm:foreach("wireguard", "server",
     function(s)
         if s.enabled == "1" then
             local server_pub, client_priv, client_pub = s.passwd:match("^(.+=)(.+=)(.+=)$")
@@ -571,7 +556,7 @@ nixio.fs.mkdir("/tmp/new_config")
 for file in nixio.fs.glob("/etc/config.mesh/*")
 do
     local bfile = nixio.fs.basename(file)
-    if bfile == "setup" or bfile == "vtun" or bfile == "wireguard" or bfile == "xlink" or bfile == "firewall.user" or bfile:match("^_setup") or bfile:match("^aliases") then
+    if bfile == "setup" or bfile == "wireguard" or bfile == "xlink" or bfile == "firewall.user" or bfile:match("^_setup") or bfile:match("^aliases") then
         -- Dont copy these
     else
         local f = io.open("/tmp/new_config/" .. bfile, "w")
@@ -581,9 +566,6 @@ do
         end
     end
 end
-
--- Tunnels
-write_all("/tmp/new_config/vtun", expand_vars("<tun_network_config>"))
 
 local nc = uci.cursor("/tmp/new_config")
 
@@ -1323,7 +1305,7 @@ do
             else
                 changes.wireless = true
             end
-        elseif file == "vtun" then
+        elseif file == "wireguard" then
             changes.lqm = true
         else
             changes.reboot = true

@@ -1,0 +1,79 @@
+#!/bin/sh
+true <<'LICENSE'
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2025 Tim Wilkinson
+  See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+LICENSE
+
+if [ ! -f /etc/config.mesh/vtun ]; then
+    exit 0
+fi
+touch /etc/config.mesh/wireguard
+
+cat > /tmp/migrate_vtun << __EOF__
+
+require("uci")
+
+local c = uci.cursor("/etc/config.mesh")
+
+local network = c:add("wireguard", "network")
+local start = c:get("vtun", "@network[0]", "start")
+if start then
+    c:set("wireguard", network, "start", start)
+end
+local dns = c:get("vtun", "@network[0]", "dns")
+if dns then
+    c:set("wireguard", network, "dns", dns)
+end
+
+c:foreach("vtun", "server",
+    function(server)
+        if server.netip:match(":") then
+            local name = server[".name"]
+            c:set("wireguard", name, "server")
+            c:set("wireguard", name, "enabled", server.enabled)
+            c:set("wireguard", name, "host", server.host)
+            c:set("wireguard", name, "passwd", server.passwd)
+            c:set("wireguard", name, "node", server.node)
+            c:set("wireguard", name, "clientip", server.clientip)
+            c:set("wireguard", name, "serverip", server.serverip)
+            c:set("wireguard", name, "netip", server.netip)
+            c:set("wireguard", name, "weight", server.weight)
+        end
+    end
+)
+
+c:commit("wireguard")
+os.remove("/etc/config.mesh/vtun")
+
+__EOF__
+/usr/bin/lua /tmp/migrate_vtun
+rm -f /tmp/migrate_vtun
