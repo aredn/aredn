@@ -49,7 +49,7 @@ function shell(cmd)
     return r ~= "" and r:gsub("^%s+", ""):gsub("%s+$", "") or null
 end
 
-function vtun_network()
+function tunnel_network()
     local mac = aredn.hardware.get_interface_mac("eth0")
     local a, b = mac:match("^..:..:..:..:(..):(..)$")
     return "172.31." .. "" .. tonumber(b, 16) .. "." .. ((tonumber(a, 16) * 4) % 256)
@@ -142,14 +142,11 @@ local config = {
     dropbear = {},
     snmpd = {},
     uhttpd = {},
-    vtun = {
-        defaults = {},
-        options = {},
+    wireguard = {
         network = {
-            start = vtun_network()
+            start = tunnel_network()
         }
     },
-    wireguard = {},
     xlink = {}
 }
 
