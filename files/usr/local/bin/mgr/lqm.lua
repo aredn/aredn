@@ -32,7 +32,7 @@
 
 --]]
 
-local luciip = require("luci.ip")
+require("luci.ip")
 require("aredn.info")
 
 local refresh_timeout_base = 12 * 60 -- refresh high cost data every 12 minutes
@@ -259,7 +259,7 @@ function lqm_run()
             if ip then
                 -- Filter neighbors so we ignore entries which aren't immediately routable
                 local routable = false;
-                local rt = luciip.route(ip)
+                local rt = luci.ip.route(ip)
                 if rt and tostring(rt.gw) == ip then
                     routable = true;
                 end
@@ -512,7 +512,7 @@ function lqm_run()
                     track.ipv6ll = ipv6.ipv6
                 elseif track.type == "Wireguard" and track.ip then
                     local a, b, c, d = track.ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
-                    track.ipv6ll = string.format("fe80::%02x%02x:%02x%02x", a, b, c, d)
+                    track.ipv6ll = luci.ip.MAC(string.format("00:00:%02x:%02x:%02x:%02x", a, b, c, d)):tolinklocal():string()
                 end
             end
 
@@ -562,7 +562,7 @@ function lqm_run()
 
                 -- Update if link is routable
                 track.routable = false
-                local rts = luciip.routes({ dest_exact = track.canonical_ip or track.ip })
+                local rts = luci.ip.routes({ dest_exact = track.canonical_ip or track.ip })
                 if #rts then
                     for _, rt in ipairs(rts)
                     do
