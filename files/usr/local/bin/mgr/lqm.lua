@@ -32,7 +32,7 @@
 
 --]]
 
-local luciip = require("luci.ip")
+require("luci.ip")
 require("aredn.info")
 
 local refresh_timeout_base = 12 * 60 -- refresh high cost data every 12 minutes
@@ -276,7 +276,7 @@ function lqm_run()
             local address, device = line:match("^add.*address (%S+) if (%S+)")
             if address then
                 local type = device2type(device)
-                local mac = luciip.new(address):tomac():string():lower()
+                local mac = luci.ip.new(address):tomac():string():lower()
                 if type and mac and not tracker[mac] then
                     tracker[mac] = {
                         type = type,
@@ -496,7 +496,7 @@ function lqm_run()
 
                 -- Update if link is routable
                 track.routable = false
-                local rts = luciip.routes({ dest_exact = track.canonical_ip or track.ip })
+                local rts = luci.ip.routes({ dest_exact = track.canonical_ip or track.ip })
                 if #rts then
                     for _, rt in ipairs(rts)
                     do
