@@ -55,6 +55,8 @@ local function get(validate)
     local hosts = {}
     local services = {}
 
+    local cm = uci.cursor("/etc/config.mesh")
+
     -- canonical names for this node
     -- (they should up in reverse order, make the official name last)
     local name = aredn.info.get_nvram("tactical")
@@ -64,9 +66,11 @@ local function get(validate)
     name = aredn.info.get_nvram("node")
     if name ~= "" then
         names[#names + 1] = name
+        -- add supernode
+        if cm:get("aredn", "@supernode[0]", "enable") == "1" then
+            names[#names + 1] = "supernode." .. name
+        end
     end
-
-    local cm = uci.cursor("/etc/config.mesh")
 
     local dmz_mode = cm:get("setup", "globals", "dmz_mode")
     if dmz_mode ~= "0" then
