@@ -36,6 +36,7 @@
 --]]
 
 require("nixio")
+require("luci.ip")
 require("aredn.utils")
 require('aredn.info')
 require("aredn.hardware")
@@ -486,7 +487,7 @@ cm:foreach("wireguard", "client",
             local server_priv, _, _, client_pub = s.key:match("^(.+=)(.+=)(.+=)(.+=)$")
             local addr, port = s.clientip:match("^(%d+%.%d+%.%d+%.%d+):(%d+)$")
             local a, b, c, d = addr:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")
-            local ll = string.format("fe80::%02x%02x:%02x%02x/64", a, b, c, d)
+            local ll = luci.ip.MAC(string.format("00:00:%02x:%02x:%02x:%02x", a, b, c, d)):tolinklocal():string() .. "/64"
             local w = s.cost or def_tun_cost
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
                 string.format("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\n",
@@ -506,7 +507,7 @@ cm:foreach("wireguard", "server",
             local abc, d, p = s.netip:match("^(%d+%.%d+%.%d+)%.(%d+):(%d+)")
             d = tonumber(d) + 1
             local a, b, c = abc:match("(%d+)%.(%d+)%.(%d+)")
-            local ll = string.format("fe80::%02x%02x:%02x%02x/64", a, b, c, d)
+            local ll = luci.ip.MAC(string.format("00:00:%02x:%02x:%02x:%02x", a, b, c, d)):tolinklocal():string() .. "/64"
             local w = s.cost or def_tun_cost
             cfg.wireguard_network_config = cfg.wireguard_network_config ..
                 string.format("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\n",
