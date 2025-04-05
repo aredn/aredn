@@ -1131,18 +1131,18 @@ if h and e then
         h:write(cfg.lan_ip .. "\tlocalnode\n")
         h:write(cfg.wifi_ip .. "\t" .. node .. " " .. tactical .. "\n")
         ah:write(cfg.wifi_ip .. "\t" .. node .. "\n")
-        ah:write(cfg.lan_ip .. "\tlan." .. node .. "\n")
+        ah:write(cfg.lan_ip .. "\tlan." .. node .. ".local.mesh\n")
     else
         h:write(cfg.lan_ip .. "\tlocalnode " .. node .. " " .. tactical .. "\n")
     end
     if is_notnull(cfg.dtdlink_ip) then
         h:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh dtdlink." .. node .."\n")
-        ah:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. "\n")
+        ah:write(cfg.dtdlink_ip .. "\tdtdlink." .. node .. ".local.mesh\n")
     end
 
     -- Mark supernodes so we can find them
     if is_supernode and cfg.wifi_ip then
-        ah:write(cfg.wifi_ip .. "\tsupernode." .. node .. "\n")
+        ah:write(cfg.wifi_ip .. "\tsupernode." .. node .. ".local.mesh\n")
     end
 
     e:write("# automatically generated file - do not edit\n")

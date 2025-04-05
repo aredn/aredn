@@ -68,7 +68,7 @@ local function get(validate)
         names[#names + 1] = name
         -- add supernode
         if cm:get("aredn", "@supernode[0]", "enable") == "1" then
-            names[#names + 1] = "supernode." .. name
+            names[#names + 1] = "supernode." .. name .. ".local.mesh"
         end
     end
 
