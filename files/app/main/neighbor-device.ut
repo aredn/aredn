@@ -212,7 +212,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>ping success</div>
                 </div>
                 <div class="i">
-                    <div>{{type(n.avg_tx) ? sprintf("%.1f pkt/sec", n.avg_tx / 60) : "-"}}</div>
+                    <div>{{type(n.avg_tx_packets) ? sprintf("%.1f pkt/sec", n.avg_tx_packets / 30) : "-"}}</div>
                     <div>avg tx</div>
                 </div>
             </div>
@@ -241,7 +241,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>neighbor snr</div>
                 </div>
                 <div class="i">
-                    <div>{{n.avg_tx_fail ? sprintf("%.1f%%", 100 * n.avg_tx_fail / n.avg_tx) : "-"}}</div>
+                    <div>{{n.avg_tx_fail ? sprintf("%.1f%%", 100 * n.avg_tx_fail / n.avg_tx_packets) : "-"}}</div>
                     <div>tx failures</div>
                 </div>
             </div>
@@ -255,14 +255,14 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>physical tx bitrate</div>
                 </div>
                 <div class="i">
-                    <div>{{n.avg_tx_retries ? sprintf("%.1f%%", 100 * n.avg_tx_retries / n.avg_tx) : "-"}}</div>
+                    <div>{{n.avg_tx_retries ? sprintf("%.1f%%", 100 * n.avg_tx_retries / n.avg_tx_packets) : "-"}}</div>
                     <div>tx retransmissions</div>
                 </div>
             </div>
             {% } else if (type(n.avg_tx_fail)) { %}
             <div class="cols">
                 <div class="i">
-                    <div>{{sprintf("%.1f%%", 100 * n.avg_tx_fail / n.avg_tx)}}</div>
+                    <div>{{sprintf("%.1f%%", 100 * n.avg_tx_fail / n.avg_tx_packets)}}</div>
                     <div>tx failures</div>
                 </div>
                 <div></div>

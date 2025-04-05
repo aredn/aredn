@@ -308,7 +308,25 @@ function lqm_run()
             end
         end
 
-        -- Update RF information
+        -- Update stats for tunnels and xlinks
+        for _, i in ipairs(nixio.getifaddrs())
+        do
+            if i.family == "packet" and i.name then
+                local type = device2type(i.name)
+                if type == "Wireguard" or type == "Xlink" then
+                    for _, track2 in pairs(tracker)
+                    do
+                        if track2.device == i.name then
+                            track2.tx_packets = i.data.tx_packets
+                            track2.tx_fail = i.data.tx_errors
+                            break
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Update stats for mesh radios information
         if radiomode == "mesh" then
             local kv = {
                 ["signal avg:"] = "signal",
@@ -346,49 +364,47 @@ function lqm_run()
         -- Update running averages
         for _, track in pairs(tracker)
         do
-            if track.type == "RF" then
-                if track.tx_packets then
-                    if not track.last_tx_packets then
-                        track.avg_tx = 0
-                    else
-                        track.avg_tx = track.avg_tx * tx_quality_run_avg + (track.tx_packets - track.last_tx_packets) * (1 - tx_quality_run_avg)
-                    end
-                    track.last_tx_packets = track.tx_packets
+            if track.tx_packets then
+                if not track.last_tx_packets then
+                    track.avg_tx_packets = 0
+                else
+                    track.avg_tx_packets = track.avg_tx_packets * tx_quality_run_avg + (track.tx_packets - track.last_tx_packets) * (1 - tx_quality_run_avg)
                 end
-                if track.tx_retries then
-                    if not track.last_tx_retries then
-                        track.avg_tx_retries = 0
-                    else
-                        track.avg_tx_retries = track.avg_tx_retries * tx_quality_run_avg + (track.tx_retries - track.last_tx_retries) * (1 - tx_quality_run_avg)
-                    end
-                    track.last_tx_retries = track.tx_retries
+                track.last_tx_packets = track.tx_packets
+            end
+            if track.tx_retries then
+                if not track.last_tx_retries then
+                    track.avg_tx_retries = 0
+                else
+                    track.avg_tx_retries = track.avg_tx_retries * tx_quality_run_avg + (track.tx_retries - track.last_tx_retries) * (1 - tx_quality_run_avg)
                 end
-                if track.tx_fail then
-                    if not track.last_tx_fail then
-                        track.avg_tx_fail = 0
-                    else
-                        track.avg_tx_fail = track.avg_tx_fail * tx_quality_run_avg + (track.tx_fail - track.last_tx_fail) * (1 - tx_quality_run_avg)
-                    end
-                    track.last_tx_fail = track.tx_fail
+                track.last_tx_retries = track.tx_retries
+            end
+            if track.tx_fail then
+                if not track.last_tx_fail then
+                    track.avg_tx_fail = 0
+                else
+                    track.avg_tx_fail = track.avg_tx_fail * tx_quality_run_avg + (track.tx_fail - track.last_tx_fail) * (1 - tx_quality_run_avg)
                 end
-                if track.tx_bitrate then
-                    if not track.avg_tx_bitrate then
-                        track.avg_tx_bitrate = track.avg_tx_bitrate
-                    else
-                        track.avg_tx_bitrate = track.avg_tx_bitrate * bitrate_run_avg + track.tx_bitrate * (1 - bitrate_run_avg)
-                    end
+                track.last_tx_fail = track.tx_fail
+            end
+            if track.tx_bitrate then
+                if not track.avg_tx_bitrate then
+                    track.avg_tx_bitrate = track.avg_tx_bitrate
+                else
+                    track.avg_tx_bitrate = track.avg_tx_bitrate * bitrate_run_avg + track.tx_bitrate * (1 - bitrate_run_avg)
                 end
-                if track.rx_bitrate then
-                    if not track.avg_rx_bitrate then
-                        track.avg_rx_bitrate = track.avg_rx_bitrate
-                    else
-                        track.avg_rx_bitrate = track.avg_rx_bitrate * bitrate_run_avg + track.rx_bitrate * (1 - bitrate_run_avg)
-                    end
+            end
+            if track.rx_bitrate then
+                if not track.avg_rx_bitrate then
+                    track.avg_rx_bitrate = track.avg_rx_bitrate
+                else
+                    track.avg_rx_bitrate = track.avg_rx_bitrate * bitrate_run_avg + track.rx_bitrate * (1 - bitrate_run_avg)
                 end
-                if track.avg_tx > 0 then
-                    local bad = math.max(track.avg_tx_fail or 0, track.avg_tx_retries or 0)
-                    track.tx_quality = 100 * (1 - math.min(1, bad / track.avg_tx))
-                end
+            end
+            if track.avg_tx_packets and track.avg_tx_packets > 0 then
+                local bad = math.max(track.avg_tx_fail or 0, track.avg_tx_retries or 0)
+                track.tx_quality = 100 * (1 - math.min(1, bad / track.avg_tx))
             end
         end
 
