@@ -103,7 +103,7 @@
                 }
             }
             else {
-                name = `|${tracker.mac}`;
+                name = `~${tracker.mac}`;
             }
         }
         if (tracker.type == "DtD" && tracker.distance < 100) {
@@ -144,12 +144,16 @@
                     else {
                         print(`<div class="ctrl cols status unknown" title="Link status: unknown">`);
                     }
-                    if (substr(entry.name, 0, 1) !== "|") {
-                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}</a></div>`);
-                    }
-                    else {
+                    if (substr(entry.name, 0, 1) === "|") {
                         const ip = substr(entry.name, 1);
                         print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}</a></div>`);
+                    }
+                    else if (substr(entry.name, 0, 1) === "~") {
+                        const mac = substr(entry.name, 1);
+                        print(`<div class='h'><span>${mac}</span></div>`);
+                    }
+                    else {
+                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}</a></div>`);
                     }
                     print("<div class='ts cols stats'>");
                     if (!request.mobile) {
@@ -209,12 +213,16 @@
                     default:
                         break;
                 }
-                if (substr(entry.name, 0, 1) !== "|") {
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
-                }
-                else {
+                if (substr(entry.name, 0, 1) === "|") {
                     const ip = substr(entry.name, 1);
                     print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
+                }
+                else if (substr(entry.name, 0, 1) === "~") {
+                        const mac = substr(entry.name, 1);
+                        print(`<div class='h'><span>${mac}</span></div>`);
+                }
+                else {
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
                 }
                 print("<div class='ts cols stats'>");
                 if (request.mobile) {
