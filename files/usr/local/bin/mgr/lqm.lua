@@ -46,7 +46,7 @@ local ping_timeout = 1.0 -- timeout before ping gives a qualtiy penalty
 local ping_time_run_avg = 0.8 -- ping time runnng average
 local bitrate_run_avg = 0.8 -- rx/tx running average
 local dtd_distance = 50 -- distance (meters) after which nodes connected with DtD links are considered different sites
-local connect_timeout = 5 -- timeout (seconds) when fetching information from other nodes
+local connect_timeout = 3 -- timeout (seconds) when fetching information from other nodes
 local default_short_retries = 20 -- More link-level retries helps overall tcp performance (factory default is 7)
 local default_long_retries = 20 -- (factory default is 4)
 local wireguard_alive_time = 600 -- 10 minutes
@@ -124,7 +124,7 @@ end
 
 -- Canonical hostname
 function canonical_hostname(hostname)
-    return hostname and hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("^lan%.", ""):gsub("%.local%.mesh$", "")
+    return hostname and hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("^lan%.", ""):gsub("^supernode%.", ""):gsub("%.local%.mesh$", "")
 end
 
 local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode")
@@ -591,6 +591,13 @@ function lqm_run()
                     local info = luci.jsonc.parse(raw:read("*a") or "")
                     raw:close()
 
+                    -- Try IPv6 link local
+                    if not info and track.ipv6ll then
+                        raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://[" .. track.ipv6ll .. "%" .. track.device .. "]:8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -O - 2> /dev/null")
+                        info = luci.jsonc.parse(raw:read("*a") or "")
+                        raw:close()
+                    end
+
                     wait_for_ticks(0)
 
                     if not info then
@@ -634,6 +641,9 @@ function lqm_run()
                                 end
                             end
                         end
+
+                        -- Use provide hostname
+                        track.hostname = canonical_hostname(info.node)
 
                         -- Babel?
                         if info.lqm and info.lqm.info then
