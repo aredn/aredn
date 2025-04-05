@@ -111,14 +111,8 @@ end
 -- Tunnel info
 info['tunnels']={}
 -- ACTIVE TUNNELS
-local atc=os.capture("ifconfig|grep tun|wc -l"):chomp()
-local awc=0
-if nixio.fs.stat("/usr/bin/wg") then
-	awc=os.capture("wg|grep interface|wc -l"):chomp()
-end
-info['tunnels']['active_tunnel_count']=tonumber(atc) + tonumber(awc)
-info['tunnels']['legacy_tunnel_count']=tonumber(atc)
-info['tunnels']['wireguard_tunnel_count']=tonumber(awc)
+local awc=os.capture("wg|grep interface|wc -l"):chomp()
+info['tunnels']['active_tunnel_count']=tonumber(awc)
 
 -- Location info
 -- LAT/LON
@@ -158,6 +152,25 @@ for pos, i in pairs(ift) do
 	end
 end
 info['interfaces']=tif
+
+-- LINKS
+if string.find(nixio.getenv("QUERY_STRING"):lower(),"link_info=1") then
+	local link_info = {}
+	if nixio.fs.stat("/tmp/lqm.info") then
+		local lqm = json.parse(io.open("/tmp/lqm.info", "r"):read("*a"))
+		for _, tracker in pairs(lqm.trackers)
+		do
+			if tracker.ip and tracker.hostname then
+				link_info[tracker.ip] = {
+					linkType = tracker.type:upper(),
+					hostname = tracker.hostname,
+					interface = tracker.device
+				}
+			end
+		end
+	end
+	info['link_info']=link_info
+end
 
 -- HOSTS
 if string.find(nixio.getenv("QUERY_STRING"):lower(),"hosts=1") then
