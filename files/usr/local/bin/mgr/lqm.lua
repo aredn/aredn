@@ -404,7 +404,7 @@ function lqm_run()
             end
             if track.avg_tx_packets and track.avg_tx_packets > 0 then
                 local bad = math.max(track.avg_tx_fail or 0, track.avg_tx_retries or 0)
-                track.tx_quality = 100 * (1 - math.min(1, bad / track.avg_tx))
+                track.tx_quality = 100 * (1 - math.min(1, bad / track.avg_tx_packets))
             end
         end
 

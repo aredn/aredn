@@ -241,7 +241,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>neighbor snr</div>
                 </div>
                 <div class="i">
-                    <div>{{n.avg_tx_fail ? sprintf("%.1f%%", 100 * n.avg_tx_fail / n.avg_tx_packets) : "-"}}</div>
+                    <div>{{n.avg_tx_fail && n.avg_tx_packets ? sprintf("%.1f%%", 100 * n.avg_tx_fail / n.avg_tx_packets) : "-"}}</div>
                     <div>tx failures</div>
                 </div>
             </div>
@@ -259,7 +259,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>tx retransmissions</div>
                 </div>
             </div>
-            {% } else if (type(n.avg_tx_fail)) { %}
+            {% } else if (n.avg_tx_fail && n.avg_tx_packets) { %}
             <div class="cols">
                 <div class="i">
                     <div>{{sprintf("%.1f%%", 100 * n.avg_tx_fail / n.avg_tx_packets)}}</div>
