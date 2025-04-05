@@ -113,7 +113,7 @@ end
 
 -- Canonical hostname
 function canonical_hostname(hostname)
-    return hostname and hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("^lan%.", ""):gsub("%.local%.mesh$", "")
+    return hostname and hostname:lower():gsub("^dtdlink%.",""):gsub("^mid%d+%.",""):gsub("^xlink%d+%.",""):gsub("^lan%.", ""):gsub("^supernode%.", ""):gsub("%.local%.mesh$", "")
 end
 
 local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode")
@@ -434,7 +434,7 @@ function lqm_run()
                     track.refresh = now + refresh_timeout()
                     track.rev_lastseen = now
 
-                    track.hostname = info.node:lower()
+                    track.hostname = canonical_hostname(info.node)
                     track.canonical_ip = iplookup(track.hostname)
                     if track.type == "Wireguard" then
                         local address = cursor:get_all("network", track.device, "addresses")[1]
