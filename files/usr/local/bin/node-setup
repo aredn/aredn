@@ -1279,7 +1279,9 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
         local names, hosts, services = aredn.services.get()
         for _, name in ipairs(names)
         do
-            of:write("\tlist name '" .. name .. "'\n")
+            if not name:match("^supernode%.") then
+                of:write("\tlist name '" .. name .. "'\n")
+            end
         end
         for _, host in ipairs(hosts)
         do

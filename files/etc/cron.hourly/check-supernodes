@@ -91,7 +91,7 @@ if c:get("aredn", "@supernode[0]", "enable") ~= "1" and c:get("aredn", "@superno
 
 end
 
-local desthost = dest and (nixio.getnameinfo(dest) or dest)
+local desthost = dest and (nixio.getnameinfo(dest) or dest):gsub("^supernode%.", "")
 local revdest = dest and ("," .. dest) or ""
 
 -- Update the dns and restart network if necessary
