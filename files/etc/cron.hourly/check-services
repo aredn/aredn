@@ -65,12 +65,17 @@ end
 -- Work out the differences between the validated state and the current state
 local names, hosts, services = aredn.services.get(true)
 local nnames = false
+local nosupernames = {}
 for _, name in ipairs(names)
 do
     if cnames[name] then
         cnames[name] = nil
+        nosupernames[#nosupernames + 1] = name
     else
-        nnames = true
+        if not name:match("^supernode%.") then
+            nosupernames[#nosupernames + 1] = name
+            nnames = true
+        end
     end
 end
 local nhosts = false
@@ -105,7 +110,7 @@ local change = false
 
 -- Apply OLSR changes
 if nnames or not_empty(cnames) then
-    cursor:set("olsrd", "nameservice", "name", names)
+    cursor:set("olsrd", "nameservice", "name", nosupernames)
     change = true
 end
 if nhosts or not_empty(chosts) then
