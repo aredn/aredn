@@ -52,13 +52,8 @@ do
         data = data .. host.ip .. "\t" .. h .. "\n"
     end
 end
-local _, hosts_changed = write_all("/etc/arednlink/hosts", data, true)
-local _, services_changed = write_all("/etc/arednlink/services", #services == 0 and "" or (table.concat(services, "\n") .. "\n"), true)
+write_all("/etc/arednlink/hosts", data)
+write_all("/etc/arednlink/services", #services == 0 and "" or (table.concat(services, "\n") .. "\n"))
 
--- If services have changed
-if hosts_changed or services_changed then
-    print("Change")
-    os.execute("/usr/local/bin/restart-services.sh --force arednlink")
-else
-    print("Unchange")
-end
+-- Arednlink checks for changes in updated data, so we dont have to
+os.execute("/usr/local/bin/restart-services.sh --force arednlink")
