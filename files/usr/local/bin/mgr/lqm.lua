@@ -286,6 +286,7 @@ function lqm_run()
                 local track = tracker[mac]
                 if not track and type then
                     track = {
+                        lastseen = now,
                         type = type,
                         device = device,
                         mac = mac,
@@ -354,11 +355,11 @@ function lqm_run()
                             track[v] = tonumber(val)
                             if v == "tx_bitrate" or v == "rx_bitrate" then
                                 track[v] = track[v] * channel_bw_scale
-                            elseif v == "signal" then
+                            elseif v == "signal" and track.signal <= 0 then
                                 if track.snr then
-                                    track.snr = round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg))
+                                    track.snr = math.max(0, round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg)))
                                 else
-                                    track.snr = round(track.signal - noise)
+                                    track.snr = math.max(0, track.signal - noise)
                                 end
                             end
                         end
@@ -374,7 +375,7 @@ function lqm_run()
                 if not track.last_tx_packets then
                     track.avg_tx_packets = 0
                 else
-                    track.avg_tx_packets = track.avg_tx_packets * tx_quality_run_avg + (track.tx_packets - track.last_tx_packets) * (1 - tx_quality_run_avg)
+                    track.avg_tx_packets = track.avg_tx_packets * tx_quality_run_avg + math.max(0, track.tx_packets - track.last_tx_packets) * (1 - tx_quality_run_avg)
                 end
                 track.last_tx_packets = track.tx_packets
             end
@@ -382,7 +383,7 @@ function lqm_run()
                 if not track.last_tx_retries then
                     track.avg_tx_retries = 0
                 else
-                    track.avg_tx_retries = track.avg_tx_retries * tx_quality_run_avg + (track.tx_retries - track.last_tx_retries) * (1 - tx_quality_run_avg)
+                    track.avg_tx_retries = track.avg_tx_retries * tx_quality_run_avg + math.max(0, track.tx_retries - track.last_tx_retries) * (1 - tx_quality_run_avg)
                 end
                 track.last_tx_retries = track.tx_retries
             end
@@ -390,7 +391,7 @@ function lqm_run()
                 if not track.last_tx_fail then
                     track.avg_tx_fail = 0
                 else
-                    track.avg_tx_fail = track.avg_tx_fail * tx_quality_run_avg + (track.tx_fail - track.last_tx_fail) * (1 - tx_quality_run_avg)
+                    track.avg_tx_fail = track.avg_tx_fail * tx_quality_run_avg + math.max(0, track.tx_fail - track.last_tx_fail) * (1 - tx_quality_run_avg)
                 end
                 track.last_tx_fail = track.tx_fail
             end
@@ -636,7 +637,7 @@ function lqm_run()
             end
 
             -- Calculate the max RF distance as we go
-            if track.type == "RF" and track.lastseen and track.lastseen >= now then
+            if track.type == "RF" and track.lastseen >= now then
                 if track.distance then
                     if not track.user_blocks and track.distance > distance then
                         distance = track.distance
