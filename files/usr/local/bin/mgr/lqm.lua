@@ -354,6 +354,12 @@ function lqm_run()
                             track[v] = tonumber(val)
                             if v == "tx_bitrate" or v == "rx_bitrate" then
                                 track[v] = track[v] * channel_bw_scale
+                            elseif v == "signal" then
+                                if track.snr then
+                                    track.snr = round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg))
+                                else
+                                    track.snr = round(track.signal - noise)
+                                end
                             end
                         end
                     end
@@ -630,7 +636,7 @@ function lqm_run()
             end
 
             -- Calculate the max RF distance as we go
-            if track.type == "RF" and track.lastseen >= now then
+            if track.type == "RF" and track.lastseen and track.lastseen >= now then
                 if track.distance then
                     if not track.user_blocks and track.distance > distance then
                         distance = track.distance
