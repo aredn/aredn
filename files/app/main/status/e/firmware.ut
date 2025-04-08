@@ -496,7 +496,7 @@
                         </select>
                     </div>
                     <div style="flex:0">
-                        <div id="firmware-refresh"><button class="icon refresh" {{needreboot ? "disabled" : ""}}></button></div>
+                        <div id="firmware-refresh"><button class="icon refresh" {{sideload || needreboot ? "disabled" : ""}}></button></div>
                     </div>
                 </div>
                 {{_H("Download firmware directly from a central server, either on the Internet or a locally configured mesh server.
@@ -614,10 +614,12 @@
         htmx.on("#upload-firmware", "change", e => {
             const f = htmx.find("#fetch-and-update")
             if (e.target.files[0] && !needreboot) {
+                htmx.find("#dialog-messages-success").innerHTML = "<center>Don't forget to backup before you upgrade.</center>";
                 f.innerHTML = "Fetch and Update";
                 f.disabled = false;
             }
             else {
+                htmx.find("#dialog-messages-success").innerHTML = "";
                 f.disabled = true;
             }
             htmx.find("#restore-config").value = null;
@@ -627,9 +629,11 @@
         htmx.on("#download-firmware", "change", e => {
             const f = htmx.find("#fetch-and-update")
             if (e.target.value === "-" || needreboot) {
+                htmx.find("#dialog-messages-success").innerHTML = "";
                 f.disabled = true;
             }
             else {
+                htmx.find("#dialog-messages-success").innerHTML = "<center>Don't forget to backup before you upgrade.</center>";
                 f.innerHTML = "Fetch and Update";
                 f.disabled = false;
             }
@@ -646,6 +650,7 @@
             else {
                 f.disabled = true;
             }
+            htmx.find("#dialog-messages-success").innerHTML = "";
             htmx.find("#upload-firmware").value = null;
             htmx.find("#download-firmware").value = "-";
             htmx.find("#dialog-messages-error").innerHTML = "AREDN&reg; makes no attempt to validate the integrity of the restore file or its compatibility with this hardware.";
@@ -787,6 +792,9 @@
                 htmx.find("#firmware-upload progress").setAttribute("value", e.data);
             });
         });
+        {% if (sideload) { %}
+        htmx.find("#dialog-messages-success").innerHTML = "<center>Don't forget to backup before you upgrade.</center>";
+        {% } %}
     })();
     </script>
 </div>
