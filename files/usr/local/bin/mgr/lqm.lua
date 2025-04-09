@@ -598,7 +598,6 @@ function lqm_run()
                 do
                     local t = line:match("^64 bytes from .* time=(%S+) ms$")
                     if t then
-                        track.routable = true
                         ptime = tonumber(t) / 1000
                     end
                 end
