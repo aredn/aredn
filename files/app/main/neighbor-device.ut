@@ -103,10 +103,10 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             }
             return "unused";
         }
+        const map_url = uci.get("aredn", "@location[0]", "map");
         function map(n, v)
         {
-            const map_url = uci.get("aredn", "@location[0]", "map");
-            if (n.lat && n.lon && map_url) {
+            if (map_url && n.lat && n.lon) {
                 return `<a href="${replace(replace(map_url, "(lat)", n.lat), "(lon)", n.lon)}" target="_blank">${v}</a>`;
             }
             return v;
@@ -172,11 +172,11 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             {% } %}
             <div class="cols">
                 <div class="i">
-                    <div>{{map(n, n.lat) || "-"}}</div>
+                    <div>{{map(n, sprintf("%.4f", n.lat)) || "-"}}</div>
                     <div>latitude</div>
                 </div>
                 <div class="i">
-                    <div>{{map(n, n.lon) || "-"}}</div>
+                    <div>{{map(n, sprintf("%.4f", n.lon)) || "-"}}</div>
                     <div>longitude</div>
                 </div>
                 <div class="i">
@@ -281,7 +281,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                 {% } %}
                 </div>
                 <div class="i">
-                    <div>{{n.babel_metric ?? "-"}}</div>
+                    <div>{{n.babel_route_count === 0 ? "-" : n.babel_metric ?? "-"}}</div>
                     <div>metric</div>
                 </div>
             </div>
@@ -294,7 +294,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                 <div></div>
             </div>
             {%
-            const snr = `/tmp/snrlog/${uc(selected)}-${lc(n.hostname)}`;
+            const snr = `/tmp/snrlog/${uc(selected)}`;
             if (fs.access(snr)) {
                 let signal = "<polyline class='signal' points='";
                 let noise = "<polyline class='noise' points='";
@@ -359,6 +359,16 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <g class="hints">{{hints}}</g>
                 </svg>
             </div>
+            {% } %}
+            {% if (map_url && n.lat && n.lon) {
+                const mapurl = replace(replace(map_url, "(lat)", n.lat), "(lon)", n.lon);
+            %}
+            <div class="location-image"><a href="{{mapurl}}" target="_blank"><iframe loading="lazy" src="{{mapurl}}"></iframe><div class="overlay"></div></a></div>
+            <script>
+                (function(){
+                    fetch("{{mapurl}}").catch(_ => document.querySelector(".dialog .location-image").style.display = "none");
+                })();
+            </script>
             {% } %}
         </div>
         {% } %}
