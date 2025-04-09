@@ -75,12 +75,6 @@ function run_snrlog()
     -- get all stations
     local stations = iwinfo.nl80211.assoclist(wifiiface)
 
-    -- load up arpcache
-    local arpcache = {}
-    arptable(function(a)
-        arpcache[a["HW address"]:upper()] = a
-    end)
-
     -- get the current bandwidth setting
     local radio = "radio0"
     cursor:foreach("wireless", "wifi-iface",
@@ -112,32 +106,11 @@ function run_snrlog()
         snrdatcache[mac] = now
 
         -- find current data file
-        local efn = nil
-        for fn in nixio.fs.glob(tmpdir.."/"..mac.."-*") do
-            efn = fn
-            break
-        end
-
-        -- improve existing filename if we can
-        local datafile = tmpdir.."/"..mac.."-"
-        local arp = arpcache[mac]
-        if arp then
-            local ip = arp["IP address"]
-            local hostname = nixio.getnameinfo(ip)
-            if hostname then
-                datafile = datafile..hostname:lower():gsub("^dtdlink%.", ""):gsub("^mid%d+%.", ""):gsub("^xlink%d+%.", ""):gsub("%.local%.mesh$", "")
-            elseif ip then
-                datafile = datafile..ip
-            end
-        end
-        -- rename if necessary
-        if efn and efn ~= datafile then
-            nixio.fs.rename(efn, datafile)
-        end
+        local datafile = tmpdir .. "/" .. mac
 
         -- check if auto-distance reset is required (new node)
         -- note and run auto distancing right at the end
-        if efn == nil or now - lasttime[mac] > 100 then
+        if nixio.fs.stat(datafile) == nil or now - lasttime[mac] > 100 then
             trigger_auto_distance = true
         end
 
@@ -166,7 +139,7 @@ function run_snrlog()
         if update then
             -- trim datafile
             file_trim(datafile, MAXLINES)
-            local f, err = assert(io.open(datafile, "a"),"Cannot open file ("..datafile..") for appending!")
+            local f, err = assert(io.open(datafile, "a"),"Cannot open file (" .. datafile .. ") for appending!")
             if f then
                 local noise = stations[mac].noise or ""
                 local tx_mcs = stations[mac].tx_mcs or -1
