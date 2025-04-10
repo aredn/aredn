@@ -123,7 +123,7 @@
                 {% if (!request.mobile) { %}
                 <div>rx</div><div>snr</div><div>n snr</div><div>errors</div><div>mbps</div><div>{{units.distanceUnit()}}</div>
                 {% } else { %}
-                <div>rx</div>
+                <div>rx</div><div>errors</div>
                 {% } %}
             </div>
         </div>
@@ -160,7 +160,7 @@
                         print(`<div>${lq}</div><div></div><div></div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div></div><div></div>`);
                     }
                     else {
-                        print(`<div>${lq}</div>`);
+                        print(`<div>${lq}</div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div>`);
                     }
                     print("</div></div>");
                 }
@@ -226,7 +226,7 @@
                 }
                 print("<div class='ts cols stats'>");
                 if (request.mobile) {
-                    print(`<div>${lq}</div>`);
+                    print(`<div>${lq}</div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div>`);
                 }
                 else if (tracker) {
                     let d = "-";
