@@ -172,11 +172,11 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             {% } %}
             <div class="cols">
                 <div class="i">
-                    <div>{{map(n, sprintf("%.4f", n.lat)) || "-"}}</div>
+                    <div>{{"lat" in n ? map(n, sprintf("%.4f", n.lat)) : "-"}}</div>
                     <div>latitude</div>
                 </div>
                 <div class="i">
-                    <div>{{map(n, sprintf("%.4f", n.lon)) || "-"}}</div>
+                    <div>{{"lon" in n ? map(n, sprintf("%.4f", n.lon)) : "-"}}</div>
                     <div>longitude</div>
                 </div>
                 <div class="i">
@@ -184,9 +184,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>distance</div>
                 </div>
             </div>
-            {%
-                if (n.lq) {
-            %}
+            {% if (n.lq) { %}
             <div class="cols">
                 <div class="i">
                     <div>{{n.lq}}%</div>
