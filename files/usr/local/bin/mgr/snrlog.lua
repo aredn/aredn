@@ -61,8 +61,8 @@ function run_snrlog()
     -- get wifi interface name
     local wifiiface = get_ifname("wifi")
 
-    -- if Mesh RF is turned off do nothing
-    if wifiiface == string.match(wifiiface, 'eth.*') then
+    -- if no RF do nothing
+    if not wifiiface:match("^wlan") then
         return
     end
 
@@ -76,15 +76,7 @@ function run_snrlog()
     local stations = iwinfo.nl80211.assoclist(wifiiface)
 
     -- get the current bandwidth setting
-    local radio = "radio0"
-    cursor:foreach("wireless", "wifi-iface",
-        function(i)
-            if i.mode == "adhoc" then
-                radio = i.device
-            end
-        end
-    )
-    local bandwidth = cursor:get("wireless", radio, "chanbw")
+    local bandwidth = cursor:get("wireless", wifiiface:gsub("^wlan", "radio"), "chanbw")
 
     -- load the lasttime table
     local lasttime = {}
@@ -106,7 +98,7 @@ function run_snrlog()
         snrdatcache[mac] = now
 
         -- find current data file
-        local datafile = tmpdir .. "/" .. mac
+        local datafile = tmpdir .. "/" .. mac:lower()
 
         -- check if auto-distance reset is required (new node)
         -- note and run auto distancing right at the end
