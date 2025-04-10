@@ -40,6 +40,18 @@ export const ROUTING_TABLE = 20;
 export const ROUTING_TABLE_SUPERNODE = 21;
 export const ROUTING_TABLE_DEFAULT = 22;
 
+function reach2lq(r)
+{
+    r = hex(r);
+    let count = 0;
+    for (let i = 1; i < 0x10000; i = i << 1) {
+        if (r & i) {
+            count++;
+        }
+    }
+    return int(0.5 + 100 * count / 16);
+}
+
 export function getInterfaces()
 {
     const c = socket.connect(MANAGER);
@@ -91,14 +103,17 @@ function getXNeighbors(cmd)
     c.close();
     d = split(d, "\n");
     // add neighbour 7ff812d8a020 address fe80::2f:d5ff:fec4:3ca3 if br-dtdlink reach ffff ureach 0000 rxcost 96 txcost 96 cost 96
-    const neighbor = /address ([^ ]+) if ([^ ]+) reach/;
+    const neighbor = /address ([^ ]+) if ([^ ]+) reach ([^ ]+) .+ rxcost ([^ ]+) txcost ([^ ]+)/;
     const n = [];
     for (let i = 0; i < length(d); i++) {
         const m = match(d[i], neighbor);
         if (m) {
             push(n, {
                 interface: m[2],
-                ipv6address: m[1]
+                ipv6address: m[1],
+                lq: reach2lq(m[3]),
+                rxcost: int(m[4]),
+                txcost: int(m[5])
             });
         }
     }

@@ -87,6 +87,7 @@
         }
         return replace(replace(replace(replace(replace(lc(hostname), /^dtdlink\./, ""), /^mid\d+\./, ""), /^xlink\d+\./, ""), /^lan\./, ""), /\.local\.mesh$/, "");
     }
+    const macs = {};
     const llist = [];
     const nlist = [];
     const hlist = lqm.getHidden();
@@ -106,11 +107,26 @@
                 name = `~${tracker.mac}`;
             }
         }
+        const l = { name: name, tracker: tracker };
         if (tracker.type == "DtD" && tracker.distance < 100) {
-            push(llist, { name: name, tracker: tracker });
+            push(llist, l);
         }
         else {
-            push(nlist, { name: name, tracker: tracker });
+            push(nlist, l);
+        }
+        macs[tracker.mac] = l;
+    }
+    const bneigh = babel.getNeighbors();
+    for (let i = 0; i < length(bneigh); i++) {
+        const n = bneigh[i];
+        const a = iptoarr(n.ipv6address);
+        const m = sprintf("%02x:%02x:%02x:%02x:%02x:%02x", a[8] ^ 2, a[9], a[10], a[13], a[14], a[15]);
+        const l = macs[m];
+        if (l) {
+            l.lq = n.lq;
+        }
+        else {
+            push(nlist, { name: `~${m}`, lq: n.lq });
         }
     }
 %}
@@ -190,6 +206,9 @@
                 }
                 else {
                     print(`<div class="ctrl cols status unknown" title="Link status: unknown">`);
+                    if (entry.lq) {
+                        lq = `${entry.lq}%`;
+                    }
                 }
                 let icon = "";
                 let title = "";
