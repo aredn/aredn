@@ -177,7 +177,21 @@ end
 
 -- LOCAL NEIGHBORS LINK INFO
 if string.find(nixio.getenv("QUERY_STRING"):lower(),"link_info=1") then
-	info['link_info']=aredn.olsr.getCurrentNeighbors(true)
+	local link_info = aredn.olsr.getCurrentNeighbors(true)
+	if nixio.fs.stat("/tmp/lqm.info") then
+		local lqm = json.parse(io.open("/tmp/lqm.info", "r"):read("*a"))
+		for _, tracker in pairs(lqm.trackers)
+		do
+				if tracker.canonical_ip and tracker.hostname and not link_info[tracker.canonical_ip] then
+						link_info[tracker.canonical_ip] = {
+								linkType = tracker.type:upper(),
+								hostname = tracker.hostname,
+								interface = tracker.device
+						}
+				end
+		end
+	end
+	info['link_info'] = link_info
 end
 
 -- LQM INFO
