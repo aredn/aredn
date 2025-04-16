@@ -36,3 +36,21 @@
     <div id="dialog-messages-error"></div>
     <div id="dialog-messages-success"></div>
 </div>
+<script>
+(function(){
+    window.dialogMessage = {
+        clear: () => {
+            htmx.find("#dialog-messages-success").innerHTML = "";
+            htmx.find("#dialog-messages-error").innerHTML = "";
+        },
+        success: (msg) => {
+            htmx.find("#dialog-messages-success").innerHTML = msg;
+            htmx.find("#dialog-messages-error").innerHTML = "";
+        },
+        error: (msg) => {
+            htmx.find("#dialog-messages-success").innerHTML = "";
+            htmx.find("#dialog-messages-error").innerHTML = msg;
+        }
+    };
+})();
+</script>
