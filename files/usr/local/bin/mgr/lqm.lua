@@ -75,7 +75,7 @@ if wlanid then
     radio = "radio" .. wlanid
     radiomode = "mesh"
 end
-if aredn.hardware.get_radio().name:lower():match("ac") then
+if aredn.hardware.get_radio() and aredn.hardware.get_radio().name:lower():match("ac") then
     ac = true
 end
 
