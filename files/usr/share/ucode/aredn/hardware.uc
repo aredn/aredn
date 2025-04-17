@@ -110,7 +110,10 @@ export function getRadio()
         f.close();
         const id = getBoardId();
         radioJson = radios[lc(id)];
-        if (radioJson && !radioJson.name) {
+        if (!radioJson) {
+            radioJson = { name: "Unknown" };
+        }
+        else if (!radioJson.name) {
             radioJson.name = id;
         }
     }
