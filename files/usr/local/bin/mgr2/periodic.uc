@@ -1,7 +1,6 @@
-#!/usr/bin/ucode
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2025 Tim Wilkinson
+ * Copyright (C) 2022-2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,8 +31,48 @@
  * version
  */
 
-print("Status: 307 Temporary Redirect\r\n");
-print("Cache-Control: no-store\r\n");
-print("Access-Control-Allow-Origin: *\r\n");
-print("Location: /a/mesh\r\n");
-print("\r\n");
+function runScripts(scripts)
+{
+    const dir = fs.opendir(scripts);
+    if (dir) {
+        for (;;) {
+            const entry = dir.read();
+            if (!entry) {
+                break;
+            }
+            if (match(entry, /^[a-zA-Z0-9_%-]+$/)) {
+                const path = `${scripts}/${entry}`;
+                const stat = fs.lstat(path);
+                if (stat.type === "file" && (stat.perm.user_exec || stat.perm.group_exec || stat.perm.other_exec)) {
+                    system(`(cd /tmp; ${path} 2>&1 | logger -p daemon.debug -t ${entry})&`);
+                }
+            }
+        }
+        dir.close();
+    }
+}
+
+let hours = 0;
+let days = 0;
+
+function main()
+{
+    const start = time();
+    hours--;
+    if (hours <= 0) {
+        days--;
+        if (days <= 0) {
+            runScripts("/etc/cron.weekly");
+            days = 7;
+        }
+        runScripts("/etc/cron.daily");
+        hours = 24;
+    }
+    runScripts("/etc/cron.hourly");
+
+    // Allowing for possible clock changes and time taken to run tasks, wait for no more than an hour
+    return waitForTicks(min(3600, max(0, 3600 - (time() - start))))
+}
+
+runScripts("/etc/cron.boot");
+return waitForTicks(120, main); // Initial wait before starting up period tasks

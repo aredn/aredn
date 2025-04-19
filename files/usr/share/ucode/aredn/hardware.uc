@@ -32,9 +32,10 @@
  */
 
 import * as fs from "fs";
-import * as uci from "uci";
 import * as ubus from "ubus";
 import * as nl80211 from "nl80211";
+import * as socket from "socket";
+import * as babel from "aredn.babel";
 
 let radioJson;
 let boardJson;
@@ -652,4 +653,95 @@ export function getHardwareType()
         mfgprefix = "cpe";
     }
     return `(${targettype}) ${mfgprefix ? mfgprefix + " " : ""}(${hardwaretype})`;
+};
+
+export function getLinkLed()
+{
+    const led = getBoard().led;
+    if (led) {
+        if (led.rssilow && led.rssilow.sysfs) {
+            return `/sys/class/leds/${led.rssilow.sysfs}`;
+        }
+        if (led.user && led.user.sysfs) {
+            return `/sys/class/leds/${led.user.sysfs}`;
+        }
+    }
+    return null;
+};
+
+const GPSD = "/usr/sbin/gpsd";
+const GPS_TTYS = [
+    "/dev/ttyACM0",
+    "/dev/ttyUSB0"
+];
+
+export function GPSFind()
+{
+    if (fs.access(GPSD)) {
+        for (let i = 0; i < length(GPS_TTYS); i++) {
+            const tty = GPS_TTYS[i];
+            if (fs.access(tty)) {
+                return tty;
+            }
+        }
+    }
+    const neighbors = babel.getRoutableNeighbors();
+    for (let i = 0; i < length(neighbors); i++) {
+        const n = neighbors[i];
+        if (n.interface === "br-dtdlink") {
+            const s = socket.create(socket.AF_INET, socket.SOCK_STREAM, 0);
+            const ip = `${n.ipv6address}%${n.interface}`;
+            if (s.connect(ip, 2947)) {
+                s.close();
+                return ip;
+            }
+        }
+    }
+    return null;
+};
+
+export function GPSReadLLT(gps, maxlines)
+{
+    const info = {
+        lat: null,
+        lon: null,
+        time: null
+    };
+    if (match(gps, /^\/dev\//)) {
+        gps = "127.0.0.1";
+    }
+    const s = socket.create(socket.AF_INET, socket.SOCK_STREAM, 0);
+    if (!s.connect(gps, 2947)) {
+        return null;
+    }
+    s.send('?WATCH={"enable":true,"json":true}\n');
+    if (!maxlines) {
+        maxlines = 10;
+    }
+    for (; maxlines > 0; maxlines--) {
+        let str = "";
+        let j = null;
+        for (;;) {
+            const c = s.recv(1);
+            if (!c || !length(c)) {
+                maxlines = 0;
+                break;
+            }
+            if (c == "\n") {
+                j = json(str);
+                break;
+            }
+            str += c;
+        }
+        if (j && j.class == "TPV") {
+            info.time = replace(replace(j.time, "T", " "), ".000Z", "");
+            if (j.lat && j.lon) {
+                info.lat = 1 * sprintf("%.5f", j.lat);
+                info.lon = 1 * sprintf("%.5f", j.lon);
+            }
+            break;
+        }
+    }
+    s.close();
+    return info;
 };

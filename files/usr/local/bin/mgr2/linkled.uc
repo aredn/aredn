@@ -1,7 +1,6 @@
-#!/usr/bin/ucode
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2025 Tim Wilkinson
+ * Copyright (C) 2022-2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,8 +31,33 @@
  * version
  */
 
-print("Status: 307 Temporary Redirect\r\n");
-print("Cache-Control: no-store\r\n");
-print("Access-Control-Allow-Origin: *\r\n");
-print("Location: /a/mesh\r\n");
-print("\r\n");
+const link = hardware.getLinkLed();
+if (!link) {
+    return exitApp();
+}
+
+let state = null;
+
+function main()
+{
+    if (state === false) {
+        state = true;
+        fs.writefile(`${link}/brightness`, "1");
+        return waitForTicks(3);
+    }
+    else if (length(babel.getNeighbors()) > 0) {
+        state = null;
+        fs.writefile(`${link}/brightness`, "1");
+        return waitForTicks(10);
+    }
+    else {
+        state = false;
+        fs.writefile(`${link}/brightness`,"0");
+        return waitForTicks(3);
+    }
+}
+
+fs.writefile(`${link}/trigger"`, "none");
+fs.writefile(`${link}/brightness`, "1");
+
+return waitForTicks(120, main);

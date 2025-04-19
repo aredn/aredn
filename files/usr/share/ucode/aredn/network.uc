@@ -125,3 +125,9 @@ export function nslookup(aorh)
     }
     return null;
 };
+
+export function mac2ipv6ll(macaddr)
+{
+    const mac = split(macaddr, ":");
+    return arrtoip([ 0xFE, 0x80, 0, 0,  0, 0, 0, 0,  hex(mac[0]) ^ 2, hex(mac[1]), hex(mac[2]), 0xFF,  0xFE, hex(mac[3]), hex(mac[4]), hex(mac[5]) ]);
+};

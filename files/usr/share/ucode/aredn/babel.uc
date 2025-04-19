@@ -135,11 +135,11 @@ export function getHostRoutes()
     const routes = [];
     const f = fs.popen(`/sbin/ip route show table ${ROUTING_TABLE}`);
     if (f) {
-        const re = /^([^ /]+) via .+ dev ([^ ]+) /;
+        const re = /^([^ /]+) via .+ dev ([^ ]+) +metric ([^ ]+)/;
         for (let l = f.read("line"); l; l = f.read("line")) {
             const m = match(l, re);
             if (m) {
-                push(routes, { dst: m[1], oif: m[2] });
+                push(routes, { dst: m[1], oif: m[2], metric: int(m[3]) });
             }
         }
         f.close();

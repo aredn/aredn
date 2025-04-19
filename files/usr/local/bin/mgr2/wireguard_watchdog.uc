@@ -1,4 +1,3 @@
-#!/usr/bin/ucode
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
  * Copyright (C) 2025 Tim Wilkinson
@@ -32,8 +31,12 @@
  * version
  */
 
-print("Status: 307 Temporary Redirect\r\n");
-print("Cache-Control: no-store\r\n");
-print("Access-Control-Allow-Origin: *\r\n");
-print("Location: /a/mesh\r\n");
-print("\r\n");
+return function()
+{
+    // Only run the script if we have wireguard connections
+    const c = uci.cursor();
+    if (c.get("network", "wgs0") || c.get("network", "wgc0")) {
+        system("/usr/bin/wireguard_watchdog");
+    }
+    return waitForTicks(300); // wait 5 minutes
+};

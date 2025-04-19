@@ -1,7 +1,6 @@
-#!/usr/bin/ucode
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2025 Tim Wilkinson
+ * Copyright (C) 2022-2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,8 +31,31 @@
  * version
  */
 
-print("Status: 307 Temporary Redirect\r\n");
-print("Cache-Control: no-store\r\n");
-print("Access-Control-Allow-Origin: *\r\n");
-print("Location: /a/mesh\r\n");
-print("\r\n");
+const c = uci.cursor();
+const name = configuration.getName();
+if (!name) {
+    return exitApp();
+}
+const radio = radios.getMeshRadio();
+if (!radio) {
+    return exitApp();
+}
+
+let id = `ID: ${name}`;
+const lat = c.get("aredn", "@location[0]", "lat");
+const lon = c.get("aredn", "@location[0]", "lon");
+if (lat && lon) {
+    id += ` LOCATION: ${lat},${lon}`;
+}
+
+const sock = socket.create(socket.AF_INET, socket.SOCK_DGRAM);
+sock.setopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1);
+sock.setopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, radio.iface);
+
+return waitForTicks(0, () => {
+    sock.send(id, 0, {
+        address: "10.255.255.255",
+        port: 4919
+    });
+    return waitForTicks(300);
+});
