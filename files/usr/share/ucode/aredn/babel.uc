@@ -147,6 +147,23 @@ export function getHostRoutes()
     return routes;
 };
 
+export function getSupernodeRoute()
+{
+    const f = fs.popen(`/sbin/ip route show table ${ROUTING_TABLE_SUPERNODE}`);
+    let def = null;
+    if (f) {
+        const re = /^10\.0\.0\.0\/8 via ([^ ]+) dev ([^ ]+)  +metric ([^ ]+)/;
+        for (let l = f.read("line"); l; l = f.read("line")) {
+            const m = match(l, re);
+            if (m) {
+                def = { gateway: m[1], oif: m[2], metric: int(m[3]) };
+            }
+        }
+        f.close();
+    }
+    return def;
+};
+
 export function getDefaultRoute()
 {
     const f = fs.popen(`/sbin/ip route show table ${ROUTING_TABLE_DEFAULT}`);

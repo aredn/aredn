@@ -37,7 +37,7 @@ if (!device) {
     return exitApp();
 }
 const wifi = device.iface;
-const bwAdjust = uci.cursor().get("wireless", replace(wifi, "^wlan", "radio"), "chanbw") / 20 / 1000;
+const bwAdjust = min(1.0, uci.cursor().get("wireless", replace(wifi, /^wlan/, "radio"), "chanbw") / 20.0) / 10.0;
 
 const TMPDIR = "/tmp/snrlog/";
 const DEFNOISE = -95;
@@ -89,18 +89,20 @@ function main()
             }
             f.close();
         }
-        push(lines, `${sprintf("%02d/%02d/%d %02d:%02d:%02d", tm.mon, tm.mday, tm.year, tm.hour, tm.min, tm.sec)},${s.sta_info.signal},${noise},${s.sta_info.tx_bitrate.mcs},${s.sta_info.tx_bitrate.bitrate * bwAdjust},${s.sta_info.rx_bitrate.mcs},${s.sta_info.rx_bitrate.bitrate * bwAdjust}\n`);
+        push(lines, `${sprintf("%02d/%02d/%d %02d:%02d", tm.mon, tm.mday, tm.year, tm.hour, tm.min)},${s.sta_info.signal},${noise},${s.sta_info.tx_bitrate.mcs || 0},${s.sta_info.tx_bitrate.bitrate * bwAdjust},${s.sta_info.rx_bitrate.mcs || 0},${s.sta_info.rx_bitrate.bitrate * bwAdjust}\n`);
         while (length(lines) > MAXLINES) {
             shift(lines);
         }
         f = fs.open(datafile, "w");
         if (f) {
             for (let i = 0; i < length(lines); i++) {
-                fs.write(lines[i]);
+                f.write(lines[i]);
             }
             f.close();
         }
     }
+
+    return waitForTicks(60);
 }
 
 return waitForTicks(60, main);

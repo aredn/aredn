@@ -212,7 +212,7 @@ export function getConfiguration()
 export function getMeshRadio()
 {
     const config = getActiveConfiguration();
-    for (let i = 0; i < length(config) && !device; i++) {
+    for (let i = 0; i < length(config); i++) {
         switch (config[i].mode.mode) {
             case radios.RADIO_MESH:
             case radios.RADIO_MESHPTP:

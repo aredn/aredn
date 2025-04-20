@@ -32,7 +32,7 @@
  */
 
 const refresh_timeout_base = 12 * 60; // refresh high cost data every 12 minutes
-const refresh_timeout_limit = 17 * 60; // to 17 minutes
+const refresh_timeout_range = 5 * 60; // to 12 + 5 minutes
 const refresh_retry_timeout = 5 * 60;
 const lastseen_timeout = 24 * 60 * 60; // age out nodes we've not seen for 24 hours
 const snr_run_avg = 0.4; // snr running average
@@ -44,7 +44,6 @@ const dtd_distance = 50; // distance (meters) after which nodes connected with D
 const connect_timeout = 5; // timeout (seconds) when fetching information from other nodes
 const default_short_retries = 20; // More link-level retries helps overall tcp performance (factory default is 7)
 const default_long_retries = 20; // (factory default is 4)
-const wireguard_alive_time = 600; // 10 minutes
 const default_max_distance = 80550; // 50.1 miles
 const rts_threshold = 1; // RTS setting when hidden nodes are detected
 const ping_penalty = 5; // Cost of a failed ping to measure of a link's quality
@@ -59,7 +58,7 @@ const wlan = device ? device.iface : "none";
 const wlanid = device ? replace(wlan, /^wlan/, "") : null;
 const phy = device ? `phy${wlanid}` : "none";
 const radio = device ? `radio${wlanid}` : "none";
-const ac = true; 
+const ac = device && match(lc(hardware.getRadio().name), /ac/) ? true : false;
 
 let config = {};
 
@@ -76,7 +75,7 @@ function updateConfig()
 
 function refreshTimeout()
 {
-    return refresh_timeout_base + (math.rand() / math.RAND_MAX) * (refresh_timeout_limit - refresh_timeout_base);
+    return refresh_timeout_base + (refresh_timeout_range * math.rand() / 0x7fffffff);
 }
 
 function calcDistance(lat1, lon1, lat2, lon2)
@@ -85,12 +84,6 @@ function calcDistance(lat1, lon1, lat2, lon2)
     const p = 0.017453292519943295; // Math.PI / 180
     const v = 0.5 - math.cos((lat2 - lat1) * p) / 2 + math.cos(lat1 * p) * math.cos(lat2 * p) * (1 - math.cos((lon2 - lon1) * p)) / 2;
     return int(r2 * math.atan2(math.sqrt(v), math.sqrt(1 - v)));
-}
-
-function gettime()
-{
-    const t = time();
-    return t[0] + t[1] / 1000000;
 }
 
 function floor(v)
@@ -247,26 +240,26 @@ function main()
 
         updateConfig();
 
-        // If the channel bandwidth is less than 20, we need to adjust what we report as the values from 'iw' will not
-        // be correct
-        let channelBwScale = 1;
-        let chanbw = fs.readfile(`/sys/kernel/debug/ieee80211/${phy}/ath10k/chanbw`);
+        // If the channel bandwidth is less than 20, we need to adjust what we report as the values.
+        // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
+        let channelBwScale = 0.1;
+        let chanbw = trim(fs.readfile(`/sys/kernel/debug/ieee80211/${phy}/ath10k/chanbw`));
         if (!chanbw) {
-            chanbw = fs.readfile(`/sys/kernel/debug/ieee80211/${phy}/ath9k/chanbw`);
+            chanbw = trim(fs.readfile(`/sys/kernel/debug/ieee80211/${phy}/ath9k/chanbw`));
         }
-        if (chanbw == "10") {
-            channelBwScale = 0.5
+        if (chanbw == "0x0000000a") {
+            channelBwScale = 0.05;
         }
-        else if (chanbw == "5") {
-            channelBwScale = 0.25;
+        else if (chanbw == "0x00000005") {
+            channelBwScale = 0.025;
         }
 
         const cursor = uci.cursor();
         const cursorm = uci.cursor("/etc/config.mesh");
         let refresh = false;
 
-        const lat = 1 * cursor.get("aredn", "@location[0]", "lat");
-        const lon = 1 * cursor.get("aredn", "@location[0]", "lon");
+        const lat = cursor.get("aredn", "@location[0]", "lat") ? 1 * cursor.get("aredn", "@location[0]", "lat") : null;
+        const lon = cursor.get("aredn", "@location[0]", "lon") ? 1 * cursor.get("aredn", "@location[0]", "lon") : null;
 
         // Update xlinks
         xlinks = {};
@@ -349,9 +342,13 @@ function main()
                     track.signal = station.sta_info.signal;
                     track.tx_packets = station.sta_info.tx_packets;
                     track.tx_retries = station.sta_info.tx_retries;
-                    track.tx_fail = station.sta_info.tx_fail;
-                    track.tx_bitrate = station.sta_info.tx_bitrate.bitrate * channelBwScale;
-                    track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
+                    track.tx_fail = station.sta_info.tx_failed;
+                    if (station.sta_info.tx_bitrate) {
+                        track.tx_bitrate = station.sta_info.tx_bitrate.bitrate * channelBwScale;
+                    }
+                    if (station.sta_info.rx_bitrate) {
+                        track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
+                    }
                     if (track.snr !== null) {
                         track.snr = max(0, round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg)));
                     }
@@ -427,9 +424,15 @@ function main()
         // Refresh remote attributes periodically as this is expensive
         // We dont do it the very first time so we can populate the LQM state with a new node quickly
         const trackerlist = values(trackers);
-        let tidx = 0;
+        let tidx = -1;
         function remoteRefresh()
         {
+            if (++tidx >= length(trackerlist)) {
+                // Move to next operations
+                tidx = -1;
+                return waitForTicks(0, updateTrackingState);
+            }
+
             const track = trackerlist[tidx];
             if (track.refresh === 0) {
                 refresh = true;
@@ -475,10 +478,14 @@ function main()
                             }
                         }
 
-                        // Update the distandce to the remote node
-                        track.lat = (1 * info.lat) || track.lat;
-                        track.lon = (1 * info.lon) || track.lon;
-                        if (track.lat && track.lon && lat && lon) {
+                        // Update the distance to the remote node
+                        if ("lat" in info) {
+                            track.lat = 1 * info.lat;
+                        }
+                        if ("lon" in info) {
+                            track.lon = 1 * info.lon;
+                        }
+                        if ("lat" in track && "lon" in track && lat != null && lon != null) {
                             track.distance = calcDistance(lat, lon, track.lat, track.lon);
                             if (track.type === "DtD" && track.distance < dtd_distance) {
                                 track.localarea = true;
@@ -508,8 +515,8 @@ function main()
 
                             if (track.type == "RF") {
                                 rfLinks[track.mac] = {};
-                                for (let i = 0; i < length(rtrackers); i++) {
-                                    const rtrack = rtrackers[i];
+                                for (let mac in rtrackers) {
+                                    const rtrack = rtrackers[mac];
                                     if (rtrack.type === "RF" || !rtrack.type) {
                                         const rhostname = canonicalHostname(rtrack.hostname);
                                         if (rtrack.ip && rtrack.routable) {
@@ -535,20 +542,20 @@ function main()
             }
         
             // Do the next iteration async
-            if (++tidx < length(trackerlist)) {
-                return waitForTicks(0, remoteRefresh);
-            }
-
-            // Move to next operations
-            tidx = 0;
-            return waitForTicks(0, updateTrackingState);
+            return waitForTicks(0, remoteRefresh);
         }
 
         const hostRoutes = babel.getHostRoutes();
+        const superRoute = babel.getSupernodeRoute();
 
         // Update link tracking state
         updateTrackingState = function _updateTrackingState()
         {
+            if (++tidx >= length(trackerlist)) {
+                // Finish up
+                return waitForTicks(0, finish);
+            }
+    
             const track = trackerlist[tidx];
             
             // Clear route counter
@@ -569,6 +576,10 @@ function main()
                         track.babel_metric = r.metric;
                         break;
                     }
+                }
+                if (superRoute && !track.routable && superRoute.gateway == track.ip) {
+                    track.routable = true;
+                    track.babel_metric = superRoute.metric;
                 }
             }
 
@@ -675,12 +686,7 @@ function main()
             }
 
             // Do the next iteration async
-            if (++tidx < length(trackerlist)) {
-                return waitForTicks(0, updateTrackingState);
-            }
-
-            // Finish up
-            return waitForTicks(0, finish);
+            return waitForTicks(0, updateTrackingState);
         };
 
         finish = function _finish()
@@ -696,9 +702,8 @@ function main()
                         total_route_count++;
                     }
                 }
-                const defRoute = babel.getDefaultRoute();
-                if (defRoute) {
-                    const t = ip2tracker[defRoute.gateway];
+                if (superRoute) {
+                    const t = ip2tracker[superRoute.gateway];
                     if (t) {
                         t.babel_route_count++;
                         total_route_count++;
@@ -748,7 +753,7 @@ function main()
             const theres = {};
             for (let mac in rfLinks) {
                 const track = trackers[mac];
-                if (track && !track.user.blocks && track.routable) {
+                if (track && !track.user_blocks && track.routable) {
                     const rfneighbor = rfLinks[mac];
                     for (let nip in rfneighbor) {
                         theres[nip] = rfneighbor[nip];

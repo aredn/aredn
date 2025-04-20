@@ -267,8 +267,8 @@ return waitForTicks(max(1, 120 - clock(true)[0]), function()
     for (let i = 0; i < length(config); i++) {
         const c = config[i];
         if (c.iface == wifi) {
-            frequency = hardware.getChannelFrequency(wifi, c.channel);
-            ssid = c.ssid;
+            frequency = hardware.getChannelFrequency(wifi, c.mode.channel);
+            ssid = c.mode.ssid;
             mode = c.mode.mode;
             break;
         }
