@@ -33,7 +33,7 @@
 
 const refresh_timeout_base = 12 * 60; // refresh high cost data every 12 minutes
 const refresh_timeout_limit = 17 * 60; // to 17 minutes
-const refresh_retry_timeout = 5 * 60
+const refresh_retry_timeout = 5 * 60;
 const lastseen_timeout = 24 * 60 * 60; // age out nodes we've not seen for 24 hours
 const snr_run_avg = 0.4; // snr running average
 const tx_quality_run_avg = 0.4; // tx quality running average
@@ -51,7 +51,6 @@ const ping_penalty = 5; // Cost of a failed ping to measure of a link's quality
 
 const IW = "/usr/sbin/iw";
 const UFETCH = "/bin/uclient-fetch";
-const IPCMD = "/sbin/ip";
 const PING6 = "/bin/ping6";
 
 // Get radio
@@ -280,7 +279,7 @@ function main()
                 if (m) {
                     const type = deviceToType(m[2]);
                     const mac = network.ipv6ll2mac(m[1]);
-                    const track = trackers[mac];
+                    let track = trackers[mac];
                     if (!track && type) {
                         track = {
                             lastseen: now,
@@ -309,35 +308,51 @@ function main()
         }
 
         // Update stats for tunnels and xlinks
-        // ...
-
-        // Update stats for radios
-        const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wlan });
-        for (let i = 0; i < length(survey); i++) {
-            if (survey[i].dev == wlab && survey[i].survey_info.noise) {
-                const cnoise = survey[i].survey_info.noise;
-                if (cnose < -70) {
-                    noise = round(noise * 0.9 + cnoise * 0.1);
-                    break;
+        const istats = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+        for (let i = 0; i < length(istats); i++) {
+            const stat = istats[i];
+            const type = deviceToType(stat.dev);
+            if (type === "Wireguard" || type == "Xlink") {
+                for (let mac in trackers) {
+                    const t = trackers[mac];
+                    if (t[mac].device == stat.dev) {
+                        t.tx_packets = stat.stats64.tx_packets;
+                        t.tx_fail = stat.stats64.tx_errors;
+                        break;
+                    }
                 }
             }
         }
-        const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlan });
-        for (let i = 0; i < length(stations); i++) {
-            const station = stations[i];
-            const track = trackers[station.mac];
-            if (track) {
-                track.signal = station.sta_info.signal;
-                track.tx_packets = station.sta_info.tx_packets;
-                track.tx_retries = station.sta_info.tx_retries;
-                track.tx_fail = station.sta_info.tx_fail;
-                track.tx_bitrate = station.sta_info.tx_bitrate.bitrate * channelBwScale;
-                track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
-                if (track.snr !== null) {
-                    track.snr = max(0, round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg)));
+
+        // Update stats for radios
+        if (wlan !== "none") {
+            const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wlan });
+            for (let i = 0; i < length(survey); i++) {
+                if (survey[i].dev == wlab && survey[i].survey_info.noise) {
+                    const cnoise = survey[i].survey_info.noise;
+                    if (cnose < -70) {
+                        noise = round(noise * 0.9 + cnoise * 0.1);
+                        break;
+                    }
                 }
-                else {
-                    track.snr = max(0, track.signal - noise);
+            }
+            const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlan });
+            for (let i = 0; i < length(stations); i++) {
+                const station = stations[i];
+                const track = trackers[station.mac];
+                if (track) {
+                    track.signal = station.sta_info.signal;
+                    track.tx_packets = station.sta_info.tx_packets;
+                    track.tx_retries = station.sta_info.tx_retries;
+                    track.tx_fail = station.sta_info.tx_fail;
+                    track.tx_bitrate = station.sta_info.tx_bitrate.bitrate * channelBwScale;
+                    track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
+                    if (track.snr !== null) {
+                        track.snr = max(0, round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg)));
+                    }
+                    else {
+                        track.snr = max(0, track.signal - noise);
+                    }
                 }
             }
         }
@@ -524,13 +539,15 @@ function main()
             return waitForTicks(0, updateTrackingState);
         }
 
+        const hostRoutes = babel.getHostRoutes();
+
         // Update link tracking state
         updateTrackingState = function _updateTrackingState()
         {
             const track = trackerlist[tidx];
             
             // Clear route counter
-            track.route_count = 0;
+            track.babel_route_count = 0;
 
             if (!track.ip) {
                 track.routable = false;
@@ -540,7 +557,14 @@ function main()
 
                 // Update if link is routable
                 track.routable = false;
-                // ...
+                for (let i = 0; i < length(hostRoutes); i++) {
+                    const r = hostRoutes[i];
+                    if (r.gateway == track.ip) {
+                        track.routable = true;
+                        track.babel_metric = r.priority;
+                        break;
+                    }
+                }
             }
 
             // Refresh user blocks
@@ -567,7 +591,7 @@ function main()
                 }
             }
             else if (track.type === "Xlink") {
-                track.babel_config.rxcost = tonumber(cursor.get("babel", "xlink", "rxcost"))
+                track.babel_config.rxcost = tonumber(cursor.get("babel", "xlink", "rxcost"));
                 let weight = null;
                 for (let x = 0; x < 16; x++) {
                     if (cursor.get("network", `xlink${x}`, "ifname") == track.device) {
@@ -660,33 +684,20 @@ function main()
             // We don't do this for supernodes as the table is very big and we don't use the information.
             if (!issupernode) {
                 total_route_count = 0;
-                let p = fs.popen(`${IPCMD} route show table 20`);
-                if (p) {
-                    for (let line = p.read("line"); length(line); line = p.read("line")) {
-                        const m = match(line, /^10\.\d+\.\d+\.\d+ via (\d+\.\d+\.\d+\.\d+) dev/);
-                        if (m) {
-                            const t = ip2tracker[m[1]];
-                            if (t) {
-                                t.route_count++;
-                                total_route_count++;
-                            }
-                        }
+                for (let i = 0; i < length(hostRoutes); i++) {
+                    const t = ip2tracker[hostRoutes[i].gateway];
+                    if (t) {
+                        t.babel_route_count++;
+                        total_route_count++;
                     }
-                    p.close();
                 }
-                p = fs.popen(`${IPCMD} route show table 21`);
-                if (p) {
-                    for (let line = p.read("line"); length(line); line = p.read("line")) {
-                        const m = match(line, /^10\.0\.0\.0\/8 via (\d+\.\d+\.\d+\.\d+) dev/);
-                        if (m) {
-                            const t = ip2tracker[m[1]];
-                            if (t) {
-                                t.route_count++;
-                                total_route_count++;
-                            }
-                        }
+                const defRoute = babel.getDefaultRoute();
+                if (defRoute) {
+                    const t = ip2tracker[defRoute.gateway];
+                    if (t) {
+                        t.babel_route_count++;
+                        total_route_count++;
                     }
-                    p.close();
                 }
             }
 
