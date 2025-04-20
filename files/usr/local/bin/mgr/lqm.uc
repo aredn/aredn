@@ -84,13 +84,18 @@ function calcDistance(lat1, lon1, lat2, lon2)
     const r2 = 12742000; // diameter earth (meters)
     const p = 0.017453292519943295; // Math.PI / 180
     const v = 0.5 - math.cos((lat2 - lat1) * p) / 2 + math.cos(lat1 * p) * math.cos(lat2 * p) * (1 - math.cos((lon2 - lon1) * p)) / 2;
-    return int(r2 * math.atan(math.sqrt(v), math.sqrt(1 - v)));
+    return int(r2 * math.atan2(math.sqrt(v), math.sqrt(1 - v)));
 }
 
 function gettime()
 {
     const t = time();
     return t[0] + t[1] / 1000000;
+}
+
+function floor(v)
+{
+    return int(v);
 }
 
 function round(v)
@@ -106,7 +111,7 @@ function ceil(v)
 
 function canonicalHostname(hostname)
 {
-    return replace(replace(replace(replace(replace(replace(hostname, /^dtdlink\./, ""), /^xlink\d+\./, ""), /^xlink\d+\./, ""), /^lan\./, ""), /^supernode\./, ""), /\.local\.mesh$/, "");
+    return lc(replace(replace(replace(replace(replace(replace(hostname, /^dtdlink\./, ""), /^xlink\d+\./, ""), /^xlink\d+\./, ""), /^lan\./, ""), /^supernode\./, ""), /\.local\.mesh$/, ""));
 }
 
 function iwSet(cmd)
@@ -445,7 +450,7 @@ function main()
                         track.rev_quality = null;
                     }
                     else {
-                        track.refresh = now + refresh_timeout();
+                        track.refresh = now + refreshTimeout();
                         track.rev_lastseen = now;
 
                         track.hostname = canonicalHostname(info.node);
@@ -491,8 +496,8 @@ function main()
 
                         if (info.lqm && info.lqm.info && info.lqm.info.trackers) {
                             const rtrackers = info.lqm.info.trackers;
-                            for (let i = 0; i < length(rtrackers); i++) {
-                                const rtrack = rtrackers[i];
+                            for (let mac in rtrackers) {
+                                const rtrack = rtrackers[mac];
                                 if (myhostname == canonicalHostname(rtrack.hostname)) {
                                     track.rev_ping_success_time = rtrack.ping_success_time;
                                     track.rev_ping_quality = rtrack.ping_quality;
@@ -559,9 +564,9 @@ function main()
                 track.routable = false;
                 for (let i = 0; i < length(hostRoutes); i++) {
                     const r = hostRoutes[i];
-                    if (r.gateway == track.ip) {
+                    if (r.dst == track.ip) {
                         track.routable = true;
-                        track.babel_metric = r.priority;
+                        track.babel_metric = r.metric;
                         break;
                     }
                 }

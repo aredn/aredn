@@ -151,7 +151,7 @@ function monitorStationCount()
     if (length(stationCount.history) > stationCount.historyLimit) {
         stationCount.history = slice(stationCount.history, 0, stationCount.historyLimit);
     }
-    const now = time(true)[0];
+    const now = clock(true)[0];
     if (count == 0) {
         stationCount.lastZero = now;
         if (stationCount.firstZero <= stationCount.firstNonZero) {
@@ -257,7 +257,7 @@ function main()
 return waitForTicks(max(1, 120 - clock(true)[0]), function()
 {
     // No station when we start
-    const now = time(true)[0];
+    const now = clock(true)[0];
     stationCount.firstNonZero = now;
     stationCount.firstZero = now;
 
