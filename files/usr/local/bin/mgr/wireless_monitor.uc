@@ -36,10 +36,11 @@ import * as nl80211 from "nl80211";
 const IW = "/usr/sbin/iw";
 const PING6 = "/bin/ping6";
 
-let wifi;
-let wifiMode;
-let phy;
-let chipset;
+const device = radios.getMeshRadio();
+if (!device) {
+    return exitApp();
+}
+const wifi = device.iface;
 let frequency;
 let ssid;
 
@@ -237,7 +238,7 @@ function runMonitors()
 
 function save()
 {
-    fs.writefile("/tmp/wireless_monitor.info", sprintf("%J", {
+    fs.writefile("/tmp/wireless_monitor.info", sprintf("%.2J", {
         now: clock(true)[0],
         unresponsive: unresponsive,
         stationCount: stationCount,
@@ -253,7 +254,7 @@ function main()
     return waitForTicks(60); // 1 minute
 }
 
-function startup()
+return waitForTicks(max(1, 120 - clock(true)[0]), function()
 {
     // No station when we start
     const now = time(true)[0];
@@ -261,28 +262,30 @@ function startup()
     stationCount.firstZero = now;
 
     // Extract all the necessary wifi parameters
+    let mode = null;
     const config = radios.getActiveConfiguration();
     for (let i = 0; i < length(config); i++) {
         const c = config[i];
         if (c.iface == wifi) {
             frequency = hardware.getChannelFrequency(wifi, c.channel);
             ssid = c.ssid;
-            wifiMode = c.mode.mode;
+            mode = c.mode.mode;
             break;
         }
     }
-    phy = replace(wifi, /^wlan/, "phy");
+    const phy = replace(wifi, /^wlan/, "phy");
 
     if (!(phy && frequency && ssid)) {
         log.syslog(log.LOG_ERR, `Startup failed`);
         return exitApp();
     }
-    if (wifiMode != radios.RADIO_MESH) {
+    if (mode != radios.RADIO_MESH) {
         log.syslog(log.LOG_NOTICE, `Only runs in adhoc mode`);
         return exitApp();
     }
 
     // Select chipset
+    let chipset = null;
     if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath9k`)) {
         chipset = "ath9k";
     }
@@ -299,15 +302,4 @@ function startup()
     resetNetwork("rejoin");
 
     return waitForTicks(0, main);
-}
-
-return function()
-{
-    const device = radios.getMeshRadio();
-    if (!device) {
-        return exitApp();
-    }
-    wifi = device.iface;
-
-    return waitForTicks(max(1, 120 - clock(true)[0]), startup);
-};
+});

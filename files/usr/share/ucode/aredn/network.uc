@@ -131,3 +131,9 @@ export function mac2ipv6ll(macaddr)
     const mac = split(macaddr, ":");
     return arrtoip([ 0xFE, 0x80, 0, 0,  0, 0, 0, 0,  hex(mac[0]) ^ 2, hex(mac[1]), hex(mac[2]), 0xFF,  0xFE, hex(mac[3]), hex(mac[4]), hex(mac[5]) ]);
 };
+
+export function ipv6ll2mac(ipv6)
+{
+    const v = iptoarr(ipv6);
+    return sprintf("%02x:%02x:%02x:%02x:%02x:%02x", v[8] ^ 2, v[9], v[10], v[13], v[14], v[15]);
+};

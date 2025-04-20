@@ -31,7 +31,6 @@
  * version
  */
 
-
 const CONFIG0 = "/etc/config.mesh/gpsd";
 const CONFIG1 = "/etc/config/gpsd";
 const CHANGEMARGIN = 0.0001;
