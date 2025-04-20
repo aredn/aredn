@@ -90,7 +90,7 @@ function resetNetwork(mode)
             if (mikrotikAC) {
                 // Only observered on Mikrotik AC devices
                 system(`${IW} ${wifi} ibss leave > /dev/null 2>&1`);
-                system(`${IW} ${wifi} ibss join ${ssid} ${frequency} fixed-freq > /dev/null 2>&1`);
+                system(`${IW} ${wifi} ibss join ${ssid} ${frequency} HT20 fixed-freq > /dev/null 2>&1`);
             }
             else {
                 log.syslog(log.LOG_NOTICE, `-- ignoring (mikrotik ac only)`);
