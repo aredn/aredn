@@ -42,7 +42,7 @@ function runScripts(scripts)
             }
             if (match(entry, /^[a-zA-Z0-9_%-]+$/)) {
                 const path = `${scripts}/${entry}`;
-                const stat = fs.lstat(path);
+                const stat = fs.stat(path);
                 if (stat.type === "file" && (stat.perm.user_exec || stat.perm.group_exec || stat.perm.other_exec)) {
                     system(`(cd /tmp; ${path} 2>&1 | logger -p daemon.debug -t ${entry})&`);
                 }

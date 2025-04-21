@@ -459,7 +459,7 @@ function main()
                         track.hostname = canonicalHostname(info.node);
                         track.canonical_ip = network.nslookup(track.hostname);
                         if (track.type === "Wireguard") {
-                            const address = cursor.get_all("network", track.device, "addresses")[0];
+                            const address = cursor.get("network", track.device, "addresses")[0];
                             const m = match(address, /^(\d+\.\d+\.\d+\.)(\d+)$/);
                             if (match(track.device, /^wgs/)) {
                                 track.ip = `${m[1]}${int(m[2]) - 1}`;

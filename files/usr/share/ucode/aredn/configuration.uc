@@ -474,7 +474,7 @@ export function supportdata(supportdatafilename)
         "/tmp/dnsmasq.d",
         "/tmp/lqm.info",
         "/tmp/wireless_monitor.info",
-        "/tmp/service-validation-state",
+        "/tmp/service-validation-state.json",
         "/tmp/sysinfo",
         "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
         "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
