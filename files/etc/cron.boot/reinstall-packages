@@ -1,83 +1,80 @@
-#!/usr/bin/lua
---[[
+#!/usr/bin/ucde
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2023-2025 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
 
-	Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2023 Tim Wilkinson
-	See Contributors file for additional contributors
+import * as fs from "fs";
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation version 3 of the License.
+const packageStore = "/etc/package_store";
+const packageCatalog = `${packageStore}/catalog.json`;
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+function opkg_with_retry(arg)
+{
+	for (let i = 0; i < 5; i++) {
+		if (system(`opkg ${arg}`) != 255) {
+			break;
+		}
+		sleep(5000);
+	}
+}
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+opkg_with_retry("list-installed | sed s/\\ .*// > /etc/permpkg");
 
-	Additional Terms:
+if (fs.access(packageCatalog)) {
+	// Make sure we can contact the package server before proceeding.
+	// We will wait a few minutes before going ahead anyway
+	for (let i = 0; i < 5; i++) {
+		if (system("ping -q -c 1 -W 5 downloads.arednmesh.org > /dev/null 2>&1") == 0) {
+			break;
+		}
+		print("Failed to contact package server - retry in 60 seconds\n")
+		sleep(60000);
+	}
 
-	Additional use restrictions exist on the AREDN® trademark and logo.
-		See AREDNLicense.txt for more info.
+    opkg_with_retry("update");
+    const catalog = json(fs.readfile(packageCatalog));
+	for (let ipkg in catalog.installed) {
+		const state = catalog.installed[ipkg];
+        if (state == "local") {
+            const file = `${packageStore}/${ipkg}.ipk`;
+            if (fs.access(file)) {
+                opkg_with_retry(`install ${file}`);
+			}
+		}
+        else if (state == "global") {
+            opkg_with_retry(`install ${ipkg}`);
+		}
+	}
+}
 
-	Attributions to the AREDN® Project must be retained in the source code.
-	If importing this code into a new or existing project attribution
-	to the AREDN® project must be added to the source code.
-
-	You must not misrepresent the origin of the material contained within.
-
-	Modified versions must be modified to attribute to the original source
-	and be marked in reasonable ways as differentiate it from the original
-	version
-
---]]
-
-require("nixio")
-require("luci.jsonc")
-
-local package_store = "/etc/package_store"
-local package_catalog = package_store .. "/catalog.json"
-
-local function opkg_with_retry(arg)
-	for i = 1,5
-	do
-		if os.execute("opkg " .. arg) ~= 255 then
-			break
-		end
-		nixio.nanosleep(5, 0)
-	end
-end
-
-opkg_with_retry("list-installed | sed s/\\ .*// > /etc/permpkg")
-
-if nixio.fs.stat(package_catalog) then
-	-- Make sure we can contact the package server before proceeding.
-	-- We'll wait a few minutes before going ahead anyway
-	for i = 1,5
-	do
-		if os.execute("ping -q -c 1 -W 5 downloads.arednmesh.org > /dev/null 2>&1") == 0 then
-			break
-		end
-		print("Failed to contact package server - retry in 60 seconds")
-		nixio.nanosleep(60, 0)
-	end
-
-    opkg_with_retry("update")
-    local catalog = luci.jsonc.parse(io.open(package_catalog):read("*a"))
-    for ipkg, state in pairs(catalog.installed)
-    do
-        if state == "local" then
-            local file = package_store .. "/" .. ipkg .. ".ipk"
-            if nixio.fs.stat(file) then
-                opkg_with_retry("install " .. file)
-            end
-        elseif state == "global" then
-            opkg_with_retry("install " .. ipkg)
-        end
-    end
-end
-
--- Don't do this again
-os.remove("/etc/cron.boot/reinstall-packages")
+// Don't do this again
+fs.unlink("/etc/cron.boot/reinstall-packages");
