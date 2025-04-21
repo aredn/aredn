@@ -64,7 +64,7 @@ export function getCommonConfiguration()
                 antsaux: hardware.getAntennasAux(iface),
                 txpoweroffset: hardware.getTxPowerOffset(iface),
                 txmaxpower: hardware.getMaxTxPower(iface),
-                macaddress: hardware.getMACAddress(iface),
+                macaddress: hardware.getInterfaceMAC(iface),
                 maxdistance: 80550,
                 managedOOB: [ -4, -3, -2, -1, 0, 180, 181, 182, 183, 184 ]
             };

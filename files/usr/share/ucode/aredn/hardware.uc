@@ -34,6 +34,7 @@
 import * as fs from "fs";
 import * as ubus from "ubus";
 import * as nl80211 from "nl80211";
+import * as rtnl from "rtnl";
 import * as socket from "socket";
 import * as babel from "aredn.babel";
 
@@ -485,9 +486,16 @@ export function getMaxDistance(wifiIface)
     return info.wiphy_coverage_class * 450;
 };
 
-export function getMACAddress(wifiIface)
+export function getInterfaceMAC(dev)
 {
-    return trim(fs.readfile(`/sys/class/ieee80211/${replace(wifiIface, "wlan", "phy")}/macaddress`) || "00:00:00:00:00:00");
+    const ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    for (let i = 0; i < length(ifs); i++) {
+        const iface = ifs[i];
+        if (iface.dev == dev && iface.address) {
+            return iface.address;
+        }
+    }
+    return "00:00:00:00:00:00";
 };
 
 export function supportsXLink()
