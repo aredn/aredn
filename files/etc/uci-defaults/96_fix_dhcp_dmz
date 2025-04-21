@@ -35,21 +35,21 @@ LICENSE
 
 cat > /tmp/run_uci_defaults << __EOF__
 
-require("nixio")
-require("uci")
+import * as uci from "uci";
 
-local c = uci.cursor("/etc/config.mesh")
+const c = uci.cursor("/etc/config.mesh");
 
-if tonumber(c:get("setup", "globals", "dmz_mode") or 0) > 1 then
-    local dmz_lan_mask = c:get("setup", "globals", "dmz_lan_mask")
-    local dmz_dhcp_start = tonumber(c:get("setup", "globals", "dmz_dhcp_start"))
-    local dmz_dhcp_end = tonumber(c:get("setup", "globals", "dmz_dhcp_end"))
-    local mask = 255 - tonumber(dmz_lan_mask:match("%.(%d+)$"))
-    c:set("setup", "globals", "dmz_dhcp_start", nixio.bit.band(dmz_dhcp_start, mask))
-    c:set("setup", "globals", "dmz_dhcp_end", nixio.bit.band(dmz_dhcp_end, mask))
-    c:commit("setup")
-end
+if ((c.get("setup", "globals", "dmz_mode") || 0) > 1) {
+    const dmz_lan_mask = c.get("setup", "globals", "dmz_lan_mask");
+    const dmz_dhcp_start = int(c.get("setup", "globals", "dmz_dhcp_start"));
+    const dmz_dhcp_end = int(c.get("setup", "globals", "dmz_dhcp_end"));
+    const m = match(dmz_lan_mask, /\.(\d+)$/);
+    const mask = 255 - int(m[1]);
+    c.set("setup", "globals", "dmz_dhcp_start", dmz_dhcp_start & mask);
+    c.set("setup", "globals", "dmz_dhcp_end", dmz_dhcp_end & mask);
+    c.commit("setup");
+}
 
 __EOF__
-/usr/bin/lua /tmp/run_uci_defaults
+/usr/bin/ucode /tmp/run_uci_defaults
 rm -f /tmp/run_uci_defaults

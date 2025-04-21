@@ -35,44 +35,47 @@ LICENSE
 
 cat > /tmp/migrate_weights << __EOF__
 
-require("uci")
+import * as uci from "uci";
 
-local c = uci.cursor("/etc/config.mesh")
+const c = uci.cursor("/etc/config.mesh");
 
-c:foreach("wireguard", "server",
+c.foreach("wireguard", "server",
     function(server)
-        local name = server[".name"]
-        local weight = c:get("wireguard", name, "weight")
-        if weight then
-            c:set("wireguard", name, "cost", 100 * tonumber(weight))
-            c:delete("wireguard", name, "weight")
-        end
-    end
-)
-c:foreach("wireguard", "client",
+    {
+        const name = server[".name"];
+        const weight = c.get("wireguard", name, "weight");
+        if (weight) {
+            c.set("wireguard", name, "cost", 100 * weight);
+            c.delete("wireguard", name, "weight");
+        }
+    }
+);
+c.foreach("wireguard", "client",
     function(client)
-        local name = client[".name"]
-        local weight = c:get("wireguard", name, "weight")
-        if weight then
-            c:set("wireguard", name, "cost", 100 * tonumber(weight))
-            c:delete("wireguard", name, "weight")
-        end
-    end
-)
-c:foreach("xlink", "interface",
+    {
+        const name = client[".name"];
+        const weight = c.get("wireguard", name, "weight");
+        if (weight) {
+            c.set("wireguard", name, "cost", 100 * weight);
+            c.delete("wireguard", name, "weight");
+        }
+    }
+);
+c.foreach("xlink", "interface",
     function(iface)
-        local name = iface[".name"]
-        local weight = c:get("xlink", name, "weight")
-        if weight then
-            c:set("xlink", name, "cost", 150 * tonumber(weight))
-            c:delete("xlink", name, "weight")
-        end
-    end
-)
+    {
+        const name = iface[".name"];
+        const weight = c.get("xlink", name, "weight");
+        if (weight) {
+            c.set("xlink", name, "cost", 150 * weight);
+            c.delete("xlink", name, "weight");
+        }
+    }
+);
 
-c:commit("wireguard")
-c:commit("xlink")
+c.commit("wireguard");
+c.commit("xlink");
 
 __EOF__
-/usr/bin/lua /tmp/migrate_weights
+/usr/bin/ucode /tmp/migrate_weights
 rm -f /tmp/migrate_weights

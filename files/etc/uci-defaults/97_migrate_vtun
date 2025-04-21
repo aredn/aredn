@@ -40,40 +40,42 @@ touch /etc/config.mesh/wireguard
 
 cat > /tmp/migrate_vtun << __EOF__
 
-require("uci")
+import * as fs from "fs";
+import * as uci from "uci";
 
-local c = uci.cursor("/etc/config.mesh")
+const c = uci.cursor("/etc/config.mesh");
 
-local network = c:add("wireguard", "network")
-local start = c:get("vtun", "@network[0]", "start")
-if start then
-    c:set("wireguard", network, "start", start)
-end
-local dns = c:get("vtun", "@network[0]", "dns")
-if dns then
-    c:set("wireguard", network, "dns", dns)
-end
+const network = c.add("wireguard", "network");
+const start = c.get("vtun", "@network[0]", "start");
+if (start) {
+    c.set("wireguard", network, "start", start);
+}
+const dns = c.get("vtun", "@network[0]", "dns");
+if (dns) {
+    c.set("wireguard", network, "dns", dns);
+}
 
-c:foreach("vtun", "server",
+c.foreach("vtun", "server",
     function(server)
-        if server.netip:match(":") then
-            local name = server[".name"]
-            c:set("wireguard", name, "server")
-            c:set("wireguard", name, "enabled", server.enabled)
-            c:set("wireguard", name, "host", server.host)
-            c:set("wireguard", name, "passwd", server.passwd)
-            c:set("wireguard", name, "node", server.node)
-            c:set("wireguard", name, "clientip", server.clientip)
-            c:set("wireguard", name, "serverip", server.serverip)
-            c:set("wireguard", name, "netip", server.netip)
-            c:set("wireguard", name, "weight", server.weight or "")
-        end
-    end
-)
+    {
+        if (match(server.netip, /:/)) {
+            const name = server[".name"];
+            c.set("wireguard", name, "server");
+            c.set("wireguard", name, "enabled", server.enabled);
+            c.set("wireguard", name, "host", server.host);
+            c.set("wireguard", name, "passwd", server.passwd);
+            c.set("wireguard", name, "node", server.node);
+            c.set("wireguard", name, "clientip", server.clientip);
+            c.set("wireguard", name, "serverip", server.serverip);
+            c.set("wireguard", name, "netip", server.netip);
+            c.set("wireguard", name, "weight", server.weight || "");
+        }
+    }
+);
 
-c:commit("wireguard")
-os.remove("/etc/config.mesh/vtun")
+c.commit("wireguard");
+fs.unlink("/etc/config.mesh/vtun");
 
 __EOF__
-/usr/bin/lua /tmp/migrate_vtun
+/usr/bin/ucode /tmp/migrate_vtun
 rm -f /tmp/migrate_vtun
