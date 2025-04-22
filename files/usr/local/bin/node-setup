@@ -36,6 +36,7 @@ import * as fs from "fs";
 import * as uci from "uci";
 import * as hardware from "aredn.hardware";
 import * as network from "aredn.network";
+import * as services from "aredn.services";
 
 // Helpers
 
@@ -54,7 +55,7 @@ function isNotNull(v)
     return !isNull(v);
 }
 
-function hex2str(hexstr)
+function h2s(hexstr)
 {
     let s = "";
     if (hex) {
@@ -77,6 +78,31 @@ function tonumber(v)
         return null;
     }
     return 1 * v;
+}
+
+function ip2decimal(ip)
+{
+    const a = iptoarr(ip);
+    return a[0] << 24 + a[1] << 16 + a[2] << 8 + a[3];
+}
+
+function decimal2ip(d)
+{
+    return arrtoip(d >> 24 & 255, d >> 16 & 255, d >> 8 & 255, d && 255);
+}
+
+function filecopy(from, to)
+{
+    const f = fs.readfile(from);
+    if (f == null) {
+        return false;
+    }
+    const t = fs.readfile(to);
+    if (f == t) {
+        return false;
+    }
+    fs.writefile(to, f);
+    return true;
 }
 
 function tablesize(t)
@@ -770,11 +796,647 @@ function createTagSection(tag, force, optlist)
     }
 }
 
-// DHCP options start
+// DHCP options
 
-// ...
+const dhcp_option_list = {};
+const dhcp_option_force_list = {};
+const route44net = "";
+if (nc.get("aredn", "@wan[0]", "lan_dhcp_44route") == "1" && fs.access("/etc/44net.conf")) {
+    const f = fs.open("/etc/44net.conf");
+    if (f) {
+        for (let line = f.read("line"); length(line); line = f.read("line")) {
+            route44net += `,${trim(line)},${cfg.lan_ip}`;
+        }
+        f.close();
+    }
+}
+if (nc.get("aredn", "@wan[0]", "lan_dhcp_route") == "1" || nc.get("aredn", "@wan[0]", "lan_dhcp_defaultroute") == "1" || nc.get("aredn", "@wan[0]", "lan_to_remote_wan") == "1") {
+    // Provide stateless routes and default route
+    push(dhcp_option_list, `121,10.0.0.0/8,${cfg.lan_ip}${route44net},0.0.0.0/0,${cfg.lan_ip}`);
+    push(dhcp_option_list, `249,10.0.0.0/8,${cfg.lan_ip}${route44net},0.0.0.0/0,${cfg.lan_ip}`);
+}
+else {
+    // Provide stateless routes to the mesh, and a blank default route (option 3 has no values) to
+    // suppress default route being sent
+    push(dhcp_option_list, `121,10.0.0.0/8,${cfg.lan_ip}${route44net}`);
+    push(dhcp_option_list, `249,10.0.0.0/8,${cfg.lan_ip}${route44net}`);
+    push(dhcp_option_list, `3`);
+}
 
+const advancedOptions = loadDhcpOptions();
+const dhcpTags = loadDhcpTags();
+for (let condition in dhcpTags) {
+    createClassifiedSection(condition, dhcpTags[condition]);
+}
+for (let tag in advancedOptions) {
+    const forcelist = advancedOptions[tag];
+    if (forcelist) {
+        // tag-section name cannot be empty or section name must be unique
+        if (tag == "" || tablesize(forcelist) > 1) {
+            // place unforced options in the anonymous section
+            for (let i = 0; i < length(forcelist[UNFORCED] || []); i++) {
+                const option = forcelist[UNFORCED][i];
+                push(dhcp_option_list, optionItem(tag, option));
+                // If we detect a rapid-commit option to enable the necessary config flag
+                if (option.num == OPT_RAPID_COMMIT) {
+                    nc.set("dhcp", "@dhcp[0]", "rapidcommit", "1");
+                }
+            }
+            delete forcelist[UNFORCED];
+            for (let i = 0; i < length(forcelist[FORCED] || []); i++) {
+                const option = forcelist[FORCED][i];
+                push(dhcp_option_force_list, optionItem(tag, option));
+                // If we detect a rapid-commit option to enable the necessary config flag
+                if (option.num == OPT_RAPID_COMMIT) {
+                    nc.set("dhcp", "@dhcp[0]", "rapidcommit", "1");
+                }
+            }
+            delete forcelist[FORCED];
+        }
+        for (let force in forcelist) {
+            createTagSection(tag, force, forcelist[force]);
+        }
+    }
+}
+if (length(dhcp_option_list) > 0) {
+    nc.set("dhcp", "@dhcp[0]", "dhcp_option", dhcp_option_list);
+}
+if (length(dhcp_option_force_list) > 0) {
+    nc.set("dhcp", "@dhcp[0]", "dhcp_option_force", dhcp_option_force_list);
+}
 nc.commit("dhcp");
-// DHCP options end
 
 // Generate the wireless config file
+let config = "";
+const ifacecount = hardware.getRadioCount();
+const devpaths = {};
+for (let dev = 0; dev < ifacecount; dev++) {
+    const devname = `phy${dev}`;
+    const radio = `radio${dev}`;
+    const wlan = `wlan${dev}`;
+    let devpath = match(fs.realpath(`${ieee80211}${fs.readlink(ieee80211 + devname)}`), /^\/sys\/devices\/(.*)\/ieee802.*$/);
+    if (match(devpath[1], /^platform.*\/pci.*/)) {
+        devpath = match(devpath[1], /^platform\/(.*)/);
+    }
+    devpath = devpath[1];
+    const devpathc = devpaths[devpath] || 0;
+    devpaths[devpath] = devpathc + 1;
+    if (devpathc > 0) {
+        devpath += `+${devpathc}`;
+    }
+    const rif = hardware.getRadioIntf(wlan);
+    if (!rif || rif.disabled) {
+        config += `config\twifi-device '${radio}'\n\toption type 'mac80211'\n\toption disabled '1'\n\toption path '${devpath}'\n\n`;
+    }
+    else {
+        let isMeshRf = false;
+        let htmode = "HT20";
+        if (fs.access(`"/sys/kernel/debug/ieee80211/${devname}/ath10k"`)) {
+            htmode = "VHT20";
+            if (wlan == mesh_wifi) {
+                if (mesh_chanbw == 40) {
+                    htmode = "VHT40";
+                }
+                else if (mesh_chanbw == 80) {
+                    htmode = "VHT80";
+                }
+                else if (mesh_chanbw == 160) {
+                    htmode = "VHT160";
+                }
+            }
+        }
+        else if (fs.access(`"/sys/kernel/debug/ieee80211/${devname}/mt76"`)) {
+            htmode = "HE20";
+            if (wlan == mesh_wifi) {
+                if (mesh_chanbw == 40) {
+                    htmode = "HE40";
+                }
+                else if (mesh_chanbw == 80) {
+                    htmode = "HE80";
+                }
+                else if (mesh_chanbw == 160) {
+                    htmode = "HE160";
+                }
+            }
+        }
+        let disabled = "0";
+        let chanbw = null;
+        let country = null;
+        let channel = null;
+        let distance = null;
+        let hwmode = "11g";
+        if (hardware.getDefaultChannel(wlan).band == "5GHz") {
+            hwmode = "11a";
+        }
+        let network = null;
+        let mode = null;
+        let ssid = null;
+        let encryption = null;
+        let key = null;
+        let celldensity = null;
+        let txpower = null;
+        let rssireject = null;
+        let multicasttounicast = null;
+        let macfilter = null;
+        let macaddr = null;
+        let isolate = null;
+        let disassoclowack = null;
+        let maxinactivity = null;
+        let maxlisteninterval = null;
+        let uapsd = null;
+
+        if (cfg[`${radio}_mode`] == "mesh") {
+            // mesh RF adhoc configuration
+            is_mesh_rf = true;
+            channel = mesh_channel;
+            chanbw = mesh_chanbw;
+            country = "HX";
+            txpower = mesh_txpower;
+            distance = mesh_distance;
+            ssid = `${mesh_ssid}-${chanbw}-v3`;
+            mode = "adhoc";
+            encryption = "none";
+            network = "wifi";
+        }
+        else if (cfg[`${radio}_mode`] == "meshap" || cfg[`${radio}_mode`] == "meshptp") {
+            // mesh RF access point configuration
+            is_mesh_rf = true;
+            channel = mesh_channel;
+            chanbw = mesh_chanbw;
+            txpower = mesh_txpower;
+            distance = mesh_distance;
+            ssid = `${mesh_ssid}-${channel}-${chanbw}-v3`;
+            mode = "ap";
+            encryption = "none";
+            network = "wifi";
+            multicasttounicast = 1;
+            disassoclowack = 0;
+            maxinactivity = 600;
+            maxlisteninterval = 1;
+            uapsd = 0;
+            if (cfg[`${radio}_mode`] == "meshptp") {
+                macfilter = "allow";
+            }
+            else {
+                macfilter = "deny";
+            }
+            // Make AP's the best for better arednlink performance
+            macaddr = fs.readfile(`/sys/class/ieee80211/${devname}/macaddress`);
+            if (macaddr) {
+                macaddr = trim(replace(macaddr, /^..:/, "fe:"));
+                isolate = 1;
+            }
+        }
+        else if (cfg[`${radio}_mode`] == "meshsta") {
+            // mesh RF station configuration
+            is_mesh_rf = true;
+            // While the wifi doesnt neeed 'channel' and 'chanbw' to configure the station, we read these values in other code so keep them
+            channel = mesh_channel;
+            chanbw = mesh_chanbw;
+            distance = mesh_distance;
+            txpower = mesh_txpower;
+            ssid = `${mesh_ssid}-${mesh_channel}-${mesh_chanbw}-v3`;
+            mode = "sta";
+            encryption = "none";
+            network = "wifi";
+        }
+        else if (cfg[`${radio}_mode`] == "lan") {
+            // lan AP interface
+            channel = cfg[`${radio}_channel`];
+            ssid = h2s(cfg[`${radio}_ssid`]);
+            mode = "ap";
+            encryption = cfg[`${radio}_encryption`];
+            key = h2s(cfg[`${radio}_key`]);
+            network = "lan";
+        }
+        else if (cfg[`${radio}_mode`] == "wan") {
+            // wan client
+            ssid = h2s(cfg[`${radio}_ssid`]);
+            mode = "sta";
+            if (cfg[`${radio}_key`] && cfg[`${radio}_key`] != "") {
+                encryption = "psk2";
+                key = h2s(cfg[`${radio}_key`]);
+            }
+            else {
+                encryption = "none";
+            }
+            network = "wan";
+            htmode = null;
+        }
+        else {
+            disabled = "1";
+        }
+
+        config += `config wifi-device '${radio}'\n\toption type 'mac80211'\n`;
+        config += `\toption disabled '${disabled}'\n`;
+        if (channel != null) {
+            config += `\toption channel '${channel}'\n`;
+        }
+        if (chanbw != null) {
+            config += `\toption chanbw '${chanbw}'\n`;
+        }
+        if (country != null) {
+            config += `\toption country '${country}'\n`;
+        }
+        if (distance != null) {
+            config += `\toption distance '${distance}'\n`;
+        }
+        if (txpower != null) {
+            config += `\toption txpower '${txpower}'\n`;
+        }
+        if (hwmode == "11g") {
+            config += `\toption band '2g'\n`;
+        }
+        else {
+            config += `\toption band '5g'\n`;
+        }
+        if (htmode != null) {
+            config += `\toption htmode '${htmode}'\n`;
+        }
+        if (celldensity != null) {
+            config += `\toption cell_density '${celldensity}'\n`;
+        }
+        if (rssireject != null) {
+            config += `\toption rssi_reject_assoc_rssi '${rssireject}'\n\toption rssi_ignore_probe_request '${rssireject}'\n`;
+        }
+        config += `\toption path '${devpath}'\n\n`;
+
+        config += "config wifi-iface\n";
+        config += `\toption ifname '${wlan}'\n`;
+        config += `\toption device '${radio}'\n`;
+        if (network != null) {
+            config += `\toption network '${network}'\n`;
+        }
+        if (mode != null) {
+            config += `\toption mode '${mode}'\n`;
+        }
+        if (ssid != null) {
+            config += `\toption ssid '${ssid}'\n`;
+        }
+        if (macaddr != null) {
+            config += `\toption macaddr '${macaddr}'\n`;
+        }
+        if (encryption != null) {
+            config += `\toption encryption '${encryption}'\n`;
+        }
+        if (key != null) {
+            config += `\toption key '${key}'\n`;
+        }
+        if (multicasttounicast != null) {
+            config += `\toption multicast_to_unicast_all '${multicasttounicast}'\n`;
+        }
+        if (macfilter != null) {
+            config += `\toption macfilter '${macfilter}'\n`;
+        }
+        if (isolate != null) {
+            config += `\toption isolate '${isolate}'\n`;
+        }
+        if (disassoclowack != null) {
+            config += `\toption disassoc_low_ack '${disassoclowack}'\n`;
+        }
+        if (maxinactivity != null) {
+            config += `\toption max_inactivity '${maxinactivity}'\n`;
+        }
+        if (maxlisteninterval != null) {
+            config += `\toption max_listen_interval '${maxlisteninterval}'\n`;
+        }
+        if (uapsd != null) {
+            config += `\toption uapsd '${uapsd}'\n`;
+        }
+
+        config += "\n";
+
+        if (is_mesh_rf && wifi_mon_enable) {
+            config += "config wifi-iface\n";
+            config += `\toption ifname '${wlan}-1'\n`;
+            config += `\toption device '${radio}'\n`;
+            config += `\toption network 'wifi_mon'\n\toption mode 'monitor'\n\n`;
+        }
+    }
+}
+fs.writefile("/tmp/new_config/wireless", config);
+
+// Generate the host and ethers files
+const h = fs.open("/etc/hosts", "w");
+const e = fs.open("/etc/ethers", "w");
+const ah = fs.open("/tmp/arednlink.hosts", "w");
+if (h && e && ah) {
+    h.write("# automatically generated file - do not edit\n");
+    h.write("# use /etc/hosts.user for custom entries\n");
+    h.write("127.0.0.1\tlocalhost\n");
+    if (isNotNull(cfg.wifi_ip)) {
+        h.write(`${cfg.lan_ip}\tlocalnode\n`);
+        h.write(`${cfg.wifi_ip}\t${node} ${tactical}\n`);
+        ah.write(`${cfg.wifi_ip}\t${node}\n`);
+        ah.write(`${cfg.lan_ip}\tlan.${node}.local.mesh\n`);
+    }
+    else {
+        h.write(`${cfg.lan_ip}\tlocalnode ${node} ${tactical}\n`);
+    }
+    if (isNotNull(cfg.dtdlink_ip)) {
+        h.write(`${cfg.dtdlink_ip}\tdtdlink.${node}.local.mesh dtdlink.${node}\n`);
+        ah.write(`${cfg.dtdlink_ip}\tdtdlink.${node}.local.mesh\n`);
+    }
+
+    // Mark supernodes so we can find them
+    if (is_supernode && isNotNull(cfg.wifi_ip)) {
+        ah.write(`${cfg.wifi_ip}\tsupernode.${node}.local.mesh\n`);
+    }
+
+    e.write("# automatically generated file - do not edit\n");
+    e.write("# use /etc/ethers.user for custom entries\n");
+
+    let netaddr = ip2decimal(cfg.lan_ip) & ip2decimal(cfg.lan_mask);
+    // In NAT or AltNET mode the DHCP start can be something other than 2 which is what is assumed in the
+    //  code which creates the DHCP reservations. So we adjust our netaddr base to account for this
+    if (isNatMode() || isAltNetMode()) {
+        netaddr += cfg.dhcp_start - 2;
+    }
+
+    const reservations = cm.get("setup", "dhcpreservations", "reservation") || [];
+    for (let i = 0; i < length(reservations); i++) {
+        const m = match(reservations[i], /"([^ \t]+)[ \t]+([^ \t]+)[ \t]+([^ \t]+)[ \t]*([^ \t]*)"/);
+        if (m) {
+            const ip = decimal2ip(netaddr + int(m[2]));
+            h.write(`${ip}\t${m[3]} ${m[4]}\n`);
+            e.write(`${m[1]}\t${ip}\n`);
+            if (m[4] == "") {
+                ah.write(`${ip}\t${m[3]}\n`);
+            }
+        }
+    }
+
+    // aliases need to ba added to /etc/hosts or they will now show up on the localnode
+    // nor will the services thehy offer
+    // also add a comment to the hosts file so we can display the aliases differently if needed
+    const aliases = cm.get("setup", "aliases", "alias") || [];
+    for (let i = 0; i < length(aliases); i++) {
+        const m = match(aliases[i], /([^ \t]+)[ \t]+([^ \t]+)/);
+        if (m) {
+            let host = m[2];
+            ah.write(`${m[1]}\t${host}\n`);
+            if (!match(host, /\./)) {
+                host += ".local.mesh";
+            }
+            h.write(`${m[1]}\t${host} #ALIAS\n`);
+        }
+    }
+
+    h.write("\n");
+
+    let f = fs.open("/etc/hosts.user")
+    if (f) {
+        for (let line = f.read("line"); length(line); line = f.read("line")) {
+            h.write(line);
+            ah.write(line);
+        }
+        f.close();
+    }
+    f = fs.open("/etc/ethers.user")
+    if (f) {
+        for (let line = f.read("line"); length(line); line = f.read("line")) {
+            e.write(line);
+        }
+        f.close();
+    }
+
+    h.close();
+    e.close();
+    ah.close();
+}
+
+// Reset validation state when we regenerate configs
+services.resetValidation();
+
+// Update services
+const as = fs.open("/tmp/arednlink.services", "w");
+if (as) {
+    const info = services.get(false);
+    for (let i = 0; i < length(info.services); i++) {
+        as.write(`${info.services[i]}\n`);
+    }
+    as.close();
+}
+
+// Update arednlink
+if (filecopy("/tmp/arednlink.hosts", "/etc/arednlink/hosts")) {
+    changes.arednlink = true;
+}
+if (filecopy("/tmp/arednlink.services", "/etc/arednlink/services")) {
+    changes.arednlink = true;
+}
+fs.unlink("/tmp/arednlink.hosts");
+fs.unlink("/tmp/arednlink.services");
+
+// Update user firewall
+if (filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user")) {
+    changes.firewall = true;
+}
+
+// Update services script
+const sf = fs.open("/tmp/local_services", "w");
+if (sf) {
+    sf.write("#!/bin/sh\n");
+    if (mesh_wifi != "br-nomesh") {
+        if (IsNull(mesh_txpower) || mesh_txpower > hardware.getMaxTxPower(mesh_wifi, mesh_channel)) {
+            mesh_txpower = aredn.hardware.wifi_maxpower(mesh_wifi, mesh_channel)
+        }
+        else if (mesh_txpower < 1) {
+            mesh_txpower = 1;
+        }
+        sf.write(`/usr/sbin/iw dev ${mesh_wifi} set txpower fixed ${mesh_txpower}00\n`);
+    }
+    sf.close();
+    if (filecopy("/tmp/local_services", "/etc/local/services")) {
+        changes.localservices = true;
+    }
+    fs.unlink("/tmp/local_services");
+    fs.chmod("/etc/local/services", 0o777);
+}
+
+//
+// Make if official
+//
+
+// Handle special cases
+const special = {
+    dmz_mode: c.get("setup", "globals", "dmz_mode"),
+    supernode_enable: c.get("aredn", "@supernode[0]", "enable"),
+    watchdog_enable: c.get("aredn", "@watchdog[0]", "enable"),
+    watchdog_pings: c.get("aredn", "@watchdog[0]", "ping_addresses"),
+    watchdog_daily: c.get("aredn", "@watchdog[0]", "daily"),
+    web_access: c.get("aredn", "@wan[0]", "web_access"),
+    ssh_access: c.get("aredn", "@wan[0]", "ssh_access"),
+    telnet_access: c.get("aredn", "@wan[0]", "telnet_access"),
+    lan_dhcp_route: c.get("aredn", "@wan[0]", "lan_dhcp_route"),
+    mesh_to_local_wan: c.get("aredn", "@wan[0]", "mesh_to_local_wan"),
+    lan_to_remote_wan: c.get("aredn", "@wan[0]", "lan_to_remote_wan"),
+    wifi_mode_0: c.get("wireless", "@wifi-iface[0]", "mode"),
+    wifi_mode_1: c.get("wireless", "@wifi-iface[1]", "mode"),
+    wifi_channel_0: c.get("wireless", "@wifi-device[0]", "channel"),
+    wifi_channel_1: c.get("wireless", "@wifi-device[1]", "channel"),
+    wifi_macfilter_0: c.get("wireless", "@wifi-device[0]", "macfilter"),
+    wifi_macfilter_1: c.get("wireless", "@wifi-device[1]", "macfilter"),
+    power_eth: c.get("aredn", "@poe[0]", "passthrough"),
+    power_usb: c.get("aredn", "@usb[0]", "passthrough"),
+    ntp_period: c.get("aredn", "@ntp[0]", "period")
+};
+const nfiles = {};
+let d = fs.diropen("/tmp/new_config");
+if (d) {
+    for (let file = d.read(); file; file = d.read()) {
+        if (file != "." && file != "..") {
+            nfiles[file] = true;
+        }
+    }
+    d.close();
+}
+// Remove files we no longer need
+d = fs.diropen("/tmp/config");
+if (d) {
+    for (let file = d.read(); file; file = d.read()) {
+        if (file != "." && file != "..") {
+            if (!nfiles(file)) {
+                fs.unlink(`/etc/config/${file}`);
+                if (file !== "/etc/config/ubootenv") {
+                    changes.reboot = true;
+                }
+            }
+        }
+    }
+    d.close();
+}
+
+for (let file in nfiles) {
+    const ffile = `/tmp/new_config/${file}`;
+    if (filecopy(ffile, `/etc/config/${file}`)) {
+        switch (file) {
+            case "system":
+                changes.log = true;
+                changes.system = true;
+                changes.ntp = true;
+                break;
+            case "aredn":
+            {
+                const oc = uci.cursor();
+                if (special.dmz_mode != oc.get("setup", "globals", "dmz_mode")) {
+                    changes.reboot = true;
+                }
+                if (special.supernode_enable != oc.get("setup", "@supernode[0]", "enable")) {
+                    changes.reboot = true;
+                }
+                if (special.watchdog_enable != oc.get("setup", "@watchdog[0]", "enable")) {
+                    changes.reboot = true;
+                }
+                if (special.watchdog_pings != oc.get("setup", "@watchdog[0]", "ping_addresses")) {
+                    changes.manager = true;
+                }
+                if (special.watchdog_daily != oc.get("setup", "@watchdog[0]", "daily")) {
+                    changes.manager = true;
+                }
+                if (special.web_access != oc.get("setup", "@wan[0]", "web_access")) {
+                    changes.firewall = true;
+                }
+                if (special.ssh_access != oc.get("setup", "@wan[0]", "ssh_access")) {
+                    changes.firewall = true;
+                }
+                if (special.power_eth != oc.get("setup", "@poe[0]", "passthrough")) {
+                    changes.poe = true;
+                }
+                if (special.power_usb != oc.get("setup", "@usb[0]", "passthrough")) {
+                    changes.pou = true;
+                }
+                if (special.ntp_period != oc.get("setup", "@ntp[0]", "period")) {
+                    changes.ntp = true;
+                    const period = oc.get("aredn", "@ntp[0]", "period");
+                    if (period == "continually") {
+                        system("/etc/init.d/sysntp enable > /dev/null 2>&1");
+                    }
+                    else {
+                        system("/etc/init.d/sysntp disable > /dev/null 2>&1");
+                    }
+                    if (period == "daily") {
+                        if (fs.access("/etc/cron.hourly/update-clock")) {
+                            fs.rename("/etc/cron.hourly/update-clock", "/etc/cron.daily/update-clock");
+                        }
+                    }
+                    else {
+                        if (fs.access("/etc/cron.daily/update-clock")) {
+                            fs.rename("/etc/cron.daily/update-clock", "/etc/cron.hourly/update-clock");
+                        }
+                    }
+                }
+                if (special.lan_dhcp_route != oc.get("setup", "@wan[0]", "lan_dhcp_route")) {
+                    changes.firewall = true;
+                }
+                if (special.mesh_to_local_wan != oc.get("setup", "@wan[0]", "mesh_to_local_wan")) {
+                    changes.network = true;
+                    changes.babel = true;
+                }
+                if (special.lan_to_remote_wan != oc.get("setup", "@wan[0]", "lan_to_remote_wan")) {
+                    changes.network = true;
+                    changes.babel = true;
+                }
+                break;
+            }
+            case "network":
+                changes.network = true;
+                changes.lqm = true; // and lqm because device assignment could change
+                break;
+            case "dhcp":
+                changes.dnsmasq = true;
+                break;
+            case "babel":
+                changes.babel = true;
+                break;
+            case "firewall":
+                changes.firewall = true;
+                break;
+            case "wireless":
+            {
+                const oc = uci.cursor();
+                if (special.wifi_channel_0 != oc.get("wireless", "@wifi-device[0]", "channel") || special.wifi_channel_1 != oc.get("wireless", "@wifi-device[1]", "channel")) {
+                    changes.manager = true;
+                }
+                if (special.wifi_mode_0 != oc.get("wireless", "@wifi-iface[0]", "mode") ||
+                    special.wifi_mode_1 != oc.get("wireless", "@wifi-iface[1]", "mode") ||
+                    special.wifi_macfilter_0 != oc.get("wireless", "@wifi-iface[0]", "macfilter") ||
+                    special.wifi_macfilter_1 != oc.get("wireless", "@wifi-iface[1]", "macfilter")) {
+                        // Only start the hostapd (etc) if we need to. This doesn't change what is currently running
+                        // only what automatically runs in the future
+                        if (oc.get("wireless", "@wifi-iface[0]", "mode") == "ap" ||
+                            oc.get("wireless", "@wifi-iface[1]", "mode") == "ap" ||
+                            oc.get("wireless", "@wifi-iface[0]", "mode") == "sta" ||
+                            oc.get("wireless", "@wifi-iface[1]", "mode") == "sta") {
+                                system("/etc/init.d/wpad enable > /dev/null 2>&1");
+                        }
+                        else {
+                                system("/etc/init.d/wpad disable > /dev/null 2>&1");
+                        }
+                        changes.reboot = true;
+                }
+                else {
+                    changes.wireless = true;
+                }
+            }
+            default:
+                changes.reboot = true;
+                break;
+        }
+    }
+    fs.unlink(ffile);
+}
+fs.rmdir("/tmp/new_config");
+
+nvram.set("hsmmmesh", "settings", "node", node);
+nvram.set("hsmmmesh", "settings", "tactical", tactical);
+
+// Set file flags for whichever parts of the system require a restart/reboot
+for (let k in changes) {
+    if (changes[k]) {
+        fs.mkdir("/tmp/reboot-required");
+        fs.writefile(`/tmp/reboot-required/${k}`, "");
+    }
+}
+
+exit(0);
