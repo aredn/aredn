@@ -183,7 +183,7 @@ info.interfaces = (function(){
 if (match(q, /link_info=1/)) {
 	info.link_info = {};
 	if (fs.access("/tmp/lqm.info")) {
-		const lqm = json(fs.readfile("/tmp/lqm.info", "r"));
+		const lqm = json(fs.readfile("/tmp/lqm.info"));
 		for (let mac in lqm.trackers) {
 			const tracker = lqm.trackers[mac];
 			const ip = tracker.canonical_ip || tracker.ip;

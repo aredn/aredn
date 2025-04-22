@@ -45,7 +45,7 @@
     const dhcp = configuration.getDHCP();
 
     if (fs.access("/tmp/service-validation-state.json")) {
-        const svs = json(fs.readfiler("/tmp/service-validation-state.json"));
+        const svs = json(fs.readfile("/tmp/service-validation-state.json"));
         for (let key in svs.valid) {
             const n = split(key, "|");
             valid[length(n) > 1 ? n[0] : key] = (svs.valid[key] > svs.when);

@@ -487,7 +487,7 @@ for (let i = 0; i < length(cnetworks); i++) {
             const m = match(vlan, /(.*):(.*)/);
             config += `\nconfig bridge-vlan\n\toption device 'br0'\n\toption vlan '${m[1]}'\n`;
             for (let p = 0; p < length(ports); p++) {
-                config += `\tlist ports '${replace(ports[p], /\..*$/, "")}:${m[2]}'\n"`;
+                config += `\tlist ports '${replace(ports[p], /\..*$/, "")}:${m[2]}'\n`;
             }
             config += "\n";
             ports = [ `br0.${m[1]}` ];
@@ -504,6 +504,8 @@ for (let i = 0; i < length(cnetworks); i++) {
             dns2 = cfg.wan_dns2 || "";
         }
         let gateway = deleteme[`${net}_gw`] ? "" : (cfg[`${net}_gw`] || "");
+        
+        config += "config device\n";
         if (!wireless) {
             config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
         }
@@ -891,7 +893,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
     else {
         let isMeshRf = false;
         let htmode = "HT20";
-        if (fs.access(`"/sys/kernel/debug/ieee80211/${devname}/ath10k"`)) {
+        if (fs.access(`/sys/kernel/debug/ieee80211/${devname}/ath10k`)) {
             htmode = "VHT20";
             if (wlan == mesh_wifi) {
                 if (mesh_chanbw == 40) {
@@ -905,7 +907,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
                 }
             }
         }
-        else if (fs.access(`"/sys/kernel/debug/ieee80211/${devname}/mt76"`)) {
+        else if (fs.access(`/sys/kernel/debug/ieee80211/${devname}/mt76`)) {
             htmode = "HE20";
             if (wlan == mesh_wifi) {
                 if (mesh_chanbw == 40) {
