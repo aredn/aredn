@@ -331,5 +331,5 @@ export function get(validate)
 
 export function resetValidation()
 {
-    fs.remove(validation_state);
+    fs.unlink(validation_state);
 };

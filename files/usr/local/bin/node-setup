@@ -182,7 +182,7 @@ const cfg = {
 };
 
 // Track the changes so we can make better decissions about what to restart/reboot
-const changes = {}
+const changes = {};
 
 function validConfig(config) {
     removeAll("/tmp/uci_validate");
@@ -213,7 +213,7 @@ function expandVars(contents)
     const lines = split(contents, "\n");
     const nlines = [];
     for (let i = 0; i < length(lines); i++) {
-        let line = trim(lines[i]);
+        let line = lines[i];
         const m = match(line, /^include[ \t]+([^ \t]+)$/);
         if (m) {
             if (fs.access(m[1])) {
@@ -231,7 +231,7 @@ function expandVars(contents)
             const params = match(line, /<([^ \t]+)>/g);
             if (params) {
                 for (let p = 0; p < length(params); p++) {
-                    const parm = params[i][1];
+                    const parm = params[p][1];
                     if (deleteme[parm]) {
                         line = null;
                     }
@@ -263,7 +263,7 @@ function expandVars(contents)
 // Load the configuration
 const cms = cm.get_all("setup", "globals") || {};
 for (let k in cms) {
-    if (match(k, /^\./)) {
+    if (!match(k, /^\./)) {
         cfg[k] = cms[k];
     }
 }
@@ -344,7 +344,7 @@ if (isDmzMode()) {
 cfg.dhcp_limit = cfg.dhcp_end - cfg.dhcp_start + 1;
 
 // verify that we have all the variables we need
-const dcm = fs.diropen("/etc/config.mesh");
+const dcm = fs.opendir("/etc/config.mesh");
 if (dcm) {
     for (let file = dcm.read(); file; file = dcm.read()) {
         if (file === "." || file === "..") {
@@ -357,14 +357,14 @@ if (dcm) {
                     const params = match(line, /<([^ \t]+)>/g);
                     if (params) {
                         for (let p = 0; p < length(params); p++) {
-                            const parm = params[i][1];
+                            const parm = params[p][1];
                             if (uc(parm) == parm) {
                                 // nvram variable
-                                if (!nvram.get("hsmmmesh", "settings", parm)) {
+                                if (!nvram.get("hsmmmesh", "settings", lc(parm))) {
                                     print(`WARNING: nv parameter '${parm}' in file '/etc/config.mesh/${file}' does not exist\n`);
                                 }
                             }
-                            else if (cfg[parm] && !deleteme[parm]) {
+                            else if (!(parm in cfg) && !deleteme[parm]) {
                                 print(`WARNING: parameter '${parm}' in file '/etc/config.mesh/${file}' does not exist\n`);
                             }
                         }
@@ -403,7 +403,7 @@ else {
 
 // generate the network configurations
 const wan_wifi_enabled = (cfg.radio0_mode == "wan" || cfg.radio1_mode == "wan");
-const cnetworks = [ "lan", "wan", "dtdlink", ,"wifi" ];
+const cnetworks = [ "lan", "wan", "dtdlink", "wifi" ];
 for (let i = 0; i < length(cnetworks); i++) {
     const net = cnetworks[i];
     let wireless = false;
@@ -800,7 +800,7 @@ function createTagSection(tag, force, optlist)
 
 const dhcp_option_list = {};
 const dhcp_option_force_list = {};
-const route44net = "";
+let route44net = "";
 if (nc.get("aredn", "@wan[0]", "lan_dhcp_44route") == "1" && fs.access("/etc/44net.conf")) {
     const f = fs.open("/etc/44net.conf");
     if (f) {
@@ -1184,7 +1184,7 @@ if (h && e && ah) {
 
     h.write("\n");
 
-    let f = fs.open("/etc/hosts.user")
+    let f = fs.open("/etc/hosts.user");
     if (f) {
         for (let line = f.read("line"); length(line); line = f.read("line")) {
             h.write(line);
@@ -1192,7 +1192,7 @@ if (h && e && ah) {
         }
         f.close();
     }
-    f = fs.open("/etc/ethers.user")
+    f = fs.open("/etc/ethers.user");
     if (f) {
         for (let line = f.read("line"); length(line); line = f.read("line")) {
             e.write(line);
@@ -1282,7 +1282,7 @@ const special = {
     ntp_period: c.get("aredn", "@ntp[0]", "period")
 };
 const nfiles = {};
-let d = fs.diropen("/tmp/new_config");
+let d = fs.opendir("/tmp/new_config");
 if (d) {
     for (let file = d.read(); file; file = d.read()) {
         if (file != "." && file != "..") {
@@ -1292,7 +1292,7 @@ if (d) {
     d.close();
 }
 // Remove files we no longer need
-d = fs.diropen("/tmp/config");
+d = fs.opendir("/tmp/config");
 if (d) {
     for (let file = d.read(); file; file = d.read()) {
         if (file != "." && file != "..") {
