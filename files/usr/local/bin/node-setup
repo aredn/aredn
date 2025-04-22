@@ -414,9 +414,9 @@ for (let i = 0; i < length(cnetworks); i++) {
         const f = fs.open(`/etc/aredn_include/fixedmac.${net}`);
         if (f) {
             for (let line = f.read("line"); length(line); line = f.read("line")) {
-                const m = match(line, /option[ \t]]+macaddr[ \t]]+([^ \t]+)/);
+                const m = match(line, /option[ \t]+macaddr[ \t]+([^ \t]+)/);
                 if (m) {
-                    cfg[`${net}_mac`] = m[1];
+                    cfg[`${net}_mac`] = trim(m[1]);
                 }
             }
             f.close();
@@ -528,7 +528,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         }
         else {
             config += `\toption name '${ports[0]}'\n`;
-            if (!match(ports[0], "^wlan")) {
+            if (!match(ports[0], /^wlan/)) {
                 config += "\toption type 'bridge'\n\toption bridge_empty '1'\n";
             }
         }
@@ -1240,7 +1240,7 @@ const sf = fs.open("/tmp/local_services", "w");
 if (sf) {
     sf.write("#!/bin/sh\n");
     if (mesh_wifi != "br-nomesh") {
-        if (IsNull(mesh_txpower) || mesh_txpower > hardware.getMaxTxPower(mesh_wifi, mesh_channel)) {
+        if (isNull(mesh_txpower) || mesh_txpower > hardware.getMaxTxPower(mesh_wifi, mesh_channel)) {
             mesh_txpower = aredn.hardware.wifi_maxpower(mesh_wifi, mesh_channel)
         }
         else if (mesh_txpower < 1) {
