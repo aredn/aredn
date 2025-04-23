@@ -19,6 +19,7 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
     ip rule del pref 20030 iif $DEVICE lookup 30
     ip rule del pref 20040 iif $DEVICE lookup 21
     ip rule del pref 20050 iif $DEVICE lookup 22
+    ip rule del pref 20060 iif $DEVICE lookup 28
     ip rule del pref 20070 iif $DEVICE lookup 31
     ip rule del pref 20090 iif $DEVICE lookup main
     ip rule del pref 20099 iif $DEVICE unreachable 
@@ -29,8 +30,9 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
     ip rule del pref 30020 iif $DEVICE lookup 20
     ip rule del pref 30030 iif $DEVICE lookup 30
     ip rule del pref 30040 iif $DEVICE lookup 21
-    ip rule del pref 30050 iif $DEVICE lookup main
-    ip rule del pref 30070 iif $DEVICE lookup 22
+    ip rule del pref 30050 iif $DEVICE lookup 22
+    ip rule del pref 30060 iif $DEVICE lookup main
+    ip rule del pref 30070 iif $DEVICE lookup 28
     ip rule del pref 30080 iif $DEVICE lookup 31
   fi
 
@@ -41,7 +43,8 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
     ip rule del pref 30240 lookup 21
     ip rule del pref 30260 lookup main
     ip rule del pref 30270 lookup 22
-    ip rule del pref 30280 lookup 31
+    ip rule del pref 30280 lookup 28
+    ip rule del pref 30290 lookup 31
   fi
 
 fi
@@ -62,6 +65,7 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 20030 iif $DEVICE lookup 30
     ip rule add pref 20040 iif $DEVICE lookup 21
     ip rule add pref 20050 iif $DEVICE lookup 22
+    ip rule add pref 20060 iif $DEVICE lookup 28
     ip rule add pref 20070 iif $DEVICE lookup 31
     if [ $is_olsrgw -eq 1 ] ; then
       ip rule add pref 20090 iif $DEVICE lookup main
@@ -76,9 +80,10 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 30020 iif $DEVICE lookup 20
     ip rule add pref 30030 iif $DEVICE lookup 30
     ip rule add pref 30040 iif $DEVICE lookup 21
-    ip rule add pref 30050 iif $DEVICE lookup main
+    ip rule add pref 30050 iif $DEVICE lookup 22
+    ip rule add pref 30060 iif $DEVICE lookup main
     if [ $is_mesh_wan_gw -eq 1 ]; then
-      ip rule add pref 30070 iif $DEVICE lookup 22
+      ip rule add pref 30070 iif $DEVICE lookup 28
       ip rule add pref 30080 iif $DEVICE lookup 31
     fi
 
@@ -98,6 +103,11 @@ if [ "$ACTION" = "ifup" ] ; then
 
   fi
 
+  if [ "$INTERFACE" = "wan" ] && [ $is_olsrgw -eq 1 ]; then
+    wangwip=$(ip route get 8.8.8.8 | sed -e 's/.*via//' -e 's/ dev.*//')
+    ip route add default via $wangwip table 28
+  fi
+
   # Handles setting up rules for local resolution of routes. MeshGW should be last for localhost otherwise ping test of olsrd will break
   if [ "$INTERFACE" == "loopback" ] ; then
     ip rule add pref 30210 lookup 29
@@ -106,7 +116,8 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 30240 lookup 21
     ip rule add pref 30260 lookup main
     ip rule add pref 30270 lookup 22
-    ip rule add pref 30280 lookup 31
+    ip rule add pref 30280 lookup 28
+    ip rule add pref 30290 lookup 31
   fi
 
 fi
