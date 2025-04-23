@@ -505,6 +505,7 @@ export function supportdata(supportdatafilename)
         "ip route list table 20",
         "ip route list table 21",
         "ip route list table 22",
+        "ip route list table 28",
         "ip route list table 29",
         "ip route list table 30",
         "ip route list table 31",

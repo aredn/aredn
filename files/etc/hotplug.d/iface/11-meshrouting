@@ -55,11 +55,16 @@ if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 20020 iif $DEVICE lookup 20
     ip rule add pref 20040 iif $DEVICE lookup 21
     ip rule add pref 20050 iif $DEVICE lookup 22
-    if [ $is_wangw -eq 1 ] ; then
+    if [ $is_wan_gw -eq 1 ] ; then
       ip rule add pref 20090 iif $DEVICE lookup main
     fi
     ip rule add pref 20099 iif $DEVICE unreachable
 
+  fi
+
+  if [ "$INTERFACE" = "wan" ] && [ $is_wan_gw -eq 1 ]; then
+    wangwip=$(ip route get 8.8.8.8 | sed -e 's/.*via//' -e s/ dev.*//)
+    ip route add default via $wangwip table 28
   fi
 
   # Makes sure the lan interface is allowed to hit the local interfaces(29), babel(20), and local routes (main)  Local ethernet is trusted to use additonal rules.
