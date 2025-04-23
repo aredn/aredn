@@ -397,6 +397,17 @@ function lqm_run()
                 }
             end
         end
+        for mac, entry in pairs(ipv6neigh)
+        do
+            if entry.device:match("^br%-dtdlink") then
+                stations[#stations + 1] = {
+                    type = "DtD",
+                    device = entry.device,
+                    mac = entry.mac,
+                    ipv6ll = entry.ipv6
+                }
+            end
+        end
 
         -- RF
         if radiomode == "mesh" then
@@ -555,23 +566,27 @@ function lqm_run()
             track.node_route_count = 0
             track.babel_route_count = 0
 
-            if not track.ip then
+            if not track.ip and not track.ipv6ll then
                 track.routable = false
             else
-                ip2tracker[track.ip] = track
+                if track.ip then
+                    ip2tracker[track.ip] = track
+                end
 
                 -- Update if link is routable
                 track.routable = false
-                local rts = luci.ip.routes({ dest_exact = track.canonical_ip or track.ip })
-                if #rts then
-                    for _, rt in ipairs(rts)
-                    do
-                        if rt.table == 20 then
-                            track.babel_metric = rt.metric
-                        end
-                        local gw = tostring(rt.gw)
-                        if gw == track.ip or gw == track.canonical_ip then
-                            track.routable = true
+                if track.canonical_ip or track.ip then
+                    local rts = luci.ip.routes({ dest_exact = track.canonical_ip or track.ip })
+                    if #rts then
+                        for _, rt in ipairs(rts)
+                        do
+                            if rt.table == 20 then
+                                track.babel_metric = rt.metric
+                            end
+                            local gw = tostring(rt.gw)
+                            if gw == track.ip or gw == track.canonical_ip then
+                                track.routable = true
+                            end
                         end
                     end
                 end
@@ -584,12 +599,15 @@ function lqm_run()
                 elseif now > track.refresh then
 
                     -- Refresh the hostname periodically as it can change
-                    track.hostname = canonical_hostname(nixio.getnameinfo(track.ip)) or track.hostname
+                    track.hostname = track.ip and canonical_hostname(nixio.getnameinfo(track.ip)) or track.hostname
                     track.canonical_ip = track.hostname and iplookup(track.hostname)
 
-                    local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -O - 2> /dev/null")
-                    local info = luci.jsonc.parse(raw:read("*a") or "")
-                    raw:close()
+                    local info;
+                    if track.ip then
+                        local raw = io.popen("exec " .. UFETCH .. " -T " .. connect_timeout .. " \"http://" .. track.ip .. ":8080/cgi-bin/sysinfo.json?link_info=1&lqm=1\" -O - 2> /dev/null")
+                        info = luci.jsonc.parse(raw:read("*a") or "")
+                        raw:close()
+                    end
 
                     -- Try IPv6 link local
                     if not info and track.ipv6ll then
@@ -644,6 +662,9 @@ function lqm_run()
 
                         -- Use provide hostname
                         track.hostname = canonical_hostname(info.node)
+                        track.canonical_ip = iplookup(track.hostname)
+                        -- Use the canonical ip unless we have a direct one
+                        track.ip = track.ip or track.canonical_ip;
 
                         -- Babel?
                         if info.lqm and info.lqm.info then
