@@ -716,6 +716,12 @@ function lqm_run()
                         end
                     end
                 end
+
+                -- Try to get an IP as early as we can
+                if not track.ip and track.hostname then
+                    track.canonical_ip = iplookup(track.hostname)
+                    track.ip = track.ip or track.canonical_ip;
+                end
             end
 
             -- Refresh user blocks
@@ -757,7 +763,7 @@ function lqm_run()
             end
 
             -- Ping addresses and penalize quality for excessively slow links
-            if track.ip and not track.user_blocks then
+            if (track.ip or track.ipv6ll) and not track.user_blocks then
                 local ptime = nil
                 -- Once the Babel transition is completed, a IPv6 Link-layer ping is all we will need here as it will work for everything
                 if track.ipv6ll then
@@ -771,33 +777,35 @@ function lqm_run()
                     end
                 end
                 -- But for now we need older mechanisms as well
-                if not ptime and track.type ~= "Tunnel" and track.type ~= "Wireguard" then
-                    -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
-                    -- table and firewall messing up the response packet.
-                    for line in io.popen(ARPING .. " -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip):lines()
-                    do
-                        local t = line:match("^Unicast reply .* (%S+)ms$")
-                        if t then
-                            ptime = tonumber(t) / 1000
+                if track.ip then
+                    if not ptime and track.type ~= "Tunnel" and track.type ~= "Wireguard" then
+                        -- For devices which support ARP, send an ARP request and wait for a reply. This avoids the other ends routing
+                        -- table and firewall messing up the response packet.
+                        for line in io.popen(ARPING .. " -c 1 -D -w " .. round(ping_timeout) .. " -I " .. track.device .. " " .. track.ip):lines()
+                        do
+                            local t = line:match("^Unicast reply .* (%S+)ms$")
+                            if t then
+                                ptime = tonumber(t) / 1000
+                            end
                         end
                     end
-                end
-                if not ptime and track.routable then
-                    -- If that fails, measure the "ping" time directly to the device by sending a UDP packet
-                    local sigsock = nixio.socket("inet", "dgram")
-                    sigsock:setopt("socket", "rcvtimeo", ping_timeout)
-                    sigsock:setopt("socket", "bindtodevice", track.device)
-                    sigsock:setopt("socket", "dontroute", 1)
-                    -- Must connect or we wont see the error
-                    sigsock:connect(track.ip, 8080)
-                    local pstart = gettime()
-                    sigsock:send("")
-                    -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
-                    -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
-                    if sigsock:recv(0) ~= false then
-                        ptime = gettime() - pstart
+                    if not ptime and track.routable then
+                        -- If that fails, measure the "ping" time directly to the device by sending a UDP packet
+                        local sigsock = nixio.socket("inet", "dgram")
+                        sigsock:setopt("socket", "rcvtimeo", ping_timeout)
+                        sigsock:setopt("socket", "bindtodevice", track.device)
+                        sigsock:setopt("socket", "dontroute", 1)
+                        -- Must connect or we wont see the error
+                        sigsock:connect(track.ip, 8080)
+                        local pstart = gettime()
+                        sigsock:send("")
+                        -- There's no actual UDP server at the other end so recv will either timeout and return 'false' if the link is slow,
+                        -- or will error and return 'nil' if there is a node and it send back an ICMP error quickly (which for our purposes is a positive)
+                        if sigsock:recv(0) ~= false then
+                            ptime = gettime() - pstart
+                        end
+                        sigsock:close()
                     end
-                    sigsock:close()
                 end
 
                 wait_for_ticks(0)
