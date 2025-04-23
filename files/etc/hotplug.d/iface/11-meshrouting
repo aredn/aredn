@@ -63,7 +63,7 @@ if [ "$ACTION" = "ifup" ] ; then
   fi
 
   if [ "$INTERFACE" = "wan" ] && [ $is_wan_gw -eq 1 ]; then
-    wangwip=$(ip route get 8.8.8.8 | sed -e 's/.*via//' -e s/ dev.*//)
+    wangwip=$(ip route get 8.8.8.8 | sed -e 's/.*via//' -e 's/ dev.*//')
     ip route add default via $wangwip table 28
   fi
 
