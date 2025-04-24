@@ -7,7 +7,7 @@
 **Status**
 * *released* - this image is in a production release of the AREDN® firmware.
 * *nightly* - this device is newly supported in the nightly builds (since the last production release).
-* *sunset* - this device is supported but no longer recommended. Support will be deprecated in the future.
+* *sunset* - this device is supported but no longer recommended for new purchases or installs.
 * *brick* - this image has been tested and found to brick your hardware. Avoid for now.
 * *not supported* - this image is no longer supported and not available for download.
 * *frozen* - this device has been previously sunsetted, and is now frozen. Old images are still available but there will be no future updates.
@@ -85,10 +85,11 @@ Rocket M2 XM with USB port || 2 | ath79 | generic | ubnt_rocket-m | 64MB | untes
 Rocket M5 XM with USB port || 5 | ath79 | generic | ubnt_rocket-m | 64MB | untested | released
 Rocket M2 XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | stable | released
 Rocket M5 XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | released
-Rocket M2 Titanium TI || 2 | ath79 | - | - | 64MB | untested | released
-Rocket M2 Titanium XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | untested | released
-Rocket M5 Titanium TI || 5 | ath79 | - | - | 64MB | untested | released
-Rocket M5 Titanium XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | released
+**Sunset Devices** | | | | | | | |
+Rocket M2 Titanium TI || 2 | ath79 | - | - | 64MB | untested | sunset
+Rocket M2 Titanium XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | untested | sunset
+Rocket M5 Titanium TI || 5 | ath79 | - | - | 64MB | untested | sunset
+Rocket M5 Titanium XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | sunset
 **Frozen Devices** | | | | | | | |
 AirGrid M2 XM || 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | untested | frozen
 AirGrid M5 XM || 5 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | untested | frozen
