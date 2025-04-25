@@ -73,12 +73,8 @@ const stationCount = {
 };
 let defaultScanEnabled = true;
 
-// Detect Mikrotik AC which requires special handling
-let mikrotikAC = false;
-const boardid = lc(hardware.getBoardId());
-if (match(boardid, /mikrotik/) && match(boardid, /ac/)) {
-    mikrotikAC = true;
-}
+// Detect Mikrotik which requires special handling
+const mikrotik = match(hardware.getBoardId(), /mikrotik/i) ? true : false;
 
 // Various forms of network resets
 
@@ -87,13 +83,13 @@ function resetNetwork(mode)
     log.syslog(log.LOG_NOTICE, `resetNetwork: ${mode}`);
     switch (mode) {
         case "rejoin":
-            if (mikrotikAC) {
-                // Only observered on Mikrotik AC devices
+            if (mikrotik) {
+                // Observered on N and AC Mikrotik devices
                 system(`${IW} ${wifi} ibss leave > /dev/null 2>&1`);
                 system(`${IW} ${wifi} ibss join ${ssid} ${frequency} HT20 fixed-freq > /dev/null 2>&1`);
             }
             else {
-                log.syslog(log.LOG_NOTICE, `-- ignoring (mikrotik ac only)`);
+                log.syslog(log.LOG_NOTICE, `-- ignoring (mikrotik only)`);
             }
             break;
         case "scan-quick":
