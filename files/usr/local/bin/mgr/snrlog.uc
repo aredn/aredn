@@ -89,7 +89,7 @@ function main()
             }
             f.close();
         }
-        push(lines, `${sprintf("%02d/%02d/%d %02d:%02d", tm.mon, tm.mday, tm.year, tm.hour, tm.min)},${s.sta_info.signal},${noise},${s.sta_info.tx_bitrate.mcs || 0},${s.sta_info.tx_bitrate.bitrate * bwAdjust},${s.sta_info.rx_bitrate.mcs || 0},${s.sta_info.rx_bitrate.bitrate * bwAdjust}\n`);
+        push(lines, `${sprintf("%02d/%02d/%d %02d:%02d", tm.mon, tm.mday, tm.year, tm.hour, tm.min)},${s.sta_info.signal || DEFNOISE},${noise},${s.sta_info?.tx_bitrate?.mcs || 0},${(s.sta_info?.tx_bitrate?.bitrate || 0) * bwAdjust},${s.sta_info?.rx_bitrate?.mcs || 0},${(s.sta_info?.rx_bitrate?.bitrate || 0) * bwAdjust}\n`);
         while (length(lines) > MAXLINES) {
             shift(lines);
         }

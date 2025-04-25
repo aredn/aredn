@@ -441,7 +441,12 @@ function main()
             else if (now > track.refresh && track.ipv6ll) {
                 const p = fs.popen(`${UFETCH} -T ${connect_timeout} "http://[${track.ipv6ll}%${track.device}]:8080/cgi-bin/sysinfo.json?lqm=1" -O - 2> /dev/null`);
                 if (p) {
-                    const info = json(p.read("all"));
+                    let info = null;
+                    try {
+                        info = json(p.read("all"));
+                    }
+                    catch (_) {
+                    }
                     p.close();
                     if (!info) {
                         // Failed to fetch information. Set time for retry and invalidate any information
