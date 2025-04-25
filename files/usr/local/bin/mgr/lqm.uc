@@ -525,15 +525,13 @@ function main()
                                     if (rtrack.type === "RF" || !rtrack.type) {
                                         const rhostname = canonicalHostname(rtrack.hostname);
                                         if (rtrack.ip && rtrack.routable) {
-                                            let rdistance = null;
-                                            if (track.lat && rtrack.lon && lat && lon) {
-                                                rdistance = calcDistance(lat, lon, 1 * rtrack.lat, 1 * rtrack.lon);
-                                            }
                                             rfLinks[track.mac][rtrack.ip] = {
                                                 ip: rtrack.ip,
                                                 hostname: rhostname,
-                                                distance: rdistance
                                             };
+                                            if (track.lat && rtrack.lon && lat && lon) {
+                                                rfLinks[track.mac][rtrack.ip].distance = calcDistance(lat, lon, 1 * rtrack.lat, 1 * rtrack.lon);
+                                            }
                                         }
                                         if (myhostname == rhostname) {
                                             track.rev_snr = (track.rev_snr && rtrack.snr) ? round(snr_run_avg * track.rev_snr + (1 - snr_run_avg) * rtrack.snr) : rtrack.snr;
