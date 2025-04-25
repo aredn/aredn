@@ -253,7 +253,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>physical tx bitrate</div>
                 </div>
                 <div class="i">
-                    <div>{{sprintf("%.1f%%", 100 * (n.avg_tx_retries || 0) / n.avg_tx_packets)}}</div>
+                    <div>{{n.avg_tx_packets ? sprintf("%.1f%%", 100 * (n.avg_tx_retries || 0) / n.avg_tx_packets) : "-"}}</div>
                     <div>tx retransmissions</div>
                 </div>
             </div>
