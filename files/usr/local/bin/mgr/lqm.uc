@@ -723,7 +723,7 @@ function main()
                 // the deny list for example) then we never see them again at this level and we loose the ability
                 // to unblock them without a reboot.
                 if (!track.user_blocks) {
-                    if ((now > track.last_seen + lastseen_timeout) || (track.rev_lastseen && now > track.rev_lastseen + lastseen_timeout)) {
+                    if ((now > track.lastseen + lastseen_timeout) || (track.rev_lastseen && now > track.rev_lastseen + lastseen_timeout)) {
                         delete trackers[mac];
                     }
                 }
