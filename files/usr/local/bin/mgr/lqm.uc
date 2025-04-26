@@ -462,7 +462,7 @@ function main()
                         track.rev_lastseen = now;
 
                         track.hostname = canonicalHostname(info.node);
-                        track.canonical_ip = network.nslookup(track.hostname);
+                        track.canonical_ip = network.getIPAddressFromHostname(track.hostname);
                         if (track.type === "Wireguard") {
                             const address = cursor.get("network", track.device, "addresses")[0];
                             const m = match(address, /^(\d+\.\d+\.\d+\.)(\d+)$/);

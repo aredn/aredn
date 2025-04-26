@@ -364,6 +364,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="20" pattern="[^!#;+\]\/"\t\-][^+\]\/"\t\-]{0,18}[^ !#;+\]\/"\t\-]$|^[^ !#;+\]\/"\t\-]" hx-validate="true" value="{{ssid_mesh}}"><span style="color:var(--ctrl-modal-fg-color)">{{mode === radios.RADIO_MESH ? "" : `-${channel}`}}-{{bandwidth}}-v3</span>
                     </div>
                 </div>
+                {% if (hardware.supportsSetMaxDistance(wlan[w].iface)) { %}
                 <div class="cols">
                     <div>
                         <div class="o">Maximum Distance</div>
@@ -384,6 +385,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 how far a neighbor radio is, or when no radios are connected. Setting this distance appropriately is extremely important
                 when radios are initially connecting and their location is not yet known. In particular, a too low value can result
                 in radios failing to connect when they otherwise should.")}}
+                {% } %}
             </div>
             <div class="hideable2" {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
                 {{_H("In LAN Hotpot mode, the WiFi acts as a wireless hotspot. Any device connecting will appear as a LAN device attached to the node.")}}

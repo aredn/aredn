@@ -85,7 +85,7 @@ export function get(validate)
             for (let line = p.read("line"); length(line); line = p.read("line")) {
                 const m = match(line, /[0-9a-fA-F:]+[ \t]+([0-9\.]+)/);
                 if (m && !noprop_ip[m[1]]) {
-                    const host = network.nslookup(m[1]);
+                    const host = network.getHostnameFromIPAddress(m[1]);
                     if (host) {
                         push(hosts, { ip: m[1], host: host });
                     }

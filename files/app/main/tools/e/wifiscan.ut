@@ -100,7 +100,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 ssid: myssid,
                 chan: mychan !== -1 ? { [mychan]: true } : {},
                 ip: ip,
-                hostname: ip ? network.nslookup(ip) : null
+                hostname: ip ? network.getHostnameFromIPAddress(ip) : null
             };
         }
     }
@@ -144,7 +144,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     mode: "AP",
                     ssid: "",
                     ip: ip,
-                    hostname: ip ? network.nslookup(ip) : null,
+                    hostname: ip ? network.getHostnameFromIPAddress(ip) : null,
                     ibss: false
                 };
                 scan[mac] = station;
