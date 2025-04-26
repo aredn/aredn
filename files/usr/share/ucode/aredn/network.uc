@@ -32,7 +32,6 @@
  */
 
 import * as fs from "fs";
-import * as resolv from "resolv";
 
 export function hasInternet()
 {
@@ -47,6 +46,8 @@ export function hasInternet()
     return false;
 };
 
+// NOTE: Don't use resolv library because it leaks file descriptors.
+
 export function getIPAddressFromHostname(hostname)
 {
     const p = fs.popen(`exec /usr/bin/nslookup ${hostname}`);
@@ -54,6 +55,20 @@ export function getIPAddressFromHostname(hostname)
         const d = p.read("all");
         p.close();
         const i = match(d, /Address: ([0-9.]+)/);
+        if (i) {
+            return i[1];
+        }
+    }
+    return null;
+};
+
+export function getHostnameFromIPAddress(ip)
+{
+    const p = fs.popen(`exec /usr/bin/nslookup ${ip}`);
+    if (p) {
+        const d = p.read("all");
+        p.close();
+        const i = match(d, /name = ([^ \t]+)/);
         if (i) {
             return i[1];
         }
@@ -107,23 +122,6 @@ export function CIDRToNetmask(cidr)
         default:
             return "255.255.255.255";
     }
-};
-
-export function nslookup(aorh)
-{
-    const r = resolv.query([aorh]);
-    if (r) {
-        for (let k in r) {
-            const v = r[k];
-            if (v.PTR) {
-                return v.PTR[0];
-            }
-            if (v.A) {
-                return v.A[0];
-            }
-        }
-    }
-    return null;
 };
 
 export function mac2ipv6ll(macaddr)
