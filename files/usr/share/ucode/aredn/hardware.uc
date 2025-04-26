@@ -486,6 +486,18 @@ export function getMaxDistance(wifiIface)
     return info.wiphy_coverage_class * 450;
 };
 
+
+export function supportsSetMaxDistance(wifiIface)
+{
+    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+    if (info) {
+        if (system(`/usr/sbin/iw ${replace(wifiIface, /^wlan/, "phy")} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
+            return true;
+        }
+    }
+    return false;
+};
+
 export function getInterfaceMAC(dev)
 {
     const ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
@@ -703,6 +715,7 @@ export function GPSFind()
                 s.close();
                 return ip;
             }
+            s.close();
         }
     }
     return null;
@@ -720,6 +733,7 @@ export function GPSReadLLT(gps, maxlines)
     }
     const s = socket.create(socket.AF_INET, socket.SOCK_STREAM, 0);
     if (!s.connect(gps, 2947)) {
+        s.close();
         return null;
     }
     s.send('?WATCH={"enable":true,"json":true}\n');
