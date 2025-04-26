@@ -98,7 +98,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             if (n.user_blocks) {
                 return "blocked by user";
             }
-            if (n.routable) {
+            if (n.routable && n.babel_route_count > 0) {
                 return "routing";
             }
             return "unused";
