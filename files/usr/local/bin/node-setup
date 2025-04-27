@@ -1241,7 +1241,7 @@ if (sf) {
     sf.write("#!/bin/sh\n");
     if (mesh_wifi != "br-nomesh") {
         if (isNull(mesh_txpower) || mesh_txpower > hardware.getMaxTxPower(mesh_wifi, mesh_channel)) {
-            mesh_txpower = aredn.hardware.wifi_maxpower(mesh_wifi, mesh_channel)
+            mesh_txpower = hardware.getMaxTxPower(mesh_wifi, mesh_channel);
         }
         else if (mesh_txpower < 1) {
             mesh_txpower = 1;
