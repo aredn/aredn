@@ -507,6 +507,13 @@ export function getInterfaceMAC(dev)
             return iface.address;
         }
     }
+    // If wlan interface isn't configured, we won't find it using GETLINK, so we look at the /sys filesystem.
+    if (match(dev, /^wlan/)) {
+        const addr = trim(fs.readfile(`/sys/class/ieee80211/${replace(dev, /^wlan/, "phy")}/macaddress`));
+        if (addr) {
+            return addr;
+        }
+    }
     return "00:00:00:00:00:00";
 };
 
