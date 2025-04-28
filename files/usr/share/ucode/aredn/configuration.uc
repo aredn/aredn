@@ -351,7 +351,7 @@ export function commitChanges()
         if (n) {
             status.setup = n.read("all");
             n.close();
-            const c = fs.popen("exec /usr/local/bin/restart-services.sh");
+            const c = fs.popen("exec /usr/local/bin/restart-services");
             if (c) {
                 status.restart = c.read("all");
                 c.close();

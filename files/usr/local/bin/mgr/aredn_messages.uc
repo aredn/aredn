@@ -33,7 +33,7 @@
 
 return function()
 {
-    system("/usr/local/bin/aredn_message.sh");
+    system("/usr/local/bin/aredn_message");
     let pollrate = 1 * uci.cursor().get("aredn", "@alerts[0]", "pollrate");
     if (math.isnan(pollrate) || pollrate <= 0) {
         pollrate = 1; // 1 hour default
