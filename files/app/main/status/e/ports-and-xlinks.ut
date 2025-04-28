@@ -180,6 +180,7 @@ ${join("\n", map(keys(c.ports), p => "\tlist ports '" + p + (c.vlan ? ":t'" : ":
 config device
 	option name 'br-${type}'
 	option type 'bridge'
+	option multicast_querier '1'
 	option macaddr '<${type}_mac>'
 	list ports 'br0.${c.vlan ? c.vlan : type == "lan" ? 3 : 1}'
 

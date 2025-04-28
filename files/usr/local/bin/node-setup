@@ -394,7 +394,7 @@ else {
             list[replace(ports[p], /\..*$/, "")] = true;
         }
     }
-    let config = "config device\n\toption name 'br0'\n\toption type 'bridge'\n\toption vlan_filtering '1'\n";
+    let config = "config device\n\toption name 'br0'\n\toption type 'bridge'\n\toption vlan_filtering '1'\n\toption multicast_querier '1'\n";
     for (let port in ports) {
         config += `\tlist ports '${port}'\n`;
     }
@@ -507,7 +507,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         
         config += "config device\n";
         if (!wireless) {
-            config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
+            config += `\toption name 'br-${net}'\n\toption type 'bridge'\n\toption multicast_querier '1'\n`;
         }
         else {
             netmask = "255.255.255.255";
