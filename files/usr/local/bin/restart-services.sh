@@ -87,6 +87,11 @@ do
       fi
     elif [ $srv = "lqm" ]; then
       touch /tmp/lqm.reset
+    elif [ $srv = "babel" ]; then
+      if [ -x /etc/init.d/babel ]; then
+        /etc/init.d/babel restart > /dev/null 2>&1
+        /etc/init.d/arednlink restart > /dev/null 2>&1
+      fi
     elif [ $srv = "arednlink" ]; then
       if [ -x /usr/local/bin/arednlink ]; then
         /usr/local/bin/arednlink-update
