@@ -166,8 +166,12 @@ export function getRadioIntf(wifiIface)
     }
 };
 
-export function getChannelFromFrequency(freq)
+export function getChannelFromFrequency(wifiIface, freq)
 {
+    const radio = getRadioIntf(wifiIface);
+    if (radio.band === "halow") {
+        return int((freq - 902.0) * 2);
+    }
     if (freq < 256) {
         return null;
     }
@@ -200,6 +204,9 @@ export function getRfChannels(wifiIface)
     if (!channels) {
         channels = [];
         const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+        if (!info) {
+            return [];
+        }
         let best = { band: 0, count: 0 };
         for (let i = 0; i < length(info.wiphy_bands); i++) {
             const f = info.wiphy_bands[i]?.freqs;
@@ -215,29 +222,34 @@ export function getRfChannels(wifiIface)
             }
         }
         const freqs = info.wiphy_bands[best.band].freqs;
-        let freq_adjust = 0;
+        let freq_adjust = (f) => f.freq;
         let freq_min = 0;
         let freq_max = 0x7FFFFFFF;
         if (wifiIface === "wlan0") {
             const radio = getRadio();
             if (index(radio.name, "M9") !== -1) {
-                freq_adjust = -1520;
+                freq_adjust = (f) => f.freq - 1520;
                 freq_min = 907;
                 freq_max = 922;
             }
             else if (index(radio.name, "M3") !== -1) {
-                freq_adjust = -2000;
+                freq_adjust = (f) => f.freq - 2000;
                 freq_min = 3380;
                 freq_max = 3495;
+            }
+            else if (radio.wlan0?.band == "halow") {
+                freq_adjust = (f) => (f.freq - 5180) / 20.0 + 902.5;
+                freq_min = 902.5;
+                freq_max = 927.5;
             }
         }
         for (let i = 0; i < length(freqs); i++) {
             const f = freqs[i];
-            const freq = f.freq + freq_adjust;
+            const freq = freq_adjust(f);
             if (freq >= freq_min && freq <= freq_max) {
-                const num = getChannelFromFrequency(freq);
+                const num = getChannelFromFrequency(wifiIface, freq);
                 push(channels, {
-                    label: freq_adjust === 0 ? num + " (" + freq + ")" : "" + freq,
+                    label: num != freq ? num + " (" + freq + ")" : "" + freq,
                     number: num,
                     frequency: freq
                 });
@@ -253,16 +265,21 @@ export function getRfBandwidths(wifiIface)
 {
     const radio = getRadioIntf(wifiIface);
     const invalid = {};
-    map(radio.exclude_bandwidths || [], v => invalid[v] = true);
-    const bw = [];
-    if (!invalid["5"]) {
-        push(bw, 5);
+    let bw = [];
+    if (radio.bandwidths) {
+        bw = radio.bandwidths;
     }
-    if (!invalid["10"]) {
-        push(bw, 10);
-    }
-    if (!invalid["20"]) {
-        push(bw, 20);
+    else {
+        map(radio.exclude_bandwidths || [], v => invalid[v] = true);
+        if (!invalid["5"]) {
+            push(bw, 5);
+        }
+        if (!invalid["10"]) {
+            push(bw, 10);
+        }
+        if (!invalid["20"]) {
+            push(bw, 20);
+        }
     }
     const phy = replace(wifiIface, "wlan", "phy");
     if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`) || fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
@@ -302,6 +319,9 @@ export function getDefaultChannel(wifiIface)
     }
     for (let i = 0; i < length(rfchannels); i++) {
         const c = rfchannels[i];
+        if (c.frequency == 902.5) {
+            return { channel: 902.5, bandwidth: 1, band: "HaLow" };
+        }
         if (c.frequency == 912) {
             return { channel: 5, bandwidth: 5, band: "900MHz" };
         }
@@ -425,8 +445,8 @@ export function getChannelFrequencyRange(wifiIface, channel, bandwidth)
     if (rfchans[0]) {
         for (let i = 0; i < length(rfchans); i++) {
             const c = rfchans[i];
-            if (c.number === channel) {
-                return (c.frequency - bandwidth / 2) + " - " + (c.frequency + bandwidth / 2) + " MHz";
+            if (c.number == channel) {
+                return (c.frequency - bandwidth / 2.0) + " - " + (c.frequency + bandwidth / 2.0) + " MHz";
             }
         }
     }
