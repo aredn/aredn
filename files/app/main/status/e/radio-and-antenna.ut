@@ -265,9 +265,10 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <option value="4" {{mode === radios.RADIO_MESHPTMP ? "selected" : ""}}>Mesh PtMP</option>
                         <option value="5" {{mode === radios.RADIO_MESHPTP ? "selected" : ""}}>Mesh PtP</option>
                         <option value="6" {{mode === radios.RADIO_MESHSTA ? "selected" : ""}}>Mesh Station</option>
+                        {% if (hardware.getRadioType(wlan[w].iface) === "wifi") { %}
                         <option value="2" {{mode === radios.RADIO_LAN ? "selected" : ""}}>LAN Hotspot</option>
                         <option value="3" {{mode === radios.RADIO_WAN ? "selected" : ""}}>WAN Client</option>
-                        {% } %}
+                        {% } } %}
                     </select>
                 </div>
             </div>
@@ -293,13 +294,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" style="direction:ltr" class="mesh-channel">
                         {%
                             const chanfilter = mode === radios.RADIO_MESHPTMP || mode ===  radios.RADIO_MESHPTP || mode ===  radios.RADIO_MESHSTA ? wlan[w].managedOOB : null;
-                            let channels = wlan[w].channels;
-                            if (bandwidth == 40) {
-                                channels = wlan[w].channels40;
-                            }
-                            else if (bandwidth == 80) {
-                                channels = wlan[w].channels80;
-                            }
+                            const channels = wlan[w].channels[bandwidth] || [];
                             for (let i = 0; i < length(channels); i++) {
                                 if (!chanfilter || index(chanfilter, channels[i].number) === -1) {
                                     print(`<option value="${channels[i].number}" ${channels[i].number == channel ? "selected" : ""}>${channels[i].label}</option>`);
@@ -406,8 +401,9 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div style="flex:0">
                         <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel">
                         {%
-                            for (let i = 0; i < length(wlan[w].channels); i++) {
-                                print(`<option value="${wlan[w].channels[i].number}" ${wlan[w].channels[i].number == channel ? "selected" : ""}>${wlan[w].channels[i].number}</option>`);
+                            const hotchans = wlan[w].channels["20"] || [];
+                            for (let i = 0; i < length(hotchans); i++) {
+                                print(`<option value="${hotchans[i].number}" ${hotchans[i].number == channel ? "selected" : ""}>${hotchans[i].number}</option>`);
                             }
                         %}
                         </select>
@@ -547,13 +543,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             const channel = parseInt(chan{{w}}.value);
             let options = "";
             const chanfilter = radio{{w}}.value == "4" || radio{{w}}.value == "5" || radio{{w}}.value == "6" ? {{wlan[w].managedOOB}} : null;
-            let channels = {{wlan[w].channels}};
-            if (bandwidth == 40) {
-                channels = {{wlan[w].channels40}};
-            }
-            else if (bandwidth == 80) {
-                channels = {{wlan[w].channels80}};
-            }
+            const channels = ({{wlan[w].channels}})[bandwidth] || [];
             let nchannel = channels[0].number;
             for (let i = 0; i < channels.length; i++) {
                 if (!chanfilter || chanfilter.indexOf(channels[i].number) === -1) {
