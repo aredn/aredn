@@ -110,8 +110,9 @@ info.meshrf = (function(){
 				rfmode = rfmode || "sta";
 				// Fall throught ...
 			case radios.RADIO_MESHPTP:
+				rfmode = rfmode || "ptp";
 			case radios.RADIO_MESHPTMP:
-				rfmode = rfmode || "ap";
+				rfmode = rfmode || "ptmp";
 				ssid = ssid || `${mode.ssid}-v3-${mode.channel}-${mode.bandwidth}`;
 				return strip({
 					status: "on",
@@ -305,9 +306,13 @@ if (match(q, /lqm=1/)) {
 		enabled: true,
 		config: {
 			user_blocks: c.get("aredn", "@lqm[0]", "user_blocks") || ""
-		},
-		info: json(fs.readfile("/tmp/lqm.info"))
+		}
 	};
+	try {
+		info.lqm.info = json(fs.readfile("/tmp/lqm.info"));
+	}
+	catch (_) {
+	}
 }
 
 // Output the HTTP header for JSON
