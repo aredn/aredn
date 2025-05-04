@@ -134,8 +134,8 @@ const config = {
             ssh_access: 1,
             telnet_access: 1,
             web_access: 1,
-            mesh_to_local_wan: shell("uci -c /etc/config.mesh get aredn.@wan[0].olsrd_gw"),
-            lan_to_remote_wan: shell("uci -c /etc/config.mesh get aredn.@wan[0].mesh_wan_gw")
+            mesh_to_local_wan: shell("uci -q -c /etc/config.mesh get aredn.@wan[0].olsrd_gw") || 0,
+            lan_to_remote_wan: shell("uci -q -c /etc/config.mesh get aredn.@wan[0].mesh_wan_gw") || 0
         },
         watchdog: {
             enable: 0,
@@ -182,12 +182,12 @@ for (let fn in config) {
     }
     for (let sn in f) {
         const s = f[sn];
-        const san = `@\${sn}[0]`;
+        const san = `@${sn}[0]`;
         if (s == DELETE) {
             cursor.delete(fn, san);
         }
         else {
-            if (!cursor.get(fn, san)) {
+            if (cursor.get(fn, san) === null) {
                 cursor.add(fn, sn);
             }
             for (let on in s) {
@@ -195,7 +195,7 @@ for (let fn in config) {
                 if (o == DELETE) {
                     cursor.delete(fn, san, on);
                 }
-                else if (!cursor.get(fn, san, on)) {
+                else if (cursor.get(fn, san, on) === null) {
                     cursor.set(fn, san, on, o);
                 }
             }
