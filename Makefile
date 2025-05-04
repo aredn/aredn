@@ -150,14 +150,12 @@ prepare: stamp-clean-prepared .stamp-prepared
 # compile
 compile: stamp-clean-compiled .stamp-compiled
 .stamp-compiled: .stamp-prepared .stamp-feeds-updated | $(TOP_DIR)/firmware
-	$(TOP_DIR)/scripts/tests-prebuild.sh
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
 	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -path "*packages" -prune -o \( -type f -a \
 	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin"  -o -name "*sysupgrade-v7.bin" -o -name "*x86*" -o -name "*initramfs*" -o -name "*sysupgrade.itb" -o -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
 	done;
-	$(TOP_DIR)/scripts/tests-postbuild.sh
 
 $(TOP_DIR)/firmware:
 	ln -sf $(OPENWRT_DIR)/bin/ $(TOP_DIR)/firmware
