@@ -174,6 +174,21 @@ export function getRadioType(wifiIface)
     return "wifi";
 };
 
+export function getPhyDevice(iface)
+{
+    return replace(replace(iface, /^wlan/, "phy"), /^radio/, "phy");
+};
+
+export function getWlanDevice(iface)
+{
+    return replace(replace(iface, /^phy/, "wlan"), /^radio/, "wlan");
+};
+
+export function getRadioDevice(iface)
+{
+    return replace(replace(iface, /^phy/, "radio"), /^wlan/, "radio");
+};
+
 export function getChannelFromFrequency(wifiIface, freq)
 {
     const radio = getRadioIntf(wifiIface);
@@ -263,7 +278,7 @@ function get80211RfChannels(wifiIface)
 function getHaLowChannels(wifiIface)
 {
     const channels = [];
-    const p = fs.popen(`/usr/bin/iwinfo ${replace(wifiIface, /^wlan/, "phy")} freqlist`);
+    const p = fs.popen(`/usr/bin/iwinfo ${getPhyDevice(wifiIface)} freqlist`);
     if (p) {
         for (let line = p.read("line"); length(line); line = p.read("line")) {
             const m = match(line, /([0-9\.]+) MHz .* Channel ([0-9]+)/);
@@ -541,12 +556,11 @@ export function getMaxDistance(wifiIface)
     return info.wiphy_coverage_class * 450;
 };
 
-
 export function supportsSetMaxDistance(wifiIface)
 {
     const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
     if (info) {
-        if (system(`/usr/sbin/iw ${replace(wifiIface, /^wlan/, "phy")} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
+        if (system(`/usr/sbin/iw ${getPhyDevice(wifiIface)} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
             return true;
         }
     }
@@ -564,7 +578,7 @@ export function getInterfaceMAC(dev)
     }
     // If wlan interface isn't configured, we won't find it using GETLINK, so we look at the /sys filesystem.
     if (match(dev, /^wlan/)) {
-        const addr = trim(fs.readfile(`/sys/class/ieee80211/${replace(dev, /^wlan/, "phy")}/macaddress`));
+        const addr = trim(fs.readfile(`/sys/class/ieee80211/${getPhyDevice(dev)}/macaddress`));
         if (addr) {
             return addr;
         }

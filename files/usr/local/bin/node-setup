@@ -1274,7 +1274,8 @@ if (sf) {
         else if (mesh_txpower < 1) {
             mesh_txpower = 1;
         }
-        sf.write(`/usr/sbin/iw dev ${mesh_wifi} set txpower fixed ${mesh_txpower}00\n`);
+        sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(mesh_wifi)} set txpower fixed 0\n`);
+        sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(mesh_wifi)} set txpower fixed ${mesh_txpower}00\n`);
     }
     sf.close();
     if (filecopy("/tmp/local_services", "/etc/local/services")) {
