@@ -240,23 +240,14 @@ function main()
 
         updateConfig();
 
-        // If the channel bandwidth is less than 20, we need to adjust what we report as the values.
-        // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
-        let channelBwScale = 0.1;
-        let chanbw = trim(fs.readfile(`/sys/kernel/debug/ieee80211/${phy}/ath10k/chanbw`));
-        if (!chanbw) {
-            chanbw = trim(fs.readfile(`/sys/kernel/debug/ieee80211/${phy}/ath9k/chanbw`));
-        }
-        if (chanbw == "0x0000000a") {
-            channelBwScale = 0.05;
-        }
-        else if (chanbw == "0x00000005") {
-            channelBwScale = 0.025;
-        }
-
         const cursor = uci.cursor();
         const cursorm = uci.cursor("/etc/config.mesh");
         let refresh = false;
+
+        // If the channel bandwidth is less than 20, we need to adjust what we report as the values.
+        // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
+        const chanbw = int(cursor.get("wireless", radio, "chanbw") || "20");
+        const channelBwScale = min(20, chanbw) / 200.0;
 
         const lat = cursor.get("aredn", "@location[0]", "lat") ? 1 * cursor.get("aredn", "@location[0]", "lat") : null;
         const lon = cursor.get("aredn", "@location[0]", "lon") ? 1 * cursor.get("aredn", "@location[0]", "lon") : null;
