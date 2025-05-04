@@ -918,7 +918,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
         let maxlisteninterval = null;
         let uapsd = null;
         let hwmode = null;
-        let extra = null;
+        let bcf = null;
         if (fs.access(`/sys/kernel/debug/ieee80211/${devname}/ath10k`)) {
             htmode = "VHT20";
             if (wlan == mesh_wifi) {
@@ -951,7 +951,9 @@ for (let dev = 0; dev < ifacecount; dev++) {
             type = "morse";
             htmode = null;
             country = "US";
-            extra = `\toption reconf '0'\n\toption bcf 'bcf_mm_hl1.bin'\n`;
+            if (rif.bcf) {
+                bcf = rif.bcf;
+            }
         }
         switch (hardware.getDefaultChannel(wlan).band) {
             case "5GHz":
@@ -1084,8 +1086,8 @@ for (let dev = 0; dev < ifacecount; dev++) {
             config += `\toption rssi_reject_assoc_rssi '${rssireject}'\n\toption rssi_ignore_probe_request '${rssireject}'\n`;
         }
         config += `\toption path '${devpath}'\n`;
-        if (extra != null) {
-            config += extra;
+        if (bcf != null) {
+            config += `\toption bcf '${bcf}'\n`;
         }
         config += `\n`;
 
