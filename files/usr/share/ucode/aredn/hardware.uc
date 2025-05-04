@@ -166,6 +166,14 @@ export function getRadioIntf(wifiIface)
     }
 };
 
+export function getRadioType(wifiIface)
+{
+    if (getRadioIntf(wifiIface).band == "halow") {
+        return "halow";
+    }
+    return "wifi";
+};
+
 export function getChannelFromFrequency(wifiIface, freq)
 {
     const radio = getRadioIntf(wifiIface);
@@ -198,64 +206,91 @@ export function getChannelFromFrequency(wifiIface, freq)
     }
 };
 
+function get80211RfChannels(wifiIface)
+{
+    const channels = [];
+    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+    if (!info) {
+        return [];
+    }
+    let best = { band: 0, count: 0 };
+    for (let i = 0; i < length(info.wiphy_bands); i++) {
+        const f = info.wiphy_bands[i]?.freqs;
+        let count = 0;
+        for (let j = 0; j < length(f); j++) {
+            if (!f[j].disabled) {
+                count++;
+            }
+        }
+        if (count > best.count) {
+            best.band = i;
+            best.count = count;
+        }
+    }
+    const freqs = info.wiphy_bands[best.band].freqs;
+    let freq_adjust = (f) => f.freq;
+    let freq_min = 0;
+    let freq_max = 0x7FFFFFFF;
+    if (wifiIface === "wlan0") {
+        const radio = getRadio();
+        if (index(radio.name, "M9") !== -1) {
+            freq_adjust = (f) => f.freq - 1520;
+            freq_min = 907;
+            freq_max = 922;
+        }
+        else if (index(radio.name, "M3") !== -1) {
+            freq_adjust = (f) => f.freq - 2000;
+            freq_min = 3380;
+            freq_max = 3495;
+        }
+    }
+    for (let i = 0; i < length(freqs); i++) {
+        const f = freqs[i];
+        const freq = freq_adjust(f);
+        if (freq >= freq_min && freq <= freq_max) {
+            const num = getChannelFromFrequency(wifiIface, freq);
+            push(channels, {
+                label: num != freq ? num + " (" + freq + ")" : "" + freq,
+                number: num,
+                frequency: freq
+            });
+        }
+    }
+    sort(channels, (a, b) => a.frequency - b.frequency);
+    return channels;
+}
+
+function getHaLowChannels(wifiIface)
+{
+    const channels = [];
+    const p = fs.popen(`/usr/bin/iwinfo ${replace(wifiIface, /^wlan/, "phy")} freqlist`);
+    if (p) {
+        for (let line = p.read("line"); length(line); line = p.read("line")) {
+            const m = match(line, /([0-9\.]+) MHz .* Channel ([0-9]+)/);
+            if (m) {
+                push(channels, {
+                    label: `${m[2]} (${1.0 * m[1]})`,
+                    number: int(m[2]),
+                    frequency: 1.0 * m[1]
+                });
+            }
+        }
+        p.close();
+    }
+    return channels;
+}
+
 export function getRfChannels(wifiIface)
 {
     let channels = channelsCache[wifiIface];
     if (!channels) {
-        channels = [];
-        const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
-        if (!info) {
-            return [];
+        const radio = getRadioIntf(wifiIface);
+        if (radio.band == "halow") {
+            channels = getHaLowChannels(wifiIface);
         }
-        let best = { band: 0, count: 0 };
-        for (let i = 0; i < length(info.wiphy_bands); i++) {
-            const f = info.wiphy_bands[i]?.freqs;
-            let count = 0;
-            for (let j = 0; j < length(f); j++) {
-                if (!f[j].disabled) {
-                    count++;
-                }
-            }
-            if (count > best.count) {
-                best.band = i;
-                best.count = count;
-            }
+        else {
+            channels = get80211RfChannels(wifiIface);
         }
-        const freqs = info.wiphy_bands[best.band].freqs;
-        let freq_adjust = (f) => f.freq;
-        let freq_min = 0;
-        let freq_max = 0x7FFFFFFF;
-        if (wifiIface === "wlan0") {
-            const radio = getRadio();
-            if (index(radio.name, "M9") !== -1) {
-                freq_adjust = (f) => f.freq - 1520;
-                freq_min = 907;
-                freq_max = 922;
-            }
-            else if (index(radio.name, "M3") !== -1) {
-                freq_adjust = (f) => f.freq - 2000;
-                freq_min = 3380;
-                freq_max = 3495;
-            }
-            else if (radio.wlan0?.band == "halow") {
-                freq_adjust = (f) => (f.freq - 5180) / 20.0 + 902.5;
-                freq_min = 902.5;
-                freq_max = 927.5;
-            }
-        }
-        for (let i = 0; i < length(freqs); i++) {
-            const f = freqs[i];
-            const freq = freq_adjust(f);
-            if (freq >= freq_min && freq <= freq_max) {
-                const num = getChannelFromFrequency(wifiIface, freq);
-                push(channels, {
-                    label: num != freq ? num + " (" + freq + ")" : "" + freq,
-                    number: num,
-                    frequency: freq
-                });
-            }
-        }
-        sort(channels, (a, b) => a.frequency - b.frequency);
         channelsCache[wifiIface] = channels;
     }
     return channels;
