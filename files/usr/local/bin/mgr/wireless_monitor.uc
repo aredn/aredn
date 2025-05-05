@@ -269,7 +269,7 @@ return waitForTicks(max(1, 120 - clock(true)[0]), function()
             break;
         }
     }
-    const phy = replace(wifi, /^wlan/, "phy");
+    const phy = hardware.getPhyDevice(wifi);
 
     if (!(phy && frequency && ssid)) {
         log.syslog(log.LOG_ERR, `Startup failed`);

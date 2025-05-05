@@ -877,6 +877,9 @@ for (let dev = 0; dev < ifacecount; dev++) {
     const radio = `radio${dev}`;
     const wlan = `wlan${dev}`;
     let devpath = match(fs.realpath(`${ieee80211}${fs.readlink(ieee80211 + devname)}`), /^\/sys\/devices\/(.*)\/ieee802.*$/);
+    if (!devpath) {
+        continue;
+    }
     if (match(devpath[1], /^platform.*\/pci.*/)) {
         devpath = match(devpath[1], /^platform\/(.*)/);
     }
@@ -891,8 +894,31 @@ for (let dev = 0; dev < ifacecount; dev++) {
         config += `config\twifi-device '${radio}'\n\toption type 'mac80211'\n\toption disabled '1'\n\toption path '${devpath}'\n\n`;
     }
     else {
-        let isMeshRf = false;
+        let type = "mac80211";
         let htmode = "HT20";
+        let disabled = "0";
+        let chanbw = null;
+        let country = null;
+        let channel = null;
+        let distance = null;
+        let network = null;
+        let mode = null;
+        let ssid = null;
+        let encryption = null;
+        let key = null;
+        let celldensity = null;
+        let txpower = null;
+        let rssireject = null;
+        let multicasttounicast = null;
+        let macfilter = null;
+        let macaddr = null;
+        let isolate = null;
+        let disassoclowack = null;
+        let maxinactivity = null;
+        let maxlisteninterval = null;
+        let uapsd = null;
+        let hwmode = null;
+        let bcf = null;
         if (fs.access(`/sys/kernel/debug/ieee80211/${devname}/ath10k`)) {
             htmode = "VHT20";
             if (wlan == mesh_wifi) {
@@ -921,38 +947,31 @@ for (let dev = 0; dev < ifacecount; dev++) {
                 }
             }
         }
-        let disabled = "0";
-        let chanbw = null;
-        let country = null;
-        let channel = null;
-        let distance = null;
-        let hwmode = "11g";
-        if (hardware.getDefaultChannel(wlan).band == "5GHz") {
-            hwmode = "11a";
+        else if (fs.access(`/sys/kernel/debug/ieee80211/${devname}/morse`)) {
+            type = "morse";
+            htmode = null;
+            country = "US";
+            if (rif.bcf) {
+                bcf = rif.bcf;
+            }
         }
-        let network = null;
-        let mode = null;
-        let ssid = null;
-        let encryption = null;
-        let key = null;
-        let celldensity = null;
-        let txpower = null;
-        let rssireject = null;
-        let multicasttounicast = null;
-        let macfilter = null;
-        let macaddr = null;
-        let isolate = null;
-        let disassoclowack = null;
-        let maxinactivity = null;
-        let maxlisteninterval = null;
-        let uapsd = null;
-
+        switch (hardware.getDefaultChannel(wlan).band) {
+            case "5GHz":
+                hwmode = "11a";
+                break;
+            case "HaLow":
+                hwmode = "11ah";
+                break;
+            default:
+                hwmode = "11g";
+                break;
+        }
         if (cfg[`${radio}_mode`] == "mesh") {
             // mesh RF adhoc configuration
             is_mesh_rf = true;
             channel = mesh_channel;
             chanbw = mesh_chanbw;
-            country = "HX";
+            country = country ?? "HX";
             txpower = mesh_txpower;
             distance = mesh_distance;
             ssid = `${mesh_ssid}-${chanbw}-v3`;
@@ -1029,7 +1048,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
             disabled = "1";
         }
 
-        config += `config wifi-device '${radio}'\n\toption type 'mac80211'\n`;
+        config += `config wifi-device '${radio}'\n\toption type '${type}'\n`;
         config += `\toption disabled '${disabled}'\n`;
         if (channel != null) {
             config += `\toption channel '${channel}'\n`;
@@ -1046,11 +1065,16 @@ for (let dev = 0; dev < ifacecount; dev++) {
         if (txpower != null) {
             config += `\toption txpower '${txpower}'\n`;
         }
-        if (hwmode == "11g") {
-            config += `\toption band '2g'\n`;
-        }
-        else {
-            config += `\toption band '5g'\n`;
+        switch (hwmode) {
+            case "11g":
+                config += `\toption band '2g'\n`;
+                break;
+            case "11ah":
+                config += `\toption band 's1g'\n\toption hwmode '11ah'\n`;
+                break;
+            default:
+                config += `\toption band '5g'\n`;
+                break;
         }
         if (htmode != null) {
             config += `\toption htmode '${htmode}'\n`;
@@ -1061,7 +1085,11 @@ for (let dev = 0; dev < ifacecount; dev++) {
         if (rssireject != null) {
             config += `\toption rssi_reject_assoc_rssi '${rssireject}'\n\toption rssi_ignore_probe_request '${rssireject}'\n`;
         }
-        config += `\toption path '${devpath}'\n\n`;
+        config += `\toption path '${devpath}'\n`;
+        if (bcf != null) {
+            config += `\toption bcf '${bcf}'\n`;
+        }
+        config += `\n`;
 
         config += "config wifi-iface\n";
         config += `\toption ifname '${wlan}'\n`;
@@ -1246,7 +1274,8 @@ if (sf) {
         else if (mesh_txpower < 1) {
             mesh_txpower = 1;
         }
-        sf.write(`/usr/sbin/iw dev ${mesh_wifi} set txpower fixed ${mesh_txpower}00\n`);
+        sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(mesh_wifi)} set txpower fixed 0\n`);
+        sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(mesh_wifi)} set txpower fixed ${mesh_txpower}00\n`);
     }
     sf.close();
     if (filecopy("/tmp/local_services", "/etc/local/services")) {

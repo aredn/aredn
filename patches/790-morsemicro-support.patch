@@ -1,0 +1,652 @@
+--- a/feeds/morse/kernel/morse_driver/Makefile
++++ b/feeds/morse/kernel/morse_driver/Makefile
+@@ -91,7 +91,7 @@
+   MORSE_VERSION=0-$(PKG_VERSION) \
+   KERNEL_SRC=$(LINUX_DIR) \
+   CONFIG_MORSE_SDIO_ALIGNMENT=$(CONFIG_MORSE_SDIO_ALIGNMENT) \
+-  CONFIG_BACKPORT_VERSION=v6.1.24
++  CONFIG_BACKPORT_VERSION=v6.12.0
+ # This refers to the version of mac80211 backported to OpenWrt
+ # Occasionally patches are required to remove some parts of the driver
+ # as OpenWrt may sometimes pull in further patches from later kernel versions
+--- /dev/null
++++ b/feeds/morse/kernel/morse_driver/patches/100-aredn.patch
+@@ -0,0 +1,48 @@
++--- a/debug.h
+++++ b/debug.h
++@@ -154,7 +154,7 @@
++  *
++  * @returns	True if output would be generated and false otherwise.
++  */
++-bool morse_log_is_enabled(u32 id, u8 level);
+++bool morse_log_is_enabled(enum morse_feature_id id, u8 level);
++ 
++ /**
++  * Set the default logging level for all features.
++
++--- a/firmware.h
+++++ b/firmware.h
++@@ -139,7 +139,9 @@
++ 	u8 ext_host_table_data_tlvs[];
++ } __packed;
++ 
++-int morse_firmware_init(struct morse *mors, uint test_mode);
+++enum morse_config_test_mode;
+++
+++int morse_firmware_init(struct morse *mors, enum morse_config_test_mode test_mode);
++ 
++ /**
++  * @brief Perform non-destructive-reset of the chip,
++--- a/mac.c
+++++ b/mac.c
++@@ -4942,6 +4942,10 @@
++ #endif
++ 
++ static struct ieee80211_ops mors_ops = {
+++	.add_chanctx = ieee80211_emulate_add_chanctx,
+++	.remove_chanctx = ieee80211_emulate_remove_chanctx,
+++	.change_chanctx = ieee80211_emulate_change_chanctx,
+++	.switch_vif_chanctx = ieee80211_emulate_switch_vif_chanctx,
++ 	.tx = morse_mac_ops_tx,
++ 	.start = morse_mac_ops_start,
++ 	.stop = morse_mac_ops_stop,
++--- a/mac.c
+++++ b/mac.c
++@@ -6607,6 +6607,7 @@
++ 	 * by the module parameter
++ 	 */
++ 	if (country_codes_are_equal(request->alpha2, "ZZ") ||
+++	    country_codes_are_equal(request->alpha2, "HX") ||
++ 	    country_codes_are_equal(request->alpha2, "00"))
++ 		req_cc = country;
++ 	else
+
+--- a/target/linux/ramips/image/mt7621.mk
++++ b/target/linux/ramips/image/mt7621.mk
+@@ -2058,6 +2058,20 @@
+ endef
+ TARGET_DEVICES += mikrotik_routerboard-m33g
+ 
++define Device/morse_artini
++  $(Device/dsa-migration)
++  IMAGE_SIZE := 32448k
++  UBOOT_OFFSET := 512k
++  UBOOT_TARGET := mt7621_morsemicro_artini
++  UBOOT_IMAGE := u-boot.bin
++  UBOOT_PATH := $(STAGING_DIR_IMAGE)/$$(UBOOT_TARGET)-$$(UBOOT_IMAGE)
++  DEVICE_VENDOR := MorseMicro
++  DEVICE_MODEL := Artini
++  DEVICE_PACKAGES := kmod-mmc-mt7620 kmod-mt7603 \
++	kmod-morse netifd-morse
++endef
++TARGET_DEVICES += morse_artini
++
+ define Device/mqmaker_witi
+   $(Device/dsa-migration)
+   $(Device/uimage-lzma-loader)
+
+--- /dev/null
++++ b/target/linux/ramips/dts/mt7621_morse_artini.dts
+@@ -0,0 +1,379 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++#include "mt7621.dtsi"
++
++#include <dt-bindings/leds/common.h>
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++
++/ {
++	compatible = "morse,artini", "mediatek,mt7621-soc";
++	model = "MorseMicro HaLowLink 1";
++
++	aliases {
++		led-halow = &led2;
++		led-wifi = &led0;
++		led-status = &led1;
++		label-mac-device = &wan;
++	};
++
++	chosen {
++		bootargs = "console=ttyS0,115200";
++	};
++
++	keys {
++		compatible = "gpio-keys";
++
++		reset {
++			label = "reset";
++			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
++			linux,code = <BTN_0>;
++		};
++	};
++
++	led0 {
++		compatible = "pwm-leds-multicolor";
++
++		led0: multi-led {
++			label = "rgb:led0";
++			color = <LED_COLOR_ID_RGB>;
++			function = LED_FUNCTION_INDICATOR;
++			max-brightness = <255>;
++
++			led0_red {
++				pwms = <&pwm0_red 0 1000000>;
++				color = <LED_COLOR_ID_RED>;
++			};
++
++			led0_green {
++				pwms = <&pwm0_green 0 1000000>;
++				color = <LED_COLOR_ID_GREEN>;
++			};
++
++			led0_blue {
++				pwms = <&pwm0_blue 0 1000000>;
++				color = <LED_COLOR_ID_BLUE>;
++			};
++		};
++	};
++
++	led1 {
++		compatible = "pwm-leds-multicolor";
++
++		led1: multi-led {
++			label = "rgb:led1";
++			color = <LED_COLOR_ID_RGB>;
++			function = LED_FUNCTION_INDICATOR;
++			max-brightness = <255>;
++			linux,default-trigger = "timer";
++			led-pattern = <100 100>;
++			default-brightness = <255>;
++			default-mc-intensity = <0 255 0>;
++
++			led1_red {
++				pwms = <&pwm1_red 0 1000000>;
++				color = <LED_COLOR_ID_RED>;
++			};
++
++			led1_green {
++				pwms = <&pwm1_green 0 1000000>;
++				color = <LED_COLOR_ID_GREEN>;
++			};
++
++			led1_blue {
++				pwms = <&pwm1_blue 0 1000000>;
++				color = <LED_COLOR_ID_BLUE>;
++			};
++		};
++	};
++
++	led2 {
++		compatible = "pwm-leds-multicolor";
++
++		led2: multi-led {
++			label = "rgb:led2";
++			color = <LED_COLOR_ID_RGB>;
++			function = LED_FUNCTION_INDICATOR;
++			max-brightness = <255>;
++
++			led2_red {
++				pwms = <&pwm2_red 0 1000000>;
++				color = <LED_COLOR_ID_RED>;
++			};
++
++			led2_green {
++				pwms = <&pwm2_green 0 1000000>;
++				color = <LED_COLOR_ID_GREEN>;
++			};
++
++			led2_blue {
++				pwms = <&pwm2_blue 0 1000000>;
++				color = <LED_COLOR_ID_BLUE>;
++			};
++		};
++	};
++
++	pwm0_red: pwm0_red {
++		#pwm-cells = <2>;
++		compatible = "pwm-gpio";
++		gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
++	};
++
++	pwm0_green: pwm0_green {
++		#pwm-cells = <2>;
++		compatible = "pwm-gpio";
++		gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
++	};
++
++	pwm0_blue: pwm0_blue {
++		#pwm-cells = <2>;
++		compatible = "pwm-gpio";
++		gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
++	};
++
++	pwm1_red: pwm1_red {
++		#pwm-cells = <2>;
++		compatible = "pwm-gpio";
++		gpios = <&gpio 23 GPIO_ACTIVE_LOW>;
++	};
++
++	pwm1_green: pwm1_green {
++		#pwm-cells = <2>;
++		compatible = "pwm-gpio";
++		gpios = <&gpio 22 GPIO_ACTIVE_LOW>;
++	};
++
++	pwm1_blue: pwm1_blue {
++		#pwm-cells = <2>;
++		compatible = "pwm-gpio";
++		gpios = <&gpio 33 GPIO_ACTIVE_LOW>;
++	};
++
++	pwm2_red: pwm2_red {
++		#pwm-cells = <2>;
++		compatible = "pwm-gpio";
++		gpios = <&gpio 28 GPIO_ACTIVE_LOW>;
++	};
++
++	pwm2_green: pwm2_green {
++		#pwm-cells = <2>;
++		compatible = "pwm-gpio";
++		gpios = <&gpio 29 GPIO_ACTIVE_LOW>;
++	};
++
++	pwm2_blue: pwm2_blue {
++		#pwm-cells = <2>;
++		compatible = "pwm-gpio";
++		gpios = <&gpio 32 GPIO_ACTIVE_LOW>;
++	};
++
++	mmc_clock: mmc_clock@0 {
++		#clock-cells = <0>;
++		compatible = "fixed-clock";
++		clock-frequency = <48000000>;
++	};
++
++	mmc_fixed_3v3: fixedregulator@0 {
++		compatible = "regulator-fixed";
++		regulator-name = "mmc_power";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		enable-active-high;
++		regulator-always-on;
++	};
++
++	mmc_fixed_1v8_io: fixedregulator@1 {
++		compatible = "regulator-fixed";
++		regulator-name = "mmc_io";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		enable-active-high;
++		regulator-always-on;
++
++	};
++};
++
++&i2c {
++	status = "okay";
++};
++
++&pinctrl {
++	jtag_pins: jtag_pins {
++		jtag_pins {
++			groups = "jtag";
++			function = "gpio";
++		};
++	};
++};
++
++&sdhci {
++	compatible = "mediatek,mt7620-mmc";
++	status = "okay";
++	bus-width = <4>;
++	max-frequency = <48000000>;
++
++	cap-sd-highspeed;
++	cap-mmc-highspeed;
++	vmmc-supply = <&mmc_fixed_3v3>;
++	vqmmc-supply = <&mmc_fixed_3v3>;
++	non-removable;
++	disable-wp;
++	cap-sdio-irq;
++
++	pinctrl-names = "default", "state_uhs";
++	pinctrl-0 = <&sdhci_pins>;
++	pinctrl-1 = <&sdhci_pins>;
++
++	clocks = <&mmc_clock>, <&mmc_clock>;
++	clock-names = "source", "hclk";
++
++	mm6108_sdio: mm6108_sdio@0 {
++		compatible = "morse,mm610x";
++		reset-gpios = <&gpio 6 0>;
++		power-gpios = <&gpio 7 0>,
++		              <&gpio 8 0>;
++		status = "okay";
++		reg = <2>;
++		bus-width = <4>;
++	};
++};
++
++&spi0 {
++	status = "okay";
++
++	flash@0 {
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <50000000>;
++		broken-flash-reset;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "u-boot";
++				reg = <0x0 0x70000>;
++				read-only;
++			};
++
++			// This is a 'ubootenv' format partition that we use to persist settings
++			// between flashes/factory reset (i.e. similar to the factory partition,
++			// but writeable by userspace).
++			partition@70000 {
++				label = "openwrt-env";
++				reg = <0x70000 0x10000>;
++			};
++
++			partition@80000 {
++				label = "u-boot-env";
++				reg = <0x80000 0x10000>;
++				read-only;
++			};
++
++			factory: partition@90000 {
++				label = "factory";
++				reg = <0x90000 0x10000>;
++				read-only;
++			};
++
++			partition@A0000 {
++				compatible = "denx,uimage";
++				label = "firmware";
++				reg = <0xA0000 0x1f60000>;
++			};
++		};
++	};
++};
++
++&pcie {
++	status = "okay";
++};
++
++&pcie0 {
++	wifi@0,0 {
++		compatible = "mediatek,mt76";
++		reg = <0x0000 0 0 0 0>;
++		mediatek,mtd-eeprom = <&factory 0x0>;
++	};
++};
++
++&ethernet {
++	/* MDIO is required to be on to talk to GSW controller */
++	pinctrl-names = "default";
++	pinctrl-0 = <&mdio_pins>;
++};
++
++&gmac0 {
++	nvmem-cells = <&macaddr_factory_4000>;
++	nvmem-cell-names = "mac-address";
++	mac-address-increment = <1>;
++};
++
++&switch0 {
++	ports {
++		port@0 {
++			status = "okay";
++			label = "usblan";
++		};
++
++		port@2 {
++			status = "okay";
++			label = "lan";
++		};
++
++		wan: port@4 {
++			status = "okay";
++			label = "wan";
++			nvmem-cells = <&macaddr_factory_4000>;
++			nvmem-cell-names = "mac-address";
++		};
++	};
++};
++
++&gpio {
++	/* These are the default names from the docs, EXCEPT that those that are connected to the HaLow chip and renamed
++	 * (see MM_*).
++	 */
++	gpio-line-names =
++		/* GPIO0 -> GPIO12 */
++		"", "RXD1", "TXD1", "I2C_SD", "I2C_SCLK", "", "MM_RESET", "MM_WAKE", "MM_BUSY", "RTS2_N", "CTS2_N", "TXD2", "MM_DBG_TX",
++		/* GPIO13 -> GPIO21 */
++		"JTDO", "JTDI", "JTMS", "JTCLK", "JTRST_N", "WDT_RST_N", "PERST", "", "",
++		/* GPIO22 -> GPIO33 */
++		"GE2_TXD0", "GE2_TXD1", "GE2_TXD2", "GE2_TXD3", "GE2_TXEN", "MM_BOOST", "GE2_RXD0", "GE2_RXD1", "GE2_RXD2", "GE2_RXD3", "GE2_RXDV", "GE2_RXCLK",
++		/* GPIO34 -> GPIO48 */
++		"ND_CS_N", "ND_WE_N", "ND_RE_N", "ND_D4", "ND_D5", "ND_D6", "ND_D7", "ND_WP", "ND_RB_N", "ND_CLE", "ND_ALE", "ND_D0", "ND_D1", "ND_D2", "ND_D3",
++		/* GPIO49 -> GPIO63 - unused, but need to be specified to avoid kernel complaints */
++		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
++		/* GPIO64 -> GPIO95 - unused, but need to be specified to avoid kernel complaints */
++		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
++		;
++};
++
++&state_default {
++	gpio {
++		groups = "wdt", "jtag", "uart3", "rgmii2";
++		function = "gpio";
++	};
++};
++
++/* HaLow DBG_TX is connected to this uart (other lines are unused). */
++&uartlite2 {
++	status = "okay";
++};
++
++&factory {
++	compatible = "nvmem-cells";
++	#address-cells = <1>;
++	#size-cells = <1>;
++
++	macaddr_factory_4000: macaddr@4000 {
++		reg = <0x4000 0x6>;
++	};
++};
++
++&xhci {
++	status = "disabled";
++};
+--- a/target/linux/ramips/mt7621/base-files/etc/board.d/02_network
++++ b/target/linux/ramips/mt7621/base-files/etc/board.d/02_network
+@@ -180,6 +180,10 @@
+ 	ruijie,rg-ew1200g-pro-v1.1)
+ 		ucidef_set_interfaces_lan_wan "lan3 lan2 lan1" "wan"
+ 		;;
++	morse,artini)
++		ucidef_set_interfaces_lan_wan "usblan lan" "wan"
++		ucidef_set_interface "dtdlink" device "usblan.2 lan.2" protocol "static"
++		;;
+ 	*)
+ 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "wan"
+ 		;;
+
+--- /dev/null
++++ b/package/system/rpcd/patches/001-disable-iwinfo.patch
+@@ -0,0 +1,11 @@
++--- a/CMakeLists.txt
+++++ b/CMakeLists.txt
++@@ -7,7 +7,7 @@
++ INCLUDE_DIRECTORIES(include)
++ 
++ OPTION(FILE_SUPPORT "File plugin support" ON)
++-OPTION(IWINFO_SUPPORT "libiwinfo plugin support" ON)
+++OPTION(IWINFO_SUPPORT "libiwinfo plugin support" OFF)
++ OPTION(RPCSYS_SUPPORT "rpc-sys plugin support" ON)
++ OPTION(UCODE_SUPPORT "ucode plugin support" ON)
++ 
+--- a/feeds/morse/netifd-morse/lib/wifi/morse.sh
++++ b/feeds/morse/netifd-morse/lib/wifi/morse.sh
+@@ -111,7 +111,7 @@
+ 		# Only configure morse devices.
+ 		basename "$(readlink -f "$_dev/device/driver/")" | grep '^morse_' || continue
+ 
+-		set_chipid "$(basename "$_dev")"
++		#set_chipid "$(basename "$_dev")"
+ 
+ 		dev="${_dev##*/}"
+ 
+--- a/package/kernel/linux/modules/leds.mk
++++ b/package/kernel/linux/modules/leds.mk
+@@ -233,6 +233,24 @@
+ $(eval $(call KernelPackage,leds-pwm))
+ 
+ 
++define KernelPackage/leds-pwm-multicolor
++  SUBMENU:=$(LEDS_MENU)
++  TITLE:=PWM driven Multicolor LED Support
++  KCONFIG:= \
++        CONFIG_PWM=y \
++        CONFIG_LEDS_CLASS_MULTICOLOR=y \
++        CONFIG_LEDS_PWM_MULTICOLOR
++  FILES:=$(LINUX_DIR)/drivers/leds/rgb/leds-pwm-multicolor.ko
++  AUTOLOAD:=$(call AutoLoad,60,leds-pwm-multicolor)
++endef
++
++define KernelPackage/leds-pwm-multicolor/description
++ This option enables multicolor support for pwm driven LEDs
++endef
++
++$(eval $(call KernelPackage,leds-pwm-multicolor))
++
++
+ define KernelPackage/leds-tlc591xx
+   SUBMENU:=$(LEDS_MENU)
+   TITLE:=LED driver for TLC59108 and TLC59116 controllers
+
+--- /dev/null
++++ b/target/linux/ramips/patches-6.6/999-morse-Add-default-brightness-and-intensity-to-leds-pwm-mul.patch
+@@ -0,0 +1,113 @@
++From bf6699d3041266ec4e4b146ca387f2f104ed7a30 Mon Sep 17 00:00:00 2001
++From: Evan Benn <evan.benn@morsemicro.com>
++Date: Tue, 20 Aug 2024 16:50:04 +1000
++Subject: [PATCH] Add default brightness and intensity to leds-pwm-multicolor
++
++---
++ drivers/leds/led-class-multicolor.c | 33 +++++++++++++++++++++++++++++
++ drivers/leds/led-class.c            | 11 +++++++++-
++ include/linux/leds.h                |  1 +
++ 3 files changed, 44 insertions(+), 1 deletion(-)
++
++Index: linux-6.6.86/drivers/leds/led-class-multicolor.c
++===================================================================
++--- linux-6.6.86.orig/drivers/leds/led-class-multicolor.c
+++++ linux-6.6.86/drivers/leds/led-class-multicolor.c
++@@ -3,6 +3,7 @@
++ // Copyright (C) 2019-20 Texas Instruments Incorporated - http://www.ti.com/
++ // Author: Dan Murphy <dmurphy@ti.com>
++ 
+++#include "linux/property.h"
++ #include <linux/device.h>
++ #include <linux/init.h>
++ #include <linux/led-class-multicolor.h>
++@@ -118,6 +119,36 @@ static struct attribute *led_multicolor_
++ };
++ ATTRIBUTE_GROUPS(led_multicolor);
++ 
+++void read_default_intensity(struct led_classdev_mc *mcled_cdev, struct led_init_data *init_data)
+++{
+++	u32 count = fwnode_property_count_u32(init_data->fwnode,
+++					  "default-mc-intensity");
+++	u32 *default_intensity;
+++	u32 i;
+++
+++	if (count != mcled_cdev->num_colors) {
+++		return;
+++	}
+++
+++	default_intensity =
+++		kcalloc(count, sizeof(*default_intensity),
+++			GFP_KERNEL);
+++	if (!default_intensity)
+++		return;
+++
+++	if (fwnode_property_read_u32_array(
+++			init_data->fwnode, "default-mc-intensity",
+++			default_intensity, count)) {
+++		kfree(default_intensity);
+++		return;
+++	}
+++
+++	for (i = 0; i < mcled_cdev->num_colors; i++)
+++		mcled_cdev->subled_info[i]
+++			.intensity = default_intensity[i];
+++	kfree(default_intensity);
+++}
+++
++ int led_classdev_multicolor_register_ext(struct device *parent,
++ 				     struct led_classdev_mc *mcled_cdev,
++ 				     struct led_init_data *init_data)
++@@ -136,6 +167,8 @@ int led_classdev_multicolor_register_ext
++ 	led_cdev = &mcled_cdev->led_cdev;
++ 	mcled_cdev->led_cdev.groups = led_multicolor_groups;
++ 
+++	read_default_intensity(mcled_cdev, init_data);
+++
++ 	return led_classdev_register_ext(parent, led_cdev, init_data);
++ }
++ EXPORT_SYMBOL_GPL(led_classdev_multicolor_register_ext);
++Index: linux-6.6.86/drivers/leds/led-class.c
++===================================================================
++--- linux-6.6.86.orig/drivers/leds/led-class.c
+++++ linux-6.6.86/drivers/leds/led-class.c
++@@ -495,6 +495,16 @@
++ 						    "retain-state-shutdown"))
++ 				led_cdev->flags |= LED_RETAIN_AT_SHUTDOWN;
++ 
+++			if (fwnode_property_present(init_data->fwnode,
+++						    "default-brightness"))
+++			{
+++				fwnode_property_read_u32(
+++				    init_data->fwnode,
+++				    "default-brightness",
+++				    &led_cdev->brightness);
+++				led_cdev->default_brightness = true;
+++			}
+++
++ 			fwnode_property_read_u32(init_data->fwnode,
++ 				"max-brightness",
++ 				&led_cdev->max_brightness);
++@@ -412,8 +422,8 @@ int led_classdev_register_ext(struct dev
++ 
++ 	if (!led_cdev->max_brightness)
++ 		led_cdev->max_brightness = LED_FULL;
++-
++-	led_update_brightness(led_cdev);
+++	if (!led_cdev->default_brightness)
+++		led_update_brightness(led_cdev);
++ 
++ 	led_init_core(led_cdev);
++ 
++Index: linux-6.6.86/include/linux/leds.h
++===================================================================
++--- linux-6.6.86.orig/include/linux/leds.h
+++++ linux-6.6.86/include/linux/leds.h
++@@ -100,6 +100,7 @@
++ 	const char		*name;
++ 	unsigned int brightness;
++ 	unsigned int max_brightness;
+++	bool default_brightness;
++ 	unsigned int color;
++ 	int			 flags;
++ 
