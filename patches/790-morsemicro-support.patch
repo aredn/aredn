@@ -506,3 +506,147 @@
  
  		dev="${_dev##*/}"
  
+--- a/package/kernel/linux/modules/leds.mk
++++ b/package/kernel/linux/modules/leds.mk
+@@ -233,6 +233,24 @@
+ $(eval $(call KernelPackage,leds-pwm))
+ 
+ 
++define KernelPackage/leds-pwm-multicolor
++  SUBMENU:=$(LEDS_MENU)
++  TITLE:=PWM driven Multicolor LED Support
++  KCONFIG:= \
++        CONFIG_PWM=y \
++        CONFIG_LEDS_CLASS_MULTICOLOR=y \
++        CONFIG_LEDS_PWM_MULTICOLOR
++  FILES:=$(LINUX_DIR)/drivers/leds/rgb/leds-pwm-multicolor.ko
++  AUTOLOAD:=$(call AutoLoad,60,leds-pwm-multicolor)
++endef
++
++define KernelPackage/leds-pwm-multicolor/description
++ This option enables multicolor support for pwm driven LEDs
++endef
++
++$(eval $(call KernelPackage,leds-pwm-multicolor))
++
++
+ define KernelPackage/leds-tlc591xx
+   SUBMENU:=$(LEDS_MENU)
+   TITLE:=LED driver for TLC59108 and TLC59116 controllers
+
+--- /dev/null
++++ b/target/linux/ramips/patches-6.6/999-morse-Add-default-brightness-and-intensity-to-leds-pwm-mul.patch
+@@ -0,0 +1,113 @@
++From bf6699d3041266ec4e4b146ca387f2f104ed7a30 Mon Sep 17 00:00:00 2001
++From: Evan Benn <evan.benn@morsemicro.com>
++Date: Tue, 20 Aug 2024 16:50:04 +1000
++Subject: [PATCH] Add default brightness and intensity to leds-pwm-multicolor
++
++---
++ drivers/leds/led-class-multicolor.c | 33 +++++++++++++++++++++++++++++
++ drivers/leds/led-class.c            | 11 +++++++++-
++ include/linux/leds.h                |  1 +
++ 3 files changed, 44 insertions(+), 1 deletion(-)
++
++Index: linux-6.6.86/drivers/leds/led-class-multicolor.c
++===================================================================
++--- linux-6.6.86.orig/drivers/leds/led-class-multicolor.c
+++++ linux-6.6.86/drivers/leds/led-class-multicolor.c
++@@ -3,6 +3,7 @@
++ // Copyright (C) 2019-20 Texas Instruments Incorporated - http://www.ti.com/
++ // Author: Dan Murphy <dmurphy@ti.com>
++ 
+++#include "linux/property.h"
++ #include <linux/device.h>
++ #include <linux/init.h>
++ #include <linux/led-class-multicolor.h>
++@@ -118,6 +119,36 @@ static struct attribute *led_multicolor_
++ };
++ ATTRIBUTE_GROUPS(led_multicolor);
++ 
+++void read_default_intensity(struct led_classdev_mc *mcled_cdev, struct led_init_data *init_data)
+++{
+++	u32 count = fwnode_property_count_u32(init_data->fwnode,
+++					  "default-mc-intensity");
+++	u32 *default_intensity;
+++	u32 i;
+++
+++	if (count != mcled_cdev->num_colors) {
+++		return;
+++	}
+++
+++	default_intensity =
+++		kcalloc(count, sizeof(*default_intensity),
+++			GFP_KERNEL);
+++	if (!default_intensity)
+++		return;
+++
+++	if (fwnode_property_read_u32_array(
+++			init_data->fwnode, "default-mc-intensity",
+++			default_intensity, count)) {
+++		kfree(default_intensity);
+++		return;
+++	}
+++
+++	for (i = 0; i < mcled_cdev->num_colors; i++)
+++		mcled_cdev->subled_info[i]
+++			.intensity = default_intensity[i];
+++	kfree(default_intensity);
+++}
+++
++ int led_classdev_multicolor_register_ext(struct device *parent,
++ 				     struct led_classdev_mc *mcled_cdev,
++ 				     struct led_init_data *init_data)
++@@ -136,6 +167,8 @@ int led_classdev_multicolor_register_ext
++ 	led_cdev = &mcled_cdev->led_cdev;
++ 	mcled_cdev->led_cdev.groups = led_multicolor_groups;
++ 
+++	read_default_intensity(mcled_cdev, init_data);
+++
++ 	return led_classdev_register_ext(parent, led_cdev, init_data);
++ }
++ EXPORT_SYMBOL_GPL(led_classdev_multicolor_register_ext);
++Index: linux-6.6.86/drivers/leds/led-class.c
++===================================================================
++--- linux-6.6.86.orig/drivers/leds/led-class.c
+++++ linux-6.6.86/drivers/leds/led-class.c
++@@ -495,6 +495,16 @@
++ 						    "retain-state-shutdown"))
++ 				led_cdev->flags |= LED_RETAIN_AT_SHUTDOWN;
++ 
+++			if (fwnode_property_present(init_data->fwnode,
+++						    "default-brightness"))
+++			{
+++				fwnode_property_read_u32(
+++				    init_data->fwnode,
+++				    "default-brightness",
+++				    &led_cdev->brightness);
+++				led_cdev->default_brightness = true;
+++			}
+++
++ 			fwnode_property_read_u32(init_data->fwnode,
++ 				"max-brightness",
++ 				&led_cdev->max_brightness);
++@@ -412,8 +422,8 @@ int led_classdev_register_ext(struct dev
++ 
++ 	if (!led_cdev->max_brightness)
++ 		led_cdev->max_brightness = LED_FULL;
++-
++-	led_update_brightness(led_cdev);
+++	if (!led_cdev->default_brightness)
+++		led_update_brightness(led_cdev);
++ 
++ 	led_init_core(led_cdev);
++ 
++Index: linux-6.6.86/include/linux/leds.h
++===================================================================
++--- linux-6.6.86.orig/include/linux/leds.h
+++++ linux-6.6.86/include/linux/leds.h
++@@ -100,6 +100,7 @@
++ 	const char		*name;
++ 	unsigned int brightness;
++ 	unsigned int max_brightness;
+++	bool default_brightness;
++ 	unsigned int color;
++ 	int			 flags;
++ 
