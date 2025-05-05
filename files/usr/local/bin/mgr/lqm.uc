@@ -204,7 +204,7 @@ function main()
     let lastCoverage = -1;
     let distance = -1;
     let noise = -95;
-    const ptp = device ? uci.cursor("/etc/config.mesh").get("setup", "globals", `${radio}_mode`) == "meshptp" : false;
+    const radioMode = device ? uci.cursor("/etc/config.mesh").get("setup", "globals", `${radio}_mode`) : "off";
 
     updateConfig();
 
@@ -221,7 +221,7 @@ function main()
     // Set the default retries
     iwSet(`retry short ${default_short_retries} long ${default_long_retries}`);
     // Setup mac filters
-    if (ptp) {
+    if (radioMode == "meshptp") {
         // In PtP mode we allow a single mac address
         updateAllowList();
     }
@@ -278,6 +278,9 @@ function main()
                             ipv6ll: m[1],
                             refresh: 0
                         };
+                        if (type === "RF") {
+                            track.mode = radioMode;
+                        }
                         trackers[mac] = track;
                     }
                     if (track) {
@@ -718,7 +721,7 @@ function main()
                 }
             }
 
-            if (ptp) {
+            if (radioMode == "meshptp") {
                 // In PtP mode we allow a single mac address.
                 // Update this every time in case the file gets overwritten (which happens when
                 // hostapd gets restarted)
