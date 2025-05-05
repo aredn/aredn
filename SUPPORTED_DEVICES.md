@@ -7,16 +7,17 @@
 **Status**
 * *released* - this image is in a production release of the AREDN® firmware.
 * *nightly* - this device is newly supported in the nightly builds (since the last production release).
-* *sunset* - this device is supported but no longer recommended. Support will be deprecated in the future.
+* *babel* - this device is newly support in the babel builds (not in production or in nightly).
+* *sunset* - this device is supported but no longer recommended for new purchases or installs.
 * *brick* - this image has been tested and found to brick your hardware. Avoid for now.
 * *not supported* - this image is no longer supported and not available for download.
+* *frozen* - this device has been previously sunsetted, and is now frozen. Old images are still available but there will be no future updates.
 
 The 'target' and 'subtarget' identify the directory in which to find the image on at http://downloads.arednmesh.org
 
 ## Mikrotik (7)
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 & 5 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | released
 hAP ac² | RBD52G-5HacD2HnD-TC | 2 & 5 | ipq40xx | mikrotik | mikrotik_hap-ac2 | 128MB | stable | released
 hAP ac³ | RBD53iG-5HacD2HnD | 2 & 5 | ipq40xx | mikrotik | mikrotik_hap-ac3 | 256MB | stable | released
 SXTsq Lite2 | RBSXTsq2nD | 2 | ath79 | mikrotik | mikrotik-sxt-2nd | 64MB | stable | released
@@ -42,6 +43,8 @@ RB922UAGS-5HPacD <br> NetMetal 5 | 922UAGS-5HPacD-NM <br> 922UAGS-5HPacD-NM-US |
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | released
 mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | released
 mANTBox 2 12s | RB911G-2HPnD-12S | 2 | ath79 | mikrotik | mikrotik-911g-2hpnd-12s | 64MB | stable | released
+**Sunset Devices** | | | | | | | |
+hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 & 5 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | sunset
 
 ## Ubiquiti
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
@@ -83,32 +86,33 @@ Rocket M2 XM with USB port || 2 | ath79 | generic | ubnt_rocket-m | 64MB | untes
 Rocket M5 XM with USB port || 5 | ath79 | generic | ubnt_rocket-m | 64MB | untested | released
 Rocket M2 XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | stable | released
 Rocket M5 XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | released
-Rocket M2 Titanium TI || 2 | ath79 | - | - | 64MB | untested | released
-Rocket M2 Titanium XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | untested | released
-Rocket M5 Titanium TI || 5 | ath79 | - | - | 64MB | untested | released
-Rocket M5 Titanium XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | released
 **Sunset Devices** | | | | | | | |
-AirGrid M2 XM || 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | untested | sunset
-AirGrid M5 XM || 5 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | untested | sunset
-AirGrid M5 XW || 5 | ath79 | generic | ubnt_bullet-m-xw | 32MB | untested | sunset
-AirRouter || 2 | ath79 | tiny (2) | ubnt_airrouter | 32MB | stable | sunset
-AirRouter HP || 2 | ath79 | tiny (2) | ubnt_airrouter | 32MB | stable | sunset
-Bullet M2Ti || 2 | ath79 | - | - | 32MB | untested | sunset
-Bullet M5 || 5 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | stable | sunset
-Bullet M5Ti || 5 | ath79 | - | - | 32MB | untested | sunset
-Bullet M2 || 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | stable | sunset
-NanoBeam M2-13 || 2 | ath79 | - | - | 32MB | untested | sunset
-NanoBridge 2G18 || 2 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | untested | sunset
-NanoBridge 5G22 || 5 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | stable | sunset
-NanoBridge 5G25 || 5 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | stable | sunset
-NanoBridge M9 || 900 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | stable | sunset
-NanoStation Loco M2 XM || 2 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | stable | sunset
-NanoStation Loco M5 XM || 5 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | untested | sunset
-NanoStation Loco M9 XM || 900 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | stable | sunset
-NanoStation M2 XM || 2 | ath79 | tiny (2) | ubnt_nanostation-m | 32MB | stable | sunset
-NanoStation M3 XM || 3 | ath79 | tiny (2) | ubnt_nanostation-m | 32MB | stable | sunset
-NanoStation M5 XM || 5 | ath79 | tiny (2) | ubnt_nanostation-m | 32MB | stable | sunset
-PicoStation M2 || 2 | ath79 | tiny (2) | ubnt_picostation-m | 32MB | untested | sunset
+Rocket M2 Titanium TI || 2 | ath79 | - | - | 64MB | untested | sunset
+Rocket M2 Titanium XW || 2 | ath79 | generic | ubnt_rocket-m2-xw | 64MB | untested | sunset
+Rocket M5 Titanium TI || 5 | ath79 | - | - | 64MB | untested | sunset
+Rocket M5 Titanium XW || 5 | ath79 | generic | ubnt_rocket-m-xw | 64MB | stable | sunset
+**Frozen Devices** | | | | | | | |
+AirGrid M2 XM || 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | untested | frozen
+AirGrid M5 XM || 5 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | untested | frozen
+AirGrid M5 XW || 5 | ath79 | generic | ubnt_bullet-m-xw | 32MB | untested | frozen
+AirRouter || 2 | ath79 | tiny (2) | ubnt_airrouter | 32MB | stable | frozen
+AirRouter HP || 2 | ath79 | tiny (2) | ubnt_airrouter | 32MB | stable | frozen
+Bullet M2Ti || 2 | ath79 | - | - | 32MB | untested | frozen
+Bullet M5 || 5 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | stable | frozen
+Bullet M5Ti || 5 | ath79 | - | - | 32MB | untested | frozen
+Bullet M2 || 2 | ath79 | tiny (2) | ubnt_bullet-m-ar7241 | 32MB | stable | frozen
+NanoBeam M2-13 || 2 | ath79 | - | - | 32MB | untested | frozen
+NanoBridge 2G18 || 2 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | untested | frozen
+NanoBridge 5G22 || 5 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | stable | frozen
+NanoBridge 5G25 || 5 | ath79 | tiny (2) | ubnt_nanobridge-m | 32MB | stable | frozen
+NanoBridge M9 || 900 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | stable | frozen
+NanoStation Loco M2 XM || 2 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | stable | frozen
+NanoStation Loco M5 XM || 5 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | untested | frozen
+NanoStation Loco M9 XM || 900 | ath79 | tiny (2) | ubnt_nanostation-loco-m | 32MB | stable | frozen
+NanoStation M2 XM || 2 | ath79 | tiny (2) | ubnt_nanostation-m | 32MB | stable | frozen
+NanoStation M3 XM || 3 | ath79 | tiny (2) | ubnt_nanostation-m | 32MB | stable | frozen
+NanoStation M5 XM || 5 | ath79 | tiny (2) | ubnt_nanostation-m | 32MB | stable | frozen
+PicoStation M2 || 2 | ath79 | tiny (2) | ubnt_picostation-m | 32MB | untested | frozen
 
 ## TP-Link
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
@@ -150,6 +154,11 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 OpenWRT One | OpenWRT One | 2 & 5 | mediatek | filogic | openwrt_one | 1024MB | supported | nightly
 
+## MorseMicro and partners
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+:------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
+HaLowLink 1 | MM-HL1-EXT | HaLow & 2 | ramips | mt7621 | morse_artini | 256MB | supported | babel
+
 ## Meraki
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
@@ -162,6 +171,7 @@ Hypervisor |  Target | Subtarget | Image | RAM | Stability | Status
 Vmware ESXi  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
 Proxmox pve  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released  (5)
 Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
+Vultr | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | nightly (5)
 
 
 ## Footnotes
