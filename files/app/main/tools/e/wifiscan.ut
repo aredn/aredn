@@ -65,6 +65,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const myfreq = mychan !== -1 ? hardware.getChannelFrequency(wifiiface, mychan) : -1;
     const nodename = configuration.getName();
     const scan = {};
+    const radiotype = hardware.getRadioType(wifiiface);
 
     let disconnect_reconnect = false;
     if (radiomode === radios.RADIO_MESH) {
@@ -125,45 +126,93 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
     }
 
-    nl80211.request(nl80211.const.NL80211_CMD_TRIGGER_SCAN, 0, { dev: wifiiface });
-    nl80211.waitfor();
-    const wscan = nl80211.request(nl80211.const.NL80211_CMD_GET_SCAN, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
-    for (let i = 0; i < length(wscan); i++) {
-        const w = wscan[i];
-        if (w.dev === wifiiface) {
-            const bss = w.bss;
-            const mac = bss.bssid;
-            let station = scan[mac];
-            if (!station) {
-                const ip = arp[mac];
-                station = {
-                    mac: mac,
-                    signal: 9999,
-                    chan: {},
-                    joined: false,
-                    mode: "AP",
-                    ssid: "",
-                    ip: ip,
-                    hostname: ip ? network.getHostnameFromIPAddress(ip) : null,
-                    ibss: false
-                };
-                scan[mac] = station;
+    switch (radiotype) {
+        case "halow":
+        {
+            const p = fs.popen(`/usr/bin/iwinfo ${wifiiface} scan`);
+            if (p) {
+                let station = {};
+                for (let line = p.read("line"); length(line); line = p.read("line")) {
+                    let m = match(line, /Address: ([^ \t\n]+)/);
+                    if (m) {
+                        const mac = lc(m[1]);
+                        station = scan[mac];
+                        if (!station) {
+                            const ip = arp[mac];
+                            station = {
+                                mmac: mac,
+                                signal: 9999,
+                                chan: {},
+                                joined: false,
+                                mode: "AP",
+                                ssid: "",
+                                ip: ip,
+                                hostname: ip ? network.getHostnameFromIPAddress(ip) : null,
+                                ibss: false
+                            };
+                            scan[mac] = station;
+                        }
+                    }
+                    m = match(line, /ESSID: "([^"]+)"/);
+                    if (m) {
+                        station.ssid = m[1];
+                    }
+                    m = match(line, /Mode: ([^ ]+) .* Channel: (\d+)/);
+                    if (m) {
+                        if (m[1] == "Ad-Hoc") {
+                            station.ibss = true;
+                        }
+                        station.chan[m[2]] = true;
+                    }
+                }
+                p.close();
             }
-            const chan = hardware.getChannelFromFrequency(wifiiface, bss.frequency);
-            if (chan) {
-                station.chan[chan] = true;
-            }
-            if (bss.capability & 2) {
-                station.ibss = true;
-            }
-            station.signal = bss.signal_mbm / 100;
-            const ies = bss.information_elements;
-            for (let j = 0; j < length(ies); j++) {
-                if (ies[j].type === 0) {
-                    station.ssid = ies[j].data;
-                    break;
+            break;
+        }
+        default:
+        {
+            nl80211.request(nl80211.const.NL80211_CMD_TRIGGER_SCAN, 0, { dev: wifiiface });
+            nl80211.waitfor();
+            const wscan = nl80211.request(nl80211.const.NL80211_CMD_GET_SCAN, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+            for (let i = 0; i < length(wscan); i++) {
+                const w = wscan[i];
+                if (w.dev === wifiiface) {
+                    const bss = w.bss;
+                    const mac = bss.bssid;
+                    let station = scan[mac];
+                    if (!station) {
+                        const ip = arp[mac];
+                        station = {
+                            mac: mac,
+                            signal: 9999,
+                            chan: {},
+                            joined: false,
+                            mode: "AP",
+                            ssid: "",
+                            ip: ip,
+                            hostname: ip ? network.getHostnameFromIPAddress(ip) : null,
+                            ibss: false
+                        };
+                        scan[mac] = station;
+                    }
+                    const chan = hardware.getChannelFromFrequency(wifiiface, bss.frequency);
+                    if (chan) {
+                        station.chan[chan] = true;
+                    }
+                    if (bss.capability & 2) {
+                        station.ibss = true;
+                    }
+                    station.signal = bss.signal_mbm / 100;
+                    const ies = bss.information_elements;
+                    for (let j = 0; j < length(ies); j++) {
+                        if (ies[j].type === 0) {
+                            station.ssid = ies[j].data;
+                            break;
+                        }
+                    }
                 }
             }
+            break;
         }
     }
 
@@ -194,10 +243,10 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 break;
         }
         if (s.mode === "AP") {
-            if (s.ibss && match(s.ssid, /^[^-]+-(5|10|20|40|80)-v3$/)) {
+            if (s.ibss && match(s.ssid, /^[^-]+-(1|2|4|5|8|10|20|40|80)-v3$/)) {
                 s.mode = "Ad-Hoc Mesh";
             }
-            else if (match(s.ssid, /^[^-]+--?[0-9]+-(5|10|20|40|80)-v3$/)) {
+            else if (match(s.ssid, /^[^-]+--?[0-9]+-(1|2|4|5|8|10|20|40|80)-v3$/)) {
                 s.mode = "Mesh PtMP";
             }
         }
