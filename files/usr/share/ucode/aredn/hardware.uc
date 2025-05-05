@@ -370,7 +370,7 @@ export function getDefaultChannel(wifiIface)
     for (let i = 0; i < length(rfchannels); i++) {
         const c = rfchannels[i];
         if (c.frequency == 904.5) {
-            return { channel: 904.5, bandwidth: 1, band: "HaLow" };
+            return { channel: 5, bandwidth: 1, band: "HaLow" };
         }
         if (c.frequency == 912) {
             return { channel: 5, bandwidth: 5, band: "900MHz" };
