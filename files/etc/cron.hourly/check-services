@@ -41,12 +41,12 @@ const info = services.get(true);
 
 let data = "";
 for (let i = 0; i < length(info.names); i++) {
-	data += `${ip}\t${info.names[i]}\n";`
+	data += `${ip}\t${info.names[i]}\n`;
 }
 for (let i = 0; i < length(info.hosts); i++) {
 	const host = info.hosts[i];
 	if (!match(host.host, /^xlink\d/) && !match(host.host, /^mid\d/)) {
-		data += `${host.ip}\t${replace(host.host, /\.local\.mesh$/, "")}\n`;
+		data += `${host.ip}\t${host.host}\n`;
 	}
 }
 fs.writefile("/etc/arednlink/hosts", data);
