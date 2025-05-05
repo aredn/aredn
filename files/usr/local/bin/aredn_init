@@ -89,7 +89,7 @@ if (wifi_mac == "" || mac2 == "") {
     // If we have a radio ...
     if (fs.access("/sys/kernel/debug/ieee80211/phy0")) {
         let phy = null;
-        const wlans = { wlan0: true, wlan1: true };
+        const wlans = { phy0: true, phy1: true, wlan0: true, wlan1: true };
         for (let i = 0; i < 5; i++) {
             for (let wlan in wlans) {
                 const f = fs.popen(`iwinfo ${wlan} info`);
