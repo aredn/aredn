@@ -108,7 +108,7 @@ if (wifi_mac == "" || mac2 == "") {
                 }
             }
             if (phy) {
-                const f = fs.popen(`/sys/class/ieee80211/${phy}/macaddress`);
+                const f = fs.open(`/sys/class/ieee80211/${phy}/macaddress`);
                 if (f) {
                     for (let line = f.read("line"); length(line); line = f.read("line")) {
                         const m = match(line, /(..:..:..:..:..:..)/);
