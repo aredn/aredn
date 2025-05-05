@@ -68,7 +68,7 @@ export function getHostnameFromIPAddress(ip)
     if (p) {
         const d = p.read("all");
         p.close();
-        const i = match(d, /name = ([^ \t]+)/);
+        const i = match(d, /name = ([^ \t\n]+)/);
         if (i) {
             return i[1];
         }
