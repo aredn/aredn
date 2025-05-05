@@ -43,100 +43,97 @@ import * as radios from "aredn.radios";
 const c = uci.cursor();
 const q = getenv("QUERY_STRING") || "";
 
-function capture(cmd)
-{
-	const p = fs.popen(cmd);
-	if (p) {
-		const v = p.read("all");
-		p.close();
-		return trim(v);
-	}
-	return null;
+function capture(cmd) {
+    const p = fs.popen(cmd);
+    if (p) {
+        const v = p.read("all");
+        p.close();
+        return trim(v);
+    }
+    return null;
 }
 
-function tonumber(v)
-{
-	if (v == "" || v == null) {
-		return null;
-	}
-	return 1 * v;
+function tonumber(v) {
+    if (v == "" || v == null) {
+        return null;
+    }
+    return 1 * v;
 }
 
-function strip(o)
-{
-	for (let k in o) {
-		if (o[k] == null) {
-			delete o[k];
-		}
-	}
-	return o;
+function strip(o) {
+    for (let k in o) {
+        if (o[k] == null) {
+            delete o[k];
+        }
+    }
+    return o;
 }
 
 // THE BASICS
 const info = strip({
-	api_version: "2.0",
-	node: configuration.getName(),
-	node_details: strip({
-		model: capture("/usr/local/bin/get_model"),
-		description: configuration.getSettingAsString("description_node"),
-		board_id: hardware.getBoardId(),
-		firmware_mfg: "AREDN",
-		firmware_version: configuration.getFirmwareVersion(),
-		mesh_gateway: c.get("aredn", "@wan[0]", "mesh_to_local_wan") == "1",
-		mesh_supernode: c.get("aredn", "@supernode[0]", "enable") == "1"
-	}),
-	tunnels: {
-		active_tunnel_count: tonumber(capture("wg | grep interface | wc -l"))
-	},
-	lat: tonumber(c.get("aredn", "@location[0]", "lat")),
+    api_version: "2.0",
+    node: configuration.getName(),
+    node_details: strip({
+        model: capture("/usr/local/bin/get_model"),
+        description: configuration.getSettingAsString("description_node"),
+        board_id: hardware.getBoardId(),
+        firmware_mfg: "AREDN",
+        firmware_version: configuration.getFirmwareVersion(),
+        mesh_gateway: c.get("aredn", "@wan[0]", "mesh_to_local_wan") == "1",
+        mesh_supernode: c.get("aredn", "@supernode[0]", "enable") == "1"
+    }),
+    tunnels: {
+        active_tunnel_count: tonumber(capture("wg | grep interface | wc -l"))
+    },
+    lat: tonumber(c.get("aredn", "@location[0]", "lat")),
     lon: tonumber(c.get("aredn", "@location[0]", "lon")),
     gridsquare: c.get("aredn", "@location[0]", "gridsquare")
 });
 
 // MESH RF
-info.meshrf = (function(){
-	const config = radios.getConfiguration();
-	for (let i = 0; i < length(config); i++) {
-		const cfg = config[i];
-		const mode = cfg.mode;
-		let rfmode;
-		let ssid;
-		switch (mode.mode) {
-			case radios.RADIO_MESH:
-				rfmode = "adhoc";
-				ssid = `${mode.ssid}-v3-${mode.bandwidth}`;
-				// Fall throught ...
-			case radios.RADIO_MESHSTA:
-				rfmode = rfmode || "sta";
-				// Fall throught ...
-			case radios.RADIO_MESHPTP:
-				rfmode = rfmode || "ptp";
-			case radios.RADIO_MESHPTMP:
-				rfmode = rfmode || "ptmp";
-				ssid = ssid || `${mode.ssid}-v3-${mode.channel}-${mode.bandwidth}`;
-				return strip({
-					status: "on",
-					mode: rfmode,
-					ssid: ssid,
-					channel: mode.channel,
-					chanbw: mode.bandwidth,
-					freq: hardware.getChannelFrequency(config[i].iface, mode.channel),
-					azimuth: tonumber(c.get("aredn", "@location[0]", "azimuth")),
-					elevation: tonumber(c.get("aredn", "@location[0]", "elevation")),
-					height: tonumber(c.get("aredn", "@location[0]", "height")),
-					antenna: cfg.ant,
-					antenna_aux: cfg.antsaux
-				});
-			default:
-				break;
-		}
-	}
-	return { status: "off" };
+info.meshrf = (function () {
+    const config = radios.getConfiguration();
+    for (let i = 0; i < length(config); i++) {
+        const cfg = config[i];
+        const mode = cfg.mode;
+        let rfmode;
+        let ssid;
+        switch (mode.mode) {
+            case radios.RADIO_MESH:
+                rfmode = "adhoc";
+                ssid = `${mode.ssid}-v3-${mode.bandwidth}`;
+            // Fall throught ...
+            case radios.RADIO_MESHSTA:
+                rfmode = rfmode || "sta";
+            // Fall throught ...
+            case radios.RADIO_MESHPTP:
+                rfmode = rfmode || "ptp";
+            case radios.RADIO_MESHPTMP:
+                rfmode = rfmode || "ptmp";
+                ssid = ssid || `${mode.ssid}-v3-${mode.channel}-${mode.bandwidth}`;
+                return strip({
+                    status: "on",
+                    mode: rfmode,
+                    ssid: ssid,
+                    channel: mode.channel,
+                    chanbw: mode.bandwidth,
+                    freq: hardware.getChannelFrequency(config[i].iface, mode.channel),
+                    azimuth: tonumber(c.get("aredn", "@location[0]", "azimuth")),
+                    elevation: tonumber(c.get("aredn", "@location[0]", "elevation")),
+                    height: tonumber(c.get("aredn", "@location[0]", "height")),
+                    antenna: cfg.ant,
+                    antenna_aux: cfg.antsaux
+                });
+            default:
+                break;
+        }
+    }
+    return { status: "off" };
 })();
 
 // UPTIME AND LOADAVGS
-info.sysinfo = (function(){
-	const d = split(fs.readfile("/proc/uptime"), " ");
+info.sysinfo = (function () {
+    const d = split(fs.readfile("/proc/uptime"), " ");
     const up = int(d[0]);
     let uptime = sprintf("%d:%02d", int(up / 3600) % 24, int(up / 60) % 60);
     if (up >= 172800) {
@@ -145,179 +142,179 @@ info.sysinfo = (function(){
     else if (up > 86400) {
         uptime = `1 day, ${uptime}`;
     }
-	else {
-		uptime = `0 days, ${uptime}`;
-	}
+    else {
+        uptime = `0 days, ${uptime}`;
+    }
     const ld = split(fs.readfile("/proc/loadavg"), " ");
-	return {
-		uptime: uptime,
-		loads: [ tonumber(ld[0]), tonumber(ld[1]), tonumber(ld[2]) ]
-	};
+    return {
+        uptime: uptime,
+        loads: [tonumber(ld[0]), tonumber(ld[1]), tonumber(ld[2])]
+    };
 })();
 
 // INTERFACES
-info.interfaces = (function(){
-	const interfaces = {};
-	let ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
-	for (let i = 0; i < length(ifs); i++) {
+info.interfaces = (function () {
+    const interfaces = {};
+    let ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    for (let i = 0; i < length(ifs); i++) {
         const iface = ifs[i];
-		if (iface.dev === "lo" || iface.dev === "wlan0-1" || iface.dev === "wlan1-1" || iface.dev === "tunl0") {
-			continue;
-		}
-		const ii = { name: iface.dev };
-		if (iface.address) {
-			ii.mac = iface.address;
-		}
-		interfaces[iface.dev] = ii;
-	}
-	ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
-	for (let i = 0; i < length(ifs); i++) {
+        if (iface.dev === "lo" || iface.dev === "wlan0-1" || iface.dev === "wlan1-1" || iface.dev === "tunl0") {
+            continue;
+        }
+        const ii = { name: iface.dev };
+        if (iface.address) {
+            ii.mac = iface.address;
+        }
+        interfaces[iface.dev] = ii;
+    }
+    ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
+    for (let i = 0; i < length(ifs); i++) {
         const iface = ifs[i];
-		if (iface.family === 2 && interfaces[iface.dev]) {
-			interfaces[iface.dev].ip = iface.local;
-		}
-	}
-	return values(interfaces);
+        if (iface.family === 2 && interfaces[iface.dev]) {
+            interfaces[iface.dev].ip = iface.local;
+        }
+    }
+    return values(interfaces);
 })();
 
 // LINKS
 if (match(q, /link_info=1/)) {
-	info.link_info = {};
-	if (fs.access("/tmp/lqm.info")) {
-		const lqm = json(fs.readfile("/tmp/lqm.info"));
-		for (let mac in lqm.trackers) {
-			const tracker = lqm.trackers[mac];
-			const ip = tracker.canonical_ip || tracker.ip;
-			if (ip && tracker.hostname) {
-				const info = {
-					hostname: tracker.hostname,
-					linkType: uc(tracker.type),
-					interface: tracker.device
-				};
-				if (tracker.type == "RF") {
-					info.signal = tracker.signal;
-					info.noise = tracker.noise || -95;
-				}
-				info.link_info[ip] = info;
-			}
-		}
-	}
+    info.link_info = {};
+    if (fs.access("/tmp/lqm.info")) {
+        const lqm = json(fs.readfile("/tmp/lqm.info"));
+        for (let mac in lqm.trackers) {
+            const tracker = lqm.trackers[mac];
+            const ip = tracker.canonical_ip || tracker.ip;
+            if (ip && tracker.hostname) {
+                const data = {
+                    hostname: tracker.hostname,
+                    linkType: uc(tracker.type),
+                    interface: tracker.device
+                };
+                if (tracker.type == "RF") {
+                    data.signal = tracker.signal;
+                    data.noise = tracker.noise || -95;
+                }
+                info.link_info[ip] = data;
+            }
+        }
+    }
 }
 
 // NODES
 if (match(q, /nodes=1/)) {
-	const nodes = [];
-	const d = fs.opendir("/var/run/arednlink/hosts");
-	if (d) {
-		for (let name = d.read(); name; name = d.read()) {
-			if (name == "." || name == "..") {
-				continue;
-			}
-			const f = fs.open(`/var/run/arednlink/hosts/${name}`);
-			if (f) {
-				for (let line = f.read("line"); length(line); line = f.read("line")) {
-					const m = match(trim(line), /^([0-9\.]+)[ \t]+([^ \.]+)$/);
-					if (m && m[1] == name) {
-						push(nodes, { name: m[2], ip: m[1] });
-						break;
-					}
-				}
-				f.close();
-			}
-		}
-		d.close();
-	}
-	info.nodes = nodes;
+    const nodes = [];
+    const d = fs.opendir("/var/run/arednlink/hosts");
+    if (d) {
+        for (let name = d.read(); name; name = d.read()) {
+            if (name == "." || name == "..") {
+                continue;
+            }
+            const f = fs.open(`/var/run/arednlink/hosts/${name}`);
+            if (f) {
+                for (let line = f.read("line"); length(line); line = f.read("line")) {
+                    const m = match(trim(line), /^([0-9\.]+)[ \t]+([^ \.]+)$/);
+                    if (m && m[1] == name) {
+                        push(nodes, { name: m[2], ip: m[1] });
+                        break;
+                    }
+                }
+                f.close();
+            }
+        }
+        d.close();
+    }
+    info.nodes = nodes;
 }
 
 // HOSTS
 if (match(q, /hosts=1/)) {
-	const hosts = [];
-	const d = fs.opendir("/var/run/arednlink/hosts");
-	if (d) {
-		for (let name = d.read(); name; name = d.read()) {
-			if (name == "." || name == "..") {
-				continue;
-			}
-			const f = fs.open(`/var/run/arednlink/hosts/${name}`);
-			if (f) {
-				for (let line = f.read("line"); length(line); line = f.read("line")) {
-					const m = match(trim(line), /^([0-9\.]+)[ \t]+([^ \.]+)$/);
-					if (m) {
-						push(hosts, { name: m[2], ip: m[1] });
-					}
-				}
-				f.close();
-			}
-		}
-		d.close();
-	}
-	info.hosts = hosts;
+    const hosts = [];
+    const d = fs.opendir("/var/run/arednlink/hosts");
+    if (d) {
+        for (let name = d.read(); name; name = d.read()) {
+            if (name == "." || name == "..") {
+                continue;
+            }
+            const f = fs.open(`/var/run/arednlink/hosts/${name}`);
+            if (f) {
+                for (let line = f.read("line"); length(line); line = f.read("line")) {
+                    const m = match(trim(line), /^([0-9\.]+)[ \t]+([^ \.]+)$/);
+                    if (m) {
+                        push(hosts, { name: m[2], ip: m[1] });
+                    }
+                }
+                f.close();
+            }
+        }
+        d.close();
+    }
+    info.hosts = hosts;
 }
 
 // SERVICES
 if (match(q, /services=1/)) {
-	const services = [];
-	const d = fs.opendir("/var/run/arednlink/services");
-	if (d) {
-		for (let name = d.read(); name; name = d.read()) {
-			if (name == "." || name == "..") {
-				continue;
-			}
-			const f = fs.open(`/var/run/arednlink/services/${name}`);
-			if (f) {
-				for (let line = f.read("line"); length(line); line = f.read("line")) {
-					const m = match(trim(line), /^([^|]*)\|([^|]*)\|(.*)$/);						
-					if (m) {
-						push(services, {
-							name: m[3],
-							ip: name,
-							link: match(m[1], /:0\//) ? "" : m[1],
-							protocol: m[2]
-						});
-					}
-				}
-				f.close();
-			}
-		}
-		d.close();
-	}
-	info.services = services;
+    const services = [];
+    const d = fs.opendir("/var/run/arednlink/services");
+    if (d) {
+        for (let name = d.read(); name; name = d.read()) {
+            if (name == "." || name == "..") {
+                continue;
+            }
+            const f = fs.open(`/var/run/arednlink/services/${name}`);
+            if (f) {
+                for (let line = f.read("line"); length(line); line = f.read("line")) {
+                    const m = match(trim(line), /^([^|]*)\|([^|]*)\|(.*)$/);
+                    if (m) {
+                        push(services, {
+                            name: m[3],
+                            ip: name,
+                            link: match(m[1], /:0\//) ? "" : m[1],
+                            protocol: m[2]
+                        });
+                    }
+                }
+                f.close();
+            }
+        }
+        d.close();
+    }
+    info.services = services;
 }
 
 // LOCALLY HOSTED SERVICES ONLY
 if (match(q, /services_local=1/)) {
-	const services = [];
-	const f = fs.open(`/etc/arednlink/services`);
-	if (f) {
-		for (let line = f.read("line"); length(line); line = f.read("line")) {
-			const m = match(trim(line), /^([^|]*)\|([^|]*)\|(.*)$/);						
-			if (m) {
-				push(services, {
-					name: m[3],
-					protocol: m[2],
-					link: match(m[1], /:0\//) ? "" : m[1]
-				});
-			}
-		}
-		f.close();
-	}
-	info.services_local = services;
+    const services = [];
+    const f = fs.open(`/etc/arednlink/services`);
+    if (f) {
+        for (let line = f.read("line"); length(line); line = f.read("line")) {
+            const m = match(trim(line), /^([^|]*)\|([^|]*)\|(.*)$/);
+            if (m) {
+                push(services, {
+                    name: m[3],
+                    protocol: m[2],
+                    link: match(m[1], /:0\//) ? "" : m[1]
+                });
+            }
+        }
+        f.close();
+    }
+    info.services_local = services;
 }
 
 // LQM INFO
 if (match(q, /lqm=1/)) {
-	info.lqm = {
-		enabled: true,
-		config: {
-			user_blocks: c.get("aredn", "@lqm[0]", "user_blocks") || ""
-		}
-	};
-	try {
-		info.lqm.info = json(fs.readfile("/tmp/lqm.info"));
-	}
-	catch (_) {
-	}
+    info.lqm = {
+        enabled: true,
+        config: {
+            user_blocks: c.get("aredn", "@lqm[0]", "user_blocks") || ""
+        }
+    };
+    try {
+        info.lqm.info = json(fs.readfile("/tmp/lqm.info"));
+    }
+    catch (_) {
+    }
 }
 
 // Output the HTTP header for JSON
