@@ -34,7 +34,7 @@
 %}
 {%
 if (!(configuration.isConfigured() && config.authenable) && request.env.REQUEST_METHOD === "PUT") {
-    system(`/usr/local/bin/setpasswd '${request.args.passwd}'`);
+    system(`/usr/local/bin/setpasswd '${request.args.passwd}' > /dev/null 2>&1`);
     configuration.setName(request.args.name);
     configuration.setConfigured("1");
     response.reboot = "/sbin/reboot";
