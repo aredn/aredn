@@ -487,7 +487,7 @@ function main()
                                 track.localarea = true;
                             }
                             else {
-                                track.localadres = false;
+                                track.localarea = false;
                             }
                         }
 
