@@ -189,11 +189,16 @@ if (match(q, /link_info=1/)) {
 			const tracker = lqm.trackers[mac];
 			const ip = tracker.canonical_ip || tracker.ip;
 			if (ip && tracker.hostname) {
-				info.link_info[ip] = {
+				const info = {
 					hostname: tracker.hostname,
 					linkType: uc(tracker.type),
 					interface: tracker.device
 				};
+				if (tracker.type == "RF") {
+					info.signal = tracker.signal;
+					info.noise = tracker.noise || -95;
+				}
+				info.link_info[ip] = info;
 			}
 		}
 	}
