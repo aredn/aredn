@@ -53,13 +53,27 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
     }
 
-    let noise = -95;
+    let noise = null;
     const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiiface }) || [];
     for (let i = 0; i < length(survey); i++) {
         if (survey[i].dev == wifiiface && survey[i].survey_info.noise) {
             noise = survey[i].survey_info.noise;
             break;
         }
+    }
+    if (noise === null) {
+     // Fallback for hardware which doesnt support the survey api (e.g. HaLow)
+        const p = fs.popen(`/usr/bin/iwinfo ${wifiiface} info | /bin/grep Noise`);
+        if (p) {
+            const m = match(p.read("all"), /Noise: (-\d+) dBm/);
+            if (m) {
+                noise = int(m[1]);
+            }
+            p.close();
+        }
+    }
+    if (noise === null) {
+        noise = -95;
     }
         
     const response = { s: signals, n: noise };
