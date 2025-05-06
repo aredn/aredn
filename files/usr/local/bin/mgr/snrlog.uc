@@ -40,7 +40,6 @@ const wifi = device.iface;
 const bwAdjust = min(1.0, uci.cursor().get("wireless", replace(wifi, /^wlan/, "radio"), "chanbw") / 20.0) / 10.0;
 
 const TMPDIR = "/tmp/snrlog/";
-const DEFNOISE = -95;
 const MAXLINES = 2880; // 2 days worth
 const AGETIME = 43200; // 12 hours
 
@@ -67,28 +66,7 @@ function main()
     }
 
     // Get the noise floor
-    let noise = null;
-    const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifi });
-    for (let i = 0; i < length(survey); i++) {
-        if (survey[i].dev == wifi && survey[i].survey_info.noise) {
-            noise = survey[i].survey_info.noise;
-            break;
-        }
-    }
-    if (noise === null) {
-        // Fallback for hardware which doesnt support the survey api (e.g. HaLow)
-        const p = fs.popen(`/usr/bin/iwinfo ${wifi} info | /bin/grep Noise`);
-        if (p) {
-            const m = match(p.read("all"), /Noise: (-\d+) dBm/);
-            if (m) {
-                noise = int(m[1]);
-            }
-            p.close();
-        }
-    }
-    if (noise === null) {
-        noise = DEFNOISE;
-    }
+    const noise = hardware.getRadioNoise(wifi);
 
     // Get all the stations
     const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi });
@@ -103,7 +81,7 @@ function main()
             }
             f.close();
         }
-        push(lines, `${sprintf("%02d/%02d/%d %02d:%02d", tm.mon, tm.mday, tm.year, tm.hour, tm.min)},${s.sta_info.signal || DEFNOISE},${noise},${s.sta_info?.tx_bitrate?.mcs || 0},${(s.sta_info?.tx_bitrate?.bitrate || 0) * bwAdjust},${s.sta_info?.rx_bitrate?.mcs || 0},${(s.sta_info?.rx_bitrate?.bitrate || 0) * bwAdjust}\n`);
+        push(lines, `${sprintf("%02d/%02d/%d %02d:%02d", tm.mon, tm.mday, tm.year, tm.hour, tm.min)},${s.sta_info.signal || noise},${noise},${s.sta_info?.tx_bitrate?.mcs || 0},${(s.sta_info?.tx_bitrate?.bitrate || 0) * bwAdjust},${s.sta_info?.rx_bitrate?.mcs || 0},${(s.sta_info?.rx_bitrate?.bitrate || 0) * bwAdjust}\n`);
         while (length(lines) > MAXLINES) {
             shift(lines);
         }

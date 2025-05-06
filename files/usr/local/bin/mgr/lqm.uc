@@ -319,31 +319,9 @@ function main()
 
         // Update stats for radios
         if (wlan !== "none") {
-            const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wlan });
-            if (length(survey)) {
-                for (let i = 0; i < length(survey); i++) {
-                    if (survey[i].dev == wlab && survey[i].survey_info.noise) {
-                        const cnoise = survey[i].survey_info.noise;
-                        if (cnose < -70) {
-                            noise = round(noise * noise_run_avg + cnoise * (1 - noise_run_avg));
-                            break;
-                        }
-                    }
-                }
-            }
-            else {
-                // Fallback for hardware which doesnt support the survey api (e.g. HaLow)
-                const p = fs.popen(`/usr/bin/iwinfo ${wlan} info | /bin/grep Noise`);
-                if (p) {
-                    const m = match(p.read("all"), /Noise: (-\d+) dBm/);
-                    if (m) {
-                        const cnoise = int(m[1]);
-                        if (cnoise < -70) {
-                            noise = round(noise * noise_run_avg + cnoise * (1 - noise_run_avg));
-                        }
-                    }
-                    p.close();
-                }
+            const cnoise = hardware.getRadioNoise(wlan);
+            if (cnoise < -70) {
+                noise = round(noise * noise_run_avg + cnoise * (1 - noise_run_avg));
             }
             const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlan });
             for (let i = 0; i < length(stations); i++) {
