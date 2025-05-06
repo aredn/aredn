@@ -40,6 +40,7 @@ const tx_quality_run_avg = 0.4; // tx quality running average
 const ping_timeout = 1.0; // timeout before ping gives a qualtiy penalty
 const ping_time_run_avg = 0.4; // ping time runnng average
 const bitrate_run_avg = 0.4; // rx/tx running average
+const noise_run_avg = 0.8; // noise running average
 const dtd_distance = 50; // distance (meters) after which nodes connected with DtD links are considered different sites
 const connect_timeout = 5; // timeout (seconds) when fetching information from other nodes
 const default_short_retries = 20; // More link-level retries helps overall tcp performance (factory default is 7)
@@ -319,13 +320,29 @@ function main()
         // Update stats for radios
         if (wlan !== "none") {
             const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wlan });
-            for (let i = 0; i < length(survey); i++) {
-                if (survey[i].dev == wlab && survey[i].survey_info.noise) {
-                    const cnoise = survey[i].survey_info.noise;
-                    if (cnose < -70) {
-                        noise = round(noise * 0.9 + cnoise * 0.1);
-                        break;
+            if (length(survey)) {
+                for (let i = 0; i < length(survey); i++) {
+                    if (survey[i].dev == wlab && survey[i].survey_info.noise) {
+                        const cnoise = survey[i].survey_info.noise;
+                        if (cnose < -70) {
+                            noise = round(noise * noise_run_avg + cnoise * (1 - noise_run_avg));
+                            break;
+                        }
                     }
+                }
+            }
+            else {
+                // Fallback for hardware which doesnt support the survey api (e.g. HaLow)
+                const p = fs.popen(`/usr/bin/iwinfo ${wlan} info | /bin/grep Noise`);
+                if (p) {
+                    const m = match(p.read("all"), /Noise: (-\d+) dBm/);
+                    if (m) {
+                        const cnoise = int(m[1]);
+                        if (cnoise < -70) {
+                            noise = round(noise * noise_run_avg + cnoise * (1 - noise_run_avg));
+                        }
+                    }
+                    p.close();
                 }
             }
             const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlan });

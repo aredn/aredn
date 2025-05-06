@@ -193,7 +193,7 @@ if (match(q, /link_info=1/)) {
                 };
                 if (tracker.type == "RF") {
                     data.signal = tracker.signal;
-                    data.noise = tracker.noise || -95;
+                    data.noise = tracker.signal - tracker.snr;
                 }
                 info.link_info[ip] = data;
             }
