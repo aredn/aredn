@@ -67,13 +67,27 @@ function main()
     }
 
     // Get the noise floor
-    let noise = DEFNOISE;
+    let noise = null;
     const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifi });
     for (let i = 0; i < length(survey); i++) {
         if (survey[i].dev == wifi && survey[i].survey_info.noise) {
             noise = survey[i].survey_info.noise;
             break;
         }
+    }
+    if (noise === null) {
+        // Fallback for hardware which doesnt support the survey api (e.g. HaLow)
+        const p = fs.popen(`/usr/bin/iwinfo ${wifi} info | /bin/grep Noise`);
+        if (p) {
+            const m = match(p.read("all"), /Noise: (-\d+) dBm/);
+            if (m) {
+                noise = int(m[1]);
+            }
+            p.close();
+        }
+    }
+    if (noise === null) {
+        noise = DEFNOISE;
     }
 
     // Get all the stations
