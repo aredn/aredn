@@ -587,6 +587,12 @@ export function supportsSetMaxDistance(wifiIface)
     return false;
 };
 
+export function supportsMode(wifiIface, mode)
+{
+    const modes = getRadioIntf(wifiIface)?.exclude_modes;
+    return (!modes || index(modes, mode) === -1);
+};
+
 export function getInterfaceMAC(dev)
 {
     const ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});

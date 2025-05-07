@@ -260,15 +260,16 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 <div style="flex:0">
                     <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}mode" {{_R("hideable-onselect")}}>
                         <option value="0" {{mode === radios.RADIO_OFF ? "selected" : ""}}>Off</option>
+                        {% if (hardware.supportsMode(wlan[w].iface, "mesh")) { %}
                         <option value="1" {{mode === radios.RADIO_MESH ? "selected" : ""}}>Mesh</option>
-                        {% if (fs.access("/usr/sbin/hostapd")) { %}
+                        {% } %}
                         <option value="4" {{mode === radios.RADIO_MESHPTMP ? "selected" : ""}}>Mesh PtMP</option>
                         <option value="5" {{mode === radios.RADIO_MESHPTP ? "selected" : ""}}>Mesh PtP</option>
                         <option value="6" {{mode === radios.RADIO_MESHSTA ? "selected" : ""}}>Mesh Station</option>
                         {% if (hardware.getRadioType(wlan[w].iface) === "wifi") { %}
                         <option value="2" {{mode === radios.RADIO_LAN ? "selected" : ""}}>LAN Hotspot</option>
                         <option value="3" {{mode === radios.RADIO_WAN ? "selected" : ""}}>WAN Client</option>
-                        {% } } %}
+                        {% } %}
                     </select>
                 </div>
             </div>
