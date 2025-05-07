@@ -71,47 +71,43 @@ jobs:
       - update_config_mk
       - run:
           name: Build ath79/generic
-          command: make MAINTARGET=ath79 SUBTARGET=generic
+          command: make MAINTARGET=ath79 SUBTARGET=generic ${BUILD_DEBUG_OPTS}
           no_output_timeout: 2h
       - run:
           name: Build ath79/mikrotik
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik
+          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ${BUILD_DEBUG_OPTS}
           no_output_timeout: 1h
       - run:
           name: Build ath79/mikrotik/ath10k
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k
+          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k ${BUILD_DEBUG_OPTS}
           no_output_timeout: 1h
       - run:
           name: Build ath79/mikrotik/nand
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand
+          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand ${BUILD_DEBUG_OPTS}
           no_output_timeout: 1h
       - run:
           name: Build ath79/nand
-          command: make MAINTARGET=ath79 SUBTARGET=nand
+          command: make MAINTARGET=ath79 SUBTARGET=nand ${BUILD_DEBUG_OPTS}
           no_output_timeout: 1h
       - run:
           name: Build ipq40xx/generic
-          command: make MAINTARGET=ipq40xx SUBTARGET=generic
+          command: make MAINTARGET=ipq40xx SUBTARGET=generic ${BUILD_DEBUG_OPTS}
           no_output_timeout: 2h
       - run:
           name: Build ipq40xx/mikrotik
-          command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
+          command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik ${BUILD_DEBUG_OPTS}
           no_output_timeout: 1h
       - run:
           name: Build x64/64
-          command: make MAINTARGET=x86 SUBTARGET=64
+          command: make MAINTARGET=x86 SUBTARGET=64 ${BUILD_DEBUG_OPTS}
           no_output_timeout: 2h
       - run:
           name: Build ramips/mt7621
-          command: make MAINTARGET=ramips SUBTARGET=mt7621
-          no_output_timeout: 2h
-      - run:
-          name: Build ramips/mt7621/morse
-          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTARGET=morse
+          command: make MAINTARGET=ramips SUBTARGET=mt7621 ${BUILD_DEBUG_OPTS}
           no_output_timeout: 2h
       - run:
           name: Build mediatek/filogic
-          command: make MAINTARGET=mediatek SUBTARGET=filogic
+          command: make MAINTARGET=mediatek SUBTARGET=filogic ${BUILD_DEBUG_OPTS}
           no_output_timeout: 2h
       - run:
           name: Compress build files
@@ -130,47 +126,47 @@ jobs:
       - update_babel_config_mk
 #      - run:
 #          name: Build ath79/generic
-#          command: make MAINTARGET=ath79 SUBTARGET=generic
+#          command: make MAINTARGET=ath79 SUBTARGET=generic ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 2h
 #      - run:
 #          name: Build ath79/mikrotik
-#          command: make MAINTARGET=ath79 SUBTARGET=mikrotik
+#          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 1h
 #      - run:
 #          name: Build ath79/mikrotik/ath10k
-#          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k
+#          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 1h
 #      - run:
 #          name: Build ath79/mikrotik/nand
-#          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand
+#          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 1h
 #      - run:
 #          name: Build ath79/nand
-#          command: make MAINTARGET=ath79 SUBTARGET=nand
+#          command: make MAINTARGET=ath79 SUBTARGET=nand ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 1h
 #      - run:
 #          name: Build ipq40xx/generic
-#          command: make MAINTARGET=ipq40xx SUBTARGET=generic
+#          command: make MAINTARGET=ipq40xx SUBTARGET=generic ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 2h
 #      - run:
 #          name: Build ipq40xx/mikrotik
-#          command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
+#          command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 1h
 #      - run:
 #          name: Build x64/64
-#          command: make MAINTARGET=x86 SUBTARGET=64
+#          command: make MAINTARGET=x86 SUBTARGET=64 ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 2h
 #      - run:
 #          name: Build ramips/mt7621
-#          command: make MAINTARGET=ramips SUBTARGET=mt7621
+#          command: make MAINTARGET=ramips SUBTARGET=mt7621 ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 2h
       - run:
           name: Build ramips/mt7621/morse
-          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTTARGET=morse
+          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTTARGET=morse ${BUILD_DEBUG_OPTS}
           no_output_timeout: 2h
 #      - run:
 #          name: Build mediatek/filogic
-#          command: make MAINTARGET=mediatek SUBTARGET=filogic
+#          command: make MAINTARGET=mediatek SUBTARGET=filogic ${BUILD_DEBUG_OPTS}
 #          no_output_timeout: 2h
       - run:
           name: Compress build files
