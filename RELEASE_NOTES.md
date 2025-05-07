@@ -54,6 +54,10 @@ Documentation on these modes can be found here:  [https://docs.arednmesh.org/en/
 
 During the transition between OLSR and Babel, nodes will be running two sets of routing and service discovery daemons. This increases the memory footprint of AREDN®. On some nodes running extra services, especially those with active tunnels and hotspots, you may experience out-of-memory errors. Until OLSR is deprecated in future releases, we advise you to reduce this extra burden on these devices as much as possible. This is most likely to occur on the hAP AC Lite as they are a general workhorse for many and only have 64M of RAM.
 
+**Known Issues**
+
+* Basic mesh mode does not work with the OpenWRT One router. PtMP, PtP and Station modes work correctly.
+
 **Other Enhancements**
 
 Over and above those major additions, these enhancements have been added:
