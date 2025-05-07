@@ -1,5 +1,169 @@
 __RELEASE NOTES__
 
+# 3.25.5.0
+
+**Major Enhancements**
+
+This release heralds some major changes with AREDN® and we encourage you to take a moment to read about them below,
+
+**Babel Routing**
+
+The AREDN® team is introducing [Babel](https://www.irif.fr/~jch/software/babel/) as a replacement for the older OLSR routing technology. OLSR has served us well, but has many problems we’ve had to live with over the years. Babel, on the other hand, has many qualities which make it a good fit AREDN®. First, it’s a loop free protocol so, regardless of how the network is changing, routing loops will never form in the network. Second, it has a   substantially lower traffic overhead so is good for slow, low bandwidth links. Third, the protocol adapts to the differences between wired, wireless, and tunneled links. Fourth, as a layer-3 routing protocol, it integrates easily with AREDN®. Fifth, it’s highly configurable. Finally, it’s simple. [This](https://www.youtube.com/watch?v=1zMDLVln3XM) video is a great primer on Babel.
+
+In this release Babel and OLSR will run side-by-side, with Babel routing used where available, and OLSR used otherwise. No configuration is necessary. You will see a three-stars symbol on neighbors which support Babel, and a new three-stars symbol on the left-hand menu where you can see what services Babel nodes are advertising.
+
+More on the switch to Babel can be found here: [https://docs.arednmesh.org/en/latest/arednHow-toGuides/babel.html\#adding-babel-as-an-aredn-routing-protocol](https://docs.arednmesh.org/en/latest/arednHow-toGuides/babel.html#adding-babel-as-an-aredn-routing-protocol)
+
+**Deprecating Tiny Firmware Nodes**
+
+This will be the last major release to support tiny firmware builds for older nodes. These older nodes have too little memory for us to support them while transitioning from OLSR to Babel. They will not contain these new Babel changes and, when one day OLSR is gone, they will no longer be able to connect to the network.
+
+These are the models currently seen on the network that will drop off at some as yet undefined point in the future:
+
+* AirGrid M2 XM  
+* AirRouter         
+* AirRouter HP    
+* Bullet M5      
+* Bullet M2 HP  
+* NanoBridge M3  
+* NanoBridge M5	  
+* NanoStation Loco M2  
+* NanoStation Loco M5  
+* NanoStation Loco M9  
+* NanoStation M2 XM  
+* NanoStation M3 XM  
+* NanoStation M5 XM
+
+Note that while these devices are old and slow, the XW versions of them have enough RAM to not have to run the tiny build and thus will be able to stay connected after being upgraded to this production release.
+
+**Migrate Legacy Tunnels**
+
+Legacy tunnels are not able to carry the Babel protocol. Everyone has made good progress converting legacy tunnels to Wireguard tunnels since Wireguard was introduced, but we want to encourage those who have not made the switch yet to do so. Unfortunately we cannot do this automatically so once OLSR is removed, legacy tunnels will no longer work.
+
+Documentation on setting up Wireguard tunnels can be found here: [https://docs.arednmesh.org/en/latest/arednGettingStarted/node\_admin.html\#add-tunnel](https://docs.arednmesh.org/en/latest/arednGettingStarted/node_admin.html#add-tunnel)
+
+**PtP and PtMP RF modes**
+
+This release adds PtP (point to point) and PtMP (point to multipoint) RF modes to complement our existing AdHoc mode. AREDN® has always done mesh networking by putting radios into AdHoc mode and this remains the default. These additional options allow for more optimal performance and better network management by making use of WiFi infrastructure mode.
+
+We’ve seen notable throughput and latency improvements when using these modes, especially with 802.11ac devices. This  holds true even when mixing radios from different manufacturers. 
+
+Documentation on these modes can be found here:  [https://docs.arednmesh.org/en/latest/arednGettingStarted/node\_admin.html\#mesh-ptp-settings](https://docs.arednmesh.org/en/latest/arednGettingStarted/node_admin.html#mesh-ptp-settings)
+
+**Memory Limitations**
+
+During the transition between OLSR and Babel, nodes will be running two sets of routing and service discovery daemons. This increases the memory footprint of AREDN®. On some nodes running extra services, especially those with active tunnels and hotspots, you may experience out-of-memory errors. Until OLSR is deprecated in future releases, we advise you to reduce this extra burden on these devices as much as possible. This is most likely to occur on the hAP AC Lite as they are a general workhorse for many and only have 64M of RAM.
+
+**Known Issues**
+
+* Basic mesh mode does not work with the OpenWRT One router. PtMP, PtP and Station modes work correctly.
+
+**Other Enhancements**
+
+Over and above those major additions, these enhancements have been added:
+
+* Upgrade to OpenWRT 24.10.1  
+* Improve speed of MIkrotik AC links.  
+* Add message encouraging backups before upgrades  
+* Made web server available on ipv6 link local address  
+* Improved the sysupgrade process  
+* Decreased reserved memory  
+* Make the “yellow” message handling simpler and more flexible  
+* Now save a little more memory on 64 MB nodes  
+* Added more per link babel stats  
+* Improved ping time measurements  
+* Added a message encouraging backups before upgrades  
+* We no longer allow new legacy tunnels  
+* Now display the mac address for each radio  
+* Added 1 decimal place to azimuth and elevation  
+* Now provide 1 decimal point of significance to maximum distance.  
+* Optional zram swap  
+* Converted Link Quality Manager to Link Quality Monitor  
+* Added an error message for unsupported ssh key upload  
+* Improved supernode detection for when there isn't a supernode  
+* Added HW Watchdog improvements  
+* Tweaked WiFi AP params to improve connection stability  
+* Enabled ed25519 ssh keys   
+* Added a reminder to migrate legacy tunnels  
+* LQM monitoring simplifications   
+* When we fail to download firmware, ping host to see if it's reachable for better error reporting  
+* Consolidated several different radio distance calculation routines  
+* Removed Wireless Watchdog LQM  
+* Now detect new radio modes   
+* Added Babel mesh page navigation  
+* Improved grouping on Babel mesh page  
+* Alternate mesh page using Babel data  
+* Split out tunnel counts in JSON file  
+* Improved compactness of mesh data  
+* Now support luasocket library  
+* Added ucode debug library  
+* Now identify supernodes using Babel when available
+
+**New Device Support**
+
+* Added support for OpenWRT One router  
+* Add support for Vultr VM
+
+**Fixes**
+
+* Publish supernodes names specifically in ArednLink  
+* Include Babel only links in link\_info sysinfo.json  
+* Better compatibility with babel only neighbors  
+* Restart Arednlink when we restart Babel  
+* Suprenode prefix cleanup  
+* Fixed missing .local.mesh on various Babel dns names  
+* Fixed check-service array reuse bug  
+* Fixed pasting into lat/lon fields  
+* Supernode prefix cleanup  
+* Now handle missing LQM info from older neighbors  
+* Sysupgrade was failing to backup directories, only choosing files \- now fixed  
+* Fixed how we read the active tx radio power  
+* Fixed tunnel link-local (IPv6) addresses  
+* Now we don't set country in wifi config as it sets flags we don't want set  
+* Fixed arping link test  
+* Now only run wireless monitor in adhoc mode  
+* Fixed metrics error when bandwidth not set  
+* Fixed identification of Ubiquiti AC radios when auto distancing  
+* Fixed setting LAN addresses when DHCP is disabled   
+* Fixed firmware download progress parsing  
+* Fixed up the wifi address when missing  
+* Fixed firmware upload typo  
+* Now don't forward AAAA requests upstream  
+* Now filter out AAAA dns responses  
+* WiFi WAN mode now overrides any WAN port settings  
+* Mode 44net setup more configurable  
+* Now only do adhoc reset when actually in adhoc mod  
+* Blocked the use of certain channels in PtxP modes (for now)  
+* Added patch to work around pipe+lines EINTR LUA bug  
+* Restricting valid wifi channels for wide bands  
+* Refixed the LZ77 decompression for Mikrotik  
+* Fixed occasional parse error when OLSR returns nothing  
+* Removed dummy localap hostname  
+* Fixed dialog close race condition  
+* Lowered min\_free\_kbytes to 1M (from default of 16M  
+* Avoid possible memory leak when retrieving babel host routes  
+* Improved babel/lqm interaction when starting up ac nodes   
+* Tiny builds do not support Babel. Made sure all the various extras handle this  
+* Now hide unreachable services from AREDNlink like we do for OLSR  
+* Fixed babel device count  
+* Now handle missing IPs from tunnels and xlinks.  
+* Disable wifi scan option for some mesh modes.   
+* Switch to using reload script for AREDNlink updates  
+* Improved selection of the radio band assigned to a radio  
+* Don't support some wifi modes on tiny builds  
+* Fixed layout of icons next to no-link services  
+* Now update the mac allow every time LQM updates (it gets overwritten sometimes)  
+* Now capture mac filters in support data  
+* Fixed radio1 typo (had used radio0)  
+* Removed code to disable mesh-to-wan when in NAT mode (why was this a thing?)  
+* Improved bandwidth options for OpenWRT One  
+* Added OpenWRT One to Ethernet port usage  
+* Fixed identification of mesh rf   
+* Reduced parallel requests on devices \< 64M (temp)  
+* Rework default setup of radios when switching modes.   
+* Now try link-local address for data fetch if other ip fails  
+* Made sure we keep the supernode name when checking services
+
 # 3.25.2.0
 
 ## Features
