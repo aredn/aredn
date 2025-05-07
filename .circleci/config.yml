@@ -6,7 +6,7 @@ version: 2.1
 parameters:
   action:
     type: enum
-    enum: [no_action, nightly_build, babel_build, manual_build, release_build, afs_collector]
+    enum: [no_action, nightly_build, nightly_babel_build, manual_build, release_build, afs_collector]
     default: no_action
   release_version:
     type: string
@@ -423,7 +423,7 @@ workflows:
   
   nightly_babel_build:
     when:
-      equal: [ nightly_build_build, << pipeline.parameters.action >> ]
+      equal: [ nightly_babel_build, << pipeline.parameters.action >> ]
     jobs:
       - check2buildbabel
       - build_babel:
