@@ -6,7 +6,7 @@ version: 2.1
 parameters:
   action:
     type: enum
-    enum: [no_action, nightly_build, manual_build, release_build, afs_collector]
+    enum: [no_action, nightly_build, babel_build, manual_build, release_build, afs_collector]
     default: no_action
   release_version:
     type: string
@@ -27,6 +27,20 @@ commands:
             printf -v BUILD_DATE '%(%Y%m%d)T' -1
             sed -i "s/NoCall/${BUILD_DATE}/g" ${MY_WORKING_DIRECTORY}/config.mk
             sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j9/g" ${MY_WORKING_DIRECTORY}/config.mk
+            cat ${MY_WORKING_DIRECTORY}/config.mk
+
+  update_babel_config_mk:
+    description: "Update variables in config.mk for babel"
+    steps:
+      - run:
+          name: Update Config.mk
+          command:  |
+            export MY_WORKING_DIRECTORY=`pwd`
+            printf -v BUILD_DATE '%(%Y%m%d)T' -1
+            sed -i "s/NoCall/babel-${BUILD_DATE}/g" ${MY_WORKING_DIRECTORY}/config.mk
+            sed -i "s/snapshots/snapshots_babel/g" ${MY_WORKING_DIRECTORY}/config.mk
+            sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j9/g" ${MY_WORKING_DIRECTORY}/config.mk
+            sed -i "s/develop/babel/g" ${MY_WORKING_DIRECTORY}/feeds.conf
             cat ${MY_WORKING_DIRECTORY}/config.mk
   
   update_config_mk_release:
@@ -60,9 +74,64 @@ jobs:
           command: make MAINTARGET=ath79 SUBTARGET=generic
           no_output_timeout: 2h
       - run:
-          name: Build ath79/tiny
-          command: make MAINTARGET=ath79 SUBTARGET=tiny
+          name: Build ath79/mikrotik
+          command: make MAINTARGET=ath79 SUBTARGET=mikrotik
           no_output_timeout: 1h
+      - run:
+          name: Build ath79/mikrotik/ath10k
+          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k
+          no_output_timeout: 1h
+      - run:
+          name: Build ath79/mikrotik/nand
+          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand
+          no_output_timeout: 1h
+      - run:
+          name: Build ath79/nand
+          command: make MAINTARGET=ath79 SUBTARGET=nand
+          no_output_timeout: 1h
+      - run:
+          name: Build ipq40xx/generic
+          command: make MAINTARGET=ipq40xx SUBTARGET=generic
+          no_output_timeout: 2h
+      - run:
+          name: Build ipq40xx/mikrotik
+          command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
+          no_output_timeout: 1h
+      - run:
+          name: Build x64/64
+          command: make MAINTARGET=x86 SUBTARGET=64
+          no_output_timeout: 2h
+      - run:
+          name: Build ramips/mt7621
+          command: make MAINTARGET=ramips SUBTARGET=mt7621
+          no_output_timeout: 2h
+      - run:
+          name: Build ramips/mt7621/morse
+          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTARGET=morse
+          no_output_timeout: 2h
+      - run:
+          name: Build mediatek/filogic
+          command: make MAINTARGET=mediatek SUBTARGET=filogic
+          no_output_timeout: 2h
+      - run:
+          name: Compress build files
+          command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
+      - run:
+          name: Deploy Files
+          command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR}
+  
+  build_babel:
+    resource_class: xlarge
+    docker:
+      - image: arednmesh/builder
+
+    steps:
+      - checkout
+      - update_babel_config_mk
+      - run:
+          name: Build ath79/generic
+          command: make MAINTARGET=ath79 SUBTARGET=generic
+          no_output_timeout: 2h
       - run:
           name: Build ath79/mikrotik
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik
@@ -96,6 +165,10 @@ jobs:
           command: make MAINTARGET=ramips SUBTARGET=mt7621
           no_output_timeout: 2h
       - run:
+          name: Build ramips/mt7621/morse
+          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTARGET=morse
+          no_output_timeout: 2h
+      - run:
           name: Build mediatek/filogic
           command: make MAINTARGET=mediatek SUBTARGET=filogic
           no_output_timeout: 2h
@@ -104,8 +177,8 @@ jobs:
           command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
       - run:
           name: Deploy Files
-          command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR}
-  
+          command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR}_babel
+
   build_release:
     resource_class: xlarge
     docker:
@@ -119,10 +192,6 @@ jobs:
           command: make MAINTARGET=ath79 SUBTARGET=generic
           no_output_timeout: 2h
       - run:
-          name: Build ath79/tiny
-          command: make MAINTARGET=ath79 SUBTARGET=tiny
-          no_output_timeout: 1h
-      - run:
           name: Build ath79/mikrotik
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik
           no_output_timeout: 1h
@@ -153,6 +222,10 @@ jobs:
       - run:
           name: Build ramips/mt7621
           command: make MAINTARGET=ramips SUBTARGET=mt7621
+          no_output_timeout: 2h
+      - run:
+          name: Build ramips/mt7621/morse
+          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTARGET=morse
           no_output_timeout: 2h
       - run:
           name: Build mediatek/filogic
@@ -177,6 +250,18 @@ jobs:
           when: on_fail
           command: circleci-agent step halt
   
+  check2buildbabel:
+    machine:
+      image: ubuntu-2004:2023.02.1
+    steps:
+      - run:
+          name: Retrieve last babel build info and check
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c ' ~/needs2buildbabel.sh ${CIRCLE_PROJECT_USERNAME} ${CIRCLE_PROJECT_REPONAME} ${CIRCLE_BRANCH} ${CIRCLE_SHA1}'"
+      - run:
+          name: Check2build failure (build not needed)
+          when: on_fail
+          command: circleci-agent step halt
+
   save_build_info:
     machine:
       image: ubuntu-2004:2023.02.1
@@ -184,6 +269,14 @@ jobs:
       - run:
           name: Save last build info
           command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c ' echo ${CIRCLE_SHA1} > ~/build_info/${CIRCLE_PROJECT_USERNAME}_${CIRCLE_PROJECT_REPONAME}_${CIRCLE_BRANCH}'"
+
+  save_babel_build_info:
+    machine:
+      image: ubuntu-2004:2023.02.1
+    steps:
+      - run:
+          name: Save last babel build info
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c ' echo ${CIRCLE_SHA1} > ~/build_info_babel/${CIRCLE_PROJECT_USERNAME}_${CIRCLE_PROJECT_REPONAME}_${CIRCLE_BRANCH}'"
 
   process_artifacts_nightly:
     machine:
@@ -204,6 +297,26 @@ jobs:
       - run:
           name: Move packages
           command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'mv ${TARGET_DIR}/packages ${NIGHTLY_DIR}'"
+
+  process_babel_artifacts_nightly:
+    machine:
+      image: ubuntu-2004:2023.02.1
+    steps:
+      - run:
+          name: Untar Files
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'tar -xjf ${TARGET_DIR}_babel/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${TARGET_DIR}_babel'"
+      - run:
+          name: Empty babel dir
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'rm -rf ${NIGHTLY_DIR}_babel'"
+      - run:
+          name: Create babel dir
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'mkdir -p ${NIGHTLY_DIR}_babel'"
+      - run:
+          name: Move babel targets
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'mv ${TARGET_DIR}_babel/targets ${NIGHTLY_DIR}_babel'"
+      - run:
+          name: Move babel packages
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "sh -c 'mv ${TARGET_DIR}_babel/packages ${NIGHTLY_DIR}_babel'"
 
   process_artifacts_release:
     machine:
@@ -256,6 +369,14 @@ jobs:
       - run:
           name: Post to Slack
           command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "./post-nightly.sh $(printf '%(%Y%m%d)T')-$(echo ${CIRCLE_SHA1} | cut -c '-7')"
+
+  post_babel_to_slack:
+    machine:
+      image: ubuntu-2004:2023.02.1
+    steps:
+      - run:
+          name: Post to Slack
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "./post-nightly.sh $(printf '%(%Y%m%d)T')-$(echo ${CIRCLE_SHA1} | cut -c '-7')-babel"
       
   no_action:
     machine:
@@ -300,6 +421,27 @@ workflows:
           requires:
             - afs_collector
   
+  nightly_babel_build:
+    when:
+      equal: [ nightly_build_build, << pipeline.parameters.action >> ]
+    jobs:
+      - check2buildbabel
+      - build_babel:
+          requires:
+            - check2buildbabel
+      - process_babel_artifacts_nightly:
+          requires:
+            - build_babel
+      - afs_collector:
+          requires:
+            - process_babel_artifacts_nightly
+      - save_babel_build_info:
+          requires:
+            - process_babel_artifacts_nightly
+      - post_babel_to_slack:
+          requires:
+            - afs_collector
+
   manual_build:
     when:
       equal: [ manual_build, << pipeline.parameters.action >> ]
