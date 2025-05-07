@@ -99,7 +99,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                         uciMesh.delete("xlink", `${name}route`);
                     }
                 }
-                uciMesh.set("xlink", name, "weight", ux.weight);
+                uciMesh.set("xlink", name, "cost", ux.cost);
                 uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
                 delete xlinks[name];
             }
@@ -120,7 +120,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             uciMesh.set("xlink", name, "interface");
             uciMesh.set("xlink", name, "ifname", `br0.${ux.vlan}`);
             uciMesh.set("xlink", name, "ipaddr", ux.ipaddr);
-            uciMesh.set("xlink", name, "weight", ux.weight);
+            uciMesh.set("xlink", name, "cost", ux.cost);
             uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
             if (ux.peer) {
                 uciMesh.set("xlink", name, "peer", ux.peer);
@@ -180,6 +180,7 @@ ${join("\n", map(keys(c.ports), p => "\tlist ports '" + p + (c.vlan ? ":t'" : ":
 config device
 	option name 'br-${type}'
 	option type 'bridge'
+	option multicast_querier '1'
 	option macaddr '<${type}_mac>'
 	list ports 'br0.${c.vlan ? c.vlan : type == "lan" ? 3 : 1}'
 
@@ -235,11 +236,12 @@ uciMesh.foreach("xlink", "interface", x => {
         vlan: int(split(x.ifname, ".")[1]),
         ipaddr: x.ipaddr,
         peer: x.peer || "",
-        weight: int(x.weight),
+        cost: x.cost ? int(x.cost) : "",
         port: match(uciMesh.get("xlink", `${x[".name"]}bridge`, "ports")[0], /^(.+):/)[1],
         cidr: network.netmaskToCIDR(x.netmask)
     });
 });
+const defxcost = uciMesh.get("babel", "xlink", "rxcost");
 let wifiwan = false;
 const radio = radios.getConfiguration();
 if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(radio) > 1 && radio[1].mode.mode === radios.RADIO_WAN))) {
@@ -324,7 +326,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
                             <div>ip a&zwnj;ddress</div>
                             <div>peer a&zwnj;ddress</div>
                             <div>cidr</div>
-                            <div>weight</div>
+                            <div>cost</div>
                             {% if (haveports) { %}
                             <div>port</div>
                             {% } %}
@@ -358,7 +360,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
                                     <option value="17" {{x.cidr === 17 ? "selected" : ""}}>/ 17</option>
                                     <option value="16" {{x.cidr === 16 ? "selected" : ""}}>/ 16</option>
                                 </select>
-                                <input name="weight" type="text" size="2" required pattern="([0-9]|[1-9][0-9]|100)" placeholder="Wt" value="{{x.weight}}">
+                                <input name="cost" type="text" size="4" pattern="([0-9]|[1-9][0-9]{1,3})" placeholder="{{defxcost}}" value="{{x.cost}}">
                                 {% if (haveports) { %}
                                 <select name="port">
                                 {%
@@ -377,7 +379,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
             </form>
         </div>
         {{_H("<p>XLinks provide a way of routing AREDN traffic across external non-AREDN networks. Each is created with a specific VLAN,
-        IP address for both ends, a weight of how likely to link is to be used, and an optional network size and port (on multi-port
+        IP address for both ends, a cost of how likely to link is to be used, and an optional network size and port (on multi-port
         devices). Think of xlinks as extra dtds between devices. How xlink traffic is routed once it leaves the node is dependent
         on the non-AREDN network, which allows for the greatest flexibility.")}}
     </div>
@@ -403,13 +405,13 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
             const vlan = htmx.find(target, "[name=vlan]");
             const ipaddr = htmx.find(target, "[name=ipaddr]");
             const peer = htmx.find(target, "[name=peer]");
-            const weight = htmx.find(target, "[name=weight]");
+            const cost = htmx.find(target, "[name=cost]");
             const port = htmx.find(target, "[name=port]");
             const cidr = htmx.find(target, "[name=cidr]");
             xlink.vlan = parseInt(vlan.value);
             xlink.ipaddr = ipaddr.value;
             xlink.peer = peer.value;
-            xlink.weight = parseInt(weight.value);
+            xlink.cost = cost.value ? parseInt(cost.value) : null;
             xlink.port = port ? port.value : null;
             xlink.cidr = parseInt(cidr.value);
             update();
@@ -437,7 +439,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
                 vlan: "",
                 ipaddr: "",
                 peer: "",
-                weight: 0,
+                cost: 0,
                 port: null,
                 cidr: 32
             };
@@ -468,7 +470,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
         <option value="17">/ 17</option>
         <option value="16">/ 16</option>
     </select>
-    <input name="weight" type="text" size="2" required pattern="([0-9]|[1-9][0-9]|100)" placeholder="Wt">
+    <input name="cost" type="text" size="4" pattern="([0-9]|[1-9][0-9]{1,3})" placeholder="{{defxcost}}">
     {% if (haveports) { %}<select name="port">
     {%
         for (let i = 0; i < length(ports); i++) {

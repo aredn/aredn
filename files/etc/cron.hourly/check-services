@@ -1,172 +1,56 @@
-#!/usr/bin/lua
---[[
+#!/usr/bin/ucode
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2022-2025 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
 
-	Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2022-2023 Tim Wilkinson
-	See Contributors file for additional contributors
+import * as fs from "fs";
+import * as uci from "uci";
+import * as services from "aredn.services";
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation version 3 of the License.
+const ip = uci.cursor("/etc/config.mesh").get("setup", "globals", "wifi_ip");
+const info = services.get(true);
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+let data = "";
+for (let i = 0; i < length(info.names); i++) {
+	data += `${ip}\t${info.names[i]}\n`;
+}
+for (let i = 0; i < length(info.hosts); i++) {
+	const host = info.hosts[i];
+	if (!match(host.host, /^xlink\d/) && !match(host.host, /^mid\d/)) {
+		data += `${host.ip}\t${host.host}\n`;
+	}
+}
+fs.writefile("/etc/arednlink/hosts", data);
+fs.writefile("/etc/arednlink/services", length(info.services) == 0 ? "" : `${join("\n", info.services)}\n`);
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-	Additional Terms:
-
-	Additional use restrictions exist on the AREDN® trademark and logo.
-		See AREDNLicense.txt for more info.
-
-	Attributions to the AREDN® Project must be retained in the source code.
-	If importing this code into a new or existing project attribution
-	to the AREDN® project must be added to the source code.
-
-	You must not misrepresent the origin of the material contained within.
-
-	Modified versions must be modified to attribute to the original source
-	and be marked in reasonable ways as differentiate it from the original
-	version
-
---]]
-
-require("uci")
-require("aredn.services")
-require("aredn.utils")
-
-local cursor = uci.cursor()
-
--- Current nameservice state
-local ns = cursor:get_all("olsrd", "nameservice")
-if not ns then
-    print("Missing nameservice")
-    return
-end
-local cnames = {}
-for _, name in ipairs(ns.name)
-do
-    cnames[name] = true
-end
-local chosts = {}
-for _, iphost in ipairs(ns.hosts or {})
-do
-    chosts[iphost] = true
-end
-local cservices = {}
-for _, service in ipairs(ns.service or {})
-do
-    cservices[service] = true
-end
-
--- Work out the differences between the validated state and the current state
-local names, hosts, services = aredn.services.get(true)
-local nnames = false
-local nosupernames = {}
-for _, name in ipairs(names)
-do
-    if cnames[name] then
-        cnames[name] = nil
-        nosupernames[#nosupernames + 1] = name
-    else
-        if not name:match("^supernode%.") then
-            nosupernames[#nosupernames + 1] = name
-            nnames = true
-        end
-    end
-end
-local nhosts = false
-for _, host in ipairs(hosts)
-do
-    local iphost = host.ip .. " " .. host.host
-    if chosts[iphost] then
-        chosts[iphost] = nil
-    else
-        nhosts = true
-    end
-end
-local nservices = false
-for _, service in ipairs(services)
-do
-    if cservices[service] then
-        cservices[service] = nil
-    else
-        nservices = true
-    end
-end
-
-function not_empty(h)
-    for _, _ in pairs(h)
-    do
-        return true
-    end
-    return false
-end
-
-local change = false
-
--- Apply OLSR changes
-if nnames or not_empty(cnames) then
-    cursor:set("olsrd", "nameservice", "name", nosupernames)
-    change = true
-end
-if nhosts or not_empty(chosts) then
-    local hostslist = {}
-    for i, host in ipairs(hosts)
-    do
-        hostslist[i] = host.ip .. " " .. host.host
-    end
-    if #hostslist > 0 then
-        cursor:set("olsrd", "nameservice", "hosts", hostslist)
-    else
-        cursor:delete("olsrd", "nameservice", "hosts")
-    end
-    change = true
-end
-if nservices or not_empty(cservices) then
-    if #services > 0 then
-        cursor:set("olsrd", "nameservice", "service", services)
-    else
-        cursor:delete("olsrd", "nameservice", "service")
-    end
-    change = true
-end
-
--- Apply Arednlink changes
-if nnames or not_empty(cnames) or nservices or not_empty(cservices) then
-    local ip = uci.cursor("/etc/config.mesh"):get("setup", "globals", "wifi_ip")
-    local data = ""
-    for _, host in ipairs(names)
-    do
-        data = data .. ip .. "\t" .. host .. "\n"
-    end
-    for i, host in ipairs(hosts)
-    do
-        local h = host.host:gsub("%.local%.mesh$", "")
-        if not (h:match("^xlink%d") or h:match("^mid%d")) then
-            data = data .. host.ip .. "\t" .. h .. "\n"
-        end
-    end
-    write_all("/etc/arednlink/hosts", data)
-    change = true
-end
-if nservices or not_empty(cservices) then
-    if #services > 0 then
-        write_all("/etc/arednlink/services", table.concat(services, "\n") .. "\n")
-    else
-        write_all("/etc/arednlink/services", "")
-    end
-    change = true
-end
-
--- If services have changed we need to restart olsrd
-if change then
-    cursor:commit("olsrd")
-    print("Change")
-    os.execute("/usr/local/bin/restart-services.sh --force olsrd arednlink")
-else
-    print("Unchange")
-end
+// Arednlink checks for changes in updated data, so we dont have to
+system("/usr/local/bin/arednlink-update");

@@ -7,6 +7,7 @@
 **Status**
 * *released* - this image is in a production release of the AREDN® firmware.
 * *nightly* - this device is newly supported in the nightly builds (since the last production release).
+* *babel* - this device is newly support in the babel builds (not in production or in nightly).
 * *sunset* - this device is supported but no longer recommended for new purchases or installs.
 * *brick* - this image has been tested and found to brick your hardware. Avoid for now.
 * *not supported* - this image is no longer supported and not available for download.
@@ -151,7 +152,12 @@ Slate | GL-AR750S-Ext | 2 | ath79 | nand | gl-ar750s | 128MB | untested | sunset
 ## OpenWRT
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-OpenWRT One | OpenWRT One | 2 & 5 | mediatek | filogic | openwrt_one | 1024MB | supported | nightly
+OpenWRT One | OpenWRT One | 2 & 5 | mediatek | filogic | openwrt_one | 1024MB | supported | released
+
+## MorseMicro and partners
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+:------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
+HaLowLink 1 | MM-HL1-EXT | HaLow & 2 | ramips | mt7621 | morse_artini | 256MB | supported | babel
 
 ## Meraki
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
@@ -165,7 +171,7 @@ Hypervisor |  Target | Subtarget | Image | RAM | Stability | Status
 Vmware ESXi  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
 Proxmox pve  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released  (5)
 Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
-Vultr | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | nightly (5)
+Vultr | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
 
 
 ## Footnotes

@@ -32,7 +32,6 @@
  */
 
 import * as fs from "fs";
-import * as resolv from "resolv";
 
 export function hasInternet()
 {
@@ -47,6 +46,8 @@ export function hasInternet()
     return false;
 };
 
+// NOTE: Don't use resolv library because it leaks file descriptors.
+
 export function getIPAddressFromHostname(hostname)
 {
     const p = fs.popen(`exec /usr/bin/nslookup ${hostname}`);
@@ -54,6 +55,20 @@ export function getIPAddressFromHostname(hostname)
         const d = p.read("all");
         p.close();
         const i = match(d, /Address: ([0-9.]+)/);
+        if (i) {
+            return i[1];
+        }
+    }
+    return null;
+};
+
+export function getHostnameFromIPAddress(ip)
+{
+    const p = fs.popen(`exec /usr/bin/nslookup ${ip}`);
+    if (p) {
+        const d = p.read("all");
+        p.close();
+        const i = match(d, /name = ([^ \t\n]+)/);
         if (i) {
             return i[1];
         }
@@ -109,19 +124,14 @@ export function CIDRToNetmask(cidr)
     }
 };
 
-export function nslookup(aorh)
+export function mac2ipv6ll(macaddr)
 {
-    const r = resolv.query([aorh]);
-    if (r) {
-        for (let k in r) {
-            const v = r[k];
-            if (v.PTR) {
-                return v.PTR[0];
-            }
-            if (v.A) {
-                return v.A[0];
-            }
-        }
-    }
-    return null;
+    const mac = split(macaddr, ":");
+    return arrtoip([ 0xFE, 0x80, 0, 0,  0, 0, 0, 0,  hex(mac[0]) ^ 2, hex(mac[1]), hex(mac[2]), 0xFF,  0xFE, hex(mac[3]), hex(mac[4]), hex(mac[5]) ]);
+};
+
+export function ipv6ll2mac(ipv6)
+{
+    const v = iptoarr(ipv6);
+    return sprintf("%02x:%02x:%02x:%02x:%02x:%02x", v[8] ^ 2, v[9], v[10], v[13], v[14], v[15]);
 };

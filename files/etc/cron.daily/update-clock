@@ -58,7 +58,7 @@ done
 
 # NTP servers tend to be poorly advertised, so we have to use a bit of
 # heuristics to find them
-for candidate in $(grep -i ntp /var/run/services_olsr | sed "s/^.*:\/\/\(.*\):.*$/\1/")
+for candidate in $(grep -i ntp /var/run/arednlink/services/* | sed "s/^.*:\/\/\(.*\):.*$/\1/")
 do
     if $(ntpd -n -q -p ${candidate}); then
         echo -n "ntp" > /tmp/timesync

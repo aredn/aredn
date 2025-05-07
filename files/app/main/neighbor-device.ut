@@ -72,13 +72,6 @@ if (tracker) {
         tracker.user_blocks = true;
     }
     neighbor = { name: tracker.hostname || `|${tracker.ip}`, n: tracker, l: null };
-    const o = olsr.getLinks();
-    for (let i = 0; i < length(o); i++) {
-        if (o[i].remoteIP === tracker.ip) {
-            neighbor.l = o[i];
-            break;
-        }
-    }
 }
 const showblock = auth.isAdmin && (neighbor && neighbor.n && neighbor.n.type == "RF") && (configuration.getSettingAsString("radio0_mode", "") === "meshap" || configuration.getSettingAsString("radio1_mode", "") === "meshap");
 const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
@@ -105,15 +98,15 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             if (n.user_blocks) {
                 return "blocked by user";
             }
-            if (n.routable) {
+            if (n.routable && n.babel_route_count > 0) {
                 return "routing";
             }
             return "unused";
         }
+        const map_url = uci.get("aredn", "@location[0]", "map");
         function map(n, v)
         {
-            const map_url = uci.get("aredn", "@location[0]", "map");
-            if (n.lat && n.lon && map_url) {
+            if (map_url && n.lat && n.lon) {
                 return `<a href="${replace(replace(map_url, "(lat)", n.lat), "(lon)", n.lon)}" target="_blank">${v}</a>`;
             }
             return v;
@@ -136,7 +129,6 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         }
         if (neighbor) {
             const n = neighbor.n;
-            const l = neighbor.l;
         %}
         <div class="neighbor">
             <div class="o">
@@ -172,17 +164,19 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>{{n.firmware_version}}</div>
                     <div>firmware</div>
                 </div>
-                <div>
+                <div class="i">
+                    <div style="word-break:break-all">{{n.ipv6ll}}</div>
+                    <div>link address</div>
                 </div>
             </div>
             {% } %}
             <div class="cols">
                 <div class="i">
-                    <div>{{map(n, n.lat) || "-"}}</div>
+                    <div>{{"lat" in n ? map(n, sprintf("%.4f", n.lat)) : "-"}}</div>
                     <div>latitude</div>
                 </div>
                 <div class="i">
-                    <div>{{map(n, n.lon) || "-"}}</div>
+                    <div>{{"lon" in n ? map(n, sprintf("%.4f", n.lon)) : "-"}}</div>
                     <div>longitude</div>
                 </div>
                 <div class="i">
@@ -190,24 +184,19 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>distance</div>
                 </div>
             </div>
-            {%
-                if (l && l.lossMultiplier) {
-                    const lq = min(100, int(100 * l.linkQuality * 65536 / l.lossMultiplier));
-                    const nlq = min(100, int(100 * l.neighborLinkQuality * 65536 / l.lossMultiplier));
-                    const etx = 10000.0 / (lq * nlq);
-            %}
+            {% if (n.lq) { %}
             <div class="cols">
                 <div class="i">
-                    <div>{{lq}}%</div>
-                    <div>lq | rx success</div>
+                    <div>{{n.lq}}%</div>
+                    <div>rx success</div>
                 </div>
                 <div class="i">
-                    <div>{{nlq}}%</div>
-                    <div>nlq | tx success</div>
+                    <div>{{n.rxcost}}</div>
+                    <div>rx cost</div>
                 </div>
                 <div class="i">
-                    <div>{{sprintf("%.1f", etx)}}</div>
-                    <div>etx</div>
+                    <div>{{n.txcost}}</div>
+                    <div>tx cost</div>
                 </div>
             </div>
             {% } %}
@@ -221,7 +210,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>ping success</div>
                 </div>
                 <div class="i">
-                    <div>{{type(n.avg_tx) ? sprintf("%.1f pkt/sec", n.avg_tx / 60) : "-"}}</div>
+                    <div>{{type(n.avg_tx_packets) ? sprintf("%.1f pkt/sec", n.avg_tx_packets / 30) : "-"}}</div>
                     <div>avg tx</div>
                 </div>
             </div>
@@ -250,7 +239,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>neighbor snr</div>
                 </div>
                 <div class="i">
-                    <div>{{n.avg_tx_fail ? sprintf("%.1f%%", 100 * n.avg_tx_fail / n.avg_tx) : "-"}}</div>
+                    <div>{{n.avg_tx_packets ? sprintf("%.1f%%", 100 * (n.avg_tx_fail || 0) / n.avg_tx_packets) : "-"}}</div>
                     <div>tx failures</div>
                 </div>
             </div>
@@ -264,64 +253,46 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>physical tx bitrate</div>
                 </div>
                 <div class="i">
-                    <div>{{n.avg_tx_retries ? sprintf("%.1f%%", 100 * n.avg_tx_retries / n.avg_tx) : "-"}}</div>
+                    <div>{{n.avg_tx_packets ? sprintf("%.1f%%", 100 * (n.avg_tx_retries || 0) / n.avg_tx_packets) : "-"}}</div>
                     <div>tx retransmissions</div>
                 </div>
             </div>
-            {% } else if (type(n.avg_tx_fail)) { %}
+            {% } else if (n.avg_tx_packets) { %}
             <div class="cols">
                 <div class="i">
-                    <div>{{sprintf("%.1f%%", 100 * n.avg_tx_fail / n.avg_tx)}}</div>
+                    <div>{{sprintf("%.1f%%", 100 * (n.avg_tx_fail || 0) / n.avg_tx_packets)}}</div>
                     <div>tx failures</div>
                 </div>
                 <div></div>
                 <div></div>
             </div>
             {% } %}
-            {% if (supernode) { %}
             <div class="cols">
                 <div class="i">
                     <div>{{state(n)}}</div>
                     <div>state</div>
                 </div>
                 <div class="i">
+                {% if (!supernode) { %}
                     <div>{{n.babel_route_count}}</div>
-                    <div>babel routes</div>
+                    <div>routes</div>
+                {% } %}
                 </div>
                 <div class="i">
-                    <div>{{lastseen(n)}}</div>
-                    <div>last seen</div>
-                </div>
-            </div>
-            {% } else { %}
-            <div class="cols">
-                <div class="i">
-                    <div>{{state(n)}}</div>
-                    <div>state</div>
-                </div>
-                <div class="i">
-                    <div>{{n.babel_route_count}}</div>
-                    <div>babel routes</div>
-                </div>
-                <div class="i">
-                    <div>{{n.babel_metric ?? "-"}}</div>
-                    <div>babel metric</div>
+                    <div>{{n.babel_route_count === 0 ? "-" : n.babel_metric ?? "-"}}</div>
+                    <div>metric</div>
                 </div>
             </div>
             <div class="cols">
                 <div class="i">
                     <div>{{lastseen(n)}}</div>
                     <div>last seen</div>
-                </div>
-                <div class="i">
-                    <div>{{n.node_route_count}}</div>
-                    <div>olsr routes</div>
                 </div>
                 <div></div>
+                <div></div>
             </div>
-            {% } %}
             {%
-            const snr = `/tmp/snrlog/${uc(selected)}-${lc(n.hostname)}`;
+            const snr = `/tmp/snrlog/${selected}`;
             if (fs.access(snr)) {
                 let signal = "<polyline class='signal' points='";
                 let noise = "<polyline class='noise' points='";
@@ -386,6 +357,16 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <g class="hints">{{hints}}</g>
                 </svg>
             </div>
+            {% } %}
+            {% if (map_url && n.lat && n.lon) {
+                const mapurl = replace(replace(map_url, "(lat)", n.lat), "(lon)", n.lon);
+            %}
+            <div class="location-image"><a href="{{mapurl}}" target="_blank"><iframe loading="lazy" src="{{mapurl}}"></iframe><div class="overlay"></div></a></div>
+            <script>
+                (function(){
+                    fetch("{{mapurl}}").catch(_ => document.querySelector(".dialog .location-image").style.display = "none");
+                })();
+            </script>
             {% } %}
         </div>
         {% } %}

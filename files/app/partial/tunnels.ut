@@ -35,41 +35,16 @@
 {%
     let wc = 0;
     let ws = 0;
-    let lc = 0;
-    let ls = 0;
     uciMesh.foreach("wireguard", "client", function()
     {
         ws++;
     });
-    uciMesh.foreach("vtun", "client", function()
+    uciMesh.foreach("wireguard", "server", function(s)
     {
-        ls++;
-    });
-    uciMesh.foreach("vtun", "server", function(s)
-    {
-        if (index(s.netip, ":") !== -1) {
-            wc++;
-        }
-        else {
-            lc++;
-        }
+        wc++;
     });
     let wac = 0;
     let was = 0;
-    let lac = 0;
-    let las = 0;
-    const t = fs.popen("ps -w | grep vtun | grep ' tun '");
-    if (t) {
-        for (let l = t.read("line"); length(l); l = t.read("line")) {
-            if (index(l, "vtund[s]") !== -1) {
-                las++;
-            }
-            else if (index(l, "vtund[c]") !== -1) {
-                lac++;
-            }
-        }
-        t.close();
-    }
     if (fs.access("/usr/bin/wg")) {
         const w = fs.popen("/usr/bin/wg show all latest-handshakes");
         if (w) {
@@ -91,9 +66,6 @@
 <div class="ctrl" hx-get="status/e/tunnels" hx-target="#ctrl-modal" hx-swap="innerHTML">
     <div class="section-title">Tunnels</div>
     <div class="section">
-        {% if (uci.get("aredn", "@supernode[0]", "enable") !== "1" && (lc > 0 || ls > 0)) { %}
-        <div class="section-subtitle">Wireguard</div>
-        {% } %}
         <div class="cols">
             <div>
                 <div class="t">{{wac}}</div>
@@ -112,26 +84,5 @@
                 <div class="s">allocated servers</div>
             </div>
         </div>
-        {% if (uci.get("aredn", "@supernode[0]", "enable") !== "1" && (lc > 0 || ls > 0)) { %}
-        <div class="section-subtitle">Legacy</div>
-        <div class="cols">
-            <div>
-                <div class="t">{{lac}}</div>
-                <div class="s">active clients</div>
-            </div>
-            <div>
-                <div class="t">{{lc}}</div>
-                <div class="s">allocated clients</div>
-            </div>
-            <div>
-                <div class="t">{{las}}</div>
-                <div class="s">active servers</div>
-            </div>
-            <div>
-                <div class="t">{{ls}}</div>
-                <div class="s">allocated servers</div>
-            </div>
-        </div>
-        {% } %}
     </div>
 </div>

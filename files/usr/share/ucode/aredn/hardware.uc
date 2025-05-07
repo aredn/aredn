@@ -32,9 +32,11 @@
  */
 
 import * as fs from "fs";
-import * as uci from "uci";
 import * as ubus from "ubus";
 import * as nl80211 from "nl80211";
+import * as rtnl from "rtnl";
+import * as socket from "socket";
+import * as babel from "aredn.babel";
 
 let radioJson;
 let boardJson;
@@ -164,8 +166,35 @@ export function getRadioIntf(wifiIface)
     }
 };
 
-export function getChannelFromFrequency(freq)
+export function getRadioType(wifiIface)
 {
+    if (getRadioIntf(wifiIface).band == "halow") {
+        return "halow";
+    }
+    return "wifi";
+};
+
+export function getPhyDevice(iface)
+{
+    return replace(replace(iface, /^wlan/, "phy"), /^radio/, "phy");
+};
+
+export function getWlanDevice(iface)
+{
+    return replace(replace(iface, /^phy/, "wlan"), /^radio/, "wlan");
+};
+
+export function getRadioDevice(iface)
+{
+    return replace(replace(iface, /^phy/, "radio"), /^wlan/, "radio");
+};
+
+export function getChannelFromFrequency(wifiIface, freq)
+{
+    const radio = getRadioIntf(wifiIface);
+    if (radio.band === "halow") {
+        return int((freq - 902.0) * 2);
+    }
     if (freq < 256) {
         return null;
     }
@@ -192,56 +221,91 @@ export function getChannelFromFrequency(freq)
     }
 };
 
+function get80211RfChannels(wifiIface)
+{
+    const channels = [];
+    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+    if (!info) {
+        return [];
+    }
+    let best = { band: 0, count: 0 };
+    for (let i = 0; i < length(info.wiphy_bands); i++) {
+        const f = info.wiphy_bands[i]?.freqs;
+        let count = 0;
+        for (let j = 0; j < length(f); j++) {
+            if (!f[j].disabled) {
+                count++;
+            }
+        }
+        if (count > best.count) {
+            best.band = i;
+            best.count = count;
+        }
+    }
+    const freqs = info.wiphy_bands[best.band].freqs;
+    let freq_adjust = (f) => f.freq;
+    let freq_min = 0;
+    let freq_max = 0x7FFFFFFF;
+    if (wifiIface === "wlan0") {
+        const radio = getRadio();
+        if (index(radio.name, "M9") !== -1) {
+            freq_adjust = (f) => f.freq - 1520;
+            freq_min = 907;
+            freq_max = 922;
+        }
+        else if (index(radio.name, "M3") !== -1) {
+            freq_adjust = (f) => f.freq - 2000;
+            freq_min = 3380;
+            freq_max = 3495;
+        }
+    }
+    for (let i = 0; i < length(freqs); i++) {
+        const f = freqs[i];
+        const freq = freq_adjust(f);
+        if (freq >= freq_min && freq <= freq_max) {
+            const num = getChannelFromFrequency(wifiIface, freq);
+            push(channels, {
+                label: num != freq ? num + " (" + freq + ")" : "" + freq,
+                number: num,
+                frequency: freq
+            });
+        }
+    }
+    sort(channels, (a, b) => a.frequency - b.frequency);
+    return channels;
+}
+
+function getHaLowChannels(wifiIface)
+{
+    const channels = [];
+    const p = fs.popen(`/usr/bin/iwinfo ${getPhyDevice(wifiIface)} freqlist`);
+    if (p) {
+        for (let line = p.read("line"); length(line); line = p.read("line")) {
+            const m = match(line, /([0-9\.]+) MHz .* Channel ([0-9]+)/);
+            if (m) {
+                push(channels, {
+                    label: `${m[2]} (${1.0 * m[1]})`,
+                    number: int(m[2]),
+                    frequency: 1.0 * m[1]
+                });
+            }
+        }
+        p.close();
+    }
+    return channels;
+}
+
 export function getRfChannels(wifiIface)
 {
     let channels = channelsCache[wifiIface];
     if (!channels) {
-        channels = [];
-        const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
-        let best = { band: 0, count: 0 };
-        for (let i = 0; i < length(info.wiphy_bands); i++) {
-            const f = info.wiphy_bands[i]?.freqs;
-            let count = 0;
-            for (let j = 0; j < length(f); j++) {
-                if (!f[j].disabled) {
-                    count++;
-                }
-            }
-            if (count > best.count) {
-                best.band = i;
-                best.count = count;
-            }
+        const radio = getRadioIntf(wifiIface);
+        if (radio.band == "halow") {
+            channels = getHaLowChannels(wifiIface);
         }
-        const freqs = info.wiphy_bands[best.band].freqs;
-        let freq_adjust = 0;
-        let freq_min = 0;
-        let freq_max = 0x7FFFFFFF;
-        if (wifiIface === "wlan0") {
-            const radio = getRadio();
-            if (index(radio.name, "M9") !== -1) {
-                freq_adjust = -1520;
-                freq_min = 907;
-                freq_max = 922;
-            }
-            else if (index(radio.name, "M3") !== -1) {
-                freq_adjust = -2000;
-                freq_min = 3380;
-                freq_max = 3495;
-            }
+        else {
+            channels = get80211RfChannels(wifiIface);
         }
-        for (let i = 0; i < length(freqs); i++) {
-            const f = freqs[i];
-            const freq = f.freq + freq_adjust;
-            if (freq >= freq_min && freq <= freq_max) {
-                const num = getChannelFromFrequency(freq);
-                push(channels, {
-                    label: freq_adjust === 0 ? num + " (" + freq + ")" : "" + freq,
-                    number: num,
-                    frequency: freq
-                });
-            }
-        }
-        sort(channels, (a, b) => a.frequency - b.frequency);
         channelsCache[wifiIface] = channels;
     }
     return channels;
@@ -251,16 +315,21 @@ export function getRfBandwidths(wifiIface)
 {
     const radio = getRadioIntf(wifiIface);
     const invalid = {};
-    map(radio.exclude_bandwidths || [], v => invalid[v] = true);
-    const bw = [];
-    if (!invalid["5"]) {
-        push(bw, 5);
+    let bw = [];
+    if (radio.bandwidths) {
+        bw = radio.bandwidths;
     }
-    if (!invalid["10"]) {
-        push(bw, 10);
-    }
-    if (!invalid["20"]) {
-        push(bw, 20);
+    else {
+        map(radio.exclude_bandwidths || [], v => invalid[v] = true);
+        if (!invalid["5"]) {
+            push(bw, 5);
+        }
+        if (!invalid["10"]) {
+            push(bw, 10);
+        }
+        if (!invalid["20"]) {
+            push(bw, 20);
+        }
     }
     const phy = replace(wifiIface, "wlan", "phy");
     if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`) || fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
@@ -300,6 +369,9 @@ export function getDefaultChannel(wifiIface)
     }
     for (let i = 0; i < length(rfchannels); i++) {
         const c = rfchannels[i];
+        if (c.frequency == 904.5) {
+            return { channel: 5, bandwidth: 1, band: "HaLow" };
+        }
         if (c.frequency == 912) {
             return { channel: 5, bandwidth: 5, band: "900MHz" };
         }
@@ -423,8 +495,8 @@ export function getChannelFrequencyRange(wifiIface, channel, bandwidth)
     if (rfchans[0]) {
         for (let i = 0; i < length(rfchans); i++) {
             const c = rfchans[i];
-            if (c.number === channel) {
-                return (c.frequency - bandwidth / 2) + " - " + (c.frequency + bandwidth / 2) + " MHz";
+            if (c.number == channel) {
+                return (c.frequency - bandwidth / 2.0) + " - " + (c.frequency + bandwidth / 2.0) + " MHz";
             }
         }
     }
@@ -478,15 +550,66 @@ export function getTxPowerOffset(wifiIface)
     return 0;
 };
 
+export function getRadioNoise(wifiIface)
+{
+    const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiIface }) || [];
+    for (let i = 0; i < length(survey); i++) {
+        if (survey[i].dev == wifiIface && survey[i].survey_info.noise) {
+            return survey[i].survey_info.noise;
+        }
+    }
+    // Fallback for hardware which doesn't support the survey api (e.g. HaLow)
+    const p = fs.popen(`/usr/bin/iwinfo ${wifiIface} info | /bin/grep Noise`);
+    if (p) {
+        const m = match(p.read("all"), /Noise: (-\d+) dBm/);
+        p.close();
+        if (m) {
+            return int(m[1]);
+        }
+    }
+    return -95;
+};
+
 export function getMaxDistance(wifiIface)
 {
     const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
     return info.wiphy_coverage_class * 450;
 };
 
-export function getMACAddress(wifiIface)
+export function supportsSetMaxDistance(wifiIface)
 {
-    return trim(fs.readfile(`/sys/class/ieee80211/${replace(wifiIface, "wlan", "phy")}/macaddress`) || "00:00:00:00:00:00");
+    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+    if (info) {
+        if (system(`/usr/sbin/iw ${getPhyDevice(wifiIface)} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
+            return true;
+        }
+    }
+    return false;
+};
+
+export function supportsMode(wifiIface, mode)
+{
+    const modes = getRadioIntf(wifiIface)?.exclude_modes;
+    return (!modes || index(modes, mode) === -1);
+};
+
+export function getInterfaceMAC(dev)
+{
+    const ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    for (let i = 0; i < length(ifs); i++) {
+        const iface = ifs[i];
+        if (iface.dev == dev && iface.address) {
+            return iface.address;
+        }
+    }
+    // If wlan interface isn't configured, we won't find it using GETLINK, so we look at the /sys filesystem.
+    if (match(dev, /^wlan/)) {
+        const addr = trim(fs.readfile(`/sys/class/ieee80211/${getPhyDevice(dev)}/macaddress`));
+        if (addr) {
+            return addr;
+        }
+    }
+    return "00:00:00:00:00:00";
 };
 
 export function supportsXLink()
@@ -616,34 +739,6 @@ export function hasUSBPower()
     return false;
 };
 
-export function isLowMemNode()
-{
-    const f = fs.open("/proc/meminfo");
-    if (f) {
-        const l = f.read("line");
-        f.close();
-        const m = match(l, /([0-9]+)/);
-        if (m && int(m[1]) <= 32768) {
-            return true;
-        }
-    }
-    return false;
-};
-
-export function is64MemNode()
-{
-    const f = fs.open("/proc/meminfo");
-    if (f) {
-        const l = f.read("line");
-        f.close();
-        const m = match(l, /([0-9]+)/);
-        if (m && int(m[1]) > 32768 && int(m[1]) <= 65536) {
-            return true;
-        }
-    }
-    return false;
-};
-
 export function getHardwareType()
 {
     const model = getBoardModel();
@@ -680,4 +775,97 @@ export function getHardwareType()
         mfgprefix = "cpe";
     }
     return `(${targettype}) ${mfgprefix ? mfgprefix + " " : ""}(${hardwaretype})`;
+};
+
+export function getLinkLed()
+{
+    const led = getBoard().led;
+    if (led) {
+        if (led.rssilow && led.rssilow.sysfs) {
+            return `/sys/class/leds/${led.rssilow.sysfs}`;
+        }
+        if (led.user && led.user.sysfs) {
+            return `/sys/class/leds/${led.user.sysfs}`;
+        }
+    }
+    return null;
+};
+
+const GPSD = "/usr/sbin/gpsd";
+const GPS_TTYS = [
+    "/dev/ttyACM0",
+    "/dev/ttyUSB0"
+];
+
+export function GPSFind()
+{
+    if (fs.access(GPSD)) {
+        for (let i = 0; i < length(GPS_TTYS); i++) {
+            const tty = GPS_TTYS[i];
+            if (fs.access(tty)) {
+                return tty;
+            }
+        }
+    }
+    const neighbors = babel.getRoutableNeighbors();
+    for (let i = 0; i < length(neighbors); i++) {
+        const n = neighbors[i];
+        if (n.interface === "br-dtdlink") {
+            const s = socket.create(socket.AF_INET, socket.SOCK_STREAM, 0);
+            const ip = `${n.ipv6address}%${n.interface}`;
+            if (s.connect(ip, 2947)) {
+                s.close();
+                return ip;
+            }
+            s.close();
+        }
+    }
+    return null;
+};
+
+export function GPSReadLLT(gps, maxlines)
+{
+    const info = {
+        lat: null,
+        lon: null,
+        time: null
+    };
+    if (match(gps, /^\/dev\//)) {
+        gps = "127.0.0.1";
+    }
+    const s = socket.create(socket.AF_INET, socket.SOCK_STREAM, 0);
+    if (!s.connect(gps, 2947)) {
+        s.close();
+        return null;
+    }
+    s.send('?WATCH={"enable":true,"json":true}\n');
+    if (!maxlines) {
+        maxlines = 10;
+    }
+    for (; maxlines > 0; maxlines--) {
+        let str = "";
+        let j = null;
+        for (;;) {
+            const c = s.recv(1);
+            if (!c || !length(c)) {
+                maxlines = 0;
+                break;
+            }
+            if (c == "\n") {
+                j = json(str);
+                break;
+            }
+            str += c;
+        }
+        if (j && j.class == "TPV") {
+            info.time = replace(replace(j.time, "T", " "), ".000Z", "");
+            if (j.lat && j.lon) {
+                info.lat = 1 * sprintf("%.5f", j.lat);
+                info.lon = 1 * sprintf("%.5f", j.lon);
+            }
+            break;
+        }
+    }
+    s.close();
+    return info;
 };

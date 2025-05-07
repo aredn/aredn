@@ -3,4 +3,10 @@
 # fixup here.
 if [ "$ACTION" = "ifup" -a "$INTERFACE" = "wifi" -a "${DEVICE:0:4}" = "wlan" ] ; then
   ip addr add $(uci get network.wifi.ipaddr)/32 broadcast 255.255.255.255 dev ${DEVICE}
+  # Setup the txpower for devices which dont respect the value set in /etc/config/wireless
+  txpower=$(uci -q get wireless.radio${DEVICE:4}.txpower)
+  if [ "${txpower}" != "" ]; then
+    iw phy${DEVICE:4} set txpower fixed 0
+    iw phy${DEVICE:4} set txpower fixed ${txpower}00
+  fi
 fi

@@ -81,62 +81,52 @@
     }
     function canonicalLookupIP(ip)
     {
-        const hostname = network.nslookup(ip);
+        const hostname = network.getHostnameFromIPAddress(ip);
         if (!hostname) {
             return null;
         }
         return replace(replace(replace(replace(replace(lc(hostname), /^dtdlink\./, ""), /^mid\d+\./, ""), /^xlink\d+\./, ""), /^lan\./, ""), /\.local\.mesh$/, "");
     }
+    const macs = {};
     const llist = [];
     const nlist = [];
     const hlist = lqm.getHidden();
-    const t = lqm.getTrackers();
-    const trackers = {};
-    for (mac in t) {
-        const tmac = t[mac];
-        if (tmac.ip) {
-            trackers[tmac.ip] = tmac;
-        }
-    }
-    const links = olsr.getLinks();
-    for (let i = 0; i < length(links); i++) {
-        const link = links[i];
-        const tracker = trackers[link.remoteIP];
+    const trackers = lqm.getTrackers();
+    for (let mac in trackers)
+    {
+        const tracker = trackers[mac];
         let name = tracker && tracker.hostname;
         if (!name) {
-            name = canonicalLookupIP(link.remoteIP);
-            if (!name) {
-                name = `|${link.remoteIP}`;
-            }
-        }
-        if (link.ifName === "br-dtdlink") {
-            if (tracker && tracker.distance >= 100) {
-                push(nlist, { name: name, tracker: tracker, link: link });
+            if (tracker.ip) {
+                name = canonicalLookupIP(tracker.ip);
+                if (!name) {
+                    name = `|${tracker.ip}`;
+                }
             }
             else {
-                push(llist, { name: name, tracker: tracker, link: link });
+                name = `~${tracker.mac}`;
             }
         }
-        else {
-            push(nlist, { name: name, tracker: tracker, link: link });
-        }
-        delete trackers[link.remoteIP];
-    }
-    for (let remoteIP in trackers)
-    {
-        const tracker = trackers[remoteIP];
-        let name = tracker && tracker.hostname;
-        if (!name) {
-            name = canonicalLookupIP(remoteIP);
-            if (!name) {
-                name = `|${remoteIP}`;
-            }
-        }
+        const l = { name: name, tracker: tracker };
         if (tracker.type == "DtD" && tracker.distance < 100) {
-            push(llist, { name: name, tracker: tracker, link: null });
+            push(llist, l);
         }
         else {
-            push(nlist, { name: name, tracker: tracker, link: null });
+            push(nlist, l);
+        }
+        macs[tracker.mac] = l;
+    }
+    const bneigh = babel.getNeighbors();
+    for (let i = 0; i < length(bneigh); i++) {
+        const n = bneigh[i];
+        const a = iptoarr(n.ipv6address);
+        const m = sprintf("%02x:%02x:%02x:%02x:%02x:%02x", a[8] ^ 2, a[9], a[10], a[13], a[14], a[15]);
+        const l = macs[m];
+        if (l) {
+            l.lq = n.lq;
+        }
+        else {
+            push(nlist, { name: `~${m}`, lq: n.lq });
         }
     }
 %}
@@ -147,9 +137,9 @@
             <div class="heading"></div>
             <div class="heading ts cols stats">
                 {% if (!request.mobile) { %}
-                <div>lq</div><div>nlq</div><div>snr</div><div>n snr</div><div>errors</div><div>mbps</div><div>{{units.distanceUnit()}}</div>
+                <div>rx</div><div>snr</div><div>n snr</div><div>errors</div><div>mbps</div><div>{{units.distanceUnit()}}</div>
                 {% } else { %}
-                <div>lq</div><div>nlq</div>
+                <div>rx</div><div>errors</div>
                 {% } %}
             </div>
         </div>
@@ -159,33 +149,34 @@
                 for (let i = 0; i < length(llist); i++) {
                     const entry = llist[i];
                     const tracker = entry.tracker;
-                    const link = entry.link;
                     const status = calcColor(tracker);
-                    let babel = "";
+                    let lq = "-";
                     if (tracker) {
-                        if (tracker.babel_route_count > 0 || tracker.babel) {
-                            babel = '<div class="icon babel" title="babel route"></div>';
-                        }
                         print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
+                        if (status !== "disconnected" && tracker.lq) {
+                            lq = `${tracker.lq}%`;
+                        }
                     }
                     else {
                         print(`<div class="ctrl cols status unknown" title="Link status: unknown">`);
                     }
-                    const lq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
-                    const nlq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
-                    if (substr(entry.name, 0, 1) !== "|") {
-                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}</a>${babel}</div>`);
+                    if (substr(entry.name, 0, 1) === "|") {
+                        const ip = substr(entry.name, 1);
+                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}</a></div>`);
+                    }
+                    else if (substr(entry.name, 0, 1) === "~") {
+                        const mac = substr(entry.name, 1);
+                        print(`<div class='h'><span>${mac}</span></div>`);
                     }
                     else {
-                        const ip = substr(entry.name, 1);
-                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}</a>${babel}</div>`);
+                        print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}</a></div>`);
                     }
                     print("<div class='ts cols stats'>");
                     if (!request.mobile) {
-                        print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div></div><div></div>`);
+                        print(`<div>${lq}</div><div></div><div></div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div></div><div></div>`);
                     }
                     else {
-                        print(`<div>${lq}</div><div>${nlq}</div>`);
+                        print(`<div>${lq}</div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div>`);
                     }
                     print("</div></div>");
                 }
@@ -205,16 +196,20 @@
             for (let i = 0; i < length(nlist); i++) {
                 const entry = nlist[i];
                 const tracker = entry.tracker;
-                const link = entry.link;
                 const status = calcColor(tracker);
+                let lq = "-";
                 if (tracker) {
                     print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
+                    if (status !== "disconnected" && tracker.lq) {
+                        lq = `${tracker.lq}%`;
+                    }
                 }
                 else {
                     print(`<div class="ctrl cols status unknown" title="Link status: unknown">`);
+                    if (entry.lq) {
+                        lq = `${entry.lq}%`;
+                    }
                 }
-                const lq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.linkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
-                const nlq = status !== "disconnected" && link && link.lossMultiplier ? (min(100, int(100 * link.neighborLinkQuality * 65536 / link.lossMultiplier)) + "%") : "-";
                 let icon = "";
                 let title = "";
                 switch (tracker && tracker.type || "Unknown") {
@@ -230,10 +225,6 @@
                         title = "Xlink ";
                         icon = "plane";
                         break;
-                    case "Tunnel":
-                        title = "Legacy tunnel ";
-                        icon = "globe";
-                        break;
                     case "Wireguard":
                         title = "Wireguard tunnel ";
                         icon = "globe";
@@ -241,20 +232,20 @@
                     default:
                         break;
                 }
-                let babel = "";
-                if (tracker && (tracker.babel_route_count > 0 || tracker.babel)) {
-                    babel = '<div class="icon babel" title="babel route"></div>';
+                if (substr(entry.name, 0, 1) === "|") {
+                    const ip = substr(entry.name, 1);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
                 }
-                if (substr(entry.name, 0, 1) !== "|") {
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}${babel}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
+                else if (substr(entry.name, 0, 1) === "~") {
+                        const mac = substr(entry.name, 1);
+                        print(`<div class='h'><span>${mac}</span></div>`);
                 }
                 else {
-                    const ip = substr(entry.name, 1);
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}${babel}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
                 }
                 print("<div class='ts cols stats'>");
                 if (request.mobile) {
-                    print(`<div>${lq}</div><div>${nlq}</div>`);
+                    print(`<div>${lq}</div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div>`);
                 }
                 else if (tracker) {
                     let d = "-";
@@ -267,10 +258,10 @@
                             d = sprintf("%.1f", d);
                         }
                     }
-                    print(`<div>${lq}</div><div>${nlq}</div><div>${tracker.snr || "-"}</div><div>${tracker.rev_snr || "-"}</div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div>${calcBitrate(tracker)}</div><div>${d}</div>`);
+                    print(`<div>${lq}</div><div>${tracker.snr || "-"}</div><div>${tracker.rev_snr || "-"}</div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div>${calcBitrate(tracker)}</div><div>${d}</div>`);
                 }
                 else {
-                    print(`<div>${lq}</div><div>${nlq}</div><div></div><div></div><div></div><div></div><div></div>`);
+                    print(`<div>${lq}</div><div></div><div></div><div></div><div></div><div></div>`);
                 }
                 print("</div></div>");
             }

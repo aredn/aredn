@@ -53,16 +53,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
     }
 
-    let noise = -95;
-    const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiiface }) || [];
-    for (let i = 0; i < length(survey); i++) {
-        if (survey[i].dev == wifiiface && survey[i].survey_info.noise) {
-            noise = survey[i].survey_info.noise;
-            break;
-        }
-    }
-        
-    const response = { s: signals, n: noise };
+    const response = { s: signals, n: hardware.getRadioNoise(wifiiface) };
     if (qmac !== "average") {
         const reArp = regexp(`^([\.0-9]+) +0x. +0x. +${qmac}`, "i");
         let f = fs.open("/proc/net/arp");
@@ -91,16 +82,23 @@ if (request.env.REQUEST_METHOD === "PUT") {
     printf("%J", response);
     return;
 }
+const reArp = /^([\.0-9]+) +0x. +0x. +([0-9a-fA-F:]+)/;
+const arp = {};
+let f = fs.open("/proc/net/arp");
+if (f) {
+    for (let l = f.read("line"); length(l); l = f.read("line")) {
+        const m = match(l, reArp);
+        if (m) {
+            arp[m[2]] = m[1];
+        }
+    }
+    f.close();
+}
 const stations = fs.lsdir("/tmp/snrlog");
 for (let i = 0; i < length(stations); i++) {
     const s = stations[i];
-    const m = match(s, /^([0-9A-Fa-f:]+)-(.*)$/);
-    if (m) {
-        stations[i] = { hostname: m[2], mac: lc(m[1]) };
-    }
-    else {
-        stations[i] = null;
-    }
+    const ip = arp[s];
+    stations[i] = { hostname: ip && network.getHostnameFromIPAddress(ip), mac: s };
 }
 %}
 <div class="dialog wide">
