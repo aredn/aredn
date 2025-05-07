@@ -1,0 +1,35 @@
+--- /dev/null
++++ b/package/utils/ucode/patches/001-add-flush.patch
+@@ -0,0 +1,32 @@
++--- a/lib.c
+++++ b/lib.c
++@@ -351,6 +351,21 @@
++ }
++ 
++ /**
+++ * Flush the stdout.
+++ *
+++ * @function module:core#flush
+++ *
+++ * @example
+++ * flush();
+++ */
+++static uc_value_t *
+++uc_flush(uc_vm_t *vm, size_t nargs)
+++{
+++	fflush(vm->output);
+++	return NULL;
+++}
+++
+++/**
++  * Determine the length of the given object, array or string.
++  *
++  * Returns the length of the given value.
++@@ -5895,6 +5912,7 @@
++ 	{ "exists",		uc_exists },
++ 	{ "exit",		uc_exit },
++ 	{ "filter",		uc_filter },
+++	{ "flush",		uc_flush },
++ 	{ "getenv",		uc_getenv },
++ 	{ "hex",		uc_hex },
++ 	{ "index",		uc_lindex },

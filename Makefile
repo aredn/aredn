@@ -88,8 +88,6 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install libopenldap
 	cd $(OPENWRT_DIR); ./scripts/feeds install libgnutls
 	cd $(OPENWRT_DIR); ./scripts/feeds install libnetsnmp
-	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages olsrd
-	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages vtun
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages dd-wrt-ath10k-firmware
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages prometheus-exporter
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages babel
@@ -111,6 +109,9 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install qemu-ga
 	cd $(OPENWRT_DIR); ./scripts/feeds install rpcapd
 	cd $(OPENWRT_DIR); ./scripts/feeds install usbutils
+	cd $(OPENWRT_DIR); ./scripts/feeds install -a -p morse
+	cd $(OPENWRT_DIR); ./scripts/feeds install -f -p morse iwinfo
+	cd $(OPENWRT_DIR); ./scripts/feeds install -f -p morse libiwinfo
 	touch $@
 
 # prepare patch
@@ -152,14 +153,12 @@ prepare: stamp-clean-prepared .stamp-prepared
 # compile
 compile: stamp-clean-compiled .stamp-compiled
 .stamp-compiled: .stamp-prepared .stamp-feeds-updated | $(TOP_DIR)/firmware
-	$(TOP_DIR)/scripts/tests-prebuild.sh
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
 	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -path "*packages" -prune -o \( -type f -a \
 	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin"  -o -name "*sysupgrade-v7.bin" -o -name "*x86*" -o -name "*initramfs*" -o -name "*sysupgrade.itb" -o -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
 	done;
-	$(TOP_DIR)/scripts/tests-postbuild.sh
 
 $(TOP_DIR)/firmware:
 	ln -sf $(OPENWRT_DIR)/bin/ $(TOP_DIR)/firmware

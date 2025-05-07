@@ -57,24 +57,53 @@ export function getCommonConfiguration()
                 antaux: null,
                 def: hardware.getDefaultChannel(iface),
                 bws: hardware.getRfBandwidths(iface),
-                channels: hardware.getRfChannels(iface),
-                channels40: [],
-                channels80: [],
+                channels: {},
                 ants: hardware.getAntennas(iface),
                 antsaux: hardware.getAntennasAux(iface),
                 txpoweroffset: hardware.getTxPowerOffset(iface),
                 txmaxpower: hardware.getMaxTxPower(iface),
-                macaddress: hardware.getMACAddress(iface),
+                macaddress: hardware.getInterfaceMAC(iface),
                 maxdistance: 80550,
                 managedOOB: [ -4, -3, -2, -1, 0, 180, 181, 182, 183, 184 ]
             };
-            // Calculate 40, 80 channels
-            const a40 = [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ];
-            for (let j = 0; j < length(r.channels); j++) {
-                const c = r.channels[j];
-                if (index(a40, c.number) !== -1) {
-                    push(r.channels40, c);
-                    push(r.channels80, c);
+            // Calculate which channels are available at which bandwidths
+            const avail = {
+                // WiFi
+                "40": [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ],
+                "80": [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ],
+                // Halow
+                "1": [ 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49 ],
+                "2": [ 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46 ],
+                "4": [ 4, 8, 16, 24, 32, 40, 48 ],
+                "8": [ 12, 28, 44 ]
+            };
+            const channels = hardware.getRfChannels(iface);
+            for (let b = 0; b < length(r.bws); b++) {
+                const bw = `${r.bws[b]}`;
+                switch (bw) {
+                    case "5":
+                    case "10":
+                    case "20":
+                        r.channels[bw] = channels;
+                        break;
+                    case "1":
+                    case "2":
+                    case "4":
+                    case "8":
+                    case "40":
+                    case "80":
+                    {
+
+                        r.channels[bw] = [];
+                        for (let j = 0; j < length(channels); j++) {
+                            if (index(avail[bw], channels[j].number) !== -1) {
+                                push(r.channels[bw], channels[j]);
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        break;
                 }
             }
             push(radio, r);
@@ -207,4 +236,21 @@ export function getConfiguration()
         };
     }
     return radio;
+};
+
+export function getMeshRadio()
+{
+    const config = getActiveConfiguration();
+    for (let i = 0; i < length(config); i++) {
+        switch (config[i].mode.mode) {
+            case radios.RADIO_MESH:
+            case radios.RADIO_MESHPTP:
+            case radios.RADIO_MESHPTMP:
+            case radios.RADIO_MESHSTA:
+                return { mode: config[i].mode.mode, iface: config[i].iface };
+            default:
+                break;
+        }
+    }
+    return null;
 };

@@ -44,22 +44,12 @@
 
     const dhcp = configuration.getDHCP();
 
-    let f = fs.open("/tmp/service-validation-state");
-    if (f) {
-        const when = int(trim(f.read("line")));
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            const m = match(trim(l), /^(\d+) (.+)$/);
-            if (m) {
-                const n = split(m[2], "|");
-                if (length(n) > 1) {
-                    valid[n[0]] = (int(m[1]) > when);
-                }
-                else {
-                    valid[m[2]] = (int(m[1]) > when);
-                }
-            }
+    if (fs.access("/tmp/service-validation-state.json")) {
+        const svs = json(fs.readfile("/tmp/service-validation-state.json"));
+        for (let key in svs.valid) {
+            const n = split(key, "|");
+            valid[length(n) > 1 ? n[0] : key] = (svs.valid[key] > svs.when);
         }
-        f.close();
     }
     const svcs = uciMesh.get("setup", "services", "service") || [];
     for (let i = 0; i < length(svcs); i++) {

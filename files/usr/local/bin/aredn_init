@@ -1,250 +1,241 @@
-#! /usr/bin/lua
---[[
+#!/usr/bin/ucode
+/*
+ * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
+ * Copyright (C) 2021-2025 Tim Wilkinson
+ * See Contributors file for additional contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Additional Terms:
+ *
+ * Additional use restrictions exist on the AREDN® trademark and logo.
+ * See AREDNLicense.txt for more info.
+ *
+ * Attributions to the AREDN® Project must be retained in the source code.
+ * If importing this code into a new or existing project attribution
+ * to the AREDN® project must be added to the source code.
+ *
+ * You must not misrepresent the origin of the material contained within.
+ *
+ * Modified versions must be modified to attribute to the original source
+ * and be marked in reasonable ways as differentiate it from the original
+ * version
+ */
 
-	Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
-	Copyright (C) 2021, 2024 Tim Wilkinson
-	See Contributors file for additional contributors
+import * as fs from "fs";
+import * as uci from "uci";
+import * as hardware from "aredn.hardware";
 
-	This does the low-level setup of the node, upgrades new setup values,
-	and repairs any configuration damage it detects.
+const nvram = uci.cursor("/etc/local/uci");
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation version 3 of the License.
+let name = nvram.get("hsmmmesh", "settings", "node") ?? "";
+let mac2 = nvram.get("hsmmmesh", "settings", "mac2") ?? "";
+let dtdmac = nvram.get("hsmmmesh", "settings", "dtdmac") ?? "";
+let wifi_mac = nvram.get("hsmmmesh", "settings", "wifimac") ?? "";
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+const defaults = {
+    wifi_ip: "10.<MAC2>",
+    wifi_mask: "255.255.255.255",
+    lan_proto: "static",
+    lan_ip: "172.27.0.1",
+    lan_mask: "255.255.255.0",
+    lan_dhcp: "1",
+    dhcp_start: "5",
+    dhcp_end: "25",
+    wan_proto: "dhcp",
+    wan_dns1: "8.8.8.8",
+    wan_dns2: "8.8.4.4",
+    wan_ip: "192.168.0.2",
+    wan_mask: "255.255.255.0",
+    wan_gw: "192.168.0.1",
+    dtdlink_ip: "10.<DTDMAC>",
+    time_zone: "UTC",
+    time_zone_name: "UTC",
+    ntp_server: "us.pool.ntp.org",
+    ntp_server2: "time.cloudflare.com",
+    ntp_active_server: "0",
+    compat_version: "1.0"
+};
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+const cfg = {};
 
-	Additional Terms:
-
-	Additional use restrictions exist on the AREDN® trademark and logo.
-		See AREDNLicense.txt for more info.
-
-	Attributions to the AREDN® Project must be retained in the source code.
-	If importing this code into a new or existing project attribution
-	to the AREDN® project must be added to the source code.
-
-	You must not misrepresent the origin of the material contained within.
-
-	Modified versions must be modified to attribute to the original source
-	and be marked in reasonable ways as differentiate it from the original
-	version
-
---]]
-
-require("aredn.utils")
-require("aredn.info")
-require("aredn.hardware")
-require("uci")
-require("iwinfo")
-
-local name = aredn.info.get_nvram("node")
-local mac2 = aredn.info.get_nvram("mac2")
-local dtdmac = aredn.info.get_nvram("dtdmac")
-local wifi_mac = aredn.info.get_nvram("wifimac")
-
-local defaults = {
-    wifi_ip = "10.<MAC2>",
-    wifi_mask = "255.255.255.255",
-    lan_proto = "static",
-    lan_ip = "172.27.0.1",
-    lan_mask = "255.255.255.0",
-    lan_dhcp = "1",
-    dhcp_start = "5",
-    dhcp_end = "25",
-    olsrd_bridge = "0",
-    wan_proto = "dhcp",
-    wan_dns1 = "8.8.8.8",
-    wan_dns2 = "8.8.4.4",
-    wan_ip = "192.168.0.2",
-    wan_mask = "255.255.255.0",
-    wan_gw = "192.168.0.1",
-    dtdlink_ip = "10.<DTDMAC>",
-    time_zone = "UTC",
-    time_zone_name = "UTC",
-    ntp_server = "us.pool.ntp.org",
-    ntp_server2 = "time.cloudflare.com",
-    ntp_active_server = "0",
-    compat_version = "1.0"
+function capture(cmd)
+{
+    const p = fs.popen(cmd);
+    if (p) {
+        const v = p.read("all");
+        p.close();
+        return trim(v);
+    }
+    return null;
 }
 
-local cfg = {}
+//
+// Setup the nvram
+//
 
---
--- Setup the nvram
---
+if (wifi_mac == "" || mac2 == "") {
+    let hardware_mac = null;
+    // If we have a radio ...
+    if (fs.access("/sys/class/ieee80211")) {
+        hardware_mac = (function(){
+            const phys = { phy0: true, phy1: true };
+            for (let i = 0; i < 5; i++) {
+                for (let phy in phys) {
+                    const f = fs.open(`/sys/class/ieee80211/${phy}/macaddress`);
+                    if (f) {
+                        for (let line = f.read("line"); length(line); line = f.read("line")) {
+                            const m = match(line, /(..:..:..:..:..:..)/);
+                            if (m) {
+                                return m[1];
+                            }
+                        }
+                        f.close();
+                    }
+                }
+                sleep(5000);
+            }
+        })();
+    }
 
-if wifi_mac == "" or mac2 == "" then
-    local hardware_mac
-    if aredn.hardware.has_wifi() then
-        local phy
-        for i = 1,5
-        do
-            for _, wlan in ipairs({ "wlan0", "wlan1" })
-            do
-                local f = io.popen("iwinfo " .. wlan .. " info")
-                if f then
-                    for line in f:lines()
-                    do
-                        phy = line:match("PHY name:%s*([a-z0-4]+)")
-                        if phy then
-                            break
-                        end
-                    end
-                    f:close()
-                end
-                if phy then
-                    break
-                end
-            end
-            if phy then
-                for line in io.lines("/sys/class/ieee80211/" .. phy .. "/macaddress")
-                do
-                    local m = line:match("(%w%w:%w%w:%w%w:%w%w:%w%w:%w%w)")
-                    if m then
-                        hardware_mac = m
-                        break
-                    end
-                end
-            end
-            if hardware_mac then
-                break
-            end
-            sleep(5)
-        end
-    end
+    if (!hardware_mac) {
+        // Fallback, create a random mac address instead
+        hardware_mac = match(capture(`hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/urandom`), /^([^ \t]+)/)[1];
+    }
 
-    if not hardware_mac then
-        -- Fallback, create a random mac address instead
-        hardware_mac = capture([[hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/urandom]]):match("^(%S+)")
-    end
+    if (wifi_mac == "") {
+        nvram.set("hsmmmesh", "settings", "wifimac", hardware_mac);
+    }
 
-    if wifi_mac == "" then
-        aredn.info.set_nvram("wifimac", hardware_mac)
-    end
+    if (mac2 == "") {
+        const m = match(hardware_mac, /..:..:..:(..):(..):(..)/);
+        mac2 = `${hex(m[1])}.${hex(m[2])}.${hex(m[3])}`;
+        nvram.set("hsmmmesh", "settings", "mac2", mac2);
+    }
+}
 
-    if mac2 == "" then
-        local a, b, c = hardware_mac:match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
-        mac2 = string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
-        aredn.info.set_nvram("mac2", mac2)
-    end
-end
+if (dtdmac == "") {
+    let m = null;
+    for (let i = 0; i < 5; i++) {
+        m = match(hardware.getInterfaceMAC("br-lan"), /..:..:..:(..):(..):(..)/);
+        if (m) {
+            break;
+        }
+    }
+    if (m) {
+        dtdmac = `${hex(m[1])}.${hex(m[2])}.${hex(m[3])}`;
+    }
+    else {
+        dtdmac = mac2;
+    }
+    if (dtdmac == mac2) {
+        const m = match(dtdmac, /^(\d+)\.(\d+)\.(\d+)$/);
+        let a = int(m[1]) + 1;
+        if (a > 255) {
+            a = 0;
+        }
+        dtdmac = `${a}.${m[2]}.${m[3]}`;
+    }
+    nvram.set("hsmmmesh", "settings", "dtdmac", dtdmac);
+}
 
-if dtdmac == "" then
-    local a, b, c
-    for i = 1,5
-    do
-        a, b, c = aredn.hardware.get_interface_mac(aredn.hardware.get_iface_name("lan")):match("%w%w:%w%w:%w%w:(%w%w):(%w%w):(%w%w)")
-        if a then
-            break
-        end
-        sleep(5)
-    end
-    if a then
-        dtdmac = string.format("%d.%d.%d", tonumber(a, 16), tonumber(b, 16), tonumber(c, 16))
-    else
-        dtdmac = mac2
-    end
-    if dtdmac == mac2 then
-        local a, b, c = dtdmac:match("^(%d+)%.(%d+)%.(%d+)$")
-        a = tonumber(a) + 1
-        if a > 255 then
-            a = 0
-        end
-        dtdmac = string.format("%d.%s.%s", a, b, c)
-    end
-    aredn.info.set_nvram("dtdmac", dtdmac)
-end
+if (name == "") {
+    name = "NOCALL";
+    nvram.set("hsmmmesh", "settings", "node", name);
+}
 
-if name == "" then
-    name = "NOCALL"
-    aredn.info.set_nvram("node", name)
-end
+nvram.commit("hsmmmesh");
 
---
--- Configure and repair _setup
---
+//
+// Configure and repair _setup
+//
 
--- Load the defaults
-for k, v in pairs(defaults)
-do
-    cfg[k] = v:gsub("<NODE>", name):gsub("<MAC2>", mac2):gsub("<DTDMAC>", dtdmac)
-end
+// Load the defaults
+for (let k in defaults) {
+    cfg[k] = replace(replace(replace(defaults[k], "<NODE>", name), "<MAC2>", mac2), "<DTDMAC>", dtdmac);
+}
 
--- Override with the current config
-local all = uci.cursor("/etc/config.mesh"):get_all("setup", "globals") or {}
-for k, v in pairs(all)
-do
-    if not k:match("^%.") then
-        cfg[k] = v
-    end
-end
+// Override with the current config
+const all = uci.cursor("/etc/config.mesh").get_all("setup", "globals") || {};
+for (let k in all) {
+    if (!match(k, /^\./)) {
+        cfg[k] = all[k];
+    }
+}
 
--- Make sure compat version is correct
-local system = aredn.hardware.get_board().system
-if system and system.compat_version then
-    cfg.compat_version = system.compat_version
-end
+// Make sure compat version is correct
+const boardsystem = hardware.getBoard().system;
+if (boardsystem && boardsystem.compat_version) {
+    cfg.compat_version = boardsystem.compat_version;
+}
 
--- Radio
-if aredn.hardware.get_radio_count() > 0 and not cfg.radio0_mode then
-    local defaultwifi = aredn.hardware.get_default_channel("wlan0")
-    cfg.radio0_mode = "mesh"
-    cfg.radio0_ssid = cfg.radio0_ssid or "AREDN"
-    cfg.radio0_channel = cfg.radio0_channel or defaultwifi.channel
-    cfg.radio0_bandwidth = cfg.radio0_bandwidth or defaultwifi.bandwidth
-    cfg.radio0_txpower = cfg.radio0_txpower or 19
-    cfg.radio0_distance = cfg.radio0_distance or 0
-end
+// Radio
+if (hardware.getRadioCount() > 0 && !cfg.radio0_mode) {
+    const defaultwifi = hardware.getDefaultChannel("wlan0");
+    cfg.radio0_mode = "mesh";
+    cfg.radio0_ssid = cfg.radio0_ssid || "AREDN";
+    cfg.radio0_channel = cfg.radio0_channel || defaultwifi.channel;
+    cfg.radio0_bandwidth = cfg.radio0_bandwidth || defaultwifi.bandwidth;
+    cfg.radio0_txpower = cfg.radio0_txpower || 19;
+    cfg.radio0_distance = cfg.radio0_distance || 0;
+}
 
--- DHCP
-if not cfg.dmz_mode then
-    local dmz_dhcp_base, net = ("1" .. decimal_to_ip((ip_to_decimal("10." .. mac2) * 8) % 0x1000000)):match("(%d+%.%d+%.%d+%.)(%d+)")
-    cfg.dmz_mode = 3
-    cfg.dmz_lan_ip = dmz_dhcp_base .. (tonumber(net) + 1)
-    cfg.dmz_dhcp_start = 2
-    cfg.dmz_dhcp_end = 6
-    cfg.dmz_lan_mask = "255.255.255.248"
-end
+// DHCP
+if (!cfg.dmz_mode) {
+    const amac2 = iptoarr(`10.${mac2}`);
+    const dmac2 = (((amac2[0] << 24) + (amac2[1] << 16) + (amac2[2] << 8) + amac2[3]) * 8) % 0x1000000;
+    const a = [ (dmac2 >> 24) & 255, (dmac2 >> 16) & 255, (dmac2 >> 8) & 255, dmac2 & 255 ];
+    cfg.dmz_mode = 3;
+    cfg.dmz_lan_ip = `10.${a[1]}.${a[2]}.${a[3] + 1}`;
+    cfg.dmz_dhcp_start = 2;
+    cfg.dmz_dhcp_end = 6;
+    cfg.dmz_lan_mask = "255.255.255.248";
+}
 
--- And save
-local c = uci.cursor("/etc/config.mesh")
+// And save
+const c = uci.cursor("/etc/config.mesh");
 
-io.open("/etc/config.mesh/setup", "a"):close()
-if not c:get("setup", "globals") then
-    c:set("setup", "globals", "globals")
-end
+fs.open("/etc/config.mesh/setup", "a").close();
+if (!c.get("setup", "globals")) {
+    c.set("setup", "globals", "globals");
+}
 
-for k, v in pairs(cfg)
-do
-    c:set("setup", "globals", k, v)
-end
-c:commit("setup")
+for (let k in cfg) {
+    c.set("setup", "globals", k, cfg[k]);
+}
+c.commit("setup");
 
--- If this was an upgrade, make sure to remove the carried configuration so we dont apply it again
-os.remove("/sysupgrade.tgz")
+// If this was an upgrade, make sure to remove the carried configuration so we dont apply it again
+fs.unlink("/sysupgrade.tgz");
 
--- If the node has been configured by the user we can complete the setup
-if aredn.info.get_nvram("configured") ~= "0" then
-    os.execute("/usr/local/bin/node-setup")
-    -- Reboot when necessary
-    if nixio.fs.stat("/tmp/reboot-required") then
-        if nixio.fs.stat("/etc/local/aredn_init_rebooted") then
-            print "Rebooting node requested, but would loop so ignoring"
-            os.remove("/etc/local/aredn_init_rebooted")
-        else
-            print "Rebooting node"
-            os.execute("/sbin/mount_root done")
-            io.open("/etc/local/aredn_init_rebooted", "w"):close()
-            os.execute("/bin/sync")
-            os.execute("/sbin/reboot")
-        end
-    else
-        os.remove("/etc/local/aredn_init_rebooted")
-    end
-end
+// If the node has been configured by the user we can complete the setup
+if (nvram.get("hsmmmesh", "settings", "configured") != "0") {
+    system("/usr/local/bin/node-setup");
+    // Reboot when necessary
+    if (fs.access("/tmp/reboot-required")) {
+        if (fs.access("/etc/local/aredn_init_rebooted")) {
+            print("Rebooting node requested, but would loop so ignoring\n");
+            fs.unlink("/etc/local/aredn_init_rebooted");
+        }
+        else {
+            print("Rebooting node\n");
+            system("/sbin/mount_root done");
+            fs.writefile("/etc/local/aredn_init_rebooted", "");
+            system("/bin/sync");
+            system("/sbin/reboot");
+        }
+    }
+    else {
+        fs.unlink("/etc/local/aredn_init_rebooted");
+    }
+}

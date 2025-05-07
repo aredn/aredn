@@ -79,26 +79,6 @@ export function getToDos()
 {
     const cursor = uci.cursor();
     const todos = [];
-    if (hardware.isLowMemNode()) {
-        push(todos, "AREDN® is migrating to a new routing protocol called Babel. Unfortunately this node is too old to support this. We recommend you upgrade the hardware in the near future.");
-    }
-    else {
-        let legacy = false;
-        const cursor = uci.cursor("/etc/config.mesh");
-        if (cursor.get("vtun", "@client[0]")) {
-            legacy = true;
-        }
-        else {
-            cursor.foreach("vtun", "server", s => {
-                if (index(s.netip, ":") === -1) {
-                    legacy = true;
-                }
-            });
-        }
-        if (legacy) {
-            push(todos, "AREDN® is migrating to a new routing protocol called Babel. Unfortuntely this protocol cannot support old legacy tunnels. We recommend migrating these tunnels to Wireguard.");
-        }
-    }
     if (!cursor.get("aredn", "@location[0]", "lat") || !cursor.get("aredn", "@location[0]", "lon")) {
         push(todos, "Set the latitude and longitude");
     }

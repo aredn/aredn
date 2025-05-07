@@ -88,14 +88,12 @@
             {{_R("ports-and-xlinks")}}
         </div>
         {% } %}
-        {% if (fs.access("/usr/bin/wg") || fs.access("/usr/sbin/vtund")) { %}
         <div id="tunnels">
             <hr>
             <div hx-get="u-tunnels" hx-trigger="every 120s [document.visibilityState === 'visible']">
             {{_R("tunnels")}}
             </div>
         </div>
-        {% } %}
     </div>
 </div>
 {% } else { %}
@@ -150,12 +148,10 @@ if (length(args.msgs) || length(args.todos)) { %}
     {{_R("ports-and-xlinks")}}
 </div>
 {% } %}
-{% if (fs.access("/usr/bin/wg") || fs.access("/usr/sbin/vtund")) { %}
 <div id="tunnels">
     <hr>
     <div hx-get="u-tunnels" hx-trigger="every 120s [document.visibilityState === 'visible']">
     {{_R("tunnels")}}
     </div>
 </div>
-{% } %}
 {% } %}

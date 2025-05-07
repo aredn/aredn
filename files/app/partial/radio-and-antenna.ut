@@ -89,10 +89,12 @@
             </div>
             <div style="flex:2">
             {%
-                const dvalue = util.ceil(units.meters2distance(hardware.getMaxDistance(radio[midx].iface)));
+                if (hardware.supportsSetMaxDistance(radio[midx].iface)) {
+                    const dvalue = util.ceil(units.meters2distance(hardware.getMaxDistance(radio[midx].iface)));
             %}
                 <div class="t">{{dvalue}} {{units.distanceUnit(dvalue)}}</div>
                 <div class="s">maximum distance (actual)</div>
+            {% } %}
             </div>
         </div>
     </div>

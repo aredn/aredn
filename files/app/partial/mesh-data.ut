@@ -36,103 +36,85 @@
 print("<script>\n");
 print("window.mesh = {hosts:{");
 
-const reHostsOlsr = /^([0-9.]+)[ \t]+([^ \t]+)[ \t]+#[ \t]+([^ \t]+)/;
-const reServices = /^([^|]+)\|(tcp|udp)\|(.+)[ \t]+#[ \t]*([^ \t\n]+)/;
-const reRoutes = /^([0-9.]+)\/([0-9]+)\t[0-9.]+\t[0-9]+\t([0-9.]+)/;
+const reHosts = /^([0-9.]+)[ \t]+([^ \t]+)/;
+const reServices = /^([^|]+)\|(tcp|udp)\|(.+)$/;
+const reRoute = /^([^ /]+) via .+ metric ([^ ]+) /;
 
-let myself = null;
-const h = fs.open("/var/run/hosts_olsr");
-if (h) {
-    let originator = null;
-    let first = true;
-    let fallback = null;
-    for (let line = h.read("line"); length(line); line = h.read("line")) {
-        const v = match(trim(line), reHostsOlsr);
-        if (v) {
-            if (originator !== v[3]) {
-                if (originator) {
-                    if (first && fallback) {
-                        print(`["${fallback}"]`);
+const hd = fs.opendir("/var/run/arednlink/hosts/");
+if (hd) {
+    for (let entry = hd.read(); entry; entry = hd.read()) {
+        if (entry !== "." && entry !== "..") {
+            const f = fs.open(`/var/run/arednlink/hosts/${entry}`);
+            if (f) {
+                let originator = null;
+                for (let l = f.read("line"); l; l = f.read("line")) {
+                    const m = match(trim(l), reHosts);
+                    if (m) {
+                        const ip = m[1];
+                        const host = m[2];
+                        if (!originator) {
+                            originator = ip;
+                            print(`"${originator}":[`);
+                        }
+                        if (index(host, "mid") !== 0 && index(host, "dtdlink.") !== 0 && index(host, "xlink") !== 0 && index(host, "lan.") !== 0) {
+                            if (originator == ip) {
+                                print(`["${host}"],`);
+                            }
+                            else {
+                                print(`["${host}","${ip}"],`);
+                            }
+                        }
                     }
-                    fallback = null;
-                    print("],");
                 }
-                originator = v[3];
-                if (originator === "myself") {
-                    myself = v[1];
-                    print(`"${myself}":[`);
+                if (originator) {
+                    print(`],`);
                 }
-                else {
-                    print(`"${originator}":[`);
-                }
-                first = true;
-            }
-            const host = v[2];
-            if (index(host, "mid") !== 0 && index(host, "dtdlink.") !== 0 && index(host, "xlink") !== 0 && index(host, "lan.") !== 0) {
-                if (!first) {
-                    print(",");
-                }
-                if (v[1] === originator || (originator == "myself" && v[1] == myself)) {
-                    print(`["${host}"]`);
-                }
-                else {
-                    print(`["${host}","${v[1]}"]`);
-                }
-                first = false;
-            }
-            else if (originator === "myself" && index(host, "dtdlink.") === 0) {
-                fallback = replace(host, /^dtdlink\.(.+)\.local\.mesh$/, "$1");
+                f.close();
             }
         }
     }
-    if (first && fallback) {
-        print(`["${fallback}"]`);
-    }
-    print("]");
-    h.close();
+    hd.close();
 }
+
 print("},services:{");
-const s = fs.open("/var/run/services_olsr");
-if (s) {
-    let first = true;
-    let ip = null;
-    for (let line = s.read("line"); length(line); line = s.read("line")) {
-        const v = match(line, reServices);
-        if (v) {
-            if (ip !== v[4]) {
-                if (ip) {
-                    print("],");
+
+const sd = fs.opendir("/var/run/arednlink/services/");
+if (sd) {
+    for (let entry = sd.read(); entry; entry = sd.read()) {
+        if (entry !== "." && entry !== "..") {
+            const f = fs.open(`/var/run/arednlink/services/${entry}`);
+            if (f) {
+                let empty = true;
+                for (let l = f.read("line"); length(l); l = f.read("line")) {
+                    const m = match(trim(l), reServices);
+                    if (m) {
+                        if (empty) {
+                            empty = false;
+                            print(`"${entry}":[`);
+                        }
+                        print(`{n:"${m[3]}",u:"${m[1]}"},`);
+                    }
                 }
-                ip = v[4];
-                if (ip === "my") {
-                    print(`"${myself}":[`);
+                if (!empty) {
+                    print(`],`);
                 }
-                else {
-                    print(`"${ip}":[`);
-                }
-                first = true;
+                f.close();
             }
-            if (!first) {
-                print(",");
-            }
-            print(`{n:"${v[3]}",u:"${v[1]}"}`);
-            first = false;
         }
     }
-    if (ip) {
-        print("]");
-    }
-    s.close();
+    sd.close();
 }
-print(`},etx:[["${myself}",0.0],`);
-const f = fs.popen("exec /bin/uclient-fetch http://127.0.0.1:2006/rou -O - 2> /dev/null");
+
+print(`},etx:[["${configuration.getSettingAsString("wifi_ip")}",0],`);
+const f = fs.popen("exec /sbin/ip route show table 20 2>/dev/null");
 if (f) {
-  for (let l = f.read("line"); length(l); l = f.read("line")) {
-    const m = match(l, reRoutes);
-    if (m && m[2] > 8 && m[3] <= 50) {
-        print(`["${m[1]}",${sprintf("%.1f", m[3])}],`);
+    for (let l = f.read("line"); length(l); l = f.read("line")) {
+        const m = match(l, reRoute);
+        if (m) {
+            print(`["${m[1]}",${m[2]}],`);
+        }
     }
-  }
+    f.close();
 }
 print("].sort((a,b)=>a[1]-b[1])};\n");
 print("</script>\n");

@@ -1,6 +1,6 @@
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2024,2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,57 +35,34 @@ import * as fs from "fs";
 
 export function getNodeList()
 {
-    const re = /^10.+\tdtdlink\.(.+)\.local\.mesh\t#.+$/;
     const nodes = [];
-    const f = fs.open("/var/run/hosts_olsr");
-    if (!f) {
-        return nodes;
-    }
     const hash = {};
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const m = match(l, re);
-        if (m) {
-            const n = m[1];
-            const ln = lc(n);
-            push(nodes, ln);
-            hash[ln] = n;
+    const re = /^[0-9\.]+[ \t]+(.+)\n$/;
+    const d = fs.opendir("/var/run/arednlink/hosts");
+    if (d) {
+        for (let entry = d.read(); entry; entry = d.read()) {
+            if (entry !== "." && entry !== "..") {
+                let f = fs.open(`/var/run/arednlink/hosts/${entry}`);
+                if (f) {
+                    const m = match(f.read("line"), re);
+                    if (m) {
+                        const n = m[1];
+                        const ln = lc(n);
+                        push(nodes, ln);
+                        hash[ln] = n;
+                    }
+                    f.close();
+                }
+            }
         }
+        d.close();
     }
-    f.close();
     sort(nodes);
     return map(nodes, n => hash[n]);
 };
 
 export function getNodeCounts()
 {
-    let onodes = 0;
-    let odevices = 0;
-    let oservices = 0;
-    let f = fs.open("/var/run/hosts_olsr");
-    if (f) {
-        const re = /\t(lan|mid\d+|xlink\d+)\./;
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            if (substr(l, 0, 3) == "10.") {
-                if (index(l, "\tdtdlink.") !== -1) {
-                    onodes++;
-                }
-                else if (!match(l, re)) {
-                    odevices++;
-                }
-            }
-        }
-        f.close();
-    }
-    f = fs.open("/var/run/services_olsr");
-    if (f) {
-        for (let l = f.read("line"); length(l); l = f.read("line")) {
-            const c = substr(l, 0, 1);
-            if (c !== "#" && c !== "\n") {
-                oservices++;
-            }
-        }
-        f.close();
-    }
     let bnodes = 0;
     let bdevices = 0;
     let bservices = 0;
@@ -116,11 +93,6 @@ export function getNodeCounts()
         d.close();
     }
     return {
-        olsr: {
-            nodes: onodes,
-            devices: odevices,
-            services: oservices
-        },
         babel: {
             nodes: bnodes,
             devices: bdevices,

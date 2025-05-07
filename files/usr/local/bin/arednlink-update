@@ -33,7 +33,11 @@ true <<'LICENSE'
 
 LICENSE
 
-socat UNIX-CLIENT:/var/run/arednlink.sock - <<__EOF__
+if [ "${1}" != "--verbose" ]; then
+  exec > /dev/null
+fi
+
+socat UNIX-CLIENT:/var/run/arednlink.sock - << '__EOF__'
 upload hosts /etc/arednlink/hosts
 upload services /etc/arednlink/services
 quit

@@ -54,18 +54,6 @@ const configDirs = [
     "/tmp"
 ];
 const configFiles = [
-    "/etc/config.mesh/_setup.dhcp.dmz",
-    "/etc/config.mesh/_setup.dhcp.nat",
-    "/etc/config.mesh/_setup.dhcpoptions.dmz",
-    "/etc/config.mesh/_setup.dhcpoptions.nat",
-    "/etc/config.mesh/_setup.dhcptags.dmz",
-    "/etc/config.mesh/_setup.dhcptags.nat",
-    "/etc/config.mesh/_setup.ports.dmz",
-    "/etc/config.mesh/_setup.ports.nat",
-    "/etc/config.mesh/_setup.services.dmz",
-    "/etc/config.mesh/_setup.services.nat",
-    "/etc/config.mesh/aliases.dmz",
-    "/etc/config.mesh/aliases.nat",
     "/etc/config.mesh/aredn",
     "/etc/config.mesh/babel",
     "/etc/config.mesh/dhcp",
@@ -73,7 +61,6 @@ const configFiles = [
     "/etc/config.mesh/firewall",
     "/etc/config.mesh/firewall.user",
     "/etc/config.mesh/network",
-    "/etc/config.mesh/olsrd",
     "/etc/config.mesh/setup",
     "/etc/config.mesh/snmpd",
     "/etc/config.mesh/system",
@@ -364,7 +351,7 @@ export function commitChanges()
         if (n) {
             status.setup = n.read("all");
             n.close();
-            const c = fs.popen("exec /usr/local/bin/restart-services.sh");
+            const c = fs.popen("exec /usr/local/bin/restart-services");
             if (c) {
                 status.restart = c.read("all");
                 c.close();
@@ -481,15 +468,13 @@ export function supportdata(supportdatafilename)
         "/etc/local",
         "/etc/mesh-release",
         "/etc/os-release",
-        "/var/run/hosts_olsr",
-        "/var/run/services_olsr",
         "/etc/arednlink/hosts",
         "/etc/arednlink/services",
         "/tmp/etc",
         "/tmp/dnsmasq.d",
         "/tmp/lqm.info",
         "/tmp/wireless_monitor.info",
-        "/tmp/service-validation-state",
+        "/tmp/service-validation-state.json",
         "/tmp/sysinfo",
         "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
         "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
@@ -520,6 +505,7 @@ export function supportdata(supportdatafilename)
         "ip route list table 20",
         "ip route list table 21",
         "ip route list table 22",
+        "ip route list table 28",
         "ip route list table 29",
         "ip route list table 30",
         "ip route list table 31",

@@ -92,11 +92,9 @@ fi
 # Generate the backup unless first use
 #
 if [ "${backup}" != "-n" ]; then
-  # Stop babel if it's installed.
+  # Stop babel.
   # We need to do this here so we get the state information into the backup file.
-  if [ -f /etc/init.d/babel ]; then
-    /etc/init.d/babel stop
-  fi
+  /etc/init.d/babel stop
   cp /dev/null /tmp/sysupgradefilelist
   cat /etc/arednsysupgrade.conf | while read f
   do
@@ -109,9 +107,7 @@ if [ "${backup}" != "-n" ]; then
   if [ -f /tmp/arednsysupgradebackup.tgz ]; then
     backup="-f /tmp/arednsysupgradebackup.tgz"
   else
-    if [ -f /etc/init.d/babel ]; then
-      /etc/init.d/babel start
-    fi
+    /etc/init.d/babel start
     echo "ERROR: Failed to create backup - aborting firmware upgrade" 1>&2
     exit 1
   fi

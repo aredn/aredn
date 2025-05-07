@@ -86,19 +86,13 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const name = request.args.node_name;
         if (match(name, constants.reNodename)) {
             configuration.setName(name);
-            uciMesh.foreach("vtun", "server", s => {
+            uciMesh.foreach("wireguard", "server", s => {
                 const netip = s.netip;
-                if (index(netip, ":") !== -1) {
-                    const np = split(netip, ":");
-                    const n = iptoarr(np[0]);
-                    uciMesh.set("vtun", s[".name"], "node", `${uc(substr(name, 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}:${np[1]}`);
-                }
-                else {
-                    const n = iptoarr(netip);
-                    uciMesh.set("vtun", s[".name"], "node", `${uc(substr(name, 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}`);
-                }
+                const np = split(netip, ":");
+                const n = iptoarr(np[0]);
+                uciMesh.set("wireguard", s[".name"], "node", `${uc(substr(name, 0, 23))}-${n[0]}-${n[1]}-${n[2]}-${n[3]}:${np[1]}`);
             });
-            uciMesh.commit("vtun");
+            uciMesh.commit("wireguard");
         }
     }
     if ("passwd" in request.args) {
