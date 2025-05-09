@@ -572,19 +572,49 @@ export function getRadioNoise(wifiIface)
 
 export function getMaxDistance(wifiIface)
 {
-    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
-    return info.wiphy_coverage_class * 450;
+    switch (getRadioType(wifiIface)) {
+        case "halow":
+            const p = fs.popen("/sbin/morse_cli get ack_timeout_adjust");
+            if (p) {
+                const ack = int(p.read("line"));
+                p.close();
+                return ack * 150;
+            }
+            return -1;
+        default:
+            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+            return info.wiphy_coverage_class * 450;
+    }
 };
 
-export function supportsSetMaxDistance(wifiIface)
+export function setMaxDistance(wifiIface, distance)
 {
-    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
-    if (info) {
-        if (system(`/usr/sbin/iw ${getPhyDevice(wifiIface)} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
-            return true;
-        }
+    switch (getRadioType(wifiIface)) {
+        case "halow":
+            const ack = max(2, 2 * int(distance / 300));
+            system(`/sbin/morse_cli set ack_timeout_adjust ${ack} > /dev/null 2>&1`);
+            break;
+        default:
+            const coverage = min(255, floor(distance / 450));
+            system(`/usr/sbin/iw ${getPhyDevice(wifiIface)} set coverage ${coverage} > /dev/null 2>&1`);
+            break;
     }
-    return false;
+};
+
+export function supportsMaxDistance(wifiIface)
+{
+    switch (getRadioType(wifiIface)) {
+        case "halow":
+            return true;
+        default:
+            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+            if (info) {
+                if (system(`/usr/sbin/iw ${getPhyDevice(wifiIface)} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
+                    return true;
+                }
+            }
+            return false;
+    }
 };
 
 export function supportsMode(wifiIface, mode)

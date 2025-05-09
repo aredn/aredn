@@ -202,7 +202,7 @@ function main()
     const trackers = {};
     let rfLinks = {};
     let hiddenNodes = {};
-    let lastCoverage = -1;
+    let lastDistance = -1;
     let distance = -1;
     let noise = -95;
     const radioMode = device ? uci.cursor("/etc/config.mesh").get("setup", "globals", `${radio}_mode`) : "off";
@@ -211,8 +211,8 @@ function main()
 
     // We dont know any distances yet
     if (ac) {
-        lastCoverage = min(255, floor(config.max_distance / 450));
-        iwSet(`coverage ${lastCoverage}`);
+        lastDistance = config.max_distance;
+        hardware.setMaxDistance(wlan, lastDistance);
     }
     else {
         iwSet("distance auto");
@@ -734,10 +734,9 @@ function main()
             else {
                 distance = min(distance, config.max_distance);
             }
-            const coverage = min(255, floor(distance / 450));
-            if (coverage != lastCoverage) {
-                lastCoverage = coverage;
-                iwSet(`coverage ${coverage}`);
+            if (distance != lastDistance) {
+                lastDistance = distance;
+                hardware.setMaxDistance(wlan, distance);
             }
 
             // Set the RTS/CTS state depending on whether everyone can see everyone
@@ -779,7 +778,6 @@ function main()
                 now: now,
                 trackers: trackers,
                 distance: distance,
-                coverage: coverage,
                 hidden_nodes: hiddenNodes,
                 total_route_count: total_route_count
             }));
