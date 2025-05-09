@@ -360,7 +360,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="20" pattern="[^!#;+\]\/"\t\-][^+\]\/"\t\-]{0,18}[^ !#;+\]\/"\t\-]$|^[^ !#;+\]\/"\t\-]" hx-validate="true" value="{{ssid_mesh}}"><span style="color:var(--ctrl-modal-fg-color)">{{mode === radios.RADIO_MESH ? "" : `-${channel}`}}-{{bandwidth}}-v3</span>
                     </div>
                 </div>
-                {% if (hardware.supportsSetMaxDistance(wlan[w].iface)) { %}
+                {% if (hardware.supportsMaxDistance(wlan[w].iface)) { %}
                 <div class="cols">
                     <div>
                         <div class="o">Maximum Distance</div>
