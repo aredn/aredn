@@ -843,7 +843,7 @@ export function GPSFind()
         if (n.interface === "br-dtdlink") {
             const ip = `${n.ipv6address}%${n.interface}`;
             const s = socket.connect(ip, 2947, null, 500);
-            if (s && s.send("\n") !== 1) {
+            if (s && s.send("\n") === 1) {
                 s.close();
                 return ip;
             }
