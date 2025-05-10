@@ -595,7 +595,7 @@ export function setMaxDistance(wifiIface, distance)
             system(`/sbin/morse_cli set ack_timeout_adjust ${ack} > /dev/null 2>&1`);
             break;
         default:
-            const coverage = min(255, floor(distance / 450));
+            const coverage = min(255, int(distance / 450));
             system(`/usr/sbin/iw ${getPhyDevice(wifiIface)} set coverage ${coverage} > /dev/null 2>&1`);
             break;
     }
