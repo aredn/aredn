@@ -841,13 +841,15 @@ export function GPSFind()
     for (let i = 0; i < length(neighbors); i++) {
         const n = neighbors[i];
         if (n.interface === "br-dtdlink") {
-            const s = socket.create(socket.AF_INET, socket.SOCK_STREAM, 0);
             const ip = `${n.ipv6address}%${n.interface}`;
-            if (s.connect(ip, 2947)) {
+            const s = socket.connect(ip, 2947, null, 500);
+            if (s) {
+                if (s.send("\n") === 1) {
+                    s.close();
+                    return ip;
+                }
                 s.close();
-                return ip;
             }
-            s.close();
         }
     }
     return null;
@@ -863,9 +865,8 @@ export function GPSReadLLT(gps, maxlines)
     if (match(gps, /^\/dev\//)) {
         gps = "127.0.0.1";
     }
-    const s = socket.create(socket.AF_INET, socket.SOCK_STREAM, 0);
-    if (!s.connect(gps, 2947)) {
-        s.close();
+    const s = socket.connect(gps, 2947, null, 500);
+    if (!s) {
         return null;
     }
     s.send('?WATCH={"enable":true,"json":true}\n');
