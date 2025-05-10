@@ -1,5 +1,9 @@
 __RELEASE NOTES__
 
+# 3.25.5.1
+
+* Fix for Babel routes being lost, especially after a reboot or upgrade.
+
 # 3.25.5.0
 
 **Major Enhancements**
