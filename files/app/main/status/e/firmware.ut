@@ -367,14 +367,18 @@
         }
         let fwimage = null;
 
-        let booter_version = null;
-        if (index(hardware.getHardwareType(), "mikrotik-v7") !== -1) {
-            booter_version = "v7"
+        let image_type = null;
+        const hwtype = hardware.getHardwareType();
+        if (index(hwtype, "mikrotik-v7") !== -1) {
+            image_type = "sysupgrade-v7";
+        }
+        else if (false) {
+            image_type = "combined-efi";
         }
         for (let i = 0; i < length(overview.images); i++) {
             const image = overview.images[i];
-            if ((!booter_version && (image.type === "sysupgrade" || image.type === "nand-sysupgrade" || image.type == "combined")) ||
-               (booter_version === "v7" && image.type === "sysupgrade-v7")) {
+            if ((!image_type && (image.type === "sysupgrade" || image.type === "nand-sysupgrade" || image.type == "combined")) ||
+               (image.type === image_type)) {
                 fwimage = {
                     url: `${inst.target}/${image.name}`,
                     sha: image.sha256
