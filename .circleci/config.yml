@@ -372,7 +372,7 @@ jobs:
     steps:
       - run:
           name: Post to Slack
-          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "./post-nightly.sh $(printf '%(%Y%m%d)T')-$(echo ${CIRCLE_SHA1} | cut -c '-7')-babel"
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "./post-nightly.sh babel-$(printf '%(%Y%m%d)T')-$(echo ${CIRCLE_SHA1} | cut -c '-7')"
       
   no_action:
     machine:
