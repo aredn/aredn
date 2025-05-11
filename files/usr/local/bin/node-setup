@@ -607,6 +607,7 @@ cm.foreach("wireguard", "server",
             wgservers, client_priv, w, abcd[0], abcd[1], abcd[2], abcd[3] + 1, ll, (s.enabled == 1 ? "0" : "1"));
         cfg.wireguard_network_config += sprintf("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
             wgservers, server_pub, s.host, p);
+        cfg.vpn_interfaces += `\tlist network 'wgs${wgservers}'\n`;
         wgservers++;
     }
 );
