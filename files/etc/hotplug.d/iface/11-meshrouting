@@ -67,11 +67,6 @@ if [ "$ACTION" = "ifup" ] ; then
     ip route add default via $wangwip table 28
   fi
 
-  if [ "${INTERFACE:0:3}" = "wgc" ]; then
-  fi
-  if [ "${INTERFACE:0:3}" = "wgs" ]; then
-  fi
-
   # Makes sure the lan interface is allowed to hit the local interfaces(29), babel(20), and local routes (main)  Local ethernet is trusted to use additonal rules.
   if [ "$INTERFACE" == "lan" ] ; then
     ip rule add pref 30010 iif $DEVICE lookup 29
