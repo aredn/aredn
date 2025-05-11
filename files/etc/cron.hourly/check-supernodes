@@ -48,24 +48,26 @@ if c:get("aredn", "@supernode[0]", "enable") ~= "1" and c:get("aredn", "@superno
 
 	-- Find the closest supernode to use as a nameserver (Babel)
 	local bbest = { destination = nil, metric = 99999999 }
-	for name in nixio.fs.dir("/var/run/arednlink/hosts")
-	do
-		for line in io.lines("/var/run/arednlink/hosts/" .. name)
+	if nixio.fs.stat("/var/run/arednlink/hosts") then
+		for name in nixio.fs.dir("/var/run/arednlink/hosts")
 		do
-			if line:match("^[0-9%.]+%s+supernode%.") then
-				local metric = capture("/sbin/ip route show table 20 | grep " .. name):match(" metric (%d+)")
-				if metric then
-					metric = tonumber(metric)
-					if metric < bbest.metric then
-						bbest.metric = metric
-						bbest.destination = name
+			for line in io.lines("/var/run/arednlink/hosts/" .. name)
+			do
+				if line:match("^[0-9%.]+%s+supernode%.") then
+					local metric = capture("/sbin/ip route show table 20 | grep " .. name):match(" metric (%d+)")
+					if metric then
+						metric = tonumber(metric)
+						if metric < bbest.metric then
+							bbest.metric = metric
+							bbest.destination = name
+						end
 					end
+					break
 				end
-				break
 			end
 		end
+		dest = bbest.destination
 	end
-	dest = bbest.destination
 
 	if not dest then
 		-- Find the closest supernode to use as a nameserver (OLSR)
