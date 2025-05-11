@@ -168,7 +168,11 @@ export function getRadioIntf(wifiIface)
 
 export function getRadioType(wifiIface)
 {
-    if (getRadioIntf(wifiIface).band == "halow") {
+    const iface = getRadioIntf(wifiIface);
+    if (!iface) {
+        return "none";
+    }
+    if (iface.band == "halow") {
         return "halow";
     }
     return "wifi";
@@ -573,6 +577,8 @@ export function getRadioNoise(wifiIface)
 export function getMaxDistance(wifiIface)
 {
     switch (getRadioType(wifiIface)) {
+        case "none":
+            return -1;
         case "halow":
             const p = fs.popen("/sbin/morse_cli get ack_timeout_adjust");
             if (p) {
@@ -590,6 +596,8 @@ export function getMaxDistance(wifiIface)
 export function setMaxDistance(wifiIface, distance)
 {
     switch (getRadioType(wifiIface)) {
+        case "none":
+            break;
         case "halow":
             const ack = max(2, 2 * int(distance / 300));
             system(`/sbin/morse_cli set ack_timeout_adjust ${ack} > /dev/null 2>&1`);
@@ -604,6 +612,8 @@ export function setMaxDistance(wifiIface, distance)
 export function supportsMaxDistance(wifiIface)
 {
     switch (getRadioType(wifiIface)) {
+        case "none":
+            return false;
         case "halow":
             return true;
         default:
