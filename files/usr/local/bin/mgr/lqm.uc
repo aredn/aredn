@@ -308,7 +308,7 @@ function main()
             if (type === "Wireguard" || type == "Xlink") {
                 for (let mac in trackers) {
                     const t = trackers[mac];
-                    if (t[mac].device == stat.dev) {
+                    if (t.device == stat.dev) {
                         t.tx_packets = stat.stats64.tx_packets;
                         t.tx_fail = stat.stats64.tx_errors;
                         break;

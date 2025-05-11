@@ -13,7 +13,7 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
 
   echo "Deleting specific routing rules that may exist."
 
-  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:3}" == "tun" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$xlink" != "" ] ; then
+  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$xlink" != "" ] ; then
     ip rule del pref 20010 iif $DEVICE lookup 29
     ip rule del pref 20020 iif $DEVICE lookup 20
     ip rule del pref 20040 iif $DEVICE lookup 21
@@ -50,7 +50,7 @@ if [ "$ACTION" = "ifup" ] ; then
 
   echo "Setting routing rules."
 
-  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:3}" = "tun" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$xlink" != "" ]; then
+  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$xlink" != "" ]; then
     ip rule add pref 20010 iif $DEVICE lookup 29
     ip rule add pref 20020 iif $DEVICE lookup 20
     ip rule add pref 20040 iif $DEVICE lookup 21
@@ -65,6 +65,11 @@ if [ "$ACTION" = "ifup" ] ; then
   if [ "$INTERFACE" = "wan" ] && [ $is_wan_gw -eq 1 ]; then
     wangwip=$(ip route get 8.8.8.8 | sed -e 's/.*via//' -e 's/ dev.*//')
     ip route add default via $wangwip table 28
+  fi
+
+  if [ "${INTERFACE:0:3}" = "wgc" ]; then
+  fi
+  if [ "${INTERFACE:0:3}" = "wgs" ]; then
   fi
 
   # Makes sure the lan interface is allowed to hit the local interfaces(29), babel(20), and local routes (main)  Local ethernet is trusted to use additonal rules.
