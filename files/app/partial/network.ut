@@ -64,17 +64,14 @@
             print("<div class='s'>wan gateway</div>");
             valueWan = true;
         }
-        if (validWan) {
-            let v = "-";
-            const dns = split(uci.get("network", "wifi", "dns"), " ");
-            if (dns && dns[0]) {
-                v = dns[0];
-                if (dns[1]) {
-                    v += "&nbsp;&nbsp;&nbsp;" + dns[1];
-                }
+        const dns = split(uci.get("network", "wifi", "dns"), " ");
+        if (dns && dns[0]) {
+            let v = dns[0];
+            if (dns[1]) {
+                v += "&nbsp;&nbsp;&nbsp;" + dns[1];
             }
             print("<div class='t'>" + v + "</div>");
-            print("<div class='s'>wan dns</div>")
+            print("<div class='s'>dns</div>");
         }
     %}
 </div>
