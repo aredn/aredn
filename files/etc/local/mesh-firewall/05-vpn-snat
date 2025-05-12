@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# VPN and XLINK endpoints are treated as link-local IP addresse and are not redistributed by Babel.
+# To make sure we don't accidentally use them, we swap them out for the main IP address of the node
+# when originating traffic locally and destined for one of these network interfaces.
+#
+
+mark="0x00000001"
+main_ip="$(uci -q -c /etc/config.mesh get setup.globals.wifi_ip)"
+
+# Mark all VPN outgoing traffic
+nft insert rule ip fw4 mangle_output oifname "wg*" counter meta mark set ${mark} comment \"Mark all VPN output traffic\"
+
+# Mark all XLINK outgoing traffic
+for xlink in $(seq 0 15)
+do
+    ifname=$(uci -q get network.xlink${xlink}.ifname)
+    if [ "${ifname}" != "" ]; then
+        nft insert rule ip fw4 mangle_output meta oifname "${ifname}" counter meta mark set ${mark} comment \"Mark xlink ${ifname} output traffic\"
+    fi
+done
+
+# Change the src ip on any marked traffic for our main IP.
+nft insert rule ip fw4 srcnat meta mark ${mark} counter snat to ${main_ip} comment \"SNAT marked traffic to hide the link-local IP\"
