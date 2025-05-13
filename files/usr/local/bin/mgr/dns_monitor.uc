@@ -111,7 +111,7 @@ function updateSupernode(supernode)
         dest = supernode.ip;
         revdest = `,${dest}`;
     }
-    dns += `server=/local.mesh/${dest}\nrev-server=10.0.0.0/8${revdest}\nrev-server=172.31.0.0/16${revdest}\nrev-server=172.30.0.0/16${revdest}\n`;
+    dns += `server=/local.mesh/${dest}\nrev-server=10.0.0.0/8${revdest}\n`;
     const f = fs.open("/etc/44net.conf");
     if (f) {
         for (let line = f.read("line"); length(line); line = f.read("line")) {
