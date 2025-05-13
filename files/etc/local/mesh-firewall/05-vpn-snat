@@ -9,14 +9,14 @@ mark="0x00000001"
 main_ip="$(uci -q -c /etc/config.mesh get setup.globals.wifi_ip)"
 
 # Mark all VPN outgoing traffic
-nft insert rule ip fw4 mangle_output oifname "wg*" counter meta mark set ${mark} comment \"Mark all VPN output traffic\"
+nft insert rule ip fw4 mangle_output oifname "wg*" ip daddr != 255.255.255.255 counter meta mark set ${mark} comment \"Mark all VPN output traffic\"
 
 # Mark all XLINK outgoing traffic
 for xlink in $(seq 0 15)
 do
     ifname=$(uci -q get network.xlink${xlink}.ifname)
     if [ "${ifname}" != "" ]; then
-        nft insert rule ip fw4 mangle_output meta oifname "${ifname}" counter meta mark set ${mark} comment \"Mark xlink ${ifname} output traffic\"
+        nft insert rule ip fw4 mangle_output meta oifname "${ifname}" ip daddr != 255.255.255.255 counter meta mark set ${mark} comment \"Mark xlink ${ifname} output traffic\"
     fi
 done
 
