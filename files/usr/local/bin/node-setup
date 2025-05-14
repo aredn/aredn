@@ -83,12 +83,12 @@ function tonumber(v)
 function ip2decimal(ip)
 {
     const a = iptoarr(ip);
-    return a[0] << 24 + a[1] << 16 + a[2] << 8 + a[3];
+    return (a[0] << 24) + (a[1] << 16) + (a[2] << 8) + a[3];
 }
 
 function decimal2ip(d)
 {
-    return arrtoip(d >> 24 & 255, d >> 16 & 255, d >> 8 & 255, d && 255);
+    return arrtoip([(d >> 24) & 255, (d >> 16) & 255, (d >> 8) & 255, d & 255]);
 }
 
 function filecopy(from, to)
@@ -1157,12 +1157,12 @@ if (h && e && ah) {
     h.write("127.0.0.1\tlocalhost\n");
     if (isNotNull(cfg.wifi_ip)) {
         h.write(`${cfg.lan_ip}\tlocalnode\n`);
-        h.write(`${cfg.wifi_ip}\t${node} ${tactical}\n`);
+        h.write(`${cfg.wifi_ip}\t${node} ${tactical || ""}\n`);
         ah.write(`${cfg.wifi_ip}\t${node}\n`);
         ah.write(`${cfg.lan_ip}\tlan.${node}.local.mesh\n`);
     }
     else {
-        h.write(`${cfg.lan_ip}\tlocalnode ${node} ${tactical}\n`);
+        h.write(`${cfg.lan_ip}\tlocalnode ${node} ${tactical || ""}\n`);
     }
     if (isNotNull(cfg.dtdlink_ip)) {
         h.write(`${cfg.dtdlink_ip}\tdtdlink.${node}.local.mesh dtdlink.${node}\n`);
