@@ -120,7 +120,8 @@ window.meshRender = function(first)
                         }
                     }
                 }
-                data += `<div class="node"><div class="host" data-search="${hostname.toLowerCase()}"><div class="name"><a href="http://${hostname}.local.mesh">${hostname}</a><span class="etx">${item[1]}</span></div><div class="services">${serv(ip, hostname)}</div></div>${lanview ? '<div class="lanhosts">' + lanview + '</div>' : ''}</div>`;
+                const srv = serv(ip, hostname);
+                data += `<div class="node"><div class="host" data-search="${hostname.toLowerCase()}"><div class="name"><a href="http://${hostname}.local.mesh">${hostname}</a><span class="etx">${item[1]}</span></div>${srv == "" ? "" : '<div class="services">' + srv + '</div>'}</div>${lanview ? '<div class="lanhosts">' + lanview + '</div>' : ''}</div>`;
             }
         }
     }
