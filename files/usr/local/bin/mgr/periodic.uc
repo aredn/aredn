@@ -40,7 +40,7 @@ function runScripts(scripts)
             if (!entry) {
                 break;
             }
-            if (match(entry, /^[a-zA-Z0-9_%-]+$/)) {
+            if (match(entry, /^[a-zA-Z0-9_\.\-]+$/)) {
                 const path = `${scripts}/${entry}`;
                 const stat = fs.stat(path);
                 if (stat.type === "file" && (stat.perm.user_exec || stat.perm.group_exec || stat.perm.other_exec)) {
