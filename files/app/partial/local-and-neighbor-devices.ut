@@ -85,7 +85,7 @@
         if (!hostname) {
             return null;
         }
-        return replace(replace(replace(replace(replace(lc(hostname), /^dtdlink\./, ""), /^mid\d+\./, ""), /^xlink\d+\./, ""), /^lan\./, ""), /\.local\.mesh$/, "");
+        return replace(replace(replace(replace(replace(lc(hostname), /^mid\d+\./, ""), /^dtdlink\./, ""), /^xlink\d+\./, ""), /^lan\./, ""), /\.local\.mesh$/, "");
     }
     const llist = [];
     const nlist = [];
@@ -95,20 +95,21 @@
     for (mac in t) {
         const tmac = t[mac];
         if (tmac.ip) {
-            trackers[tmac.ip] = tmac;
+            name = canonicalLookupIP(tmac.ip);
+            if (!name) {
+                name = `|${tmac.ip}`;
+            }
+            trackers[name] = tmac;
         }
     }
     const links = olsr.getLinks();
     for (let i = 0; i < length(links); i++) {
         const link = links[i];
-        const tracker = trackers[link.remoteIP];
-        let name = tracker && tracker.hostname;
+        let name = canonicalLookupIP(link.remoteIP);
         if (!name) {
-            name = canonicalLookupIP(link.remoteIP);
-            if (!name) {
-                name = `|${link.remoteIP}`;
-            }
+            name = `|${link.remoteIP}`;
         }
+        const tracker = trackers[name];
         if (link.ifName === "br-dtdlink") {
             if (tracker && tracker.distance >= 100) {
                 push(nlist, { name: name, tracker: tracker, link: link });
@@ -120,18 +121,11 @@
         else {
             push(nlist, { name: name, tracker: tracker, link: link });
         }
-        delete trackers[link.remoteIP];
+        delete trackers[name];
     }
-    for (let remoteIP in trackers)
+    for (let name in trackers)
     {
-        const tracker = trackers[remoteIP];
-        let name = tracker && tracker.hostname;
-        if (!name) {
-            name = canonicalLookupIP(remoteIP);
-            if (!name) {
-                name = `|${remoteIP}`;
-            }
-        }
+        const tracker = trackers[name];
         if (tracker.type == "DtD" && tracker.distance < 100) {
             push(llist, { name: name, tracker: tracker, link: null });
         }
