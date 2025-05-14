@@ -1186,7 +1186,7 @@ if (h && e && ah) {
 
     const reservations = cm.get("setup", "dhcpreservations", "reservation") || [];
     for (let i = 0; i < length(reservations); i++) {
-        const m = match(reservations[i], /"([^ \t]+)[ \t]+([^ \t]+)[ \t]+([^ \t]+)[ \t]*([^ \t]*)"/);
+        const m = match(reservations[i], /([^ \t]+)[ \t]+([^ \t]+)[ \t]+([^ \t]+)[ \t]*([^ \t]*)/);
         if (m) {
             const ip = decimal2ip(netaddr + int(m[2]));
             h.write(`${ip}\t${m[3]} ${m[4]}\n`);
@@ -1198,7 +1198,7 @@ if (h && e && ah) {
     }
 
     // aliases need to ba added to /etc/hosts or they will now show up on the localnode
-    // nor will the services thehy offer
+    // nor will the services they offer
     // also add a comment to the hosts file so we can display the aliases differently if needed
     const aliases = cm.get("setup", "aliases", "alias") || [];
     for (let i = 0; i < length(aliases); i++) {
