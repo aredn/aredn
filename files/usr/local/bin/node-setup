@@ -391,11 +391,13 @@ else {
     for (let i = 0; i < length(networks); i++) {
         const ports = split(getBoardNetworkIfName(networks[i]), " ");
         for (let p = 0; p < length(ports); p++) {
-            list[replace(ports[p], /\..*$/, "")] = true;
+            if (ports[p]) {
+                list[replace(ports[p], /\..*$/, "")] = true;
+            }
         }
     }
     let config = "config device\n\toption name 'br0'\n\toption type 'bridge'\n\toption vlan_filtering '1'\n\toption multicast_querier '1'\n";
-    for (let port in ports) {
+    for (let port in list) {
         config += `\tlist ports '${port}'\n`;
     }
     cfg.bridge_network_config = config;
