@@ -650,3 +650,344 @@
 + 	unsigned int color;
 + 	int			 flags;
 + 
+--- a/target/linux/ramips/image/mt76x8.mk
++++ b/target/linux/ramips/image/mt76x8.mk
+@@ -1189,3 +1189,21 @@
+ 	check-size | zyimage -d 6162 -v "ZyXEL Keenetic Extra II"
+ endef
+ TARGET_DEVICES += zyxel_keenetic-extra-ii
++
++define Device/morse_ekh03
++  IMAGE_SIZE := 32448k
++  DEVICE_VENDOR := MorseMicro
++  DEVICE_MODEL := EKH03
++  DEVICE_VARIANT :=
++  DEVICE_PACKAGES := kmod-usb2 kmod-usb-ohci kmod-usb-ledtrig-usbport \
++        kmod-mmc-mt7620 kmod-i2c-mt7628 \
++        kmod-morse netifd-morse \
++        uboot-envtools
++endef
++
++define Device/morse_ekh03v3
++  $(Device/morse_ekh03)
++  DEVICE_VARIANT := v3
++  SUPPORTED_DEVICES := morse,ekh03v3 morse,ekh03-03
++endef
++TARGET_DEVICES += morse_ekh03v3
+
+--- /dev/null
++++ b/target/linux/ramips/dts/mt7628an_morse_ekh03v3.dts
+@@ -0,0 +1,39 @@
++#include "mt7628an_morse_ekh03.dtsi"
++#include "mt7628an_morse_ekh03_rgbled.dtsi"
++
++/ {
++	compatible = "morse,ekh03v3", "mediatek,mt7628an-soc";
++	model = "MorseMicro EKH03-03";
++};
++
++&firmware {
++	reg = <0x50000 0x1fb0000>;
++};
++
++&state_default {
++	gpio {
++		groups = "wled_an", "refclk", "wdt", "pwm0", "pwm1", "uart2";
++		function = "gpio";
++	};
++};
++
++&uart2_pins {
++	uart2 {
++		groups = "uart2";
++		function = "gpio";
++	};
++};
++
++&pwm0_pins {
++	pwm0 {
++		groups = "pwm0";
++		function = "gpio";
++	};
++};
++
++&pwm1_pins {
++	pwm1 {
++		groups = "pwm1";
++		function = "gpio";
++	};
++};
+--- /dev/null
++++ b/target/linux/ramips/dts/mt7628an_morse_ekh03.dtsi
+@@ -0,0 +1,216 @@
++#include "mt7628an.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++
++/ {
++	reserved-memory {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges;
++
++        /* 1 MB reserved for ramoops/pstore */
++        ramoops@7EFFFFF {
++			compatible = "ramoops";
++			reg = <0x7EFFFFF 0x100000>;
++			record-size = <0x4000>;
++			console-size = <0x4000>;
++        };
++	};
++	aliases {
++		led-boot = &led_status;
++		led-failsafe = &led_status;
++		led-running = &led_status;
++		led-upgrade = &led_status;
++		label-mac-device = &wmac;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led_status: status {
++			label = "fuchsia:status";
++			gpios = <&gpio 44 GPIO_ACTIVE_HIGH>;
++		};
++	};
++
++	keys {
++		compatible = "gpio-keys";
++
++		morse-reset {
++			label = "morse-reset";
++			gpios = <&gpio 37 GPIO_ACTIVE_LOW>;
++			linux,code = <BTN_0>;
++		};
++	};
++
++	gpio-export {
++		compatible = "gpio-export";
++		#size-cells = <0>;
++
++		gpio2 {
++			// J4 header attached to I2S_WS gpio2.
++			// High value means STA, low AP.
++			gpio-export,name = "morse-mode-switch";
++			gpios = <&gpio 2 GPIO_ACTIVE_HIGH>;
++		};
++	};
++
++	chosen {
++		bootargs = "console=ttyUSB0,115200 console=ttyS2,115200";
++	};
++};
++
++&spi0 {
++	status = "okay";
++
++	flash@0 {
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <10000000>;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "u-boot";
++				reg = <0x0 0x30000>;
++				read-only;
++			};
++
++			partition@30000 {
++				label = "u-boot-env";
++				reg = <0x30000 0x10000>;
++			};
++
++			factory: partition@40000 {
++				label = "factory";
++				reg = <0x40000 0x10000>;
++				read-only;
++			};
++
++			firmware: partition@50000 {
++				compatible = "denx,uimage";
++				label = "firmware";
++				/* reg property is set based on flash size in DTS files */
++			};
++		};
++	};
++};
++
++&pinctrl {
++	spis_pins: spis{
++		spis{
++			groups = "spis";
++			function = "pwm_uart2";
++		};
++	};
++};
++
++&state_default {
++	gpio {
++		groups = "wled_an", "refclk", "wdt", "p2led_an", "p3led_an", "p4led_an";
++		function = "gpio";
++	};
++};
++
++&wmac {
++	status = "okay";
++
++	mediatek,mtd-eeprom = <&factory 0x0>;
++};
++
++&ethernet {
++	nvmem-cells = <&macaddr_factory_28>;
++	nvmem-cell-names = "mac-address";
++};
++
++&esw {
++	mediatek,portmap = <0x7>;
++	mediatek,portdisable = <0x3a>;
++};
++
++&i2c {
++	status = "okay";
++};
++
++&i2s {
++	status = "okay";
++};
++
++&gdma {
++	status = "okay";
++};
++
++&gpio {
++	/* These are taken from the 'Normal Mode' of the GPIO pin shares,
++	 * except that the GPIOs connect to the Morse chip are labelled
++	 * (MM_RESET/MM_BUSY/MM_WAKE).
++	 */
++	gpio-line-names =
++		"I2S_SDI", "I2S_SDO", "I2S_WS", "I2S_CLK", "I2C_SCLK", "I2C_SD",
++		"SPI_CS1", "SPI_CLK", "SPI_MOSI", "SPI_MISO", "SPI_CS0",
++		"", "UART_TXD0", "UART_RXD0",
++		"MDI_TP_P1", "MDI_TN_P1", "MDI_RP_P1", "MDI_RN_P1",
++		"MDI_RP_P2", "MDI_RN_P2", "MDI_TP_P2", "MDI_TN_P2",
++		"MDI_TP_P3", "MDI_TN_P3", "MDI_RP_P3", "MDI_RN_P3", "MDI_RP_P4", "MDI_RN_P4", "MDI_TP_P4", "MDI_TN_P4",
++		"", "", "", "", "", "",
++		"PERST_N", "REF_CLKO", "WDT_RST_N",
++		"MM_BUSY", "MM_RESET", "MM_WAKE",
++		"EPHY_LED1_N_JTDI", "EPHY_LED0_N_JTDO",
++		"WLED_N", "UART_TXD1", "UART_RXD1",
++		/* GPIO47 -> GPIO63 - unused, but need to be specified to avoid kernel complaints */
++		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
++		/* GPIO64 -> GPIO95 - unused, but need to be specified to avoid kernel complaints */
++		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
++		;
++
++	status = "okay";
++};
++
++&pwm {
++	status = "okay";
++};
++
++&uart1 {
++	status = "okay";
++};
++
++&uart2 {
++	pinctrl-0 = <&spis_pins>;
++	status = "okay";
++};
++
++&factory {
++	compatible = "nvmem-cells";
++	#address-cells = <1>;
++	#size-cells = <1>;
++
++	macaddr_factory_28: macaddr@28 {
++		reg = <0x28 0x6>;
++	};
++};
++
++&sdhci {
++	status = "okay";
++
++	cap-sd-highspeed;
++	cap-mmc-highspeed;
++	vmmc-supply = <&mmc_reg_3v3>;
++	vqmmc-supply = <&mmc_reg_3v3>;
++	cap-sdio-irq;
++	non-removable;
++	disable-wp;
++
++	mm6108_sdio: mm6108_sdio@0 {
++			compatible = "morse,mm610x";
++			reset-gpios = <&gpio 40 0>;
++			power-gpios = <&gpio 41 0>,
++			              <&gpio 39 0>;
++			status = "okay";
++			reg = <2>;
++			bus-width = <4>;
++	};
++};
+--- /dev/null
++++ b/target/linux/ramips/dts/mt7628an_morse_ekh03_rgbled.dtsi
+@@ -0,0 +1,36 @@
++/* An RGB LED was added to later EKH03/04s.
++ * Note that the standard LED (on the VoCore module) is not normally
++ * visible, as it's inside the case.
++ */
++
++/ {
++	aliases {
++		led-boot = &led1_green;
++		led-failsafe = &led1_red;
++		led-running = &led1_green;
++		led-upgrade = &led1_blue;
++
++		led-status-green = &led1_green;
++		led-status-blue = &led1_blue;
++		led-status-red = &led1_red;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led1_red: led1-red {
++			label = "red:led1";
++			gpios = <&gpio 20 GPIO_ACTIVE_HIGH>;
++		};
++
++		led1_green: led1-green {
++			label = "green:led1";
++			gpios = <&gpio 18 GPIO_ACTIVE_HIGH>;
++		};
++
++		led1_blue: led1-blue {
++			label = "blue:led1";
++			gpios = <&gpio 19 GPIO_ACTIVE_HIGH>;
++		};
++	};
++};
+--- a/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
++++ b/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
+@@ -214,6 +214,13 @@
+ 		ucidef_add_switch "switch0" \
+ 			"0:lan:2" "1:lan:1" "4:wan" "6@eth0"
+ 		;;
++	morse,ekh03v3)
++		ucidef_add_switch "switch0"
++		ucidef_add_switch_attr "switch0" "enable" "false"
++		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
++		;;
+ 	esac
+ }
+ 

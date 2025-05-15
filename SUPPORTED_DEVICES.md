@@ -158,6 +158,7 @@ OpenWRT One | OpenWRT One | 2 & 5 | mediatek | filogic | openwrt_one | 1024MB | 
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 HaLowLink 1 | MM-HL1-EXT | HaLow & 2 | ramips | mt7621 | morse_artini | 256MB | supported | babel
+HelTec HT-HD01 | HT-HD01 | HaLow & 2 | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | babel
 
 ## Meraki
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
