@@ -127,10 +127,12 @@ if (wifi_mac == "" || mac2 == "") {
 if (dtdmac == "") {
     let m = null;
     for (let i = 0; i < 5; i++) {
-        m = match(hardware.getInterfaceMAC("br-lan"), /..:..:..:(..):(..):(..)/);
-        if (m) {
+        m = match(hardware.getInterfaceMAC("eth0"), /..:..:..:(..):(..):(..)/);
+        if (m && !(m[1] == "00" && m[2] == "00" && m[3] == "00")) {
             break;
         }
+        m = null;
+        sleep(2000);
     }
     if (m) {
         dtdmac = `${hex(m[1])}.${hex(m[2])}.${hex(m[3])}`;
