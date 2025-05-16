@@ -470,6 +470,15 @@ export function supportdata(supportdatafilename)
 {
     const wifiiface = uci.cursor().get("network", "wifi", "device");
 
+    let doscan = false;
+    const config = radios.getActiveConfiguration();
+    for (let i = 0; i < length(config); i++) {
+        if (config[i].mode.mode === radios.RADIO_MESH && config[i].iface == wifiiface) {
+            doscan = true;
+            break;
+        }
+    }
+
     const files = [
         "/proc/cpuinfo",
         "/proc/meminfo",
@@ -528,11 +537,11 @@ export function supportdata(supportdatafilename)
         "ip rule list",
         "netstat -aln",
         "iwinfo",
-        `${wifiiface ? "iwinfo " + wifiiface + " assoclist" : null}`,
-        `${wifiiface ? "iw phy " + (replace(wifiiface, "wlan", "phy")) + " info" : null}`,
-        `${wifiiface ? "iw dev " + wifiiface + " info" : null}`,
-        `${wifiiface ? "iw dev " + wifiiface + " scan" : null}`,
-        `${wifiiface ? "iw dev " + wifiiface + " station dump" : null}`,
+        `${wifiiface ? "iwinfo " + wifiiface + " assoclist" : ""}`,
+        `${wifiiface ? "iw phy " + (replace(wifiiface, "wlan", "phy")) + " info" : ""}`,
+        `${wifiiface ? "iw dev " + wifiiface + " info" : ""}`,
+        `${wifiiface && doscan ? "iw dev " + wifiiface + " scan" : ""}`,
+        `${wifiiface ? "iw dev " + wifiiface + " station dump" : ""}`,
         "wg show all",
         "wg show all latest-handshakes",
         "nft list ruleset",
