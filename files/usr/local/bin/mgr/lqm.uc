@@ -205,6 +205,8 @@ function main()
     let lastDistance = -1;
     let distance = -1;
     let noise = -95;
+    let now = 0;
+    let previousnow = 0;
     const radioMode = device ? uci.cursor("/etc/config.mesh").get("setup", "globals", `${radio}_mode`) : "off";
 
     updateConfig();
@@ -273,6 +275,7 @@ function main()
                     if (!track && type) {
                         track = {
                             lastseen: now,
+                            lastup: now,
                             type: type,
                             device: m[2],
                             mac: mac,
@@ -638,12 +641,10 @@ function main()
                 }
                 track.ping_quality = max(0, min(100, track.ping_quality));
                 if (ptime !== null) {
+                    if (track.lastseen < previousnow) {
+                        track.lastup = now;
+                    }
                     track.lastseen = now
-                }
-                else if (track.type == "DtD" && track.firstseen == now) {
-                    // If local ping immediately fail, ditch this tracker. This can happen sometimes when we
-                    // find arp entries which aren't valid.
-                    delete tracker[track.mac];
                 }
             }
             else {
@@ -785,6 +786,9 @@ function main()
                 fs.unlink("/tmp/lqm.reset");
                 return waitForTicks(0, main);
             }
+
+            // Last time we ran
+            previousnow = now;
 
             // Done until the next iteration
             return waitForTicks(refresh ? 1 : 30, tick);

@@ -127,6 +127,21 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             }
             return "now";
         }
+        function uptime(n)
+        {
+            const s = n.lastseen - n.lastup;
+            if (s > 0) {
+                const m = int(s / 60);
+                const h = int(m / 60);
+                if (h > 0) {
+                    return `${h} ${h == 1 ? "hour" : "hours"}`;
+                }
+                if (m > 0) {
+                    return `${m} ${m == 1 ? "minute" : "minutes"}`;
+                }
+            }
+            return "0 minutes";
+        }
         if (neighbor) {
             const n = neighbor.n;
         %}
@@ -284,11 +299,15 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                 </div>
             </div>
             <div class="cols">
+                {% const seen = lastseen(n); %}
                 <div class="i">
-                    <div>{{lastseen(n)}}</div>
+                    <div>{{seen}}</div>
                     <div>last seen</div>
                 </div>
-                <div></div>
+                <div class="i">
+                    <div>{{uptime(n)}}</div>
+                    <div>{{seen != "now" ? "last " : ""}}uptime</div>
+                </div>
                 <div></div>
             </div>
             {%
