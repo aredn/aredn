@@ -158,9 +158,9 @@ OpenWRT One | OpenWRT One | 2 & 5 | mediatek | filogic | openwrt_one | 1024MB | 
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 HaLowLink 1 | MM-HL1-EXT | HaLow & 2 | ramips | mt7621 | morse_artini | 256MB | supported | babel
-HelTec HT-HD01 | HT-HD01 | HaLow & 2 | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | babel (9)
-Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | - | 128MB | - | babel
-Alfa Tube-AH | Tube-AH | HaLow | - | - | - | 256M | unsupported | not supported
+Heltec HT-HD01 | HT-HD01 | HaLow & 2 | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | babel (9)
+Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | morse_XXX | 128MB | - | babel
+Alfa Tube-AH | Tube-AH | HaLow | - | - | - | - | unsupported | not supported
 
 ## Meraki
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
@@ -186,6 +186,6 @@ Vultr | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
  6. These devices do not function on negative channels in the 2.4 GHz band.
  7. Mikrotik devices come with either a v6 bootloader or a v7 bootloader. See [here](https://openwrt.org/toh/mikrotik/common) for more details. If you are using a v7 bootloader use the v7 sysupgrade instead of the plain one.
  8. These devices were supported in older releases, but not supported in the current one.
- 9. There is currently no way to recover this device if a firmware update fails and it could be bricked.
+ 9. There is currently no way to recover if a firmware update fails and it could brick your device.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/
