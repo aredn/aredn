@@ -48,6 +48,7 @@ const default_long_retries = 20; // (factory default is 4)
 const default_max_distance = 80550; // 50.1 miles
 const rts_threshold = 1; // RTS setting when hidden nodes are detected
 const ping_penalty = 5; // Cost of a failed ping to measure of a link's quality
+const lastup_margin = 60; // Seconds before link is considered down
 
 const IW = "/usr/sbin/iw";
 const UFETCH = "/bin/uclient-fetch";
@@ -59,7 +60,7 @@ const wlan = device ? device.iface : "none";
 const wlanid = device ? replace(wlan, /^wlan/, "") : null;
 const phy = device ? `phy${wlanid}` : "none";
 const radio = device ? `radio${wlanid}` : "none";
-const ac = device && match(lc(hardware.getRadio().name), /ac/) ? true : false;
+const ac = device && match(lc(hardware.getRadioName()), /ac/) ? true : false;
 
 let config = {};
 
@@ -641,7 +642,7 @@ function main()
                 }
                 track.ping_quality = max(0, min(100, track.ping_quality));
                 if (ptime !== null) {
-                    if (track.lastseen < previousnow) {
+                    if (track.lastseen + lastup_margin < previousnow) {
                         track.lastup = now;
                     }
                     track.lastseen = now
