@@ -1,0 +1,14 @@
+ --- /dev/null
++++ b/package/network/services/hostapd/patches/900-unlock-channels.patch
+@@ -0,0 +1,11 @@
++--- a/src/common/ieee802_11_common.c
+++++ b/src/common/ieee802_11_common.c
++@@ -1546,7 +1546,7 @@
++ 		return HOSTAPD_MODE_IEEE80211A;
++ 	}
++ 
++-	if (freq >= 5000 && freq < 5900) {
+++	if (freq >= 5000 && freq <= 5920) {
++ 		if ((freq - 5000) % 5)
++ 			return NUM_HOSTAPD_MODES;
++ 		*channel = (freq - 5000) / 5;
