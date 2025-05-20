@@ -67,27 +67,35 @@ export function get(validate)
             for (let i = 0; i < length(aliases); i++) {
                 const m = match(aliases[i], /([^ \t]+)[ \t]+([^ \t]+)/);
                 if (m) {
-                    push(hosts, { ip: m[1], host: `${m[2]}${match(m[2], /\./) ? "" : ".local.mesh"}` })
+                    push(hosts, { ip: m[1], host: `${m[2]}${index(m[2], ".") === -1 ? "" : ".local.mesh"}` });
                 }
             }
         }
         if (fs.access("/etc/ethers") && fs.access("/etc/hosts")) {
-            const noprop_ip = {};
+            const nopropip = {};
+            const etchosts = {};
             let p = fs.open("/etc/hosts");
             for (let line = p.read("line"); length(line); line = p.read("line")) {
-                const m = match(trim(line), /^([^ \t]+)[ \t].*#NOPROPS$/);
-                if (m) {
-                    noprop_ip[m[1]] = true;
+                const m = match(trim(line), /^([0-9\.]+)[ \t]+([^ \t]+)[^#]*(#NOPROPS|#ALIAS)?$/);
+                if (m && m[3] !== "#ALIAS") {
+                    etchosts[m[1]] = m[2];
+                    nopropip[m[1]] = m[3] === "#NOPROPS";
                 }
             }
             p.close();
             p = fs.open("/etc/ethers");
             for (let line = p.read("line"); length(line); line = p.read("line")) {
                 const m = match(line, /[0-9a-fA-F:]+[ \t]+([0-9\.]+)/);
-                if (m && !noprop_ip[m[1]]) {
-                    const host = network.getHostnameFromIPAddress(m[1]);
+                if (m && !nopropip[m[1]]) {
+                    const host = etchosts[m[1]] || network.getHostnameFromIPAddress(m[1]);
                     if (host) {
-                        push(hosts, { ip: m[1], host: host });
+                        const shost = replace(host, /\.local\.mesh$/, "");
+                        if (index(shost, ".") === -1) {
+                            push(hosts, { ip: m[1], host: shost });
+                        }
+                        else {
+                            push(hosts, { ip: m[1], host: host });
+                        }
                     }
                 }
             }
