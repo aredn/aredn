@@ -95,7 +95,7 @@
     for (mac in t) {
         const tmac = t[mac];
         if (tmac.ip) {
-            name = canonicalLookupIP(tmac.ip);
+            let name = canonicalLookupIP(tmac.ip) || tmac.hostname;
             if (!name) {
                 name = `|${tmac.ip}`;
             }
