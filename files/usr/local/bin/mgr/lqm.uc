@@ -292,11 +292,9 @@ function main()
                         track.lq = reachToLQ(m[3]);
                         track.rxcost = int(m[4]);
                         track.txcost = int(m[5]);
-                        if (type === "Wireguard") {
-                            const rtt = match(line, /rtt ([^ \t]+)/);
-                            if (rtt) {
-                                track.rtt = int(rtt[1]);
-                            }
+                        const rtt = match(line, /rtt ([^ \t]+)/);
+                        if (rtt) {
+                            track.rtt = int(rtt[1]);
                         }
                     }
                 }
@@ -567,13 +565,13 @@ function main()
                 track.routable = false;
                 for (let i = 0; i < length(hostRoutes); i++) {
                     const r = hostRoutes[i];
-                    if (r.dst == track.ip) {
+                    if (r.dst == track.ip || r.dst == track.canonical_ip) {
                         track.routable = true;
                         track.babel_metric = r.metric;
                         break;
                     }
                 }
-                if (superRoute && !track.routable && superRoute.gateway == track.ip) {
+                if (superRoute && !track.routable && (superRoute.gateway == track.ip || superRoute.gateway == track.canonical_ip)) {
                     track.routable = true;
                     track.babel_metric = superRoute.metric;
                 }
@@ -686,22 +684,19 @@ function main()
         finish = function _finish()
         {
             // Pull in the routing table to see how many node routes are associated with each tracker.
-            // We don't do this for supernodes as the table is very big and we don't use the information.
-            if (!issupernode) {
-                total_route_count = 0;
-                for (let i = 0; i < length(hostRoutes); i++) {
-                    const t = ip2tracker[hostRoutes[i].gateway];
-                    if (t) {
-                        t.babel_route_count++;
-                        total_route_count++;
-                    }
+            total_route_count = 0;
+            for (let i = 0; i < length(hostRoutes); i++) {
+                const t = ip2tracker[hostRoutes[i].gateway];
+                if (t) {
+                    t.babel_route_count++;
+                    total_route_count++;
                 }
-                if (superRoute) {
-                    const t = ip2tracker[superRoute.gateway];
-                    if (t) {
-                        t.babel_route_count++;
-                        total_route_count++;
-                    }
+            }
+            if (superRoute) {
+                const t = ip2tracker[superRoute.gateway];
+                if (t) {
+                    t.babel_route_count++;
+                    total_route_count++;
                 }
             }
 
