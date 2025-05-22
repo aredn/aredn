@@ -101,7 +101,7 @@ export function getBoardId()
     return trim(name);
 };
 
-export function getRadio()
+function getRadio()
 {
     if (!radioJson) {
         const f = fs.open("/etc/radios.json");
@@ -120,35 +120,21 @@ export function getRadio()
         }
     }
     return radioJson;
+}
+
+export function getRadioName()
+{
+    return getRadio().name;
 };
 
 export function getRadioCount()
 {
     const radio = getRadio();
-    if (radio.wlan0) {
-        if (radio.wlan1) {
-            return 2;
-        }
-        else {
-            return 1;
-        }
+    if (radio.wlan0 && !radio.wlan1) {
+        return 1;
     }
     else {
-        let count = 0;
-        const d = fs.opendir("/sys/class/ieee80211");
-        if (d) {
-            for (;;) {
-                const l = d.read();
-                if (!l) {
-                    break;
-                }
-                if (l !== "." && l !== "..") {
-                    count++;
-                }
-            }
-            d.close();
-        }
-        return count;
+        return length(fs.lsdir("/sys/class/ieee80211") || []);
     }
 };
 
@@ -172,10 +158,12 @@ export function getRadioType(wifiIface)
     if (!iface) {
         return "none";
     }
-    if (iface.band == "halow") {
+    else if (iface.band == "halow") {
         return "halow";
     }
-    return "wifi";
+    else {
+        return "wifi";
+    }
 };
 
 export function getPhyDevice(iface)
@@ -225,7 +213,7 @@ export function getChannelFromFrequency(wifiIface, freq)
     }
 };
 
-function get80211RfChannels(wifiIface)
+function getWiFiChannels(wifiIface)
 {
     const channels = [];
     const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
@@ -251,13 +239,13 @@ function get80211RfChannels(wifiIface)
     let freq_min = 0;
     let freq_max = 0x7FFFFFFF;
     if (wifiIface === "wlan0") {
-        const radio = getRadio();
-        if (index(radio.name, "M9") !== -1) {
+        const radioname = getRadioName();
+        if (index(radioname, "M9") !== -1) {
             freq_adjust = (f) => f.freq - 1520;
             freq_min = 907;
             freq_max = 922;
         }
-        else if (index(radio.name, "M3") !== -1) {
+        else if (index(radioname, "M3") !== -1) {
             freq_adjust = (f) => f.freq - 2000;
             freq_min = 3380;
             freq_max = 3495;
@@ -308,7 +296,7 @@ export function getRfChannels(wifiIface)
             channels = getHaLowChannels(wifiIface);
         }
         else {
-            channels = get80211RfChannels(wifiIface);
+            channels = getWiFiChannels(wifiIface);
         }
         channelsCache[wifiIface] = channels;
     }

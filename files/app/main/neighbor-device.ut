@@ -133,6 +133,11 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             if (s > 0) {
                 const m = int(s / 60);
                 const h = int(m / 60);
+                const d = int(h / 24);
+                if (d > 1) {
+                    const dh = h % 24;
+                    return `${d} days${dh == 0 ? "" : dh == 1 ? ", 1 hour" : (", " + dh + " hours")}`;
+                }
                 if (h > 0) {
                     return `${h} ${h == 1 ? "hour" : "hours"}`;
                 }
@@ -288,10 +293,8 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>state</div>
                 </div>
                 <div class="i">
-                {% if (!supernode) { %}
                     <div>{{n.babel_route_count}}</div>
                     <div>routes</div>
-                {% } %}
                 </div>
                 <div class="i">
                     <div>{{n.babel_route_count === 0 ? "-" : n.babel_metric ?? "-"}}</div>
@@ -390,7 +393,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         </div>
         {% } %}
     </div>
-    {{_R("dialog-footer")}}
+    {{_R("dialog-footer", showblock ? "" : "nocancel")}}
     <script>
     (function(){
     {{_R("open")}}

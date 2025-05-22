@@ -64,7 +64,7 @@ export function getCommonConfiguration()
                 txmaxpower: hardware.getMaxTxPower(iface),
                 macaddress: hardware.getInterfaceMAC(iface),
                 maxdistance: 80550,
-                managedOOB: [ -4, -3, -2, -1, 0, 180, 181, 182, 183, 184 ]
+                managedOOB: [ -4, -3, -2, -1, 0 ]
             };
             // Calculate which channels are available at which bandwidths
             const avail = {
