@@ -72,7 +72,11 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
   # When we bring up the WAN interface, setup the default route in table 28.
   #
   if [ "$INTERFACE" = "wan" ]; then
-    ip route add default via $(ip route get 8.8.8.8 | sed -e 's/.*via//' -e 's/ dev.*//') table 28
+    ip route del default table 28
+    if [ "$ACTION" = "ifup" ] ; then
+      wan_gw=$(ip route | grep ^default.*br-wan | sed 's/^default via \(.*\) dev.*$/\1/')
+      ip route add default via $wan_gw table 28
+    fi
   fi
 
   #
