@@ -167,7 +167,7 @@ export function getRadioIntf(wifiIface)
 export function getChannelFromFrequency(freq)
 {
     if (freq < 256) {
-        return null;
+        return freq;
     }
     if (freq === 2484) {
         return 14;
@@ -179,7 +179,7 @@ export function getChannelFromFrequency(freq)
         return (freq - 2407) / 5;
     }
     if (freq < 5000) {
-        return null;
+        return (freq - 3000) / 5;
     }
     if (freq < 5380) {
         return (freq - 5000) / 5;
