@@ -184,12 +184,17 @@ if (boardsystem && boardsystem.compat_version) {
 // Radio
 if (hardware.getRadioCount() > 0 && !cfg.radio0_mode) {
     const defaultwifi = hardware.getDefaultChannel("wlan0");
-    cfg.radio0_mode = "mesh";
-    cfg.radio0_ssid = cfg.radio0_ssid || "AREDN";
-    cfg.radio0_channel = cfg.radio0_channel || defaultwifi.channel;
-    cfg.radio0_bandwidth = cfg.radio0_bandwidth || defaultwifi.bandwidth;
-    cfg.radio0_txpower = cfg.radio0_txpower || 19;
-    cfg.radio0_distance = cfg.radio0_distance || 0;
+    if (defaultwifi) {
+        cfg.radio0_mode = "mesh";
+        cfg.radio0_ssid = cfg.radio0_ssid || "AREDN";
+        cfg.radio0_channel = cfg.radio0_channel || defaultwifi.channel;
+        cfg.radio0_bandwidth = cfg.radio0_bandwidth || defaultwifi.bandwidth;
+        cfg.radio0_txpower = cfg.radio0_txpower || 19;
+        cfg.radio0_distance = cfg.radio0_distance || 0;
+    }
+    else {
+        cfg.radio0_mode = "off";
+    }
 }
 
 // DHCP
