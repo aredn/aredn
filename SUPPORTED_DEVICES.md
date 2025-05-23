@@ -159,7 +159,7 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 HaLowLink 1 | MM-HL1-EXT | HaLow  | ramips | mt7621 | morse_artini | 256MB | supported | babel
 Heltec HT-HD01 | HT-HD01 | HaLow  | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | babel (9)
-Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | morse_XXX | 128MB | - | babel
+Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | - | babel (10)
 Alfa Tube-AH | Tube-AH | HaLow | - | - | - | - | unsupported | not supported
 
 ## Meraki
@@ -187,5 +187,6 @@ Vultr | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
  7. Mikrotik devices come with either a v6 bootloader or a v7 bootloader. See [here](https://openwrt.org/toh/mikrotik/common) for more details. If you are using a v7 bootloader use the v7 sysupgrade instead of the plain one.
  8. These devices were supported in older releases, but not supported in the current one.
  9. There is currently no way to recover if a firmware update fails and it could brick your device.
+ 10. Firmware can be reinstalled on a bricked device, but requires soldering and connecting a serial cable.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/

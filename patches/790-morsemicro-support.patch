@@ -661,8 +661,6 @@
 +  IMAGE_SIZE := 32448k
 +  DEVICE_VENDOR := MorseMicro
 +  DEVICE_MODEL := EKH03
-+  DEVICE_ALT0_VENDOR := Heltec
-+  DEVICE_ALT0_MODEL := HT-HD01
 +  DEVICE_VARIANT :=
 +  DEVICE_PACKAGES := kmod-usb2 kmod-usb-ohci kmod-usb-ledtrig-usbport \
 +        kmod-mmc-mt7620 kmod-i2c-mt7628 \
@@ -673,6 +671,8 @@
 +define Device/morse_ekh03v3
 +  $(Device/morse_ekh03)
 +  DEVICE_VARIANT := v3
++  DEVICE_ALT0_VENDOR := Heltec
++  DEVICE_ALT0_MODEL := HT-HD01
 +  SUPPORTED_DEVICES := morse,ekh03v3 morse,ekh03-03
 +endef
 +TARGET_DEVICES += morse_ekh03v3
@@ -993,3 +993,80 @@
  	esac
  }
  
+--- a/target/linux/ramips/image/mt76x8.mk
++++ b/target/linux/ramips/image/mt76x8.mk
+@@ -1209,3 +1209,15 @@
+   SUPPORTED_DEVICES := morse,ekh03v3 morse,ekh03-03
+ endef
+ TARGET_DEVICES += morse_ekh03v3
++
++define Device/alfa-network_tube-ahm-r0c
++  IMAGE_SIZE := 32448k
++  DEVICE_VENDOR := ALFA Network
++  DEVICE_MODEL := AHM
++  DEVICE_VARIANT := R0C
++  DEVICE_PACKAGES := kmod-usb2 kmod-usb-ohci kmod-usb-ledtrig-usbport \
++        kmod-mmc-mt7620 kmod-i2c-mt7628 \
++        kmod-morse netifd-morse \
++        uboot-envtools
++endef
++TARGET_DEVICES += alfa-network_tube-ahm-r0c
+--- /dev/null
++++ b/target/linux/ramips/dts/mt7628an_alfa-network_tube-ahm-r0c.dts
+@@ -0,0 +1,46 @@
++#include "mt7628an_morse_ekh03.dtsi"
++#include "mt7628an_morse_ekh03_rgbled.dtsi"
++
++/ {
++	compatible = "alfa-network,tube-ahm-r0c", "mediatek,mt7628an-soc";
++	model = "ALFA Network Tube-AHM R0C";
++
++	chosen {
++		bootargs = "console=ttyS0,115200";
++	};
++};
++&firmware {
++	reg = <0x50000 0x1fb0000>;
++};
++
++&state_default {
++	gpio {
++		groups = "wled_an", "refclk", "wdt", "pwm0", "pwm1", "uart2";
++		function = "gpio";
++	};
++};
++
++&uart2_pins {
++	uart2 {
++		groups = "uart2";
++		function = "gpio";
++	};
++};
++
++&pwm0_pins {
++	pwm0 {
++		groups = "pwm0";
++		function = "gpio";
++	};
++};
++
++&pwm1_pins {
++	pwm1 {
++		groups = "pwm1";
++		function = "gpio";
++	};
++};
++
++&sdhci {
++	no-1-8-v;
++};
+--- a/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
++++ b/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
+@@ -214,6 +214,7 @@
+ 		ucidef_add_switch "switch0" \
+ 			"0:lan:2" "1:lan:1" "4:wan" "6@eth0"
+ 		;;
++	alfa-network,tube-ahm-r0c|\
+ 	morse,ekh03v3)
+ 		ucidef_add_switch "switch0"
+ 		ucidef_add_switch_attr "switch0" "enable" "false"
