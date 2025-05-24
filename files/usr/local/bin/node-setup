@@ -1502,6 +1502,8 @@ do
                 end
             end
             if oc:get("aredn", "@wan[0]", "lan_dhcp_route") ~= config_special.lan_dhcp_route then
+                changes.network = true
+                changes.babel = true
                 changes.firewall = true
             end
             if oc:get("aredn", "@wan[0]", "olsrd_gw") ~= config_special.olsrd_gw or oc:get("aredn", "@wan[0]", "mesh_wan_gw") ~= config_special.mesh_wan_gw then
