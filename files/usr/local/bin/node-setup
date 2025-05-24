@@ -894,7 +894,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
     }
     const rif = hardware.getRadioIntf(wlan);
     if (!rif || rif.disabled) {
-        config += `config\twifi-device '${radio}'\n\toption type 'mac80211'\n\toption disabled '1'\n\toption path '${devpath}'\n\n`;
+        config += `config wifi-device '${radio}'\n\toption type 'mac80211'\n\toption disabled '1'\n\toption path '${devpath}'\n\n`;
     }
     else {
         let type = "mac80211";
@@ -1090,7 +1090,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
         }
         config += `\toption path '${devpath}'\n`;
         if (bcf != null) {
-            config += `\toption bcf '${bcf}'\n`;
+            config += `\toption bcf '${bcf}'\n\toption reconf '0'\n`;
         }
         config += `\n`;
 
@@ -1471,7 +1471,7 @@ nvram.set("hsmmmesh", "settings", "tactical", tactical);
 for (let k in changes) {
     if (changes[k]) {
         fs.mkdir("/tmp/reboot-required");
-        fs.writefile(`/tmp/reboot-required/${k}`, "");
+        fs.writefile(`/tmp/reboot-required/${k}`, `${changes[k]}`);
     }
 }
 
