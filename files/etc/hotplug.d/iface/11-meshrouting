@@ -1,84 +1,80 @@
 #!/bin/sh
-
-xlink=$(uci -q -c /etc/config.mesh/ show xlink | grep "ifname='${DEVICE}'")
-
-# This section will generate rtnetlink errors when the rule doesn't exist.
-# This will be most common in the case of ifup.
-# On initial boot no route will be present, and on most interface restarts
-# the route should already be gone from ifdown but some scripts do not call
-# ifup/ifdown  to control the interface so we will want to make sure to
-# run a clean before hand to avoid duplicate rules.
+#
+# ================================================================================================================================
+#
+# Routing tables and their uses:
+#
+# 20 - 10.X route (IN) - BABEL
+#        The routes imported from other babel nodes.
+# 21 - Route to supernode (IN), or supernode's blackholes (OUT) - BABEL
+#        Route to the supernode (if there is one). If this is a supernode, then a blackhole route.
+# 22 - Default WAN route (IN) - BABEL
+#        A default route imported from another babel node.
+# 28 - Default WAN route from this node (OUT) - BABEL
+#        A default route made available to the mesh if aredn.@wan[0].olsrd_gw == 1, MESH -> WAN
+# 29 - Local LAN routes (OUT) = BABEL
+#        The local LAN subnet made available to the mesh. Not used by ourself.
+# 99 - Blackhole
+#        We send things to the blackhole when we dont want them to fall though to the main tables
+# main - This is the default node routing table
+#
+# Tables 20, 21, 29 contain very specific routes with very specific purposes.
+# Tables 22, 28, 99 contains various flavors of the default route.
+#
+# ================================================================================================================================
+#
+# Routing table order is the same regardless of the input interface (iif).
+# However, not all routing tables are used for all inputs.
+#
+# LAN has specific properties so requires its own sequence of rules.
+# THRU traffic, regardless of course, requires one set of rules. Hopefully this can be the ALL.
+# LOCAL traffic, which originates on this node, is like THRU traffic, except can always use the local WAN.
+#
+# LAN     - 29, 20, 21, (28), (22), 99        ---  28 if LAN->WAN, 22 if LAN->MESH-WAN
+# THRU    - 29, 20, 21, (28),  22,  99        ---  28 if MESH->WAN
+# LOCAL   - 29, 20, 21,  28,   22,      main
+#
 
 if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
-
-  echo "Deleting specific routing rules that may exist."
-
-  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$xlink" != "" ] ; then
-    ip rule del pref 20010 iif $DEVICE lookup 29
-    ip rule del pref 20020 iif $DEVICE lookup 20
-    ip rule del pref 20040 iif $DEVICE lookup 21
-    ip rule del pref 20050 iif $DEVICE lookup 22
-    ip rule del pref 20090 iif $DEVICE lookup main
-    ip rule del pref 20099 iif $DEVICE unreachable 
-  fi
-
-  if [ "$INTERFACE" == "lan" ] ; then
-    ip rule del pref 30010 iif $DEVICE lookup 29
-    ip rule del pref 30020 iif $DEVICE lookup 20
-    ip rule del pref 30040 iif $DEVICE lookup 21
-    ip rule del pref 30050 iif $DEVICE lookup main
-    ip rule del pref 30070 iif $DEVICE lookup 22
-  fi
-
+  #
+  # We use the loopback interface to teardown/setup the 'all' rules which are used for all LOCAL traffic.
+  # We only do this once, and the rules go at the end so this is special cased here.
+  #
   if [ "$INTERFACE" == "loopback" ] ; then
-    ip rule del pref 30210 lookup 29
-    ip rule del pref 30220 lookup 20
-    ip rule del pref 30240 lookup 21
-    ip rule del pref 30260 lookup main
-    ip rule del pref 30270 lookup 22
-  fi
+    ip rule del pref 110 lookup 29
+    ip rule del pref 120 lookup 20
+    ip rule del pref 140 lookup 21
+    ip rule del pref 150 lookup 28
+    ip rule del pref 160 lookup 22
 
-fi
-
-if [ "$ACTION" = "ifup" ] ; then
-
-  is_wan_gw=$(/sbin/uci -q get aredn.@wan[0].mesh_to_local_wan) # MESH -> WAN
-  is_mesh_wan_gw=$(/sbin/uci -q get aredn.@wan[0].lan_to_remote_wan) # LAN -> MESH-WAN
-
-  # Set routes for wifi or device to device linking
-  # unreachable rule is needed  to ensure packets do not traverse a rule later that considers routing to another network.
-
-  echo "Setting routing rules."
-
-  if [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$xlink" != "" ]; then
-    ip rule add pref 20010 iif $DEVICE lookup 29
-    ip rule add pref 20020 iif $DEVICE lookup 20
-    ip rule add pref 20040 iif $DEVICE lookup 21
-    ip rule add pref 20050 iif $DEVICE lookup 22
-    if [ $is_wan_gw -eq 1 ] ; then
-      ip rule add pref 20090 iif $DEVICE lookup main
+    if [ "$ACTION" = "ifup" ] ; then
+      ip rule add pref 110 lookup 29
+      ip rule add pref 120 lookup 20
+      ip rule add pref 140 lookup 21
+      ip rule add pref 150 lookup 28
+      ip rule add pref 160 lookup 22
+      #
+      # We setup table 99 as the blackhole
+      #
+      ip route add blackhole 0.0.0.0/0 table 99
     fi
-    ip rule add pref 20099 iif $DEVICE unreachable
-
   fi
 
-  if [ "$INTERFACE" = "wan" ] && [ $is_wan_gw -eq 1 ]; then
-    wangwip=$(ip route get 8.8.8.8 | sed -e 's/.*via//' -e 's/ dev.*//')
-    ip route add default via $wangwip table 28
-  fi
-
-  # Makes sure the lan interface is allowed to hit the local interfaces(29), babel(20), and local routes (main)  Local ethernet is trusted to use additonal rules.
-  if [ "$INTERFACE" == "lan" ] ; then
-    ip rule add pref 30010 iif $DEVICE lookup 29
-    ip rule add pref 30020 iif $DEVICE lookup 20
-    ip rule add pref 30040 iif $DEVICE lookup 21
-    ip rule add pref 30050 iif $DEVICE lookup 22
-    ip rule add pref 30060 iif $DEVICE lookup main
-    if [ $is_mesh_wan_gw -eq 1 ]; then
-      ip rule add pref 30070 iif $DEVICE lookup 22
+  #
+  # When we bring up the WAN interface, setup the default route in table 28.
+  #
+  if [ "$INTERFACE" = "wan" ]; then
+    ip route del default table 28
+    if [ "$ACTION" = "ifup" ] ; then
+      wan_gw=$(ip route | grep ^default.*br-wan | sed 's/^default via \(.*\) dev.*$/\1/')
+      ip route add default via $wan_gw table 28
     fi
+  fi
 
-    # Lets go ahead and set the route to the local network here since we only need to be able to route to it after the interface comes up.
+  #
+  # When we bring up the LAN interface, setup the lan subnet in table 29.
+  #
+  if [ "$INTERFACE" = "lan" ]; then
     lan_ipaddr=$(uci -q get network.lan.ipaddr)
     lan_netmask=$(uci -q get network.lan.netmask)
     bridge=$(uci -q get network.lan.type)
@@ -91,20 +87,49 @@ if [ "$ACTION" = "ifup" ] ; then
       lan_networkip=$(ipcalc.sh $lan_ipaddr $lan_netmask|grep NETWORK|cut -d'=' -f2)
       ip route add $lan_networkip/$lan_netmask table 29 dev $lan_ifname
     fi
-
   fi
 
-  # Handles setting up rules for local resolution of routes.
-  if [ "$INTERFACE" == "loopback" ] ; then
-    ip rule add pref 30210 lookup 29
-    ip rule add pref 30220 lookup 20
-    ip rule add pref 30240 lookup 21
-    ip rule add pref 30260 lookup main
-    ip rule add pref 30270 lookup 22
+  #
+  # Determine if an interface is LAN, THRU or LOCAL and select the conditional rules accordingly.
+  # Note that LOCAL just uses the main routing table, so there's nothing else for it do as we set that
+  # up once as a special case.
+  #
+  RULE28="0"
+  RULE22="0"
+  if [ "$INTERFACE" == "lan" ] ; then
+    # LAN
+    RULE28="$(uci -q get aredn.@wan[0].lan_dhcp_route)" # LAN -> WAN
+    RULE22="$(uci -q get aredn.@wan[0].mesh_wan_gw)" # LAN -> MESH-WAN
+  elif [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:3}" == "tun" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$(uci -q -c /etc/config.mesh/ show xlink | grep "ifname='${DEVICE}'")" != "" ] ; then
+    # THRU
+    RULE28="$(uci -q get aredn.@wan[0].olsrd_gw)" # MESH -> WAN
+    RULE22="1"
+  else
+    # LOCAL
+    # Nothing to do as we'll let the 'all' rules handle this.
+    exit 0
   fi
 
+  # Clear away any rules which may already exist
+  ip rule del pref 10 iif $DEVICE lookup 29
+  ip rule del pref 20 iif $DEVICE lookup 20
+  ip rule del pref 40 iif $DEVICE lookup 21
+  ip rule del pref 50 iif $DEVICE lookup 28
+  ip rule del pref 60 iif $DEVICE lookup 22
+  ip rule del pref 80 iif $DEVICE lookup 99
+
+  if [ "$ACTION" = "ifup" ] ; then
+    ip rule add pref 10 iif $DEVICE lookup 29
+    ip rule add pref 20 iif $DEVICE lookup 20
+    ip rule add pref 40 iif $DEVICE lookup 21
+    if [ "$RULE28" = "1" ]; then
+      ip rule add pref 50 iif $DEVICE lookup 28
+    fi
+    if [ "$RULE22" = "1" ]; then
+      ip rule add pref 60 iif $DEVICE lookup 22
+    fi
+    ip rule add pref 80 iif $DEVICE lookup 99
+  fi
 fi
 
-# Ensure we send a good exit code
-exit 0;
-
+exit 0

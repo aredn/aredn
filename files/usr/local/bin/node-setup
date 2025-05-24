@@ -1401,6 +1401,8 @@ for (let file in nfiles) {
                     }
                 }
                 if (special.lan_dhcp_route != oc.get("aredn", "@wan[0]", "lan_dhcp_route")) {
+                    changes.network = true;
+                    changes.babel = true;
                     changes.firewall = true;
                 }
                 if (special.mesh_to_local_wan != oc.get("aredn", "@wan[0]", "mesh_to_local_wan")) {
