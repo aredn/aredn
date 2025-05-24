@@ -898,3 +898,16 @@ export function GPSReadLLT(gps, maxlines)
     s.close();
     return info;
 };
+
+export function getTimeouts(type)
+{
+    const timeouts = getRadio().timeouts || {};
+    switch (type) {
+        case "reboot":
+            return timeouts.reboot || [ 20, 120 ];
+        case "upgrade":
+            return timeouts.upgrade || [ 120, 300 ];
+        default:
+            return [ 20, 120 ];
+    }
+};

@@ -36,17 +36,22 @@
     const TIMEOUT = {{inner.timeout}} * 1000;
     const COUNTDOWN = {{inner.countdown}};
     const DELAY = {{inner.delay}} * 1000;
-    const LOCATION = "{{inner.location}}";
+    const LOCATIONS = {{inner.locations}};
+    let idx = 0;
     function reload() {
         const start = Date.now();
         const req = new XMLHttpRequest();
-        req.open('GET', LOCATION);
+        req.open('GET', LOCATIONS[idx]);
         req.onreadystatechange = function() {
             if (req.readyState === 4) {
                 if (req.status === 200) {
-                    window.location = LOCATION;
+                    window.location = LOCATIONS[idx];
                 }
                 else {
+                    idx++;
+                    if (idx >= LOCATIONS.length) {
+                        idx = 0;
+                    }
                     const time = Date.now() - start;
                     setTimeout(reload, time > TIMEOUT ? 0 : TIMEOUT - time);
                 }

@@ -50,6 +50,7 @@
             </div>
         </div>
         <script>document.getElementById("ctrl-modal").close();</script>
-        {{_R("reboot-mon", { delay: 20, countdown: 120, timeout: 5, location: `http://${request.env.HTTP_HOST}/a/status` })}}
+        {% const timeouts = hardware.getTimeouts("upgrade"); %}
+        {{_R("reboot-mon", { delay: timeouts[0], countdown: timeouts[1], timeout: 5, locations: [ `http://${request.env.HTTP_HOST}/a/status` ] })}}
     </div>
 </div>

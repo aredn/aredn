@@ -34,7 +34,13 @@
 %}
 {%
     response.reboot = "/sbin/reboot";
-    const address = configuration.getSettingAsString("wifi_ip", request.env.HTTP_HOST);
+    const timeouts = hardware.getTimeouts("reboot");
+    const locations = [];
+    push(locations, `http://${request.env.HTTP_HOST}/a/status`);
+    const address = configuration.getSettingAsString("wifi_ip", null);
+    if (address) {
+        push(locations, `http://${address}/a/status`);
+    }
 %}
 <title>{{configuration.getName()}} rebooting</title>
 <div class="reboot">
@@ -52,5 +58,5 @@
             <div id="countdown">&nbsp;</div>
         </div>
     </div>
-    {{_R("reboot-mon", { delay: 20, countdown: 120, timeout: 5, location: `http://${address}/a/status` })}}
+    {{_R("reboot-mon", { delay: timeouts[0], countdown: timeouts[1], timeout: 5, locations: locations })}}
 </div>
