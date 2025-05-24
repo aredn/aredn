@@ -54,6 +54,7 @@
                 document.getElementById("firmware-msg").innerHTML = "<div>Your node is rebooting.<br>This browser will reconnect automatically once complete.</div>";
             }, 100 * 1000);
         </script>
-        {{_R("reboot-mon", { delay: 120, countdown: 300, timeout: 5, location: `http://192.168.1.1/` })}}
+        {% const timeouts = hardware.getTimeouts("upgrade"); %}
+        {{_R("reboot-mon", { delay: timeouts[0], countdown: timeouts[1], timeout: 5, locations: [ `http://192.168.1.1/` ] })}}
     </div>
 </div>
