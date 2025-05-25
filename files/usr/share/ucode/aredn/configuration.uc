@@ -516,8 +516,6 @@ export function supportdata(supportdatafilename)
         "ip route list table 22",
         "ip route list table 28",
         "ip route list table 29",
-        "ip route list table 30",
-        "ip route list table 31",
         "ip route list table main",
         "ip route list table default",
         "ip rule list",
