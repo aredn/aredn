@@ -11,7 +11,7 @@
 # 22 - Default WAN route (IN) - BABEL
 #        A default route imported from another babel node.
 # 27 - Local WAN route
-#        This is the local subnet of the WAN and is used for LOCAL only.
+#        This is the local subnet of the WAN and is used for LAN & LOCAL.
 # 28 - Default WAN route from this node (OUT) - BABEL
 #        A default route made available to the mesh if aredn.@wan[0].mesh_to_local_wan == 1, MESH -> WAN
 # 29 - Local LAN routes (OUT) = BABEL
@@ -32,9 +32,9 @@
 # THRU traffic, regardless of course, requires one set of rules. Hopefully this can be the ALL.
 # LOCAL traffic, which originates on this node, is like THRU traffic, except can always use the local WAN.
 #
-# LAN     - 29, 20, 21,    (28), (22), 99        ---  28 if LAN->WAN, 22 if LAN->MESH-WAN
-# THRU    - 29, 20, 21,    (28),  22,  99        ---  28 if MESH->WAN
-# LOCAL   - 29, 20, 21, 27, 28,   22,      main
+# LAN     - 29, 20, 21, 27, (28), (22), 99        ---  28 if LAN->WAN, 22 if LAN->MESH-WAN
+# THRU    - 29, 20, 21,     (28),  22,  99        ---  28 if MESH->WAN
+# LOCAL   - 29, 20, 21, 27,  28,   22,      main
 #
 
 if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
@@ -45,18 +45,18 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
   if [ "$INTERFACE" == "loopback" ] ; then
     ip rule del pref 110 lookup 29
     ip rule del pref 120 lookup 20
-    ip rule del pref 140 lookup 21
-    ip rule del pref 150 lookup 27
-    ip rule del pref 160 lookup 28
-    ip rule del pref 170 lookup 22
+    ip rule del pref 130 lookup 21
+    ip rule del pref 140 lookup 27
+    ip rule del pref 150 lookup 28
+    ip rule del pref 160 lookup 22
 
     if [ "$ACTION" = "ifup" ] ; then
       ip rule add pref 110 lookup 29
       ip rule add pref 120 lookup 20
-      ip rule add pref 140 lookup 21
-      ip rule add pref 150 lookup 27
-      ip rule add pref 160 lookup 28
-      ip rule add pref 170 lookup 22
+      ip rule add pref 130 lookup 21
+      ip rule add pref 140 lookup 27
+      ip rule add pref 150 lookup 28
+      ip rule add pref 160 lookup 22
       #
       # We setup table 99 as the blackhole
       #
@@ -68,8 +68,7 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
   # When we bring up the WAN interface, setup the subnet in table 27 and the default route in table 28.
   #
   if [ "$INTERFACE" = "wan" ]; then
-    wan=$(ip route | grep "dev $DEVICE scope link")
-    wan_net=$(echo $wan | sed 's/ .*$//')
+    wan_net=$(ip route | grep "dev $DEVICE scope link" | sed 's/ .*$//')
     ip route del $wan_net table 27
     ip route del default table 28
     if [ "$ACTION" = "ifup" ] ; then
@@ -94,10 +93,12 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
   # Note that LOCAL just uses the main routing table, so there's nothing else for it do as we set that
   # up once as a special case.
   #
+  RULE27="0"
   RULE28="0"
   RULE22="0"
   if [ "$INTERFACE" == "lan" ] ; then
     # LAN
+    RULE27="1"
     RULE28="$(uci -q get aredn.@wan[0].lan_dhcp_route)" # LAN -> WAN
     RULE22="$(uci -q get aredn.@wan[0].lan_to_remote_wan)" # LAN -> MESH-WAN
   elif [ "$INTERFACE" == "wifi" ] || [ "$INTERFACE" == "dtdlink" ] || [ "${INTERFACE:0:3}" == "tun" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$(uci -q -c /etc/config.mesh/ show xlink | grep "ifname='${DEVICE}'")" != "" ] ; then
@@ -113,22 +114,26 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
   # Clear away any rules which may already exist
   ip rule del pref 10 iif $DEVICE lookup 29
   ip rule del pref 20 iif $DEVICE lookup 20
-  ip rule del pref 40 iif $DEVICE lookup 21
+  ip rule del pref 30 iif $DEVICE lookup 21
+  ip rule del pref 40 iif $DEVICE lookup 27
   ip rule del pref 50 iif $DEVICE lookup 28
   ip rule del pref 60 iif $DEVICE lookup 22
-  ip rule del pref 80 iif $DEVICE lookup 99
+  ip rule del pref 70 iif $DEVICE lookup 99
 
   if [ "$ACTION" = "ifup" ] ; then
     ip rule add pref 10 iif $DEVICE lookup 29
     ip rule add pref 20 iif $DEVICE lookup 20
-    ip rule add pref 40 iif $DEVICE lookup 21
+    ip rule add pref 30 iif $DEVICE lookup 21
+    if [ "$RULE27" = "1" ]; then
+      ip rule add pref 40 iif $DEVICE lookup 27
+    fi
     if [ "$RULE28" = "1" ]; then
       ip rule add pref 50 iif $DEVICE lookup 28
     fi
     if [ "$RULE22" = "1" ]; then
       ip rule add pref 60 iif $DEVICE lookup 22
     fi
-    ip rule add pref 80 iif $DEVICE lookup 99
+    ip rule add pref 70 iif $DEVICE lookup 99
   fi
 fi
 
