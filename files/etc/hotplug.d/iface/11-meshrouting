@@ -76,14 +76,12 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
   # When we bring up the WAN interface, setup the subnet in table 27 and the default route in table 28.
   #
   if [ "$INTERFACE" = "wan" ]; then
-    wan=$(ip route | grep "dev br-wan scope link")
-    wan_net=$(echo $wan | sed 's/ .*$//')
+    wan_net=$(ip route | grep "dev $DEVICE scope link" | sed 's/ .*$//')
     ip route del $wan_net table 27
     ip route del default table 28
     if [ "$ACTION" = "ifup" ] ; then
-      wan_ip=$(echo $wan | sed 's/^.*src //')
-      wan_gw=$(ip route | grep ^default.*br-wan | sed 's/^default via \(.*\) dev.*$/\1/')
-      ip route add $wan_net dev br-wan scope link src $wan_ip table 27
+      wan_gw=$(ip route | grep ^default.*$DEVICE | sed 's/^default via \(.*\) dev.*$/\1/')
+      ip route add $wan_net dev $DEVICE table 27
       ip route add default via $wan_gw table 28
     fi
   fi
@@ -94,16 +92,8 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
   if [ "$INTERFACE" = "lan" ]; then
     lan_ipaddr=$(uci -q get network.lan.ipaddr)
     lan_netmask=$(uci -q get network.lan.netmask)
-    bridge=$(uci -q get network.lan.type)
-    if [ $bridge = "bridge" ] ; then
-        lan_ifname="br-lan"
-    else
-        lan_ifname=$(uci -q get network.lan.device | cut -f1)
-    fi
-    if [ "$lan_ifname" != "" ] && [ "$lan_ipaddr" != "" ] && [ "$lan_netmask" != "" ] ; then
-      lan_networkip=$(ipcalc.sh $lan_ipaddr $lan_netmask|grep NETWORK|cut -d'=' -f2)
-      ip route add $lan_networkip/$lan_netmask table 29 dev $lan_ifname
-    fi
+    lan_networkip=$(ipcalc.sh $lan_ipaddr $lan_netmask|grep NETWORK|cut -d'=' -f2)
+    ip route add $lan_networkip/$lan_netmask dev $DEVICE table 29
   fi
 
   #
