@@ -472,6 +472,7 @@ export function supportdata(supportdatafilename)
         "/etc/board.json",
         "/etc/config",
         "/etc/config.mesh",
+        "/etc/aredn_include",
         "/etc/ethers",
         "/etc/hosts",
         "/etc/local",
