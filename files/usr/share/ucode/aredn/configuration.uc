@@ -478,8 +478,7 @@ export function supportdata(supportdatafilename)
         "/etc/local",
         "/etc/mesh-release",
         "/etc/os-release",
-        "/etc/arednlink/hosts",
-        "/etc/arednlink/services",
+        "/etc/arednlink",
         "/tmp/etc",
         "/tmp/dnsmasq.d",
         "/tmp/lqm.info",
@@ -493,12 +492,9 @@ export function supportdata(supportdatafilename)
         "/var/run/hostapd-wlan1.maclist"
     ];
     const sensitive = [
-        "/etc/config/vtun",
-        "/etc/config.mesh/vtun",
         "/etc/config/network",
         "/etc/config.mesh/wireguard",
         "/etc/config/wireless",
-        "/etc/config.mesh/_setup",
         "/etc/config.mesh/setup",
     ];
     const cmds = [
