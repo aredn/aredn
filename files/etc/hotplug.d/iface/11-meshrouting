@@ -10,6 +10,8 @@
 #        Route to the supernode (if there is one). If this is a supernode, then a blackhole route.
 # 22 - Default WAN route (IN) - BABEL
 #        A default route imported from another babel node.
+# 27 - Local WAN route
+#        This is the local subnet of the WAN and is used for LOCAL only.
 # 28 - Default WAN route from this node (OUT) - BABEL
 #        A default route made available to the mesh if aredn.@wan[0].olsrd_gw == 1, MESH -> WAN
 # 29 - Local LAN routes (OUT) = BABEL
@@ -22,7 +24,7 @@
 #        We send things to the blackhole when we dont want them to fall though to the main tables
 # main - This is the default node routing table
 #
-# Tables 20, 21, 29, 30 contain very specific routes with very specific purposes.
+# Tables 20, 21, 27, 29, 30 contain very specific routes with very specific purposes.
 # Tables 22, 28, 31, 99 contains various flavors of the default route.
 #
 # ================================================================================================================================
@@ -34,9 +36,9 @@
 # THRU traffic, regardless of course, requires one set of rules. Hopefully this can be the ALL.
 # LOCAL traffic, which originates on this node, is like THRU traffic, except can always use the local WAN.
 #
-# LAN     - 29, 20, 30, 21, (28), (22, 31), 99        ---  28 if LAN->WAN, 22+31 if LAN->MESH-WAN
-# THRU    - 29, 20, 30, 21, (28),  22, 31,  99        ---  28 if MESH->WAN
-# LOCAL   - 29, 20, 30, 21,  28,   22, 31,      main
+# LAN     - 29, 20, 30, 21,    (28), (22, 31), 99        ---  28 if LAN->WAN, 22+31 if LAN->MESH-WAN
+# THRU    - 29, 20, 30, 21,    (28),  22, 31,  99        ---  28 if MESH->WAN
+# LOCAL   - 29, 20, 30, 21, 27, 28,   22, 31,      main
 #
 
 if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
@@ -49,18 +51,20 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
     ip rule del pref 120 lookup 20
     ip rule del pref 130 lookup 30
     ip rule del pref 140 lookup 21
-    ip rule del pref 150 lookup 28
-    ip rule del pref 160 lookup 22
-    ip rule del pref 170 lookup 31
+    ip rule del pref 150 lookup 27
+    ip rule del pref 160 lookup 28
+    ip rule del pref 170 lookup 22
+    ip rule del pref 180 lookup 31
 
     if [ "$ACTION" = "ifup" ] ; then
       ip rule add pref 110 lookup 29
       ip rule add pref 120 lookup 20
       ip rule add pref 130 lookup 30
       ip rule add pref 140 lookup 21
-      ip rule add pref 150 lookup 28
-      ip rule add pref 160 lookup 22
-      ip rule add pref 170 lookup 31
+      ip rule add pref 150 lookup 27
+      ip rule add pref 160 lookup 28
+      ip rule add pref 170 lookup 22
+      ip rule add pref 180 lookup 31
       #
       # We setup table 99 as the blackhole
       #
@@ -69,12 +73,17 @@ if [ "$ACTION" = "ifdown" ] || [ "$ACTION" = "ifup" ] ; then
   fi
 
   #
-  # When we bring up the WAN interface, setup the default route in table 28.
+  # When we bring up the WAN interface, setup the subnet in table 27 and the default route in table 28.
   #
   if [ "$INTERFACE" = "wan" ]; then
+    wan=$(ip route | grep "dev br-wan scope link")
+    wan_net=$(echo $wan | sed 's/ .*$//')
+    ip route del $wan_net table 27
     ip route del default table 28
     if [ "$ACTION" = "ifup" ] ; then
+      wan_ip=$(echo $wan | sed 's/^.*src //')
       wan_gw=$(ip route | grep ^default.*br-wan | sed 's/^default via \(.*\) dev.*$/\1/')
+      ip route add $wan_net dev br-wan scope link src $wan_ip table 27
       ip route add default via $wan_gw table 28
     fi
   fi
