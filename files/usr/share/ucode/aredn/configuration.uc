@@ -422,7 +422,7 @@ export function backup()
         return null;
     }
     for (let l = fi.read("line"); length(l); l = fi.read("line")) {
-        if (!match(l, "^#") && !match(l, /^\/etc\/config\//) && fs.access(trim(l))) {
+        if (!match(l, "^#") && fs.access(trim(l))) {
             fo.write(l);
         }
     }
