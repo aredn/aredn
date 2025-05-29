@@ -103,3 +103,39 @@
 +     return NULL;
 +   
 + #if defined(HAVE_IDN) || defined(HAVE_LIBIDN2)
+--- /dev/null
++++ b/package/network/services/dnsmasq/patches/112-fix-dyndir-memory-leak.patch
+@@ -0,0 +1,33 @@
++--- a/src/inotify.c
+++++ b/src/inotify.c
++@@ -155,6 +155,11 @@
++   newah->index = daemon->host_index++;
++   newah->fname = path;
++ 
+++  if (!(newah->fname = whine_malloc(strlen(path)+1))) {
+++    free(newah);
+++    return NULL;
+++  }
+++  strcpy(newah->fname, path);
++   return newah;
++ }
++ 
++@@ -239,6 +244,8 @@
++ 		     option_read_dynfile(path, dd->flags);
++ #endif		   
++ 		 }
+++
+++	       free(path);
++ 	     }
++ 	 }
++ 
++@@ -339,8 +346,7 @@
++ 		      option_read_dynfile(path, AH_DHCP_OPT);
++ #endif
++ 		    
++-		    if (!ah)
++-		      free(path);
+++		    free(path);
++ 		  }
++ 	      }
++ 	}
