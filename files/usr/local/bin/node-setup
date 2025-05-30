@@ -717,8 +717,7 @@ if fw then
                         fw:write("\nconfig redirect\n        option src vpn\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
                     end
                 elseif intf == "wan" then
-                    fw:write("\nconfig redirect\n        option src dtdlink\n        option dest  lan\n        " .. match .. "        option src_dip " .. cfg.wifi_ip .. "\n        " .. host .. "\n")
-                    fw:write("config redirect\n        option src wan\n        option dest  lan\n        " .. match .. "        " .. host .. "\n")
+                    fw:write("\nconfig redirect\n        option src wan\n        option dest  lan\n        " .. match .. "        " .. host .. "\n")
                 end
             end
         end
