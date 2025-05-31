@@ -1327,11 +1327,7 @@ if nixio.fs.access("/etc/config.mesh/olsrd", "r") then
             cm:foreach("xlink", "interface",
                 function(section)
                     of:write("\nconfig Interface\n\tlist interface '" .. section[".name"] .. "'\n")
-                    if section.peer then
-                        of:write("\toption Ip4Broadcast '" .. section.peer .. "'\n")
-                    else
-                        of:write("\toption Ip4Broadcast '255.255.255.255'\n")
-                    end
+                    of:write("\toption Ip4Broadcast '255.255.255.255'\n")
                     local weight = tonumber(section.weight or 0)
                     if weight then
                         if weight > 1 then
