@@ -554,27 +554,11 @@ function main()
             
             // Clear route counter
             track.babel_route_count = 0;
+            track.babel_metric = null;
+            track.routable = false;
 
-            if (!track.ip) {
-                track.routable = false;
-            }
-            else {
+            if (track.ip) {
                 ip2tracker[track.ip] = track;
-
-                // Update if link is routable
-                track.routable = false;
-                for (let i = 0; i < length(hostRoutes); i++) {
-                    const r = hostRoutes[i];
-                    if (r.dst == track.ip || r.dst == track.canonical_ip) {
-                        track.routable = true;
-                        track.babel_metric = r.metric;
-                        break;
-                    }
-                }
-                if (superRoute && !track.routable && (superRoute.gateway == track.ip || superRoute.gateway == track.canonical_ip)) {
-                    track.routable = true;
-                    track.babel_metric = superRoute.metric;
-                }
             }
 
             // Refresh user blocks
@@ -686,16 +670,25 @@ function main()
             // Pull in the routing table to see how many node routes are associated with each tracker.
             total_route_count = 0;
             for (let i = 0; i < length(hostRoutes); i++) {
-                const t = ip2tracker[hostRoutes[i].gateway];
+                const r = hostRoutes[i];
+                const t = ip2tracker[r.gateway];
                 if (t) {
+                    t.routable = true;
                     t.babel_route_count++;
+                    if (t.babel_metric === null || r.metric < t.babel_metric) {
+                        t.babel_metric = r.metric;
+                    }
                     total_route_count++;
                 }
             }
             if (superRoute) {
                 const t = ip2tracker[superRoute.gateway];
                 if (t) {
+                    t.routable = true;
                     t.babel_route_count++;
+                    if (t.babel_metric === null || superRoute.metric < t.babel_metric) {
+                        t.babel_metric = superRoute.metric;
+                    }
                     total_route_count++;
                 }
             }
