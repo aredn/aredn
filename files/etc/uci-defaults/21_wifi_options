@@ -45,62 +45,32 @@ count=$(ls -1 /sys/kernel/debug/ieee80211 2>/dev/null | wc -l)
 
 # Dont do this if we have no radios or we've already done the conversion
 if [ "${count}" = "0" ] || [ "$(${UCIGET} setup.globals.radio0_mode)" != "" ]; then
-    exit 0
-fi
+    echo "Nothing to migrate"
+else
+    # New keys
+    radio0_mode=""
+    radio0_channel=""
+    radio0_bandwidth=""
+    radio0_ssid=""
+    radio0_encryption=""
+    radio0_key=""
+    radio0_txpower=""
+    radio0_distance=""
+    radio1_mode=""
+    radio1_channel=""
+    radio1_bandwidth=""
+    radio1_ssid=""
+    radio1_encryption=""
+    radio1_key=""
+    radio1_txpower=""
+    radio1_distance=""
 
-# New keys
-radio0_mode=""
-radio0_channel=""
-radio0_bandwidth=""
-radio0_ssid=""
-radio0_encryption=""
-radio0_key=""
-radio0_txpower=""
-radio0_distance=""
-radio1_mode=""
-radio1_channel=""
-radio1_bandwidth=""
-radio1_ssid=""
-radio1_encryption=""
-radio1_key=""
-radio1_txpower=""
-radio1_distance=""
+    wifi_enable=$(${UCIGET} setup.globals.wifi_enable)
+    wifi2_enable=$(${UCIGET} setup.globals.wifi2_enable)
+    wifi3_enable=$(${UCIGET} setup.globals.wifi3_enable)
 
-wifi_enable=$(${UCIGET} setup.globals.wifi_enable)
-wifi2_enable=$(${UCIGET} setup.globals.wifi2_enable)
-wifi3_enable=$(${UCIGET} setup.globals.wifi3_enable)
-
-if [ "${count}" = "1" ]; then
-    if [ "${wifi_enable}" = "1" ]; then
-        radio0_mode="mesh"
-        radio0_ssid="$(${UCIGET} setup.globals.wifi_ssid)"
-        radio0_channel="$(${UCIGET} setup.globals.wifi_channel)"
-        radio0_bandwidth="$(${UCIGET} setup.globals.wifi_chanbw)"
-        radio0_txpower="$(${UCIGET} setup.globals.wifi_txpower)"
-        radio0_distance="$(${UCIGET} setup.globals.wifi_distance)"
-        if [ "$(${UCIGET} aredn.@lqm[0].enable)" = "1" -a "$(${UCIGET} aredn.@lqm[0].max_distance)" != "" ]; then
-            radio0_distance="$(${UCIGET} aredn.@lqm[0].max_distance)"
-        fi
-    elif [ "${wifi2_enable}" = "1" ]; then
-        radio0_mode="lan"
-        radio0_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
-        radio0_channel="$(${UCIGET} setup.globals.wifi2_channel)"
-        radio0_encryption="$(${UCIGET} setup.globals.wifi2_encryption)"
-        radio0_key="$(${UCIGET} setup.globals.wifi2_key)"
-    elif [ "${wifi3_enable}" = "1" ]; then
-        radio0_mode="wan"
-        radio0_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
-        radio0_key="$(${UCIGET} setup.globals.wifi3_key)"
-    else
-        radio0_mode="off"
-    fi
-elif [ "${count}" = "2" ]; then
-    radio0_mode="off"
-    radio1_mode="off"
-    radio0_band=$(/sbin/uci -q get wireless.radio0.band)
-    if [ "${wifi_enable}" = "1" ]; then
-        wifi_intf=$(${UCIGET} setup.globals.wifi_intf)
-        if [ "${wifi_intf}" = "wlan0" ]; then
+    if [ "${count}" = "1" ]; then
+        if [ "${wifi_enable}" = "1" ]; then
             radio0_mode="mesh"
             radio0_ssid="$(${UCIGET} setup.globals.wifi_ssid)"
             radio0_channel="$(${UCIGET} setup.globals.wifi_channel)"
@@ -110,120 +80,152 @@ elif [ "${count}" = "2" ]; then
             if [ "$(${UCIGET} aredn.@lqm[0].enable)" = "1" -a "$(${UCIGET} aredn.@lqm[0].max_distance)" != "" ]; then
                 radio0_distance="$(${UCIGET} aredn.@lqm[0].max_distance)"
             fi
-            if [ "${wifi2_enable}" = "1" ]; then
-                radio1_mode="lan"
-                radio1_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
-                radio1_channel="$(${UCIGET} setup.globals.wifi2_channel)"
-                radio1_encryption="$(${UCIGET} setup.globals.wifi2_encryption)"
-                radio1_key="$(${UCIGET} setup.globals.wifi2_key)"
-            elif [ "${wifi3_enable}" = "1" ]; then
-                radio1_mode="wan"
-                radio1_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
-                radio1_key="$(${UCIGET} setup.globals.wifi3_key)"
-            fi
-        elif [ "${wifi_intf}" = "wlan1" ]; then
-            radio1_mode="mesh"
-            radio1_ssid="$(${UCIGET} setup.globals.wifi_ssid)"
-            radio1_channel="$(${UCIGET} setup.globals.wifi_channel)"
-            radio1_bandwidth="$(${UCIGET} setup.globals.wifi_chanbw)"
-            radio1_txpower="$(${UCIGET} setup.globals.wifi_txpower)"
-            radio1_distance="$(${UCIGET} setup.globals.wifi_distance)"
-            if [ "$(${UCIGET} aredn.@lqm[0].enable)" = "1" -a "$(${UCIGET} aredn.@lqm[0].max_distance)" != "" ]; then
-                radio1_distance="$(${UCIGET} aredn.@lqm[0].max_distance)"
-            fi
-            if [ "${wifi2_enable}" = "1" ]; then
-                radio0_mode="lan"
-                radio0_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
-                radio0_channel="$(${UCIGET} setup.globals.wifi2_channel)"
-                radio0_encryption="$(${UCIGET} setup.globals.wifi2_encryption)"
-                radio0_key="$(${UCIGET} setup.globals.wifi2_key)"
-            elif [ "${wifi3_enable}" = "1" ]; then
-                radio0_mode="wan"
-                radio0_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
-                radio0_key="$(${UCIGET} setup.globals.wifi3_key)"
-            fi
-        fi
-    elif [ "${wifi2_enable}" = "1" ]; then
-        wifi2_hwmode=$(${UCIGET} setup.globals.wifi2_hwmode)
-        if [ "${wifi2_hwmode}" = "11a" -a "${radio0_band}" = "5g" ] || [ "${wifi2_hwmode}" = "11g" -a "${radio0_band}" = "2g" ]; then
+        elif [ "${wifi2_enable}" = "1" ]; then
             radio0_mode="lan"
             radio0_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
             radio0_channel="$(${UCIGET} setup.globals.wifi2_channel)"
             radio0_encryption="$(${UCIGET} setup.globals.wifi2_encryption)"
             radio0_key="$(${UCIGET} setup.globals.wifi2_key)"
-            if [ "${wifi3_enable}" = "1" ]; then
-                radio1_mode="wan"
-                radio1_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
-                radio1_key="$(${UCIGET} setup.globals.wifi3_key)"
-            fi
-        else
-            radio1_mode="lan"
-            radio1_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
-            radio1_channel="$(${UCIGET} setup.globals.wifi2_channel)"
-            radio1_encryption="$(${UCIGET} setup.globals.wifi2_encryption)"
-            radio1_key="$(${UCIGET} setup.globals.wifi2_key)"
-            if [ "${wifi3_enable}" = "1" ]; then
-                radio0_mode="wan"
-                radio0_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
-                radio0_key="$(${UCIGET} setup.globals.wifi3_key)"
-            fi
-        fi
-    elif [ "${wifi3_enable}" = "1" ]; then
-        wifi3_hwmode=$(${UCIGET} setup.globals.wifi3_hwmode)
-        if [ "${wifi3_hwmode}" = "11a" -a "${radio0_band}" = "5g" ] || [ "${wifi3_hwmode}" = "11g" -a "${radio0_band}" = "2g" ]; then
+        elif [ "${wifi3_enable}" = "1" ]; then
             radio0_mode="wan"
             radio0_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
             radio0_key="$(${UCIGET} setup.globals.wifi3_key)"
         else
-            radio1_mode="wan"
-            radio1_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
-            radio1_key="$(${UCIGET} setup.globals.wifi3_key)"
+            radio0_mode="off"
+        fi
+    elif [ "${count}" = "2" ]; then
+        radio0_mode="off"
+        radio1_mode="off"
+        radio0_band=$(/sbin/uci -q get wireless.radio0.band)
+        if [ "${wifi_enable}" = "1" ]; then
+            wifi_intf=$(${UCIGET} setup.globals.wifi_intf)
+            if [ "${wifi_intf}" = "wlan0" ]; then
+                radio0_mode="mesh"
+                radio0_ssid="$(${UCIGET} setup.globals.wifi_ssid)"
+                radio0_channel="$(${UCIGET} setup.globals.wifi_channel)"
+                radio0_bandwidth="$(${UCIGET} setup.globals.wifi_chanbw)"
+                radio0_txpower="$(${UCIGET} setup.globals.wifi_txpower)"
+                radio0_distance="$(${UCIGET} setup.globals.wifi_distance)"
+                if [ "$(${UCIGET} aredn.@lqm[0].enable)" = "1" -a "$(${UCIGET} aredn.@lqm[0].max_distance)" != "" ]; then
+                    radio0_distance="$(${UCIGET} aredn.@lqm[0].max_distance)"
+                fi
+                if [ "${wifi2_enable}" = "1" ]; then
+                    radio1_mode="lan"
+                    radio1_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
+                    radio1_channel="$(${UCIGET} setup.globals.wifi2_channel)"
+                    radio1_encryption="$(${UCIGET} setup.globals.wifi2_encryption)"
+                    radio1_key="$(${UCIGET} setup.globals.wifi2_key)"
+                elif [ "${wifi3_enable}" = "1" ]; then
+                    radio1_mode="wan"
+                    radio1_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
+                    radio1_key="$(${UCIGET} setup.globals.wifi3_key)"
+                fi
+            elif [ "${wifi_intf}" = "wlan1" ]; then
+                radio1_mode="mesh"
+                radio1_ssid="$(${UCIGET} setup.globals.wifi_ssid)"
+                radio1_channel="$(${UCIGET} setup.globals.wifi_channel)"
+                radio1_bandwidth="$(${UCIGET} setup.globals.wifi_chanbw)"
+                radio1_txpower="$(${UCIGET} setup.globals.wifi_txpower)"
+                radio1_distance="$(${UCIGET} setup.globals.wifi_distance)"
+                if [ "$(${UCIGET} aredn.@lqm[0].enable)" = "1" -a "$(${UCIGET} aredn.@lqm[0].max_distance)" != "" ]; then
+                    radio1_distance="$(${UCIGET} aredn.@lqm[0].max_distance)"
+                fi
+                if [ "${wifi2_enable}" = "1" ]; then
+                    radio0_mode="lan"
+                    radio0_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
+                    radio0_channel="$(${UCIGET} setup.globals.wifi2_channel)"
+                    radio0_encryption="$(${UCIGET} setup.globals.wifi2_encryption)"
+                    radio0_key="$(${UCIGET} setup.globals.wifi2_key)"
+                elif [ "${wifi3_enable}" = "1" ]; then
+                    radio0_mode="wan"
+                    radio0_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
+                    radio0_key="$(${UCIGET} setup.globals.wifi3_key)"
+                fi
+            fi
+        elif [ "${wifi2_enable}" = "1" ]; then
+            wifi2_hwmode=$(${UCIGET} setup.globals.wifi2_hwmode)
+            if [ "${wifi2_hwmode}" = "11a" -a "${radio0_band}" = "5g" ] || [ "${wifi2_hwmode}" = "11g" -a "${radio0_band}" = "2g" ]; then
+                radio0_mode="lan"
+                radio0_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
+                radio0_channel="$(${UCIGET} setup.globals.wifi2_channel)"
+                radio0_encryption="$(${UCIGET} setup.globals.wifi2_encryption)"
+                radio0_key="$(${UCIGET} setup.globals.wifi2_key)"
+                if [ "${wifi3_enable}" = "1" ]; then
+                    radio1_mode="wan"
+                    radio1_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
+                    radio1_key="$(${UCIGET} setup.globals.wifi3_key)"
+                fi
+            else
+                radio1_mode="lan"
+                radio1_ssid="$(${UCIGET} setup.globals.wifi2_ssid)"
+                radio1_channel="$(${UCIGET} setup.globals.wifi2_channel)"
+                radio1_encryption="$(${UCIGET} setup.globals.wifi2_encryption)"
+                radio1_key="$(${UCIGET} setup.globals.wifi2_key)"
+                if [ "${wifi3_enable}" = "1" ]; then
+                    radio0_mode="wan"
+                    radio0_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
+                    radio0_key="$(${UCIGET} setup.globals.wifi3_key)"
+                fi
+            fi
+        elif [ "${wifi3_enable}" = "1" ]; then
+            wifi3_hwmode=$(${UCIGET} setup.globals.wifi3_hwmode)
+            if [ "${wifi3_hwmode}" = "11a" -a "${radio0_band}" = "5g" ] || [ "${wifi3_hwmode}" = "11g" -a "${radio0_band}" = "2g" ]; then
+                radio0_mode="wan"
+                radio0_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
+                radio0_key="$(${UCIGET} setup.globals.wifi3_key)"
+            else
+                radio1_mode="wan"
+                radio1_ssid="$(${UCIGET} setup.globals.wifi3_ssid)"
+                radio1_key="$(${UCIGET} setup.globals.wifi3_key)"
+            fi
         fi
     fi
+
+    # Save new way
+    ${UCISET} setup.globals.radio0_mode=${radio0_mode}
+    ${UCISET} setup.globals.radio0_channel=${radio0_channel}
+    ${UCISET} setup.globals.radio0_bandwidth=${radio0_bandwidth}
+    ${UCISET} setup.globals.radio0_ssid=${radio0_ssid}
+    ${UCISET} setup.globals.radio0_encryption=${radio0_encryption}
+    ${UCISET} setup.globals.radio0_key=${radio0_key}
+    ${UCISET} setup.globals.radio0_txpower=${radio0_txpower}
+    ${UCISET} setup.globals.radio0_distance=${radio0_distance}
+    ${UCISET} setup.globals.radio1_mode=${radio1_mode}
+    ${UCISET} setup.globals.radio1_channel=${radio1_channel}
+    ${UCISET} setup.globals.radio1_bandwidth=${radio1_bandwidth}
+    ${UCISET} setup.globals.radio1_ssid=${radio1_ssid}
+    ${UCISET} setup.globals.radio1_encryption=${radio1_encryption}
+    ${UCISET} setup.globals.radio1_key=${radio1_key}
+    ${UCISET} setup.globals.radio1_txpower=${radio1_txpower}
+    ${UCISET} setup.globals.radio1_distance=${radio1_distance}
 fi
 
-# Save new way
-${UCISET} setup.globals.radio0_mode=${radio0_mode}
-${UCISET} setup.globals.radio0_channel=${radio0_channel}
-${UCISET} setup.globals.radio0_bandwidth=${radio0_bandwidth}
-${UCISET} setup.globals.radio0_ssid=${radio0_ssid}
-${UCISET} setup.globals.radio0_encryption=${radio0_encryption}
-${UCISET} setup.globals.radio0_key=${radio0_key}
-${UCISET} setup.globals.radio0_txpower=${radio0_txpower}
-${UCISET} setup.globals.radio0_distance=${radio0_distance}
-${UCISET} setup.globals.radio1_mode=${radio1_mode}
-${UCISET} setup.globals.radio1_channel=${radio1_channel}
-${UCISET} setup.globals.radio1_bandwidth=${radio1_bandwidth}
-${UCISET} setup.globals.radio1_ssid=${radio1_ssid}
-${UCISET} setup.globals.radio1_encryption=${radio1_encryption}
-${UCISET} setup.globals.radio1_key=${radio1_key}
-${UCISET} setup.globals.radio1_txpower=${radio1_txpower}
-${UCISET} setup.globals.radio1_distance=${radio1_distance}
+if [ "$(${UCIGET} setup.globals.wifi_enable)" != "" ]; then
+    # Remove old way
+    ${UCISET} setup.globals.wifi_enable=""
+    ${UCISET} setup.globals.wifi_mode=""
+    ${UCISET} setup.globals.wifi_proto=""
+    ${UCISET} setup.globals.wifi_country=""
+    ${UCISET} setup.globals.wifi_intf=""
+    ${UCISET} setup.globals.wifi_ssid=""
+    ${UCISET} setup.globals.wifi_channel=""
+    ${UCISET} setup.globals.wifi_chanbw=""
+    ${UCISET} setup.globals.wifi_txpower=""
+    ${UCISET} setup.globals.wifi_distance=""
+    ${UCISET} setup.globals.wifi_encryption=""
+    ${UCISET} setup.globals.wifi_key=""
 
-# Remove old way
-${UCISET} setup.globals.wifi_enable=""
-${UCISET} setup.globals.wifi_mode=""
-${UCISET} setup.globals.wifi_proto=""
-${UCISET} setup.globals.wifi_country=""
-${UCISET} setup.globals.wifi_intf=""
-${UCISET} setup.globals.wifi_ssid=""
-${UCISET} setup.globals.wifi_channel=""
-${UCISET} setup.globals.wifi_chanbw=""
-${UCISET} setup.globals.wifi_txpower=""
-${UCISET} setup.globals.wifi_distance=""
-${UCISET} setup.globals.wifi_encryption=""
-${UCISET} setup.globals.wifi_key=""
+    ${UCISET} setup.globals.wifi2_enable=""
+    ${UCISET} setup.globals.wifi2_hwmode=""
+    ${UCISET} setup.globals.wifi2_ssid=""
+    ${UCISET} setup.globals.wifi2_channel=""
+    ${UCISET} setup.globals.wifi2_encryption=""
+    ${UCISET} setup.globals.wifi2_key=""
 
-${UCISET} setup.globals.wifi2_enable=""
-${UCISET} setup.globals.wifi2_hwmode=""
-${UCISET} setup.globals.wifi2_ssid=""
-${UCISET} setup.globals.wifi2_channel=""
-${UCISET} setup.globals.wifi2_encryption=""
-${UCISET} setup.globals.wifi2_key=""
-
-${UCISET} setup.globals.wifi3_enable=""
-${UCISET} setup.globals.wifi3_hwmode=""
-${UCISET} setup.globals.wifi3_ssid=""
-${UCISET} setup.globals.wifi3_key=""
+    ${UCISET} setup.globals.wifi3_enable=""
+    ${UCISET} setup.globals.wifi3_hwmode=""
+    ${UCISET} setup.globals.wifi3_ssid=""
+    ${UCISET} setup.globals.wifi3_key=""
+fi
 
 ${UCI} commit setup
