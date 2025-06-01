@@ -1,0 +1,10 @@
+#!/bin/sh
+# Fixup incorrectly generated dtdlink address. This should be removed before release.
+dtdlink_ip=$(uci -q -c /etc/config.mesh get setup.globals.dtdlink_ip)
+if [ "$dtdlink_ip" = "10.0.0.0" ]; then
+    dtd="$((RANDOM % 254 + 1)).$((RANDOM % 254 + 1)).$((RANDOM % 254 + 1))"
+    uci -q -c /etc/config.mesh set setup.globals.dtdlink_ip="10.$dtd"
+    uci -q -c /etc/local/uci set hsmmmesh.settings.dtdmac="$dtd"
+    uci -q -c /etc/config.mesh commit setup
+    uci -q -c etc/local/uci commit hsmmmesh
+fi
