@@ -98,8 +98,8 @@ elif [ "${count}" = "2" ]; then
     radio0_mode="off"
     radio1_mode="off"
     radio0_band=$(/sbin/uci -q get wireless.radio0.band)
-    if [ "${wifi_enable}" = "1" ]; then
-        wifi_intf=$(${UCIGET} setup.globals.wifi_intf)
+    wifi_intf=$(${UCIGET} setup.globals.wifi_intf)
+    if [ "${wifi_enable}" = "1" -a "${wifi_intf}" != "" ]; then
         if [ "${wifi_intf}" = "wlan0" ]; then
             radio0_mode="mesh"
             radio0_ssid="$(${UCIGET} setup.globals.wifi_ssid)"
