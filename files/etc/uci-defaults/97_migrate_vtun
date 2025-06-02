@@ -50,6 +50,12 @@ const start = c.get("vtun", "@network[0]", "start");
 if (start) {
     c.set("wireguard", network, "start", start);
 }
+const wstart = c.get("wireguard", network, "start");
+if (wstart) {
+    const l = iptoarr(wstart);
+    c.set("wireguard", network, "begin", arrtoip([ l[0], l[1], (l[2] === 255 ? 0 : l[2] + 1), l[3] ]));
+    c.set("wireguard", network, "start", "");
+}
 const dns = c.get("vtun", "@network[0]", "dns");
 if (dns) {
     c.set("wireguard", network, "dns", dns);

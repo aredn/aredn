@@ -39,8 +39,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
         uciMesh.set("wireguard", "@network[0]", "dns", request.args.tunnel_server);
         uciMesh.commit("wireguard");
     }
-    if ("tunnel_range_start" in request.args) {
-        uciMesh.set("wireguard", "@network[0]", "start", request.args.tunnel_range_start);
+    if ("tunnel_range_begin" in request.args) {
+        uciMesh.set("wireguard", "@network[0]", "begin", request.args.tunnel_range_begin);
         uciMesh.commit("wireguard");
     }
     if ("tunnel_rxcost" in request.args) {
@@ -110,8 +110,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     return;
 }
 const available = {};
-const l = iptoarr(uciMesh.get("wireguard", "@network[0]", "start"));
-const w = [ l[0], l[1], (l[2] === 255 ? 0 : l[2] + 1), l[3] ];
+const w = iptoarr(uciMesh.get("wireguard", "@network[0]", "begin"));
 let p = uciMesh.get("aredn", "@supernode[0]", "enable") === "1" ? 6526 : 5525;
 for (let i = 0; i < 126; i++) {
     available[`${w[0]}.${w[1]}.${w[2]}.${w[3]}:${p}`] = 1;
@@ -252,13 +251,13 @@ function t2t(type)
             <div class="cols">
                 <div>
                     <div class="o">Tunnel Server Network</div>
-                    <div class="m">IP range to use for tunnel connections</div>
+                    <div class="m">Starting IP address to use for tunnel connections</div>
                 </div>
                 <div style="flex:0">
                     {% if (uciMesh.get("aredn", "@supernode[0]", "enable") === "1") { %}
-                    <input {{servercount > 0 ? "disabled": ""}} hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_start" type="text" size="14" placeholder="172.30.X.X" pattern="172\.30\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(0|4|8|[13579][26]|[2468][048]|1[13579][26]|1[02468][048]|2[13][26]|2[024][048]|252)" value="{{uciMesh.get("wireguard", "@network[0]", "start")}}">
+                    <input {{servercount > 0 ? "disabled": ""}} hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_begin" type="text" size="14" placeholder="172.30.X.X" pattern="172\.30\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(0|4|8|[13579][26]|[2468][048]|1[13579][26]|1[02468][048]|2[13][26]|2[024][048]|252)" value="{{uciMesh.get("wireguard", "@network[0]", "begin")}}">
                     {% } else { %}
-                    <input {{servercount > 0 ? "disabled": ""}} hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_start" type="text" size="14" placeholder="172.31.X.X" pattern="172\.31\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(0|4|8|[13579][26]|[2468][048]|1[13579][26]|1[02468][048]|2[13][26]|2[024][048]|252)" value="{{uciMesh.get("wireguard", "@network[0]", "start")}}">
+                    <input {{servercount > 0 ? "disabled": ""}} hx-put="{{request.env.REQUEST_URI}}" name="tunnel_range_begin" type="text" size="14" placeholder="172.31.X.X" pattern="172\.31\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(0|4|8|[13579][26]|[2468][048]|1[13579][26]|1[02468][048]|2[13][26]|2[024][048]|252)" value="{{uciMesh.get("wireguard", "@network[0]", "begin")}}">
                     {% } %}
                 </div>
             </div>
@@ -333,7 +332,7 @@ This value is used by default, but each tunnel may overide it.
             }
             htmx.find("input[name=tunnel_server]").required = servercount > 0 ? true : false;
             {% if (includeAdvanced) { %}
-            htmx.find("input[name=tunnel_range_start]").disabled = servercount > 0 ? true : false;
+            htmx.find("input[name=tunnel_range_begin]").disabled = servercount > 0 ? true : false;
             {% } %}
         }
         htmx.on("input[name=tunnel_server]", "change", e => {
@@ -342,11 +341,10 @@ This value is used by default, but each tunnel may overide it.
             }
         });
         {% if (includeAdvanced) { %}
-        htmx.on("input[name=tunnel_range_start]", "change", e => {
+        htmx.on("input[name=tunnel_range_begin]", "change", e => {
             available = {};
             if (e.target.validity.valid) {
-                const l = e.target.value.split(".").map(v => parseInt(v));
-                const w = [ l[0], l[1], (l[2] === 255 ? 0 : l[2] + 1), l[3] ];
+                const w = e.target.value.split(".").map(v => parseInt(v));
                 let p = {{uciMesh.get("aredn", "@supernode[0]", "enable") === "1" ? 6526 : 5525}};
                 for (let i = 0; i < 126; i++) {
                     available[`${w[0]}.${w[1]}.${w[2]}.${w[3]}:${p}`] = 1;
@@ -440,7 +438,7 @@ This value is used by default, but each tunnel may overide it.
             });
             {% if (includeAdvanced) { %}
             if (!client) {
-                htmx.find("input[name=tunnel_range_start]").disabled = true;
+                htmx.find("input[name=tunnel_range_begin]").disabled = true;
             }
             {% } %}
             htmx.find("#dialog-done").disabled = true;
