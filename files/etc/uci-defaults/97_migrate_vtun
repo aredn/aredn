@@ -33,9 +33,6 @@ true <<'LICENSE'
 
 LICENSE
 
-if [ ! -f /etc/config.mesh/vtun ]; then
-    exit 0
-fi
 touch /etc/config.mesh/wireguard
 
 cat > /tmp/migrate_vtun << '__EOF__'
@@ -45,14 +42,20 @@ import * as uci from "uci";
 
 const c = uci.cursor("/etc/config.mesh");
 
-const network = c.add("wireguard", "network");
+c.add("wireguard", "network");
 const start = c.get("vtun", "@network[0]", "start");
 if (start) {
-    c.set("wireguard", network, "start", start);
+    c.set("wireguard", "@network[0]", "start", start);
+}
+const wstart = c.get("wireguard", "@network[0]", "start");
+if (wstart) {
+    const l = iptoarr(wstart);
+    c.set("wireguard", "@network[0]", "begin", arrtoip([ l[0], l[1], (l[2] === 255 ? 0 : l[2] + 1), l[3] ]));
+    c.set("wireguard", "@network[0]", "start", "");
 }
 const dns = c.get("vtun", "@network[0]", "dns");
 if (dns) {
-    c.set("wireguard", network, "dns", dns);
+    c.set("wireguard", "@network[0]", "dns", dns);
 }
 
 c.foreach("vtun", "server",
