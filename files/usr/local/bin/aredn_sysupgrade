@@ -114,6 +114,12 @@ if [ "${backup}" != "-n" ]; then
 fi
 
 #
+# Shutdown the manager
+# We want to allow tasks to shutdown gracefully, especially any watchdogs
+#
+/etc/init.d/manager stop
+
+#
 # Pre-upgrade special cases
 #
 case "$(/usr/local/bin/get_boardid)" in

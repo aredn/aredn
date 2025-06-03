@@ -35,7 +35,10 @@ const PING = "/bin/ping";
 const PIDOF = "/bin/pidof";
 const REBOOT = "/sbin/reboot";
 
-const tick = 20;
+const WATCHDOG_IOCTL_BASE = ord("W");
+const WDIOC_GETTIMEOUT = 7;
+
+let tick = 10;
 const pingTimeout = 3;
 const startupDelay = 600;
 const maxLastPing = 300;
@@ -191,26 +194,31 @@ function main()
     return waitForTicks(max(0, tick - (clock()[0] - now)));
 }
 
-return function()
-{
+// Gracefully shutdown the watchdog
+onShutdown(() => {
+    log.syslog(log.LOG_DEBUG, `disabling watchdog`);
+    wd.write("V");
+    wd.flush();
+    wd.close();
+});
+
+// Dont start monitoring too soon. Let the system settle down.
+return waitForTicks(max(0, startupDelay - clock(true)[0]), function() {
     const ub = ubus.connect();
-    const config = getConfig();
+    ub.call("system", "watchdog", { magicclose: true });
+    ub.call("system", "watchdog", { stop: true });
+    wd = fs.open("/dev/watchdog", "w");
+    if (!wd) {
+        log.syslog(log.LOG_ERR, "Watchdog failed to start: Cannot open /dev/watchdog");
+        ub.call("system", "watchdog", { stop: false });
+        return exitApp();
+    }
 
-    ub.call("system", "watchdog", { frequency: 1 });
-    ub.call("system", "watchdog", { timeout: 60 });
+    // We cannot change the watchdog timeout, so we make sure we tick twice per timeout period
+    const tm = wd.ioctl(fs.IOC_DIR_READ, WATCHDOG_IOCTL_BASE, WDIOC_GETTIMEOUT, 4);
+    const timeout = ord(tm, 0) | ord(tm, 3); // Terribly way of handling endianness
+    tick = int(timeout / 2);
+    log.syslog(log.LOG_DEBUG, `tick set to ${tick}`);
 
-    // Dont start monitoring too soon. Let the system settle down.
-    return waitForTicks(max(0, startupDelay - clock(true)[0]), function() {
-
-        ub.call("system", "watchdog", { magicclose: true });
-        ub.call("system", "watchdog", { stop: true });
-
-        wd = fs.open("/dev/watchdog", "w");
-        if (!wd) {
-            log.syslog(log.LOG_ERR, "Watchdog failed to start: Cannot open /dev/watchdog");
-            ub.call("system", "watchdog", { stop: false });
-            return exitApp();
-        }
-        return main;
-    });
-};
+    return main;
+});

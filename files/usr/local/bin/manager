@@ -99,7 +99,11 @@ for (let i = 0; i < length(tasks); i++) {
                             task.state = "E";
                             task.ctx = null;
                             task.run = null;
+                            task.shutdown = null;
                             return task.run;
+                        },
+                        onShutdown: function(fn) {
+                            task.shutdown = fn;
                         }
                     };
                     try {
@@ -143,5 +147,20 @@ for (let i = 0; i < length(tasks); i++) {
     };
     tasks[i].task = uloop.timer(0, fn(tasks[i]));
 }
+function gracefulShutdown() {
+    for (let i = 0; i < length(tasks); i++) {
+        const task = tasks[i];
+        if (task.shutdown) {
+            log.openlog(`manager.${task.name}`, log.LOG_PID, log.LOG_DAEMON);
+            log.syslog(log.LOG_NOTICE, "Shutting down");
+            call(task.shutdown, task.ctx, task.ctx);
+            log.closelog();
+        }
+    }
+    uloop.done();
+    exit(0);
+}
+signal("SIGHUP", gracefulShutdown);
+signal("SIGTERM", gracefulShutdown);
 gc("collect");
 uloop.run();
