@@ -36,10 +36,16 @@ const PIDOF = "/bin/pidof";
 const REBOOT = "/sbin/reboot";
 
 const WATCHDOG_IOCTL_BASE = ord("W");
+<<<<<<< HEAD
 const WDIOC_SETTIMEOUT = 6;
 const WDIOC_GETTIMEOUT = 7;
 
 let tick = 60;
+=======
+const WDIOC_GETTIMEOUT = 7;
+
+let tick = 10;
+>>>>>>> b38c6e59 (Improve watchdog to it can shutdown without a reboot.)
 const pingTimeout = 3;
 const startupDelay = 600;
 const maxLastPing = 300;
