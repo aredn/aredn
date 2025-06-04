@@ -35,10 +35,15 @@ const PING = "/bin/ping";
 const PIDOF = "/bin/pidof";
 const REBOOT = "/sbin/reboot";
 
-const tick = 20;
+const WATCHDOG_IOCTL_BASE = ord("W");
+const WDIOC_SETTIMEOUT = 6;
+const WDIOC_GETTIMEOUT = 7;
+
+let tick = 60;
 const pingTimeout = 3;
 const startupDelay = 600;
 const maxLastPing = 300;
+const maxWatchdogTimeout = 600;
 
 // Set of daemons to monitor
 const defaultDaemons = "dnsmasq telnetd dropbear uhttpd babeld";
@@ -50,7 +55,7 @@ let pingIndex = 0;
 if (uci.cursor().get("aredn", "@watchdog[0]", "enable") != "1") {
     return exitApp();
 }
-if (!fs.access("/dev/watchdog")) {
+if (!fs.access("/dev/watchdog0")) {
     return exitApp();
 }
 
@@ -191,26 +196,34 @@ function main()
     return waitForTicks(max(0, tick - (clock()[0] - now)));
 }
 
-return function()
-{
+// Gracefully shutdown the watchdog
+onShutdown(() => {
+    log.syslog(log.LOG_DEBUG, `disabling watchdog`);
+    if (wd) {
+        wd.write("V");
+        wd.flush();
+        wd.close();
+    }
+});
+
+// Dont start monitoring too soon. Let the system settle down.
+return waitForTicks(max(0, startupDelay - clock(true)[0]), function() {
     const ub = ubus.connect();
-    const config = getConfig();
+    ub.call("system", "watchdog", { magicclose: true });
+    ub.call("system", "watchdog", { stop: true });
+    wd = fs.open("/dev/watchdog0", "w");
+    if (!wd) {
+        log.syslog(log.LOG_ERR, "Watchdog failed to start: Cannot open /dev/watchdog0");
+        ub.call("system", "watchdog", { stop: false });
+        return exitApp();
+    }
 
-    ub.call("system", "watchdog", { frequency: 1 });
-    ub.call("system", "watchdog", { timeout: 60 });
+    // Try to set the watchdog timeout, then make sure we tick no less than twice per timeout period
+    const settime = struct.pack("I", maxWatchdogTimeout);
+    wd.ioctl(fs.IOC_DIR_RW, WATCHDOG_IOCTL_BASE, WDIOC_SETTIMEOUT, settime);
+    const gettime = struct.unpack("I", wd.ioctl(fs.IOC_DIR_READ, WATCHDOG_IOCTL_BASE, WDIOC_GETTIMEOUT, 4))[0];
+    tick = min(tick, int(gettime / 2));
+    log.syslog(log.LOG_DEBUG, `tick set to ${tick}`);
 
-    // Dont start monitoring too soon. Let the system settle down.
-    return waitForTicks(max(0, startupDelay - clock(true)[0]), function() {
-
-        ub.call("system", "watchdog", { magicclose: true });
-        ub.call("system", "watchdog", { stop: true });
-
-        wd = fs.open("/dev/watchdog", "w");
-        if (!wd) {
-            log.syslog(log.LOG_ERR, "Watchdog failed to start: Cannot open /dev/watchdog");
-            ub.call("system", "watchdog", { stop: false });
-            return exitApp();
-        }
-        return main;
-    });
-};
+    return main;
+});
