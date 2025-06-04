@@ -1359,13 +1359,9 @@ for (let file in nfiles) {
                 if (special.supernode_enable != oc.get("aredn", "@supernode[0]", "enable")) {
                     changes.reboot = true;
                 }
-                if (special.watchdog_enable != oc.get("aredn", "@watchdog[0]", "enable")) {
-                    changes.reboot = true;
-                }
-                if (special.watchdog_pings != oc.get("aredn", "@watchdog[0]", "ping_addresses")) {
-                    changes.manager = true;
-                }
-                if (special.watchdog_daily != oc.get("aredn", "@watchdog[0]", "daily")) {
+                if (special.watchdog_enable != oc.get("aredn", "@watchdog[0]", "enable") ||
+                    special.watchdog_pings != oc.get("aredn", "@watchdog[0]", "ping_addresses") ||
+                    special.watchdog_daily != oc.get("aredn", "@watchdog[0]", "daily")) {
                     changes.manager = true;
                 }
                 if (special.web_access != oc.get("aredn", "@wan[0]", "web_access")) {

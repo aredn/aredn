@@ -441,7 +441,7 @@
         f.close();
     }
     const sideload = fs.access("/tmp/local_firmware");
-    const needreboot = (uci.get("aredn", "@watchdog[0]", "enable") === "1") || (fs.access("/tmp/reboot-required") ? true : false);
+    const needreboot = fs.access("/tmp/reboot-required") ? true : false;
     let ideal = null;
     if (!sideload && !needreboot) {
         const firmware = configuration.getFirmwareVersion();

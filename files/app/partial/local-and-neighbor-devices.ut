@@ -137,7 +137,7 @@
             <div class="heading"></div>
             <div class="heading ts cols stats">
                 {% if (!request.mobile) { %}
-                <div>rx</div><div>snr</div><div>n snr</div><div>errors</div><div>mbps</div><div>{{units.distanceUnit()}}</div>
+                <div>rx</div><div>rtt</div><div>snr</div><div>n snr</div><div>errors</div><div>mbps</div><div>{{units.distanceUnit()}}</div>
                 {% } else { %}
                 <div>rx</div><div>errors</div>
                 {% } %}
@@ -151,10 +151,16 @@
                     const tracker = entry.tracker;
                     const status = calcColor(tracker);
                     let lq = "-";
+                    let rtt = "-";
                     if (tracker) {
                         print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
-                        if (status !== "disconnected" && tracker.lq) {
-                            lq = `${tracker.lq}%`;
+                        if (status !== "disconnected") {
+                            if (type(tracker.lq)) {
+                                lq = `${tracker.lq}%`;
+                            }
+                            if (type(tracker.rtt)) {
+                                rtt = int(tracker.rtt);
+                            }
                         }
                     }
                     else {
@@ -173,7 +179,7 @@
                     }
                     print("<div class='ts cols stats'>");
                     if (!request.mobile) {
-                        print(`<div>${lq}</div><div></div><div></div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div></div><div></div>`);
+                        print(`<div>${lq}</div><div>${rtt}</div><div></div><div></div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div></div><div></div>`);
                     }
                     else {
                         print(`<div>${lq}</div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div>`);
@@ -198,10 +204,16 @@
                 const tracker = entry.tracker;
                 const status = calcColor(tracker);
                 let lq = "-";
+                let rtt = "-";
                 if (tracker) {
                     print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
-                    if (status !== "disconnected" && tracker.lq) {
-                        lq = `${tracker.lq}%`;
+                    if (status !== "disconnected") {
+                        if (type(tracker.lq)) {
+                            lq = `${tracker.lq}%`;
+                        }
+                        if (type(tracker.rtt)) {
+                            rtt = int(tracker.rtt);
+                        }
                     }
                 }
                 else {
@@ -258,10 +270,10 @@
                             d = sprintf("%.1f", d);
                         }
                     }
-                    print(`<div>${lq}</div><div>${tracker.snr || "-"}</div><div>${tracker.rev_snr || "-"}</div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div>${calcBitrate(tracker)}</div><div>${d}</div>`);
+                    print(`<div>${lq}</div><div>${rtt}</div><div>${tracker.snr || "-"}</div><div>${tracker.rev_snr || "-"}</div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div>${calcBitrate(tracker)}</div><div>${d}</div>`);
                 }
                 else {
-                    print(`<div>${lq}</div><div></div><div></div><div></div><div></div><div></div>`);
+                    print(`<div>${lq}</div><div></div><div></div><div></div><div></div><div></div><div></div>`);
                 }
                 print("</div></div>");
             }
