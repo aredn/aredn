@@ -127,7 +127,7 @@ function updateAllowList()
 {
     const f = `/var/run/hostapd-${wlan}.maclist`;
     const o = fs.readfile(f);
-    if (!o) {
+    if (o === null) {
         return false;
     }
     let n = "";
@@ -147,7 +147,7 @@ function updateDenyList(trackers)
 {
     const f = `/var/run/hostapd-${wlan}.maclist`;
     const o = fs.readfile(f);
-    if (!o) {
+    if (o === null) {
         return false;
     }
     let n = "";
