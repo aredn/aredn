@@ -56,7 +56,9 @@
     <div class="section cols">
         <div class="service"><div class="status {{cm}}"></div>Cloud Mesh</div>
         <div class="service"><div class="status {{mt}}"></div>Metrics</div>
+        {% if (hardware.supportsFeature("hw-watchdog")) { %}
         <div class="service"><div class="status {{wd}}"></div>Hardware Watchdog</div>
+        {% } %}
         <div class="service"><div class="status {{rl}}"></div>Remote Logging</div>
         <div class="service"><div class="status {{ip}}"></div>IPerf3 Server</div>
         <div class="service"><div class="status {{sn}}"></div>Supernode</div>
@@ -66,10 +68,10 @@
         {% if (hardware.getRadioCount() > 0) { %}
         <div class="service"><div class="status {{wwd}}"></div>Wireless Watchdog</div>
         {% } %}
-        {% if (hardware.hasPOE()) { %}
+        {% if (hardware.supportsFeature("poe")) { %}
         <div class="service"><div class="status {{poe}}"></div>PoE out</div>
         {% } %}
-        {% if (hardware.hasUSBPower()) { %}
+        {% if (hardware.supportsFeature("usb-power")) { %}
         <div class="service"><div class="status {{pou}}"></div>USB power out</div>
         {% } %}
     </div>

@@ -55,7 +55,7 @@ let pingIndex = 0;
 if (uci.cursor().get("aredn", "@watchdog[0]", "enable") != "1") {
     return exitApp();
 }
-if (!fs.access("/dev/watchdog0")) {
+if (!fs.access("/dev/watchdog")) {
     return exitApp();
 }
 
@@ -211,9 +211,9 @@ return waitForTicks(max(0, startupDelay - clock(true)[0]), function() {
     const ub = ubus.connect();
     ub.call("system", "watchdog", { magicclose: true });
     ub.call("system", "watchdog", { stop: true });
-    wd = fs.open("/dev/watchdog0", "w");
+    wd = fs.open("/dev/watchdog", "w");
     if (!wd) {
-        log.syslog(log.LOG_ERR, "Watchdog failed to start: Cannot open /dev/watchdog0");
+        log.syslog(log.LOG_ERR, "Watchdog failed to start: Cannot open /dev/watchdog");
         ub.call("system", "watchdog", { stop: false });
         return exitApp();
     }

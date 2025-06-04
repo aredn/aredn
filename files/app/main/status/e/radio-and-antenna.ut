@@ -260,7 +260,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 <div style="flex:0">
                     <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}mode" {{_R("hideable-onselect")}}>
                         <option value="0" {{mode === radios.RADIO_OFF ? "selected" : ""}}>Off</option>
-                        {% if (hardware.supportsMode(wlan[w].iface, "mesh")) { %}
+                        {% if (hardware.supportsFeature("wifi-mode", wlan[w].iface, "mesh")) { %}
                         <option value="1" {{mode === radios.RADIO_MESH ? "selected" : ""}}>Mesh</option>
                         {% } %}
                         <option value="4" {{mode === radios.RADIO_MESHPTMP ? "selected" : ""}}>Mesh PtMP</option>
@@ -360,7 +360,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="20" pattern="[^!#;+\]\/"\t\-][^+\]\/"\t\-]{0,18}[^ !#;+\]\/"\t\-]$|^[^ !#;+\]\/"\t\-]" hx-validate="true" value="{{ssid_mesh}}"><span style="color:var(--ctrl-modal-fg-color)">{{mode === radios.RADIO_MESH ? "" : `-${channel}`}}-{{bandwidth}}-v3</span>
                     </div>
                 </div>
-                {% if (hardware.supportsMaxDistance(wlan[w].iface)) { %}
+                {% if (hardware.supportsFeature("max-distance", wlan[w].iface)) { %}
                 <div class="cols">
                     <div>
                         <div class="o">Maximum Distance</div>
