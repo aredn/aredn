@@ -597,7 +597,7 @@ export function setMaxDistance(wifiIface, distance)
     }
 };
 
-export function supportsMaxDistance(wifiIface)
+function supportsMaxDistance(wifiIface)
 {
     switch (getRadioType(wifiIface)) {
         case "none":
@@ -613,13 +613,13 @@ export function supportsMaxDistance(wifiIface)
             }
             return false;
     }
-};
+}
 
-export function supportsMode(wifiIface, mode)
+function supportsMode(wifiIface, mode)
 {
     const modes = getRadioIntf(wifiIface)?.exclude_modes;
     return (!modes || index(modes, mode) === -1);
-};
+}
 
 export function getInterfaceMAC(dev)
 {
@@ -640,7 +640,7 @@ export function getInterfaceMAC(dev)
     return "00:00:00:00:00:00";
 };
 
-export function supportsXLink()
+function supportsXLink()
 {
     switch (getBoardModel().id) {
         case "mikrotik,hap-ac2":
@@ -655,7 +655,7 @@ export function supportsXLink()
         default:
             return false;
     }
-};
+}
 
 const default1PortLayout = [ { k: "lan", d: "lan" } ];
 const default5PortLayout = [ { k: "wan", d: "port1" }, { k: "lan1", d: "port2" }, { k: "lan2", d: "port3" }, { k: "lan3", d: "port4" }, { k: "lan4", d: "port5" } ];
@@ -740,7 +740,7 @@ export function getDefaultNetworkConfiguration()
     return c;
 };
 
-export function hasPOE()
+function hasPOE()
 {
     const board = getBoard();
     if (board.gpioswitch?.poe_passthrough?.pin) {
@@ -753,9 +753,9 @@ export function hasPOE()
         }
     }
     return false;
-};
+}
 
-export function hasUSBPower()
+function hasUSBPower()
 {
     const board = getBoard();
     if (board.gpioswitch?.usb_power_switch?.pin) {
@@ -765,7 +765,7 @@ export function hasUSBPower()
         return true;
     }
     return false;
-};
+}
 
 export function getHardwareType()
 {
@@ -909,5 +909,25 @@ export function getTimeouts(type)
             return timeouts.upgrade || [ 120, 300 ];
         default:
             return [ 20, 120 ];
+    }
+};
+
+export function supportsFeature(feature, arg1, arg2)
+{
+    switch (feature) {
+        case "poe":
+            return hasPOE();
+        case "usb-power":
+            return hasUSBPower();
+        case "xlink":
+            return supportsXLink();
+        case "max-distance":
+            return supportsMaxDistance(arg1);
+        case "wifi-mode":
+            return supportsMode(arg1, arg2);
+        case "hw-watchdog":
+            return fs.access("/dev/watchdog") ? true : false;
+        default:
+            return false;
     }
 };

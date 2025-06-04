@@ -161,6 +161,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             </div>
         </div>
         {{_H("Allow access to the node's web interface via the WAN network. Disabling this option will not prevent web acccess to the node from the mesh.")}}
+    {% if (hardware.supportsFeature("hw-watchdog")) { %}
         <div class="hideable" data-hideable='{{uciMesh.get("aredn", "@watchdog[0]", "enable") === "1" ? "on" : "off"}}'>
             <div class="cols">
                 <div>
@@ -199,6 +200,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 are unreliable and in places difficult to reach. A node must have its time set using either NTP or GPS for this to be honored.")}}
             </div>
         </div>
+    {% } %}
     {% if (hardware.getRadioCount() > 0) { %}
         <div class="hideable" data-hideable='{{uciMesh.get("aredn", "@wireless_watchdog[0]", "enable") === "1" ? "on" : "off"}}'>
             <div class="cols">
@@ -225,7 +227,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             </div>
         </div>
     {% }
-       if (hardware.hasPOE()) { %}
+       if (hardware.supportsFeature("poe")) { %}
         <div class="cols">
             <div>
                 <div class="o">PoE Passthrough</div>
@@ -238,7 +240,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         {{_H("Enable power over ethernet on ethernet ports where this is avaiable. Typically these ports provide passive power,
         so the voltage out will be the same as whatever is powering the node.")}}
     {% }
-       if (hardware.hasUSBPower()) { %}
+       if (hardware.supportsFeature("usb-power")) { %}
         <div class="cols">
             <div>
                 <div class="o">USB Power</div>
