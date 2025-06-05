@@ -152,7 +152,11 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         %}
         <div class="neighbor">
             <div class="o">
+                {% if (n.hostname || n.ip) { %}
                 <div><a href="{{n.hostname ? `http://${n.hostname}.local.mesh` : n.ip}}" target="_blank">{{n.hostname || n.ip}}</a></div>
+                {% } else { %}
+                <div>{{n.mac}}</div>
+                {% } %}
                 {% if (showblock) { %}
                 <select name="{{n.mac}}" hx-put={{request.env.REQUEST_URI}} hx-swap="none">
                     <option value="available" {{n.user_blocks ? "" : "selected"}}>unblocked</option>
