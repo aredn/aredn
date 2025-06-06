@@ -11,3 +11,11 @@ if [ "$ACTION" = "ifup" -a "$DEVICE" = "${BR}" ] ; then
   ip addr add $(uci get network.wifi.ipaddr)/32 broadcast 255.255.255.255 dev ${BR}
   ip link set ${BR} up
 fi
+
+# Force dtdlink to have an IPv6 address. If no cables are plugged in it will not by default
+# This incantation makes it happen
+DTD="br-dtdlink"
+if [ "$ACTION" = "ifup" -a "$DEVICE" = "${DTD}" ] ; then
+  sysctl -q -w net.ipv6.conf.$DTD.addr_gen_mode=1
+  sysctl -q -w net.ipv6.conf.$DTD.addr_gen_mode=0
+fi
