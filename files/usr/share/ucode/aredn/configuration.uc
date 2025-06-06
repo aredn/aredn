@@ -70,6 +70,8 @@ const configFiles = [
     "/etc/config.mesh/xlink",
     "/etc/arednlink/hosts",
     "/etc/arednlink/services",
+    "/etc/arednlink/publish",
+    "/etc/arednlink/subscribe",
     "/etc/local/uci/hsmmmesh",
     "/etc/aredn_include/dtdlink.network.user",
     "/etc/aredn_include/lan.network.user",
