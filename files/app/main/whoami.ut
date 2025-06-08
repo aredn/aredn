@@ -32,15 +32,8 @@
  * version
  */
 %}
-{%
-const whoami = { name: configuration.getName() };
-if (request.env.HTTP_HOST === "localnode" || request.env.HTTP_HOST === "localnode.local.mesh") {
-    if (uci.get("aredn", "@theme[0]", "portable") === "1") {
-        whoami.portableTheme = true;
-    }
-    else {
-        whoami.portableTheme = false;
-    }
-}
-print(whoami);
-%}
+{{ {
+    name: configuration.getName(),
+    authenticated: auth.isAdmin,
+    portableTheme: auth.isAdmin && uci.get("aredn", "@theme[0]", "portable") === "1" ? true : false
+} }}
