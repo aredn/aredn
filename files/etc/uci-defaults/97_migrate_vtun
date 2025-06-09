@@ -42,7 +42,9 @@ import * as uci from "uci";
 
 const c = uci.cursor("/etc/config.mesh");
 
-c.add("wireguard", "network");
+if (!c.get("wireguard", "@network[0]")) {
+    c.add("wireguard", "network");
+}
 const start = c.get("vtun", "@network[0]", "start");
 if (start) {
     c.set("wireguard", "@network[0]", "start", start);
