@@ -565,10 +565,10 @@ for (let i = 0; i < length(cnetworks); i++) {
 }
 
 // Generate the tunnel configurations
-let tun_start = cm.get("wireguard", "@network[0]", "start");
-if (is_supernode && tun_start && match(tun_start, /^172\.31\./)) {
-    tun_start = `172.30.${substr(tun_start, 8)}`;
-    cm.set("wireguard", "@network[0]", "start", tun_start);
+let wg_begin = cm.get("wireguard", "@network[0]", "begin");
+if (is_supernode && wg_begin && match(wg_begin, /^172\.31\./)) {
+    wg_begin = `172.30.${substr(wg_begin, 8)}`;
+    cm.set("wireguard", "@network[0]", "begin", wg_begin);
     cm.commit("wireguard");
 }
 const def_tun_cost = tonumber(cm.get("babel", "tunnel", "rxcost") || 1) || 0;
