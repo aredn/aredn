@@ -604,7 +604,7 @@
     (function(){
         {{_R("open")}}
         const needreboot = {{needreboot}};
-        const vmsg = "<center>BEWARE: Downgrading firmware may result in a broken or incomplete node configuration.</center>";
+        const vmsg = "<center>BEWARE: Downgrading firmware <b>WILL</b> result in a broken or incomplete node configuration.</center>";
         const umsg = "<center>Don't forget to backup before you upgrade.</center>";
         {% if (needreboot) { %}
         dialogMessage.error("<center>Please reboot before upgrading.</center>");
@@ -632,7 +632,7 @@
             }
             else {
                 const download = htmx.find("#download-firmware").value;
-                if (download.substr(0, 2) === "3.") {
+                if (download.substr(0, 2) === "3." || ("{{configuration.getFirmwareVersion()}}".indexOf("babel-") === 0 && download.indexOf("babel-") === -1)) {
                     dialogMessage.error(vmsg);
                 }
                 else {
