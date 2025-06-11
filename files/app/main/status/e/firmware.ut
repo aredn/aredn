@@ -344,10 +344,25 @@
         }
         f.write(sprintf("%J", firmware_list));
         f.close();
+        const firmware = configuration.getFirmwareVersion();
+        let releases = split(fs.readfile("/etc/current_releases"), " ");
+        let ideal = null;
+        if (releases) {
+            if (match(firmware, /^\d+\.\d+\.\d+\.\d+$/)) {
+                if (firmware !== releases[0] && firmware_list[releases[0]]) {
+                    ideal = releases[0];
+                }
+            }
+            else if (match(firmware, /^\d\d\d\d\d\d\d\d-/) || match(firmware, /^babel-\d\d\d\d\d\d\d\d-/)) {
+                if (firmware !== releases[1] && firmware_list[releases[1]]) {
+                    ideal = releases[1];
+                }
+            }
+        }
 
         let html = `<option value="-">-</option>`;
         for (let k in firmware_list) {
-            html += `<option value="${k}">${k}${index(k, "-") == -1 ? "" : " (nightly)"}</option>`;
+            html += `<option ${ideal == k ? "selected": ""} value="${k}">${k}${index(k, "-") == -1 ? "" : " (nightly)"}</option>`;
         }
         uhttpd.send(`event: close\r\ndata: ${html}\r\n\r\n`);
         return;
@@ -447,9 +462,35 @@
     fs.unlink("/tmp/force-upgrade-this-is-dangerous");
     fs.unlink("/tmp/do-not-keep-configuration");
 
+    let firmware_list = {};
+    const f = fs.open("/tmp/firmware.list");
+    if (f) {
+        try {
+            firmware_list = json(f.read("all"));
+        }
+        catch (_) {
+        }
+        f.close();
+    }
     const sideload = fs.access("/tmp/local_firmware");
-
     const needreboot = (uci.get("aredn", "@watchdog[0]", "enable") === "1") || (fs.access("/tmp/reboot-required") ? true : false);
+    let ideal = null;
+    if (!sideload && !needreboot) {
+        const firmware = configuration.getFirmwareVersion();
+        let releases = split(fs.readfile("/etc/current_releases"), " ");
+        if (releases) {
+            if (match(firmware, /^\d+\.\d+\.\d+\.\d+$/)) {
+                if (firmware !== releases[0] && firmware_list[releases[0]]) {
+                    ideal = releases[0];
+                }
+            }
+            else if (match(firmware, /^\d\d\d\d\d\d\d\d-/) || match(firmware, /^babel-\d\d\d\d\d\d\d\d-/)) {
+                if (firmware !== releases[1] && firmware_list[releases[1]]) {
+                    ideal = releases[1];
+                }
+            }
+        }
+    }
 %}
 <div class="dialog">
     {{_R("dialog-header", "Firmware")}}
@@ -479,18 +520,8 @@
                         <select id="download-firmware" {{sideload || needreboot ? 'disabled' : ''}}>
                             <option value="-">-</option>
                             {%
-                                const f = fs.open("/tmp/firmware.list");
-                                if (f) {
-                                    let list = {};
-                                    try {
-                                        list = json(f.read("all"));
-                                    }
-                                    catch (_) {
-                                    }
-                                    f.close();
-                                    for (let k in list) {
-                                        print(`<option value="${k}">${k}${index(k, "-") == -1 ? "" : " (nightly)"}</option>`);
-                                    }
+                                for (let k in firmware_list) {
+                                    print(`<option ${k === ideal ? "selected" : ""} value="${k}">${k}${index(k, "-") == -1 ? "" : " (nightly)"}</option>`);
                                 }
                             %}
                         </select>
@@ -627,7 +658,7 @@
             htmx.find("#dialog-messages-error").innerHTML = "";
         });
         htmx.on("#download-firmware", "change", e => {
-            const f = htmx.find("#fetch-and-update")
+            const f = htmx.find("#fetch-and-update");
             if (e.target.value === "-" || needreboot) {
                 htmx.find("#dialog-messages-success").innerHTML = "";
                 f.disabled = true;
@@ -642,7 +673,7 @@
             htmx.find("#dialog-messages-error").innerHTML = "";
         });
         htmx.on("#restore-config", "change", e => {
-            const f = htmx.find("#fetch-and-update")
+            const f = htmx.find("#fetch-and-update");
             if (e.target.files[0] && !needreboot) {
                 f.innerHTML = "Restore";
                 f.disabled = false;
@@ -776,10 +807,10 @@
                 source.close();
                 htmx.find("#firmware-refresh button").classList.remove("rotate");
                 const selector = htmx.find("#download-firmware");
-                selector.innerHTML = e.data;
                 selector.value = "-";
+                selector.innerHTML = e.data;
                 htmx.find("#upload-firmware").value = null;
-                htmx.find("#fetch-and-update").disabled = true;
+                htmx.find("#fetch-and-update").disabled = selector.value == "-" ? true : false;
                 htmx.find("#firmware-upload progress").setAttribute("value", "0");
             });
             source.addEventListener("error", e => {
@@ -794,6 +825,9 @@
         });
         {% if (sideload) { %}
         htmx.find("#dialog-messages-success").innerHTML = "<center>Don't forget to backup before you upgrade.</center>";
+        {% } %}
+        {% if (ideal) { %}
+        htmx.find("#fetch-and-update").disabled = false;
         {% } %}
     })();
     </script>
