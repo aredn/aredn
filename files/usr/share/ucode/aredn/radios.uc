@@ -66,7 +66,7 @@ export function getCommonConfiguration()
                 txmaxpower: hardware.getMaxTxPower(iface),
                 macaddress: hardware.getMACAddress(iface),
                 maxdistance: 80550,
-                managedOOB: [ -4, -3, -2, -1, 0, 180, 181, 182, 183, 184 ]
+                managedOOB: [ -4, -3, -2, -1, 0 ]
             };
             // Calculate 40, 80 channels
             const a40 = [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ];
