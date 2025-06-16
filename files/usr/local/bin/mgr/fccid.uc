@@ -32,6 +32,10 @@
  */
 
 const c = uci.cursor();
+
+if (c.get("aredn", "@beacon[0]", "enable") != "1") {
+    return exitApp();
+}
 const name = configuration.getName();
 if (!name) {
     return exitApp();

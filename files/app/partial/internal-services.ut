@@ -39,6 +39,7 @@
     const wd = uci.get("aredn", "@watchdog[0]", "enable") === "1" ? "active" : "disabled";
     const wwd = uci.get("aredn", "@wireless_watchdog[0]", "enable") === "1" ? "active" : "disabled";
     const ip = uci.get("aredn", "@iperf[0]", "enable") === "0" ? "disabled" : "active";
+    const be = uci.get("aredn", "@beacon[0]", "enable") !== "1" ? "disabled" : "active";
     const s = fs.stat("/tmp/metrics-ran");
     const mt = s && time() - s.mtime < 3600000 ? "active" : "inactive";
     const ws = "active";
@@ -74,5 +75,6 @@
         {% if (hardware.supportsFeature("usb-power")) { %}
         <div class="service"><div class="status {{pou}}"></div>USB power out</div>
         {% } %}
+        <div class="service"><div class="status {{be}}"></div>ID Beacon</div>
     </div>
 </div>
