@@ -1313,7 +1313,8 @@ const special = {
     wifi_macfilter_1: c.get("wireless", "@wifi-device[1]", "macfilter"),
     power_eth: c.get("aredn", "@poe[0]", "passthrough"),
     power_usb: c.get("aredn", "@usb[0]", "passthrough"),
-    ntp_period: c.get("aredn", "@ntp[0]", "period")
+    ntp_period: c.get("aredn", "@ntp[0]", "period"),
+    beacon_enable: c.get("aredn", "@beacon[0]", "enable")
 };
 const nfiles = {};
 let d = fs.opendir("/tmp/new_config");
@@ -1362,6 +1363,9 @@ for (let file in nfiles) {
                 if (special.watchdog_enable != oc.get("aredn", "@watchdog[0]", "enable") ||
                     special.watchdog_pings != oc.get("aredn", "@watchdog[0]", "ping_addresses") ||
                     special.watchdog_daily != oc.get("aredn", "@watchdog[0]", "daily")) {
+                    changes.manager = true;
+                }
+                if (special.beacon_enable != oc.get("aredn", "@beacon[0]", "enable")) {
                     changes.manager = true;
                 }
                 if (special.web_access != oc.get("aredn", "@wan[0]", "web_access")) {
