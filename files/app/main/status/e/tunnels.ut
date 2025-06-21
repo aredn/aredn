@@ -104,6 +104,15 @@ if (request.env.REQUEST_METHOD === "PUT") {
     print(_R("changes"));
     return;
 }
+if (request.env.REQUEST_METHOD === "POST") {
+    fs.writefile("/tmp/X", sprintf("%.2J", request.args));
+    if (request.args.restorefile) {
+        configuration.prepareChanges();
+        configuration.restoreTunnels(request.args.restorefile);
+        print(_R("changes"));
+    }
+    return;
+}
 if (request.env.REQUEST_METHOD === "DELETE") {
     configuration.revertModalChanges();
     print(_R("changes"));
@@ -245,6 +254,29 @@ function t2t(type)
                 }
             %}</div>
         </form>
+        <hr>
+        <div class="cols compact">
+            <div>
+                <div class="o">Backup Tunnels</div>
+                <div class="m">Backup this node's tunnel configurations</div>
+            </div>
+            <div style="flex:0">
+                <button hx-put="/a/status/e/backup-tunnels" hx-indicator="head">Backup</button>
+            </div>
+        </div>
+        {{_H("Backup this node's tunnel configuration, including the DNS setting, tunnel subnet, and each tunnel's specific data.")}}
+        <br>
+        <div class="cols compact">
+            <div>
+                <div class="o">Restore Tunnels</div>
+                <div class="m">Replace this node's tunnels with a backup.</div>
+            </div>
+            <div style="flex:0">
+                <input id="restore-tunnels" type="file" accept=".tunnelbackup" hx-encoding="multipart/form-data">
+            </div>
+        </div>
+        {{_H("Restore and override the current node's tunnel configuration with that from the backup. All the current tunnel configuration
+        will be lost and replaced with what is being restored.")}}
         {{_R("dialog-advanced")}}
         <div>
         {% if (includeAdvanced) { %}
@@ -507,6 +539,25 @@ This value is used by default, but each tunnel may overide it.
                 htmx.find(t, "input[name=password]").value = config.passwd;
                 htmx.find(t, "input[name=network]").value = config.network;
                 updateTunnels();
+            }
+        });
+        htmx.on("#restore-tunnels", "change", e => {
+            const currentTarget = e.currentTarget;
+            const restore = htmx.find("#restore-tunnels").files[0];
+            if (restore) {
+                htmx.find("#dialog-done").disabled = true;
+                htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
+                    source: currentTarget,
+                    values: {
+                        restorefile: restore,
+                    },
+                    target: "#dialog-done",
+                    swap: "none"
+                }).then(_ => {
+                    const d = htmx.find("#dialog-done");
+                    d.disabled = false;
+                    d.click();
+                });
             }
         });
     })();

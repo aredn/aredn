@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -38,13 +38,13 @@ if (request.env.REQUEST_METHOD === "PUT") {
     return;
 }
 response.override = true;
-const filename = "/tmp/node-backup.backup";
-if (!configuration.backup(filename)) {
+const filename = "/tmp/node-tunnel-backup.tunnelbackup";
+if (!configuration.backupTunnels(filename)) {
     uhttpd.send(`Status: 404 Not Found\r\nCache-Control: no-store\r\n\r\n`);
 }
 else {
     const tm = localtime();
-    uhttpd.send(`Status: 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=backup-${configuration.getName()}-${tm.year}-${tm.mon}-${tm.mday}-${tm.hour}-${tm.min}.backup\r\nCache-Control: no-store\r\n\r\n`);
+    uhttpd.send(`Status: 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=tunnel-backup-${configuration.getName()}-${tm.year}-${tm.mon}-${tm.mday}-${tm.hour}-${tm.min}.tunnelbackup\r\nCache-Control: no-store\r\n\r\n`);
     uhttpd.send(fs.readfile(filename));
     fs.unlink(filename);
 }

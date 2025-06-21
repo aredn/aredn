@@ -410,9 +410,7 @@ export function unescapeString(s)
     return s;
 };
 
-const backupFilename = "/tmp/node-backup.backup";
-
-export function backup()
+export function backup(backupFilename)
 {
     const fi = fs.open("/etc/arednsysupgrade.conf");
     if (!fi) {
@@ -421,7 +419,7 @@ export function backup()
     const fo = fs.open("/tmp/sysupgradefilelist", "w");
     if (!fo) {
         fi.close();
-        return null;
+        return false;
     }
     for (let l = fi.read("line"); length(l); l = fi.read("line")) {
         if (!match(l, "^#") && fs.access(trim(l))) {
@@ -434,15 +432,15 @@ export function backup()
     fs.unlink("/tmp/sysupgradefilelist");
     if (s < 0) {
         fs.unlink(backupFilename);
-        return null;
+        return false;
     }
-    return backupFilename;
+    return true;
 };
 
-export function restore(file)
+export function restore(backupFilename)
 {
     const status = {};
-    const data = fs.readfile(file);
+    const data = fs.readfile(backupFilename);
     if (!data) {
         status.error = "Failed to read configuration file";
     }
@@ -451,8 +449,24 @@ export function restore(file)
             status.error = "Failed to copy configuration file";
         }
     }
-    fs.unlink(file);
+    fs.unlink(backupFilename);
     return status;
+};
+
+export function backupTunnels(tunnelBackupFilename)
+{
+    const s = system(`cd / ; /bin/tar -czf ${tunnelBackupFilename} etc/config.mesh/wireguard > /dev/null 2>&1`);
+    if (s < 0) {
+        fs.unlink(tunnelBackupFilename);
+        return false;
+    }
+    return true;
+};
+
+export function restoreTunnels(tunnelBackupFilename)
+{
+    const s = system(`cd / ; /bin/tar -xzf ${tunnelBackupFilename} etc/config.mesh/wireguard > /dev/null 2>&1`);
+    return s < 0 ? false : true;
 };
 
 export function supportdata(supportdatafilename)
