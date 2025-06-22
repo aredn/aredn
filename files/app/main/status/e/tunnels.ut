@@ -105,13 +105,11 @@ if (request.env.REQUEST_METHOD === "PUT") {
     return;
 }
 if (request.env.REQUEST_METHOD === "POST") {
-    fs.writefile("/tmp/X", sprintf("%.2J", request.args));
     if (request.args.restorefile) {
         configuration.prepareChanges();
         configuration.restoreTunnels(request.args.restorefile);
         print(_R("changes"));
     }
-    return;
 }
 if (request.env.REQUEST_METHOD === "DELETE") {
     configuration.revertModalChanges();
@@ -551,13 +549,8 @@ This value is used by default, but each tunnel may overide it.
                     values: {
                         restorefile: restore,
                     },
-                    target: "#dialog-done",
-                    swap: "none"
-                }).then(_ => {
-                    const d = htmx.find("#dialog-done");
-                    d.disabled = false;
-                    d.click();
-                });
+                    target: "#ctrl-modal"
+                }).then(_ => htmx.find("#dialog-done").disabled = false);
             }
         });
     })();
