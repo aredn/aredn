@@ -44,7 +44,7 @@
         let validWan = false;
         const wan_proto = uci.get("network", "wan", "proto");
         if (wan_proto === "dhcp") {
-            const ifaces = ubus.call("network.interface", "dump").interface;
+            const ifaces = ubus.call("network.interface", "dump")?.interface;
             for (let i = 0; i < length(ifaces); i++) {
                 if (ifaces[i].interface === "wan" && ifaces[i]["ipv4-address"]) {
                     const wan = ifaces[i]["ipv4-address"][0];

@@ -1238,6 +1238,22 @@ if (h && e && ah) {
     ah.close();
 }
 
+// Generate user blocks
+const bd = fs.open("/tmp/babel-deny.conf", "w");
+if (bd) {
+    const blocks = split(cm.get("aredn", "@lqm[0]", "user_blocks"), ",");
+    for (let i = 0; i < length(blocks); i++) {
+        const mac = replace(replace(blocks[i], /[ \t]/, ""), "-", ":");
+        const ll = network.mac2ipv6ll(mac);
+        bd.write(`in anyproto neigh ${ll} deny\n`);
+    }
+    bd.close();
+    if (filecopy("/tmp/babel-deny.conf", "/var/run/babel-deny.conf")) {
+        changes.babel = true;
+    }
+    fs.unlink("/tmp/babel-deny.conf");
+}
+
 // Reset validation state when we regenerate configs
 services.resetValidation();
 

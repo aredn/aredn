@@ -51,7 +51,8 @@ const configDirs = [
     "/etc/local/uci",
     "/etc/aredn_include",
     "/etc/dropbear",
-    "/tmp"
+    "/tmp",
+    "/var/run"
 ];
 const configFiles = [
     "/etc/config.mesh/aredn",
@@ -77,7 +78,8 @@ const configFiles = [
     "/etc/aredn_include/lan.network.user",
     "/etc/aredn_include/wan.network.user",
     "/etc/dropbear/authorized_keys",
-    "/tmp/newpassword"
+    "/tmp/newpassword",
+    "/var/run/babel-deny.conf"
 ];
 
 function initCursor()
