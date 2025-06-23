@@ -173,8 +173,9 @@ Hypervisor |  Target | Subtarget | Image | RAM | Stability | Status
 :------ | :------: | :---------: | :-----: | :---: | :---------: | :------
 Vmware ESXi  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
 Proxmox pve  | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released  (5)
-Unraid | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
-Vultr | x86 |  64  | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
+Unraid | x86 | 64 | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
+Vultr | x86 | 64 | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
+Bhyve | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | nightly (5)
 
 
 ## Footnotes
