@@ -74,12 +74,12 @@ const configFiles = [
     "/etc/arednlink/publish",
     "/etc/arednlink/subscribe",
     "/etc/local/uci/hsmmmesh",
+    "/etc/aredn_include/babel-deny.conf",
     "/etc/aredn_include/dtdlink.network.user",
     "/etc/aredn_include/lan.network.user",
     "/etc/aredn_include/wan.network.user",
     "/etc/dropbear/authorized_keys",
-    "/tmp/newpassword",
-    "/var/run/babel-deny.conf"
+    "/tmp/newpassword"
 ];
 
 function initCursor()
