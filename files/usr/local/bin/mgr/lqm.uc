@@ -71,7 +71,7 @@ function updateConfig()
     const max_distance = cm.get("setup", "globals", `${radio}_distance`) || default_max_distance;
     config = {
         max_distance: max_distance > 0 ? max_distance : default_max_distance,
-        user_blocks: c.get("aredn", "@lqm[0]", "user_blocks") || ""
+        user_blocks: c.get("aredn", "@lqm[0]", "user_blocks")
     };
 }
 

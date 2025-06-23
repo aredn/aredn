@@ -73,7 +73,7 @@ if (tracker) {
     }
     neighbor = { name: tracker.hostname || `|${tracker.ip}`, n: tracker, l: null };
 }
-const showblock = auth.isAdmin && (neighbor && neighbor.n && neighbor.n.type == "RF") && (configuration.getSettingAsString("radio0_mode", "") === "meshap" || configuration.getSettingAsString("radio1_mode", "") === "meshap");
+const showblock = auth.isAdmin && neighbor?.n?.type == "RF";
 const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
 %}
 <div class="dialog">
