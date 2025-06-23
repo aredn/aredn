@@ -35,7 +35,6 @@ import * as fs from "fs";
 import * as uci from "uci";
 import * as math from "math";
 import * as network from "aredn.network";
-import * as radios from "aredn.radios";
 
 let cursor;
 let scursor;
