@@ -473,16 +473,16 @@ export function restoreTunnels(tunnelBackupFilename)
 
 export function supportdata(supportdatafilename)
 {
-    const wifiiface = uci.cursor().get("network", "wifi", "device");
+    const c = uci.cursor();
+    const wifiiface = c.get("network", "wifi", "device");
 
     let doscan = false;
-    const config = radios.getActiveConfiguration();
-    for (let i = 0; i < length(config); i++) {
-        if (config[i].mode.mode === radios.RADIO_MESH && config[i].iface == wifiiface) {
+    c.foreach("wireless", "wifi-iface", function(s)
+    {
+        if (s.ifname == wifiiface && s.mode === "adhoc") {
             doscan = true;
-            break;
         }
-    }
+    });
 
     const files = [
         "/proc/cpuinfo",
