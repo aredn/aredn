@@ -52,7 +52,7 @@ export function getBoard()
         }
         boardJson = json(f.read("all"));
         f.close();
-        // Collapse virtualized hardware into the two basic types
+        // Collapse virtualized hardware into the three basic types
         if (index(boardJson.model.id, "qemu-") === 0) {
             boardJson.model.id = "qemu";
             boardJson.model.name = "QEMU";
@@ -60,6 +60,10 @@ export function getBoard()
         else if (index(lc(boardJson.model.id), "vmware") === 0) {
             boardJson.model.id = "vmware";
             boardJson.model.name = "VMware";
+        }
+        else if (index(lc(boardJson.model.id), "joyent") === 0) {
+            boardJson.model.id = "bhyve";
+            boardJson.model.name = "BHyVe";
         }
     }
     return boardJson;
@@ -650,6 +654,7 @@ function supportsXLink()
         case "openwrt,one":
         case "qemu":
         case "vmware":
+        case "bhyve":
         case "pc":
             return true;
         default:
@@ -677,6 +682,7 @@ export function getEthernetPorts()
             return default1PortLayout;
         case "qemu":
         case "vmware":
+        case "bhyve":
         case "pc":
             if (length(defaultNPortLayout) === 0) {
                 const dir = fs.opendir("/sys/class/net");
