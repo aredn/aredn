@@ -33,6 +33,7 @@
  */
 
 import * as fs from "fs";
+import * as uci from "uci";
 
 const packageStore = "/etc/package_store";
 const packageCatalog = `${packageStore}/catalog.json`;
@@ -52,8 +53,9 @@ opkg_with_retry("list-installed | sed s/\\ .*// > /etc/permpkg");
 if (fs.access(packageCatalog)) {
 	// Make sure we can contact the package server before proceeding.
 	// We will wait a few minutes before going ahead anyway
+	const pkghost = match(uci.cursor().get("aredn", "@downloads[0]", "packages_default"), /^https?:\/\/([^/]+)/)[1];
 	for (let i = 0; i < 5; i++) {
-		if (system("ping -q -c 1 -W 5 downloads.arednmesh.org > /dev/null 2>&1") == 0) {
+		if (system(`ping -q -c 1 -W 5 ${pkghost} > /dev/null 2>&1`) == 0) {
 			break;
 		}
 		print("Failed to contact package server - retry in 60 seconds\n");
