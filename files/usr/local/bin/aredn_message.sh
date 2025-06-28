@@ -33,6 +33,8 @@ true <<'LICENSE'
 
 LICENSE
 
+MESSAGES_SERVER="downloads.arednmesh.org"
+
 function retrieve_alert() {
   url=$1
   file=$2
@@ -54,8 +56,8 @@ function retrieve_alert() {
   fi
 }
 
-# does the node have access to downloads.arednmesh.org
-ping -q -W10 -c1 downloads.arednmesh.org > /dev/null &&
+# does the node have access to MESSAGES_SERVER
+ping -q -W10 -c1 ${MESSAGES_SERVER} > /dev/null &&
   online=true;
   [ -f /tmp/aredn_message ] &&
   rm /tmp/aredn_message
@@ -65,14 +67,14 @@ nodename=$(echo "$HOSTNAME" | tr 'A-Z' 'a-z')
 if [ "$online" = "true" ]
 then
   # fetch node specific message file
-  retrieve_alert http://downloads.arednmesh.org/messages/${nodename}.txt aredn_message ${nodename}
+  retrieve_alert http://${MESSAGES_SERVER}/messages/${nodename}.txt aredn_message ${nodename}
   if [ $? -ne 0 ] # no node specific file
   then
     # fetch broadcast message file
-    retrieve_alert http://downloads.arednmesh.org/messages/all.txt aredn_message "all nodes"
+    retrieve_alert http://${MESSAGES_SERVER}/messages/all.txt aredn_message "all nodes"
   else
     # need to append to node file
-    retrieve_alert http://downloads.arednmesh.org/messages/all.txt aredn_message_all "all nodes"
+    retrieve_alert http://${MESSAGES_SERVER}/messages/all.txt aredn_message_all "all nodes"
     if [ -s "/tmp/aredn_message_all" ]; then
       echo "<br />" >> /tmp/aredn_message
       cat /tmp/aredn_message_all >> /tmp/aredn_message

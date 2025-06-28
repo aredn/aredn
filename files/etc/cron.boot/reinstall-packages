@@ -36,6 +36,7 @@
 
 require("nixio")
 require("luci.jsonc")
+require("uci")
 
 local package_store = "/etc/package_store"
 local package_catalog = package_store .. "/catalog.json"
@@ -55,9 +56,10 @@ opkg_with_retry("list-installed | sed s/\\ .*// > /etc/permpkg")
 if nixio.fs.stat(package_catalog) then
 	-- Make sure we can contact the package server before proceeding.
 	-- We'll wait a few minutes before going ahead anyway
+	local pkghost = uci.cursor():get("aredn", "@downloads[0]", "packages_default"):match("^https?://([^/]+)")
 	for i = 1,5
 	do
-		if os.execute("ping -q -c 1 -W 5 downloads.arednmesh.org > /dev/null 2>&1") == 0 then
+		if os.execute("ping -q -c 1 -W 5 " .. pkghost .. " > /dev/null 2>&1") == 0 then
 			break
 		end
 		print("Failed to contact package server - retry in 60 seconds")
