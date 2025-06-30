@@ -811,6 +811,9 @@
                 selector.innerHTML = e.data;
                 htmx.find("#upload-firmware").value = null;
                 htmx.find("#fetch-and-update").disabled = selector.value == "-" ? true : false;
+                if (!htmx.find("#fetch-and-update").disabled) {
+                    htmx.find("#dialog-messages-success").innerHTML = "<center>Don't forget to backup before you upgrade.</center>";
+                }
                 htmx.find("#firmware-upload progress").setAttribute("value", "0");
             });
             source.addEventListener("error", e => {
