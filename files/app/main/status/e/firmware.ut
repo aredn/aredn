@@ -771,6 +771,9 @@
                 selector.innerHTML = e.data;
                 htmx.find("#upload-firmware").value = null;
                 htmx.find("#fetch-and-update").disabled = selector.value == "-" ? true : false;
+                if (!htmx.find("#fetch-and-update").disabled) {
+                    dialogMessage.success(umsg);
+                }
                 htmx.find("#firmware-upload progress").setAttribute("value", "0");
             });
             source.addEventListener("error", e => {
