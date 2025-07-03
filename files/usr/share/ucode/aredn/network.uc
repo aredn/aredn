@@ -49,8 +49,8 @@ export function hasInternet()
 
 export function getIPAddressFromHostname(hostname)
 {
-    const q = resolv.query(hostname, { type: "A" });
-    if (q.A) {
+    const q = values(resolv.query(hostname, { type: "A" }))[0];
+    if (q?.A) {
         return q.A[0];
     }
     return null;
@@ -58,8 +58,8 @@ export function getIPAddressFromHostname(hostname)
 
 export function getHostnameFromIPAddress(ip)
 {
-    const q = resolv.query(ip, { type: "PTR" });
-    if (q.PTR) {
+    const q = values(resolv.query(ip, { type: "PTR" }))[0];
+    if (q?.PTR) {
         return q.PTR[0];
     }
     return null;
