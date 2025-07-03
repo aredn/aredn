@@ -32,6 +32,7 @@
  */
 
 import * as fs from "fs";
+import * as resolv from "resolv";
 
 export function hasInternet()
 {
@@ -46,32 +47,20 @@ export function hasInternet()
     return false;
 };
 
-// NOTE: Don't use resolv library because it leaks file descriptors.
-
 export function getIPAddressFromHostname(hostname)
 {
-    const p = fs.popen(`exec /usr/bin/nslookup ${hostname}`);
-    if (p) {
-        const d = p.read("all");
-        p.close();
-        const i = match(d, /Address: ([0-9.]+)/);
-        if (i) {
-            return i[1];
-        }
+    const q = values(resolv.query(hostname, { type: "A" }))[0];
+    if (q?.A) {
+        return q.A[0];
     }
     return null;
 };
 
 export function getHostnameFromIPAddress(ip)
 {
-    const p = fs.popen(`exec /usr/bin/nslookup ${ip}`);
-    if (p) {
-        const d = p.read("all");
-        p.close();
-        const i = match(d, /name = ([^ \t\n]+)/);
-        if (i) {
-            return i[1];
-        }
+    const q = values(resolv.query(ip, { type: "PTR" }))[0];
+    if (q?.PTR) {
+        return q.PTR[0];
     }
     return null;
 };
