@@ -86,6 +86,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("message_groups" in request.args) {
         uciMesh.set("aredn", "@alerts[0]", "groups", request.args.message_groups);
     }
+    if ("restart_service" in request.args) {
+        system(`/usr/local/bin/restart-services --force --ignore-reboot ${request.args.restart_service} > /dev/null 2>&1`, 5000);
+    }
     uciMesh.commit("aredn");
     print(_R("changes"));
     return;
@@ -298,6 +301,95 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             </div>
         </div>
         {{_H("A comma seperated list of group names to check for messages.")}}
+        {{_R("dialog-advanced")}}
+        <div>
+            {{_H("Allows parts of the node's firmware to be restarted without having to reboot the entire node.
+            Note that restarting some services can disconnection the node from the network and it may take some
+            time to recover.")}}
+            <div class="cols">
+                <div>
+                    <div class="o">Restart arednlink</div>
+                    <div class="m">Restart the arednlink daemon</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "arednlink-hard" })}}
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Restart babel</div>
+                    <div class="m">Restart the babel routing daemon</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "babel-only" })}}
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Hard restart babel</div>
+                    <div class="m">Restart the babel routing daemon without saving any state</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "babel-hard" })}}
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Restart DNS and DHCP</div>
+                    <div class="m">Restart the dnsmasq daemon</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "dnsmasq" })}}
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Restart firewall</div>
+                    <div class="m">Restart the firewall</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "firewall" })}}
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Restart logs</div>
+                    <div class="m">Restart the log daemon</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "log" })}}
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Restart network</div>
+                    <div class="m">Restart the network stack</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "network" })}}
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Restart system manager</div>
+                    <div class="m">Restart the system manager daemon</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "manager" })}}
+                </div>
+            </div>
+            {% if (hardware.getRadioCount() > 0) { %}
+            <div class="cols">
+                <div>
+                    <div class="o">Restart radios</div>
+                    <div class="m">Restart the wifi radios</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "wireless" })}}
+                </div>
+            </div>
+            {% } %}
+        </div>
     </div>
     {{_R("dialog-footer")}}
     <script>
