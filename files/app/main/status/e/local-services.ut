@@ -113,8 +113,9 @@ const templates = [
     { name: "Proxmox Server", type: "server", protocol: "https", port: 8006 },
     { name: "Generic HTTP", protocol: "http", port: 80 },
     { name: "Generic HTTPS", protocol: "https", port: 443 },
-    { name: "HTTP Proxy", protocol: "http", port: 80, path: "a/httpproxy?URL" },
-    { name: "Redirect", protocol: "http", port: 80, path: "a/redirect?URL" },
+    { name: "HTTP Proxy", protocol: "http", port: 80, proxy: "httpproxy", path: "URL" },
+    { name: "Redirect", protocol: "http", port: 80, proxy: "redirect", path: "URL" },
+    { name: "Video Proxy", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "URL" }
 ];
 const services = [];
 const dhcp = configuration.getDHCP();
@@ -123,30 +124,43 @@ const as = iptoarr(dhcp.start);
 const ae = iptoarr(dhcp.end);
 const reService = regexp("^([^|]+)\\|1\\|([^|]+)\\|([^|]+)\\|(\\d+)\\|(.*)$");
 const reLink = regexp("^([^|]+)\\|0\\|\\|([^|]+)\\|\\|$");
+const reProxy = regexp("^([^|]+)\\|1\\|http\\|[^|]+\\|80\\|a/(httpproxy|redirect|videoproxy)\\?(.+)$");
 const reType = regexp("^(.+) \\[([a-z]+)\\]$");
 const svcs = uciMesh.get("setup", "services", "service") || [];
 for (let i = 0; i < length(svcs); i++) {
     const l = trim(svcs[i]);
-    const v = match(l, reService);
-    if (v) {
+    const p = match(l, reProxy);
+    if (p) {
         let type = null;
-        const v2 = match(v[1], reType);
-        if (v2) {
-            v[1] = v2[1];
-            type = v2[2];
+        const p2 = match(p[1], reType);
+        if (p2) {
+            p[1] = p2[1];
+            type = p2[2];
         }
-        push(services, { name: v[1], type: type, link: true, protocol: v[2], hostname: v[3], port: v[4], path: v[5] });
+        push(services, { name: p[1], type: type, proxy: p[2], path: p[3] });
     }
     else {
-        const k = match(l, reLink);
-        if (k) {
+        const v = match(l, reService);
+        if (v) {
             let type = null;
-            const k2 = match(k[1], reType);
-            if (k2) {
-                k[1] = k2[1];
-                type = k2[2];
+            const v2 = match(v[1], reType);
+            if (v2) {
+                v[1] = v2[1];
+                type = v2[2];
             }
-            push(services, { name: k[1], type: type, link: false, hostname: k[2] });
+            push(services, { name: v[1], type: type, link: true, protocol: v[2], hostname: v[3], port: v[4], path: v[5] });
+        }
+        else {
+            const k = match(l, reLink);
+            if (k) {
+                let type = null;
+                const k2 = match(k[1], reType);
+                if (k2) {
+                    k[1] = k2[1];
+                    type = k2[2];
+                }
+                push(services, { name: k[1], type: type, link: false, hostname: k[2] });
+            }
         }
     }
 }
@@ -224,7 +238,11 @@ for (let l = 0; l < length(pts); l++) {
                             </div>
                         </div>
                         <div class="cols">
-                            {% if (s.link === false) { %}
+                            {% if (s.proxy) { %}
+                                <div class="proxy">{{s.proxy}}</div>
+                                <input name="path" type="text" required placeholder="URL" pattern="[\-\/\?\&\._=#:!@a-zA-Z0-9]*" value="{{s.path}}">
+                                <input name="proxy" type="hidden" value="${s.proxy}">
+                            {% } else if (s.link === false) { %}
                             <div></div>
                             <div class="link">
                                 <select name="hostname">
@@ -394,7 +412,11 @@ for (let l = 0; l < length(pts); l++) {
                 const host = htmx.find(s, "select[name=hostname]");
                 const port = htmx.find(s, "input[name=port]");
                 const path = htmx.find(s, "input[name=path]");
-                if (protocol && port && path) {
+                const proxy = htmx.find(s, "input[name=proxy]");
+                if (proxy && path) {
+                    services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|1|http|{{configuration.getName()}}|80|a/${proxy.value}?${path.value}`);
+                }
+                else if (protocol && port && path) {
                     services.push(`${name.value}${type.value ? " [" + type.value + "]" : ""}|1|${protocol.value}|${host.value}|${port.value}|${path.value}`);
                 }
                 else {
@@ -471,7 +493,32 @@ for (let l = 0; l < length(pts); l++) {
             const t = templates[htmx.find("#service-templates select").value];
             if (t) {
                 let template;
-                if (t.link === false) {
+                if (t.proxy) {
+                    template = `<div class="service adr">
+    <div class="cols">
+        <div class="cols">
+            <input name="name" type="text" placeholder="service name" required pattern='[^"|<>]+'>
+            <div style="flex:0;margin-left:2px">
+                <select name="type">
+                    <option value="">-</option>
+                    {%
+                        for (t in types) {
+                            print(`<option value="${t}">${t}</option>`);
+                        }
+                    %}
+                </select>
+            </div>
+        </div>
+        <div class="cols">
+            <div class="proxy">${t.proxy}</div>
+            <input name="path" type="text" required pattern="[\\-\\/\\?\\&\\._=#:!@a-zA-Z0-9]*" placeholder="${t.path}">
+            <input name="proxy" type="hidden" value="${t.proxy}">
+        </div>
+    </div>
+    <button>-</button>
+</div>`;
+                }
+                else if (t.link === false) {
                     template = `<div class="service adr">
     <div class="cols">
         <div class="cols">
