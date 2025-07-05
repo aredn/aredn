@@ -36,25 +36,22 @@
 const url = request.env.QUERY_STRING;
 let valid = network.parseURL(url);
 if (valid) {
-    const host = replace(valid.hostname, ".local.mesh", "");
     valid = false;
-    const s = fs.open("/etc/hosts");
-    if (s) {
-        const k = lc(`\t${host}`);
-        for (let line = s.read("line"); length(line); line = s.read("line")) {
-            if (index(lc(line), k) !== -1) {
-                valid = true;
-                break;
-            }
+    const svcs = uciMesh.get("setup", "services", "service") || [];
+    const str = `|80|a/videoproxy?${url}`;
+    for (let i = 0; i < length(svcs); i++) {
+        const pos = index(svcs[i], str);
+        if (pos !== -1 && pos + length(str) == length(svcs[i])) {
+            valid = true;
+            break;
         }
-        s.close();
     }
 }
 
 response.override = true;
 if (valid && fs.access("/usr/bin/ffmpeg")) {
     uhttpd.send("Status: 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=ffmpeg\r\nCache-Control: no-cache\r\n\r\n");
-    const s = fs.popen(`/usr/bin/ffmpeg -i "${url}" -c:v mjpeg -q:v 1 -f mpjpeg -an - 2> /dev/null`);
+    const s = fs.popen(`/usr/bin/ffmpeg -i "${url}" -c:v mjpeg -q:v 1 -f mpjpeg -t 300 -an - 2> /dev/null`);
     if (s) {
         for (;;) {
             const d = s.read(10240);
