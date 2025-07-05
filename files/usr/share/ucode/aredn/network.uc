@@ -125,3 +125,29 @@ export function nslookup(aorh)
     }
     return null;
 };
+
+const urlPattern = regexp(
+    '^([a-z0-9]+:\\/\\/)' + // protocol
+    '((([a-z0-9]([a-z0-9-]*[a-z0-9])*)\\.)+[a-z]{2,}|' + // domain name
+    '(([0-9]{1,3}\\.){3}[0-9]{1,3}))' + // OR IP (v4) address
+    '(\\:[0-9]+)?(\\/[-a-z0-9%_.~+]*)*' + // port and path
+    '(\\?[;&a-z0-9%_.~+=-]*)?' + // query string
+    '(\\#[-a-z0-9_]*)?$', // fragment locator
+    'i'
+);
+
+export function parseURL(urlstring)
+{
+    const p = match(urlstring, urlPattern);
+    if (!p) {
+        return false;
+    }
+    return {
+        href: p[0],
+        protocol: replace(p[1], /:\/\/$/, ""),
+        hostname: p[2],
+        port: replace(p[8], /^:/, ""),
+        path: p[9],
+        hash: replace(p[11], /^#/, "")
+    };
+};
