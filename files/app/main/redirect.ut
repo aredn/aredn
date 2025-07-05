@@ -34,10 +34,10 @@
 %}
 {%
 const url = request.env.QUERY_STRING;
-const m = match(url, /^https?:\/\/(.+@)?([^/]+)\//);
-let valid = false;
-if (m) {
-    const host = replace(m[2], ".local.mesh", "");
+let valid = network.parseURL(url);
+if (valid) {
+    const host = replace(valid.hostname, ".local.mesh", "");
+    valid = false;
     const s = fs.open("/etc/hosts");
     if (s) {
         const k = lc(`\t${host}`);

@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,9 +35,9 @@
 {%
 const url = request.env.QUERY_STRING;
 let valid = network.parseURL(url);
-if (valid && (valid.protocol === "http" || valid.protocol === "https")) {
+if (valid) {
     const host = replace(valid.hostname, ".local.mesh", "");
-    let valid = false;
+    valid = false;
     const s = fs.open("/etc/hosts");
     if (s) {
         const k = lc(`\t${host}`);
@@ -52,9 +52,9 @@ if (valid && (valid.protocol === "http" || valid.protocol === "https")) {
 }
 
 response.override = true;
-if (valid) {
-    uhttpd.send("Status: 200 OK\r\nCache-Control: no-store\r\n\r\n");
-    const s = fs.popen(`/usr/bin/wget -O - ${url}`);
+if (valid && fs.access("/usr/bin/ffmpeg")) {
+    uhttpd.send("Status: 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=ffmpeg\r\nCache-Control: no-cache\r\n\r\n");
+    const s = fs.popen(`/usr/bin/ffmpeg -i "${url}" -c:v mjpeg -q:v 1 -f mpjpeg -an - 2> /dev/null`);
     if (s) {
         for (;;) {
             const d = s.read(10240);
