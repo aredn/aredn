@@ -111,6 +111,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install qemu-ga
 	cd $(OPENWRT_DIR); ./scripts/feeds install rpcapd
 	cd $(OPENWRT_DIR); ./scripts/feeds install usbutils
+	cd $(OPENWRT_DIR); ./scripts/feeds install ffmpeg
 	touch $@
 
 # prepare patch
