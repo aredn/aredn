@@ -57,7 +57,7 @@ function retrieve_alert() {
 }
 
 # does the node have access to MESSAGES_SERVER
-ping -q -W10 -c1 ${MESSAGES_SERVER} > /dev/null &&
+ping -q -W10 -c1 ${MESSAGES_SERVER} > /dev/null 2>&1 &&
   online=true;
   [ -f /tmp/aredn_message ] &&
   rm /tmp/aredn_message
