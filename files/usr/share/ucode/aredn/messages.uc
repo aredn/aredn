@@ -101,7 +101,7 @@ export function getToDos()
             }
         }
     }
-    if (!fs.access("/etc/cron.boot/reinstall-packages") || !fs.access("/etc/package_store/catalog.json")) {
+    if (!fs.access("/usr/bin/ffmpeg") && !(fs.access("/etc/cron.boot/reinstall-packages") && fs.access("/etc/package_store/catalog.json"))) {
         const svcs = uci.cursor("/etc/config.mesh").get("setup", "services", "service") || [];
         const reVidProxy = /^[^|]+\|1\|http\|[^|]+\|80\|a\/videoproxy\?.+$/;
         for (let i = 0; i < length(svcs); i++) {
