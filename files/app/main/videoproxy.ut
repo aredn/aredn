@@ -52,18 +52,23 @@ if (valid) {
 }
 
 response.override = true;
-if (valid && fs.access("/usr/bin/ffmpeg")) {
-    uhttpd.send("Status: 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=ffmpeg\r\nCache-Control: no-cache\r\n\r\n");
-    const s = fs.popen(`/usr/bin/ffmpeg -i "${url}" -c:v mjpeg -q:v 1 -f mpjpeg -an - 2> /dev/null`);
-    if (s) {
-        for (;;) {
-            const d = s.read(10240);
-            if (!length(d)) {
-                break;
+if (valid) {
+    if (fs.access("/usr/bin/ffmpeg")) {
+        uhttpd.send("Status: 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=ffmpeg\r\nCache-Control: no-cache\r\n\r\n");
+        const s = fs.popen(`/usr/bin/ffmpeg -i "${url}" -c:v mjpeg -q:v 1 -f mpjpeg -an - 2> /dev/null`);
+        if (s) {
+            for (;;) {
+                const d = s.read(10240);
+                if (!length(d)) {
+                    break;
+                }
+                uhttpd.send(d);
             }
-            uhttpd.send(d);
+            s.close();
         }
-        s.close();
+    }
+    else {
+        uhttpd.send("Status: 200 OK\r\nContent-Type: text/plan\r\n\r\nffmpeg package is not installed\n");
     }
 }
 else {
