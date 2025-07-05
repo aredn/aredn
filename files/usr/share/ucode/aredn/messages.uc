@@ -83,7 +83,7 @@ export function getToDos()
         push(todos, "Set the latitude and longitude");
     }
     if (configuration.getSettingAsString("time_zone_name", "Not Set") === "Not Set") {
-        push(todos, "Set the timzeone");
+        push(todos, "Set the timezone");
     }
     if (hardware.getRadioCount() > 0) {
         const wlan = cursor.get("network", "wifi", "device");
@@ -98,6 +98,16 @@ export function getToDos()
                 if (ainfo?.beamwidth !== 360) {
                     push(todos, "Set antenna azimuth");
                 }
+            }
+        }
+    }
+    if (!fs.access("/etc/cron.boot/reinstall-packages") || !fs.access("/etc/package_store/catalog.json")) {
+        const svcs = uci.cursor("/etc/config.mesh").get("setup", "services", "service") || [];
+        const reVidProxy = /^[^|]+\|1\|http\|[^|]+\|80\|a\/videoproxy\?.+$/;
+        for (let i = 0; i < length(svcs); i++) {
+            if (match(trim(svcs[i]), reVidProxy)) {
+                push(todos, "Install the ffmpeg package");
+                break;
             }
         }
     }
