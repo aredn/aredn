@@ -96,11 +96,12 @@ const types = {
     internet: true,
     syslog: true
 };
-const templates = [
+const vp = hardware.supportsFeature("videoproxy");
+const templates = filter([
     { name: "Generic URL" },
     { name: "Simple text", link: false },
     { name: "Ubiquiti camera", type: "camera", protocol: "http", port: 80, path: "snap.jpeg" },
-    { name: "Ubiquiti video", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "rtsp://CAMERAHOSTNAME.local.mesh:554/s2" },
+    vp ? { name: "Ubiquiti video", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "rtsp://CAMERAHOSTNAME.local.mesh:554/s2" } : null,
     { name: "Reolink camera", type: "camera", protocol: "http", port: 80, path: "cgi-bin/api.cgi?cmd=Snap&channel=0&rs=abcdef&user=USERNAME&password=PASSWORD" },
     { name: "Axis camera", type: "camera", protocol: "http", port: 80, path: "jpg/image.jpg" },
     { name: "Sunba Lite camera", type: "camera", protocol: "http", port: 80, path: "webcapture.jpg?command=snap&channel=1&user=USERNAME&password=PASSWORD" },
@@ -119,8 +120,8 @@ const templates = [
     { name: "Generic HTTPS", protocol: "https", port: 443 },
     { name: "HTTP Proxy", protocol: "http", port: 80, proxy: "httpproxy", path: "URL" },
     { name: "Redirect", protocol: "http", port: 80, proxy: "redirect", path: "URL" },
-    { name: "Video Proxy", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "URL" }
-];
+    vp ? { name: "Video Proxy", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "URL" } : null
+], v => v);
 const services = [];
 const dhcp = configuration.getDHCP();
 const localnode = dhcp.gateway;
