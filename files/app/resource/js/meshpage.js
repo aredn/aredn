@@ -70,7 +70,7 @@ function serv(ip, hostname)
                     name = nametype[1];
                     type = `<div class="icon ${nametype[2]}" title="${nametype[2]}"></div>`;
                 }
-                const r = url.match(/^(.+:\/\/)([^:]+):(\d+)(.*)$/);
+                const r = url.match(/^([^:]+:\/\/)([^:]+):(\d+)(.*)$/);
                 switch (r[3]) {
                     case "0":
                         view += `<div class="service" data-search="${lname}"><span>${name}</span>${type}</div>`;
