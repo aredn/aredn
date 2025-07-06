@@ -127,6 +127,7 @@ export function ipv6ll2mac(ipv6)
 
 const urlPattern = regexp(
     '^([a-z0-9]+:\\/\\/)' + // protocol
+    '((.+):(.+)@)?' + // username:password
     '((([a-z0-9]([a-z0-9-]*[a-z0-9])*)\\.)+[a-z]{2,}|' + // domain name
     '(([0-9]{1,3}\\.){3}[0-9]{1,3}))' + // OR IP (v4) address
     '(\\:[0-9]+)?(\\/[-a-z0-9%_.~+]*)*' + // port and path
@@ -144,9 +145,11 @@ export function parseURL(urlstring)
     return {
         href: p[0],
         protocol: replace(p[1], /:\/\/$/, ""),
-        hostname: p[2],
-        port: replace(p[8], /^:/, ""),
-        path: p[9],
-        hash: replace(p[11], /^#/, "")
+        hostname: p[5],
+        port: replace(p[11], /^:/, ""),
+        path: p[12],
+        hash: replace(p[14], /^#/, ""),
+        username: p[3],
+        password: p[4],
     };
 };
