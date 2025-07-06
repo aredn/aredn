@@ -35,7 +35,6 @@ import * as fs from "fs";
 import * as uci from "uci";
 import * as configuration from "aredn.configuration";
 import * as hardware from "aredn.hardware";
-import * as radios from "aredn.radios";
 
 function parseMessages(nodename, msgs, text)
 {
@@ -101,7 +100,7 @@ export function getToDos()
             }
         }
     }
-    if (!fs.access("/usr/bin/ffmpeg") && !(fs.access("/etc/cron.boot/reinstall-packages") && fs.access("/etc/package_store/catalog.json"))) {
+    if (hardware.supportsFeature("videoproxy") && !fs.access("/usr/bin/ffmpeg") && !(fs.access("/etc/cron.boot/reinstall-packages") && fs.access("/etc/package_store/catalog.json"))) {
         const svcs = uci.cursor("/etc/config.mesh").get("setup", "services", "service") || [];
         const reVidProxy = /^[^|]+\|1\|http\|[^|]+\|80\|a\/videoproxy\?.+$/;
         for (let i = 0; i < length(svcs); i++) {

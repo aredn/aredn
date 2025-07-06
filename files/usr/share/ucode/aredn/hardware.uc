@@ -933,6 +933,18 @@ export function supportsFeature(feature, arg1, arg2)
             return supportsMode(arg1, arg2);
         case "hw-watchdog":
             return fs.access("/dev/watchdog") ? true : false;
+        case "videoproxy":
+            switch (getBoardModel().id) {
+                case "mikrotik,hap-ac3":
+                case "openwrt,one":
+                case "qemu":
+                case "vmware":
+                case "bhyve":
+                case "pc":
+                    return true;
+                default:
+                    return false;
+            }
         default:
             return false;
     }
