@@ -92,16 +92,19 @@ const types = {
     power: true,
     weather: true,
     wiki: true,
+    chart: true,
+    internet: true,
+    syslog: true
 };
 const templates = [
     { name: "Generic URL" },
     { name: "Simple text", link: false },
     { name: "Ubiquiti camera", type: "camera", protocol: "http", port: 80, path: "snap.jpeg" },
+    { name: "Ubiquiti video", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "rtsp://CAMERAHOSTNAME.local.mesh:554/s2" },
     { name: "Reolink camera", type: "camera", protocol: "http", port: 80, path: "cgi-bin/api.cgi?cmd=Snap&channel=0&rs=abcdef&user=USERNAME&password=PASSWORD" },
     { name: "Axis camera", type: "camera", protocol: "http", port: 80, path: "jpg/image.jpg" },
     { name: "Sunba Lite camera", type: "camera", protocol: "http", port: 80, path: "webcapture.jpg?command=snap&channel=1&user=USERNAME&password=PASSWORD" },
-    { name: "Sunba Performance camera", type: "camera", protocol: "http", port: 80, path: "images/snapshot.jpg" },
-    { name: "Sunba Performance camera (redirect)", type: "camera", protocol: "http", port: 80, path: "a/redirect?http://USERNAME:PASSWORD@CAMERANAME/images/snapshot.jpg" },
+    { name: "Sunba Performance camera", type: "camera", protocol: "http", port: 80, proxy: "redirect", path: "http://USERNAME:PASSWORD@CAMERAHOSTNAME.local.mesh/images/snapshot.jpg" },
     { name: "Sunba Smart camera", type: "camera", protocol: "http", port: 80, path: "ISAPI/Custom/snapshot?authInfo=USERNAME:PASSWORD" },
     { name: "NTP Server", type: "time", protocol: "ntp", port: 123 },
     { name: "Streaming video", type: "video", protocol: "rtsp", port: 554 },
@@ -111,6 +114,7 @@ const templates = [
     { name: "MeshChat", type: "chat", protocol: "http", port: 80, path: "meshchat" },
     { name: "WeeWx Weather Station", type: "weather", protocol: "http", port: 80, path: "weewx" },
     { name: "Proxmox Server", type: "server", protocol: "https", port: 8006 },
+    { name: "Open Web RX", type: "radio", protocol: "http", port: 8073 },
     { name: "Generic HTTP", protocol: "http", port: 80 },
     { name: "Generic HTTPS", protocol: "https", port: 443 },
     { name: "HTTP Proxy", protocol: "http", port: 80, proxy: "httpproxy", path: "URL" },
@@ -497,7 +501,7 @@ for (let l = 0; l < length(pts); l++) {
                     template = `<div class="service adr">
     <div class="cols">
         <div class="cols">
-            <input name="name" type="text" placeholder="service name" required pattern='[^"|<>]+'>
+            <input name="name" type="text" placeholder="service name" required pattern='[^"|<>]+' value="${t.name}">
             <div style="flex:0;margin-left:2px">
                 <select name="type">
                     <option value="">-</option>
@@ -511,7 +515,7 @@ for (let l = 0; l < length(pts); l++) {
         </div>
         <div class="cols">
             <div class="proxy">${t.proxy}</div>
-            <input name="path" type="text" required pattern="[\\-\\/\\?\\&\\._=#:!@a-zA-Z0-9]*" placeholder="${t.path}">
+            <input name="path" type="text" required placeholder="URL" pattern="[\\-\\/\\?\\&\\._=#:!@a-zA-Z0-9]*" value="${t.path}">
             <input name="proxy" type="hidden" value="${t.proxy}">
         </div>
     </div>
