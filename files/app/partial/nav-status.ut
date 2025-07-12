@@ -1,11 +1,22 @@
 <div id="nav-status" {{request.headers["hx-boosted"] ? 'hx-swap-oob="true"' : ""}}>{%
-if (request.page !== "status") {
-    print(request.page);
+if (request.page === "status") {
+    if (auth.isAdmin) {
+        print("admin");
+    }
+    else {
+        print("status");
+    }
 }
-else if (auth.isAdmin) {
-    print("admin");
+else if (request.page === "mesh") {
+    const issupernode = uci.get("aredn", "@supernode[0]", "enable") == "1";
+    if (issupernode) {
+        print("cloud");
+    }
+    else {
+        print("mesh");
+    }
 }
 else {
-    print("status");
+    print(request.page);
 }
 %}</div>
