@@ -691,6 +691,9 @@ global.handle_request = function(env)
         else if (substr(rpath, -4) === ".css") {
             uhttpd.send("Content-Type: text/css\r\n");
         }
+        else if (substr(rpath, -5) === ".json") {
+            uhttpd.send("Content-Type: application/json\r\n");
+        }
         const res = fs.readfile(rpath);
         uhttpd.send(`Cache-Control: ${cachecontrol}\r\nContent-Length: ${length(res)}\n`);
         uhttpd.send("\r\n", res);
