@@ -169,6 +169,9 @@ export function getChannelFromFrequency(freq)
     if (freq < 256) {
         return freq;
     }
+    if (freq < 927) {
+        return (freq - 887) / 5;
+    }
     if (freq === 2484) {
         return 14;
     }
