@@ -784,7 +784,7 @@ function createTagSection(tag, force, optlist)
 {
     if (tag != "") {
         nc.set("dhcp", tag, "tag");
-        if (force == FORCE) {
+        if (force == FORCED) {
             nc.set("dhcp", tag, "force", "1");
         }
         const options = [];
@@ -824,6 +824,7 @@ else {
 
 const advancedOptions = loadDhcpOptions();
 const dhcpTags = loadDhcpTags();
+nc.load("dhcp");
 for (let condition in dhcpTags) {
     createClassifiedSection(condition, dhcpTags[condition]);
 }
