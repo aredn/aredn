@@ -105,16 +105,11 @@ function filecopy(from, to)
     return true;
 }
 
-function tablesize(t)
-{
-    return length(keys(t));
-}
-
-function getSubtable(container, key)
+function getSubtable(container, key, dflt)
 {
     let subtable = container[key];
     if (!subtable) {
-        subtable = {};
+        subtable = dflt;
         container[key] = subtable;
     }
     return subtable;
@@ -731,7 +726,7 @@ function loadDhcpTags()
     for (let i = 0; i < length(tags); i++) {
         const m = match(tags[i], /([^ \t]+)[ \t]+([^ \t]+)[ \t]+(.*)/);
         if (m) {
-            const sub = getSubtable(dhcpTags, m[2]);
+            const sub = getSubtable(dhcpTags, m[2], []);
             push(sub, { name: m[1], pattern: m[3] });
         }
     }
@@ -745,8 +740,8 @@ function loadDhcpOptions()
     for (let i = 0; i < length(opts); i++) {
         const m = match(opts[i], /([^ \t]*)[ \t]+([^ \t]+)[ \t]+(\d+)[ \t]+(.*)/);
         if (m) {
-            const sub = getSubtable(dhcpOptions, m[1]);
-            push(sub, { num: m[3], val: m[4] });
+            const bytag = getSubtable(dhcpOptions, m[1], {});
+            push(getSubtable(bytag, m[2], []), { num: m[3], val: m[4] });
         }
     }
     return dhcpOptions;
@@ -789,7 +784,7 @@ function createTagSection(tag, force, optlist)
 {
     if (tag != "") {
         nc.set("dhcp", tag, "tag");
-        if (force == FORCE) {
+        if (force == FORCED) {
             nc.set("dhcp", tag, "force", "1");
         }
         const options = [];
@@ -829,6 +824,7 @@ else {
 
 const advancedOptions = loadDhcpOptions();
 const dhcpTags = loadDhcpTags();
+nc.load("dhcp");
 for (let condition in dhcpTags) {
     createClassifiedSection(condition, dhcpTags[condition]);
 }
@@ -836,7 +832,7 @@ for (let tag in advancedOptions) {
     const forcelist = advancedOptions[tag];
     if (forcelist) {
         // tag-section name cannot be empty or section name must be unique
-        if (tag == "" || tablesize(forcelist) > 1) {
+        if (tag == "" || length(forcelist) > 1) {
             // place unforced options in the anonymous section
             for (let i = 0; i < length(forcelist[UNFORCED] || []); i++) {
                 const option = forcelist[UNFORCED][i];
