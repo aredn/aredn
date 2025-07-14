@@ -139,3 +139,17 @@
 + 		  }
 + 	      }
 + 	}
+--- a/package/network/services/dnsmasq/files/dnsmasq.init
++++ b/package/network/services/dnsmasq/files/dnsmasq.init
+@@ -477,10 +477,7 @@
+ 	config_get_bool force "$cfg" force 0
+ 	[ "$force" = "0" ] && force=
+ 
+-	config_get option "$cfg" dhcp_option
+-	for o in $option; do
+-		xappend "--dhcp-option${force:+-force}=tag:$tag,$o"
+-	done
++	config_list_foreach "$cfg" dhcp_option dhcp_option_append "tag:$tag" "$force"
+ }
+ 
+ dhcp_mac_add() {
