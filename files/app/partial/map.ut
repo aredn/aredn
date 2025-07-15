@@ -37,11 +37,5 @@ const map = uci.get("aredn", "@location[0]", "map");
 const lat = uci.get("aredn", "@location[0]", "lat");
 const lon = uci.get("aredn", "@location[0]", "lon");
 const mapurl = lat && lon && map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
-response.override = true;
-if (mapurl) {
-    uhttpd.send(`Status: 307 Temporary Redirect\r\nLocation: ${mapurl}\r\nCache-Control: no-store\r\n\r\n`);
-}
-else {
-    uhttpd.send("Status: 404 Not Found\r\nCache-Control: no-store\r\n\r\n");
-}
 %}
+<iframe class="app-map" loading="lazy" src="{{mapurl}}"></iframe>
