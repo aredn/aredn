@@ -33,7 +33,8 @@
  */
 %}
 {{_R("changes")}}
-<a href="http://localnode.local.mesh"><div id="icon-logo"></div><div>AREDN<span style="font-size:4px">TM</span></div></a>
+<a class="browser-mode" href="http://localnode.local.mesh"><div id="icon-logo"></div><div>AREDN<span style="font-size:4px">TM</span></div></a>
+<div class="app-mode" id="icon-logo"></div><div>AREDN<span style="font-size:4px">TM</span></div>
 <div class="nav-node-name">{{configuration.getName()}}</div>
 {{_R("nav-status")}}
 <div style="flex:1"></div>
@@ -47,7 +48,10 @@
         return;
     }
     document.body.removeEventListener("htmx:load", navinit);
-    const logo = htmx.find("#icon-logo");
+    let logo = htmx.find(".browser-mode #icon-logo");
+    if (getComputedStyle(logo).display == "none") {
+        logo = htmx.find(".app-mode #icon-logo");
+    }
     htmx.on("htmx:beforeRequest", function(e) {
         if ((e.detail.requestConfig.triggeringEvent || {}).type === "click") {
             const ismodal = (e.detail.target || {}).id === "ctrl-modal";

@@ -40,10 +40,12 @@
         <div class="icon mesh {{request.page === "mesh"}}"></div>
     </a>
     <hr>
-    {% 
-    const ip = (match(fs.readfile("/tmp/dnsmasq.d/supernode.conf"), /^#([^\n]+).*$/) || [])[1];
+    {% const ip = (match(fs.readfile("/tmp/dnsmasq.d/supernode.conf"), /^#([^\n]+).*$/) || [])[1];
     if (ip) { %}
-    <a title="See what is on the cloud mesh from a supernode" href="http://{{ip}}/a/mesh">
+    <a class="app-mode" title="See what is on the cloud mesh from a supernode" href="cloud">
+        <div class="icon cloudmesh {{request.page === "cloud"}}"></div>
+    </a>
+    <a class="browser-mode" title="See what is on the cloud mesh from a supernode" href="http://{{ip}}/a/mesh">
         <div class="icon cloudmesh"></div>
     </a>
     {% } %}
@@ -54,7 +56,10 @@
     const mapurl = lat && lon && map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
     if (mapurl) {
     %}
-    <a title="Map of the mesh" href="{{mapurl}}">
+    <a class="app-mode" title="Map of the mesh" href="map">
+        <div class="icon map {{request.page === "map"}}"></div>
+    </a>
+    <a class="browser-mode" title="Map of the mesh" href="{{mapurl}}">
         <div class="icon map"></div>
     </a>
     {% } %}

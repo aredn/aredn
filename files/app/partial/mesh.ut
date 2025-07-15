@@ -32,8 +32,17 @@
  * version
  */
 %}
-<div style="display:none" hx-get="u-mesh-data" hx-trigger="visibilitychange[document.visibilityState === 'visible'] from:document" hx-on:htmx:after-request="meshRender()">
-{{_R("mesh-data")}}
+{%
+let baseurl = "mesh-data";
+if (request.page === "cloud") {
+    const ip = (match(fs.readfile("/tmp/dnsmasq.d/supernode.conf"), /^#([^\n]+).*$/) || [])[1];
+    if (ip) {
+        baseurl = `http://${ip}/a/u-mesh-data`;
+    }
+}
+%}
+<div style="display:none" hx-get="{{baseurl}}" hx-trigger="{{baseurl === "mesh-data" ? '' : 'load, '}}visibilitychange[document.visibilityState === 'visible'] from:document" hx-on:htmx:after-request="meshRender()">
+{{baseurl === "mesh-data" ? _R("mesh-data") : "<script>window.mesh={};</script>"}}
 </div>
 <div style="width:100%">
     <div id="meshfilter">

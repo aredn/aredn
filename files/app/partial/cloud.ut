@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2025 Tim Wilkinson
+ * Copyright (C) 2024 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,13 +32,4 @@
  * version
  */
 %}
-{%
-const ip = (match(fs.readfile("/tmp/dnsmasq.d/supernode.conf"), /^#([^\n]+).*$/) || [])[1];
-response.override = true;
-if (ip) {
-    uhttpd.send(`Status: 307 Temporary Redirect\r\nLocation: http://${ip}/a/mesh\r\nCache-Control: no-store\r\n\r\n`);
-}
-else {
-    uhttpd.send("Status: 404 Not Found\r\nCache-Control: no-store\r\n\r\n");
-}
-%}
+{{_R("mesh")}}

@@ -571,7 +571,7 @@ global.handle_request = function(env)
                     parser.parse(v);
                 }
             }
-            const response = { statusCode: 200, headers: { "Content-Type": "text/html", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } };
+            const response = { statusCode: 200, headers: { "Content-Type": "text/html", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*" } };
             const fn = pageCache[tpath] || loadfile(tpath, { raw_mode: false });
             const isMobile = !!(config.forcemobile || match(env.HTTP_USER_AGENT, /iphone/i) || match(env.HTTP_USER_AGENT, /android.*mobile/i));
             let res = "";
