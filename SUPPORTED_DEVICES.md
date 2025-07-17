@@ -61,6 +61,7 @@ NanoBeam 5AC Gen 2 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2-xc | 128M
 NanoBeam M5-16 || 5 | ath79 | generic | ubnt_nanobeam-m5-16 | 64MB | stable | released
 NanoBeam M5-19 || 5 | ath79 | generic | ubnt_nanobeam-m5-19 | 64MB | stable | released
 NanoStation 5AC | NS-5AC <br> NS-5AC-US | 5 | ath79 | generic | ubnt_nanostation-ac | 64MB | stable | released
+NanoStation 5AC Loco | Loco5AC | 5 | ath79 | generic | ubnt_nanostation-ac-loco | 64MB | stable | released
 NanoStation Loco M2 XW || 2 | ath79 | generic | ubnt_nanostation-loco-m-xw | 64MB | untested | released
 NanoStation Loco M5 XW || 5 | ath79 | generic | ubnt_nanostation-loco-m-xw | 64MB | stable | released
 NanoStation M2 XW || 2 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
