@@ -51,7 +51,7 @@ if (valid) {
 response.override = true;
 if (valid) {
     if (fs.access("/usr/bin/ffmpeg")) {
-        uhttpd.send("Status: 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=ffmpeg\r\nCache-Control: no-cache\r\n\r\n");
+        let first = true;
         const s = fs.popen(`/usr/bin/ffmpeg -i "${url}" -c:v mjpeg -q:v 1 -f mpjpeg -t 300 -an - 2> /dev/null`);
         if (s) {
             for (;;) {
@@ -59,13 +59,20 @@ if (valid) {
                 if (!length(d)) {
                     break;
                 }
+                if (first) {
+                    first = false;
+                    uhttpd.send("Status: 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=ffmpeg\r\nCache-Control: no-cache\r\n\r\n");
+                }
                 uhttpd.send(d);
             }
             s.close();
+            if (first) {
+                uhttpd.send("Status: 404 Not Found\r\nCache-Control: no-store\r\n\r\n");
+            }
         }
     }
     else {
-        uhttpd.send("Status: 200 OK\r\nContent-Type: text/plan\r\n\r\nffmpeg package is not installed\n");
+        uhttpd.send("Status: 404 OK\r\nCache-Control: no-store\r\nContent-Type: text/plain\r\n\r\nffmpeg package is not installed\n");
     }
 }
 else {
