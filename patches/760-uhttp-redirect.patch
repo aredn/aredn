@@ -1,0 +1,54 @@
+--- /dev/null
++++ b/package/network/services/uhttpd/patches/100-aredn-redirect.patch
+@@ -0,0 +1,51 @@
++--- a/client.c
+++++ b/client.c
++@@ -250,6 +250,38 @@
++ 	return false;
++ }
++ 
+++static bool root_redirect_check(struct client *cl)
+++{
+++	int rem;
+++	struct blob_attr *cur;
+++	char *url = NULL, *host = NULL;
+++
+++	blob_for_each_attr(cur, cl->hdr.head, rem) {
+++		if (!strncmp(blobmsg_name(cur), "host", 4))
+++			host = blobmsg_get_string(cur);
+++
+++		if (!strncmp(blobmsg_name(cur), "URL", 3))
+++			url = blobmsg_get_string(cur);
+++
+++		if (url && host)
+++			break;
+++	}
+++
+++	if (!url || !host || strcmp(url, "/") != 0)
+++		return true;
+++
+++	cl->request.disable_chunked = true;
+++	cl->request.connection_close = true;
+++
+++	uh_http_header(cl, 307, "Temporary Redirect");
+++
+++	ustream_printf(cl->us, "Location: http://%s/a/status\r\n\r\n", host);
+++
+++	uh_request_done(cl);
+++
+++	return false;
+++}
+++
++ static bool tls_redirect_check(struct client *cl)
++ {
++ 	int rem, port;
++@@ -303,6 +340,9 @@
++ 	if (!rfc1918_filter_check(cl))
++ 		return;
++ 
+++	if (!root_redirect_check(cl))
+++		return;
+++
++ 	if (!tls_redirect_check(cl))
++ 		return;
++ 
