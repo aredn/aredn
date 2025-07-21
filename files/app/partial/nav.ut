@@ -49,8 +49,8 @@
     }
     document.body.removeEventListener("htmx:load", navinit);
     let logo = htmx.find(".browser-mode #icon-logo");
-    if (getComputedStyle(logo).display == "none") {
-        logo = htmx.find(".app-mode #icon-logo");
+    if (getComputedStyle(htmx.find(".browser-mode")).display == "none") {
+        logo = htmx.find(".app-mode#icon-logo");
     }
     htmx.on("htmx:beforeRequest", function(e) {
         if ((e.detail.requestConfig.triggeringEvent || {}).type === "click") {
