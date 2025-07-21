@@ -622,6 +622,58 @@ function supportsMaxDistance(wifiIface)
     }
 }
 
+export function getHTMode(wifiIface, bandwidth)
+{
+    const phy = getPhyDevice(wifiIface);
+    let htmode = "NOHT";
+    if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath9k`)) {
+        htmode = "HT20";
+    }
+    else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`)) {
+        switch (bandwidth) {
+            case 5:
+            case 10:
+                if (fs.access("/lib/firmware/ath10k/QCA9888")) {
+                    htmode = "NOHT";
+                }
+                else {
+                    htmode = "VHT20";
+                }
+                break;
+            case 20:
+            case 40:
+            case 80:
+            case 160:
+                htmode = `VHT${bandwidth}`;
+                break;
+            default:
+                htmode = "HT20";
+                break;
+        }
+    }
+    else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
+        switch (bandwidth) {
+            case 5:
+            case 10:
+            case 20:
+                htmode = "VHT20";
+                break;
+            case 40:
+            case 80:
+            case 160:
+                htmode = `HE${bandwidth}`;
+                break;
+            default:
+                htmode = "HE20";
+                break;
+        }
+    }
+    else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
+        htmode = null;
+    }
+    return htmode;
+};
+
 function supportsMode(wifiIface, mode)
 {
     const modes = getRadioIntf(wifiIface)?.exclude_modes;

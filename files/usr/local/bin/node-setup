@@ -893,7 +893,6 @@ for (let dev = 0; dev < ifacecount; dev++) {
     }
     else {
         let type = "mac80211";
-        let htmode = "HT20";
         let disabled = "0";
         let chanbw = null;
         let country = null;
@@ -917,42 +916,8 @@ for (let dev = 0; dev < ifacecount; dev++) {
         let uapsd = null;
         let hwmode = null;
         let bcf = null;
-        if (fs.access(`/sys/kernel/debug/ieee80211/${devname}/ath10k`)) {
-            htmode = "VHT20";
-            if (wlan == mesh_wifi) {
-                if (mesh_chanbw == 40) {
-                    htmode = "VHT40";
-                }
-                else if (mesh_chanbw == 80) {
-                    htmode = "VHT80";
-                }
-                else if (mesh_chanbw == 160) {
-                    htmode = "VHT160";
-                }
-            }
-        }
-        else if (fs.access(`/sys/kernel/debug/ieee80211/${devname}/mt76`)) {
-            htmode = "HE20";
-            if (wlan == mesh_wifi) {
-                if (mesh_chanbw == 40) {
-                    htmode = "HE40";
-                }
-                else if (mesh_chanbw == 80) {
-                    htmode = "HE80";
-                }
-                else if (mesh_chanbw == 160) {
-                    htmode = "HE160";
-                }
-            }
-        }
-        else if (fs.access(`/sys/kernel/debug/ieee80211/${devname}/morse`)) {
-            type = "morse";
-            htmode = null;
-            country = "US";
-            if (rif.bcf) {
-                bcf = rif.bcf;
-            }
-        }
+        let htmode = hardware.getHTMode(wlan, wlan == mesh_wifi ? mesh_chanbw : -1);
+
         switch (hardware.getDefaultChannel(wlan)?.band) {
             case "3GHz":
             case "5GHz":
@@ -960,6 +925,11 @@ for (let dev = 0; dev < ifacecount; dev++) {
                 break;
             case "HaLow":
                 hwmode = "11ah";
+                type = "morse";
+                country = "US";
+                if (rif.bcf) {
+                    bcf = rif.bcf;
+                }
                 break;
             default:
                 hwmode = "11g";

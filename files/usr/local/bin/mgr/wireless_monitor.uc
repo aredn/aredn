@@ -43,6 +43,7 @@ if (!device) {
 const wifi = device.iface;
 let frequency;
 let ssid;
+let htmode = "HT20";
 
 const actionLimits = {
     unresponsiveReport: 3,
@@ -86,7 +87,7 @@ function resetNetwork(mode)
             if (mikrotik) {
                 // Observered on N and AC Mikrotik devices
                 system(`${IW} ${wifi} ibss leave > /dev/null 2>&1`);
-                system(`${IW} ${wifi} ibss join ${ssid} ${frequency} HT20 fixed-freq > /dev/null 2>&1`);
+                system(`${IW} ${wifi} ibss join ${ssid} ${frequency} ${htmode} fixed-freq > /dev/null 2>&1`);
             }
             else {
                 log.syslog(log.LOG_NOTICE, `-- ignoring (mikrotik only)`);
@@ -266,6 +267,7 @@ return waitForTicks(max(1, 120 - clock(true)[0]), function()
             frequency = hardware.getChannelFrequency(wifi, c.mode.channel);
             ssid = c.mode.ssid;
             mode = c.mode.mode;
+            htmode = hardware.getHTMode(wifi, c.mode.bandwidth);
             break;
         }
     }
