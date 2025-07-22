@@ -56,6 +56,14 @@ commands:
             sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j9/g" ${MY_WORKING_DIRECTORY}/config.mk
             sed -i "s/develop/<< pipeline.parameters.release_version >>/g" ${MY_WORKING_DIRECTORY}/feeds.conf
             cat ${MY_WORKING_DIRECTORY}/config.mk
+
+  create_workspace:
+    description: "Create shared workspace"
+    steps:
+      - run:
+          name: "Create workspace"
+          command:  |
+            make prepare
  
   build_ath79:
     description: "Build ath79/generic and ath79/mikrotik"
@@ -199,6 +207,7 @@ jobs:
     steps:
       - checkout
       - update_config_mk
+      - create_workspace
       - persist_to_workspace:
           root: openwrt
           paths:
@@ -211,6 +220,7 @@ jobs:
     steps:
       - checkout
       - update_babel_config_mk
+      - create_workspace
       - persist_to_workspace:
           root: openwrt
           paths:
