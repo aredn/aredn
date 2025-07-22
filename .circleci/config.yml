@@ -6,7 +6,7 @@ version: 2.1
 parameters:
   action:
     type: enum
-    enum: [no_action, nightly_build, nightly_babel_build, release_build]
+    enum: [ no_action, nightly_build, nightly_babel_build, release_build ]
     default: no_action
   release_version:
     type: string
@@ -201,6 +201,8 @@ jobs:
       - update_config_mk
       - persist_to_workspace:
           root: openwrt
+          paths:
+            - .
 
   build_babel_prepare:
     resource_class: small
@@ -211,6 +213,8 @@ jobs:
       - update_babel_config_mk
       - persist_to_workspace:
           root: openwrt
+          paths:
+            - .
 
   build_job_ath79:
     resource_class: xlarge
@@ -509,7 +513,7 @@ jobs:
 # Workflows
 ######################################
 workflows:
-  no_action_default:
+  no_action:
     when:
       equal: [ no_action, << pipeline.parameters.action >> ]
     jobs:
