@@ -62,7 +62,7 @@ commands:
 ######################################
 jobs:
   build:
-    resource_class: xlarge
+    resource_class: 2xlarge+
     docker:
       - image: arednmesh/builder
 
@@ -117,7 +117,7 @@ jobs:
           command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR}
   
   build_babel:
-    resource_class: xlarge
+    resource_class: 2xlarge+
     docker:
       - image: arednmesh/builder
 
@@ -180,7 +180,7 @@ jobs:
           command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR_BABEL}
 
   build_release:
-    resource_class: xlarge
+    resource_class: 2xlarge+
     docker:
       - image: arednmesh/builder
 
