@@ -209,7 +209,7 @@ jobs:
       - update_config_mk
       - create_workspace
       - persist_to_workspace:
-          root: openwrt
+          root: /home/aredn/project
           paths:
             - .
 
@@ -222,7 +222,7 @@ jobs:
       - update_babel_config_mk
       - create_workspace
       - persist_to_workspace:
-          root: openwrt
+          root: /home/aredn/project
           paths:
             - .
 
@@ -232,13 +232,13 @@ jobs:
       - image: arednmesh/builder
     steps:
       - attach_workspace:
-          at: openwrt
+          at: /home/aredn/project
       - build_ath79
       - persist_to_workspace:
-          root: openwrt
+          root: /home/aredn/project
           paths:
-            - bin/targets/ath79
-            - bin/packages/mips_24kc
+            - openwrt/bin/targets/ath79
+            - openwrt/bin/packages/mips_24kc
 
   build_job_ipq40xx:
     resource_class: xlarge
@@ -246,13 +246,13 @@ jobs:
       - image: arednmesh/builder
     steps:
       - attach_workspace:
-          at: openwrt
+          at: /home/aredn/project
       - build_ipq40xx
       - persist_to_workspace:
-          root: openwrt
+          root: /home/aredn/project
           paths:
-            - bin/targets/ipq40xx
-            - bin/packages/arm_cortex-a7_neon-vfpv4
+            - openwrt/bin/targets/ipq40xx
+            - openwrt/bin/packages/arm_cortex-a7_neon-vfpv4
 
   build_job_x86:
     resource_class: xlarge
@@ -260,13 +260,13 @@ jobs:
       - image: arednmesh/builder
     steps:
       - attach_workspace:
-          at: openwrt
+          at: /home/aredn/project
       - build_x86
       - persist_to_workspace:
-          root: openwrt
+          root: /home/aredn/project
           paths:
-            - bin/targets/x86
-            - bin/packages/x86_64
+            - openwrt/bin/targets/x86
+            - openwrt/bin/packages/x86_64
   
   build_job_ramips:
     resource_class: xlarge
@@ -274,13 +274,13 @@ jobs:
       - image: arednmesh/builder
     steps:
       - attach_workspace:
-          at: openwrt
+          at: /home/aredn/project
       - build_ramips
       - persist_to_workspace:
-          root: openwrt
+          root: /home/aredn/project
           paths:
-            - bin/targets/ramips
-            - bin/packages/mipsel_24kc
+            - openwrt/bin/targets/ramips
+            - openwrt/bin/packages/mipsel_24kc
     
   build_job_mediatek:
     resource_class: xlarge
@@ -288,13 +288,13 @@ jobs:
       - image: arednmesh/builder
     steps:
       - attach_workspace:
-          at: openwrt
+          at: /home/aredn/project
       - build_mediatek
       - persist_to_workspace:
-          root: openwrt
+          root: /home/aredn/project
           paths:
-            - bin/targets/mediatek
-            - bin/packages/aarch64_cortex-a53
+            - openwrt/bin/targets/mediatek
+            - openwrt/bin/packages/aarch64_cortex-a53
 
   build_nightly_finalize:
     resource_class: small
@@ -302,7 +302,7 @@ jobs:
       - image: arednmesh/builder
     steps:
       - attach_workspace:
-          at: openwrt
+          at: /home/aredn/project
       - compress_and_deploy_nightly
   
   build_babel_finalize:
@@ -311,7 +311,7 @@ jobs:
       - image: arednmesh/builder
     steps:
       - attach_workspace:
-          at: openwrt
+          at: /home/aredn/project
       - compress_and_deploy_babel
   
   build_release:
