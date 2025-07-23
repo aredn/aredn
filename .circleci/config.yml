@@ -71,18 +71,23 @@ commands:
       - run:
           name: Build ath79/generic
           command: make MAINTARGET=ath79 SUBTARGET=generic
+          no_output_timeout: 2h
       - run:
           name: Build ath79/mikrotik
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik
+          no_output_timeout: 2h
       - run:
           name: Build ath79/mikrotik/ath10k
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k
+          no_output_timeout: 2h
       - run:
           name: Build ath79/mikrotik/nand
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand
+          no_output_timeout: 2h
       - run:
           name: Build ath79/nand
           command: make MAINTARGET=ath79 SUBTARGET=nand
+          no_output_timeout: 2h
 
   build_ipq40xx:
     description: "Build ipq40xx/generic and ipq40xx/mikrotik"
@@ -90,9 +95,11 @@ commands:
       - run:
           name: Build ipq40xx/generic
           command: make MAINTARGET=ipq40xx SUBTARGET=generic
+          no_output_timeout: 2h
       - run:
           name: Build ipq40xx/mikrotik
           command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
+          no_output_timeout: 2h
 
   build_x86:
     description: "BUild x86/64"
@@ -100,6 +107,7 @@ commands:
       - run:
           name: Build x64/64
           command: make MAINTARGET=x86 SUBTARGET=64
+          no_output_timeout: 2h
 
   build_ramips:
     description: "Build ramips/mt7621"
@@ -107,6 +115,7 @@ commands:
       - run:
           name: Build ramips/mt7621
           command: make MAINTARGET=ramips SUBTARGET=mt7621
+          no_output_timeout: 2h
 
   build_ramips_and_morse:
     description: "Build ramips/mt7621 and ramips/mt76x8 and Morse"
@@ -114,12 +123,15 @@ commands:
       - run:
           name: Build ramips/mt7621
           command: make MAINTARGET=ramips SUBTARGET=mt7621
+          no_output_timeout: 2h
       - run:
           name: Build ramips/mt7621/morse
           command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTTARGET=morse
+          no_output_timeout: 2h
       - run:
           name: Build ramips/mt76x8/morse
           command: make MAINTARGET=ramips SUBTARGET=mt76x8 ALTTARGET=morse
+          no_output_timeout: 2h
 
   build_mediatek:
     description: "Build mediatek/filogic"
@@ -127,6 +139,7 @@ commands:
       - run:
           name: Build mediatek/filogic
           command: make MAINTARGET=mediatek SUBTARGET=filogic
+          no_output_timeout: 2h
 
   compress_and_deploy_nightly:
     description: "Compress and Deploy"
@@ -327,19 +340,19 @@ jobs:
       - run:
           name: Build ath79/mikrotik
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik
-          no_output_timeout: 1h
+          no_output_timeout: 2h
       - run:
           name: Build ath79/mikrotik/ath10k
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k
-          no_output_timeout: 1h
+          no_output_timeout: 2h
       - run:
           name: Build ath79/mikrotik/nand
           command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand
-          no_output_timeout: 1h
+          no_output_timeout: 2h
       - run:
           name: Build ath79/nand
           command: make MAINTARGET=ath79 SUBTARGET=nand
-          no_output_timeout: 1h
+          no_output_timeout: 2h
       - run:
           name: Build ipq40xx/generic
           command: make MAINTARGET=ipq40xx SUBTARGET=generic
@@ -347,7 +360,7 @@ jobs:
       - run:
           name: Build ipq40xx/mikrotik
           command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
-          no_output_timeout: 1h
+          no_output_timeout: 2h
       - run:
           name: Build x64/64
           command: make MAINTARGET=x86 SUBTARGET=64
