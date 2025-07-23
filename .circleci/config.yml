@@ -42,7 +42,7 @@ commands:
             sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j9/g" ${MY_WORKING_DIRECTORY}/config.mk
             sed -i "s/develop/babel/g" ${MY_WORKING_DIRECTORY}/feeds.conf
             cat ${MY_WORKING_DIRECTORY}/config.mk
-  
+
   update_release_config_mk:
     description: "Update variables in config.mk for release"
     steps:
@@ -64,64 +64,81 @@ commands:
           name: "Create workspace"
           command:  |
             make prepare
- 
+
   build_ath79:
     description: "Build ath79/generic and ath79/mikrotik"
     steps:
       - run:
           name: Build ath79/generic
-          command: make MAINTARGET=ath79 SUBTARGET=generic ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ath79 SUBTARGET=generic
       - run:
           name: Build ath79/mikrotik
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ath79 SUBTARGET=mikrotik
       - run:
           name: Build ath79/mikrotik/ath10k
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k
       - run:
           name: Build ath79/mikrotik/nand
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand
       - run:
           name: Build ath79/nand
-          command: make MAINTARGET=ath79 SUBTARGET=nand ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ath79 SUBTARGET=nand
 
   build_ipq40xx:
     description: "Build ipq40xx/generic and ipq40xx/mikrotik"
     steps:
       - run:
           name: Build ipq40xx/generic
-          command: make MAINTARGET=ipq40xx SUBTARGET=generic ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ipq40xx SUBTARGET=generic
       - run:
           name: Build ipq40xx/mikrotik
-          command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
 
   build_x86:
     description: "BUild x86/64"
     steps:
       - run:
           name: Build x64/64
-          command: make MAINTARGET=x86 SUBTARGET=64 ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=x86 SUBTARGET=64
 
   build_ramips:
-    description: "Build ramips/mt7621 and ramips/mt76x8"
+    description: "Build ramips/mt7621"
     steps:
       - run:
           name: Build ramips/mt7621
-          command: make MAINTARGET=ramips SUBTARGET=mt7621 ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ramips SUBTARGET=mt7621
+
+  build_ramips_and_morse:
+    description: "Build ramips/mt7621 and ramips/mt76x8 and Morse"
+    steps:
+      - run:
+          name: Build ramips/mt7621
+          command: make MAINTARGET=ramips SUBTARGET=mt7621
       - run:
           name: Build ramips/mt7621/morse
-          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTTARGET=morse ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTTARGET=morse
       - run:
           name: Build ramips/mt76x8/morse
-          command: make MAINTARGET=ramips SUBTARGET=mt76x8 ALTTARGET=morse ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=ramips SUBTARGET=mt76x8 ALTTARGET=morse
 
   build_mediatek:
     description: "Build mediatek/filogic"
     steps:
       - run:
           name: Build mediatek/filogic
-          command: make MAINTARGET=mediatek SUBTARGET=filogic ${BUILD_DEBUG_OPTS}
+          command: make MAINTARGET=mediatek SUBTARGET=filogic
 
   compress_and_deploy_nightly:
+    description: "Compress and Deploy"
+    steps:
+      - run:
+          name: Compress build files
+          command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
+      - run:
+          name: Deploy Files
+          command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR}
+
+  compress_and_deploy_release:
     description: "Compress and Deploy"
     steps:
       - run:
@@ -140,66 +157,11 @@ commands:
       - run:
           name: Deploy Files
           command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR_BABEL}
-  
+
 ######################################
 # JOBS
 ######################################
 jobs:
-  build:
-    resource_class: xlarge
-    docker:
-      - image: arednmesh/builder
-
-    steps:
-      - checkout
-      - update_config_mk
-      - run:
-          name: Build ath79/generic
-          command: make MAINTARGET=ath79 SUBTARGET=generic ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 2h
-      - run:
-          name: Build ath79/mikrotik
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 1h
-      - run:
-          name: Build ath79/mikrotik/ath10k
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 1h
-      - run:
-          name: Build ath79/mikrotik/nand
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 1h
-      - run:
-          name: Build ath79/nand
-          command: make MAINTARGET=ath79 SUBTARGET=nand ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 1h
-      - run:
-          name: Build ipq40xx/generic
-          command: make MAINTARGET=ipq40xx SUBTARGET=generic ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 2h
-      - run:
-          name: Build ipq40xx/mikrotik
-          command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 1h
-      - run:
-          name: Build x64/64
-          command: make MAINTARGET=x86 SUBTARGET=64 ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 2h
-      - run:
-          name: Build ramips/mt7621
-          command: make MAINTARGET=ramips SUBTARGET=mt7621 ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 2h
-      - run:
-          name: Build mediatek/filogic
-          command: make MAINTARGET=mediatek SUBTARGET=filogic ${BUILD_DEBUG_OPTS}
-          no_output_timeout: 2h
-      - run:
-          name: Compress build files
-          command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
-      - run:
-          name: Deploy Files
-          command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR}
-
   build_nightly_prepare:
     resource_class: small
     docker:
@@ -220,6 +182,19 @@ jobs:
     steps:
       - checkout
       - update_babel_config_mk
+      - create_workspace
+      - persist_to_workspace:
+          root: /home/aredn/project
+          paths:
+            - .
+
+  build_release_prepare:
+    resource_class: small
+    docker:
+      - image: arednmesh/builder
+    steps:
+      - checkout
+      - update_release_config_mk
       - create_workspace
       - persist_to_workspace:
           root: /home/aredn/project
@@ -267,7 +242,7 @@ jobs:
           paths:
             - openwrt/bin/targets/x86
             - openwrt/bin/packages/x86_64
-  
+
   build_job_ramips:
     resource_class: xlarge
     docker:
@@ -281,7 +256,21 @@ jobs:
           paths:
             - openwrt/bin/targets/ramips
             - openwrt/bin/packages/mipsel_24kc
-    
+
+  build_job_ramips_and_morse:
+    resource_class: xlarge
+    docker:
+      - image: arednmesh/builder
+    steps:
+      - attach_workspace:
+          at: /home/aredn/project
+      - build_ramips_and_morse
+      - persist_to_workspace:
+          root: /home/aredn/project
+          paths:
+            - openwrt/bin/targets/ramips
+            - openwrt/bin/packages/mipsel_24kc
+
   build_job_mediatek:
     resource_class: xlarge
     docker:
@@ -304,6 +293,15 @@ jobs:
       - attach_workspace:
           at: /home/aredn/project
       - compress_and_deploy_nightly
+
+  build_release_finalize:
+    resource_class: small
+    docker:
+      - image: arednmesh/builder
+    steps:
+      - attach_workspace:
+          at: /home/aredn/project
+      - compress_and_deploy_release
   
   build_babel_finalize:
     resource_class: small
@@ -313,7 +311,7 @@ jobs:
       - attach_workspace:
           at: /home/aredn/project
       - compress_and_deploy_babel
-  
+
   build_release:
     resource_class: xlarge
     docker:
@@ -372,7 +370,7 @@ jobs:
       - run:
           name: Deploy Files
           command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR}
-  
+
   check2build:
     machine:
       image: ubuntu-2004:2023.02.1
@@ -384,7 +382,7 @@ jobs:
           name: Check2build failure (build not needed)
           when: on_fail
           command: circleci-agent step halt
-  
+
   check2buildbabel:
     machine:
       image: ubuntu-2004:2023.02.1
@@ -577,7 +575,7 @@ workflows:
       - post_to_slack:
           requires:
             - afs_collector
-  
+
   nightly_babel_build:
     when:
       equal: [ nightly_babel_build, << pipeline.parameters.action >> ]
@@ -595,7 +593,7 @@ workflows:
       - build_job_x86:
           requires:
             - build_babel_prepare
-      - build_job_ramips:
+      - build_job_ramips_and_morse:
           requires:
             - build_babel_prepare
       - build_job_mediatek:
@@ -606,7 +604,7 @@ workflows:
             - build_job_ath79
             - build_job_ipq40xx
             - build_job_x86
-            - build_job_ramips
+            - build_job_ramips_and_morse
             - build_job_mediatek
       - process_babel_artifacts_nightly:
           requires:
@@ -625,17 +623,36 @@ workflows:
     when:
       equal: [ release_build, << pipeline.parameters.action >> ]
     jobs:
-      - build_release
+      - build_release_prepare
+      - build_job_ath79:
+          requires:
+            - build_release_prepare
+      - build_job_ipq40xx:
+          requires:
+            - build_release_prepare
+      - build_job_x86:
+          requires:
+            - build_release_prepare
+      - build_job_ramips:
+          requires:
+            - build_release_prepare
+      - build_job_mediatek:
+          requires:
+            - build_release_prepare
+      - build_release_finalize:
+          requires:
+            - build_job_ath79
+            - build_job_ipq40xx
+            - build_job_x86
+            - build_job_ramips
+            - build_job_mediatek
       - process_artifacts_release:
           requires:
-            - build_release 
+            - build_release_finalize
       - readme_nightly:
           requires:
             - process_artifacts_release
       - changelog_nightly:
-          requires:
-            - process_artifacts_release
-      - afs_collector:
           requires:
             - process_artifacts_release
       - save_build_info:
