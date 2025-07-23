@@ -501,7 +501,7 @@ jobs:
     steps:
       - run:
           name: Post to Slack
-          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "./post-nightly.sh $(printf '%(%Y%m%d)T')-$(echo ${CIRCLE_SHA1} | cut -c '-7')"
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "./post-nightly.sh $(printf '%(%Y%m%d)T')-$(echo ${CIRCLE_SHA1} | cut -c '-8')"
 
   post_babel_to_slack:
     machine:
@@ -509,7 +509,7 @@ jobs:
     steps:
       - run:
           name: Post to Slack
-          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "./post-nightly.sh babel-$(printf '%(%Y%m%d)T')-$(echo ${CIRCLE_SHA1} | cut -c '-7')"
+          command: ssh -p ${SSH_PORT} ${SSH_USER}@${SSH_HOST2} "./post-nightly.sh babel-$(printf '%(%Y%m%d)T')-$(echo ${CIRCLE_SHA1} | cut -c '-8')"
       
   no_action:
     machine:
