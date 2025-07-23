@@ -102,7 +102,14 @@ commands:
           command: make MAINTARGET=x86 SUBTARGET=64 ${BUILD_DEBUG_OPTS}
 
   build_ramips:
-    description: "Build ramips/mt7621 and ramips/mt76x8"
+    description: "Build ramips/mt7621"
+    steps:
+      - run:
+          name: Build ramips/mt7621
+          command: make MAINTARGET=ramips SUBTARGET=mt7621 ${BUILD_DEBUG_OPTS}
+
+  build_ramips_and_morse:
+    description: "Build ramips/mt7621 and ramips/mt76x8 and Morse"
     steps:
       - run:
           name: Build ramips/mt7621
@@ -267,7 +274,7 @@ jobs:
           paths:
             - openwrt/bin/targets/x86
             - openwrt/bin/packages/x86_64
-  
+
   build_job_ramips:
     resource_class: xlarge
     docker:
@@ -276,6 +283,20 @@ jobs:
       - attach_workspace:
           at: /home/aredn/project
       - build_ramips
+      - persist_to_workspace:
+          root: /home/aredn/project
+          paths:
+            - openwrt/bin/targets/ramips
+            - openwrt/bin/packages/mipsel_24kc
+
+  build_job_ramips_and_morse:
+    resource_class: xlarge
+    docker:
+      - image: arednmesh/builder
+    steps:
+      - attach_workspace:
+          at: /home/aredn/project
+      - build_ramips_and_morse
       - persist_to_workspace:
           root: /home/aredn/project
           paths:
@@ -595,7 +616,7 @@ workflows:
       - build_job_x86:
           requires:
             - build_babel_prepare
-      - build_job_ramips:
+      - build_job_ramips_and_morse:
           requires:
             - build_babel_prepare
       - build_job_mediatek:
@@ -606,7 +627,7 @@ workflows:
             - build_job_ath79
             - build_job_ipq40xx
             - build_job_x86
-            - build_job_ramips
+            - build_job_ramips_and_morse
             - build_job_mediatek
       - process_babel_artifacts_nightly:
           requires:
