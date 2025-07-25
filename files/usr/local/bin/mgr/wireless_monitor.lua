@@ -93,7 +93,11 @@ function M.reset_network(mode)
         elseif mikrotik_ac then
             -- Only observered on Mikrotik AC devices
             os.execute(IW .. " " .. wifi .. " ibss leave > /dev/null 2>&1")
-            os.execute(IW .. " " .. wifi .. " ibss join " .. ssid .. " " .. frequency .. " HT20 fixed-freq > /dev/null 2>&1")
+            if nixio.fs.stat("/lib/firmware/ath10k/QCA4019") then
+              os.execute(IW .. " " .. wifi .. " ibss join " .. ssid .. " " .. frequency .. " NOHT fixed-freq > /dev/null 2>&1")
+            else
+              os.execute(IW .. " " .. wifi .. " ibss join " .. ssid .. " " .. frequency .. " HT20 fixed-freq > /dev/null 2>&1")
+            end
         else
             nixio.syslog("notice", "-- ignoring (mikrotik ac only)")
         end
