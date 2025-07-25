@@ -79,6 +79,8 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds uninstall -a
 	cd $(OPENWRT_DIR); ./scripts/feeds update -a
 	cd $(OPENWRT_DIR); ./scripts/feeds install libpam
+	cd $(OPENWRT_DIR); ./scripts/feeds install libev
+	cd $(OPENWRT_DIR); ./scripts/feeds install libtirpc
 	cd $(OPENWRT_DIR); ./scripts/feeds install libcap
 	cd $(OPENWRT_DIR); ./scripts/feeds install jansson
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn2
