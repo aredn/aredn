@@ -15,7 +15,8 @@ This is the second major AREDN® release to contain both OLSR and Babel routing 
 
 **Bug fixes and Enhancements:**
 
-* ​​Fixed TPLink CP710 problem in Mesh mode [\#2338](https://github.com/aredn/aredn/issues/2338)  
+* Improve location handling when map cannot be reached. [\#2371](https://github.com/aredn/aredn/pull/2371)
+* Fixed TPLink CP710 problem in Mesh mode [\#2338](https://github.com/aredn/aredn/issues/2338)
 * Fixed setting channel on M9 node shuts down RF [\#2324](https://github.com/aredn/aredn/issues/2324)  
 * Fixed Low memory issues on 64MB PBE 400AC [\#2253](https://github.com/aredn/aredn/issues/2253)  
 * Fixed arednlink dump in support data [\#2344](https://github.com/aredn/aredn/pull/2344)  
