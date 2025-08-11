@@ -186,12 +186,10 @@ const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
                     map.contentWindow.postMessage(JSON.stringify({ type: "change-location", lat: lat.value, lon: lon.value }), "*");
                 }
                 latlon2gridsquare();
-                if (!map) {
-                    htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                        swap: "none",
-                        values: { lat: lat.value, lon: lon.value, gridsquare: gridsquare.value }
-                    });
-                }
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    swap: "none",
+                    values: { lat: lat.value, lon: lon.value, gridsquare: gridsquare.value }
+                });
             }
             else if (lat.value === "" && lon.value === "") {
                 gridsquare.value = "";
@@ -221,14 +219,14 @@ const mapurl = map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
         }
         function latpaste() {
             const v = llpaste();
-            if (!isNaN(v)) {
+            if (v && !isNaN(v)) {
                 lat.value = v;
                 llchange();
             }
         }
         function lonpaste() {
             const v = llpaste();
-            if (!isNaN(v)) {
+            if (v && !isNaN(v)) {
                 lon.value = v;
                 llchange();
             }
