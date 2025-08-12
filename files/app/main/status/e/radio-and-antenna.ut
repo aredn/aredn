@@ -263,12 +263,22 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         {% if (hardware.supportsFeature("wifi-mode", wlan[w].iface, "mesh")) { %}
                         <option value="1" {{mode === radios.RADIO_MESH ? "selected" : ""}}>Mesh</option>
                         {% } %}
+                        {% if (hardware.supportsFeature("wifi-mode", wlan[w].iface, "meshap")) { %}
                         <option value="4" {{mode === radios.RADIO_MESHPTMP ? "selected" : ""}}>Mesh PtMP</option>
+                        {% } %}
+                        {% if (hardware.supportsFeature("wifi-mode", wlan[w].iface, "meshptp")) { %}
                         <option value="5" {{mode === radios.RADIO_MESHPTP ? "selected" : ""}}>Mesh PtP</option>
+                        {% } %}
+                        {% if (hardware.supportsFeature("wifi-mode", wlan[w].iface, "meshsta")) { %}
                         <option value="6" {{mode === radios.RADIO_MESHSTA ? "selected" : ""}}>Mesh Station</option>
+                        {% } %}
                         {% if (hardware.getRadioType(wlan[w].iface) === "wifi") { %}
+                        {% if (hardware.supportsFeature("wifi-mode", wlan[w].iface, "lan")) { %}
                         <option value="2" {{mode === radios.RADIO_LAN ? "selected" : ""}}>LAN Hotspot</option>
+                        {% } %}
+                        {% if (hardware.supportsFeature("wifi-mode", wlan[w].iface, "wan")) { %}
                         <option value="3" {{mode === radios.RADIO_WAN ? "selected" : ""}}>WAN Client</option>
+                        {% } %}
                         {% } %}
                     </select>
                 </div>
