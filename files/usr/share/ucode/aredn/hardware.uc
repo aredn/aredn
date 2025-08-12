@@ -664,7 +664,7 @@ export function getHTMode(wifiIface, bandwidth)
                 htmode = `HE${bandwidth}`;
                 break;
             default:
-                htmode = "HE20";
+                htmode = "VHT20";
                 break;
         }
     }
