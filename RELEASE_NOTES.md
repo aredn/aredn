@@ -1,5 +1,97 @@
 __RELEASE NOTES__
 
+# 3.25.8.0
+
+This is the second major AREDN® release to contain both OLSR and Babel routing daemons. The long term goal is to remove OLSR and switch entirely to Babel, but only once the majority of nodes have been upgraded.
+
+**Notes**
+
+* Some new features only appear in the Babel-only nightly build and are not in this release.  
+* Halow/802.11ah devices are supported in the Babel-only nightly build and are not  in this release.
+
+**New Device Support**
+
+* Ubiquiti NanoStation AC Loco
+
+**Bug fixes and Enhancements:**
+
+* Improve location handling when map cannot be reached. [\#2371](https://github.com/aredn/aredn/pull/2371)
+* Fixed TPLink CP710 problem in Mesh mode [\#2338](https://github.com/aredn/aredn/issues/2338)
+* Fixed setting channel on M9 node shuts down RF [\#2324](https://github.com/aredn/aredn/issues/2324)  
+* Fixed Low memory issues on 64MB PBE 400AC [\#2253](https://github.com/aredn/aredn/issues/2253)  
+* Fixed arednlink dump in support data [\#2344](https://github.com/aredn/aredn/pull/2344)  
+* Add support for NanoStation AC loco [\#2333](https://github.com/aredn/aredn/pull/2333)  
+* Fix parsing of tagged dhcp options [\#2330](https://github.com/aredn/aredn/pull/2330)  
+* Fix math for generating M9 channel numbers. [\#2325](https://github.com/aredn/aredn/pull/2325)  
+* Fixed LAN devices routing Internet traffic over mesh instead of WAN. [\#2229](https://github.com/aredn/aredn/issues/2229)  
+* Fixed “Restore backup requires a reboot and packages not applied” [\#2193](https://github.com/aredn/aredn/issues/2193)  
+* Fixed a memory leak causing high CPU usage and increased jitter/latency [\#2192](https://github.com/aredn/aredn/issues/2192)  
+* Fixed “Cannot Change Channels on Rocket RM3” [\#2171](https://github.com/aredn/aredn/issues/2171)  
+* Fixed Port Forwarding failing [\#2169](https://github.com/aredn/aredn/issues/2169)  
+* Pulling support data from 'mesh ptmp' device no longer breaks all RF connectivity [\#2141](https://github.com/aredn/aredn/issues/2141)  
+* Removed duplicate neighborhood node reports [\#2130](https://github.com/aredn/aredn/issues/2130)  
+* WAN to LAN port forwarding no longer creates a forwarding rule for dtdlink [\#2119](https://github.com/aredn/aredn/issues/2119)  
+* Port forwards don't work \- fixed [\#2103](https://github.com/aredn/aredn/issues/2103)  
+* WAN port forwarding is no longer applied to mesh requests [\#1993](https://github.com/aredn/aredn/issues/1993)  
+* Migrated to OpenWRT 24.10.2 [\#2272](https://github.com/aredn/aredn/pull/2272)  
+* Fixed routing to WAN subnet from local [\#2190](https://github.com/aredn/aredn/pull/2190)  
+* Fixed calculation of 3 GHz channel numbers [\#2173](https://github.com/aredn/aredn/pull/2173)  
+* Completely rewrote the routing rules. [\#2165](https://github.com/aredn/aredn/pull/2165)  
+* Fixed messages display [\#2161](https://github.com/aredn/aredn/pull/2161)  
+* Improved URL parser. [\#2317](https://github.com/aredn/aredn/pull/2317)  
+* Fixed package validator to no longer allow a path as part of the url. [\#2315](https://github.com/aredn/aredn/pull/2315)  
+* Quieted failed message pings. [\#2312](https://github.com/aredn/aredn/pull/2312)  
+* Tightened proxy URL validation. [\#2311](https://github.com/aredn/aredn/pull/2311)  
+* Common validation of the URLs now passes to the various proxy urls. [\#2307](https://github.com/aredn/aredn/pull/2307)  
+* Speed up the status page by avoiding DNS lookups. [\#2300](https://github.com/aredn/aredn/pull/2300)  
+* Added missing backup message when autoselecting firmware. [\#2284](https://github.com/aredn/aredn/pull/2284)  
+* Now we ping the correct download servers rather than hardwired [\#2281](https://github.com/aredn/aredn/pull/2281)  
+* No longer add WAN default route if there isn't one. [\#2279](https://github.com/aredn/aredn/pull/2279)  
+* Added timeout to socat in case connection hangs [\#2276](https://github.com/aredn/aredn/pull/2276)  
+* Changed check for adhoc mode to avoid a circular dependency [\#2268](https://github.com/aredn/aredn/pull/2268)  
+* Disabled wpa\_supplicant to save memory if we're not using encryption [\#2256](https://github.com/aredn/aredn/pull/2256)  
+* Now autoselect correct upgrade firmware after refresh. [\#2247](https://github.com/aredn/aredn/pull/2247)  
+* Enabled more channels in PtXP modes [\#2246](https://github.com/aredn/aredn/pull/2246)  
+* Restart babel when we restart the network [\#2245](https://github.com/aredn/aredn/pull/2245)  
+* Make sure DNS is always active on the node with a wired connection. [\#2240](https://github.com/aredn/aredn/pull/2240)  
+* Added a publish/subscribe-like mechanism to AREDNlink [\#2236](https://github.com/aredn/aredn/pull/2236)  
+* Force br-dtdlink to always have an IPv6 link local address. [\#2235](https://github.com/aredn/aredn/pull/2235)  
+* Fixed wifi migration from old UI. [\#2217](https://github.com/aredn/aredn/pull/2217)  
+* Use broadcast address in all xlink OLSR payloads. [\#2211](https://github.com/aredn/aredn/pull/2211)  
+* Fixed bad port forwarding for WAN only. [\#2205](https://github.com/aredn/aredn/pull/2205)  
+* Fixed memory leak in dnsmasq. [\#2203](https://github.com/aredn/aredn/pull/2203)  
+* Fixed missing reboot after restore. [\#2200](https://github.com/aredn/aredn/pull/2200)  
+* Allow LAN subnet access to WAN subnet for port forwarding to function [\#2197](https://github.com/aredn/aredn/pull/2197)  
+* Use the DEVICE variable when setting up wan/lan routes during network setup [\#2196](https://github.com/aredn/aredn/pull/2196)  
+* Only scan in mesh mode [\#2145](https://github.com/aredn/aredn/pull/2145)  
+* Improved handling of nodes with multiple names and ip addresses. [\#2135](https://github.com/aredn/aredn/pull/2135)  
+* No longer masquerade link local broadcast traffic [\#2128](https://github.com/aredn/aredn/pull/2128)  
+* SNAT locally originating traffic for tunnels and xlinks [\#2125](https://github.com/aredn/aredn/pull/2125)  
+* Remove extra 'close' of file descriptor [\#170](https://github.com/aredn/aredn_packages/pull/170)  
+* Fix send typo [\#169](https://github.com/aredn/aredn_packages/pull/169)  
+* Fix detection of neighbors which caused unnecessary disconnects. [\#165](https://github.com/aredn/aredn_packages/pull/165)  
+* Arednlink 0.0.2 [\#161](https://github.com/aredn/aredn_packages/pull/161)  
+* Avoid popen \+ lines bug in metrics lua code. [\#159](https://github.com/aredn/aredn_packages/pull/159)  
+* Add timeout to socat in case connection hangs [\#157](https://github.com/aredn/aredn_packages/pull/157)  
+* Various Arednlink improvements. [\#156](https://github.com/aredn/aredn_packages/pull/156)  
+* Minor performance and reliability improvements [\#154](https://github.com/aredn/aredn_packages/pull/154)  
+* Make sure we reject any resource from an unknown host. [\#152](https://github.com/aredn/aredn_packages/pull/152)  
+* Support custom babel rules [\#148](https://github.com/aredn/aredn_packages/pull/148)  
+* A number of improvements to Arednlink [\#147](https://github.com/aredn/aredn_packages/pull/147)  
+* Use unicast on wifi when we can to get better link data [\#145](https://github.com/aredn/aredn_packages/pull/145)  
+* Fix channel shutdown which was stopping it restarting [\#142](https://github.com/aredn/aredn_packages/pull/142)  
+* Harsher treatment of links with packet loss or poor round trip times [\#139](https://github.com/aredn/aredn_packages/pull/139)  
+* Because there are hidden nodes, we cannot optimize and use a best connection [\#137](https://github.com/aredn/aredn_packages/pull/137)  
+* Don't redistribute new xlink/tunnel endpoint addresses [\#134](https://github.com/aredn/aredn_packages/pull/134)  
+* Fix bad assumption about visibility of nodes on mesh wifi. [\#133](https://github.com/aredn/aredn_packages/pull/133)  
+* Arednlink pub/sub like mechanism [\#130](https://github.com/aredn/aredn_packages/pull/130)  
+* Stop logging EPIPE errors on local sockets as it’s just noise. [\#127](https://github.com/aredn/aredn_packages/pull/127)  
+* Sync up the babel config in nightly to match what being used in babel nightly [\#121](https://github.com/aredn/aredn_packages/pull/121)  
+* Fix metric process name [\#118](https://github.com/aredn/aredn_packages/pull/118)  
+* Per process memory info [\#116](https://github.com/aredn/aredn_packages/pull/116)  
+* Add per-process memory statistics [\#114](https://github.com/aredn/aredn_packages/pull/114)  
+* Dont include wifis in babel config when not used for mesh [\#107](https://github.com/aredn/aredn_packages/pull/107)
+
 # 3.25.5.1
 
 * Fix for Babel routes being lost, especially after a reboot or upgrade.
