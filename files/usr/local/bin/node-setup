@@ -439,6 +439,18 @@ for (let i = 0; i < length(cnetworks); i++) {
             else {
                 vlan = "3:u";
             }
+            // handle lan vlan override
+            const m = match(cm.get("setup", "globals", "lan_intf") || "", /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
+            if (m) {
+                if (m[2] === ".") {
+                    vlan = `${m[3]}:t`;
+                    ports = [ `${m[1]}.${m[3]}` ];
+                }
+                else {
+                    vlan = `3:u`;
+                    ports = [ `${m[1]}` ];
+                }
+            }
         }
         else if (net == "wan") {
             // wifi can be used for the WAN (we become a wifi client)
@@ -460,10 +472,16 @@ for (let i = 0; i < length(cnetworks); i++) {
                     vlan = "4:u";
                 }
                 // handle wan vlan override
-                const m = match(cm.get("setup", "globals", "wan_intf") || "", /([a-zA-Z0-9]+\.)(\d+)/);
+                const m = match(cm.get("setup", "globals", "wan_intf") || "", /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
                 if (m) {
-                    vlan = `${m[2]}:t`;
-                    ports = [ `${m[1]}${m[2]}` ];
+                    if (m[2] === ".") {
+                        vlan = `${m[3]}:t`;
+                        ports = [ `${m[1]}.${m[3]}` ];
+                    }
+                    else {
+                        vlan = `4:u`;
+                        ports = [ `${m[1]}` ];
+                    }
                 }
             }
         }
