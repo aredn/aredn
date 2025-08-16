@@ -148,11 +148,23 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("wan_vlan" in request.args) {
         const wan_iface = keys(hardware.getDefaultNetworkConfiguration().wan.ports)[0];
         const wan_vlan = int(request.args.wan_vlan || 0);
-        if (wan_vlan === 0) {
+        const lan_iface = configuration.getSettingAsString("lan_intf", "");
+        if (wan_vlan === 0 && lan_iface != wan_iface) {
             configuration.setSetting("wan_intf", wan_iface);
         }
-        else if (wan_vlan >= 3 && wan_vlan <= 4095) {
+        else if ((wan_vlan === 1 || (wan_vlan >= 5 && wan_vlan <= 4095)) && lan_iface != `${wan_iface}.${wan_vlan}`) {
             configuration.setSetting("wan_intf", `${wan_iface}.${wan_vlan}`);
+        }
+    }
+    if ("lan_vlan" in request.args) {
+        const lan_iface = keys(hardware.getDefaultNetworkConfiguration().lan.ports)[0];
+        const lan_vlan = int(request.args.lan_vlan || 0);
+        const wan_iface = configuration.getSettingAsString("wan_intf", "");
+        if (lan_vlan === 0 && wan_iface != lan_iface) {
+            configuration.setSetting("lan_intf", lan_iface);
+        }
+        else if (lan_vlan >= 5 && lan_vlan <= 4095 && wan_iface != `${lan_iface}.${lan_vlan}`) {
+            configuration.setSetting("lan_intf", `${lan_iface}.${lan_vlan}`);
         }
     }
     if ("mesh_to_local_wan" in request.args) {
@@ -190,6 +202,8 @@ const dhcp_end = (de[2] - db[2]) * 256 + (de[3] - db[3]);
 const wan_proto = configuration.getSettingAsString("wan_proto", "disabled");
 const wan_iface = split(configuration.getSettingAsString("wan_intf", ""), ".");
 const wan_vlan = wan_iface[1] ? wan_iface[1] : "";
+const lan_iface = split(configuration.getSettingAsString("lan_intf", ""), ".");
+const lan_vlan = lan_iface[1] ? lan_iface[1] : "";
 const gateway_nat = dmz_mode !== 1 ? dhcp.gateway : "172.27.0.1";
 const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
 %}
@@ -384,6 +398,17 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                 </div>
             </div>
             {{_H("By default, the WAN uses an untagged VLAN on multi-port devices, and VLAN 1 on single port devices. This can be changed here if your setup requires something different.
+            Enter the VLAN number required, or leave blank for untagged.")}}
+             <div class="cols">
+                <div>
+                    <div class="o">LAN VLAN</div>
+                    <div class="m">Vlan used for LAN access</div>
+                </div>
+                <div style="flex:0">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="lan_vlan" type="text" size="8" placeholder="Untagged" pattern="\d+" hx-validate="true" value="{{lan_vlan}}">
+                </div>
+            </div>
+            {{_H("By default, the LAN uses an untagged VLAN on multi-port devices, and Untagged on single port devices. This can be changed here if your setup requires something different.
             Enter the VLAN number required, or leave blank for untagged.")}}
             {% } %}
             <div class="cols">
