@@ -100,13 +100,16 @@ const vp = hardware.supportsFeature("videoproxy");
 const templates = filter([
     { name: "Generic URL" },
     { name: "Simple text", link: false },
-    { name: "Ubiquiti camera", type: "camera", protocol: "http", port: 80, path: "snap.jpeg" },
-    vp ? { name: "Ubiquiti video", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "rtsp://CAMERAHOSTNAME.local.mesh:554/s2" } : null,
+    { name: "Ubiquiti G3/G4 camera", type: "camera", protocol: "http", port: 80, path: "snap.jpeg" },
+    vp ? { name: "Ubiquiti G3/G4 video", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "rtsp://CAMERAHOSTNAME.local.mesh:554/s2" } : null,
     { name: "Reolink camera", type: "camera", protocol: "http", port: 80, path: "cgi-bin/api.cgi?cmd=Snap&channel=0&rs=abcdef&user=USERNAME&password=PASSWORD" },
+    vp ? { name: "Reolink video", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "rtsp://USERNAME:PASSWORD@CAMERAHOSTNAME.local.mesh:554/Preview_01_main" } : null,
     { name: "Axis camera", type: "camera", protocol: "http", port: 80, path: "jpg/image.jpg" },
     { name: "Sunba Lite camera", type: "camera", protocol: "http", port: 80, path: "webcapture.jpg?command=snap&channel=1&user=USERNAME&password=PASSWORD" },
     { name: "Sunba Performance camera", type: "camera", protocol: "http", port: 80, proxy: "redirect", path: "http://USERNAME:PASSWORD@CAMERAHOSTNAME.local.mesh/images/snapshot.jpg" },
     { name: "Sunba Smart camera", type: "camera", protocol: "http", port: 80, path: "ISAPI/Custom/snapshot?authInfo=USERNAME:PASSWORD" },
+    { name: "Amcrest camera", type: "camera", protocol: "http", port: 80, proxy: "redirect", path: "http://USERNAME:PASSWORD@CAMERAHOSTNAME.local.mesh/cgi-bin/snapshot.cgi?channel=1" },
+    { name: "Amcrest video", type: "video", protocol: "http", port: 80, proxy: "redirect", path: "http://USERNAME:PASSWORD@CAMERAHOSTNAME.local.mesh/cgi-bin/mjpg/video.cgi?channel=1&subtype=1" },
     { name: "NTP Server", type: "time", protocol: "ntp", port: 123 },
     { name: "Streaming video", type: "video", protocol: "rtsp", port: 554 },
     { name: "Winlink Post Office", type: "winlink", protocol: "winlink", port: 8772 },
@@ -246,7 +249,7 @@ for (let l = 0; l < length(pts); l++) {
                             {% if (s.proxy) { %}
                                 <div class="proxy">{{s.proxy}}</div>
                                 <input name="path" type="text" required placeholder="URL" pattern="[\-\/\?\&\._=#:!@a-zA-Z0-9]*" value="{{s.path}}">
-                                <input name="proxy" type="hidden" value="${s.proxy}">
+                                <input name="proxy" type="hidden" value="{{s.proxy}}">
                             {% } else if (s.link === false) { %}
                             <div></div>
                             <div class="link">
