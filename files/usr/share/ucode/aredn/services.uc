@@ -230,7 +230,12 @@ export function get(validate)
                             hostname = n.hostname;
                             port = n.port;
                         }
-                        const cf = fs.popen(`/usr/bin/curl --max-time 10 --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --cookie-jar /tmp/service-test-cookies --location --write-out '%{http_code} %{url_effective}' http://${hostname}:${port}${path}`);
+                        let u = `http://${hostname}:${port}${path}`;
+                        // Curl wont handle any auth after a redirect, so we do that manually here instead.
+                        if (index(path, "/a/redirect?") === 0) {
+                            u = substr(path, 12);
+                        }
+                        const cf = fs.popen(`/usr/bin/curl --max-time 10 --retry 0 --connect-timeout 2 --speed-time 5 --speed-limit 1000 --silent --output /dev/null --cookie-jar /tmp/service-test-cookies --location --write-out '%{http_code} %{url_effective}' ${u}`);
                         if (cf) {
                             const all = cf.read("all");
                             cf.close();
