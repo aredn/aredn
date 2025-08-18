@@ -185,6 +185,24 @@ export function getRadioDevice(iface)
     return replace(replace(iface, /^phy/, "radio"), /^wlan/, "radio");
 };
 
+export function getBoardNetworkInterfaceName(type)
+{
+    const board = getBoard();
+    const network = board.network && board.network[type];
+    if (network) {
+        if (network.ifname) {
+            return network.ifname;
+        }
+        if (network.device) {
+            return network.device;
+        }
+        if (network.ports) {
+            return join(" ", network.ports);
+        }
+    }
+    return "";
+};
+
 export function getChannelFromFrequency(wifiIface, freq)
 {
     const radio = getRadioIntf(wifiIface);
