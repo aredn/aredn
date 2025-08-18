@@ -115,24 +115,6 @@ function getSubtable(container, key, dflt)
     return subtable;
 }
 
-function getBoardNetworkIfName(type)
-{
-    const board = hardware.getBoard();
-    const network = board.network && board.network[type];
-    if (network) {
-        if (network.ifname) {
-            return network.ifname;
-        }
-        if (network.device) {
-            return network.device;
-        }
-        if (network.ports) {
-            return join(" ", network.ports);
-        }
-    }
-    return "";
-}
-
 function removeAll(dir)
 {
     system(`/bin/rm -rf ${dir}`);
@@ -162,8 +144,8 @@ const wifi_mon_enable = false;
 const deleteme = {};
 const cfg = {
     description_node: "",
-    lan_intf: getBoardNetworkIfName("lan"),
-    wan_intf: getBoardNetworkIfName("wan"),
+    lan_intf: hardware.getBoardNetworkInterfaceName("lan"),
+    wan_intf: hardware.getBoardNetworkInterfaceName("wan"),
     bridge_network_config: "",
     lan_network_config: "",
     wan_network_config: "",
@@ -384,7 +366,7 @@ else {
     const list = {};
     const networks = [ "lan", "wan", "dtdlink" ];
     for (let i = 0; i < length(networks); i++) {
-        const ports = split(getBoardNetworkIfName(networks[i]), " ");
+        const ports = split(hardware.getBoardNetworkInterfaceName(networks[i]), " ");
         for (let p = 0; p < length(ports); p++) {
             if (ports[p]) {
                 list[replace(ports[p], /\..*$/, "")] = true;
@@ -427,7 +409,7 @@ for (let i = 0; i < length(cnetworks); i++) {
     else {
         // generate a complete config
         let vlan = null;
-        let ports = split(getBoardNetworkIfName(net), " ");
+        let ports = split(hardware.getBoardNetworkInterfaceName(net), " ");
 
         if (net == "lan") {
             // If the LAN has be given a vlan to use (usually by a switch) we use that here,
