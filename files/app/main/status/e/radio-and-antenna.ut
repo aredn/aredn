@@ -250,6 +250,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 const key_lan = mode == "lan" && key_decoded ? key_decoded : "AREDNmesh";
                 const key_wan = mode == "wan" && key_decoded ? key_decoded : "wifipassword";
                 const macaddress = wlan[w].macaddress;
+                const nochan = mode === radios.RADIO_MESH && hardware.getRadioType(wlan[w].iface) !== "halow";
     %}
         <div id="radio{{w}}" class="hideable compact" data-hideable="{{modemap[mode] || 0}}">
             <div class="cols">
@@ -367,7 +368,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <div class="m">AREDN mesh identifier</div>
                     </div>
                     <div style="flex:0;white-space:nowrap">
-                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="20" pattern="[^!#;+\]\/"\t\-][^+\]\/"\t\-]{0,18}[^ !#;+\]\/"\t\-]$|^[^ !#;+\]\/"\t\-]" hx-validate="true" value="{{ssid_mesh}}"><span style="color:var(--ctrl-modal-fg-color)">{{mode === radios.RADIO_MESH ? "" : `-${channel}`}}-{{bandwidth}}-v3</span>
+                        <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="20" pattern="[^!#;+\]\/"\t\-][^+\]\/"\t\-]{0,18}[^ !#;+\]\/"\t\-]$|^[^ !#;+\]\/"\t\-]" hx-validate="true" value="{{ssid_mesh}}"><span style="color:var(--ctrl-modal-fg-color)">{{nochan ? "" : `-${channel}`}}-{{bandwidth}}-v3</span>
                     </div>
                 </div>
                 {% if (hardware.supportsFeature("max-distance", wlan[w].iface)) { %}
@@ -549,6 +550,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         const chan{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_channel]");
         const bws{{w}} = htmx.find(`#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_bandwidth]`);
         const bwssid{{w}} = htmx.find(`#ctrl-modal .dialog.radio-and-antenna input[name=radio{{w}}_ssid] + span`);
+        const halow{{w}} = {{hardware.getRadioType(wlan[w].iface) === "halow"}};
         function change{{w}}() {
             const bandwidth = parseInt(bws{{w}}.value);
             const channel = parseInt(chan{{w}}.value);
@@ -569,7 +571,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             }
             chan{{w}}.value = nchannel;
             chan{{w}}.innerHTML = options;
-            if (radio{{w}}.value == "4" || radio{{w}}.value == "5" || radio{{w}}.value == "6") {
+            if (radio{{w}}.value == "4" || radio{{w}}.value == "5" || radio{{w}}.value == "6" || halow{{w}}) {
                 bwssid{{w}}.innerHTML = `-${nchannel}-${bandwidth}-v3`;
             }
             else {

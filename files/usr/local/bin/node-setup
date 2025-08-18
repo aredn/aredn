@@ -961,7 +961,12 @@ for (let dev = 0; dev < ifacecount; dev++) {
             country = country ?? "HX";
             txpower = mesh_txpower;
             distance = mesh_distance;
-            ssid = `${mesh_ssid}-${chanbw}-v3`;
+            if (hwmode == "11ah") {
+                ssid = `${mesh_ssid}-${channel}-${chanbw}-v3`;
+            }
+            else {
+                ssid = `${mesh_ssid}-${chanbw}-v3`;
+            }
             mode = "adhoc";
             encryption = "none";
             network = "wifi";
