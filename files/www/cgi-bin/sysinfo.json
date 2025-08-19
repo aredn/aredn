@@ -101,7 +101,9 @@ info.meshrf = (function () {
         switch (mode.mode) {
             case radios.RADIO_MESH:
                 rfmode = "adhoc";
-                ssid = `${mode.ssid}-v3-${mode.bandwidth}`;
+                if (hardware.getRadioType(cfg.iface) == "wifi") {
+                    ssid = `${mode.ssid}-${mode.bandwidth}-v3`;
+                }
             // Fall throught ...
             case radios.RADIO_MESHSTA:
                 rfmode = rfmode || "sta";
@@ -110,7 +112,7 @@ info.meshrf = (function () {
                 rfmode = rfmode || "ptp";
             case radios.RADIO_MESHPTMP:
                 rfmode = rfmode || "ptmp";
-                ssid = ssid || `${mode.ssid}-v3-${mode.channel}-${mode.bandwidth}`;
+                ssid = ssid || `${mode.ssid}-${mode.channel}-${mode.bandwidth}-v3`;
                 return strip({
                     status: "on",
                     mode: rfmode,
