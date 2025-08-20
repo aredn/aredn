@@ -1018,6 +1018,8 @@ export function supportsFeature(feature, arg1, arg2)
                 default:
                     return false;
             }
+        case "boot-efi":
+            return !!fs.access("/sys/firmware/efi");
         default:
             return false;
     }
