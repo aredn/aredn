@@ -414,10 +414,14 @@
         if (index(hardware.getHardwareType(), "mikrotik-v7") !== -1) {
             booter_version = "v7"
         }
+        if (fs.access("/sys/firmware/efi")) {
+            booter_version = "efi";
+        }
         for (let i = 0; i < length(overview.images); i++) {
             const image = overview.images[i];
             if ((!booter_version && (image.type === "sysupgrade" || image.type === "nand-sysupgrade" || image.type == "combined")) ||
-               (booter_version === "v7" && image.type === "sysupgrade-v7")) {
+               (booter_version === "v7" && image.type === "sysupgrade-v7") ||
+               (booter_version === "efi" && image.type === "combined-efi")) {
                 fwimage = {
                     url: `${inst.target}/${image.name}`,
                     sha: image.sha256
