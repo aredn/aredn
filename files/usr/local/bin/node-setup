@@ -1003,6 +1003,9 @@ for (let dev = 0; dev < ifacecount; dev++) {
             encryption = cfg[`${radio}_encryption`];
             key = h2s(cfg[`${radio}_key`]);
             network = "lan";
+            if (hwmode == "11ah") {
+                chanbw = cfg[`${radio}_bandwidth`];;
+            }
         }
         else if (cfg[`${radio}_mode`] == "wan") {
             // wan client
