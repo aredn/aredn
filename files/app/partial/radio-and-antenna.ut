@@ -161,10 +161,28 @@
         {%
             const antenna = hardware.getAntennaInfo(radio[midx].iface, uci.get("aredn", "@location[0]", "antenna"));
             const antennaAux = hardware.getAntennaAuxInfo(radio[midx].iface, uci.get("aredn", "@location[0]", "antenna_aux"));
+            const antennaPol = hardware.getAntennaPolarization(radio[midx].iface);
+            if (antennaPol) {
+        %}
+        <div class="cols">
+            <div style="flex:2">
+                <div class="t">{{(antenna || { description: "-"}).description}}</div>
+                <div class="s">antenna</div>
+            </div>
+            <div>
+                <div class="t" style="text-transform: capitalize">{{antennaPol}}</div>
+                <div class="s">polarization</div>
+            </div>
+        </div>
+        {%
+            }
+            else {
         %}
         <div class="t">{{(antenna || { description: "-"}).description}}</div>
         <div class="s">antenna</div>
-        {% if (antennaAux) { %}
+        {%
+            }
+            if (antennaAux) { %}
         <div class="t">{{(antennaAux || { description: "-"}).description}}</div>
         <div class="s">aux antenna</div>
         {% } %}
