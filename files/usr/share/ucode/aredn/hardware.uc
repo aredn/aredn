@@ -32,6 +32,7 @@
  */
 
 import * as fs from "fs";
+import * as uci from "uci";
 import * as ubus from "ubus";
 import * as nl80211 from "nl80211";
 import * as rtnl from "rtnl";
@@ -490,6 +491,14 @@ export function getAntennaAuxInfo(wifiIface, antenna)
         }
     }
     return null;
+};
+
+export function getAntennaPolarization(wifiIface)
+{
+    if (getRadioType(wifiIface) !== "halow") {
+        return null;
+    }
+    return uci.cursor("/etc/config.mesh").get("aredn", "@location[0]", "polarization") || "-";
 };
 
 export function getChannelFrequency(wifiIface, channel)

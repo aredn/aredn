@@ -203,6 +203,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("radio_elevation" in request.args) {
         uciMesh.set("aredn", "@location[0]", "elevation", request.args.radio_elevation);
     }
+    if ("radio_polarization" in request.args) {
+        uciMesh.set("aredn", "@location[0]", "polarization", request.args.radio_polarization);
+    }
     uciMesh.commit("aredn");
     configuration.saveSettings();
     print(_R("changes"));
@@ -496,6 +499,24 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 {{_H("Select the external antenna attached to the primary radio.")}}
                 {% } %}
                 {% if (w === 0) { %}
+                {%
+                const antennaPol = hardware.getAntennaPolarization(wlan[w].iface);
+                if (antennaPol) { %}
+                <div class="cols">
+                    <div>
+                        <div class="o">Polarization</div>
+                        <div class="m">Antenna polarization</div>
+                    </div>
+                    <div style="flex:0">
+                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="radio_polarization">
+                            <option value="">-</option>
+                            <option value="vertical" {{antennaPol === "vertical" ? "selected" : ""}}>Vertical</option>
+                            <option value="horizontal" {{antennaPol === "horizontal" ? "selected" : ""}}>Horizontal</option>
+                        </select>
+                    </div>
+                </div>
+                {{_H("The antenna polization determines how the signal propagates. Communication radios should match polarization for best performance.")}}
+                {% } %}
                 {% if (!(length(wlan[w].ants) === 1 && wlan[w].ants[0].beamwidth === 360)) { %}
                 <div class="cols">
                     <div>
