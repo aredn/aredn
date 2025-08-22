@@ -283,10 +283,12 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             </div>
             {% } %}
             <div class="cols">
+                {% if (n.type != "DtD") { %}
                 <div class="i">
                     <div>{{type(n.rtt) ? sprintf("%.1f ms", n.rtt) : "-"}}</div>
                     <div>round trip time</div>
                 </div>
+                {% } %}
                 <div class="i">
                     {% if (n.type != "RF" && n.avg_tx_packets) { %}
                     <div>{{sprintf("%.1f%%", 100 * (n.avg_tx_fail || 0) / n.avg_tx_packets)}}</div>
