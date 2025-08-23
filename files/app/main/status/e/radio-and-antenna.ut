@@ -413,6 +413,22 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         <input hx-put="{{request.env.REQUEST_URI}}" name="{{prefix}}ssid" type="text" size="10" maxlength="32" pattern=[^!#;+\]\/"\t][^+\]\/"\t]{0,30}[^ !#;+\]\/"\t]$|^[^ !#;+\]\/"\t]" hx-validate="true" value="{{ssid_lan}}">
                     </div>
                 </div>
+                <div class="cols">
+                    <div>
+                        <div class="o">Channel</div>
+                        <div class="m">Hotspot channel</div>
+                    </div>
+                    <div style="flex:0">
+                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" class="lan">
+                        {%
+                            const hotchans = wlan[w].channels[ishalow ? `${bandwidth}` : "20"] || [];
+                            for (let i = 0; i < length(hotchans); i++) {
+                                print(`<option value="${hotchans[i].number}" ${hotchans[i].number == channel ? "selected" : ""}>${hotchans[i].number}</option>`);
+                            }
+                        %}
+                        </select>
+                    </div>
+                </div>
                 {% if (ishalow) { %}
                 <div class="cols">
                     <div>
@@ -430,22 +446,6 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     </div>
                 </div>
                 {% } %}
-                <div class="cols">
-                    <div>
-                        <div class="o">Channel</div>
-                        <div class="m">Hotspot channel</div>
-                    </div>
-                    <div style="flex:0">
-                        <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" class="lan">
-                        {%
-                            const hotchans = wlan[w].channels[ishalow ? `${bandwidth}` : "20"] || [];
-                            for (let i = 0; i < length(hotchans); i++) {
-                                print(`<option value="${hotchans[i].number}" ${hotchans[i].number == channel ? "selected" : ""}>${hotchans[i].number}</option>`);
-                            }
-                        %}
-                        </select>
-                    </div>
-                </div>
                 <div class="hideable" data-hideable="{{encryption == "psk" ? 0 : encryption == "psk2" ? 1 : 2}}">
                     <div class="cols">
                         <div>
