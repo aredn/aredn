@@ -76,7 +76,7 @@ function M.babelmon()
         for line in io.popen("echo 'dump-neighbors' | socat UNIX-CLIENT:/var/run/babel.sock -"):lines()
         do
             local address, interface, reach, cost = line:match("address (%S+) if (%S+) reach (%S+).+ cost (%S+)")
-            if reach and tonumber(cost) == BAD_COST and M.reach2lq(reach) >= MIN_LQ and M.ping(interface, address) then
+            if address and tonumber(cost) == BAD_COST and M.reach2lq(reach) >= MIN_LQ and M.ping(interface, address) then
                 reset = true
             end
         end
