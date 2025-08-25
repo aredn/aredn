@@ -103,7 +103,7 @@ function getXNeighbors(cmd)
     c.close();
     d = split(d, "\n");
     // add neighbour 7ff812d8a020 address fe80::2f:d5ff:fec4:3ca3 if br-dtdlink reach ffff ureach 0000 rxcost 96 txcost 96 cost 96
-    const neighbor = /address ([^ ]+) if ([^ ]+) reach ([^ ]+) .+ rxcost ([^ ]+) txcost ([^ ]+)/;
+    const neighbor = /address ([^ ]+) if ([^ ]+) reach ([^ ]+) .+ rxcost ([^ ]+) txcost ([^ ]+).* cost (.+)/;
     const n = [];
     for (let i = 0; i < length(d); i++) {
         const m = match(d[i], neighbor);
@@ -113,7 +113,8 @@ function getXNeighbors(cmd)
                 ipv6address: m[1],
                 lq: reach2lq(m[3]),
                 rxcost: int(m[4]),
-                txcost: int(m[5])
+                txcost: int(m[5]),
+                cost: int(m[6])
             });
         }
     }
