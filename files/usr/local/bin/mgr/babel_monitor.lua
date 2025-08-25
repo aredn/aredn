@@ -33,7 +33,7 @@
 --]]
 
 local BAD_COST = 65535
-local MIN_LQ = 50
+local MIN_LQ = 99
 
 local M = {};
 
