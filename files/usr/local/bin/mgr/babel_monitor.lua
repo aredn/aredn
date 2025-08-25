@@ -33,7 +33,7 @@
 --]]
 
 local BAD_COST = 65535
-local MIN_LQ = 99
+local MIN_LQ = 100
 
 local M = {};
 
@@ -51,6 +51,17 @@ function M.reach2lq(r)
     return math.floor(0.5 + 100 * count / 16)
 end
 
+function M.ping(interface, address)
+    local success = false
+    for line in io.popen("/bin/ping6 -c 1 -W 5 -I " .. interface .. " " .. address):lines()
+    do
+        local t = line:match("^64 bytes from ")
+        if t then
+            success = true
+        end
+    end
+    return success
+end
 
 function M.babelmon()
     if not nixio.fs.stat("/usr/sbin/babeld") then
@@ -62,11 +73,10 @@ function M.babelmon()
     while true
     do
         local reset = false
-        local neighbors
         for line in io.popen("echo 'dump-neighbors' | socat UNIX-CLIENT:/var/run/babel.sock -"):lines()
         do
-            local reach, cost = line:match("reach (%S+).+ cost (%S+)")
-            if reach and tonumber(cost) == BAD_COST and M.reach2lq(reach) > MIN_LQ then
+            local address, interface, reach, cost = line:match("address (%S+) if (%S+) reach (%S+).+ cost (%S+)")
+            if address and tonumber(cost) == BAD_COST and M.reach2lq(reach) >= MIN_LQ and M.ping(interface, address) then
                 reset = true
             end
         end
@@ -74,7 +84,7 @@ function M.babelmon()
         if reset then
             nixio.syslog("err", "Hard restarting babel to reset sequence number")
             os.execute("/etc/init.d/babel stop; rm -f /etc/state/babel-state ; /etc/init.d/babel start");
-            wait_for_ticks(300)
+            wait_for_ticks(60 * 60)
         else
             wait_for_ticks(60)
         end
