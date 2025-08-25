@@ -31,21 +31,37 @@
  * version
  */
 
-import * as math from "math";
+import * as fs from "fs";
 import * as babel from "aredn.babel";
 
 const BAD_COST = 65535;
-const MIN_LQ = 99;
+const MIN_LQ = 100;
+
+function ping(n)
+{
+    let success = false;
+    const p = fs.popen(`/bin/ping6 -c 1 -W 5 -I ${n.interface} ${n.ipv6address}`);
+    if (p) {
+        for (let line = p.read("line"); length(line); line = p.read("line")) {
+            const m = match(trim(line), /^64 bytes from /);
+            if (m) {
+                success = true;
+            }
+        }
+        p.close();
+    }
+    return success;
+}
 
 function main()
 {
-    // Look at our neighbors and if we find any which we are receiving hellos from but are not
-    // syncing with, reset babel.
+    // Look at our neighbors and if we find any which we are receiving hellos from but we are not
+    // syncing with yet can successfully ping, reset babel.
     let reset = false;
     const neighbors = babel.getNeighbors();
     for (let i = 0; i < length(neighbors); i++) {
         const n = neighbors[i];
-        if (n.cost === BAD_COST && n.lq > MIN_LQ) {
+        if (n.cost === BAD_COST && n.lq >= MIN_LQ && ping(n)) {
             reset = true;
             break;
         }
@@ -53,8 +69,8 @@ function main()
 
     if (reset) {
         log.syslog(log.LOG_ERR, "Hard restarting babel to reset sequence number");
-        system("/usr/local/bin/restart-services --force --ignore-reboot babel-hard > /dev/null 2>&1", 5000);
-        return waitForTicks(5 * 60 + math.rand() % 120); // 5(ish) minutes
+        system("/usr/local/bin/restart-services --force --ignore-reboot babel-hard > /dev/null 2>&1", 10000);
+        return waitForTicks(60 * 60); // 1 hour
     }
     else {
         return waitForTicks(60); // 1 minute
