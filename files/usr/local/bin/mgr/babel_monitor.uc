@@ -35,7 +35,7 @@ import * as math from "math";
 import * as babel from "aredn.babel";
 
 const BAD_COST = 65535;
-const MIN_LQ = 50;
+const MIN_LQ = 99;
 
 function main()
 {
