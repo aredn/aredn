@@ -148,23 +148,19 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("wan_vlan" in request.args) {
         const wan_iface = keys(hardware.getDefaultNetworkConfiguration().wan.ports)[0];
         const wan_vlan = int(request.args.wan_vlan || 0);
+        const new_wan_iface = `${wan_iface}${wan_vlan === 0 ? '' : '.' + wan_vlan}`;
         const lan_iface = configuration.getSettingAsString("lan_intf", "");
-        if (wan_vlan === 0 && lan_iface != wan_iface) {
-            configuration.setSetting("wan_intf", wan_iface);
-        }
-        else if ((wan_vlan === 1 || (wan_vlan >= 5 && wan_vlan <= 4095)) && lan_iface != `${wan_iface}.${wan_vlan}`) {
-            configuration.setSetting("wan_intf", `${wan_iface}.${wan_vlan}`);
+        if ((wan_vlan === 0 || wan_vlan === 1 || (wan_vlan >= 5 && wan_vlan <= 4095)) && lan_iface != new_wan_iface) {
+            configuration.setSetting("wan_intf", new_wan_iface);
         }
     }
     if ("lan_vlan" in request.args) {
         const lan_iface = keys(hardware.getDefaultNetworkConfiguration().lan.ports)[0];
         const lan_vlan = int(request.args.lan_vlan || 0);
+        const new_lan_iface = `${lan_iface}${lan_vlan === 0 ? '' : '.' + lan_vlan}`;
         const wan_iface = configuration.getSettingAsString("wan_intf", "");
-        if (lan_vlan === 0 && wan_iface != lan_iface) {
-            configuration.setSetting("lan_intf", lan_iface);
-        }
-        else if (lan_vlan >= 5 && lan_vlan <= 4095 && wan_iface != `${lan_iface}.${lan_vlan}`) {
-            configuration.setSetting("lan_intf", `${lan_iface}.${lan_vlan}`);
+        if ((lan_vlan === 0 || (lan_vlan >= 5 && lan_vlan <= 4095)) && wan_iface != new_lan_iface) {
+            configuration.setSetting("lan_intf", new_lan_iface);
         }
     }
     if ("mesh_to_local_wan" in request.args) {
@@ -394,22 +390,22 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     <div class="m">Vlan used for Internet access</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="wan_vlan" type="text" size="8" placeholder="Untagged" pattern="\d+" hx-validate="true" value="{{wan_vlan}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="wan_vlan" type="text" size="8" placeholder="Untagged" pattern="([15-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" hx-validate="true" value="{{wan_vlan}}" hx-include="input[name='lan_vlan']">
                 </div>
             </div>
             {{_H("By default, the WAN uses an untagged VLAN on multi-port devices, and VLAN 1 on single port devices. This can be changed here if your setup requires something different.
-            Enter the VLAN number required, or leave blank for untagged.")}}
+            Enter the VLAN number required which must be 1, 5 or greater, or leave blank for untagged.")}}
              <div class="cols">
                 <div>
                     <div class="o">LAN VLAN</div>
                     <div class="m">Vlan used for LAN access</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="lan_vlan" type="text" size="8" placeholder="Untagged" pattern="\d+" hx-validate="true" value="{{lan_vlan}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="lan_vlan" type="text" size="8" placeholder="Untagged" pattern="([5-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" hx-validate="true" value="{{lan_vlan}}" hx-include="input[name='wan_vlan']">
                 </div>
             </div>
             {{_H("By default, the LAN uses an untagged VLAN on multi-port devices, and Untagged on single port devices. This can be changed here if your setup requires something different.
-            Enter the VLAN number required, or leave blank for untagged.")}}
+            Enter the VLAN number required which must be 5 or greater, or leave blank for untagged.")}}
             {% } %}
             <div class="cols">
                 <div>
