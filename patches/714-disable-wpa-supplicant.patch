@@ -1,24 +1,33 @@
 --- a/package/network/services/hostapd/files/wpad.init
 +++ b/package/network/services/hostapd/files/wpad.init
-@@ -7,7 +7,9 @@
+@@ -7,7 +7,21 @@
  NAME=wpad
  
  start_service() {
--	if [ -x "/usr/sbin/hostapd" ]; then
-+	if [ "$(uci -q get wireless.@wifi-iface[0].mode)" == "" -o "$(uci -q get wireless.@wifi-iface[0].mode)" == "sta" ] && [ "$(uci -q get wireless.@wifi-iface[0].encryption)" == "" -o "$(uci -q get wireless.@wifi-iface[0].encryption)" = "none" ] && [ "$(uci -q get wireless.@wifi-iface[1].mode)" == "" -o "$(uci -q get wireless.@wifi-iface[1].mode)" == "sta" ] && [ "$(uci -q get wireless.@wifi-iface[1].encryption)" = "" -o "$(uci -q get wireless.@wifi-iface[1].encryption)" == "none" ]; then
-+		true # Don't run hostap to save some memory
-+	elif [ -x "/usr/sbin/hostapd" ]; then
++	local run_ap="no"
++	local run_wpa="no"
++
+ 	if [ -x "/usr/sbin/hostapd" ]; then
++		if [ "$(uci -q get wireless.@wifi-iface[0].mode)" = "ap" ] || [ "$(uci -q get wireless.@wifi-iface[1].mode)" = "ap" ]; then
++			run_ap="yes"
++		fi
++	fi
++	if [ -x "/usr/sbin/wpa_supplicant" ]; then
++		if [ "$(uci -q get wireless.@wifi-iface[0].mode)" = "sta" ] || [ "$(uci -q get wireless.@wifi-iface[1].mode)" = "sta" ]; then
++			run_wpa="yes"
++		fi
++	fi
++
++	if [ "$run_ap" = "yes" ]; then
  		mkdir -p /var/run/hostapd
  		chown network:network /var/run/hostapd
  		procd_open_instance hostapd
-@@ -24,7 +26,9 @@
+@@ -24,7 +45,7 @@
  		procd_close_instance
  	fi
  
 -	if [ -x "/usr/sbin/wpa_supplicant" ]; then
-+	if [ "$(uci -q get wireless.@wifi-iface[0].mode)" == "" -o "$(uci -q get wireless.@wifi-iface[0].mode)" == "ap" ] && [ "$(uci -q get wireless.@wifi-iface[0].encryption)" == "" -o "$(uci -q get wireless.@wifi-iface[0].encryption)" = "none" ] && [ "$(uci -q get wireless.@wifi-iface[1].mode)" == "" -o "$(uci -q get wireless.@wifi-iface[1].mode)" == "ap" ] && [ "$(uci -q get wireless.@wifi-iface[1].encryption)" = "" -o "$(uci -q get wireless.@wifi-iface[1].encryption)" == "none" ]; then
-+		true # Don't run supplicant to save some memory
-+	elif [ -x "/usr/sbin/wpa_supplicant" ]; then
++	if [ "$run_wpa" = "yes" ]; then
  		mkdir -p /var/run/wpa_supplicant
  		chown network:network /var/run/wpa_supplicant
  		procd_open_instance supplicant
