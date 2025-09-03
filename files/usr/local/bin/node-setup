@@ -506,7 +506,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         if (!wireless) {
             config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
         }
-        else {
+        else if (net !== "wan") {
             netmask = "255.255.255.255";
         }
         if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
