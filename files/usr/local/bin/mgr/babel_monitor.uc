@@ -35,7 +35,7 @@ import * as fs from "fs";
 import * as babel from "aredn.babel";
 
 const BAD_COST = 65535;
-const MIN_LQ = 100;
+const MIN_LQ = 50;
 
 function ping(n)
 {
