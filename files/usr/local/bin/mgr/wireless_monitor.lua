@@ -76,27 +76,13 @@ local station_count = {
 }
 local default_scan_enabled = true
 
--- Detect Mikrotik AC which requires special handling
-local mikrotik_ac = false
-local boardid = aredn.hardware.get_board_id():lower()
-if boardid:match("mikrotik") and boardid:match("ac") then
-    mikrotik_ac = true
-end
-
 -- Various forms of network resets --
 
 function M.reset_network(mode)
     nixio.syslog("notice", "reset_network: " .. mode)
     if mode == "rejoin" then
-        if wifi_mode ~= "adhoc" then
-            nixio.syslog("notice", "-- ignoring (" .. wifi_mode .. " is not adhoc)")
-        elseif mikrotik_ac then
-            -- Only observered on Mikrotik AC devices
-            os.execute(IW .. " " .. wifi .. " ibss leave > /dev/null 2>&1")
-            os.execute(IW .. " " .. wifi .. " ibss join " .. ssid .. " " .. frequency .. " HT20 fixed-freq > /dev/null 2>&1")
-        else
-            nixio.syslog("notice", "-- ignoring (mikrotik ac only)")
-        end
+        os.execute(IW .. " " .. wifi .. " ibss leave > /dev/null 2>&1")
+        os.execute(IW .. " " .. wifi .. " ibss join " .. ssid .. " " .. frequency .. " NOHT fixed-freq > /dev/null 2>&1")
     elseif mode == "scan-quick" then
         os.execute(IW .. " " .. wifi .. " scan freq " .. frequency .. " > /dev/null 2>&1")
     elseif mode == "scan-all" then
@@ -315,8 +301,6 @@ function M.start_monitor()
     end
 
     nixio.syslog("notice", "Monitoring wireless chipset: " .. chipset)
-
-    M.reset_network("rejoin")
 
     while true
     do
