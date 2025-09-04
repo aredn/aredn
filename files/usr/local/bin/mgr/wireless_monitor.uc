@@ -43,7 +43,6 @@ if (!device) {
 const wifi = device.iface;
 let frequency;
 let ssid;
-let htmode = "HT20";
 
 const actionLimits = {
     unresponsiveReport: 3,
@@ -74,9 +73,6 @@ const stationCount = {
 };
 let defaultScanEnabled = true;
 
-// Detect Mikrotik which requires special handling
-const mikrotik = match(hardware.getBoardId(), /mikrotik/i) ? true : false;
-
 // Various forms of network resets
 
 function resetNetwork(mode)
@@ -84,14 +80,8 @@ function resetNetwork(mode)
     log.syslog(log.LOG_NOTICE, `resetNetwork: ${mode}`);
     switch (mode) {
         case "rejoin":
-            if (mikrotik) {
-                // Observered on N and AC Mikrotik devices
-                system(`${IW} ${wifi} ibss leave > /dev/null 2>&1`);
-                system(`${IW} ${wifi} ibss join ${ssid} ${frequency} ${htmode} fixed-freq > /dev/null 2>&1`);
-            }
-            else {
-                log.syslog(log.LOG_NOTICE, `-- ignoring (mikrotik only)`);
-            }
+            system(`${IW} ${wifi} ibss leave > /dev/null 2>&1`);
+            system(`${IW} ${wifi} ibss join ${ssid} ${frequency} NOHT fixed-freq > /dev/null 2>&1`);
             break;
         case "scan-quick":
             system(`${IW} ${wifi} scan freq ${frequency} > /dev/null 2>&1`);
@@ -267,7 +257,6 @@ return waitForTicks(max(1, 120 - clock(true)[0]), function()
             frequency = hardware.getChannelFrequency(wifi, c.mode.channel);
             ssid = c.mode.ssid;
             mode = c.mode.mode;
-            htmode = hardware.getHTMode(wifi, c.mode.bandwidth);
             break;
         }
     }
@@ -296,8 +285,6 @@ return waitForTicks(max(1, 120 - clock(true)[0]), function()
     }
 
     log.syslog(log.LOG_NOTICE, `Monitoring wireless chipset: ${chipset}`);
-
-    resetNetwork("rejoin");
 
     return waitForTicks(0, main);
 });
