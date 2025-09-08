@@ -1030,6 +1030,19 @@ export function supportsFeature(feature, arg1, arg2)
             }
         case "boot-efi":
             return !!fs.access("/sys/firmware/efi");
+        case "supernode":
+            switch (getBoardModel().id) {
+                case "mikrotik,hap-ac2":
+                case "mikrotik,hap-ac3":
+                case "openwrt,one":
+                case "qemu":
+                case "vmware":
+                case "bhyve":
+                case "pc":
+                    return true;
+                default:
+                    return false;
+            }
         default:
             return false;
     }
