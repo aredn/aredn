@@ -1034,6 +1034,7 @@ export function supportsFeature(feature, arg1, arg2)
             switch (getBoardModel().id) {
                 case "mikrotik,hap-ac2":
                 case "mikrotik,hap-ac3":
+                case "glinet,gl-b1300":
                 case "openwrt,one":
                 case "qemu":
                 case "vmware":
