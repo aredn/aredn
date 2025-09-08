@@ -916,7 +916,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
         let uapsd = null;
         let hwmode = null;
         let bcf = null;
-        let htmode = hardware.getHTMode(wlan, wlan == mesh_wifi ? mesh_chanbw : -1);
+        let htmode = hardware.getHTMode(wlan, wlan == mesh_wifi ? mesh_chanbw : -1, cfg[`${radio}_mode`]);
 
         switch (hardware.getDefaultChannel(wlan)?.band) {
             case "3GHz":

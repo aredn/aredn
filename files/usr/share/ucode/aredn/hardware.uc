@@ -649,7 +649,7 @@ function supportsMaxDistance(wifiIface)
     }
 }
 
-export function getHTMode(wifiIface, bandwidth)
+export function getHTMode(wifiIface, bandwidth, mode)
 {
     const phy = getPhyDevice(wifiIface);
     let htmode = "NOHT";
