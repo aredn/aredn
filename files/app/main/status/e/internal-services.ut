@@ -87,7 +87,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         uciMesh.set("aredn", "@alerts[0]", "groups", request.args.message_groups);
     }
     if ("restart_service" in request.args) {
-        system(`/usr/local/bin/restart-services --force --ignore-reboot ${request.args.restart_service} > /dev/null 2>&1`, 5000);
+        system(`/usr/local/bin/restart-services --force --ignore-reboot ${request.args.restart_service} > /dev/null 2>&1`, 20000);
     }
     uciMesh.commit("aredn");
     print(_R("changes"));
