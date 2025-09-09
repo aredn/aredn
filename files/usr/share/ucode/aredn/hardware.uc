@@ -661,9 +661,13 @@ export function getHTMode(wifiIface, bandwidth, mode)
             case 5:
             case 10:
             case 20:
-                if (fs.access("/lib/firmware/ath10k/QCA9888") ||
-                    fs.access("/lib/firmware/ath10k/QCA4019")) {
-                    htmode = "NOHT";
+                if (fs.access("/lib/firmware/ath10k/QCA9888") || fs.access("/lib/firmware/ath10k/QCA4019")) {
+                    if (mode === "mesh") {
+                        htmode = "NOHT";
+                    }
+                    else {
+                        htmode = "HT20";
+                    }
                 }
                 else {
                     htmode = "VHT20";
