@@ -69,7 +69,7 @@ function main()
 
     if (reset) {
         log.syslog(log.LOG_ERR, "Hard restarting babel to reset sequence number");
-        system("/usr/local/bin/restart-services --force --ignore-reboot babel-hard > /dev/null 2>&1", 10000);
+        system("/usr/local/bin/restart-services --force --ignore-reboot babel-hard > /dev/null 2>&1", 20000);
         return waitForTicks(60 * 60); // 1 hour
     }
     else {
