@@ -158,10 +158,11 @@ OpenWRT One | OpenWRT One | 2 & 5 | mediatek | filogic | openwrt_one | 1024MB | 
 ## MorseMicro and partners
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-HaLowLink 1 | MM-HL1-EXT | HaLow  | ramips | mt7621 | morse_artini | 256MB | supported | babel
-Heltec HT-HD01 | HT-HD01 | HaLow  | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | babel (9)
-Heltec HT-HD7608 | HT-H7608 | HaLow  | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | babel (9)
+HaLowLink 1 | MM-HL1-EXT | HaLow | ramips | mt7621 | morse_artini | 256MB | supported | babel
+Heltec HT-HD01 | HT-HD01 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | babel (9)
+Heltec HT-HD7608 | HT-H7608 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | babel (9)
 Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | - | babel (10)
+Alfa Tube-AHM PoE | Tube-AHM PoE | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | - | babel (10)
 Alfa Tube-AH | Tube-AH | HaLow | - | - | - | - | unsupported | not supported
 
 ## Meraki
