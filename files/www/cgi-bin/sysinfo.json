@@ -134,7 +134,7 @@ info.meshrf = (function () {
     return { status: "off" };
 })();
 
-// UPTIME AND LOADAVGS
+// UPTIME, MEMORY AND LOADAVGS
 info.sysinfo = (function () {
     const d = split(fs.readfile("/proc/uptime"), " ");
     const up = int(d[0]);
@@ -148,10 +148,12 @@ info.sysinfo = (function () {
     else {
         uptime = `0 days, ${uptime}`;
     }
+    const freemem = match(fs.readfile("/proc/meminfo"), /MemFree: +(\d+) kB/)[1];
     const ld = split(fs.readfile("/proc/loadavg"), " ");
     return {
         uptime: uptime,
-        loads: [tonumber(ld[0]), tonumber(ld[1]), tonumber(ld[2])]
+        loads: [tonumber(ld[0]), tonumber(ld[1]), tonumber(ld[2])],
+        freememory: freemem
     };
 })();
 
