@@ -482,7 +482,6 @@ export function supportdata(supportdatafilename)
     const files = [
         "/proc/cpuinfo",
         "/proc/meminfo",
-        "/proc/slabinfo",
         "/etc/board.json",
         "/etc/config",
         "/etc/config.mesh",
