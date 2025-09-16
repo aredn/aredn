@@ -118,6 +118,7 @@ function iwSet(cmd)
 
 const myhostname = canonicalHostname(configuration.getName());
 const myip = uci.cursor().get("network", "wifi", "ipaddr");
+const mylanip = uci.cursor().get("network", "lan", "ipaddr");
 const issupernode = uci.cursor().get("aredn", "@supernode[0]", "enable") == "1";
 
 // Clear old data
@@ -750,6 +751,7 @@ function main()
             }
             // Including ourself
             delete theres[myip];
+            delete theres[mylanip];
 
             // If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
             const hidden = values(theres);
