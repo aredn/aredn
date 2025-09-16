@@ -129,6 +129,7 @@ end
 
 local myhostname = canonical_hostname(aredn.info.get_nvram("node") or "localnode")
 local myip = uci.cursor():get("network", "wifi", "ipaddr")
+local mylanip = uci.cursor():get("network", "lan", "ipaddr")
 local is_supernode = uci.cursor():get("aredn", "@supernode[0]", "enable") == "1"
 
 local wgsupport = nixio.fs.stat("/usr/bin/wg") and true or false
@@ -960,6 +961,7 @@ function lqm_run()
         end
         -- Including ourself
         theres[myip] = nil
+        theres[mylanip] = nil
 
         -- If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
         local hidden = {}
