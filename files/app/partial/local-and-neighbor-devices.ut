@@ -288,7 +288,9 @@
         sort(hlist, (a, b) => a.hostname == b.hostname ? 0 : a.hostname < b.hostname ? -1 : 1);
         for (let i = 0; i < length(hlist); i++) {
             const hostname = hlist[i].hostname;
-            print(`<div class="idle" class='h'><a onclick="event.stopPropagation()" title='Link status: hidden' href='http://${hostname}.local.mesh'>${hostname}</a></div>`);
+            if (hostname) {
+                print(`<div class="idle" class='h'><a onclick="event.stopPropagation()" title='Link status: hidden' href='http://${hostname}.local.mesh'>${hostname}</a></div>`);
+            }
         }
     %}
     </div>
