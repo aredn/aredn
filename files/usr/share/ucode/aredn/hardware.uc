@@ -139,7 +139,7 @@ export function getRadioCount()
         return 1;
     }
     else {
-        return fs.stat("/sys/class/ieee80211/phy0") ? length(fs.lsdir("/sys/class/ieee80211") || []) : 0;
+        return length(fs.lsdir("/sys/class/ieee80211") || []);
     }
 };
 
