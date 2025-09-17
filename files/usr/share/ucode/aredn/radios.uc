@@ -243,10 +243,10 @@ export function getMeshRadio()
     const config = getActiveConfiguration();
     for (let i = 0; i < length(config); i++) {
         switch (config[i].mode.mode) {
-            case radios.RADIO_MESH:
-            case radios.RADIO_MESHPTP:
-            case radios.RADIO_MESHPTMP:
-            case radios.RADIO_MESHSTA:
+            case RADIO_MESH:
+            case RADIO_MESHPTP:
+            case RADIO_MESHPTMP:
+            case RADIO_MESHSTA:
                 return { mode: config[i].mode.mode, iface: config[i].iface };
             default:
                 break;

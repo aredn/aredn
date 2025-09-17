@@ -262,6 +262,13 @@ return waitForTicks(max(1, 120 - clock(true)[0]), function()
     }
     const phy = hardware.getPhyDevice(wifi);
 
+    // Check halow started up correct. Sometimes it doesnt and the only solution is to reboot
+    if (hardware.getRadioType(wifi) === "halow" && !fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
+        log.syslog(log.LOG_ERR, `Halow startup failed - rebooting`);
+        system("/sbin/reboot");
+        return exitApp();
+    }
+
     if (!(phy && frequency && ssid)) {
         log.syslog(log.LOG_ERR, `Startup failed`);
         return exitApp();
@@ -278,6 +285,11 @@ return waitForTicks(max(1, 120 - clock(true)[0]), function()
     }
     else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`)) {
         chipset = "ath10k";
+    }
+    else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
+        chipset = "morse";
+        log.syslog(log.LOG_NOTICE, `Unmonitoring wireless chipset: ${chipset}`);
+        return exitApp();
     }
     else {
         log.syslog(log.LOG_NOTICE, `Unknown chipset`);
