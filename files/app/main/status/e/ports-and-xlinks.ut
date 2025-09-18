@@ -207,6 +207,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     return;
 }
 let haveports = false;
+const havexlinks = hardware.supportsFeature("xlink");
 let wan_vlan = 0;
 const ports = hardware.getEthernetPorts();
 if (length(ports) > 1) {
@@ -248,7 +249,13 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
 }
 %}
 <div class="dialog">
-    {{_R("dialog-header", `${haveports ? "Ports &amp; " : ""}XLinks`)}}
+    {% if (haveports && havexlinks) { %}
+    {{_R("dialog-header", "Ports &amp; XLinks")}}
+    {% } else if (haveports) { %}
+    {{_R("dialog-header", "Ports")}}
+    {% } else { %}
+    {{_R("dialog-header", "XLinks")}}
+    {% } %}
     <div>
         {% if (haveports) { %}
         <div class="ports">
@@ -305,8 +312,11 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
         Note that on some devices, ports may have names like <i>WAN</i> or <i>LAN</i>. These are just arbitrary names given by the manufacturer
         and you are not forced to assign networks of the same name to these ports.
         <p>Active network ports, where a cable is present and attached to another device, are shown in green.")}}
+        {% } %}
+        {% if (haveports && havexlinks) { %}
         <hr>
         {% } %}
+        {% if (havexlinks) { %}
         <div class="xlinks">
             <div>
                 <div class="cols">
@@ -381,6 +391,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
         IP address for both ends, a cost of how likely to link is to be used, and an optional network size and port (on multi-port
         devices). Think of xlinks as extra dtds between devices. How xlink traffic is routed once it leaves the node is dependent
         on the non-AREDN network, which allows for the greatest flexibility.")}}
+        {% } %}
     </div>
     {{_R("dialog-footer")}}
     <script>
