@@ -296,7 +296,7 @@ function getWiFiChannels(wifiIface)
 function getHaLowChannels(wifiIface)
 {
     const channels = [];
-    const p = fs.popen(`/usr/bin/iwinfo ${getPhyDevice(wifiIface)} freqlist`);
+    const p = fs.popen(`/usr/bin/iwinfo ${getPhyDevice(wifiIface)} freqlist 2>/dev/null`);
     if (p) {
         for (let line = p.read("line"); length(line); line = p.read("line")) {
             const m = match(line, /([0-9\.]+) MHz .* Channel ([0-9]+)/);
