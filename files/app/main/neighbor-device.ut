@@ -92,7 +92,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         {%
         function state(n)
         {
-            if (n.lastseen < lqmInfo.now) {
+            if (n.lastseen + 120 < lqmInfo.now) {
                 return "disconnected";
             }
             if (n.user_blocks) {
@@ -113,7 +113,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         }
         function lastseen(n)
         {
-            const s = lqmInfo.now - n.lastseen;
+            const s = lqmInfo.now - (n.lastseen + 120);
             if (s <= 0) {
                 return "now";
             }
