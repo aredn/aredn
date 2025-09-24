@@ -11,7 +11,7 @@
  # as OpenWrt may sometimes pull in further patches from later kernel versions
 --- /dev/null
 +++ b/feeds/morse/kernel/morse_driver/patches/100-aredn.patch
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,72 @@
 +--- a/debug.h
 ++++ b/debug.h
 +@@ -154,7 +154,7 @@
@@ -518,17 +518,17 @@
 + OPTION(RPCSYS_SUPPORT "rpc-sys plugin support" ON)
 + OPTION(UCODE_SUPPORT "ucode plugin support" ON)
 + 
-#--- a/feeds/morse/netifd-morse/lib/wifi/morse.sh
-#+++ b/feeds/morse/netifd-morse/lib/wifi/morse.sh
-#@@ -111,7 +111,7 @@
-# 		# Only configure morse devices.
-# 		basename "$(readlink -f "$_dev/device/driver/")" | grep '^morse_' || continue
-# 
-#-		set_chipid "$(basename "$_dev")"
-#+		#set_chipid "$(basename "$_dev")"
-# 
-# 		dev="${_dev##*/}"
-# 
+--- a/feeds/morse/netifd-morse/lib/wifi/morse.sh
++++ b/feeds/morse/netifd-morse/lib/wifi/morse.sh
+@@ -111,7 +111,7 @@
+ 		# Only configure morse devices.
+ 		basename "$(readlink -f "$_dev/device/driver/")" | grep '^morse_' || continue
+ 
+-		set_chipid "$(basename "$_dev")"
++		#set_chipid "$(basename "$_dev")"
+ 
+ 		dev="${_dev##*/}"
+ 
 --- a/package/kernel/linux/modules/leds.mk
 +++ b/package/kernel/linux/modules/leds.mk
 @@ -233,6 +233,24 @@
