@@ -239,7 +239,7 @@ function t2t(type)
                                     {% } %}
                                     <input type="text" name="password" required pattern="{{wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}}" placeholder="{{wireguard ? 'Wireguard key' : 'Password'}}" value="{{t.passwd}}" {{t.type === "ws" ? "readonly" : ""}}>
                                     <input type="text" name="network" required pattern="{{constants.patIP}}{{wireguard ? ':' + constants.patPort : ''}}" placeholder="{{wireguard ? 'Network:Port' : 'Network'}}" value="{{t.network}}" {{client ? "" : "readonly"}}>
-                                    <input type="text" name="cost" pattern="([0-9]|[1-9][0-9])" placeholder="Cost" value="{{t.cost}}">
+                                    <input type="text" name="cost" pattern="([0-9]|[1-9][0-9]{1,4})" placeholder="Cost" value="{{t.cost}}">
                                 </div>
                                 <div class="cols">
                                     <input type="text" name="notes" placeholder="Notes..." value="{{t.notes}}">
@@ -446,7 +446,7 @@ This value is used by default, but each tunnel may overide it.
             ${type === "ws" ? '<input type="hidden" name="key" value="' + key + '">' : ''}
             <input type="text" name="password" required pattern="${wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}" placeholder="${wireguard ? 'Wireguard key' : 'Password'}" ${type === "ws" ? "readonly" : ""} value="${password}">
             <input type="text" name="network" required pattern="((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\\.?\\b){4}${wireguard ? ':{{constants.patPort}}' : ''}" placeholder="${wireguard ? 'Network:Port' : 'Network'}" ${client ? "" : "readonly"} value="${network}">
-            <input type="text" name="cost" pattern="([0-9]|[1-9][0-9])" placeholder="Cost" value="">
+            <input type="text" name="cost" pattern="([0-9]|[1-9][0-9]{1,4})" placeholder="Cost" value="">
         </div>
         <div class="cols">
             <input type="text" name="notes" placeholder="Notes..." value="">
