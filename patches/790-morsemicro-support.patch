@@ -11,7 +11,7 @@
  # as OpenWrt may sometimes pull in further patches from later kernel versions
 --- /dev/null
 +++ b/feeds/morse/kernel/morse_driver/patches/100-aredn.patch
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,84 @@
 +--- a/debug.h
 ++++ b/debug.h
 +@@ -154,7 +154,7 @@
@@ -37,6 +37,18 @@
 + 
 + /**
 +  * @brief Perform non-destructive-reset of the chip,
++--- a/mac.h
+++++ b/mac.h
++@@ -19,9 +19,7 @@
++ /* Re-Define the IGNORE channel flag, if not defined by the cfg80211 patch.
++  * The flag won't be used by MM81xx.
++  */
++-#if defined(__x86_64__)
++ #define IEEE80211_CHAN_IGNORE	IEEE80211_CHAN_DISABLED
++-#endif
++ 
++ /**
++  * struct morse_queue_params - QoS parameters
 +--- a/mac.c
 ++++ b/mac.c
 +@@ -4942,6 +4942,10 @@
@@ -60,7 +72,30 @@
 + 	    country_codes_are_equal(request->alpha2, "00"))
 + 		req_cc = country;
 + 	else
-
++--- a/dot11ah/ie.c
+++++ b/dot11ah/ie.c
++@@ -526,7 +526,7 @@
++ 	if (!ies_mask)
++ 		return 0;
++ 
++-	if (ieee80211_is_s1g_short_beacon(frame_control) ||
+++	if (ieee80211_is_s1g_short_beacon(frame_control, NULL, 0) ||
++ 	    (le16_to_cpu(frame_control) & IEEE80211_FC_COMPRESS_SSID)) {
++ 		ies_order_table = morse_ext_s1g_short_beacon_ies_order;
++ 		ies_order_table_len = ARRAY_SIZE(morse_ext_s1g_short_beacon_ies_order);
++--- a/vendor_ie.c
+++++ b/vendor_ie.c
++@@ -149,8 +149,8 @@
++  */
++ static inline u8 *get_elements_from_s1g_beacon(struct ieee80211_ext *bcn)
++ {
++-	return (ieee80211_is_s1g_short_beacon(bcn->frame_control) ?
++-		bcn->u.s1g_short_beacon.variable : bcn->u.s1g_beacon.variable);
+++	return (ieee80211_is_s1g_short_beacon(bcn->frame_control, NULL, 0) ?
+++		bcn->u.s1g_beacon.variable + 3: bcn->u.s1g_beacon.variable);
++ }
++ 
++ /**
 --- a/target/linux/ramips/image/mt7621.mk
 +++ b/target/linux/ramips/image/mt7621.mk
 @@ -2058,6 +2058,20 @@
