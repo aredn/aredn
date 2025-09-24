@@ -5,7 +5,7 @@
    KERNEL_SRC=$(LINUX_DIR) \
    CONFIG_MORSE_SDIO_ALIGNMENT=$(CONFIG_MORSE_SDIO_ALIGNMENT) \
 -  CONFIG_BACKPORT_VERSION=v6.1.24
-+  CONFIG_BACKPORT_VERSION=v6.12.0
++  CONFIG_BACKPORT_VERSION=v6.12.44
  # This refers to the version of mac80211 backported to OpenWrt
  # Occasionally patches are required to remove some parts of the driver
  # as OpenWrt may sometimes pull in further patches from later kernel versions
@@ -495,17 +495,17 @@
 + OPTION(RPCSYS_SUPPORT "rpc-sys plugin support" ON)
 + OPTION(UCODE_SUPPORT "ucode plugin support" ON)
 + 
---- a/feeds/morse/netifd-morse/lib/wifi/morse.sh
-+++ b/feeds/morse/netifd-morse/lib/wifi/morse.sh
-@@ -111,7 +111,7 @@
- 		# Only configure morse devices.
- 		basename "$(readlink -f "$_dev/device/driver/")" | grep '^morse_' || continue
- 
--		set_chipid "$(basename "$_dev")"
-+		#set_chipid "$(basename "$_dev")"
- 
- 		dev="${_dev##*/}"
- 
+#--- a/feeds/morse/netifd-morse/lib/wifi/morse.sh
+#+++ b/feeds/morse/netifd-morse/lib/wifi/morse.sh
+#@@ -111,7 +111,7 @@
+# 		# Only configure morse devices.
+# 		basename "$(readlink -f "$_dev/device/driver/")" | grep '^morse_' || continue
+# 
+#-		set_chipid "$(basename "$_dev")"
+#+		#set_chipid "$(basename "$_dev")"
+# 
+# 		dev="${_dev##*/}"
+# 
 --- a/package/kernel/linux/modules/leds.mk
 +++ b/package/kernel/linux/modules/leds.mk
 @@ -233,6 +233,24 @@
