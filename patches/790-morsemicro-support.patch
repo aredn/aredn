@@ -5,13 +5,13 @@
    KERNEL_SRC=$(LINUX_DIR) \
    CONFIG_MORSE_SDIO_ALIGNMENT=$(CONFIG_MORSE_SDIO_ALIGNMENT) \
 -  CONFIG_BACKPORT_VERSION=v6.1.24
-+  CONFIG_BACKPORT_VERSION=v6.12.0
++  CONFIG_BACKPORT_VERSION=v6.12.44
  # This refers to the version of mac80211 backported to OpenWrt
  # Occasionally patches are required to remove some parts of the driver
  # as OpenWrt may sometimes pull in further patches from later kernel versions
 --- /dev/null
 +++ b/feeds/morse/kernel/morse_driver/patches/100-aredn.patch
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,72 @@
 +--- a/debug.h
 ++++ b/debug.h
 +@@ -154,7 +154,7 @@
@@ -60,7 +60,30 @@
 + 	    country_codes_are_equal(request->alpha2, "00"))
 + 		req_cc = country;
 + 	else
-
++--- a/dot11ah/ie.c
+++++ b/dot11ah/ie.c
++@@ -526,7 +526,7 @@
++ 	if (!ies_mask)
++ 		return 0;
++ 
++-	if (ieee80211_is_s1g_short_beacon(frame_control) ||
+++	if (ieee80211_is_s1g_short_beacon(frame_control, NULL, 0) ||
++ 	    (le16_to_cpu(frame_control) & IEEE80211_FC_COMPRESS_SSID)) {
++ 		ies_order_table = morse_ext_s1g_short_beacon_ies_order;
++ 		ies_order_table_len = ARRAY_SIZE(morse_ext_s1g_short_beacon_ies_order);
++--- a/vendor_ie.c
+++++ b/vendor_ie.c
++@@ -149,8 +149,8 @@
++  */
++ static inline u8 *get_elements_from_s1g_beacon(struct ieee80211_ext *bcn)
++ {
++-	return (ieee80211_is_s1g_short_beacon(bcn->frame_control) ?
++-		bcn->u.s1g_short_beacon.variable : bcn->u.s1g_beacon.variable);
+++	return (ieee80211_is_s1g_short_beacon(bcn->frame_control, NULL, 0) ?
+++		bcn->u.s1g_beacon.variable + 3: bcn->u.s1g_beacon.variable);
++ }
++ 
++ /**
 --- a/target/linux/ramips/image/mt7621.mk
 +++ b/target/linux/ramips/image/mt7621.mk
 @@ -2058,6 +2058,20 @@
