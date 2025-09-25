@@ -493,10 +493,9 @@ This value is used by default, but each tunnel may overide it.
                     if (name.validity.valid && passwd.validity.valid && network.validity.valid) {
                         const blob = new Blob([
                             `<h2>Wireguard Client connection details for ${name.value}</h2>
-                            <div>Name: ${name.value}</div>
+                            <div>Remote server name: ${server}</div>
                             <div style="white-space:nowrap">Wireguard key: ${passwd.value}</div>
-                            <div>Network: ${network.value}</div>
-                            <div>Server address: ${server}</div>`
+                            <div>Network:Port: ${network.value}</div>`
                         ], { type: "text/html" });
                         window.open(URL.createObjectURL(blob));
                         event.stopPropagation();
@@ -514,17 +513,20 @@ This value is used by default, but each tunnel may overide it.
                 }
                 const config = {};
                 txt.split("\n").forEach(line => {
-                    if (line.startsWith("Password: ")) {
-                        config.passwd = line.substring(10);
-                    }
-                    else if (line.startsWith("Wireguard key: ")) {
+                    if (line.startsWith("Wireguard key: ")) {
                         config.passwd = line.substring(15);
                     }
                     else if (line.startsWith("Network: ")) {
                         config.network = line.substring(9);
                     }
+                    else if (line.startsWith("Network:Port: ")) {
+                        config.network = line.substring(14);
+                    }
                     else if (line.startsWith("Server address: ")) {
                         config.server = line.substring(16);
+                    }
+                    else if (line.startsWith("Remote server name: ")) {
+                        config.server = line.substring(20);
                     }
                 });
                 if (!(config.passwd && config.network && config.server)) {
