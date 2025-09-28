@@ -98,10 +98,10 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             if (n.user_blocks) {
                 return "blocked by user";
             }
-            if (n.routable && n.babel_route_count > 0) {
+            if (n.routable && n.babel_route_count > 0 && n.babel_metric != -1) {
                 return "routing";
             }
-            return "unused";
+            return "idle";
         }
         const map_url = uci.get("aredn", "@location[0]", "map");
         function map(n, v)
