@@ -42,7 +42,7 @@
         if (tracker.lastseen + 120 < lqmNow) {
             return "disconnected";
         }
-        if (!tracker.routable) {
+        if (!tracker.routable || tracker.babel_route_count == 0 || tracker.babel_metric == -1) {
             return "idle";
         }
         const quality = tracker.quality;
