@@ -83,7 +83,7 @@ function M.babelmon()
 
         if reset then
             nixio.syslog("err", "Hard restarting babel to reset sequence number")
-            os.execute("/etc/init.d/babel stop; sleep 10; rm -f /etc/state/babel-state ; /etc/init.d/babel start");
+            os.execute("/etc/init.d/babel stop; rm -f /etc/state/babel-state ; /etc/init.d/babel start");
             wait_for_ticks(60 * 60)
         else
             wait_for_ticks(60)
