@@ -506,6 +506,7 @@ export function supportdata(supportdatafilename)
         "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
         "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
         "/proc/net/nf_conntrack",
+        "/var/etc/babel-active.conf",
         "/var/run/hostapd-wlan0.maclist",
         "/var/run/hostapd-wlan1.maclist"
     ];
