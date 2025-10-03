@@ -239,7 +239,7 @@ function t2t(type)
                                     {% } %}
                                     <input type="text" name="password" required pattern="{{wireguard ? '[A-Za-z0-9+\/=]+' : '[\\w@\-]+'}}" placeholder="{{wireguard ? 'Wireguard key' : 'Password'}}" value="{{t.passwd}}" {{t.type === "ws" ? "readonly" : ""}}>
                                     <input type="text" name="network" required pattern="{{constants.patIP}}{{wireguard ? ':' + constants.patPort : ''}}" placeholder="{{wireguard ? 'Network:Port' : 'Network'}}" value="{{t.network}}" {{client ? "" : "readonly"}}>
-                                    <input type="text" name="cost" pattern="([0-9]|[1-9][0-9]{1,4})" placeholder="Cost" value="{{t.cost}}">
+                                    <input type="text" name="cost" pattern="([1-9]|[1-9][0-9]{1,4})" placeholder="Cost" value="{{t.cost}}">
                                 </div>
                                 <div class="cols">
                                     <input type="text" name="notes" placeholder="Notes..." value="{{t.notes}}">
@@ -303,7 +303,7 @@ function t2t(type)
                     <div class="m">Default cost of using a tunnel</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_rxcost" type="text" size="4" placeholder="1" pattern="\d+" hx-validate="true" value="{{uciMesh.get("babel", "tunnel", "rxcost")}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_rxcost" type="text" size="4" placeholder="1" pattern="([1-9]|[1-9][0-9]{1,4})" hx-validate="true" value="{{uciMesh.get("babel", "tunnel", "rxcost")}}">
                 </div>
             </div>
             {{_H("The cost of routing traffic via a tunnel. The higher the cost, the less likely a tunnel is used to reach a destination.

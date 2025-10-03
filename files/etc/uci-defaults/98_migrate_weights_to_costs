@@ -45,7 +45,9 @@ c.foreach("wireguard", "server",
         const name = server[".name"];
         const weight = c.get("wireguard", name, "weight");
         if (weight) {
-            c.set("wireguard", name, "cost", 100 * weight);
+            if (weight > 0) {
+                c.set("wireguard", name, "cost", 100 * weight);
+            }
             c.delete("wireguard", name, "weight");
         }
     }
@@ -56,7 +58,9 @@ c.foreach("wireguard", "client",
         const name = client[".name"];
         const weight = c.get("wireguard", name, "weight");
         if (weight) {
-            c.set("wireguard", name, "cost", 100 * weight);
+            if (weight > 0) {
+                c.set("wireguard", name, "cost", 100 * weight);
+            }
             c.delete("wireguard", name, "weight");
         }
     }
@@ -67,7 +71,9 @@ c.foreach("xlink", "interface",
         const name = iface[".name"];
         const weight = c.get("xlink", name, "weight");
         if (weight) {
-            c.set("xlink", name, "cost", 150 * weight);
+            if (weight > 0) {
+                c.set("xlink", name, "cost", 150 * weight);
+            }
             c.delete("xlink", name, "weight");
         }
     }
