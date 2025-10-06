@@ -894,7 +894,7 @@ export function getHardwareType()
                 if (bv) {
                     const v = bv.read("all");
                     bv.close();
-                    if (substr(v, 2) === "7.") {
+                    if (substr(v, 0, 2) === "7.") {
                         targettype += "-v7"
                     }
                 }
