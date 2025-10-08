@@ -8,7 +8,7 @@ This is a maintenance release primary design to stabilize the current OLSR+Babel
 
 * None
 
-**Note: These devices are supported in the Babel Nightly builds and are not in release.**
+**Note: The following devices are only supported in the Babel Nightly builds**
 
 * HaLowLink 1 MM-HL1-EXT
 * Heltec HT-HD01
@@ -19,27 +19,26 @@ This is a maintenance release primary design to stabilize the current OLSR+Babel
 **Enhancements**
 
 * Improve consistency of neighbor status display
-* Remove random sleeps now babel stop is synchronous
-* Delay restarting firewall so we dont do it for every tunnels startup
-* Merge with older memory changes
-* Further tweak the min memory settings
+* Remove random sleeps; now babel stop is synchronous
+* Delay restarting firewall so we don’t do it for every tunnels’ startup
+* Merged two sets (older & newer) of memory config code
+* Further tweak the minimum memory settings
 * Backport free memory changes from babel-only
 * Fix issues with hidden node detection
-* Improve HTMODE selection
-* Aggressively turn down wifi high-throughput support on error.
-* Drop babel monitor LQ requirement to 50%
-* Improve selection of hostapd and wpa\_supplicant
+* Improve HTMODE ("High Throughput mode”) selection, depending on hardware & firmware
+* Aggressively turn down HTMODE support on error
+* Improve selection of hostapd and wpa\_supplicant, as needed
 * Improve babel monitoring
-* Require perfect LQ to trigger babel monitor
+* Set babel monitor LQ requirement to 50% to trigger babel restart (it’s a monitor which looks at radio links and if they seem solid but for some reason babel is not connecting the nodes, it will restart babel to fix the problem.)
 * Add missing ucode dependency (was being implicitly included)
 * Monitor Babel and restart if necessary.
 * Use EFI/x86 upgrades when necessary.
 
 **Bug fixes**
 
-* Tunnel server goes into continuous reboot cycle when rebooted \- until WAN cable is unplugged.
+* Tunnel server goes into continuous reboot cycle when rebooted \- until WAN cable is unplugged
 * Supernode Load soars upon startup \- then locks up
-* Converted supernode to Babel-only. Now only sees a fraction of tunnels, and can't reach them.
+* Converted supernode to Babel-only. Now only sees a fraction of tunnels, and can't reach them
 * Mikrotik hAP ac2 in reboot cycle after committing a Wireguard Tunnel
 * Babel and Camera Operation vs 3.25.2.0
 * node\_lqm\_tracker\_mode gauge is not numeric
