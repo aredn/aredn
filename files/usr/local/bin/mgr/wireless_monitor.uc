@@ -35,7 +35,8 @@ import * as nl80211 from "nl80211";
 
 const IW = "/usr/sbin/iw";
 const PING6 = "/bin/ping6";
-const WIFI = "/sbin/wifi";
+const IFUP = "/sbin/ifup";
+const IFDOWN = "/sbin/ifdown";
 
 const device = radios.getMeshRadio();
 if (!device) {
@@ -92,7 +93,7 @@ function resetNetwork(mode)
             system(`${IW} ${wifi} scan passive > /dev/null 2>&1`);
             break;
         case "restart":
-            system(`(${WIFI} down; ${WIFI} up; sleep 20; ${IW} ${wifi} scan)&`);
+            system(`${IFDOWN} wifi; ${IFUP} wifi`);
             break;
         default:
             log.syslog(log.LOG_ERR, `-- unknown`);
@@ -274,7 +275,7 @@ return waitForTicks(max(1, 180 - clock(true)[0]), function()
             system("/sbin/reboot");
             return exitApp();
         }
-        // Sometimes the radio is there but not hearing anything. Restart the wifi.
+        // Sometimes the radio is there but not hearing anything. Restart it to be safe.
         if (mode == radios.RADIO_MESH && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
             resetNetwork("restart");
         }
