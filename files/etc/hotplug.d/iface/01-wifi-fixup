@@ -9,4 +9,7 @@ if [ "$ACTION" = "ifup" -a "$INTERFACE" = "wifi" -a "${DEVICE:0:4}" = "wlan" ] ;
     iw phy${DEVICE:4} set txpower fixed 0
     iw phy${DEVICE:4} set txpower fixed ${txpower}00
   fi
+  # Make sure it has a link local address
+  sysctl -q -w net.ipv6.conf.${DEVICE}.addr_gen_mode=1
+  sysctl -q -w net.ipv6.conf.${DEVICE}.addr_gen_mode=0
 fi
