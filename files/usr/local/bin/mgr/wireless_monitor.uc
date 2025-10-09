@@ -35,6 +35,7 @@ import * as nl80211 from "nl80211";
 
 const IW = "/usr/sbin/iw";
 const PING6 = "/bin/ping6";
+const WIFI = "/sbin/wifi";
 
 const device = radios.getMeshRadio();
 if (!device) {
@@ -89,6 +90,9 @@ function resetNetwork(mode)
         case "scan-all":
             system(`${IW} ${wifi} scan > /dev/null 2>&1`);
             system(`${IW} ${wifi} scan passive > /dev/null 2>&1`);
+            break;
+        case "restart":
+            system(`(${WIFI} down; ${WIFI} up; sleep 20; ${IW} ${wifi} scan)&`);
             break;
         default:
             log.syslog(log.LOG_ERR, `-- unknown`);
@@ -241,7 +245,7 @@ function main()
     return waitForTicks(60); // 1 minute
 }
 
-return waitForTicks(max(1, 120 - clock(true)[0]), function()
+return waitForTicks(max(1, 180 - clock(true)[0]), function()
 {
     // No station when we start
     const now = clock(true)[0];
@@ -262,11 +266,18 @@ return waitForTicks(max(1, 120 - clock(true)[0]), function()
     }
     const phy = hardware.getPhyDevice(wifi);
 
-    // Check halow started up correct. Sometimes it doesnt and the only solution is to reboot
-    if (hardware.getRadioType(wifi) === "halow" && !fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
-        log.syslog(log.LOG_ERR, `Halow startup failed - rebooting`);
-        system("/sbin/reboot");
-        return exitApp();
+    // Check halow started up correct.
+    if (hardware.getRadioType(wifi) === "halow") {
+        // Sometimes the chipset is "missing" and the only solution is to reboot
+        if (!fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
+            log.syslog(log.LOG_ERR, `Halow startup failed - rebooting`);
+            system("/sbin/reboot");
+            return exitApp();
+        }
+        // Sometimes the radio is there but not hearing anything. Restart the wifi.
+        if (mode == radios.RADIO_MESH && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
+            resetNetwork("restart");
+        }
     }
 
     if (!(phy && frequency && ssid)) {
