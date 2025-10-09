@@ -153,7 +153,7 @@ function main()
         // Check we can reach any of the ping addresses
         // We cycle over them one per iteration so as not to consume too much time
         pingIndex++;
-        if (pingIndex > length(config.pings)) {
+        if (pingIndex >= length(config.pings)) {
             pingIndex = 0;
         }
         const target = config.pings[pingIndex];
