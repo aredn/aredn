@@ -581,8 +581,8 @@ cm.foreach("wireguard", "client",
         const w = s.cost || def_tun_cost;
         cfg.wireguard_network_config += sprintf("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\toption disabled '%s'\n\n",
             wgclients, server_priv, w, port, addr, ll, (s.enabled == 1 ? "0" : "1"));
-        cfg.wireguard_network_config += sprintf("config wireguard_wgc%d\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
-            wgclients, client_pub);
+        cfg.wireguard_network_config += sprintf("config wireguard_wgc%d 'wireguard_wgc%d'\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
+            wgclients, wgclients, client_pub);
         cfg.vpn_interfaces += `\tlist network 'wgc${wgclients}'\n`;
         wgclients++;
     }
@@ -602,8 +602,8 @@ cm.foreach("wireguard", "server",
         const w = s.cost || def_tun_cost;
         cfg.wireguard_network_config += sprintf("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\tlist addresses '%d.%d.%d.%d'\n\tlist addresses '%s'\n\toption disabled '%s'\n\n",
             wgservers, client_priv, w, abcd[0], abcd[1], abcd[2], abcd[3] + 1, ll, (s.enabled == 1 ? "0" : "1"));
-        cfg.wireguard_network_config += sprintf("config wireguard_wgs%d\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
-            wgservers, server_pub, s.host, p);
+        cfg.wireguard_network_config += sprintf("config wireguard_wgs%d 'wireguard_wgs%d'\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
+            wgservers, wgservers, server_pub, s.host, p);
         cfg.vpn_interfaces += `\tlist network 'wgs${wgservers}'\n`;
         wgservers++;
     }
