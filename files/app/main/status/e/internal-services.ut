@@ -93,6 +93,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         system(`/usr/local/bin/restart-services --force --ignore-reboot ${request.args.restart_service} > /dev/null 2>&1`, 20000);
     }
     uciMesh.commit("aredn");
+    uciMesh.commit("dropbear");
     print(_R("changes"));
     return;
 }
