@@ -1,5 +1,48 @@
 __RELEASE NOTES__
 
+# 3.25.10.0
+
+This is a maintenance release primary design to stabilize the current OLSR+Babel network before the switch to a Babel only system next year.
+
+**New Product Support**
+
+* None
+
+**Note: The following devices are only supported in the Babel Nightly builds**
+
+* HaLowLink 1 MM-HL1-EXT
+* Heltec HT-HD01
+* Heltec HT-HD7608
+* Alfa Tube-AHM
+* Alfa Tube-AHM PoE (802.3af/at)
+
+**Enhancements**
+
+* Improve consistency of neighbor status display
+* Remove random sleeps; now babel stop is synchronous
+* Delay restarting firewall so we don’t do it for every tunnels’ startup
+* Merged two sets (older & newer) of memory config code
+* Further tweak the minimum memory settings
+* Backport free memory changes from babel-only
+* Fix issues with hidden node detection
+* Improve HTMODE ("High Throughput mode”) selection, depending on hardware & firmware
+* Aggressively turn down HTMODE support on error
+* Improve selection of hostapd and wpa\_supplicant, as needed
+* Improve babel monitoring
+* Set babel monitor LQ requirement to 50% to trigger babel restart (it’s a monitor which looks at radio links and if they seem solid but for some reason babel is not connecting the nodes, it will restart babel to fix the problem.)
+* Add missing ucode dependency (was being implicitly included)
+* Monitor Babel and restart if necessary.
+* Use EFI/x86 upgrades when necessary.
+
+**Bug fixes**
+
+* Tunnel server goes into continuous reboot cycle when rebooted \- until WAN cable is unplugged
+* Supernode Load soars upon startup \- then locks up
+* Converted supernode to Babel-only. Now only sees a fraction of tunnels, and can't reach them
+* Mikrotik hAP ac2 in reboot cycle after committing a Wireguard Tunnel
+* Babel and Camera Operation vs 3.25.2.0
+* node\_lqm\_tracker\_mode gauge is not numeric
+
 # 3.25.8.0
 
 This is the second major AREDN® release to contain both OLSR and Babel routing daemons. The long term goal is to remove OLSR and switch entirely to Babel, but only once the majority of nodes have been upgraded.
