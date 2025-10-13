@@ -118,15 +118,14 @@ function getConfig(verbose)
 
 function main()
 {
-    const now = clock()[0];
-    const uptime = clock(true)[0];
+    const now = clock(true)[0];
     let success = true;
     const config = getConfig();
 
     // Reboot a device daily at a given time if configured.
     // To avoid rebooting at the wrong time we will only do this if the node has been running
     // for > 1 hour, and the time has been set by ntp of gps
-    if (config.daily != -1 && uptime >= 3600 && fs.access("/tmp/timesync")) {
+    if (config.daily != -1 && now >= 3600 && fs.access("/tmp/timesync")) {
         const tm = localtime();
         let timediff = (tm.min + tm.hour * 60) - config.daily;
         if (timediff < 0) {
@@ -193,7 +192,7 @@ function main()
         log.syslog(log.LOG_ERR, "failed");
     }
 
-    return waitForTicks(max(0, tick - (clock()[0] - now)));
+    return waitForTicks(max(0, tick - (clock(true)[0] - now)));
 }
 
 // Gracefully shutdown the watchdog
