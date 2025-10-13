@@ -153,14 +153,14 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         {{_H("Allow access to the node via the WAN network using ssh. Disabling this option will not prevent ssh acccess to the node from the mesh.")}}
         <div class="cols">
             <div>
-                <div class="o">ssh password authentication</div>
+                <div class="o">SSH password authentication</div>
                 <div class="m">Allow ssh password authentication</div>
             </div>
             <div style="flex:0">
                 {{_R("switch", { name: "ssh_password", value: uciMesh.get("dropbear", "@dropbear[0]", "PasswordAuth") !== "off" })}}
             </div>
         </div>
-        {{_H("Allow password authentication in ssh connections. Disabling this option forces the use of public keys, configurable in Basics->Advanced options.")}}
+        {{_H("Allow password authentication in ssh connections. Disabling this option forces the use of uploaded ssh keys.")}}
         <div class="cols">
             <div>
                 <div class="o">WAN telnet</div>
