@@ -35,6 +35,8 @@ function findSpecialDomains(needSupernodes)
 {
     let subdomains = "";
     const supernodes = [];
+    const reWildcard = /^([0-9\.]+)[ \t]+\*\.([^ \t]+)$/;
+    const reSupernode = /^([0-9\.]+)[ \t]+supernode\.([^ \t]+)$/;
     const dir = fs.opendir("/var/run/arednlink/hosts");
     for (;;) {
         const entry = dir.read();
@@ -46,12 +48,12 @@ function findSpecialDomains(needSupernodes)
             if (f) {
                 for (let line = f.read("line"); length(line); line = f.read("line")) {
                     line = trim(line);
-                    const m = match(line, /^([0-9\.]+)[ \t]+\*\.([^ \t]+)$/);
+                    const m = match(line, reWildcard);
                     if (m) {
                         subdomain += `address=/.${m[2]}/${m[1]}\n`;
                     }
                     else if (needSupernodes) {
-                        const m = match(line, /^([0-9\.]+)[ \t]+supernode\.([^ \t]+)$/);
+                        const m = match(line, reSupernode);
                         if (m) {
                             push(supernodes, { name: m[2], ip: m[1] });
                         }
