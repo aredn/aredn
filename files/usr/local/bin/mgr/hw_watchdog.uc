@@ -43,7 +43,7 @@ let tick = 60;
 const pingTimeout = 3;
 const startupDelay = 600;
 const maxLastPing = 300;
-const maxWatchdogTimeout = 600;
+const maxWatchdogTimeout = 300;
 
 // Set of daemons to monitor
 const defaultDaemons = "dnsmasq telnetd dropbear uhttpd babeld";
@@ -218,6 +218,10 @@ return waitForTicks(max(0, startupDelay - clock(true)[0]), function() {
     }
 
     // Try to set the watchdog timeout, then make sure we tick no less than twice per timeout period
+    // PROBLEMS: The problem here is that some watchdogs dont honor the time we set but dont error either.
+    // To make it worse when we read the time back, they will read back the time we set even if they're not
+    // using it. There's not much we can do except use a conservative 'maxWatchdogTimeout' and do the right
+    // thing here in the hope that *some* driver do this correctly.
     const settime = struct.pack("I", maxWatchdogTimeout);
     wd.ioctl(fs.IOC_DIR_RW, WATCHDOG_IOCTL_BASE, WDIOC_SETTIMEOUT, settime);
     const gettime = struct.unpack("I", wd.ioctl(fs.IOC_DIR_READ, WATCHDOG_IOCTL_BASE, WDIOC_GETTIMEOUT, 4))[0];
