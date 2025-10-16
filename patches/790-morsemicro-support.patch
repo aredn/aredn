@@ -1,5 +1,5 @@
---- a/feeds/morse/kernel/morse_driver/Makefile
-+++ b/feeds/morse/kernel/morse_driver/Makefile
+--- a/feeds/morse/essentials/morse_driver/Makefile
++++ b/feeds/morse/essentials/morse_driver/Makefile
 @@ -91,7 +91,7 @@
    MORSE_VERSION=0-$(PKG_VERSION) \
    KERNEL_SRC=$(LINUX_DIR) \
@@ -10,7 +10,7 @@
  # Occasionally patches are required to remove some parts of the driver
  # as OpenWrt may sometimes pull in further patches from later kernel versions
 --- /dev/null
-+++ b/feeds/morse/kernel/morse_driver/patches/100-aredn.patch
++++ b/feeds/morse/essentials/morse_driver/patches/100-aredn.patch
 @@ -0,0 +1,72 @@
 +--- a/debug.h
 ++++ b/debug.h
@@ -1095,3 +1095,30 @@
  	morse,ekh03v3)
  		ucidef_add_switch "switch0"
  		ucidef_add_switch_attr "switch0" "enable" "false"
+
+--- /dev/null
++++ b/target/linux/ramips/patches-6.6/999-morse-cfg80211-flags.patch
+@@ -0,0 +1,10 @@
++--- a/include/net/cfg80211.h
+++++ b/include/net/cfg80211.h
++@@ -138,6 +138,7 @@
++ 	IEEE80211_CHAN_16MHZ		= 1<<18,
++ 	IEEE80211_CHAN_NO_320MHZ	= 1<<19,
++ 	IEEE80211_CHAN_NO_EHT		= 1<<20,
+++	IEEE80211_CHAN_IGNORE		= 1<<27,
++ };
++ 
++ #define IEEE80211_CHAN_NO_HT40 \
+--- /dev/null
++++ b/package/kernel/mac80211/patches/build/999-morse-cfg80211-flags.patch
+@@ -0,0 +1,10 @@
++--- a/include/net/cfg80211.h
+++++ b/include/net/cfg80211.h
++@@ -158,6 +158,7 @@
++ 	IEEE80211_CHAN_CAN_MONITOR		= BIT(24),
++ 	IEEE80211_CHAN_ALLOW_6GHZ_VLP_AP	= BIT(25),
++ 	IEEE80211_CHAN_ALLOW_20MHZ_ACTIVITY     = BIT(26),
+++	IEEE80211_CHAN_IGNORE			= BIT(27),
++ };
++ 
++ #define IEEE80211_CHAN_NO_HT40 \
