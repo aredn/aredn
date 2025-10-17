@@ -69,7 +69,7 @@
         const div = document.getElementById("countdown");
         if (div) {
             const t = Math.round(COUNTDOWN - (Date.now() - start) / 1000);
-            div.innerHTML = t <= 0 ? "&nbsp;" : `Time Remaining: ${new Date(1000 * t).toISOString().substring(15, 19)}`;
+            div.innerHTML = t <= 0 ? "&nbsp;" : `Time Remaining: ${new Date(1000 * t).toISOString().substring(14,19).replace(/^0/," ")}`;
             const cdp = document.getElementById("cdprogress");
             if (cdp) {
                 if (t < 0) {

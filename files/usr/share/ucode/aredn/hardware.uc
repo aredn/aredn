@@ -293,24 +293,60 @@ function getWiFiChannels(wifiIface)
     return channels;
 }
 
+const halowChannels = [
+    { label: "1 (902.5)",  number: 1, frequency: 902.5 },
+    { label: "2 (903)",    number: 2, frequency: 903.0 },
+    { label: "3 (903.5)",  number: 3, frequency: 903.5 },
+    { label: "5 (904.5)",  number: 5, frequency: 904.5 },
+    { label: "6 (905)",    number: 6, frequency: 905.0 },
+    { label: "7 (905.5)",  number: 7, frequency: 905.5 },
+    { label: "8 (906)",    number: 8, frequency: 906.0 },
+    { label: "9 (906.5)",  number: 9, frequency: 906.5 },
+    { label: "10 (907)",   number: 10, frequency: 907.0 },
+    { label: "11 (907.5)", number: 11, frequency: 907.5 },
+    { label: "12 (908)",   number: 12, frequency: 908.0 },
+    { label: "13 (908.5)", number: 13, frequency: 908.5 },
+    { label: "14 (909)",   number: 14, frequency: 909.0 },
+    { label: "15 (909.5)", number: 15, frequency: 909.5 },
+    { label: "16 (910)",   number: 16, frequency: 910.0 },
+    { label: "17 (910.5)", number: 17, frequency: 910.5 },
+    { label: "18 (911)",   number: 18, frequency: 911.0 },
+    { label: "19 (911.5)", number: 19, frequency: 911.5 },
+    { label: "21 (912.5)", number: 21, frequency: 912.5 },
+    { label: "22 (913)",   number: 22, frequency: 913.0 },
+    { label: "23 (913.5)", number: 23, frequency: 913.5 },
+    { label: "24 (914)",   number: 24, frequency: 914.0 },
+    { label: "25 (914.5)", number: 25, frequency: 914.5 },
+    { label: "26 (915)",   number: 26, frequency: 915.0 },
+    { label: "27 (915.5)", number: 27, frequency: 915.5 },
+    { label: "28 (916)",   number: 28, frequency: 916.0 },
+    { label: "29 (916.5)", number: 29, frequency: 916.5 },
+    { label: "30 (917)",   number: 30, frequency: 917.0 },
+    { label: "31 (917.5)", number: 31, frequency: 917.5 },
+    { label: "32 (918)",   number: 32, frequency: 918.0 },
+    { label: "33 (918.5)", number: 33, frequency: 918.5 },
+    { label: "34 (919)",   number: 34, frequency: 919.0 },
+    { label: "35 (919.5)", number: 35, frequency: 919.5 },
+    { label: "37 (920.5)", number: 37, frequency: 920.5 },
+    { label: "38 (921)",   number: 38, frequency: 921.0 },
+    { label: "39 (921.5)", number: 39, frequency: 921.5 },
+    { label: "40 (922)",   number: 40, frequency: 922.0 },
+    { label: "41 (922.5)", number: 41, frequency: 922.5 },
+    { label: "42 (923)",   number: 42, frequency: 923.0 },
+    { label: "43 (923.5)", number: 43, frequency: 923.5 },
+    { label: "44 (924)",   number: 44, frequency: 924.0 },
+    { label: "45 (924.5)", number: 45, frequency: 924.5 },
+    { label: "46 (925)",   number: 46, frequency: 925.0 },
+    { label: "47 (925.5)", number: 47, frequency: 925.5 },
+    { label: "48 (926)",   number: 48, frequency: 926.0 },
+    { label: "49 (926.5)", number: 49, frequency: 926.5 },
+    { label: "50 (927)",   number: 50, frequency: 927.0 },
+    { label: "51 (927.5)", number: 51, frequency: 927.5 }
+];
+
 function getHaLowChannels(wifiIface)
 {
-    const channels = [];
-    const p = fs.popen(`/usr/bin/iwinfo ${getPhyDevice(wifiIface)} freqlist 2>/dev/null`);
-    if (p) {
-        for (let line = p.read("line"); length(line); line = p.read("line")) {
-            const m = match(line, /([0-9\.]+) MHz .* Channel ([0-9]+)/);
-            if (m) {
-                push(channels, {
-                    label: `${m[2]} (${1.0 * m[1]})`,
-                    number: int(m[2]),
-                    frequency: 1.0 * m[1]
-                });
-            }
-        }
-        p.close();
-    }
-    return channels;
+    return halowChannels;
 }
 
 export function getRfChannels(wifiIface)
