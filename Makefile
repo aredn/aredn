@@ -112,8 +112,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install ffmpeg
 	cd $(OPENWRT_DIR); ./scripts/feeds install gpsd
 	cd $(OPENWRT_DIR); ./scripts/feeds install -a -p morse
-	cd $(OPENWRT_DIR); ./scripts/feeds install -f -p morse iwinfo
-	cd $(OPENWRT_DIR); ./scripts/feeds install -f -p morse libiwinfo
+	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages morsemicro-bcf
 	touch $@
 
 # prepare patch
