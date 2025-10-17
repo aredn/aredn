@@ -504,31 +504,6 @@
  		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "wan"
  		;;
 
---- /dev/null
-+++ b/package/system/rpcd/patches/001-disable-iwinfo.patch
-@@ -0,0 +1,11 @@
-+--- a/CMakeLists.txt
-++++ b/CMakeLists.txt
-+@@ -7,7 +7,7 @@
-+ INCLUDE_DIRECTORIES(include)
-+ 
-+ OPTION(FILE_SUPPORT "File plugin support" ON)
-+-OPTION(IWINFO_SUPPORT "libiwinfo plugin support" ON)
-++OPTION(IWINFO_SUPPORT "libiwinfo plugin support" OFF)
-+ OPTION(RPCSYS_SUPPORT "rpc-sys plugin support" ON)
-+ OPTION(UCODE_SUPPORT "ucode plugin support" ON)
-+ 
---- a/feeds/morse/netifd-morse/lib/wifi/morse.sh
-+++ b/feeds/morse/netifd-morse/lib/wifi/morse.sh
-@@ -111,7 +111,7 @@
- 		# Only configure morse devices.
- 		basename "$(readlink -f "$_dev/device/driver/")" | grep '^morse_' || continue
- 
--		set_chipid "$(basename "$_dev")"
-+		#set_chipid "$(basename "$_dev")"
- 
- 		dev="${_dev##*/}"
- 
 --- a/package/kernel/linux/modules/leds.mk
 +++ b/package/kernel/linux/modules/leds.mk
 @@ -233,6 +233,24 @@
