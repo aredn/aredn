@@ -35,6 +35,8 @@ import * as nl80211 from "nl80211";
 
 const IW = "/usr/sbin/iw";
 const PING6 = "/bin/ping6";
+const IFUP = "/sbin/ifup";
+const IFDOWN = "/sbin/ifdown";
 
 const device = radios.getMeshRadio();
 if (!device) {
@@ -89,6 +91,9 @@ function resetNetwork(mode)
         case "scan-all":
             system(`${IW} ${wifi} scan > /dev/null 2>&1`);
             system(`${IW} ${wifi} scan passive > /dev/null 2>&1`);
+            break;
+        case "restart":
+            system(`${IFDOWN} wifi; ${IFUP} wifi`);
             break;
         default:
             log.syslog(log.LOG_ERR, `-- unknown`);
@@ -241,7 +246,7 @@ function main()
     return waitForTicks(60); // 1 minute
 }
 
-return waitForTicks(max(1, 120 - clock(true)[0]), function()
+return waitForTicks(max(1, 240 - clock(true)[0]), function()
 {
     // No station when we start
     const now = clock(true)[0];
@@ -260,21 +265,30 @@ return waitForTicks(max(1, 120 - clock(true)[0]), function()
             break;
         }
     }
+
+    if (mode != radios.RADIO_MESH) {
+        log.syslog(log.LOG_NOTICE, `Only runs in adhoc mode`);
+        return exitApp();
+    }
+
     const phy = hardware.getPhyDevice(wifi);
 
-    // Check halow started up correct. Sometimes it doesnt and the only solution is to reboot
-    if (hardware.getRadioType(wifi) === "halow" && !fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
-        log.syslog(log.LOG_ERR, `Halow startup failed - rebooting`);
-        system("/sbin/reboot");
-        return exitApp();
+    // Check halow started up correct.
+    if (hardware.getRadioType(wifi) === "halow") {
+        // Sometimes the chipset is "missing" and the only solution is to reboot
+        if (!fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
+            log.syslog(log.LOG_ERR, `Halow startup failed - rebooting`);
+            system("/sbin/reboot");
+            return exitApp();
+        }
+        // Sometimes the radio is there but not hearing anything. Restart it to be safe.
+        if (!length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
+            resetNetwork("restart");
+        }
     }
 
     if (!(phy && frequency && ssid)) {
         log.syslog(log.LOG_ERR, `Startup failed`);
-        return exitApp();
-    }
-    if (mode != radios.RADIO_MESH) {
-        log.syslog(log.LOG_NOTICE, `Only runs in adhoc mode`);
         return exitApp();
     }
 
