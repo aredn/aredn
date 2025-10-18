@@ -31,11 +31,13 @@
  * version
  */
 
-import * as fs from "fs";
-import * as babel from "aredn.babel";
-
 const BAD_COST = 65535;
 const MIN_LQ = 50;
+
+// This has too many false positives on supernodes
+if (uci.cursor().get("aredn", "@supernode[0]", "enable") === "1") {
+    return exitApp();
+}
 
 function ping(n)
 {
