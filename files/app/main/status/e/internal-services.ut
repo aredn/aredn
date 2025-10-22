@@ -105,6 +105,13 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     print(_R("changes"));
     return;
 }
+let def_protocol_buffer_size = "";
+if (uciMesh.get("aredn", "@supernode[0]", "enable") === "1") {
+    def_protocol_buffer_size = uci.get("babel", "supernode", "protocol_buffer_size");
+}
+else {
+    def_protocol_buffer_size = fs.readfile("/proc/sys/net/core/rmem_default");
+}
 %}
 <div class="dialog">
     {{_R("dialog-header", "Internal Services")}}
@@ -326,7 +333,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div class="m">Override the default Babel protocol buffer size (in bytes)</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" type="text" name="protocol_buffer_size" pattern="(99999|[1-9]\d{5,7})" hx-validate="true" value="{{uciMesh.get("aredn", "@babel[0]", "protocol_buffer_size")}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" type="text" name="protocol_buffer_size" placeholder="{{def_protocol_buffer_size}}" pattern="(99999|[1-9]\d{5,7})" hx-validate="true" value="{{uciMesh.get("aredn", "@babel[0]", "protocol_buffer_size")}}">
                 </div>
             </div>
             {{_H("Allow the size of the Babel protocol buffer to override the default. This is sometimes required
