@@ -54,7 +54,7 @@ export function getBoard()
         boardJson = json(f.read("all"));
         f.close();
         // Collapse virtualized hardware into the three basic types
-        if (index(boardJson.model.id, "qemu-") === 0) {
+        if (index(lc(boardJson.model.id), "qemu-") === 0) {
             boardJson.model.id = "qemu";
             boardJson.model.name = "QEMU";
         }
@@ -65,6 +65,10 @@ export function getBoard()
         else if (index(lc(boardJson.model.id), "joyent") === 0) {
             boardJson.model.id = "bhyve";
             boardJson.model.name = "BHyVe";
+        }
+        else if (index(lc(boardJson.model.id), "virtualbox") === 0) {
+            boardJson.model.id = "virtualbox";
+            boardJson.model.name = "VirtualBox";
         }
     }
     return boardJson;
@@ -778,6 +782,7 @@ function supportsXLink()
         case "qemu":
         case "vmware":
         case "bhyve":
+        case "virtualbox":
         case "pc":
             return true;
         default:
@@ -809,6 +814,7 @@ export function getEthernetPorts()
         case "qemu":
         case "vmware":
         case "bhyve":
+        case "virtualbox":
         case "pc":
             if (length(defaultNPortLayout) === 0) {
                 const dir = fs.opendir("/sys/class/net");
@@ -1072,6 +1078,7 @@ export function supportsFeature(feature, arg1, arg2)
                 case "qemu":
                 case "vmware":
                 case "bhyve":
+                case "virtualbox":
                 case "pc":
                     return true;
                 default:
@@ -1088,6 +1095,7 @@ export function supportsFeature(feature, arg1, arg2)
                 case "qemu":
                 case "vmware":
                 case "bhyve":
+                case "virtualbox":
                 case "pc":
                     return true;
                 default:
