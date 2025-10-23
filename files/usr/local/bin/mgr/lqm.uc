@@ -586,7 +586,7 @@ function main()
                 }
             }
             else if (track.type === "Xlink") {
-                track.babel_config.rxcost = tonumber(cursor.get("babel", "xlink", "rxcost"));
+                track.babel_config.rxcost = int(cursor.get("babel", "xlink", "rxcost"));
                 let weight = null;
                 for (let x = 0; x < 16; x++) {
                     if (cursor.get("network", `xlink${x}`, "ifname") == track.device) {
