@@ -1,0 +1,11 @@
+--- openwrt/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network.orig	2025-10-25 00:27:08.312843815 +0300
++++ openwrt/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network	2025-10-25 00:30:37.456617729 +0300
+@@ -102,6 +102,8 @@
+ 	cudy,tr1200-v1)
+ 		ucidef_add_switch "switch0" \
+ 			"0:lan" "1:wan" "6@eth0"
++		ucidef_set_interface "dtdlink" device "eth1.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
+ 		;;
+ 	cudy,wr1000)
+ 		ucidef_add_switch "switch0" \
