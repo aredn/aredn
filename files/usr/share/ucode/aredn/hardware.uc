@@ -66,7 +66,7 @@ export function getBoard()
             boardJson.model.id = "bhyve";
             boardJson.model.name = "BHyVe";
         }
-        else if (index(lc(boardJson.model.id), "virtualbox") === 0) {
+        else if (index(lc(boardJson.model.id), "virtualbox") !== -1) {
             boardJson.model.id = "virtualbox";
             boardJson.model.name = "VirtualBox";
         }
