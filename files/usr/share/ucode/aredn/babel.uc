@@ -143,13 +143,13 @@ export function getInstalledRoutes(table)
     const r = [];
     for (let i = 0; i < length(d); i++) {
         const m = match(d[i], route);
-        if (m && m[4] == table && m[2] !== "65535" && index(m[1], ".") !== -1) {
+        if (m && (m[4] == table || (table == ROUTING_TABLE && m[4] == 0)) && m[2] !== "65535" && index(m[1], ".") !== -1) {
             push(r, {
                 dst: m[1],
                 gateway: m[3],
                 oif: m[5],
                 metric: int(m[2]),
-                table: int(m[4])
+                table: table
             });
         }
     }
