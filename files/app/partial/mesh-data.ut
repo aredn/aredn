@@ -38,7 +38,7 @@ print("window.mesh = {hosts:{");
 
 const reHosts = /^([0-9.]+)[ \t]+([^ \t]+)/;
 const reServices = /^([^|]+)\|(tcp|udp)\|(.+)$/;
-const reRoute = /^([^ /]+) via .+ metric ([^ ]+) /;
+const reRoute = /^add route .+ prefix ([^ /]+).+installed yes.+metric ([^ ]+)/;
 
 const hd = fs.opendir("/var/run/arednlink/hosts/");
 if (hd) {
@@ -106,11 +106,11 @@ if (sd) {
 }
 
 print(`},etx:[["${configuration.getSettingAsString("wifi_ip")}",0],`);
-const f = fs.popen("exec /sbin/ip route show table 20 2>/dev/null");
+const f = fs.popen("echo dump-installed-routes | socat UNIX-CLIENT:/var/run/babel.sock - 2>/dev/null");
 if (f) {
     for (let l = f.read("line"); length(l); l = f.read("line")) {
         const m = match(l, reRoute);
-        if (m) {
+        if (m && m[2] != "65535") {
             print(`["${m[1]}",${m[2]}],`);
         }
     }
