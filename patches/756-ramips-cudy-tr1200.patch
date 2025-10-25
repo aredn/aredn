@@ -1,10 +1,12 @@
---- openwrt/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network.orig	2025-10-26 02:10:47.798326989 +0300
-+++ openwrt/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network	2025-10-26 02:11:14.065126681 +0300
-@@ -102,6 +102,8 @@
+--- openwrt/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network.orig	2025-10-26 02:42:07.124410392 +0300
++++ openwrt/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network	2025-10-26 02:42:45.414203991 +0300
+@@ -102,6 +102,10 @@
  	cudy,tr1200-v1)
  		ucidef_add_switch "switch0" \
  			"0:lan" "1:wan" "6@eth0"
-+		ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
++		ucidef_set_interface_lan "eth0.1"
++		ucidef_set_interface_wan "eth0.2"
++		ucidef_set_interface "dtdlink" protocol "none"
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
  		;;
  	cudy,wr1000)
