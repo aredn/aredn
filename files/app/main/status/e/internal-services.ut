@@ -89,9 +89,6 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("message_groups" in request.args) {
         uciMesh.set("aredn", "@alerts[0]", "groups", request.args.message_groups);
     }
-    if ("protocol_buffer_size" in request.args) {
-        uciMesh.set("aredn", "@babel[0]", "protocol_buffer_size", request.args.protocol_buffer_size);
-    }
     if ("restart_service" in request.args) {
         system(`/usr/local/bin/restart-services --force --ignore-reboot ${request.args.restart_service} > /dev/null 2>&1`, 20000);
     }
@@ -104,13 +101,6 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     configuration.revertModalChanges();
     print(_R("changes"));
     return;
-}
-let def_protocol_buffer_size = "";
-if (uciMesh.get("aredn", "@supernode[0]", "enable") === "1") {
-    def_protocol_buffer_size = uci.get("babel", "supernode", "protocol_buffer_size");
-}
-else {
-    def_protocol_buffer_size = fs.readfile("/proc/sys/net/core/rmem_default");
 }
 %}
 <div class="dialog">
@@ -327,18 +317,6 @@ else {
         {{_H("A comma seperated list of group names to check for messages.")}}
         {{_R("dialog-advanced")}}
         <div>
-            <div class="cols">
-                <div>
-                    <div class-"o">Set Babel buffer size</div>
-                    <div class="m">Override the default Babel protocol buffer size (in bytes)</div>
-                </div>
-                <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" type="text" name="protocol_buffer_size" placeholder="{{def_protocol_buffer_size}}" pattern="(99999|[1-9]\d{5,7})" hx-validate="true" value="{{uciMesh.get("aredn", "@babel[0]", "protocol_buffer_size")}}">
-                </div>
-            </div>
-            {{_H("Allow the size of the Babel protocol buffer to override the default. This is sometimes required
-            on supernodes with a lot of connections and avoids traffic being lost. The buffer size is measured in bytes.")}}
-            <hr>
             {{_H("Allows parts of the node's firmware to be restarted without having to reboot the entire node.
             Note that restarting some services can disconnection the node from the network and it may take some
             time to recover.")}}
