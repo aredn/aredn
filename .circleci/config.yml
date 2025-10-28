@@ -118,11 +118,15 @@ commands:
           no_output_timeout: 2h
 
   build_ramips_and_morse:
-    description: "Build ramips/mt7621 and ramips/mt76x8 and Morse"
+    description: "Build ramips/mt7621, ramips/mt76x8 and ramips/mt76x8 and Morse"
     steps:
       - run:
           name: Build ramips/mt7621
           command: make MAINTARGET=ramips SUBTARGET=mt7621
+          no_output_timeout: 2h
+      - run:
+          name: Build ramips/mt76x8
+          command: make MAINTARGET=ramips SUBTARGET=mt76x8
           no_output_timeout: 2h
       - run:
           name: Build ramips/mt7621/morse
