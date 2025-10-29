@@ -49,7 +49,7 @@ function initLQM()
 export function get()
 {
     initLQM();
-    return lqm || { trackers:{}, hidden_nodes:[], now: 0 };
+    return lqm || { trackers:{}, hidden_nodes:[], start:0, now: 0 };
 };
 
 export function getTrackers()

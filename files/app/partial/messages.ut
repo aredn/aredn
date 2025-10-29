@@ -35,8 +35,19 @@
 {%
     const allmsgs = inner.msgs;
     const todos = inner.todos;
+    const alerts = inner.alerts;
 %}
 <div class="noctrl">
+    {% if (auth.isAdmin && length(alerts)) { %}
+    <div class="section-title">Alerts</div>
+    <div class="section">
+    {%
+        for (let i = 0; i < length(alerts); i++) {
+            print(`<div>${alerts[i]}</div>`);
+        }
+    %}
+    </div>
+    {% } %}
     {% if (allmsgs.system) { %}
     <div class="section-title">System Messages</div>
     <div class="section">
