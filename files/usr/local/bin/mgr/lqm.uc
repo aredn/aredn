@@ -210,6 +210,7 @@ function main()
     let now = 0;
     let previousnow = 0;
     const radioMode = device ? uci.cursor("/etc/config.mesh").get("setup", "globals", `${radio}_mode`) : "off";
+    const start = clock(true)[0];
 
     updateConfig();
 
@@ -767,6 +768,7 @@ function main()
 
             // Save this for the UI
             fs.writefile("/tmp/lqm.info", sprintf("%.2J", {
+                start: start,
                 now: now,
                 trackers: trackers,
                 distance: distance,

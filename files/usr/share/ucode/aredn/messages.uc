@@ -35,6 +35,7 @@ import * as fs from "fs";
 import * as uci from "uci";
 import * as configuration from "aredn.configuration";
 import * as hardware from "aredn.hardware";
+import * as lqm from "aredn.lqm";
 
 function parseMessages(nodename, msgs, text)
 {
@@ -111,4 +112,27 @@ export function getToDos()
         }
     }
     return todos;
+};
+
+export function getAlerts()
+{
+    const alerts = [];
+    const now = lqm.get().now;
+    if (now - lqm.get().start > 600) {
+        const trackers = lqm.getTrackers();
+        let count = 0;
+        let total = 0;
+        for (let mac in trackers)
+        {
+            const tracker = trackers[mac];
+            if (tracker.type === "Wireguard" && tracker.lastseen + 120 >= now) {
+                total += tracker.lq;
+                count++;
+            }
+        }
+        if (count > 0 && total / count < 90) {
+            push(alerts, "Some tunnel rx values are lower than ideal. You may need to reduce the number of tunnels hosted by this node.");
+        }
+    }
+    return alerts;
 };

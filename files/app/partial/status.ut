@@ -45,8 +45,8 @@
 <div id="c2c3">
     <div id="c2">
         <div hx-get="u-messages" hx-trigger="every 300s [document.visibilityState === 'visible']">
-        {% const args = { msgs: messages.getMessages(), todos: auth.isAdmin && messages.getToDos() };
-        if (length(args.msgs) || length(args.todos)) { %}
+        {% const args = { msgs: messages.getMessages(), todos: auth.isAdmin && messages.getToDos(), alerts: auth.isAdmin && messages.getAlerts() };
+        if (length(args.msgs) || length(args.todos) || length(args.alerts)) { %}
             <div id="messages">
             {{_R("messages", args)}}
             </div>
@@ -98,8 +98,8 @@
 </div>
 {% } else { %}
 <div hx-get="u-messages" hx-trigger="every 300s [document.visibilityState === 'visible']">
-{% const args = { msgs: messages.getMessages(), todos: auth.isAdmin && messages.getToDos() };
-if (length(args.msgs) || length(args.todos)) { %}
+{% const args = { msgs: messages.getMessages(), todos: auth.isAdmin && messages.getToDos(), alerts: auth.isAdmin && messages.getAlerts() };
+if (length(args.msgs) || length(args.todos) | length(args.alerts)) { %}
     <div id="messages">
     {{_R("messages", args)}}
     </div>
