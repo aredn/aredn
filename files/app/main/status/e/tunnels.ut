@@ -118,18 +118,20 @@ if (request.env.REQUEST_METHOD === "DELETE") {
 }
 const available = {};
 const w = iptoarr(uciMesh.get("wireguard", "@network[0]", "begin"));
-let p = uciMesh.get("aredn", "@supernode[0]", "enable") === "1" ? 6526 : 5525;
-for (let i = 0; i < 126; i++) {
-    available[`${w[0]}.${w[1]}.${w[2]}.${w[3]}:${p}`] = 1;
-    w[3] += 2;
-    if (w[3] >= 254) {
-        w[2]++;
-        if (w[2] === 256) {
-            w[2] = 0;
+if (w) {
+    let p = uciMesh.get("aredn", "@supernode[0]", "enable") === "1" ? 6526 : 5525;
+    for (let i = 0; i < 126; i++) {
+        available[`${w[0]}.${w[1]}.${w[2]}.${w[3]}:${p}`] = 1;
+        w[3] += 2;
+        if (w[3] >= 254) {
+            w[2]++;
+            if (w[2] === 256) {
+                w[2] = 0;
+            }
+            w[3] = 2;
         }
-        w[3] = 2;
+        p++;
     }
-    p++;
 }
 const up = { wg: [] };
 const handshaketime = time();
