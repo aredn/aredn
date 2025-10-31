@@ -139,7 +139,7 @@ export function getRoutableNeighbors()
 export function getInstalledRoutes(table)
 {
     const d = getBabelData("dump-installed-routes");
-    const route = /^add route .+ prefix ([^ /]+).+installed yes.+metric ([^ ]+).+nexthop ([^ ]+) table ([0-9]+).+if (.+)$/;
+    const route = /^add route .+ prefix ([^ /]+).+installed yes.+ metric ([^ ]+).+nexthop ([^ ]+) table ([0-9]+).+if (.+)$/;
     const r = [];
     for (let i = 0; i < length(d); i++) {
         const m = match(d[i], route);
