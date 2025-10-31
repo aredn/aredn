@@ -283,7 +283,8 @@ function main()
                             device: m[2],
                             mac: mac,
                             ipv6ll: m[1],
-                            refresh: 0
+                            refresh: 0,
+                            avg_lq: 100
                         };
                         if (type === "RF") {
                             track.mode = radioMode;
@@ -298,6 +299,7 @@ function main()
                         if (rtt) {
                             track.rtt = int(rtt[1]);
                         }
+                        track.avg_lq = min(100, 0.9 * track.avg_lq + 0.1 * track.lq);
                     }
                 }
             }

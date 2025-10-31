@@ -126,11 +126,11 @@ export function getAlerts()
         {
             const tracker = trackers[mac];
             if (tracker.type === "Wireguard" && tracker.lastseen + 120 >= now) {
-                total += tracker.lq;
+                total += tracker.avg_lq;
                 count++;
             }
         }
-        if (count > 0 && total / count < 90) {
+        if (count > 0 && total / count < 85) {
             push(alerts, "Some tunnel rx values are lower than ideal. You may need to reduce the number of tunnels hosted by this node.");
         }
     }
