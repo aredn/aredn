@@ -165,6 +165,12 @@ Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c |
 Alfa Tube-AHM PoE | Tube-AHM PoE | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | supported | babel (10)
 Alfa Tube-AH | Tube-AH | HaLow | - | - | - | - | unsupported | not supported
 
+## Cudy
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+:------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
+Cudy TR1200 | Cudy TR1200 1.0 | 2 & 5 | ramips | mt76x8 | cudy_tr1200 | 128MB | supported | babel
+Cudy TR3000 | Cudy TR3000 1.0 | 2 & 5 | mediatek | filogic | cudy_tr3000-v1 | 512MB | supported | babel
+
 ## Meraki
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------

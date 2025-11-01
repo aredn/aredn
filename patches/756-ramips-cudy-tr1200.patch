@@ -1,0 +1,16 @@
+--- a/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
++++ b/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
+@@ -100,8 +100,11 @@
+ 		;;
+ 	cudy,m1200-v1|\
+ 	cudy,tr1200-v1)
+-		ucidef_add_switch "switch0" \
+-			"0:lan" "1:wan" "6@eth0"
++		ucidef_add_switch "switch0"
++		ucidef_add_switch_attr "switch0" "enable" "false"
++		ucidef_set_interfaces_lan_wan "eth0" "eth0.1"
++		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
+ 		;;
+ 	cudy,wr1000)
+ 		ucidef_add_switch "switch0" \
