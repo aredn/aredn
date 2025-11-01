@@ -779,6 +779,7 @@ function supportsXLink()
         case "mikrotik,sxtsq-5-ac":
         case "glinet,gl-b1300":
         case "openwrt,one":
+        case "cudy,tr3000-v1":
         case "qemu":
         case "vmware":
         case "bhyve":
@@ -806,6 +807,7 @@ export function getEthernetPorts()
         case "glinet,gl-b1300":
             return default3PortLayout;
         case "openwrt,one":
+        case "cudy,tr3000-v1":
             return openwrtone2PortLayout;
         case "mikrotik,sxtsq-5-ac":
             return default1PortLayout;
@@ -1075,6 +1077,7 @@ export function supportsFeature(feature, arg1, arg2)
             switch (getBoardModel().id) {
                 case "mikrotik,hap-ac3":
                 case "openwrt,one":
+                case "cudy,tr3000-v1":
                 case "qemu":
                 case "vmware":
                 case "bhyve":
@@ -1092,6 +1095,7 @@ export function supportsFeature(feature, arg1, arg2)
                 case "mikrotik,hap-ac3":
                 case "glinet,gl-b1300":
                 case "openwrt,one":
+                case "cudy,tr3000-v1":
                 case "qemu":
                 case "vmware":
                 case "bhyve":
