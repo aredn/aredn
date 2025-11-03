@@ -211,7 +211,7 @@ export function get(validate)
             if (m) {
                 const proto = m[1];
                 let hostname = m[2];
-                let port = m[3];
+                let port = int(m[3]);
                 const path = m[4];
                 const vs = vstate[lc(hostname)];
                 if (!vs || vs > now || dmz_mode == "0") {
@@ -254,17 +254,27 @@ export function get(validate)
                         }
                     }
                     else {
+                        function hostname2ip(hostname)
+                        {
+                            hostname = lc(hostname);
+                            for (let i = 0; i < length(hosts); i++) {
+                                if (lc(hosts[i].host) == hostname) {
+                                    return hosts[i].ip;
+                                }
+                            }
+                            return null;
+                        }
                         // valid port, but we dont know the protocol (we cannot trust the one defined in the services file because the UI wont set
                         // anything but 'tcp'). Check both tcp and udp and assume valid it either is okay
                         let sock = socket.create(socket.AF_INET, socket.SOCK_STREAM, 0);
-                        sock.setopt(socket.SOL_SOCKET, socket.SOL_SNDTIMEO, 2);
+                        sock.setopt(socket.SOL_SOCKET, socket.SO_SNDTIMEO, { tv_sec: 2, tv_usec: 0 });
                         const n = nat ? nat[`${lc(hostname)}:tcp:${port}`] : null;
                         let r;
                         if (n) {
-                            r = sock.connect(n.hostname, n.port);
+                            r = sock.connect(hostname2ip(n.hostname), n.port);
                         }
                         else {
-                            r = sock.connect(hostname, port);
+                            r = sock.connect(hostname2ip(hostname), port);
                         }
                         sock.close();
                         if (r) {
@@ -274,19 +284,18 @@ export function get(validate)
                         else {
                             // udp
                             sock = socket.create(socket.AF_INET, socket.SOCK_DGRAM, 0);
-                            sock.setopt(socket.SOL_SOCKET, socket.SOL_RCVTIMEO, 2);
                             const n = nat ? nat[`${lc(hostname)}:udp:${port}`] : null;
                             if (n) {
-                                sock.connect(n.hostname, n.port);
+                                sock.connect(hostname2ip(n.hostname), n.port);
                             }
                             else {
-                                sock.connect(hostname, port);
+                                sock.connect(hostname2ip(hostname), port);
                             }
                             sock.send("");
-                            r = sock.recv(0);
+                            r = socket.poll(1, [ sock, socket.POLLIN|socket.POLLERR ]);
                             sock.close();
-                            if (r !== null) {
-                                // A nil response is an explicity rejection of the udp request. Otherwise we have
+                            if (!(r[0][1] & socket.POLLERR)) {
+                                // An error response is an explicity rejection of the udp request. Otherwise we have
                                 // to assume the service is valid
                                 vstate[service] = last;
                             }
