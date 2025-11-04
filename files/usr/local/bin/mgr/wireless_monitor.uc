@@ -266,25 +266,24 @@ return waitForTicks(max(1, 240 - clock(true)[0]), function()
         }
     }
 
+    const phy = hardware.getPhyDevice(wifi);
+
+    // Sometimes the chipset is "missing" and the only solution is to reboot
+    // Not just a 'mesh' mode thing so check early.
+    if (hardware.getRadioType(wifi) === "halow" && !fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
+        log.syslog(log.LOG_ERR, `Halow startup failed - rebooting`);
+        system("/sbin/reboot");
+        return exitApp();
+    }
+
     if (mode != radios.RADIO_MESH) {
         log.syslog(log.LOG_NOTICE, `Only runs in adhoc mode`);
         return exitApp();
     }
 
-    const phy = hardware.getPhyDevice(wifi);
-
-    // Check halow started up correct.
-    if (hardware.getRadioType(wifi) === "halow") {
-        // Sometimes the chipset is "missing" and the only solution is to reboot
-        if (!fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
-            log.syslog(log.LOG_ERR, `Halow startup failed - rebooting`);
-            system("/sbin/reboot");
-            return exitApp();
-        }
-        // Sometimes the radio is there but not hearing anything. Restart it to be safe.
-        if (!length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
-            resetNetwork("restart");
-        }
+    // Sometimes the radio is there but not hearing anything. Restart it to be safe.
+    if (hardware.getRadioType(wifi) === "halow" && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
+        resetNetwork("restart");
     }
 
     if (!(phy && frequency && ssid)) {
