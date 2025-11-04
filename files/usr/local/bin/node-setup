@@ -562,7 +562,7 @@ for (let i = 0; i < length(cnetworks); i++) {
 // Generate the tunnel configurations
 let wg_begin = cm.get("wireguard", "@network[0]", "begin");
 if (is_supernode && wg_begin && match(wg_begin, /^172\.31\./)) {
-    wg_begin = `172.30.${substr(wg_begin, 8)}`;
+    wg_begin = `172.30.${substr(wg_begin, 7)}`;
     cm.set("wireguard", "@network[0]", "begin", wg_begin);
     cm.commit("wireguard");
 }
