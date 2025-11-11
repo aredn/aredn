@@ -671,24 +671,6 @@ export function setMaxDistance(wifiIface, distance)
     }
 };
 
-function supportsMaxDistance(wifiIface)
-{
-    switch (getRadioType(wifiIface)) {
-        case "none":
-            return false;
-        case "halow":
-            return true;
-        default:
-            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
-            if (info) {
-                if (system(`/usr/sbin/iw ${getPhyDevice(wifiIface)} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
-                    return true;
-                }
-            }
-            return false;
-    }
-}
-
 export function getHTMode(wifiIface, bandwidth, mode)
 {
     const phy = getPhyDevice(wifiIface);
@@ -746,12 +728,6 @@ export function getHTMode(wifiIface, bandwidth, mode)
     return htmode;
 };
 
-function supportsMode(wifiIface, mode)
-{
-    const modes = getRadioIntf(wifiIface)?.exclude_modes;
-    return (!modes || index(modes, mode) === -1);
-}
-
 export function getInterfaceMAC(dev)
 {
     const ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
@@ -771,26 +747,6 @@ export function getInterfaceMAC(dev)
     return "00:00:00:00:00:00";
 };
 
-function supportsXLink()
-{
-    switch (getBoardModel().id) {
-        case "mikrotik,hap-ac2":
-        case "mikrotik,hap-ac3":
-        case "mikrotik,sxtsq-5-ac":
-        case "glinet,gl-b1300":
-        case "openwrt,one":
-        case "cudy,tr3000-v1":
-        case "qemu":
-        case "vmware":
-        case "bhyve":
-        case "virtualbox":
-        case "pc":
-            return true;
-        default:
-            return false;
-    }
-}
-
 const default1PortLayout = [ { k: "lan", d: "lan" } ];
 const default5PortLayout = [ { k: "wan", d: "port1" }, { k: "lan1", d: "port2" }, { k: "lan2", d: "port3" }, { k: "lan3", d: "port4" }, { k: "lan4", d: "port5" } ];
 const default3PortLayout = [ { k: "lan2", d: "port1" }, { k: "lan1", d: "port2" }, { k: "wan", d: "port3" } ];
@@ -809,8 +765,6 @@ export function getEthernetPorts()
         case "openwrt,one":
         case "cudy,tr3000-v1":
             return openwrtone2PortLayout;
-        case "mikrotik,sxtsq-5-ac":
-            return default1PortLayout;
         case "morse,artini":
             return halowlink3PortLayout;
         case "qemu":
@@ -836,6 +790,11 @@ export function getEthernetPorts()
             }
             return defaultNPortLayout;
         default:
+            // Unspecified devices which support xlinks need ports to expose this in the UI.
+            // We will assume they only have one port to simplify things.
+            if (supportsFeature("xlink")) {
+                return default1PortLayout;
+            }
             return [];
     }
 };
@@ -885,33 +844,6 @@ export function getDefaultNetworkConfiguration()
     }
     return c;
 };
-
-function hasPOE()
-{
-    const board = getBoard();
-    if (board.gpioswitch?.poe_passthrough?.pin) {
-        return true;
-    }
-    const gpios = fs.lsdir("/sys/class/gpio/");
-    for (let i = 0; i < length(gpios); i++) {
-        if (match(gpios[i], /^enable-poe:/)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function hasUSBPower()
-{
-    const board = getBoard();
-    if (board.gpioswitch?.usb_power_switch?.pin) {
-        return true;
-    }
-    if (fs.access("/sys/class/gpio/usb-power")) {
-        return true;
-    }
-    return false;
-}
 
 export function getHardwareType()
 {
@@ -1058,54 +990,74 @@ export function getTimeouts(type)
     }
 };
 
+const maxDistanceSupport = {};
+
 export function supportsFeature(feature, arg1, arg2)
 {
     switch (feature) {
         case "poe":
-            return hasPOE();
+        {
+            const board = getBoard();
+            if (board.gpioswitch?.poe_passthrough?.pin) {
+                return true;
+            }
+            const gpios = fs.lsdir("/sys/class/gpio/");
+            for (let i = 0; i < length(gpios); i++) {
+                if (match(gpios[i], /^enable-poe:/)) {
+                    return true;
+                }
+            }
+            return false;
+        }
         case "usb-power":
-            return hasUSBPower();
-        case "xlink":
-            return supportsXLink();
+        {
+            const board = getBoard();
+            if (board.gpioswitch?.usb_power_switch?.pin) {
+                return true;
+            }
+            if (fs.access("/sys/class/gpio/usb-power")) {
+                return true;
+            }
+            return false;
+        }
         case "max-distance":
-            return supportsMaxDistance(arg1);
-        case "wifi-mode":
-            return supportsMode(arg1, arg2);
-        case "hw-watchdog":
-            return fs.access("/dev/watchdog") ? true : false;
-        case "videoproxy":
-            switch (getBoardModel().id) {
-                case "mikrotik,hap-ac3":
-                case "openwrt,one":
-                case "cudy,tr3000-v1":
-                case "qemu":
-                case "vmware":
-                case "bhyve":
-                case "virtualbox":
-                case "pc":
+        {
+            switch (getRadioType(arg1)) {
+                case "none":
+                    return false;
+                case "halow":
                     return true;
                 default:
-                    return false;
+                    if (!(arg1 in maxDistanceSupport)) {
+                        const phy = getPhyDevice(arg1);
+                        const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(phy, 3)) });
+                        if (info && system(`/usr/sbin/iw ${phy} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
+                            maxDistanceSupport[arg1] = true;
+                        }
+                        else {
+                            maxDistanceSupport[arg1] = false;
+                        }
+                    }
+                    return maxDistanceSupport[arg1];
             }
+        }
+        case "wifi-mode":
+        {
+            const modes = getRadioIntf(arg1)?.exclude_modes;
+            return (!modes || index(modes, arg2) === -1);
+        }
+        case "hw-watchdog":
+            return !!fs.access("/dev/watchdog");
         case "boot-efi":
             return !!fs.access("/sys/firmware/efi");
+        case "xlink":
         case "supernode":
-            switch (getBoardModel().id) {
-                case "mikrotik,hap-ac2":
-                case "mikrotik,hap-ac3":
-                case "glinet,gl-b1300":
-                case "openwrt,one":
-                case "cudy,tr3000-v1":
-                case "qemu":
-                case "vmware":
-                case "bhyve":
-                case "virtualbox":
-                case "pc":
-                    return true;
-                default:
-                    return false;
-            }
+        case "videoproxy":
         default:
+            const features = getRadio().features;
+            if (features && index(features, feature) !== -1) {
+                return true;
+            }
             return false;
     }
 };
