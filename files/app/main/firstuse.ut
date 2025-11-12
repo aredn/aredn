@@ -101,14 +101,16 @@ if (!(configuration.isConfigured() && config.authenable) && request.env.REQUEST_
             const name = htmx.find("input[name=name]");
             const passwd1 = htmx.find("input[name=passwd1]");
             const passwd2 = htmx.find("input[name=passwd2]");
-            if (passwd1.value === "hsmm") {
+            let v = passwd1.value;
+            if (v === "hsmm") {
                 passwd1.pattern = "BAD";
             }
             else {
                 passwd1.pattern = `[^#'"]+`;
             }
-            passwd2.required = passwd1.value ? "required" : "";
-            passwd2.pattern = passwd1.value;
+            passwd2.required = v ? "required" : "";
+            ["\\", ".", "*", "+", "?", "^", "$", "(", ")", "{", "}", "[", "]", "|" ].forEach(k => v = v.replace(k, f => `\\${k}`));
+            passwd2.pattern = v;
             if (name.validity.valid && passwd1.validity.valid && passwd2.validity.valid) {
                 htmx.find("button.save").disabled = false;
             }
