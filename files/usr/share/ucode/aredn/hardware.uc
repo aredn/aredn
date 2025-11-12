@@ -747,6 +747,78 @@ export function getInterfaceMAC(dev)
     return "00:00:00:00:00:00";
 };
 
+const maxDistanceSupport = {};
+
+export function supportsFeature(feature, arg1, arg2)
+{
+    switch (feature) {
+        case "poe":
+        {
+            const board = getBoard();
+            if (board.gpioswitch?.poe_passthrough?.pin) {
+                return true;
+            }
+            const gpios = fs.lsdir("/sys/class/gpio/");
+            for (let i = 0; i < length(gpios); i++) {
+                if (match(gpios[i], /^enable-poe:/)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        case "usb-power":
+        {
+            const board = getBoard();
+            if (board.gpioswitch?.usb_power_switch?.pin) {
+                return true;
+            }
+            if (fs.access("/sys/class/gpio/usb-power")) {
+                return true;
+            }
+            return false;
+        }
+        case "max-distance":
+        {
+            switch (getRadioType(arg1)) {
+                case "none":
+                    return false;
+                case "halow":
+                    return true;
+                default:
+                    if (!(arg1 in maxDistanceSupport)) {
+                        const phy = getPhyDevice(arg1);
+                        const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(phy, 3)) });
+                        if (info && system(`/usr/sbin/iw ${phy} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
+                            maxDistanceSupport[arg1] = true;
+                        }
+                        else {
+                            maxDistanceSupport[arg1] = false;
+                        }
+                    }
+                    return maxDistanceSupport[arg1];
+            }
+        }
+        case "wifi-mode":
+        {
+            const modes = getRadioIntf(arg1)?.exclude_modes;
+            return (!modes || index(modes, arg2) === -1);
+        }
+        case "hw-watchdog":
+            return !!fs.access("/dev/watchdog");
+        case "boot-efi":
+            return !!fs.access("/sys/firmware/efi");
+        case "xlink":
+        case "supernode":
+        case "videoproxy":
+        default:
+            const features = getRadio().features;
+            if (features && index(features, feature) !== -1) {
+                return true;
+            }
+            return false;
+    }
+};
+
 const default1PortLayout = [ { k: "lan", d: "lan" } ];
 const default5PortLayout = [ { k: "wan", d: "port1" }, { k: "lan1", d: "port2" }, { k: "lan2", d: "port3" }, { k: "lan3", d: "port4" }, { k: "lan4", d: "port5" } ];
 const default3PortLayout = [ { k: "lan2", d: "port1" }, { k: "lan1", d: "port2" }, { k: "wan", d: "port3" } ];
@@ -987,77 +1059,5 @@ export function getTimeouts(type)
             return timeouts.upgrade || [ 120, 300 ];
         default:
             return [ 20, 120 ];
-    }
-};
-
-const maxDistanceSupport = {};
-
-export function supportsFeature(feature, arg1, arg2)
-{
-    switch (feature) {
-        case "poe":
-        {
-            const board = getBoard();
-            if (board.gpioswitch?.poe_passthrough?.pin) {
-                return true;
-            }
-            const gpios = fs.lsdir("/sys/class/gpio/");
-            for (let i = 0; i < length(gpios); i++) {
-                if (match(gpios[i], /^enable-poe:/)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        case "usb-power":
-        {
-            const board = getBoard();
-            if (board.gpioswitch?.usb_power_switch?.pin) {
-                return true;
-            }
-            if (fs.access("/sys/class/gpio/usb-power")) {
-                return true;
-            }
-            return false;
-        }
-        case "max-distance":
-        {
-            switch (getRadioType(arg1)) {
-                case "none":
-                    return false;
-                case "halow":
-                    return true;
-                default:
-                    if (!(arg1 in maxDistanceSupport)) {
-                        const phy = getPhyDevice(arg1);
-                        const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(phy, 3)) });
-                        if (info && system(`/usr/sbin/iw ${phy} set coverage ${info.wiphy_coverage_class} > /dev/null 2>&1`) == 0) {
-                            maxDistanceSupport[arg1] = true;
-                        }
-                        else {
-                            maxDistanceSupport[arg1] = false;
-                        }
-                    }
-                    return maxDistanceSupport[arg1];
-            }
-        }
-        case "wifi-mode":
-        {
-            const modes = getRadioIntf(arg1)?.exclude_modes;
-            return (!modes || index(modes, arg2) === -1);
-        }
-        case "hw-watchdog":
-            return !!fs.access("/dev/watchdog");
-        case "boot-efi":
-            return !!fs.access("/sys/firmware/efi");
-        case "xlink":
-        case "supernode":
-        case "videoproxy":
-        default:
-            const features = getRadio().features;
-            if (features && index(features, feature) !== -1) {
-                return true;
-            }
-            return false;
     }
 };
