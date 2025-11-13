@@ -279,7 +279,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         {{_R("open")}}
         htmx.on("dialog input[name=passwd1]", "keyup", e => {
             htmx.find("#dialog-messages-error").innerHTML = "";
-            const v = e.target.value;
+            let v = e.target.value;
             if (v === "hsmm") {
                 htmx.find("dialog input[name=passwd1]").pattern = "BAD";
             }
@@ -287,6 +287,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 htmx.find("dialog input[name=passwd1]").pattern = `[^#'"]+`;
             }
             htmx.find("dialog input[name=passwd2]").required = v ? "required" : "";
+            ["\\", ".", "*", "+", "?", "^", "$", "(", ")", "{", "}", "[", "]", "|" ].forEach(k => v = v.replace(k, f => `\\${k}`));
             htmx.find("dialog input[name=passwd2]").pattern = v;
         });
         htmx.on("#dialog-done", "click", _ => {
