@@ -153,3 +153,15 @@
  }
  
  dhcp_mac_add() {
+
+--- a/package/network/services/dnsmasq/files/dnsmasq.init
++++ b/package/network/services/dnsmasq/files/dnsmasq.init
+@@ -582,7 +582,7 @@
+ 	config_list_foreach "$cfg" "interface_name" append_interface_name "$ifname"
+ 
+ 	# Put the router host name on this DHCP served interface address(es)
+-	dhcp_this_host_add "$net" "$ifname" "$ADD_LOCAL_FQDN"
++	# dhcp_this_host_add "$net" "$ifname" "$ADD_LOCAL_FQDN"
+ 
+ 	start="$( dhcp_calc "$start" )"
+ 
