@@ -109,7 +109,7 @@ if (!(configuration.isConfigured() && config.authenable) && request.env.REQUEST_
                 passwd1.pattern = `[^#'"]+`;
             }
             passwd2.required = v ? "required" : "";
-            ["\\", ".", "*", "+", "?", "^", "$", "(", ")", "{", "}", "[", "]", "|" ].forEach(k => v = v.replace(k, f => `\\${k}`));
+            ["\\", ".", "*", "+", "?", "^", "$", "(", ")", "{", "}", "[", "]", "|" ].forEach(k => v = v.replaceAll(k, f => `\\${k}`));
             passwd2.pattern = v;
             if (name.validity.valid && passwd1.validity.valid && passwd2.validity.valid) {
                 htmx.find("button.save").disabled = false;
