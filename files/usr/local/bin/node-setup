@@ -1269,6 +1269,9 @@ if (sf) {
         }
         sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(mesh_wifi)} set txpower fixed 0\n`);
         sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(mesh_wifi)} set txpower fixed ${mesh_txpower}00\n`);
+        if (hardware.getDefaultChannel(mesh_wifi)?.band === "HaLow") {
+            sf.write("/sbin/morse_cli ampdu enable\n");
+        }
     }
     sf.close();
     if (filecopy("/tmp/local_services", "/etc/local/services")) {

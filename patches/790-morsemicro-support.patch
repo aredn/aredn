@@ -11,7 +11,7 @@
  # as OpenWrt may sometimes pull in further patches from later kernel versions
 --- /dev/null
 +++ b/feeds/morse/essentials/morse_driver/patches/100-aredn.patch
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,58 @@
 +--- a/debug.h
 ++++ b/debug.h
 +@@ -154,7 +154,7 @@
@@ -39,19 +39,6 @@
 +  * @brief Perform non-destructive-reset of the chip,
 +--- a/mac.c
 ++++ b/mac.c
-+@@ -4942,6 +4942,10 @@
-+ #endif
-+ 
-+ static struct ieee80211_ops mors_ops = {
-++	.add_chanctx = ieee80211_emulate_add_chanctx,
-++	.remove_chanctx = ieee80211_emulate_remove_chanctx,
-++	.change_chanctx = ieee80211_emulate_change_chanctx,
-++	.switch_vif_chanctx = ieee80211_emulate_switch_vif_chanctx,
-+ 	.tx = morse_mac_ops_tx,
-+ 	.start = morse_mac_ops_start,
-+ 	.stop = morse_mac_ops_stop,
-+--- a/mac.c
-++++ b/mac.c
 +@@ -6607,6 +6607,7 @@
 + 	 * by the module parameter
 + 	 */
@@ -67,20 +54,19 @@
 + 		return 0;
 + 
 +-	if (ieee80211_is_s1g_short_beacon(frame_control) ||
-++	if (ieee80211_is_s1g_short_beacon(frame_control, NULL, 0) ||
+++	if (ieee80211_is_s1g_beacon(frame_control) ||
 + 	    (le16_to_cpu(frame_control) & IEEE80211_FC_COMPRESS_SSID)) {
 + 		ies_order_table = morse_ext_s1g_short_beacon_ies_order;
 + 		ies_order_table_len = ARRAY_SIZE(morse_ext_s1g_short_beacon_ies_order);
 +--- a/vendor_ie.c
 ++++ b/vendor_ie.c
-+@@ -149,8 +149,8 @@
++@@ -149,8 +149,7 @@
 +  */
 + static inline u8 *get_elements_from_s1g_beacon(struct ieee80211_ext *bcn)
 + {
 +-	return (ieee80211_is_s1g_short_beacon(bcn->frame_control) ?
 +-		bcn->u.s1g_short_beacon.variable : bcn->u.s1g_beacon.variable);
-++	return (ieee80211_is_s1g_short_beacon(bcn->frame_control, NULL, 0) ?
-++		bcn->u.s1g_beacon.variable + 3: bcn->u.s1g_beacon.variable);
+++	return (u8 *)bcn->u.s1g_beacon.variable;
 + }
 + 
 + /**
