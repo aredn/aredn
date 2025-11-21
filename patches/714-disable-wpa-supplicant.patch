@@ -8,12 +8,12 @@
 +	local run_wpa="no"
 +
  	if [ -x "/usr/sbin/hostapd" ]; then
-+		if [ "$(uci -q get wireless.@wifi-iface[0].mode)" = "ap" ] || [ "$(uci -q get wireless.@wifi-iface[1].mode)" = "ap" ]; then
++		if [ "$(uci -q get wireless.@wifi-iface[0].mode)" = "ap" -a "$(uci -q get wireless.radio0.band)" != "s1g" ] || [ "$(uci -q get wireless.@wifi-iface[1].mode)" = "ap" ]; then
 +			run_ap="yes"
 +		fi
 +	fi
 +	if [ -x "/usr/sbin/wpa_supplicant" ]; then
-+		if [ "$(uci -q get wireless.@wifi-iface[0].mode)" = "sta" ] || [ "$(uci -q get wireless.@wifi-iface[1].mode)" = "sta" ]; then
++		if [ "$(uci -q get wireless.@wifi-iface[0].mode)" = "sta" -a "$(uci -q get wireless.radio0.band)" != "s1g" ] || [ "$(uci -q get wireless.@wifi-iface[1].mode)" = "sta" ]; then
 +			run_wpa="yes"
 +		fi
 +	fi
