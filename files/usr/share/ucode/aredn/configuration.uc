@@ -414,22 +414,36 @@ export function unescapeString(s)
 
 export function backup(backupFilename)
 {
-    const fi = fs.open("/etc/arednsysupgrade.conf");
-    if (!fi) {
-        return null;
-    }
     const fo = fs.open("/tmp/sysupgradefilelist", "w");
     if (!fo) {
-        fi.close();
         return false;
+    }
+    const fi = fs.open("/etc/arednsysupgrade.conf");
+    if (!fi) {
+        fo.close();
+        return null;
     }
     for (let l = fi.read("line"); length(l); l = fi.read("line")) {
         if (!match(l, "^#") && fs.access(trim(l))) {
             fo.write(l);
         }
     }
-    fo.close();
     fi.close();
+    const fu = fs.lsdir("/etc/arednsysupgrade.d");
+    if (fu) {
+        for (let i = 0; i < length(fu); i++) {
+            const ub = fs.open(`/etc/arednsysupgrade.d/${fu[i]}`);
+            if (ub) {
+                for (let l = ub.read("line"); length(l); l = ub.read("line")) {
+                    if (!match(l, "^#") && fs.access(trim(l))) {
+                        fo.write(l);
+                    }
+                }
+                ub.close();
+            }
+        }
+    }
+    fo.close();
     const s = system(`/bin/tar -czf ${backupFilename} -T /tmp/sysupgradefilelist > /dev/null 2>&1`);
     fs.unlink("/tmp/sysupgradefilelist");
     if (s < 0) {
