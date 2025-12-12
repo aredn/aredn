@@ -63,6 +63,21 @@
         <div class="icon map"></div>
     </a>
     {% } %}
+    {%
+        const apps = fs.lsdir("/www/cgi-bin/apps");
+        %}<hr>{%
+        if (apps) {
+            for (let i = 0; i < length(apps); i++) {
+                const name = apps[i];
+                if (substr(name, 0, 1) !== ".") {
+                    const index = auth.isAdmin ? (fs.stat(`/www/cgi-bin/apps/${name}/admin`) ? "admin" : "user") : (fs.stat(`/www/cgi-bin/apps/${name}/user`) ? "user" : null);
+                    if (index) {
+                        %}<a title="Launch {{name}} app" target="_blank" href="/cgi-bin/apps/{{name}}/{{index}}"><img class="icon" src="/apps/{{name}}/icon.svg"></a>{%
+                    }
+                }
+            }
+        }
+    %}
 </div>
 <div style="flex:1"></div>
 {{_R("tools")}}
