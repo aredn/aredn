@@ -45,7 +45,10 @@ if (apps && length(apps) > 0) {
                     first = false;
                     %}<hr>{%
                 }
-                const badge = auth.isAdmin ? fs.readfile(`/tmp/apps/${name}/badge`) : null;
+                let badge = auth.isAdmin ? fs.readfile(`/tmp/apps/${name}/badge`) : null;
+                if (badge) {
+                    badge = configuration.escapeString(replace(badge, "\n", ""));
+                }
                 %}<a class="app-user" title="Launch {{name}} app" target="_blank" href="/cgi-bin/apps/{{name}}/{{index}}"><img class="icon" src="/apps/{{name}}/icon.svg">{{badge ? `<div>${trim(badge)}</div>` : ""}}</a>{%
             }
         }
