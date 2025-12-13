@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2025 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,22 +32,4 @@
  * version
  */
 %}
-<div class="ctrl" hx-get="status/e/basics" hx-target="#ctrl-modal">
-    <div class="node-description">
-        <div class="t">{{replace(configuration.getSettingAsString("description_node", "None"), "&#10;", "<br>")}}</div>
-        <div class="s">description</div>
-    </div>
-    {% if (auth.isAdmin) { %}
-    <div>
-        <div class="t">{{replace(uci.get("aredn", "@notes[0]", "private") || "-", "&#10;", "<br>")}}</div>
-        <div class="s">notes</div>
-    </div>
-    {% } %}
-</div>
-<div id="health" hx-get="u-health" hx-trigger="every 30s [document.visibilityState === 'visible']">
-{{_R("health")}}
-</div>
-{{_R("firmware")}}
-{{_R("packages")}}
-<hr>
-{{_R("network")}}
+{{_R("apps")}}
