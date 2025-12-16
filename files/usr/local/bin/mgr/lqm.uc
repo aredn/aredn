@@ -561,8 +561,8 @@ function main()
             track.babel_metric = null;
             track.routable = false;
 
-            if (track.ip) {
-                ip2tracker[track.ip] = track;
+            if (track.ip || track.canonical_ip) {
+                ip2tracker[track.ip || track.canonical_ip] = track;
             }
 
             // Refresh user blocks
