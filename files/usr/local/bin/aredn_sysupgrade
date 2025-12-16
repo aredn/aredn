@@ -95,15 +95,7 @@ if [ "${backup}" != "-n" ]; then
   # Stop babel.
   # We need to do this here so we get the state information into the backup file.
   /etc/init.d/babel stop
-  cp /dev/null /tmp/sysupgradefilelist
-  cat /etc/arednsysupgrade.conf | while read f
-  do
-    if [ -e "${f}" ]; then
-      echo "${f}" >> /tmp/sysupgradefilelist
-    fi
-  done
-  rm -f /tmp/arednsysupgradebackup.tgz
-  tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist > /dev/null 2>&1
+  $(ucode -e "import * as configuration from 'aredn.configuration';configuration.backup('/tmp/arednsysupgradebackup.tgz');")
   if [ -f /tmp/arednsysupgradebackup.tgz ]; then
     backup="-f /tmp/arednsysupgradebackup.tgz"
   else
