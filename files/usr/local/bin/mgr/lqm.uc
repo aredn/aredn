@@ -471,7 +471,7 @@ function main()
                         else {
                             for (let i = 0; i < length(info.interfaces); i++) {
                                 const iface = info.interfaces[i];
-                                if (iface.mac && lc(iface.mac) === track.mac) {
+                                if (iface.mac && lc(iface.mac) === track.mac && iface.ip) {
                                     track.ip = iface.ip;
                                     break;
                                 }
