@@ -920,6 +920,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
         let uapsd = null;
         let hwmode = null;
         let bcf = null;
+        let shortgi = null;
         let htmode = hardware.getHTMode(wlan, wlan == mesh_wifi ? mesh_chanbw : -1, cfg[`${radio}_mode`]);
 
         switch (hardware.getDefaultChannel(wlan)?.band) {
@@ -973,6 +974,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
             maxinactivity = 600;
             maxlisteninterval = 1;
             uapsd = 0;
+            shortgi = 0;
             if (cfg[`${radio}_mode`] == "meshptp") {
                 macfilter = "allow";
             }
@@ -1113,6 +1115,9 @@ for (let dev = 0; dev < ifacecount; dev++) {
         }
         if (uapsd != null) {
             config += `\toption uapsd '${uapsd}'\n`;
+        }
+        if (shortgi != null) {
+            config += `\toption short_gi_20 '${shortgi}'\n\toption short_gi_40 '${shortgi}'\n`;
         }
 
         config += "\n";
