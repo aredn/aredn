@@ -45,58 +45,76 @@ if (!device) {
 const wifi = device.iface;
 let frequency;
 let ssid;
+let mode;
+let chipset;
 
 const actionLimits = {
     unresponsiveReport: 3,
     unresponsiveTrigger1: 5,
     unresponsiveTrigger2: 10,
-    zeroTrigger1: 10 * 60, // 10 minutes
-    zeroTrigger2: 30 * 60 // 30 minutes
+    zeroTrigger1: 5 * 60, // 5 minutes
+    zeroTrigger2: 15 * 60 // 15 minutes
 };
 // Start action state assuming the node is active and no actions are pending
 const actionState = {
-    scan1: true,
-    scan2: true,
-    rejoin1: true,
-    rejoin2: true
+    zero1: true,
+    zero2: true,
+    unresponsive1: true,
+    unresponsive2: true
 };
 const unresponsive = {
     max: 0,
     ignore: 15,
-    stations: []
+    stations: {}
 };
 const stationCount = {
     firstZero: 0,
     firstNonZero: 0,
     lastZero: 0,
-    lastNonZero: 0,
-    history: [],
-    historyLimit: 120 // 2 hours
+    lastNonZero: 0
 };
 let defaultScanEnabled = true;
 
 // Various forms of network resets
 
-function resetNetwork(mode)
+function resetNetwork(op)
 {
-    log.syslog(log.LOG_NOTICE, `resetNetwork: ${mode}`);
-    switch (mode) {
-        case "rejoin":
-            system(`${IW} ${wifi} ibss leave > /dev/null 2>&1`);
-            system(`${IW} ${wifi} ibss join ${ssid} ${frequency} NOHT fixed-freq > /dev/null 2>&1`);
+    log.syslog(log.LOG_NOTICE, `resetNetwork: ${chipset} ${mode} ${op}`);
+    switch (chipset) {
+        case "ath9k":
+        case "ath10k":
+            switch (mode) {
+                case "adhoc":
+                    switch (op) {
+                        case "unresponsive":
+                            system(`${IW} ${wifi} ibss leave > /dev/null 2>&1`);
+                            system(`${IW} ${wifi} ibss join ${ssid} ${frequency} NOHT fixed-freq > /dev/null 2>&1`);
+                            break;
+                        case "zero-soft":
+                            system(`${IW} ${wifi} scan freq ${frequency} > /dev/null 2>&1`);
+                            break;
+                        case "zero-hard":
+                        case "daily-restart":
+                            system(`${IW} ${wifi} scan > /dev/null 2>&1`);
+                            system(`${IW} ${wifi} scan passive > /dev/null 2>&1`);
+                            break;
+                        case "restart":
+                            system(`${IFDOWN} wifi; ${IFUP} wifi`);
+                            break;
+                        default:
+                            log.syslog(log.LOG_ERR, `-- unknown`);
+                            break;
+                    }
+                    break;
+                default:
+                    break;
+            }
             break;
-        case "scan-quick":
-            system(`${IW} ${wifi} scan freq ${frequency} > /dev/null 2>&1`);
-            break;
-        case "scan-all":
-            system(`${IW} ${wifi} scan > /dev/null 2>&1`);
-            system(`${IW} ${wifi} scan passive > /dev/null 2>&1`);
-            break;
-        case "restart":
+        case "morse":
             system(`${IFDOWN} wifi; ${IFUP} wifi`);
             break;
         default:
-            log.syslog(log.LOG_ERR, `-- unknown`);
+            log.syslog(log.LOG_ERR, `-- unknown chipset '${chipset}`);
             break;
     }
 }
@@ -105,23 +123,18 @@ function resetNetwork(mode)
 
 function monitorUnresponsiveStations()
 {
-    const old = unresponsive.stations;
-    unresponsive.stations = [];
     unresponsive.max = 0;
+    const nstations = {};
 
-    const now = clock(true)[0];
-    const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi });
+    const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }) ?? [];
     for (let i = 0; i < length(stations); i++) {
         const ipv6ll = network.mac2ipv6ll(stations[i].mac);
         if (system(`${PING6} -c 1 -W 2 -I ${wifi} ${ipv6ll} > /dev/null 2>&1`) == 0) {
-            unresponsive.stations[ipv6ll] = 0;
+            nstations[ipv6ll] = 0;
         }
         else {
-            if (!unresponsive.stations[ipv6ll]) {
-                unresponsive.stations[ipv6ll] = 0;
-            }
-            const val = unresponsive.stations[ipv6ll] + 1;
-            unresponsive.stations[ipv6ll] = val;
+            const val = (unresponsive.stations[ipv6ll] || 0) + 1;
+            nstations[ipv6ll] = val;
             if (val < unresponsive.ignore) {
                 if (val > actionLimits.unresponsiveReport) {
                     log.syslog(log.LOG_ERR, `Possible unresponsive node: ${ipv6ll} [${stations[i].mac}]`);
@@ -132,17 +145,14 @@ function monitorUnresponsiveStations()
             }
         }
     }
+    unresponsive.stations = nstations;
 }
 
 // Monitor number of connected stations
 
 function monitorStationCount()
 {
-    const count = length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }));
-    unshift(stationCount.history, count);
-    if (length(stationCount.history) > stationCount.historyLimit) {
-        stationCount.history = slice(stationCount.history, 0, stationCount.historyLimit);
-    }
+    const count = length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }) ?? []);
     const now = clock(true)[0];
     if (count == 0) {
         stationCount.lastZero = now;
@@ -176,7 +186,7 @@ function runActions()
             if (timediff < 5) {
                 if (defaultScanEnabled) {
                     defaultScanEnabled = false;
-                    resetNetwork("scan-all");
+                    resetNetwork("daily-restart");
                 }
             }
             else {
@@ -197,27 +207,27 @@ function runActions()
 
     // If network stations falls to zero when it was previously non-zero
     if (stationCount.firstZero > stationCount.firstNonZero) {
-        if (!actionState.scan1 && stationCount.lastZero - stationCount.firstZero > actionLimits.zeroTrigger1) {
-            resetNetwork("scan-quick");
-            actionState.scan1 = true;
+        if (!actionState.zero1 && stationCount.lastZero - stationCount.firstZero > actionLimits.zeroTrigger1) {
+            resetNetwork("zero-soft");
+            actionState.zero1 = true;
             return;
         }
-        if (!actionState.scan2 && stationCount.lastZero - stationCount.firstZero > actionLimits.zeroTrigger2) {
-            resetNetwork("scan-all");
-            actionState.scan2 = true;
+        if (!actionState.zero2 && stationCount.lastZero - stationCount.firstZero > actionLimits.zeroTrigger2) {
+            resetNetwork("zero-hard");
+            actionState.zero2 = true;
             return;
         }
     }
 
     // We are failing to ping stations we are associated with
-    if (unresponsive.max >= actionLimits.unresponsiveTrigger1 && !actionState.rejoin1) {
-        resetNetwork("rejoin");
-        actionState.rejoin1 = true;
+    if (unresponsive.max >= actionLimits.unresponsiveTrigger1 && !actionState.unresponsive1) {
+        resetNetwork("unresponsive");
+        actionState.unresponsive1 = true;
         return;
     }
-    if (unresponsive.max >= actionLimits.unresponsiveTrigger2 && !actionState.rejoin2) {
-        resetNetwork("rejoin");
-        actionState.rejoin2 = true;
+    if (unresponsive.max >= actionLimits.unresponsiveTrigger2 && !actionState.unresponsive2) {
+        resetNetwork("unresponsive");
+        actionState.unresponsive2 = true;
         return;
     }
 }
@@ -230,7 +240,7 @@ function runMonitors()
 
 function save()
 {
-    fs.writefile("/tmp/wireless_monitor.info", sprintf("%.2J", {
+    fs.writefile("/tmp/wireless_monitor.json", sprintf("%.2J", {
         now: clock(true)[0],
         unresponsive: unresponsive,
         stationCount: stationCount,
@@ -254,7 +264,6 @@ return waitForTicks(max(1, 240 - clock(true)[0]), function()
     stationCount.firstZero = now;
 
     // Extract all the necessary wifi parameters
-    let mode = null;
     const config = radios.getActiveConfiguration();
     for (let i = 0; i < length(config); i++) {
         const c = config[i];
@@ -276,11 +285,6 @@ return waitForTicks(max(1, 240 - clock(true)[0]), function()
         return exitApp();
     }
 
-    if (mode != radios.RADIO_MESH) {
-        log.syslog(log.LOG_NOTICE, `Only runs in adhoc mode`);
-        return exitApp();
-    }
-
     // Sometimes the radio is there but not hearing anything. Restart it to be safe.
     if (hardware.getRadioType(wifi) === "halow" && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
         resetNetwork("restart");
@@ -292,7 +296,6 @@ return waitForTicks(max(1, 240 - clock(true)[0]), function()
     }
 
     // Select chipset
-    let chipset = null;
     if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath9k`)) {
         chipset = "ath9k";
     }
@@ -301,8 +304,6 @@ return waitForTicks(max(1, 240 - clock(true)[0]), function()
     }
     else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
         chipset = "morse";
-        log.syslog(log.LOG_NOTICE, `Unmonitoring wireless chipset: ${chipset}`);
-        return exitApp();
     }
     else {
         log.syslog(log.LOG_NOTICE, `Unknown chipset`);
