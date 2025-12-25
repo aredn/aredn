@@ -64,7 +64,7 @@ const actionState = {
 };
 const unresponsive = {
     max: 0,
-    ignore: 8,
+    ignore: 15,
     stations: {}
 };
 const stationCount = {
