@@ -1,0 +1,71 @@
+#!/bin/sh
+
+. /lib/functions.sh
+
+# Define a function that will be called for each wifi-iface section
+process_wifi_iface() {
+	local config_section="$1"
+	local country device mode network ssid
+
+	# Use config_get to retrieve options within the current section
+	config_get device "$config_section" device
+	config_get country $device country
+	config_get mode "$config_section" mode
+	config_get network "$config_section" network
+	config_get ssid "$config_section" ssid
+
+	# Skip any AREDN interface
+	if [[ "$country" == "HX" ]]; then
+		return;
+	fi
+
+	# Scan this non-AREDN interface for access points
+	local mac signal
+	iwinfo "${device}" scan | awk '
+	BEGIN {
+		printf "{\"wifiAccessPoints\":["
+		sep = ""
+	}
+	/^Cell/ {
+		# Start of a new AP entry
+		if (sep != "") printf sep;
+		printf "{";
+		sep = ",";
+		sep_inner = "";
+	}
+	/Address:/ {
+		gsub(/^.*Address:[[:space:]]+/, "");
+		gsub(/[[:space:]]+.*$/, "");
+		key = "macAddress";
+		value = $1;
+		if (sep_inner != "") printf sep_inner;
+		# Print key-value pair
+		printf "\"%s\":\"%s\"", key, value;
+		sep_inner = ",";
+	}
+	/Signal:/ {
+		gsub(/^.*Signal:[[:space:]]+/, "");
+		key = "signalStrength";
+		value = $1;
+		if (sep_inner != "") printf sep_inner;
+		# Print key-value pair
+		printf "\"%s\":%d", key, value;
+		sep_inner = ",";
+	}
+	/^$/ { # End of cell block
+		printf "}";
+		sep = ",";
+	}
+	END {
+		printf "]}"
+	}
+	' | curl \
+		--header "Content-Type: application/json" \
+		--data @- \
+		https://api.beacondb.net/v1/geolocate?key=testing
+}
+
+# Iterate over all sections of type "wifi-iface" in the "wireless" configuration file
+config_load wireless
+config_foreach process_wifi_iface wifi-iface
+
