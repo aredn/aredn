@@ -5,14 +5,11 @@
 # Define a function that will be called for each wifi-iface section
 process_wifi_iface() {
 	local config_section="$1"
-	local country device mode network ssid
+	local country device
 
 	# Use config_get to retrieve options within the current section
 	config_get device "$config_section" device
 	config_get country $device country
-	config_get mode "$config_section" mode
-	config_get network "$config_section" network
-	config_get ssid "$config_section" ssid
 
 	# Skip any AREDN interface
 	if [[ "$country" == "HX" ]]; then
@@ -20,6 +17,7 @@ process_wifi_iface() {
 	fi
 
 	# Scan this non-AREDN interface for access points
+	echo "Scanning for access points on ${device}" > /dev/stderr
 	local mac signal
 	iwinfo "${device}" scan | awk '
 	BEGIN {
@@ -62,7 +60,8 @@ process_wifi_iface() {
 	' | curl \
 		--header "Content-Type: application/json" \
 		--data @- \
-		https://api.beacondb.net/v1/geolocate?key=testing
+		https://api.beacondb.net/v1/geolocate?key=testing \
+		&& exit # we're done
 }
 
 # Iterate over all sections of type "wifi-iface" in the "wireless" configuration file
