@@ -41,7 +41,7 @@ if (request.page === "cloud") {
     }
 }
 %}
-<div style="display:none" hx-get="{{baseurl}}" hx-trigger="{{baseurl === "mesh-data" ? '' : 'load, '}}visibilitychange[document.visibilityState === 'visible'] from:document" hx-on:htmx:after-request="meshRender()">
+<div style="display:none" hx-get="{{baseurl}}" hx-trigger="{{baseurl === "mesh-data" ? '' : 'load, '}}focus from:window, visibilitychange[document.visibilityState === 'visible'] from:document" hx-on:htmx:after-request="meshRender()">
 {{baseurl === "mesh-data" ? _R("mesh-data") : "<script>window.mesh={};setTimeout(_ => document.body.classList.contains('htmx-request') && htmx.find('.app-mode#icon-logo').classList.add('animate'), 500);</script>"}}
 </div>
 <div style="width:100%">

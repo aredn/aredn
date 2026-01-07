@@ -34,7 +34,7 @@
 %}
 {% if (!request.mobile) { %}
 <div id="c1">
-    <div id="general" hx-get="u-general" hx-trigger="visibilitychange[document.visibilityState === 'visible'] from:document">
+    <div id="general" hx-get="u-general" hx-trigger="focus from:window, visibilitychange[document.visibilityState === 'visible'] from:document">
         {{_R("general")}}
     </div>
     <div id="location">
@@ -60,7 +60,7 @@
         </div>
         <div id="local-and-neighbor-devices">
             <hr>
-            <div hx-get="u-local-and-neighbor-devices" hx-trigger="every 60s [document.visibilityState === 'visible'], visibilitychange[document.visibilityState === 'visible'] from:document">
+            <div hx-get="u-local-and-neighbor-devices" hx-trigger="focus from:window, every 60s [document.visibilityState === 'visible'], visibilitychange[document.visibilityState === 'visible'] from:document">
             {{_R("local-and-neighbor-devices")}}
             </div>
         </div>
@@ -105,7 +105,7 @@ if (length(args.msgs) || length(args.todos) | length(args.alerts)) { %}
     </div>
 {% } %}
 </div>
-<div id="general"" hx-get="u-general" hx-trigger="visibilitychange[document.visibilityState === 'visible'] from:document">
+<div id="general"" hx-get="u-general" hx-trigger="focus from:window, visibilitychange[document.visibilityState === 'visible'] from:document">
     {{_R("general")}}
 </div>
 <div id="location">

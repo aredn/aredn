@@ -66,7 +66,7 @@
     {%
     const apps = fs.lsdir("/www/cgi-bin/apps");
     if (apps && length(apps) > 0) { %}
-        <div id="apps" hx-get="u-apps" hx-trigger="visibilitychange[document.visibilityState === 'visible'] from:document, every 30s [document.visibilityState === 'visible']" hx-swap="innerHTML">
+        <div id="apps" hx-get="u-apps" hx-trigger="focus from:window, visibilitychange[document.visibilityState === 'visible'] from:document, every 30s [document.visibilityState === 'visible']" hx-swap="innerHTML">
         {{_R("apps")}}
         </div>
     {% } %}
