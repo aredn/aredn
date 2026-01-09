@@ -34,7 +34,7 @@
 %}
 <div hx-boost="true" hx-swap="none">
     <a title="Node status" href="status">
-        <div class="icon status {{request.page === "status"}}"></div>
+        <div class="icon status {{request.page === "status" || request.page === "u-selection"}}"></div>
     </a>
     <a title="See what is on the local mesh" href="mesh">
         <div class="icon mesh {{request.page === "mesh"}}"></div>
@@ -66,7 +66,7 @@
     {%
     const apps = fs.lsdir("/www/cgi-bin/apps");
     if (apps && length(apps) > 0) { %}
-        <div id="apps" hx-get="u-apps" hx-trigger="visibilitychange[document.visibilityState === 'visible'] from:document, every 30s [document.visibilityState === 'visible']" hx-swap="innerHTML">
+        <div id="apps" hx-get="u-apps" hx-trigger="focus from:window, visibilitychange[document.visibilityState === 'visible'] from:document, every 30s [document.visibilityState === 'visible']" hx-swap="innerHTML">
         {{_R("apps")}}
         </div>
     {% } %}
