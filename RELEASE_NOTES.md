@@ -1,5 +1,193 @@
 __RELEASE NOTES__
 
+# 4.26.1.0
+
+This release is the first AREDN production release that omits the legacy OLSR protocol, and consequently the first release with the major number 4\. That may sound scary, but if all your local nodes are on 3.25.5.0 or greater, they already speak Babel. That means a migration to this production release should pretty much be a non-event for your network.
+
+### Major Features
+
+* Babel only routing. OLSR is no longer available.
+* OpenWRT 24.10.5 ([https://openwrt.org/releases/24.10/notes-24.10.5](https://openwrt.org/releases/24.10/notes-24.10.5))
+* Support for HaLow 900MHz radios
+* Default NTP now [aredn.pool.ntp.org](http://aredn.pool.ntp.org)
+* Tunnel backup and restore to simplify node migration ([https://docs.arednmesh.org/en/latest/arednGettingStarted/node\_admin.html\#tunnel-backup-restore](https://docs.arednmesh.org/en/latest/arednGettingStarted/node_admin.html#tunnel-backup-restore))
+* Support for user defined files in backups and upgrades ([https://docs.arednmesh.org/en/latest/arednGettingStarted/node\_admin.html\#backup-configuration](https://docs.arednmesh.org/en/latest/arednGettingStarted/node_admin.html#backup-configuration))
+* Support for new app launcher in sidebar ([https://docs.arednmesh.org/en/latest/arednHow-toGuides/app-launcher.html](https://docs.arednmesh.org/en/latest/arednHow-toGuides/app-launcher.html))
+* Save AREDN node as a webapp.
+* Bump the major release number to 4\.
+
+### New Devices Supported
+
+* Nanostation AC Loco
+* Cudy TR1200
+* Cudy TR3000
+* HaLowLink 1
+* Heltec HT-HD01
+* Heltec HT-HD7608
+* Alfa Tube-AHM
+* Alfa Tube-AHM PoE
+* Bhyve virtual machines
+* VirtualBox virtual machines
+
+### Notes
+
+* There is still some instability with HaLow devices due to immature support for these radios in current Linux kernels. This manifests as occasional device restarts.
+* HaLow devices may sometimes require power cycling after upgrading.
+
+### Fixes and Enhancements
+
+* Add API to publish and find services. [\#2587](https://api.github.com/repos/aredn/aredn/pulls/2587)
+* Disable short preambles when we can. [\#2586](https://api.github.com/repos/aredn/aredn/pulls/2586)
+* Improve MAC to IP acquisition in LQM [\#2582](https://api.github.com/repos/aredn/aredn/pulls/2582)
+* Make the upgrade system use the common backup mechanism. [\#2581](https://api.github.com/repos/aredn/aredn/pulls/2581)
+* Use canonical ip for tracking if simple ip is not available. [\#2580](https://api.github.com/repos/aredn/aredn/pulls/2580)
+* Upgrade default ntp servers [\#2577](https://api.github.com/repos/aredn/aredn/pulls/2577)
+* Add the official 'aredn.pool.ntp.org' [\#2576](https://api.github.com/repos/aredn/aredn/pulls/2576)
+* Launch icons for installed apps (experimental). [\#2575](https://api.github.com/repos/aredn/aredn/pulls/2575)
+* Add mechanism to let users include files in backups [\#2573](https://api.github.com/repos/aredn/aredn/pulls/2573)
+* Update default NTP servers [\#2570](https://api.github.com/repos/aredn/aredn/pulls/2570)
+* Protect against badly formatted wireguard configurations [\#2567](https://api.github.com/repos/aredn/aredn/pulls/2567)
+* Fix password to escape *all* special characters in pattern match. [\#2564](https://api.github.com/repos/aredn/aredn/pulls/2564)
+* Don't use a basename with LAN address when setting up dhcp. [\#2563](https://api.github.com/repos/aredn/aredn/pulls/2563)
+* Improve the way to add new supported features. [\#2557](https://api.github.com/repos/aredn/aredn/pulls/2557)
+* Improve when we display messages about poor tunnel performance. [\#2550](https://api.github.com/repos/aredn/aredn/pulls/2550)
+* Protect UI from bad tunnel server ip address. [\#2547](https://api.github.com/repos/aredn/aredn/pulls/2547)
+* Add some alert messaging around poorly performing tunnels [\#2546](https://api.github.com/repos/aredn/aredn/pulls/2546)
+* Restart babel when we restart the network. [\#2544](https://api.github.com/repos/aredn/aredn/pulls/2544)
+* Workaround for routing table \= 0 meaning default routing table [\#2539](https://api.github.com/repos/aredn/aredn/pulls/2539)
+* Add default babel buffer size in as hint text [\#2529](https://api.github.com/repos/aredn/aredn/pulls/2529)
+* Allow Babel protocol buffer size to be overridden [\#2528](https://api.github.com/repos/aredn/aredn/pulls/2528)
+* Disable babel monitor on supernodes. [\#2526](https://api.github.com/repos/aredn/aredn/pulls/2526)
+* Yank the dns regexps out of the inner loop. [\#2517](https://api.github.com/repos/aredn/aredn/pulls/2517)
+* Fix ssh option capitalization. [\#2516](https://api.github.com/repos/aredn/aredn/pulls/2516)
+* Name wireguard config sections to wireguard watchdog tools can find them [\#2512](https://api.github.com/repos/aredn/aredn/pulls/2512)
+* Fix watchdog out-of-bound array access [\#2511](https://api.github.com/repos/aredn/aredn/pulls/2511)
+* Fix identification of Mikrotik v7 bootloader. [\#2508](https://api.github.com/repos/aredn/aredn/pulls/2508)
+* Make sure tunnel costs can never be zero. [\#2502](https://api.github.com/repos/aredn/aredn/pulls/2502)
+* Add /var/etc/babel-active.conf to support data. [\#2501](https://api.github.com/repos/aredn/aredn/pulls/2501)
+* LAN/WAN firewall rules not needed here anymore. [\#2500](https://api.github.com/repos/aredn/aredn/pulls/2500)
+* Improve consistency of neighbor status display [\#2496](https://api.github.com/repos/aredn/aredn/pulls/2496)
+* Delay firewall restart [\#2487](https://api.github.com/repos/aredn/aredn/pulls/2487)
+* Rework the tunnel config message field names to match UI. [\#2482](https://api.github.com/repos/aredn/aredn/pulls/2482)
+* Upgrade to OpenWRT 24.10.3 (Babel Only Builds) [\#2481](https://api.github.com/repos/aredn/aredn/pulls/2481)
+* Fix first use progress bars. [\#2476](https://api.github.com/repos/aredn/aredn/pulls/2476)
+* Missing sleep after shutting down babel during upgrade. [\#2473](https://api.github.com/repos/aredn/aredn/pulls/2473)
+* Fix allow range of tunnel costs [\#2472](https://api.github.com/repos/aredn/aredn/pulls/2472)
+* Add a 2 minute last seen margin [\#2469](https://api.github.com/repos/aredn/aredn/pulls/2469)
+* Lower min kernel memory requirement while uploading new firmware. [\#2466](https://api.github.com/repos/aredn/aredn/pulls/2466)
+* Improve bad radio hardware handling in UI [\#2461](https://api.github.com/repos/aredn/aredn/pulls/2461)
+* Don't override vm.min\_free\_kbytes [\#2460](https://api.github.com/repos/aredn/aredn/pulls/2460)
+* Fix issues with hidden node detection [\#2456](https://api.github.com/repos/aredn/aredn/pulls/2456)
+* Add free memory to sysinfo.json [\#2449](https://api.github.com/repos/aredn/aredn/pulls/2449)
+* Increase timeouts when running service restarts [\#2442](https://api.github.com/repos/aredn/aredn/pulls/2442)
+* Improve HTMODE selection (with thanks to [https://github.com/grozzie2](https://github.com/grozzie2)) [\#2440](https://api.github.com/repos/aredn/aredn/pulls/2440)
+* Add glinet,gl-b1300 as a supernode [\#2436](https://api.github.com/repos/aredn/aredn/pulls/2436)
+* Add radio mode (unused currently) to getHTMode() [\#2435](https://api.github.com/repos/aredn/aredn/pulls/2435)
+* Hide supernode indicator if hardware cannot be a supernode [\#2434](https://api.github.com/repos/aredn/aredn/pulls/2434)
+* Use NOHT mode on ac2/ac3 to see if this stabilizes the radios. [\#2431](https://api.github.com/repos/aredn/aredn/pulls/2431)
+* Add missing gpsd packages. [\#2430](https://api.github.com/repos/aredn/aredn/pulls/2430)
+* Aggressively turn down wifi high-throughput support on error. [\#2423](https://api.github.com/repos/aredn/aredn/pulls/2423)
+* Improved log watch command [\#2422](https://api.github.com/repos/aredn/aredn/pulls/2422)
+* Give babel time to stop before restarting [\#2418](https://api.github.com/repos/aredn/aredn/pulls/2418)
+* Drop babel monitor LQ requirement to 50% [\#2416](https://api.github.com/repos/aredn/aredn/pulls/2416)
+* Fix longer reboot/upgrade timer progress bar [\#2412](https://api.github.com/repos/aredn/aredn/pulls/2412)
+* Make sure to run wpa\_supplicant for open stations. [\#2410](https://api.github.com/repos/aredn/aredn/pulls/2410)
+* Improve selection of hostapd and wpa\_supplicant [\#2407](https://api.github.com/repos/aredn/aredn/pulls/2407)
+* Add basic validation to lan and wan vlan settings [\#2405](https://api.github.com/repos/aredn/aredn/pulls/2405)
+* Improve babel monitoring to eliminate false positives [\#2402](https://api.github.com/repos/aredn/aredn/pulls/2402)
+* Require a perfect LQ to trigger the babel monitor restart [\#2400](https://api.github.com/repos/aredn/aredn/pulls/2400)
+* Add missing ucode dependency (was being implicitly included) [\#2399](https://api.github.com/repos/aredn/aredn/pulls/2399)
+* Monitor Babel and restart if necessary. [\#2396](https://api.github.com/repos/aredn/aredn/pulls/2396)
+* Tidy RTT display for DtDs [\#2393](https://api.github.com/repos/aredn/aredn/pulls/2393)
+* Use EFI/x86 upgrades when necessary. [\#2390](https://api.github.com/repos/aredn/aredn/pulls/2390)
+* Show the correct default VLANs for WAN and LAN in Network popup. [\#2386](https://api.github.com/repos/aredn/aredn/pulls/2386)
+* Add templates (Camera \+ Video) for Amcrest cameras [\#2380](https://api.github.com/repos/aredn/aredn/pulls/2380)
+* Allow setting of LAN VLAN for single port devices. [\#2379](https://api.github.com/repos/aredn/aredn/pulls/2379)
+* Improve location handling when map cannot be reached. [\#2371](https://api.github.com/repos/aredn/aredn/pulls/2371)
+* Support HTTP preflight [\#2361](https://api.github.com/repos/aredn/aredn/pulls/2361)
+* Make icon spin when loading cloud nodes in appmode. [\#2340](https://api.github.com/repos/aredn/aredn/pulls/2340)
+* Provide a 307 redirect in the server for the root page. [\#2339](https://api.github.com/repos/aredn/aredn/pulls/2339)
+* Improve video proxy error handling. [\#2337](https://api.github.com/repos/aredn/aredn/pulls/2337)
+* Add cloud and map pages to webapp [\#2332](https://api.github.com/repos/aredn/aredn/pulls/2332)
+* Add cloud and map shortcuts to manifest [\#2327](https://api.github.com/repos/aredn/aredn/pulls/2327)
+* Fix math for generating M9 channel numbers. [\#2326](https://api.github.com/repos/aredn/aredn/pulls/2326)
+* Add webapp manifest support. [\#2323](https://api.github.com/repos/aredn/aredn/pulls/2323)
+* Improve UI around video proxy. [\#2321](https://api.github.com/repos/aredn/aredn/pulls/2321)
+* Add a few more service templates. [\#2318](https://api.github.com/repos/aredn/aredn/pulls/2318)
+* Improve URL parser. [\#2316](https://api.github.com/repos/aredn/aredn/pulls/2316)
+* Quiet bad message pings. [\#2313](https://api.github.com/repos/aredn/aredn/pulls/2313)
+* More tightening of proxies. [\#2310](https://api.github.com/repos/aredn/aredn/pulls/2310)
+* Add a reminder to install ffmpeg if used without it. [\#2308](https://api.github.com/repos/aredn/aredn/pulls/2308)
+* Common validation of the URLs passed to the various proxy urls. [\#2306](https://api.github.com/repos/aredn/aredn/pulls/2306)
+* Improve UI around local service proxies [\#2305](https://api.github.com/repos/aredn/aredn/pulls/2305)
+* Use resolv library again now file descriptor leak has been fixed. [\#2301](https://api.github.com/repos/aredn/aredn/pulls/2301)
+* Add Advanced Options to let the operator restart specific services. [\#2299](https://api.github.com/repos/aredn/aredn/pulls/2299)
+* Don't preserve babel state across upgrades [\#2290](https://api.github.com/repos/aredn/aredn/pulls/2290)
+* Add the other missing backup message when auto selecting firmware [\#2287](https://api.github.com/repos/aredn/aredn/pulls/2287)
+* Add missing backup message when auto selecting firmware. [\#2285](https://api.github.com/repos/aredn/aredn/pulls/2285)
+* Ping correct download servers rather than hardwired [\#2282](https://api.github.com/repos/aredn/aredn/pulls/2282)
+* Don't add the WAN default route if there isn't one. [\#2278](https://api.github.com/repos/aredn/aredn/pulls/2278)
+* Add timeout to socat in case the connection hangs. [\#2277](https://api.github.com/repos/aredn/aredn/pulls/2277)
+* Fix unnecessary reboot requests with user blocks. [\#2270](https://api.github.com/repos/aredn/aredn/pulls/2270)
+* Change check for adhoc mode to avoid circular dependency [\#2267](https://api.github.com/repos/aredn/aredn/pulls/2267)
+* Restore user blocks for all mesh types. [\#2264](https://api.github.com/repos/aredn/aredn/pulls/2264)
+* Make the tunnel restore UI a little less janky. [\#2262](https://api.github.com/repos/aredn/aredn/pulls/2262)
+* UI to backup and restore just the tunnel configuration. [\#2260](https://api.github.com/repos/aredn/aredn/pulls/2260)
+* PTxP fixes for what memory saving broke. [\#2258](https://api.github.com/repos/aredn/aredn/pulls/2258)
+* Disable wpa\_supplicant if we're not using encryption even if we need hostapd [\#2255](https://api.github.com/repos/aredn/aredn/pulls/2255)
+* Preserve custom babel rules. [\#2252](https://api.github.com/repos/aredn/aredn/pulls/2252)
+* Allow the ID beacon to be disabled. [\#2251](https://api.github.com/repos/aredn/aredn/pulls/2251)
+* More emphatic message that downgrading from Babel-only build can ruin your life. [\#2244](https://api.github.com/repos/aredn/aredn/pulls/2244)
+* Improve tunnel migration. [\#2243](https://api.github.com/repos/aredn/aredn/pulls/2243)
+* Refine the portable theme so it only kicks for admin. [\#2239](https://api.github.com/repos/aredn/aredn/pulls/2239)
+* Arednlink pub/sub like mechanism [\#2237](https://api.github.com/repos/aredn/aredn/pulls/2237)
+* Make sure dtdlink always has an ipv6 link local address. [\#2234](https://api.github.com/repos/aredn/aredn/pulls/2234)
+* Use mac address as neighbor popup title if nothing else [\#2232](https://api.github.com/repos/aredn/aredn/pulls/2232)
+* Improve feature detection [\#2231](https://api.github.com/repos/aredn/aredn/pulls/2231)
+* Fix create of allow/deny maclist files for PtXP modes [\#2230](https://api.github.com/repos/aredn/aredn/pulls/2230)
+* Improve watchdog so it can shutdown without a reboot and you can update the firmware without disabling it [\#2227](https://api.github.com/repos/aredn/aredn/pulls/2227)
+* Add Babel's RTT calculation to main display [\#2226](https://api.github.com/repos/aredn/aredn/pulls/2226)
+* Fix 3GHz setup being set to wrong band [\#2225](https://api.github.com/repos/aredn/aredn/pulls/2225)
+* Change the tunnel server network setup now we have no vtun [\#2223](https://api.github.com/repos/aredn/aredn/pulls/2223)
+* Remove lowmem fixups we no longer need. [\#2222](https://api.github.com/repos/aredn/aredn/pulls/2222)
+* Improve way we calculate routable information (for display only) [\#2221](https://api.github.com/repos/aredn/aredn/pulls/2221)
+* Handle Old UI wifi migration. [\#2219](https://api.github.com/repos/aredn/aredn/pulls/2219)
+* Remove old wifi keys [\#2218](https://api.github.com/repos/aredn/aredn/pulls/2218)
+* Temporary fixup for nodes with bad dtdlink addresses. [\#2213](https://api.github.com/repos/aredn/aredn/pulls/2213)
+* Automatically select the best firmware to upgrade to. [\#2209](https://api.github.com/repos/aredn/aredn/pulls/2209)
+* Remove multicast\_querier property. [\#2208](https://api.github.com/repos/aredn/aredn/pulls/2208)
+* Remove bad port forwarding rule for wan only. [\#2206](https://api.github.com/repos/aredn/aredn/pulls/2206)
+* Fix memory leak in dnsmasq. [\#2204](https://api.github.com/repos/aredn/aredn/pulls/2204)
+* Fix broken reboot when restoring. [\#2199](https://api.github.com/repos/aredn/aredn/pulls/2199)
+* Allow LAN subnet to access WAN subnet so port forwarding will work. [\#2198](https://api.github.com/repos/aredn/aredn/pulls/2198)
+* Use the DEVICE variable when setting up wan/lan routes during network setup [\#2195](https://api.github.com/repos/aredn/aredn/pulls/2195)
+* Fix local access to wan subnet [\#2191](https://api.github.com/repos/aredn/aredn/pulls/2191)
+* More backup and support data improvements. [\#2189](https://api.github.com/repos/aredn/aredn/pulls/2189)
+* Reduce the files we keep in the backups. [\#2188](https://api.github.com/repos/aredn/aredn/pulls/2188)
+* Delete old gateway keys [\#2187](https://api.github.com/repos/aredn/aredn/pulls/2187)
+* Let the mesh stats open the mesh page [\#2183](https://api.github.com/repos/aredn/aredn/pulls/2183)
+* Display Babel round trip time [\#2182](https://api.github.com/repos/aredn/aredn/pulls/2182)
+* Fix use of old key names rather than new ones [\#2179](https://api.github.com/repos/aredn/aredn/pulls/2179)
+* Provide flexible reboot/upgrade timeouts for slower devices [\#2177](https://api.github.com/repos/aredn/aredn/pulls/2177)
+* Rewrite routing rules (babel edition) [\#2175](https://api.github.com/repos/aredn/aredn/pulls/2175)
+* Fix calculation of 3GHz channel numbers [\#2174](https://api.github.com/repos/aredn/aredn/pulls/2174)
+* Improve display of status information for babel-only supernodes. [\#2162](https://api.github.com/repos/aredn/aredn/pulls/2162)
+* Enable channels 180-184 in PtXP modes [\#2157](https://api.github.com/repos/aredn/aredn/pulls/2157)
+* Fix propagation of correct LAN host names. [\#2156](https://api.github.com/repos/aredn/aredn/pulls/2156)
+* Improve neighbor information [\#2154](https://api.github.com/repos/aredn/aredn/pulls/2154)
+* Tweak uptime description [\#2153](https://api.github.com/repos/aredn/aredn/pulls/2153)
+* Make the link ip clickable. [\#2150](https://api.github.com/repos/aredn/aredn/pulls/2150)
+* Provide link uptime as well as last seen time. [\#2149](https://api.github.com/repos/aredn/aredn/pulls/2149)
+* Let hosts without services take whole line to improve readability [\#2136](https://api.github.com/repos/aredn/aredn/pulls/2136)
+* Don't forward 172.3x.x.x to supernodes for lookups [\#2132](https://api.github.com/repos/aredn/aredn/pulls/2132)
+* Allow . in cron script names [\#2131](https://api.github.com/repos/aredn/aredn/pulls/2131)
+* Don’t masquerade source address for broadcast traffic [\#2129](https://api.github.com/repos/aredn/aredn/pulls/2129)
+* Always show dns (if defined) rather then only when WAN is enabled [\#2126](https://api.github.com/repos/aredn/aredn/pulls/2126)
+* Missing tunnel endpoint when setting up firewall [\#2123](https://api.github.com/repos/aredn/aredn/pulls/2123)
+* Handle radio type of 'none' [\#2118](https://api.github.com/repos/aredn/aredn/pulls/2118)
+* SNAT tunnels and xlinks so we don't redistribute their actual endpoint IPs [\#2115](https://api.github.com/repos/aredn/aredn/pulls/2115)
+* Fix GPS detection [\#2111](https://api.github.com/repos/aredn/aredn/pulls/2111)
+
 # 3.25.5.0
 
 **Major Enhancements**
