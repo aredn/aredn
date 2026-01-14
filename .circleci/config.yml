@@ -52,7 +52,7 @@ commands:
             export MY_WORKING_DIRECTORY=`pwd`
             sed -i "s/FW_VERSION=\$(PRIVATE_BUILD_VERSION)-\$(GIT_COMMIT)/FW_VERSION=\$(PRIVATE_BUILD_VERSION)/g" ${MY_WORKING_DIRECTORY}/Makefile
             sed -i "s/NoCall/<< pipeline.parameters.release_version >>/g" ${MY_WORKING_DIRECTORY}/config.mk
-            sed -i "s/snapshots/releases\/3\/25\/<< pipeline.parameters.release_version >>/g" ${MY_WORKING_DIRECTORY}/config.mk
+            sed -i "s/snapshots/releases\/4\/26\/<< pipeline.parameters.release_version >>/g" ${MY_WORKING_DIRECTORY}/config.mk
             sed -i "s/MAKE_ARGS=-j3/MAKE_ARGS=-j9/g" ${MY_WORKING_DIRECTORY}/config.mk
             sed -i "s/develop/<< pipeline.parameters.release_version >>/g" ${MY_WORKING_DIRECTORY}/feeds.conf
             cat ${MY_WORKING_DIRECTORY}/config.mk
@@ -561,7 +561,7 @@ workflows:
       - build_job_x86:
           requires:
             - build_nightly_prepare
-      - build_job_ramips:
+      - build_job_ramips_and_morse:
           requires:
             - build_nightly_prepare
       - build_job_mediatek:
@@ -572,7 +572,7 @@ workflows:
             - build_job_ath79
             - build_job_ipq40xx
             - build_job_x86
-            - build_job_ramips
+            - build_job_ramips_and_morse
             - build_job_mediatek
       - process_artifacts_nightly:
           requires:
@@ -650,7 +650,7 @@ workflows:
       - build_job_x86:
           requires:
             - build_release_prepare
-      - build_job_ramips:
+      - build_job_ramips_and_morse:
           requires:
             - build_release_prepare
       - build_job_mediatek:
@@ -661,7 +661,7 @@ workflows:
             - build_job_ath79
             - build_job_ipq40xx
             - build_job_x86
-            - build_job_ramips
+            - build_job_ramips_and_morse
             - build_job_mediatek
       - process_artifacts_release:
           requires:
