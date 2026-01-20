@@ -146,8 +146,8 @@ Beryl | GL-MT1300 | 2 & 5 | ramips | mt7621 | gl-mt1300 | 256MB | stable | relea
 **Sunset Devices** | | | | | | | |
 White | GL-AR150 | 2 | ath79 | generic | glinet_gl-ar150 | 64MB | stable | sunset (3)
 Microuter | GL-USB150 | 2 | ath79 | generic | glinet_gl-usb150 | 64MB | stable | sunset (3)
-Creta | GL-AR750 | 2 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | sunset (3)
-Slate | GL-AR750S-Ext | 2 | ath79 | nand | gl-ar750s | 128MB | untested | sunset (3)
+Creta | GL-AR750 | 2 & 5 | ath79 | generic | glinet_gl-ar750 | 128MB | stable | sunset (3)
+Slate | GL-AR750S-Ext | 2 & 5 | ath79 | nand | gl-ar750s | 128MB | untested | sunset (3)
 
 ## OpenWRT
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
