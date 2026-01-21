@@ -80,7 +80,7 @@ export function lookup()
 
     if (response) {
         if (response.location && response.location.lat && response.location.lng && response.accuracy) {
-            location = { lat: response.location.lat, lon: response.location.lng, eph: response.location.accuracy };
+            location = { lat: response.location.lat, lon: response.location.lng, eph: response.accuracy };
         }
     }
     return location;

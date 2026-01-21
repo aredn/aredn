@@ -44,7 +44,7 @@ function main()
 
     // Fall back to WiFi-based geolocation if gpsd didn't work out
     if (!j) {
-        wifi_geolocation.lookup();
+        j = wifi_geolocation.lookup();
     }
 
     // Update time and date
