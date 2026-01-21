@@ -11,7 +11,6 @@ export function lookup()
 
     cursor.foreach("wireless", "wifi-iface", function(s)
     {
-        printf("s: %s\n", s);
         switch (s.mode) {
             case "ap":
             case "sta":
@@ -21,7 +20,6 @@ export function lookup()
                 break;
         }
     });
-    printf("Wifi: %s\n", wifi);
 
     let current_ap = null;
     let access_points = [];
@@ -73,7 +71,6 @@ export function lookup()
                 let j = json(line);
                 if (j) {
                     response = j;
-                    printf("Got a response: %s\n", response);
                     break;
                 }
             }
