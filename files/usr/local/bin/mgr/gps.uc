@@ -40,7 +40,7 @@ let gps;
 function main()
 {
     const c = uci.cursor();
-    const j = hardware.GPSReadLLT(gps);
+    let j = hardware.GPSReadLLT(gps);
 
     // Fall back to WiFi-based geolocation if gpsd didn't work out
     if (!j) {
