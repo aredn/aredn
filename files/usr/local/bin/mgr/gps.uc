@@ -42,6 +42,11 @@ function main()
     const c = uci.cursor();
     const j = hardware.GPSReadLLT(gps);
 
+    // Fall back to WiFi-based geolocation if gpsd didn't work out
+    if (!j) {
+        wifi_geolocation.lookup();
+    }
+
     // Update time and date
     if (c.get("aredn", "@time[0]", "gps_enable") == "1" && j && j.time) {
         system(`/bin/date -u -s '${j.time}' > /dev/null 2>&1`);
