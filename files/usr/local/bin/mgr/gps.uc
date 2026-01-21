@@ -43,13 +43,13 @@ function main()
     const j = hardware.GPSReadLLT(gps);
 
     // Update time and date
-    if (c.get("aredn", "@time[0]", "gps_enable") == "1" && j.time) {
+    if (c.get("aredn", "@time[0]", "gps_enable") == "1" && j && j.time) {
         system(`/bin/date -u -s '${j.time}' > /dev/null 2>&1`);
         fs.writefile("/tmp/timesync", "gps");
     }
 
     // Set location if significantly changed
-    if (c.get("aredn", "@location[0]", "gps_enable") == "1" && j.lat && j.lon) {
+    if (c.get("aredn", "@location[0]", "gps_enable") == "1" && j && j.lat && j.lon) {
         const clat = 1 * c.get("aredn", "@location[0]", "lat");
         const clon = 1 * c.get("aredn", "@location[0]", "lon");
         if (math.abs(clat - j.lat) > CHANGEMARGIN || math.abs(clon - j.lon) > CHANGEMARGIN) {
