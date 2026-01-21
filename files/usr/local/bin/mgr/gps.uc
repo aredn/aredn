@@ -43,7 +43,7 @@ function main()
     let j = hardware.GPSReadLLT(gps);
 
     // Fall back to WiFi-based geolocation if gpsd didn't work out
-    if (!j) {
+    if (!j && c.get("aredn", "@location[0]", "wifi_enable") == "1") {
         j = wifi_geolocation.lookup();
     }
 
@@ -110,6 +110,7 @@ option listen_globally '1'
         return main;
     }
     else if (uci.cursor().get("aredn", "@location[0]", "wifi_enable") == "1") {
+        // TODO find a better way to check this config no more than once per cycle
 	return main;
     }
     else {
