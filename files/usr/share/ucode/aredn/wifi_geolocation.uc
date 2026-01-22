@@ -9,6 +9,7 @@ export function lookup()
     let location;
     let response;
 
+    log.syslog(log.LOG_DEBUG, `Looking for wifi interfaces`);
     cursor.foreach("wireless", "wifi-iface", function(s)
     {
         switch (s.mode) {
@@ -20,11 +21,26 @@ export function lookup()
                 break;
         }
     });
+    log.syslog(log.LOG_DEBUG, `Found ${wifi}`);
 
     let current_ap = null;
     let access_points = [];
     if (wifi) {
+
+        // Bring interface down to scan
+        log.syslog(log.LOG_NOTICE, `Bringing ${wifi} down`);
+        system(`/sbin/wifi down ${wifi}`);
+
+        // Make sure interface is actually down before initiating scan
+        while (system(`/usr/bin/iwinfo ${wifi} info | grep -q 'Mode: Unknown'`) != 0) {
+            log.syslog(log.LOG_DEBUG, `Waiting for ${wifi} to be down`);
+            sleep(1000);
+        }
+
+        // Scan interface
+        log.syslog(log.LOG_INFO, `Scanning ${wifi}`);
         const f = fs.popen(`/usr/bin/iwinfo ${wifi} scan`);
+
         let line;
         while (line = f.read("line")) {
             line = trim(line);
@@ -54,10 +70,16 @@ export function lookup()
             }
         }
 
+        f.close();
+
         // Push the last AP
         if (current_ap) {
             push(access_points, current_ap);
         }
+
+        // Bring interface back up
+        log.syslog(log.LOG_NOTICE, `Bringing ${wifi} up`);
+        system(`/sbin/wifi up ${wifi}`);
 
         // Generate the request string
         request = sprintf("%J\n", { wifiAccessPoints: access_points });
@@ -79,6 +101,7 @@ export function lookup()
     }
 
     if (response) {
+	log.syslog(log.LOG_DEBUG, `beacondb response: ${response}`);
         if (response.location && response.location.lat && response.location.lng && response.accuracy) {
             location = { lat: response.location.lat, lon: response.location.lng, eph: response.accuracy };
         }
