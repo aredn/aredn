@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as uci from "uci";
+import * as configuration from "aredn.configuration";
 
 export function lookup()
 {
@@ -86,7 +87,8 @@ export function lookup()
     }
 
     if (request) {
-        const f = fs.popen(`/bin/uclient-fetch -q -O - --header='Content-Type: application/json' --post-data='${request}' 'https://api.beacondb.net/v1/geolocate?key=org.arednmesh.geolocation'`);
+        const ua = sprintf("%s/%s", 'AREDN', configuration.getFirmwareVersion());
+        const f = fs.popen(`/bin/uclient-fetch -O - --header='Content-Type: application/json' --post-data='${request}' 'https://api.beacondb.net/v1/geolocate?key=${ua}'`);
         if (f) {
             let line;
             while (line = f.read("line")) {
