@@ -34,6 +34,7 @@
 const CONFIG0 = "/etc/config.mesh/gpsd";
 const CONFIG1 = "/etc/config/gpsd";
 const CHANGEMARGIN = 0.0001;
+const MAX_EPH = 1000; // Only use locations with <= 1km horizontal accuracy
 
 let gps;
 
@@ -51,6 +52,12 @@ function main()
     if (c.get("aredn", "@time[0]", "gps_enable") == "1" && j && j.time) {
         system(`/bin/date -u -s '${j.time}' > /dev/null 2>&1`);
         fs.writefile("/tmp/timesync", "gps");
+    }
+
+    // Reject wildly inaccurate locations
+    if (j && j.eph && j.eph > MAX_EPH) {
+        // TODO Should we consider checking again in a shorter interval?
+        return waitForTicks(600); // 10 minutes
     }
 
     // Set location if significantly changed
