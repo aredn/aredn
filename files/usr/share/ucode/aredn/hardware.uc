@@ -935,7 +935,8 @@ export function getHardwareType()
         mfgprefix = "mikrotik";
         switch (hardwaretype) {
             case "hap-ac3":
-                // Exception: hAP ac3 doesn't need this
+            case "routerboard-911g-2hpnd-12s":
+                // Exceptions
                 break;
             default:
                 const bv = fs.open("/sys/firmware/mikrotik/soft_config/bios_version");
