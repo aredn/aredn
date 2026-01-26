@@ -67,14 +67,6 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const scan = {};
     const radiotype = hardware.getRadioType(wifiiface);
 
-    let disconnect_reconnect = false;
-    if (radiomode === radios.RADIO_MESH) {
-        const board_type = hardware.getBoard().model.id;
-        if (index(board_type, "ubnt,") === 0 && index(board_type, "ac") !== -1) {
-            disconnect_reconnect = true
-        }
-    }
-
     const reArp = /^([\.0-9]+) +0x. +0x. +([0-9a-fA-F:]+)/;
     const arp = {};
     let f = fs.open("/proc/net/arp");
@@ -106,7 +98,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
     }
 
-    if (disconnect_reconnect) {
+    if (radiomode.mode === radios.RADIO_MESH && fs.access("/lib/firmware/ath10k/QCA988X")) {
         system(`/usr/sbin/iw dev ${wifiiface} ibss leave > /dev/null 2>&1`);
         system("/sbin/wifi up > /dev/null 2>&1");
         for (let attempt = 10; attempt > 0; attempt--) {
