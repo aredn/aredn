@@ -50,10 +50,16 @@ for (let i = 0; i < length(config); i++) {
     }
 }
 
+if (request.env.REQUEST_METHOD === "PUT" && ("selected" in request.args)) {
+    selected = int(request.args.selected);
+}
+
+let qca988x_bug = false;
+if (config[selected]?.mode?.mode === radios.RADIO_MESH && fs.access("/lib/firmware/ath10k/QCA988X")) {
+    qca988x_bug = true;
+}
+
 if (request.env.REQUEST_METHOD === "PUT") {
-    if ("selected" in request.args) {
-        selected = int(request.args.selected);
-    }
     const radio = config[selected];
     if (!radio) {
         return;
@@ -66,14 +72,6 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const nodename = configuration.getName();
     const scan = {};
     const radiotype = hardware.getRadioType(wifiiface);
-
-    let disconnect_reconnect = false;
-    if (radiomode === radios.RADIO_MESH) {
-        const board_type = hardware.getBoard().model.id;
-        if (index(board_type, "ubnt,") === 0 && index(board_type, "ac") !== -1) {
-            disconnect_reconnect = true
-        }
-    }
 
     const reArp = /^([\.0-9]+) +0x. +0x. +([0-9a-fA-F:]+)/;
     const arp = {};
@@ -106,29 +104,12 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
     }
 
-    if (disconnect_reconnect) {
+    if (qca988x_bug) {
         system(`/usr/sbin/iw dev ${wifiiface} ibss leave > /dev/null 2>&1`);
-        system("/sbin/wifi up > /dev/null 2>&1");
-        for (let attempt = 10; attempt > 0; attempt--) {
-            f = fs.popen(`/usr/sbin/iw dev ${wifiiface} scan`);
-            if (f) {
-                for (let l = f.read("line"); length(l); l = f.read("line")) {
-                    if (substr(l, 0, 4) === "BSS ") {
-                        attempt = 0;
-                        break;
-                    }
-                }
-                f.close();
-            }
-            if (attempt > 0) {
-                sleep(2000);
-            }
-        }
     }
 
-    switch (radiotype) {
-        case "halow":
-        {
+    if (radiotype == "halow" || qca988x_bug) {
+        for (let retry = 5; retry > 0; retry--) {
             const p = fs.popen(`/usr/bin/iwinfo ${wifiiface} scan`);
             if (p) {
                 let station = {};
@@ -140,7 +121,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                         if (!station) {
                             const ip = arp[mac];
                             station = {
-                                mmac: mac,
+                                mac: mac,
                                 signal: 9999,
                                 chan: {},
                                 joined: false,
@@ -167,53 +148,55 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 }
                 p.close();
             }
-            break;
+            sleep(2000);
         }
-        default:
-        {
-            nl80211.request(nl80211.const.NL80211_CMD_TRIGGER_SCAN, 0, { dev: wifiiface });
-            nl80211.waitfor();
-            const wscan = nl80211.request(nl80211.const.NL80211_CMD_GET_SCAN, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
-            for (let i = 0; i < length(wscan); i++) {
-                const w = wscan[i];
-                if (w.dev === wifiiface) {
-                    const bss = w.bss;
-                    const mac = bss.bssid;
-                    let station = scan[mac];
-                    if (!station) {
-                        const ip = arp[mac];
-                        station = {
-                            mac: mac,
-                            signal: 9999,
-                            chan: {},
-                            joined: false,
-                            mode: "AP",
-                            ssid: "",
-                            ip: ip,
-                            hostname: ip ? network.getHostnameFromIPAddress(ip) : null,
-                            ibss: false
-                        };
-                        scan[mac] = station;
-                    }
-                    const chan = hardware.getChannelFromFrequency(wifiiface, bss.frequency);
-                    if (chan) {
-                        station.chan[chan] = true;
-                    }
-                    if (bss.capability & 2) {
-                        station.ibss = true;
-                    }
-                    station.signal = bss.signal_mbm / 100;
-                    const ies = bss.information_elements;
-                    for (let j = 0; j < length(ies); j++) {
-                        if (ies[j].type === 0) {
-                            station.ssid = ies[j].data;
-                            break;
-                        }
+    }
+    else {
+        nl80211.request(nl80211.const.NL80211_CMD_TRIGGER_SCAN, 0, { dev: wifiiface });
+        nl80211.waitfor();
+        const wscan = nl80211.request(nl80211.const.NL80211_CMD_GET_SCAN, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+        for (let i = 0; i < length(wscan); i++) {
+            const w = wscan[i];
+            if (w.dev === wifiiface) {
+                const bss = w.bss;
+                const mac = bss.bssid;
+                let station = scan[mac];
+                if (!station) {
+                    const ip = arp[mac];
+                    station = {
+                        mac: mac,
+                        signal: 9999,
+                        chan: {},
+                        joined: false,
+                        mode: "AP",
+                        ssid: "",
+                        ip: ip,
+                        hostname: ip ? network.getHostnameFromIPAddress(ip) : null,
+                        ibss: false
+                    };
+                    scan[mac] = station;
+                }
+                const chan = hardware.getChannelFromFrequency(wifiiface, bss.frequency);
+                if (chan) {
+                    station.chan[chan] = true;
+                }
+                if (bss.capability & 2) {
+                    station.ibss = true;
+                }
+                station.signal = bss.signal_mbm / 100;
+                const ies = bss.information_elements;
+                for (let j = 0; j < length(ies); j++) {
+                    if (ies[j].type === 0) {
+                        station.ssid = ies[j].data;
+                        break;
                     }
                 }
             }
-            break;
         }
+    }
+
+    if (qca988x_bug) {
+        system("/sbin/wifi up > /dev/null 2>&1");
     }
 
     for (let k in scan) {
@@ -255,10 +238,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         s.hostname = s.hostname ? replace(s.hostname, ".local.mesh", "") : null;
     }
 
-    last_scan = sort(
-        filter(values(scan), v => v.signal !== 9999 || v.joined),
-        (a, b) => b.signal - a.signal
-    );
+    last_scan = sort(values(scan), (a, b) => b.signal - a.signal);
 
     fs.writefile(last_scan_file, sprintf("%J", { selected: selected, scan: last_scan }));
     scan_time = "0 seconds ago";
@@ -306,29 +286,41 @@ else {
                     const s = last_scan[i];
                     if (!request.mobile) {
                     %}
-                    <tr><td>{{95 + s.signal}}</td><td>{{s.signal}}</td><td>{{s.chan}}</td><td>-</td><td>{{s.ssid}}</td><td>{{s.hostname || s.ip || "-"}}</td><td>{{s.mac}}</td><td>{{s.mode}}</td></tr>
+                    <tr><td>{{s.signal === 9999 ? "-" : (95 + s.signal)}}</td><td>{{s.signal === 9999 ? "-" : s.signal}}</td><td>{{s.chan}}</td><td>-</td><td>{{s.ssid}}</td><td>{{s.hostname || s.ip || "-"}}</td><td>{{s.mac}}</td><td>{{s.mode}}</td></tr>
                     {% } else { %}
-                    <tr><td>{{s.signal}}</td><td>{{s.chan}}</td><td>{{s.ssid}}</td><td>{{s.hostname || s.ip || "-"}}</td></tr>
+                    <tr><td>{{s.signal === 9999 ? "-" : s.signal}}</td><td>{{s.chan}}</td><td>{{s.ssid}}</td><td>{{s.hostname || s.ip || "-"}}</td></tr>
                     {% }
                 } %}
             </tbody>
         </table>
     </div>
+    {% if (qca988x_bug && !request.mobile) { %}
+    <span style="padding:10px;font-size:calc(var(--font-base-size) - 2px);color:var(--ctrl-modal-fg-help-color)">
+        Scanning on this hardware in this configuration is unreliable due to a firmware bug. You may need to repeat the scan several times
+        to get a complete list of visible nodes.
+    </span>
+    {% } %}
     <div class="cols" style="padding-top:6px">
         <div>Last Scan: {{scan_time}}</div>
         {% if (count > 1) { %}
         <span style="padding-right:10px">Radio
             <select id="scanwlan">
             {% for (let i = 0; i < length(config); i++) {
-                if (config[i].mode.mode !== radios.RADIO_OFF) {
-                    print(`<option value="${i}" ${i === selected ? "selected" : ""}>${config[i].iface}</option>`);
+                switch (config[i].mode.mode) {
+                    case radios.RADIO_MESH:
+                    case radios.RADIO_MESHSTA:
+                    case radios.RADIO_WAN:
+                        print(`<option value="${i}" ${i === selected ? "selected" : ""}>${config[i].iface}</option>`);
+                        break;
+                    default:
+                        break;
                 }
             } %}
             </select>
         </span>
-        <button hx-put="{{request.env.REQUEST_URI}}" hx-target="#ctrl-modal" hx-vals="js:{selected:htmx.find('#scanwlan').value}">Rescan</button>
+        <button id="wifi-rescan" hx-put="{{request.env.REQUEST_URI}}" hx-target="#ctrl-modal" hx-vals="js:{selected:htmx.find('#scanwlan').value}">Rescan</button>
         {% } else { %}
-        <button hx-put="{{request.env.REQUEST_URI}}" hx-target="#ctrl-modal">Rescan</button>
+        <button id="wifi-rescan" hx-put="{{request.env.REQUEST_URI}}" hx-target="#ctrl-modal">Rescan</button>
         {% } %}
     </div>
     {{_H("<br>Scan the appropriate radio spectrum for other nodes and wifi devices. What a node can find while scanning is highly dependent
@@ -338,7 +330,7 @@ else {
     <script>
     (function(){
         {{_R("open")}}
-        htmx.on("#wifi-scan + div button", "click", e => {
+        htmx.on("#wifi-rescan", "click", e => {
             const target = e.target;
             target.style.width="100px";
             target.innerText = "Scanning ";
