@@ -42,9 +42,9 @@ let count = 0;
 let selected = -1;
 for (let i = 0; i < length(config); i++) {
     const mode = config[i].mode.mode;
-    if (mode === radios.RADIO_MESH || mode === radios.RADIO_LAN || mode === radios.RADIO_WAN) {
+    if (mode === radios.RADIO_MESH || mode === radios.RADIO_MESHSTA || mode === radios.RADIO_WAN) {
         count++;
-        if (selected === -1 || mode == radios.RADIO_MESH) {
+        if (selected === -1 || config[selected].mode.mode === radios.RADIO_WAN) {
             selected = i;
         }
     }
