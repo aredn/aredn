@@ -251,7 +251,9 @@
                 const kvs = split(m[1], ", ");
                 for (let i = 0; i < length(kvs); i++) {
                     const kv = split(kvs[i], ": ");
-                    firmware_versions[trim(kv[0], "'")] = trim(kv[1], "'");
+                    if (index(trim(kv[0], "'"), "3.") !== 0) {
+                        firmware_versions[trim(kv[0], "'")] = trim(kv[1], "'");
+                    }
                 }
                 break;
             }
