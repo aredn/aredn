@@ -402,7 +402,9 @@ function remove(pubsub, id)
                 if (info.v1[i].id == id) {
                     splice(info.v1, i, 1);
                     f.seek();
-                    f.write(sprintf("%J", info));
+                    if (length(info.v1)) {
+                        f.write(sprintf("%J", info));
+                    }
                     f.truncate(f.tell());
                     f.lock("u");
                     f.close();
@@ -429,11 +431,11 @@ export function unpublish(id)
     return remove("publish", id);
 };
 
-function getByTopic(root, topic)
+function getByTopic(root, topic, targets)
 {
     const results = [];
     const topicbase = substr(topic, -1) === "*" ? substr(topic, 0, -1) : null;
-    const files = fs.lsdir(root);
+    const files = targets ? targets : fs.lsdir(root);
     if (files) {
         for (let i = 0; i < length(files); i++) {
             const file = `${root}/${files[i]}`;
@@ -462,7 +464,26 @@ function getByTopic(root, topic)
     return results;
 }
 
-export function published(topic)
+export function published(topic, targets)
 {
-    return getByTopic(`${allpubsubbase}/publish`, topic);
+    return getByTopic(`${allpubsubbase}/publish`, topic, targets);
 };
+
+const watchers = {};
+
+export function watch(type)
+{
+    const f = fs.popen(`echo $$;exec /usr/bin/inotifywait --monitor --quiet --format '%w%f' --event close_write /var/run/arednlink/${type ?? "publish"}/`);
+    watchers[f] = f.read("line");
+    return f;
+};
+
+export function unwatch(handle)
+{
+    const pid = watchers[handle];
+    if (pid) {
+        system(`/bin/kill -9 ${pid}`);
+        handle.close();
+    }
+};
+
