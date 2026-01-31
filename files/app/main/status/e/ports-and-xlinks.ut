@@ -72,6 +72,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             xlinks[xs[i].name] = xs[i];
         }
         let defport = "eth0";
+        const defxcost = uciMesh.get("babel", "xlink", "rxcost");
         const ports = hardware.getEthernetPorts();
         if (length(ports) > 0) {
             defport = ports[0].k;
@@ -99,7 +100,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                         uciMesh.delete("xlink", `${name}route`);
                     }
                 }
-                uciMesh.set("xlink", name, "cost", ux.cost);
+                uciMesh.set("xlink", name, "cost", ux.cost ?? defxcost);
                 uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
                 delete xlinks[name];
             }
@@ -120,7 +121,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             uciMesh.set("xlink", name, "interface");
             uciMesh.set("xlink", name, "ifname", `br0.${ux.vlan}`);
             uciMesh.set("xlink", name, "ipaddr", ux.ipaddr);
-            uciMesh.set("xlink", name, "cost", ux.cost);
+            uciMesh.set("xlink", name, "cost", ux.cost ?? defxcost);
             uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
             if (ux.peer) {
                 uciMesh.set("xlink", name, "peer", ux.peer);
