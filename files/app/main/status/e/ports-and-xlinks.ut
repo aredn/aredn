@@ -79,29 +79,18 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
         const ucixlinks = {};
         uciMesh.foreach("xlink", "interface", x => {
-            ucixlinks[x[".name"]] = { peer: x.peer };
+            ucixlinks[x[".name"]] = true;
         });
         for (let name in ucixlinks) {
-            const x = ucixlinks[name];
             const ux = xlinks[name];
             if (ux) {
                 uciMesh.set("xlink", `${name}bridge`, "vlan", ux.vlan);
                 uciMesh.set("xlink", `${name}bridge`, "ports", [ `${ux.port || defport}:t` ]);
                 uciMesh.set("xlink", name, "ifname", `br0.${ux.vlan}`);
                 uciMesh.set("xlink", name, "ipaddr", ux.ipaddr);
-                if (x.peer !== ux.peer) {
-                    uciMesh.set("xlink", name, "peer", ux.peer);
-                    if (ux.peer) {
-                        uciMesh.set("xlink", `${name}route`, "route");
-                        uciMesh.set("xlink", `${name}route`, "interface", name);
-                        uciMesh.set("xlink", `${name}route`, "target", ux.peer);
-                    }
-                    else {
-                        uciMesh.delete("xlink", `${name}route`);
-                    }
-                }
                 uciMesh.set("xlink", name, "cost", ux.cost ?? defxcost);
                 uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
+                uciMesh.set("xlink", name, "note", ux.note);
                 delete xlinks[name];
             }
             else {
@@ -123,12 +112,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             uciMesh.set("xlink", name, "ipaddr", ux.ipaddr);
             uciMesh.set("xlink", name, "cost", ux.cost ?? defxcost);
             uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
-            if (ux.peer) {
-                uciMesh.set("xlink", name, "peer", ux.peer);
-                uciMesh.set("xlink", `${ux.name}route`, "route");
-                uciMesh.set("xlink", `${ux.name}route`, "interface", ux.name);
-                uciMesh.set("xlink", `${ux.name}route`, "target", ux.peer);
-            }
+            uciMesh.set("xlink", name, "note", ux.note);
             uciMesh.set("xlink", name, "proto", "static");
             uciMesh.set("xlink", name, "macaddr", replace("x2:xx:xx:xx:xx:xx", "x", _ => sprintf("%X",math.rand()&15)));
         }
@@ -236,10 +220,10 @@ uciMesh.foreach("xlink", "interface", x => {
         name: x[".name"],
         vlan: int(split(x.ifname, ".")[1]),
         ipaddr: x.ipaddr,
-        peer: x.peer || "",
         cost: x.cost ? int(x.cost) : "",
         port: match(uciMesh.get("xlink", `${x[".name"]}bridge`, "ports")[0], /^(.+):/)[1],
-        cidr: network.netmaskToCIDR(x.netmask)
+        cidr: network.netmaskToCIDR(x.netmask),
+        note: x.note || ""
     });
 });
 const defxcost = uciMesh.get("babel", "xlink", "rxcost");
@@ -334,12 +318,12 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
                         <div>
                             <div>vlan</div>
                             <div>ip a&zwnj;ddress</div>
-                            <div>peer a&zwnj;ddress</div>
                             <div>cidr</div>
                             <div>cost</div>
                             {% if (haveports) { %}
                             <div>port</div>
                             {% } %}
+                            <div>note</div>
                         </div>
                         <div></div>
                     </div>
@@ -350,7 +334,6 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
                             <div>
                                 <input name="vlan" type="text" size="5" required pattern="([4-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" placeholder="VLan" value="{{x.vlan}}">
                                 <input name="ipaddr" type="text" size="25" required pattern="{{constants.patIP}}" placeholder="IP A&zwnj;ddress" value="{{x.ipaddr}}">
-                                <input name="peer" type="text" size="25" pattern="{{constants.patIP}}" placeholder="IP A&zwnj;ddress" value="{{x.peer}}">
                                 <select name="cidr">
                                     <option value="32" {{x.cidr === 32 ? "selected" : ""}}>PtP</option>
                                     <option value="31" {{x.cidr === 31 ? "selected" : ""}}>/ 31</option>
@@ -381,6 +364,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
                                 %}
                                 </select>
                                 {% } %}
+                                <input name="note" type="text"  placeholder="Note" value="{{x.note}}">
                             </div>
                             <button>-</button>
                         </div>
@@ -415,16 +399,16 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
             const xlink = xlinks.find(x => x.name == target.dataset.name);
             const vlan = htmx.find(target, "[name=vlan]");
             const ipaddr = htmx.find(target, "[name=ipaddr]");
-            const peer = htmx.find(target, "[name=peer]");
             const cost = htmx.find(target, "[name=cost]");
             const port = htmx.find(target, "[name=port]");
             const cidr = htmx.find(target, "[name=cidr]");
+            const note = htmx.find(target, "[name=note]");
             xlink.vlan = parseInt(vlan.value);
             xlink.ipaddr = ipaddr.value;
-            xlink.peer = peer.value;
             xlink.cost = cost.value ? parseInt(cost.value) : null;
             xlink.port = port ? port.value : null;
             xlink.cidr = parseInt(cidr.value);
+            xlink.note = note.value || "";
             update();
         });
         htmx.on("#ctrl-modal .dialog #xlink-list", "click", event => {
@@ -449,7 +433,6 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
                 name: name,
                 vlan: "",
                 ipaddr: "",
-                peer: "",
                 cost: 0,
                 port: null,
                 cidr: 32
@@ -461,7 +444,6 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
 <div>
     <input name="vlan" type="text" size="5" required pattern="([4-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" placeholder="VLan">
     <input name="ipaddr" type="text" size="25" required pattern="${patIP}" placeholder="IP A&zwnj;ddress">
-    <input name="peer" type="text" size="25" pattern="${patIP}" placeholder="IP A&zwnj;ddress">
     <select name="cidr">
         <option value="32">PtP</option>
         <option value="31">/ 31</option>
@@ -490,6 +472,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
         }
     %}
     </select>{% } %}
+    <input name="note" type="text" placeholder="Note">
 </div>
 <button>-</button>
 </div>`;
