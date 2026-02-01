@@ -90,6 +90,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 uciMesh.set("xlink", name, "ipaddr", ux.ipaddr);
                 uciMesh.set("xlink", name, "cost", ux.cost ?? defxcost);
                 uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
+                uciMesh.set("xlink", name, "note", ux.note);
                 delete xlinks[name];
             }
             else {
@@ -111,6 +112,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             uciMesh.set("xlink", name, "ipaddr", ux.ipaddr);
             uciMesh.set("xlink", name, "cost", ux.cost ?? defxcost);
             uciMesh.set("xlink", name, "netmask", network.CIDRToNetmask(ux.cidr));
+            uciMesh.set("xlink", name, "note", ux.note);
             uciMesh.set("xlink", name, "proto", "static");
             uciMesh.set("xlink", name, "macaddr", replace("x2:xx:xx:xx:xx:xx", "x", _ => sprintf("%X",math.rand()&15)));
         }
@@ -220,7 +222,8 @@ uciMesh.foreach("xlink", "interface", x => {
         ipaddr: x.ipaddr,
         cost: x.cost ? int(x.cost) : "",
         port: match(uciMesh.get("xlink", `${x[".name"]}bridge`, "ports")[0], /^(.+):/)[1],
-        cidr: network.netmaskToCIDR(x.netmask)
+        cidr: network.netmaskToCIDR(x.netmask),
+        note: x.note || ""
     });
 });
 const defxcost = uciMesh.get("babel", "xlink", "rxcost");
@@ -320,6 +323,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
                             {% if (haveports) { %}
                             <div>port</div>
                             {% } %}
+                            <div>note</div>
                         </div>
                         <div></div>
                     </div>
@@ -360,6 +364,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
                                 %}
                                 </select>
                                 {% } %}
+                                <input name="note" type="text"  placeholder="Note" value="{{x.note}}">
                             </div>
                             <button>-</button>
                         </div>
@@ -397,11 +402,13 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
             const cost = htmx.find(target, "[name=cost]");
             const port = htmx.find(target, "[name=port]");
             const cidr = htmx.find(target, "[name=cidr]");
+            const note = htmx.find(target, "[name=note]");
             xlink.vlan = parseInt(vlan.value);
             xlink.ipaddr = ipaddr.value;
             xlink.cost = cost.value ? parseInt(cost.value) : null;
             xlink.port = port ? port.value : null;
             xlink.cidr = parseInt(cidr.value);
+            xlink.note = note.value || "";
             update();
         });
         htmx.on("#ctrl-modal .dialog #xlink-list", "click", event => {
@@ -465,6 +472,7 @@ if (length(radio) > 0 && (radio[0].mode.mode === radios.RADIO_WAN || (length(rad
         }
     %}
     </select>{% } %}
+    <input name="note" type="text" placeholder="Note">
 </div>
 <button>-</button>
 </div>`;
