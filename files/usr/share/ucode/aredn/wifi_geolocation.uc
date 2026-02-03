@@ -33,8 +33,12 @@ export function lookup()
         system(`/sbin/wifi down ${wifi}`);
 
         // Make sure interface is actually down before initiating scan
-        while (system(`/usr/bin/iwinfo ${wifi} info | grep -q 'Mode: Unknown'`) != 0) {
+	let max_retries = 5;
+        while ( max_retries &&
+                system(`/usr/bin/iwinfo ${wifi} info | grep -q 'Mode: Unknown'`) != 0) {
             log.syslog(log.LOG_DEBUG, `Waiting for ${wifi} to be down`);
+
+            max_retries--;
             sleep(1000);
         }
 
