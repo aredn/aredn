@@ -44,10 +44,10 @@ export function lookup()
 
         // Scan interface
         log.syslog(log.LOG_INFO, `Scanning ${wifi}`);
-        const f = fs.popen(`/usr/bin/iwinfo ${wifi} scan`);
+        const scan = fs.popen(`/usr/bin/iwinfo ${wifi} scan`);
 
         let line;
-        while (line = f.read("line")) {
+        while (line = scan.read("line")) {
             line = trim(line);
 
             if (match(line, /^Cell/)) {
@@ -77,7 +77,7 @@ export function lookup()
             }
         }
 
-        f.close();
+        scan.close();
 
         // Push the last AP
         if (current_ap) {
