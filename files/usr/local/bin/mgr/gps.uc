@@ -34,26 +34,37 @@
 const CONFIG0 = "/etc/config.mesh/gpsd";
 const CONFIG1 = "/etc/config/gpsd";
 const CHANGEMARGIN = 0.0001;
+const MAX_EPH = 1000; // Only use locations with <= 1km horizontal accuracy
 
 let gps;
 
 function main()
 {
     const c = uci.cursor();
-    const j = hardware.GPSReadLLT(gps);
+    let j = hardware.GPSReadLLT(gps);
+
+    // Fall back to WiFi-based geolocation if gpsd didn't work out
+    if (!j && c.get("aredn", "@location[0]", "wifi_enable") == "1") {
+        j = wifi_geolocation.lookup();
+    }
 
     // Update time and date
-    if (c.get("aredn", "@time[0]", "gps_enable") == "1" && j.time) {
+    if (c.get("aredn", "@time[0]", "gps_enable") == "1" && j && j.time) {
         system(`/bin/date -u -s '${j.time}' > /dev/null 2>&1`);
         fs.writefile("/tmp/timesync", "gps");
     }
 
+    // Reject wildly inaccurate locations
+    if (j && j.eph && j.eph > MAX_EPH) {
+        // TODO Should we consider checking again in a shorter interval?
+        return waitForTicks(600); // 10 minutes
+    }
+
     // Set location if significantly changed
-    if (c.get("aredn", "@location[0]", "gps_enable") == "1" && j.lat && j.lon) {
+    if (c.get("aredn", "@location[0]", "gps_enable") == "1" && j && j.lat && j.lon) {
         const clat = 1 * c.get("aredn", "@location[0]", "lat");
         const clon = 1 * c.get("aredn", "@location[0]", "lon");
         if (math.abs(clat - j.lat) > CHANGEMARGIN || math.abs(clon - j.lon) > CHANGEMARGIN) {
-            log.syslog(log.LOG_NOTICE, `Updating lat/lon: ${j.lat},${j.lon}`);
             // Calculate gridsquare from lat/lon
             const alat = j.lat + 90;
             const flat = 65 + int(alat / 10);
@@ -104,6 +115,10 @@ option listen_globally '1'
             system("/etc/init.d/gpsd restart");
         }
         return main;
+    }
+    else if (uci.cursor().get("aredn", "@location[0]", "wifi_enable") == "1") {
+        // TODO find a better way to check this config no more than once per cycle
+	return main;
     }
     else {
         return waitForTicks(600); // 10 minutes
