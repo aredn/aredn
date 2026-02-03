@@ -54,7 +54,9 @@ export function lookup()
                 // New AP
                 if (current_ap) {
                     // Store previously current AP
-                    push(access_points, current_ap)
+                    push(access_points, current_ap);
+                    log.syslog(log.LOG_DEBUG, `Found AP: %s %-d dBm`,
+                        current_ap.macAddress, current_ap.signalStrength);
                 }
                 current_ap = {};
             }
@@ -80,11 +82,15 @@ export function lookup()
         // Push the last AP
         if (current_ap) {
             push(access_points, current_ap);
+            log.syslog(log.LOG_DEBUG, `Found AP: %s %-d dBm`,
+                current_ap.macAddress, current_ap.signalStrength);
         }
 
         // Bring interface back up
         log.syslog(log.LOG_NOTICE, `Bringing ${wifi} up`);
         system(`/sbin/wifi up ${wifi}`);
+
+        log.syslog(log.LOG_INFO, `Found %d AP(s)`, length(access_points));
 
         // Generate the request string
         request = sprintf("%J\n", { wifiAccessPoints: access_points });
