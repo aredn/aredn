@@ -181,7 +181,7 @@ if (match(q, /link_info=1/)) {
         const lqm = json(fs.readfile("/tmp/lqm.info"));
         for (let mac in lqm.trackers) {
             const tracker = lqm.trackers[mac];
-            const ip = tracker.canonical_ip || tracker.ip;
+            const ip = tracker.ip || tracker.canonical_ip;
             if (ip && tracker.hostname) {
                 const data = {
                     hostname: tracker.hostname,
