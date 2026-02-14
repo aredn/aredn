@@ -33,6 +33,19 @@
  */
 %}
 {%
+if (!(configuration.isConfigured() && config.authenable) && request.env.REQUEST_METHOD === "POST") {
+    if (request.args.firmwarefile) {
+        response.reboot = `/usr/local/bin/aredn_sysupgrade --firstuse ${request.args.firmwarefile}`;
+        print(_R("reboot-firstuse-ram"));
+        return;
+    }
+    if (request.args.restorefile) {
+        configuration.restore(request.args.restorefile);
+        response.reboot = "/sbin/reboot";
+        print(_R("reboot-firstuse-restore"));
+        return;
+    }
+}
 if (!(configuration.isConfigured() && config.authenable) && request.env.REQUEST_METHOD === "PUT") {
     system(`/usr/local/bin/setpasswd '${request.args.passwd}' > /dev/null 2>&1`);
     configuration.setName(request.args.name);
@@ -70,25 +83,47 @@ if (!(configuration.isConfigured() && config.authenable) && request.env.REQUEST_
                 <div>
                     <div class="cols">
                         <div>Node Name</div>
-                        <div><input type="text" name="name" required pattern="{{constants.patNodename}}"></div>
+                        <div><input type="text" name="name" required pattern="{{constants.patNodename}}" {{request.headers['include-advanced'] === "1" ? "disabled" : ""}}></div>
                     </div>
                     <div>
                         <small>This is the unique name given to your node. It must start with your callsign which must be capitalized. For example, <b>K6AH-home</b></small>
                     </div>
                     <div class="cols password-toggle">
                         <div>New Password</div>
-                        <div><input type="password" name="passwd1" required pattern="`[^#'"]+" minlength="4"><button class="icon eye"></div>
+                        <div><input type="password" name="passwd1" required pattern="`[^#'"]+" minlength="4" {{request.headers['include-advanced'] === "1" ? "disabled" : ""}}><button class="icon eye"></div>
                     </div>
                     <div class="cols password-toggle">
                         <div>Retype Password</div>
-                        <div><input type="password" name="passwd2" required pattern="" minlength="4"><button class="icon eye"></div>
+                        <div><input type="password" name="passwd2" required pattern="" minlength="4" {{request.headers['include-advanced'] === "1" ? "disabled" : ""}}><button class="icon eye"></div>
                     </div>
                     <div>
                         <small>Enter a password, twice, to assign to your node for access to configuration information later</small>
                     </div>
+                    <div class="ctrl-modal-advanced {{request.headers['include-advanced'] === "1" ? "active" : ""}}">
+                        <hr>
+                        <button style="background:transparent;border:0" hx-get="{{request.env.REQUEST_URI}}" hx-target="body" hx-headers='{"Include-Advanced":"{{request.headers['include-advanced'] === "1" ? "0" : "1"}}"}'>Advanced</button>
+                    </div>
+                    <div>
+                        <div>
+                            <div class="cols">
+                                <div>Update Firmware</div>
+                                <div><input type="file" name="firmware" accept=".bin,.gz,.itb"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="cols">
+                                <div>Restore Configuration</div>
+                                <div><input type="file" name="restore" accept=".backup"></div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="cols">
                         <div></div>
+                        {% if (request.headers['include-advanced'] === "1") { %}
+                        <div><button class="save" disabled hx-encoding="multipart/form-data">Update</button></div>
+                        {% } else { %}
                         <div><button class="save" disabled>Save &amp; Reboot</button></div>
+                        {% } %}
                     </div>
                 </div>
             </div>
@@ -121,15 +156,47 @@ if (!(configuration.isConfigured() && config.authenable) && request.env.REQUEST_
         htmx.on("input[name=name]", "keyup", change);
         htmx.on("input[name=passwd1]", "keyup", change);
         htmx.on("input[name=passwd2]", "keyup", change);
-        htmx.on("button.save", "click", _ => {
+        htmx.on("button.save", "click", e => {
             htmx.find("button.save").disabled = true;
-            htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
-                values: {
-                    name: htmx.find("input[name=name]").value,
-                    passwd: htmx.find("input[name=passwd1]").value
-                },
-                swap: "none"
-            });
+            if (htmx.find("button.save").innerHTML === "Update") {
+                htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
+                    source: e.currentTarget,
+                    values: {
+                        firmwarefile: htmx.find("input[name=firmware]").files[0]
+                    },
+                    swap: "none"
+                });
+            }
+            else if (htmx.find("button.save").innerHTML === "Restore") {
+                htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
+                    source: e.currentTarget,
+                    values: {
+                        restorefile: htmx.find("input[name=restore]").files[0]
+                    },
+                    swap: "none"
+                });
+            }
+            else {
+                htmx.ajax("PUT", "{{request.env.REQUEST_URI}}", {
+                    values: {
+                        name: htmx.find("input[name=name]").value,
+                        passwd: htmx.find("input[name=passwd1]").value
+                    },
+                    swap: "none"
+                });
+            }
+        });
+        htmx.on("input[name=firmware]", "change", _ => {
+            if (htmx.find("input[name=firmware]").files[0]) {
+                htmx.find("button.save").disabled = false;
+                htmx.find("button.save").innerHTML = "Update";
+            }
+        });
+        htmx.on("input[name=restore]", "change", _ => {
+            if (htmx.find("input[name=restore]").files[0]) {
+                htmx.find("button.save").disabled = false;
+                htmx.find("button.save").innerHTML = "Restore";
+            }
         });
     })();
     </script>
