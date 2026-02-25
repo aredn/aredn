@@ -43,7 +43,7 @@ const name = ARGV[0];
 const passwd = replace(ARGV[1], /'/, "\\'");
 
 // Set the password
-system(`/usr/local/bin/setpasswd '${passwd}'`);
+system([ "/usr/local/bin/setpasswd", passwd ]);
 
 // Set the node name
 const c = uci.cursor("/etc/local/uci");

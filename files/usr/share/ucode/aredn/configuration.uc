@@ -103,6 +103,11 @@ export function reset()
     setupChanged = false;
 };
 
+export function shellEscape(str)
+{
+    return '"' + replace(str, /(["'$`\\])/g, '\\$1') + '"';
+};
+
 export function getSettingAsString(key, def)
 {
     initSetup();
@@ -348,7 +353,7 @@ export function commitChanges()
         removeConfig(currentConfig);
         if (fs.access("/tmp/newpassword")) {
             const pw = fs.readfile("/tmp/newpassword");
-            system(`/usr/local/bin/setpasswd '${pw}'`);
+            system(`/usr/local/bin/setpasswd ${shellEscape(pw)}`);
             fs.unlink("/tmp/newpassword");
         }
         const n = fs.popen("exec /usr/local/bin/node-setup");
