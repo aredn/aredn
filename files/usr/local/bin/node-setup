@@ -1317,7 +1317,8 @@ const special = {
     power_usb: c.get("aredn", "@usb[0]", "passthrough"),
     ntp_period: c.get("aredn", "@ntp[0]", "period"),
     beacon_enable: c.get("aredn", "@beacon[0]", "enable"),
-    protocol_buffer_size: c.get("aredn", "@babel[0]", "protocol_buffer_size")
+    protocol_buffer_size: c.get("aredn", "@babel[0]", "protocol_buffer_size"),
+    packages_default: c.get("aredn", "@downloads[0]", "packages_default")
 
 };
 const nfiles = {};
@@ -1419,6 +1420,9 @@ for (let file in nfiles) {
                 }
                 if (special.protocol_buffer_size != oc.get("aredn", "@babel[0]", "protocol_buffer_size")) {
                     changes.babel = true;
+                }
+                if (special.packages_default != oc.get("aredn", "@downloads[0]", "packages_default")) {
+                    changes.reboot = true;
                 }
                 break;
             }
