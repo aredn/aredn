@@ -688,6 +688,13 @@ if (fw) {
                 if (!match(m[3], /\-/)) {
                     host += `\toption dest_port '${m[5]}'\n`;
                 }
+                else {
+                    const range = split(trim(m[3]), "-");
+                    if (length(range) === 2) {
+                        const end = int(m[5]) + int(range[1]) - int(range[0]);
+                        host += `\toption dest_port '${m[5]}-${end}'\n`;
+                    }
+                }
                 let intf = m[1];
                 if (isDmzMode() && intf == "both") {
                     intf = "wan";
