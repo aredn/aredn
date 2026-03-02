@@ -45,11 +45,16 @@ if (apps && length(apps) > 0) {
                     first = false;
                     %}<hr>{%
                 }
+                let color = "";
                 let badge = auth.isAdmin ? fs.readfile(`/tmp/apps/${name}/badge`) : null;
                 if (badge) {
                     badge = configuration.escapeString(replace(badge, "\n", ""));
+                    const badgecolor = match(fs.readfile(`/tmp/apps/${name}/badge-color`) ?? "", /^#(......)/);
+                    if (badgecolor) {
+                        color = `style="background-color:#${badgecolor[1]}"`;
+                    }
                 }
-                %}<a class="app-user" title="Launch {{name}} app" target="_blank" href="/cgi-bin/apps/{{name}}/{{index}}"><img class="icon" src="/apps/{{name}}/icon.svg">{{badge ? `<div>${trim(badge)}</div>` : ""}}</a>{%
+                %}<a class="app-user" title="Launch {{name}} app" target="_blank" href="/cgi-bin/apps/{{name}}/{{index}}"><img class="icon" src="/apps/{{name}}/icon.svg">{{badge ? `<div ${color}>${trim(badge)}</div>` : ""}}</a>{%
             }
         }
     }
