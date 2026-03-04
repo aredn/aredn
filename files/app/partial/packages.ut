@@ -36,13 +36,12 @@
 if (auth.isAdmin) {
     let count = 0;
     if (!fs.access("/etc/cron.boot/reinstall-packages")) {
-        const opkgs = {};
-        map(split(fs.readfile("/etc/permpkg"), "\n"), p => opkgs[p] = true);
-        const f = fs.popen("/bin/opkg list-installed");
+        const pkgs = {};
+        map(split(fs.readfile("/etc/permpkg"), "\n"), p => pkgs[p] = true);
+        const f = fs.popen("/usr/bin/apk info");
         if (f) {
             for (let l = f.read("line"); length(l); l = f.read("line")) {
-                const m = match(l, /^[^ \t]+/);
-                if (m && !opkgs[m[0]]) {
+                if (m && !pkgs[trim(l)]) {
                     count++;
                 }
             }
