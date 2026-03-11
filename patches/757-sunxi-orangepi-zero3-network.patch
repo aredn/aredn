@@ -1,0 +1,15 @@
+--- a/target/linux/sunxi/base-files/etc/board.d/02_network
++++ b/target/linux/sunxi/base-files/etc/board.d/02_network
+@@ -10,6 +10,13 @@ sunxi_setup_interfaces()
+ 	local board="$1"
+ 
+ 	case "$board" in
++	xunlong,orangepi-zero3)
++		ucidef_set_interfaces_lan_wan "eth0" "eth1"
++		ucidef_set_interface "dtdlink" device "eth0.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
++		;;
++
+ 	friendlyarm,nanopi-m1-plus | \
+ 	friendlyarm,nanopi-neo-plus2 | \
+ 	friendlyarm,nanopi-neo-core2 | \
