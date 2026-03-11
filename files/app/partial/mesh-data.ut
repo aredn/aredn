@@ -36,6 +36,7 @@
 print("<script>\n");
 print("window.mesh = {hosts:{");
 
+const reTitle = /^##(.+)##$/;
 const reHosts = /^([0-9.]+)[ \t]+([^ \t]+)/;
 const reServices = /^([^|]+)\|(tcp|udp)\|(.+)$/;
 const reRoute = /^add route .+ prefix ([^ /]+).+installed yes.+metric ([^ ]+)/;
@@ -85,12 +86,18 @@ if (sd) {
             const f = fs.open(`/var/run/arednlink/services/${entry}`);
             if (f) {
                 let empty = true;
+                let title = entry;
                 for (let l = f.read("line"); length(l); l = f.read("line")) {
-                    const m = match(trim(l), reServices);
+                    l = trim(l);
+                    const t = match(l, reTitle);
+                    if (t) {
+                        title = t[1];
+                    }
+                    const m = match(l, reServices);
                     if (m) {
                         if (empty) {
                             empty = false;
-                            print(`"${entry}":[`);
+                            print(`"${title}":[`);
                         }
                         print(`{n:"${m[3]}",u:"${m[1]}"},`);
                     }
