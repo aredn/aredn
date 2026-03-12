@@ -72,11 +72,15 @@ if (fs.access(packageCatalog)) {
             if (fs.access(file)) {
                 apk_with_retry(`add --allow-untrusted ${file}`);
 			}
+			else {
+				delete catalog.installed[pkg];
+			}
 		}
         else if (state == "global") {
             apk_with_retry(`add ${pkg}`);
 		}
 	}
+	fs.writefile(packageCatalog, sprintf("%J", catalog));
 }
 
 // Don't do this again
