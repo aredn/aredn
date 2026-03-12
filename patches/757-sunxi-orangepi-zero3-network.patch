@@ -1,6 +1,6 @@
---- a/target/linux/sunxi/base-files/etc/board.d/02_network
-+++ b/target/linux/sunxi/base-files/etc/board.d/02_network
-@@ -10,6 +10,13 @@ sunxi_setup_interfaces()
+--- a/target/linux/sunxi/base-files/etc/board.d/02_network	2026-03-12 05:36:21.618669928 +0300
++++ b/target/linux/sunxi/base-files/etc/board.d/02_network	2026-03-12 05:36:31.459601747 +0300
+@@ -10,6 +10,12 @@
  	local board="$1"
  
  	case "$board" in
@@ -10,6 +10,6 @@
 +		ucidef_set_interface "wifi" device "wlan0" protocol "static"
 +		;;
 +
- 	friendlyarm,nanopi-m1-plus | \
- 	friendlyarm,nanopi-neo-plus2 | \
- 	friendlyarm,nanopi-neo-core2 | \
+ 	friendlyarm,nanopi-r1|\
+ 	friendlyarm,nanopi-r1s-h5)
+ 		ucidef_set_interfaces_lan_wan "eth1" "eth0"
