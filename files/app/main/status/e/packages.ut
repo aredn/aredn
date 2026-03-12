@@ -46,9 +46,8 @@ function getPackageOptions()
 
     map(split(fs.readfile("/etc/permpkg"), "\n"), p => perm_pkgs[p] = true);
 
-    let f = fs.popen("/usr/bin/apk info");
+    let f = fs.popen("/usr/bin/apk info 2>/dev/null");
     if (f) {
-        const re = /^([^ \t]+)[ \t]-[ \t](.+)/;
         for (let l = f.read("line"); length(l); l = f.read("line")) {
             l = trim(l);
             installed_pkgs[l] = true;
@@ -59,9 +58,9 @@ function getPackageOptions()
         f.close();
     }
 
-    f = fs.popen("/usr/bin/apk info --available");
+    f = fs.popen("/usr/bin/apk list 2>/dev/null");
     if (f) {
-        const re = /^([^ ]+) - ([-0-9a-fr\.]+)(.*)$/;
+        const re = /^([^ ]+)-[0-9].+$/;
         for (let l = f.read("line"); length(l); l = f.read("line")) {
             let m = match(trim(l), re);
             if (m && !installed_pkgs[m[1]]) {
@@ -80,8 +79,17 @@ function recordPackage(op, pkgname, pkgfile)
     const catalog = json(fs.readfile(catfile) || '{ "installed": {} }');
     switch (op) {
         case "upload":
-            fs.writefile(`${store}/${pkgname}.apk`, fs.readfile(pkgfile));
-            catalog.installed[pkgname] = "local";
+            fs.mkdir("/tmp/apk");
+            if (system(`/usr/bin/apk extract --allow-untrusted --destination /tmp/apk ${pkgfile} >/dev/null 2>&1`) == 0) {
+                const f = fs.popen(`/usr/bin/basename /tmp/apk/lib/apk/packages/*.list .list 2>/dev/null`);
+                if (f) {
+                    pkgname = trim(f.read("all"));
+                    f.close();
+                    fs.writefile(`${store}/${pkgname}.apk`, fs.readfile(pkgfile));
+                    catalog.installed[pkgname] = "local";
+                }
+            }
+            system("/bin/rm -rf /tmp/apk");
             break;
         case "download":
             catalog.installed[pkgname] = "global";
@@ -102,29 +110,17 @@ function recordPackage(op, pkgname, pkgfile)
 if (request.env.REQUEST_METHOD === "POST" && request.args["packagefile.apk"] && request.args.packagename) {
     const pk = request.args["packagefile.apk"];
     const packagename = fs.readfile(request.args.packagename);
-    if (system(`/usr/bin/apk --allow-untrusted add ${pk} > /dev/null 2>&1`) === 0) {
+    if (system(`/usr/bin/apk --allow-untrusted add ${pk} >/tmp/pkg.log 2>/dev/null`) === 0) {
         recordPackage("upload", packagename, pk);
         print(`<div id="dialog-messages-success" hx-swap-oob="innerHTML">Package installed</div>`);
     }
     else {
-        if (system("/usr/bin/apkg update > /tmp/pkg.log 2>&1") !== 0) {
-            print(`<div id="dialog-messages-error" hx-swap-oob="innerHTML">${log()}</div>`);
-        }
-        else {
-            if (system(`/usr/bin/apk --allow-untrusted add ${pk} > /tmp/pkg.log 2>&1`) === 0) {
-                recordPackage("upload", packagename, ipk);
-                print(`<div id="dialog-messages-success" hx-swap-oob="innerHTML">Package installed</div>`);
-            
-            }
-            else {
-                print(`<div id="dialog-messages-error" hx-swap-oob="innerHTML">${log()}</div>`);
-            }
-        }
+        print(`<div id="dialog-messages-error" hx-swap-oob="innerHTML">${log()}</div>`);
     }
     const po = getPackageOptions();
     print(`<select id="download-package" hx-swap-oob="innerHTML">${po.i}</select>`);
     print(`<select id="remove-package" hx-swap-oob="innerHTML">${po.r}</select>`);
-    fs.unlink(ipk);
+    fs.unlink(pk);
     fs.unlink(request.args.packagename);
     fs.unlink("/tmp/pkg.log");
     return;
@@ -136,34 +132,20 @@ else if (request.env.REQUEST_METHOD === "GET" && index(request.env.QUERY_STRING,
     fs.unlink("/tmp/pkg.log");
     const pk = substr(request.env.QUERY_STRING, 2);
     uhttpd.send(`event: progress\r\ndata: 10\r\n\r\n`);
-    if (system(`/usr/bin/apk add ${pk} > /dev/null 2>&1`) === 0) {
+    if (system(`/usr/bin/apk add ${pk} >/tmp/pkg.log 2>/dev/null`) === 0) {
         uhttpd.send(`event: progress\r\ndata: 100\r\n\r\n`);
         recordPackage("download", pk);
         uhttpd.send(`event: close\r\ndata: ${sprintf("%J", getPackageOptions())}\r\n\r\n`);
     }
     else {
-        uhttpd.send(`event: progress\r\ndata: 20\r\n\r\n`);
-        if (system("/usr/bin/apk update > /tmp/pkg.log 2>&1") !== 0) {
-            uhttpd.send(`event: error\r\ndata: ${log()}\r\n\r\n`);
-        }
-        else {
-            uhttpd.send(`event: progress\r\ndata: 40\r\n\r\n`);
-            if (system(`/usr/bin/apk add ${pk} > /tmp/pkg.log 2>&1`) === 0) {
-                uhttpd.send(`event: progress\r\ndata: 100\r\n\r\n`);
-                recordPackage("download", pk);
-                uhttpd.send(`event: close\r\ndata: ${sprintf("%J", getPackageOptions())}\r\n`);
-            }
-            else {
-                uhttpd.send(`event: error\r\ndata: ${log()}\r\n\r\n`);
-            }
-        }
+        uhttpd.send(`event: error\r\ndata: ${log()}\r\n\r\n`);
     }
     fs.unlink("/tmp/pkg.log");
     return;
 }
 else if (request.env.REQUEST_METHOD === "GET" && index(request.env.QUERY_STRING, "r=") === 0) {
     const pk = substr(request.env.QUERY_STRING, 2);
-    if (system(`/usr/bin/apk del ${pk} > /tmp/pkg.log 2>&1`) === 0) {
+    if (system(`/usr/bin/apk del ${pk} > /tmp/pkg.log 2>/dev/null`) === 0) {
         recordPackage("remove", pk);
         print(`<div id="dialog-messages-success" hx-swap-oob="innerHTML">Package removed</div>`);
         const po = getPackageOptions();
@@ -177,7 +159,7 @@ else if (request.env.REQUEST_METHOD === "GET" && index(request.env.QUERY_STRING,
 }
 else if (request.env.REQUEST_METHOD === "GET" && index(request.env.QUERY_STRING, "i=") === 0) {
     const pk = substr(request.env.QUERY_STRING, 2);
-    if (system(`/usr/bin/apk info -d ${pk} > /tmp/pkg.log 2>&1`) === 0) {
+    if (system(`/usr/bin/apk info -d ${pk} > /tmp/pkg.log 2>/dev/null`) === 0) {
         print(`<div id="package-info" hx-swap-oob="innerHTML">${log()}</div>`);
     }
     return;
@@ -186,14 +168,14 @@ else if (request.env.REQUEST_METHOD === "GET" && request.env.QUERY_STRING === "v
     response.override = true;
     uhttpd.send("Status: 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\n\r\n");
 
-    const pulines = 7;
-    const f = fs.popen("/usr/bin/apk update 2>&1");
+    const pulines = 8;
+    const f = fs.popen("/usr/bin/apk update 2>/dev/null");
     if (!f) {
         uhttpd.send(`event: error\r\ndata: package update failed\r\n\r\n`);
         return;
     }
     let count = 0;
-    const re = /^Updated/;
+    const re = /\[http/;
     for (let l = f.read("line"); length(l); l = f.read("line")) {
         if (match(l, re)) {
             count++;
@@ -244,7 +226,7 @@ const po = getPackageOptions();
                 <div class="m">Upload a package file from your computer.</div>
             </div>
             <div style="flex:0">
-                <input id="upload-package" type="file" accept=".ipk">
+                <input id="upload-package" type="file" accept=".apk">
             </div>
         </div>
         {{_H("Upload a package file from your computer. Once the package has been selected it can be uploaded and installed

@@ -41,7 +41,7 @@ if (auth.isAdmin) {
         const f = fs.popen("/usr/bin/apk info");
         if (f) {
             for (let l = f.read("line"); length(l); l = f.read("line")) {
-                if (m && !pkgs[trim(l)]) {
+                if (!pkgs[trim(l)]) {
                     count++;
                 }
             }

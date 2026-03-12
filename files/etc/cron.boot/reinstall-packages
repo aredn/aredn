@@ -41,14 +41,14 @@ const packageCatalog = `${packageStore}/catalog.json`;
 function apk_with_retry(arg)
 {
 	for (let i = 0; i < 5; i++) {
-		if (system(`apk ${arg}`) != 255) {
+		if (system(`/usr/bin/apk ${arg} 2>/dev/null`) != 255) {
 			break;
 		}
 		sleep(5000);
 	}
 }
 
-apk_with_retry("info 2>/dev/null > /etc/permpkg");
+apk_with_retry("info > /etc/permpkg");
 
 if (fs.access(packageCatalog)) {
 	// Make sure we can contact the package server before proceeding.
