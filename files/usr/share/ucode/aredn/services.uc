@@ -447,11 +447,14 @@ function getByTopic(root, topic, targets)
                         const filedata = f.read("all");
                         f.lock("u");
                         f.close();
-                        const j = json(filedata);
-                        for (let i = 0; i < length(j.v1 ?? []); i++) {
-                            const t = j.v1[i].topic;
-                            if (t === topic || (topicbase && index(t, topicbase) === 0)) {
-                                push(results, j.v1[i].data);
+                        const jl = json(filedata);
+                        for (let k in jl) {
+                            const j = jl[k];
+                            for (let i = 0; i < length(j?.v1 ?? []); i++) {
+                                const t = j.v1[i].topic;
+                                if (t === topic || (topicbase && index(t, topicbase) === 0)) {
+                                    push(results, j.v1[i].data);
+                                }
                             }
                         }
                     }
