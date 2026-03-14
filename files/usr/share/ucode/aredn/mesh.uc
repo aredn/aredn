@@ -68,14 +68,18 @@ export function getNodeCounts()
     let bservices = 0;
     let d = fs.opendir("/var/run/arednlink/hosts");
     if (d) {
+        const reT = /^##.+##/;
+        const reD = /\t[^\.]+$/;
+        const reS = /^[a-z]/;
         for (let entry = d.read(); entry; entry = d.read()) {
             if (entry !== "." && entry !== "..") {
-                bnodes++;
                 let f = fs.open(`/var/run/arednlink/hosts/${entry}`);
                 if (f) {
-                    const re = /\t[^\.]+$/;
                     for (let l = f.read("line"); l; l = f.read("line")) {
-                        if (match(l, re)) {
+                        if (match(l, reT)) {
+                            bnodes++;
+                        }
+                        else if (match(l, reD)) {
                             bdevices++;
                         }
                     }
@@ -83,8 +87,10 @@ export function getNodeCounts()
                 }
                 f = fs.open(`/var/run/arednlink/services/${entry}`);
                 if (f) {
-                    while(f.read("line")) {
-                        bservices++;
+                    for (let l = f.read("line"); l; l = f.read("line")) {
+                        if (match(l, reS)) {
+                            bservices++;
+                        }
                     }
                     f.close();
                 }
