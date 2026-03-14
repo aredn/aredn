@@ -85,8 +85,10 @@ function recordPackage(op, pkgname, pkgfile)
                 if (f) {
                     pkgname = trim(f.read("all"));
                     f.close();
-                    fs.writefile(`${store}/${pkgname}.apk`, fs.readfile(pkgfile));
-                    catalog.installed[pkgname] = "local";
+                    if (pkgname !== "*") {
+                        fs.writefile(`${store}/${pkgname}.apk`, fs.readfile(pkgfile));
+                        catalog.installed[pkgname] = "local";
+                    }
                 }
             }
             system("/bin/rm -rf /tmp/apk");
