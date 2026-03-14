@@ -49,7 +49,14 @@ if (hd) {
             if (f) {
                 let originator = null;
                 for (let l = f.read("line"); l; l = f.read("line")) {
-                    const m = match(trim(l), reHosts);
+                    l = trim(l);
+                    if (match(l, reTitle)) {
+                        if (originator) {
+                            print(`],`);
+                        }
+                        originator = null;
+                    }
+                    const m = match(l, reHosts);
                     if (m) {
                         const ip = m[1];
                         const host = m[2];

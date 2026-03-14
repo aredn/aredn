@@ -70,6 +70,7 @@ export function getNodeCounts()
     if (d) {
         const reT = /^##.+##/;
         const reD = /\t[^\.]+$/;
+        const reS = /^[a-z]/;
         for (let entry = d.read(); entry; entry = d.read()) {
             if (entry !== "." && entry !== "..") {
                 let f = fs.open(`/var/run/arednlink/hosts/${entry}`);
@@ -86,8 +87,10 @@ export function getNodeCounts()
                 }
                 f = fs.open(`/var/run/arednlink/services/${entry}`);
                 if (f) {
-                    while(f.read("line")) {
-                        bservices++;
+                    for (let l = f.read("line"); l; l = f.read("line")) {
+                        if (match(l, reS)) {
+                            bservices++;
+                        }
                     }
                     f.close();
                 }
