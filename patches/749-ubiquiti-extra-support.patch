@@ -93,10 +93,18 @@
  	ubnt,powerbeam-5ac-500|\
 --- a/target/linux/ath79/image/generic-ubnt.mk
 +++ b/target/linux/ath79/image/generic-ubnt.mk
-@@ -165,6 +165,23 @@
+@@ -165,6 +165,31 @@
  endef
  TARGET_DEVICES += ubnt_powerbeam-5ac-gen2
  
++define Device/ubnt_powerbeam-5ac-300
++  $(Device/ubnt-wa)
++  DEVICE_MODEL := PowerBeam 5AC
++  DEVICE_VARIANT := 300
++  DEVICE_PACKAGES := kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct-full-htt rssileds
++endef
++TARGET_DEVICES += ubnt_powerbeam-5ac-300
++
 +define Device/ubnt_powerbeam-5ac-400
 +  $(Device/ubnt-wa)
 +  DEVICE_MODEL := PowerBeam 5AC
@@ -157,6 +165,17 @@
 +			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
 +		};
 +	};
++};
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9342_ubnt_powerbeam-5ac-300.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "ar9342_ubnt_powerbeam-5ac-400.dts"
++
++/ {
++        compatible = "ubnt,powerbeam-5ac-300", "ubnt,wa", "qca,qca9558";
++        model = "Ubiquiti PowerBeam 5AC 300";
 +};
 --- /dev/null
 +++ b/target/linux/ath79/dts/qca9558_ubnt_powerbeam-5ac-620.dts
