@@ -67,6 +67,7 @@ NanoStation Loco M5 XW || 5 | ath79 | generic | ubnt_nanostation-loco-m-xw | 64M
 NanoStation M2 XW || 2 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 NanoStation M5 XW || 5 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 PowerBeam 5AC Gen2 || 5 | ath79 | generic | ubnt_powerbeam-5ac-gen2 | 128MB | untested | released
+PowerBeam 5AC 300 || 5 | ath79 | generic | ubnt_powerbeam-5ac-300 | 128MB | untested | nightly
 PowerBeam 5AC 400 || 5 | ath79 | generic | ubnt_powerbeam-5ac-400 | 128MB | untested | released
 PowerBeam 5AC 500 | PBE-5AC-500 <br> PBE-5AC-500-US | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | released
 PowerBeam 5AC 620 || 5 | ath79 | generic | ubnt_powerbeam-5ac-620 | 128MB | untested | released
