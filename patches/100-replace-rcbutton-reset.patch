@@ -2,10 +2,11 @@
 +++ b/package/base-files/files/etc/rc.button/reset
 @@ -1,31 +1,15 @@
  #!/bin/sh
- 
--. /lib/functions.sh
++ 
 +[ "${ACTION}" = "released" ] || exit 0
  
+-. /lib/functions.sh
+-
 -OVERLAY="$( grep ' /overlay ' /proc/mounts )"
 -
 -case "$ACTION" in
@@ -27,7 +28,7 @@
 -	elif [ "$SEEN" -ge 5 -a -n "$OVERLAY" ]
 -	then
 -		echo "FACTORY RESET" > /dev/console
--		jffs2reset -y && reboot &
+-		factoryreset -y && reboot &
 -	fi
 -;;
 -esac

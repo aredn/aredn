@@ -8,7 +8,6 @@
 * *released* - this image is in a production release of the AREDN® firmware.
 * *nightly* - this device is newly supported in the nightly builds (since the last production release).
 * *sunset* - this device is supported but no longer recommended for new purchases or installs.
-* *brick* - this image has been tested and found to brick your hardware. Avoid for now.
 * *not supported* - this image is not supported and not available for download.
 * *frozen* - this device has been previously sunsetted, and is now frozen. Old images are still available but there will be no future updates.
 
@@ -35,9 +34,9 @@ LDF 5 | RBLDF-5nD | 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | re
 LDF 5 ac | RBLDFG-5acD | 5 | ipq40xx | mikrotik | mikrotik-ldf-5acd | 64MB | stable | released
 RB911G-2HPnD <br> mANTBox 2 12s | RB911G-2HPnD <br> RB911G-2HPnD-12S | 2 | ath79 | mikrotik | - | 64MB | untested | released
 RB911G-5HPnD | RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | untested | released
-QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | released (1)
+QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | released
 RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | untested | released
-RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | released (1)
+RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | released
 RB922UAGS-5HPacD <br> NetMetal 5 | 922UAGS-5HPacD-NM <br> 922UAGS-5HPacD-NM-US | 5 | ath79 | mikrotik |  mikrotik_routerboard-922uags-5hpacd | 128MB | stable | released
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | released
 mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | released
@@ -159,10 +158,10 @@ OpenWRT One | OpenWRT One | 2 & 5 | mediatek | filogic | openwrt_one | 1024MB | 
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 HaLowLink 1 | MM-HL1-EXT | HaLow | ramips | mt7621 | morse_artini | 256MB | supported | released
-Heltec HT-HD01 | HT-HD01 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (9)
-Heltec HT-HD7608 | HT-H7608 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (9)
-Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | supported | released (10)
-Alfa Tube-AHM PoE | Tube-AHM PoE | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | supported | released (10)
+Heltec HT-HD01 | HT-HD01 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (8)
+Heltec HT-HD7608 | HT-H7608 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (8)
+Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | supported | released (1)
+Alfa Tube-AHM PoE | Tube-AHM PoE | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | supported | released (1)
 Alfa Tube-AH | Tube-AH | HaLow | - | - | - | - | unsupported | not supported
 
 ## Cudy
@@ -170,11 +169,6 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Cudy TR1200 | Cudy TR1200 1.0 | 2 & 5 | ramips | mt76x8 | cudy_tr1200 | 128MB | supported | released
 Cudy TR3000 | Cudy TR3000 1.0 | 2 & 5 | mediatek | filogic | cudy_tr3000-v1 | 512MB | supported | released
-
-## Meraki
-Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
-:------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-Meraki MR-16 | MR16-HW | 5 | ath79 | - | - | 64MB | unsupported | **brick**
 
 ## x86 / Virtual Machine
 
@@ -189,15 +183,13 @@ VirtualBox | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
 
 
 ## Footnotes
- 1. This device is supported for new installs. It can also be upgraded from 3.22.12.0 after first installing the [DangerousUpgrade package](https://github.com/kn6plv/DangerousUpgrade/raw/main/dangerousupgrade_0.1_all.ipk) to disable the firmware compatibility checks. Proceed carefully.
- 2. Tiny builds exclude support for *tunnels* and *WiFi AP* mode due to lack of resources. The relevant packages can be installed separately but this is not recommended.
+ 1. Firmware can be reinstalled on a bricked device, but requires soldering and connecting a serial cable.
+ 2. These devices were supported in older releases, but not supported in the current one.
  3. These devices are no longer being manufactured by GL-iNET. They may not reboot reliably and you may need to power cycle them (several times) during an update.
  4. 20MHz channels only.
  5. x86 images are for advanced users. See "Installing AREDN® Firmware" x86 documentation section.
  6. These devices do not function on negative channels in the 2.4 GHz band.
  7. Mikrotik devices come with either a v6 bootloader or a v7 bootloader. See [here](https://openwrt.org/toh/mikrotik/common) for more details. If you are using a v7 bootloader use the v7 sysupgrade instead of the plain one.
- 8. These devices were supported in older releases, but not supported in the current one.
- 9. There is currently no way to recover if a firmware update fails and it could brick your device.
- 10. Firmware can be reinstalled on a bricked device, but requires soldering and connecting a serial cable.
+ 8. There is currently no way to recover if a firmware update fails and it could brick your device.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/

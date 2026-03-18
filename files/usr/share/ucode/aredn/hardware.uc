@@ -391,7 +391,7 @@ export function getRfBandwidths(wifiIface)
     }
     const phy = replace(wifiIface, "wlan", "phy");
     if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`) || fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
-        const f = fs.popen(`/usr/bin/iwinfo ${phy} htmodelist 2> /dev/null`);
+        const f = fs.popen(`/usr/bin/iwinfo ${wifiIface} htmodelist 2> /dev/null`);
         if (f) {
             let line = f.read("line");
             if (line) {

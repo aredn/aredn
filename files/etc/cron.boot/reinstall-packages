@@ -38,17 +38,17 @@ import * as uci from "uci";
 const packageStore = "/etc/package_store";
 const packageCatalog = `${packageStore}/catalog.json`;
 
-function opkg_with_retry(arg)
+function apk_with_retry(arg)
 {
 	for (let i = 0; i < 5; i++) {
-		if (system(`opkg ${arg}`) != 255) {
+		if (system(`/usr/bin/apk ${arg} 2>/dev/null`) != 255) {
 			break;
 		}
 		sleep(5000);
 	}
 }
 
-opkg_with_retry("list-installed | sed s/\\ .*// > /etc/permpkg");
+apk_with_retry("info > /etc/permpkg");
 
 if (fs.access(packageCatalog)) {
 	// Make sure we can contact the package server before proceeding.
@@ -62,20 +62,25 @@ if (fs.access(packageCatalog)) {
 		sleep(60000);
 	}
 
-    opkg_with_retry("update");
+    apk_with_retry("update");
     const catalog = json(fs.readfile(packageCatalog));
-	for (let ipkg in catalog.installed) {
-		const state = catalog.installed[ipkg];
+	for (let pkg in catalog.installed) {
+		const state = catalog.installed[pkg];
         if (state == "local") {
-            const file = `${packageStore}/${ipkg}.ipk`;
+			fs.unlink(`${packageStore}/${pkg}.ipk`); // Remove the old format packages
+            const file = `${packageStore}/${pkg}.apk`;
             if (fs.access(file)) {
-                opkg_with_retry(`install ${file}`);
+                apk_with_retry(`add --allow-untrusted ${file}`);
+			}
+			else {
+				delete catalog.installed[pkg];
 			}
 		}
         else if (state == "global") {
-            opkg_with_retry(`install ${ipkg}`);
+            apk_with_retry(`add ${pkg}`);
 		}
 	}
+	fs.writefile(packageCatalog, sprintf("%J", catalog));
 }
 
 // Don't do this again

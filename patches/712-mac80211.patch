@@ -1,0 +1,76 @@
+--- a/package/network/config/wifi-scripts/files-ucode/lib/netifd/wireless/mac80211.sh
++++ b/package/network/config/wifi-scripts/files-ucode/lib/netifd/wireless/mac80211.sh
+@@ -43,9 +43,6 @@
+ }
+ 
+ function get_channel_frequency(band, channel) {
+-	if (channel < 1)
+-		return null;
+-
+ 	switch (band) {
+ 	case '2g':
+ 		if (channel == 14)
+@@ -67,7 +64,7 @@
+ function setup_phy(phy, config, data) {
+ 	if (config.channel == "auto")
+ 		config.channel = 0;
+-	config.channel = +config.channel;
++	config.channel = int(config.channel);
+ 	config.frequency = get_channel_frequency(config.band, config.channel);
+ 
+ 	if (config.country) {
+@@ -98,6 +95,9 @@
+ 	else
+ 		config.txpower = 'auto';
+ 
++	if (config.distance == 0 && (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath9k`) || fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`)))
++		config.distance = "auto";
++
+ 	log(`Configuring '${phy}' txantenna: ${config.txantenna}, rxantenna: ${config.rxantenna} distance: ${config.distance}`);
+ 	system(`iw phy ${phy} set antenna ${config.txantenna} ${config.rxantenna}`);
+ 	system(`iw phy ${phy} set distance ${config.distance}`);
+@@ -107,6 +107,13 @@
+ 		system(`iw phy ${phy} set frag ${config.frag}`);
+ 	if (config.rts)
+ 		system(`iw phy ${phy} set rts ${config.rts}`);
++
++	if (config.chanbw) {
++		if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath9k/chanbw`))
++			fs.writefile(`/sys/kernel/debug/ieee80211/${phy}/ath9k/chanbw`, `${config.chanbw}`);
++		if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k/chanbw`))
++			fs.writefile(`/sys/kernel/debug/ieee80211/${phy}/ath10k/chanbw`, `${config.chanbw}`);
++	}
+ }
+ 
+ function iw_htmode(config) {
+@@ -203,6 +210,7 @@
+ 
+ 	let supplicant_mesh;
+ 	let has_ap = false;
++	let has_sta = false;
+ 	let idx = {};
+ 	let supplicant_data = [];
+ 	let wdev_data = {};
+@@ -229,6 +237,9 @@
+ 				validate('station', sta.config);
+ 			// fallthrough
+ 		case 'sta':
++			if (mode == "sta")
++				has_sta = true;
++			// fallthrough
+ 		case 'adhoc':
+ 		case 'mesh':
+ 			if (mode != "ap")
+@@ -298,10 +309,10 @@
+ 		system(`ucode /usr/share/hostap/wdev.uc ${data.phy}${data.phy_suffix} set_config '${if_config}'`);
+ 	}
+ 
+-	if (fs.access('/usr/sbin/wpa_supplicant', 'x'))
++	if (fs.access('/usr/sbin/wpa_supplicant', 'x') && has_sta)
+ 		supplicant.setup(supplicant_data, data);
+ 
+-	if (fs.access('/usr/sbin/hostapd', 'x'))
++	if (fs.access('/usr/sbin/hostapd', 'x') && has_ap)
+ 		hostapd.setup(data);
+ 
+ 	if (length(supplicant_data) > 0)

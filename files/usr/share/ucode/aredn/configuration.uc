@@ -569,7 +569,7 @@ export function supportdata(supportdatafilename)
         "/usr/local/bin/arednlink-dump",
         "ls -l /var/run/arednlink/*/*",
         "echo /all | nc 127.0.0.1 2006",
-        "opkg list-installed",
+        "apk info",
         "ps -w",
         "/usr/local/bin/get_hardwaretype",
         "/usr/local/bin/get_boardid",
