@@ -847,12 +847,13 @@ export function getEthernetPorts()
             if (length(defaultNPortLayout) === 0) {
                 const dir = fs.opendir("/sys/class/net");
                 if (dir) {
+                    const reEth = /^eth\d+$/;
                     for (;;) {
                         const file = dir.read();
                         if (!file) {
                             break;
                         }
-                        if (match(file, /^eth\d+$/)) {
+                        if (match(file, reEth)) {
                             push(defaultNPortLayout, { k: file, d: file });
                         }
                     }
@@ -889,12 +890,13 @@ export function getDefaultNetworkConfiguration()
     };
     const board = getBoard();
     const network = board.network || {};
+    const reDev = /^([^\.]+)\.?(\d*)$/;
     for (let k in network) {
         const net = c[k];
         if (net) {
             const devices = split(network[k].device, " ");
             for (let i = 0; i < length(devices); i++) {
-                const m = match(devices[i], /^([^\.]+)\.?(\d*)$/);
+                const m = match(devices[i], reDev);
                 if (m) {
                     net.ports[m[1]] = true;
                     if (m[2]) {
@@ -904,7 +906,7 @@ export function getDefaultNetworkConfiguration()
             }
             const ports = network[k].ports || [];
             for (let i = 0; i < length(ports); i++) {
-                const m = match(ports[i], /^([^\.]+)\.?(\d*)$/);
+                const m = match(ports[i], reDev);
                 if (m) {
                     net.ports[m[1]] = true;
                     if (m[2]) {
