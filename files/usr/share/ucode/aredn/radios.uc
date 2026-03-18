@@ -43,8 +43,13 @@ export const RADIO_MESHSTA = "meshsta";
 export const RADIO_LAN = "lan";
 export const RADIO_WAN = "wan";
 
+let radioCache = null;
+
 export function getCommonConfiguration()
 {
+    if (radioCache) {
+        return json(radioCache);
+    }
     const radio = [];
     const nrradios = hardware.getRadioCount();
     for (let i = 0; i < nrradios; i++) {
@@ -109,6 +114,7 @@ export function getCommonConfiguration()
             push(radio, r);
         }
     }
+    radioCache = sprintf("%J", radio);
     return radio;
 };
 
