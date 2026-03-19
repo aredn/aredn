@@ -111,7 +111,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_WAN:
             if (configuration.setSetting("radio0_mode", radio0_mode)) {
                 configuration.setSetting("radio0_ssid", hexenc("MyWiFi"));
-                configuration.setSetting("radio0_key", hexenc("wifipassword"));
+                configuration.setSetting("radio0_key", "");
             }
             if ("radio0_ssid" in request.args) {
                 configuration.setSetting("radio0_ssid", hexenc(request.args.radio0_ssid));
@@ -182,7 +182,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_WAN:
             if (configuration.setSetting("radio1_mode", radio1_mode)) {
                 configuration.setSetting("radio1_ssid", hexenc("MyWiFi"));
-                configuration.setSetting("radio1_key", hexenc("wifipassword"));
+                configuration.setSetting("radio1_key", "");
             }
             if ("radio1_ssid" in request.args) {
                 configuration.setSetting("radio1_ssid", hexenc(request.args.radio1_ssid));
@@ -257,7 +257,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 // Default key is different between LAN and WAN
                 const key_decoded = hexdec(wlan[w].mode.key);
                 const key_lan = mode == "lan" && key_decoded ? key_decoded : "AREDNmesh";
-                const key_wan = mode == "wan" && key_decoded ? key_decoded : "wifipassword";
+                const key_wan = mode == "wan" && key_decoded ? key_decoded : "";
                 const macaddress = wlan[w].macaddress;
                 const ishalow = hardware.getRadioType(wlan[w].iface) === "halow";
                 const nochan = mode === radios.RADIO_MESH && !ishalow;
