@@ -117,9 +117,10 @@ export function getToDos()
 export function getAlerts()
 {
     const alerts = [];
-    const now = lqm.get().now;
-    if (now - lqm.get().start > 600) {
-        const trackers = lqm.getTrackers();
+    const lqmInfo = lqm.get();
+    const now = lqmInfo.now;
+    if (now - lqmInfo.start > 600) {
+        const trackers = lqmInfo.trackers;
         let count = 0;
         let total = 0;
         for (let mac in trackers)

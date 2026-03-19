@@ -53,6 +53,8 @@ search.addEventListener("keyup", filter);
 search.addEventListener("click", filter);
 search.addEventListener("keypress", event => event.keyCode == 13 && event.preventDefault());
 
+const reN = /^(.*)\[(.*)\]$/;
+const reR = /^([^:]+:\/\/)([^:]+):(\d+)(.*)$/;
 function serv(ip, hostname)
 {
     let view = "";
@@ -65,12 +67,12 @@ function serv(ip, hostname)
             if (url.match(re)) {
                 const lname = name.toLowerCase();
                 let type = "";
-                const nametype = name.match(/^(.*)\[(.*)\]$/);
+                const nametype = name.match(reN);
                 if (nametype) {
                     name = nametype[1];
                     type = `<div class="icon ${nametype[2]}" title="${nametype[2]}"></div>`;
                 }
-                const r = url.match(/^([^:]+:\/\/)([^:]+):(\d+)(.*)$/);
+                const r = url.match(reR);
                 switch (r[3]) {
                     case "0":
                         view += `<div class="service" data-search="${lname}"><span>${name}</span>${type}</div>`;
