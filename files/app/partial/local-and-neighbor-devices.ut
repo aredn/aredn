@@ -33,13 +33,13 @@
  */
 %}
 {%
-    const lqmNow = lqm.get().now;
+    const lqmInfo = lqm.get();
     function calcColor(tracker)
     {
         if (!tracker) {
             return "unknown";
         }
-        if (tracker.lastseen + 120 < lqmNow) {
+        if (tracker.lastseen + 120 < lqmInfo.now) {
             return "disconnected";
         }
         if (!tracker.routable || tracker.babel_route_count == 0 || tracker.babel_metric == -1) {
@@ -90,8 +90,8 @@
     const macs = {};
     const llist = [];
     const nlist = [];
-    const hlist = lqm.getHidden();
-    const trackers = lqm.getTrackers();
+    const hlist = lqmInfo.hidden_nodes;
+    const trackers = lqmInfo.trackers;
     for (let mac in trackers)
     {
         const tracker = trackers[mac];
@@ -117,7 +117,7 @@
         macs[tracker.mac] = l;
     }
     const bneigh = babel.getNeighbors();
-    for (let i = 0; i < length(bneigh); i++) {
+    for (let i = length(bneigh) - 1; i >= 0; i--) {
         const n = bneigh[i];
         const a = iptoarr(n.ipv6address);
         const m = sprintf("%02x:%02x:%02x:%02x:%02x:%02x", a[8] ^ 2, a[9], a[10], a[13], a[14], a[15]);
@@ -145,8 +145,8 @@
         </div>
         {%
             if (length(llist) > 0) {
-                sort(llist, (a, b) => a.name == b.name ? 0 : a.name < b.name ? -1 : 1);
-                for (let i = 0; i < length(llist); i++) {
+                sort(llist, (a, b) => a.name == b.name ? 0 : a.name < b.name ? 1 : -1);
+                for (let i = length(llist) - 1; i >= 0; i--) {
                     const entry = llist[i];
                     const tracker = entry.tracker;
                     const status = calcColor(tracker);
@@ -162,11 +162,11 @@
                     else {
                         print(`<div class="ctrl cols status unknown" title="Link status: unknown">`);
                     }
-                    if (substr(entry.name, 0, 1) === "|") {
+                    if (ord(entry.name) === 124) { // |
                         const ip = substr(entry.name, 1);
                         print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}</a></div>`);
                     }
-                    else if (substr(entry.name, 0, 1) === "~") {
+                    else if (ord(entry.name) === 126) { // ~
                         const mac = substr(entry.name, 1);
                         print(`<div class='h'><span>${mac}</span></div>`);
                     }
@@ -194,8 +194,8 @@
     <div class="section" style="line-height:18px">
     {%
         if (length(nlist) > 0) {
-            sort(nlist, (a, b) => a.name == b.name ? 0 : a.name < b.name ? -1 : 1);
-            for (let i = 0; i < length(nlist); i++) {
+            sort(nlist, (a, b) => a.name == b.name ? 0 : a.name < b.name ? 1 : -1);
+            for (let i = length(nlist) - 1; i >= 0; i--) {
                 const entry = nlist[i];
                 const tracker = entry.tracker;
                 const status = calcColor(tracker);
@@ -240,13 +240,13 @@
                     default:
                         break;
                 }
-                if (substr(entry.name, 0, 1) === "|") {
+                if (ord(entry.name) === 124) { // |
                     const ip = substr(entry.name, 1);
                     print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
                 }
-                else if (substr(entry.name, 0, 1) === "~") {
-                        const mac = substr(entry.name, 1);
-                        print(`<div class='h'><span>${mac}</span></div>`);
+                else if (ord(entry.name) === 126) { // ~
+                    const mac = substr(entry.name, 1);
+                    print(`<div class='h'><span>${mac}</span></div>`);
                 }
                 else {
                     print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
@@ -285,8 +285,8 @@
     <div class="section-title">Hidden Nodes</div>
     <div class="section" style="line-height:18px">
     {%
-        sort(hlist, (a, b) => a.hostname == b.hostname ? 0 : a.hostname < b.hostname ? -1 : 1);
-        for (let i = 0; i < length(hlist); i++) {
+        sort(hlist, (a, b) => a.hostname == b.hostname ? 0 : a.hostname < b.hostname ? 1 : -1);
+        for (let i = length(hlist) - 1; i >= 0; i--) {
             const hostname = hlist[i].hostname;
             if (hostname) {
                 print(`<div class="idle" class='h'><a onclick="event.stopPropagation()" title='Link status: hidden' href='http://${hostname}.local.mesh'>${hostname}</a></div>`);
