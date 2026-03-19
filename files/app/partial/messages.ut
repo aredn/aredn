@@ -84,10 +84,11 @@
     %}
     </div>
     {% }
+    const reP = /^PRIVATE /;
     for (let k in allmsgs) {
         const msgs = allmsgs[k];
-        if (length(msgs) && (auth.isAdmin || !match(k, /^PRIVATE /))) {
-            print(`<div class="section-title"><span class="up">${replace(k, /^PRIVATE /, "")}</span> Messages</div>`);
+        if (length(msgs) && (auth.isAdmin || !match(k, reP))) {
+            print(`<div class="section-title"><span class="up">${replace(k, reP, "")}</span> Messages</div>`);
             print(`<div class="section">`);
             for (let i = 0; i < length(msgs); i++) {
                 print(`<div>${msgs[i]}</div>`);

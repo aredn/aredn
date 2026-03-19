@@ -124,8 +124,9 @@ for (let i = start[3]; i <= end[3]; i++) {
 let reservations = 0;
 let active = 0;
 const res = uciMesh.get("setup", "dhcpreservations", "reservation") || [];
+const reR = /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/;
 for (let i = 0; i < length(res); i++) {
-    const v = match(trim(res[i]), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
+    const v = match(trim(res[i]), reR);
     if (v) {
         const o = options[int(v[2]) - 2];
         if (o) {
@@ -139,9 +140,10 @@ for (let i = 0; i < length(res); i++) {
 }
 const f = fs.open("/tmp/dhcp.leases");
 if (f) {
+    const reL = /^(.+) (.+) (.+) (.+) (.+)$/;
     for (let l = f.read("line"); length(l); l = f.read("line")) {
         // ?, mac, ip, name, ?
-        const v = match(l, /^(.+) (.+) (.+) (.+) (.+)$/);
+        const v = match(l, reL);
         if (v) {
             const ip = iptoarr(v[3]);
             const o = options[ip[3] - start[3]];
@@ -160,16 +162,18 @@ if (f) {
     f.close();
 }
 const tags = uciMesh.get("setup", "dhcptags", "tag") || [];
+const reT = /^([^\W_]+)\s(\w+)\s(.+)$/;
 for (let i = 0; i < length(tags); i++) {
-    const m = match(replace(tags[i], /\n+$/, ""), /^([^\W_]+)\s(\w+)\s(.+)$/);
+    const m = match(replace(tags[i], /\n+$/, ""), reT);
     if (m) {
         const p = replace(replace(replace(m[3], /"/g, "&quot;"), /</g, "&lt;"), />/g, "&gt;");
         push(advtags, { name: m[1], type: m[2], match: p });
     } 
 }
 const opts = uciMesh.get("setup", "dhcpoptions", "option") || [];
+const reO = /^(\S*)\s(force|onrequest)\s(\d+)\s(.*)$/;
 for (let i = 0; i < length(opts); i++) {
-    const m = match(replace(opts[i], /\n+$/, ""), /^(\S*)\s(force|onrequest)\s(\d+)\s(.*)$/);
+    const m = match(replace(opts[i], /\n+$/, ""), reO);
     if (m) {
         const p = replace(replace(replace(m[4], /"/g, "&quot;"), /</g, "&lt;"), />/g, "&gt;");
         push(advoptions, { name: m[1], always: m[2] === "force", type: int(m[3]), value: p });

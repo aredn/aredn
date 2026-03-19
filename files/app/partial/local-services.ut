@@ -112,8 +112,9 @@
             f.close();
         }
         const res = uciMesh.get("setup", "dhcpreservations", "reservation") || [];
+        const reR = /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/;
         for (let i = 0; i < length(res); i++) {
-            const v = match(trim(res[i]), /^([^ ]+) ([^ ]+) ([^ ]+) ?(.*)/);
+            const v = match(trim(res[i]), reR);
             if (v && (v[4] !== "#NOPROP" || auth.isAdmin)) {
                 const k = lc(v[1]);
                 const l = leased[k] || (leased[k] = { n: null, p: 0, s: true, v: false });
