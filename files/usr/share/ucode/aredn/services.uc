@@ -438,9 +438,9 @@ function getByTopic(root, topic, targets)
     const files = targets ? targets : fs.lsdir(root);
     if (files) {
         for (let i = 0; i < length(files); i++) {
-            const file = `${root}/${files[i]}`;
-            if (fs.lstat(file).size) {
-                try {
+            try {
+                const file = `${root}/${files[i]}`;
+                if (fs.lstat(file).size) {
                     const f = fs.open(file);
                     if (f) {
                         f.lock("s");
@@ -459,8 +459,8 @@ function getByTopic(root, topic, targets)
                         }
                     }
                 }
-                catch (_) {
-                }
+            }
+            catch (_) {
             }
         }
     }
