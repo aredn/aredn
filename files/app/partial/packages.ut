@@ -38,7 +38,7 @@ if (auth.isAdmin) {
     if (!fs.access("/etc/cron.boot/reinstall-packages")) {
         const pkgs = {};
         map(split(fs.readfile("/etc/permpkg"), "\n"), p => pkgs[p] = true);
-        const f = fs.popen("/usr/bin/apk info");
+        const f = fs.popen("/usr/bin/apk info 2>/dev/null");
         if (f) {
             for (let l = f.read("line"); length(l); l = f.read("line")) {
                 if (!pkgs[trim(l)]) {
