@@ -256,7 +256,7 @@ function main()
     return waitForTicks(60); // 1 minute
 }
 
-return waitForTicks(max(1, 240 - clock(true)[0]), function()
+return waitForTicks(max(1, 180 - clock(true)[0]), function()
 {
     // No station when we start
     const now = clock(true)[0];
@@ -285,7 +285,7 @@ return waitForTicks(max(1, 240 - clock(true)[0]), function()
         return exitApp();
     }
 
-    // Sometimes the radio is there but not hearing anything. Restart it to be safe.
+    // Sometimes the halow radio is there but not hearing anything. Restart it to be safe.
     if (hardware.getRadioType(wifi) === "halow" && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
         resetNetwork("restart");
     }
@@ -308,6 +308,11 @@ return waitForTicks(max(1, 240 - clock(true)[0]), function()
     else {
         log.syslog(log.LOG_NOTICE, `Unknown chipset`);
         return exitApp();
+    }
+
+    // Mikrotik devices sometime startup deaf, so handle that
+    if (chipset === "ath10k" && index(hardware.getBoardModel().id, "mikrotik") === 0 && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
+        resetNetwork("zero-hard");
     }
 
     log.syslog(log.LOG_NOTICE, `Monitoring wireless chipset: ${chipset}`);
