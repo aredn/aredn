@@ -79,6 +79,8 @@ function main()
             cm.set("aredn", "@location[0]", "gridsquare", gridsquare);
             cm.set("aredn", "@location[0]", "source", "gps");
             cm.commit("aredn");
+
+            fs.writefile("/tmp/locsync", "gps");
         }
     }
 

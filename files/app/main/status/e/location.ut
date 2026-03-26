@@ -51,6 +51,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             uciMesh.set("aredn", "@location[0]", "lat", "");
         }
         uciMesh.set("aredn", "@location[0]", "source", "");
+        fs.unlink("/tmp/locsync");
     }
     if ("lon" in request.args) {
         if (request.args.lon > -180 && request.args.lon < 180) {
@@ -60,6 +61,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             uciMesh.set("aredn", "@location[0]", "lon", "");
         }
         uciMesh.set("aredn", "@location[0]", "source", "");
+        fs.unlink("/tmp/locsync");
     }
     if (request.args.gps_enable) {
         uciMesh.set("aredn", "@location[0]", "gps_enable", request.args.gps_enable === "on" ? "1" : "0");
