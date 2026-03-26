@@ -84,7 +84,7 @@ function resetNetwork(op)
         case "ath9k":
         case "ath10k":
             switch (mode) {
-                case "adhoc":
+                case "mesh":
                     switch (op) {
                         case "unresponsive":
                             system(`${IW} ${wifi} ibss leave > /dev/null 2>&1`);
@@ -285,11 +285,6 @@ return waitForTicks(max(1, 180 - clock(true)[0]), function()
         return exitApp();
     }
 
-    // Sometimes the halow radio is there but not hearing anything. Restart it to be safe.
-    if (hardware.getRadioType(wifi) === "halow" && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
-        resetNetwork("restart");
-    }
-
     if (!(phy && frequency && ssid)) {
         log.syslog(log.LOG_ERR, `Startup failed`);
         return exitApp();
@@ -310,12 +305,17 @@ return waitForTicks(max(1, 180 - clock(true)[0]), function()
         return exitApp();
     }
 
+    log.syslog(log.LOG_NOTICE, `Monitoring wireless chipset: ${chipset}`);
+
+    // Sometimes the halow radio is there but not hearing anything. Restart it to be safe.
+    if (hardware.getRadioType(wifi) === "halow" && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
+        resetNetwork("restart");
+    }
+
     // Mikrotik devices sometime startup deaf, so handle that
     if (chipset === "ath10k" && index(hardware.getBoardModel().id, "mikrotik") === 0 && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
         resetNetwork("zero-hard");
     }
-
-    log.syslog(log.LOG_NOTICE, `Monitoring wireless chipset: ${chipset}`);
 
     return waitForTicks(0, main);
 });
