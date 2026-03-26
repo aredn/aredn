@@ -71,13 +71,11 @@ function main()
             c.set("aredn", "@location[0]", "lat", j.lat);
             c.set("aredn", "@location[0]", "lon", j.lon);
             c.set("aredn", "@location[0]", "gridsquare", gridsquare);
-            c.set("aredn", "@location[0]", "source", "gps");
             c.commit("aredn");
             const cm = uci.cursor("/etc/config.mesh");
             cm.set("aredn", "@location[0]", "lat", j.lat);
             cm.set("aredn", "@location[0]", "lon", j.lon);
             cm.set("aredn", "@location[0]", "gridsquare", gridsquare);
-            cm.set("aredn", "@location[0]", "source", "gps");
             cm.commit("aredn");
 
             fs.writefile("/tmp/locsync", "gps");
