@@ -37,7 +37,7 @@
     const lat = uci.get("aredn", "@location[0]", "lat");
     const lon = uci.get("aredn", "@location[0]", "lon");
     const gridsquare = uci.get("aredn", "@location[0]", "gridsquare");
-    const source = uci.get("aredn", "@location[0]", "source");
+    const source = fs.readfile("/tmp/locsync");
     const mapurl = lat && lon && map ? replace(replace(map, "(lat)", lat), "(lon)", lon) : null;
 %}
 <div class="ctrl" hx-get="status/e/location" hx-target="#ctrl-modal">

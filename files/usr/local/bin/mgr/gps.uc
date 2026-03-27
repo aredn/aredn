@@ -43,13 +43,13 @@ function main()
     const j = hardware.GPSReadLLT(gps);
 
     // Update time and date
-    if (c.get("aredn", "@time[0]", "gps_enable") == "1" && j.time) {
+    if (c.get("aredn", "@time[0]", "gps_enable") == "1" && j?.time) {
         system(`/bin/date -u -s '${j.time}' > /dev/null 2>&1`);
         fs.writefile("/tmp/timesync", "gps");
     }
 
     // Set location if significantly changed
-    if (c.get("aredn", "@location[0]", "gps_enable") == "1" && j.lat && j.lon) {
+    if (c.get("aredn", "@location[0]", "gps_enable") == "1" && j?.lat && j?.lon) {
         const clat = 1 * c.get("aredn", "@location[0]", "lat");
         const clon = 1 * c.get("aredn", "@location[0]", "lon");
         if (math.abs(clat - j.lat) > CHANGEMARGIN || math.abs(clon - j.lon) > CHANGEMARGIN) {
@@ -71,14 +71,14 @@ function main()
             c.set("aredn", "@location[0]", "lat", j.lat);
             c.set("aredn", "@location[0]", "lon", j.lon);
             c.set("aredn", "@location[0]", "gridsquare", gridsquare);
-            c.set("aredn", "@location[0]", "source", "gps");
             c.commit("aredn");
             const cm = uci.cursor("/etc/config.mesh");
             cm.set("aredn", "@location[0]", "lat", j.lat);
             cm.set("aredn", "@location[0]", "lon", j.lon);
             cm.set("aredn", "@location[0]", "gridsquare", gridsquare);
-            cm.set("aredn", "@location[0]", "source", "gps");
             cm.commit("aredn");
+
+            fs.writefile("/tmp/locsync", "gps");
         }
     }
 
@@ -93,10 +93,10 @@ function find()
         // otherwise we get the GPS info from another node on our local network
         if (match(gps, /^\/dev\//)) {
             const config = `config gpsd 'core'
-option enabled '1'
-option device '${gps}'
-option port '2947'
-option listen_globally '1'
+    option enabled '1'
+    list devices '${gps}'
+    option port '2947'
+    option listen_globally '1'
 `;
             fs.writefile(CONFIG0, config);
             fs.writefile(CONFIG1, config);
