@@ -1,0 +1,76 @@
+#!/bin/sh
+
+if [ "$ACTION" = "ifup" ]; then
+    case "$INTERFACE" in
+        wan|wgs[0-9]*)
+            sleep 5
+
+            TARGET="8.8.8.8"
+            START_MTU=1500
+            MIN_MTU=1000
+            STEP=20
+
+            get_wgs_interfaces() {
+                ip link | awk -F': ' '$2 ~ /^wgs[0-9]+$/ {print $2}'
+            }
+
+            get_asn_org() {
+                curl -fsS --max-time 5 https://ipconfig.io/json 2>/dev/null | sed -n 's/.*"asn_org"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
+            }
+
+            set_all_mtu() {
+                mtu="$1"
+                ints="$(get_wgs_interfaces)"
+
+                [ -z "$ints" ] && return 1
+
+                for int in $ints; do
+                    ip link set dev "$int" mtu "$mtu" >/dev/null 2>&1
+                done
+
+                return 0
+            }
+
+            test_ping_mtu() {
+                mtu="$1"
+                payload=$((mtu - 28))
+
+                [ "$payload" -le 0 ] && return 1
+
+                ping -c 1 -W 3 -s "$payload" "$TARGET" >/dev/null 2>&1
+                return $?
+            }
+
+            find_good_mtu() {
+                mtu="$START_MTU"
+
+                while [ "$mtu" -ge "$MIN_MTU" ]; do
+                    if test_ping_mtu "$mtu"; then
+                        printf '%s\n' "$mtu"
+                        return 0
+                    fi
+                    mtu=$((mtu - STEP))
+                done
+
+                printf '%s\n' "$MIN_MTU"
+                return 1
+            }
+
+            GOOD_MTU="$(find_good_mtu)"
+
+            case "$GOOD_MTU" in
+                ''|*[!0-9]*)
+                    exit 1
+                    ;;
+            esac
+
+            if [ "$GOOD_MTU" -ne 1500 ]; then
+                ASN_ORG="$(get_asn_org)"
+                [ -z "$ASN_ORG" ] && ASN_ORG="unknown"
+                logger -t fixwgmtu "$INTERFACE up via $ASN_ORG, setting wgs MTU to $GOOD_MTU"
+            fi
+
+            set_all_mtu "$GOOD_MTU"
+            ;;
+    esac
+fi
