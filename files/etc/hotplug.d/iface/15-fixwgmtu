@@ -21,11 +21,12 @@ if [ "$ACTION" = "ifup" ]; then
             set_all_mtu() {
                 mtu="$1"
                 ints="$(get_wgs_interfaces)"
+                wgmtu=$((mtu - 80))
 
                 [ -z "$ints" ] && return 1
 
                 for int in $ints; do
-                    ip link set dev "$int" mtu "$mtu" >/dev/null 2>&1
+                    ip link set dev "$int" mtu "$wgmtu" >/dev/null 2>&1
                 done
 
                 return 0
@@ -57,7 +58,7 @@ if [ "$ACTION" = "ifup" ]; then
             }
 
             GOOD_MTU="$(find_good_mtu)"
-
+            WG_MTU=$((GOOD_MTU - 80))
             case "$GOOD_MTU" in
                 ''|*[!0-9]*)
                     exit 1
@@ -67,7 +68,7 @@ if [ "$ACTION" = "ifup" ]; then
             if [ "$GOOD_MTU" -ne 1500 ]; then
                 ASN_ORG="$(get_asn_org)"
                 [ -z "$ASN_ORG" ] && ASN_ORG="unknown"
-                logger -t fixwgmtu "$INTERFACE up via $ASN_ORG, setting wgs MTU to $GOOD_MTU"
+                logger -t fixwgmtu "$INTERFACE up, Wan via $ASN_ORG ($GOOD_MTU), setting wgs MTU to $WG_MTU"
             fi
 
             set_all_mtu "$GOOD_MTU"
