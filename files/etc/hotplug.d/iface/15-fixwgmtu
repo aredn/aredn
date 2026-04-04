@@ -28,7 +28,6 @@ test_normal_ping() {
     ping -c 1 -W 3 "$target" >/dev/null 2>&1
 }
 
-# Test with a given MTU-sized packet using DF
 test_ping_mtu() {
     target="$1"
     mtu="$2"
@@ -36,18 +35,6 @@ test_ping_mtu() {
 
     [ "$payload" -le 0 ] && return 1
 
-    # BusyBox ping on many OpenWrt builds supports -M do, but not all.
-    # Try DF first; if the ping app doesn't support it, fall back to normal sized ping.
-    ping -c 1 -W 3 -M do -s "$payload" "$target" >/dev/null 2>&1
-    rc=$?
-
-    # If ping returned failure, try to detect whether -M is unsupported.
-    # This avoids falsely treating "unknown option" as path MTU failure.
-    if ping -h 2>&1 | grep -q -- '[-]M'; then
-        return $rc
-    fi
-
-    # No -M support; just try sized ping
     ping -c 1 -W 3 -s "$payload" "$target" >/dev/null 2>&1
     return $?
 }
