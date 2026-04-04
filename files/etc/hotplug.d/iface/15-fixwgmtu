@@ -1,77 +1,216 @@
 #!/bin/sh
 
+LOGGER_TAG="fixwgmtu"
+GOOGLE_TARGET="8.8.8.8"
+START_MTU=1500
+MIN_MTU=1000
+STEP=20
+SLEEP_SECS=5
+
+log_msg() {
+    logger -t "$LOGGER_TAG" "$*"
+}
+
+get_asn_org() {
+    curl -fsS --max-time 5 https://ipconfig.io/json 2>/dev/null \
+        | sed -n 's/.*"asn_org"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+        | head -n 1
+}
+
+# Convert MTU to ping payload for IPv4
+mtu_to_payload() {
+    echo $(( $1 - 28 ))
+}
+
+# Test "normal" ping first (no DF logic, just basic reachability)
+test_normal_ping() {
+    target="$1"
+    ping -c 1 -W 3 "$target" >/dev/null 2>&1
+}
+
+# Test with a given MTU-sized packet using DF
+test_ping_mtu() {
+    target="$1"
+    mtu="$2"
+    payload="$(mtu_to_payload "$mtu")"
+
+    [ "$payload" -le 0 ] && return 1
+
+    # BusyBox ping on many OpenWrt builds supports -M do, but not all.
+    # Try DF first; if the ping app doesn't support it, fall back to normal sized ping.
+    ping -c 1 -W 3 -M do -s "$payload" "$target" >/dev/null 2>&1
+    rc=$?
+
+    # If ping returned failure, try to detect whether -M is unsupported.
+    # This avoids falsely treating "unknown option" as path MTU failure.
+    if ping -h 2>&1 | grep -q -- '[-]M'; then
+        return $rc
+    fi
+
+    # No -M support; just try sized ping
+    ping -c 1 -W 3 -s "$payload" "$target" >/dev/null 2>&1
+    return $?
+}
+
+find_good_mtu() {
+    target="$1"
+    mtu="$START_MTU"
+
+    while [ "$mtu" -ge "$MIN_MTU" ]; do
+        if test_ping_mtu "$target" "$mtu"; then
+            echo "$mtu"
+            return 0
+        fi
+        mtu=$((mtu - STEP))
+    done
+
+    echo "$MIN_MTU"
+    return 1
+}
+
+get_iface_current_mtu() {
+    iface="$1"
+    cat "/sys/class/net/$iface/mtu" 2>/dev/null
+}
+
+set_iface_mtu_if_needed() {
+    iface="$1"
+    new_mtu="$2"
+
+    case "$new_mtu" in
+        ''|*[!0-9]*)
+            return 1
+            ;;
+    esac
+
+    current_mtu="$(get_iface_current_mtu "$iface")"
+
+    if [ "$current_mtu" = "$new_mtu" ]; then
+        return 0
+    fi
+
+    ip link set dev "$iface" mtu "$new_mtu" >/dev/null 2>&1
+    return $?
+}
+
+# Find the UCI peer section for a given WireGuard interface name, like wgs3
+# Looks for:
+#   network.wgs3=interface
+#   network.wireguard_wgs3=wireguard_wgs3
+# or indexed peer sections that contain ".<iface>."
+get_wg_endpoint_host() {
+    iface="$1"
+
+    # First try the common direct section name: network.wireguard_<iface>.endpoint_host
+    host="$(uci -q get "network.wireguard_${iface}.endpoint_host" 2>/dev/null)"
+    if [ -n "$host" ]; then
+        echo "$host"
+        return 0
+    fi
+
+    # Fallback: search any network section whose name contains the iface
+    # and has endpoint_host
+    host="$(uci show network 2>/dev/null \
+        | grep "\.endpoint_host=" \
+        | grep "$iface" \
+        | sed -n "s/.*endpoint_host='\([^']*\)'.*/\1/p" \
+        | head -n 1)"
+
+    if [ -n "$host" ]; then
+        echo "$host"
+        return 0
+    fi
+
+    return 1
+}
+
+handle_wan() {
+    iface="$1"
+    target="$GOOGLE_TARGET"
+
+    good_mtu="$(find_good_mtu "$target")"
+    case "$good_mtu" in
+        ''|*[!0-9]*)
+            log_msg "$iface up, failed to determine WAN MTU"
+            return 1
+            ;;
+    esac
+
+    # Only care if it is below 1500
+    if [ "$good_mtu" -lt 1500 ]; then
+        asn_org="$(get_asn_org)"
+        [ -z "$asn_org" ] && asn_org="unknown"
+
+        if set_iface_mtu_if_needed "$iface" "$good_mtu"; then
+            log_msg "$iface up, WAN via $asn_org, target $target, path MTU $good_mtu, set $iface MTU to $good_mtu"
+        else
+            log_msg "$iface up, WAN via $asn_org, target $target, path MTU $good_mtu, failed to set $iface MTU"
+        fi
+    else
+        log_msg "$iface up, WAN path supports 1500 via $target"
+    fi
+
+    return 0
+}
+
+handle_wgs() {
+    iface="$1"
+
+    endpoint_host="$(get_wg_endpoint_host "$iface")"
+    if [ -z "$endpoint_host" ]; then
+        target="$GOOGLE_TARGET"
+        log_msg "$iface up, no endpoint_host found in UCI, using fallback target $target"
+    else
+        # Try endpoint normally first
+        if test_normal_ping "$endpoint_host"; then
+            target="$endpoint_host"
+        else
+            target="$GOOGLE_TARGET"
+            log_msg "$iface up, endpoint_host $endpoint_host did not respond to normal ping, using fallback target $target"
+        fi
+    fi
+
+    good_mtu="$(find_good_mtu "$target")"
+    case "$good_mtu" in
+        ''|*[!0-9]*)
+            log_msg "$iface up, failed to determine outer path MTU using target $target"
+            return 1
+            ;;
+    esac
+
+    # You asked for WG to be based off the discovered path.
+    # Keeping your original subtraction logic.
+    wg_mtu=$((good_mtu - 80))
+
+    # Sanity floor
+    if [ "$wg_mtu" -lt 1280 ]; then
+        wg_mtu=1280
+    fi
+
+    if set_iface_mtu_if_needed "$iface" "$wg_mtu"; then
+        log_msg "$iface up, endpoint ${endpoint_host:-unknown}, target $target, outer MTU $good_mtu, set $iface MTU to $wg_mtu"
+    else
+        log_msg "$iface up, endpoint ${endpoint_host:-unknown}, target $target, outer MTU $good_mtu, failed to set $iface MTU"
+    fi
+
+    return 0
+}
+
 if [ "$ACTION" = "ifup" ]; then
     case "$INTERFACE" in
         wan|wgs[0-9]*)
-            sleep 5
+            sleep "$SLEEP_SECS"
 
-            TARGET="8.8.8.8"
-            START_MTU=1500
-            MIN_MTU=1000
-            STEP=20
-
-            get_wgs_interfaces() {
-                ip link | awk -F': ' '$2 ~ /^wgs[0-9]+$/ {print $2}'
-            }
-
-            get_asn_org() {
-                curl -fsS --max-time 5 https://ipconfig.io/json 2>/dev/null | sed -n 's/.*"asn_org"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
-            }
-
-            set_all_mtu() {
-                mtu="$1"
-                ints="$(get_wgs_interfaces)"
-                wgmtu=$((mtu - 80))
-
-                [ -z "$ints" ] && return 1
-
-                for int in $ints; do
-                    ip link set dev "$int" mtu "$wgmtu" >/dev/null 2>&1
-                done
-
-                return 0
-            }
-
-            test_ping_mtu() {
-                mtu="$1"
-                payload=$((mtu - 28))
-
-                [ "$payload" -le 0 ] && return 1
-
-                ping -c 1 -W 3 -s "$payload" "$TARGET" >/dev/null 2>&1
-                return $?
-            }
-
-            find_good_mtu() {
-                mtu="$START_MTU"
-
-                while [ "$mtu" -ge "$MIN_MTU" ]; do
-                    if test_ping_mtu "$mtu"; then
-                        printf '%s\n' "$mtu"
-                        return 0
-                    fi
-                    mtu=$((mtu - STEP))
-                done
-
-                printf '%s\n' "$MIN_MTU"
-                return 1
-            }
-
-            GOOD_MTU="$(find_good_mtu)"
-            WG_MTU=$((GOOD_MTU - 80))
-            case "$GOOD_MTU" in
-                ''|*[!0-9]*)
-                    exit 1
+            case "$INTERFACE" in
+                wan)
+                    handle_wan "$INTERFACE"
+                    ;;
+                wgs[0-9]*)
+                    handle_wgs "$INTERFACE"
                     ;;
             esac
-
-            if [ "$GOOD_MTU" -ne 1500 ]; then
-                ASN_ORG="$(get_asn_org)"
-                [ -z "$ASN_ORG" ] && ASN_ORG="unknown"
-                logger -t fixwgmtu "$INTERFACE up, Wan via $ASN_ORG ($GOOD_MTU), setting wgs MTU to $WG_MTU"
-            fi
-
-            set_all_mtu "$GOOD_MTU"
             ;;
     esac
 fi
+
+exit 0
