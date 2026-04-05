@@ -48,22 +48,24 @@ find_good_mtu() {
     high="$START_MTU"
     best="$MIN_OUTER_MTU"
 
+    # Phase 1: coarse binary search on 40-byte boundaries
     while [ "$low" -le "$high" ]; do
         mid=$(( (low + high) / 2 ))
-        mid=$(( mid - (mid % 20) ))
+        mid=$(( mid - (mid % 40) ))
 
         [ "$mid" -lt "$MIN_OUTER_MTU" ] && mid="$MIN_OUTER_MTU"
 
         if test_ping_mtu "$target" "$mid"; then
             best="$mid"
-            low=$((mid + 20))
+            low=$((mid + 40))
         else
-            high=$((mid - 20))
+            high=$((mid - 40))
         fi
     done
 
-    start=$((best - 30))
-    end=$((best + 30))
+    # Phase 2: refine around coarse result on 10-byte boundaries
+    start=$((best - 40))
+    end=$((best + 40))
 
     [ "$start" -lt "$MIN_OUTER_MTU" ] && start="$MIN_OUTER_MTU"
     [ "$end" -gt "$START_MTU" ] && end="$START_MTU"
@@ -87,7 +89,6 @@ find_good_mtu() {
 get_real_dev() {
     iface="$1"
 
-    # Hardcode common OpenWrt/AREDN logical WAN bridge
     if [ "$iface" = "wan" ] && [ -d /sys/class/net/br-wan ]; then
         echo "br-wan"
         return 0
