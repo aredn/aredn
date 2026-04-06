@@ -176,6 +176,19 @@ uciMesh.foreach("wireguard", "client", a => {
     delete available[a.clientip];
     servercount++;
 });
+
+sort(tunnels, (a, b) => {
+    const ma = match(a.index, /^([a-z]+)_(\d+)$/);
+    const mb = match(b.index, /^([a-z]+)_(\d+)$/);
+    if (!ma || !mb) {
+        return (a.index < b.index) ? -1 : 1;
+    }
+    if (ma[1] !== mb[1]) {
+        return (ma[1] === "server") ? -1 : 1;
+    }
+    return int(ma[2]) - int(mb[2]);
+});
+
 function t2t(type)
 {
     switch (type) {
