@@ -1,6 +1,6 @@
 #! /bin/sh
-# Disable hostapd (etc) on devices without wifi
+# Enable hostapd (etc) on devices with wifi in case it was disabled
 
-if [ ! -d /sys/class/ieee80211 ]; then
-    /etc/init.d/wpad disable
+if [ -d /sys/class/ieee80211 ]; then
+    /etc/init.d/wpad enable
 fi
