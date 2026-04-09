@@ -1,0 +1,253 @@
+#!/bin/sh
+
+LOGGER_TAG="fixwgmtu"
+GOOGLE_TARGET="8.8.8.8"
+
+START_MTU=1500
+MIN_OUTER_MTU=1000
+WG_MIN_MTU=1280
+WG_OVERHEAD=80
+
+SLEEP_SECS=5
+
+log_msg() {
+    logger -t "$LOGGER_TAG" "$*"
+}
+
+get_asn_org() {
+    curl -fsS --max-time 5 https://ipconfig.io/json 2>/dev/null \
+        | sed -n 's/.*"asn_org"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+        | head -n 1
+}
+
+mtu_to_payload() {
+    echo $(( $1 - 28 ))
+}
+
+test_normal_ping() {
+    target="$1"
+    ping -c 1 -W 3 "$target" >/dev/null 2>&1
+}
+
+test_ping_mtu() {
+    target="$1"
+    mtu="$2"
+    payload="$(mtu_to_payload "$mtu")"
+
+    [ -z "$payload" ] && return 1
+    [ "$payload" -le 0 ] && return 1
+
+    ping -c 1 -W 3 -s "$payload" "$target" >/dev/null 2>&1
+    return $?
+}
+
+find_good_mtu() {
+    target="$1"
+
+    low="$MIN_OUTER_MTU"
+    high="$START_MTU"
+    best="$MIN_OUTER_MTU"
+
+    # Phase 1: coarse binary search on 40-byte boundaries
+    while [ "$low" -le "$high" ]; do
+        mid=$(( (low + high) / 2 ))
+        mid=$(( mid - (mid % 40) ))
+
+        [ "$mid" -lt "$MIN_OUTER_MTU" ] && mid="$MIN_OUTER_MTU"
+
+        if test_ping_mtu "$target" "$mid"; then
+            best="$mid"
+            low=$((mid + 40))
+        else
+            high=$((mid - 40))
+        fi
+    done
+
+    # Phase 2: refine around coarse result on 10-byte boundaries
+    start=$((best - 40))
+    end=$((best + 40))
+
+    [ "$start" -lt "$MIN_OUTER_MTU" ] && start="$MIN_OUTER_MTU"
+    [ "$end" -gt "$START_MTU" ] && end="$START_MTU"
+
+    fine_best="$MIN_OUTER_MTU"
+    i="$start"
+    while [ "$i" -le "$end" ]; do
+        probe=$(( i - (i % 10) ))
+
+        if test_ping_mtu "$target" "$probe"; then
+            fine_best="$probe"
+        fi
+
+        i=$((i + 10))
+    done
+
+    echo "$fine_best"
+    return 0
+}
+
+get_real_dev() {
+    iface="$1"
+
+    if [ "$iface" = "wan" ] && [ -d /sys/class/net/br-wan ]; then
+        echo "br-wan"
+        return 0
+    fi
+
+    if [ -d "/sys/class/net/$iface" ]; then
+        echo "$iface"
+        return 0
+    fi
+
+    dev="$(ifstatus "$iface" 2>/dev/null | sed -n 's/.*"l3_device"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+    [ -n "$dev" ] && [ -d "/sys/class/net/$dev" ] && { echo "$dev"; return 0; }
+
+    dev="$(ifstatus "$iface" 2>/dev/null | sed -n 's/.*"device"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+    [ -n "$dev" ] && [ -d "/sys/class/net/$dev" ] && { echo "$dev"; return 0; }
+
+    return 1
+}
+
+get_iface_current_mtu() {
+    iface="$1"
+    realdev="$(get_real_dev "$iface")" || return 1
+    cat "/sys/class/net/$realdev/mtu" 2>/dev/null
+}
+
+set_iface_mtu_if_needed() {
+    iface="$1"
+    new_mtu="$2"
+
+    case "$new_mtu" in
+        ''|*[!0-9]*)
+            return 1
+            ;;
+    esac
+
+    realdev="$(get_real_dev "$iface")" || return 1
+    current_mtu="$(cat "/sys/class/net/$realdev/mtu" 2>/dev/null)"
+
+    if [ "$current_mtu" = "$new_mtu" ]; then
+        return 0
+    fi
+
+    ip link set dev "$realdev" mtu "$new_mtu" >/dev/null 2>&1
+    return $?
+}
+
+get_wg_endpoint_host() {
+    iface="$1"
+
+    host="$(uci -q get "network.wireguard_${iface}.endpoint_host" 2>/dev/null)"
+    if [ -n "$host" ]; then
+        echo "$host"
+        return 0
+    fi
+
+    host="$(uci show network 2>/dev/null \
+        | grep "\.endpoint_host=" \
+        | grep "$iface" \
+        | sed -n "s/.*endpoint_host='\([^']*\)'.*/\1/p" \
+        | head -n 1)"
+
+    if [ -n "$host" ]; then
+        echo "$host"
+        return 0
+    fi
+
+    return 1
+}
+
+handle_wan() {
+    iface="$1"
+    target="$GOOGLE_TARGET"
+
+    good_mtu="$(find_good_mtu "$target")"
+    case "$good_mtu" in
+        ''|*[!0-9]*)
+            log_msg "$iface up, failed to determine WAN MTU using $target"
+            return 1
+            ;;
+    esac
+
+    if [ "$good_mtu" -lt 1500 ]; then
+        asn_org="$(get_asn_org)"
+        [ -z "$asn_org" ] && asn_org="unknown"
+        realdev="$(get_real_dev "$iface")"
+        [ -z "$realdev" ] && realdev="unknown"
+
+        if set_iface_mtu_if_needed "$iface" "$good_mtu"; then
+            log_msg "$iface up, WAN via $asn_org, target $target, path MTU $good_mtu, set device $realdev MTU to $good_mtu"
+        else
+            log_msg "$iface up, WAN via $asn_org, target $target, path MTU $good_mtu, failed to set device $realdev MTU"
+        fi
+    else
+        log_msg "$iface up, WAN path supports 1500 via $target"
+    fi
+
+    return 0
+}
+
+handle_wgs() {
+    iface="$1"
+    endpoint_host="$(get_wg_endpoint_host "$iface")"
+
+    if [ -z "$endpoint_host" ]; then
+        wg_mtu="$WG_MIN_MTU"
+        if set_iface_mtu_if_needed "$iface" "$wg_mtu"; then
+            log_msg "$iface up, no endpoint_host found in UCI, set $iface MTU to safe minimum $wg_mtu"
+        else
+            log_msg "$iface up, no endpoint_host found in UCI, failed to set $iface MTU to safe minimum $wg_mtu"
+        fi
+        return 0
+    fi
+
+    if test_normal_ping "$endpoint_host"; then
+        outer_mtu="$(find_good_mtu "$endpoint_host")"
+        case "$outer_mtu" in
+            ''|*[!0-9]*)
+                wg_mtu="$WG_MIN_MTU"
+                ;;
+            *)
+                wg_mtu=$((outer_mtu - WG_OVERHEAD))
+                if [ "$wg_mtu" -lt "$WG_MIN_MTU" ]; then
+                    wg_mtu="$WG_MIN_MTU"
+                fi
+                ;;
+        esac
+
+        if set_iface_mtu_if_needed "$iface" "$wg_mtu"; then
+            log_msg "$iface up, endpoint $endpoint_host reachable, outer MTU $outer_mtu, set $iface MTU to $wg_mtu"
+        else
+            log_msg "$iface up, endpoint $endpoint_host reachable, outer MTU $outer_mtu, failed to set $iface MTU to $wg_mtu"
+        fi
+    else
+        wg_mtu="$WG_MIN_MTU"
+        if set_iface_mtu_if_needed "$iface" "$wg_mtu"; then
+            log_msg "$iface up, endpoint $endpoint_host did not respond to ping, set $iface MTU to safe minimum $wg_mtu"
+        else
+            log_msg "$iface up, endpoint $endpoint_host did not respond to ping, failed to set $iface MTU to safe minimum $wg_mtu"
+        fi
+    fi
+
+    return 0
+}
+
+if [ "$ACTION" = "ifup" ]; then
+    case "$INTERFACE" in
+        wan|wgs[0-9]*)
+            sleep "$SLEEP_SECS"
+
+            case "$INTERFACE" in
+                wan)
+                    handle_wan "$INTERFACE"
+                    ;;
+                wgs[0-9]*)
+                    handle_wgs "$INTERFACE"
+                    ;;
+            esac
+            ;;
+    esac
+fi
+
+exit 0
