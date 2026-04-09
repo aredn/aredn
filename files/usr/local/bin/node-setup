@@ -1462,15 +1462,6 @@ for (let file in nfiles) {
                     special.wifi_macfilter_1 != oc.get("wireless", "@wifi-iface[1]", "macfilter")) {
                         // Only start the hostapd (etc) if we need to. This doesn't change what is currently running
                         // only what automatically runs in the future
-                        if (oc.get("wireless", "@wifi-iface[0]", "mode") == "ap" ||
-                            oc.get("wireless", "@wifi-iface[1]", "mode") == "ap" ||
-                            oc.get("wireless", "@wifi-iface[0]", "mode") == "sta" ||
-                            oc.get("wireless", "@wifi-iface[1]", "mode") == "sta") {
-                                system("/etc/init.d/wpad enable > /dev/null 2>&1");
-                        }
-                        else {
-                                system("/etc/init.d/wpad disable > /dev/null 2>&1");
-                        }
                         changes.reboot = true;
                 }
                 else {
