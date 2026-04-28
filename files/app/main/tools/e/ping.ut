@@ -63,8 +63,9 @@ const mynode = configuration.getName();
             <option value="{{mynode}}">{{mynode}}</option>
             {%
                 for (let i = 0; i < length(nodes); i++) {
-                    if (nodes[i] !== mynode) {
-                        print(`<option value="${nodes[i]}">${nodes[i]}</option>`);
+                    const nn = nodes[i].name;
+                    if (nn !== mynode) {
+                        print(`<option value="${nn}">${nn}</option>`);
                     }
                 }
             %}

@@ -61,7 +61,7 @@ export function getNodeList()
                             const n = m[2];
                             const ln = lc(n);
                             push(nodes, ln);
-                            hash[ln] = n;
+                            hash[ln] = { name: n, ip: ip };
                         }
                     }
                 }

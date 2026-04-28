@@ -203,35 +203,7 @@ if (match(q, /link_info=1/)) {
 
 // NODES
 if (match(q, /nodes=1/)) {
-    const nodes = [];
-    const d = fs.opendir("/var/run/arednlink/hosts");
-    if (d) {
-        for (let name = d.read(); name; name = d.read()) {
-            if (name == "." || name == "..") {
-                continue;
-            }
-            const f = fs.open(`/var/run/arednlink/hosts/${name}`);
-            if (f) {
-                let ip = null;
-                for (let line = f.read("line"); length(line); line = f.read("line")) {
-                    line = trim(line);
-                    let m = match(line, reTitle);
-                    if (m) {
-                        ip = m[1];
-                    }
-                    else {
-                        m = match(line, reHosts);
-                        if (m && m[1] == ip) {
-                            push(nodes, { name: m[2], ip: ip });
-                        }
-                    }
-                }
-                f.close();
-            }
-        }
-        d.close();
-    }
-    info.nodes = nodes;
+    info.nodes = mesh.getNodeList();
 }
 
 // HOSTS
