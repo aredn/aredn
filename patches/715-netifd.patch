@@ -1,0 +1,15 @@
+--- a/package/network/config/netifd/files/lib/netifd/utils.uc
++++ b/package/network/config/netifd/files/lib/netifd/utils.uc
+@@ -55,9 +55,10 @@
+ 		chdir(prev_dir);
+ 		f.seek();
+ 		while (!f.error()) {
+-			let data = trim(f.read("line"));
++			let data = f.read("line");
++			if (!length(data)) break;
+ 			try {
+-				data = json(data);
++				data = json(trim(data));
+ 			} catch (e) {
+ 				continue;
+ 			}
