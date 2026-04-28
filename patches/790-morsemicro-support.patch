@@ -5,13 +5,35 @@
    KERNEL_SRC=$(LINUX_DIR) \
    CONFIG_MORSE_SDIO_ALIGNMENT=$(CONFIG_MORSE_SDIO_ALIGNMENT) \
 -  CONFIG_BACKPORT_VERSION=v6.1.24
-+  CONFIG_BACKPORT_VERSION=v6.12.44
++  CONFIG_BACKPORT_VERSION=v6.18.7
  # This refers to the version of mac80211 backported to OpenWrt
  # Occasionally patches are required to remove some parts of the driver
  # as OpenWrt may sometimes pull in further patches from later kernel versions
+--- a/package/feeds/morse/morse-regdb/Makefile
++++ b/package/feeds/morse/morse-regdb/Makefile
+@@ -18,7 +18,7 @@
+ PKG_RELEASE:=1
+ PKG_BUILD_DEPENDS:=python3/host
+ 
+-PKG_SOURCE_VERSION:=v2.4.1
++PKG_SOURCE_VERSION:=2.4.1
+ # This points to an internal repo, but the repo is not used unless REGENERATE is set
+ # (see initial comment).
+ PKG_SOURCE_URL:=ssh://git@bitbucket.org/morsemicro/morse_regdb.git
+--- a/package/feeds/morse/mt7603e-txpat-artini/Makefile
++++ b/package/feeds/morse/mt7603e-txpat-artini/Makefile
+@@ -11,7 +11,7 @@
+ PKG_RELEASE:=1
+ PKG_BUILD_DEPENDS:=python3/host
+ 
+-PKG_VERSION:=v1.0
++PKG_VERSION:=1.0
+ 
+ include $(INCLUDE_DIR)/package.mk
+ 
 --- /dev/null
 +++ b/feeds/morse/essentials/morse_driver/patches/100-aredn.patch
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,138 @@
 +--- a/debug.h
 ++++ b/debug.h
 +@@ -154,7 +154,7 @@
@@ -47,6 +69,75 @@
 + 	    country_codes_are_equal(request->alpha2, "00"))
 + 		req_cc = country;
 + 	else
++--- a/mac.c
+++++ b/mac.c
++@@ -48,6 +48,8 @@
++ #include "led.h"
++ #include "monitor.h"
++ 
+++#define	IEEE80211_CHAN_IGNORE	IEEE80211_CHAN_S1G_NO_PRIMARY
+++
++ #define RATE(rate100m, _flags) { \
++ 	.bitrate = (rate100m), \
++ 	.flags = (_flags), \
++--- a/dot11ah/s1g_channels.c
+++++ b/dot11ah/s1g_channels.c
++@@ -19,6 +19,8 @@
++ #include "s1g_channels_rules.c"
++ #include "channel_alphas.h"
++ 
+++#define	IEEE80211_CHAN_IGNORE	IEEE80211_CHAN_S1G_NO_PRIMARY
+++
++ #define CHANNEL_FLAGS_BW_MASK 0x7c000
++ 
++ /**
++--- a/mac.c
+++++ b/mac.c
++@@ -3469,7 +3469,7 @@
++ 	return ret;
++ }
++ 
++-static int morse_mac_ops_config(struct ieee80211_hw *hw, u32 changed)
+++static int morse_mac_ops_config(struct ieee80211_hw *hw, int __dummy__, u32 changed)
++ {
++ 	int err = 0;
++ 	struct morse *mors = hw->priv;
++@@ -3539,7 +3539,7 @@
++ }
++ 
++ /* Return Tx power only when channel is configured and is the same as one in hw->conf */
++-static int morse_mac_ops_get_txpower(struct ieee80211_hw *hw, struct ieee80211_vif *vif, int *dbm)
+++static int morse_mac_ops_get_txpower(struct ieee80211_hw *hw, struct ieee80211_vif *vif, unsigned int __dummy__, int *dbm)
++ {
++ 	int err;
++ 	struct morse *mors = hw->priv;
++@@ -4890,7 +4890,7 @@
++ 		 * packets.
++ 		 */
++ 		changed |= IEEE80211_CONF_CHANGE_CHANNEL;
++-		morse_mac_ops_config(hw, changed);
+++		morse_mac_ops_config(hw, 0, changed);
++ 	}
++ 
++ 	memcpy(bssid, vif->bss_conf.bssid, ETH_ALEN);
++@@ -4926,7 +4926,7 @@
++ 	mutex_unlock(&mors->lock);
++ }
++
++-static int morse_mac_set_frag_threshold(struct ieee80211_hw *hw, u32 value)
+++static int morse_mac_set_frag_threshold(struct ieee80211_hw *hw, int __dummy__, u32 value)
++ {
++ 	int ret = -EINVAL;
++ 	struct morse *mors = hw->priv;
++@@ -4940,7 +4940,7 @@
++ 	return ret;
++ }
++ 
++-static int morse_mac_set_rts_threshold(struct ieee80211_hw *hw, u32 value)
+++static int morse_mac_set_rts_threshold(struct ieee80211_hw *hw, int __dummy__, u32 value)
++ {
++ 	/* When Minstrel is not used, Linux checks if .set_rts_threshold is registered.
++ 	 * MMRC follows Minstrel to apply RTS on retry rates so does not use this function.
 +--- a/dot11ah/ie.c
 ++++ b/dot11ah/ie.c
 +@@ -526,7 +526,7 @@
@@ -70,6 +161,17 @@
 + }
 + 
 + /**
++--- a/wiphy.c
+++++ b/wiphy.c
++@@ -1012,7 +1012,7 @@
++ 	return ret;
++ }
++ 
++-static int morse_wiphy_set_wiphy_params(struct wiphy *wiphy, u32 changed)
+++static int morse_wiphy_set_wiphy_params(struct wiphy *wiphy, int __dummy__, u32 changed)
++ {
++ 	struct morse *mors = wiphy_priv(wiphy);
++ 	int ret = 0;
 --- a/target/linux/ramips/image/mt7621.mk
 +++ b/target/linux/ramips/image/mt7621.mk
 @@ -2058,6 +2058,20 @@
@@ -85,7 +187,7 @@
 +  UBOOT_PATH := $(STAGING_DIR_IMAGE)/$$(UBOOT_TARGET)-$$(UBOOT_IMAGE)
 +  DEVICE_VENDOR := MorseMicro
 +  DEVICE_MODEL := HaLowLink 1
-+  DEVICE_PACKAGES := kmod-mmc-mt7620 kmod-mt7603 \
++  DEVICE_PACKAGES := kmod-mmc-mtk kmod-mt7603 \
 +	kmod-morse netifd-morse
 +endef
 +TARGET_DEVICES += morse_artini
@@ -490,164 +592,163 @@
  		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "wan"
  		;;
 
---- a/package/kernel/linux/modules/leds.mk
-+++ b/package/kernel/linux/modules/leds.mk
-@@ -233,6 +233,24 @@
- $(eval $(call KernelPackage,leds-pwm))
- 
- 
-+define KernelPackage/leds-pwm-multicolor
-+  SUBMENU:=$(LEDS_MENU)
-+  TITLE:=PWM driven Multicolor LED Support
-+  KCONFIG:= \
-+        CONFIG_PWM=y \
-+        CONFIG_LEDS_CLASS_MULTICOLOR=y \
-+        CONFIG_LEDS_PWM_MULTICOLOR
-+  FILES:=$(LINUX_DIR)/drivers/leds/rgb/leds-pwm-multicolor.ko
-+  AUTOLOAD:=$(call AutoLoad,60,leds-pwm-multicolor)
-+endef
-+
-+define KernelPackage/leds-pwm-multicolor/description
-+ This option enables multicolor support for pwm driven LEDs
-+endef
-+
-+$(eval $(call KernelPackage,leds-pwm-multicolor))
-+
-+
- define KernelPackage/leds-tlc591xx
-   SUBMENU:=$(LEDS_MENU)
-   TITLE:=LED driver for TLC59108 and TLC59116 controllers
-
---- /dev/null
-+++ b/target/linux/ramips/patches-6.6/999-morse-Add-default-brightness-and-intensity-to-leds-pwm-mul.patch
-@@ -0,0 +1,113 @@
-+From bf6699d3041266ec4e4b146ca387f2f104ed7a30 Mon Sep 17 00:00:00 2001
-+From: Evan Benn <evan.benn@morsemicro.com>
-+Date: Tue, 20 Aug 2024 16:50:04 +1000
-+Subject: [PATCH] Add default brightness and intensity to leds-pwm-multicolor
-+
-+---
-+ drivers/leds/led-class-multicolor.c | 33 +++++++++++++++++++++++++++++
-+ drivers/leds/led-class.c            | 11 +++++++++-
-+ include/linux/leds.h                |  1 +
-+ 3 files changed, 44 insertions(+), 1 deletion(-)
-+
-+Index: linux-6.6.86/drivers/leds/led-class-multicolor.c
-+===================================================================
-+--- linux-6.6.86.orig/drivers/leds/led-class-multicolor.c
-++++ linux-6.6.86/drivers/leds/led-class-multicolor.c
-+@@ -3,6 +3,7 @@
-+ // Copyright (C) 2019-20 Texas Instruments Incorporated - http://www.ti.com/
-+ // Author: Dan Murphy <dmurphy@ti.com>
-+ 
-++#include "linux/property.h"
-+ #include <linux/device.h>
-+ #include <linux/init.h>
-+ #include <linux/led-class-multicolor.h>
-+@@ -118,6 +119,36 @@ static struct attribute *led_multicolor_
-+ };
-+ ATTRIBUTE_GROUPS(led_multicolor);
-+ 
-++void read_default_intensity(struct led_classdev_mc *mcled_cdev, struct led_init_data *init_data)
-++{
-++	u32 count = fwnode_property_count_u32(init_data->fwnode,
-++					  "default-mc-intensity");
-++	u32 *default_intensity;
-++	u32 i;
-++
-++	if (count != mcled_cdev->num_colors) {
-++		return;
-++	}
-++
-++	default_intensity =
-++		kcalloc(count, sizeof(*default_intensity),
-++			GFP_KERNEL);
-++	if (!default_intensity)
-++		return;
-++
-++	if (fwnode_property_read_u32_array(
-++			init_data->fwnode, "default-mc-intensity",
-++			default_intensity, count)) {
-++		kfree(default_intensity);
-++		return;
-++	}
-++
-++	for (i = 0; i < mcled_cdev->num_colors; i++)
-++		mcled_cdev->subled_info[i]
-++			.intensity = default_intensity[i];
-++	kfree(default_intensity);
-++}
-++
-+ int led_classdev_multicolor_register_ext(struct device *parent,
-+ 				     struct led_classdev_mc *mcled_cdev,
-+ 				     struct led_init_data *init_data)
-+@@ -136,6 +167,8 @@ int led_classdev_multicolor_register_ext
-+ 	led_cdev = &mcled_cdev->led_cdev;
-+ 	mcled_cdev->led_cdev.groups = led_multicolor_groups;
-+ 
-++	read_default_intensity(mcled_cdev, init_data);
-++
-+ 	return led_classdev_register_ext(parent, led_cdev, init_data);
-+ }
-+ EXPORT_SYMBOL_GPL(led_classdev_multicolor_register_ext);
-+Index: linux-6.6.86/drivers/leds/led-class.c
-+===================================================================
-+--- linux-6.6.86.orig/drivers/leds/led-class.c
-++++ linux-6.6.86/drivers/leds/led-class.c
-+@@ -495,6 +495,16 @@
-+ 						    "retain-state-shutdown"))
-+ 				led_cdev->flags |= LED_RETAIN_AT_SHUTDOWN;
-+ 
-++			if (fwnode_property_present(init_data->fwnode,
-++						    "default-brightness"))
-++			{
-++				fwnode_property_read_u32(
-++				    init_data->fwnode,
-++				    "default-brightness",
-++				    &led_cdev->brightness);
-++				led_cdev->default_brightness = true;
-++			}
-++
-+ 			fwnode_property_read_u32(init_data->fwnode,
-+ 				"max-brightness",
-+ 				&led_cdev->max_brightness);
-+@@ -412,8 +422,8 @@ int led_classdev_register_ext(struct dev
-+ 
-+ 	if (!led_cdev->max_brightness)
-+ 		led_cdev->max_brightness = LED_FULL;
-+-
-+-	led_update_brightness(led_cdev);
-++	if (!led_cdev->default_brightness)
-++		led_update_brightness(led_cdev);
-+ 
-+ 	led_init_core(led_cdev);
-+ 
-+Index: linux-6.6.86/include/linux/leds.h
-+===================================================================
-+--- linux-6.6.86.orig/include/linux/leds.h
-++++ linux-6.6.86/include/linux/leds.h
-+@@ -100,6 +100,7 @@
-+ 	const char		*name;
-+ 	unsigned int brightness;
-+ 	unsigned int max_brightness;
-++	bool default_brightness;
-+ 	unsigned int color;
-+ 	int			 flags;
-+ 
+#--- a/package/kernel/linux/modules/leds.mk
+#+++ b/package/kernel/linux/modules/leds.mk
+#@@ -233,6 +233,24 @@
+# $(eval $(call KernelPackage,leds-pwm))
+# 
+# 
+#+define KernelPackage/leds-pwm-multicolor
+#+  SUBMENU:=$(LEDS_MENU)
+#+  TITLE:=PWM driven Multicolor LED Support
+#+  KCONFIG:= \
+#+        CONFIG_PWM=y \
+#+        CONFIG_LEDS_CLASS_MULTICOLOR=y \
+#+        CONFIG_LEDS_PWM_MULTICOLOR
+#+  FILES:=$(LINUX_DIR)/drivers/leds/rgb/leds-pwm-multicolor.ko
+#+  AUTOLOAD:=$(call AutoLoad,60,leds-pwm-multicolor)
+#+endef
+#+
+#+define KernelPackage/leds-pwm-multicolor/description
+#+ This option enables multicolor support for pwm driven LEDs
+#+endef
+#+
+#+$(eval $(call KernelPackage,leds-pwm-multicolor))
+#+
+#+
+# define KernelPackage/leds-tlc591xx
+#   SUBMENU:=$(LEDS_MENU)
+#   TITLE:=LED driver for TLC59108 and TLC59116 controllers
+#
+#--- /dev/null
+#+++ b/target/linux/ramips/patches-6.12/999-morse-Add-default-brightness-and-intensity-to-leds-pwm-mul.patch
+#@@ -0,0 +1,113 @@
+#+From bf6699d3041266ec4e4b146ca387f2f104ed7a30 Mon Sep 17 00:00:00 2001
+#+From: Evan Benn <evan.benn@morsemicro.com>
+#+Date: Tue, 20 Aug 2024 16:50:04 +1000
+#+Subject: [PATCH] Add default brightness and intensity to leds-pwm-multicolor
+#+
+#+---
+#+ drivers/leds/led-class-multicolor.c | 33 +++++++++++++++++++++++++++++
+#+ drivers/leds/led-class.c            | 11 +++++++++-
+#+ include/linux/leds.h                |  1 +
+#+ 3 files changed, 44 insertions(+), 1 deletion(-)
+#+
+#+Index: linux-6.12.74/drivers/leds/led-class-multicolor.c
+#+===================================================================
+#+--- linux-6.12.74.orig/drivers/leds/led-class-multicolor.c
+#++++ linux-6.12.74/drivers/leds/led-class-multicolor.c
+#+@@ -3,6 +3,7 @@
+#+ // Copyright (C) 2019-20 Texas Instruments Incorporated - http://www.ti.com/
+#+ // Author: Dan Murphy <dmurphy@ti.com>
+#+ 
+#++#include "linux/property.h"
+#+ #include <linux/device.h>
+#+ #include <linux/init.h>
+#+ #include <linux/led-class-multicolor.h>
+#+@@ -118,6 +119,36 @@ static struct attribute *led_multicolor_
+#+ };
+#+ ATTRIBUTE_GROUPS(led_multicolor);
+#+ 
+#++void read_default_intensity(struct led_classdev_mc *mcled_cdev, struct led_init_data *init_data)
+#++{
+#++	u32 count = fwnode_property_count_u32(init_data->fwnode,
+#++					  "default-mc-intensity");
+#++	u32 *default_intensity;
+#++	u32 i;
+#++
+#++	if (count != mcled_cdev->num_colors) {
+#++		return;
+#++	}
+#++
+#++	default_intensity =
+#++		kcalloc(count, sizeof(*default_intensity),
+#++			GFP_KERNEL);
+#++	if (!default_intensity)
+#++		return;
+#++
+#++	if (fwnode_property_read_u32_array(
+#++			init_data->fwnode, "default-mc-intensity",
+#++			default_intensity, count)) {
+#++		kfree(default_intensity);
+#++		return;
+#++	}
+#++
+#++	for (i = 0; i < mcled_cdev->num_colors; i++)
+#++		mcled_cdev->subled_info[i]
+#++			.intensity = default_intensity[i];
+#++	kfree(default_intensity);
+#++}
+#++
+#+ int led_classdev_multicolor_register_ext(struct device *parent,
+#+ 				     struct led_classdev_mc *mcled_cdev,
+#+ 				     struct led_init_data *init_data)
+#+@@ -136,6 +167,8 @@ int led_classdev_multicolor_register_ext
+#+ 	led_cdev = &mcled_cdev->led_cdev;
+#+ 	mcled_cdev->led_cdev.groups = led_multicolor_groups;
+#+ 
+#++	read_default_intensity(mcled_cdev, init_data);
+#++
+#+ 	return led_classdev_register_ext(parent, led_cdev, init_data);
+#+ }
+#+ EXPORT_SYMBOL_GPL(led_classdev_multicolor_register_ext);
+#+Index: linux-6.12.74/drivers/leds/led-class.c
+#+===================================================================
+#+--- linux-6.12.74.orig/drivers/leds/led-class.c
+#++++ linux-6.12.74/drivers/leds/led-class.c
+#+@@ -495,6 +495,16 @@
+#+ 						    "retain-state-shutdown"))
+#+ 				led_cdev->flags |= LED_RETAIN_AT_SHUTDOWN;
+#+ 
+#++			if (fwnode_property_present(init_data->fwnode,
+#++						    "default-brightness"))
+#++			{
+#++				fwnode_property_read_u32(
+#++				    init_data->fwnode,
+#++				    "default-brightness",
+#++				    &led_cdev->brightness);
+#++				led_cdev->default_brightness = true;
+#++			}
+#++
+#+ 			fwnode_property_read_u32(init_data->fwnode,
+#+ 				"max-brightness",
+#+ 				&led_cdev->max_brightness);
+#+@@ -412,8 +422,8 @@ int led_classdev_register_ext(struct dev
+#+ 
+#+ 	if (!led_cdev->max_brightness)
+#+ 		led_cdev->max_brightness = LED_FULL;
+#+-
+#+-	led_update_brightness(led_cdev);
+#++	if (!led_cdev->default_brightness)
+#++		led_update_brightness(led_cdev);
+#+ 
+#+ 	led_init_core(led_cdev);
+#+ 
+#+Index: linux-6.12.74/include/linux/leds.h
+#+===================================================================
+#+--- linux-6.12.74.orig/include/linux/leds.h
+#++++ linux-6.12.74/include/linux/leds.h
+#+@@ -100,6 +100,7 @@
+#+ 	const char		*name;
+#+ 	unsigned int brightness;
+#+ 	unsigned int max_brightness;
+#++	bool default_brightness;
+#+ 	unsigned int color;
+#+ 	int			 flags;
+#+ 
 --- a/target/linux/ramips/image/mt76x8.mk
 +++ b/target/linux/ramips/image/mt76x8.mk
-@@ -1189,3 +1189,25 @@
- 	check-size | zyimage -d 6162 -v "ZyXEL Keenetic Extra II"
+@@ -1449,6 +1449,41 @@
  endef
  TARGET_DEVICES += zyxel_keenetic-extra-ii
-+
+ 
 +define Device/morse_ekh03
 +  IMAGE_SIZE := 32448k
 +  DEVICE_VENDOR := MorseMicro
 +  DEVICE_MODEL := EKH03
 +  DEVICE_VARIANT :=
 +  DEVICE_PACKAGES := kmod-usb2 kmod-usb-ohci kmod-usb-ledtrig-usbport \
-+        kmod-mmc-mt7620 kmod-i2c-mt7628 \
++        kmod-mmc-mtk kmod-i2c-mt7628 \
 +        kmod-morse netifd-morse \
 +        uboot-envtools
 +endef
@@ -662,6 +763,23 @@
 +  SUPPORTED_DEVICES := morse,ekh03v3 morse,ekh03-03
 +endef
 +TARGET_DEVICES += morse_ekh03v3
++
++define Device/alfa-network_tube-ahm-r0c
++  IMAGE_SIZE := 32448k
++  DEVICE_VENDOR := ALFA Network
++  DEVICE_MODEL := AHM
++  DEVICE_VARIANT := R0C
++  DEVICE_PACKAGES := kmod-usb2 kmod-usb-ohci kmod-usb-ledtrig-usbport \
++        kmod-mmc-mtk kmod-i2c-mt7628 \
++        kmod-morse netifd-morse \
++        uboot-envtools
++  SUPPORTED_DEVICES += alfa-network,ahtu6108e-us
++endef
++TARGET_DEVICES += alfa-network_tube-ahm-r0c
++
+ define Device/teltonika_rut200
+   DEVICE_VENDOR := Teltonika
+   DEVICE_MODEL := RUT200
 
 --- /dev/null
 +++ b/target/linux/ramips/dts/mt7628an_morse_ekh03v3.dts
@@ -979,25 +1097,6 @@
  	esac
  }
  
---- a/target/linux/ramips/image/mt76x8.mk
-+++ b/target/linux/ramips/image/mt76x8.mk
-@@ -1209,3 +1209,16 @@
-   SUPPORTED_DEVICES := morse,ekh03v3 morse,ekh03-03
- endef
- TARGET_DEVICES += morse_ekh03v3
-+
-+define Device/alfa-network_tube-ahm-r0c
-+  IMAGE_SIZE := 32448k
-+  DEVICE_VENDOR := ALFA Network
-+  DEVICE_MODEL := AHM
-+  DEVICE_VARIANT := R0C
-+  DEVICE_PACKAGES := kmod-usb2 kmod-usb-ohci kmod-usb-ledtrig-usbport \
-+        kmod-mmc-mt7620 kmod-i2c-mt7628 \
-+        kmod-morse netifd-morse \
-+        uboot-envtools
-+  SUPPORTED_DEVICES += alfa-network,ahtu6108e-us
-+endef
-+TARGET_DEVICES += alfa-network_tube-ahm-r0c
 --- /dev/null
 +++ b/target/linux/ramips/dts/mt7628an_alfa-network_tube-ahm-r0c.dts
 @@ -0,0 +1,46 @@
@@ -1058,29 +1157,47 @@
  		ucidef_add_switch "switch0"
  		ucidef_add_switch_attr "switch0" "enable" "false"
 
---- /dev/null
-+++ b/target/linux/ramips/patches-6.6/999-morse-cfg80211-flags.patch
-@@ -0,0 +1,10 @@
-+--- a/include/net/cfg80211.h
-++++ b/include/net/cfg80211.h
-+@@ -138,6 +138,7 @@
-+ 	IEEE80211_CHAN_16MHZ		= 1<<18,
-+ 	IEEE80211_CHAN_NO_320MHZ	= 1<<19,
-+ 	IEEE80211_CHAN_NO_EHT		= 1<<20,
-++	IEEE80211_CHAN_IGNORE		= 1<<27,
-+ };
-+ 
-+ #define IEEE80211_CHAN_NO_HT40 \
+#--- /dev/null
+#+++ b/target/linux/ramips/patches-6.12/999-morse-cfg80211-flags.patch
+#@@ -0,0 +1,10 @@
+#+--- a/include/net/cfg80211.h
+#++++ b/include/net/cfg80211.h
+#+@@ -138,6 +138,7 @@
+#+ 	IEEE80211_CHAN_16MHZ		= 1<<18,
+#+ 	IEEE80211_CHAN_NO_320MHZ	= 1<<19,
+#+ 	IEEE80211_CHAN_NO_EHT		= 1<<20,
+#++	IEEE80211_CHAN_IGNORE		= 1<<27,
+#+ };
+#+ 
+#+ #define IEEE80211_CHAN_NO_HT40 \
+#--- /dev/null
+#+++ b/package/kernel/mac80211/patches/build/999-morse-cfg80211-flags.patch
+#@@ -0,0 +1,10 @@
+#+--- a/include/net/cfg80211.h
+#++++ b/include/net/cfg80211.h
+#+@@ -158,6 +158,7 @@
+#+ 	IEEE80211_CHAN_CAN_MONITOR		= BIT(24),
+#+ 	IEEE80211_CHAN_ALLOW_6GHZ_VLP_AP	= BIT(25),
+#+ 	IEEE80211_CHAN_ALLOW_20MHZ_ACTIVITY     = BIT(26),
+#++	IEEE80211_CHAN_IGNORE			= BIT(27),
+#+ };
+#+ 
+#+ #define IEEE80211_CHAN_NO_HT40 \
 --- /dev/null
 +++ b/package/kernel/mac80211/patches/build/999-morse-cfg80211-flags.patch
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,15 @@
 +--- a/include/net/cfg80211.h
 ++++ b/include/net/cfg80211.h
-+@@ -158,6 +158,7 @@
-+ 	IEEE80211_CHAN_CAN_MONITOR		= BIT(24),
-+ 	IEEE80211_CHAN_ALLOW_6GHZ_VLP_AP	= BIT(25),
-+ 	IEEE80211_CHAN_ALLOW_20MHZ_ACTIVITY     = BIT(26),
-++	IEEE80211_CHAN_IGNORE			= BIT(27),
-+ };
-+ 
-+ #define IEEE80211_CHAN_NO_HT40 \
++@@ -142,7 +142,11 @@
++ 	IEEE80211_CHAN_NO_20MHZ			= BIT(11),
++ 	IEEE80211_CHAN_NO_10MHZ			= BIT(12),
++ 	IEEE80211_CHAN_NO_HE			= BIT(13),
++-	/* can use free bits here */
+++        IEEE80211_CHAN_1MHZ                     = BIT(14),
+++        IEEE80211_CHAN_2MHZ                     = BIT(15),
+++        IEEE80211_CHAN_4MHZ                     = BIT(16),
+++        IEEE80211_CHAN_8MHZ                     = BIT(17),
+++        IEEE80211_CHAN_16MHZ                    = BIT(18),
++ 	IEEE80211_CHAN_NO_320MHZ		= BIT(19),
++ 	IEEE80211_CHAN_NO_EHT			= BIT(20),
++ 	IEEE80211_CHAN_DFS_CONCURRENT		= BIT(21),
