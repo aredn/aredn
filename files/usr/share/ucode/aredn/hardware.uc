@@ -868,7 +868,6 @@ export function getEthernetPorts()
         case "cudy,wr3000s-v1":
             return default5PortLayout;
         case "glinet,gl-a1300":
-            return default3PortLayout;
         case "glinet,gl-b1300":
             return default3PortLayout;
         case "openwrt,one":
