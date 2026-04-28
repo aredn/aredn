@@ -33,26 +33,39 @@
 
 import * as fs from "fs";
 
+const reTitle = /^##(.+)##/;
+const reHosts = /^([0-9\.]+)[ \t]+([^ \.]+)$/;
+
 export function getNodeList()
 {
     const nodes = [];
     const hash = {};
-    const re = /^[0-9\.]+[ \t]+(.+)\n$/;
     const d = fs.opendir("/var/run/arednlink/hosts");
     if (d) {
-        for (let entry = d.read(); entry; entry = d.read()) {
-            if (entry !== "." && entry !== "..") {
-                let f = fs.open(`/var/run/arednlink/hosts/${entry}`);
-                if (f) {
-                    const m = match(f.read("line"), re);
+        for (let name = d.read(); name; name = d.read()) {
+            if (name == "." || name == "..") {
+                continue;
+            }
+            const f = fs.open(`/var/run/arednlink/hosts/${name}`);
+            if (f) {
+                let ip = null;
+                for (let line = f.read("line"); length(line); line = f.read("line")) {
+                    line = trim(line);
+                    let m = match(line, reTitle);
                     if (m) {
-                        const n = m[1];
-                        const ln = lc(n);
-                        push(nodes, ln);
-                        hash[ln] = n;
+                        ip = m[1];
                     }
-                    f.close();
+                    else {
+                        m = match(line, reHosts);
+                        if (m && m[1] == ip) {
+                            const n = m[2];
+                            const ln = lc(n);
+                            push(nodes, ln);
+                            hash[ln] = n;
+                        }
+                    }
                 }
+                f.close();
             }
         }
         d.close();
@@ -68,7 +81,6 @@ export function getNodeCounts()
     let bservices = 0;
     let d = fs.opendir("/var/run/arednlink/hosts");
     if (d) {
-        const reT = /^##.+##/;
         const reD = /\t[^\.]+$/;
         const reS = /^[a-z]/;
         for (let entry = d.read(); entry; entry = d.read()) {
@@ -76,7 +88,7 @@ export function getNodeCounts()
                 let f = fs.open(`/var/run/arednlink/hosts/${entry}`);
                 if (f) {
                     for (let l = f.read("line"); l; l = f.read("line")) {
-                        if (match(l, reT)) {
+                        if (match(l, reTitle)) {
                             bnodes++;
                         }
                         else if (match(l, reD)) {
