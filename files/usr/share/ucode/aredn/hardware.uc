@@ -625,7 +625,7 @@ export function getRadioNoise(wifiIface)
         }
     }
     // Fallback for hardware which doesn't support the survey api (e.g. HaLow)
-    const p = fs.popen(`/usr/bin/iwinfo ${wifiIface} info | /bin/grep Noise`);
+    const p = fs.popen(`/usr/bin/iwinfo ${wifiIface} info 2> /dev/null | /bin/grep Noise`);
     if (p) {
         const m = match(p.read("all"), /Noise: (-\d+) dBm/);
         p.close();
