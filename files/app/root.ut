@@ -326,6 +326,7 @@ const uciMeshMethods =
 
 const auth = {
     isAdmin: false,
+    isLAN: false,
     key: null,
     age: 315360000, // 10 years
 
@@ -369,6 +370,14 @@ const auth = {
         }
         if (config.forceauth) {
             this.isAdmin = true;
+        }
+        const ra = iptoarr(env.REMOTE_ADDR);
+        const ln = iptoarr(uciMeshMethods.get("setup", "globals", "dmz_lan_ip"));
+        if (ra[0] === ln[0] && ra[1] === ln[1] && ra[2] === ln[2]) {
+            const mask = iptoarr(uciMeshMethods.get("setup", "globals", "dmz_lan_mask"));
+            if ((ra[3] & mask[3]) === (ln[3] & mask[3])) {
+                this.isLAN = true;
+            }
         }
     },
 
