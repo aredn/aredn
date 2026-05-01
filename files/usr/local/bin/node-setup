@@ -926,6 +926,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
         let maxlisteninterval = null;
         let uapsd = null;
         let hwmode = null;
+        let phydev = null;
         let bcf = null;
         let shortgi = null;
         let htmode = hardware.getHTMode(wlan, wlan == mesh_wifi ? mesh_chanbw : -1, cfg[`${radio}_mode`]);
@@ -942,6 +943,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
                 if (rif.bcf) {
                     bcf = rif.bcf;
                 }
+                phydev = devname;
                 break;
             default:
                 hwmode = "11g";
@@ -1074,6 +1076,9 @@ for (let dev = 0; dev < ifacecount; dev++) {
         }
         if (rssireject != null) {
             config += `\toption rssi_reject_assoc_rssi '${rssireject}'\n\toption rssi_ignore_probe_request '${rssireject}'\n`;
+        }
+        if (phydev !== null) {
+            config += `\toption phy '${phydev}'\n`;
         }
         config += `\toption path '${devpath}'\n`;
         if (bcf != null) {
