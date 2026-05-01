@@ -3,7 +3,8 @@
 @@ -55,9 +55,10 @@
  		chdir(prev_dir);
  		f.seek();
- 		while (!f.error()) {
+-		while (!f.error()) {
++		while (true) {
 -			let data = trim(f.read("line"));
 +			let data = f.read("line");
 +			if (!length(data)) break;
