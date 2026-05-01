@@ -522,6 +522,7 @@ export function supportdata(supportdatafilename)
         "/tmp/wireless_monitor.json",
         "/tmp/service-validation-state.json",
         "/tmp/sysinfo",
+        "/tmp/dhcp.leases",
         "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
         "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
         "/proc/net/nf_conntrack",
