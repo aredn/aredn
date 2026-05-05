@@ -706,19 +706,18 @@ export function getHTMode(wifiIface, bandwidth, mode)
         }
     }
     else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
+        const prefix = fs.access("/sys/module/mt7915e") ? "HE" : "VHT";
         switch (bandwidth) {
             case 5:
             case 10:
             case 20:
-                htmode = "VHT20";
+            default:
+                htmode = `${prefix}20`;
                 break;
             case 40:
             case 80:
             case 160:
-                htmode = `HE${bandwidth}`;
-                break;
-            default:
-                htmode = "VHT20";
+                htmode = `${prefix}${bandwidth}`;
                 break;
         }
     }
