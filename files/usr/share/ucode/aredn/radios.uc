@@ -74,6 +74,7 @@ export function getCommonConfiguration()
             // Calculate which channels are available at which bandwidths
             const avail = {
                 // WiFi
+                "20": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 96, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165, 169, 173, 177, 181 ],
                 "40": [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ],
                 "80": [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ],
                 // Halow
@@ -88,21 +89,23 @@ export function getCommonConfiguration()
                 switch (bw) {
                     case "5":
                     case "10":
-                    case "20":
                         r.channels[bw] = channels;
                         break;
                     case "1":
                     case "2":
                     case "4":
                     case "8":
+                    case "20":
                     case "40":
                     case "80":
                     {
-
                         r.channels[bw] = [];
+                        const c = r.channels[bw];
+                        const a = avail[bw];
                         for (let j = 0; j < length(channels); j++) {
-                            if (index(avail[bw], channels[j].number) !== -1) {
-                                push(r.channels[bw], channels[j]);
+                            const ch = channels[j];
+                            if (index(a, ch.number) !== -1) {
+                                push(c, ch);
                             }
                         }
                         break;
