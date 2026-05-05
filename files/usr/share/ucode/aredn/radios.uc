@@ -77,6 +77,7 @@ export function getCommonConfiguration()
                 "20": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 96, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165, 169, 173, 177, 181 ],
                 "40": [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ],
                 "80": [ 36, 44, 52, 60, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ],
+                "160": [ 36, 100, 149 ],
                 // Halow
                 "1": [ 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49 ],
                 "2": [ 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46 ],
@@ -86,32 +87,19 @@ export function getCommonConfiguration()
             const channels = hardware.getRfChannels(iface);
             for (let b = 0; b < length(r.bws); b++) {
                 const bw = `${r.bws[b]}`;
-                switch (bw) {
-                    case "5":
-                    case "10":
-                        r.channels[bw] = channels;
-                        break;
-                    case "1":
-                    case "2":
-                    case "4":
-                    case "8":
-                    case "20":
-                    case "40":
-                    case "80":
-                    {
-                        r.channels[bw] = [];
-                        const c = r.channels[bw];
-                        const a = avail[bw];
-                        for (let j = 0; j < length(channels); j++) {
-                            const ch = channels[j];
-                            if (index(a, ch.number) !== -1) {
-                                push(c, ch);
-                            }
+                const a = avail[bw];
+                if (a) {
+                    r.channels[bw] = [];
+                    const c = r.channels[bw];
+                    for (let j = 0; j < length(channels); j++) {
+                        const ch = channels[j];
+                        if (index(a, ch.number) !== -1) {
+                            push(c, ch);
                         }
-                        break;
                     }
-                    default:
-                        break;
+                }
+                else {
+                    r.channels[bw] = channels;
                 }
             }
             push(radio, r);
