@@ -706,7 +706,8 @@ export function getHTMode(wifiIface, bandwidth, mode)
         }
     }
     else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
-        const prefix = fs.access("/sys/module/mt7915e") ? "HE" : "VHT";
+        const driver = fs.basename(fs.realpath(`/sys/class/ieee80211/${phy}/device/driver/module`));
+        const prefix = driver === "mt7915e" ? "HE" : "VHT";
         switch (bandwidth) {
             case 5:
             case 10:
