@@ -722,7 +722,7 @@ export function getHTMode(wifiIface, bandwidth, mode)
         }
     }
     else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
-        const prefix = isAX(phy) ? "HE" : "VHT";
+        const prefix = isAX(phy) && mode !== "mesh" ? "HE" : "VHT";
         switch (bandwidth) {
             case 5:
             case 10:
