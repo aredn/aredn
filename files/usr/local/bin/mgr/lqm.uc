@@ -48,7 +48,7 @@ const default_long_retries = 20; // (factory default is 4)
 const default_max_distance = 80550; // 50.1 miles
 const rts_threshold = 1; // RTS setting when hidden nodes are detected
 const ping_penalty = 5; // Cost of a failed ping to measure of a link's quality
-const lastup_margin = 60; // Seconds before link is considered down
+const lastup_margin = 120; // Seconds before link is considered down
 
 const IW = "/usr/sbin/iw";
 const UFETCH = "/bin/uclient-fetch";
@@ -350,6 +350,7 @@ function main()
                     else {
                         track.snr = max(0, track.signal - noise);
                     }
+                    track.connected_time = station.sta_info.connected_time;
                 }
             }
         }

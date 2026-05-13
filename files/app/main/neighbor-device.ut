@@ -128,7 +128,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         }
         function uptime(n)
         {
-            const s = n.lastseen - n.lastup;
+            const s = n.connected_time ? n.connected_time : n.lastseen - n.lastup;
             if (s > 0) {
                 const m = int(s / 60);
                 const h = int(m / 60);
