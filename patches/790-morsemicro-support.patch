@@ -151,7 +151,7 @@
 + 	else
 --- a/target/linux/ramips/image/mt7621.mk
 +++ b/target/linux/ramips/image/mt7621.mk
-@@ -2058,6 +2058,20 @@
+@@ -2058,6 +2058,34 @@
  endef
  TARGET_DEVICES += mikrotik_routerboard-m33g
  
@@ -168,6 +168,20 @@
 +	kmod-morse netifd-morse
 +endef
 +TARGET_DEVICES += morse_artini
++
++define Device/morse_halowlink2
++  $(Device/dsa-migration)
++  IMAGE_SIZE := 32448k
++  UBOOT_OFFSET := 512k
++  UBOOT_TARGET := mt7621_morsemicro_halowlink2
++  UBOOT_IMAGE := u-boot.bin
++  UBOOT_PATH := $(STAGING_DIR_IMAGE)/$$(UBOOT_TARGET)-$$(UBOOT_IMAGE)
++  DEVICE_VENDOR := MorseMicro
++  DEVICE_MODEL := HaLowLink 2
++  DEVICE_PACKAGES := kmod-mmc-mtk kmod-mt7603 \
++	kmod-morse netifd-morse
++endef
++TARGET_DEVICES += morse_halowlink2
 +
  define Device/mqmaker_witi
    $(Device/dsa-migration)
@@ -551,7 +565,7 @@
  	ruijie,rg-ew1200g-pro-v1.1)
  		ucidef_set_interfaces_lan_wan "lan3 lan2 lan1" "wan"
  		;;
-+	morse,artini)
++	morse,artini|morse,halowlink2)
 +		ucidef_set_interfaces_lan_wan "lan usblan" "wan"
 +		ucidef_set_interface "dtdlink" device "lan.2 usblan.2" protocol "static"
 +		;;

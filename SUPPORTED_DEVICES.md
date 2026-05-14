@@ -152,17 +152,17 @@ Slate | GL-AR750S-Ext | 2 & 5 | ath79 | nand | gl-ar750s | 128MB | untested | su
 ## OpenWRT
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-OpenWRT One | OpenWRT One | 2 & 5 | mediatek | filogic | openwrt_one | 1024MB | supported | released
+OpenWRT One | OpenWRT One | 2ax & 5ax | mediatek | filogic | openwrt_one | 1024MB | supported | released (9)
 
 ## MorseMicro and partners
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 HaLowLink 1 | MM-HL1-EXT | HaLow | ramips | mt7621 | morse_artini | 256MB | supported | released
-HaLowLink 2 | MM-HL2-EXT | HaLow | - | - | - | - | unsupported | not supported
+HaLowLink 2 | MM-HL2-EXT | HaLow | ramips | mt7621 | morse_halowlink2 | 256MB | unsupported | not supported
 Heltec HT-HD01 V1 | HT-HD01 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (8)
-Heltec HT-HD01 V2 | HT-HD01 | HaLow | - | - | - | - | unsupported | not supported
+Heltec HT-HD01 V2 | HT-HD01 | HaLow | ramips | mt76x8 | - | - | unsupported | not supported
 Heltec HT-H7608 V1 | HT-H7608 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (8)
-Heltec HT-H7608 V2 | HT-H7608 | HaLow | - | - | - | - | unsupported | not supported
+Heltec HT-H7608 V2 | HT-H7608 | HaLow | ramips | mt76x8 | - | - | unsupported | not supported
 Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | supported | released (1)
 Alfa Tube-AHM PoE | Tube-AHM PoE | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | supported | released (1)
 Alfa Tube-AH | Tube-AH | HaLow | - | - | - | - | unsupported | not supported
@@ -171,7 +171,7 @@ Alfa Tube-AH | Tube-AH | HaLow | - | - | - | - | unsupported | not supported
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Cudy TR1200 | Cudy TR1200 1.0 | 2 & 5 | ramips | mt76x8 | cudy_tr1200 | 128MB | supported | released
-Cudy TR3000 | Cudy TR3000 1.0 | 2 & 5 | mediatek | filogic | cudy_tr3000-v1 | 512MB | supported | released
+Cudy TR3000 | Cudy TR3000 1.0 | 2ax & 5ax | mediatek | filogic | cudy_tr3000-v1 | 512MB | supported | released (9)
 
 ## x86 / Virtual Machine
 
@@ -194,5 +194,6 @@ VirtualBox | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
  6. These devices do not function on negative channels in the 2.4 GHz band.
  7. Mikrotik devices come with either a v6 bootloader or a v7 bootloader. See [here](https://openwrt.org/toh/mikrotik/common) for more details. If you are using a v7 bootloader use the v7 sysupgrade instead of the plain one.
  8. There is currently no way to recover if a firmware update fails and it could brick your device.
+ 9. AX radios do not support -ve channels and do not support bandwidths less than 20MHz.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/
