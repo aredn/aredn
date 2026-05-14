@@ -1,0 +1,13 @@
+--- a/target/linux/ramips/mt7621/base-files/etc/board.d/02_network
++++ b/target/linux/ramips/mt7621/base-files/etc/board.d/02_network
+@@ -72,7 +72,9 @@
+ 	wodesys,wd-r1802u|\
+ 	zyxel,nwa50ax|\
+ 	zyxel,nwa55axe)
+-		ucidef_set_interface_lan "lan"
++		ucidef_set_interfaces_lan_wan "lan" "lan.1"
++		ucidef_set_interface "dtdlink" device "lan.2" protocol "static"
++		ucidef_set_interface "wifi" device "wlan0" protocol "static"
+ 		;;
+ 	asiarf,ap7621-001|\
+ 	comfast,cf-e390ax|\

@@ -173,6 +173,11 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 Cudy TR1200 | Cudy TR1200 1.0 | 2 & 5 | ramips | mt76x8 | cudy_tr1200 | 128MB | supported | released
 Cudy TR3000 | Cudy TR3000 1.0 | 2ax & 5ax | mediatek | filogic | cudy_tr3000-v1 | 512MB | supported | released (9)
 
+## Zyxel
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+:------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
+Xycel NWA66AXE | Xycel NWA66AXE | 2 & 5 | ramips | mt7621 | zyxel_nwa55axe | 256MB | supported | nightly
+
 ## x86 / Virtual Machine
 
 Hypervisor |  Target | Subtarget | Image | RAM | Stability | Status
