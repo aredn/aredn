@@ -2,5 +2,5 @@
 OPENWRT_SRC=https://github.com/openwrt/openwrt.git
 
 # what branch, tag or commit in this repo?
-OPENWRT_COMMIT=v25.12.3
+OPENWRT_COMMIT=v25.12.4
 
