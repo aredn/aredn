@@ -161,20 +161,6 @@ export function getRadioIntf(wifiIface)
     }
 };
 
-export function getRadioType(wifiIface)
-{
-    const iface = getRadioIntf(wifiIface);
-    if (!iface) {
-        return "none";
-    }
-    else if (iface.band == "halow") {
-        return "halow";
-    }
-    else {
-        return "wifi";
-    }
-};
-
 export function getPhyDevice(iface)
 {
     return replace(replace(iface, /^wlan/, "phy"), /^radio/, "phy");
@@ -188,6 +174,32 @@ export function getWlanDevice(iface)
 export function getRadioDevice(iface)
 {
     return replace(replace(iface, /^phy/, "radio"), /^wlan/, "radio");
+};
+
+function isAX(dev)
+{
+    const driver = fs.basename(fs.realpath(`/sys/class/ieee80211/${getPhyDevice(dev)}/device/driver/module`));
+    return driver === "mt7915e";
+}
+
+export function getRadioType(wifiIface)
+{
+    const iface = getRadioIntf(wifiIface);
+    if (!iface) {
+        return "none";
+    }
+    else if (iface.band == "halow") {
+        return "halow";
+    }
+    else if (isAX(getPhyDevice(wifiIface))) {
+        return "ax";
+    }
+    else if (match(lc(getRadioName()), /ac/)) {
+        return "ac";
+    }
+    else {
+        return "n";
+    }
 };
 
 export function getBoardNetworkInterfaceName(type)
@@ -243,12 +255,6 @@ export function getChannelFromFrequency(wifiIface, freq)
     }
 };
 
-function isAX(dev)
-{
-    const driver = fs.basename(fs.realpath(`/sys/class/ieee80211/${getPhyDevice(dev)}/device/driver/module`));
-    return driver === "mt7915e";
-}
-
 function getWiFiChannels(wifiIface)
 {
     const channels = [];
@@ -287,7 +293,7 @@ function getWiFiChannels(wifiIface)
             freq_max = 3495;
         }
     }
-    if (isAX(wifiIface)) {
+    if (isAX(getPhyDevice(wifiIface))) {
         if (freqs[0].freq < 2412) {
             freq_min = 2412;
         }
