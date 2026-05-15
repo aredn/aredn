@@ -853,6 +853,7 @@ export function getEthernetPorts()
         case "cudy,tr3000-v1":
             return openwrtone2PortLayout;
         case "morse,artini":
+        case "morse,halowlink2":
             return halowlink3PortLayout;
         case "qemu":
         case "vmware":
