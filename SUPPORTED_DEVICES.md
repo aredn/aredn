@@ -181,7 +181,7 @@ Cudy WR3000S | Cudy WR3000S 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000s-
 ## Zyxel
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-Xycel NWA66AXE | Xycel NWA66AXE | 2ax & 5ax | ramips | mt7621 | zyxel_nwa55axe | 256MB | supported | nightly (9)
+Xycel NWA66AXE | Xycel NWA66AXE | 5ax | ramips | mt7621 | zyxel_nwa55axe | 256MB | supported | nightly (9)
 
 ## x86 / Virtual Machine
 

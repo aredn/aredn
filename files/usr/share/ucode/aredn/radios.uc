@@ -54,7 +54,10 @@ export function getCommonConfiguration()
     const nrradios = hardware.getRadioCount();
     for (let i = 0; i < nrradios; i++) {
         const iface = `wlan${i}`;
-        if (!hardware.getRadioIntf(iface).disabled) {
+        if (hardware.getRadioIntf(iface).disabled) {
+            push(radio, { disabled: true });
+        }
+        else {
             const r = {
                 iface: iface,
                 mode: null,

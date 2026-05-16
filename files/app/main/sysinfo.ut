@@ -90,6 +90,9 @@ info.meshrf = (function () {
     const config = radios.getConfiguration();
     for (let i = 0; i < length(config); i++) {
         const cfg = config[i];
+        if (cfg.disabled) {
+            continue;
+        }
         const mode = cfg.mode;
         let rfmode;
         let ssid;

@@ -238,9 +238,13 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 "lan": 2,
                 "wan": 3
             };
+            let first = true;
             for (let w = 0; w < length(wlan); w++) {
+                if (wlan[w].disabled) {
+                    continue;
+                }
                 const prefix = `radio${w}_`;
-                if (w !== 0) {
+                if (!first) {
                     print("<hr>");
                 }
                 const mode = wlan[w].mode.mode;
@@ -520,7 +524,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 {% if (length(wlan[w].ants) !== 1) { %}
                 {{_H("Select the external antenna attached to the primary radio.")}}
                 {% } %}
-                {% if (w === 0) { %}
+                {% if (first) { %}
                 {%
                 const antennaPol = hardware.getAntennaPolarization(wlan[w].iface);
                 if (antennaPol) { %}
@@ -576,6 +580,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             </div>
         </div>
     {%
+                first = false;
             }
         }
         else {
