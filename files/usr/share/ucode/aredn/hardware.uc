@@ -410,10 +410,12 @@ export function getRfBandwidths(wifiIface)
         }
     }
     if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`) || fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
-        const f = fs.popen(`/usr/bin/iwinfo ${wifiIface} htmodelist 2> /dev/null`);
-        if (f) {
-            let line = f.read("line");
-            if (line) {
+        const board = getBoard();
+        const bands = board.wlan[phy]?.info?.bands;
+        if (bands) {
+            const modes = (bands["2G"] || bands["5G"])?.modes;
+            for (let i = 0; i < length(modes); i++) {
+                const line = modes[i];
                 if (index(line, "40") !== -1 && !invalid["40"]) {
                     push(bw, 40);
                 }
@@ -424,13 +426,9 @@ export function getRfBandwidths(wifiIface)
                     push(bw, 160);
                 }
             }
-            while (line) {
-                line = f.read("line");
-            }
-            f.close();
         }
     }
-    return bw;
+    return uniq(bw);
 };
 
 export function getDefaultChannel(wifiIface)
