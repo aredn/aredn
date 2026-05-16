@@ -1,0 +1,14 @@
+--- /dev/null
++++ b/package/kernel/mt76/patches/002-txpower-ref.patch
+@@ -0,0 +1,11 @@
++--- a/mt7915/mcu.c
+++++ b/mt7915/mcu.c
++@@ -3742,7 +3742,7 @@
++ 	req.param.obss_pd_min = cpu_to_le16(82);
++ 	req.param.obss_pd_min_srg = cpu_to_le16(82);
++ 	req.param.txpwr_restrict_mode = 2;
++-	req.param.txpwr_ref = 21;
+++	req.param.txpwr_ref = 27;
++ 
++ 	return mt76_mcu_send_msg(&dev->mt76, MCU_EXT_CMD(SET_SPR), &req,
++ 				 sizeof(req), true);

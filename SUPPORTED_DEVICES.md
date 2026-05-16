@@ -158,7 +158,7 @@ OpenWRT One | OpenWRT One | 2ax & 5ax | mediatek | filogic | openwrt_one | 1024M
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 HaLowLink 1 | MM-HL1-EXT | HaLow | ramips | mt7621 | morse_artini | 256MB | supported | released
-HaLowLink 2 | MM-HL2-EXT | HaLow | ramips | mt7621 | morse_halowlink2 | 256MB | unsupported | not supported
+HaLowLink 2 | MM-HL2-EXT | HaLow | ramips | mt7621 | morse_halowlink2 | 256MB | supported | nightly
 Heltec HT-HD01 V1 | HT-HD01 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (8)
 Heltec HT-HD01 V2 | HT-HD01 | HaLow | ramips | mt76x8 | - | - | unsupported | not supported
 Heltec HT-H7608 V1 | HT-H7608 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (8)
@@ -172,6 +172,16 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Cudy TR1200 | Cudy TR1200 1.0 | 2 & 5 | ramips | mt76x8 | cudy_tr1200 | 128MB | supported | released
 Cudy TR3000 | Cudy TR3000 1.0 | 2ax & 5ax | mediatek | filogic | cudy_tr3000-v1 | 512MB | supported | released (9)
+Cudy WR3000 | Cudy WR3000 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000-v1 | 128MB | untested | nightly (9)
+Cudy WR3000E | Cudy WR3000E 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000e-v1 | 128MB | untested | nightly (9)
+Cudy WR3000H | Cudy WR3000H 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000h-v1 | 256MB | supported | nightly (9)
+Cudy WR3000P | Cudy WR3000P 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000p-v1 | 512MB | untested | nightly (9)
+Cudy WR3000S | Cudy WR3000S 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000s-v1 | 256MB | untested | nightly (9)
+
+## Zyxel
+Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
+:------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
+Xycel NWA66AXE | Xycel NWA66AXE | 5ax | ramips | mt7621 | zyxel_nwa55axe | 256MB | supported | nightly (9)
 
 ## x86 / Virtual Machine
 
@@ -194,6 +204,6 @@ VirtualBox | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
  6. These devices do not function on negative channels in the 2.4 GHz band.
  7. Mikrotik devices come with either a v6 bootloader or a v7 bootloader. See [here](https://openwrt.org/toh/mikrotik/common) for more details. If you are using a v7 bootloader use the v7 sysupgrade instead of the plain one.
  8. There is currently no way to recover if a firmware update fails and it could brick your device.
- 9. AX radios do not support -ve channels and do not support bandwidths less than 20MHz.
+ 9. Devices with AX radios do not support negative channels or channels with less then 20MHz bandwidth.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/

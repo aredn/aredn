@@ -71,7 +71,6 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const myfreq = mychan !== -1 ? hardware.getChannelFrequency(wifiiface, mychan) : -1;
     const nodename = configuration.getName();
     const scan = {};
-    const radiotype = hardware.getRadioType(wifiiface);
 
     const reArp = /^([\.0-9]+) +0x. +0x. +([0-9a-fA-F:]+)/;
     const arp = {};
@@ -108,7 +107,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         system(`/usr/sbin/iw dev ${wifiiface} ibss leave > /dev/null 2>&1`);
     }
 
-    if (radiotype == "halow" || qca988x_bug) {
+    if (hardware.getRadioType(wifiiface) == "halow" || qca988x_bug) {
         for (let retry = 5; retry > 0; retry--) {
             const p = fs.popen(`/usr/bin/iwinfo ${wifiiface} scan`);
             if (p) {

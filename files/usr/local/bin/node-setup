@@ -929,6 +929,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
         let phydev = null;
         let bcf = null;
         let shortgi = null;
+        let bss_color = null;
         let htmode = hardware.getHTMode(wlan, wlan == mesh_wifi ? mesh_chanbw : -1, cfg[`${radio}_mode`]);
 
         switch (hardware.getDefaultChannel(wlan)?.band) {
@@ -972,6 +973,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
             is_mesh_rf = true;
             channel = mesh_channel;
             chanbw = mesh_chanbw;
+            country = country ?? "HX";
             txpower = mesh_txpower;
             distance = mesh_distance;
             ssid = `${mesh_ssid}-${channel}-${chanbw}-v3`;
@@ -995,6 +997,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
             if (macaddr) {
                 macaddr = trim(replace(macaddr, /^..:/, "fe:"));
                 isolate = 1;
+                bss_color = int(match(macaddr, /:(..)$/)[1], 16);
             }
         }
         else if (cfg[`${radio}_mode`] == "meshsta") {
@@ -1003,6 +1006,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
             // While the wifi doesnt neeed 'channel' and 'chanbw' to configure the station, we read these values in other code so keep them
             channel = mesh_channel;
             chanbw = mesh_chanbw;
+            country = country ?? "HX";
             distance = mesh_distance;
             txpower = mesh_txpower;
             ssid = `${mesh_ssid}-${mesh_channel}-${mesh_chanbw}-v3`;
@@ -1083,6 +1087,14 @@ for (let dev = 0; dev < ifacecount; dev++) {
         config += `\toption path '${devpath}'\n`;
         if (bcf != null) {
             config += `\toption bcf '${bcf}'\n\toption reconf '0'\n`;
+        }
+        if (bss_color != null) {
+            if (hwmode == "11ah") {
+                config += `\toption bss_color '${1 + bss_color % 7}'\n`;
+            }
+            else if (htmode && substr(htmode, 0, 2) === "HE") {
+                config += `\toption he_bss_color_enabled '1'\n\toption he_bss_color '${1 + bss_color % 63}'\n`;
+            }
         }
         config += `\n`;
 

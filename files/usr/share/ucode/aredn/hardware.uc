@@ -161,20 +161,6 @@ export function getRadioIntf(wifiIface)
     }
 };
 
-export function getRadioType(wifiIface)
-{
-    const iface = getRadioIntf(wifiIface);
-    if (!iface) {
-        return "none";
-    }
-    else if (iface.band == "halow") {
-        return "halow";
-    }
-    else {
-        return "wifi";
-    }
-};
-
 export function getPhyDevice(iface)
 {
     return replace(replace(iface, /^wlan/, "phy"), /^radio/, "phy");
@@ -188,6 +174,32 @@ export function getWlanDevice(iface)
 export function getRadioDevice(iface)
 {
     return replace(replace(iface, /^phy/, "radio"), /^wlan/, "radio");
+};
+
+function isAX(dev)
+{
+    const driver = fs.basename(fs.realpath(`/sys/class/ieee80211/${getPhyDevice(dev)}/device/driver/module`));
+    return driver === "mt7915e";
+}
+
+export function getRadioType(wifiIface)
+{
+    const iface = getRadioIntf(wifiIface);
+    if (!iface) {
+        return "none";
+    }
+    else if (iface.band == "halow") {
+        return "halow";
+    }
+    else if (isAX(getPhyDevice(wifiIface))) {
+        return "ax";
+    }
+    else if (match(lc(getRadioName()), /ac/)) {
+        return "ac";
+    }
+    else {
+        return "n";
+    }
 };
 
 export function getBoardNetworkInterfaceName(type)
@@ -243,12 +255,6 @@ export function getChannelFromFrequency(wifiIface, freq)
     }
 };
 
-function isAX(dev)
-{
-    const driver = fs.basename(fs.realpath(`/sys/class/ieee80211/${getPhyDevice(dev)}/device/driver/module`));
-    return driver === "mt7915e";
-}
-
 function getWiFiChannels(wifiIface)
 {
     const channels = [];
@@ -287,7 +293,7 @@ function getWiFiChannels(wifiIface)
             freq_max = 3495;
         }
     }
-    if (isAX(wifiIface)) {
+    if (isAX(getPhyDevice(wifiIface))) {
         if (freqs[0].freq < 2412) {
             freq_min = 2412;
         }
@@ -404,10 +410,12 @@ export function getRfBandwidths(wifiIface)
         }
     }
     if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`) || fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
-        const f = fs.popen(`/usr/bin/iwinfo ${wifiIface} htmodelist 2> /dev/null`);
-        if (f) {
-            let line = f.read("line");
-            if (line) {
+        const board = getBoard();
+        const bands = board.wlan[phy]?.info?.bands;
+        if (bands) {
+            const modes = (bands["2G"] || bands["5G"])?.modes;
+            for (let i = 0; i < length(modes); i++) {
+                const line = modes[i];
                 if (index(line, "40") !== -1 && !invalid["40"]) {
                     push(bw, 40);
                 }
@@ -418,13 +426,9 @@ export function getRfBandwidths(wifiIface)
                     push(bw, 160);
                 }
             }
-            while (line) {
-                line = f.read("line");
-            }
-            f.close();
         }
     }
-    return bw;
+    return uniq(bw);
 };
 
 export function getDefaultChannel(wifiIface)
@@ -836,6 +840,7 @@ export function supportsFeature(feature, arg1, arg2)
 
 const default1PortLayout = [ { k: "lan", d: "lan" } ];
 const default5PortLayout = [ { k: "wan", d: "port1" }, { k: "lan1", d: "port2" }, { k: "lan2", d: "port3" }, { k: "lan3", d: "port4" }, { k: "lan4", d: "port5" } ];
+const default4PortLayout = [ { k: "wan", d: "port1" }, { k: "lan1", d: "port2" }, { k: "lan2", d: "port3" }, { k: "lan3", d: "port4" } ];
 const default3PortLayout = [ { k: "lan2", d: "port1" }, { k: "lan1", d: "port2" }, { k: "wan", d: "port3" } ];
 const openwrtone2PortLayout = [ { k: "eth1", d: "1G" }, { k: "eth0", d: "2.5G" } ];
 const halowlink3PortLayout = [ { k: "usblan", d: "usb" }, { k: "lan", d: "lan" }, { k: "wan", d: "wan" } ];
@@ -846,6 +851,13 @@ export function getEthernetPorts()
     switch (getBoardModel().id) {
         case "mikrotik,hap-ac2":
         case "mikrotik,hap-ac3":
+            return default5PortLayout;
+        case "cudy,wr3000-v1":
+            return default4PortLayout;
+        case "cudy,wr3000e-v1":
+        case "cudy,wr3000h-v1":
+        case "cudy,wr3000p-v1":
+        case "cudy,wr3000s-v1":
             return default5PortLayout;
         case "glinet,gl-b1300":
             return default3PortLayout;
