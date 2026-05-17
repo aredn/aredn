@@ -576,7 +576,7 @@
 
 --- a/target/linux/ramips/image/mt76x8.mk
 +++ b/target/linux/ramips/image/mt76x8.mk
-@@ -1449,6 +1449,41 @@
+@@ -1449,6 +1449,47 @@
  endef
  TARGET_DEVICES += zyxel_keenetic-extra-ii
  
@@ -601,6 +601,12 @@
 +  SUPPORTED_DEVICES := morse,ekh03v3 morse,ekh03-03
 +endef
 +TARGET_DEVICES += morse_ekh03v3
++
++define Device/heltec_ht-hd01-v2
++  $(Device/morse_ekh03)
++  SUPPORTED_DEVICES := heltec,ht-hd01-v2 Heltec,HT-HD01-V2
++endef
++TARGET_DEVICES += heltec_ht-hd01-v2
 +
 +define Device/alfa-network_tube-ahm-r0c
 +  IMAGE_SIZE := 32448k
@@ -921,10 +927,12 @@
 +};
 --- a/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
 +++ b/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
-@@ -214,6 +214,13 @@
+@@ -214,6 +214,15 @@
  		ucidef_add_switch "switch0" \
  			"0:lan:2" "1:lan:1" "4:wan" "6@eth0"
  		;;
++	heltec,ht-hd01-v2|\
++	alfa-network,tube-ahm-r0c|\
 +	morse,ekh03v3)
 +		ucidef_add_switch "switch0"
 +		ucidef_add_switch_attr "switch0" "enable" "false"
@@ -984,16 +992,6 @@
 +&sdhci {
 +	no-1-8-v;
 +};
---- a/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
-+++ b/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
-@@ -214,6 +214,7 @@
- 		ucidef_add_switch "switch0" \
- 			"0:lan:2" "1:lan:1" "4:wan" "6@eth0"
- 		;;
-+	alfa-network,tube-ahm-r0c|\
- 	morse,ekh03v3)
- 		ucidef_add_switch "switch0"
- 		ucidef_add_switch_attr "switch0" "enable" "false"
 
 --- /dev/null
 +++ b/target/linux/ramips/dts/mt7621_morse_halowlink2.dts
