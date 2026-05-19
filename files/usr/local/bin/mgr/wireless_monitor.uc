@@ -111,7 +111,9 @@ function resetNetwork(op)
             }
             break;
         case "morse":
-            system(`${IFDOWN} wifi; ${IFUP} wifi`);
+            if (op === "restart") {
+                system(`${IFDOWN} wifi; ${IFUP} wifi`);
+            }
             break;
         case "mt76":
             log.syslog(log.LOG_NOTICE, `-- ignored`);
