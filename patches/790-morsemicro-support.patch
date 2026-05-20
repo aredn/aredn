@@ -5,7 +5,7 @@
  PKG_RELEASE=3
  
 -PKG_VERSION:=1.16.4
-+PKG_VERSION:=1.17.8
++PKG_VERSION:=1.17.9
  
  PKG_LICENSE:=GPLv2
  PKG_LICENSE_FILES:=LICENSE
@@ -87,7 +87,7 @@
 +PKG_VERSION:=1.17.8
  
 -PKG_SOURCE_VERSION:=68fcf18643b0fe12d1ff73ad03089b8c0b7d2979
-+PKG_SOURCE_VERSION:=fd41e1cffa7ab3cda88503f37e1cb05a3098be31
++PKG_SOURCE_VERSION:=1457e131f1b1cd7728d73ae3a09729b1782a776a
  PKG_SOURCE_URL:=https://github.com/MorseMicro/morse-firmware.git
  PKG_HASH:=4a9ccc2fa085597cd2a83f0833508aa230d2c37eee8a54b195be0da48aa6325a
  PKG_SOURCE_PROTO:=git
@@ -189,7 +189,7 @@
 
 --- /dev/null
 +++ b/target/linux/ramips/dts/mt7621_morse_artini.dts
-@@ -0,0 +1,369 @@
+@@ -0,0 +1,370 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +
 +#include "mt7621.dtsi"
@@ -414,6 +414,7 @@
 +		reset-gpios = <&gpio 6 0>;
 +		power-gpios = <&gpio 7 0>,
 +		              <&gpio 8 0>;
++		fem-4v3-gpios = <&gpio 27 0>;
 +		status = "okay";
 +		reg = <2>;
 +		bus-width = <4>;
@@ -709,10 +710,10 @@
 +	keys {
 +		compatible = "gpio-keys";
 +
-+		morse-reset {
-+			label = "morse-reset";
++		reset {
++			label = "reset";
 +			gpios = <&gpio 37 GPIO_ACTIVE_LOW>;
-+			linux,code = <BTN_0>;
++			linux,code = <KEY_RESTART>;
 +		};
 +	};
 +
