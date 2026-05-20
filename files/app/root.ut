@@ -349,7 +349,21 @@ const auth = {
         }
     },
 
-    runAuthentication: function(env)
+    getCookie: function(host)
+    {
+        this.initKey();
+        const time = clock();
+        const gm = gmtime(time[0] + this.age);
+        const tm = `${this.DAYS[gm.wday]}, ${gm.mday} ${this.MONTHS[gm.mon]} ${gm.year} 00:00:00 GMT`;
+        return `authV1=${b64enc(this.key)}; Path=/; Domain=${replace(host, /:\d+$/, "")}; Expires=${tm}; SameSite=Strict`;
+    },
+
+    clearCookie: function(host)
+    {
+        return `authV1=; Path=/; Domain=${replace(host, /:\d+$/, "")}; Max-Age=0;`;
+    },
+
+    runAuthentication: function(env, host, response)
     {
         const cookieheader = env.headers?.cookie;
         if (cookieheader) {
@@ -360,9 +374,11 @@ const auth = {
                     this.initKey();
                     if (this.key == b64dec(substr(cookie, 7))) {
                         this.isAdmin = true;
+                        response.headers["Set-Cookie"] = this.getCookie(host);
                     }
                     else {
                         this.isAdmin = false;
+                        response.headers["Set-Cookie"] = this.clearCookie(host);
                     }
                     break;
                 }
@@ -391,10 +407,7 @@ const auth = {
                 const pwd = rtrim(f.read("all"));
                 f.close();
                 if (index(this.key, `root:${pwd}:`) === 0) {
-                    const time = clock();
-                    const gm = gmtime(time[0] + this.age);
-                    const tm = `${this.DAYS[gm.wday]}, ${gm.mday} ${this.MONTHS[gm.mon]} ${gm.year} 00:00:00 GMT`;
-                    response.headers["Set-Cookie"] = `authV1=${b64enc(this.key)}; Path=/; Domain=${replace(request.headers.host, /:\d+$/, "")}; Expires=${tm}; SameSite=Strict`;
+                    response.headers["Set-Cookie"] = this.getCookie(request.headers.host);
                     this.isAdmin = true;
                 }
             }
@@ -405,7 +418,7 @@ const auth = {
     deauthenticate: function()
     {
         if (this.isAdmin) {
-            response.headers["Set-Cookie"] = `authV1=; Path=/; Domain=${replace(request.headers.host, /:\d+$/, "")}; Max-Age=0;`;
+            response.headers["Set-Cookie"] = this.clearCookie(request.headers.host);
             this.isAdmin = false;
         }
     }
@@ -482,8 +495,9 @@ global.handle_request = function(env)
             }
         }
 
+        const response = { statusCode: 200, headers: { "Content-Type": "text/html", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*" } };
         if (pageCache[tpath] || fs.access(tpath)) {
-            auth.runAuthentication(env);
+            auth.runAuthentication(env, env.headers.host, response);
             if (config.authenable && !auth.isAdmin) {
                 if (secured) {
                     uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
@@ -582,7 +596,6 @@ global.handle_request = function(env)
                     parser.parse(v);
                 }
             }
-            const response = { statusCode: 200, headers: { "Content-Type": "text/html", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*" } };
             const fn = pageCache[tpath] || loadfile(tpath, { raw_mode: false });
             const isMobile = !!(config.forcemobile || match(env.HTTP_USER_AGENT, /iphone/i) || match(env.HTTP_USER_AGENT, /android.*mobile/i));
             let res = "";
