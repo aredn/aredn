@@ -220,9 +220,8 @@ export function getBoardNetworkInterfaceName(type)
     return "";
 };
 
-export function getChannelFromFrequency(wifiIface, freq)
+function getChannelFromRadioFrequency(radio, freq)
 {
-    const radio = getRadioIntf(wifiIface);
     if (radio.band === "halow") {
         return int((freq - 902.0) * 2);
     }
@@ -253,6 +252,11 @@ export function getChannelFromFrequency(wifiIface, freq)
     if (freq < 6000) {
         return (freq - 5000) / 5;
     }
+};
+
+export function getChannelFromFrequency(wifiIface, freq)
+{
+    return getChannelFromRadioFrequency(getRadioIntf(wifiIface), freq);
 };
 
 function getWiFiChannels(wifiIface)
@@ -298,16 +302,20 @@ function getWiFiChannels(wifiIface)
             freq_min = 2412;
         }
     }
+    const radio = getRadioIntf(wifiIface);
+    const exclude = radio.exclude_channels;
     for (let i = 0; i < length(freqs); i++) {
         const f = freqs[i];
         const freq = freq_adjust(f);
         if (freq >= freq_min && freq <= freq_max) {
-            const num = getChannelFromFrequency(wifiIface, freq);
-            push(channels, {
-                label: num != freq ? num + " (" + freq + ")" : "" + freq,
-                number: num,
-                frequency: freq
-            });
+            const num = getChannelFromRadioFrequency(radio, freq);
+            if (!exclude || index(exclude, num) === -1) {
+                push(channels, {
+                    label: num != freq ? num + " (" + freq + ")" : "" + freq,
+                    number: num,
+                    frequency: freq
+                });
+            }
         }
     }
     sort(channels, (a, b) => a.frequency - b.frequency);
