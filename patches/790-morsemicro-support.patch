@@ -4,46 +4,22 @@
  PKG_NAME:=morse_driver
  PKG_RELEASE=3
  
--PKG_VERSION:=1.16.4
+-PKG_VERSION:=1.17.8
 +PKG_VERSION:=1.17.9
  
  PKG_LICENSE:=GPLv2
  PKG_LICENSE_FILES:=LICENSE
-@@ -85,7 +85,7 @@
-   MORSE_VERSION=0-$(PKG_VERSION) \
-   KERNEL_SRC=$(LINUX_DIR) \
-   CONFIG_MORSE_SDIO_ALIGNMENT=$(CONFIG_MORSE_SDIO_ALIGNMENT) \
--  CONFIG_BACKPORT_VERSION=v6.1.24
-+  CONFIG_BACKPORT_VERSION=v6.18.7
- # This refers to the version of mac80211 backported to OpenWrt
- # Occasionally patches are required to remove some parts of the driver
- # as OpenWrt may sometimes pull in further patches from later kernel versions
---- a/feeds/morse/essentials/morsecli/Makefile
-+++ b/feeds/morse/essentials/morsecli/Makefile
-@@ -10,7 +10,7 @@
- PKG_NAME:=morsecli
- PKG_RELEASE=5
- 
--PKG_VERSION:=1.16.4
-+PKG_VERSION:=1.17.8
- 
- PKG_LICENSE:=GPLv2
- PKG_LICENSE_FILES:=
-
 --- a/feeds/morse/essentials/morse-fw/Makefile
 +++ b/feeds/morse/essentials/morse-fw/Makefile
-@@ -13,9 +13,9 @@
+@@ -13,7 +13,7 @@
  PKG_NAME:=morse-fw
  PKG_RELEASE=2
  
--PKG_VERSION:=1.16.4
-+PKG_VERSION:=1.17.8
+-PKG_VERSION:=1.17.8
++PKG_VERSION:=1.17.9
  
--PKG_SOURCE_VERSION:=68fcf18643b0fe12d1ff73ad03089b8c0b7d2979
-+PKG_SOURCE_VERSION:=1457e131f1b1cd7728d73ae3a09729b1782a776a
+ PKG_SOURCE_VERSION:=1457e131f1b1cd7728d73ae3a09729b1782a776a
  PKG_SOURCE_URL:=https://github.com/MorseMicro/morse-firmware.git
- PKG_HASH:=dbc6b5428fc6d4defa89a29c00c99a73ca07f704501d3618eddacb826007f486
- PKG_SOURCE_PROTO:=git
 @@ -84,6 +84,14 @@
    PROVIDES:=morse-fw
  endef
@@ -76,66 +52,41 @@
  $(eval $(call BuildPackage,morse-fw-8108-tlm))
  $(eval $(call BuildPackage,morse-fw-8108-flm))
 +$(eval $(call BuildPackage,morse-fw-aredn))
-
 --- a/feeds/morse/essentials/mm-board-config/Makefile
 +++ b/feeds/morse/essentials/mm-board-config/Makefile
-@@ -13,9 +13,9 @@
+@@ -13,7 +13,7 @@
  PKG_NAME:=morse-board-config
  PKG_RELEASE=6
  
--PKG_VERSION:=1.16.4
-+PKG_VERSION:=1.17.8
+-PKG_VERSION:=1.17.8
++PKG_VERSION:=1.17.9
  
--PKG_SOURCE_VERSION:=68fcf18643b0fe12d1ff73ad03089b8c0b7d2979
-+PKG_SOURCE_VERSION:=1457e131f1b1cd7728d73ae3a09729b1782a776a
+ PKG_SOURCE_VERSION:=1457e131f1b1cd7728d73ae3a09729b1782a776a
  PKG_SOURCE_URL:=https://github.com/MorseMicro/morse-firmware.git
- PKG_HASH:=4a9ccc2fa085597cd2a83f0833508aa230d2c37eee8a54b195be0da48aa6325a
- PKG_SOURCE_PROTO:=git
-
 --- a/feeds/morse/essentials/hostapd_s1g/Makefile
 +++ b/feeds/morse/essentials/hostapd_s1g/Makefile
 @@ -10,7 +10,7 @@
  PKG_NAME:=hostapd_s1g
  PKG_RELEASE=2
  
--PKG_VERSION:=1.16.4
-+PKG_VERSION:=1.17.8
+-PKG_VERSION:=1.17.8
++PKG_VERSION:=1.17.9
  
  PKG_LICENSE:=BSD-3-Clause
  
---- a/feeds/morse/essentials/wpa_supplicant_s1g/Makefile
-+++ b/feeds/morse/essentials/wpa_supplicant_s1g/Makefile
-@@ -10,7 +10,7 @@
- PKG_NAME:=wpa_supplicant_s1g
- PKG_RELEASE=2
- 
--PKG_VERSION:=1.16.4
-+PKG_VERSION:=1.17.8
- 
- PKG_LICENSE:=BSD-3-Clause
- 
+ PKG_SOURCE_VERSION:=$(PKG_VERSION)
+ PKG_SOURCE_VERSION:=beed5f8c827fa4b6dc77ec9d467c84cdee50fdda
 --- a/package/feeds/morse/morse-regdb/Makefile
 +++ b/package/feeds/morse/morse-regdb/Makefile
 @@ -18,7 +18,7 @@
  PKG_RELEASE:=1
  PKG_BUILD_DEPENDS:=python3/host
  
--PKG_SOURCE_VERSION:=v2.4.1
-+PKG_SOURCE_VERSION:=2.4.1
+-PKG_SOURCE_VERSION:=v2.7.0
++PKG_SOURCE_VERSION:=2.7.0
  # This points to an internal repo, but the repo is not used unless REGENERATE is set
  # (see initial comment).
  PKG_SOURCE_URL:=ssh://git@bitbucket.org/morsemicro/morse_regdb.git
---- a/package/feeds/morse/mt7603e-txpat-artini/Makefile
-+++ b/package/feeds/morse/mt7603e-txpat-artini/Makefile
-@@ -11,7 +11,7 @@
- PKG_RELEASE:=1
- PKG_BUILD_DEPENDS:=python3/host
- 
--PKG_VERSION:=v1.0
-+PKG_VERSION:=1.0
- 
- include $(INCLUDE_DIR)/package.mk
- 
 --- /dev/null
 +++ b/feeds/morse/essentials/morse_driver/patches/100-aredn.patch
 @@ -0,0 +1,10 @@
@@ -149,6 +100,28 @@
 + 	    country_codes_are_equal(request->alpha2, "00"))
 + 		req_cc = country;
 + 	else
+--- a/feeds/morse/hardware/mt7603e-txpat-artini/Makefile
++++ b/feeds/morse/hardware/mt7603e-txpat-artini/Makefile
+@@ -11,7 +11,7 @@
+ PKG_RELEASE:=1
+ PKG_BUILD_DEPENDS:=python3/host
+ 
+-PKG_VERSION:=v1.0
++PKG_VERSION:=1.0
+ 
+ include $(INCLUDE_DIR)/package.mk
+ 
+--- a/feeds/morse/hardware/mt7603e-txpat-halowlink2/Makefile
++++ b/feeds/morse/hardware/mt7603e-txpat-halowlink2/Makefile
+@@ -11,7 +11,7 @@
+ PKG_RELEASE:=1
+ PKG_BUILD_DEPENDS:=python3/host
+ 
+-PKG_VERSION:=v1.0
++PKG_VERSION:=1.0
+ 
+ include $(INCLUDE_DIR)/package.mk
+ 
 --- a/target/linux/ramips/image/mt7621.mk
 +++ b/target/linux/ramips/image/mt7621.mk
 @@ -2058,6 +2058,34 @@
