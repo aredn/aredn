@@ -61,9 +61,14 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_MESHPTP:
         case radios.RADIO_MESHSTA:
             if (configuration.setSetting("radio0_mode", radio0_mode)) {
-                configuration.setSetting("radio0_channel", wlan[0].mode.channel || wlan[0].def.channel);
                 configuration.setSetting("radio0_bandwidth", wlan[0].mode.bandwidth || wlan[0].def.bandwidth);
                 configuration.setSetting("radio0_ssid", "AREDN");
+                let chan = wlan[0].mode.channel || wlan[0].def.channel;
+                const chanfilter = radio0_mode === radios.RADIO_MESHPTMP || radio0_mode === radios.RADIO_MESHPTP || radio0_mode ===  radios.RADIO_MESHSTA ? wlan[0].managedOOB : null;
+                if (chanfilter && index(chanfilter, chan) !== -1) {
+                    chan = chanfilter[length(chanfilter) - 1] + 1;
+                }
+                configuration.setSetting("radio0_channel", chan);
             }
             if ("radio0_channel" in request.args) {
                 configuration.setSetting("radio0_channel", request.args.radio0_channel);
@@ -136,9 +141,14 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_MESHPTP:
         case radios.RADIO_MESHSTA:
             if (configuration.setSetting("radio1_mode", radio1_mode)) {
-                configuration.setSetting("radio1_channel", wlan[1].mode.channel || wlan[1].def.channel);
                 configuration.setSetting("radio1_bandwidth", wlan[1].mode.bandwidth || wlan[1].def.bandwidth);
                 configuration.setSetting("radio1_ssid", "AREDN");
+                let chan = wlan[1].mode.channel || wlan[1].def.channel;
+                const chanfilter = radio1_mode === radios.RADIO_MESHPTMP || radio1_mode === radios.RADIO_MESHPTP || radio1_mode ===  radios.RADIO_MESHSTA ? wlan[1].managedOOB : null;
+                if (chanfilter && index(chanfilter, chan) !== -1) {
+                    chan = chanfilter[length(chanfilter) - 1] + 1;
+                }
+                configuration.setSetting("radio1_channel", chan);
             }
             if ("radio1_channel" in request.args) {
                 configuration.setSetting("radio1_channel", request.args.radio1_channel);
@@ -325,7 +335,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div style="flex:0">
                         <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" style="direction:ltr" class="mesh-channel">
                         {%
-                            const chanfilter = mode === radios.RADIO_MESHPTMP || mode ===  radios.RADIO_MESHPTP || mode ===  radios.RADIO_MESHSTA ? wlan[w].managedOOB : null;
+                            const chanfilter = mode === radios.RADIO_MESHPTMP || mode === radios.RADIO_MESHPTP || mode ===  radios.RADIO_MESHSTA ? wlan[w].managedOOB : null;
                             const channels = wlan[w].channels[bandwidth] || [];
                             for (let i = 0; i < length(channels); i++) {
                                 if (!chanfilter || index(chanfilter, channels[i].number) === -1) {
@@ -615,7 +625,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             let options = "";
             const chanfilter = radio{{w}}.value == "4" || radio{{w}}.value == "5" || radio{{w}}.value == "6" ? {{wlan[w].managedOOB}} : null;
             const channels = ({{wlan[w].channels}})[bandwidth] || [];
-            let nchannel = channels[0].number;
+            let nchannel = null;
             for (let i = 0; i < channels.length; i++) {
                 if (!chanfilter || chanfilter.indexOf(channels[i].number) === -1) {
                     if (channels[i].number == channel) {
@@ -623,6 +633,9 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         options += `<option value="${channels[i].number}" selected>${channels[i].label}</option>`;
                     }
                     else {
+                        if (!nchannel) {
+                            nchannel = channels[i].number;
+                        }
                         options += `<option value="${channels[i].number}">${channels[i].label}</option>`;
                     }
                 }
