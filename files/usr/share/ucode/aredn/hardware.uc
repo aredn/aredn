@@ -161,6 +161,20 @@ export function getRadioIntf(wifiIface)
     }
 };
 
+export function getRadioType(wifiIface)
+{
+    const iface = getRadioIntf(wifiIface);
+    if (!iface) {
+        return "none";
+    }
+    else if (iface.band == "halow") {
+        return "halow";
+    }
+    else {
+        return "wifi";
+    }
+};
+
 export function getPhyDevice(iface)
 {
     return replace(replace(iface, /^wlan/, "phy"), /^radio/, "phy");
@@ -174,32 +188,6 @@ export function getWlanDevice(iface)
 export function getRadioDevice(iface)
 {
     return replace(replace(iface, /^phy/, "radio"), /^wlan/, "radio");
-};
-
-function isAX(dev)
-{
-    const driver = fs.basename(fs.realpath(`/sys/class/ieee80211/${getPhyDevice(dev)}/device/driver/module`));
-    return driver === "mt7915e";
-}
-
-export function getRadioType(wifiIface)
-{
-    const iface = getRadioIntf(wifiIface);
-    if (!iface) {
-        return "none";
-    }
-    else if (iface.band == "halow") {
-        return "halow";
-    }
-    else if (isAX(getPhyDevice(wifiIface))) {
-        return "ax";
-    }
-    else if (match(lc(getRadioName()), /ac/)) {
-        return "ac";
-    }
-    else {
-        return "n";
-    }
 };
 
 export function getBoardNetworkInterfaceName(type)
@@ -220,8 +208,9 @@ export function getBoardNetworkInterfaceName(type)
     return "";
 };
 
-function getChannelFromRadioFrequency(radio, freq)
+export function getChannelFromFrequency(wifiIface, freq)
 {
+    const radio = getRadioIntf(wifiIface);
     if (radio.band === "halow") {
         return int((freq - 902.0) * 2);
     }
@@ -252,11 +241,6 @@ function getChannelFromRadioFrequency(radio, freq)
     if (freq < 6000) {
         return (freq - 5000) / 5;
     }
-};
-
-export function getChannelFromFrequency(wifiIface, freq)
-{
-    return getChannelFromRadioFrequency(getRadioIntf(wifiIface), freq);
 };
 
 function getWiFiChannels(wifiIface)
@@ -297,25 +281,16 @@ function getWiFiChannels(wifiIface)
             freq_max = 3495;
         }
     }
-    if (isAX(getPhyDevice(wifiIface))) {
-        if (freqs[0].freq < 2412) {
-            freq_min = 2412;
-        }
-    }
-    const radio = getRadioIntf(wifiIface);
-    const exclude = radio.exclude_channels;
     for (let i = 0; i < length(freqs); i++) {
         const f = freqs[i];
         const freq = freq_adjust(f);
         if (freq >= freq_min && freq <= freq_max) {
-            const num = getChannelFromRadioFrequency(radio, freq);
-            if (!exclude || index(exclude, num) === -1) {
-                push(channels, {
-                    label: num != freq ? num + " (" + freq + ")" : "" + freq,
-                    number: num,
-                    frequency: freq
-                });
-            }
+            const num = getChannelFromFrequency(wifiIface, freq);
+            push(channels, {
+                label: num != freq ? num + " (" + freq + ")" : "" + freq,
+                number: num,
+                frequency: freq
+            });
         }
     }
     sort(channels, (a, b) => a.frequency - b.frequency);
@@ -397,7 +372,6 @@ export function getRfChannels(wifiIface)
 export function getRfBandwidths(wifiIface)
 {
     const radio = getRadioIntf(wifiIface);
-    const phy = getPhyDevice(wifiIface);
     const invalid = {};
     let bw = [];
     if (radio.bandwidths) {
@@ -405,38 +379,36 @@ export function getRfBandwidths(wifiIface)
     }
     else {
         map(radio.exclude_bandwidths || [], v => invalid[v] = true);
-        if (!isAX(phy)) {
-            if (!invalid["5"]) {
-                push(bw, 5);
-            }
-            if (!invalid["10"]) {
-                push(bw, 10);
-            }
+        if (!invalid["5"]) {
+            push(bw, 5);
+        }
+        if (!invalid["10"]) {
+            push(bw, 10);
         }
         if (!invalid["20"]) {
             push(bw, 20);
         }
     }
+    const phy = replace(wifiIface, "wlan", "phy");
     if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`) || fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
-        const board = getBoard();
-        const bands = board.wlan[phy]?.info?.bands;
-        if (bands) {
-            const modes = (bands["2G"] || bands["5G"])?.modes;
-            for (let i = 0; i < length(modes); i++) {
-                const line = modes[i];
-                if (index(line, "40") !== -1 && !invalid["40"]) {
+        const f = fs.popen(`/usr/bin/iwinfo ${wifiIface} htmodelist 2> /dev/null`);
+        if (f) {
+            let line = f.read("line");
+            if (line) {
+                if (index(line, "HT40") !== -1 && !invalid["40"]) {
                     push(bw, 40);
                 }
-                if (index(line, "80") !== -1 && !invalid["80"]) {
+                if (index(line, "VHT80") !== -1 && !invalid["80"]) {
                     push(bw, 80);
                 }
-                if (index(line, "160") !== -1 && !invalid["160"]) {
-                    push(bw, 160);
-                }
             }
+            while (line) {
+                line = f.read("line");
+            }
+            f.close();
         }
     }
-    return uniq(bw);
+    return bw;
 };
 
 export function getDefaultChannel(wifiIface)
@@ -653,7 +625,7 @@ export function getRadioNoise(wifiIface)
         }
     }
     // Fallback for hardware which doesn't support the survey api (e.g. HaLow)
-    const p = fs.popen(`/usr/bin/iwinfo ${wifiIface} info 2> /dev/null | /bin/grep Noise`);
+    const p = fs.popen(`/usr/bin/iwinfo ${wifiIface} info | /bin/grep Noise`);
     if (p) {
         const m = match(p.read("all"), /Noise: (-\d+) dBm/);
         p.close();
@@ -734,18 +706,19 @@ export function getHTMode(wifiIface, bandwidth, mode)
         }
     }
     else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
-        const prefix = isAX(phy) && mode !== "mesh" ? "HE" : "VHT";
         switch (bandwidth) {
             case 5:
             case 10:
             case 20:
-            default:
-                htmode = `${prefix}20`;
+                htmode = "VHT20";
                 break;
             case 40:
             case 80:
             case 160:
-                htmode = `${prefix}${bandwidth}`;
+                htmode = `HE${bandwidth}`;
+                break;
+            default:
+                htmode = "VHT20";
                 break;
         }
     }
@@ -848,7 +821,6 @@ export function supportsFeature(feature, arg1, arg2)
 
 const default1PortLayout = [ { k: "lan", d: "lan" } ];
 const default5PortLayout = [ { k: "wan", d: "port1" }, { k: "lan1", d: "port2" }, { k: "lan2", d: "port3" }, { k: "lan3", d: "port4" }, { k: "lan4", d: "port5" } ];
-const default4PortLayout = [ { k: "wan", d: "port1" }, { k: "lan1", d: "port2" }, { k: "lan2", d: "port3" }, { k: "lan3", d: "port4" } ];
 const default3PortLayout = [ { k: "lan2", d: "port1" }, { k: "lan1", d: "port2" }, { k: "wan", d: "port3" } ];
 const openwrtone2PortLayout = [ { k: "eth1", d: "1G" }, { k: "eth0", d: "2.5G" } ];
 const halowlink3PortLayout = [ { k: "usblan", d: "usb" }, { k: "lan", d: "lan" }, { k: "wan", d: "wan" } ];
@@ -860,21 +832,12 @@ export function getEthernetPorts()
         case "mikrotik,hap-ac2":
         case "mikrotik,hap-ac3":
             return default5PortLayout;
-        case "cudy,wr3000-v1":
-            return default4PortLayout;
-        case "cudy,wr3000e-v1":
-        case "cudy,wr3000h-v1":
-        case "cudy,wr3000p-v1":
-        case "cudy,wr3000s-v1":
-            return default5PortLayout;
-        case "glinet,gl-a1300":
         case "glinet,gl-b1300":
             return default3PortLayout;
         case "openwrt,one":
         case "cudy,tr3000-v1":
             return openwrtone2PortLayout;
         case "morse,artini":
-        case "morse,halowlink2":
             return halowlink3PortLayout;
         case "qemu":
         case "vmware":
