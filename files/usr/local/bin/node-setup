@@ -389,7 +389,7 @@ for (let i = 0; i < length(cnetworks); i++) {
     let config = "";
     // User override
     // Ignore wan override if wan wifi is enabled
-    if (fs.access(`/etc/aredn_include/${net}.network.user`) && !(net == wan && wan_wifi_enabled)) {
+    if (fs.access(`/etc/aredn_include/${net}.network.user`) && !(net == "wan" && wan_wifi_enabled)) {
         const f = fs.open(`/etc/aredn_include/fixedmac.${net}`);
         if (f) {
             for (let line = f.read("line"); length(line); line = f.read("line")) {
