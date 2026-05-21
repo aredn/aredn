@@ -1,116 +1,98 @@
---- a/feeds/morse/essentials/morse_driver/patches/003-ekh01-spi-fix.patch
+--- a/feeds/morse/essentials/morse_driver/patches/018-CVE-security-fix.patch
 +++ /dev/null
-@@ -1,60 +0,0 @@
----- a/spi.c
--+++ b/spi.c
--@@ -175,10 +175,12 @@ static int morse_spi_setup(struct spi_de
-- 	spi->bits_per_word = 8;
-- 	spi->max_speed_hz = max_speed_hz;
+@@ -1,31 +0,0 @@
+-commit 32aee324965f492fc9c4a9c2ec2b6b85b82a53a6
+-Author: Ayman Grais <ayman.grais@morsemicro.com>
+-Date:   Wed Apr 1 21:44:03 2026 +0000
+-
+-    SW-19664 Out of bounds vendor IE length validation (pull request #2074)
+-    
+-    * Add a length check in morse_vendor_find_vendor_ie so it
+-    only returns an IE that is large enough to be safely dereferenced
+-    
+-    The callers will get NULL if nothing found matching the
+-    length + the OUI. Caller is checking for NULL anyway.
+-    
+-    
+-    Approved-by: Simon Wadsworth
+-    Approved-by: Dan Callaghan
+-    Approved-by: Pradeep Reddy
+-
+-diff --git a/vendor.c b/vendor.c
+-index d1adb2e40..3fe87136c 100644
+---- a/vendor.c
+-+++ b/vendor.c
+-@@ -311,7 +311,8 @@ morse_vendor_find_vendor_ie(struct dot11ah_ies_mask *ies_mask)
 - 
--+#if 0
-- 	if (spi->max_speed_hz > MAX_SPI_CLK_SPEED) {
-- 		dev_err(&spi->dev, "SPI clocks above 50MHz are not supported by Morse chip\n");
-- 		return -EPERM;
-- 	}
--+#endif
+- 	while (cur && cur->ptr) {
+- 		ie = (struct dot11_morse_vendor_caps_ops_ie *)cur->ptr;
+--		if (memcmp(ie->oui, morse_oui, sizeof(ie->oui)) == 0 &&
+-+		if (cur->len >= sizeof(*ie) &&
+-+		    memcmp(ie->oui, morse_oui, sizeof(ie->oui)) == 0 &&
+- 		    ie->oui_type == MORSE_VENDOR_IE_CAPS_OPS_OUI_TYPE) {
+- 			found = true;
+- 			break;
+--- a/feeds/morse/essentials/morse_driver/patches/017-apsta-channel-switch.patch
++++ /dev/null
+@@ -1,61 +0,0 @@
+-commit 4d0a73201302bb17065423e5a2a87582d004bbdb
+-Author: Prabha Murugesan <prabha.murugesan@morsemicro.com>
+-Date:   Wed Sep 17 17:33:53 2025 +1000
+-
+-    APP-4271 : apsta mode channel alignment bug fixes.
+-
+-diff --git a/mac.c b/mac.c
+-index d0222538..a718dcf3 100644
+---- a/mac.c
+-+++ b/mac.c
+-@@ -646,6 +646,23 @@ static struct ieee80211_vif *morse_get_first_vif_of_type(struct morse *mors,
+- 	return vif;
+- }
 - 
-- 	ret = spi_setup(spi);
-- 	if (ret < 0) {
--@@ -432,7 +434,7 @@ static u8 *morse_spi_find_data_ack(struc
+-+struct ieee80211_vif *morse_get_active_ap(struct morse *mors)
+-+{
+-+	int vif_id = 0;
+-+	struct ieee80211_vif *vif = NULL;
+-+
+-+	spin_lock_bh(&mors->vif_list_lock);
+-+	for (vif_id = 0; vif_id < mors->max_vifs; vif_id++) {
+-+		vif = __morse_get_vif_from_vif_id(mors, vif_id);
+-+		if (vif && vif->type == NL80211_IFTYPE_AP && vif->bss_conf.enable_beacon)
+-+			break;
+-+
+-+		vif = NULL;
+-+	}
+-+	spin_unlock_bh(&mors->vif_list_lock);
+-+	return vif;
+-+}
+-+
+- struct ieee80211_vif *morse_get_ap_vif(struct morse *mors)
 - {
-- 	u8 *cp = data;
+- 	return morse_get_first_vif_of_type(mors, NL80211_IFTYPE_AP);
+-@@ -3321,6 +3338,8 @@ static int morse_mac_change_channel(struct ieee80211_hw *hw)
+- 	const char *region = morse_dot11ah_get_region_str();
+- 	int vif_id;
+- 	bool have_ap = morse_get_ap_vif(mors) ? true : false;
+-+	bool have_sta = morse_get_sta_vif(mors) ? true : false;
+-+	bool have_active_ap = morse_get_active_ap(mors) ? true : false;
 - 
---	while (cp < end && *cp == 0xff)
--+	while (cp < end && (SPI_MMC_RESPONSE_CODE(*cp) != SPI_RESPONSE_ACCEPTED))
-- 		cp++;
+- 	/* Convert 5G channel to S1G channel */
+- 	chan_s1g = morse_dot11ah_channel_chandef_to_s1g(&conf->chandef);
+-@@ -3339,7 +3358,7 @@ static int morse_mac_change_channel(struct ieee80211_hw *hw)
+- 		(chan_s1g->ch.flags & IEEE80211_CHAN_2MHZ) ? 2 : 1;
 - 
-- 	if (cp == end)
--@@ -529,13 +531,10 @@ static int morse_spi_cmd53_read(struct m
-- 	cp += 4;
+- 	/* Update primary channel info based on BSS only if no AP interfaces */
+--	if (!have_ap) {
+-+	if (!have_ap || ( have_sta && !have_active_ap) ) {
+- 		for (vif_id = 0; vif_id < mors->max_vifs; vif_id++) {
+- 			struct ieee80211_vif *vif = morse_get_vif_from_vif_id(mors, vif_id);
 - 
-- 	if (!block) {
---		/* Scale bytes delay to block */
---		u32 extra_bytes = (count * mspi->inter_block_delay_bytes) / MMC_SPI_BLOCKSIZE;
---
-- 		/* Allow 4 bytes for CRC and another 10 bytes for start block token & chip delays
-- 		 * (usually comes in 2).
-- 		 */
---		data_size = count + 4 + 4 + extra_bytes;
--+		data_size = count + 4 + 4 + mspi->inter_block_delay_bytes;
-- 		if (is_rk3288)
-- 			/* Short transactions are sometimes delayed. These extra bytes give enough
-- 			 * cycles to receive all the data. This could be optimised to a lower
--@@ -601,6 +600,7 @@ static int morse_spi_cmd53_write(struct
-- 	u8 *resp;
-- 	u8 *end;
-- 	u8 *ack = cp;
--+	u8 *test_ack;
-- 	u32 data_size;
-- 	int i;
-- 
--@@ -656,10 +656,11 @@ static int morse_spi_cmd53_write(struct
-- 		/* crc */
-- 		*cp = (crc & 0xFF00) >> 8;
-- 		*(cp + 1) = (crc & 0xFF);
--+		test_ack = cp + 2;
-- 		cp += sizeof(crc);
-- 
-- 		/* Allow more bytes for status and chip processing (depends on CLK) */
---		cp += block ? mspi->inter_block_delay_bytes : 4;
--+		cp += mspi->inter_block_delay_bytes;
-- 	}
-- 
-- 	/* Do the actual transfer */
-
---- a/feeds/morse/essentials/morse_driver/patches/004-fix-kernel-version-check.patch
-+++ /dev/null
-@@ -1,13 +0,0 @@
--Index: morse_driver-rel_1_12_3_2024_May_23/sdio.c
--===================================================================
----- morse_driver-rel_1_12_3_2024_May_23.orig/sdio.c
--+++ morse_driver-rel_1_12_3_2024_May_23/sdio.c
--@@ -572,7 +572,7 @@ static int morse_sdio_reset(int reset_pi
-- 
-- 	sdio_claim_host(func);
-- 	sdio_disable_func(func);
---#if KERNEL_VERSION(5, 18, 0) > LINUX_VERSION_CODE
--+#if KERNEL_VERSION(5, 18, 0) > MAC80211_VERSION_CODE
-- 	mmc_hw_reset(func->card->host);
-- #else
-- 	mmc_hw_reset(func->card);
-
---- a/feeds/morse/essentials/morse_driver/patches/013-remove-x86_64-chan-ignore.patch
-+++ /dev/null
-@@ -1,32 +0,0 @@
--From 0504c56aadd5c4b8d90dcf8e8438a01f226e48d6 Mon Sep 17 00:00:00 2001
--From: James Haggerty <james.haggerty@morsemicro.com>
--Date: Fri, 25 Jul 2025 09:11:22 +1000
--Subject: [PATCH] This workaround was put in the driver to easily build in STA
-- configurations without mac80211 modifications, but is inappropriate in
-- OpenWrt (when we have the necessary patches in mac80211). See SW-14709.
--
-----
-- morse.h | 7 -------
-- 1 file changed, 7 deletions(-)
--
--diff --git a/morse.h b/morse.h
--index 842ca292..8340f568 100644
----- a/morse.h
--+++ b/morse.h
--@@ -50,13 +50,6 @@
-- #define MAC80211_VERSION_CODE LINUX_VERSION_CODE
-- #endif
-- 
---/* Re-Define the IGNORE channel flag, if not defined by the cfg80211 patch.
--- * The flag won't be used by MM81xx.
--- */
---#if defined(__x86_64__)
---#define IEEE80211_CHAN_IGNORE	IEEE80211_CHAN_DISABLED
---#endif
---
-- #define MORSE_SEMVER_GET_MAJOR(x) (((x) >> 22) & 0x3FF)
-- #define MORSE_SEMVER_GET_MINOR(x) (((x) >> 10) & 0xFFF)
-- #define MORSE_SEMVER_GET_PATCH(x) ((x) & 0x3FF)
---- 
--2.34.1
--
+-@@ -3352,7 +3371,7 @@ static int morse_mac_change_channel(struct ieee80211_hw *hw)
+- 				 * width to 2MHz to be able to receive these responses.
+- 				 */
+- 				pri_bw_mhz = op_bw_mhz > 1 ? 2 : 1;
+--			} else if (vif && vif->bss_conf.bssid) {
+-+			} else if (vif && vif->bss_conf.bssid && vif->type != NL80211_IFTYPE_AP) {
+- 				/* If we are a STA and have a BSS/AP conf, try to use the AP's chan
+- 				 * info.
+- 				 */

@@ -1,0 +1,11 @@
+--- a/rules.mk
++++ b/rules.mk
+@@ -458,7 +458,7 @@
+ 	SHELL= \
+ 	flock \
+ 		$(TMP_DIR)/.$(if $(2),$(strip $(2)),global).flock \
+-		-c '$(subst ','\'',$(1))'
++		-c '$(subst ','\'',$(strip $(subst $(newline), ,$(1))))'
+   endef
+ else
+   locked=$(1)
