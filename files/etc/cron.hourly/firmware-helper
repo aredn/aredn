@@ -37,6 +37,7 @@ import * as uci from "uci";
 
 const updateHour = 13; // Run at ~1pm UTC
 const currentReleases = "/etc/current_releases";
+const firmwareList = "/tmp/firmware.list";
 
 const cursor = uci.cursor();
 
@@ -69,5 +70,6 @@ if (doVersionUpdate) {
     }
     if (releaseVersion && nightlyVersion) {
         fs.writefile(currentReleases, `${releaseVersion} ${nightlyVersion}`);
+        fs.unlink(firmwareList);
     }
 }
