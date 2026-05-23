@@ -37,7 +37,6 @@ import * as ubus from "ubus";
 import * as nl80211 from "nl80211";
 import * as rtnl from "rtnl";
 import * as socket from "socket";
-import * as struct from "struct";
 import * as babel from "aredn.babel";
 
 let radioJson;
