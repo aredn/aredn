@@ -37,6 +37,7 @@ import * as ubus from "ubus";
 import * as nl80211 from "nl80211";
 import * as rtnl from "rtnl";
 import * as socket from "socket";
+import * as struct from "struct";
 import * as babel from "aredn.babel";
 
 let radioJson;
@@ -831,7 +832,7 @@ export function supportsFeature(feature, arg1, arg2)
             return (!modes || index(modes, arg2) === -1);
         }
         case "hw-watchdog":
-            return !!fs.access("/dev/watchdog");
+            return !!fs.access("/dev/watchdog") && !fs.access("/tmp/no-hw-watchdog");
         case "boot-efi":
             return !!fs.access("/sys/firmware/efi");
         case "xlink":

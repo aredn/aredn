@@ -214,6 +214,7 @@ return waitForTicks(max(0, startupDelay - clock(true)[0]), function() {
     if (!wd) {
         log.syslog(log.LOG_ERR, "Watchdog failed to start: Cannot open /dev/watchdog");
         ub.call("system", "watchdog", { stop: false });
+        fs.writefile("/tmp/no-hw-watchdog", "");
         return exitApp();
     }
 
@@ -226,6 +227,7 @@ return waitForTicks(max(0, startupDelay - clock(true)[0]), function() {
         wd.write("V");
         wd.flush();
         wd.close();
+        fs.writefile("/tmp/no-hw-watchdog", "");
         return exitApp();
     }
     log.syslog(log.LOG_DEBUG, `tick set to ${tick}`);
