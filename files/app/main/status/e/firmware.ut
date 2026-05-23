@@ -124,6 +124,41 @@
         }
         return { error: error };
     };
+    function getFirmwareUpgrade(firmware_list)
+    {
+        const firmware = configuration.getFirmwareVersion();
+        let ideal = null;
+        if (match(firmware, /^\d+\.\d+\.\d+\.\d+$/)) {
+            let current = map(split(firmware, "."), v => int(v));
+            for (let v in firmware_list) {
+                let next = match(v, /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+                if (next) {
+                    next = map(slice(next, 1), v => int(v));;
+                    if (next[0] > current[0] ||
+                        (next[0] === current[0] && (next[1] > current[1] ||
+                         (next[1] === current[1] && (next[2] > current[2]) ||
+                          (next[2] === current[2] && (next[3] > current[3])))))) {
+                        ideal = v;
+                        current = next;
+                    }
+                }
+            }
+        }
+        else {
+            let current = match(firmware, /^(\d\d\d\d\d\d\d\d)-/);
+            if (current) {
+                current = current[1];
+                for (let v in firmware_list) {
+                    const next = match(v, /^(\d\d\d\d\d\d\d\d)-/);
+                    if (next && (next[1] > current || (next[1] === current && v !== firmware))) {
+                        ideal = v;
+                        break;
+                    }
+                }
+            }
+        }
+        return ideal;
+    }
     if (request.env.REQUEST_METHOD === "PUT") {
         if (request.args.keepconfig) {
             if (request.args.keepconfig === "off") {
@@ -328,22 +363,7 @@
         }
         f.write(sprintf("%J", firmware_list));
         f.close();
-        const firmware = configuration.getFirmwareVersion();
-        let releases = split(fs.readfile("/etc/current_releases"), " ");
-        let ideal = null;
-        if (releases) {
-            if (match(firmware, /^\d+\.\d+\.\d+\.\d+$/)) {
-                if (firmware !== releases[0] && firmware_list[releases[0]]) {
-                    ideal = releases[0];
-                }
-            }
-            else if (match(firmware, /^\d\d\d\d\d\d\d\d-/) || match(firmware, /^babel-\d\d\d\d\d\d\d\d-/)) {
-                if (firmware !== releases[1] && firmware_list[releases[1]]) {
-                    ideal = releases[1];
-                }
-            }
-        }
-
+        const ideal = getFirmwareUpgrade(firmware_list);
         let html = `<option value="-">-</option>`;
         for (let k in firmware_list) {
             html += `<option ${ideal == k ? "selected": ""} value="${k}">${k}${index(k, "-") == -1 ? "" : " (nightly)"}</option>`;
@@ -460,20 +480,7 @@
     const needreboot = fs.access("/tmp/reboot-required") ? true : false;
     let ideal = null;
     if (!sideload && !needreboot) {
-        const firmware = configuration.getFirmwareVersion();
-        let releases = split(fs.readfile("/etc/current_releases"), " ");
-        if (releases) {
-            if (match(firmware, /^\d+\.\d+\.\d+\.\d+$/)) {
-                if (firmware !== releases[0] && firmware_list[releases[0]]) {
-                    ideal = releases[0];
-                }
-            }
-            else if (match(firmware, /^\d\d\d\d\d\d\d\d-/) || match(firmware, /^babel-\d\d\d\d\d\d\d\d-/)) {
-                if (firmware !== releases[1] && firmware_list[releases[1]]) {
-                    ideal = releases[1];
-                }
-            }
-        }
+        ideal = getFirmwareUpgrade(firmware_list);
     }
 %}
 <div class="dialog">
