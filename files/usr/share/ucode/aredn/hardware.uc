@@ -831,7 +831,7 @@ export function supportsFeature(feature, arg1, arg2)
             return (!modes || index(modes, arg2) === -1);
         }
         case "hw-watchdog":
-            return !!fs.access("/dev/watchdog");
+            return !!fs.access("/dev/watchdog") && !fs.access("/tmp/no-hw-watchdog");
         case "boot-efi":
             return !!fs.access("/sys/firmware/efi");
         case "xlink":
