@@ -63,6 +63,33 @@
  define Device/mikrotik_routerboard-map-2nd
    $(Device/mikrotik_nor)
    SOC := qca9533
+@@ -299,6 +299,26 @@
+ endef
+ TARGET_DEVICES += mikrotik_routerboard-sxt-5nd
+ 
++define Device/mikrotik_routerboard-sxtsq-5hpnd
++  $(Device/mikrotik_nor)
++  SOC := ar9344
++  DEVICE_MODEL := RouterBOARD SXTsq 5HPnD (SXTsq 5 High Power)
++  DEVICE_PACKAGES += rssileds
++  IMAGE_SIZE := 16256k
++  SUPPORTED_DEVICES += rb-lhg-5nd rb-lhg-5hpnd mikrotik,routerboard-sxt-5hpnd
++endef
++TARGET_DEVICES += mikrotik_routerboard-sxtsq-5hpnd
++
++define Device/mikrotik_routerboard-sxtsq-5nd
++  $(Device/mikrotik_nor)
++  SOC := ar9344
++  DEVICE_MODEL := RouterBOARD SXTsq 5nD (SXTsq Lite5)
++  DEVICE_PACKAGES += rssileds
++  IMAGE_SIZE := 16256k
++  SUPPORTED_DEVICES += rb-lhg-5nd rb-lhg-5hpnd mikrotik,routerboard-sxt-5nd
++endef
++TARGET_DEVICES += mikrotik_routerboard-sxtsq-5nd
++
+ define Device/mikrotik_routerboard-sxt-5nd-r2
+   $(Device/mikrotik_nand)
+   SOC := ar9344
 --- /dev/null
 +++ b/target/linux/ath79/dts/qca9533_mikrotik_routerboard-lhg-2nd-xl.dts
 @@ -0,0 +1,8 @@
@@ -118,9 +145,31 @@
 +        compatible = "mikrotik,routerboard-ldf-2nd", "qca,qca9533";
 +        model = "MikroTik RouterBOARD LDF 2nD";
 +};
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-sxtsq-5hpnd.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "ar9344_mikrotik_routerboard-sxt-5hpnd.dts"
++
++/ {
++        compatible = "mikrotik,routerboard-sxtsq-5hpnd", "qca,ar9344";
++        model = "MikroTik RouterBOARD SXTsq 5HPnD (SXTsq 5 High Power)";
++};
+--- /dev/null
++++ b/target/linux/ath79/dts/ar9344_mikrotik_routerboard-sxtsq-5nd.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "ar9344_mikrotik_routerboard-sxt-5nd.dts"
++
++/ {
++        compatible = "mikrotik,routerboard-sxtsq-5nd", "qca,ar9344";
++        model = "MikroTik RouterBOARD SXTsq 5nD (SXTsq Lite5)";
++};
 --- a/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/mikrotik/base-files/etc/board.d/02_network
-@@ -17,7 +17,12 @@
+@@ -17,7 +17,14 @@
  	mikrotik,routerboard-912uag-2hpnd|\
  	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-lhg-2nd|\
@@ -129,11 +178,13 @@
 +	mikrotik,routerboard-lhg-5hpnd|\
 +	mikrotik,routerboard-lhg-5hpnd-xl|\
 +	mikrotik,routerboard-sxtsq-2nd|\
++	mikrotik,routerboard-sxtsq-5hpnd|\
++	mikrotik,routerboard-sxtsq-5nd|\
 +	mikrotik,routerboard-ldf-2nd|\
  	mikrotik,routerboard-mapl-2nd|\
  	mikrotik,routerboard-sxt-5nd-r2|\
  	mikrotik,routerboard-sxt-5nd|\
-@@ -73,7 +77,12 @@
+@@ -73,7 +77,14 @@
  	mikrotik,routerboard-912uag-2hpnd|\
  	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-lhg-2nd|\
@@ -142,13 +193,15 @@
 +	mikrotik,routerboard-lhg-5hpnd|\
 +	mikrotik,routerboard-lhg-5hpnd-xl|\
 +	mikrotik,routerboard-sxtsq-2nd|\
++	mikrotik,routerboard-sxtsq-5hpnd|\
++	mikrotik,routerboard-sxtsq-5nd|\
 +	mikrotik,routerboard-ldf-2nd|\
  	mikrotik,routerboard-map-2nd|\
  	mikrotik,routerboard-mapl-2nd|\
  	mikrotik,routerboard-sxt-5nd-r2|\
 --- a/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
 +++ b/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/10-ath9k-eeprom
-@@ -30,9 +30,14 @@
+@@ -30,9 +30,16 @@
  	mikrotik,routerboard-912uag-2hpnd|\
  	mikrotik,routerboard-912uag-5hpnd|\
  	mikrotik,routerboard-lhg-2nd|\
@@ -157,6 +210,8 @@
 +	mikrotik,routerboard-lhg-5hpnd|\
 +	mikrotik,routerboard-lhg-5hpnd-xl|\
 +	mikrotik,routerboard-sxtsq-2nd|\
++	mikrotik,routerboard-sxtsq-5hpnd|\
++	mikrotik,routerboard-sxtsq-5nd|\
  	mikrotik,routerboard-sxt-5nd|\
  	mikrotik,routerboard-sxt-5hpnd|\
 +	mikrotik,routerboard-ldf-2nd|\
