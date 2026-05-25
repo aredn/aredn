@@ -1,6 +1,6 @@
 --- a/target/linux/ath79/image/mikrotik.mk
 +++ b/target/linux/ath79/image/mikrotik.mk
-@@ -96,6 +96,33 @@
+@@ -96,6 +96,35 @@
  endef
  TARGET_DEVICES += mikrotik_routerboard-lhg-2nd
  
@@ -13,14 +13,16 @@
 +endef
 +TARGET_DEVICES += mikrotik_routerboard-lhg-2nd-xl
 +
-+define Device/mikrotik_routerboard-sxt-2nd
++define Device/mikrotik_routerboard-sxtsq-2nd
 +  $(Device/mikrotik_nor)
 +  SOC := qca9533
-+  DEVICE_MODEL := RouterBOARD SXT 2nD (SXT Lite2)
++  DEVICE_MODEL := RouterBOARD SXTsq 2nD (SXTsq Lite2)
++  DEVICE_ALT0_VENDOR := Mikrotik
++  DEVICE_ALT0_MODEL := RouterBOARD SXT 2nD (SXT Lite2)
 +  IMAGE_SIZE := 16256k
-+  SUPPORTED_DEVICES += rb-sxt-2nd rb-lhg-5nd
++  SUPPORTED_DEVICES += rb-sxt-2nd rb-lhg-5nd mikrotik,routerboard-sxt-2nd
 +endef
-+TARGET_DEVICES += mikrotik_routerboard-sxt-2nd
++TARGET_DEVICES += mikrotik_routerboard-sxtsq-2nd
 +
 +define Device/mikrotik_routerboard-ldf-2nd
 +  $(Device/mikrotik_nor)
@@ -95,15 +97,15 @@
 +        model = "MikroTik RouterBOARD LHG 5HPnD-XL";
 +};
 --- /dev/null
-+++ b/target/linux/ath79/dts/qca9533_mikrotik_routerboard-sxt-2nd.dts
++++ b/target/linux/ath79/dts/qca9533_mikrotik_routerboard-sxtsq-2nd.dts
 @@ -0,0 +1,8 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +
 +#include "qca9533_mikrotik_routerboard-lhg-2nd.dts"
 +
 +/ {
-+        compatible = "mikrotik,routerboard-sxt-2nd", "qca,qca9533";
-+        model = "MikroTik RouterBOARD SXT 2nD (SXT Lite2)";
++        compatible = "mikrotik,routerboard-sxtsq-2nd", "qca,qca9533";
++        model = "MikroTik RouterBOARD SXTsq 2nD (SXTsq Lite2)";
 +};
 --- /dev/null
 +++ b/target/linux/ath79/dts/qca9533_mikrotik_routerboard-ldf-2nd.dts
@@ -126,7 +128,7 @@
  	mikrotik,routerboard-lhg-5nd|\
 +	mikrotik,routerboard-lhg-5hpnd|\
 +	mikrotik,routerboard-lhg-5hpnd-xl|\
-+	mikrotik,routerboard-sxt-2nd|\
++	mikrotik,routerboard-sxtsq-2nd|\
 +	mikrotik,routerboard-ldf-2nd|\
  	mikrotik,routerboard-mapl-2nd|\
  	mikrotik,routerboard-sxt-5nd-r2|\
@@ -139,7 +141,7 @@
  	mikrotik,routerboard-lhg-5nd|\
 +	mikrotik,routerboard-lhg-5hpnd|\
 +	mikrotik,routerboard-lhg-5hpnd-xl|\
-+	mikrotik,routerboard-sxt-2nd|\
++	mikrotik,routerboard-sxtsq-2nd|\
 +	mikrotik,routerboard-ldf-2nd|\
  	mikrotik,routerboard-map-2nd|\
  	mikrotik,routerboard-mapl-2nd|\
@@ -154,7 +156,7 @@
  	mikrotik,routerboard-lhg-5nd|\
 +	mikrotik,routerboard-lhg-5hpnd|\
 +	mikrotik,routerboard-lhg-5hpnd-xl|\
-+	mikrotik,routerboard-sxt-2nd|\
++	mikrotik,routerboard-sxtsq-2nd|\
  	mikrotik,routerboard-sxt-5nd|\
  	mikrotik,routerboard-sxt-5hpnd|\
 +	mikrotik,routerboard-ldf-2nd|\
