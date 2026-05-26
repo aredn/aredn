@@ -196,11 +196,6 @@ export function setPassword(passwd)
     fs.writefile("/tmp/newpassword", passwd);
 };
 
-export function isPasswordChanged()
-{
-    return fs.access("/tmp/newpassword") ? true : false;
-};
-
 export function getDHCP(mode)
 {
     initSetup();
@@ -353,8 +348,9 @@ export function commitChanges()
         removeConfig(currentConfig);
         if (fs.access("/tmp/newpassword")) {
             const pw = fs.readfile("/tmp/newpassword");
-            system(`/usr/local/bin/setpasswd ${shellEscape(pw)}`);
+            system(`/usr/local/bin/setpasswd ${shellEscape(pw)} > /dev/null 2>&1`);
             fs.unlink("/tmp/newpassword");
+            status.newpassword = true;
         }
         const n = fs.popen("exec /usr/local/bin/node-setup");
         if (n) {

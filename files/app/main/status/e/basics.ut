@@ -284,7 +284,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 htmx.find("dialog input[name=passwd1]").pattern = "BAD";
             }
             else {
-                htmx.find("dialog input[name=passwd1]").pattern = `[^#'"]+`;
+                htmx.find("dialog input[name=passwd1]").pattern = `[^%#'\"]+`;
             }
             htmx.find("dialog input[name=passwd2]").required = v ? "required" : "";
             ["\\", ".", "*", "+", "?", "^", "$", "(", ")", "{", "}", "[", "]", "|" ].forEach(k => v = v.replaceAll(k, f => `\\${k}`));
