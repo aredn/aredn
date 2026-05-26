@@ -33,14 +33,13 @@
  */
 %}
 {%
-    let pwchanged = false;
+    let status = {};
     if (request.env.REQUEST_METHOD === "PUT") {
         if (request.args.revert) {
             configuration.revertChanges();
         }
         else if (request.args.commit) {
-            pwchanged = configuration.isPasswordChanged();
-            configuration.commitChanges();
+            status = configuration.commitChanges();
         }
     }
     if (request.headers["hx-trigger-name"] === "commit" && index(request.headers.referer, "/a/status") > 0) {
@@ -50,7 +49,7 @@
 <div id="changes" {{request.headers["hx-boosted"] ? "" : "hx-swap-oob='true'"}}>{%
     let changes = 0;
     let reboot = false;
-    if (pwchanged) {
+    if (status.newpassword) {
         %}<script>location.reload();</script>{%
     }
     if (auth.isAdmin) {
