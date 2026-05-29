@@ -151,11 +151,15 @@
                     const tracker = entry.tracker;
                     const status = calcColor(tracker);
                     let lq = "-";
+                    let quality = "-";
                     if (tracker) {
                         print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
                         if (status !== "disconnected") {
                             if (type(tracker.lq)) {
                                 lq = `${tracker.lq}%`;
+                            }
+                            if (type(tracker.quality)) {
+                                quality = (100 - tracker.quality) + "%";
                             }
                         }
                     }
@@ -175,10 +179,10 @@
                     }
                     print("<div class='ts cols stats'>");
                     if (!request.mobile) {
-                        print(`<div>${lq}</div><div></div><div></div><div></div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div></div><div></div>`);
+                        print(`<div>${lq}</div><div></div><div></div><div></div><div>${quality}</div><div></div><div></div>`);
                     }
                     else {
-                        print(`<div>${lq}</div><div>${type(tracker && tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div>`);
+                        print(`<div>${lq}</div><div>${quality}</div>`);
                     }
                     print("</div></div>");
                 }
@@ -201,6 +205,7 @@
                 const status = calcColor(tracker);
                 let lq = "-";
                 let rtt = "-";
+                let quality = "-";
                 if (tracker) {
                     print(`<div class="ctrl cols status ${status}" hx-get="neighbor-device?m=${tracker.mac}" title="Link status: ${status}">`);
                     if (status !== "disconnected") {
@@ -209,6 +214,9 @@
                         }
                         if (type(tracker.rtt)) {
                             rtt = int(tracker.rtt);
+                        }
+                        if (type(tracker.quality)) {
+                            quality = (100 - tracker.quality) + "%";
                         }
                     }
                 }
@@ -253,7 +261,7 @@
                 }
                 print("<div class='ts cols stats'>");
                 if (request.mobile) {
-                    print(`<div>${lq}</div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div>`);
+                    print(`<div>${lq}</div><div>${quality}</div>`);
                 }
                 else if (tracker) {
                     let d = "-";
@@ -266,7 +274,7 @@
                             d = sprintf("%.1f", d);
                         }
                     }
-                    print(`<div>${lq}</div><div>${rtt}</div><div>${tracker.snr || "-"}</div><div>${tracker.rev_snr || "-"}</div><div>${type(tracker.quality) ? (100 - tracker.quality) + "%" : "-"}</div><div>${calcBitrate(tracker)}</div><div>${d}</div>`);
+                    print(`<div>${lq}</div><div>${rtt}</div><div>${tracker.snr || "-"}</div><div>${tracker.rev_snr || "-"}</div><div>${quality}</div><div>${calcBitrate(tracker)}</div><div>${d}</div>`);
                 }
                 else {
                     print(`<div>${lq}</div><div></div><div></div><div></div><div></div><div></div><div></div>`);
