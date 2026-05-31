@@ -35,6 +35,7 @@ import * as fs from "fs";
 import * as uci from "uci";
 import * as math from "math";
 import * as network from "aredn.network";
+import * as hardware from "aredn.hardware";
 
 let cursor;
 let scursor;
@@ -554,7 +555,7 @@ export function supportdata(supportdatafilename)
         "netstat -aln",
         "iwinfo",
         `${wifiiface ? "iwinfo " + wifiiface + " assoclist" : ""}`,
-        `${wifiiface ? "iw phy " + (replace(wifiiface, "wlan", "phy")) + " info" : ""}`,
+        `${wifiiface ? "iw phy " + hardware.getPhyDevice(wifiiface) + " info" : ""}`,
         `${wifiiface ? "iw dev " + wifiiface + " info" : ""}`,
         `${wifiiface && doscan ? "iw dev " + wifiiface + " scan" : ""}`,
         `${wifiiface ? "iw dev " + wifiiface + " station dump" : ""}`,

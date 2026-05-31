@@ -57,9 +57,8 @@ const PING6 = "/bin/ping6";
 // Get radio
 const device = radios.getMeshRadio();
 const wlan = device ? device.iface : "none";
-const wlanid = device ? replace(wlan, /^wlan/, "") : null;
-const phy = device ? `phy${wlanid}` : "none";
-const radio = device ? `radio${wlanid}` : "none";
+const phy = device ? hardware.getPhyDevice(wlan) : "none";
+const radio = device ? hardware.getRadioDevice(wlan) : "none";
 const devtype = hardware.getRadioType(wlan);
 
 let config = {};
