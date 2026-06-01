@@ -37,7 +37,7 @@ if (!device) {
     return exitApp();
 }
 const wifi = device.iface;
-const bwAdjust = min(1.0, uci.cursor().get("wireless", replace(wifi, /^wlan/, "radio"), "chanbw") / 20.0) / 10.0;
+const bwAdjust = min(1.0, uci.cursor().get("wireless", hardware.getRadioDevice(wifi), "chanbw") / 20.0) / 10.0;
 
 const TMPDIR = "/tmp/snrlog/";
 const MAXLINES = 2880; // 2 days worth
