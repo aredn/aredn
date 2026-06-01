@@ -257,7 +257,7 @@ export function getChannelFromFrequency(wifiIface, freq)
 function getWiFiChannels(wifiIface)
 {
     const channels = [];
-    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(getPhyDevice(wifiIface), 3)) });
     if (!info) {
         return [];
     }
@@ -647,13 +647,14 @@ export function getRadioNoise(wifiIface)
             return survey[i].survey_info.noise;
         }
     }
-    // Fallback for hardware which doesn't support the survey api (e.g. HaLow)
-    const p = fs.popen(`/usr/bin/iwinfo ${wifiIface} info 2> /dev/null | /bin/grep Noise`);
-    if (p) {
-        const m = match(p.read("all"), /Noise: (-\d+) dBm/);
-        p.close();
-        if (m) {
-            return int(m[1]);
+    if (getRadioType(wifiIface) === "halow") {
+        const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} stats | grep 'Noise (dBm)'`);
+        if (p) {
+            const m = match(p.read("all"), /: (-\d+)/);
+            p.close();
+            if (m) {
+                return int(m[1]);
+            }
         }
     }
     return -95;
@@ -665,7 +666,7 @@ export function getMaxDistance(wifiIface)
         case "none":
             return -1;
         case "halow":
-            const p = fs.popen("/sbin/morse_cli get ack_timeout_adjust");
+            const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} get ack_timeout_adjust`);
             if (p) {
                 const ack = int(p.read("line"));
                 p.close();
@@ -673,7 +674,7 @@ export function getMaxDistance(wifiIface)
             }
             return -1;
         default:
-            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(wifiIface, 4)) });
+            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(getPhyDevice(wifiIface), 3)) });
             return info.wiphy_coverage_class * 450;
     }
 };
@@ -685,7 +686,7 @@ export function setMaxDistance(wifiIface, distance)
             break;
         case "halow":
             const ack = max(2, 2 * int(distance / 300));
-            // system(`/sbin/morse_cli set ack_timeout_adjust ${ack} > /dev/null 2>&1`);
+            // system(`/sbin/morse_cli -i ${wifiIface} set ack_timeout_adjust ${ack} > /dev/null 2>&1`);
             break;
         default:
             const coverage = min(255, int(distance / 450));
