@@ -686,7 +686,7 @@ export function setMaxDistance(wifiIface, distance)
             break;
         case "halow":
             const ack = max(2, 2 * int(distance / 300));
-            // system(`/sbin/morse_cli -i ${wifiIface} set ack_timeout_adjust ${ack} > /dev/null 2>&1`);
+            system(`/sbin/morse_cli -i ${wifiIface} set ack_timeout_adjust ${ack} > /dev/null 2>&1`);
             break;
         default:
             const coverage = min(255, int(distance / 450));
@@ -806,7 +806,7 @@ export function supportsFeature(feature, arg1, arg2)
                 case "none":
                     return false;
                 case "halow":
-                    return true;
+                    return false;
                 default:
                     if (!(arg1 in maxDistanceSupport)) {
                         const phy = getPhyDevice(arg1);
