@@ -219,7 +219,9 @@ function main()
         case "ax":
         case "ac":
             lastDistance = config.max_distance;
-            hardware.setMaxDistance(wlan, lastDistance);
+            if (hardware.supportsFeature("max-distance", wlan)) {
+                hardware.setMaxDistance(wlan, lastDistance);
+            }
             break;
         case "n":
             iwSet("distance auto");
@@ -736,7 +738,9 @@ function main()
             }
             if (distance != lastDistance) {
                 lastDistance = distance;
-                hardware.setMaxDistance(wlan, distance);
+                if (hardware.supportsFeature("max-distance", wlan)) {
+                    hardware.setMaxDistance(wlan, distance);
+                }
             }
 
             // Set the RTS/CTS state depending on whether everyone can see everyone
