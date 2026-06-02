@@ -49,5 +49,9 @@ done
 #
 for i in /sys/class/net/*/device; do
   dev=$(basename ${i%/device})
-  tc qdisc replace dev ${dev} root cake diffserv4 nowash ack-filter nat
+  if [ -d /sys/class/net/${dev}/device/morse ]; then
+    tc qdisc replace dev ${dev} root pfifo_fast
+  else
+    tc qdisc replace dev ${dev} root cake diffserv4 nowash ack-filter nat
+  fi
 done
