@@ -204,6 +204,7 @@ function main()
     let rfLinks = {};
     let hiddenNodes = {};
     let lastDistance = -1;
+    let lastReadDistance = -1;
     let distance = -1;
     let noise = -95;
     let now = 0;
@@ -736,10 +737,11 @@ function main()
             else {
                 distance = min(distance, config.max_distance);
             }
-            if (distance != lastDistance) {
-                lastDistance = distance;
-                if (hardware.supportsFeature("max-distance", wlan)) {
+            if (hardware.supportsFeature("max-distance", wlan)) {
+                if (distance != lastDistance || lastReadDistance != hardware.getMaxDistance(wlan)) {
+                    lastDistance = distance;
                     hardware.setMaxDistance(wlan, distance);
+                    lastReadDistance = hardware.getMaxDistance(wlan);
                 }
             }
 
