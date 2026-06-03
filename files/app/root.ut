@@ -680,8 +680,11 @@ global.handle_request = function(env)
             return;
         }
     }
-    const cachecontrol = config.resourcehash ? "max-age=604800" : "no-store";
+    let cachecontrol = "no-store";
     if (fs.access(gzrpath)) {
+        if (config.resourcehash && match(gzrpath, /\.[a-f0-9]{32}\./)) {
+            cachecontrol = "max-age=604800";
+        }
         uhttpd.send("Status: 200 OK\r\nContent-Encoding: gzip\r\n");
         if (substr(rpath, -3) === ".js") {
             uhttpd.send("Content-Type: application/javascript\r\n");
@@ -699,6 +702,9 @@ global.handle_request = function(env)
     }
 
     if (fs.access(rpath)) {
+        if (config.resourcehash && match(rpath, /\.[a-f0-9]{32}\./)) {
+            cachecontrol = "max-age=604800";
+        }
         uhttpd.send("Status: 200 OK\r\n");
         if (substr(rpath, -3) === ".js") {
             uhttpd.send("Content-Type: application/javascript\r\n");
