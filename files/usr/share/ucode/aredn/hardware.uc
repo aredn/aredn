@@ -683,15 +683,15 @@ export function setMaxDistance(wifiIface, distance)
 {
     switch (getRadioType(wifiIface)) {
         case "none":
-            break;
+            return -1;
         case "halow":
-            const ack = int(300 + distance * 0.0067);
+            const ack = 300 + int(distance * 0.0067);
             system(`/sbin/morse_cli -i ${wifiIface} set ack_timeout_adjust ${ack} > /dev/null 2>&1`);
-            break;
+            return (ack - 300) / 0.0067;
         default:
             const coverage = min(255, int(distance / 450));
             system(`/usr/sbin/iw ${getPhyDevice(wifiIface)} set coverage ${coverage} > /dev/null 2>&1`);
-            break;
+            return coverage * 450;
     }
 };
 

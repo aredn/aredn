@@ -221,7 +221,7 @@ function main()
         case "ac":
             lastDistance = config.max_distance;
             if (hardware.supportsFeature("max-distance", wlan)) {
-                hardware.setMaxDistance(wlan, lastDistance);
+                lastReadDistance = hardware.setMaxDistance(wlan, lastDistance);
             }
             break;
         case "n":
@@ -740,8 +740,7 @@ function main()
             if (hardware.supportsFeature("max-distance", wlan)) {
                 if (distance != lastDistance || lastReadDistance != hardware.getMaxDistance(wlan)) {
                     lastDistance = distance;
-                    hardware.setMaxDistance(wlan, distance);
-                    lastReadDistance = hardware.getMaxDistance(wlan);
+                    lastReadDistance = hardware.setMaxDistance(wlan, distance);
                 }
             }
 
