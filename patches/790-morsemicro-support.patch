@@ -550,7 +550,7 @@
 
 --- a/target/linux/ramips/image/mt76x8.mk
 +++ b/target/linux/ramips/image/mt76x8.mk
-@@ -1449,6 +1449,50 @@
+@@ -1449,6 +1449,59 @@
  endef
  TARGET_DEVICES += zyxel_keenetic-extra-ii
  
@@ -584,6 +584,15 @@
 +  SUPPORTED_DEVICES := heltec,ht-hd01-v2 Heltec,HT-HD01-V2
 +endef
 +TARGET_DEVICES += heltec_ht-hd01-v2
++
++define Device/heltec_ht-h7608-v2
++  $(Device/morse_ekh03)
++  DEVICE_VENDOR := Heltec
++  DEVICE_MODEL := HT-H7608
++  DEVICE_VARIANT := V2
++  SUPPORTED_DEVICES := heltec,ht-h7608-v2 Heltec,HT-HD01-V2
++endef
++TARGET_DEVICES += heltec_ht-h7608-v2
 +
 +define Device/alfa-network_tube-ahm-r0c
 +  IMAGE_SIZE := 32448k
@@ -904,11 +913,12 @@
 +};
 --- a/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
 +++ b/target/linux/ramips/mt76x8/base-files/etc/board.d/02_network
-@@ -214,6 +214,15 @@
+@@ -214,6 +214,16 @@
  		ucidef_add_switch "switch0" \
  			"0:lan:2" "1:lan:1" "4:wan" "6@eth0"
  		;;
 +	heltec,ht-hd01-v2|\
++	heltec,ht-h7608-v2|\
 +	alfa-network,tube-ahm-r0c|\
 +	morse,ekh03v3)
 +		ucidef_add_switch "switch0"
@@ -1352,6 +1362,18 @@
 +/ {
 +        compatible = "heltec,ht-hd01-v2", "mediatek,mt7628an-soc";
 +        model = "Heltec HT-HD01-V2";
++};
+
+--- /dev/null
++++ b/target/linux/ramips/dts/mt7628an_heltec_ht-h7608-v2.dts
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "mt7628an_morse_ekh03v3.dts"
++
++/ {
++        compatible = "heltec,ht-h7608-v2", "mediatek,mt7628an-soc";
++        model = "Heltec HT-H7608-V2";
 +};
 
 --- /dev/null
