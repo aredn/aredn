@@ -194,6 +194,7 @@ Unraid | x86 | 64 | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
 Vultr | x86 | 64 | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
 Bhyve | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
 VirtualBox | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
+Vultr | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | nightly (5)
 
 
 ## Footnotes
