@@ -70,6 +70,10 @@ export function getBoard()
             boardJson.model.id = "virtualbox";
             boardJson.model.name = "VirtualBox";
         }
+        else if (index(lc(boardJson.model.id), "vultr") !== -1) {
+            boardJson.model.id = "vultr";
+            boardJson.model.name = "Vultr";
+        }
     }
     return boardJson;
 };
@@ -878,6 +882,7 @@ export function getEthernetPorts()
         case "bhyve":
         case "virtualbox":
         case "pc":
+        case "vultr":
             if (length(defaultNPortLayout) === 0) {
                 const dir = fs.opendir("/sys/class/net");
                 if (dir) {
