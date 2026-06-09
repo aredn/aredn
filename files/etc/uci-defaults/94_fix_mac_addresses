@@ -19,6 +19,11 @@ elif [ "$mfg" = "MikroTik" ]; then # Fix all MikroTiks
     fix="lan wan dtdlink"
 fi
 
+eth0wan=""
+if [ "$mfg" = "Vultr" ]; then # use eth0 mac for wan
+    eth0wan="yes"
+fi
+
 mkdir -p /etc/aredn_include
 
 list=""
@@ -30,6 +35,9 @@ do
         if [[ "$list" =~ "#$mac#" ]]; then
             # Dont allow reuse
             mac=""
+        fi
+        if [ "$eth0wan" = "yes" -a "$i" = "wan" ]; then
+            mac=$eth0
         fi
         if [ "$mac" = "" ]; then
             # Generate a safe mac address

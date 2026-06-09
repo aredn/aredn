@@ -209,6 +209,12 @@ if (!cfg.dmz_mode) {
     cfg.dmz_lan_mask = "255.255.255.248";
 }
 
+// Special network handling
+if (!cfg.wan_intf && hardware.getBoardId() == "Vultr") {
+    cfg.wan_intf = "eth0";
+    cfg.lan_intf = "eth0.1";
+}
+
 // And save
 const c = uci.cursor("/etc/config.mesh");
 
