@@ -999,6 +999,9 @@ export function getHardwareType()
     else if (match(mfg, /[Tt][Pp]-[Ll]ink/)) {
         mfgprefix = "cpe";
     }
+    if (supportsFeature("boot-efi")) {
+        targettype += "-efi";
+    }
     return `(${targettype}) ${mfgprefix ? mfgprefix + " " : ""}(${hardwaretype})`;
 };
 
