@@ -623,8 +623,8 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             const bandwidth = parseInt(e.target == lanbws{{w}} ? lanbws{{w}}.value : bws{{w}}.value);
             const channel = parseInt(chan{{w}}.value);
             let options = "";
-            const chanfilter = radio{{w}}.value == "4" || radio{{w}}.value == "5" || radio{{w}}.value == "6" ? {{wlan[w].managedOOB}} : null;
-            const channels = ({{wlan[w].channels}})[bandwidth] || [];
+            const chanfilter = radio{{w}}.value == "4" || radio{{w}}.value == "5" || radio{{w}}.value == "6" ? {{wlan[w].managedOOB || []}} : null;
+            const channels = ({{wlan[w].channels || []}})[bandwidth] || [];
             let nchannel = null;
             for (let i = 0; i < channels.length; i++) {
                 if (!chanfilter || chanfilter.indexOf(channels[i].number) === -1) {
