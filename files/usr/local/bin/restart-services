@@ -63,6 +63,13 @@ if [ "$*" != "" ]; then
   SERVICES="$*"
 fi
 
+# If we are restarting the network and babel, shutdown babel first so the node leaves the network politely
+# Later we will restart babel after the network restarts
+if [ -f $ROOT/network -a -f $ROOT/babel -a "$*" = "" ]; then
+  echo "Stopping babel"
+  /etc/init.d/babel stop > /dev/null 2>&1
+fi
+
 for srv in $SERVICES
 do
   if [ -f $ROOT/$srv -o $force = 1 ]; then
