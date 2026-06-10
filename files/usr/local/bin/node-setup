@@ -610,7 +610,7 @@ cm.foreach("wireguard", "server",
             const p = m2[2];
             const ll = network.mac2ipv6ll(sprintf("00:00:%02x:%02x:%02x:%02x", abcd[0], abcd[1], abcd[2], abcd[3] + 1)) + "/64";
             const w = s.cost || def_tun_cost;
-            const namename = ip2netname(abcd);
+            const netname = ip2netname(abcd);
             cfg.wireguard_network_config += sprintf("config interface 'wgs%s'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\tlist addresses '%d.%d.%d.%d'\n\tlist addresses '%s'\n\toption disabled '%s'\n%s\n",
                 netname, client_priv, w, abcd[0], abcd[1], abcd[2], abcd[3] + 1, ll, (s.enabled == 1 ? "0" : "1"), wg_mtu_override);
             cfg.wireguard_network_config += sprintf("config wireguard_wgs%s 'wireguard_wgs%s'\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
