@@ -34,9 +34,12 @@
 return function()
 {
     // Only run the script if we have wireguard connections
-    const c = uci.cursor();
-    if (c.get("network", "wgs0") || c.get("network", "wgc0")) {
-        system("/usr/bin/wireguard_watchdog");
-    }
+    let run = false;
+    uci.cursor().foreach("network", "interface", iface => {
+        if (index(iface[".name"], "wg") === 0) {
+            system("/usr/bin/wireguard_watchdog");
+            return false;
+        }
+    });
     return waitForTicks(300); // wait 5 minutes
 };

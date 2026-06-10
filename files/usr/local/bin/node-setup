@@ -237,6 +237,11 @@ function expandVars(contents)
     return join("\n", nlines);
 }
 
+function ip2netname(ip)
+{
+    return sprintf("%02x%02x%02x%02x", ...ip);
+}
+
 // Load the configuration
 const cms = cm.get_all("setup", "globals") || {};
 for (let k in cms) {
@@ -571,7 +576,6 @@ if (wg_mtu_override) {
     wg_mtu_override = `\toption mtu '${wg_mtu_override}'\n`;
 }
 const def_tun_cost = tonumber(cm.get("babel", "tunnel", "rxcost") || 1) || 0;
-let wgclients = 0;
 cm.foreach("wireguard", "client",
     function(s) {
         const m1 = match(s.key, /^(.+=)(.+=)(.+=)(.+=)$/);
@@ -584,16 +588,15 @@ cm.foreach("wireguard", "client",
             const abcd = iptoarr(addr);
             const ll = network.mac2ipv6ll(sprintf("00:00:%02x:%02x:%02x:%02x", abcd[0], abcd[1], abcd[2], abcd[3])) + "/64";
             const w = s.cost || def_tun_cost;
-            cfg.wireguard_network_config += sprintf("config interface 'wgc%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\toption disabled '%s'\n%s\n",
-                wgclients, server_priv, w, port, addr, ll, (s.enabled == 1 ? "0" : "1"), wg_mtu_override);
-            cfg.wireguard_network_config += sprintf("config wireguard_wgc%d 'wireguard_wgc%d'\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
-                wgclients, wgclients, client_pub);
-            cfg.vpn_interfaces += `\tlist network 'wgc${wgclients}'\n`;
-            wgclients++;
+            const netname = ip2netname(abcd);
+            cfg.wireguard_network_config += sprintf("config interface 'wgc%s'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption listen_port '%s'\n\tlist addresses '%s'\n\tlist addresses '%s'\n\toption disabled '%s'\n%s\n",
+                netname, server_priv, w, port, addr, ll, (s.enabled == 1 ? "0" : "1"), wg_mtu_override);
+            cfg.wireguard_network_config += sprintf("config wireguard_wgc%s 'wireguard_wgc%s'\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
+                netname, netname, client_pub);
+            cfg.vpn_interfaces += `\tlist network 'wgc${netname}'\n`;
         }
     }
 );
-let wgservers = 0;
 cm.foreach("wireguard", "server",
     function(s) {
         const m1 = match(s.passwd, /^(.+=)(.+=)(.+=)$/);
@@ -607,12 +610,12 @@ cm.foreach("wireguard", "server",
             const p = m2[2];
             const ll = network.mac2ipv6ll(sprintf("00:00:%02x:%02x:%02x:%02x", abcd[0], abcd[1], abcd[2], abcd[3] + 1)) + "/64";
             const w = s.cost || def_tun_cost;
-            cfg.wireguard_network_config += sprintf("config interface 'wgs%d'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\tlist addresses '%d.%d.%d.%d'\n\tlist addresses '%s'\n\toption disabled '%s'\n%s\n",
-                wgservers, client_priv, w, abcd[0], abcd[1], abcd[2], abcd[3] + 1, ll, (s.enabled == 1 ? "0" : "1"), wg_mtu_override);
-            cfg.wireguard_network_config += sprintf("config wireguard_wgs%d 'wireguard_wgs%d'\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
-                wgservers, wgservers, server_pub, s.host, p);
-            cfg.vpn_interfaces += `\tlist network 'wgs${wgservers}'\n`;
-            wgservers++;
+            const namename = ip2netname(abcd);
+            cfg.wireguard_network_config += sprintf("config interface 'wgs%s'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\tlist addresses '%d.%d.%d.%d'\n\tlist addresses '%s'\n\toption disabled '%s'\n%s\n",
+                netname, client_priv, w, abcd[0], abcd[1], abcd[2], abcd[3] + 1, ll, (s.enabled == 1 ? "0" : "1"), wg_mtu_override);
+            cfg.wireguard_network_config += sprintf("config wireguard_wgs%s 'wireguard_wgs%s'\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
+                netname, netname, server_pub, s.host, p);
+            cfg.vpn_interfaces += `\tlist network 'wgs${netname}'\n`;
         }
     }
 );
@@ -1454,7 +1457,6 @@ for (let file in nfiles) {
             case "network":
                 changes.network = true;
                 changes.babel = true;
-                changes.lqm = true; // and lqm because device assignment could change
                 break;
             case "dhcp":
                 changes.dnsmasq = true;
