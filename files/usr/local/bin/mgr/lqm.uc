@@ -315,6 +315,7 @@ function main()
         }
 
         // Update stats for tunnels and xlinks
+        const activeDevices = {};
         const istats = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
         for (let i = 0; i < length(istats); i++) {
             const stat = istats[i];
@@ -328,6 +329,18 @@ function main()
                         break;
                     }
                 }
+            }
+            if (stat.dev) {
+                activeDevices[stat.dev] = true;
+            }
+        }
+
+        // Remove any trackers for devices which no longer exist
+        for (let mac in trackers) {
+            const track = trackers[mac];
+            const device = track.device;
+            if (device && !activeDevices[device]) {
+                delete trackers[mac];
             }
         }
 
