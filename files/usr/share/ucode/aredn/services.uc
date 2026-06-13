@@ -379,7 +379,7 @@ function add(pubsub, id, topic, data)
                 f.truncate(f.tell());
                 f.lock("u");
                 f.close();
-                system(`echo "upload ${pubsub} ${pubsubbase}/${pubsub}" | socat -T 5 UNIX-CLIENT:/var/run/arednlink.sock - 2>&1 > /dev/null;`);
+                system(`echo "upload ${pubsub} ${pubsubbase}/${pubsub}" | socat -T 30 -t 30 UNIX-CLIENT:/var/run/arednlink.sock - 2>&1 > /dev/null;`);
                 return true;
             }
             catch (_) {
@@ -408,7 +408,7 @@ function remove(pubsub, id)
                     f.truncate(f.tell());
                     f.lock("u");
                     f.close();
-                    system(`echo "upload ${pubsub} ${pubsubbase}/${pubsub}" | socat -T 5 UNIX-CLIENT:/var/run/arednlink.sock - 2>&1 >/dev/null`);
+                    system(`echo "upload ${pubsub} ${pubsubbase}/${pubsub}" | socat -T 30 -t 30 UNIX-CLIENT:/var/run/arednlink.sock - 2>&1 >/dev/null`);
                     return true;
                 }
             }
