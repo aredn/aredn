@@ -120,7 +120,7 @@ if (sd) {
 }
 
 print(`},etx:[["${configuration.getSettingAsString("wifi_ip")}",0],`);
-const f = fs.popen("echo dump-installed-routes | socat UNIX-CLIENT:/var/run/babel.sock - 2>/dev/null");
+const f = fs.popen("echo dump-installed-routes | socat -T 30 -t 30 UNIX-CLIENT:/var/run/babel.sock - 2>/dev/null");
 if (f) {
     for (let l = f.read("line"); length(l); l = f.read("line")) {
         const m = match(l, reRoute);

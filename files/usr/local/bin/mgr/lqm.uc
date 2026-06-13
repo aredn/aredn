@@ -275,7 +275,7 @@ function main()
         });
 
         // Find our neighbors
-        const p = fs.popen("echo dump-neighbors | /usr/bin/socat UNIX-CLIENT:/var/run/babel.sock - 2>/dev/null");
+        const p = fs.popen("echo dump-neighbors | /usr/bin/socat -T 30 -t 30 UNIX-CLIENT:/var/run/babel.sock - 2>/dev/null");
         if (p) {
             for (let line = p.read("line"); length(line); line = p.read("line")) {
                 const m = match(line, /^add.*address ([^ \t]+) if ([^ \t]+) reach ([^ \t]+) .* rxcost ([^ \t]+) txcost ([^ \t]+)/);
