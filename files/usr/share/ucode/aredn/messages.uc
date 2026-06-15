@@ -116,24 +116,5 @@ export function getToDos()
 
 export function getAlerts()
 {
-    const alerts = [];
-    const lqmInfo = lqm.get();
-    const now = lqmInfo.now;
-    if (now - lqmInfo.start > 600) {
-        const trackers = lqmInfo.trackers;
-        let count = 0;
-        let total = 0;
-        for (let mac in trackers)
-        {
-            const tracker = trackers[mac];
-            if (tracker.type === "Wireguard" && tracker.lastseen + 120 >= now) {
-                total += tracker.avg_lq;
-                count++;
-            }
-        }
-        if (count > 0 && total / count < 85) {
-            push(alerts, "Some tunnel rx values are lower than ideal. You may need to reduce the number of tunnels hosted by this node.");
-        }
-    }
-    return alerts;
+    return [];
 };
