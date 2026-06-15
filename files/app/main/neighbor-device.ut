@@ -207,7 +207,30 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>distance</div>
                 </div>
             </div>
-            {% if (n.lq) { %}
+            {% if (n.lq & n.rev_lq) { %}
+            <div class="cols">
+                <div class="i">
+                    <div>{{n.lq}}%</div>
+                    <div>rx success</div>
+                </div>
+                <div class="i">
+                    <div>{{n.rev_lq}}%</div>
+                    <div>tx success</div>
+                </div>
+                <div></div>
+            </div>
+            <div class="cols">
+                <div class="i">
+                    <div>{{n.rxcost}}</div>
+                    <div>rx cost</div>
+                </div>
+                <div class="i">
+                    <div>{{n.txcost}}</div>
+                    <div>tx cost</div>
+                </div>
+                <div></div>
+            </div>
+            {% } else if (n.lq) { %}
             <div class="cols">
                 <div class="i">
                     <div>{{n.lq}}%</div>

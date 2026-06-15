@@ -469,6 +469,7 @@ function main()
                         // Failed to fetch information. Set time for retry and invalidate any information
                         // considered stale
                         track.refresh = now + refresh_retry_timeout;
+                        track.rev_lq = null;
                         track.rev_snr = null;
                         track.rev_ping_success_time = null;
                         track.rev_ping_quality = null;
@@ -528,6 +529,7 @@ function main()
                             for (let mac in rtrackers) {
                                 const rtrack = rtrackers[mac];
                                 if (myhostname == canonicalHostname(rtrack.hostname)) {
+                                    track.rev_lq = rtrack.lq;
                                     track.rev_ping_success_time = rtrack.ping_success_time;
                                     track.rev_ping_quality = rtrack.ping_quality;
                                     track.rev_quality = rtrack.quality;
