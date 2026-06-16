@@ -63,6 +63,7 @@ function strip(o) {
 
 const reTitle = /^##(.+)##$/;
 const reHosts = /^([0-9\.]+)[ \t]+([^ \.]+)$/;
+const reServices = /^([^|]+)\|(tcp|udp)\|(.+)$/;
 
 // THE BASICS
 const info = strip({
@@ -245,12 +246,18 @@ if (match(q, /services=1/)) {
             }
             const f = fs.open(`/var/run/arednlink/services/${name}`);
             if (f) {
-                for (let line = f.read("line"); length(line); line = f.read("line")) {
-                    const m = match(trim(line), /^([^|]*)\|([^|]*)\|(.*)$/);
+                let title = "_";
+                for (let l = f.read("line"); length(l); l = f.read("line")) {
+                    l = trim(l);
+                    const t = match(l, reTitle);
+                    if (t) {
+                        title = t[1];
+                    }
+                    const m = match(l, reServices);
                     if (m) {
                         push(services, {
                             name: m[3],
-                            ip: name,
+                            ip: title,
                             link: match(m[1], /:0\//) ? "" : m[1],
                             protocol: m[2]
                         });

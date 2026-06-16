@@ -93,12 +93,16 @@ if (sd) {
             const f = fs.open(`/var/run/arednlink/services/${entry}`);
             if (f) {
                 let empty = true;
-                let title = entry;
+                let title = "_";
                 for (let l = f.read("line"); length(l); l = f.read("line")) {
                     l = trim(l);
                     const t = match(l, reTitle);
                     if (t) {
                         title = t[1];
+                        if (!empty) {
+                            print(`],`);
+                            empty = true;
+                        }
                     }
                     const m = match(l, reServices);
                     if (m) {
