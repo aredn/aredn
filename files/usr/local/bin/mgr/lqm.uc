@@ -606,24 +606,10 @@ function main()
                 update_interval: int(cursor.get("babel", "default", "update_interval"))
             };
             if (track.type === "Wireguard") {
-                track.babel_config.rxcost = int(cursor.get("babel", "tunnel", "rxcost"));
-                const weight = int(cursor.get("network", track.device, "weight"));
-                if (weight) {
-                    track.babel_config.rxcost += int(cursor.get("babel", "tunnel", "rxscale")) * weight;
-                }
+                track.babel_config.rxcost = int(cursor.get("wireguard", "@network[0]", "cost") || cursor.get("babel", "tunnel", "rxcost") || 300);
             }
             else if (track.type === "Xlink") {
                 track.babel_config.rxcost = int(cursor.get("babel", "xlink", "rxcost"));
-                let weight = null;
-                for (let x = 0; x < 16; x++) {
-                    if (cursor.get("network", `xlink${x}`, "ifname") == track.device) {
-                        weight = int(cursor.get("network", `xlink${x}`, "weight"));
-                        break;
-                    }
-                }
-                if (weight) {
-                    track.babel_config.rxcost += int(cursor.get("babel", "xlink", "rxscale")) * weight;
-                }
             }
             else {
                 track.babel_config.rxcost = int(cursor.get("babel", "default", "rxcost"));
