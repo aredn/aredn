@@ -575,7 +575,7 @@ let wg_mtu_override = cm.get("wireguard", "@network[0]", "mtu") ?? "";
 if (wg_mtu_override) {
     wg_mtu_override = `\toption mtu '${wg_mtu_override}'\n`;
 }
-const def_tun_cost = tonumber(cm.get("babel", "tunnel", "rxcost") || 1) || 0;
+const def_tun_cost = tonumber(cm.get("wireguard", "@network[0]", "cost") || cm.get("babel", "tunnel", "rxcost") || 300) || 300;
 cm.foreach("wireguard", "client",
     function(s) {
         const m1 = match(s.key, /^(.+=)(.+=)(.+=)(.+=)$/);
