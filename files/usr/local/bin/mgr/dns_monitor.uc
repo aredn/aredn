@@ -55,7 +55,7 @@ function findSpecialDomains(needSupernodes)
                     else if (needSupernodes) {
                         const m = match(line, reSupernode);
                         if (m) {
-                            push(supernodes, { name: m[2], ip: m[1] });
+                            push(supernodes, { name: m[2], ip: m[1], metric: 99999999 });
                         }
                     }
                 }
@@ -67,30 +67,26 @@ function findSpecialDomains(needSupernodes)
     return { subdomains: subdomains, supernodes: supernodes };
 }
 
-function findBestSupernode(supernodes)
+function findBestSupernodes(supernodes)
 {
     if (length(supernodes) === 0) {
         return null;
     }
     if (length(supernodes) === 1) {
-        return supernodes[0];
+        return supernodes;
     }
     const routes = babel.getHostRoutes();
-    const best = { metric: 99999999, supernode: null };
     for (let i = 0; i < length(routes); i++) {
         const r = routes[i];
         for (let j = 0; j < length(supernodes); j++) {
             const s = supernodes[j];
-            if (r.dst == s.ip) {
-                if (r.metric < best.metric) {
-                    best.metric = r.metric;
-                    best.supernode = s;
-                }
-                break;
+            if (r.dst == s.ip && r.metric < s.metric) {
+                s.metric = r.metric;
             }
         }
     }
-    return best.supernode;
+    sort(supernodes, (a, b) => a.metric - b.metric);
+    return supernodes;
 }
 
 function updateSubdomains(subdomains)
@@ -103,22 +99,26 @@ function updateSubdomains(subdomains)
     return true;
 }
 
-function updateSupernode(supernode)
+function updateSupernodes(supernodes)
 {
-    let revdest = "";
-    let dest = "";
     let dns = "";
-    if (supernode) {
-        dns += `#${supernode.name}\n`;
-        dest = supernode.ip;
-        revdest = `,${dest}`;
+    const ips = [];
+    if (supernodes) {
+        dns += `#${supernodes[0].name}\n`;
+        dns += "all-servers\n";
+        for (let i = 0; i < 2 && i < length(supernodes); i++) {
+            const ip = supernodes[i].ip;
+            push(ips, ip);
+            dns += `server=/local.mesh/${ip}\nrev-server=10.0.0.0/8,${ip}\n`;
+        }
     }
-    dns += `server=/local.mesh/${dest}\nrev-server=10.0.0.0/8${revdest}\n`;
     const f = fs.open("/etc/44net.conf");
     if (f) {
         for (let line = f.read("line"); length(line); line = f.read("line")) {
             line = trim(line);
-            dns += `rev-server=${line}${revdest}\n`;
+            for (let i = 0; i < length(ips); i++) {
+                dns += `rev-server=${line},${ips[i]}\n`;
+            }
         }
         f.close();
     }
@@ -139,7 +139,7 @@ return function()
     }
     const finds = findSpecialDomains(needSupernodes);
     const changed1 = updateSubdomains(finds.subdomains);
-    const changed2 = updateSupernode(findBestSupernode(finds.supernodes));
+    const changed2 = updateSupernodes(findBestSupernodes(finds.supernodes));
     if (changed1 || changed2) {
         system("/etc/init.d/dnsmasq restart");
     }
