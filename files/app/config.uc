@@ -43,6 +43,7 @@ export let authenable = true;
 export let forceauth = false;
 export let forcemobile = false;
 export let uilock = true;
+export let meshautorefresh = false;
 
 if (debug) {
     preload = false;
