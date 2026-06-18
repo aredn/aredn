@@ -50,7 +50,7 @@ function findSpecialDomains(needSupernodes)
                     line = trim(line);
                     const m = match(line, reWildcard);
                     if (m) {
-                        subdomain += `address=/.${m[2]}/${m[1]}\n`;
+                        subdomains += `address=/.${m[2]}/${m[1]}\n`;
                     }
                     else if (needSupernodes) {
                         const m = match(line, reSupernode);
