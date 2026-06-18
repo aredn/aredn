@@ -101,6 +101,7 @@ const vp = hardware.supportsFeature("videoproxy");
 const templates = filter([
     { name: "Generic URL" },
     { name: "Simple text", link: false },
+    { name: "Bookmark", protocol: "http", port: 80, proxy: "redirect", path: "URL" },
     { name: "Ubiquiti G3/G4 camera", type: "camera", protocol: "http", port: 80, path: "snap.jpeg" },
     vp ? { name: "Ubiquiti G3/G4 video", type: "video", protocol: "http", port: 80, proxy: "videoproxy", path: "rtsp://CAMERAHOSTNAME.local.mesh:554/s2" } : null,
     { name: "Reolink camera", type: "camera", protocol: "http", port: 80, path: "cgi-bin/api.cgi?cmd=Snap&channel=0&rs=abcdef&user=USERNAME&password=PASSWORD" },
