@@ -1220,12 +1220,19 @@ if (h && e && ah) {
     for (let i = 0; i < length(aliases); i++) {
         const m = match(aliases[i], /([^ \t]+)[ \t]+([^ \t]+)/);
         if (m) {
-            let host = m[2];
-            ah.write(`${m[1]}\t${host}\n`);
-            if (!match(host, /\./)) {
-                host += ".local.mesh";
+            const ip = m[1];
+            const host = m[2];
+            if (match(host, /^\*\./)) {
+                ah.write(`${ip}\t${host}.local.mesh\n`);
             }
-            h.write(`${m[1]}\t${host} #ALIAS\n`);
+            else if (match(host, /\./)) {
+                ah.write(`${ip}\t${host}\n`);
+                h.write(`${ip}\t${host} #ALIAS\n`);
+            }
+            else {
+                ah.write(`${ip}\t${host}\n`);
+                h.write(`${ip}\t${host}.local.mesh #ALIAS\n`);
+            }
         }
     }
 
