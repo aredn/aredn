@@ -55,27 +55,17 @@ if (request.env.REQUEST_METHOD === "PUT") {
 
     const response = { s: signals, n: hardware.getRadioNoise(wifiiface) };
     if (qmac !== "average") {
-        const reArp = regexp(`^([\.0-9]+) +0x. +0x. +${qmac}`, "i");
-        let f = fs.open("/proc/net/arp");
+        const ipv6ll = network.mac2ipv6ll(qmac);
+        const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
+        const f = fs.popen(`/bin/uclient-fetch -T 1 http://[${ipv6ll}%${wifiiface}]/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
         if (f) {
-            for (let l = f.read("line"); length(l); l = f.read("line")) {
-                const m = match(l, reArp);
-                if (m) {
-                    const ip = m[1];
-                    const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
-                    f = fs.popen(`/bin/uclient-fetch -T 1 http://${ip}/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
-                    if (f) {
-                        try {
-                            const j = json(f.read("all"));
-                            f.close();
-                            response.rs = j.s;
-                            response.rn = j.n;
-                        }
-                        catch (_) {
-                        }
-                    }
-                    break;
-                }
+            try {
+                const j = json(f.read("all"));
+                f.close();
+                response.rs = j.s;
+                response.rn = j.n;
+            }
+            catch (_) {
             }
         }
     }
