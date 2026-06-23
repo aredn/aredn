@@ -606,7 +606,7 @@
  	mikrotik,wap-ac|\
 --- a/target/linux/ath79/image/mikrotik.mk
 +++ b/target/linux/ath79/image/mikrotik.mk
-@@ -28,6 +28,18 @@
+@@ -28,6 +28,16 @@
  endef
  TARGET_DEVICES += mikrotik_routerboard-921gs-5hpacd-15s
  
@@ -617,8 +617,6 @@
 +  DEVICE_PACKAGES += kmod-ath10k-ct ath10k-firmware-qca988x-ct kmod-i2c-gpio \
 +	kmod-sfp
 +  SUPPORTED_DEVICES += rb-921gs-5hpacd-r2
-+  DEVICE_COMPAT_MESSAGE := This device cannot be upgraded and must be reinstalled.
-+  DEVICE_COMPAT_VERSION := 2.0
 +endef
 +TARGET_DEVICES += mikrotik_routerboard-921gs-5hpacd-19s
 +
@@ -627,14 +625,35 @@
    SOC := qca9558
 --- /dev/null
 +++ b/target/linux/ath79/dts/qca9558_mikrotik_routerboard-921gs-5hpacd-19s.dts
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,29 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +
-+#include "qca9558_mikrotik_routerboard-921gs-5hpacd-15s.dts"
++#include "qca9558_mikrotik_routerboard-92x.dtsi"
 +
 +/ {
 +	compatible = "mikrotik,routerboard-921gs-5hpacd-19s", "qca,qca9558";
 +	model = "MikroTik RouterBOARD 921GS-5HPacD-19s";
++
++	ath10k-leds {
++		compatible = "gpio-leds";
++
++		wlan5g {
++			label = "green:wlan5g";
++			gpios = <&ath10k 0 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "phy0tpt";
++		};
++	};
++};
++
++&pcie1 {
++	status = "okay";
++
++	ath10k: wifi@0,0 {
++		compatible = "qcom,ath10k";
++		reg = <0 0 0 0 0>;
++		#gpio-cells = <2>;
++		gpio-controller;
++	};
 +};
 --- a/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
 +++ b/target/linux/ath79/mikrotik/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
