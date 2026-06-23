@@ -3,7 +3,6 @@
 **Stability**
 * *untested* - this image has not been tested on hardware. It may or may not work.
 * *stable* - this image has been tested on hardware. There may still be bugs.
-* *broken* - this image is known to be broken or buggy in some way.
 
 **Status**
 * *released* - this image is in a production release of the AREDN® firmware.
@@ -11,7 +10,6 @@
 * *sunset* - this device is supported but no longer recommended for new purchases or installs.
 * *not supported* - this image is not supported and not available for download.
 * *frozen* - this device has been previously sunsetted, and is now frozen. Old images are still available but there will be no future updates.
-* *unavailable* - this image is not currently available.
 
 The 'target' and 'subtarget' identify the directory in which to find the image on at http://downloads.arednmesh.org
 
@@ -41,7 +39,7 @@ RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath
 RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | released
 RB922UAGS-5HPacD <br> NetMetal 5 | 922UAGS-5HPacD-NM <br> 922UAGS-5HPacD-NM-US | 5 | ath79 | mikrotik |  mikrotik_routerboard-922uags-5hpacd | 128MB | stable | released
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | released
-mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | broken | unavailable
+mANTBox 19s | RB921GS-5HPacD-19S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-19s | 128MB | stable | released (10)
 mANTBox 2 12s | RB911G-2HPnD-12S | 2 | ath79 | mikrotik | mikrotik-911g-2hpnd-12s | 64MB | stable | released
 **Sunset Devices** | | | | | | | |
 hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 & 5 | ath79 | mikrotik | mikrotik-952ui-5ac2nd | 64MB | stable | sunset
@@ -210,5 +208,6 @@ Vultr | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | nightly (5)
  7. Mikrotik devices come with either a v6 bootloader or a v7 bootloader. See [here](https://openwrt.org/toh/mikrotik/common) for more details. If you are using a v7 bootloader use the v7 sysupgrade instead of the plain one.
  8. There is currently no way to recover if a firmware update fails and it could brick your device.
  9. Devices with AX radios do not support negative channels or channels with less then 20MHz bandwidth.
+ 10. These devices cannot be upgraded past 4.26.1.0 and must be reinstalled.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/
