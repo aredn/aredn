@@ -1,4 +1,49 @@
 --- /dev/null
++++ b/target/linux/generic/pending-6.12/420-flash-fixes.patch
+@@ -0,0 +1,42 @@
++--- a/drivers/mtd/spi-nor/spansion.c
+++++ b/drivers/mtd/spi-nor/spansion.c
++@@ -1036,6 +1036,7 @@
++ 		.id = SNOR_ID(0xef, 0x40, 0x17),
++ 		.name = "s25fl064k",
++ 		.size = SZ_8M,
+++		.flags = SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB,
++ 		.no_sfdp_flags = SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ,
++ 	}
++ };
++--- a/drivers/mtd/spi-nor/eon.c
+++++ b/drivers/mtd/spi-nor/eon.c
++@@ -68,14 +68,29 @@
++ 		.id = SNOR_ID(0x1c, 0x70, 0x18),
++ 		.name = "en25qh128",
++ 		.size = SZ_16M,
+++		.flags = SPI_NOR_HAS_LOCK | SPI_NOR_4BIT_BP,
+++		.no_sfdp_flags = SECT_4K,
++ 	}, {
++ 		.id = SNOR_ID(0x1c, 0x70, 0x19),
++ 		.name = "en25qh256",
++ 	},
++ };
++ 
+++static int eon_nor_late_init(struct spi_nor *nor)
+++{
+++	nor->flags &= ~SNOR_F_HAS_16BIT_SR;
+++	nor->flags |= SNOR_F_HAS_LOCK;
+++
+++	return 0;
+++}
+++
+++static const struct spi_nor_fixups eon_nor_fixups = {
+++	.late_init = eon_nor_late_init,
+++};
+++
++ const struct spi_nor_manufacturer spi_nor_eon = {
++ 	.name = "eon",
++ 	.parts = eon_nor_parts,
++ 	.nparts = ARRAY_SIZE(eon_nor_parts),
+++	.fixups = &eon_nor_fixups,
++ };
+--- /dev/null
 +++ b/target/linux/ath79/patches-6.12/941-mikrotik-nand-flash.patch
 @@ -0,0 +1,11 @@
 +--- a/drivers/mtd/nand/raw/nand_amd.c
