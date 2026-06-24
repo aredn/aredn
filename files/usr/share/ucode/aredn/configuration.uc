@@ -525,7 +525,8 @@ export function supportdata(supportdatafilename)
         "/proc/net/nf_conntrack",
         "/var/etc/babel-active.conf",
         "/var/run/hostapd-wlan0.maclist",
-        "/var/run/hostapd-wlan1.maclist"
+        "/var/run/hostapd-wlan1.maclist",
+        "/sys/kernel/debug/spi-nor/spi0.0/params"
     ];
     const sensitive = [
         "/etc/config/network",
