@@ -437,6 +437,7 @@ function main()
         // Max RF distance
         distance = -1;
         const ip2tracker = {};
+        const dev2tracker = {};
 
         // Refresh remote attributes periodically as this is expensive
         // We dont do it the very first time so we can populate the LQM state with a new node quickly
@@ -482,23 +483,11 @@ function main()
 
                         track.hostname = canonicalHostname(info.node);
                         track.canonical_ip = network.getIPAddressFromHostname(track.hostname);
-                        if (track.type === "Wireguard") {
-                            const address = cursor.get("network", track.device, "addresses")[0];
-                            const m = match(address, /^(\d+\.\d+\.\d+\.)(\d+)$/);
-                            if (match(track.device, /^wgs/)) {
-                                track.ip = `${m[1]}${int(m[2]) - 1}`;
-                            }
-                            else {
-                                track.ip = `${m[1]}${int(m[2]) + 1}`
-                            }
-                        }
-                        else {
-                            for (let i = 0; i < length(info.interfaces); i++) {
-                                const iface = info.interfaces[i];
-                                if (iface.mac && lc(iface.mac) === track.mac && iface.ip) {
-                                    track.ip = iface.ip;
-                                    break;
-                                }
+                        for (let i = 0; i < length(info.interfaces); i++) {
+                            const iface = info.interfaces[i];
+                            if (iface.mac && lc(iface.mac) === track.mac && iface.ip) {
+                                track.ip = iface.ip;
+                                break;
                             }
                         }
 
@@ -593,6 +582,9 @@ function main()
 
             if (track.ip || track.canonical_ip) {
                 ip2tracker[track.ip || track.canonical_ip] = track;
+            }
+            if (track.type === "Wireguard" && track.device) {
+                dev2tracker[track.device] = track;
             }
 
             // Refresh user blocks
@@ -691,7 +683,7 @@ function main()
             total_route_count = 0;
             for (let i = 0; i < length(hostRoutes); i++) {
                 const r = hostRoutes[i];
-                const t = ip2tracker[r.gateway];
+                const t = ip2tracker[r.gateway] || dev2tracker[r.oif];
                 if (t) {
                     t.routable = true;
                     t.babel_route_count++;
@@ -702,7 +694,7 @@ function main()
                 }
             }
             if (superRoute) {
-                const t = ip2tracker[superRoute.gateway];
+                const t = ip2tracker[superRoute.gateway] || dev2tracker[superRoute.oif];
                 if (t) {
                     t.routable = true;
                     t.babel_route_count++;
