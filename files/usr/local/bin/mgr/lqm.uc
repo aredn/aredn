@@ -474,6 +474,7 @@ function main()
                         track.rev_ping_success_time = null;
                         track.rev_ping_quality = null;
                         track.rev_quality = null;
+                        track.wifivlan = null;
                     }
                     else {
                         track.refresh = now + refreshTimeout();
@@ -522,6 +523,11 @@ function main()
                         if (info.node_details) {
                             track.model = info.node_details.model;
                             track.firmware_version = info.node_details.firmware_version;
+                        }
+
+                        // Track wifi vlans
+                        if (track.localarea && info.lqm && info.lqm.info) {
+                            track.wifivlan = info.lqm.info.wifivlan;
                         }
 
                         if (info.lqm && info.lqm.info && info.lqm.info.trackers) {
@@ -707,6 +713,12 @@ function main()
                 }
             }
 
+            // Look for wifi bridge and find the appropriate vlan
+            let wifivlan = null;
+            if (fs.access("/sys/class/net/br-wifi")) {
+                wifivlan = int(match(fs.glob("/sys/class/net/br-wifi/lower_br0.*")[0], /(\d+)$/)[1]);
+            }
+
             // Remove any trackers which are too old or if they disconnect when first seen
             for (let mac in trackers) {
                 const track = trackers[mac];
@@ -786,6 +798,7 @@ function main()
                 now: now,
                 trackers: trackers,
                 distance: distance,
+                wifivlan: wifivlan,
                 hidden_nodes: hiddenNodes,
                 total_route_count: total_route_count
             }));

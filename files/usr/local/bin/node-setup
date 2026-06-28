@@ -398,6 +398,7 @@ const cnetworks = [ "lan", "wan", "dtdlink", "wifi" ];
 for (let i = 0; i < length(cnetworks); i++) {
     const net = cnetworks[i];
     let wireless = false;
+    let wireless_bridge = false;
     let config = "";
     // User override
     // Ignore wan override if wan wifi is enabled
@@ -487,24 +488,34 @@ for (let i = 0; i < length(cnetworks); i++) {
         }
         else if (net == "wifi") {
             cfg.wifi_proto = "static";
-            if (mesh_wds) {
-                ports = [];
-            }
-            else {
-                wireless = true;
-                ports = [ mesh_wifi ];
+            ports = [ mesh_wifi ];
+            const radio = replace(mesh_wifi, /^wlan/, "radio");
+            if (cfg[`${radio}_mode`] == "meshap" || cfg[`${radio}_mode`] == "meshptp" || cfg[`${radio}_mode`] == "meshsta") {
+                const vlanid = 3800 + int(split(mac2, ".")[2]);
+                wireless_bridge = true;
+                vlan = `${vlanid}:t`;
+                const dtdports = split(hardware.getBoardNetworkInterfaceName("dtdlink"), " ");
+                for (let p = 0; p < length(dtdports); p++) {
+                    push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
+                }
             }
         }
 
         if (vlan) {
             // Vlan configuration
             const m = match(vlan, /(.*):(.*)/);
+            const nports = [ `br0.${m[1]}` ];
             config += `\nconfig bridge-vlan\n\toption device 'br0'\n\toption vlan '${m[1]}'\n`;
             for (let p = 0; p < length(ports); p++) {
-                config += `\tlist ports '${replace(ports[p], /\..*$/, "")}:${m[2]}'\n`;
+                if (!match(ports[p], /^wlan/)) {
+                    config += `\tlist ports '${replace(ports[p], /\..*$/, "")}:${m[2]}'\n`;
+                }
+                else {
+                    push(nports, ports[p]);
+                }
             }
             config += "\n";
-            ports = [ `br0.${m[1]}` ];
+            ports = nports;
         }
 
         let proto = cfg[`${net}_proto`] || "";
@@ -520,7 +531,11 @@ for (let i = 0; i < length(cnetworks); i++) {
         let gateway = deleteme[`${net}_gw`] ? "" : (cfg[`${net}_gw`] || "");
         
         config += "config device\n";
-        if (!wireless) {
+        if (wireless_bridge) {
+            config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
+            netmask = "255.255.255.255";
+        }
+        else if (!wireless) {
             config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
         }
         else if (net !== "wan") {
@@ -530,7 +545,7 @@ for (let i = 0; i < length(cnetworks); i++) {
             config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
         }
 
-        if (!wireless) {
+        if (!wireless || wireless_bridge) {
             if (length(ports) == 0) {
                 config += "\toption bridge_empty '1'\n";
             }
@@ -548,7 +563,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         }
 
         config += `\nconfig interface ${net}\n`;
-        if (wireless) {
+        if (wireless && !wireless_bridge) {
             config += `\toption device '${ports[0]}'\n`;
         }
         else {
@@ -949,6 +964,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
         let bcf = null;
         let shortgi = null;
         let bss_color = null;
+        let wds = null;
         let htmode = hardware.getHTMode(wlan, wlan == mesh_wifi ? mesh_chanbw : -1, cfg[`${radio}_mode`]);
         let wds = null;
 
@@ -1019,7 +1035,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
                 isolate = 1;
                 //bss_color = int(match(macaddr, /:(..)$/)[1], 16);
             }
-            wds = mesh_wds;
+            wds = "1";
         }
         else if (cfg[`${radio}_mode`] == "meshsta") {
             // mesh RF station configuration
@@ -1034,6 +1050,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
             mode = "sta";
             encryption = "none";
             network = "wifi";
+            wds = "1";
         }
         else if (cfg[`${radio}_mode`] == "lan") {
             // lan AP interface

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# VPN and XLINK endpoints are treated as link-local IP addresse and are not redistributed by Babel.
+# VPN, XLINK and 169.254 link-local endpoints are treated as link-local IP addresse and are not redistributed by Babel.
 # To make sure we dont accidentally use them, we swap them out for the main IP address of the node
 # when originating traffic locally and destined for one of these network interfaces.
 #
@@ -10,6 +10,9 @@ main_ip="$(uci -q -c /etc/config.mesh get setup.globals.wifi_ip)"
 
 # Mark all VPN outgoing traffic
 nft insert rule inet fw4 mangle_output meta nfproto ipv4 meta oifname "wg*" ip daddr != 255.255.255.255 counter meta mark set mark or ${mark} comment \"Mark all non-broadcast VPN output traffic\"
+
+# Mark all IPv4 link local traffic
+nft insert rule inet fw4 mangle_output meta nfproto ipv4 ip saddr 169.254.0.0/16 ip daddr != 255.255.255.255 counter meta mark set mark or ${mark} comment \"Mark all Link Local output traffic\"
 
 # Mark all XLINK outgoing traffic
 for xlink in $(seq 0 15)
