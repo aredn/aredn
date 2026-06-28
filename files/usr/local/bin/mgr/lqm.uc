@@ -297,6 +297,15 @@ function main()
                         if (type === "RF") {
                             track.mode = radioMode;
                         }
+                        if (type === "Wireguard") {
+                            // The mac address can change, so for tunnels we make sure the device is unique
+                            const device = track.device;
+                            for (let m in trackers) {
+                                if (trackers[m].device === device) {
+                                    delete trackers[m];
+                                }
+                            }
+                        }
                         trackers[mac] = track;
                     }
                     if (track) {
