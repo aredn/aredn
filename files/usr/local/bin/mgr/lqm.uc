@@ -195,7 +195,7 @@ function deviceToType(device)
         return "Xlink";
     }
     else if (rwifi[device]) {
-        return "RemoteWiFi";
+        return "RemoteRF";
     }
     else {
         return null;
@@ -278,7 +278,7 @@ function main()
             if (substr(name, 0, 5) === "xlink") {
                 xlinks[section.ifname] = true;
             }
-            else if (substr(name, 0, 10) === "remotewifi") {
+            else if (substr(name, 0, 8) === "remoterf") {
                 rwifi[section.ifname] = true;
             }
         });
@@ -693,10 +693,10 @@ function main()
 
             // Track active wifi vlans devices
             if (rwifi[`br0.${track.wifivlan}`]) {
-                track.remotewifi = true;
+                track.remoterf = true;
             }
             else {
-                track.remotewifi = false;
+                track.remoterf = false;
             }
 
             // Do the next iteration async

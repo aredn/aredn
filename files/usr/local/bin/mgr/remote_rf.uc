@@ -31,7 +31,7 @@
  * version
  */
 
-if (uci.cursor().get("aredn", "@remote_wifi[0]", "enable") != "1") {
+if (uci.cursor().get("aredn", "@remote_rf[0]", "enable") != "1") {
     return exitApp();
 }
 
@@ -54,7 +54,7 @@ return function()
     const c = uci.cursor();
     c.foreach("network", "interface", i => {
         const name = i[".name"];
-        if (substr(name, 0, 10) === "remotewifi") {
+        if (substr(name, 0, 8) === "remoterf") {
             const vlan = substr(name, 10);
             if (addvlan[vlan]) {
                 delete addvlan[vlan];
@@ -68,7 +68,7 @@ return function()
     let changed = false;
     const dtdports = map(split(hardware.getBoardNetworkInterfaceName("dtdlink"), " "), p => `${split(p, ".")[0]}:t`);
     for (let vlan in addvlan) {
-        const name = `remotewifi${vlan}`;
+        const name = `remoterf${vlan}`;
         const bname = `${name}bridge`;
         c.set("network", bname, "bridge-vlan");
         c.set("network", bname, "device", "br0");
@@ -81,7 +81,7 @@ return function()
         log.syslog(log.LOG_NOTICE, `Adding remote wifi: vlan ${vlan}`);
     }
     for (vlan in rmvlan) {
-        const name = `remotewifi${vlan}`;
+        const name = `remoterf${vlan}`;
         const bname = `${name}bridge`;
         c.delete("network", bname);
         c.delete("network", name);
