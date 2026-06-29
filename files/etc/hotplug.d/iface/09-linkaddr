@@ -1,13 +1,13 @@
 #!/bin/sh
-# Give specific interfaces unique ipv4 link local address
+# Give specific interfaces unique ipv4 & ipv6 link local address
 
 RETRIES=10
 TESTS=2
 
 case "${INTERFACE}" in
-    remotewifi*|wg*)
+    wg*|xlink*|remotewifi*)
         if "${ACTION}" = "ifup"; then
-            if ! /sbin/ip -4 addr show dev ${DEVICE} scope link | /bin/grep -q "inet 169.254."; then
+            if ! /sbin/ip -4 addr show dev ${DEVICE} scope link | /bin/grep -q "inet "; then
                 n=0
                 while [ ${n} -lt ${RETRIES} ]; do
                     IP="169.254.$(( ($(/usr/bin/hexdump -n2 -e '"%u"' /dev/urandom) % 254) + 1 )).$(( $(/usr/bin/hexdump -n1 -e '"%u"' /dev/urandom) ))"

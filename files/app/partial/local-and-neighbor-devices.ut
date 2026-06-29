@@ -108,7 +108,10 @@
             }
         }
         const l = { name: name, tracker: tracker };
-        if (tracker.type == "DtD" && tracker.distance < 100) {
+        if (tracker.type === "RemoteWiFi") {
+            // Ignore
+        }
+        else if (tracker.type === "DtD" && tracker.distance < 100) {
             push(llist, l);
         }
         else {

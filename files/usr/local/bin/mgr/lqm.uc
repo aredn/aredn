@@ -178,6 +178,7 @@ function reachToLQ(reach)
 }
 
 let xlinks = {};
+let rwifi = {};
 
 function deviceToType(device)
 {
@@ -192,6 +193,9 @@ function deviceToType(device)
     }
     else if (xlinks[device]) {
         return "Xlink";
+    }
+    else if (rwifi[device]) {
+        return "RemoteWiFi";
     }
     else {
         return null;
@@ -266,11 +270,16 @@ function main()
         const lat = cursor.get("aredn", "@location[0]", "lat") ? 1 * cursor.get("aredn", "@location[0]", "lat") : null;
         const lon = cursor.get("aredn", "@location[0]", "lon") ? 1 * cursor.get("aredn", "@location[0]", "lon") : null;
 
-        // Update xlinks
+        // Update xlinks and remote wifi
         xlinks = {};
-        cursorm.foreach("xlink", "interface", section => {
-            if (section.ifname) {
+        rwifi = {};
+        cursor.foreach("network", "interface", section => {
+            const name = section[".name"];
+            if (substr(name, 0, 5) === "xlink") {
                 xlinks[section.ifname] = true;
+            }
+            else if (substr(name, 0, 10) === "remotewifi") {
+                rwifi[section.ifname] = true;
             }
         });
 
@@ -524,7 +533,7 @@ function main()
                         }
 
                         // Track wifi vlans
-                        if (track.localarea && info.lqm && info.lqm.info) {
+                        if (track.type === "DtD" && info.lqm && info.lqm.info) {
                             track.wifivlan = info.lqm.info.wifivlan;
                         }
 
@@ -680,6 +689,14 @@ function main()
                 else if (!track.user_blocks && track.distance > distance) {
                     distance = track.distance;
                 }
+            }
+
+            // Track active wifi vlans devices
+            if (rwifi[`br0.${track.wifivlan}`]) {
+                track.remotewifi = true;
+            }
+            else {
+                track.remotewifi = false;
             }
 
             // Do the next iteration async
