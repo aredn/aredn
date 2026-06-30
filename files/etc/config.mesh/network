@@ -13,6 +13,19 @@ config interface 'loopback'
 	option ipaddr '127.0.0.1'
 	option netmask '255.0.0.0'
 
+#### Main IP
+config device
+	option name 'br-mesh'
+	option type 'bridge'
+	option bridge_empty '1'
+
+config interface 'main'
+	option device 'br-mesh'
+	option proto 'static'
+	option ipaddr '<wifi_ip>'
+	option netmask '255.255.255.255'
+	option dns '<wan_dns1> <wan_dns2>'
+
 ### Bridge configuration
 <bridge_network_config>
 

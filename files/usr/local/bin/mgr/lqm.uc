@@ -53,6 +53,7 @@ const lastup_margin = 120; // Seconds before link is considered down
 const IW = "/usr/sbin/iw";
 const UFETCH = "/bin/uclient-fetch";
 const PING6 = "/bin/ping6";
+const BRCTL = "/usr/sbin/brctl";
 
 // Get radio
 const device = radios.getMeshRadio();
@@ -187,6 +188,9 @@ function deviceToType(device)
     }
     else if (device === "br-wifi" || match(device, /^wlan/)) {
         return "RF";
+    }
+    else if (device === "br-wifi") {
+        return "RF?";
     }
     else if (match(device, /^wg/)) {
         return "Wireguard";
@@ -391,6 +395,20 @@ function main()
                     }
                     track.connected_time = station.sta_info.connected_time;
                 }
+            }
+        }
+
+        // Detmine which trackers on the wifi bridge are on the wifi side.
+        if (fs.access("/sys/class/net/br-wifi")) {
+            const p = fs.popen(`${BRCTL} showmacs br-wifi`);
+            if (p) {
+                for (let line = p.read("line"); length(line); line = p.read("line")) {
+                    const m = match(trim(line), /^2\s+([0-9a-f:]+)\s+no/);
+                    if (m && trackers[m[1]]) {
+                        trackers[m[1]].type = "RF";
+                    }
+                }
+                p.close();
             }
         }
 

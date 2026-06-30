@@ -155,7 +155,8 @@ const cfg = {
     dtdlink_interfaces: "\tlist network 'dtdlink'",
     vpn_interfaces: "",
     tun_devices_config: "",
-    ntp_enabled: "0"
+    ntp_enabled: "0",
+    wds: null
 };
 
 // Track the changes so we can make better decissions about what to restart/reboot
@@ -252,7 +253,7 @@ for (let k in cms) {
 
 // Select the mesh configuration
 const default_mesh_distance = 80550; // 50.1 miles
-let mesh_wifi = "br-nomesh";
+let mesh_wifi = "disabled";
 let mesh_ssid = "";
 let mesh_channel = "";
 let mesh_chanbw = "";
@@ -490,8 +491,8 @@ for (let i = 0; i < length(cnetworks); i++) {
             cfg.wifi_proto = "static";
             ports = [ mesh_wifi ];
             const radio = replace(mesh_wifi, /^wlan/, "radio");
-            if (cfg[`${radio}_mode`] == "meshap" || cfg[`${radio}_mode`] == "meshptp" || cfg[`${radio}_mode`] == "meshsta") {
-                const vlanid = 3800 + int(split(mac2, ".")[2]);
+            if (cfg.wds && (cfg[`${radio}_mode`] == "meshap" || cfg[`${radio}_mode`] == "meshptp" || cfg[`${radio}_mode`] == "meshsta")) {
+                const vlanid = 3700 + int(split(mac2, ".")[2]);
                 wireless_bridge = true;
                 vlan = `${vlanid}:t`;
                 const dtdports = split(hardware.getBoardNetworkInterfaceName("dtdlink"), " ");
@@ -522,70 +523,67 @@ for (let i = 0; i < length(cnetworks); i++) {
         let ipaddr = deleteme[`${net}_ip`] ? "" : (cfg[`${net}_ip`] || "");
         let netmask = deleteme[`${net}_mask`] ? "" : (cfg[`${net}_mask`] || "");
         let mtu = cfg[`${net}_mtu`] || "";
-        let dns1 = "";
-        let dns2 = "";
-        if (net == "wifi") {
-            dns1 = cfg.wan_dns1 || "";
-            dns2 = cfg.wan_dns2 || "";
-        }
         let gateway = deleteme[`${net}_gw`] ? "" : (cfg[`${net}_gw`] || "");
         
-        config += "config device\n";
-        if (wireless_bridge) {
-            config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
-            netmask = "255.255.255.255";
+        if (ports[0] === "disabled") {
+            config += `config interface '${net}'\n\toption proto 'none'\n`;
         }
-        else if (!wireless) {
-            config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
-        }
-        else if (net !== "wan") {
-            netmask = "255.255.255.255";
-        }
-        if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
-            config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
-        }
-
-        if (!wireless || wireless_bridge) {
-            if (length(ports) == 0) {
-                config += "\toption bridge_empty '1'\n";
+        else {
+            config += "config device\n";
+            if (wireless_bridge) {
+                config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
+                netmask = "255.255.255.255";
             }
-            else {
-                for (let p = 0; p < length(ports); p++) {
-                    config += `\tlist ports '${ports[p]}'\n`;
+            else if (!wireless) {
+                config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
+            }
+            else if (net === "wifi") {
+                ipaddr = "";
+                netmask = "";
+            }
+            else if (net !== "wan") {
+                netmask = "255.255.255.255";
+            }
+            if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
+                config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
+            }
+
+            if (!wireless || wireless_bridge) {
+                if (length(ports) == 0) {
+                    config += "\toption bridge_empty '1'\n";
+                }
+                else {
+                    for (let p = 0; p < length(ports); p++) {
+                        config += `\tlist ports '${ports[p]}'\n`;
+                    }
                 }
             }
-        }
-        else {
-            config += `\toption name '${ports[0]}'\n`;
-            if (!match(ports[0], /^wlan/)) {
-                config += "\toption type 'bridge'\n\toption bridge_empty '1'\n";
+            else {
+                config += `\toption name '${ports[0]}'\n`;
             }
-        }
 
-        config += `\nconfig interface ${net}\n`;
-        if (wireless && !wireless_bridge) {
-            config += `\toption device '${ports[0]}'\n`;
-        }
-        else {
-            config += `\toption device 'br-${net}'\n`;
-        }
-        if (proto != "") {
-            config += `\toption proto '${proto}'\n`;
-        }
-        if (mtu != "") {
-            config += `\toption mtu '${mtu}'\n`;
-        }
-        if (ipaddr != "") {
-            config += `\toption ipaddr '${ipaddr}'\n`;
-        }
-        if (netmask != "") {
-            config += `\toption netmask '${netmask}'\n`;
-        }
-        if (dns1 != "" || dns2 != "") {
-            config += `\toption dns '${dns1 || ""}${dns1 && dns2 ? " " : ""}${dns2 || ""}'\n`;
-        }
-        if (gateway != "") {
-            config += `\toption gateway '${gateway}'\n`;
+            config += `\nconfig interface '${net}'\n`;
+            if (wireless && !wireless_bridge) {
+                config += `\toption device '${ports[0]}'\n`;
+            }
+            else {
+                config += `\toption device 'br-${net}'\n`;
+            }
+            if (proto != "") {
+                config += `\toption proto '${proto}'\n`;
+            }
+            if (mtu != "") {
+                config += `\toption mtu '${mtu}'\n`;
+            }
+            if (ipaddr != "") {
+                config += `\toption ipaddr '${ipaddr}'\n`;
+            }
+            if (netmask != "") {
+                config += `\toption netmask '${netmask}'\n`;
+            }
+            if (gateway != "") {
+                config += `\toption gateway '${gateway}'\n`;
+            }
         }
     }
     cfg[`${net}_network_config`] = config;
@@ -1029,7 +1027,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
                 isolate = 1;
                 //bss_color = int(match(macaddr, /:(..)$/)[1], 16);
             }
-            wds = "1";
+            wds = cfg.wds;
         }
         else if (cfg[`${radio}_mode`] == "meshsta") {
             // mesh RF station configuration
@@ -1044,7 +1042,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
             mode = "sta";
             encryption = "none";
             network = "wifi";
-            wds = "1";
+            wds = cfg.wds;
         }
         else if (cfg[`${radio}_mode`] == "lan") {
             // lan AP interface
@@ -1335,7 +1333,7 @@ if (filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user")) {
 const sf = fs.open("/tmp/local_services", "w");
 if (sf) {
     sf.write("#!/bin/sh\n");
-    if (mesh_wifi != "br-nomesh") {
+    if (mesh_wifi != "disabled") {
         if (isNull(mesh_txpower) || mesh_txpower > hardware.getMaxTxPower(mesh_wifi, mesh_channel)) {
             mesh_txpower = hardware.getMaxTxPower(mesh_wifi, mesh_channel);
         }

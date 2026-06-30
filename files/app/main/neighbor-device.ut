@@ -173,7 +173,13 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
                     <div>mac address</div>
                 </div>
                 <div class="i">
-                    <div>{{n.ip ? `<a href="http://${n.ip}/">${n.ip}</a>` : "-"}}</div>
+                    <div>{% if (n.ip && !match(n.ip, /^169\.254\./)) { %}
+                    <a href="http://{{n.ip}}/">{{n.ip}}</a>
+                    {% } else if (n.canonical_ip) { %}
+                    <a href="http://{{n.canonical_ip}}/">{{n.canonical_ip}}</a>
+                    {% } else { %}
+                    -
+                    {% } %}</div>
                     <div>ip address</div>
                 </div>
             </div>
