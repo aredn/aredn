@@ -53,16 +53,6 @@ function shell(cmd)
     return null;
 }
 
-function tunnelNetwork()
-{
-    const mac = hardware.getInterfaceMAC("eth0");
-    const m = match(mac, /^..:..:..:..:(..):(..)$/);
-    if (m) {
-        return `172.31.${hex(m[2])}.${(hex(m[1]) * 4) % 256}`;
-    }
-    return "172.31.1.4";
-}
-
 const config = {
     aredn: {
         alerts: {},
@@ -155,11 +145,7 @@ const config = {
     dropbear: {},
     snmpd: {},
     uhttpd: {},
-    wireguard: {
-        network: {
-            begin: tunnelNetwork()
-        }
-    },
+    wireguard: {},
     xlink: {}
 };
 
