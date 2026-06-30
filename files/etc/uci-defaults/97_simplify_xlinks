@@ -45,6 +45,7 @@ c.foreach("xlink", "interface", interface => {
     const name = interface[".name"];
     c.set("xlink", name, "ipaddr", "");
     c.set("xlink", name, "netmask", "");
+    c.delete("xlink", `${name}route`);
 });
 
 c.commit("xlink");
