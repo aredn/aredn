@@ -48,21 +48,32 @@ c.foreach("wireguard", "server", server => {
     c.set("wireguard", name, "clientip", "");
     c.set("wireguard", name, "serverip", "");
     c.set("wireguard", name, "node", "");
-    const ipport = split(c.get("wireguard", name, "netip"), ":");
-    c.set("wireguard", name, "port", ipport[1]);
-    c.set("wireguard", name, "netip", "");
-    c.set("wireguard", name, "name", c.get("wireguard", name, "host"));
-    c.set("wireguard", name, "host", "");
-    c.set("wireguard", name, "key", c.get("wireguard", name, "passwd"));
-    c.set("wireguard", name, "passwd", "");
-
+    const netip = c.get("wireguard", name, "netip");
+    if (netip) {
+        const ipport = split(netip, ":");
+        c.set("wireguard", name, "port", ipport[1]);
+        c.set("wireguard", name, "netip", "");
+    }
+    const host = c.get("wireguard", name, "host");
+    if (host) {
+        c.set("wireguard", name, "name", host);
+        c.set("wireguard", name, "host", "");
+    }
+    const passwd = c.get("wireguard", name, "passwd");
+    if (passwd) {
+        c.set("wireguard", name, "key", passwd);
+        c.set("wireguard", name, "passwd", "");
+    }
 });
 
 c.foreach("wireguard", "client", client => {
     const name = client[".name"];
-    const ipport = split(c.get("wireguard", name, "clientip"), ":");
-    c.set("wireguard", name, "port", ipport[1]);
-    c.set("wireguard", name, "clientip", "");
+    const clientip = c.get("wireguard", name, "clientip");
+    if (clientip) {
+        const ipport = split(clientip, ":");
+        c.set("wireguard", name, "port", ipport[1]);
+        c.set("wireguard", name, "clientip", "");
+    }
 });
 
 c.commit("wireguard");
