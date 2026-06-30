@@ -35,52 +35,38 @@ LICENSE
 
 touch /etc/config.mesh/wireguard
 
-cat > /tmp/migrate_vtun << '__EOF__'
+cat > /tmp/simplify_tun << '__EOF__'
 
-import * as fs from "fs";
 import * as uci from "uci";
 
 const c = uci.cursor("/etc/config.mesh");
 
-if (!c.get("wireguard", "@network[0]")) {
-    c.add("wireguard", "network");
-}
-const start = c.get("vtun", "@network[0]", "start");
-if (start) {
-    c.set("wireguard", "@network[0]", "start", start);
-}
-const wstart = c.get("wireguard", "@network[0]", "start");
-if (wstart) {
-    const l = iptoarr(wstart);
-    c.set("wireguard", "@network[0]", "begin", arrtoip([ l[0], l[1], (l[2] === 255 ? 0 : l[2] + 1), l[3] ]));
-    c.set("wireguard", "@network[0]", "start", "");
-}
-const dns = c.get("vtun", "@network[0]", "dns");
-if (dns) {
-    c.set("wireguard", "@network[0]", "dns", dns);
-}
+c.set("wireguard", "@network[0]", "begin", "");
 
-c.foreach("vtun", "server",
-    function(server)
-    {
-        if (match(server.netip, /:/)) {
-            const name = server[".name"];
-            c.set("wireguard", name, "server");
-            c.set("wireguard", name, "enabled", server.enabled);
-            c.set("wireguard", name, "host", server.host);
-            c.set("wireguard", name, "passwd", server.passwd);
-            c.set("wireguard", name, "node", server.node);
-            c.set("wireguard", name, "clientip", server.clientip);
-            c.set("wireguard", name, "serverip", server.serverip);
-            c.set("wireguard", name, "netip", server.netip);
-            c.set("wireguard", name, "weight", server.weight || "");
-        }
-    }
-);
+c.foreach("wireguard", "server", server => {
+    const name = server[".name"];
+    c.set("wireguard", name, "clientip", "");
+    c.set("wireguard", name, "serverip", "");
+    c.set("wireguard", name, "node", "");
+    const ipport = split(c.get("wireguard", name, "netip"), ":");
+    c.set("wireguard", name, "port", ipport[1]);
+    c.set("wireguard", name, "netip", "");
+    c.set("wireguard", name, "name", c.get("wireguard", name, "host"));
+    c.set("wireguard", name, "host", "");
+    c.set("wireguard", name, "key", c.get("wireguard", name, "passwd"));
+    c.set("wireguard", name, "passwd", "");
+
+});
+
+c.foreach("wireguard", "client", client => {
+    const name = client[".name"];
+    const ipport = split(c.get("wireguard", name, "clientip"), ":");
+    c.set("wireguard", name, "port", ipport[1]);
+    c.set("wireguard", name, "clientip", "");
+});
 
 c.commit("wireguard");
-fs.unlink("/etc/config.mesh/vtun");
 
 __EOF__
-/usr/bin/ucode /tmp/migrate_vtun
-rm -f /tmp/migrate_vtun
+/usr/bin/ucode /tmp/simplify_tun
+rm -f /tmp/simplify_tun
