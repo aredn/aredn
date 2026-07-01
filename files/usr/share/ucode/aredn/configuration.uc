@@ -76,9 +76,6 @@ const configFiles = [
     "/etc/arednlink/subscribe",
     "/etc/local/uci/hsmmmesh",
     "/etc/aredn_include/babel-deny.conf",
-    "/etc/aredn_include/dtdlink.network.user",
-    "/etc/aredn_include/lan.network.user",
-    "/etc/aredn_include/wan.network.user",
     "/etc/dropbear/authorized_keys",
     "/tmp/newpassword"
 ];
@@ -125,13 +122,37 @@ export function getSettingAsInt(key, def)
     return def;
 };
 
-export function setSetting(key, value, def)
+export function getSettingAsList(key, def)
+{
+    initSetup();
+    return scursor.get("setup", "globals", key) || def;
+};
+
+export function setSettingAsString(key, value, def)
 {
     initSetup();
     const o = scursor.get("setup", "globals", key);
     const n = replace(`${value ?? def ?? ""}`, /[\r\n]/g, " ");
     if (o !== n) {
         scursor.set("setup", "globals", key, n);
+        setupChanged = true;
+        return true;
+    }
+    return false;
+};
+
+export function setSettingAsList(key, value, def)
+{
+    initSetup();
+    const o = scursor.get("setup", "globals", key) ?? "";
+    if (type(value) !== "array") {
+        value = type(def) === "array" ? def : [];
+    }
+    if (length(value) === 0) {
+        value = "";
+    }
+    if (sprintf("%$J", o) !== sprintf("%J", value)) {
+        scursor.set("setup", "globals", key, value);
         setupChanged = true;
         return true;
     }

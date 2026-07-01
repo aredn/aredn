@@ -66,7 +66,7 @@ return function()
     });
 
     let changed = false;
-    const dtdports = map(split(hardware.getBoardNetworkInterfaceName("dtdlink"), " "), p => `${split(p, ".")[0]}:t`);
+    const dtdports = map(hardware.getBoardNetworkInterfaceName("dtdlink"), p => `${split(p, ".")[0]}:t`);
     for (let vlan in addvlan) {
         const name = `remoterf${vlan}`;
         const bname = `${name}bridge`;

@@ -144,8 +144,6 @@ const wifi_mon_enable = false;
 const deleteme = {};
 const cfg = {
     description_node: "",
-    lan_intf: hardware.getBoardNetworkInterfaceName("lan"),
-    wan_intf: hardware.getBoardNetworkInterfaceName("wan"),
     bridge_network_config: "",
     lan_network_config: "",
     wan_network_config: "",
@@ -368,225 +366,196 @@ if (dcm) {
 }
 
 // generate the bridge configuration
-if (fs.access("/etc/aredn_include/bridge.network.user")) {
-    cfg.bridge_network_config = expandVars(fs.readfile("/etc/aredn_include/bridge.network.user"));
-    if (!validConfig(cfg.bridge_network_config)) {
-        print("Invalid config fragment: /etc/aredn_include/bridge.network.user\n");
-        exit(1);
-    }
+let config = "config device\n\toption name 'br0'\n\toption type 'bridge'\n\toption vlan_filtering '1'\n";
+const eports = hardware.getEthernetPorts();
+for (let i = 0; i < length(eports); i++) {
+    config += `\tlist ports '${eports[i].k}'\n`;
 }
-else {
-    const list = {};
-    const networks = [ "lan", "wan", "dtdlink" ];
-    for (let i = 0; i < length(networks); i++) {
-        const ports = split(hardware.getBoardNetworkInterfaceName(networks[i]), " ");
-        for (let p = 0; p < length(ports); p++) {
-            if (ports[p]) {
-                list[replace(ports[p], /\..*$/, "")] = true;
-            }
-        }
-    }
-    let config = "config device\n\toption name 'br0'\n\toption type 'bridge'\n\toption vlan_filtering '1'\n";
-    for (let port in list) {
-        config += `\tlist ports '${port}'\n`;
-    }
-    cfg.bridge_network_config = config;
-}
+cfg.bridge_network_config = config;
 
 // generate the network configurations
-const wan_wifi_enabled = (cfg.radio0_mode == "wan" || cfg.radio1_mode == "wan");
 const cnetworks = [ "lan", "wan", "dtdlink", "wifi" ];
 for (let i = 0; i < length(cnetworks); i++) {
     const net = cnetworks[i];
     let wireless = false;
     let wireless_bridge = false;
     let config = "";
-    // User override
-    // Ignore wan override if wan wifi is enabled
-    if (fs.access(`/etc/aredn_include/${net}.network.user`) && !(net == "wan" && wan_wifi_enabled)) {
-        const f = fs.open(`/etc/aredn_include/fixedmac.${net}`);
-        if (f) {
-            for (let line = f.read("line"); length(line); line = f.read("line")) {
-                const m = match(line, /option[ \t]+macaddr[ \t]+([^ \t]+)/);
-                if (m) {
-                    cfg[`${net}_mac`] = trim(m[1]);
-                }
-            }
-            f.close();
-        }
-        config = expandVars(fs.readfile(`/etc/aredn_include/${net}.network.user`));
-        if (!validConfig(config)) {
-            print("Invalid config fragment: /etc/aredn_include/${net}.network.user\n");
-            exit(1);
-        }
-    }
-    else {
-        // generate a complete config
-        let vlan = null;
-        let ports = split(hardware.getBoardNetworkInterfaceName(net), " ");
 
-        if (net == "lan") {
-            // If the LAN has be given a vlan to use (usually by a switch) we use that here,
-            // otherwise we just use '3'
-            const lvlan = match(ports[0], /\.(\d+)$/);
-            if (lvlan) {
-                vlan = `${lvlan[1]}:t`;
-            }
-            else {
-                vlan = "3:u";
-            }
-            // handle lan vlan override
-            const m = match(cm.get("setup", "globals", "lan_intf") || "", /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
+    // generate a complete config
+    let vlan = null;
+    let ports = hardware.getBoardNetworkInterfaceName(net);
+
+    if (net == "lan") {
+        // If the LAN has be given a vlan to use (usually by a switch) we use that here,
+        // otherwise we just use '3'
+        const lvlan = match(ports[0], /\.(\d+)$/);
+        if (lvlan) {
+            vlan = `${lvlan[1]}:t`;
+        }
+        else {
+            vlan = "3:u";
+        }
+        // handle lan vlan override
+        const lan_intf = cm.get("setup", "globals", "lan_intf");
+        if (lan_intf) {
+            const m = match(lan_intf[0], /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
             if (m) {
                 if (m[2] === ".") {
                     vlan = `${m[3]}:t`;
-                    ports = [ `${m[1]}.${m[3]}` ];
                 }
                 else {
                     vlan = `3:u`;
-                    ports = [ `${m[1]}` ];
                 }
-            }
-        }
-        else if (net == "wan") {
-            // wifi can be used for the WAN (we become a wifi client)
-            if (cfg.radio0_mode == "wan") {
-                wireless = true;
-                ports = [ "wlan0" ];
-            }
-            else if (cfg.radio1_mode == "wan") {
-                wireless = true;
-                ports = [ "wlan1" ];
-            }
-            else {
-                // If the WAN has been given a vlan to use (usually 1) we use that here.
-                const wvlan = match(ports[0], /\.(\d+)$/);
-                if (wvlan) {
-                    vlan = `${wvlan[1]}:t`;
-                }
-                else {
-                    vlan = "4:u";
-                }
-                // handle wan vlan override
-                const m = match(cm.get("setup", "globals", "wan_intf") || "", /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
-                if (m) {
-                    if (m[2] === ".") {
-                        vlan = `${m[3]}:t`;
-                        ports = [ `${m[1]}.${m[3]}` ];
-                    }
-                    else {
-                        vlan = `4:u`;
-                        ports = [ `${m[1]}` ];
-                    }
-                }
-            }
-        }
-        else if (net == "dtdlink") {
-            // Always vlan 2
-            vlan = "2:t";
-            cfg.dtdlink_proto = "static";
-            cfg.dtdlink_mask = "255.0.0.0";
-        }
-        else if (net == "wifi") {
-            cfg.wifi_proto = "static";
-            ports = [ mesh_wifi ];
-            const radio = replace(mesh_wifi, /^wlan/, "radio");
-            if (cfg.wds && (cfg[`${radio}_mode`] == "meshap" || cfg[`${radio}_mode`] == "meshptp" || cfg[`${radio}_mode`] == "meshsta")) {
-                const vlanid = 3700 + int(split(mac2, ".")[2]);
-                wireless_bridge = true;
-                vlan = `${vlanid}:t`;
-                const dtdports = split(hardware.getBoardNetworkInterfaceName("dtdlink"), " ");
-                for (let p = 0; p < length(dtdports); p++) {
-                    push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
-                }
-            }
-        }
-
-        if (vlan) {
-            // Vlan configuration
-            const m = match(vlan, /(.*):(.*)/);
-            const nports = [ `br0.${m[1]}` ];
-            config += `\nconfig bridge-vlan\n\toption device 'br0'\n\toption vlan '${m[1]}'\n`;
-            for (let p = 0; p < length(ports); p++) {
-                if (!match(ports[p], /^wlan/)) {
-                    config += `\tlist ports '${replace(ports[p], /\..*$/, "")}:${m[2]}'\n`;
-                }
-                else {
-                    push(nports, ports[p]);
-                }
-            }
-            config += "\n";
-            ports = nports;
-        }
-
-        let proto = cfg[`${net}_proto`] || "";
-        let ipaddr = deleteme[`${net}_ip`] ? "" : (cfg[`${net}_ip`] || "");
-        let netmask = deleteme[`${net}_mask`] ? "" : (cfg[`${net}_mask`] || "");
-        let mtu = cfg[`${net}_mtu`] || "";
-        let gateway = deleteme[`${net}_gw`] ? "" : (cfg[`${net}_gw`] || "");
-        
-        if (ports[0] === "disabled") {
-            config += `config interface '${net}'\n\toption proto 'none'\n`;
-        }
-        else {
-            config += "config device\n";
-            if (wireless_bridge) {
-                config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
-                ipaddr = "";
-                netmask = "";
-            }
-            else if (!wireless) {
-                config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
-            }
-            else if (net === "wifi") {
-                ipaddr = "";
-                netmask = "";
-            }
-            else if (net !== "wan") {
-                netmask = "255.255.255.255";
-            }
-            if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
-                config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
-            }
-
-            if (!wireless || wireless_bridge) {
-                if (length(ports) == 0) {
-                    config += "\toption bridge_empty '1'\n";
-                }
-                else {
-                    for (let p = 0; p < length(ports); p++) {
-                        config += `\tlist ports '${ports[p]}'\n`;
-                    }
-                }
-            }
-            else {
-                config += `\toption name '${ports[0]}'\n`;
-            }
-
-            config += `\nconfig interface '${net}'\n`;
-            if (wireless && !wireless_bridge) {
-                config += `\toption device '${ports[0]}'\n`;
-            }
-            else {
-                config += `\toption device 'br-${net}'\n`;
-            }
-            if (proto != "") {
-                config += `\toption proto '${proto}'\n`;
-            }
-            if (mtu != "") {
-                config += `\toption mtu '${mtu}'\n`;
-            }
-            if (ipaddr != "") {
-                config += `\toption ipaddr '${ipaddr}'\n`;
-            }
-            if (netmask != "") {
-                config += `\toption netmask '${netmask}'\n`;
-            }
-            if (gateway != "") {
-                config += `\toption gateway '${gateway}'\n`;
+                ports = lan_intf;
             }
         }
     }
+    else if (net == "wan") {
+        // wifi can be used for the WAN (we become a wifi client)
+        if (cfg.radio0_mode == "wan") {
+            wireless = true;
+            ports = [ "wlan0" ];
+        }
+        else if (cfg.radio1_mode == "wan") {
+            wireless = true;
+            ports = [ "wlan1" ];
+        }
+        else {
+            // If the WAN has been given a vlan to use (usually 1) we use that here.
+            const wvlan = match(ports[0], /\.(\d+)$/);
+            if (wvlan) {
+                vlan = `${wvlan[1]}:t`;
+            }
+            else {
+                vlan = "4:u";
+            }
+            // handle wan vlan override
+            const wan_intf = cm.get("setup", "globals", "wan_intf");
+            if (wan_intf) {
+                const m = match(wan_intf[0], /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
+                if (m) {
+                    if (m[2] === ".") {
+                        vlan = `${m[3]}:t`;
+                    }
+                    else {
+                        vlan = `4:u`;
+                    }
+                    ports = wan_intf;
+                }
+            }
+        }
+    }
+    else if (net == "dtdlink") {
+        // Always vlan 2
+        vlan = "2:t";
+        cfg.dtdlink_proto = "static";
+        cfg.dtdlink_mask = "255.0.0.0";
+        const dtdlink_intf = cm.get("setup", "globals", "dtdlink_intf");
+        if (dtdlink_intf) {
+            ports = dtdlink_intf;
+        }
+    }
+    else if (net == "wifi") {
+        wireless = true;
+        cfg.wifi_proto = "static";
+        ports = [ mesh_wifi ];
+        const radio = replace(mesh_wifi, /^wlan/, "radio");
+        if (cfg.wds && (cfg[`${radio}_mode`] == "meshap" || cfg[`${radio}_mode`] == "meshptp" || cfg[`${radio}_mode`] == "meshsta")) {
+            const vlanid = 3700 + int(split(mac2, ".")[2]);
+            wireless_bridge = true;
+            vlan = `${vlanid}:t`;
+            const dtdports = hardware.getBoardNetworkInterfaceName("dtdlink");
+            for (let p = 0; p < length(dtdports); p++) {
+                push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
+            }
+        }
+    }
+
+    if (vlan) {
+        // Vlan configuration
+        const m = match(vlan, /(.*):(.*)/);
+        const nports = [ `br0.${m[1]}` ];
+        config += `\nconfig bridge-vlan\n\toption device 'br0'\n\toption vlan '${m[1]}'\n`;
+        for (let p = 0; p < length(ports); p++) {
+            if (!match(ports[p], /^wlan/)) {
+                config += `\tlist ports '${replace(ports[p], /\..*$/, "")}:${m[2]}'\n`;
+            }
+            else {
+                push(nports, ports[p]);
+            }
+        }
+        config += "\n";
+        ports = nports;
+    }
+
+    let proto = cfg[`${net}_proto`] || "";
+    let ipaddr = deleteme[`${net}_ip`] ? "" : (cfg[`${net}_ip`] || "");
+    let netmask = deleteme[`${net}_mask`] ? "" : (cfg[`${net}_mask`] || "");
+    let mtu = cfg[`${net}_mtu`] || "";
+    let gateway = deleteme[`${net}_gw`] ? "" : (cfg[`${net}_gw`] || "");
+    
+    if (ports[0] === "disabled") {
+        config += `config interface '${net}'\n\toption proto 'none'\n`;
+    }
+    else {
+        config += "config device\n";
+        if (wireless_bridge) {
+            config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
+            ipaddr = "";
+            netmask = "";
+        }
+        else if (!wireless) {
+            config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
+        }
+        else if (net === "wifi") {
+            ipaddr = "";
+            netmask = "";
+        }
+        else if (net !== "wan") {
+            netmask = "255.255.255.255";
+        }
+        if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
+            config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
+        }
+
+        if (!wireless || wireless_bridge) {
+            if (length(ports) == 0) {
+                config += "\toption bridge_empty '1'\n";
+            }
+            else {
+                for (let p = 0; p < length(ports); p++) {
+                    config += `\tlist ports '${ports[p]}'\n`;
+                }
+            }
+        }
+        else {
+            config += `\toption name '${ports[0]}'\n`;
+        }
+
+        config += `\nconfig interface '${net}'\n`;
+        if (wireless && !wireless_bridge) {
+            config += `\toption device '${ports[0]}'\n`;
+        }
+        else {
+            config += `\toption device 'br-${net}'\n`;
+        }
+        if (proto != "") {
+            config += `\toption proto '${proto}'\n`;
+        }
+        if (mtu != "") {
+            config += `\toption mtu '${mtu}'\n`;
+        }
+        if (ipaddr != "") {
+            config += `\toption ipaddr '${ipaddr}'\n`;
+        }
+        if (netmask != "") {
+            config += `\toption netmask '${netmask}'\n`;
+        }
+        if (gateway != "") {
+            config += `\toption gateway '${gateway}'\n`;
+        }
+    }
+
     cfg[`${net}_network_config`] = config;
 }
 

@@ -37,13 +37,13 @@ if (request.env.REQUEST_METHOD === "PUT") {
     configuration.prepareChanges();
     if ("mesh_ip" in request.args) {
         if (match(request.args.mesh_ip, constants.reIP)) {
-            configuration.setSetting("wifi_ip", request.args.mesh_ip);
+            configuration.setSettingAsString("wifi_ip", request.args.mesh_ip);
         }
     }
     if ("dhcp_mode" in request.args) {
         const mode = int(request.args.dhcp_mode || 3);
         if (mode >= 0 && mode <= 5) {
-            configuration.setSetting("dmz_mode", mode);
+            configuration.setSettingAsString("dmz_mode", mode);
             if (mode >= 2) {
                 const o_lan_ip = iptoarr(configuration.getSettingAsString("dmz_lan_ip"));
                 const wifi_ip = iptoarr(configuration.getSettingAsString("wifi_ip"));
@@ -53,10 +53,10 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 dmz_lan_ip = arrtoip([ (dmz_lan_ip >> 24) & 0xff, (dmz_lan_ip >> 16) & 0xff, (dmz_lan_ip >> 8) & 0xff, dmz_lan_ip & 0xff ]);
                 let dmz_lan_mask = 0xffffffff << mode;
                 dmz_lan_mask = arrtoip([ (dmz_lan_mask >> 24) & 0xff, (dmz_lan_mask >> 16) & 0xff, (dmz_lan_mask >> 8) & 0xff, dmz_lan_mask & 0xff ]);
-                configuration.setSetting("dmz_lan_ip", dmz_lan_ip);
-                configuration.setSetting("dmz_lan_mask", dmz_lan_mask);
-                configuration.setSetting("dmz_dhcp_start", 2);
-                configuration.setSetting("dmz_dhcp_end", (2 << (mode - 1)) - 2);
+                configuration.setSettingAsString("dmz_lan_ip", dmz_lan_ip);
+                configuration.setSettingAsString("dmz_lan_mask", dmz_lan_mask);
+                configuration.setSettingAsString("dmz_dhcp_start", 2);
+                configuration.setSettingAsString("dmz_dhcp_end", (2 << (mode - 1)) - 2);
                 const dhcp = configuration.getDHCP();
                 const als = uciMesh.get("setup", "aliases", "alias");
                 if (als) {
@@ -79,70 +79,70 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
     if ("lan_dhcp_ip" in request.args) {
         if (match(request.args.lan_dhcp_ip, constants.reIP)) {
-            configuration.setSetting("lan_ip", request.args.lan_dhcp_ip);
+            configuration.setSettingAsString("lan_ip", request.args.lan_dhcp_ip);
         }
     }
     if ("lan_dhcp_netmask" in request.args) {
         if (match(request.args.lan_dhcp_netmask, constants.reNetmask)) {
-            configuration.setSetting("lan_mask", request.args.lan_dhcp_netmask);
+            configuration.setSettingAsString("lan_mask", request.args.lan_dhcp_netmask);
         }
     }
     if ("lan_dhcp_start" in request.args) {
-        configuration.setSetting("dhcp_start", request.args.lan_dhcp_start);
+        configuration.setSettingAsString("dhcp_start", request.args.lan_dhcp_start);
     }
     if ("lan_dhcp_end" in request.args) {
-        configuration.setSetting("dhcp_end", request.args.lan_dhcp_end);
+        configuration.setSettingAsString("dhcp_end", request.args.lan_dhcp_end);
     }
     if ("lan44_dhcp_ip" in request.args) {
         if (match(request.args.lan44_dhcp_ip, constants.reIP)) {
-            configuration.setSetting("lan_ip", request.args.lan44_dhcp_ip);
+            configuration.setSettingAsString("lan_ip", request.args.lan44_dhcp_ip);
         }
     }
     if ("lan44_dhcp_netmask" in request.args) {
         if (match(request.args.lan44_dhcp_netmask, constants.reNetmask)) {
-            configuration.setSetting("lan_mask", request.args.lan44_dhcp_netmask);
+            configuration.setSettingAsString("lan_mask", request.args.lan44_dhcp_netmask);
         }
     }
     if ("lan44_dhcp_start" in request.args) {
-        configuration.setSetting("dhcp_start", request.args.lan44_dhcp_start);
+        configuration.setSettingAsString("dhcp_start", request.args.lan44_dhcp_start);
     }
     if ("lan44_dhcp_end" in request.args) {
-        configuration.setSetting("dhcp_end", request.args.lan44_dhcp_end);
+        configuration.setSettingAsString("dhcp_end", request.args.lan44_dhcp_end);
     }
     if ("wan_mode" in request.args) {
         if (request.args.wan_mode === "0") {
-            configuration.setSetting("wan_proto", "disabled");
+            configuration.setSettingAsString("wan_proto", "disabled");
         }
         else if (request.args.wan_mode === "1") {
-            configuration.setSetting("wan_proto", "dhcp");
+            configuration.setSettingAsString("wan_proto", "dhcp");
         }
         else {
-            configuration.setSetting("wan_proto", "static");
+            configuration.setSettingAsString("wan_proto", "static");
         }
     }
     if ("wan_ip" in request.args) {
         if (match(request.args.wan_ip, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
-            configuration.setSetting("wan_ip", request.args.wan_ip);
+            configuration.setSettingAsString("wan_ip", request.args.wan_ip);
         }
     }
     if ("wan_mask" in request.args) {
         if (match(request.args.wan_mask, /^(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))$/)) {
-            configuration.setSetting("wan_mask", request.args.wan_mask);
+            configuration.setSettingAsString("wan_mask", request.args.wan_mask);
         }
     }
     if ("wan_gw" in request.args) {
         if (match(request.args.wan_gw, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
-            configuration.setSetting("wan_gw", request.args.wan_gw);
+            configuration.setSettingAsString("wan_gw", request.args.wan_gw);
         }
     }
     if ("wan_dns1" in request.args) {
         if (match(request.args.wan_dns1, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
-            configuration.setSetting("wan_dns1", request.args.wan_dns1);
+            configuration.setSettingAsString("wan_dns1", request.args.wan_dns1);
         }
     }
     if ("wan_dns2" in request.args) {
         if (match(request.args.wan_dns2, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
-            configuration.setSetting("wan_dns2", request.args.wan_dns2);
+            configuration.setSettingAsString("wan_dns2", request.args.wan_dns2);
         }
     }
     if ("wan_vlan" in request.args) {
@@ -151,7 +151,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const new_wan_iface = `${wan_iface}${wan_vlan === 0 ? '' : '.' + wan_vlan}`;
         const lan_iface = configuration.getSettingAsString("lan_intf", "");
         if ((wan_vlan === 0 || wan_vlan === 1 || (wan_vlan >= 5 && wan_vlan <= 4095)) && lan_iface != new_wan_iface) {
-            configuration.setSetting("wan_intf", new_wan_iface);
+            configuration.setSettingAsString("wan_intf", new_wan_iface);
         }
     }
     if ("lan_vlan" in request.args) {
@@ -160,7 +160,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const new_lan_iface = `${lan_iface}${lan_vlan === 0 ? '' : '.' + lan_vlan}`;
         const wan_iface = configuration.getSettingAsString("wan_intf", "");
         if ((lan_vlan === 0 || (lan_vlan >= 5 && lan_vlan <= 4095)) && wan_iface != new_lan_iface) {
-            configuration.setSetting("lan_intf", new_lan_iface);
+            configuration.setSettingAsString("lan_intf", new_lan_iface);
         }
     }
     if ("mesh_to_local_wan" in request.args) {
@@ -196,9 +196,9 @@ const de = iptoarr(dhcp.end);
 const dhcp_start = (ds[2] - db[2]) * 256 + (ds[3] - db[3]);
 const dhcp_end = (de[2] - db[2]) * 256 + (de[3] - db[3]);
 const wan_proto = configuration.getSettingAsString("wan_proto", "disabled");
-const wan_iface = split(configuration.getSettingAsString("wan_intf") || hardware.getBoardNetworkInterfaceName("wan"), ".");
+const wan_iface = split((configuration.getSettingAsList("wan_intf") || hardware.getBoardNetworkInterfaceName("wan"))[0], ".");
 const wan_vlan = wan_iface[1] ? wan_iface[1] : "";
-const lan_iface = split(configuration.getSettingAsString("lan_intf") || hardware.getBoardNetworkInterfaceName("lan"), ".");
+const lan_iface = split((configuration.getSettingAsList("lan_intf") || hardware.getBoardNetworkInterfaceName("lan"))[0], ".");
 const lan_vlan = lan_iface[1] ? lan_iface[1] : "";
 const gateway_nat = dmz_mode !== 1 ? dhcp.gateway : "172.27.0.1";
 const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";

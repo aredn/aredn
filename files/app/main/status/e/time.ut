@@ -38,18 +38,18 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("timezone" in request.args) {
         const nt = match(request.args.timezone, /^(.*)\t(.*)$/);
         if (nt) {
-            configuration.setSetting("time_zone_name", nt[1]);
-            configuration.setSetting("time_zone", nt[2]);
+            configuration.setSettingAsString("time_zone_name", nt[1]);
+            configuration.setSettingAsString("time_zone", nt[2]);
         }
     }
     if ("ntp_server" in request.args) {
-        configuration.setSetting("ntp_server", request.args.ntp_server);
+        configuration.setSettingAsString("ntp_server", request.args.ntp_server);
     }
     if ("ntp_server2" in request.args) {
-        configuration.setSetting("ntp_server2", request.args.ntp_server2);
+        configuration.setSettingAsString("ntp_server2", request.args.ntp_server2);
     }
     if ("ntp_active_server" in request.args) {
-        configuration.setSetting("ntp_active_server", request.args.ntp_active_server);
+        configuration.setSettingAsString("ntp_active_server", request.args.ntp_active_server);
     }
     if ("ntp_mode" in request.args) {
         switch (request.args.ntp_mode) {
@@ -67,7 +67,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         }
     }
     if ("ntp_active_server" in request.args) {
-        configuration.setSetting("ntp_active_server", request.args.ntp_active_server === "on" ? "1" : "0");
+        configuration.setSettingAsString("ntp_active_server", request.args.ntp_active_server === "on" ? "1" : "0");
     }
     if (request.args.gps_enable) {
         uciMesh.set("aredn", "@time[0]", "gps_enable", request.args.gps_enable === "on" ? "1" : "0");
