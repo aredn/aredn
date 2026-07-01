@@ -149,18 +149,18 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const wan_iface = keys(hardware.getDefaultNetworkConfiguration().wan.ports)[0];
         const wan_vlan = int(request.args.wan_vlan || 0);
         const new_wan_iface = `${wan_iface}${wan_vlan === 0 ? '' : '.' + wan_vlan}`;
-        const lan_iface = configuration.getSettingAsString("lan_intf", "");
+        const lan_iface = configuration.getSettingAsList("lan_intf", [])[0];
         if ((wan_vlan === 0 || wan_vlan === 1 || (wan_vlan >= 5 && wan_vlan <= 4095)) && lan_iface != new_wan_iface) {
-            configuration.setSettingAsString("wan_intf", new_wan_iface);
+            configuration.setSettingAsList("wan_intf", [ new_wan_iface ]);
         }
     }
     if ("lan_vlan" in request.args) {
         const lan_iface = keys(hardware.getDefaultNetworkConfiguration().lan.ports)[0];
         const lan_vlan = int(request.args.lan_vlan || 0);
         const new_lan_iface = `${lan_iface}${lan_vlan === 0 ? '' : '.' + lan_vlan}`;
-        const wan_iface = configuration.getSettingAsString("wan_intf", "");
+        const wan_iface = configuration.getSettingAsList("wan_intf", [])[0];
         if ((lan_vlan === 0 || (lan_vlan >= 5 && lan_vlan <= 4095)) && wan_iface != new_lan_iface) {
-            configuration.setSettingAsString("lan_intf", new_lan_iface);
+            configuration.setSettingAsList("lan_intf", [ new_lan_iface ]);
         }
     }
     if ("mesh_to_local_wan" in request.args) {

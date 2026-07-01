@@ -39,8 +39,6 @@ import * as fs from "fs";
 import * as uci from "uci";
 import * as hardware from "aredn.hardware";
 
-const debug = false;
-
 function jeq(a, b) {
     return sprintf("%J", a) == sprintf("%J", b);
 }
@@ -113,32 +111,25 @@ switch (length(hardware.getEthernetPorts())) {
 
 // If the custom is the same as the default, we just let the default provail
 if (jeq(def_wan_intf, wan_intf)) {
-    wan_intf = [];
+    wan_intf = "";
 }
 if (jeq(def_lan_intf, lan_intf)) {
-    lan_intf = [];
+    lan_intf = "";
 }
 if (jeq(def_dtdlink_intf, dtdlink_intf)) {
-    dtdlink_intf = [];
+    dtdlink_intf = "";
 }
 
-if (!debug) {
-    c.set("setup", "globals", "wan_intf", wan_intf);
-    c.set("setup", "globals", "lan_intf", lan_intf);
-    c.set("setup", "globals", "dtdlink_intf", dtdlink_intf);
+c.set("setup", "globals", "wan_intf", wan_intf);
+c.set("setup", "globals", "lan_intf", lan_intf);
+c.set("setup", "globals", "dtdlink_intf", dtdlink_intf);
 
-    c.commit("setup");
+c.commit("setup");
 
-    fs.unlink("/etc/aredn_include/bridge.network.user");
-    fs.unlink("/etc/aredn_include/wan.network.user");
-    fs.unlink("/etc/aredn_include/lan.network.user");
-    fs.unlink("/etc/aredn_include/dtdlink.network.user");
-}
-else {
-    print(wan_intf, "\n");
-    print(lan_intf, "\n");
-    print(dtdlink_intf, "\n");
-}
+fs.unlink("/etc/aredn_include/bridge.network.user");
+fs.unlink("/etc/aredn_include/wan.network.user");
+fs.unlink("/etc/aredn_include/lan.network.user");
+fs.unlink("/etc/aredn_include/dtdlink.network.user");
 
 __EOF__
 /usr/bin/ucode /tmp/simplify_ports
