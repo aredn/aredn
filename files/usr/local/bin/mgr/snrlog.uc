@@ -32,7 +32,7 @@
  * version
  */
 
-const device = radios.getMeshRadio();
+const device = radios.getMeshRadios()[0];
 if (!device) {
     return exitApp();
 }

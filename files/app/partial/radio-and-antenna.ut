@@ -34,7 +34,8 @@
 %}
 {%
     const radio = radios.getActiveConfiguration();
-    let midx = -1;
+    let midx1 = -1;
+    let midx2 = -1;
     let lidx = -1;
     let widx = -1;
     for (let i = 0; i < length(radio); i++) {
@@ -43,7 +44,12 @@
             case radios.RADIO_MESHPTMP:
             case radios.RADIO_MESHPTP:
             case radios.RADIO_MESHSTA:
-                midx = i;
+                if (midx1 == -1) {
+                    midx1 = i;
+                }
+                else {
+                    midx2 = i;
+                }
                 break;
             case radios.RADIO_LAN:
                 lidx = i;
@@ -64,8 +70,8 @@
         <div class="t">{{hardware.getRadioName()}}</div>
         <div class="s">model</div>
     </div>
-    {% if (midx !== -1) {
-        const r = radio[midx].mode; %}
+    {% if (midx1 !== -1) {
+        const r = radio[midx1].mode; %}
     <div class="section-title">{{r.mode === "mesh" ? "Mesh" : r.mode === "meshap" ? "Mesh PTMP" : r.mode === "meshptp" ? "Mesh PTP" : "Mesh Station"}}</div>
     <div class="section">
         <div class="cols">
@@ -74,7 +80,7 @@
                 <div class="s">channel</div>
             </div>
             <div>
-                <div class="t">{{hardware.getChannelFrequencyRange(radio[midx].iface, r.channel, r.bandwidth)}}</div>
+                <div class="t">{{hardware.getChannelFrequencyRange(radio[midx1].iface, r.channel, r.bandwidth)}}</div>
                 <div class="s">frequencies</div>
             </div>
             <div>
@@ -84,13 +90,48 @@
         </div>
         <div class="cols">
             <div>
-                <div class="t">{{r.txpower + radio[midx].txpoweroffset}} dBm</div>
+                <div class="t">{{r.txpower + radio[midx1].txpoweroffset}} dBm</div>
                 <div class="s">tx power</div>
             </div>
             <div style="flex:2">
             {%
-                if (hardware.supportsFeature("max-distance", radio[midx].iface)) {
-                    const dvalue = util.ceil(10 * units.meters2distance(hardware.getMaxDistance(radio[midx].iface))) / 10.0;
+                if (hardware.supportsFeature("max-distance", radio[midx1].iface)) {
+                    const dvalue = util.ceil(10 * units.meters2distance(hardware.getMaxDistance(radio[midx1].iface))) / 10.0;
+            %}
+                <div class="t">{{dvalue}} {{units.distanceUnit(dvalue)}}</div>
+                <div class="s">maximum distance (actual)</div>
+            {% } %}
+            </div>
+        </div>
+    </div>
+    {% }
+    if (midx2 !== -1) {
+        const r = radio[midx2].mode; %}
+    <div class="section-title">{{r.mode === "mesh" ? "Mesh" : r.mode === "meshap" ? "Mesh PTMP" : r.mode === "meshptp" ? "Mesh PTP" : "Mesh Station"}}</div>
+    <div class="section">
+        <div class="cols">
+            <div>
+                <div class="t">{{r.channel}}</div>
+                <div class="s">channel</div>
+            </div>
+            <div>
+                <div class="t">{{hardware.getChannelFrequencyRange(radio[midx2].iface, r.channel, r.bandwidth)}}</div>
+                <div class="s">frequencies</div>
+            </div>
+            <div>
+                <div class="t">{{r.bandwidth}} MHz</div>
+                <div class="s">bandwidth</div>
+            </div>
+        </div>
+        <div class="cols">
+            <div>
+                <div class="t">{{r.txpower + radio[midx2].txpoweroffset}} dBm</div>
+                <div class="s">tx power</div>
+            </div>
+            <div style="flex:2">
+            {%
+                if (hardware.supportsFeature("max-distance", radio[midx2].iface)) {
+                    const dvalue = util.ceil(10 * units.meters2distance(hardware.getMaxDistance(radio[midx2].iface))) / 10.0;
             %}
                 <div class="t">{{dvalue}} {{units.distanceUnit(dvalue)}}</div>
                 <div class="s">maximum distance (actual)</div>
@@ -155,13 +196,13 @@
         </div>
     </div>
     {% } %}
-{% if (midx !== -1) { %}
+{% if (midx1 !== -1) { %}
     <div class="section-title">Antenna</div>
     <div class="section">
         {%
-            const antenna = hardware.getAntennaInfo(radio[midx].iface, uci.get("aredn", "@location[0]", "antenna"));
-            const antennaAux = hardware.getAntennaAuxInfo(radio[midx].iface, uci.get("aredn", "@location[0]", "antenna_aux"));
-            const antennaPol = hardware.getAntennaPolarization(radio[midx].iface);
+            const antenna = hardware.getAntennaInfo(radio[midx1].iface, uci.get("aredn", "@location[0]", "antenna"));
+            const antennaAux = hardware.getAntennaAuxInfo(radio[midx1].iface, uci.get("aredn", "@location[0]", "antenna_aux"));
+            const antennaPol = hardware.getAntennaPolarization(radio[midx1].iface);
             if (antennaPol) {
         %}
         <div class="cols">

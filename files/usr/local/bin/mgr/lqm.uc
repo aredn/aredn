@@ -56,7 +56,7 @@ const PING6 = "/bin/ping6";
 const BRCTL = "/usr/sbin/brctl";
 
 // Get radio
-const device = radios.getMeshRadio();
+const device = radios.getMeshRadios()[0];
 const wlan = device ? device.iface : "none";
 const phy = device ? hardware.getPhyDevice(wlan) : "none";
 const radio = device ? hardware.getRadioDevice(wlan) : "none";

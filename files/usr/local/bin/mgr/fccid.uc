@@ -40,7 +40,7 @@ const name = configuration.getName();
 if (!name) {
     return exitApp();
 }
-const radio = radios.getMeshRadio();
+const radio = radios.getMeshRadios()[0];
 if (!radio) {
     return exitApp();
 }

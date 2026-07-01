@@ -38,7 +38,7 @@ const PING6 = "/bin/ping6";
 const IFUP = "/sbin/ifup";
 const IFDOWN = "/sbin/ifdown";
 
-const device = radios.getMeshRadio();
+const device = radios.getMeshRadios()[0];
 if (!device) {
     return exitApp();
 }

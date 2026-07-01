@@ -118,7 +118,8 @@ export function getActiveConfiguration()
     const radio = getCommonConfiguration();
     const nrradios = length(radio);
     if (nrradios > 0) {
-        let mdevice;
+        let mdevice1;
+        let mdevice2;
         let ldevice;
         let wdevice;
 
@@ -126,7 +127,13 @@ export function getActiveConfiguration()
             radio[i].mode = { mode: RADIO_OFF };
         }
 
-        const mmode = {
+        const mmode1 = {
+            mode: RADIO_MESH,
+            channel: 0,
+            bandwidth: 10,
+            ssid: "-"
+        };
+        const mmode2 = {
             mode: RADIO_MESH,
             channel: 0,
             bandwidth: 10,
@@ -144,25 +151,36 @@ export function getActiveConfiguration()
 
         cursor.foreach("wireless", "wifi-iface", function(s)
         {
-            if (s.network === "wifi") {
-                switch (s.mode) {
+            if (s.network === "wifi" && (s.mode == "ap" || s.mode == "sta" || s.mode == "adhoc")) {
+                if (mdevice1 == null) {
+                    mdevice1 = s.device;
+                    mmode1.ssid = s.ssid;
+                    switch (s.mode) {
                     case "ap":
-                        mmode.mode = s.macfilter === "allow" ? RADIO_MESHPTP : RADIO_MESHPTMP;
-                        mdevice = s.device;
-                        mmode.ssid = s.ssid;
+                        mmode1.mode = s.macfilter === "allow" ? RADIO_MESHPTP : RADIO_MESHPTMP;
                         break;
                     case "sta":
-                        mmode.mode = RADIO_MESHSTA;
-                        mdevice = s.device;
-                        mmode.ssid = s.ssid;
+                        mmode1.mode = RADIO_MESHSTA;
                         break;
                     case "adhoc":
-                        mmode.mode = RADIO_MESH;
-                        mdevice = s.device;
-                        mmode.ssid = s.ssid;
+                        mmode1.mode = RADIO_MESH;
                         break;
-                    default:
+                    }
+                }
+                else {
+                    mdevice2 = s.device;
+                    mmode2.ssid = s.ssid;
+                    switch (s.mode) {
+                    case "ap":
+                        mmode2.mode = s.macfilter === "allow" ? RADIO_MESHPTP : RADIO_MESHPTMP;
                         break;
+                    case "sta":
+                        mmode2.mode = RADIO_MESHSTA;
+                        break;
+                    case "adhoc":
+                        mmode2.mode = RADIO_MESH;
+                        break;
+                    }
                 }
             }
             if (s.network === "lan" && s.mode === "ap") {
@@ -176,19 +194,28 @@ export function getActiveConfiguration()
         });
         cursor.foreach("wireless", "wifi-device", function(s)
         {
-            if (s[".name"] === mdevice) {
-                mmode.channel = int(s.channel);
-                mmode.bandwidth = int(s.chanbw);
-                mmode.txpower = int(s.txpower);
+            if (s[".name"] === mdevice1) {
+                mmode1.channel = int(s.channel);
+                mmode1.bandwidth = int(s.chanbw);
+                mmode1.txpower = int(s.txpower);
+            }
+            if (s[".name"] === mdevice2) {
+                mmode2.channel = int(s.channel);
+                mmode2.bandwidth = int(s.chanbw);
+                mmode2.txpower = int(s.txpower);
             }
             if (s[".name"] === ldevice) {
                 lmode.channel = int(s.channel);
             }
         });
 
-        if (mdevice) {
-            const idx = int(substr(mdevice, 5));
-            radio[idx].mode = mmode;
+        if (mdevice1) {
+            const idx = int(substr(mdevice1, 5));
+            radio[idx].mode = mmode1;
+        }
+        if (mdevice2) {
+            const idx = int(substr(mdevice2, 5));
+            radio[idx].mode = mmode2;
         }
         if (ldevice) {
             const idx = int(substr(ldevice, 5));
@@ -238,19 +265,21 @@ export function getConfiguration()
     return radio;
 };
 
-export function getMeshRadio()
+export function getMeshRadios()
 {
     const config = getActiveConfiguration();
+    const radios = [];
     for (let i = 0; i < length(config); i++) {
         switch (config[i].mode.mode) {
             case RADIO_MESH:
             case RADIO_MESHPTP:
             case RADIO_MESHPTMP:
             case RADIO_MESHSTA:
-                return { mode: config[i].mode.mode, iface: config[i].iface };
+                push(radios, { mode: config[i].mode.mode, iface: config[i].iface });
+                break;
             default:
                 break;
         }
     }
-    return null;
+    return radios;
 };

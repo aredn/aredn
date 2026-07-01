@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ "$ACTION" = "ifup" -a "$INTERFACE" = "wifi" -a "${DEVICE:0:4}" = "wlan" ] ; then
+if [ "$ACTION" = "ifup" -a "${INTERFACE:0:4}" = "wifi" -a "${DEVICE:0:4}" = "wlan" ] ; then
   # Setup the txpower for devices which dont respect the value set in /etc/config/wireless
   txpower=$(uci -q get wireless.radio${DEVICE:4}.txpower)
   if [ "${txpower}" != "" ]; then
