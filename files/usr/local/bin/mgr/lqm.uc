@@ -194,7 +194,7 @@ function deviceToType(device)
     else if (device === "br-wifi" || match(device, /^wlan/)) {
         return "RF";
     }
-    else if (device === "br-wifi") {
+    else if (device === "br-wifi0" || device === "br-wifi1") {
         return "RF?";
     }
     else if (match(device, /^wg/)) {
@@ -405,16 +405,18 @@ function main()
         });
 
         // Detmine which trackers on the wifi bridge are on the wifi side.
-        if (fs.access("/sys/class/net/br-wifi")) {
-            const p = fs.popen(`${BRCTL} showmacs br-wifi`);
-            if (p) {
-                for (let line = p.read("line"); length(line); line = p.read("line")) {
-                    const m = match(trim(line), /^2\s+([0-9a-f:]+)\s+no/);
-                    if (m && trackers[m[1]]) {
-                        trackers[m[1]].type = "RF";
+        for (let b = 0; b < 2; b++) {
+            if (fs.access(`/sys/class/net/br-wifi${b}`)) {
+                const p = fs.popen(`${BRCTL} showmacs br-wifi${b}`);
+                if (p) {
+                    for (let line = p.read("line"); length(line); line = p.read("line")) {
+                        const m = match(trim(line), /^2\s+([0-9a-f:]+)\s+no/);
+                        if (m && trackers[m[1]]) {
+                            trackers[m[1]].type = "RF";
+                        }
                     }
+                    p.close();
                 }
-                p.close();
             }
         }
 
@@ -517,7 +519,7 @@ function main()
                         track.rev_ping_success_time = null;
                         track.rev_ping_quality = null;
                         track.rev_quality = null;
-                        track.wifivlan = null;
+                        track.wifivlans = null;
                     }
                     else {
                         track.refresh = now + refreshTimeout();
@@ -557,8 +559,12 @@ function main()
                         }
 
                         // Track wifi vlans
-                        if (track.type === "DtD" && info.lqm && info.lqm.info) {
-                            track.wifivlan = info.lqm.info.wifivlan;
+                        track.wifivlans = null;
+                        if (track.type === "DtD" && info.meshrf) {
+                            push(track.wifivlans ?? (track.wifivlans = []), info.meshrf.vlan);
+                        }
+                        if (track.type === "DtD" && info.meshrf1) {
+                            push(track.wifivlans ?? (track.wifivlans = []), info.meshrf1.vlan);
                         }
 
                         if (info.lqm && info.lqm.info && info.lqm.info.trackers) {
@@ -715,14 +721,6 @@ function main()
                 }
             }
 
-            // Track active wifi vlans devices
-            if (rwifi[`br0.${track.wifivlan}`]) {
-                track.remoterf = true;
-            }
-            else {
-                track.remoterf = false;
-            }
-
             // Do the next iteration async
             return waitForTicks(0, updateTrackingState);
         };
@@ -753,12 +751,6 @@ function main()
                     }
                     total_route_count++;
                 }
-            }
-
-            // Look for wifi bridge and find the appropriate vlan
-            let wifivlan = null;
-            if (fs.access("/sys/class/net/br-wifi")) {
-                wifivlan = int(match(fs.glob("/sys/class/net/br-wifi/lower_br0.*")[0], /(\d+)$/)[1]);
             }
 
             // Remove any trackers which are too old or if they disconnect when first seen
@@ -845,7 +837,6 @@ function main()
                 now: now,
                 trackers: trackers,
                 distances: distances,
-                wifivlan: wifivlan,
                 hidden_nodes: hiddenNodes,
                 total_route_count: total_route_count
             }));

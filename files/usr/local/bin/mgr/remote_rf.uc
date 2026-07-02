@@ -45,8 +45,8 @@ return function()
     const trackers = lqm.getTrackers();
     for (let mac in trackers) {
         const tracker = trackers[mac];
-        if (tracker.wifivlan) {
-            addvlan[`${tracker.wifivlan}`] = true;
+        if (tracker.wifivlans) {
+            map(tracker.wifivlans, vlan => addvlan[`${vlan}`] = true);
         }
     }
 
