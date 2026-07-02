@@ -258,6 +258,7 @@ let mesh_channel = "";
 let mesh_chanbw = "";
 let mesh_txpower = null;
 let mesh_distance = "";
+let mesh_wds = null;
 if (cfg.radio0_mode == "mesh" || cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp" || cfg.radio0_mode == "meshsta") {
     mesh_wifi = "wlan0";
     mesh_channel = tonumber(cfg.radio0_channel);
@@ -265,6 +266,9 @@ if (cfg.radio0_mode == "mesh" || cfg.radio0_mode == "meshap" || cfg.radio0_mode 
     mesh_ssid = cfg.radio0_ssid;
     mesh_txpower = tonumber(cfg.radio0_txpower);
     mesh_distance = tonumber(cfg.radio0_distance || 0);
+    if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp") {
+        mesh_wds = 1
+    }
 }
 else if (cfg.radio1_mode == "mesh" || cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
     mesh_wifi = "wlan1";
@@ -273,6 +277,9 @@ else if (cfg.radio1_mode == "mesh" || cfg.radio1_mode == "meshap" || cfg.radio1_
     mesh_ssid = cfg.radio1_ssid;
     mesh_txpower = tonumber(cfg.radio1_txpower);
     mesh_distance = tonumber(cfg.radio1_distance || 0);
+    if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp") {
+        mesh_wds = 1
+    }
 }
 if (mesh_distance == 0) {
     mesh_distance = default_mesh_distance;
@@ -479,9 +486,14 @@ for (let i = 0; i < length(cnetworks); i++) {
             cfg.dtdlink_mask = "255.0.0.0";
         }
         else if (net == "wifi") {
-            wireless = true;
             cfg.wifi_proto = "static";
-            ports = [ mesh_wifi ];
+            if (mesh_wds) {
+                ports = [];
+            }
+            else {
+                wireless = true;
+                ports = [ mesh_wifi ];
+            }
         }
 
         if (vlan) {
@@ -938,6 +950,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
         let shortgi = null;
         let bss_color = null;
         let htmode = hardware.getHTMode(wlan, wlan == mesh_wifi ? mesh_chanbw : -1, cfg[`${radio}_mode`]);
+        let wds = null;
 
         switch (hardware.getDefaultChannel(wlan)?.band) {
             case "3GHz":
@@ -1006,6 +1019,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
                 isolate = 1;
                 //bss_color = int(match(macaddr, /:(..)$/)[1], 16);
             }
+            wds = mesh_wds;
         }
         else if (cfg[`${radio}_mode`] == "meshsta") {
             // mesh RF station configuration
@@ -1149,6 +1163,9 @@ for (let dev = 0; dev < ifacecount; dev++) {
         }
         if (shortgi != null) {
             config += `\toption short_gi_20 '${shortgi}'\n\toption short_gi_40 '${shortgi}'\n`;
+        }
+        if (wds != null) {
+            config += `\toption wds '${wds}'\n`;
         }
 
         config += "\n";

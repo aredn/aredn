@@ -184,7 +184,7 @@ function deviceToType(device)
     if (device == "br-dtdlink") {
         return "DtD";
     }
-    else if (match(device, /^wlan/)) {
+    else if (device === "br-wifi" || match(device, /^wlan/)) {
         return "RF";
     }
     else if (match(device, /^wg/)) {
