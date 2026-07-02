@@ -345,9 +345,9 @@ for (let i = 0; i < length(cnetworks); i++) {
     let wireless_bridge = false;
     let config = "";
 
-    // Dont setup radios which dont exist or are turned off
-    if ((net === "wifi0" && (!cfg.radio0_mode || cfg.radio0_mode === "off")) ||
-        (net === "wifi1" && (!cfg.radio1_mode || cfg.radio1_mode === "off"))) {
+    // We only setup mesh radios here - skip any others.
+    if ((net === "wifi0" && substr(cfg.radio0_mode || "off", 0, 4) !== "mesh") ||
+        (net === "wifi1" && substr(cfg.radio1_mode || "off", 0, 4) !== "mesh")) {
         continue;
     }
 

@@ -56,11 +56,18 @@ const PING6 = "/bin/ping6";
 const BRCTL = "/usr/sbin/brctl";
 
 // Get radio
-const device = radios.getMeshRadios()[0];
-const wlan = device ? device.iface : "none";
-const phy = device ? hardware.getPhyDevice(wlan) : "none";
-const radio = device ? hardware.getRadioDevice(wlan) : "none";
-const devtype = hardware.getRadioType(wlan);
+const devices = [];
+const mradios = radios.getMeshRadios();
+for (let i = 0; i < length(mradios); i++) {
+    const iface = mradios[i].iface;
+    push(devices, {
+        wlan: iface,
+        phy: hardware.getPhyDevice(iface),
+        radio: hardware.getRadioDevice(iface),
+        type: hardware.getRadioType(iface),
+        mode: uci.cursor("/etc/config.mesh").get("setup", "globals", `${hardware.getRadioDevice(iface)}_mode`)
+    });
+}
 
 let config = {};
 
@@ -109,11 +116,9 @@ function canonicalHostname(hostname)
     return lc(replace(replace(replace(replace(replace(replace(hostname, /^dtdlink\./, ""), /^xlink\d+\./, ""), /^xlink\d+\./, ""), /^lan\./, ""), /^supernode\./, ""), /\.local\.mesh$/, ""));
 }
 
-function iwSet(cmd)
+function iwSet(device, cmd)
 {
-    if (phy !== "none") {
-        system(`${IW} ${phy} set ${cmd} > /dev/null 2>&1`);
-    }
+    system(`${IW} ${device.phy} set ${cmd} > /dev/null 2>&1`);
 }
 
 const myhostname = canonicalHostname(configuration.getName());
@@ -124,15 +129,15 @@ const issupernode = uci.cursor().get("aredn", "@supernode[0]", "enable") == "1";
 // Clear old data
 fs.writefile("/tmp/lqm.info", '{"trackers":{},"hidden_nodes":[]}');
 
-function updateAllowList()
+function updateAllowList(device)
 {
-    const f = `/var/run/hostapd-${wlan}.maclist`;
+    const f = `/var/run/hostapd-${device.wlan}.maclist`;
     const o = fs.readfile(f);
     if (o === null) {
         return false;
     }
     let n = "";
-    const peer = uci.cursor("/etc/config.mesh").get("setup", "globals", `${radio}_peer`);
+    const peer = uci.cursor("/etc/config.mesh").get("setup", "globals", `${device.radio}_peer`);
     if (peer) {
         n = `${peer}\n`;
     }
@@ -144,9 +149,9 @@ function updateAllowList()
     return true;
 }
 
-function updateDenyList(trackers)
+function updateDenyList(device, trackers)
 {
-    const f = `/var/run/hostapd-${wlan}.maclist`;
+    const f = `/var/run/hostapd-${device.wlan}.maclist`;
     const o = fs.readfile(f);
     if (o === null) {
         return false;
@@ -211,9 +216,7 @@ function main()
     const trackers = {};
     let rfLinks = {};
     let hiddenNodes = {};
-    let lastDistance = -1;
-    let lastReadDistance = -1;
-    let distance = -1;
+    let distances = null;
     let noise = -95;
     let now = 0;
     let previousnow = 0;
@@ -222,35 +225,39 @@ function main()
 
     updateConfig();
 
-    // We dont know any distances yet
-    switch (devtype) {
-        case "halow":
-        case "ax":
-        case "ac":
-            lastDistance = config.max_distance;
-            if (hardware.supportsFeature("max-distance", wlan)) {
-                lastReadDistance = hardware.setMaxDistance(wlan, lastDistance);
-            }
-            break;
-        case "n":
-            iwSet("distance auto");
-            break;
-        default:
-            break;
-    }
-    // Or any hidden nodes
-    iwSet("rts off");
-    // Set the default retries
-    iwSet(`retry short ${default_short_retries} long ${default_long_retries}`);
-    // Setup mac filters
-    if (radioMode == "meshptp") {
-        // In PtP mode we allow a single mac address
-        updateAllowList();
-    }
-    else {
-        // Clear the deny list
-        updateDenyList({});
-    }
+    map(devices, device => {
+        // We dont know any distances yet
+        device.lastDistance = -1;
+        device.lastReadDistance = -1;
+        switch (device.type) {
+            case "halow":
+            case "ax":
+            case "ac":
+                device.lastDistance = config.max_distance;
+                if (hardware.supportsFeature("max-distance", device.wlan)) {
+                    device.lastReadDistance = hardware.setMaxDistance(device.wlan, device.lastDistance);
+                }
+                break;
+            case "n":
+                iwSet(device, "distance auto");
+                break;
+            default:
+                break;
+        }
+        // Or any hidden nodes
+        iwSet(device, "rts off");
+        // Set the default retries
+        iwSet(device, `retry short ${default_short_retries} long ${default_long_retries}`);
+        // Setup mac filters
+        if (device.mode == "meshptp") {
+            // In PtP mode we allow a single mac address
+            updateAllowList(device);
+        }
+        else {
+            // Clear the deny list
+            updateDenyList(device, {});
+        }
+    });
 
     // This file allows the main loop to restart
     fs.unlink("/tmp/lqm.reset");
@@ -265,11 +272,6 @@ function main()
         const cursor = uci.cursor();
         const cursorm = uci.cursor("/etc/config.mesh");
         let refresh = false;
-
-        // If the channel bandwidth is less than 20, we need to adjust what we report as the values.
-        // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
-        const chanbw = int(cursor.get("wireless", radio, "chanbw") || "20");
-        const channelBwScale = (devtype === "halow" ? 1 : min(20, chanbw)) / 200.0;
 
         const lat = cursor.get("aredn", "@location[0]", "lat") ? 1 * cursor.get("aredn", "@location[0]", "lat") : null;
         const lon = cursor.get("aredn", "@location[0]", "lon") ? 1 * cursor.get("aredn", "@location[0]", "lon") : null;
@@ -367,12 +369,16 @@ function main()
         }
 
         // Update stats for radios
-        if (wlan !== "none") {
-            const cnoise = hardware.getRadioNoise(wlan);
+        map(devices, device => {
+            const cnoise = hardware.getRadioNoise(device.wlan);
             if (cnoise < -70) {
                 noise = round(noise * noise_run_avg + cnoise * (1 - noise_run_avg));
             }
-            const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlan });
+            // If the channel bandwidth is less than 20, we need to adjust what we report as the values.
+            // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
+            const chanbw = int(cursor.get("wireless", device.radio, "chanbw") || "20");
+            const channelBwScale = (device.type === "halow" ? 1 : min(20, chanbw)) / 200.0;
+            const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.wlan });
             for (let i = 0; i < length(stations); i++) {
                 const station = stations[i];
                 const track = trackers[station.mac];
@@ -396,7 +402,7 @@ function main()
                     track.connected_time = station.sta_info.connected_time;
                 }
             }
-        }
+        });
 
         // Detmine which trackers on the wifi bridge are on the wifi side.
         if (fs.access("/sys/class/net/br-wifi")) {
@@ -471,7 +477,7 @@ function main()
         let finish;
 
         // Max RF distance
-        distance = -1;
+        distances = {};
         const ip2tracker = {};
         const dev2tracker = {};
 
@@ -702,10 +708,10 @@ function main()
             // Calculate the max RF distance as we go
             if (track.type == "RF" && track.lastseen >= now) {
                 if (track.distance === null) {
-                    distance = config.max_distance
+                    distances[track.device] = config.max_distance
                 }
-                else if (!track.user_blocks && track.distance > distance) {
-                    distance = track.distance;
+                else if (!track.user_blocks && track.distance > (distances[track.device] ?? -1)) {
+                    distances[track.device] = track.distance;
                 }
             }
 
@@ -768,30 +774,34 @@ function main()
                 }
             }
 
-            if (radioMode == "meshptp") {
-                // In PtP mode we allow a single mac address.
-                // Update this every time in case the file gets overwritten (which happens when
-                // hostapd gets restarted)
-                updateAllowList();
-            }
-            else {
-                // Update denied mac list
-                updateDenyList(trackers);
-            }
-
-            // Update the wifi distance
-            if (distance < 0) {
-                distance = config.max_distance;
-            }
-            else {
-                distance = min(distance, config.max_distance);
-            }
-            if (hardware.supportsFeature("max-distance", wlan)) {
-                if (distance != lastDistance || lastReadDistance != hardware.getMaxDistance(wlan)) {
-                    lastDistance = distance;
-                    lastReadDistance = hardware.setMaxDistance(wlan, distance);
+            map(devices, device => {
+                if (device.mode == "meshptp") {
+                    // In PtP mode we allow a single mac address.
+                    // Update this every time in case the file gets overwritten (which happens when
+                    // hostapd gets restarted)
+                    updateAllowList(device);
                 }
-            }
+                else {
+                    // Update denied mac list
+                    updateDenyList(device, trackers);
+                }
+
+                // Update the wifi distances
+                let distance = distances[device.wlan];
+                if (distance === null) {
+                    distance = config.max_distance;
+                }
+                else {
+                    distance = min(distance, config.max_distance);
+                }
+                if (hardware.supportsFeature("max-distance", device.wlan)) {
+                    if (distance != device.lastDistance || device.lastReadDistance != hardware.getMaxDistance(device.wlan)) {
+                        device.lastDistance = distance;
+                        device.lastReadDistance = hardware.setMaxDistance(device.wlan, distance);
+                    }
+                }
+                distances[device.wlan] = distance;
+            });
 
             // Set the RTS/CTS state depending on whether everyone can see everyone
             // Build a list of all the nodes our neighbors can see
@@ -817,13 +827,14 @@ function main()
             delete theres[mylanip];
 
             // If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
+            // We do this rather crudely on all radios regardless of which ones actually have the hidden nodes.
             const hidden = values(theres);
             if ((length(hidden) == 0) != (length(hiddenNodes) == 0)) {
                 if (length(hidden) > 0) {
-                    iwSet(`rts ${rts_threshold}`);
+                    map(devices, device => iwSet(device, `rts ${rts_threshold}`));
                 }
                 else {
-                    iwSet("rts off");
+                    map(devices, device => iwSet(device, "rts off"));
                 }
             }
             hiddenNodes = hidden;
@@ -833,7 +844,7 @@ function main()
                 start: start,
                 now: now,
                 trackers: trackers,
-                distance: distance,
+                distances: distances,
                 wifivlan: wifivlan,
                 hidden_nodes: hiddenNodes,
                 total_route_count: total_route_count
