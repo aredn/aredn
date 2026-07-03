@@ -122,46 +122,43 @@ function iwSet(device, cmd)
 }
 
 const myhostname = canonicalHostname(configuration.getName());
-const myip = uci.cursor().get("network", "wifi", "ipaddr");
+const myip = uci.cursor().get("network", "mesh", "ipaddr");
 const mylanip = uci.cursor().get("network", "lan", "ipaddr");
 const issupernode = uci.cursor().get("aredn", "@supernode[0]", "enable") == "1";
 
 // Clear old data
 fs.writefile("/tmp/lqm.info", '{"trackers":{},"hidden_nodes":[]}');
 
-function updateAllowList(device)
+function updateMacList(device, trackers)
 {
+    const mode = uci.cursor("/etc/config.mesh").get("setup", "globals", `${device.radio}_mode`);
+    if (mode !== "meshptmp" || mode !== "meshptp") {
+        return;
+    }
     const f = `/var/run/hostapd-${device.wlan}.maclist`;
     const o = fs.readfile(f);
     if (o === null) {
         return false;
     }
     let n = "";
-    const peer = uci.cursor("/etc/config.mesh").get("setup", "globals", `${device.radio}_peer`);
-    if (peer) {
-        n = `${peer}\n`;
-    }
-    if (o == n) {
-        return false;
-    }
-    fs.writefile(f, n);
-    system("/usr/bin/killall -HUP hostapd");
-    return true;
-}
-
-function updateDenyList(device, trackers)
-{
-    const f = `/var/run/hostapd-${device.wlan}.maclist`;
-    const o = fs.readfile(f);
-    if (o === null) {
-        return false;
-    }
-    let n = "";
-    for (let mac in trackers) {
-        if (trackers[mac].user_blocks) {
-            n += `${mac}\n`;
+    if (mode == "meshptp") {
+        // In PtP mode we allow a single mac address.
+        // Update this every time in case the file gets overwritten (which happens when
+        // hostapd gets restarted)
+        const peer = uci.cursor("/etc/config.mesh").get("setup", "globals", `${device.radio}_peer`);
+        if (peer) {
+            n = `${peer}\n`;
         }
     }
+    else {
+        // Update denied mac list
+        for (let mac in trackers) {
+            if (trackers[mac].user_blocks) {
+                n += `${mac}\n`;
+            }
+        }
+    }
+    // ...
     if (o == n) {
         return false;
     }
@@ -220,7 +217,6 @@ function main()
     let noise = -95;
     let now = 0;
     let previousnow = 0;
-    const radioMode = device ? uci.cursor("/etc/config.mesh").get("setup", "globals", `${radio}_mode`) : "off";
     const start = clock(true)[0];
 
     updateConfig();
@@ -249,14 +245,7 @@ function main()
         // Set the default retries
         iwSet(device, `retry short ${default_short_retries} long ${default_long_retries}`);
         // Setup mac filters
-        if (device.mode == "meshptp") {
-            // In PtP mode we allow a single mac address
-            updateAllowList(device);
-        }
-        else {
-            // Clear the deny list
-            updateDenyList(device, {});
-        }
+        updateMacList(device, {});
     });
 
     // This file allows the main loop to restart
@@ -309,9 +298,6 @@ function main()
                             refresh: 0,
                             avg_lq: 100
                         };
-                        if (type === "RF") {
-                            track.mode = radioMode;
-                        }
                         if (type === "Wireguard") {
                             // The mac address can change, so for tunnels we make sure the device is unique
                             const device = track.device;
@@ -378,28 +364,31 @@ function main()
             // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
             const chanbw = int(cursor.get("wireless", device.radio, "chanbw") || "20");
             const channelBwScale = (device.type === "halow" ? 1 : min(20, chanbw)) / 200.0;
-            const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.wlan });
-            for (let i = 0; i < length(stations); i++) {
-                const station = stations[i];
-                const track = trackers[station.mac];
-                if (track) {
-                    track.signal = station.sta_info.signal;
-                    track.tx_packets = station.sta_info.tx_packets;
-                    track.tx_retries = station.sta_info.tx_retries;
-                    track.tx_fail = station.sta_info.tx_failed;
-                    if (station.sta_info.tx_bitrate) {
-                        track.tx_bitrate = station.sta_info.tx_bitrate.bitrate * channelBwScale;
+            const wlans = [ device.wlan, ...map(fs.glob("/sys/class/net/wlan0.sta*"), w => fs.basename(w)) ];
+            for (let w = 0; w < length(wlans); w++) {
+                const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
+                for (let i = 0; i < length(stations); i++) {
+                    const station = stations[i];
+                    const track = trackers[station.mac];
+                    if (track) {
+                        track.signal = station.sta_info.signal;
+                        track.tx_packets = station.sta_info.tx_packets;
+                        track.tx_retries = station.sta_info.tx_retries;
+                        track.tx_fail = station.sta_info.tx_failed;
+                        if (station.sta_info.tx_bitrate) {
+                            track.tx_bitrate = station.sta_info.tx_bitrate.bitrate * channelBwScale;
+                        }
+                        if (station.sta_info.rx_bitrate) {
+                            track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
+                        }
+                        if (track.snr !== null) {
+                            track.snr = max(0, round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg)));
+                        }
+                        else {
+                            track.snr = max(0, track.signal - noise);
+                        }
+                        track.connected_time = station.sta_info.connected_time;
                     }
-                    if (station.sta_info.rx_bitrate) {
-                        track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
-                    }
-                    if (track.snr !== null) {
-                        track.snr = max(0, round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg)));
-                    }
-                    else {
-                        track.snr = max(0, track.signal - noise);
-                    }
-                    track.connected_time = station.sta_info.connected_time;
                 }
             }
         });
@@ -410,7 +399,7 @@ function main()
                 const p = fs.popen(`${BRCTL} showmacs br-wifi${b}`);
                 if (p) {
                     for (let line = p.read("line"); length(line); line = p.read("line")) {
-                        const m = match(trim(line), /^2\s+([0-9a-f:]+)\s+no/);
+                        const m = match(trim(line), /^[^1]\s+([0-9a-f:]+)\s+no/);
                         if (m && trackers[m[1]]) {
                             trackers[m[1]].type = "RF";
                         }
@@ -767,16 +756,7 @@ function main()
             }
 
             map(devices, device => {
-                if (device.mode == "meshptp") {
-                    // In PtP mode we allow a single mac address.
-                    // Update this every time in case the file gets overwritten (which happens when
-                    // hostapd gets restarted)
-                    updateAllowList(device);
-                }
-                else {
-                    // Update denied mac list
-                    updateDenyList(device, trackers);
-                }
+                updateMacList(device, trackers);
 
                 // Update the wifi distances
                 let distance = distances[device.wlan];

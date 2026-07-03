@@ -47,7 +47,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const wlan = radios.getConfiguration();
     let radio0_mode = modemap[request.args.radio0_mode] || wlan[0].mode.mode;
     let radio1_mode = modemap[request.args.radio1_mode] || wlan[1]?.mode?.mode;
-    if (radio0_mode && radio1_mode && (hardware.supportsFeature("only_one_radio") || (radio0_mode == radio1_mode && (radio0_mode == radios.RADIO_LAN || radio1_mode == radios.RADIO_WAN)))) {
+    if (radio0_mode && radio1_mode && (hardware.supportsFeature("only_one_radio") || (radio0_mode == radios.RADIO_WAN && radio1_mode == radios.RADIO_WAN))) {
         if ("radio0_mode" in request.args) {
             radio1_mode = radios.RADIO_OFF;
         }
@@ -662,14 +662,14 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     {% }
     if (length(wlan) > 1) { %}
         htmx.on(radio0, "htmx:beforeRequest", function() {
-            // Prevent duplicate WAN and LAN radio modes only
-            if (radio1.value != "0" && radio0.value == radio1.value && (radio0.value == "2" || radio0.value == "3")) {
+            // Prevent duplicate WAN radio modes only
+            if (radio0.value == "3" && radio1.value == "3") {
                 radio1.value = 0;
                 htmx.closest(radio1, '.hideable').dataset.hideable = 0;
             }
         });
         htmx.on(radio1, "htmx:beforeRequest", function() {
-            if (radio0.value != "0" && radio1.value == radio0.value && (radio1.value == "2" || radio1.value == "3")) {
+            if (radio0.value == "3" && radio1.value == "3") {
                 radio0.value = 0;
                 htmx.closest(radio0, '.hideable').dataset.hideable = 0;
             }

@@ -36,7 +36,8 @@
     const radio = radios.getActiveConfiguration();
     let midx1 = -1;
     let midx2 = -1;
-    let lidx = -1;
+    let lidx1 = -1;
+    let lidx2 = -1;
     let widx = -1;
     for (let i = 0; i < length(radio); i++) {
         switch (radio[i].mode?.mode) {
@@ -52,7 +53,12 @@
                 }
                 break;
             case radios.RADIO_LAN:
-                lidx = i;
+                if (lidx1 == -1) {
+                    lidx1 = i;
+                }
+                else {
+                    lidx2 = i;
+                }
                 break;
             case radios.RADIO_WAN:
                 widx = i;
@@ -140,8 +146,24 @@
         </div>
     </div>
     {% }
-    if (lidx !== -1) {
-        const r = radio[lidx].mode; %}
+    if (lidx1 !== -1) {
+        const r = radio[lidx1].mode; %}
+    <div class="section-title">LAN Hotspot</div>
+    <div class="section">
+        <div class="cols">
+            <div>
+                <div class="t">{{r.channel}}</div>
+                <div class="s">channel</div>
+            </div>
+            <div style="flex:2">
+                <div class="t">{{r.ssid}}</div>
+                <div class="s">ssid</div>
+            </div>
+        </div>
+    </div>
+    {% }
+    if (lidx2 !== -1) {
+        const r = radio[lidx2].mode; %}
     <div class="section-title">LAN Hotspot</div>
     <div class="section">
         <div class="cols">

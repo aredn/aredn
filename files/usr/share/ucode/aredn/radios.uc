@@ -120,7 +120,8 @@ export function getActiveConfiguration()
     if (nrradios > 0) {
         let mdevice1;
         let mdevice2;
-        let ldevice;
+        let ldevice1;
+        let ldevice2;
         let wdevice;
 
         for (let i = 0; i < nrradios; i++) {
@@ -139,7 +140,12 @@ export function getActiveConfiguration()
             bandwidth: 10,
             ssid: "-"
         };
-        const lmode = {
+        const lmode1 = {
+            mode: RADIO_LAN,
+            channel: 0,
+            ssid: "-"
+        };
+        const lmode2 = {
             mode: RADIO_LAN,
             channel: 0,
             ssid: "-"
@@ -151,8 +157,8 @@ export function getActiveConfiguration()
 
         cursor.foreach("wireless", "wifi-iface", function(s)
         {
-            if (s.network === "wifi" && (s.mode == "ap" || s.mode == "sta" || s.mode == "adhoc")) {
-                if (mdevice1 == null) {
+            if (substr(s.network, 0, 4) === "wifi" && (s.mode == "ap" || s.mode == "sta" || s.mode == "adhoc")) {
+                if (!mdevice1) {
                     mdevice1 = s.device;
                     mmode1.ssid = s.ssid;
                     switch (s.mode) {
@@ -184,8 +190,14 @@ export function getActiveConfiguration()
                 }
             }
             if (s.network === "lan" && s.mode === "ap") {
-                ldevice = s.device;
-                lmode.ssid = s.ssid;
+                if (!ldevice1) {
+                    ldevice1 = s.device;
+                    lmode1.ssid = s.ssid;
+                }
+                else {
+                    ldevice2 = s.device;
+                    lmode2.ssid = s.ssid;
+                }
             }
             if (s.network === "wan" && s.mode === "sta") {
                 wdevice = s.device;
@@ -204,8 +216,11 @@ export function getActiveConfiguration()
                 mmode2.bandwidth = int(s.chanbw);
                 mmode2.txpower = int(s.txpower);
             }
-            if (s[".name"] === ldevice) {
-                lmode.channel = int(s.channel);
+            if (s[".name"] === ldevice1) {
+                lmode1.channel = int(s.channel);
+            }
+            if (s[".name"] === ldevice2) {
+                lmode2.channel = int(s.channel);
             }
         });
 
@@ -217,9 +232,13 @@ export function getActiveConfiguration()
             const idx = int(substr(mdevice2, 5));
             radio[idx].mode = mmode2;
         }
-        if (ldevice) {
-            const idx = int(substr(ldevice, 5));
-            radio[idx].mode = lmode;
+        if (ldevice1) {
+            const idx = int(substr(ldevice1, 5));
+            radio[idx].mode = lmode1;
+        }
+        if (ldevice2) {
+            const idx = int(substr(ldevice2, 5));
+            radio[idx].mode = lmode2;
         }
         if (wdevice) {
             const idx = int(substr(wdevice, 5));

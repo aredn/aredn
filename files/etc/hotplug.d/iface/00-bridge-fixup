@@ -8,7 +8,7 @@ if [ "$ACTION" = "ifup" -a "$DEVICE" = "${BR}" ] ; then
   ip link set ${BR} down
   brctl delbr ${BR}
   brctl addbr ${BR}
-  ip addr add $(uci get network.main.ipaddr)/32 broadcast 255.255.255.255 dev ${BR}
+  ip addr add $(uci get network.mesh.ipaddr)/32 broadcast 255.255.255.255 dev ${BR}
   ip link set ${BR} up
 fi
 
