@@ -34,7 +34,7 @@
 %}
 {%
 
-const wifiiface = uci.get("network", "wifi", "device");
+const wifiiface = radios.getMeshRadio()?.iface;
 const mac = substr(request.env.QUERY_STRING || "", 4) || "00:00:00:00:00:00:";
 
 let noise = -95;

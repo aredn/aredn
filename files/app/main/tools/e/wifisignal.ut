@@ -34,7 +34,7 @@
 %}
 {%
 if (request.env.REQUEST_METHOD === "PUT") {
-    const wifiiface = uci.get("network", "wifi", "device");
+    const wifiiface = radios.getMeshRadio()?.iface;
     const qmac = request.args.mac;
 
     const signals = {};
