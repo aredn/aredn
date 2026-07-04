@@ -490,7 +490,7 @@ export function restoreTunnels(tunnelBackupFilename)
 export function supportdata(supportdatafilename)
 {
     const c = uci.cursor();
-    const wifiiface = c.get("network", "wifi", "device");
+    const wifiiface = radios.getMeshRadio()?.iface;
 
     let doscan = false;
     c.foreach("wireless", "wifi-iface", function(s)

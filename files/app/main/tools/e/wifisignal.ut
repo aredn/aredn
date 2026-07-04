@@ -34,7 +34,7 @@
 %}
 {%
 if (request.env.REQUEST_METHOD === "PUT") {
-    const wifiiface = uci.get("network", "wifi", "device");
+    const wifiiface = radios.getMeshRadio()?.iface;
     const qmac = request.args.mac;
 
     const signals = {};
@@ -57,7 +57,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if (qmac !== "average") {
         const ipv6ll = network.mac2ipv6ll(qmac);
         const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
-        const f = fs.popen(`/bin/uclient-fetch -T 1 http://[${ipv6ll}%${wifiiface}]/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
+        const f = fs.popen(`/bin/uclient-fetch -T 1 http://[${ipv6ll}%${uci.get("network", "wifi", "device")}]/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
         if (f) {
             try {
                 const j = json(f.read("all"));
