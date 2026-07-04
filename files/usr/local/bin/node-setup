@@ -352,6 +352,7 @@ for (let i = 0; i < length(cnetworks); i++) {
     // generate a complete config
     let vlan = null;
     let ports = hardware.getBoardNetworkInterfaceName(net);
+    let macaddr = null;
 
     if (net == "lan") {
         // If the LAN has be given a vlan to use (usually by a switch) we use that here,
@@ -424,7 +425,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         }
     }
     else if (net == "wifi0") {
-        if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp") {
+        if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp" || cfg.radio0_mode == "meshsta") {
             const vlanid = 3700 + int(split(mac2, ".")[2]) + 0;
             vlan = `${vlanid}:t`;
             ports = [];
@@ -432,6 +433,12 @@ for (let i = 0; i < length(cnetworks); i++) {
             for (let p = 0; p < length(dtdports); p++) {
                 push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
             }
+            macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy0/macaddress`));
+            // Make AP's the best for better arednlink performance
+            if (macaddr && (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp")) {
+                macaddr = replace(macaddr, /^..:/, "fe:");
+            }
+            cfg.radio0_macaddr = macaddr;
         }
         else {
             wireless = true;
@@ -439,7 +446,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         }
     }
     else if (net == "wifi1") {
-        if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp") {
+        if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
             const vlanid = 3700 + int(split(mac2, ".")[2]) + 1;
             vlan = `${vlanid}:t`;
             const dtdports = hardware.getBoardNetworkInterfaceName("dtdlink");
@@ -447,6 +454,12 @@ for (let i = 0; i < length(cnetworks); i++) {
             for (let p = 0; p < length(dtdports); p++) {
                 push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
             }
+            macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy1/macaddress`));
+            // Make AP's the best for better arednlink performance
+            if (macaddr && (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp")) {
+                macaddr = replace(macaddr, /^..:/, "fe:");
+            }
+            cfg.radio1_macaddr = macaddr;
         }
         else {
             wireless = true;
@@ -478,12 +491,6 @@ for (let i = 0; i < length(cnetworks); i++) {
         config += "config device\n";
         if (!wireless) {
             config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
-        }
-        if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
-            config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
-        }
-
-        if (!wireless) {
             if (length(ports) == 0) {
                 config += "\toption bridge_empty '1'\n";
             }
@@ -495,6 +502,13 @@ for (let i = 0; i < length(cnetworks); i++) {
         }
         else {
             config += `\toption name '${ports[0]}'\n`;
+        }
+
+        if (macaddr) {
+            config += `\toption macaddr '${macaddr}'\n`;
+        }
+        else if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
+            config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
         }
 
         config += `\nconfig interface '${net}'\n`;
@@ -935,7 +949,6 @@ for (let dev = 0; dev < ifacecount; dev++) {
             mode = "ap";
             encryption = "none";
             network = `wifi${dev}`;
-            multicasttounicast = 1;
             disassoclowack = 0;
             maxinactivity = 600;
             maxlisteninterval = 1;
@@ -947,13 +960,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
             else {
                 macfilter = "deny";
             }
-            // Make AP's the best for better arednlink performance
-            macaddr = fs.readfile(`/sys/class/ieee80211/${devname}/macaddress`);
-            if (macaddr) {
-                macaddr = trim(replace(macaddr, /^..:/, "fe:"));
-                isolate = 1;
-                //bss_color = int(match(macaddr, /:(..)$/)[1], 16);
-            }
+            macaddr = cfg[`${radio}_macaddr`];
             htmode = hardware.getHTMode(wlan, chanbw, cfg[`${radio}_mode`]);
             wds = 1;
         }

@@ -213,6 +213,11 @@ export function getDefaultIP()
     }
 };
 
+export function getIP()
+{
+    return uci.cursor().get("network", "mesh", "ipaddr");
+};
+
 export function setPassword(passwd)
 {
     fs.writefile("/tmp/newpassword", passwd);

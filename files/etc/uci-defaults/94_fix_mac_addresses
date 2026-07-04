@@ -5,7 +5,6 @@ fix=""
 
 eth0=$(cat /sys/class/net/eth0/address 2>/dev/null)
 wlan0=$(cat /sys/class/ieee80211/phy0/macaddress 2>/dev/null)
-wlan1=$(cat /sys/class/ieee80211/phy1/macaddress 2>/dev/null)
 brlan=$(cat /sys/class/net/br-lan/address 2>/dev/null)
 boardid=$(/usr/local/bin/get_boardid)
 mfg=$(/usr/local/bin/get_hardware_mfg)
@@ -18,12 +17,6 @@ elif [ "$brlan" = "00:03:7f:11:23:c6" ]; then # Fix AR300M
     fix="lan"
 elif [ "$mfg" = "MikroTik" ]; then # Fix all MikroTiks
     fix="lan wan dtdlink"
-fi
-if [ "$wlan0" != "" ]; then
-    fix="${fix} wifi0"
-fi
-if [ "$wlan1" != "" ]; then
-    fix="${fix} wifi1"
 fi
 
 eth0wan=""

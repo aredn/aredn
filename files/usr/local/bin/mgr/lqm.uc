@@ -122,7 +122,7 @@ function iwSet(device, cmd)
 }
 
 const myhostname = canonicalHostname(configuration.getName());
-const myip = uci.cursor().get("network", "mesh", "ipaddr");
+const myip = configuration.getIP();
 const mylanip = uci.cursor().get("network", "lan", "ipaddr");
 const issupernode = uci.cursor().get("aredn", "@supernode[0]", "enable") == "1";
 
@@ -364,7 +364,7 @@ function main()
             // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
             const chanbw = int(cursor.get("wireless", device.radio, "chanbw") || "20");
             const channelBwScale = (device.type === "halow" ? 1 : min(20, chanbw)) / 200.0;
-            const wlans = [ device.wlan, ...map(fs.glob("/sys/class/net/wlan0.sta*"), w => fs.basename(w)) ];
+            const wlans = [ device.wlan, ...map(fs.glob(`/sys/class/net/${device.wlan}.sta*`), w => fs.basename(w)) ];
             for (let w = 0; w < length(wlans); w++) {
                 const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
                 for (let i = 0; i < length(stations); i++) {
@@ -515,7 +515,7 @@ function main()
                         track.rev_lastseen = now;
 
                         track.hostname = canonicalHostname(info.node);
-                        track.canonical_ip = network.getIPAddressFromHostname(track.hostname);
+                        track.canonical_ip = info.ip || network.getIPAddressFromHostname(track.hostname);
                         for (let i = 0; i < length(info.interfaces); i++) {
                             const iface = info.interfaces[i];
                             if (iface.mac && lc(iface.mac) === track.mac && iface.ip) {
@@ -549,10 +549,10 @@ function main()
 
                         // Track wifi vlans
                         track.wifivlans = null;
-                        if (track.type === "DtD" && info.meshrf) {
+                        if (track.type === "DtD" && info.meshrf?.vlan) {
                             push(track.wifivlans ?? (track.wifivlans = []), info.meshrf.vlan);
                         }
-                        if (track.type === "DtD" && info.meshrf1) {
+                        if (track.type === "DtD" && info.meshrf1?.vlan) {
                             push(track.wifivlans ?? (track.wifivlans = []), info.meshrf1.vlan);
                         }
 

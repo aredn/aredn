@@ -74,9 +74,9 @@ return function()
         c.set("network", bname, "device", "br0");
         c.set("network", bname, "vlan", vlan);
         c.set("network", bname, "ports", dtdports);
+        c.set("network", bname, "macaddr", replace("x2:xx:xx:xx:xx:xx", "x", _ => sprintf("%x",math.rand()&15)));
         c.set("network", name, "interface");
         c.set("network", name, "ifname", `br0.${vlan}`);
-        c.set("network", name, "proto", "static");
         changed = true;
         log.syslog(log.LOG_NOTICE, `Adding remote wifi: vlan ${vlan}`);
     }
