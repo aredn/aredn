@@ -188,7 +188,7 @@ function deviceToType(device)
     if (device == "br-dtdlink") {
         return "DtD";
     }
-    else if (device === "br-wifi" || match(device, /^wlan/)) {
+    else if (match(device, /^wlan/)) {
         return "RF";
     }
     else if (device === "br-wifi0" || device === "br-wifi1") {
@@ -273,7 +273,7 @@ function main()
             if (substr(name, 0, 5) === "xlink") {
                 xlinks[section.ifname] = true;
             }
-            else if (substr(name, 0, 8) === "remoterf") {
+            else if (substr(name, 0, 3) === "rrf") {
                 rwifi[section.ifname] = true;
             }
         });
@@ -549,11 +549,13 @@ function main()
 
                         // Track wifi vlans
                         track.wifivlans = null;
-                        if (track.type === "DtD" && info.meshrf?.vlan) {
-                            push(track.wifivlans ?? (track.wifivlans = []), info.meshrf.vlan);
-                        }
-                        if (track.type === "DtD" && info.meshrf1?.vlan) {
-                            push(track.wifivlans ?? (track.wifivlans = []), info.meshrf1.vlan);
+                        if (track.type === "DtD") {
+                            if (info.meshrf?.vlan) {
+                                push(track.wifivlans ?? (track.wifivlans = []), info.meshrf.vlan);
+                            }
+                            if (info.meshrf1?.vlan) {
+                                push(track.wifivlans ?? (track.wifivlans = []), info.meshrf1.vlan);
+                            }
                         }
 
                         if (info.lqm && info.lqm.info && info.lqm.info.trackers) {
@@ -633,6 +635,16 @@ function main()
                     track.user_blocks = true;
                     break;
                 }
+            }
+
+            // Track remote wifis
+            track.remoterf = false;
+            if (track.wifivlans) {
+                map(track.wifivlans, vlan => {
+                    if (rwifi[`br0.${vlan}`]) {
+                        track.remoterf = true;
+                    }
+                });
             }
 
             // Include babel info for this link

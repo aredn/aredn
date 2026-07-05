@@ -31,7 +31,7 @@
  * version
  */
 
-if (uci.cursor().get("aredn", "@remote_rf[0]", "enable") != "1") {
+if (uci.cursor().get("aredn", "@remoterf[0]", "enable") != "1") {
     return exitApp();
 }
 
@@ -54,8 +54,8 @@ return function()
     const c = uci.cursor();
     c.foreach("network", "interface", i => {
         const name = i[".name"];
-        if (substr(name, 0, 8) === "remoterf") {
-            const vlan = substr(name, 10);
+        if (substr(name, 0, 3) === "rrf") {
+            const vlan = substr(name, 3);
             if (addvlan[vlan]) {
                 delete addvlan[vlan];
             }
@@ -68,21 +68,27 @@ return function()
     let changed = false;
     const dtdports = map(hardware.getBoardNetworkInterfaceName("dtdlink"), p => `${split(p, ".")[0]}:t`);
     for (let vlan in addvlan) {
-        const name = `remoterf${vlan}`;
+        const name = `rrf${vlan}`;
+        const vname = `${name}vlan`;
         const bname = `${name}bridge`;
-        c.set("network", bname, "bridge-vlan");
-        c.set("network", bname, "device", "br0");
-        c.set("network", bname, "vlan", vlan);
-        c.set("network", bname, "ports", dtdports);
+        c.set("network", vname, "bridge-vlan");
+        c.set("network", vname, "device", "br0");
+        c.set("network", vname, "vlan", vlan);
+        c.set("network", vname, "ports", dtdports);
+        c.set("network", bname, "device");
+        c.set("network", bname, "name", `br-${name}`);
+        c.set("network", bname, "type", "bridge");
+        c.set("network", bname, "ports", [ `br0.${vlan}` ]);
         c.set("network", bname, "macaddr", replace("x2:xx:xx:xx:xx:xx", "x", _ => sprintf("%x",math.rand()&15)));
         c.set("network", name, "interface");
-        c.set("network", name, "ifname", `br0.${vlan}`);
+        c.set("network", name, "device", `br-${name}`);
         changed = true;
         log.syslog(log.LOG_NOTICE, `Adding remote wifi: vlan ${vlan}`);
     }
     for (vlan in rmvlan) {
-        const name = `remoterf${vlan}`;
-        const bname = `${name}bridge`;
+        const name = `rrf${vlan}`;
+        const vname = `${name}vlan`;
+        c.delete("network", vname);
         c.delete("network", bname);
         c.delete("network", name);
         changed = true;
