@@ -36,6 +36,7 @@ import * as uci from "uci";
 import * as configuration from "aredn.configuration";
 import * as hardware from "aredn.hardware";
 import * as lqm from "aredn.lqm";
+import * as radios from "aredn.radios";
 
 function parseMessages(nodename, msgs, text)
 {
@@ -87,16 +88,18 @@ export function getToDos()
     }
     if (hardware.getRadioCount() > 0) {
         const wlan = radios.getMeshRadio()?.iface;
-        const ants = hardware.getAntennas(wlan);
-        const ant = cursor.get("aredn", "@location[0]", "antenna");
-        if (length(ants) > 1 && !ant) {
-            push(todos, "Select an antenna");
-        }
-        else if (ant || length(ants) === 1) {
-            if (!cursor.get("aredn", "@location[0]", "azimuth")) {
-                const ainfo = hardware.getAntennaInfo(wlan, ant || ants[0]);
-                if (ainfo?.beamwidth !== 360) {
-                    push(todos, "Set antenna azimuth");
+        if (wlan) {
+            const ants = hardware.getAntennas(wlan);
+            const ant = cursor.get("aredn", "@location[0]", "antenna");
+            if (length(ants) > 1 && !ant) {
+                push(todos, "Select an antenna");
+            }
+            else if (ant || length(ants) === 1) {
+                if (!cursor.get("aredn", "@location[0]", "azimuth")) {
+                    const ainfo = hardware.getAntennaInfo(wlan, ant || ants[0]);
+                    if (ainfo?.beamwidth !== 360) {
+                        push(todos, "Set antenna azimuth");
+                    }
                 }
             }
         }
