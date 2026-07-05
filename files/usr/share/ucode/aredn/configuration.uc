@@ -515,13 +515,11 @@ export function restoreTunnels(tunnelBackupFilename)
 
 export function supportdata(supportdatafilename)
 {
-    const c = uci.cursor();
-
     const wifiiface0 = fs.access("/sys/class/net/wlan0") ? "wlan0" : null;
     const wifiiface1 = fs.access("/sys/class/net/wlan1") ? "wlan1" : null;
     let doscan0 = false;
     let doscan1 = false;
-    c.foreach("wireless", "wifi-iface", function(s)
+    uci.cursor().foreach("wireless", "wifi-iface", function(s)
     {
         if (s.ifname == wifiiface0 && s.mode === "adhoc") {
             doscan0 = true;
@@ -551,8 +549,6 @@ export function supportdata(supportdatafilename)
         "/tmp/service-validation-state.json",
         "/tmp/sysinfo",
         "/tmp/dhcp.leases",
-        "/sys/kernel/debug/ieee80211/phy0/ath9k/ack_to",
-        "/sys/kernel/debug/ieee80211/phy1/ath9k/ack_to",
         "/proc/net/nf_conntrack",
         "/var/etc/babel-active.conf",
         "/var/run/hostapd-wlan0.maclist",
@@ -603,7 +599,6 @@ export function supportdata(supportdatafilename)
         "babel-dump",
         "/usr/local/bin/arednlink-dump",
         "ls -l /var/run/arednlink/*/*",
-        "echo /all | nc 127.0.0.1 2006",
         "apk info",
         "ps -w",
         "/usr/local/bin/get_hardwaretype",

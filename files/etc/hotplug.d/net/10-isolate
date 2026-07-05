@@ -1,0 +1,23 @@
+#!/bin/sh
+# Isolate each connected station so they only see the main node
+
+RETRIES=10
+env >> /tmp/LOG
+
+if [ "${ACTION}" = "add" ]; then
+    case "${INTERFACE}" in
+        wlan*)
+            n=0
+            while [ ${n} -lt ${RETRIES} ]; do
+                if [ -e "/sys/class/net/${INTERFACE}/brport/isolated" ]; then
+                    echo 1 > "/sys/class/net/${INTERFACE}/brport/isolated"
+                    break;
+                fi
+                n=$((n+1))
+                sleep 1
+            done
+            ;;
+        *)
+            ;;
+    esac
+fi

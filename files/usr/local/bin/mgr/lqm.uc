@@ -182,8 +182,9 @@ function reachToLQ(reach)
 
 let xlinks = {};
 let rwifi = {};
+let bwifi = {};
 
-function deviceToType(device)
+function deviceToType(device, mac)
 {
     if (device == "br-dtdlink") {
         return "DtD";
@@ -192,7 +193,9 @@ function deviceToType(device)
         return "RF";
     }
     else if (device === "br-wifi0" || device === "br-wifi1") {
-        return "RF?";
+        if (mac && bwifi[mac]) {
+            return "RRF";
+        }
     }
     else if (match(device, /^wg/)) {
         return "Wireguard";
@@ -203,9 +206,7 @@ function deviceToType(device)
     else if (rwifi[device]) {
         return "RemoteRF";
     }
-    else {
-        return null;
-    }
+    return null;
 }
 
 function main()
@@ -268,6 +269,7 @@ function main()
         // Update xlinks and remote wifi
         xlinks = {};
         rwifi = {};
+        bwifi = {};
         cursor.foreach("network", "interface", section => {
             const name = section[".name"];
             if (substr(name, 0, 5) === "xlink") {
@@ -278,14 +280,30 @@ function main()
             }
         });
 
+        // Find the macs on the wifi bridges
+        for (let b = 0; b < 2; b++) {
+            if (fs.access(`/sys/class/net/br-wifi${b}`)) {
+                const p = fs.popen(`${BRCTL} showmacs br-wifi${b}`);
+                if (p) {
+                    for (let line = p.read("line"); length(line); line = p.read("line")) {
+                        const m = match(trim(line), /^[^1]\s+([0-9a-f:]+)\s+no/);
+                        if (m) {
+                            bwifi[m[1]] = true;
+                        }
+                    }
+                    p.close();
+                }
+            }
+        }
+
         // Find our neighbors
         const p = fs.popen("echo dump-neighbors | /usr/bin/socat -T 30 -t 30 UNIX-CLIENT:/var/run/babel.sock - 2>/dev/null");
         if (p) {
             for (let line = p.read("line"); length(line); line = p.read("line")) {
                 const m = match(line, /^add.*address ([^ \t]+) if ([^ \t]+) reach ([^ \t]+) .* rxcost ([^ \t]+) txcost ([^ \t]+)/);
                 if (m) {
-                    const type = deviceToType(m[2]);
                     const mac = network.ipv6ll2mac(m[1]);
+                    const type = deviceToType(m[2], mac);
                     let track = trackers[mac];
                     if (!track && type) {
                         track = {
@@ -310,6 +328,8 @@ function main()
                         trackers[mac] = track;
                     }
                     if (track) {
+                        track.type = type;
+                        track.device = m[2];
                         track.lq = reachToLQ(m[3]);
                         track.rxcost = int(m[4]);
                         track.txcost = int(m[5]);
@@ -329,7 +349,7 @@ function main()
         const istats = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
         for (let i = 0; i < length(istats); i++) {
             const stat = istats[i];
-            const type = deviceToType(stat.dev);
+            const type = deviceToType(stat.dev, null);
             if (type === "Wireguard" || type == "Xlink") {
                 for (let mac in trackers) {
                     const t = trackers[mac];
@@ -392,22 +412,6 @@ function main()
                 }
             }
         });
-
-        // Detmine which trackers on the wifi bridge are on the wifi side.
-        for (let b = 0; b < 2; b++) {
-            if (fs.access(`/sys/class/net/br-wifi${b}`)) {
-                const p = fs.popen(`${BRCTL} showmacs br-wifi${b}`);
-                if (p) {
-                    for (let line = p.read("line"); length(line); line = p.read("line")) {
-                        const m = match(trim(line), /^[^1]\s+([0-9a-f:]+)\s+no/);
-                        if (m && trackers[m[1]]) {
-                            trackers[m[1]].type = "RF";
-                        }
-                    }
-                    p.close();
-                }
-            }
-        }
 
         // Update running averages
         for (let mac in trackers) {
