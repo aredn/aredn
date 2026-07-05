@@ -490,13 +490,18 @@ export function restoreTunnels(tunnelBackupFilename)
 export function supportdata(supportdatafilename)
 {
     const c = uci.cursor();
-    const wifiiface = radios.getMeshRadio()?.iface;
 
-    let doscan = false;
+    const wifiiface0 = fs.access("/sys/class/net/wlan0") ? "wlan0" : null;
+    const wifiiface1 = fs.access("/sys/class/net/wlan1") ? "wlan1" : null;
+    let doscan0 = false;
+    let doscan1 = false;
     c.foreach("wireless", "wifi-iface", function(s)
     {
-        if (s.ifname == wifiiface && s.mode === "adhoc") {
-            doscan = true;
+        if (s.ifname == wifiiface0 && s.mode === "adhoc") {
+            doscan0 = true;
+        }
+        if (s.ifname == wifiiface1 && s.mode === "adhoc") {
+            doscan1 = true;
         }
     });
 
@@ -555,11 +560,16 @@ export function supportdata(supportdatafilename)
         "ip rule list",
         "netstat -aln",
         "iwinfo",
-        `${wifiiface ? "iwinfo " + wifiiface + " assoclist" : ""}`,
-        `${wifiiface ? "iw phy " + hardware.getPhyDevice(wifiiface) + " info" : ""}`,
-        `${wifiiface ? "iw dev " + wifiiface + " info" : ""}`,
-        `${wifiiface && doscan ? "iw dev " + wifiiface + " scan" : ""}`,
-        `${wifiiface ? "iw dev " + wifiiface + " station dump" : ""}`,
+        `${wifiiface0 ? "iwinfo " + wifiiface0 + " assoclist" : ""}`,
+        `${wifiiface0 ? "iw phy " + hardware.getPhyDevice(wifiiface0) + " info" : ""}`,
+        `${wifiiface0 ? "iw dev " + wifiiface0 + " info" : ""}`,
+        `${wifiiface0 && doscan0 ? "iw dev " + wifiiface0 + " scan" : ""}`,
+        `${wifiiface0 ? "iw dev " + wifiiface0 + " station dump" : ""}`,
+        `${wifiiface1 ? "iwinfo " + wifiiface1 + " assoclist" : ""}`,
+        `${wifiiface1 ? "iw phy " + hardware.getPhyDevice(wifiiface1) + " info" : ""}`,
+        `${wifiiface1 ? "iw dev " + wifiiface1 + " info" : ""}`,
+        `${wifiiface1 && doscan1 ? "iw dev " + wifiiface1 + " scan" : ""}`,
+        `${wifiiface1 ? "iw dev " + wifiiface1 + " station dump" : ""}`,
         "wg show all",
         "wg show all latest-handshakes",
         "nft list ruleset",
