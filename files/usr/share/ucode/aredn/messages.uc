@@ -87,7 +87,7 @@ export function getToDos()
         push(todos, "Set the timezone");
     }
     if (hardware.getRadioCount() > 0) {
-        const wlan = radios.getMeshRadio()?.iface;
+        const wlan = radios.getMeshRadios()[0]?.iface;
         if (wlan) {
             const ants = hardware.getAntennas(wlan);
             const ant = cursor.get("aredn", "@location[0]", "antenna");

@@ -34,30 +34,42 @@
 %}
 {%
 if (request.env.REQUEST_METHOD === "PUT") {
-    const wifiiface = radios.getMeshRadio()?.iface;
     const qmac = request.args.mac;
 
     const signals = {};
-    const info = qmac === "average" ? 
-        nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifiiface }) :
-        nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: wifiiface, mac: qmac });
+    const noises = [];
+    let dev;
 
-    if (info) {
-        if (type(info) === "array") {
-            for (let i = 0; i < length(info); i++) {
-                signals[info[i].mac] = info[i].sta_info.signal_avg;
+    const devices = radios.getMeshRadios();
+    for (let i = 0; i < length(devices); i++) {
+        if (qmac === "average") {
+            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: devices[i].iface });
+            if (type(info) === "array") {
+                for (let i = 0; i < length(info); i++) {
+                    signals[info[i].mac] = info[i].sta_info.signal_avg;
+                }
+                push(noises, hardware.getRadioNoise(devices[i].iface));
             }
         }
         else {
-            signals[info.mac] = info.sta_info.signal_avg;
+            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: devices[i].iface, mac: qmac });
+            if (info && info.mac === qmac) {
+                dev = devices[i];
+                signals[info.mac] = info.sta_info.signal_avg;
+                push(noises, hardware.getRadioNoise(dev.iface));
+                break;
+            }
         }
     }
+    let noise = 0;
+    map(noises, n => noise += n);
+    noise /= length(noises);
 
-    const response = { s: signals, n: hardware.getRadioNoise(wifiiface) };
+    const response = { s: signals, n: noise };
     if (qmac !== "average") {
         const ipv6ll = network.mac2ipv6ll(qmac);
-        const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
-        const f = fs.popen(`/bin/uclient-fetch -T 1 http://[${ipv6ll}%${uci.get("network", "wifi", "device")}]/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
+        const wifimac = trim(fs.readfile(`/sys/class/net/${dev.iface}/address`));
+        const f = fs.popen(`/bin/uclient-fetch -T 1 http://[${ipv6ll}%${dev.main}]/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
         if (f) {
             try {
                 const j = json(f.read("all"));

@@ -31,6 +31,7 @@
  * version
  */
 
+import * as fs from "fs";
 import * as hardware from "aredn.hardware";
 import * as configuration from "aredn.configuration";
 import * as uci from "uci";
@@ -291,10 +292,13 @@ export function getMeshRadios()
     for (let i = 0; i < length(config); i++) {
         switch (config[i].mode.mode) {
             case RADIO_MESH:
+                push(radios, { mode: config[i].mode.mode, iface: config[i].iface, main: config[i].iface });
+                break;
             case RADIO_MESHPTP:
             case RADIO_MESHPTMP:
             case RADIO_MESHSTA:
-                push(radios, { mode: config[i].mode.mode, iface: config[i].iface });
+                const bridge = fs.basename(fs.readlink(`/sys/class/net/${config[i].iface}/master`));
+                push(radios, { mode: config[i].mode.mode, iface: config[i].iface, main: bridge });
                 break;
             default:
                 break;
