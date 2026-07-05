@@ -274,7 +274,7 @@ function main()
                 xlinks[section.ifname] = true;
             }
             else if (substr(name, 0, 3) === "rrf") {
-                rwifi[section.ifname] = true;
+                rwifi[section.device] = true;
             }
         });
 
@@ -641,7 +641,7 @@ function main()
             track.remoterf = false;
             if (track.wifivlans) {
                 map(track.wifivlans, vlan => {
-                    if (rwifi[`br0.${vlan}`]) {
+                    if (rwifi[`br-rrf${vlan}`]) {
                         track.remoterf = true;
                     }
                 });

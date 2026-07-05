@@ -82,12 +82,15 @@ return function()
         c.set("network", bname, "macaddr", replace("x2:xx:xx:xx:xx:xx", "x", _ => sprintf("%x",math.rand()&15)));
         c.set("network", name, "interface");
         c.set("network", name, "device", `br-${name}`);
+        //c.set("network", name, "interface");
+        //c.set("network", name, "ifname", `br0.${vlan}`);
         changed = true;
         log.syslog(log.LOG_NOTICE, `Adding remote wifi: vlan ${vlan}`);
     }
     for (vlan in rmvlan) {
         const name = `rrf${vlan}`;
         const vname = `${name}vlan`;
+        const bname = `${name}bridge`;
         c.delete("network", vname);
         c.delete("network", bname);
         c.delete("network", name);
