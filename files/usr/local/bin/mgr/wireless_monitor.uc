@@ -128,7 +128,7 @@ function resetNetwork(rs, op)
             log.syslog(log.LOG_NOTICE, `-- ignored`);
             break;
         default:
-            log.syslog(log.LOG_ERR, `-- unknown chipset '${rs.chipset}`);
+            log.syslog(log.LOG_ERR, `-- unknown chipset '${rs.chipset}'`);
             break;
     }
 }
@@ -257,6 +257,12 @@ function save()
     const perRadio = {};
     for (let i = 0; i < length(radioState); i++) {
         const rs = radioState[i];
+        // Skip a radio that never got a chipset assigned (failed startup
+        // discovery) rather than reporting its stale/default zero values
+        // forever.
+        if (!rs.chipset) {
+            continue;
+        }
         perRadio[rs.iface] = {
             unresponsive: rs.unresponsive,
             stationCount: rs.stationCount,
