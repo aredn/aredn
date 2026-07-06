@@ -54,22 +54,47 @@ const IW = "/usr/sbin/iw";
 const UFETCH = "/bin/uclient-fetch";
 const PING6 = "/bin/ping6";
 
-// Get radio
-const device = radios.getMeshRadio();
-const wlan = device ? device.iface : "none";
-const phy = device ? hardware.getPhyDevice(wlan) : "none";
-const radio = device ? hardware.getRadioDevice(wlan) : "none";
-const devtype = hardware.getRadioType(wlan);
+// Get all the radios currently running in a mesh-family mode. Captured once at
+// startup, same as the single-radio lookup this replaces - a live radio
+// reconfiguration already requires an LQM restart to be picked up.
+const meshRadios = radios.getMeshRadios();
+const radioState = map(meshRadios, function(d) {
+    return {
+        iface: d.iface,
+        mode: d.mode,
+        phy: hardware.getPhyDevice(d.iface),
+        radio: hardware.getRadioDevice(d.iface),
+        devtype: hardware.getRadioType(d.iface),
+        noise: -95,
+        lastDistance: -1,
+        lastReadDistance: -1,
+        distance: -1
+    };
+});
+
+function findRadioState(iface)
+{
+    for (let i = 0; i < length(radioState); i++) {
+        if (radioState[i].iface == iface) {
+            return radioState[i];
+        }
+    }
+    return null;
+}
 
 let config = {};
+
+function maxDistanceFor(radio)
+{
+    const cm = uci.cursor("/etc/config.mesh");
+    const max_distance = cm.get("setup", "globals", `${radio}_distance`) || default_max_distance;
+    return max_distance > 0 ? max_distance : default_max_distance;
+}
 
 function updateConfig()
 {
     const c = uci.cursor();
-    const cm = uci.cursor("/etc/config.mesh");
-    const max_distance = cm.get("setup", "globals", `${radio}_distance`) || default_max_distance;
     config = {
-        max_distance: max_distance > 0 ? max_distance : default_max_distance,
         user_blocks: c.get("aredn", "@lqm[0]", "user_blocks")
     };
 }
@@ -108,22 +133,30 @@ function canonicalHostname(hostname)
     return lc(replace(replace(replace(replace(replace(replace(hostname, /^dtdlink\./, ""), /^xlink\d+\./, ""), /^xlink\d+\./, ""), /^lan\./, ""), /^supernode\./, ""), /\.local\.mesh$/, ""));
 }
 
-function iwSet(cmd)
+function iwSet(phy, cmd)
 {
-    if (phy !== "none") {
+    if (phy) {
         system(`${IW} ${phy} set ${cmd} > /dev/null 2>&1`);
     }
 }
 
 const myhostname = canonicalHostname(configuration.getName());
-const myip = uci.cursor().get("network", "wifi", "ipaddr");
+// All of our own mesh network addresses (the primary "wifi" network, plus any
+// additional "wifiN" networks when more than one radio is mesh) so none of
+// them can ever be mistaken for a hidden node.
+const myips = {};
+uci.cursor().foreach("network", "interface", function(s) {
+    if (s.ipaddr && (s[".name"] == "wifi" || match(s[".name"], /^wifi[0-9]+$/))) {
+        myips[s.ipaddr] = true;
+    }
+});
 const mylanip = uci.cursor().get("network", "lan", "ipaddr");
 const issupernode = uci.cursor().get("aredn", "@supernode[0]", "enable") == "1";
 
 // Clear old data
 fs.writefile("/tmp/lqm.info", '{"trackers":{},"hidden_nodes":[]}');
 
-function updateAllowList()
+function updateAllowList(wlan, radio)
 {
     const f = `/var/run/hostapd-${wlan}.maclist`;
     const o = fs.readfile(f);
@@ -143,7 +176,7 @@ function updateAllowList()
     return true;
 }
 
-function updateDenyList(trackers)
+function updateDenyList(wlan, trackers)
 {
     const f = `/var/run/hostapd-${wlan}.maclist`;
     const o = fs.readfile(f);
@@ -203,45 +236,51 @@ function main()
     const trackers = {};
     let rfLinks = {};
     let hiddenNodes = {};
-    let lastDistance = -1;
-    let lastReadDistance = -1;
-    let distance = -1;
-    let noise = -95;
     let now = 0;
     let previousnow = 0;
-    const radioMode = device ? uci.cursor("/etc/config.mesh").get("setup", "globals", `${radio}_mode`) : "off";
     const start = clock(true)[0];
 
     updateConfig();
 
-    // We dont know any distances yet
-    switch (devtype) {
-        case "halow":
-        case "ax":
-        case "ac":
-            lastDistance = config.max_distance;
-            if (hardware.supportsFeature("max-distance", wlan)) {
-                lastReadDistance = hardware.setMaxDistance(wlan, lastDistance);
-            }
-            break;
-        case "n":
-            iwSet("distance auto");
-            break;
-        default:
-            break;
-    }
-    // Or any hidden nodes
-    iwSet("rts off");
-    // Set the default retries
-    iwSet(`retry short ${default_short_retries} long ${default_long_retries}`);
-    // Setup mac filters
-    if (radioMode == "meshptp") {
-        // In PtP mode we allow a single mac address
-        updateAllowList();
-    }
-    else {
-        // Clear the deny list
-        updateDenyList({});
+    // Reset each radio's per-tick tracking state fresh on every (re)start.
+    for (let i = 0; i < length(radioState); i++) {
+        const rs = radioState[i];
+        rs.noise = -95;
+        rs.lastDistance = -1;
+        rs.lastReadDistance = -1;
+        rs.distance = -1;
+
+        const max_distance = maxDistanceFor(rs.radio);
+
+        // We dont know any distances yet
+        switch (rs.devtype) {
+            case "halow":
+            case "ax":
+            case "ac":
+                rs.lastDistance = max_distance;
+                if (hardware.supportsFeature("max-distance", rs.iface)) {
+                    rs.lastReadDistance = hardware.setMaxDistance(rs.iface, rs.lastDistance);
+                }
+                break;
+            case "n":
+                iwSet(rs.phy, "distance auto");
+                break;
+            default:
+                break;
+        }
+        // Or any hidden nodes
+        iwSet(rs.phy, "rts off");
+        // Set the default retries
+        iwSet(rs.phy, `retry short ${default_short_retries} long ${default_long_retries}`);
+        // Setup mac filters
+        if (rs.mode == "meshptp") {
+            // In PtP mode we allow a single mac address
+            updateAllowList(rs.iface, rs.radio);
+        }
+        else {
+            // Clear the deny list
+            updateDenyList(rs.iface, {});
+        }
     }
 
     // This file allows the main loop to restart
@@ -257,11 +296,6 @@ function main()
         const cursor = uci.cursor();
         const cursorm = uci.cursor("/etc/config.mesh");
         let refresh = false;
-
-        // If the channel bandwidth is less than 20, we need to adjust what we report as the values.
-        // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
-        const chanbw = int(cursor.get("wireless", radio, "chanbw") || "20");
-        const channelBwScale = (devtype === "halow" ? 1 : min(20, chanbw)) / 200.0;
 
         const lat = cursor.get("aredn", "@location[0]", "lat") ? 1 * cursor.get("aredn", "@location[0]", "lat") : null;
         const lon = cursor.get("aredn", "@location[0]", "lon") ? 1 * cursor.get("aredn", "@location[0]", "lon") : null;
@@ -295,7 +329,7 @@ function main()
                             avg_lq: 100
                         };
                         if (type === "RF") {
-                            track.mode = radioMode;
+                            track.mode = findRadioState(m[2])?.mode;
                         }
                         trackers[mac] = track;
                     }
@@ -344,15 +378,23 @@ function main()
             }
         }
 
-        // Update stats for radios
-        if (wlan !== "none") {
-            const cnoise = hardware.getRadioNoise(wlan);
+        // Update stats for radios, one radio at a time so each contributes its own
+        // noise floor and bitrate scaling to its own neighbors' trackers.
+        for (let i = 0; i < length(radioState); i++) {
+            const rs = radioState[i];
+
+            // If the channel bandwidth is less than 20, we need to adjust what we report as the values.
+            // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
+            const chanbw = int(cursor.get("wireless", rs.radio, "chanbw") || "20");
+            const channelBwScale = (rs.devtype === "halow" ? 1 : min(20, chanbw)) / 200.0;
+
+            const cnoise = hardware.getRadioNoise(rs.iface);
             if (cnoise < -70) {
-                noise = round(noise * noise_run_avg + cnoise * (1 - noise_run_avg));
+                rs.noise = round(rs.noise * noise_run_avg + cnoise * (1 - noise_run_avg));
             }
-            const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlan });
-            for (let i = 0; i < length(stations); i++) {
-                const station = stations[i];
+            const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: rs.iface });
+            for (let j = 0; j < length(stations); j++) {
+                const station = stations[j];
                 const track = trackers[station.mac];
                 if (track) {
                     track.signal = station.sta_info.signal;
@@ -366,10 +408,10 @@ function main()
                         track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
                     }
                     if (track.snr !== null) {
-                        track.snr = max(0, round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg)));
+                        track.snr = max(0, round(track.snr * snr_run_avg + (track.signal - rs.noise) * (1 - snr_run_avg)));
                     }
                     else {
-                        track.snr = max(0, track.signal - noise);
+                        track.snr = max(0, track.signal - rs.noise);
                     }
                     track.connected_time = station.sta_info.connected_time;
                 }
@@ -434,8 +476,10 @@ function main()
         let updateTrackingState;
         let finish;
 
-        // Max RF distance
-        distance = -1;
+        // Max RF distance, per radio
+        for (let i = 0; i < length(radioState); i++) {
+            radioState[i].distance = -1;
+        }
         const ip2tracker = {};
 
         // Refresh remote attributes periodically as this is expensive
@@ -665,13 +709,16 @@ function main()
                 track.quality = nil;
             }
 
-            // Calculate the max RF distance as we go
+            // Calculate the max RF distance as we go, per radio
             if (track.type == "RF" && track.lastseen >= now) {
-                if (track.distance === null) {
-                    distance = config.max_distance
-                }
-                else if (!track.user_blocks && track.distance > distance) {
-                    distance = track.distance;
+                const rs = findRadioState(track.device);
+                if (rs) {
+                    if (track.distance === null) {
+                        rs.distance = maxDistanceFor(rs.radio);
+                    }
+                    else if (!track.user_blocks && track.distance > rs.distance) {
+                        rs.distance = track.distance;
+                    }
                 }
             }
 
@@ -720,32 +767,39 @@ function main()
                 }
             }
 
-            if (radioMode == "meshptp") {
-                // In PtP mode we allow a single mac address.
-                // Update this every time in case the file gets overwritten (which happens when
-                // hostapd gets restarted)
-                updateAllowList();
-            }
-            else {
-                // Update denied mac list
-                updateDenyList(trackers);
-            }
+            for (let i = 0; i < length(radioState); i++) {
+                const rs = radioState[i];
+                if (rs.mode == "meshptp") {
+                    // In PtP mode we allow a single mac address.
+                    // Update this every time in case the file gets overwritten (which happens when
+                    // hostapd gets restarted)
+                    updateAllowList(rs.iface, rs.radio);
+                }
+                else {
+                    // Update denied mac list
+                    updateDenyList(rs.iface, trackers);
+                }
 
-            // Update the wifi distance
-            if (distance < 0) {
-                distance = config.max_distance;
-            }
-            else {
-                distance = min(distance, config.max_distance);
-            }
-            if (hardware.supportsFeature("max-distance", wlan)) {
-                if (distance != lastDistance || lastReadDistance != hardware.getMaxDistance(wlan)) {
-                    lastDistance = distance;
-                    lastReadDistance = hardware.setMaxDistance(wlan, distance);
+                // Update this radio's distance
+                const max_distance = maxDistanceFor(rs.radio);
+                if (rs.distance < 0) {
+                    rs.distance = max_distance;
+                }
+                else {
+                    rs.distance = min(rs.distance, max_distance);
+                }
+                if (hardware.supportsFeature("max-distance", rs.iface)) {
+                    if (rs.distance != rs.lastDistance || rs.lastReadDistance != hardware.getMaxDistance(rs.iface)) {
+                        rs.lastDistance = rs.distance;
+                        rs.lastReadDistance = hardware.setMaxDistance(rs.iface, rs.distance);
+                    }
                 }
             }
 
-            // Set the RTS/CTS state depending on whether everyone can see everyone
+            // Set the RTS/CTS state depending on whether everyone can see everyone.
+            // This is computed once across all radios (a node hidden from one radio's
+            // neighbors is treated the same as hidden from any other) and then applied
+            // to every mesh radio.
             // Build a list of all the nodes our neighbors can see
             const theres = {};
             for (let mac in rfLinks) {
@@ -765,27 +819,40 @@ function main()
                 }
             }
             // Including ourself
-            delete theres[myip];
+            for (let ip in myips) {
+                delete theres[ip];
+            }
             delete theres[mylanip];
 
             // If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
             const hidden = values(theres);
             if ((length(hidden) == 0) != (length(hiddenNodes) == 0)) {
-                if (length(hidden) > 0) {
-                    iwSet(`rts ${rts_threshold}`);
-                }
-                else {
-                    iwSet("rts off");
+                for (let i = 0; i < length(radioState); i++) {
+                    if (length(hidden) > 0) {
+                        iwSet(radioState[i].phy, `rts ${rts_threshold}`);
+                    }
+                    else {
+                        iwSet(radioState[i].phy, "rts off");
+                    }
                 }
             }
             hiddenNodes = hidden;
 
-            // Save this for the UI
+            // Save this for the UI. "distance" is kept as a single scalar for
+            // backward compatibility (no consumer reads per-radio detail) - the
+            // max across all mesh radios, identical to today's value when there's
+            // only one.
+            let maxDistance = -1;
+            for (let i = 0; i < length(radioState); i++) {
+                if (radioState[i].distance > maxDistance) {
+                    maxDistance = radioState[i].distance;
+                }
+            }
             fs.writefile("/tmp/lqm.info", sprintf("%.2J", {
                 start: start,
                 now: now,
                 trackers: trackers,
-                distance: distance,
+                distance: maxDistance,
                 hidden_nodes: hiddenNodes,
                 total_route_count: total_route_count
             }));
