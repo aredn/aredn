@@ -79,6 +79,13 @@
         }
         return "-";
     }
+    function bandLabel(iface)
+    {
+        if (!iface || !match(iface, /^wlan/)) {
+            return null;
+        }
+        return hardware.getDefaultChannel(iface)?.band || null;
+    }
     function canonicalLookupIP(ip)
     {
         const hostname = network.getHostnameFromIPAddress(ip);
@@ -228,9 +235,11 @@
                 }
                 let icon = "";
                 let title = "";
+                let band = null;
                 switch (tracker && tracker.type || "Unknown") {
                     case "RF":
-                        title = "RF ";
+                        band = bandLabel(tracker.device);
+                        title = band ? `RF (${band}) ` : "RF ";
                         icon = "wifi";
                         break;
                     case "DtD":
@@ -248,16 +257,17 @@
                     default:
                         break;
                 }
+                const bandBadge = band ? `<span class="band">${band}</span>` : "";
                 if (ord(entry.name) === 124) { // |
                     const ip = substr(entry.name, 1);
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${ip}'>${ip}&nbsp;&nbsp;<div class="icon ${icon}"></div>${bandBadge}</a></div>`);
                 }
                 else if (ord(entry.name) === 126) { // ~
                     const mac = substr(entry.name, 1);
                     print(`<div class='h'><span>${mac}</span></div>`);
                 }
                 else {
-                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
+                    print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}&nbsp;&nbsp;<div class="icon ${icon}"></div>${bandBadge}</a></div>`);
                 }
                 print("<div class='ts cols stats'>");
                 if (request.mobile) {

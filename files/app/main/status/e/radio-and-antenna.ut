@@ -44,15 +44,22 @@ if (request.env.REQUEST_METHOD === "PUT") {
         "2": radios.RADIO_LAN,
         "3": radios.RADIO_WAN
     };
+    const isMeshFamily = (mode) => mode === radios.RADIO_MESH || mode === radios.RADIO_MESHPTMP || mode === radios.RADIO_MESHPTP || mode === radios.RADIO_MESHSTA;
     const wlan = radios.getConfiguration();
     let radio0_mode = modemap[request.args.radio0_mode] || wlan[0].mode.mode;
     let radio1_mode = modemap[request.args.radio1_mode] || wlan[1]?.mode?.mode;
-    if (radio0_mode && radio1_mode && (substr(radio0_mode, 0, 4) === substr(radio1_mode, 0, 4) || hardware.supportsFeature("only_one_radio"))) {
-        if ("radio0_mode" in request.args) {
-            radio1_mode = radios.RADIO_OFF;
-        }
-        else if ("radio1_mode" in request.args) {
-            radio0_mode = radios.RADIO_OFF;
+    if (radio0_mode && radio1_mode) {
+        // Two radios can both be Mesh at once (e.g. HaLow + 2.4GHz) unless the
+        // hardware can't run both radios simultaneously at all, or they'd both
+        // end up in the same non-mesh mode (two LAN APs, two WAN clients, etc).
+        const bothMesh = isMeshFamily(radio0_mode) && isMeshFamily(radio1_mode);
+        if (hardware.supportsFeature("only_one_radio") || (!bothMesh && substr(radio0_mode, 0, 4) === substr(radio1_mode, 0, 4))) {
+            if ("radio0_mode" in request.args) {
+                radio1_mode = radios.RADIO_OFF;
+            }
+            else if ("radio1_mode" in request.args) {
+                radio0_mode = radios.RADIO_OFF;
+            }
         }
     }
     switch (radio0_mode) {
@@ -661,17 +668,30 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         radio{{w}}.addEventListener("change", change{{w}});
     {% }
     if (length(wlan) > 1) { %}
-        function mmap(m) {
-            return m == "1" || m == "4" || m == "5" || m == "6" ? "1" : m;
+        // Two radios can both be Mesh at once (e.g. HaLow + 2.4GHz) unless the
+        // hardware can't run both radios simultaneously at all, or they'd both
+        // end up in the same non-mesh mode (two LAN APs, two WAN clients, etc).
+        const onlyOneRadio = {{hardware.supportsFeature("only_one_radio") ? "true" : "false"}};
+        function isMesh(m) {
+            return m == "1" || m == "4" || m == "5" || m == "6";
+        }
+        function conflicts(a, b) {
+            if (onlyOneRadio) {
+                return a !== "0" && b !== "0";
+            }
+            if (isMesh(a) && isMesh(b)) {
+                return false;
+            }
+            return a === b && a !== "0";
         }
         htmx.on(radio0, "htmx:beforeRequest", function() {
-            if (mmap(radio0.value) === mmap(radio1.value) && radio1.value !== 0) {
+            if (conflicts(radio0.value, radio1.value)) {
                 radio1.value = 0;
                 htmx.closest(radio1, '.hideable').dataset.hideable = 0;
             }
         });
         htmx.on(radio1, "htmx:beforeRequest", function() {
-            if (mmap(radio1.value) === mmap(radio0.value) && radio0.value !== 0) {
+            if (conflicts(radio1.value, radio0.value)) {
                 radio0.value = 0;
                 htmx.closest(radio0, '.hideable').dataset.hideable = 0;
             }

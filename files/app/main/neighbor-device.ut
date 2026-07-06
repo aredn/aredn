@@ -126,6 +126,13 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             }
             return "now";
         }
+        function bandLabel(iface)
+        {
+            if (!iface || !match(iface, /^wlan/)) {
+                return null;
+            }
+            return hardware.getDefaultChannel(iface)?.band || null;
+        }
         function uptime(n)
         {
             const s = n.connected_time ? n.connected_time : n.lastseen - n.lastup;
@@ -148,6 +155,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
         }
         if (neighbor) {
             const n = neighbor.n;
+            const band = n.type == "RF" ? bandLabel(n.device) : null;
         %}
         <div class="neighbor">
             <div class="o">
@@ -165,7 +173,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             </div>
             <div class="cols">
                 <div class="i">
-                    <div>{{n.type}}</div>
+                    <div>{{n.type}}{{band ? ` (${band})` : ""}}</div>
                     <div>type</div>
                 </div>
                 <div class="i">

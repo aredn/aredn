@@ -118,20 +118,14 @@ export function getActiveConfiguration()
     const radio = getCommonConfiguration();
     const nrradios = length(radio);
     if (nrradios > 0) {
-        let mdevice;
         let ldevice;
         let wdevice;
+        const meshByDevice = {};
 
         for (let i = 0; i < nrradios; i++) {
             radio[i].mode = { mode: RADIO_OFF };
         }
 
-        const mmode = {
-            mode: RADIO_MESH,
-            channel: 0,
-            bandwidth: 10,
-            ssid: "-"
-        };
         const lmode = {
             mode: RADIO_LAN,
             channel: 0,
@@ -144,22 +138,30 @@ export function getActiveConfiguration()
 
         cursor.foreach("wireless", "wifi-iface", function(s)
         {
-            if (s.network === "wifi") {
+            // A mesh network is either the primary "wifi" network, or one of the
+            // additional "wifiN" networks used when more than one radio is mesh.
+            if (s.network === "wifi" || (s.network && match(s.network, /^wifi[0-9]+$/))) {
+                const mmode = {
+                    mode: RADIO_MESH,
+                    channel: 0,
+                    bandwidth: 10,
+                    ssid: "-"
+                };
                 switch (s.mode) {
                     case "ap":
                         mmode.mode = s.macfilter === "allow" ? RADIO_MESHPTP : RADIO_MESHPTMP;
-                        mdevice = s.device;
                         mmode.ssid = s.ssid;
+                        meshByDevice[s.device] = mmode;
                         break;
                     case "sta":
                         mmode.mode = RADIO_MESHSTA;
-                        mdevice = s.device;
                         mmode.ssid = s.ssid;
+                        meshByDevice[s.device] = mmode;
                         break;
                     case "adhoc":
                         mmode.mode = RADIO_MESH;
-                        mdevice = s.device;
                         mmode.ssid = s.ssid;
+                        meshByDevice[s.device] = mmode;
                         break;
                     default:
                         break;
@@ -176,7 +178,8 @@ export function getActiveConfiguration()
         });
         cursor.foreach("wireless", "wifi-device", function(s)
         {
-            if (s[".name"] === mdevice) {
+            const mmode = meshByDevice[s[".name"]];
+            if (mmode) {
                 mmode.channel = int(s.channel);
                 mmode.bandwidth = int(s.chanbw);
                 mmode.txpower = int(s.txpower);
@@ -186,9 +189,9 @@ export function getActiveConfiguration()
             }
         });
 
-        if (mdevice) {
-            const idx = int(substr(mdevice, 5));
-            radio[idx].mode = mmode;
+        for (let device in meshByDevice) {
+            const idx = int(substr(device, 5));
+            radio[idx].mode = meshByDevice[device];
         }
         if (ldevice) {
             const idx = int(substr(ldevice, 5));
@@ -238,19 +241,28 @@ export function getConfiguration()
     return radio;
 };
 
-export function getMeshRadio()
+export function getMeshRadios()
 {
     const config = getActiveConfiguration();
+    const result = [];
     for (let i = 0; i < length(config); i++) {
         switch (config[i].mode.mode) {
             case RADIO_MESH:
             case RADIO_MESHPTP:
             case RADIO_MESHPTMP:
             case RADIO_MESHSTA:
-                return { mode: config[i].mode.mode, iface: config[i].iface };
+                push(result, { mode: config[i].mode.mode, iface: config[i].iface });
+                break;
             default:
                 break;
         }
     }
-    return null;
+    return result;
+};
+
+// Back-compat shim for callers which only handle a single mesh radio.
+export function getMeshRadio()
+{
+    const radios = getMeshRadios();
+    return length(radios) > 0 ? radios[0] : null;
 };

@@ -250,40 +250,59 @@ for (let k in cms) {
     }
 }
 
-// Select the mesh configuration
+// Select the mesh configuration(s). More than one radio may be in a mesh-family
+// mode at once (e.g. HaLow + 2.4GHz on a HaLowLink1) - each gets its own entry
+// here. Whichever radio is found first keeps the "wifi" network name used by
+// every existing single-mesh-radio install; any additional mesh radio gets
+// "wifi1", "wifi2", etc, so nothing changes for the common single-radio case.
 const default_mesh_distance = 80550; // 50.1 miles
-let mesh_wifi = "br-nomesh";
-let mesh_ssid = "";
-let mesh_channel = "";
-let mesh_chanbw = "";
-let mesh_txpower = null;
-let mesh_distance = "";
-let mesh_wds = null;
-if (cfg.radio0_mode == "mesh" || cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp" || cfg.radio0_mode == "meshsta") {
-    mesh_wifi = "wlan0";
-    mesh_channel = tonumber(cfg.radio0_channel);
-    mesh_chanbw = tonumber(cfg.radio0_bandwidth);
-    mesh_ssid = cfg.radio0_ssid;
-    mesh_txpower = tonumber(cfg.radio0_txpower);
-    mesh_distance = tonumber(cfg.radio0_distance || 0);
-    if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp") {
-        mesh_wds = 1
+const mesh_radios = [];
+for (let r = 0; r < hardware.getRadioCount(); r++) {
+    const m = cfg[`radio${r}_mode`];
+    if (m == "mesh" || m == "meshap" || m == "meshptp" || m == "meshsta") {
+        push(mesh_radios, {
+            idx: r,
+            wifi: `wlan${r}`,
+            network: length(mesh_radios) == 0 ? "wifi" : `wifi${length(mesh_radios)}`,
+            channel: tonumber(cfg[`radio${r}_channel`]),
+            chanbw: tonumber(cfg[`radio${r}_bandwidth`]),
+            ssid: cfg[`radio${r}_ssid`],
+            txpower: tonumber(cfg[`radio${r}_txpower`]),
+            distance: tonumber(cfg[`radio${r}_distance`] || 0) || default_mesh_distance,
+            wds: (m == "meshap" || m == "meshptp") ? 1 : null
+        });
     }
 }
-else if (cfg.radio1_mode == "mesh" || cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
-    mesh_wifi = "wlan1";
-    mesh_channel = tonumber(cfg.radio1_channel);
-    mesh_chanbw = tonumber(cfg.radio1_bandwidth);
-    mesh_ssid = cfg.radio1_ssid;
-    mesh_txpower = tonumber(cfg.radio1_txpower);
-    mesh_distance = tonumber(cfg.radio1_distance || 0);
-    if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp") {
-        mesh_wds = 1
-    }
+// Quick lookup from radio index (0, 1, ...) to its mesh_radios entry, used inside
+// the per-radio wifi-device/wifi-iface generation loop further down.
+const meshRadiosByIdx = {};
+for (let i = 0; i < length(mesh_radios); i++) {
+    meshRadiosByIdx[mesh_radios[i].idx] = mesh_radios[i];
 }
-if (mesh_distance == 0) {
-    mesh_distance = default_mesh_distance;
+
+// IP addressing for the "wifi" network (the first mesh radio found) continues to
+// come from setup.globals.wifi_ip (nvram-derived, set by aredn_init) as before.
+// Any additional mesh radio gets a /32 derived live from its own interface MAC -
+// no new nvram/aredn_init persistence needed since it's a pure function of
+// hardware that already exists once the radio itself exists.
+for (let i = 1; i < length(mesh_radios); i++) {
+    const entry = mesh_radios[i];
+    const mac = hardware.getInterfaceMAC(entry.wifi);
+    const m = mac ? match(mac, /..:..:..:(..):(..):(..)/) : null;
+    cfg[`${entry.network}_ip`] = m ? `10.${hex(m[1])}.${hex(m[2])}.${hex(m[3])}` : "";
 }
+
+// Build the "wifi" firewall zone's network list and the extra per-radio DHCP
+// ignore stanzas, one per additional mesh radio beyond the first.
+let wifi_zone_networks = "\tlist network 'wifi'";
+let wifi_extra_dhcp = "";
+for (let i = 1; i < length(mesh_radios); i++) {
+    const entry = mesh_radios[i];
+    wifi_zone_networks += `\n\tlist network '${entry.network}'`;
+    wifi_extra_dhcp += `\nconfig dhcp\n\toption interface '${entry.network}'\n\toption ignore '1'\n`;
+}
+cfg.wifi_zone_networks = wifi_zone_networks;
+cfg.wifi_extra_dhcp = wifi_extra_dhcp;
 
 // Delete some config lines if necessary
 if (cfg.wan_proto != "static") {
@@ -395,6 +414,9 @@ else {
 // generate the network configurations
 const wan_wifi_enabled = (cfg.radio0_mode == "wan" || cfg.radio1_mode == "wan");
 const cnetworks = [ "lan", "wan", "dtdlink", "wifi" ];
+for (let i = 1; i < length(mesh_radios); i++) {
+    push(cnetworks, mesh_radios[i].network);
+}
 for (let i = 0; i < length(cnetworks); i++) {
     const net = cnetworks[i];
     let wireless = false;
@@ -485,14 +507,27 @@ for (let i = 0; i < length(cnetworks); i++) {
             cfg.dtdlink_proto = "static";
             cfg.dtdlink_mask = "255.0.0.0";
         }
-        else if (net == "wifi") {
-            cfg.wifi_proto = "static";
-            if (mesh_wds) {
+        else if (net == "wifi" || match(net, /^wifi[0-9]+$/)) {
+            let entry = null;
+            for (let m = 0; m < length(mesh_radios); m++) {
+                if (mesh_radios[m].network == net) {
+                    entry = mesh_radios[m];
+                    break;
+                }
+            }
+            cfg[`${net}_proto`] = "static";
+            if (entry && entry.wds) {
                 ports = [];
             }
-            else {
+            else if (entry) {
                 wireless = true;
-                ports = [ mesh_wifi ];
+                ports = [ entry.wifi ];
+            }
+            else {
+                // No mesh radio is active for the primary "wifi" network - a
+                // phantom bridge device, same as before.
+                wireless = true;
+                ports = [ "br-nomesh" ];
             }
         }
 
@@ -513,7 +548,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         let mtu = cfg[`${net}_mtu`] || "";
         let dns1 = "";
         let dns2 = "";
-        if (net == "wifi") {
+        if (net == "wifi" || match(net, /^wifi[0-9]+$/)) {
             dns1 = cfg.wan_dns1 || "";
             dns2 = cfg.wan_dns2 || "";
         }
@@ -573,7 +608,13 @@ for (let i = 0; i < length(cnetworks); i++) {
             config += `\toption gateway '${gateway}'\n`;
         }
     }
-    cfg[`${net}_network_config`] = config;
+    if (net == "wifi" || match(net, /^wifi[0-9]+$/)) {
+        // All mesh networks share the single <wifi_network_config> template slot.
+        cfg.wifi_network_config = (cfg.wifi_network_config || "") + config;
+    }
+    else {
+        cfg[`${net}_network_config`] = config;
+    }
 }
 
 // Generate the tunnel configurations
@@ -949,7 +990,8 @@ for (let dev = 0; dev < ifacecount; dev++) {
         let bcf = null;
         let shortgi = null;
         let bss_color = null;
-        let htmode = hardware.getHTMode(wlan, wlan == mesh_wifi ? mesh_chanbw : -1, cfg[`${radio}_mode`]);
+        const meshEntry = meshRadiosByIdx[dev];
+        let htmode = hardware.getHTMode(wlan, meshEntry ? meshEntry.chanbw : -1, cfg[`${radio}_mode`]);
         let wds = null;
 
         switch (hardware.getDefaultChannel(wlan)?.band) {
@@ -973,33 +1015,33 @@ for (let dev = 0; dev < ifacecount; dev++) {
         if (cfg[`${radio}_mode`] == "mesh") {
             // mesh RF adhoc configuration
             is_mesh_rf = true;
-            channel = mesh_channel;
-            chanbw = mesh_chanbw;
+            channel = meshEntry.channel;
+            chanbw = meshEntry.chanbw;
             country = country ?? "HX";
-            txpower = mesh_txpower;
-            distance = mesh_distance;
+            txpower = meshEntry.txpower;
+            distance = meshEntry.distance;
             if (hwmode == "11ah") {
-                ssid = `${mesh_ssid}-${channel}-${chanbw}-v3`;
+                ssid = `${meshEntry.ssid}-${channel}-${chanbw}-v3`;
             }
             else {
-                ssid = `${mesh_ssid}-${chanbw}-v3`;
+                ssid = `${meshEntry.ssid}-${chanbw}-v3`;
             }
             mode = "adhoc";
             encryption = "none";
-            network = "wifi";
+            network = meshEntry.network;
         }
         else if (cfg[`${radio}_mode`] == "meshap" || cfg[`${radio}_mode`] == "meshptp") {
             // mesh RF access point configuration
             is_mesh_rf = true;
-            channel = mesh_channel;
-            chanbw = mesh_chanbw;
+            channel = meshEntry.channel;
+            chanbw = meshEntry.chanbw;
             country = country ?? "HX";
-            txpower = mesh_txpower;
-            distance = mesh_distance;
-            ssid = `${mesh_ssid}-${channel}-${chanbw}-v3`;
+            txpower = meshEntry.txpower;
+            distance = meshEntry.distance;
+            ssid = `${meshEntry.ssid}-${channel}-${chanbw}-v3`;
             mode = "ap";
             encryption = "none";
-            network = "wifi";
+            network = meshEntry.network;
             multicasttounicast = 1;
             disassoclowack = 0;
             maxinactivity = 600;
@@ -1019,21 +1061,21 @@ for (let dev = 0; dev < ifacecount; dev++) {
                 isolate = 1;
                 //bss_color = int(match(macaddr, /:(..)$/)[1], 16);
             }
-            wds = mesh_wds;
+            wds = meshEntry.wds;
         }
         else if (cfg[`${radio}_mode`] == "meshsta") {
             // mesh RF station configuration
             is_mesh_rf = true;
             // While the wifi doesnt neeed 'channel' and 'chanbw' to configure the station, we read these values in other code so keep them
-            channel = mesh_channel;
-            chanbw = mesh_chanbw;
+            channel = meshEntry.channel;
+            chanbw = meshEntry.chanbw;
             country = country ?? "HX";
-            distance = mesh_distance;
-            txpower = mesh_txpower;
-            ssid = `${mesh_ssid}-${mesh_channel}-${mesh_chanbw}-v3`;
+            distance = meshEntry.distance;
+            txpower = meshEntry.txpower;
+            ssid = `${meshEntry.ssid}-${meshEntry.channel}-${meshEntry.chanbw}-v3`;
             mode = "sta";
             encryption = "none";
-            network = "wifi";
+            network = meshEntry.network;
         }
         else if (cfg[`${radio}_mode`] == "lan") {
             // lan AP interface
@@ -1324,15 +1366,16 @@ if (filecopy("/etc/config.mesh/firewall.user", "/etc/firewall.user")) {
 const sf = fs.open("/tmp/local_services", "w");
 if (sf) {
     sf.write("#!/bin/sh\n");
-    if (mesh_wifi != "br-nomesh") {
-        if (isNull(mesh_txpower) || mesh_txpower > hardware.getMaxTxPower(mesh_wifi, mesh_channel)) {
-            mesh_txpower = hardware.getMaxTxPower(mesh_wifi, mesh_channel);
+    for (let i = 0; i < length(mesh_radios); i++) {
+        const entry = mesh_radios[i];
+        if (isNull(entry.txpower) || entry.txpower > hardware.getMaxTxPower(entry.wifi, entry.channel)) {
+            entry.txpower = hardware.getMaxTxPower(entry.wifi, entry.channel);
         }
-        else if (mesh_txpower < 1) {
-            mesh_txpower = 1;
+        else if (entry.txpower < 1) {
+            entry.txpower = 1;
         }
-        sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(mesh_wifi)} set txpower fixed 0\n`);
-        sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(mesh_wifi)} set txpower fixed ${mesh_txpower}00\n`);
+        sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(entry.wifi)} set txpower fixed 0\n`);
+        sf.write(`/usr/sbin/iw ${hardware.getPhyDevice(entry.wifi)} set txpower fixed ${entry.txpower}00\n`);
     }
     sf.close();
     if (filecopy("/tmp/local_services", "/etc/local/services")) {
