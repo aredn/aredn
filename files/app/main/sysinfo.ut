@@ -87,51 +87,77 @@ const info = strip({
 });
 
 // MESH RF
-info.meshrf = (function () {
-    const config = radios.getConfiguration();
-    for (let i = 0; i < length(config); i++) {
-        const cfg = config[i];
-        if (cfg.disabled) {
-            continue;
-        }
-        const mode = cfg.mode;
-        let rfmode;
-        let ssid;
-        switch (mode.mode) {
-            case radios.RADIO_MESH:
-                rfmode = "adhoc";
-                if (hardware.getRadioType(cfg.iface) !== "halow") {
-                    ssid = `${mode.ssid}-${mode.bandwidth}-v3`;
-                }
-            // Fall throught ...
-            case radios.RADIO_MESHSTA:
-                rfmode = rfmode || "sta";
-            // Fall throught ...
-            case radios.RADIO_MESHPTP:
-                rfmode = rfmode || "ptp";
-            case radios.RADIO_MESHPTMP:
-                rfmode = rfmode || "ptmp";
-                ssid = ssid || `${mode.ssid}-${mode.channel}-${mode.bandwidth}-v3`;
-                return strip({
-                    status: "on",
-                    mode: rfmode,
-                    ssid: ssid,
-                    channel: mode.channel,
-                    chanbw: mode.bandwidth,
-                    freq: hardware.getChannelFrequency(config[i].iface, mode.channel),
-                    polarization: hardware.getAntennaPolarization(config[i].iface),
-                    azimuth: tonumber(uci.get("aredn", "@location[0]", "azimuth")),
-                    elevation: tonumber(uci.get("aredn", "@location[0]", "elevation")),
-                    height: tonumber(uci.get("aredn", "@location[0]", "height")),
-                    antenna: cfg.ant,
-                    antenna_aux: cfg.antsaux
-                });
-            default:
-                break;
-        }
+function buildMeshRfInfo(cfg) {
+    if (cfg.disabled) {
+        return null;
     }
-    return { status: "off" };
-})();
+    const mode = cfg.mode;
+    let rfmode;
+    let ssid;
+    switch (mode.mode) {
+        case radios.RADIO_MESH:
+            rfmode = "adhoc";
+            if (hardware.getRadioType(cfg.iface) !== "halow") {
+                ssid = `${mode.ssid}-${mode.bandwidth}-v3`;
+            }
+        // Fall throught ...
+        case radios.RADIO_MESHSTA:
+            rfmode = rfmode || "sta";
+        // Fall throught ...
+        case radios.RADIO_MESHPTP:
+            rfmode = rfmode || "ptp";
+        case radios.RADIO_MESHPTMP:
+            rfmode = rfmode || "ptmp";
+            ssid = ssid || `${mode.ssid}-${mode.channel}-${mode.bandwidth}-v3`;
+            return strip({
+                status: "on",
+                mode: rfmode,
+                ssid: ssid,
+                channel: mode.channel,
+                chanbw: mode.bandwidth,
+                freq: hardware.getChannelFrequency(cfg.iface, mode.channel),
+                polarization: hardware.getAntennaPolarization(cfg.iface),
+                azimuth: tonumber(uci.get("aredn", "@location[0]", "azimuth")),
+                elevation: tonumber(uci.get("aredn", "@location[0]", "elevation")),
+                height: tonumber(uci.get("aredn", "@location[0]", "height")),
+                antenna: cfg.ant,
+                antenna_aux: cfg.antsaux
+            });
+        default:
+            return null;
+    }
+}
+
+// info.meshrf stays exactly as before (the first mesh-mode radio found) for
+// backward compatibility with existing external consumers (mesh maps,
+// dashboards). meshrf_radios is new and purely additive: it lists every mesh
+// radio (tagged with its interface and band) so tools that understand
+// multi-radio nodes can see all of them, populated only when there's more
+// than one mesh radio.
+const meshRfConfigs = radios.getConfiguration();
+const meshRfPairs = [];
+for (let i = 0; i < length(meshRfConfigs); i++) {
+    const cfg = meshRfConfigs[i];
+    const rf = buildMeshRfInfo(cfg);
+    if (rf) {
+        push(meshRfPairs, { cfg: cfg, rf: rf });
+    }
+}
+info.meshrf = length(meshRfPairs) > 0 ? meshRfPairs[0].rf : { status: "off" };
+if (length(meshRfPairs) > 1) {
+    const meshRfRadios = [];
+    for (let i = 0; i < length(meshRfPairs); i++) {
+        const p = meshRfPairs[i];
+        const entry = {};
+        for (let k in p.rf) {
+            entry[k] = p.rf[k];
+        }
+        entry.iface = p.cfg.iface;
+        entry.band = hardware.getDefaultChannel(p.cfg.iface)?.band;
+        push(meshRfRadios, entry);
+    }
+    info.meshrf_radios = meshRfRadios;
+}
 
 // UPTIME, MEMORY AND LOADAVGS
 info.sysinfo = (function () {
