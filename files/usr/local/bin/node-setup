@@ -417,8 +417,6 @@ for (let i = 0; i < length(cnetworks); i++) {
     else if (net == "dtdlink") {
         // Always vlan 2
         vlan = "2:t";
-        cfg.dtdlink_proto = "static";
-        cfg.dtdlink_mask = "255.0.0.0";
         const dtdlink_intf = cm.get("setup", "globals", "dtdlink_intf");
         if (dtdlink_intf) {
             ports = dtdlink_intf;
@@ -1069,7 +1067,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
         }
         config += `\n`;
 
-        config += "config wifi-iface\n";
+        config += `config wifi-iface '${wlan}'\n`;
         config += `\toption ifname '${wlan}'\n`;
         config += `\toption device '${radio}'\n`;
         if (network != null) {
@@ -1139,10 +1137,6 @@ if (h && e && ah) {
     }
     else {
         h.write(`${cfg.lan_ip}\tlocalnode ${node} ${tactical || ""}\n`);
-    }
-    if (isNotNull(cfg.dtdlink_ip)) {
-        h.write(`${cfg.dtdlink_ip}\tdtdlink.${node}.local.mesh dtdlink.${node}\n`);
-        ah.write(`${cfg.dtdlink_ip}\tdtdlink.${node}.local.mesh\n`);
     }
 
     // Mark supernodes so we can find them

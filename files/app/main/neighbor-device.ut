@@ -73,7 +73,7 @@ if (tracker) {
     neighbor = { name: tracker.hostname || `|${tracker.ip}`, n: tracker, l: null };
 }
 const showblock = auth.isAdmin && neighbor?.n?.type == "RF";
-const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
+const band = hardware.getRadioCount() > 1 ? tracker?.band : null;
 %}
 <div class="dialog">
     {% if (tracker && tracker.type === "DtD" && tracker.distance < 100) { %}
@@ -165,7 +165,7 @@ const supernode = (uciMesh.get("aredn", "@supernode[0]", "enable") === "1");
             </div>
             <div class="cols">
                 <div class="i">
-                    <div>{{n.type}}{{n.remoterf ? "+RF" : ""}}</div>
+                    <div>{{n.type}}{{n.remoterf ? "+RF" : ""}}{{band ? ` (${band})`: ""}}</div>
                     <div>type</div>
                 </div>
                 <div class="i">

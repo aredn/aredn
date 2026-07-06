@@ -182,29 +182,23 @@ function reachToLQ(reach)
 
 let xlinks = {};
 let rwifi = {};
-let bwifi = {};
 
 function deviceToType(device, mac)
 {
     if (device == "br-dtdlink") {
         return "DtD";
     }
-    else if (match(device, /^wlan/)) {
+    else if (substr(device, 0, 4) === "wlan") {
         return "RF";
     }
-    else if (device === "br-wifi0" || device === "br-wifi1") {
-        if (mac && bwifi[mac]) {
-            return "RRF";
-        }
+    else if (substr(device, 0, 7) === "br-wifi" || substr(device, 0, 6) === "br-rrf") {
+        return "RRF";
     }
-    else if (match(device, /^wg/)) {
+    else if (substr(device, 0, 2) === "wg") {
         return "Wireguard";
     }
     else if (xlinks[device]) {
         return "Xlink";
-    }
-    else if (rwifi[device]) {
-        return "RemoteRF";
     }
     return null;
 }
@@ -269,7 +263,6 @@ function main()
         // Update xlinks and remote wifi
         xlinks = {};
         rwifi = {};
-        bwifi = {};
         cursor.foreach("network", "interface", section => {
             const name = section[".name"];
             if (substr(name, 0, 5) === "xlink") {
@@ -280,22 +273,6 @@ function main()
             }
         });
 
-        // Find the macs on the wifi bridges
-        for (let b = 0; b < 2; b++) {
-            if (fs.access(`/sys/class/net/br-wifi${b}`)) {
-                const p = fs.popen(`${BRCTL} showmacs br-wifi${b}`);
-                if (p) {
-                    for (let line = p.read("line"); length(line); line = p.read("line")) {
-                        const m = match(trim(line), /^[^1]\s+([0-9a-f:]+)\s+no/);
-                        if (m) {
-                            bwifi[m[1]] = true;
-                        }
-                    }
-                    p.close();
-                }
-            }
-        }
-
         // Find our neighbors
         const p = fs.popen("echo dump-neighbors | /usr/bin/socat -T 30 -t 30 UNIX-CLIENT:/var/run/babel.sock - 2>/dev/null");
         if (p) {
@@ -304,40 +281,42 @@ function main()
                 if (m) {
                     const mac = network.ipv6ll2mac(m[1]);
                     const type = deviceToType(m[2], mac);
-                    let track = trackers[mac];
-                    if (!track && type) {
-                        track = {
-                            lastseen: now,
-                            lastup: now,
-                            type: type,
-                            device: m[2],
-                            mac: mac,
-                            ipv6ll: m[1],
-                            refresh: 0,
-                            avg_lq: 100
-                        };
-                        if (type === "Wireguard") {
-                            // The mac address can change, so for tunnels we make sure the device is unique
-                            const device = track.device;
-                            for (let m in trackers) {
-                                if (trackers[m].device === device) {
-                                    delete trackers[m];
+                    if (type) {
+                        let track = trackers[mac];
+                        if (!track) {
+                            track = {
+                                lastseen: now,
+                                lastup: now,
+                                type: type,
+                                device: m[2],
+                                mac: mac,
+                                ipv6ll: m[1],
+                                refresh: 0,
+                                avg_lq: 100
+                            };
+                            if (type === "Wireguard") {
+                                // The mac address can change, so for tunnels we make sure the device is unique
+                                const device = track.device;
+                                for (let m in trackers) {
+                                    if (trackers[m].device === device) {
+                                        delete trackers[m];
+                                    }
                                 }
                             }
+                            trackers[mac] = track;
                         }
-                        trackers[mac] = track;
-                    }
-                    if (track) {
-                        track.type = type;
-                        track.device = m[2];
-                        track.lq = reachToLQ(m[3]);
-                        track.rxcost = int(m[4]);
-                        track.txcost = int(m[5]);
-                        const rtt = match(line, /rtt ([^ \t]+)/);
-                        if (rtt) {
-                            track.rtt = int(rtt[1]);
+                        else {
+                            track.type = type;
+                            track.device = m[2];
+                            track.lq = reachToLQ(m[3]);
+                            track.rxcost = int(m[4]);
+                            track.txcost = int(m[5]);
+                            const rtt = match(line, /rtt ([^ \t]+)/);
+                            if (rtt) {
+                                track.rtt = int(rtt[1]);
+                            }
+                            track.avg_lq = min(100, 0.9 * track.avg_lq + 0.1 * track.lq);
                         }
-                        track.avg_lq = min(100, 0.9 * track.avg_lq + 0.1 * track.lq);
                     }
                 }
             }
@@ -385,12 +364,15 @@ function main()
             const chanbw = int(cursor.get("wireless", device.radio, "chanbw") || "20");
             const channelBwScale = (device.type === "halow" ? 1 : min(20, chanbw)) / 200.0;
             const wlans = [ device.wlan, ...map(fs.glob(`/sys/class/net/${device.wlan}.sta*`), w => fs.basename(w)) ];
+            const band = hardware.getDefaultChannel(device.wlan)?.band;
             for (let w = 0; w < length(wlans); w++) {
                 const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
                 for (let i = 0; i < length(stations); i++) {
                     const station = stations[i];
                     const track = trackers[station.mac];
                     if (track) {
+                        track.type = "RF";
+                        track.band = band;
                         track.signal = station.sta_info.signal;
                         track.tx_packets = station.sta_info.tx_packets;
                         track.tx_retries = station.sta_info.tx_retries;

@@ -233,6 +233,10 @@
                         title = "RF ";
                         icon = "wifi";
                         break;
+                    case "RRF":
+                        title = "RRF ";
+                        icon = "signal";
+                        break;
                     case "DtD":
                         title = "DtD ";
                         icon = "twoarrow";
@@ -254,7 +258,7 @@
                 }
                 else if (ord(entry.name) === 126) { // ~
                     const mac = substr(entry.name, 1);
-                    print(`<div class='h'><span>${mac}</span></div>`);
+                    print(`<div class='h'><span>${mac}&nbsp;&nbsp;<div class="icon ${icon}"></div></span></div>`);
                 }
                 else {
                     print(`<div class='h'><a onclick="event.stopPropagation()" href='http://${entry.name}.local.mesh'>${entry.name}&nbsp;&nbsp;<div class="icon ${icon}"></div></a></div>`);
