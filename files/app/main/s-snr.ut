@@ -34,21 +34,27 @@
 %}
 {%
 
-const wifiiface = radios.getMeshRadio()?.iface;
 const mac = substr(request.env.QUERY_STRING || "", 4) || "00:00:00:00:00:00:";
 
+// The mac being asked about could be associated with any of our mesh radios
+// (each has its own MAC), so search all of them rather than assuming the first.
 let noise = -95;
-const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
-for (let i = 0; i < length(survey); i++) {
-    if (survey[i].dev == wifiiface && survey[i].survey_info.noise) {
-        noise = survey[i].survey_info.noise;
+let signal = 0;
+const meshRadios = radios.getMeshRadios();
+for (let r = 0; r < length(meshRadios); r++) {
+    const wifiiface = meshRadios[r].iface;
+    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: wifiiface, mac: mac });
+    if (info) {
+        signal = info.sta_info.signal_avg;
+        const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiiface });
+        for (let i = 0; i < length(survey); i++) {
+            if (survey[i].dev == wifiiface && survey[i].survey_info.noise) {
+                noise = survey[i].survey_info.noise;
+                break;
+            }
+        }
         break;
     }
-}
-let signal = 0;
-const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: wifiiface, mac: mac });
-if (info) {
-    signal = info.sta_info.signal_avg;
 }
 
 if (signal < 0) {

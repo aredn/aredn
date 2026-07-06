@@ -87,21 +87,34 @@ export function getToDos()
         push(todos, "Set the timezone");
     }
     if (hardware.getRadioCount() > 0) {
-        const wlan = radios.getMeshRadio()?.iface;
-        if (wlan) {
+        // Check every mesh radio, not just the first - the antenna/azimuth setting
+        // itself is still a single node-wide value (@location[0]), but a second
+        // mesh radio needing one selected/aimed shouldn't be silently missed just
+        // because the first radio already has its own antenna configured.
+        const meshRadios = radios.getMeshRadios();
+        let needAntenna = false;
+        let needAzimuth = false;
+        for (let i = 0; i < length(meshRadios); i++) {
+            const wlan = meshRadios[i].iface;
             const ants = hardware.getAntennas(wlan);
             const ant = cursor.get("aredn", "@location[0]", "antenna");
             if (length(ants) > 1 && !ant) {
-                push(todos, "Select an antenna");
+                needAntenna = true;
             }
             else if (ant || length(ants) === 1) {
                 if (!cursor.get("aredn", "@location[0]", "azimuth")) {
                     const ainfo = hardware.getAntennaInfo(wlan, ant || ants[0]);
                     if (ainfo?.beamwidth !== 360) {
-                        push(todos, "Set antenna azimuth");
+                        needAzimuth = true;
                     }
                 }
             }
+        }
+        if (needAntenna) {
+            push(todos, "Select an antenna");
+        }
+        if (needAzimuth) {
+            push(todos, "Set antenna azimuth");
         }
     }
     if (hardware.supportsFeature("videoproxy") && !fs.access("/usr/bin/ffmpeg") && !(fs.access("/etc/cron.boot/reinstall-packages") && fs.access("/etc/package_store/catalog.json"))) {

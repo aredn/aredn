@@ -34,30 +34,48 @@
 %}
 {%
 if (request.env.REQUEST_METHOD === "PUT") {
-    const wifiiface = radios.getMeshRadio()?.iface;
+    const meshRadios = radios.getMeshRadios();
     const qmac = request.args.mac;
 
     const signals = {};
-    const info = qmac === "average" ? 
-        nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifiiface }) :
-        nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: wifiiface, mac: qmac });
+    let targetIface = null;
 
-    if (info) {
-        if (type(info) === "array") {
-            for (let i = 0; i < length(info); i++) {
-                signals[info[i].mac] = info[i].sta_info.signal_avg;
+    if (qmac === "average") {
+        // Aggregate stations from every mesh radio, matching the tool's own
+        // description ("average signal strength of all currently visible nodes").
+        for (let r = 0; r < length(meshRadios); r++) {
+            const iface = meshRadios[r].iface;
+            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: iface });
+            if (info) {
+                for (let i = 0; i < length(info); i++) {
+                    signals[info[i].mac] = info[i].sta_info.signal_avg;
+                }
             }
         }
-        else {
-            signals[info.mac] = info.sta_info.signal_avg;
+        targetIface = meshRadios[0]?.iface;
+    }
+    else {
+        // The target mac could be on any of our mesh radios (each has its own
+        // MAC) - search until we find which one it's actually associated with.
+        for (let r = 0; r < length(meshRadios); r++) {
+            const iface = meshRadios[r].iface;
+            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: iface, mac: qmac });
+            if (info) {
+                signals[info.mac] = info.sta_info.signal_avg;
+                targetIface = iface;
+                break;
+            }
         }
     }
 
-    const response = { s: signals, n: hardware.getRadioNoise(wifiiface) };
-    if (qmac !== "average") {
+    const response = { s: signals, n: targetIface ? hardware.getRadioNoise(targetIface) : -95 };
+    if (qmac !== "average" && targetIface) {
         const ipv6ll = network.mac2ipv6ll(qmac);
-        const wifimac = trim(fs.readfile(`/sys/class/net/${wifiiface}/address`));
-        const f = fs.popen(`/bin/uclient-fetch -T 1 http://[${ipv6ll}%${uci.get("network", "wifi", "device")}]/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
+        const wifimac = trim(fs.readfile(`/sys/class/net/${targetIface}/address`));
+        // Use the specific radio the neighbor was found on as the outgoing
+        // interface/scope-id - a second radio's link-local address is only
+        // reachable via that radio's own interface, not the first radio's.
+        const f = fs.popen(`/bin/uclient-fetch -T 1 http://[${ipv6ll}%${targetIface}]/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
         if (f) {
             try {
                 const j = json(f.read("all"));
