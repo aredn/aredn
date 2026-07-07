@@ -69,90 +69,91 @@ fs.mkdir(restarters);
 map(fs.lsdir(restarters), n => fs.unlink(`${restarters}${n}`));
 
 uloop.init();
-for (let i = 0; i < length(tasks); i++) {
-    function fn(task) {
-        return function() {
-            log.openlog(`manager.${task.name}`, log.LOG_PID, log.LOG_DAEMON);
-            switch (task.state) {
-                case "I":
-                case "I2":
-                    log.syslog(log.LOG_NOTICE, task.state == "I" ? "Starting task" : "Restarting task");
-                    task.state = "R";
-                    task.ctx = {
-                        log: log,
-                        fs: fs,
-                        uci: uci,
-                        socket: socket,
-                        math: math,
-                        ubus: ubus,
-                        nl80211: nl80211,
-                        rtnl: rtnl,
-                        struct: struct,
-                        configuration: configuration,
-                        hardware: hardware,
-                        babel: babel,
-                        radios: radios,
-                        network: network,
-                        lqm: lqm,
-                        waitForTicks: function(ticks, next) {
-                            task.task.set(ticks * 1000);
-                            if (next) {
-                                task.run = next;
-                            }
-                            return task.run;
-                        },
-                        exitApp: function() {
-                            log.syslog(log.LOG_NOTICE, `Terminating task`);
-                            task.task.set(-1);
-                            task.state = "E";
-                            task.ctx = null;
-                            task.run = null;
-                            task.shutdown = null;
-                            return task.run;
-                        },
-                        onShutdown: function(fn) {
-                            task.shutdown = fn;
+function fn(task) {
+    return function() {
+        log.openlog(`manager.${task.name}`, log.LOG_PID, log.LOG_DAEMON);
+        switch (task.state) {
+            case "I":
+            case "I2":
+                log.syslog(log.LOG_NOTICE, task.state == "I" ? "Starting task" : "Restarting task");
+                task.state = "R";
+                task.ctx = {
+                    log: log,
+                    fs: fs,
+                    uci: uci,
+                    socket: socket,
+                    math: math,
+                    ubus: ubus,
+                    nl80211: nl80211,
+                    rtnl: rtnl,
+                    struct: struct,
+                    configuration: configuration,
+                    hardware: hardware,
+                    babel: babel,
+                    radios: radios,
+                    network: network,
+                    lqm: lqm,
+                    waitForTicks: function(ticks, next) {
+                        task.task.set(ticks * 1000);
+                        if (next) {
+                            task.run = next;
                         }
-                    };
-                    try {
-                        const fn = loadfile(task.path, { raw_mode: true });
-                        task.task.set(1);
-                        task.run = call(fn, task.ctx, task.ctx);
-                        if (!task.run && task.ctx) {
-                            task.ctx.exitApp();
-                        }
-                    }
-                    catch (e) {
-                        log.syslog(log.LOG_ERR, `Startup exception: ${e} -- ${e.stacktrace}`);
-                        task.state = "I2";
+                        return task.run;
+                    },
+                    exitApp: function() {
+                        log.syslog(log.LOG_NOTICE, `Terminating task`);
+                        task.task.cancel();
+                        task.task = null;
+                        task.state = "E";
                         task.ctx = null;
                         task.run = null;
-                        task.task.set(120000); // 2 minutes
+                        task.shutdown = null;
+                        return null;
+                    },
+                    onShutdown: function(fn) {
+                        task.shutdown = fn;
                     }
-                    break;
-                case "R":
-                    try {
-                        task.task.set(1);
-                        task.run = call(task.run, task.ctx, task.ctx) || task.run;
+                };
+                try {
+                    const fn = loadfile(task.path, { raw_mode: true });
+                    task.task.set(1);
+                    task.run = call(fn, task.ctx, task.ctx);
+                    if (!task.run && task.ctx) {
+                        task.ctx.exitApp();
                     }
-                    catch (e) {
-                        log.syslog(log.LOG_ERR, `Exception: ${e} -- ${e.stacktrace}`);
-                        task.state = "I2";
-                        task.ctx = null;
-                        task.run = null;
-                        task.task.set(120000); // 2 minutes
-                    }
-                    break;
-                case "E":
-                default:
-                    log.syslog(log.LOG_ERR, `Unexpected`);
-                    task.task.cancel();
-                    break;
-            }
-            log.closelog();
-            gc("collect");
-        };
+                }
+                catch (e) {
+                    log.syslog(log.LOG_ERR, `Startup exception: ${e} -- ${e.stacktrace}`);
+                    task.state = "I2";
+                    task.ctx = null;
+                    task.run = null;
+                    task.task.set(120000); // 2 minutes
+                }
+                break;
+            case "R":
+                try {
+                    task.task.set(1);
+                    task.run = call(task.run, task.ctx, task.ctx) || task.run;
+                }
+                catch (e) {
+                    log.syslog(log.LOG_ERR, `Exception: ${e} -- ${e.stacktrace}`);
+                    task.state = "I2";
+                    task.ctx = null;
+                    task.run = null;
+                    task.task.set(120000); // 2 minutes
+                }
+                break;
+            case "E":
+            default:
+                log.syslog(log.LOG_ERR, `Unexpected`);
+                task.task.cancel();
+                break;
+        }
+        log.closelog();
+        gc("collect");
     };
+};
+for (let i = 0; i < length(tasks); i++) {
     tasks[i].task = uloop.timer(0, fn(tasks[i]));
 }
 function gracefulShutdown() {
@@ -175,11 +176,18 @@ function restartTask() {
             if (task.name === tn) {
                 if (task.shutdown) {
                     call(task.shutdown, task.ctx, task.ctx);
+                    task.shutdown = null;
                 }
-                task.state = "I2";
                 task.ctx = null;
                 task.run = null;
-                task.task.set(1);
+                if (task.task) {
+                    task.state = "I2";
+                    task.task.set(1);
+                }
+                else {
+                    task.state = "I";
+                    task.task = uloop.timer(0, fn(task));
+                }
             }
         }
         fs.unlink(`${restarters}${tn}`);
