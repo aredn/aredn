@@ -243,9 +243,6 @@ function main()
         updateMacList(device, {});
     });
 
-    // This file allows the main loop to restart
-    fs.unlink("/tmp/lqm.reset");
-
     // Main loop
     function tick()
     {
@@ -818,10 +815,6 @@ function main()
                 hidden_nodes: hiddenNodes,
                 total_route_count: total_route_count
             }));
-            if (fs.access("/tmp/lqm.reset")) {
-                fs.unlink("/tmp/lqm.reset");
-                return waitForTicks(0, main);
-            }
 
             // Last time we ran
             previousnow = now;

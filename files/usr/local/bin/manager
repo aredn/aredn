@@ -50,6 +50,7 @@ import * as network from "aredn.network";
 import * as lqm from "aredn.lqm";
 
 const root = "/usr/local/bin/mgr/";
+const restarters = "/tmp/mgr/";
 
 const tasks = [];
 const dir = fs.opendir(root);
@@ -59,10 +60,13 @@ for (;;) {
         break;
     }
     if (match(entry, /\.uc$/)) {
-        push(tasks, { name: entry, path: `${root}${entry}`, state: "I", ctx: null });
+        push(tasks, { name: replace(entry, /\.uc$/, ""), path: `${root}${entry}`, state: "I", ctx: null });
     }
 }
 dir.close();
+
+fs.mkdir(restarters);
+map(fs.lsdir(restarters), n => fs.unlink(`${restarters}${n}`));
 
 uloop.init();
 for (let i = 0; i < length(tasks); i++) {
@@ -164,7 +168,25 @@ function gracefulShutdown() {
     uloop.done();
     exit(0);
 }
+function restartTask() {
+    map(fs.lsdir(restarters), tn => {
+        for (let i = 0; i < length(tasks); i++) {
+            const task = tasks[i];
+            if (task.name === tn) {
+                if (task.shutdown) {
+                    call(task.shutdown, task.ctx, task.ctx);
+                }
+                task.state = "I2";
+                task.ctx = null;
+                task.run = null;
+                task.task.set(1);
+            }
+        }
+        fs.unlink(`${restarters}${tn}`);
+    });
+}
 signal("SIGHUP", gracefulShutdown);
 signal("SIGTERM", gracefulShutdown);
+signal("SIGUSR1", restartTask);
 gc("collect");
 uloop.run();

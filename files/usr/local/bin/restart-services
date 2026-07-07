@@ -94,8 +94,8 @@ do
       rm -f $ROOT/network
     elif [ $srv = "network" ]; then
       /etc/init.d/network reload
-    elif [ $srv = "lqm" ]; then
-      touch /tmp/lqm.reset
+    elif [ $srv = "lqm" -o $srv = "hw_watchdog" -o $srv = "fccid" -o $srv = "remote_rf" ]; then
+      touch /tmp/mgr/$srv
     elif [ $srv = "babel-hard" ]; then
       /etc/init.d/babel stop > /dev/null 2>&1
       rm -f /etc/state/babel-state
@@ -103,13 +103,16 @@ do
     elif [ $srv = "arednlink" ]; then
       /usr/local/bin/arednlink-update
     elif [ $srv = "arednlink-hard" ]; then
-        /etc/init.d/arednlink restart > /dev/null 2>&1
+      /etc/init.d/arednlink restart > /dev/null 2>&1
     elif [ -x /etc/init.d/$srv ]; then
       /etc/init.d/$srv restart > /dev/null 2>&1
     fi
     rm -f $ROOT/$srv
   fi
 done
+if [ "$(ls -A /tmp/mgr)" != "" ]; then
+  kill -SIGUSR1 $(cat /var/run/manager.pid)
+fi
 
 rmdir --ignore-fail-on-non-empty $ROOT 2> /dev/null
 if [ -d $ROOT ]; then
