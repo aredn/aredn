@@ -34,7 +34,7 @@ true <<'LICENSE'
 LICENSE
 
 ROOT="/tmp/reboot-required"
-SERVICES="log system firewall network network-soft wireless dnsmasq dropbear lqm manager babel arednlink localservices poe pou ntp"
+SERVICES="log system firewall network-hard network-soft wireless dnsmasq dropbear lqm manager babel arednlink localservices poe pou ntp"
 
 ignore=0
 force=0
@@ -89,18 +89,13 @@ do
       else
         /etc/init.d/sysntpd stop
       fi
-    elif [ $srv = "network" ]; then
+    elif [ $srv = "network-hard" ]; then
       /etc/init.d/network restart
-      rm -f $ROOT/network-soft
-    elif [ $srv = "network-soft" ]; then
+      rm -f $ROOT/network
+    elif [ $srv = "network" ]; then
       /etc/init.d/network reload
     elif [ $srv = "lqm" ]; then
       touch /tmp/lqm.reset
-    elif [ $srv = "babel" ]; then
-      /etc/init.d/babel restart > /dev/null 2>&1
-      /etc/init.d/arednlink restart > /dev/null 2>&1
-    elif [ $srv = "babel-only" ]; then
-      /etc/init.d/babel restart > /dev/null 2>&1
     elif [ $srv = "babel-hard" ]; then
       /etc/init.d/babel stop > /dev/null 2>&1
       rm -f /etc/state/babel-state

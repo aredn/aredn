@@ -280,6 +280,16 @@ export function getDHCP(mode)
     }
 };
 
+export function getActiveNetworkInterfaceNames(net)
+{
+    initSetup();
+    const ports = scursor.get("setup", "globals", `${net}_intf`);
+    if (ports) {
+        return ports;
+    }
+    return hardware.getBoardNetworkInterfaceName(net);
+};
+
 function copyConfig(configRoot)
 {
     fs.mkdir(configRoot);

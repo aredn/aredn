@@ -427,7 +427,7 @@ for (let i = 0; i < length(cnetworks); i++) {
             const vlanid = 3700 + int(split(mac2, ".")[2]) + 0;
             vlan = `${vlanid}:t`;
             ports = [];
-            const dtdports = hardware.getBoardNetworkInterfaceName("dtdlink");
+            const dtdports = configuration.getActiveNetworkInterfaceName("dtdlink");
             for (let p = 0; p < length(dtdports); p++) {
                 push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
             }
@@ -447,7 +447,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
             const vlanid = 3700 + int(split(mac2, ".")[2]) + 1;
             vlan = `${vlanid}:t`;
-            const dtdports = hardware.getBoardNetworkInterfaceName("dtdlink");
+            const dtdports = configuration.getActiveNetworkInterfaceName("dtdlink");
             ports = [];
             for (let p = 0; p < length(dtdports); p++) {
                 push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
@@ -1278,178 +1278,132 @@ if (sf) {
 // Make if official
 //
 
-// Handle special cases
-const special = {
-    dmz_mode: c.get("setup", "globals", "dmz_mode"),
-    supernode_enable: c.get("aredn", "@supernode[0]", "enable"),
-    watchdog_enable: c.get("aredn", "@watchdog[0]", "enable"),
-    watchdog_pings: c.get("aredn", "@watchdog[0]", "ping_addresses"),
-    watchdog_daily: c.get("aredn", "@watchdog[0]", "daily"),
-    web_access: c.get("aredn", "@wan[0]", "web_access"),
-    ssh_access: c.get("aredn", "@wan[0]", "ssh_access"),
-    telnet_access: c.get("aredn", "@wan[0]", "telnet_access"),
-    lan_dhcp_route: c.get("aredn", "@wan[0]", "lan_dhcp_route"),
-    mesh_to_local_wan: c.get("aredn", "@wan[0]", "mesh_to_local_wan"),
-    lan_to_remote_wan: c.get("aredn", "@wan[0]", "lan_to_remote_wan"),
-    wifi_mode_0: c.get("wireless", "@wifi-iface[0]", "mode"),
-    wifi_mode_1: c.get("wireless", "@wifi-iface[1]", "mode"),
-    wifi_channel_0: c.get("wireless", "@wifi-device[0]", "channel"),
-    wifi_channel_1: c.get("wireless", "@wifi-device[1]", "channel"),
-    wifi_macfilter_0: c.get("wireless", "@wifi-device[0]", "macfilter"),
-    wifi_macfilter_1: c.get("wireless", "@wifi-device[1]", "macfilter"),
-    power_eth: c.get("aredn", "@poe[0]", "passthrough"),
-    power_usb: c.get("aredn", "@usb[0]", "passthrough"),
-    ntp_period: c.get("aredn", "@ntp[0]", "period"),
-    beacon_enable: c.get("aredn", "@beacon[0]", "enable"),
-    protocol_buffer_size: c.get("aredn", "@babel[0]", "protocol_buffer_size"),
-    packages_default: c.get("aredn", "@downloads[0]", "packages_default")
-
-};
-const nfiles = {};
-let d = fs.opendir("/tmp/new_config");
-if (d) {
-    for (let file = d.read(); file; file = d.read()) {
-        if (file != "." && file != "..") {
-            nfiles[file] = true;
+// Describe which changes effect which services
+const restarters = {
+    "aredn": {
+        "aredn.@supernode[0].enable": "reboot",
+        "aredn.@watchdog[0].enable": "manager",
+        "aredn.@watchdog[0].ping_addresses": "manager",
+        "aredn.@watchdog[0].daily": "manager",
+        "aredn.@beacon[0].enable": "manager",
+        "aredn.@remoterf[0].enable": "manager",
+        "aredn.@wan[0].web_access": "firewall",
+        "aredn.@wan[0].ssh_access": "firewall",
+        "aredn.@poe[0].passthrough": "poe",
+        "aredn.@usb[0].passthrough": "pou",
+        "aredn.@wan[0].lan_dhcp_route": [ "network-hard", "babel", "firewall" ],
+        "aredn.@wan[0].mesh_to_local_wan": [ "network-hard", "babel" ],
+        "aredn.@wan[0].lan_to_remote_wan": [ "network-hard", "babel" ],
+        "aredn.@babel[0].protocol_buffer_size": "babel"
+    },
+    "babel": "babel",
+    "dhcp": "dnsmasq",
+    "dropbear": "dropbear",
+    "firewall": "firewall",
+    "network": "network",
+    "setup": {
+        "setup.globals.dmz_mode": "reboot",
+        "setup.@ntp[0].period": (o, n) => {
+            switch (n) {
+                case "continually":
+                    system("/etc/init.d/sysntp enable > /dev/null 2>&1");
+                    break;
+                case "daily":
+                    system("/etc/init.d/sysntp disable > /dev/null 2>&1");
+                    if (fs.access("/etc/cron.hourly/update-clock")) {
+                        fs.rename("/etc/cron.hourly/update-clock", "/etc/cron.daily/update-clock");
+                    }
+                    break;
+                case "hourly":
+                    system("/etc/init.d/sysntp disable > /dev/null 2>&1");
+                    if (fs.access("/etc/cron.daily/update-clock")) {
+                        fs.rename("/etc/cron.daily/update-clock", "/etc/cron.hourly/update-clock");
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
+    },
+    "system": [ "log", "system", "ntp" ],
+    "wireless": {
+        "any": "wireless",
+        "wireless.@wifi-iface[0].mode": "reboot",
+        "wireless.@wifi-device[0].channel": "manager",
+        "wireless.@wifi-device[0].macfilter": "reboot",
+        "wireless.@wifi-iface[1].mode": "reboot",
+        "wireless.@wifi-device[1].channel": "manager",
+        "wireless.@wifi-device[1].macfilter": "reboot",
     }
-    d.close();
-}
-// Remove files we no longer need
-d = fs.opendir("/tmp/config");
-if (d) {
-    for (let file = d.read(); file; file = d.read()) {
-        if (file != "." && file != "..") {
-            if (!nfiles(file)) {
-                fs.unlink(`/etc/config/${file}`);
-                if (file !== "/etc/config/ubootenv") {
-                    changes.reboot = true;
-                }
+};
+
+const specials = {};
+
+for (let file in restarters) {
+    const r = restarters[file];
+    if (type(r) === "object") {
+        for (let p in r) {
+            const p3 = split(p, ".");
+            if (length(p3) === 3) {
+                specials[p] = c.get(p3[0], p3[1], p3[2]);
             }
         }
     }
-    d.close();
 }
 
+// Get the new config files
+const nfiles = {};
+map(fs.lsdir("/tmp/new_config"), file => nfiles[file] = true);
+
+// Remove files we no longer need
+map(fs.lsdir("/tmp/config"), file => {
+    if (!nfiles(file)) {
+        fs.unlink(`/etc/config/${file}`);
+        if (file !== "ubootenv") {
+            changes.reboot = true;
+        }
+    }
+});
+
+// Compare the new config against the old and restart services as necessary
+const oc = uci.cursor();
 for (let file in nfiles) {
     const ffile = `/tmp/new_config/${file}`;
     if (filecopy(ffile, `/etc/config/${file}`)) {
-        switch (file) {
-            case "system":
-                changes.log = true;
-                changes.system = true;
-                changes.ntp = true;
-                break;
-            case "aredn":
-            {
-                const oc = uci.cursor();
-                if (special.dmz_mode != oc.get("setup", "globals", "dmz_mode")) {
-                    changes.reboot = true;
-                }
-                if (special.supernode_enable != oc.get("aredn", "@supernode[0]", "enable")) {
-                    changes.reboot = true;
-                }
-                if (special.watchdog_enable != oc.get("aredn", "@watchdog[0]", "enable") ||
-                    special.watchdog_pings != oc.get("aredn", "@watchdog[0]", "ping_addresses") ||
-                    special.watchdog_daily != oc.get("aredn", "@watchdog[0]", "daily")) {
-                    changes.manager = true;
-                }
-                if (special.beacon_enable != oc.get("aredn", "@beacon[0]", "enable")) {
-                    changes.manager = true;
-                }
-                if (special.web_access != oc.get("aredn", "@wan[0]", "web_access")) {
-                    changes.firewall = true;
-                }
-                if (special.ssh_access != oc.get("aredn", "@wan[0]", "ssh_access")) {
-                    changes.firewall = true;
-                }
-                if (special.power_eth != oc.get("aredn", "@poe[0]", "passthrough")) {
-                    changes.poe = true;
-                }
-                if (special.power_usb != oc.get("aredn", "@usb[0]", "passthrough")) {
-                    changes.pou = true;
-                }
-                if (special.ntp_period != oc.get("setup", "@ntp[0]", "period")) {
-                    changes.ntp = true;
-                    const period = oc.get("aredn", "@ntp[0]", "period");
-                    if (period == "continually") {
-                        system("/etc/init.d/sysntp enable > /dev/null 2>&1");
-                    }
-                    else {
-                        system("/etc/init.d/sysntp disable > /dev/null 2>&1");
-                    }
-                    if (period == "daily") {
-                        if (fs.access("/etc/cron.hourly/update-clock")) {
-                            fs.rename("/etc/cron.hourly/update-clock", "/etc/cron.daily/update-clock");
+        let r = restarters[file];
+        if (!r) {
+            r = { "any": "reboot" };
+        }
+        else if (type(r) !== "object") {
+            r = { "any": r };
+        }
+        for (let p in r) {
+            const p3 = split(p, ".");
+            if (p === "any" || specials[p] != oc.get(p3[0], p3[1], p3[2])) {
+                const c = r[p];
+                switch (type(c)) {
+                    case "string":
+                        changes[c] = true;
+                        break;
+                    case "array":
+                        map(c, k => changes[k] = true);
+                        break;
+                    case "function":
+                        if (p === "any") {
+                            c();
                         }
-                    }
-                    else {
-                        if (fs.access("/etc/cron.daily/update-clock")) {
-                            fs.rename("/etc/cron.daily/update-clock", "/etc/cron.hourly/update-clock");
+                        else {
+                            c(specials[p], oc.get(p3[0], p3[1], p3[2]));
                         }
-                    }
-                }
-                if (special.lan_dhcp_route != oc.get("aredn", "@wan[0]", "lan_dhcp_route")) {
-                    changes.network = true;
-                    changes.babel = true;
-                    changes.firewall = true;
-                }
-                if (special.mesh_to_local_wan != oc.get("aredn", "@wan[0]", "mesh_to_local_wan")) {
-                    changes.network = true;
-                    changes.babel = true;
-                }
-                if (special.lan_to_remote_wan != oc.get("aredn", "@wan[0]", "lan_to_remote_wan")) {
-                    changes.network = true;
-                    changes.babel = true;
-                }
-                if (special.protocol_buffer_size != oc.get("aredn", "@babel[0]", "protocol_buffer_size")) {
-                    changes.babel = true;
-                }
-                if (special.packages_default != oc.get("aredn", "@downloads[0]", "packages_default")) {
-                    changes.reboot = true;
-                }
-                break;
-            }
-            case "network":
-                changes["network-soft"] = true;
-                break;
-            case "dhcp":
-                changes.dnsmasq = true;
-                break;
-            case "dropbear":
-                changes.dropbear = true;
-                break;
-            case "babel":
-                changes.babel = true;
-                break;
-            case "firewall":
-                changes.firewall = true;
-                break;
-            case "wireless":
-            {
-                const oc = uci.cursor();
-                if (special.wifi_channel_0 != oc.get("wireless", "@wifi-device[0]", "channel") || special.wifi_channel_1 != oc.get("wireless", "@wifi-device[1]", "channel")) {
-                    changes.manager = true;
-                }
-                if (special.wifi_mode_0 != oc.get("wireless", "@wifi-iface[0]", "mode") ||
-                    special.wifi_mode_1 != oc.get("wireless", "@wifi-iface[1]", "mode") ||
-                    special.wifi_macfilter_0 != oc.get("wireless", "@wifi-iface[0]", "macfilter") ||
-                    special.wifi_macfilter_1 != oc.get("wireless", "@wifi-iface[1]", "macfilter")) {
-                        // Only start the hostapd (etc) if we need to. This doesn't change what is currently running
-                        // only what automatically runs in the future
-                        changes.reboot = true;
-                }
-                else {
-                    changes.wireless = true;
+                        break;
+                    default:
+                        break;
                 }
             }
-            default:
-                changes.reboot = true;
-                break;
         }
     }
-    fs.unlink(ffile);
 }
+
 fs.rmdir("/tmp/new_config");
 
 nvram.set("hsmmmesh", "settings", "node", node);

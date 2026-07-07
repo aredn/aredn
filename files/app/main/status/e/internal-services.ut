@@ -80,6 +80,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("power_usb" in request.args) {
         uciMesh.set("aredn", "@usb[0]", "passthrough", request.args.power_usb === "on" ? "1" : "0");
     }
+    if ("remoterf" in request.args) {
+        uciMesh.set("aredn", "@remoterf[0]", "enable", request.args.remoterf === "on" ? "1" : "0");
+    }
     if ("message_pollrate" in request.args) {
         uciMesh.set("aredn", "@alerts[0]", "pollrate", request.args.message_pollrate);
     }
@@ -282,6 +285,19 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         </div>
         {{_H("Enable power on the node's USB port. Which ports support this is device dependend, and some devices with USB
         port may only have some with power available.")}}
+    {% }
+       if (hardware.supportsFeature("remoterf")) { %}
+        <div class="cols">
+            <div>
+                <div class="o">Remote Radios</div>
+                <div class="m">Enable direct routing through remote radios</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "remoterf", value: uciMesh.get("aredn", "@remoterf[0]", "enable") !== "0" })}}
+            </div>
+        </div>
+        {{_H("Enable direct routing through remote radios. This allows this node to send traffic directly through a remote
+              radio as if it was directly connected, greatly reducing overheads incurred on slower remote radio hardware.")}}
     {% } %}
         <div class="cols">
             <div>
@@ -335,7 +351,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div class="m">Restart the babel routing daemon</div>
                 </div>
                 <div style="flex:0">
-                    {{_R("restart", { name: "babel-only" })}}
+                    {{_R("restart", { name: "babel" })}}
                 </div>
             </div>
             <div class="cols">
@@ -345,6 +361,15 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                 </div>
                 <div style="flex:0">
                     {{_R("restart", { name: "babel-hard" })}}
+                </div>
+            </div>
+            <div class="cols">
+                <div>
+                    <div class="o">Restart arednlink</div>
+                    <div class="m">Restart the arednlinke naming daemon</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("restart", { name: "arednlink" })}}
                 </div>
             </div>
             <div class="cols">
