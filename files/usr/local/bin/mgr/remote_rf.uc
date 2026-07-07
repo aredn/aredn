@@ -35,6 +35,27 @@ if (uci.cursor().get("aredn", "@remoterf[0]", "enable") != "1") {
     return exitApp();
 }
 
+onShutdown(() => {
+    let changed = false;
+    const c = uci.cursor();
+    c.foreach("network", "interface", i => {
+        const name = i[".name"];
+        if (substr(name, 0, 3) === "rrf") {
+            const vname = `${name}vlan`;
+            const bname = `${name}bridge`;
+            c.delete("network", vname);
+            c.delete("network", bname);
+            c.delete("network", name);
+            changed = true;
+            log.syslog(log.LOG_NOTICE, `Removing remote wifi: ${name}`);
+        }
+    });
+    if (changed) {
+        c.commit("network");
+        system("/etc/init.d/network reload");
+    }
+});
+
 return function()
 {
     const addvlan = {};
@@ -83,7 +104,7 @@ return function()
         c.set("network", name, "interface");
         c.set("network", name, "device", `br-${name}`);
         changed = true;
-        log.syslog(log.LOG_NOTICE, `Adding remote wifi: vlan ${vlan}`);
+        log.syslog(log.LOG_NOTICE, `Adding remote wifi: ${name}`);
     }
     for (vlan in rmvlan) {
         const name = `rrf${vlan}`;
@@ -93,7 +114,7 @@ return function()
         c.delete("network", bname);
         c.delete("network", name);
         changed = true;
-        log.syslog(log.LOG_NOTICE, `Removing remote wifi: vlan ${vlan}`);
+        log.syslog(log.LOG_NOTICE, `Removing remote wifi: ${name}`);
     }
     if (changed) {
         c.commit("network");

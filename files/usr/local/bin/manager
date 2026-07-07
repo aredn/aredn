@@ -103,7 +103,7 @@ for (let i = 0; i < length(tasks); i++) {
                         },
                         exitApp: function() {
                             log.syslog(log.LOG_NOTICE, `Terminating task`);
-                            task.task.cancel();
+                            task.task.set(-1);
                             task.state = "E";
                             task.ctx = null;
                             task.run = null;
