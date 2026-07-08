@@ -33,7 +33,19 @@
 
 const WAN_TABLE = 28;
 const WAN_IFACE = "br-wan";
-const CHECK_ADDRESSES = [ "1.1.1.1", "8.8.8.8" ];
+
+const addresses = [];
+const mon1 = uci.cursor().get("aredn", "@wan[0]", "monitor1");
+const mon2 = uci.cursor().get("aredn", "@wan[0]", "monitor2");
+if (mon1) {
+    push(addresses, mon1);
+}
+if (mon2) {
+    push(addresses, mon2);
+}
+if (length(addresses) === 0) {
+    return exitApp();
+}
 
 let last_gw = null;
 
@@ -86,7 +98,7 @@ function isGwFound(iface, table)
 function main()
 {
     if (isInterfaceUp(WAN_IFACE)) {
-        const reachable = isInternetReachable(WAN_IFACE, CHECK_ADDRESSES);
+        const reachable = isInternetReachable(WAN_IFACE, addresses);
         const found = isGwFound(WAN_IFACE, WAN_TABLE);
         if (last_gw) {
             if (reachable && !found) {

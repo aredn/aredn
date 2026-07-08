@@ -37,6 +37,7 @@ import * as uci from "uci";
 import * as hardware from "aredn.hardware";
 import * as network from "aredn.network";
 import * as services from "aredn.services";
+import * as configuration from "aredn.configuration";
 
 // Helpers
 
@@ -424,12 +425,14 @@ for (let i = 0; i < length(cnetworks); i++) {
     }
     else if (net == "wifi0") {
         if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp" || cfg.radio0_mode == "meshsta") {
-            const vlanid = 3700 + int(split(mac2, ".")[2]) + 0;
-            vlan = `${vlanid}:t`;
             ports = [];
-            const dtdports = configuration.getActiveNetworkInterfaceName("dtdlink");
-            for (let p = 0; p < length(dtdports); p++) {
-                push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
+            if (hardware.supportsFeature("bridgerf")) {
+                const vlanid = 3700 + int(split(mac2, ".")[2]) + 0;
+                vlan = `${vlanid}:t`;
+                const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
+                for (let p = 0; p < length(dtdports); p++) {
+                    push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
+                }
             }
             macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy0/macaddress`));
             // Make AP's the best for better arednlink performance
@@ -445,12 +448,14 @@ for (let i = 0; i < length(cnetworks); i++) {
     }
     else if (net == "wifi1") {
         if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
-            const vlanid = 3700 + int(split(mac2, ".")[2]) + 1;
-            vlan = `${vlanid}:t`;
-            const dtdports = configuration.getActiveNetworkInterfaceName("dtdlink");
             ports = [];
-            for (let p = 0; p < length(dtdports); p++) {
-                push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
+            if (hardware.supportsFeature("bridgerf")) {
+                const vlanid = 3700 + int(split(mac2, ".")[2]) + 1;
+                vlan = `${vlanid}:t`;
+                const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
+                for (let p = 0; p < length(dtdports); p++) {
+                    push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
+                }
             }
             macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy1/macaddress`));
             // Make AP's the best for better arednlink performance

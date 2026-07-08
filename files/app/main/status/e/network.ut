@@ -145,6 +145,16 @@ if (request.env.REQUEST_METHOD === "PUT") {
             configuration.setSettingAsString("wan_dns2", request.args.wan_dns2);
         }
     }
+    if ("wan_monitor1" in request.args) {
+        if (match(request.args.wan_monitor1, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
+            uciMesh.set("aredn", "@wan[0]", "monitor1", request.args.wan_monitor1);
+        }
+    }
+    if ("wan_monitor2" in request.args) {
+        if (match(request.args.wan_monitor2, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
+            uciMesh.set("aredn", "@wan[0]", "monitor2", request.args.wan_monitor2);
+        }
+    }
     if ("wan_vlan" in request.args) {
         const wan_iface = keys(hardware.getDefaultNetworkConfiguration().wan.ports)[0];
         const wan_vlan = int(request.args.wan_vlan || 0);
@@ -458,6 +468,17 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
             </div>
             {{_H("Provide a default route to a LAN connected device, even if our local WAN is disabled. By default this is only provided to
             devices if our local WAN is available.")}}
+            <div class="cols">
+                <div>
+                    <div class="o">WAN Monitor</div>
+                    <div class="m">Internet WAN monitor addresses</div>
+                </div>
+                <div style="flex:0;white-space:nowrap">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="wan_monitor1" type="text" size="15" pattern="{{constants.patIP}}" hx-validate="true" value="{{uciMesh.get("aredn", "@wan[0]", "monitor1")}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="wan_monitor2" type="text" size="15" pattern="{{constants.patIP}}" hx-validate="true" value="{{uciMesh.get("aredn", "@wan[0]", "monitor2")}}">
+                </div>
+            </div>
+            {{_H("Addresses which should be reachable from the WAN interface for it to be considered usable.")}}
         {% } %}
         </div>
     </div>
