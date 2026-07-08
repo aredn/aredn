@@ -426,7 +426,7 @@ for (let i = 0; i < length(cnetworks); i++) {
     else if (net == "wifi0") {
         if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp" || cfg.radio0_mode == "meshsta") {
             ports = [];
-            if (hardware.supportsFeature("bridgerf")) {
+            if (hardware.supportsFeature("vlanrf")) {
                 const vlanid = 3700 + int(split(mac2, ".")[2]) + 0;
                 vlan = `${vlanid}:t`;
                 const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
@@ -449,7 +449,7 @@ for (let i = 0; i < length(cnetworks); i++) {
     else if (net == "wifi1") {
         if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
             ports = [];
-            if (hardware.supportsFeature("bridgerf")) {
+            if (hardware.supportsFeature("vlanrf")) {
                 const vlanid = 3700 + int(split(mac2, ".")[2]) + 1;
                 vlan = `${vlanid}:t`;
                 const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
