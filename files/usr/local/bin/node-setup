@@ -1,7 +1,7 @@
 #!/usr/bin/ucode
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024,2025 Tim Wilkinson
+ * Copyright (C) 2024-2026 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -138,7 +138,6 @@ const ieee80211 = "/sys/class/ieee80211/";
 const node = nvram.get("hsmmmesh", "settings", "node");
 const tactical = nvram.get("hsmmmesh", "settings", "tactical");
 const mac2 = nvram.get("hsmmmesh", "settings", "mac2");
-const dtdmac = nvram.get("hsmmmesh", "settings", "dtdmac");
 
 const is_supernode = cm.get("aredn", "@supernode[0]", "enable") == "1";
 const deleteme = {};
@@ -215,9 +214,6 @@ function expandVars(contents)
                     }
                     else if (parm == "MAC2") {
                         line = replace(line, "<MAC2>", mac2);
-                    }
-                    else if (parm == "DTDMAC") {
-                        line = replace(line, "<DTDMAC>", dtdmac);
                     }
                     else if (cfg[parm]) {
                         line = replace(line, `<${parm}>`, cfg[parm]);
@@ -341,7 +337,7 @@ cfg.bridge_network_config = config;
 const cnetworks = [ "lan", "wan", "dtdlink", "wifi0", "wifi1" ];
 for (let i = 0; i < length(cnetworks); i++) {
     const net = cnetworks[i];
-    let wireless = false;
+    let usebridge = true;
     let config = "";
 
     // We only setup mesh radios here - skip any others.
@@ -352,122 +348,104 @@ for (let i = 0; i < length(cnetworks); i++) {
 
     // generate a complete config
     let vlan = null;
-    let ports = hardware.getBoardNetworkInterfaceName(net);
+    //let ports = hardware.getBoardNetworkInterfaceName(net);
+    let ports = configuration.getActiveNetworkInterfaceNames(net);
     let macaddr = null;
 
-    if (net == "lan") {
-        // If the LAN has be given a vlan to use (usually by a switch) we use that here,
-        // otherwise we just use '3'
-        const lvlan = match(ports[0], /\.(\d+)$/);
-        if (lvlan) {
-            vlan = `${lvlan[1]}:t`;
+    switch (net) {
+        case "lan":
+        {
+            // If the LAN has be given a vlan to use (usually by a switch) we use that here,
+            // otherwise we just use '3'
+            const m = match(ports[0], /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
+            if (m && m[2] === ".") {
+                vlan = `${m[3]}:t`;
+            }
+            else {
+                vlan = `3:u`;
+            }
+            break;
         }
-        else {
-            vlan = "3:u";
-        }
-        // handle lan vlan override
-        const lan_intf = cm.get("setup", "globals", "lan_intf");
-        if (lan_intf) {
-            const m = match(lan_intf[0], /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
-            if (m) {
-                if (m[2] === ".") {
+        case "wan":
+        {
+            // wifi can be used for the WAN (we become a wifi client)
+            if (cfg.radio0_mode == "wan") {
+                usebridge = false;
+                ports = [ "wlan0" ];
+            }
+            else if (cfg.radio1_mode == "wan") {
+                usebridge = false;
+                ports = [ "wlan1" ];
+            }
+            else {
+                // If the WAN has been given a vlan to use (usually 1) we use that here.
+                const m = match(ports[0], /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
+                if (m && m[2] === ".") {
                     vlan = `${m[3]}:t`;
                 }
                 else {
-                    vlan = `3:u`;
+                    vlan = `4:u`;
                 }
-                ports = lan_intf;
             }
+            break;
         }
-    }
-    else if (net == "wan") {
-        // wifi can be used for the WAN (we become a wifi client)
-        if (cfg.radio0_mode == "wan") {
-            wireless = true;
-            ports = [];
-        }
-        else if (cfg.radio1_mode == "wan") {
-            wireless = true;
-            ports = [];
-        }
-        else {
-            // If the WAN has been given a vlan to use (usually 1) we use that here.
-            const wvlan = match(ports[0], /\.(\d+)$/);
-            if (wvlan) {
-                vlan = `${wvlan[1]}:t`;
+        case "dtdlink":
+            // Always vlan 2
+            vlan = "2:t";
+            break;
+        case "wifi0":
+        {
+            if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp" || cfg.radio0_mode == "meshsta") {
+                ports = [];
+                if (hardware.supportsFeature("vlanrf")) {
+                    const vlanid = configuration.getSettingAsInt("radio_vlan", 3700 + int(split(mac2, ".")[2])) + 0;
+                    vlan = `${vlanid}:t`;
+                    const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
+                    for (let p = 0; p < length(dtdports); p++) {
+                        push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
+                    }
+                }
+                macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy0/macaddress`));
+                // Make AP's the best for better arednlink performance
+                if (macaddr && (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp")) {
+                    macaddr = replace(macaddr, /^..:/, "fe:");
+                }
+                cfg.radio0_macaddr = macaddr;
             }
             else {
-                vlan = "4:u";
+                usebridge = false;
+                ports = [ "wlan0" ];
             }
-            // handle wan vlan override
-            const wan_intf = cm.get("setup", "globals", "wan_intf");
-            if (wan_intf) {
-                const m = match(wan_intf[0], /^([a-zA-Z0-9]+)(\.?)(\d*)$/);
-                if (m) {
-                    if (m[2] === ".") {
-                        vlan = `${m[3]}:t`;
+            break;
+        }
+        case "wifi1":
+        {
+            if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
+                ports = [];
+                if (hardware.supportsFeature("vlanrf")) {
+                    const vlanid = configuration.getSettingAsInt("radio_vlan", 3700 + int(split(mac2, ".")[2])) + 1;
+                    vlan = `${vlanid}:t`;
+                    const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
+                    for (let p = 0; p < length(dtdports); p++) {
+                        push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
                     }
-                    else {
-                        vlan = `4:u`;
-                    }
-                    ports = wan_intf;
                 }
-            }
-        }
-    }
-    else if (net == "dtdlink") {
-        // Always vlan 2
-        vlan = "2:t";
-        const dtdlink_intf = cm.get("setup", "globals", "dtdlink_intf");
-        if (dtdlink_intf) {
-            ports = dtdlink_intf;
-        }
-    }
-    else if (net == "wifi0") {
-        if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp" || cfg.radio0_mode == "meshsta") {
-            ports = [];
-            if (hardware.supportsFeature("vlanrf")) {
-                const vlanid = configuration.getSettingAsInt("radio_vlan", 3700 + int(split(mac2, ".")[2])) + 0;
-                vlan = `${vlanid}:t`;
-                const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
-                for (let p = 0; p < length(dtdports); p++) {
-                    push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
+                macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy1/macaddress`));
+                // Make AP's the best for better arednlink performance
+                if (macaddr && (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp")) {
+                    macaddr = replace(macaddr, /^..:/, "fe:");
                 }
+                cfg.radio1_macaddr = macaddr;
             }
-            macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy0/macaddress`));
-            // Make AP's the best for better arednlink performance
-            if (macaddr && (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp")) {
-                macaddr = replace(macaddr, /^..:/, "fe:");
+            else {
+                usebridge = false;
+                ports = [ "wlan1" ];
             }
-            cfg.radio0_macaddr = macaddr;
+            break;
         }
-        else {
-            wireless = true;
-            ports = [ "wlan0" ];
-        }
-    }
-    else if (net == "wifi1") {
-        if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
-            ports = [];
-            if (hardware.supportsFeature("vlanrf")) {
-                const vlanid = configuration.getSettingAsInt("radio_vlan", 3700 + int(split(mac2, ".")[2])) + 1;
-                vlan = `${vlanid}:t`;
-                const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
-                for (let p = 0; p < length(dtdports); p++) {
-                    push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
-                }
-            }
-            macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy1/macaddress`));
-            // Make AP's the best for better arednlink performance
-            if (macaddr && (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp")) {
-                macaddr = replace(macaddr, /^..:/, "fe:");
-            }
-            cfg.radio1_macaddr = macaddr;
-        }
-        else {
-            wireless = true;
-            ports = [ "wlan1" ];
-        }
+        default:
+            print(`WARNING: unknown network '${net}'\n`);
+            continue;
     }
 
     if (vlan) {
@@ -487,55 +465,50 @@ for (let i = 0; i < length(cnetworks); i++) {
     let mtu = cfg[`${net}_mtu`] || "";
     let gateway = deleteme[`${net}_gw`] ? "" : (cfg[`${net}_gw`] || "");
 
-    if (ports[0] === "disabled") {
-        config += `config interface '${net}'\n\toption proto 'none'\n`;
+    config += "config device\n";
+    if (usebridge) {
+        config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
+        if (length(ports) == 0) {
+            config += "\toption bridge_empty '1'\n";
+        }
+        else {
+            for (let p = 0; p < length(ports); p++) {
+                config += `\tlist ports '${ports[p]}'\n`;
+            }
+        }
     }
     else {
-        config += "config device\n";
-        if (!wireless) {
-            config += `\toption name 'br-${net}'\n\toption type 'bridge'\n`;
-            if (length(ports) == 0) {
-                config += "\toption bridge_empty '1'\n";
-            }
-            else {
-                for (let p = 0; p < length(ports); p++) {
-                    config += `\tlist ports '${ports[p]}'\n`;
-                }
-            }
-        }
-        else {
-            config += `\toption name '${ports[0]}'\n`;
-        }
+        config += `\toption name '${ports[0]}'\n`;
+    }
 
-        if (macaddr) {
-            config += `\toption macaddr '${macaddr}'\n`;
-        }
-        else if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
-            config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
-        }
+    if (macaddr) {
+        config += `\toption macaddr '${macaddr}'\n`;
+    }
+    else if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
+        config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
+    }
 
-        config += `\nconfig interface '${net}'\n`;
-        if (wireless) {
-            config += `\toption device '${ports[0]}'\n`;
-        }
-        else {
-            config += `\toption device 'br-${net}'\n`;
-        }
-        if (proto != "") {
-            config += `\toption proto '${proto}'\n`;
-        }
-        if (mtu != "") {
-            config += `\toption mtu '${mtu}'\n`;
-        }
-        if (ipaddr != "") {
-            config += `\toption ipaddr '${ipaddr}'\n`;
-        }
-        if (netmask != "") {
-            config += `\toption netmask '${netmask}'\n`;
-        }
-        if (gateway != "") {
-            config += `\toption gateway '${gateway}'\n`;
-        }
+    config += `\nconfig interface '${net}'\n`;
+    if (usebridge) {
+        config += `\toption device 'br-${net}'\n`;
+    }
+    else {
+        config += `\toption device '${ports[0]}'\n`;
+    }
+    if (proto != "") {
+        config += `\toption proto '${proto}'\n`;
+    }
+    if (mtu != "") {
+        config += `\toption mtu '${mtu}'\n`;
+    }
+    if (ipaddr != "") {
+        config += `\toption ipaddr '${ipaddr}'\n`;
+    }
+    if (netmask != "") {
+        config += `\toption netmask '${netmask}'\n`;
+    }
+    if (gateway != "") {
+        config += `\toption gateway '${gateway}'\n`;
     }
 
     cfg[`${net}_network_config`] = config;
