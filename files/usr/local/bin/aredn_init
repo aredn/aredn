@@ -40,7 +40,6 @@ const nvram = uci.cursor("/etc/local/uci");
 
 let name = nvram.get("hsmmmesh", "settings", "node") ?? "";
 let mac2 = nvram.get("hsmmmesh", "settings", "mac2") ?? "";
-let dtdmac = nvram.get("hsmmmesh", "settings", "dtdmac") ?? "";
 let wifi_mac = nvram.get("hsmmmesh", "settings", "wifimac") ?? "";
 
 const defaults = {
@@ -122,33 +121,6 @@ if (wifi_mac == "" || mac2 == "") {
     }
 }
 
-if (dtdmac == "") {
-    let m = null;
-    for (let i = 0; i < 5; i++) {
-        m = match(hardware.getInterfaceMAC("eth0"), /..:..:..:(..):(..):(..)/);
-        if (m && !(m[1] == "00" && m[2] == "00" && m[3] == "00")) {
-            break;
-        }
-        m = null;
-        sleep(2000);
-    }
-    if (m) {
-        dtdmac = `${hex(m[1])}.${hex(m[2])}.${hex(m[3])}`;
-    }
-    else {
-        dtdmac = mac2;
-    }
-    if (dtdmac == mac2) {
-        const m = match(dtdmac, /^(\d+)\.(\d+)\.(\d+)$/);
-        let a = int(m[1]) + 1;
-        if (a > 255) {
-            a = 0;
-        }
-        dtdmac = `${a}.${m[2]}.${m[3]}`;
-    }
-    nvram.set("hsmmmesh", "settings", "dtdmac", dtdmac);
-}
-
 if (name == "") {
     name = "NOCALL";
     nvram.set("hsmmmesh", "settings", "node", name);
@@ -162,7 +134,7 @@ nvram.commit("hsmmmesh");
 
 // Load the defaults
 for (let k in defaults) {
-    cfg[k] = replace(replace(replace(defaults[k], "<NODE>", name), "<MAC2>", mac2), "<DTDMAC>", dtdmac);
+    cfg[k] = replace(replace(replace(defaults[k], "<NODE>", name), "<MAC2>", mac2));
 }
 
 // Override with the current config
