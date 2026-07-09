@@ -230,6 +230,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("radio_polarization" in request.args) {
         uciMesh.set("aredn", "@location[0]", "polarization", request.args.radio_polarization);
     }
+    if ("radio_vlan" in request.args) {
+        configuration.setSettingAsString("radio_vlan", request.args.radio_vlan);
+    }
     uciMesh.commit("aredn");
     configuration.saveSettings();
     print(_R("changes"));
@@ -604,6 +607,25 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         else {
     %}
         <div style="padding-bottom:24px">No Radios</div>
+    {% } %}
+    {% if (hardware.supportsFeature("vlanrf")) { %}
+        {{_R("dialog-advanced")}}
+        <div>
+        {% if (includeAdvanced) { %}
+            <div class="cols">
+                <div>
+                    <div class="o">Radio VLAN</div>
+                    <div class="m">VLAN used to bridge to a local node</div>
+                </div>
+                <div style="flex:0">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="radio_vlan" type="text" size="5" placeholder="{{3700 + int(split(configuration.getDefaultIP(), ".")[3])}}" pattern="([15-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" hx-validate="true" value="{{configuration.getSettingAsString("radio_vlan", "")}}">
+                </div>
+            </div>
+            {{_H("VLAN used to directly bridge this radio to another local node. This lets that node directly send traffic through this
+                  radio, bypassing its routing and firewall, to improve bandwidth and latency. If this device has two radios, the second radio
+                  uses VLAN + 1.")}}
+        {% } %}
+        </div>
     {% } %}
     </div>
     {{_R("dialog-footer")}}

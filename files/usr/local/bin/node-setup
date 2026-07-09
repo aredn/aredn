@@ -427,7 +427,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp" || cfg.radio0_mode == "meshsta") {
             ports = [];
             if (hardware.supportsFeature("vlanrf")) {
-                const vlanid = 3700 + int(split(mac2, ".")[2]) + 0;
+                const vlanid = configuration.getSettingAsInt("radio_vlan", 3700 + int(split(mac2, ".")[2])) + 0;
                 vlan = `${vlanid}:t`;
                 const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
                 for (let p = 0; p < length(dtdports); p++) {
@@ -450,7 +450,7 @@ for (let i = 0; i < length(cnetworks); i++) {
         if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
             ports = [];
             if (hardware.supportsFeature("vlanrf")) {
-                const vlanid = 3700 + int(split(mac2, ".")[2]) + 1;
+                const vlanid = configuration.getSettingAsInt("radio_vlan", 3700 + int(split(mac2, ".")[2])) + 1;
                 vlan = `${vlanid}:t`;
                 const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
                 for (let p = 0; p < length(dtdports); p++) {
@@ -1289,8 +1289,6 @@ const restarters = {
     "aredn": {
         "aredn.@supernode[0].enable": "reboot",
         "aredn.@watchdog[0].enable": "hw_watchdog",
-        "aredn.@watchdog[0].ping_addresses": "hw_watchdog",
-        "aredn.@watchdog[0].daily": "hw_watchdog",
         "aredn.@beacon[0].enable": "fccid",
         "aredn.@remoterf[0].enable": "remote_rf",
         "aredn.@wan[0].web_access": "firewall",
