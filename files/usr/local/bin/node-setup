@@ -41,21 +41,6 @@ import * as configuration from "aredn.configuration";
 
 // Helpers
 
-function isNull(v)
-{
-    if (!v || v == "" || v == 0 || v == "0") {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-function isNotNull(v)
-{
-    return !isNull(v);
-}
-
 function h2s(hexstr)
 {
     let s = "";
@@ -158,7 +143,8 @@ const cfg = {
 // Track the changes so we can make better decissions about what to restart/reboot
 const changes = {};
 
-function validConfig(config) {
+function validConfig(config)
+{
     removeAll("/tmp/uci_validate");
     fs.mkdir("/tmp/uci_validate");
     fs.writefile("/tmp/uci_validate/config", config);
@@ -169,17 +155,12 @@ function validConfig(config) {
 
 function isNatMode()
 {
-    return isNull(cfg.dmz_mode);
+    return cfg.dmz_mode == "0";
 }
 
 function isDmzMode()
 {
-    return isNotNull(cfg.dmz_mode) && cfg.dmz_mode != "1";
-}
-
-function isAltNetMode()
-{
-    return cfg.dmz_mode == "1";
+    return cfg.dmz_mode != "0" && cfg.dmz_mode != "1";
 }
 
 function expandVars(contents)
@@ -250,7 +231,7 @@ if (cfg.wan_proto != "static") {
     deleteme.wan_gw = true;
     deleteme.wan_mask = true;
 }
-if (isDmzMode() || isAltNetMode() || cfg.wan_proto != "disabled") {
+if (!isNatMode() || cfg.wan_proto != "disabled") {
     deleteme.lan_gw = true;
 }
 
@@ -275,11 +256,6 @@ else {
     deleteme.remote_log_proto = true;
     deleteme.remote_log_ip = true;
     deleteme.remote_log_port = true;
-}
-
-// Sensible dmz_mode default
-if (isNull(cfg.dmz_mode)) {
-    cfg.dmz_mode = "0";
 }
 
 // switch to dmz values if needed
@@ -1108,18 +1084,13 @@ if (h && e && ah) {
     h.write("# automatically generated file - do not edit\n");
     h.write("# use /etc/hosts.user for custom entries\n");
     h.write("127.0.0.1\tlocalhost\n");
-    if (isNotNull(cfg.wifi_ip)) {
-        h.write(`${cfg.lan_ip}\tlocalnode\n`);
-        h.write(`${cfg.wifi_ip}\t${node} ${tactical || ""}\n`);
-        ah.write(`${cfg.wifi_ip}\t${node}\n`);
-        ah.write(`${cfg.lan_ip}\tlan.${node}.local.mesh\n`);
-    }
-    else {
-        h.write(`${cfg.lan_ip}\tlocalnode ${node} ${tactical || ""}\n`);
-    }
+    h.write(`${cfg.lan_ip}\tlocalnode\n`);
+    h.write(`${cfg.wifi_ip}\t${node} ${tactical || ""}\n`);
+    ah.write(`${cfg.wifi_ip}\t${node}\n`);
+    ah.write(`${cfg.lan_ip}\tlan.${node}.local.mesh\n`);
 
     // Mark supernodes so we can find them
-    if (is_supernode && isNotNull(cfg.wifi_ip)) {
+    if (is_supernode) {
         ah.write(`${cfg.wifi_ip}\tsupernode.${node}.local.mesh\n`);
     }
 
@@ -1129,7 +1100,7 @@ if (h && e && ah) {
     let netaddr = ip2decimal(cfg.lan_ip) & ip2decimal(cfg.lan_mask);
     // In NAT or AltNET mode the DHCP start can be something other than 2 which is what is assumed in the
     //  code which creates the DHCP reservations. So we adjust our netaddr base to account for this
-    if (isNatMode() || isAltNetMode()) {
+    if (!isDmzMode()) {
         netaddr += cfg.dhcp_start - 2;
     }
 
