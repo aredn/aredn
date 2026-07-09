@@ -84,12 +84,12 @@ if (request.env.REQUEST_METHOD === "PUT") {
         uciMesh.set("aredn", "@remoterf[0]", "enable", request.args.remoterf === "on" ? "1" : "0");
     }
     if ("wan_monitor1" in request.args) {
-        if (match(request.args.wan_monitor1, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
+        if (request.args.wan_monitor1 === "" || match(request.args.wan_monitor1, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
             uciMesh.set("aredn", "@wan[0]", "monitor1", request.args.wan_monitor1);
         }
     }
     if ("wan_monitor2" in request.args) {
-        if (match(request.args.wan_monitor2, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
+        if (request.args.wan_monitor2 === "" || match(request.args.wan_monitor2, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
             uciMesh.set("aredn", "@wan[0]", "monitor2", request.args.wan_monitor2);
         }
     }
