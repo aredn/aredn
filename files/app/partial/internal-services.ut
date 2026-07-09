@@ -51,6 +51,7 @@
     const poe = uci.get("aredn", "@poe[0]", "passthrough") === "0" ? "disabled" : "active";
     const pou = uci.get("aredn", "@usb[0]", "passthrough") === "0" ? "disabled" : "active";
     const rr = uci.get("aredn", "@remoterf[0]", "enable") === "0" ? "disabled" : "active";
+    const wm = uci.get("aredn", "@wan[0]", "monitor1") || uci.get("aredn", "@wan[0]", "monitor2") ? "active": "disabled";
 %}
 <div class="ctrl" hx-get="status/e/internal-services" hx-target="#ctrl-modal">
     <div class="section-title">Internal Services</div>
@@ -81,5 +82,6 @@
         {% if (hardware.supportsFeature("remoterf")) { %}
         <div class="service"><div class="status {{rr}}"></div>Remote Radios</div>
         {% } %}
+        <div class="service"><div class="status {{wm}}"></div>WAN Monitor</div>
     </div>
 </div>
