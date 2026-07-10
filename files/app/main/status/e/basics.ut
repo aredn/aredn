@@ -71,6 +71,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     }
                 }
             }
+            fs.unlink(`${config.application}/resource/css/theme.css.gz`);
+            system(`/bin/gzip -k ${config.application}/resource/css/theme.css`);
         }
         return;
     }
