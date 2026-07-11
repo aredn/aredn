@@ -1,5 +1,142 @@
 __RELEASE NOTES__
 
+# 4.26.7.0
+
+AREDN production release 4.26.7.0 is now available
+
+### **Major Features**
+
+* Updated to OpenWRT 25.12.5
+
+  OpenWRT 25.12 brings a new package manager \- **apk**. If you are currently using side-loaded .ipk packages, these cannot be updated when AREDN is updated as they are no longer compatible and will be removed.
+
+* Faster network changes
+
+  You can now add, remove, or update tunnels without restarting the entire network stack. It’s a lot faster and less disruptive.
+
+* Improved Halow 802.11ah support
+
+  Updated to the latest Morse Micro 1.17.9 drivers which improves stability and performance of Halow links.
+
+* Support for MediaTek WiFi-6 AX devices
+
+  Improved support for AX radio based devices. Note that these radios come with a number of limitations, including only supporting 20 MHz or greater bandwidth.
+
+* Zyxel radios
+
+  Zyxel is a new manufacturer to AREDN. We support the NWA55AXE. It is the only outdoor rated AX radio supported by OpenWRT, and has connector-ized antennas so can be attached to your antenna of choice.
+
+* Supernode Babel improvements
+
+  Improve the babel configuration for Supernodes. Supernodes handle a lot of routes and these changes get better Babel performance especially on non-x86 hardware.
+
+### **New Devices Supported**
+
+* Morse Micro HalowLink 2
+* Heltec HT-HD01 V2
+* Heltec HT-H7608 V2
+* Ubiquiti PowerBeam 5AC 300
+* GL.iNet Slate Plus (GL-A1300)
+* Cudy WR3000
+* Cudy WR3000E
+* Cudy WR3000H
+* Cudy WR3000P
+* Cudy WR3000S
+* Zyxel NWA55AXE
+* Vultr Cloud Compute
+
+### **Known Issues**
+
+* Theme changes on your lan connected node may not be respected until a reboot.
+* Nodes terminating tunnels or xlinks may not provide useful information to traceroute or similar tools. Install this package to fix: [https://github.com/kn6plv/FixTraceroute/raw/refs/heads/main/fixtraceroute-0.0.1-r0.apk](https://github.com/kn6plv/FixTraceroute/raw/refs/heads/main/fixtraceroute-0.0.1-r0.apk)
+
+### **Fixes and Enhancements**
+
+* Port remaining flash fixes for new kernels \- [\#2790](https://github.com/aredn/aredn/pull/2790)
+* Use IPv6 link address to retrieve signal info from peer \- [\#2781](https://github.com/aredn/aredn/pull/2781)
+* Babel PR https://github.com/jech/babeld/pull/124 [\#251](https://github.com/aredn/aredn_packages/pull/251)
+* Display timezone \- [\#2776](https://github.com/aredn/aredn/pull/2776)
+* Add Bookmarks to Local Services \- [\#2774](https://github.com/aredn/aredn/pull/2774)
+* Disable mesh autorefresh by default \- [\#2773](https://github.com/aredn/aredn/pull/2773)
+* Support multiple supernode dns servers \- [\#2772](https://github.com/aredn/aredn/pull/2772)
+* Retract Babel routes on interface before we flush it \- [\#243](https://github.com/aredn/aredn_packages/pull/243) [\#244](https://github.com/aredn/aredn_packages/pull/244) [\#245](https://github.com/aredn/aredn_packages/pull/245) [\#246](https://github.com/aredn/aredn_packages/pull/246)
+* Fix persistence of default tunnel cost \- [\#2770](https://github.com/aredn/aredn/pull/2770)
+* Report tx success as well as rx success \- [\#2768](https://github.com/aredn/aredn/pull/2768)
+* Babel supernode optimizations \- [\#240](https://github.com/aredn/aredn_packages/pull/240) [\#242](https://github.com/aredn/aredn_packages/pull/242)
+* Remove fw3 reference \- [\#2763](https://github.com/aredn/aredn/pull/2763)
+* Set the various listener queues to 32 entries. \- [\#234](https://github.com/aredn/aredn_packages/pull/234)
+* Add retries when telling babel about new interfaces \- [\#233](https://github.com/aredn/aredn_packages/pull/233)
+* Fix supernode update interval \- [\#232](https://github.com/aredn/aredn_packages/pull/232)
+* Add interface flush before reconfiguring an interface \- [\#231](https://github.com/aredn/aredn_packages/pull/231)
+* Remove LQM trackers when devices are removed. \- [\#2760](https://github.com/aredn/aredn/pull/2760)
+* Fix saving the default tunnel cost \- [\#2759](https://github.com/aredn/aredn/pull/2759)
+* Add soft network restart. \- [\#2758](https://github.com/aredn/aredn/pull/2758)
+* Reduce arednlinks traffic to disk. \- [\#229](https://github.com/aredn/aredn_packages/pull/229)
+* Give wireguard tunnels consistent names. \- [\#2755](https://github.com/aredn/aredn/pull/2755)
+* Allow babel to politely withdraw from the network before restarting network \- [\#2754](https://github.com/aredn/aredn/pull/2754)
+* Stop hiding the default cost for supernode tunnels. \- [\#2753](https://github.com/aredn/aredn/pull/2753)
+* Fix bug when channel didn’t change when selection new bandwidth sometimes \- [\#2750](https://github.com/aredn/aredn/pull/2750)
+* Tube-AHM WiFi Display \- [\#2736](https://github.com/aredn/aredn/issues/2736)
+* Fix resource cache control. \- [\#2744](https://github.com/aredn/aredn/pull/2744)
+* Disable halow power saving \- [\#2741](https://github.com/aredn/aredn/pull/2741)
+* Fix reading the noise floor in halow. \- [\#2739](https://github.com/aredn/aredn/pull/2739)
+* Remove the custom setup of ampdu as this is now the default. \- [\#2738](https://github.com/aredn/aredn/pull/2738)
+* Updates for the glinet a-1300 \- [\#2733](https://github.com/aredn/aredn/pull/2733)
+* Provide hooks to enable the spectrum radio on specific Ubiquiti AC radios. \- [\#2730](https://github.com/aredn/aredn/pull/2730) [\#2725](https://github.com/aredn/aredn/pull/2725)
+* Don't display error rate when node is disconnected. \- [\#2729](https://github.com/aredn/aredn/pull/2729)
+* Handle single port devices which use 'lan' or 'eth0' name \- [\#2728](https://github.com/aredn/aredn/pull/2728)
+* Fix UI update bug when changing password. \- [\#2724](https://github.com/aredn/aredn/pull/2724)
+* Fix SXTsq 5 names \- [\#2723](https://github.com/aredn/aredn/pull/2723)
+* Fix the name of the SXTsq 2nd (SXTsq Lite2) \- [\#2722](https://github.com/aredn/aredn/pull/2722)
+* Improve the firmware update autofill. \- [\#2720](https://github.com/aredn/aredn/pull/2720)
+* Tweak login cookie format to make them play nice in more places. \- [\#2721](https://github.com/aredn/aredn/pull/2721) [\#2706](https://github.com/aredn/aredn/pull/2706)
+* WAN via WiFi Radio Stops Working with Babel-Only Production \- [\#2600](https://github.com/aredn/aredn/issues/2600)
+* More wireless fixes for ath10k \-ve channels. \- [\#2660](https://github.com/aredn/aredn/pull/2660) [\#2655](https://github.com/aredn/aredn/pull/2655) [\#2700](https://github.com/aredn/aredn/issues/2700)
+* Fix missing new dependency for Halow devices. \- [\#2716](https://github.com/aredn/aredn/pull/2716)
+* Fix UI when changing wifi mode makes some channels unusable. \- [\#2715](https://github.com/aredn/aredn/pull/2715) [\#2746](https://github.com/aredn/aredn/issues/2746)
+* Fix WAN client mode when network ports are not the default. \- [\#2714](https://github.com/aredn/aredn/pull/2714)
+* Fix wifi setup problems on dual radio devices \- [\#2711](https://github.com/aredn/aredn/pull/2711)
+* Allow radios definitions to exclude channels \- [\#2708](https://github.com/aredn/aredn/pull/2708)
+* Only support the restart op for halow wifi monitoring. \- [\#2703](https://github.com/aredn/aredn/pull/2703)
+* Crude way to set the MTU of all wireguard tunnels. \- [\#2698](https://github.com/aredn/aredn/pull/2698)
+* Add mt76 chipset to wireless monitor \- [\#2694](https://github.com/aredn/aredn/pull/2694)
+* Improve what we display for link uptimes. \- [\#2693](https://github.com/aredn/aredn/pull/2693)
+* More HE support improvements. \- [\#2688](https://github.com/aredn/aredn/pull/2688)
+* Even better AX detection. \- [\#2687](https://github.com/aredn/aredn/pull/2687)
+* Improve support for AX chipsets \- [\#2686](https://github.com/aredn/aredn/pull/2686)
+* Fix arednlink resyncing when a route moves. \- [\#224](https://github.com/aredn/aredn_packages/pull/224)
+* Use the mesh.getNodeList in more places and remove dup code \- [\#2678](https://github.com/aredn/aredn/pull/2678)
+* Fix retrieval of host list for iperf and ping tools \- [\#2677](https://github.com/aredn/aredn/pull/2677)
+* Experimental QoS improvements \- [\#2676](https://github.com/aredn/aredn/pull/2676)
+* Fix sysinfo to match arednlink file changes \- [\#2675](https://github.com/aredn/aredn/pull/2675)
+* Add tc utility \- [\#2674](https://github.com/aredn/aredn/pull/2674)
+* Wpad startup improvements \- [\#2673](https://github.com/aredn/aredn/pull/2673)
+* Disallow percentage sign in passwd \- [\#2672](https://github.com/aredn/aredn/pull/2672)
+* More wireless fixes for ath10k \-ve channels. \- [\#2660](https://github.com/aredn/aredn/pull/2660) [\#2658](https://github.com/aredn/aredn/issues/2658)
+* Fixes for changes in /etc/config/gpsd file changes \- [\#2661](https://github.com/aredn/aredn/pull/2661)
+* Prometheus fix for missing MCS values \- [\#222](https://github.com/aredn/aredn_packages/pull/222) [\#221](https://github.com/aredn/aredn_packages/issues/221)
+* Detect mikrotik zero radio problems \- [\#2659](https://github.com/aredn/aredn/pull/2659)
+* Fix mesh(adhoc) channels 182-184 \- [\#2655](https://github.com/aredn/aredn/pull/2655) [\#2660](https://github.com/aredn/aredn/pull/2660) [\#2654](https://github.com/aredn/aredn/issues/2654)
+* Fix port range forwarding to remapped target ports. \- [\#2636](https://github.com/aredn/aredn/pull/2636) [\#2632](https://github.com/aredn/aredn/issues/2632)
+* Default the WAN Client password to blank otherwise it's impossible to set \- [\#2649](https://github.com/aredn/aredn/pull/2649)
+* Improve main page performance \- [\#2647](https://github.com/aredn/aredn/pull/2647)
+* Optimize and cache reading radio state \- [\#2646](https://github.com/aredn/aredn/pull/2646)
+* Add optional badge background color \- [\#2637](https://github.com/aredn/aredn/pull/2637)
+* Require a reboot after changing the package url. \- [\#2635](https://github.com/aredn/aredn/pull/2635) [\#2628](https://github.com/aredn/aredn/issues/2628)
+* Fix europe/istanbul's time zone \- [\#2633](https://github.com/aredn/aredn/pull/2633)
+* Filter out any babel builds when fetching firmware list. \- [\#2618](https://github.com/aredn/aredn/pull/2618)
+* Add xlink feature to Rocket 5AC Lite (as it's the workhorse radio) \- [\#2619](https://github.com/aredn/aredn/pull/2619)
+* Replace xlink peer address, which is not used with Babel, with Note field. \- [\#2615](https://github.com/aredn/aredn/pull/2615)
+* Fix xlink corruption if cost not set. \- [\#2614](https://github.com/aredn/aredn/pull/2614)
+* New API to watch for service changes rather than polling. \- [\#2612](https://github.com/aredn/aredn/pull/2612)
+* Add earth service icon. \- [\#2610](https://github.com/aredn/aredn/pull/2610)
+* Improve default wifi selection in scanner. \- [\#2611](https://github.com/aredn/aredn/pull/2611)
+* Improve wifi scanner to better avoid bug in QCA988X firmware \- [\#2607](https://github.com/aredn/aredn/pull/2607)
+* Give services more time to respond when checking them \- [\#2602](https://github.com/aredn/aredn/pull/2602)
+* Add 911g-2hpnd-12s as v7 image exception \- [\#2599](https://github.com/aredn/aredn/pull/2599)
+
+The cross referenced list above was initially generated using Anthropic’s Claude (Opus 4.8 High) AI then edited and checked by humans for accuracy.
+
 # 4.26.1.0
 
 This release is the first AREDN production release that omits the legacy OLSR protocol, and consequently the first release with the major number 4\. That may sound scary, but if all your local nodes are on 3.25.5.0 or greater, they already speak Babel. That means a migration to this production release should pretty much be a non-event for your network.

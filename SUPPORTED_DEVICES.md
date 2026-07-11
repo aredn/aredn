@@ -66,7 +66,7 @@ NanoStation Loco M5 XW || 5 | ath79 | generic | ubnt_nanostation-loco-m-xw | 64M
 NanoStation M2 XW || 2 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 NanoStation M5 XW || 5 | ath79 | generic | ubnt_nanostation-m-xw | 64MB | stable | released
 PowerBeam 5AC Gen2 || 5 | ath79 | generic | ubnt_powerbeam-5ac-gen2 | 128MB | untested | released
-PowerBeam 5AC 300 || 5 | ath79 | generic | ubnt_powerbeam-5ac-300 | 128MB | untested | nightly
+PowerBeam 5AC 300 || 5 | ath79 | generic | ubnt_powerbeam-5ac-300 | 128MB | untested | released
 PowerBeam 5AC 400 || 5 | ath79 | generic | ubnt_powerbeam-5ac-400 | 128MB | untested | released
 PowerBeam 5AC 500 | PBE-5AC-500 <br> PBE-5AC-500-US | 5 | ath79 | generic | ubnt_powerbeam-5ac-500 | 128MB | stable | released
 PowerBeam 5AC 620 || 5 | ath79 | generic | ubnt_powerbeam-5ac-620 | 128MB | untested | released
@@ -142,7 +142,7 @@ Shadow (16MB NOR) | GL-AR300M16 <br> GL-AR300M16-Ext | 2 | ath79 | generic | gli
 Shadow (128MB NAND) | GL-AR300M <br> GL-AR300M-Ext | 2 | ath79 | nand | gl-ar300m | 64MB | stable | released
 Mudi | GL-E750 | 2 & 5 | ath79 | nand | gl-e750 | 128MB | stable | stable
 Mudi | GL-E750 V2 | 2 & 5 | ath79 | nand | gl-e750 | 128MB | unsupported | not supported
-Slate Plus | GL-A1300 | 2 & 5 | ipq40xx | generic | gl-a1300 | 256MB | stable | nightly (6)
+Slate Plus | GL-A1300 | 2 & 5 | ipq40xx | generic | gl-a1300 | 256MB | stable | released (6)
 Convexa-B | GL-B1300 | 2 & 5 | ipq40xx | generic | gl-b1300 | 256MB | stable | released (6)
 Beryl | GL-MT1300 | 2 & 5 | ramips | mt7621 | gl-mt1300 | 256MB | stable | released (4)
 **Sunset Devices** | | | | | | | |
@@ -160,11 +160,11 @@ OpenWRT One | OpenWRT One | 2ax & 5ax | mediatek | filogic | openwrt_one | 1024M
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 HaLowLink 1 | MM-HL1-EXT | HaLow | ramips | mt7621 | morse_artini | 256MB | supported | released
-HaLowLink 2 | MM-HL2-EXT | HaLow | ramips | mt7621 | morse_halowlink2 | 256MB | supported | nightly
+HaLowLink 2 | MM-HL2-EXT | HaLow | ramips | mt7621 | morse_halowlink2 | 256MB | supported | released
 Heltec HT-HD01 V1 | HT-HD01 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (8)
-Heltec HT-HD01 V2 | HT-HD01 | HaLow | ramips | mt76x8 | heltec_ht-hd01-v2 | 128MB | supported | nightly (8)
+Heltec HT-HD01 V2 | HT-HD01 | HaLow | ramips | mt76x8 | heltec_ht-hd01-v2 | 128MB | supported | released (8)
 Heltec HT-H7608 V1 | HT-H7608 | HaLow | ramips | mt76x8 | morse_ekh03v3 | 128MB | supported | released (8)
-Heltec HT-H7608 V2 | HT-H7608 | HaLow | ramips | mt76x8 | heltec_ht-h7608-v2 | 128MB | supported | nightly (8)
+Heltec HT-H7608 V2 | HT-H7608 | HaLow | ramips | mt76x8 | heltec_ht-h7608-v2 | 128MB | supported | released (8)
 Alfa Tube-AHM | Tube-AHM | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | supported | released (1)
 Alfa Tube-AHM PoE | Tube-AHM PoE | HaLow | ramips | mt76x8 | alfa-network_tube-ahm-r0c | 128MB | supported | released (1)
 Alfa Tube-AH | Tube-AH | HaLow | - | - | - | - | unsupported | not supported
@@ -174,16 +174,16 @@ Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Cudy TR1200 | Cudy TR1200 1.0 | 2 & 5 | ramips | mt76x8 | cudy_tr1200 | 128MB | supported | released
 Cudy TR3000 | Cudy TR3000 1.0 | 2ax & 5ax | mediatek | filogic | cudy_tr3000-v1 | 512MB | supported | released (9)
-Cudy WR3000 | Cudy WR3000 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000-v1 | 128MB | untested | nightly (9)
-Cudy WR3000E | Cudy WR3000E 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000e-v1 | 128MB | untested | nightly (9)
-Cudy WR3000H | Cudy WR3000H 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000h-v1 | 256MB | supported | nightly (9)
-Cudy WR3000P | Cudy WR3000P 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000p-v1 | 512MB | untested | nightly (9)
-Cudy WR3000S | Cudy WR3000S 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000s-v1 | 256MB | untested | nightly (9)
+Cudy WR3000 | Cudy WR3000 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000-v1 | 128MB | untested | released (9)
+Cudy WR3000E | Cudy WR3000E 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000e-v1 | 128MB | untested | released (9)
+Cudy WR3000H | Cudy WR3000H 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000h-v1 | 256MB | supported | released (9)
+Cudy WR3000P | Cudy WR3000P 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000p-v1 | 512MB | untested | released (9)
+Cudy WR3000S | Cudy WR3000S 1.0 | 2ax & 5ax | mediatek | filogic | cudy_wr3000s-v1 | 256MB | untested | released (9)
 
 ## Zyxel
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
-Zyxel NWA55AXE | Zyxel NWA55AXE | 5ax | ramips | mt7621 | zyxel_nwa55axe | 256MB | supported | nightly (9)
+Zyxel NWA55AXE | Zyxel NWA55AXE | 5ax | ramips | mt7621 | zyxel_nwa55axe | 256MB | supported | released (9)
 
 ## x86 / Virtual Machine
 
@@ -195,7 +195,7 @@ Unraid | x86 | 64 | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
 Vultr | x86 | 64 | x86-64-generic-ext4 | 64mb+ | unsupported | released (5)
 Bhyve | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
 VirtualBox | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
-Vultr | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | nightly (5)
+Vultr | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
 
 
 ## Footnotes
