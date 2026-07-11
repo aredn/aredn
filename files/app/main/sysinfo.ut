@@ -118,7 +118,7 @@ const meshrf = (function () {
                 const path = `/sys/class/net/br-${replace(cfg.iface, /^wlan/, "wifi")}`;
                 let wifivlan = null;
                 if (fs.access(path)) {
-                    wifivlan = int(match(fs.glob(`${path}/lower_br0.*`)[0], /(\d+)$/)[1]);
+                    wifivlan = int(match(fs.glob(`${path}/lower_br0.*`)?.[0], /(\d+)$/)?.[1]);
                 }
                 push(meshrf, strip({
                     status: "on",
