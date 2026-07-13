@@ -43,6 +43,10 @@ if (request.env.REQUEST_METHOD === "PUT") {
         uciMesh.set("wireguard", "@network[0]", "cost", request.args.tunnel_rxcost);
         uciMesh.commit("wireguard");
     }
+    if ("tunnel_mtu" in request.args) {
+        uciMesh.set("wireguard", "@network[0]", "mtu", request.args.tunnel_mtu);
+        uciMesh.commit("wireguard");
+    }
     if ("tunnels" in request.args) {
         const tunnels = json(request.args.tunnels);
         const found = { ws: {}, wc: {} };
@@ -267,8 +271,18 @@ function t2t(type)
                 </div>
             </div>
             {{_H("The cost of routing traffic via a tunnel. The higher the cost, the less likely a tunnel is used to reach a destination.
-This value is used by default, but each tunnel may overide it.
-")}}
+This value is used by default, but each tunnel may overide it.")}}
+            <div class="cols">
+                <div>
+                    <div class="o">Default Tunnel MTU</div>
+                    <div class="m">Default packet size for tunnels</div>
+                </div>
+                <div style="flex:0">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_mtu" type="text" size="4" placeholder="1420" pattern="(128[0-9]|129[0-9]|13[0-9]{2}|14[01][0-9]|1420)" hx-validate="true" value="{{uciMesh.get("wireguard", "@network[0]", "mtu")}}">
+                </div>
+            </div>
+            {{_H("The default packet (MTU) size for all tunnels. This can be set between 1280 and 1420 if your WAN network requires smaller packets than usual.
+                  Any change will effect all tunnels. Remember to change the MTU size at the other end.")}}
         {% } %}
         </div>
     </div>
