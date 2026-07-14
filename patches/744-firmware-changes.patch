@@ -119,3 +119,23 @@
  endef
  TARGET_DEVICES += ubnt_rocket-5ac-lite
  
+--- a/target/linux/ipq40xx/image/mikrotik.mk
++++ b/target/linux/ipq40xx/image/mikrotik.mk
+@@ -47,7 +47,7 @@
+ 	BLOCKSIZE := 128k
+ 	PAGESIZE := 2048
+ 	KERNEL_UBIFS_OPTS = -m $$(PAGESIZE) -e 124KiB -c $$(PAGESIZE) -x none
+-	DEVICE_PACKAGES := kmod-ledtrig-gpio
++	DEVICE_PACKAGES := kmod-ledtrig-gpio -kmod-ath10k-ct kmod-ath10k-ct-smallbuffers
+ endef
+ TARGET_DEVICES += mikrotik_hap-ac3
+ 
+@@ -71,7 +71,7 @@
+ 	$(call Device/mikrotik_nor)
+ 	DEVICE_MODEL := SXTsq 5 ac (RBSXTsqG-5acD)
+ 	SOC := qcom-ipq4018
+-	DEVICE_PACKAGES := rssileds
++	DEVICE_PACKAGES := rssileds -kmod-ath10k-ct kmod-ath10k-ct-smallbuffers
+ endef
+ TARGET_DEVICES += mikrotik_sxtsq-5-ac
+ 
