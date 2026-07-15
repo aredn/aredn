@@ -34,16 +34,19 @@
 const WAN_TABLE = 28;
 const WAN_IFACE = "br-wan";
 
+const c = uci.cursor();
+
+const mesh_to_local_wan = c.get("aredn", "@wan[0]", "mesh_to_local_wan");
 const addresses = [];
-const mon1 = uci.cursor().get("aredn", "@wan[0]", "monitor1");
-const mon2 = uci.cursor().get("aredn", "@wan[0]", "monitor2");
+const mon1 = c.get("aredn", "@wan[0]", "monitor1");
+const mon2 = c.get("aredn", "@wan[0]", "monitor2");
 if (mon1) {
     push(addresses, mon1);
 }
 if (mon2) {
     push(addresses, mon2);
 }
-if (length(addresses) === 0) {
+if (length(addresses) === 0 || mesh_to_local_wan != "1") {
     return exitApp();
 }
 

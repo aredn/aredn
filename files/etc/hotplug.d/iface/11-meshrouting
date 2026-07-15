@@ -103,7 +103,7 @@ if [ "${ACTION}" = "ifdown" ] || [ "${ACTION}" = "ifup" ] ; then
     RULE27="1"
     RULE28="$(uci -q get aredn.@wan[0].lan_dhcp_route)" # LAN -> WAN
     RULE22="$(uci -q get aredn.@wan[0].lan_to_remote_wan)" # LAN -> MESH-WAN
-  elif [ "${INTERFACE:0:4}" == "wifi" ] || [ "${INTERFACE}" == "dtdlink" ] || [ "${INTERFACE:0:3}" == "tun" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$(uci -q -c /etc/config.mesh/ show xlink | grep "ifname='${DEVICE}'")" != "" ] ; then
+  elif [ "${INTERFACE:0:4}" == "wifi" ] || [ "${INTERFACE}" == "dtdlink" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$(uci -q -c /etc/config.mesh/ show xlink | grep "ifname='${DEVICE}'")" != "" ] ; then
     # THRU
     RULE28="$(uci -q get aredn.@wan[0].mesh_to_local_wan)" # MESH -> WAN
     RULE22="1"

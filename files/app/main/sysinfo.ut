@@ -186,14 +186,13 @@ info.interfaces = (function () {
     let ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
     for (let i = 0; i < length(ifs); i++) {
         const iface = ifs[i];
-        if (iface.dev === "lo" || iface.dev === "wlan0-1" || iface.dev === "wlan1-1" || iface.dev === "tunl0") {
-            continue;
+        if (iface.dev !== "lo") {
+            const ii = { name: iface.dev };
+            if (iface.address) {
+                ii.mac = iface.address;
+            }
+            interfaces[iface.dev] = ii;
         }
-        const ii = { name: iface.dev };
-        if (iface.address) {
-            ii.mac = iface.address;
-        }
-        interfaces[iface.dev] = ii;
     }
     ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
     for (let i = 0; i < length(ifs); i++) {
