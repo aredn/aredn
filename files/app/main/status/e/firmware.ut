@@ -655,7 +655,10 @@
             }
             else {
                 const download = htmx.find("#download-firmware").value;
-                if (download.substr(0, 2) === "3." || ("{{configuration.getFirmwareVersion()}}".indexOf("babel-") === 0 && download.indexOf("babel-") === -1)) {
+                if (download.substr(0, 2) === "3." ||
+                    download === "4.26.1.0" || download === "4.26.7.0" ||
+                    (download.substr(0, 2) === "20" && parseInt(download.substr(0, 8)) <= 20260706)
+                ) {
                     dialogMessage.error(vmsg);
                 }
                 else {
