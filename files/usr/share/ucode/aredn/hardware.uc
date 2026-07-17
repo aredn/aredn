@@ -207,16 +207,16 @@ export function getBoardNetworkInterfaceName(type)
     const network = board.network && board.network[type];
     if (network) {
         if (network.ifname) {
-            return network.ifname;
+            return [ network.ifname ];
         }
         if (network.device) {
-            return network.device;
+            return [ network.device ];
         }
         if (network.ports) {
-            return join(" ", network.ports);
+            return network.ports;
         }
     }
-    return "";
+    return null;
 };
 
 function getChannelFromRadioFrequency(radio, freq)

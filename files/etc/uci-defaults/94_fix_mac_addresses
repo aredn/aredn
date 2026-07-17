@@ -3,9 +3,9 @@
 
 fix=""
 
-eth0=$(ifconfig eth0 2> /dev/null | grep HWaddr | sed s/^.*HWaddr\ // | sed s/\ //g)
-wlan0=$(ifconfig wlan0 2> /dev/null | grep HWaddr | sed s/^.*HWaddr\ // | sed s/\ //g)
-brlan=$(ifconfig br-lan 2> /dev/null | grep HWaddr | sed s/^.*HWaddr\ // | sed s/\ //g)
+eth0=$(cat /sys/class/net/eth0/address 2>/dev/null)
+wlan0=$(cat /sys/class/ieee80211/phy0/macaddress 2>/dev/null)
+brlan=$(cat /sys/class/net/br-lan/address 2>/dev/null)
 boardid=$(/usr/local/bin/get_boardid)
 mfg=$(/usr/local/bin/get_hardware_mfg)
 
@@ -13,7 +13,7 @@ if [ "$eth0" = "$wlan0" -a "$eth0" != "" ]; then
     fix="lan wan dtdlink"
 elif [ "$wlan0" = "" ]; then
     fix="lan wan dtdlink"
-elif [ "$brlan" = "00:03:7F:11:23:C6" ]; then # Fix AR300M
+elif [ "$brlan" = "00:03:7f:11:23:c6" ]; then # Fix AR300M
     fix="lan"
 elif [ "$mfg" = "MikroTik" ]; then # Fix all MikroTiks
     fix="lan wan dtdlink"
@@ -31,7 +31,7 @@ for i in $fix
 do
     if [ ! -s /etc/aredn_include/fixedmac.$i ]; then
         # Some mac addresses are stored in /etc/board.json
-        mac=$(jsonfilter -i /etc/board.json -e @.network.$i.macaddr 2> /dev/null | awk '{print toupper($0)}')
+        mac=$(jsonfilter -i /etc/board.json -e @.network.$i.macaddr 2> /dev/null | awk '{print tolower($0)}')
         if [[ "$list" =~ "#$mac#" ]]; then
             # Dont allow reuse
             mac=""
@@ -41,9 +41,9 @@ do
         fi
         if [ "$mac" = "" ]; then
             # Generate a safe mac address
-            mac=$(hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/random)
+            mac=$(hexdump -n5 -e'/5 "02" 5/1 ":%02x"' /dev/random)
         fi
-        echo -e "\toption macaddr $mac" > /etc/aredn_include/fixedmac.$i
+        echo -e "\toption macaddr '$mac'" > /etc/aredn_include/fixedmac.$i
         list="$list#$mac#"
     fi
 done

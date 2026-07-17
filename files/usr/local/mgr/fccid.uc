@@ -40,8 +40,8 @@ const name = configuration.getName();
 if (!name) {
     return exitApp();
 }
-const radio = radios.getMeshRadio();
-if (!radio) {
+const mradios = radios.getMeshRadios();
+if (length(mradios) === 0) {
     return exitApp();
 }
 
@@ -52,14 +52,20 @@ if (lat && lon) {
     id += ` LOCATION: ${lat},${lon}`;
 }
 
-const sock = socket.create(socket.AF_INET, socket.SOCK_DGRAM);
-sock.setopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1);
-sock.setopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, radio.iface);
+const socks = [];
+map(mradios, radio => {
+    const sock = socket.create(socket.AF_INET, socket.SOCK_DGRAM);
+    sock.setopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1);
+    sock.setopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, radio.iface);
+    push(socks, sock);
+});
 
 return waitForTicks(0, () => {
-    sock.send(id, 0, {
-        address: "10.255.255.255",
-        port: 4919
+    map(socks, sock => {
+        sock.send(id, 0, {
+            address: "10.255.255.255",
+            port: 4919
+        });
     });
     return waitForTicks(300);
 });

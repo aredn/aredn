@@ -69,6 +69,7 @@ const reServices = /^([^|]+)\|(tcp|udp)\|(.+)$/;
 const info = strip({
     api_version: "2.0",
     node: configuration.getName(),
+    ip: configuration.getIP(),
     node_details: strip({
         model: capture("/usr/local/bin/get_model"),
         description: configuration.getSettingAsString("description_node"),
@@ -87,7 +88,8 @@ const info = strip({
 });
 
 // MESH RF
-info.meshrf = (function () {
+const meshrf = (function () {
+    const meshrf = [];
     const config = radios.getConfiguration();
     for (let i = 0; i < length(config); i++) {
         const cfg = config[i];
@@ -112,12 +114,20 @@ info.meshrf = (function () {
             case radios.RADIO_MESHPTMP:
                 rfmode = rfmode || "ptmp";
                 ssid = ssid || `${mode.ssid}-${mode.channel}-${mode.bandwidth}-v3`;
-                return strip({
+                // Look for wifi bridge and find the appropriate vlan
+                const path = `/sys/class/net/br-${replace(cfg.iface, /^wlan/, "wifi")}`;
+                let wifivlan = null;
+                if (fs.access(path)) {
+                    wifivlan = int(match(fs.glob(`${path}/lower_br0.*`)?.[0], /(\d+)$/)?.[1]);
+                }
+                push(meshrf, strip({
                     status: "on",
+                    iface: cfg.iface,
                     mode: rfmode,
                     ssid: ssid,
                     channel: mode.channel,
                     chanbw: mode.bandwidth,
+                    vlan: wifivlan,
                     freq: hardware.getChannelFrequency(config[i].iface, mode.channel),
                     polarization: hardware.getAntennaPolarization(config[i].iface),
                     azimuth: tonumber(uci.get("aredn", "@location[0]", "azimuth")),
@@ -125,13 +135,27 @@ info.meshrf = (function () {
                     height: tonumber(uci.get("aredn", "@location[0]", "height")),
                     antenna: cfg.ant,
                     antenna_aux: cfg.antsaux
-                });
+                }));
+                break;
             default:
                 break;
         }
     }
-    return { status: "off" };
+    return meshrf;
 })();
+switch (length(meshrf)) {
+    case 0:
+        info.meshrf = { status: "off" };
+        break;
+    case 1:
+        info.meshrf = meshrf[0];
+        break;
+    case 2:
+    default:
+        info.meshrf = meshrf[0];
+        info.meshrf1 = meshrf[1];
+        break;
+}
 
 // UPTIME, MEMORY AND LOADAVGS
 info.sysinfo = (function () {
@@ -162,14 +186,13 @@ info.interfaces = (function () {
     let ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
     for (let i = 0; i < length(ifs); i++) {
         const iface = ifs[i];
-        if (iface.dev === "lo" || iface.dev === "wlan0-1" || iface.dev === "wlan1-1" || iface.dev === "tunl0") {
-            continue;
+        if (iface.dev !== "lo") {
+            const ii = { name: iface.dev };
+            if (iface.address) {
+                ii.mac = iface.address;
+            }
+            interfaces[iface.dev] = ii;
         }
-        const ii = { name: iface.dev };
-        if (iface.address) {
-            ii.mac = iface.address;
-        }
-        interfaces[iface.dev] = ii;
     }
     ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
     for (let i = 0; i < length(ifs); i++) {

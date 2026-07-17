@@ -1,0 +1,83 @@
+#!/bin/sh
+true <<'LICENSE'
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2025-2026 Tim Wilkinson
+  See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+LICENSE
+
+touch /etc/config.mesh/wireguard
+
+cat > /tmp/simplify_tun << '__EOF__'
+
+import * as uci from "uci";
+
+const c = uci.cursor("/etc/config.mesh");
+
+c.set("wireguard", "@network[0]", "begin", "");
+
+c.foreach("wireguard", "server", server => {
+    const name = server[".name"];
+    c.set("wireguard", name, "clientip", "");
+    c.set("wireguard", name, "serverip", "");
+    c.set("wireguard", name, "node", "");
+    const netip = c.get("wireguard", name, "netip");
+    if (netip) {
+        const ipport = split(netip, ":");
+        c.set("wireguard", name, "port", ipport[1]);
+        c.set("wireguard", name, "netip", "");
+    }
+    const host = c.get("wireguard", name, "host");
+    if (host) {
+        c.set("wireguard", name, "name", host);
+        c.set("wireguard", name, "host", "");
+    }
+    const passwd = c.get("wireguard", name, "passwd");
+    if (passwd) {
+        c.set("wireguard", name, "key", passwd);
+        c.set("wireguard", name, "passwd", "");
+    }
+});
+
+c.foreach("wireguard", "client", client => {
+    const name = client[".name"];
+    const clientip = c.get("wireguard", name, "clientip");
+    if (clientip) {
+        const ipport = split(clientip, ":");
+        c.set("wireguard", name, "port", ipport[1]);
+        c.set("wireguard", name, "clientip", "");
+    }
+});
+
+c.commit("wireguard");
+
+__EOF__
+/usr/bin/ucode /tmp/simplify_tun
+rm -f /tmp/simplify_tun

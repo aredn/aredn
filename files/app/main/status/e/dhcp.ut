@@ -36,7 +36,7 @@
 if (request.env.REQUEST_METHOD === "PUT") {
     if ("dhcp_server" in request.args) {
         configuration.prepareChanges();
-        configuration.setSetting("lan_dhcp", request.args.dhcp_server === "on" ? 1 : 0);
+        configuration.setSettingAsString("lan_dhcp", request.args.dhcp_server === "on" ? 1 : 0);
         configuration.saveSettings();
     }
     if ("options" in request.args) {

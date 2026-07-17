@@ -32,12 +32,10 @@
  * version
  */
 
-const device = radios.getMeshRadio();
-if (!device) {
+const devices = radios.getMeshRadios();
+if (length(devices) === 0) {
     return exitApp();
 }
-const wifi = device.iface;
-const bwAdjust = min(1.0, uci.cursor().get("wireless", hardware.getRadioDevice(wifi), "chanbw") / 20.0) / 10.0;
 
 const TMPDIR = "/tmp/snrlog/";
 const MAXLINES = 2880; // 2 days worth
@@ -49,6 +47,7 @@ function main()
 {
     const now = clock()[0];
     const tm = localtime();
+    const c = uci.cursor();
 
     // Remove any data file which are too old
     const d = fs.opendir(TMPDIR);
@@ -65,34 +64,37 @@ function main()
         d.close();
     }
 
-    // Get the noise floor
-    const noise = hardware.getRadioNoise(wifi);
+    map(devices, device => {
+        // Get the noise floor
+        const noise = hardware.getRadioNoise(device.iface);
 
-    // Get all the stations
-    const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi });
-    for (let i = 0; i < length(stations); i++) {
-        const s = stations[i];
-        const datafile = `${TMPDIR}${s.mac}`;
-        const lines = [];
-        let f = fs.open(datafile);
-        if (f) {
-            for (let line = f.read("line"); length(line); line = f.read("line")) {
-                push(lines, line);
+        // Get all the stations
+        const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface });
+        for (let i = 0; i < length(stations); i++) {
+            const s = stations[i];
+            const datafile = `${TMPDIR}${s.mac}`;
+            const lines = [];
+            let f = fs.open(datafile);
+            if (f) {
+                for (let line = f.read("line"); length(line); line = f.read("line")) {
+                    push(lines, line);
+                }
+                f.close();
             }
-            f.close();
-        }
-        push(lines, `${sprintf("%02d/%02d/%d %02d:%02d", tm.mon, tm.mday, tm.year, tm.hour, tm.min)},${s.sta_info.signal || noise},${noise},${s.sta_info?.tx_bitrate?.mcs || 0},${(s.sta_info?.tx_bitrate?.bitrate || 0) * bwAdjust},${s.sta_info?.rx_bitrate?.mcs || 0},${(s.sta_info?.rx_bitrate?.bitrate || 0) * bwAdjust}\n`);
-        while (length(lines) > MAXLINES) {
-            shift(lines);
-        }
-        f = fs.open(datafile, "w");
-        if (f) {
-            for (let i = 0; i < length(lines); i++) {
-                f.write(lines[i]);
+            const bwAdjust = min(1.0, c.get("wireless", hardware.getRadioDevice(device.iface), "chanbw") / 20.0) / 10.0;
+            push(lines, `${sprintf("%02d/%02d/%d %02d:%02d", tm.mon, tm.mday, tm.year, tm.hour, tm.min)},${s.sta_info.signal || noise},${noise},${s.sta_info?.tx_bitrate?.mcs || 0},${(s.sta_info?.tx_bitrate?.bitrate || 0) * bwAdjust},${s.sta_info?.rx_bitrate?.mcs || 0},${(s.sta_info?.rx_bitrate?.bitrate || 0) * bwAdjust}\n`);
+            while (length(lines) > MAXLINES) {
+                shift(lines);
             }
-            f.close();
+            f = fs.open(datafile, "w");
+            if (f) {
+                for (let i = 0; i < length(lines); i++) {
+                    f.write(lines[i]);
+                }
+                f.close();
+            }
         }
-    }
+    });
 
     return waitForTicks(60);
 }

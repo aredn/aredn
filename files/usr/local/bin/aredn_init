@@ -38,14 +38,11 @@ import * as hardware from "aredn.hardware";
 
 const nvram = uci.cursor("/etc/local/uci");
 
-let name = nvram.get("hsmmmesh", "settings", "node") ?? "";
-let mac2 = nvram.get("hsmmmesh", "settings", "mac2") ?? "";
-let dtdmac = nvram.get("hsmmmesh", "settings", "dtdmac") ?? "";
-let wifi_mac = nvram.get("hsmmmesh", "settings", "wifimac") ?? "";
+let name = nvram.get("hsmmmesh", "settings", "node");
+let mac2 = nvram.get("hsmmmesh", "settings", "mac2");
 
 const defaults = {
     wifi_ip: "10.<MAC2>",
-    wifi_mask: "255.255.255.255",
     lan_proto: "static",
     lan_ip: "172.27.0.1",
     lan_mask: "255.255.255.0",
@@ -58,7 +55,6 @@ const defaults = {
     wan_ip: "192.168.0.2",
     wan_mask: "255.255.255.0",
     wan_gw: "192.168.0.1",
-    dtdlink_ip: "10.<DTDMAC>",
     time_zone: "UTC",
     time_zone_name: "UTC",
     ntp_server: "aredn.pool.ntp.org",
@@ -84,74 +80,34 @@ function capture(cmd)
 // Setup the nvram
 //
 
-if (wifi_mac == "" || mac2 == "") {
+if (!mac2) {
     let hardware_mac = null;
     // If we have a radio ...
     if (fs.access("/sys/class/ieee80211")) {
-        hardware_mac = (function(){
-            const phys = { phy0: true, phy1: true };
-            for (let i = 0; i < 5; i++) {
-                for (let phy in phys) {
-                    const f = fs.open(`/sys/class/ieee80211/${phy}/macaddress`);
-                    if (f) {
-                        for (let line = f.read("line"); length(line); line = f.read("line")) {
-                            const m = match(line, /(..:..:..:..:..:..)/);
-                            if (m) {
-                                return m[1];
-                            }
-                        }
-                        f.close();
-                    }
-                }
+        const phys = [ "phy0", "phy1" ];
+        for (let i = 0; hardware_mac === null && i < 5; i++) {
+            if (i > 0) {
                 sleep(5000);
             }
-        })();
+            for (let p = 0; hardware_mac === null && p < 2; p++) {
+                const mac = trim(f.readfile(`/sys/class/ieee80211/${phys[p]}/macaddress`));
+                const m = match(mac, /(..:..:..:..:..:..)/);
+                if (m) {
+                    hardware_mac = m[1];
+                }
+            }
+        }
     }
-
     if (!hardware_mac) {
         // Fallback, create a random mac address instead
         hardware_mac = match(capture(`hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/urandom`), /^([^ \t]+)/)[1];
     }
-
-    if (wifi_mac == "") {
-        nvram.set("hsmmmesh", "settings", "wifimac", hardware_mac);
-    }
-
-    if (mac2 == "") {
-        const m = match(hardware_mac, /..:..:..:(..):(..):(..)/);
-        mac2 = `${hex(m[1])}.${hex(m[2])}.${hex(m[3])}`;
-        nvram.set("hsmmmesh", "settings", "mac2", mac2);
-    }
+    const m = match(hardware_mac, /..:..:..:(..):(..):(..)/);
+    mac2 = `${hex(m[1])}.${hex(m[2])}.${hex(m[3])}`;
+    nvram.set("hsmmmesh", "settings", "mac2", mac2);
 }
 
-if (dtdmac == "") {
-    let m = null;
-    for (let i = 0; i < 5; i++) {
-        m = match(hardware.getInterfaceMAC("eth0"), /..:..:..:(..):(..):(..)/);
-        if (m && !(m[1] == "00" && m[2] == "00" && m[3] == "00")) {
-            break;
-        }
-        m = null;
-        sleep(2000);
-    }
-    if (m) {
-        dtdmac = `${hex(m[1])}.${hex(m[2])}.${hex(m[3])}`;
-    }
-    else {
-        dtdmac = mac2;
-    }
-    if (dtdmac == mac2) {
-        const m = match(dtdmac, /^(\d+)\.(\d+)\.(\d+)$/);
-        let a = int(m[1]) + 1;
-        if (a > 255) {
-            a = 0;
-        }
-        dtdmac = `${a}.${m[2]}.${m[3]}`;
-    }
-    nvram.set("hsmmmesh", "settings", "dtdmac", dtdmac);
-}
-
-if (name == "") {
+if (!name) {
     name = "NOCALL";
     nvram.set("hsmmmesh", "settings", "node", name);
 }
@@ -164,7 +120,7 @@ nvram.commit("hsmmmesh");
 
 // Load the defaults
 for (let k in defaults) {
-    cfg[k] = replace(replace(replace(defaults[k], "<NODE>", name), "<MAC2>", mac2), "<DTDMAC>", dtdmac);
+    cfg[k] = replace(replace(replace(defaults[k], "<NODE>", name), "<MAC2>", mac2));
 }
 
 // Override with the current config

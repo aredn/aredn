@@ -1,7 +1,3 @@
-## The template place holders below can be overriden by adding files to
-## /etc/aredn_include of the format "NET.network.user". NET can be one
-## of the following: bridge, wan, wifi, lan or dtdlink.
-
 #### Globals
 config globals 'globals'
 	option packet_steering '1'
@@ -13,14 +9,25 @@ config interface 'loopback'
 	option ipaddr '127.0.0.1'
 	option netmask '255.0.0.0'
 
-#### WIFI configuration
-<wifi_network_config>
+#### Main IP
+config device
+	option name 'br-mesh'
+	option type 'bridge'
+	option bridge_empty '1'
 
-config interface 'wifi_mon'
-	option proto 'none'
+config interface 'mesh'
+	option device 'br-mesh'
+	option proto 'static'
+	option ipaddr '<wifi_ip>'
+	option netmask '255.255.255.255'
+	option dns '<wan_dns1> <wan_dns2>'
 
 ### Bridge configuration
 <bridge_network_config>
+
+#### WIFI configuration
+<wifi0_network_config>
+<wifi1_network_config>
 
 #### LAN configuration
 <lan_network_config>
@@ -42,9 +49,6 @@ include /etc/aredn_include/vlans
 
 ### Extra links
 include /etc/config.mesh/xlink
-
-### Tunnels devices
-<tun_devices_config>
 
 ### Wireguard
 <wireguard_network_config>

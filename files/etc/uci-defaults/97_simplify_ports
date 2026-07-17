@@ -1,0 +1,136 @@
+#!/bin/sh
+true <<'LICENSE'
+  Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
+  Copyright (C) 2026 Tim Wilkinson
+  See Contributors file for additional contributors
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 3 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  Additional Terms:
+
+  Additional use restrictions exist on the AREDN(TM) trademark and logo.
+    See AREDNLicense.txt for more info.
+
+  Attributions to the AREDN Project must be retained in the source code.
+  If importing this code into a new or existing project attribution
+  to the AREDN project must be added to the source code.
+
+  You must not misrepresent the origin of the material contained within.
+
+  Modified versions must be modified to attribute to the original source
+  and be marked in reasonable ways as differentiate it from the original
+  version.
+
+LICENSE
+
+cat > /tmp/simplify_ports << '__EOF__'
+
+import * as fs from "fs";
+import * as uci from "uci";
+import * as hardware from "aredn.hardware";
+
+function jeq(a, b) {
+    return sprintf("%J", a) == sprintf("%J", b);
+}
+
+const c = uci.cursor("/etc/config.mesh");
+
+if (c.get("setup", "globals", "wan_intf") && c.get("setup", "globals", "lan_intf") && c.get("setup", "globals", "dtdlink_intf")) {
+    exit(0);
+}
+
+// Create the default interface setups
+const defnet = hardware.getDefaultNetworkConfiguration();
+const def_lan_intf = [];
+for (let port in defnet.lan.ports) {
+    push(def_lan_intf, `${port}${defnet.lan.vlan ? '.' + defnet.lan.vlan : ''}`);
+}
+const def_wan_intf = [];
+for (let port in defnet.wan.ports) {
+    push(def_wan_intf, `${port}${defnet.wan.vlan ? '.' + defnet.wan.vlan : ''}`);
+}
+const def_dtdlink_intf = [];
+for (let port in defnet.dtdlink.ports) {
+    push(def_dtdlink_intf, `${port}${defnet.dtdlink.vlan ? '.' + defnet.dtdlink.vlan : ''}`);
+}
+sort(def_lan_intf);
+sort(def_wan_intf);
+sort(def_dtdlink_intf);
+
+// Read the custom setup into the new format
+let wan_intf = [];
+let lan_intf = [];
+let dtdlink_intf = [];
+
+switch (length(hardware.getEthernetPorts())) {
+    case 0:
+        break;
+    case 1:
+    {
+        const cwan_intf = c.get("setup", "globals", "wan_intf");
+        if (cwan_intf) {
+            wan_intf = [ cwan_intf ];
+        }
+        const clan_intf = c.get("setup", "globals", "lan_intf");
+        if (clan_intf) {
+            lan_intf = [ clan_intf ];
+        }
+        break;
+    }
+    default:
+    {
+        const ai = uci.cursor("/etc/aredn_include");
+        if (fs.access("/etc/aredn_include/wan.network.user")) {
+            const vlan = ai.get("wan.network.user", "@bridge-vlan[0]", "vlan");
+            const ports = ai.get("wan.network.user", "@bridge-vlan[0]", "ports");
+            wan_intf = sort(map(ports, port => replace(replace(port, ":u", ""), ":t", `.${vlan}`)));
+        }
+        if (fs.access("/etc/aredn_include/lan.network.user")) {
+            const vlan = ai.get("lan.network.user", "@bridge-vlan[0]", "vlan");
+            const ports = ai.get("lan.network.user", "@bridge-vlan[0]", "ports");
+            lan_intf = sort(map(ports, port => replace(replace(port, ":u", ""), ":t", `.${vlan}`)));
+        }
+        if (fs.access("/etc/aredn_include/dtdlink.network.user")) {
+            const vlan = ai.get("dtdlink.network.user", "@bridge-vlan[0]", "vlan");
+            const ports = ai.get("dtdlink.network.user", "@bridge-vlan[0]", "ports");
+            dtdlink_intf = sort(map(ports, port => replace(replace(port, ":u", ""), ":t", `.${vlan}`)));
+        }
+        break;
+    }
+}
+
+// If the custom is the same as the default, we just let the default provail
+if (jeq(def_wan_intf, wan_intf)) {
+    wan_intf = "";
+}
+if (jeq(def_lan_intf, lan_intf)) {
+    lan_intf = "";
+}
+if (jeq(def_dtdlink_intf, dtdlink_intf)) {
+    dtdlink_intf = "";
+}
+
+c.set("setup", "globals", "wan_intf", wan_intf);
+c.set("setup", "globals", "lan_intf", lan_intf);
+c.set("setup", "globals", "dtdlink_intf", dtdlink_intf);
+
+c.commit("setup");
+
+fs.unlink("/etc/aredn_include/bridge.network.user");
+fs.unlink("/etc/aredn_include/wan.network.user");
+fs.unlink("/etc/aredn_include/lan.network.user");
+fs.unlink("/etc/aredn_include/dtdlink.network.user");
+
+__EOF__
+/usr/bin/ucode /tmp/simplify_ports
+rm -f /tmp/simplify_ports

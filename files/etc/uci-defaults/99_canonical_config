@@ -53,16 +53,6 @@ function shell(cmd)
     return null;
 }
 
-function tunnelNetwork()
-{
-    const mac = hardware.getInterfaceMAC("eth0");
-    const m = match(mac, /^..:..:..:..:(..):(..)$/);
-    if (m) {
-        return `172.31.${hex(m[2])}.${(hex(m[1]) * 4) % 256}`;
-    }
-    return "172.31.1.4";
-}
-
 const config = {
     aredn: {
         alerts: {},
@@ -114,6 +104,9 @@ const config = {
         },
         poe: {},
         remotelog: {},
+        remoterf: {
+            enable: 0
+        },
         supernode: {
             enable: 0,
             support: 1
@@ -140,7 +133,9 @@ const config = {
             telnet_access: 1,
             web_access: 1,
             mesh_to_local_wan: shell("uci -q -c /etc/config.mesh get aredn.@wan[0].olsrd_gw") || 0,
-            lan_to_remote_wan: shell("uci -q -c /etc/config.mesh get aredn.@wan[0].mesh_wan_gw") || 0
+            lan_to_remote_wan: shell("uci -q -c /etc/config.mesh get aredn.@wan[0].mesh_wan_gw") || 0,
+            monitor1: "1.1.1.1",
+            monitor2: "8.8.8.8"
         },
         watchdog: {
             enable: 0,
@@ -151,15 +146,18 @@ const config = {
             lqm: 0
         }
     },
+    setup: {
+        globals: {
+            dtdlink_ip: DELETE,
+            wifi_mask: DELETE,
+            olsrd_bridge: DELETE
+        }
+    },
     dhcp: {},
     dropbear: {},
     snmpd: {},
     uhttpd: {},
-    wireguard: {
-        network: {
-            begin: tunnelNetwork()
-        }
-    },
+    wireguard: {},
     xlink: {}
 };
 

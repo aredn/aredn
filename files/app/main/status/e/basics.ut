@@ -71,12 +71,14 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     }
                 }
             }
+            fs.unlink(`${config.application}/resource/css/theme.css.gz`);
+            system(`/bin/gzip -k ${config.application}/resource/css/theme.css`);
         }
         return;
     }
     configuration.prepareChanges();
     if ("description_node" in request.args) {
-        configuration.setSetting("description_node", configuration.escapeString(trim(request.args.description_node)));
+        configuration.setSettingAsString("description_node", configuration.escapeString(trim(request.args.description_node)));
     }
     if ("notes" in request.args) {
         uciMesh.set("aredn", "@notes[0]", "private", configuration.escapeString(trim(request.args.notes)));

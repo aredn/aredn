@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# link-local IP addresses and are not redistributed by Babel.
+# To make sure we dont accidentally use them, we swap them out for the main IP address of the node
+# when originating traffic locally and destined for one of these network interfaces.
+# We also change the src address for time-exceeded messages so traceroute remains helpful.
+#
+
+main_ip="$(uci -q get network.mesh.ipaddr)"
+
+nft insert rule inet fw4 srcnat ip saddr 169.254.0.0/16 fib daddr type != broadcast snat to ${main_ip} comment \"SNAT traffic to hide the link-local IP\"
+nft insert rule inet fw4 output icmp type time-exceeded ip saddr set ${main_ip} comment \"Set IP for traceroute packets so the tools can resolve the node name\"

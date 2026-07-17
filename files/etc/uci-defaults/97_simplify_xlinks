@@ -1,7 +1,7 @@
 #!/bin/sh
 true <<'LICENSE'
   Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
-  Copyright (C) 2025 Tim Wilkinson
+  Copyright (C) 2025-2026 Tim Wilkinson
   See Contributors file for additional contributors
 
   This program is free software: you can redistribute it and/or modify
@@ -33,55 +33,23 @@ true <<'LICENSE'
 
 LICENSE
 
-cat > /tmp/migrate_weights << '__EOF__'
+touch /etc/config.mesh/xlink
+
+cat > /tmp/simplify_xlink << '__EOF__'
 
 import * as uci from "uci";
 
 const c = uci.cursor("/etc/config.mesh");
 
-c.foreach("wireguard", "server",
-    function(server)
-    {
-        const name = server[".name"];
-        const weight = c.get("wireguard", name, "weight");
-        if (weight) {
-            if (weight > 0) {
-                c.set("wireguard", name, "cost", 100 * weight);
-            }
-            c.delete("wireguard", name, "weight");
-        }
-    }
-);
-c.foreach("wireguard", "client",
-    function(client)
-    {
-        const name = client[".name"];
-        const weight = c.get("wireguard", name, "weight");
-        if (weight) {
-            if (weight > 0) {
-                c.set("wireguard", name, "cost", 100 * weight);
-            }
-            c.delete("wireguard", name, "weight");
-        }
-    }
-);
-c.foreach("xlink", "interface",
-    function(iface)
-    {
-        const name = iface[".name"];
-        const weight = c.get("xlink", name, "weight");
-        if (weight) {
-            if (weight > 0) {
-                c.set("xlink", name, "cost", 150 * weight);
-            }
-            c.delete("xlink", name, "weight");
-        }
-    }
-);
+c.foreach("xlink", "interface", interface => {
+    const name = interface[".name"];
+    c.set("xlink", name, "ipaddr", "");
+    c.set("xlink", name, "netmask", "");
+    c.delete("xlink", `${name}route`);
+});
 
-c.commit("wireguard");
 c.commit("xlink");
 
 __EOF__
-/usr/bin/ucode /tmp/migrate_weights
-rm -f /tmp/migrate_weights
+/usr/bin/ucode /tmp/simplify_xlink
+rm -f /tmp/simplify_xlink

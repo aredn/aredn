@@ -38,15 +38,10 @@ const PING6 = "/bin/ping6";
 const IFUP = "/sbin/ifup";
 const IFDOWN = "/sbin/ifdown";
 
-const device = radios.getMeshRadio();
-if (!device) {
+const devices = radios.getMeshRadios();
+if (length(devices) === 0) {
     return exitApp();
 }
-const wifi = device.iface;
-let frequency;
-let ssid;
-let mode;
-let chipset;
 
 const actionLimits = {
     unresponsiveReport: 3,
@@ -77,26 +72,26 @@ let defaultScanEnabled = true;
 
 // Various forms of network resets
 
-function resetNetwork(op)
+function resetNetwork(device, op)
 {
-    log.syslog(log.LOG_NOTICE, `resetNetwork: ${chipset} ${mode} ${op}`);
-    switch (chipset) {
+    log.syslog(log.LOG_NOTICE, `resetNetwork: ${device.chipset} ${device.mode} ${op}`);
+    switch (device.chipset) {
         case "ath9k":
         case "ath10k":
             switch (mode) {
                 case "mesh":
                     switch (op) {
                         case "unresponsive":
-                            system(`${IW} ${wifi} ibss leave > /dev/null 2>&1`);
-                            system(`${IW} ${wifi} ibss join ${ssid} ${frequency} NOHT fixed-freq > /dev/null 2>&1`);
+                            system(`${IW} ${device.iface} ibss leave > /dev/null 2>&1`);
+                            system(`${IW} ${device.iface} ibss join ${device.ssid} ${device.frequency} NOHT fixed-freq > /dev/null 2>&1`);
                             break;
                         case "zero-soft":
-                            system(`${IW} ${wifi} scan freq ${frequency} > /dev/null 2>&1`);
+                            system(`${IW} ${device.iface} scan freq ${device.frequency} > /dev/null 2>&1`);
                             break;
                         case "zero-hard":
                         case "daily-restart":
-                            system(`${IW} ${wifi} scan > /dev/null 2>&1`);
-                            system(`${IW} ${wifi} scan passive > /dev/null 2>&1`);
+                            system(`${IW} ${device.iface} scan > /dev/null 2>&1`);
+                            system(`${IW} ${device.iface} scan passive > /dev/null 2>&1`);
                             break;
                         case "restart":
                             system(`${IFDOWN} wifi; ${IFUP} wifi`);
@@ -119,22 +114,26 @@ function resetNetwork(op)
             log.syslog(log.LOG_NOTICE, `-- ignored`);
             break;
         default:
-            log.syslog(log.LOG_ERR, `-- unknown chipset '${chipset}`);
             break;
     }
 }
 
+function restartAllNetworks(op)
+{
+    map(devices, device => resetNetwork(device, op));
+}
+
 // Monitor stations and detect if they become unresponsive
 
-function monitorUnresponsiveStations()
+function monitorUnresponsiveStations(device)
 {
     unresponsive.max = 0;
     const nstations = {};
 
-    const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }) ?? [];
+    const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }) ?? [];
     for (let i = 0; i < length(stations); i++) {
         const ipv6ll = network.mac2ipv6ll(stations[i].mac);
-        if (system(`${PING6} -c 1 -W 2 -I ${wifi} ${ipv6ll} > /dev/null 2>&1`) == 0) {
+        if (system(`${PING6} -c 1 -W 2 -I ${device.iface} ${ipv6ll} > /dev/null 2>&1`) == 0) {
             nstations[ipv6ll] = 0;
         }
         else {
@@ -155,9 +154,9 @@ function monitorUnresponsiveStations()
 
 // Monitor number of connected stations
 
-function monitorStationCount()
+function monitorStationCount(device)
 {
-    const count = length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }) ?? []);
+    const count = length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }) ?? []);
     const now = clock(true)[0];
     if (count == 0) {
         stationCount.lastZero = now;
@@ -191,7 +190,7 @@ function runActions()
             if (timediff < 5) {
                 if (defaultScanEnabled) {
                     defaultScanEnabled = false;
-                    resetNetwork("daily-restart");
+                    restartAllNetworks("daily-restart");
                 }
             }
             else {
@@ -213,12 +212,12 @@ function runActions()
     // If network stations falls to zero when it was previously non-zero
     if (stationCount.firstZero > stationCount.firstNonZero) {
         if (!actionState.zero1 && stationCount.lastZero - stationCount.firstZero > actionLimits.zeroTrigger1) {
-            resetNetwork("zero-soft");
+            restartAllNetworks("zero-soft");
             actionState.zero1 = true;
             return;
         }
         if (!actionState.zero2 && stationCount.lastZero - stationCount.firstZero > actionLimits.zeroTrigger2) {
-            resetNetwork("zero-hard");
+            restartAllNetworks("zero-hard");
             actionState.zero2 = true;
             return;
         }
@@ -226,12 +225,12 @@ function runActions()
 
     // We are failing to ping stations we are associated with
     if (unresponsive.max >= actionLimits.unresponsiveTrigger1 && !actionState.unresponsive1) {
-        resetNetwork("unresponsive");
+        restartAllNetworks("unresponsive");
         actionState.unresponsive1 = true;
         return;
     }
     if (unresponsive.max >= actionLimits.unresponsiveTrigger2 && !actionState.unresponsive2) {
-        resetNetwork("unresponsive");
+        restartAllNetworks("unresponsive");
         actionState.unresponsive2 = true;
         return;
     }
@@ -239,8 +238,8 @@ function runActions()
 
 function runMonitors()
 {
-    monitorUnresponsiveStations();
-    monitorStationCount();
+    map(devices, device => monitorUnresponsiveStations(device));
+    map(devices, device => monitorStationCount(device));
 }
 
 function save()
@@ -268,62 +267,63 @@ return waitForTicks(max(1, 180 - clock(true)[0]), function()
     stationCount.firstNonZero = now;
     stationCount.firstZero = now;
 
-    // Extract all the necessary wifi parameters
-    const config = radios.getActiveConfiguration();
-    for (let i = 0; i < length(config); i++) {
-        const c = config[i];
-        if (c.iface == wifi) {
-            frequency = hardware.getChannelFrequency(wifi, c.mode.channel);
-            ssid = c.mode.ssid;
-            mode = c.mode.mode;
-            break;
+    map(devices, device => {
+        // Extract all the necessary wifi parameters
+        const config = radios.getActiveConfiguration();
+        for (let i = 0; i < length(config); i++) {
+            const c = config[i];
+            if (c.iface == device.iface) {
+                device.frequency = hardware.getChannelFrequency(device.iface, c.mode.channel);
+                device.ssid = c.mode.ssid;
+                break;
+            }
         }
-    }
 
-    const phy = hardware.getPhyDevice(wifi);
+        const phy = hardware.getPhyDevice(device.iface);
 
-    // Sometimes the chipset is "missing" and the only solution is to reboot
-    // Not just a 'mesh' mode thing so check early.
-    if (hardware.getRadioType(wifi) === "halow" && !fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
-        log.syslog(log.LOG_ERR, `Halow startup failed - rebooting`);
-        system("/sbin/reboot");
-        return exitApp();
-    }
+        // Sometimes the chipset is "missing" and the only solution is to reboot
+        // Not just a 'mesh' mode thing so check early.
+        if (hardware.getRadioType(device.iface) === "halow" && !fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
+            log.syslog(log.LOG_ERR, `Halow startup failed - rebooting`);
+            system("/sbin/reboot");
+            return exitApp();
+        }
 
-    if (!(phy && frequency && ssid)) {
-        log.syslog(log.LOG_ERR, `Startup failed`);
-        return exitApp();
-    }
+        if (!(phy && device.frequency && device.ssid)) {
+            log.syslog(log.LOG_ERR, `Startup failed`);
+            return exitApp();
+        }
 
-    // Select chipset
-    if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath9k`)) {
-        chipset = "ath9k";
-    }
-    else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`)) {
-        chipset = "ath10k";
-    }
-    else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
-        chipset = "morse";
-    }
-    else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
-        chipset = "mt76";
-    }
-    else {
-        log.syslog(log.LOG_NOTICE, `Unknown chipset`);
-        return exitApp();
-    }
+        // Select chipset
+        if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath9k`)) {
+            device.chipset = "ath9k";
+        }
+        else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`)) {
+            device.chipset = "ath10k";
+        }
+        else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/morse`)) {
+            device.chipset = "morse";
+        }
+        else if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
+            device.chipset = "mt76";
+        }
+        else {
+            log.syslog(log.LOG_NOTICE, `Unknown chipset - ignoring`);
+            device.chipset = "ignore";
+        }
 
-    log.syslog(log.LOG_NOTICE, `Monitoring wireless chipset: ${chipset}`);
+        log.syslog(log.LOG_NOTICE, `Monitoring wireless chipset: ${device.chipset}`);
 
-    // Sometimes the halow radio is there but not hearing anything. Restart it to be safe.
-    if (hardware.getRadioType(wifi) === "halow" && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
-        resetNetwork("restart");
-    }
+        // Sometimes the halow radio is there but not hearing anything. Restart it to be safe.
+        if (hardware.getRadioType(device.iface) === "halow" && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }))) {
+            resetNetwork(device, "restart");
+        }
 
-    // Mikrotik devices sometime startup deaf, so handle that
-    if (chipset === "ath10k" && index(hardware.getBoardModel().id, "mikrotik") === 0 && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wifi }))) {
-        resetNetwork("zero-hard");
-    }
+        // Mikrotik devices sometime startup deaf, so handle that
+        if (device.chipset === "ath10k" && index(hardware.getBoardModel().id, "mikrotik") === 0 && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }))) {
+            resetNetwork(device, "zero-hard");
+        }
+    });
 
     return waitForTicks(0, main);
 });

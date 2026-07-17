@@ -1,0 +1,43 @@
+#!/bin/sh
+# Give specific interfaces unique ipv4 & ipv6 link local address
+
+RETRIES=10
+TESTS=2
+
+mac=$(cat /sys/class/net/${DEVICE}/address)
+
+if "${ACTION}" = "ifup"; then
+    # IPv4
+    case "${INTERFACE}" in
+        wifi*|dtdlink|wg*|xlink*|rrf*)
+            if ! ip -4 -o addr show dev ${DEVICE} scope link | grep -q "inet "; then
+                n=0
+                IP=$(printf '169.254.%d.%d' 0x$(echo $mac | cut -d: -f5) 0x$(cat /sys/class/net/${DEVICE}/address | cut -d: -f6))
+                while [ ${n} -lt ${RETRIES} ]; do
+                    if ! ip -4 -o addr show | grep -qw ${IP} && arping -q -c ${TESTS} -D -I ${DEVICE} ${IP}; then
+                        ip -4 addr add ${IP}/16 dev ${DEVICE} brd + scope link
+                        break
+                    fi
+                    n=$((n+1))
+                    IP=$(printf 169.254.$(((${RANDOM} % 254) + 1)).$((${RANDOM} % 256)))
+                done
+            fi
+            ;;
+        *)
+            ;;
+    esac
+    # IPv6
+    case "${INTERFACE}" in
+        wg*|xlink*|rrf*)
+            if ! ip -6 -o addr show dev ${DEVICE} scope link | grep -q "inet6 fe80:"; then
+                IP=$(printf "fe80::%02x%s:%sff:fe%s:%s%s" $(( 0x${mac%%:*} ^ 2 )) $(echo "$mac" | cut -d: -f2) $(echo "$mac" | cut -d: -f3) $(echo "$mac" | cut -d: -f4) $(echo "$mac" | cut -d: -f5) $(echo "$mac" | cut -d: -f6))
+                if ip -6 -o addr show | grep -qw ${IP}; then
+                    IP=$(printf "fe80::%04x:%04x:%04x:%04x" ${RANDOM} ${RANDOM} ${RANDOM} ${RANDOM})
+                fi
+                ip -6 addr add ${IP}/64 dev ${DEVICE} scope link 2>/dev/null
+            fi
+            ;;
+        *)
+            ;;
+    esac
+fi

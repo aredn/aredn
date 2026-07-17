@@ -47,7 +47,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const wlan = radios.getConfiguration();
     let radio0_mode = modemap[request.args.radio0_mode] || wlan[0].mode.mode;
     let radio1_mode = modemap[request.args.radio1_mode] || wlan[1]?.mode?.mode;
-    if (radio0_mode && radio1_mode && (substr(radio0_mode, 0, 4) === substr(radio1_mode, 0, 4) || hardware.supportsFeature("only_one_radio"))) {
+    if (radio0_mode && radio1_mode && (hardware.supportsFeature("only_one_radio") || (radio0_mode == radios.RADIO_WAN && radio1_mode == radios.RADIO_WAN))) {
         if ("radio0_mode" in request.args) {
             radio1_mode = radios.RADIO_OFF;
         }
@@ -60,77 +60,77 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_MESHPTMP:
         case radios.RADIO_MESHPTP:
         case radios.RADIO_MESHSTA:
-            if (configuration.setSetting("radio0_mode", radio0_mode)) {
-                configuration.setSetting("radio0_bandwidth", wlan[0].mode.bandwidth || wlan[0].def.bandwidth);
-                configuration.setSetting("radio0_ssid", "AREDN");
+            if (configuration.setSettingAsString("radio0_mode", radio0_mode)) {
+                configuration.setSettingAsString("radio0_bandwidth", wlan[0].mode.bandwidth || wlan[0].def.bandwidth);
+                configuration.setSettingAsString("radio0_ssid", "AREDN");
                 let chan = wlan[0].mode.channel || wlan[0].def.channel;
                 const chanfilter = radio0_mode === radios.RADIO_MESHPTMP || radio0_mode === radios.RADIO_MESHPTP || radio0_mode ===  radios.RADIO_MESHSTA ? wlan[0].managedOOB : null;
                 if (chanfilter && index(chanfilter, chan) !== -1) {
                     chan = chanfilter[length(chanfilter) - 1] + 1;
                 }
-                configuration.setSetting("radio0_channel", chan);
+                configuration.setSettingAsString("radio0_channel", chan);
             }
             if ("radio0_channel" in request.args) {
-                configuration.setSetting("radio0_channel", request.args.radio0_channel);
+                configuration.setSettingAsString("radio0_channel", request.args.radio0_channel);
             }
             if ("radio0_peer" in request.args) {
-                configuration.setSetting("radio0_peer", request.args.radio0_peer);
+                configuration.setSettingAsString("radio0_peer", request.args.radio0_peer);
             }
             if ("radio0_ssid" in request.args) {
-                configuration.setSetting("radio0_ssid", request.args.radio0_ssid);
+                configuration.setSettingAsString("radio0_ssid", request.args.radio0_ssid);
             }
             if ("radio0_bandwidth" in request.args) {
-                configuration.setSetting("radio0_bandwidth", request.args.radio0_bandwidth);
+                configuration.setSettingAsString("radio0_bandwidth", request.args.radio0_bandwidth);
             }
             if ("radio0_txpower" in request.args) {
-                configuration.setSetting("radio0_txpower", request.args.radio0_txpower);
+                configuration.setSettingAsString("radio0_txpower", request.args.radio0_txpower);
             }
             if ("radio0_distance" in request.args) {
-                configuration.setSetting("radio0_distance", int(units.distance2meters(request.args.radio0_distance) || wlan[0].maxdistance));
+                configuration.setSettingAsString("radio0_distance", int(units.distance2meters(request.args.radio0_distance) || wlan[0].maxdistance));
             }
             break;
         case radios.RADIO_LAN:
-            if (configuration.setSetting("radio0_mode", radio0_mode)) {
-                configuration.setSetting("radio0_channel", wlan[0].mode.channel || wlan[0].def.channel);
+            if (configuration.setSettingAsString("radio0_mode", radio0_mode)) {
+                configuration.setSettingAsString("radio0_channel", wlan[0].mode.channel || wlan[0].def.channel);
                 if (hexdec(configuration.getSettingAsString("radio0_ssid")) === null) {
-                    configuration.setSetting("radio0_ssid", hexenc("AREDN-LAN"));
-                    configuration.setSetting("radio0_encryption", "none");
-                    configuration.setSetting("radio0_key", hexenc("AREDNmesh"));
+                    configuration.setSettingAsString("radio0_ssid", hexenc("AREDN-LAN"));
+                    configuration.setSettingAsString("radio0_encryption", "none");
+                    configuration.setSettingAsString("radio0_key", hexenc("AREDNmesh"));
                 }
             }
             if ("radio0_channel" in request.args) {
-                configuration.setSetting("radio0_channel", request.args.radio0_channel);
+                configuration.setSettingAsString("radio0_channel", request.args.radio0_channel);
             }
             if ("radio0_password" in request.args) {
-                configuration.setSetting("radio0_key", hexenc(request.args.radio0_password));
+                configuration.setSettingAsString("radio0_key", hexenc(request.args.radio0_password));
             }
             if ("radio0_ssid" in request.args) {
-                configuration.setSetting("radio0_ssid", hexenc(request.args.radio0_ssid));
+                configuration.setSettingAsString("radio0_ssid", hexenc(request.args.radio0_ssid));
             }
             if ("radio0_bandwidth" in request.args) {
-                configuration.setSetting("radio0_bandwidth", request.args.radio0_bandwidth);
+                configuration.setSettingAsString("radio0_bandwidth", request.args.radio0_bandwidth);
             }
             if ("radio0_encryption" in request.args) {
                 const encrypt = [ "psk", "psk2", "none" ];
-                configuration.setSetting("radio0_encryption", encrypt[int(request.args.radio0_encryption)]);
+                configuration.setSettingAsString("radio0_encryption", encrypt[int(request.args.radio0_encryption)]);
             }
             break;
         case radios.RADIO_WAN:
-            if (configuration.setSetting("radio0_mode", radio0_mode)) {
+            if (configuration.setSettingAsString("radio0_mode", radio0_mode)) {
                 if (hexdec(configuration.getSettingAsString("radio0_ssid")) === null) {
-                    configuration.setSetting("radio0_ssid", hexenc("MyWiFi"));
-                    configuration.setSetting("radio0_key", "");
+                    configuration.setSettingAsString("radio0_ssid", hexenc("MyWiFi"));
+                    configuration.setSettingAsString("radio0_key", "");
                 }
             }
             if ("radio0_ssid" in request.args) {
-                configuration.setSetting("radio0_ssid", hexenc(request.args.radio0_ssid));
+                configuration.setSettingAsString("radio0_ssid", hexenc(request.args.radio0_ssid));
             }
             if ("radio0_password" in request.args) {
-                configuration.setSetting("radio0_key", hexenc(request.args.radio0_password));
+                configuration.setSettingAsString("radio0_key", hexenc(request.args.radio0_password));
             }
             break;
         case radios.RADIO_OFF:
-            configuration.setSetting("radio0_mode", radios.RADIO_OFF);
+            configuration.setSettingAsString("radio0_mode", radios.RADIO_OFF);
             break;
         default:
             break;
@@ -140,77 +140,77 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_MESHPTMP:
         case radios.RADIO_MESHPTP:
         case radios.RADIO_MESHSTA:
-            if (configuration.setSetting("radio1_mode", radio1_mode)) {
-                configuration.setSetting("radio1_bandwidth", wlan[1].mode.bandwidth || wlan[1].def.bandwidth);
-                configuration.setSetting("radio1_ssid", "AREDN");
+            if (configuration.setSettingAsString("radio1_mode", radio1_mode)) {
+                configuration.setSettingAsString("radio1_bandwidth", wlan[1].mode.bandwidth || wlan[1].def.bandwidth);
+                configuration.setSettingAsString("radio1_ssid", "AREDN");
                 let chan = wlan[1].mode.channel || wlan[1].def.channel;
                 const chanfilter = radio1_mode === radios.RADIO_MESHPTMP || radio1_mode === radios.RADIO_MESHPTP || radio1_mode ===  radios.RADIO_MESHSTA ? wlan[1].managedOOB : null;
                 if (chanfilter && index(chanfilter, chan) !== -1) {
                     chan = chanfilter[length(chanfilter) - 1] + 1;
                 }
-                configuration.setSetting("radio1_channel", chan);
+                configuration.setSettingAsString("radio1_channel", chan);
             }
             if ("radio1_channel" in request.args) {
-                configuration.setSetting("radio1_channel", request.args.radio1_channel);
+                configuration.setSettingAsString("radio1_channel", request.args.radio1_channel);
             }
             if ("radio1_peer" in request.args) {
-                configuration.setSetting("radio1_peer", request.args.radio1_peer);
+                configuration.setSettingAsString("radio1_peer", request.args.radio1_peer);
             }
             if ("radio1_ssid" in request.args) {
-                configuration.setSetting("radio1_ssid", request.args.radio1_ssid);
+                configuration.setSettingAsString("radio1_ssid", request.args.radio1_ssid);
             }
             if ("radio1_bandwidth" in request.args) {
-                configuration.setSetting("radio1_bandwidth", request.args.radio1_bandwidth);
+                configuration.setSettingAsString("radio1_bandwidth", request.args.radio1_bandwidth);
             }
             if ("radio1_txpower" in request.args) {
-                configuration.setSetting("radio1_txpower", request.args.radio1_txpower);
+                configuration.setSettingAsString("radio1_txpower", request.args.radio1_txpower);
             }
             if ("radio1_distance" in request.args) {
-                configuration.setSetting("radio1_distance", int(units.distance2meters(request.args.radio1_distance) || wlan[1].maxdistance));
+                configuration.setSettingAsString("radio1_distance", int(units.distance2meters(request.args.radio1_distance) || wlan[1].maxdistance));
             }
             break;
         case radios.RADIO_LAN:
-            if (configuration.setSetting("radio1_mode", radio1_mode)) {
-                configuration.setSetting("radio1_channel", wlan[1].mode.channel || wlan[1].def.channel);
+            if (configuration.setSettingAsString("radio1_mode", radio1_mode)) {
+                configuration.setSettingAsString("radio1_channel", wlan[1].mode.channel || wlan[1].def.channel);
                 if (hexdec(configuration.getSettingAsString("radio1_ssid")) === null) {
-                    configuration.setSetting("radio1_ssid", hexenc("AREDN-LAN"));
-                    configuration.setSetting("radio1_encryption", "none");
-                    configuration.setSetting("radio1_key", hexenc("AREDNmesh"));
+                    configuration.setSettingAsString("radio1_ssid", hexenc("AREDN-LAN"));
+                    configuration.setSettingAsString("radio1_encryption", "none");
+                    configuration.setSettingAsString("radio1_key", hexenc("AREDNmesh"));
                 }
             }
             if ("radio1_channel" in request.args) {
-                configuration.setSetting("radio1_channel", request.args.radio1_channel);
+                configuration.setSettingAsString("radio1_channel", request.args.radio1_channel);
             }
             if ("radio1_password" in request.args) {
-                configuration.setSetting("radio1_key", hexenc(request.args.radio1_password));
+                configuration.setSettingAsString("radio1_key", hexenc(request.args.radio1_password));
             }
             if ("radio1_ssid" in request.args) {
-                configuration.setSetting("radio1_ssid", hexenc(request.args.radio1_ssid));
+                configuration.setSettingAsString("radio1_ssid", hexenc(request.args.radio1_ssid));
             }
             if ("radio1_bandwidth" in request.args) {
-                configuration.setSetting("radio1_bandwidth", request.args.radio1_bandwidth);
+                configuration.setSettingAsString("radio1_bandwidth", request.args.radio1_bandwidth);
             }
             if ("radio1_encryption" in request.args) {
                 const encrypt = [ "psk", "psk2", "none" ];
-                configuration.setSetting("radio1_encryption", encrypt[int(request.args.radio1_encryption)]);
+                configuration.setSettingAsString("radio1_encryption", encrypt[int(request.args.radio1_encryption)]);
             }
             break;
         case radios.RADIO_WAN:
-            if (configuration.setSetting("radio1_mode", radio1_mode)) {
+            if (configuration.setSettingAsString("radio1_mode", radio1_mode)) {
                 if (hexdec(configuration.getSettingAsString("radio1_ssid")) === null) {
-                    configuration.setSetting("radio1_ssid", hexenc("MyWiFi"));
-                    configuration.setSetting("radio1_key", "");
+                    configuration.setSettingAsString("radio1_ssid", hexenc("MyWiFi"));
+                    configuration.setSettingAsString("radio1_key", "");
                 }
             }
             if ("radio1_ssid" in request.args) {
-                configuration.setSetting("radio1_ssid", hexenc(request.args.radio1_ssid));
+                configuration.setSettingAsString("radio1_ssid", hexenc(request.args.radio1_ssid));
             }
             if ("radio1_password" in request.args) {
-                configuration.setSetting("radio1_key", hexenc(request.args.radio1_password));
+                configuration.setSettingAsString("radio1_key", hexenc(request.args.radio1_password));
             }
             break;
         case radios.RADIO_OFF:
-            configuration.setSetting("radio1_mode", radios.RADIO_OFF);
+            configuration.setSettingAsString("radio1_mode", radios.RADIO_OFF);
             break;
         default:
             break;
@@ -229,6 +229,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
     if ("radio_polarization" in request.args) {
         uciMesh.set("aredn", "@location[0]", "polarization", request.args.radio_polarization);
+    }
+    if ("radio_vlan" in request.args) {
+        configuration.setSettingAsString("radio_vlan", request.args.radio_vlan);
     }
     uciMesh.commit("aredn");
     configuration.saveSettings();
@@ -605,6 +608,25 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     %}
         <div style="padding-bottom:24px">No Radios</div>
     {% } %}
+    {% if (hardware.supportsFeature("vlanrf")) { %}
+        {{_R("dialog-advanced")}}
+        <div>
+        {% if (includeAdvanced) { %}
+            <div class="cols">
+                <div>
+                    <div class="o">Radio VLAN</div>
+                    <div class="m">VLAN used to bridge to a local node</div>
+                </div>
+                <div style="flex:0">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="radio_vlan" type="text" size="5" placeholder="{{3700 + int(split(configuration.getDefaultIP(), ".")[3])}}" pattern="([15-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" hx-validate="true" value="{{configuration.getSettingAsString("radio_vlan", "")}}">
+                </div>
+            </div>
+            {{_H("VLAN used to directly bridge this radio to another local node. This lets that node directly send traffic through this
+                  radio, bypassing its routing and firewall, to improve bandwidth and latency. If this device has two radios, the second radio
+                  uses VLAN + 1.")}}
+        {% } %}
+        </div>
+    {% } %}
     </div>
     {{_R("dialog-footer")}}
     <script>
@@ -661,17 +683,15 @@ if (request.env.REQUEST_METHOD === "DELETE") {
         radio{{w}}.addEventListener("change", change{{w}});
     {% }
     if (length(wlan) > 1) { %}
-        function mmap(m) {
-            return m == "1" || m == "4" || m == "5" || m == "6" ? "1" : m;
-        }
         htmx.on(radio0, "htmx:beforeRequest", function() {
-            if (mmap(radio0.value) === mmap(radio1.value) && radio1.value !== 0) {
+            // Prevent duplicate WAN radio modes only
+            if (radio0.value == "3" && radio1.value == "3") {
                 radio1.value = 0;
                 htmx.closest(radio1, '.hideable').dataset.hideable = 0;
             }
         });
         htmx.on(radio1, "htmx:beforeRequest", function() {
-            if (mmap(radio1.value) === mmap(radio0.value) && radio0.value !== 0) {
+            if (radio0.value == "3" && radio1.value == "3") {
                 radio0.value = 0;
                 htmx.closest(radio0, '.hideable').dataset.hideable = 0;
             }

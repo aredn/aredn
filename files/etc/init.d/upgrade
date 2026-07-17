@@ -2,6 +2,14 @@
 # Copyright (C) 2006 OpenWrt.org
 
 START=55
+STOP=60
+
 boot() {
   /usr/local/bin/aredn_init
+}
+
+stop() {
+  if [ "$(uci -q -c /etc/local/uci get hsmmmesh.settings.configured)" = "1" ]; then
+    /usr/local/bin/node-setup
+  fi
 }
