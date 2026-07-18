@@ -220,8 +220,10 @@ function t2t(type)
                                 <div class="cols pwnw">
                                     {% if (t.type === "ws") { %}
                                     <input type="hidden" name="key" value="{{t.key}}">
+                                    <input type="text" name="ckey" required pattern="[A-Za-z0-9+\/=]+" placeholder="Wireguard key" value="{{replace(t.key, /^[A-Za-z0-9+\/]+=/, "")}}" readonly>
+                                    {% } else { %}
+                                    <input type="text" name="ckey" required pattern="[A-Za-z0-9+\/=]+" placeholder="Wireguard key" value="{{t.key}}">
                                     {% } %}
-                                    <input type="text" name="ckey" required pattern="[A-Za-z0-9+\/=]+" placeholder="Wireguard key" value="{{replace(t.key, /^[A-Za-z0-9+\/]+=/, "")}}" {{t.type === "ws" ? "readonly" : ""}}>
                                     <input type="text" name="cost" pattern="([1-9]|[1-9][0-9]{1,4})" placeholder="Cost" value="{{t.cost}}">
                                 </div>
                                 <div class="cols">
@@ -306,6 +308,7 @@ This value is used by default, but each tunnel may overide it.")}}
                     const index = t.dataset.index;
                     const name = htmx.find(t, "input[name=name]");
                     const key = htmx.find(t, "input[name=key]");
+                    const ckey = htmx.find(t, "input[name=ckey]");
                     const port = htmx.find(t, "input[name=port]");
                     const notes = htmx.find(t, "input[name=notes]");
                     const enable = htmx.find(t, "input[name=enable]");
@@ -328,7 +331,7 @@ This value is used by default, but each tunnel may overide it.")}}
                         port: vport,
                         enabled: enable.checked,
                         notes: notes.value || "",
-                        key: key.value,
+                        key: key ? key.value : ckey.value,
                         cost: cost.value
                     });
                 }
