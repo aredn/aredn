@@ -6,9 +6,17 @@ TESTS=2
 
 mac=$(cat /sys/class/net/${DEVICE}/address)
 if [ "$mac" = "" ]; then
-    mac=$( printf '%02x:%02x:%02x:%02x:%02x:%02x\n' \
-        $((RANDOM % 256 & 0xFE | 0x02)) $((RANDOM % 256)) $((RANDOM % 256)) \
-        $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)) )
+    if [ "${INTERFACE:0:2}" = "wg" ]; then
+        # For tunnels, use the interface name (which is based on a public key) to generate a mac. We try to keep the mac constant if we can.
+        mac=$( echo ${INTERFACE} | awk '{
+            for (i = 4; i <= 11; i++) b[i % 4] += index("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", substr($0, i, 1))
+            printf "02:00:%02x:%02x:%02x:%02x\n", b[1] % 256, b[2] % 256, b[3] % 256, b[0] % 256
+            }' )
+    else
+        mac=$( printf '%02x:%02x:%02x:%02x:%02x:%02x\n' \
+            $((RANDOM % 256 & 0xFE | 0x02)) $((RANDOM % 256)) $((RANDOM % 256)) \
+            $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)) )
+    fi
 fi
 
 if "${ACTION}" = "ifup"; then
