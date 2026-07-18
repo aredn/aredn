@@ -514,13 +514,12 @@ cm.foreach("wireguard", "client",
 );
 cm.foreach("wireguard", "server",
     function(s) {
-        const m1 = match(s.passwd, /^(.+=)(.+=)(.+=)$/);
+        const m1 = match(s.key, /^(.+=)(.+=)(.+=)$/);
         if (m1) {
             const server_pub = m1[1];
             const client_priv = m1[2];
-            const client_pub = m1[3];
             const w = s.cost || def_tun_cost;
-            const netname = key2netname(client_pub);
+            const netname = key2netname(server_pub);
             cfg.wireguard_network_config += sprintf("config interface 'wgs%s'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption disabled '%s'\n%s\n",
                 netname, client_priv, w, (s.enabled == 1 ? "0" : "1"), wg_mtu_override);
             cfg.wireguard_network_config += sprintf("config wireguard_wgs%s 'wireguard_wgs%s'\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
