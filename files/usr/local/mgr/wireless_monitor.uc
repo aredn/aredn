@@ -50,24 +50,6 @@ const actionLimits = {
     zeroTrigger1: 5 * 60, // 5 minutes
     zeroTrigger2: 15 * 60 // 15 minutes
 };
-// Start action state assuming the node is active and no actions are pending
-const actionState = {
-    zero1: true,
-    zero2: true,
-    unresponsive1: true,
-    unresponsive2: true
-};
-const unresponsive = {
-    max: 0,
-    ignore: 15,
-    stations: {}
-};
-const stationCount = {
-    firstZero: 0,
-    firstNonZero: 0,
-    lastZero: 0,
-    lastNonZero: 0
-};
 let defaultScanEnabled = true;
 
 // Various forms of network resets
@@ -94,7 +76,8 @@ function resetNetwork(device, op)
                             system(`${IW} ${device.iface} scan passive > /dev/null 2>&1`);
                             break;
                         case "restart":
-                            system(`${IFDOWN} wifi; ${IFUP} wifi`);
+                            const idx = replace(device.iface, /^wlan/, "");
+                            system(`${IFDOWN} wifi${idx}; ${IFUP} wifi${idx}`);
                             break;
                         default:
                             log.syslog(log.LOG_ERR, `-- unknown`);
@@ -107,7 +90,8 @@ function resetNetwork(device, op)
             break;
         case "morse":
             if (op === "restart") {
-                system(`${IFDOWN} wifi; ${IFUP} wifi`);
+                const idx = replace(device.iface, /^wlan/, "");
+                system(`${IFDOWN} wifi${idx}; ${IFUP} wifi${idx}`);
             }
             break;
         case "mt76":
@@ -118,38 +102,34 @@ function resetNetwork(device, op)
     }
 }
 
-function restartAllNetworks(op)
-{
-    map(devices, device => resetNetwork(device, op));
-}
-
 // Monitor stations and detect if they become unresponsive
 
 function monitorUnresponsiveStations(device)
 {
-    unresponsive.max = 0;
+    device.unresponsive.max = 0;
     const nstations = {};
 
     const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }) ?? [];
     for (let i = 0; i < length(stations); i++) {
         const ipv6ll = network.mac2ipv6ll(stations[i].mac);
-        if (system(`${PING6} -c 1 -W 2 -I ${device.iface} ${ipv6ll} > /dev/null 2>&1`) == 0) {
+        const dev = replace(device.iface, /^wlan/, "br-wifi");
+        if (system(`${PING6} -c 1 -W 2 -I ${device.iface} ${ipv6ll} > /dev/null 2>&1`) == 0 || system(`${PING6} -c 1 -W 2 -I ${dev} ${ipv6ll} > /dev/null 2>&1`) == 0) {
             nstations[ipv6ll] = 0;
         }
         else {
-            const val = (unresponsive.stations[ipv6ll] || 0) + 1;
+            const val = (device.unresponsive.stations[ipv6ll] || 0) + 1;
             nstations[ipv6ll] = val;
-            if (val < unresponsive.ignore) {
+            if (val < device.unresponsive.ignore) {
                 if (val > actionLimits.unresponsiveReport) {
                     log.syslog(log.LOG_ERR, `Possible unresponsive node: ${ipv6ll} [${stations[i].mac}]`);
                 }
-                if (val > unresponsive.max) {
-                    unresponsive.max = val;
+                if (val > device.unresponsive.max) {
+                    device.unresponsive.max = val;
                 }
             }
         }
     }
-    unresponsive.stations = nstations;
+    device.unresponsive.stations = nstations;
 }
 
 // Monitor number of connected stations
@@ -159,22 +139,22 @@ function monitorStationCount(device)
     const count = length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }) ?? []);
     const now = clock(true)[0];
     if (count == 0) {
-        stationCount.lastZero = now;
-        if (stationCount.firstZero <= stationCount.firstNonZero) {
-            stationCount.firstZero = now;
+        device.stationCount.lastZero = now;
+        if (device.stationCount.firstZero <= device.stationCount.firstNonZero) {
+            device.stationCount.firstZero = now;
         }
     }
     else {
-        stationCount.lastNonZero = now;
-        if (stationCount.firstNonZero <= stationCount.firstZero) {
-            stationCount.firstNonZero = now;
+        device.stationCount.lastNonZero = now;
+        if (device.stationCount.firstNonZero <= device.stationCount.firstZero) {
+            device.stationCount.firstNonZero = now;
         }
     }
 }
 
 // Take action depending on the monitor state
 
-function runActions()
+function runCommonActions()
 {
     const c = uci.cursor();
     if (c.get("aredn", "@wireless_watchdog[0]", "enable") == "1") {
@@ -190,7 +170,7 @@ function runActions()
             if (timediff < 5) {
                 if (defaultScanEnabled) {
                     defaultScanEnabled = false;
-                    restartAllNetworks("daily-restart");
+                    map(devices, device => resetNetwork(device, "daily-restart"));
                 }
             }
             else {
@@ -198,11 +178,14 @@ function runActions()
             }
         }
     }
+}
 
+function runActions(device)
+{
     // No action if we have stations and they're responsive
-    if (stationCount.lastNonZero > stationCount.lastZero && unresponsive.max < actionLimits.unresponsiveTrigger1) {
-        for (let k in actionState) {
-            actionState[k] = false;
+    if (device.stationCount.lastNonZero > device.stationCount.lastZero && device.unresponsive.max < actionLimits.unresponsiveTrigger1) {
+        for (let k in device.actionState) {
+            device.actionState[k] = false;
         }
         return;
     }
@@ -210,52 +193,48 @@ function runActions()
     // Otherwise
 
     // If network stations falls to zero when it was previously non-zero
-    if (stationCount.firstZero > stationCount.firstNonZero) {
-        if (!actionState.zero1 && stationCount.lastZero - stationCount.firstZero > actionLimits.zeroTrigger1) {
-            restartAllNetworks("zero-soft");
-            actionState.zero1 = true;
+    if (device.stationCount.firstZero > device.stationCount.firstNonZero) {
+        if (!device.actionState.zero1 && device.stationCount.lastZero - device.stationCount.firstZero > actionLimits.zeroTrigger1) {
+            resetNetwork(device, "zero-soft");
+            device.actionState.zero1 = true;
             return;
         }
-        if (!actionState.zero2 && stationCount.lastZero - stationCount.firstZero > actionLimits.zeroTrigger2) {
-            restartAllNetworks("zero-hard");
-            actionState.zero2 = true;
+        if (!device.actionState.zero2 && device.stationCount.lastZero - device.stationCount.firstZero > actionLimits.zeroTrigger2) {
+            resetNetwork(device, "zero-hard");
+            device.actionState.zero2 = true;
             return;
         }
     }
 
     // We are failing to ping stations we are associated with
-    if (unresponsive.max >= actionLimits.unresponsiveTrigger1 && !actionState.unresponsive1) {
-        restartAllNetworks("unresponsive");
-        actionState.unresponsive1 = true;
+    if (device.unresponsive.max >= actionLimits.unresponsiveTrigger1 && !device.actionState.unresponsive1) {
+        resetNetwork(device, "unresponsive");
+        device.actionState.unresponsive1 = true;
         return;
     }
-    if (unresponsive.max >= actionLimits.unresponsiveTrigger2 && !actionState.unresponsive2) {
-        restartAllNetworks("unresponsive");
-        actionState.unresponsive2 = true;
+    if (device.unresponsive.max >= actionLimits.unresponsiveTrigger2 && !device.actionState.unresponsive2) {
+        resetNetwork(device, "unresponsive");
+        device.actionState.unresponsive2 = true;
         return;
     }
-}
-
-function runMonitors()
-{
-    map(devices, device => monitorUnresponsiveStations(device));
-    map(devices, device => monitorStationCount(device));
 }
 
 function save()
 {
     fs.writefile("/tmp/wireless_monitor.json", sprintf("%.2J", {
         now: clock(true)[0],
-        unresponsive: unresponsive,
-        stationCount: stationCount,
-        actionState: actionState
+        unresponsive: map(devices, device => device.unresponsive),
+        stationCount: map(devices, device => device.stationCount),
+        actionState: map(devices, device => device.actionState)
     }));
 }
 
 function main()
 {
-    runMonitors();
-    runActions();
+    map(devices, device => monitorUnresponsiveStations(device));
+    map(devices, device => monitorStationCount(device));
+    runCommonActions();
+    map(devices, device => runActions(device));
     save();
     return waitForTicks(60); // 1 minute
 }
@@ -264,8 +243,6 @@ return waitForTicks(max(1, 180 - clock(true)[0]), function()
 {
     // No station when we start
     const now = clock(true)[0];
-    stationCount.firstNonZero = now;
-    stationCount.firstZero = now;
 
     map(devices, device => {
         // Extract all the necessary wifi parameters
@@ -323,6 +300,25 @@ return waitForTicks(max(1, 180 - clock(true)[0]), function()
         if (device.chipset === "ath10k" && index(hardware.getBoardModel().id, "mikrotik") === 0 && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }))) {
             resetNetwork(device, "zero-hard");
         }
+
+        // Setup the monitor stats for the device.
+        device.actionState = {
+            zero1: true,
+            zero2: true,
+            unresponsive1: true,
+            unresponsive2: true
+        };
+        device.unresponsive = {
+            max: 0,
+            ignore: 15,
+            stations: {}
+        };
+        device.stationCount = {
+            firstZero: now,
+            firstNonZero: now,
+            lastZero: 0,
+            lastNonZero: 0
+        };
     });
 
     return waitForTicks(0, main);
