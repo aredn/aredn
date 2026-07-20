@@ -560,13 +560,13 @@ function main()
                                     const rtrack = rtrackers[mac];
                                     if (rtrack.type === "RF" || !rtrack.type) {
                                         const rhostname = canonicalHostname(rtrack.hostname);
-                                        if (rtrack.ip && rtrack.routable) {
-                                            rfLinks[track.mac][rtrack.ip] = {
-                                                ip: rtrack.ip,
+                                        if (rtrack.canonical_ip && rtrack.routable) {
+                                            rfLinks[track.mac][rtrack.canonical_ip] = {
+                                                ip: rtrack.canonical_ip,
                                                 hostname: rhostname,
                                             };
                                             if (track.lat && rtrack.lon && lat && lon) {
-                                                rfLinks[track.mac][rtrack.ip].distance = calcDistance(lat, lon, 1 * rtrack.lat, 1 * rtrack.lon);
+                                                rfLinks[track.mac][rtrack.canonical_ip].distance = calcDistance(lat, lon, 1 * rtrack.lat, 1 * rtrack.lon);
                                             }
                                         }
                                         if (myhostname == rhostname) {
@@ -785,13 +785,12 @@ function main()
             // Remove all the nodes we can see from this set
             for (let mac in trackers) {
                 const track = trackers[mac];
-                if (track.ip) {
-                    delete theres[track.ip];
+                if (track.canonical_ip) {
+                    delete theres[track.canonical_ip];
                 }
             }
             // Including ourself
             delete theres[myip];
-            delete theres[mylanip];
 
             // If there are any nodes left, then our neighbors can see hidden nodes we cant. Enable RTS/CTS
             // We do this rather crudely on all radios regardless of which ones actually have the hidden nodes.
