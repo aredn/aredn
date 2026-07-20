@@ -191,7 +191,7 @@ function deviceToType(device, mac)
     else if (substr(device, 0, 4) === "wlan") {
         return "RF";
     }
-    else if (substr(device, 0, 7) === "br-wifi" || substr(device, 0, 6) === "br-rrf") {
+    else if (device === "br-wifi") {
         return "RRF";
     }
     else if (substr(device, 0, 2) === "wg") {
@@ -265,8 +265,10 @@ function main()
             if (substr(name, 0, 5) === "xlink") {
                 xlinks[section.ifname] = true;
             }
-            else if (substr(name, 0, 3) === "rrf") {
-                rwifi[section.device] = true;
+        });
+        cursor.foreach("network", "bridge-vlan", section => {
+            if (substr(name, 0, 3) === "rrf") {
+                rwifi[section.vlan] = true;
             }
         });
 
@@ -369,6 +371,7 @@ function main()
                     const track = trackers[station.mac];
                     if (track) {
                         track.type = "RF";
+                        track.subdevice = wlans[w];
                         track.band = band;
                         track.signal = station.sta_info.signal;
                         track.tx_packets = station.sta_info.tx_packets;
@@ -491,7 +494,7 @@ function main()
                         track.rev_ping_success_time = null;
                         track.rev_ping_quality = null;
                         track.rev_quality = null;
-                        track.wifivlans = null;
+                        track.meshvlan = null;
                     }
                     else {
                         track.refresh = now + refreshTimeout();
@@ -530,15 +533,10 @@ function main()
                             track.firmware_version = info.node_details.firmware_version;
                         }
 
-                        // Track wifi vlans
-                        track.wifivlans = null;
-                        if (track.type === "DtD") {
-                            if (info.meshrf?.vlan) {
-                                push(track.wifivlans ?? (track.wifivlans = []), info.meshrf.vlan);
-                            }
-                            if (info.meshrf1?.vlan) {
-                                push(track.wifivlans ?? (track.wifivlans = []), info.meshrf1.vlan);
-                            }
+                        // Track mesh vlan
+                        track.meshvlan = null;
+                        if (track.type === "DtD" && info.meshvlan) {
+                            track.meshvlan = meshvlan;
                         }
 
                         if (info.lqm && info.lqm.info && info.lqm.info.trackers) {
@@ -598,8 +596,8 @@ function main()
             const track = trackerlist[tidx];
             
             // Clear route counter
-            track.babel_route_count = 0;
-            track.babel_metric = null;
+            track.route_count = 0;
+            track.metric = null;
             track.routable = false;
 
             if (track.ip || track.canonical_ip) {
@@ -621,28 +619,19 @@ function main()
             }
 
             // Track remote wifis
-            track.remoterf = false;
-            if (track.wifivlans) {
-                map(track.wifivlans, vlan => {
-                    if (rwifi[`br-rrf${vlan}`]) {
-                        track.remoterf = true;
-                    }
-                });
-            }
+            track.remoterf = rwifi[track.meshvlan] ? true : false;
 
             // Include babel info for this link
-            track.babel_config = {
-                hello_interval: int(cursor.get("babel", "default", "hello_interval")),
-                update_interval: int(cursor.get("babel", "default", "update_interval"))
-            };
+            track.hello_interval = int(cursor.get("babel", "default", "hello_interval"));
+            track.update_interval = int(cursor.get("babel", "default", "update_interval"));
             if (track.type === "Wireguard") {
-                track.babel_config.rxcost = int(cursor.get("wireguard", "@network[0]", "cost") || cursor.get("babel", "tunnel", "rxcost") || 300);
+                track.rxcost = int(cursor.get("wireguard", "@network[0]", "cost") || cursor.get("babel", "tunnel", "rxcost") || 300);
             }
             else if (track.type === "Xlink") {
-                track.babel_config.rxcost = int(cursor.get("babel", "xlink", "rxcost"));
+                track.rxcost = int(cursor.get("babel", "xlink", "rxcost"));
             }
             else {
-                track.babel_config.rxcost = int(cursor.get("babel", "default", "rxcost"));
+                track.rxcost = int(cursor.get("babel", "default", "rxcost"));
             }
 
             // Ping addresses and penalize quality for excessively slow links
@@ -696,12 +685,13 @@ function main()
             }
 
             // Calculate the max RF distance as we go
-            if (track.type == "RF" && track.lastseen >= now) {
+            if (track.type == "RF" && track.lastseen >= now && track.subdevice) {
+                const device = split(track.subdevice, ".")[0];
                 if (track.distance === null) {
-                    distances[track.device] = config.max_distance
+                    distances[device] = config.max_distance
                 }
-                else if (!track.user_blocks && track.distance > (distances[track.device] ?? -1)) {
-                    distances[track.device] = track.distance;
+                else if (!track.user_blocks && track.distance > (distances[device] ?? -1)) {
+                    distances[device] = track.distance;
                 }
             }
 
@@ -718,9 +708,9 @@ function main()
                 const t = ip2tracker[r.gateway] || dev2tracker[r.oif];
                 if (t) {
                     t.routable = true;
-                    t.babel_route_count++;
-                    if (t.babel_metric === null || r.metric < t.babel_metric) {
-                        t.babel_metric = r.metric;
+                    t.route_count++;
+                    if (t.metric === null || r.metric < t.metric) {
+                        t.metric = r.metric;
                     }
                     total_route_count++;
                 }
@@ -729,9 +719,9 @@ function main()
                 const t = ip2tracker[superRoute.gateway] || dev2tracker[superRoute.oif];
                 if (t) {
                     t.routable = true;
-                    t.babel_route_count++;
-                    if (t.babel_metric === null || superRoute.metric < t.babel_metric) {
-                        t.babel_metric = superRoute.metric;
+                    t.route_count++;
+                    if (t.metric === null || superRoute.metric < t.metric) {
+                        t.metric = superRoute.metric;
                     }
                     total_route_count++;
                 }
@@ -761,11 +751,9 @@ function main()
                 else {
                     distance = min(distance, config.max_distance);
                 }
-                if (hardware.supportsFeature("max-distance", device.wlan)) {
-                    if (distance != device.lastDistance || device.lastReadDistance != hardware.getMaxDistance(device.wlan)) {
-                        device.lastDistance = distance;
-                        device.lastReadDistance = hardware.setMaxDistance(device.wlan, distance);
-                    }
+                if (hardware.supportsFeature("max-distance", device.wlan) && (distance != device.lastDistance || device.lastReadDistance != hardware.getMaxDistance(device.wlan))) {
+                    device.lastDistance = distance;
+                    device.lastReadDistance = hardware.setMaxDistance(device.wlan, distance);
                 }
                 distances[device.wlan] = distance;
             });

@@ -115,8 +115,8 @@ export function getSettingAsString(key, def)
 export function getSettingAsInt(key, def)
 {
     initSetup();
-    const v = int(scursor.get("setup", "globals", key));
-    if (type(v) === "int") {
+    const v = scursor.get("setup", "globals", key);
+    if (int(v) == v) {
         return v;
     }
     return def;

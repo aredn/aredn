@@ -38,16 +38,13 @@ if (uci.cursor().get("aredn", "@remoterf[0]", "enable") != "1") {
 onShutdown(() => {
     let changed = false;
     const c = uci.cursor();
-    c.foreach("network", "interface", i => {
+    c.foreach("network", "bridge-vlan", i => {
         const name = i[".name"];
         if (substr(name, 0, 3) === "rrf") {
-            const vname = `${name}vlan`;
-            const bname = `${name}bridge`;
-            c.delete("network", vname);
-            c.delete("network", bname);
             c.delete("network", name);
+            c.delete("network", replace(name, /vlan$/, "device"));
             changed = true;
-            log.syslog(log.LOG_NOTICE, `Removing remote wifi: ${name}`);
+            log.syslog(log.LOG_NOTICE, `Removing remote wifi: ${replace(name, /vlan$/, "")}`);
         }
     });
     if (changed) {
@@ -73,15 +70,14 @@ return function()
 
     // Get the current set and work out which ones to add or remove
     const c = uci.cursor();
-    c.foreach("network", "interface", i => {
+    c.foreach("network", "bridge-vlan", i => {
         const name = i[".name"];
         if (substr(name, 0, 3) === "rrf") {
-            const vlan = substr(name, 3);
-            if (addvlan[vlan]) {
-                delete addvlan[vlan];
+            if (addvlan[i.vlan]) {
+                delete addvlan[i.vlan];
             }
             else {
-                rmvlan[vlan] = true;
+                rmvlan[i.vlan] = true;
             }
         }
     });
@@ -91,28 +87,27 @@ return function()
     for (let vlan in addvlan) {
         const name = `rrf${vlan}`;
         const vname = `${name}vlan`;
-        const bname = `${name}bridge`;
+        const dname = `${name}device`;
+        const port = `br0.${vlan}`;
         c.set("network", vname, "bridge-vlan");
         c.set("network", vname, "device", "br0");
         c.set("network", vname, "vlan", vlan);
         c.set("network", vname, "ports", dtdports);
-        c.set("network", bname, "device");
-        c.set("network", bname, "name", `br-${name}`);
-        c.set("network", bname, "type", "bridge");
-        c.set("network", bname, "ports", [ `br0.${vlan}` ]);
-        c.set("network", bname, "macaddr", replace("x2:xx:xx:xx:xx:xx", "x", _ => sprintf("%x",math.rand()&15)));
-        c.set("network", name, "interface");
-        c.set("network", name, "device", `br-${name}`);
+        c.set("network", dname, "device");
+        c.set("network", dname, "name", port);
+        c.set("network", dname, "isolate", "1");
+        const ports = c.get("network", "br-wifi", "ports");
+        if (index(ports, port) === -1) {
+            push(ports, port);
+            c.set("network", "br-wifi", "ports", ports);
+        }
         changed = true;
         log.syslog(log.LOG_NOTICE, `Adding remote wifi: ${name}`);
     }
     for (vlan in rmvlan) {
         const name = `rrf${vlan}`;
-        const vname = `${name}vlan`;
-        const bname = `${name}bridge`;
-        c.delete("network", vname);
-        c.delete("network", bname);
-        c.delete("network", name);
+        c.delete("network", `${name}vlan`);
+        c.delete("network", `${name}device`);
         changed = true;
         log.syslog(log.LOG_NOTICE, `Removing remote wifi: ${name}`);
     }

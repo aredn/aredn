@@ -123,6 +123,7 @@ const ieee80211 = "/sys/class/ieee80211/";
 const node = nvram.get("hsmmmesh", "settings", "node");
 const tactical = nvram.get("hsmmmesh", "settings", "tactical");
 const mac2 = nvram.get("hsmmmesh", "settings", "mac2");
+const wifimac = nvram.get("hsmmmesh", "settings", "wifimac");
 
 const is_supernode = cm.get("aredn", "@supernode[0]", "enable") == "1";
 const deleteme = {};
@@ -132,6 +133,7 @@ const cfg = {
     lan_network_config: "",
     wan_network_config: "",
     dtdlink_network_config: "",
+    wifi_network_config: "",
     wifi0_network_config: "",
     wifi1_network_config: "",
     wireguard_network_config: "",
@@ -309,6 +311,35 @@ for (let i = 0; i < length(eports); i++) {
 }
 cfg.bridge_network_config = config;
 
+// generate the wifi bridge configuration
+config = "";
+let vlanrf = null;
+if (hardware.supportsFeature("vlanrf")) {
+    const vlanid = configuration.getSettingAsInt("radio_vlan", 3700 + int(split(mac2, ".")[2]));
+    if (vlanid) {
+        const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
+        config += `\nconfig bridge-vlan\n\toption device 'br0'\n\toption vlan '${vlanid}'\n`;
+        for (let p = 0; p < length(dtdports); p++) {
+            config += `\tlist ports '${replace(dtdports[p], /\..*$/, "")}:t'\n`;
+        }
+        config += "\n";
+        vlanrf = `br0.${vlanid}`;
+    }
+}
+config += "# WiFi Bridge. WiFi ports are added automatically and are isolated from each other\n";
+config += "config device\n\toption name 'br-wifi'\n\toption type 'bridge'\n\toption bridge_empty '1'\n";
+if (cfg.radio0_mode === "meshap" || cfg.radio1_mode === "meshap") {
+    config += `\toption macaddr '${replace(wifimac, /^..:/, "fe:")}'\n`;
+}
+else {
+    config += `\toption macaddr '${wifimac}'\n`;
+}
+if (vlanrf) {
+    config += `\tlist ports '${vlanrf}'\n`;
+}
+config += "\nconfig interface 'wifi'\n\toption device 'br-wifi'\n";
+cfg.wifi_network_config = config;
+
 // generate the network configurations
 const cnetworks = [ "lan", "wan", "dtdlink", "wifi0", "wifi1" ];
 for (let i = 0; i < length(cnetworks); i++) {
@@ -316,15 +347,8 @@ for (let i = 0; i < length(cnetworks); i++) {
     let usebridge = true;
     let config = "";
 
-    // We only setup mesh radios here - skip any others.
-    if ((net === "wifi0" && substr(cfg.radio0_mode || "off", 0, 4) !== "mesh") ||
-        (net === "wifi1" && substr(cfg.radio1_mode || "off", 0, 4) !== "mesh")) {
-        continue;
-    }
-
     // generate a complete config
     let vlan = null;
-    //let ports = hardware.getBoardNetworkInterfaceName(net);
     let ports = configuration.getActiveNetworkInterfaceNames(net);
     let macaddr = null;
 
@@ -370,55 +394,19 @@ for (let i = 0; i < length(cnetworks); i++) {
             vlan = "2:t";
             break;
         case "wifi0":
-        {
-            if (cfg.radio0_mode == "meshap" || cfg.radio0_mode == "meshptp" || cfg.radio0_mode == "meshsta") {
-                ports = [];
-                if (hardware.supportsFeature("vlanrf")) {
-                    const vlanid = configuration.getSettingAsInt("radio_vlan", 3700 + int(split(mac2, ".")[2])) + 0;
-                    vlan = `${vlanid}:t`;
-                    const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
-                    for (let p = 0; p < length(dtdports); p++) {
-                        push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
-                    }
-                }
-                macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy0/macaddress`));
-                // Make AP's the best for better arednlink performance
-                if (macaddr && (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp")) {
-                    macaddr = replace(macaddr, /^..:/, "fe:");
-                }
-                cfg.radio0_macaddr = macaddr;
+            if (cfg.radio0_mode !== "mesh") {
+                continue;
             }
-            else {
-                usebridge = false;
-                ports = [ "wlan0" ];
-            }
+            usebridge = false;
+            ports = [ "wlan0" ];
             break;
-        }
         case "wifi1":
-        {
-            if (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp" || cfg.radio1_mode == "meshsta") {
-                ports = [];
-                if (hardware.supportsFeature("vlanrf")) {
-                    const vlanid = configuration.getSettingAsInt("radio_vlan", 3700 + int(split(mac2, ".")[2])) + 1;
-                    vlan = `${vlanid}:t`;
-                    const dtdports = configuration.getActiveNetworkInterfaceNames("dtdlink");
-                    for (let p = 0; p < length(dtdports); p++) {
-                        push(ports, `${replace(dtdports[p], /\..*$/, "")}.${vlanid}`);
-                    }
-                }
-                macaddr = trim(fs.readfile(`/sys/class/ieee80211/phy1/macaddress`));
-                // Make AP's the best for better arednlink performance
-                if (macaddr && (cfg.radio1_mode == "meshap" || cfg.radio1_mode == "meshptp")) {
-                    macaddr = replace(macaddr, /^..:/, "fe:");
-                }
-                cfg.radio1_macaddr = macaddr;
+            if (cfg.radio1_mode !== "mesh") {
+                continue;
             }
-            else {
-                usebridge = false;
-                ports = [ "wlan1" ];
-            }
+            usebridge = false;
+            ports = [ "wlan1" ];
             break;
-        }
         default:
             print(`WARNING: unknown network '${net}'\n`);
             continue;
@@ -899,7 +887,7 @@ for (let dev = 0; dev < ifacecount; dev++) {
             ssid = `${mesh_ssid}-${channel}-${chanbw}-v3`;
             mode = "ap";
             encryption = "none";
-            network = `wifi${dev}`;
+            network = "wifi";
             disassoclowack = 0;
             maxinactivity = 600;
             maxlisteninterval = 1;
@@ -929,8 +917,9 @@ for (let dev = 0; dev < ifacecount; dev++) {
             ssid = `${mesh_ssid}-${channel}-${chanbw}-v3`;
             mode = "sta";
             encryption = "none";
-            network = `wifi${dev}`;
+            network = "wifi";
             htmode = hardware.getHTMode(wlan, chanbw, cfg[`${radio}_mode`]);
+            isolate = 1;
             wds = 1;
         }
         else if (cfg[`${radio}_mode`] == "lan") {

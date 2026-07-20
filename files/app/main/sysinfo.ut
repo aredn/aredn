@@ -114,12 +114,6 @@ const meshrf = (function () {
             case radios.RADIO_MESHPTMP:
                 rfmode = rfmode || "ptmp";
                 ssid = ssid || `${mode.ssid}-${mode.channel}-${mode.bandwidth}-v3`;
-                // Look for wifi bridge and find the appropriate vlan
-                const path = `/sys/class/net/br-${replace(cfg.iface, /^wlan/, "wifi")}`;
-                let wifivlan = null;
-                if (fs.access(path)) {
-                    wifivlan = int(match(fs.glob(`${path}/lower_br0.*`)?.[0], /(\d+)$/)?.[1]);
-                }
                 push(meshrf, strip({
                     status: "on",
                     iface: cfg.iface,
@@ -127,7 +121,6 @@ const meshrf = (function () {
                     ssid: ssid,
                     channel: mode.channel,
                     chanbw: mode.bandwidth,
-                    vlan: wifivlan,
                     freq: hardware.getChannelFrequency(config[i].iface, mode.channel),
                     polarization: hardware.getAntennaPolarization(config[i].iface),
                     azimuth: tonumber(uci.get("aredn", "@location[0]", "azimuth")),
@@ -155,6 +148,10 @@ switch (length(meshrf)) {
         info.meshrf = meshrf[0];
         info.meshrf1 = meshrf[1];
         break;
+}
+const meshvlan = tonumber(match(fs.glob("/sys/class/net/br-wifi/lower_br0.*")?.[0], /(\d+)$/)?.[1]);
+if (meshvlan) {
+    info.meshvlan = meshvlan;
 }
 
 // UPTIME, MEMORY AND LOADAVGS
