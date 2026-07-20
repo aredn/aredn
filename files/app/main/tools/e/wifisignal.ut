@@ -38,7 +38,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
 
     const signals = {};
     const noises = [];
-    let dev;
+    let dev = null;
 
     const devices = radios.getMeshRadios();
     for (let i = 0; i < length(devices); i++) {
@@ -61,12 +61,15 @@ if (request.env.REQUEST_METHOD === "PUT") {
             }
         }
     }
-    let noise = 0;
-    map(noises, n => noise += n);
-    noise /= length(noises);
+    let noise = -95;
+    if (length(noises)) {
+        noise = 0;
+        map(noises, n => noise += n);
+        noise /= length(noises);
+    }
 
     const response = { s: signals, n: noise };
-    if (qmac !== "average") {
+    if (dev) {
         const ipv6ll = network.mac2ipv6ll(qmac);
         const wifimac = trim(fs.readfile(`/sys/class/net/${dev.iface}/address`));
         const f = fs.popen(`/bin/uclient-fetch -T 1 http://[${ipv6ll}%${dev.main}]/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
@@ -84,23 +87,12 @@ if (request.env.REQUEST_METHOD === "PUT") {
     printf("%J", response);
     return;
 }
-const reArp = /^([\.0-9]+) +0x. +0x. +([0-9a-fA-F:]+)/;
-const arp = {};
-let f = fs.open("/proc/net/arp");
-if (f) {
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        const m = match(l, reArp);
-        if (m) {
-            arp[m[2]] = m[1];
-        }
-    }
-    f.close();
-}
+lqm.reset();
+const trackers = lqm.getTrackers();
 const stations = fs.lsdir("/tmp/snrlog");
 for (let i = 0; i < length(stations); i++) {
     const s = stations[i];
-    const ip = arp[s];
-    stations[i] = { hostname: ip && network.getHostnameFromIPAddress(ip), mac: s };
+    stations[i] = { hostname: trackers[s]?.hostname, mac: s };
 }
 %}
 <div class="dialog wide">
@@ -120,7 +112,7 @@ for (let i = 0; i < length(stations); i++) {
                         for (let i = 0; i < length(stations); i++) {
                             const s = stations[i];
                             if (s) {
-                                print(`<option value="${s.mac}">${replace(s.hostname || s.mac, ".local.mesh", "")}</option>`);
+                                print(`<option value="${s.mac}">${s.hostname || s.mac}</option>`);
                             }
                         }
                     %}
