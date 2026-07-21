@@ -97,7 +97,7 @@ const band = hardware.getRadioCount() > 1 ? tracker?.band : null;
             if (n.user_blocks) {
                 return "blocked by user";
             }
-            if (n.routable && n.babel_route_count > 0 && n.babel_metric != -1) {
+            if (n.routable && n.route_count > 0 && n.metric != -1) {
                 return "routing";
             }
             return "idle";
@@ -331,11 +331,11 @@ const band = hardware.getRadioCount() > 1 ? tracker?.band : null;
                     <div>state</div>
                 </div>
                 <div class="i">
-                    <div>{{n.babel_route_count}}</div>
+                    <div>{{n.route_count}}</div>
                     <div>routes</div>
                 </div>
                 <div class="i">
-                    <div>{{n.babel_route_count === 0 ? "-" : n.babel_metric ?? "-"}}</div>
+                    <div>{{n.route_count === 0 ? "-" : n.metric ?? "-"}}</div>
                     <div>metric</div>
                 </div>
             </div>

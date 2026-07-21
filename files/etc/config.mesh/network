@@ -10,7 +10,7 @@ config interface 'loopback'
 	option netmask '255.0.0.0'
 
 #### Main IP
-config device
+config device 'brmesh'
 	option name 'br-mesh'
 	option type 'bridge'
 	option bridge_empty '1'
@@ -25,7 +25,16 @@ config interface 'mesh'
 ### Bridge configuration
 <bridge_network_config>
 
+config device 'brfast'
+	option name 'br-fast'
+	option type 'bridge'
+	option bridge_empty '1'
+
+config interface 'fast'
+	option device 'br-fast'
+
 #### WIFI configuration
+<wifi_network_config>
 <wifi0_network_config>
 <wifi1_network_config>
 

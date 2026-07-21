@@ -112,8 +112,7 @@ function monitorUnresponsiveStations(device)
     const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }) ?? [];
     for (let i = 0; i < length(stations); i++) {
         const ipv6ll = network.mac2ipv6ll(stations[i].mac);
-        const dev = replace(device.iface, /^wlan/, "br-wifi");
-        if (system(`${PING6} -c 1 -W 2 -I ${device.iface} ${ipv6ll} > /dev/null 2>&1`) == 0 || system(`${PING6} -c 1 -W 2 -I ${dev} ${ipv6ll} > /dev/null 2>&1`) == 0) {
+        if (system(`${PING6} -c 1 -W 2 -I br-wifi ${ipv6ll} > /dev/null 2>&1`) == 0 || system(`${PING6} -c 1 -W 2 -I ${device.iface} ${ipv6ll} > /dev/null 2>&1`) == 0) {
             nstations[ipv6ll] = 0;
         }
         else {
