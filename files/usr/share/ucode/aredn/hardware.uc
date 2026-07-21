@@ -74,6 +74,10 @@ export function getBoard()
             boardJson.model.id = "vultr";
             boardJson.model.name = "Vultr";
         }
+        else if (fs.access("/sys/class/dmi/id")) {
+            boardJson.model.id = "pc";
+            boardJson.model.name = "PC";
+        }
     }
     return boardJson;
 };
@@ -84,12 +88,7 @@ export function getBoardModel()
     if (model) {
         return model;
     }
-    switch (ubus.connect().call("system", "board", {}).release.target) {
-        case "x86/64":
-            return { id: "pc", name: "pc" };
-        default:
-            return { id: "unknown", name: "unknown" };
-    }
+    return { id: "unknown", name: "unknown" };
 };
 
 export function getBoardId()
