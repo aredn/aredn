@@ -188,10 +188,10 @@ function deviceToType(device, mac)
     if (device == "br-dtdlink") {
         return "DtD";
     }
-    else if (substr(device, 0, 4) === "wlan") {
+    else if (device === "br-wifi" || substr(device, 0, 4) === "wlan") {
         return "RF";
     }
-    else if (device === "br-wifi") {
+    else if (device === "br-fast") {
         return "RRF";
     }
     else if (substr(device, 0, 2) === "wg") {
@@ -457,6 +457,7 @@ function main()
         distances = {};
         const ip2tracker = {};
         const dev2tracker = {};
+        const dtdips = {};
 
         // Refresh remote attributes periodically as this is expensive
         // We dont do it the very first time so we can populate the LQM state with a new node quickly
@@ -536,7 +537,7 @@ function main()
                         // Track mesh vlan
                         track.meshvlan = null;
                         if (track.type === "DtD" && info.meshvlan) {
-                            track.meshvlan = meshvlan;
+                            track.meshvlan = info.meshvlan;
                         }
 
                         if (info.lqm && info.lqm.info && info.lqm.info.trackers) {
@@ -602,6 +603,9 @@ function main()
 
             if (track.ip || track.canonical_ip) {
                 ip2tracker[track.ip || track.canonical_ip] = track;
+            }
+            if (track.type === "DtD" && track.canonical_ip) {
+                dtdips[track.canonical_ip] = true;
             }
             if (track.type === "Wireguard" && track.device) {
                 dev2tracker[track.device] = track;
@@ -727,8 +731,8 @@ function main()
                 }
             }
 
-            // Remove any trackers which are too old or if they disconnect when first seen
             for (let mac in trackers) {
+                // Remove any trackers which are too old or if they disconnect when first seen
                 const track = trackers[mac];
                 // *DONT* remove any user blocked trackers. If we block these devices at a low level (via
                 // the deny list for example) then we never see them again at this level and we loose the ability
@@ -737,6 +741,10 @@ function main()
                     if ((now > track.lastseen + lastseen_timeout) || (track.rev_lastseen && now > track.rev_lastseen + lastseen_timeout)) {
                         delete trackers[mac];
                     }
+                }
+                // Also mark any RRF types which have DtD equivalents
+                if (track.type === "RRF" && dtdips[track.canonical_ip]) {
+                    track.type = "LRF";
                 }
             }
 

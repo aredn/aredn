@@ -22,7 +22,7 @@ fi
 if "${ACTION}" = "ifup"; then
     # IPv4
     case "${INTERFACE}" in
-        wifi*|dtdlink|wg*|xlink*)
+        wifi*|dtdlink|fast|wg*|xlink*)
             if ! ip -4 -o addr show dev ${DEVICE} scope link | grep -q "inet "; then
                 n=0
                 IP=$(printf '169.254.%d.%d' 0x$(echo $mac | cut -d: -f5) 0x$(echo $mac | cut -d: -f6))

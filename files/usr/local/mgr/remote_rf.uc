@@ -48,6 +48,7 @@ onShutdown(() => {
         }
     });
     if (changed) {
+        c.set("network", "brfast", "ports", "");
         c.commit("network");
         system("/etc/init.d/network reload");
     }
@@ -63,8 +64,8 @@ return function()
     const trackers = lqm.getTrackers();
     for (let mac in trackers) {
         const tracker = trackers[mac];
-        if (tracker.wifivlans) {
-            map(tracker.wifivlans, vlan => addvlan[`${vlan}`] = true);
+        if (tracker.meshvlan) {
+            addvlan[`${tracker.meshvlan}`] = true;
         }
     }
 
@@ -96,18 +97,25 @@ return function()
         c.set("network", dname, "device");
         c.set("network", dname, "name", port);
         c.set("network", dname, "isolate", "1");
-        const ports = c.get("network", "br-wifi", "ports");
+        const ports = c.get("network", "brfast", "ports") || [];
         if (index(ports, port) === -1) {
             push(ports, port);
-            c.set("network", "br-wifi", "ports", ports);
+            c.set("network", "brfast", "ports", ports);
         }
         changed = true;
         log.syslog(log.LOG_NOTICE, `Adding remote wifi: ${name}`);
     }
     for (vlan in rmvlan) {
         const name = `rrf${vlan}`;
+        const port = `br0.${vlan}`;
         c.delete("network", `${name}vlan`);
         c.delete("network", `${name}device`);
+        const ports = c.get("network", "brfast", "ports") || [];
+        const idx = index(ports, port);
+        if (idx !== -1) {
+            splice(ports, idx, 1);
+            c.set("network", "brfast", "ports", length(ports) ? ports : "");
+        }
         changed = true;
         log.syslog(log.LOG_NOTICE, `Removing remote wifi: ${name}`);
     }
