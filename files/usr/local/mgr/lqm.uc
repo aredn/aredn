@@ -33,7 +33,7 @@
 
 const refresh_timeout_base = 12 * 60; // refresh high cost data every 12 minutes
 const refresh_timeout_range = 5 * 60; // to 12 + 5 minutes
-const refresh_retry_timeout = 5 * 60;
+const refresh_retry_timeout = 1 * 60;
 const lastseen_timeout = 24 * 60 * 60; // age out nodes we've not seen for 24 hours
 const snr_run_avg = 0.4; // snr running average
 const tx_quality_run_avg = 0.4; // tx quality running average
@@ -188,10 +188,10 @@ function deviceToType(device, mac)
     if (device == "br-dtdlink") {
         return "DtD";
     }
-    else if (device === "br-wifi" || substr(device, 0, 4) === "wlan") {
+    else if (substr(device, 0, 4) === "wlan") {
         return "RF";
     }
-    else if (device === "br-fast") {
+    else if (device === "br-wifi" || device === "br-fast") {
         return "RRF";
     }
     else if (substr(device, 0, 2) === "wg") {
@@ -368,7 +368,7 @@ function main()
                 const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
                 for (let i = 0; i < length(stations); i++) {
                     const station = stations[i];
-                    const track = trackers[station.mac];
+                    const track = trackers[station.mac] || trackers[replace(station.mac, /^..:/, "fe:")];
                     if (track) {
                         track.type = "RF";
                         track.subdevice = wlans[w];
@@ -474,7 +474,7 @@ function main()
             const track = trackerlist[tidx];
             if (track.refresh === 0) {
                 refresh = true;
-                track.refresh = now;
+                track.refresh = now - 1;
             }
             else if (now > track.refresh && track.ipv6ll) {
                 const p = fs.popen(`${UFETCH} -T ${connect_timeout} "http://[${track.ipv6ll}%${track.device}]/a/sysinfo?lqm=1" -O - 2> /dev/null`);
@@ -544,7 +544,7 @@ function main()
                             const rtrackers = info.lqm.info.trackers;
                             for (let mac in rtrackers) {
                                 const rtrack = rtrackers[mac];
-                                if (myhostname == canonicalHostname(rtrack.hostname)) {
+                                if (track.type === rtrack.type && myhostname === canonicalHostname(rtrack.hostname)) {
                                     track.rev_lq = rtrack.lq;
                                     track.rev_ping_success_time = rtrack.ping_success_time;
                                     track.rev_ping_quality = rtrack.ping_quality;
@@ -626,16 +626,19 @@ function main()
             track.remoterf = rwifi[track.meshvlan] ? true : false;
 
             // Include babel info for this link
-            track.hello_interval = int(cursor.get("babel", "default", "hello_interval"));
-            track.update_interval = int(cursor.get("babel", "default", "update_interval"));
             if (track.type === "Wireguard") {
-                track.rxcost = int(cursor.get("wireguard", "@network[0]", "cost") || cursor.get("babel", "tunnel", "rxcost") || 300);
-            }
-            else if (track.type === "Xlink") {
-                track.rxcost = int(cursor.get("babel", "xlink", "rxcost"));
+                if (issupernode) {
+                    track.hello_interval = int(cursor.get("babel", "supernode", "hello_interval"));
+                    track.update_interval = int(cursor.get("babel", "supernode", "update_interval"));
+                }
+                else {
+                    track.hello_interval = int(cursor.get("babel", "tunnel", "hello_interval"));
+                    track.update_interval = int(cursor.get("babel", "tunnel", "update_interval"));
+                }
             }
             else {
-                track.rxcost = int(cursor.get("babel", "default", "rxcost"));
+                track.hello_interval = int(cursor.get("babel", "default", "hello_interval"));
+                track.update_interval = int(cursor.get("babel", "default", "update_interval"));
             }
 
             // Ping addresses and penalize quality for excessively slow links
