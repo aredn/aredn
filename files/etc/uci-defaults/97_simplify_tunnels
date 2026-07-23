@@ -43,7 +43,9 @@ const c = uci.cursor("/etc/config.mesh");
 
 c.set("wireguard", "@network[0]", "begin", "");
 
-c.foreach("wireguard", "server", server => {
+const servers = [];
+c.foreach("wireguard", "server", server => push(servers, server));
+for (let server in servers) {
     const name = server[".name"];
     const netip = c.get("wireguard", name, "netip");
     const host = c.get("wireguard", name, "host");
@@ -64,9 +66,11 @@ c.foreach("wireguard", "server", server => {
         c.set("wireguard", name, "key", passwd);
         c.set("wireguard", name, "passwd", "");
     }
-});
+}
 
-c.foreach("wireguard", "client", client => {
+const clients = [];
+c.foreach("wireguard", "client", client => push(clients, client));
+for (let client in clients) {
     const name = client[".name"];
     const clientip = c.get("wireguard", name, "clientip");
     if (clientip) {
@@ -74,7 +78,7 @@ c.foreach("wireguard", "client", client => {
         c.set("wireguard", name, "port", ipport[1]);
         c.set("wireguard", name, "clientip", "");
     }
-});
+}
 
 c.commit("wireguard");
 
