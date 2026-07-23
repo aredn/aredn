@@ -45,21 +45,21 @@ c.set("wireguard", "@network[0]", "begin", "");
 
 c.foreach("wireguard", "server", server => {
     const name = server[".name"];
+    const netip = c.get("wireguard", name, "netip");
+    const host = c.get("wireguard", name, "host");
+    const passwd = c.get("wireguard", name, "passwd");
     c.set("wireguard", name, "clientip", "");
     c.set("wireguard", name, "serverip", "");
     c.set("wireguard", name, "node", "");
-    const netip = c.get("wireguard", name, "netip");
     if (netip) {
         const ipport = split(netip, ":");
         c.set("wireguard", name, "port", ipport[1]);
         c.set("wireguard", name, "netip", "");
     }
-    const host = c.get("wireguard", name, "host");
     if (host) {
         c.set("wireguard", name, "name", host);
         c.set("wireguard", name, "host", "");
     }
-    const passwd = c.get("wireguard", name, "passwd");
     if (passwd) {
         c.set("wireguard", name, "key", passwd);
         c.set("wireguard", name, "passwd", "");
