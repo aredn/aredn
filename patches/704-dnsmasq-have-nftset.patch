@@ -1,0 +1,19 @@
+--- a/package/network/services/dnsmasq/Makefile
++++ b/package/network/services/dnsmasq/Makefile
+@@ -50,6 +50,7 @@
+ 
+ define Package/dnsmasq
+ $(call Package/dnsmasq/Default)
++  DEPENDS+=+nftables-json
+   VARIANT:=nodhcpv6
+   DEFAULT_VARIANT:=1
+ endef
+@@ -135,7 +136,7 @@
+ Package/dnsmasq-dhcpv6/conffiles = $(Package/dnsmasq/conffiles)
+ Package/dnsmasq-full/conffiles = $(Package/dnsmasq/conffiles)
+ 
+-COPTS = -DHAVE_UBUS -DHAVE_POLL_H -DNO_IPV6
++COPTS = -DHAVE_UBUS -DHAVE_POLL_H -DNO_IPV6 -DHAVE_NFTSET
+ 
+ ifeq ($(BUILD_VARIANT),nodhcpv6)
+ 	COPTS += -DNO_DHCP6
