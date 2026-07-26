@@ -57,6 +57,9 @@
         if (fs.access("/tmp/reboot-required/reboot")) {
             reboot = true;
         }
+        else if (changed == 0 && fs.access("/tmp/reboot-required")) {
+            changes = length(fs.lsdir("/tmp/reboot-required/"));
+        }
     }
     if (changes > 0) {
     %}
