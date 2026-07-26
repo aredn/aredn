@@ -39,7 +39,12 @@
             configuration.revertChanges();
         }
         else if (request.args.commit) {
-            status = configuration.commitChanges();
+            if (configuration.countChanges()) {
+                status = configuration.commitChanges();
+            }
+            else {
+                system("/usr/local/bin/restart-services >/dev/null 2>&1");
+            }
         }
     }
     if (request.headers["hx-trigger-name"] === "commit" && index(request.headers.referer, "/a/status") > 0) {
@@ -57,7 +62,7 @@
         if (fs.access("/tmp/reboot-required/reboot")) {
             reboot = true;
         }
-        else if (changed == 0 && fs.access("/tmp/reboot-required")) {
+        else if (changes == 0 && fs.access("/tmp/reboot-required")) {
             changes = length(fs.lsdir("/tmp/reboot-required/"));
         }
     }
