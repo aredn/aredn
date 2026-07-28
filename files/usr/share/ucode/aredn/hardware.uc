@@ -304,15 +304,17 @@ function getWiFiChannels(wifiIface)
     const exclude = radio.exclude_channels;
     for (let i = 0; i < length(freqs); i++) {
         const f = freqs[i];
-        const freq = freq_adjust(f);
-        if (freq >= freq_min && freq <= freq_max) {
-            const num = getChannelFromRadioFrequency(radio, freq);
-            if (!exclude || index(exclude, num) === -1) {
-                push(channels, {
-                    label: num != freq ? num + " (" + freq + ")" : "" + freq,
-                    number: num,
-                    frequency: freq
-                });
+        if (!f.disabled) {
+            const freq = freq_adjust(f);
+            if (freq >= freq_min && freq <= freq_max) {
+                const num = getChannelFromRadioFrequency(radio, freq);
+                if (!exclude || index(exclude, num) === -1) {
+                    push(channels, {
+                        label: num != freq ? num + " (" + freq + ")" : "" + freq,
+                        number: num,
+                        frequency: freq
+                    });
+                }
             }
         }
     }
