@@ -194,6 +194,7 @@ if (nvram.get("hsmmmesh", "settings", "configured") != "0") {
     if (fs.access("/tmp/reboot-required")) {
         if (fs.access("/etc/local/aredn_init_rebooted")) {
             print("Rebooting node requested, but would loop so ignoring\n");
+            fs.rename("/tmp/reboot-required", "/tmp/xtra-reboot-debug");
             fs.unlink("/etc/local/aredn_init_rebooted");
         }
         else {
