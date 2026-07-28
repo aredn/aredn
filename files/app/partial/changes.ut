@@ -51,7 +51,7 @@
         print(`<div id="main-container" hx-swap-oob="true">${_R("status")}</div>`);
     }
 %}
-<div id="changes" {{request.headers["hx-boosted"] ? "" : "hx-swap-oob='true'"}}>{%
+<div id="changes" hx-request='{"timeout":5000}' {{request.headers["hx-boosted"] ? "" : "hx-swap-oob='true'"}}>{%
     let changes = 0;
     let reboot = false;
     if (status.newpassword) {
@@ -96,9 +96,10 @@
             });
             function retry()
             {
-                htmx.ajax("GET", "/a/changes", { timeout: 5000, target: "#changes", headers: { "HX-Trigger-Name": "commit" } }).then(null, retry);
+                htmx.ajax("GET", "/a/changes", { source: "#changes", target: "#changes", headers: { "HX-Trigger-Name": "commit" } }).then(null, retry);
             }
             htmx.on(commit, "htmx:timeout", retry);
+            htmx.on(commit, "htmx:sendError", retry);
         })();
         </script>
     {% }
