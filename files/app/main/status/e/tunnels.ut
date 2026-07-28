@@ -61,7 +61,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     }
                     uciMesh.set("wireguard", t.index, "enabled", t.enabled ? "1" : "0");
                     uciMesh.set("wireguard", t.index, "name", t.name);
-                    uciMesh.set("wireguard", t.index, "key", t.key);
+                    uciMesh.set("wireguard", t.index, "key", t.key3);
                     uciMesh.set("wireguard", t.index, "port", t.port);
                     uciMesh.set("wireguard", t.index, "cost", t.cost);
                     uciMesh.set("wireguard", t.index, "contact", configuration.escapeString(trim(t.notes)));
@@ -74,7 +74,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     }
                     uciMesh.set("wireguard", t.index, "enabled", t.enabled ? "1" : "0");
                     uciMesh.set("wireguard", t.index, "name", t.name);
-                    uciMesh.set("wireguard", t.index, "key", t.key);
+                    uciMesh.set("wireguard", t.index, "key", t.key4);
                     uciMesh.set("wireguard", t.index, "port", t.port);
                     uciMesh.set("wireguard", t.index, "cost", t.cost);
                     uciMesh.set("wireguard", t.index, "contact", configuration.escapeString(trim(t.notes)));
@@ -207,28 +207,27 @@ function t2t(type)
             <div id="tunnels">{%
                 for (let i = 0; i < length(tunnels); i++) {
                     const t = tunnels[i];
-                    const client = t.type === "wc" ? true : false;
                     %}<div class="tunnel adr" data-index="{{t.index}}">
                         <div class="cols">
                             <div data-type="{{t.type}}">{{t2t(t.type)}}</div>
                             <div class="cols">
                                 <div class="cols">
-                                    <input type="text" name="name" required placeholder="{{client ? 'Remote server name and port' : 'Remote node name'}}" value="{{t.name}}{{client ? ':' + t.port : ''}}">
-                                    {% if (!client) { %}<input type="text" name="port" value="{{t.port}}" readonly>{% } %}
+                                    <input type="text" name="name" {{t.type === "wc" ? "pattern='.+:[0-9]+'" : ""}} required placeholder="{{t.type === "wc" ? 'Remote server name and port' : 'Remote node name'}}" value="{{t.name}}{{t.type === "wc" ? ':' + t.port : ''}}">
+                                    {% if (t.type === "ws") { %}<input type="text" name="port" value="{{t.port}}" readonly>{% } %}
                                     <label class="switch {{t.up ? 'up' : ''}}"><input type="checkbox" name="enable" {{t.enabled ? "checked" : ""}}></label>
                                 </div>
                                 <div class="cols pwnw">
                                     {% if (t.type === "ws") { %}
-                                    <input type="hidden" name="key" value="{{t.key}}">
-                                    <input type="text" name="ckey" required pattern="[A-Za-z0-9+\/=]+" placeholder="Wireguard key" value="{{replace(t.key, /^[A-Za-z0-9+\/]+=/, "")}}" readonly>
+                                    <input type="hidden" name="key4" value="{{t.key}}">
+                                    <input type="text" name="key3" required pattern="[A-Za-z0-9+\/=]+" placeholder="Wireguard key" value="{{replace(t.key, /^[A-Za-z0-9+\/]+=/, "")}}" readonly>
                                     {% } else { %}
-                                    <input type="text" name="ckey" required pattern="[A-Za-z0-9+\/=]+" placeholder="Wireguard key" value="{{t.key}}">
+                                    <input type="text" name="key3" required pattern="[A-Za-z0-9+\/=]+" placeholder="Wireguard key" value="{{t.key}}">
                                     {% } %}
                                     <input type="text" name="cost" pattern="([1-9]|[1-9][0-9]{1,4})" placeholder="Cost" value="{{t.cost}}">
                                 </div>
                                 <div class="cols">
                                     <input type="text" name="notes" placeholder="Notes..." value="{{t.notes}}">
-                                    {{client ? '' : '<button class="clipboard"><div class="icon clipboard"></div></button>'}}
+                                    {{t.type === "wc" ? '' : '<button class="clipboard"><div class="icon clipboard"></div></button>'}}
                                 </div>
                             </div>
                         </div>
@@ -307,8 +306,8 @@ This value is used by default, but each tunnel may overide it.")}}
                 if (isvalid) {
                     const index = t.dataset.index;
                     const name = htmx.find(t, "input[name=name]");
-                    const key = htmx.find(t, "input[name=key]");
-                    const ckey = htmx.find(t, "input[name=ckey]");
+                    const key4 = htmx.find(t, "input[name=key4]");
+                    const key3 = htmx.find(t, "input[name=key3]");
                     const port = htmx.find(t, "input[name=port]");
                     const notes = htmx.find(t, "input[name=notes]");
                     const enable = htmx.find(t, "input[name=enable]");
@@ -331,7 +330,8 @@ This value is used by default, but each tunnel may overide it.")}}
                         port: vport,
                         enabled: enable.checked,
                         notes: notes.value || "",
-                        key: key ? key.value : ckey.value,
+                        key4: key4 && key4.value,
+                        key3: key3 && key3.value,
                         cost: cost.value
                     });
                 }
@@ -355,16 +355,15 @@ This value is used by default, but each tunnel may overide it.")}}
         function newTunnelEntry()
         {
             const type = htmx.find("#tunnel-templates select").value;
-            const client = type === "wc" ? true : false;
-            const port = client ? "" : Object.keys(available)[0];
-            if (!client && !port) {
+            const port = type === "wc" ? "" : Object.keys(available)[0];
+            if (type === "ws" && !port) {
                 return;
             }
             if (port) {
                 delete available[port];
             }
-            let key = "";
-            let ckey = "";
+            let key4 = "";
+            let key3 = "";
             let index = "";
             let htype = type;
             switch (type) {
@@ -372,8 +371,8 @@ This value is used by default, but each tunnel may overide it.")}}
                     htype = "Wireguard<br>Server";
                     const ks = window.wireguard.generateKeypair();
                     const kc = window.wireguard.generateKeypair();
-                    ckey = `${ks.privateKey}${ks.publicKey}${kc.privateKey}${kc.publicKey}`;
-                    key = `${ks.publicKey}${kc.privateKey}${kc.publicKey}`;
+                    key4 = `${ks.privateKey}${ks.publicKey}${kc.privateKey}${kc.publicKey}`;
+                    key3 = `${ks.publicKey}${kc.privateKey}${kc.publicKey}`;
                     for (let i = 0; i < 256; i++) {
                         index = `client_${i}`;
                         if (!htmx.find(`.tunnel[data-index="${index}"]`)) {
@@ -399,18 +398,18 @@ This value is used by default, but each tunnel may overide it.")}}
     <div data-type="${type}">${htype}</div>
     <div class="cols">
         <div class="cols">
-            <input type="text" name="name" required placeholder="${client ? 'Remote server name and port' : 'Remote node name'}" value="">
+            <input type="text" name="name" required ${type === "wc" ? "pattern='.+:[0-9]+'" : ""} placeholder="${type === "wc" ? 'Remote server name and port' : 'Remote node name'}" value="">
             ${port ? '<input type="text" name="port" readonly value="' + port + '">' : ''}
             <label class="switch"><input type="checkbox" name="enable" checked></label>
         </div>
         <div class="cols pwnw">
-            ${!client ? '<input type="hidden" name="key" value="' + key + '">' : ''}
-            <input type="text" name="${client ? 'key' : 'ckey'}" required pattern="[A-Za-z0-9+\/=]+" placeholder="Wireguard key" ${client ? "" : "readonly"} value="${ckey}">
+            ${type === "ws" ? '<input type="hidden" name="key4" value="' + key4 + '">' : ''}
+            <input type="text" name="key3" required pattern="[A-Za-z0-9+\/=]+" placeholder="Wireguard key" ${type === "wc" ? "" : "readonly"} value="${key3}">
             <input type="text" name="cost" pattern="([0-9]|[1-9][0-9]{1,4})" placeholder="Cost" value="">
         </div>
         <div class="cols">
             <input type="text" name="notes" placeholder="Notes..." value="">
-            ${client ? '' : '<button class="clipboard"><div class="icon clipboard"></div></button>'}
+            ${type === "wc" ? '' : '<button class="clipboard"><div class="icon clipboard"></div></button>'}
         </div>
     </div>
 </div>
@@ -442,13 +441,13 @@ This value is used by default, but each tunnel may overide it.")}}
                 else if (target.classList.contains("clipboard")) {
                     const t = htmx.closest(target, ".tunnel");
                     const name = htmx.find(t, "input[name=name]");
-                    const ckey = htmx.find(t, "input[name=ckey]");
+                    const key3 = htmx.find(t, "input[name=key3]");
                     const port = htmx.find(t, "input[name=port]");
-                    if (name.validity.valid && ckey.validity.valid && port.validity.valid) {
+                    if (name.validity.valid && key3.validity.valid && port.validity.valid) {
                         const blob = new Blob([
                             `<h2>Wireguard Client connection details for ${name.value}</h2>
                             <div>Remote server name: ${server}:${port.value}</div>
-                            <div style="white-space:nowrap">Wireguard key: ${ckey.value}</div>`
+                            <div style="white-space:nowrap">Wireguard key: ${key3.value}</div>`
                         ], { type: "text/html" });
                         window.open(URL.createObjectURL(blob));
                         event.stopPropagation();
@@ -470,20 +469,17 @@ This value is used by default, but each tunnel may overide it.")}}
                         config.key = line.substring(15);
                     }
                     else if (line.startsWith("Remote server name: ")) {
-                        const serverport = line.substring(20).split(":");
-                        config.server = serverport[0];
-                        config.port = serverport[1];
+                        config.serverport = line.substring(20);
                     }
                 });
-                if (!(config.key && config.server && config.port)) {
+                if (!(config.key && config.serverport)) {
                     return;
                 }
                 event.stopPropagation();
                 event.preventDefault();
                 const t = htmx.closest(target, '.tunnel');
-                htmx.find(t, "input[name=name]").value = config.server;
-                htmx.find(t, "input[name=key]").value = config.key;
-                htmx.find(t, "input[name=port]").value = config.port;
+                htmx.find(t, "input[name=name]").value = config.serverport;
+                htmx.find(t, "input[name=key3]").value = config.key;
                 updateTunnels();
             }
         });
