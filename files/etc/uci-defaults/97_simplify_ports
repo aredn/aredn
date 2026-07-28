@@ -45,7 +45,17 @@ function jeq(a, b) {
 
 const c = uci.cursor("/etc/config.mesh");
 
-if (c.get("setup", "globals", "wan_intf") && c.get("setup", "globals", "lan_intf") && c.get("setup", "globals", "dtdlink_intf")) {
+const cwan_intf = c.get("setup", "globals", "wan_intf");
+const clan_intf = c.get("setup", "globals", "lan_intf");
+const cdtdlink_intf = c.get("setup", "globals", "dtdlink_intf");
+const overrides = fs.access("/etc/aredn_include/lan.network.user") || fs.access("/etc/aredn_include/wan.network.user") || fs.access("/etc/aredn_include/dtdlink.network.user");
+
+// If no overrides are defined then nothing to do.
+if (!cwan_intf && !clan_intf && !cdtdlink_intf && !overrides) {
+    exit(0);
+}
+// If any override is array, then this has already been done.
+if (type(cwan_intf) === "array" || type(clan_intf) === "array" || type(cdtdlink_intf) === "array") {
     exit(0);
 }
 
@@ -76,11 +86,9 @@ switch (length(hardware.getEthernetPorts())) {
     case 0:
     case 1:
     {
-        const cwan_intf = c.get("setup", "globals", "wan_intf");
         if (cwan_intf) {
             wan_intf = [ cwan_intf ];
         }
-        const clan_intf = c.get("setup", "globals", "lan_intf");
         if (clan_intf) {
             lan_intf = [ clan_intf ];
         }
