@@ -522,13 +522,16 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             </div>
             <hr>
             <div {{length(wlan) > 1 ? "style='padding-left:10px'" : ""}}>
+                {% if (first || wlan[w].ants) { %}
                 <div class="cols">
                     <div>
                         <div class="o">Antenna</div>
                         <div class="m">Antenna</div>
                     </div>
                     <div style="flex:0;white-space:nowrap">
-                        {% if (length(wlan[w].ants) === 1) { %}
+                        {% if (!wlan[w].ants) { %}
+                            <span></span>
+                        {% } else if (length(wlan[w].ants) === 1) { %}
                             <span>{{wlan[w].ants[0].description}}<span>
                         {% } else { %}
                             <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="radio_antenna">
@@ -542,8 +545,9 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         {% } %}
                     </div>
                 </div>
-                {% if (length(wlan[w].ants) !== 1) { %}
+                {% if (length(wlan[w].ants) > 1) { %}
                 {{_H("Select the external antenna attached to the primary radio.")}}
+                {% } %}
                 {% } %}
                 {% if (first) { %}
                 {%
