@@ -76,6 +76,10 @@ if [ "${ACTION}" = "ifdown" ] || [ "${ACTION}" = "ifup" ] ; then
       if [ "$wan_gw" != "" ]; then
         ip route add $wan_net dev $DEVICE table 27
         ip route add default via $wan_gw table 28
+        if [ "$(uci -q get aredn.@wan[0].local_defaultroute)" = "1" ]; then
+          ip route add 0.0.0.0/1 via $wan_gw table 28
+          ip route add 128.0.0.0/1 via $wan_gw table 28
+        fi
       fi
     fi
   fi
