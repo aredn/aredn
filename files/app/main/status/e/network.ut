@@ -425,6 +425,16 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
             {{_H("Allow any node or device on the mesh to use our local Internet connection. This is disabled by default.")}}
             <div class="cols">
                 <div>
+                    <div class="o">DtD to WAN</div>
+                    <div class="m">Allow any DtD connected node to use local WAN.</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "local_defaultroute", value: uciMesh.get("aredn", "@wan[0]", "local_defaultroute") !== "0" })}}
+                </div>
+            </div>
+            {{_H("If we have a WAN connection, allow locally connected (via DtD) nodes to also use it.")}}
+            <div class="cols">
+                <div>
                     <div class="o">LAN to WAN</div>
                     <div class="m">Allow any LAN device to use local WAN.</div>
                 </div>
@@ -476,16 +486,6 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
             {{_H("By default a node will route any kind of traffic to any destination. In some circumstances you may wish to restrict
             traffic which is bound for the Internet. Disabling this option stops Internet traffic from traversing this node.
             It also prevents this node from accessing the Internet unless it is provided locally.")}}
-            <div class="cols">
-                <div>
-                    <div class="o">DtD to WAN</div>
-                    <div class="m">Allow any DtD connected node to use local WAN.</div>
-                </div>
-                <div style="flex:0">
-                    {{_R("switch", { name: "local_defaultroute", value: uciMesh.get("aredn", "@wan[0]", "local_defaultroute") !== "0" })}}
-                </div>
-            </div>
-            {{_H("If we have a WAN connection, allow locally connected (via DtD) nodes to also use it.")}}
         {% } %}
         </div>
     </div>
