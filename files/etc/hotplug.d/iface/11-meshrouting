@@ -10,6 +10,8 @@
 #        Route to the supernode (if there is one). If this is a supernode, then a blackhole route.
 # 22 - Default WAN route (IN) - BABEL
 #        A default route imported from another babel node.
+# 23 - Local default WAN route (IN) - BABEL
+#        THe default route provided on the DtD network
 # 27 - Local WAN route
 #        This is the local subnet of the WAN and is used for LAN & LOCAL.
 # 28 - Default WAN route from this node (OUT) - BABEL
@@ -32,9 +34,9 @@
 # THRU traffic, regardless of course, requires one set of rules. Hopefully this can be the ALL.
 # LOCAL traffic, which originates on this node, is like THRU traffic, except can always use the local WAN.
 #
-# LAN     - 29, 20, 21, 27, (28), (22), 99        ---  28 if LAN->WAN, 22 if LAN->MESH-WAN
-# THRU    - 29, 20, 21,     (28),  22,  99        ---  28 if MESH->WAN
-# LOCAL   - 29, 20, 21, 27,  28,   22,      main
+# LAN     - 29, 20, 21, 27, (28), (23), (22), 99        ---  28, 23 if LAN->WAN, 22 if LAN->MESH-WAN
+# THRU    - 29, 20, 21,     (28), (23),  22,  99        ---  28, 23 if MESH->WAN
+# LOCAL   - 29, 20, 21, 27,  28,   23    22,      main
 #
 
 if [ "${ACTION}" = "ifdown" ] || [ "${ACTION}" = "ifup" ] ; then
@@ -48,7 +50,8 @@ if [ "${ACTION}" = "ifdown" ] || [ "${ACTION}" = "ifup" ] ; then
     ip rule del pref 130 lookup 21
     ip rule del pref 140 lookup 27
     ip rule del pref 150 lookup 28
-    ip rule del pref 160 lookup 22
+    ip rule del pref 160 lookup 23
+    ip rule del pref 170 lookup 22
 
     if [ "${ACTION}" = "ifup" ] ; then
       ip rule add pref 110 lookup 29
@@ -56,7 +59,8 @@ if [ "${ACTION}" = "ifdown" ] || [ "${ACTION}" = "ifup" ] ; then
       ip rule add pref 130 lookup 21
       ip rule add pref 140 lookup 27
       ip rule add pref 150 lookup 28
-      ip rule add pref 160 lookup 22
+      ip rule add pref 160 lookup 23
+      ip rule add pref 170 lookup 22
       #
       # We setup table 99 as the blackhole
       #
@@ -123,8 +127,9 @@ if [ "${ACTION}" = "ifdown" ] || [ "${ACTION}" = "ifup" ] ; then
   ip rule del pref 30 iif ${DEVICE} lookup 21
   ip rule del pref 40 iif ${DEVICE} lookup 27
   ip rule del pref 50 iif ${DEVICE} lookup 28
-  ip rule del pref 60 iif ${DEVICE} lookup 22
-  ip rule del pref 70 iif ${DEVICE} lookup 99
+  ip rule del pref 60 iif ${DEVICE} lookup 23
+  ip rule del pref 70 iif ${DEVICE} lookup 22
+  ip rule del pref 80 iif ${DEVICE} lookup 99
 
   if [ "${ACTION}" = "ifup" ] ; then
     ip rule add pref 10 iif ${DEVICE} lookup 29
@@ -135,11 +140,12 @@ if [ "${ACTION}" = "ifdown" ] || [ "${ACTION}" = "ifup" ] ; then
     fi
     if [ "${RULE28}" = "1" ]; then
       ip rule add pref 50 iif ${DEVICE} lookup 28
+      ip rule add pref 60 iif ${DEVICE} lookup 23
     fi
     if [ "${RULE22}" = "1" ]; then
-      ip rule add pref 60 iif ${DEVICE} lookup 22
+      ip rule add pref 70 iif ${DEVICE} lookup 22
     fi
-    ip rule add pref 70 iif ${DEVICE} lookup 99
+    ip rule add pref 80 iif ${DEVICE} lookup 99
   fi
 fi
 
