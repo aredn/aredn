@@ -35,6 +35,7 @@
 import * as fs from "fs";
 import * as uci from "uci";
 import * as socket from "socket";
+import * as io from "io";
 import * as configuration from "aredn.configuration";
 import * as network from "aredn.network";
 
@@ -472,21 +473,37 @@ export function published(topic, targets)
     return getByTopic(`${allpubsubbase}/publish`, topic, targets);
 };
 
-const watchers = {};
-
 export function watch(type)
 {
-    const f = fs.popen(`echo $$;exec /usr/bin/inotifywait --monitor --quiet --format '%w%f' --event close_write /var/run/arednlink/${type ?? "publish"}/`);
-    watchers[f] = f.read("line");
-    return f;
+    const fd = fs.popen(`echo $$;exec /usr/bin/inotifywait --monitor --quiet --format '%w%f' --event close_write /var/run/arednlink/${type ?? "publish"}/`);
+    const pid = fd.read("line");
+    const hand = io.from(fd);
+    hand.fcntl(io.F_SETFL, hand.fcntl(io.F_GETFL) | io.O_NONBLOCK);
+    return {
+        handle: function()
+        {
+            return hand;
+        },
+        changes: function()
+        {
+            const r = hand.read(1024);
+            if (r === null) {
+                return "";
+            }
+            else if (r !== "") {
+                return r;
+            }
+            else {
+                hand.close();
+                fd.close();
+                return null;
+            }
+        },
+        close: function()
+        {
+            system(`/bin/kill -9 ${pid} 2>/dev/null`);
+            hand.close();
+            fd.close();
+        }
+    };
 };
-
-export function unwatch(handle)
-{
-    const pid = watchers[handle];
-    if (pid) {
-        system(`/bin/kill -9 ${pid}`);
-        handle.close();
-    }
-};
-
