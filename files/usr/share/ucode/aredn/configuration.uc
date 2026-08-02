@@ -332,7 +332,7 @@ function revertConfig(configRoot)
         for (let i = length(configDirs) - 1; i >= 0; i--) {
             fs.rmdir(`${configRoot}${configDirs[i]}`);
         }
-        fs.rmdir(currentConfig);
+        fs.rmdir(configRoot);
     }
 };
 
@@ -403,16 +403,6 @@ export function commitChanges()
     return status;
 };
 
-export function revertChanges()
-{
-    revertConfig(currentConfig);
-};
-
-export function revertModalChanges()
-{
-    revertConfig(modalConfig);
-};
-
 export function countChanges()
 {
     let count = 0;
@@ -422,6 +412,20 @@ export function countChanges()
         }
     }
     return count;
+};
+
+export function revertChanges()
+{
+    revertConfig(currentConfig);
+    removeConfig(modalConfig);
+};
+
+export function revertModalChanges()
+{
+    revertConfig(modalConfig);
+    if (countChanges() === 0) {
+        removeConfig(currentConfig);
+    }
 };
 
 // The order of these is important
