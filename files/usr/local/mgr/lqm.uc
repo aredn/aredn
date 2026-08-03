@@ -324,11 +324,7 @@ function main()
 
         // Update stats for tunnels and xlinks
         const activeDevices = {};
-        let istats = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
-        if (!istats) {
-            rtnl.close();
-            istats = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
-        }
+        const istats = hardware.getNetworkInterfaces();
         for (let i = 0; i < length(istats); i++) {
             const stat = istats[i];
             const type = deviceToType(stat.dev, null);

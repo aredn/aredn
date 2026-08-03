@@ -756,13 +756,29 @@ export function getHTMode(wifiIface, bandwidth, mode)
     return htmode;
 };
 
-export function getInterfaceMAC(dev)
+export function getNetworkInterfaces()
 {
     let ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
     if (!ifs) {
         rtnl.close();
         ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
     }
+    return ifs;
+};
+
+export function getNetworkInterfaceAddresses()
+{
+    let ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
+    if (!ifs) {
+        rtnl.close();
+        ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
+    }
+    return ifs;
+};
+
+export function getInterfaceMAC(dev)
+{
+    const ifs = getNetworkInterfaces();
     for (let i = 0; i < length(ifs); i++) {
         const iface = ifs[i];
         if (iface.dev == dev && iface.address) {
