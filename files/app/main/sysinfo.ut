@@ -180,7 +180,7 @@ info.sysinfo = (function () {
 // INTERFACES
 info.interfaces = (function () {
     const interfaces = {};
-    let ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    let ifs = hardware.getNetworkInterfaces();
     for (let i = 0; i < length(ifs); i++) {
         const iface = ifs[i];
         if (iface.dev !== "lo") {
@@ -191,7 +191,7 @@ info.interfaces = (function () {
             interfaces[iface.dev] = ii;
         }
     }
-    ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
+    ifs = hardware.getNetworkInterfaceAddresses();
     for (let i = 0; i < length(ifs); i++) {
         const iface = ifs[i];
         if (iface.family === 2 && interfaces[iface.dev]) {
