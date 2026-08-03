@@ -758,7 +758,11 @@ export function getHTMode(wifiIface, bandwidth, mode)
 
 export function getInterfaceMAC(dev)
 {
-    const ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    let ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    if (!ifs) {
+        rtnl.close();
+        ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    }
     for (let i = 0; i < length(ifs); i++) {
         const iface = ifs[i];
         if (iface.dev == dev && iface.address) {

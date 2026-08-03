@@ -181,6 +181,10 @@ info.sysinfo = (function () {
 info.interfaces = (function () {
     const interfaces = {};
     let ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    if (!ifs) {
+        rtnl.close();
+        ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    }
     for (let i = 0; i < length(ifs); i++) {
         const iface = ifs[i];
         if (iface.dev !== "lo") {

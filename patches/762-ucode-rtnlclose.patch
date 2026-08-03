@@ -1,0 +1,31 @@
+--- /dev/null
++++ b/package/utils/ucode/patches/002-add-rtnlclose.patch
+@@ -0,0 +1,28 @@
++--- a/lib/rtnl.c
+++++ b/lib/rtnl.c
++@@ -3568,6 +3568,17 @@
++ 	}
++ }
++ 
+++static uc_value_t *
+++uc_nl_close(uc_vm_t *vm, size_t nargs)
+++{
+++	if (sock) {
+++		nl_socket_free(sock);
+++		sock = NULL;
+++		return ucv_boolean_new(true);
+++	}
+++	return ucv_boolean_new(false);
+++}
+++
++ static const uc_nl_nested_spec_t *
++ uc_nl_msg_spec(int type)
++ {
++@@ -4779,6 +4790,7 @@
++ 	{ "error",		uc_nl_error },
++ 	{ "request",	uc_nl_request },
++ 	{ "listener",	uc_nl_listener },
+++	{ "close",	uc_nl_close },
++ };
++ 
++ static const uc_function_list_t listener_fns[] = {
