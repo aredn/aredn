@@ -451,6 +451,9 @@ for (let i = 0; i < length(cnetworks); i++) {
     else if (fs.access(`/etc/aredn_include/fixedmac.${net}`)) {
         config += fs.readfile(`/etc/aredn_include/fixedmac.${net}`);
     }
+    if (mtu != "") {
+        config += `\toption mtu '${mtu}'\n`;
+    }
 
     config += `\nconfig interface '${net}'\n`;
     if (usebridge) {
@@ -461,9 +464,6 @@ for (let i = 0; i < length(cnetworks); i++) {
     }
     if (proto != "") {
         config += `\toption proto '${proto}'\n`;
-    }
-    if (mtu != "") {
-        config += `\toption mtu '${mtu}'\n`;
     }
     if (ipaddr != "") {
         config += `\toption ipaddr '${ipaddr}'\n`;
@@ -479,10 +479,8 @@ for (let i = 0; i < length(cnetworks); i++) {
 }
 
 // Generate the tunnel configurations
-let wg_mtu_override = cm.get("wireguard", "@network[0]", "mtu") ?? "";
-if (wg_mtu_override) {
-    wg_mtu_override = `\toption mtu '${wg_mtu_override}'\n`;
-}
+const wg_mtu = min(int(cfg.wan_mtu || 1500) - 80, int(cm.get("wireguard", "@network[0]", "mtu") || 1420));
+const wg_mtu_override = wg_mtu == 1420 ? "" : `\toption mtu '${wg_mtu}'\n`;
 const def_tun_cost = tonumber(cm.get("wireguard", "@network[0]", "cost") || cm.get("babel", "tunnel", "rxcost") || 300) || 300;
 cm.foreach("wireguard", "client",
     function(s) {
