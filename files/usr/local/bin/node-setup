@@ -480,7 +480,6 @@ for (let i = 0; i < length(cnetworks); i++) {
 
 // Generate the tunnel configurations
 const wg_mtu = min(int(cfg.wan_mtu || 1500) - 80, int(cm.get("wireguard", "@network[0]", "mtu") || 1420));
-const wg_mtu_override = wg_mtu == 1420 ? "" : `\toption mtu '${wg_mtu}'\n`;
 const def_tun_cost = tonumber(cm.get("wireguard", "@network[0]", "cost") || cm.get("babel", "tunnel", "rxcost") || 300) || 300;
 cm.foreach("wireguard", "client",
     function(s) {
@@ -489,9 +488,10 @@ cm.foreach("wireguard", "client",
             const server_priv = m1[1];
             const client_pub = m1[4];
             const w = s.cost || def_tun_cost;
+            const mtu = min(wg_mtu, s.mtu || wg_mtu);
             const netname = key2netname(client_pub);
-            cfg.wireguard_network_config += sprintf("config interface 'wgc%s'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption listen_port '%s'\n\toption disabled '%s'\n%s\n",
-                netname, server_priv, w, s.port, (s.enabled == 1 ? "0" : "1"), wg_mtu_override);
+            cfg.wireguard_network_config += sprintf("config interface 'wgc%s'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption listen_port '%s'\n\toption disabled '%s'\n\toption mtu '%d'\n\n",
+                netname, server_priv, w, s.port, (s.enabled == 1 ? "0" : "1"), mtu);
             cfg.wireguard_network_config += sprintf("config wireguard_wgc%s 'wireguard_wgc%s'\n\toption public_key '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
                 netname, netname, client_pub);
             cfg.vpn_interfaces += `\tlist network 'wgc${netname}'\n`;
@@ -505,9 +505,10 @@ cm.foreach("wireguard", "server",
             const server_pub = m1[1];
             const client_priv = m1[2];
             const w = s.cost || def_tun_cost;
+            const mtu = min(wg_mtu, s.mtu || wg_mtu);
             const netname = key2netname(server_pub);
-            cfg.wireguard_network_config += sprintf("config interface 'wgs%s'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption disabled '%s'\n%s\n",
-                netname, client_priv, w, (s.enabled == 1 ? "0" : "1"), wg_mtu_override);
+            cfg.wireguard_network_config += sprintf("config interface 'wgs%s'\n\toption proto 'wireguard'\n\toption private_key '%s'\n\toption nohostroute '1'\n\toption cost '%s'\n\toption disabled '%s'\n\toption mtu '%d'\n\n",
+                netname, client_priv, w, (s.enabled == 1 ? "0" : "1"), mtu);
             cfg.wireguard_network_config += sprintf("config wireguard_wgs%s 'wireguard_wgs%s'\n\toption public_key '%s'\n\toption endpoint_host '%s'\n\toption endpoint_port '%s'\n\toption persistent_keepalive '25'\n\tlist allowed_ips '0.0.0.0/0'\n\tlist allowed_ips '::/0'\n\n",
                 netname, netname, server_pub, s.name, s.port);
             cfg.vpn_interfaces += `\tlist network 'wgs${netname}'\n`;
