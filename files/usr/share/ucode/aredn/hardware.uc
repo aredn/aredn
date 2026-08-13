@@ -186,18 +186,16 @@ export function getRadioType(wifiIface)
     if (!iface) {
         return "none";
     }
-    else if (iface.band == "halow") {
-        return "halow";
+    if (iface.band == "halow" || iface.band == "3ghz" || iface.band == "900mhz") {
+        return iface.band;
     }
-    else if (isAX(getPhyDevice(wifiIface))) {
+    if (isAX(getPhyDevice(wifiIface))) {
         return "ax";
     }
-    else if (match(lc(getRadioName()), /ac/)) {
+    if (match(lc(getRadioName()), /ac/)) {
         return "ac";
     }
-    else {
-        return "n";
-    }
+    return "n";
 };
 
 export function getBoardNetworkInterfaceName(type)
@@ -223,6 +221,9 @@ function getChannelFromRadioFrequency(radio, freq)
     if (radio.band === "halow") {
         return int((freq - 902.0) * 2);
     }
+    if (radio.band === "3ghz") {
+        return freq - 2000;
+    }
     if (freq < 256) {
         return freq;
     }
@@ -240,9 +241,6 @@ function getChannelFromRadioFrequency(radio, freq)
     }
     if (freq < 5000) {
         return (freq - 3000) / 5;
-    }
-    if (freq < 5500 && index(radio.name, "M3") !== -1) {
-        return freq - 2000;
     }
     if (freq < 6000) {
         return (freq - 5000) / 5;
@@ -279,25 +277,20 @@ function getWiFiChannels(wifiIface)
     let freq_adjust = (f) => f.freq;
     let freq_min = 0;
     let freq_max = 0x7FFFFFFF;
-    if (wifiIface === "wlan0") {
-        const radioname = getRadioName();
-        if (index(radioname, "M9") !== -1) {
-            freq_adjust = (f) => f.freq - 1520;
-            freq_min = 907;
-            freq_max = 922;
-        }
-        else if (index(radioname, "M3") !== -1) {
-            freq_adjust = (f) => f.freq - 2000;
-            freq_min = 3380;
-            freq_max = 3495;
-        }
-    }
-    if (isAX(getPhyDevice(wifiIface))) {
-        if (freqs[0].freq < 2412) {
-            freq_min = 2412;
-        }
-    }
     const radio = getRadioIntf(wifiIface);
+    if (radio.band === "3ghz") {
+        freq_adjust = (f) => f.freq - 2000;
+        freq_min = 3380;
+        freq_max = 3495;
+    }
+    else if (radio.band === "900mhz") {
+        freq_adjust = (f) => f.freq - 1520;
+        freq_min = 907;
+        freq_max = 922;
+    }
+    else if (isAX(getPhyDevice(wifiIface)) && freqs[0].freq < 2412) {
+        freq_min = 2412;
+    }
     const exclude = radio.exclude_channels;
     for (let i = 0; i < length(freqs); i++) {
         const f = freqs[i];
