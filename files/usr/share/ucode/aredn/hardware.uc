@@ -241,10 +241,7 @@ function getChannelFromRadioFrequency(radio, freq)
     if (freq < 5000) {
         return (freq - 3000) / 5;
     }
-    if (freq < 5380) {
-        return (freq - 5000) / 5;
-    }
-    if (freq < 5500) {
+    if (freq < 5500 && index(radio.name, "M3") !== -1) {
         return freq - 2000;
     }
     if (freq < 6000) {
