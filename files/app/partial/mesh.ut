@@ -53,7 +53,8 @@ if (request.page === "cloud") {
 <div style="width:100%">
     <div id="meshfilter">
         <div style="width:115px"></div>
-        <div style="flex:1;text-align:center"><input type="search" autocorrect="off" spellcheck="false" placeholder="Search the mesh ..."></div>
+        <button style="position:absolute;top:-10000px" autofocus></button>
+        <div style="flex:1;text-align:center"><input type="search" tabindex="1" autocorrect="off" spellcheck="false" placeholder="Search the mesh ..."></div>
         <div style="padding-right:60px"><button id="meshpage-help">Help</button></div>
     </div>
     <div class="meshpage-help">
@@ -75,6 +76,7 @@ if (location.search) {
         document.querySelector("input[type=search]").value = q[1];
     }
 }
+if (!window.matchMedia("(pointer: coarse)").matches) setTimeout(_ => document.querySelector("input[type=search]").focus(), 100);
 </script>
 {% if (!config.resourcehash) { %}
 <script src="/a/js/meshpage.js"></script>
