@@ -230,6 +230,8 @@ function main()
                 }
                 break;
             case "n":
+            case "900mhz":
+            case "3ghz":
                 iwSet(device, "distance auto");
                 break;
             default:
