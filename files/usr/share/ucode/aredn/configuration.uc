@@ -116,8 +116,9 @@ export function getSettingAsInt(key, def)
 {
     initSetup();
     const v = scursor.get("setup", "globals", key);
-    if (int(v) == v) {
-        return v;
+    const iv = int(v);
+    if (iv == v) {
+        return iv;
     }
     return def;
 };
