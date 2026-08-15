@@ -562,7 +562,7 @@ export function getChannelFrequency(wifiIface, channel)
     if (rfchans[0]) {
         for (let i = 0; i < length(rfchans); i++) {
             const c = rfchans[i];
-            if (c.number === channel) {
+            if (c.number == channel) {
                 return c.frequency;
             }
         }
