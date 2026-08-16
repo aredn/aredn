@@ -44,6 +44,7 @@
     }
     const ld = split(fs.readfile("/proc/loadavg"), " ");
     const ram = int(match(fs.readfile("/proc/meminfo"), /MemFree: +(\d+) kB/)[1]) / 1000.0;
+    const totram = int(match(fs.readfile("/proc/meminfo"), /MemTotal: +(\d+) kB/)[1]) / 1000;
     const f = fs.popen("exec /bin/df /");
     let flash = "-";
     if (f) {
@@ -81,6 +82,9 @@
             <div class="t">{{ram}} MB</div>
             <div class="s">free ram</div>
         </div>
-        <div></div>
+        <div>
+            <div class="t">{{totram}} MB</div>
+            <div class="s">total ram</div>
+        </div>
     </div>
 </div>
