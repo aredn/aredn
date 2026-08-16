@@ -40,6 +40,7 @@ const nvram = uci.cursor("/etc/local/uci");
 
 let name = nvram.get("hsmmmesh", "settings", "node");
 let mac2 = nvram.get("hsmmmesh", "settings", "mac2");
+let wifimac = nvram.get("hsmmmesh", "settings", "wifimac");
 
 const defaults = {
     wifi_ip: "10.<MAC2>",
@@ -80,7 +81,7 @@ function capture(cmd)
 // Setup the nvram
 //
 
-if (!mac2) {
+if (!mac2 || !wifimac) {
     let hardware_mac = null;
     // If we have a radio ...
     if (fs.access("/sys/class/ieee80211")) {
@@ -102,9 +103,14 @@ if (!mac2) {
         // Fallback, create a random mac address instead
         hardware_mac = match(capture(`hexdump -n5 -e'/5 "02" 5/1 ":%02X"' /dev/urandom`), /^([^ \t]+)/)[1];
     }
-    const m = match(hardware_mac, /..:..:..:(..):(..):(..)/);
-    mac2 = `${hex(m[1])}.${hex(m[2])}.${hex(m[3])}`;
-    nvram.set("hsmmmesh", "settings", "mac2", mac2);
+    if (!wifimac) {
+        nvram.set("hsmmmesh", "settings", "wifimac", lc(hardware_mac));
+    }
+    if (!mac2) {
+        const m = match(hardware_mac, /..:..:..:(..):(..):(..)/);
+        mac2 = `${hex(m[1])}.${hex(m[2])}.${hex(m[3])}`;
+        nvram.set("hsmmmesh", "settings", "mac2", mac2);
+    }
 }
 
 if (!name) {
