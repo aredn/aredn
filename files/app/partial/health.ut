@@ -43,8 +43,9 @@
         uptime = "1 day, " + uptime;
     }
     const ld = split(fs.readfile("/proc/loadavg"), " ");
-    const ram = int(match(fs.readfile("/proc/meminfo"), /MemFree: +(\d+) kB/)[1]) / 1000.0;
-    const totram = int(match(fs.readfile("/proc/meminfo"), /MemTotal: +(\d+) kB/)[1]) / 1000;
+    const meminfo = fs.readfile("/proc/meminfo");
+    const ram = int(match(meminfo, /MemFree: +(\d+) kB/)[1]) / 1000.0;
+    const totram = int(match(meminfo, /MemTotal: +(\d+) kB/)[1]) / 1000;
     const f = fs.popen("exec /bin/df /");
     let flash = "-";
     if (f) {
