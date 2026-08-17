@@ -91,7 +91,7 @@ if (!mac2 || !wifimac) {
                 sleep(5000);
             }
             for (let p = 0; hardware_mac === null && p < 2; p++) {
-                const mac = trim(f.readfile(`/sys/class/ieee80211/${phys[p]}/macaddress`));
+                const mac = trim(fs.readfile(`/sys/class/ieee80211/${phys[p]}/macaddress`));
                 const m = match(mac, /(..:..:..:..:..:..)/);
                 if (m) {
                     hardware_mac = m[1];
