@@ -191,7 +191,7 @@ function deviceToType(device, mac)
     else if (substr(device, 0, 4) === "wlan") {
         return "RF";
     }
-    else if (device === "br-wifi" || device === "br-fast") {
+    else if (device === "br-wifi" || device === "br-fast" || device === "br-lan") {
         return "RRF";
     }
     else if (substr(device, 0, 2) === "wg") {
