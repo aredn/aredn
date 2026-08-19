@@ -309,6 +309,12 @@ const eports = hardware.getEthernetPorts();
 for (let i = 0; i < length(eports); i++) {
     config += `\tlist ports '${eports[i].k}'\n`;
 }
+// isolate all the bridge ports if we are connecting to lan radios
+if (length(eports) > 1 && cm.get("aredn", "@babel[0]", "lan_radio") == "1") {
+    for (let p = 0; p < length(eports); p++) {
+        config += `\nconfig device\n\toption name '${eports[p].k}'\n\toption isolate '1'\n`;
+    }
+}
 cfg.bridge_network_config = config;
 
 // generate the wifi bridge configuration
@@ -1233,7 +1239,8 @@ const restarters = {
         "aredn.@wan[0].local_defaultroute": [ "network-hard", "babel", "wan_monitor" ],
         "aredn.@wan[0].monitor1": "wan_monitor",
         "aredn.@wan[0].monitor2": "wan_monitor",
-        "aredn.@babel[0].protocol_buffer_size": "babel"
+        "aredn.@babel[0].protocol_buffer_size": "babel",
+        "aredn.@babel[0].lan_radio": "babel"
     },
     "babel": "babel",
     "dhcp": "dnsmasq",
