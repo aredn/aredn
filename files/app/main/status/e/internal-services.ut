@@ -83,9 +83,6 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("remoterf" in request.args) {
         uciMesh.set("aredn", "@remoterf[0]", "enable", request.args.remoterf === "on" ? "1" : "0");
     }
-    if ("lan_radio" in request.args) {
-        uciMesh.set("aredn", "@babel[0]", "lan_radio", request.args.lan_radio === "on" ? "1" : "0");
-    }
     if ("wan_monitor1" in request.args) {
         if (request.args.wan_monitor1 === "" || match(request.args.wan_monitor1, /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/)) {
             uciMesh.set("aredn", "@wan[0]", "monitor1", request.args.wan_monitor1);
@@ -197,17 +194,6 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             </div>
         </div>
         {{_H("Allow access to the node's web interface via the WAN network. Disabling this option will not prevent web acccess to the node from the mesh.")}}
-        <div class="cols">
-            <div>
-                <div class="o">LAN radio</div>
-                <div class="m">Allow babel connections via a non-AREDN LAN radio</div>
-            </div>
-            <div style="flex:0">
-                {{_R("switch", { name: "lan_radio", value: uciMesh.get("aredn", "@babel[0]", "lan_radio") === "1" })}}
-            </div>
-        </div>
-        {{_H("Allows AREDN to connect to other AREDN nodes over the LAN network. This simplifies adding non-AREDN radios to extend the network.
-              Each LAN port must only be connected to a single non-AREDN radio.")}}
     {% if (hardware.supportsFeature("hw-watchdog")) { %}
         <div class="hideable" data-hideable='{{uciMesh.get("aredn", "@watchdog[0]", "enable") === "1" ? "on" : "off"}}'>
             <div class="cols">

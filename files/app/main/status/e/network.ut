@@ -187,6 +187,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("local_defaultroute" in request.args) {
         uciMesh.set("aredn", "@wan[0]", "local_defaultroute", request.args.local_defaultroute === "on" ? 1 : 0);
     }
+    if ("lan_radio" in request.args) {
+        uciMesh.set("aredn", "@babel[0]", "lan_radio", request.args.lan_radio === "on" ? "1" : "0");
+    }
     uciMesh.commit("aredn");
     configuration.saveSettings();
     print(_R("changes"));
@@ -488,6 +491,17 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
             </div>
             {{_H("Provide a default route to a LAN connected device, even if our local WAN is disabled. By default this is only provided to
             devices if our local WAN is available.")}}
+            <div class="cols">
+                <div>
+                    <div class="o">LAN radio</div>
+                    <div class="m">Allow babel connections via a non-AREDN LAN radio</div>
+                </div>
+                <div style="flex:0">
+                    {{_R("switch", { name: "lan_radio", value: uciMesh.get("aredn", "@babel[0]", "lan_radio") === "1" })}}
+                </div>
+            </div>
+            {{_H("Allows AREDN to connect to other AREDN nodes over the LAN network. This simplifies adding non-AREDN radios to extend the network.
+                Each LAN port must only be connected to a single non-AREDN radio.")}}
             <div class="cols">
                 <div>
                     <div class="o">Mesh Internet Router</div>
