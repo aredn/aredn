@@ -351,7 +351,7 @@ const cnetworks = [ "lan", "wan", "dtdlink", "wifi0", "wifi1" ];
 for (let i = 0; i < length(cnetworks); i++) {
     const net = cnetworks[i];
     let usebridge = true;
-    let config = "";
+    config = "";
 
     // generate a complete config
     let vlan = null;
@@ -788,7 +788,7 @@ nc.commit("dhcp");
 
 // Generate the wireless config file
 const default_mesh_distance = 80550; // 50.1 miles
-let config = "";
+config = "";
 const txpowers = [];
 const ifacecount = hardware.getRadioCount();
 const devpaths = {};
@@ -1273,7 +1273,12 @@ const restarters = {
     },
     "system": [ "log", "system", "ntp" ],
     "wireless": {
-        "any": "wireless",
+        "any": () => {
+            if (hardware.getRadio()?.changes?.wireless === "reboot") {
+                return "reboot";
+            }
+            return "wireless";
+        },
         "wireless.@wifi-iface[0].mode": "reboot",
         "wireless.@wifi-device[0].channel": "lqm",
         "wireless.@wifi-device[0].macfilter": "reboot",
@@ -1335,11 +1340,9 @@ for (let file in nfiles) {
                         map(c, k => changes[k] = true);
                         break;
                     case "function":
-                        if (p === "any") {
-                            c();
-                        }
-                        else {
-                            c(specials[p], oc.get(p3[0], p3[1], p3[2]));
+                        const r = p === "any" ? c() : c(specials[p], oc.get(p3[0], p3[1], p3[2]));;
+                        if (r) {
+                            changes[r] = true;
                         }
                         break;
                     default:

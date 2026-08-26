@@ -248,6 +248,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
 <div class="dialog radio-and-antenna">
     {{_R("dialog-header", "Radios &amp; Antennas")}}
     <div>
+    {{_R("dialog-messages")}}
     {%
         const hasradios = length(wlan) > 0;
         if (hasradios) {
@@ -635,6 +636,9 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     <script>
     (function(){
         {{_R("open")}}
+    {% if (hardware.getRadioIntf("wlan0")?.simo) { %}
+        dialogMessage.success("<center>This is a SIMO radio. You will only get half the expected bandwidth.</center>");
+    {% } %}
     {%
     for (let w = 0; w < length(wlan); w++) { %}
         const radio{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_mode]");
