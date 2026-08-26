@@ -1,0 +1,38 @@
+--- /dev/null
++++ b/package/kernel/mac80211/patches/ath/530-ath9k-ar9003-include-chain0-in-cal-chainmask.patch
+@@ -0,0 +1,35 @@
++--- a/drivers/net/wireless/ath/ath9k/ar9003_calib.c
+++++ b/drivers/net/wireless/ath/ath9k/ar9003_calib.c
++@@ -1582,10 +1582,21 @@
++ 	bool txiqcal_done = false;
++ 	bool status = true;
++ 	bool run_agc_cal = false, sep_iq_cal = false;
+++	u8 rx_cal_mask, tx_cal_mask;
++ 	int i = 0;
++ 
++-	/* Use chip chainmask only for calibration */
++-	ar9003_hw_set_chain_masks(ah, ah->caps.rx_chainmask, ah->caps.tx_chainmask);
+++	/*
+++	 * Use chip chainmask only for calibration.  Chain 0 must be
+++	 * included: the AGC and Tx IQ calibration engines hang if it
+++	 * is excluded from the calibration chainmask, as seen on
+++	 * AR9342 boards with a chain-1-only (0x2) EEPROM chainmask,
+++	 * e.g. the 2.4 GHz management radio of the Ubiquiti Bullet AC.
+++	 * The runtime chainmask is restored below.
+++	 */
+++	rx_cal_mask = ah->caps.rx_chainmask | BIT(0);
+++	tx_cal_mask = ah->caps.tx_chainmask | BIT(0);
+++
+++	ar9003_hw_set_chain_masks(ah, rx_cal_mask, tx_cal_mask);
++ 
++ 	if (ah->enabled_cals & TX_CL_CAL) {
++ 		REG_SET_BIT(ah, AR_PHY_CL_CAL_CTL, AR_PHY_CL_CAL_ENABLE);
++@@ -1635,7 +1646,7 @@
++ skip_tx_iqcal:
++ 	if (run_agc_cal || !(ah->ah_flags & AH_FASTCC)) {
++ 		for (i = 0; i < AR9300_MAX_CHAINS; i++) {
++-			if (!(ah->rxchainmask & (1 << i)))
+++			if (!(rx_cal_mask & (1 << i)))
++ 				continue;
++ 
++ 			ar9003_hw_manual_peak_cal(ah, i,
