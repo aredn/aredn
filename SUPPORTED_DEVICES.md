@@ -48,6 +48,7 @@ hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 & 5 
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | untested | released
+Bullet AC (2WA) | B-DB-AC | 2 & 5 | ath79 | generic | ubnt_bullet-ac | 64MB | stable | nightly (10)
 LiteAP 5AC | LAP-120 <br> LAP-120-US <br> LBE-5AC-16-120 <br> LBE-5AC-16-120-US | 5 | ath79 | generic | ubnt_lap-120 | 64MB | stable | released
 LiteBeam 5AC Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | released
 LiteBeam 5AC LR | LBE-5AC-LR <br> LBE-5AC-LR-US | 5 | ath79 | generic | ubnt_litebeam-ac-lr | 64MB | stable | released
@@ -209,5 +210,6 @@ Vultr | x86 | 64 | x86-64-generic-ext4 | 64mb+ | stable | released (5)
  7. Mikrotik devices come with either a v6 bootloader or a v7 bootloader. See [here](https://openwrt.org/toh/mikrotik/common) for more details. If you are using a v7 bootloader use the v7 sysupgrade instead of the plain one.
  8. There is currently no way to recover if a firmware update fails and it could brick your device.
  9. Devices with AX radios do not support negative channels or channels with less then 20MHz bandwidth.
+ 10. Devices with SIMO radios only provide half the bandwidth.
 
 Latest installation instructions are found at: https://docs.arednmesh.org/en/latest/

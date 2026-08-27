@@ -113,7 +113,7 @@ export function getBoardId()
     return trim(name);
 };
 
-function getRadio()
+export function getRadio()
 {
     if (!radioJson) {
         const f = fs.open("/etc/radios.json");
@@ -132,7 +132,7 @@ function getRadio()
         }
     }
     return radioJson;
-}
+};
 
 export function getRadioName()
 {
