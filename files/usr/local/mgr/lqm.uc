@@ -646,7 +646,7 @@ function main()
             // Ping addresses and penalize quality for excessively slow links
             if (track.ipv6ll && !track.user_blocks) {
                 let ptime = null;
-                const p = fs.popen(`${PING6} -c 1 -W ${round(ping_timeout)} -I ${track.device} ${track.ipv6ll}`);
+                const p = fs.popen(`${PING6} -c 1 -W ${round(ping_timeout)} -I ${track.device} ${track.ipv6ll} 2>/dev/null`);
                 if (p) {
                     for (let line = p.read("line"); length(line); line = p.read("line")) {
                         const m = match(trim(line), /^64 bytes from .* time=([^ \t]+) ms$/);
