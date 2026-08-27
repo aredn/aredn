@@ -42,7 +42,7 @@ if (uci.cursor().get("aredn", "@supernode[0]", "enable") === "1") {
 function ping(n)
 {
     let success = false;
-    const p = fs.popen(`/bin/ping6 -c 1 -W 5 -I ${n.interface} ${n.ipv6address}`);
+    const p = fs.popen(`/bin/ping6 -c 1 -W 5 -I ${n.interface} ${n.ipv6address} 2>/dev/null`);
     if (p) {
         for (let line = p.read("line"); length(line); line = p.read("line")) {
             const m = match(trim(line), /^64 bytes from /);
