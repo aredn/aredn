@@ -745,21 +745,15 @@ export function getHTMode(wifiIface, bandwidth, mode)
 
 export function getNetworkInterfaces()
 {
-    let ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
-    if (!ifs) {
-        rtnl.close();
-        ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
-    }
+    const ifs = rtnl.request(rtnl.const.RTM_GETLINK, rtnl.const.NLM_F_DUMP, {});
+    rtnl.close();
     return ifs;
 };
 
 export function getNetworkInterfaceAddresses()
 {
-    let ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
-    if (!ifs) {
-        rtnl.close();
-        ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
-    }
+    const ifs = rtnl.request(rtnl.const.RTM_GETADDR, rtnl.const.NLM_F_DUMP, {});
+    rtnl.close();
     return ifs;
 };
 
