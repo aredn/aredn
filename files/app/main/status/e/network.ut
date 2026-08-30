@@ -223,6 +223,7 @@ const lan_iface = split((configuration.getSettingAsList("lan_intf") || hardware.
 const lan_vlan = lan_iface[1] ? lan_iface[1] : "";
 const gateway_nat = dmz_mode !== 1 ? dhcp.gateway : "172.27.0.1";
 const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
+const wan_passthrough = uciMesh.get("aredn", "@wan[0]", "passthrough") == "1";
 %}
 <div class="dialog">
     {{_R("dialog-header", "Network")}}
@@ -444,7 +445,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     <div class="m">Allow any mesh device to use local WAN.</div>
                 </div>
                 <div style="flex:0">
-                    {{_R("switch", { name: "mesh_to_local_wan", value: uciMesh.get("aredn", "@wan[0]", "mesh_to_local_wan") !== "0" })}}
+                    {{_R("switch", { name: "mesh_to_local_wan", value: uciMesh.get("aredn", "@wan[0]", "mesh_to_local_wan") !== "0", disabled: wan_passthrough })}}
                 </div>
             </div>
             {{_H("Allow any node or device on the mesh to use our local Internet connection. This is disabled by default.")}}
@@ -454,7 +455,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     <div class="m">Allow any DtD connected node to use local WAN.</div>
                 </div>
                 <div style="flex:0">
-                    {{_R("switch", { name: "local_defaultroute", value: uciMesh.get("aredn", "@wan[0]", "local_defaultroute") !== "0" })}}
+                    {{_R("switch", { name: "local_defaultroute", value: uciMesh.get("aredn", "@wan[0]", "local_defaultroute") !== "0", disabled: wan_passthrough })}}
                 </div>
             </div>
             {{_H("If we have a WAN connection, allow locally connected (via DtD) nodes to also use it.")}}
@@ -464,7 +465,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     <div class="m">Allow any LAN device to use local WAN.</div>
                 </div>
                 <div style="flex:0">
-                    {{_R("switch", { name: "lan_dhcp_route", value: uciMesh.get("aredn", "@wan[0]", "lan_dhcp_route") !== "0" })}}
+                    {{_R("switch", { name: "lan_dhcp_route", value: uciMesh.get("aredn", "@wan[0]", "lan_dhcp_route") !== "0", disabled: wan_passthrough })}}
                 </div>
             </div>
             {{_H("Allow LAN devices connected to this node to use our Internet connection. This is enabled by default.")}}
