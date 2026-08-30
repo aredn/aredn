@@ -39,6 +39,7 @@ const c = uci.cursor();
 const mesh_to_local_wan = c.get("aredn", "@wan[0]", "mesh_to_local_wan");
 const lan_to_local_wan = c.get("aredn", "@wan[0]", "lan_dhcp_route");
 const local_defaultroute = c.get("aredn", "@wan[0]", "local_defaultroute");
+const wan_passthrough = c.get("aredn", "@wan[0]", "passthrough");
 const addresses = [];
 const mon1 = c.get("aredn", "@wan[0]", "monitor1");
 const mon2 = c.get("aredn", "@wan[0]", "monitor2");
@@ -48,7 +49,7 @@ if (mon1) {
 if (mon2) {
     push(addresses, mon2);
 }
-if (! (length(addresses) > 0 && (mesh_to_local_wan == "1" || lan_to_local_wan == "1")) ) {
+if (! (length(addresses) > 0 && (mesh_to_local_wan == "1" || lan_to_local_wan == "1") && wan_passthrough == "0") ) {
     return exitApp();
 }
 
