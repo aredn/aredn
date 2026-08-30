@@ -191,6 +191,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
         uciMesh.set("aredn", "@wan[0]", "passthrough", request.args.passthrough === "on" ? 1 : 0);
         if (request.args.passthrough === "on") {
             uciMesh.set("aredn", "@wan[0]", "lan_dhcp_route", 1);
+            uciMesh.set("aredn", "@wan[0]", "mesh_to_local_wan", 0);
+            uciMesh.set("aredn", "@wan[0]", "local_defaultroute", 0);
         }
     }
     if ("lan_radio" in request.args) {
