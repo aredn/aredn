@@ -573,7 +573,7 @@ if (fw) {
         fw.write("\nconfig forwarding\n\toption src 'dtdlink'\n\toption dest 'lan'\n");
         fw.write("\nconfig forwarding\n\toption src 'vpn'\n\toption dest 'lan'\n");
     }
-    if (nc.get("aredn", "@wan[0]", "mesh_to_local_wan") == "1") {
+    if (nc.get("aredn", "@wan[0]", "mesh_to_local_wan") == "1" && nc.get("aredn", "@wan[0]", "passthrough") == "0") {
         fw.write("\nconfig forwarding\n\toption src 'wifi'\n\toption dest 'wan'\n");
         fw.write("\nconfig forwarding\n\toption src 'dtdlink'\n\toption dest 'wan'\n");
         fw.write("\nconfig forwarding\n\toption src 'vpn'\n\toption dest 'wan'\n");

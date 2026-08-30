@@ -15,7 +15,7 @@
 # 27 - Local WAN route
 #        This is the local subnet of the WAN and is used for LAN & LOCAL.
 # 28 - Default WAN route from this node (OUT) - BABEL
-#        A default route made available to the mesh if aredn.@wan[0].mesh_to_local_wan == 1, MESH -> WAN
+#        A default route made available to the mesh if aredn.@wan[0].mesh_to_local_wan == 1 && aredn.@wan[0].passthrough == 0, MESH -> WAN
 # 29 - Local LAN routes (OUT) = BABEL
 #        The local LAN subnet made available to the mesh. Not used by ourself.
 # 99 - Blackhole
@@ -113,7 +113,10 @@ if [ "${ACTION}" = "ifdown" ] || [ "${ACTION}" = "ifup" ] ; then
     RULE22="$(uci -q get aredn.@wan[0].lan_to_remote_wan)" # LAN -> MESH-WAN
   elif [ "${INTERFACE:0:4}" == "wifi" ] || [ "${INTERFACE}" == "dtdlink" ] || [ "${INTERFACE:0:2}" = "wg" ] || [ "$(uci -q -c /etc/config.mesh/ show xlink | grep "ifname='${DEVICE}'")" != "" ] ; then
     # THRU
-    RULE28="$(uci -q get aredn.@wan[0].mesh_to_local_wan)" # MESH -> WAN
+    # MESH -> WAN enabled, WAN -> LAN disabled
+    if [ "$(uci -q get aredn.@wan[0].mesh_to_local_wan)" = "1" -a "$(uci -q get aredn.@wan[0].passthrough)" = "0" ]; then
+      RULE28="1"
+    fi
     RULE22="1"
   else
     # LOCAL
