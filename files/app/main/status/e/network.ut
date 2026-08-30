@@ -189,6 +189,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
     if ("passthrough" in request.args) {
         uciMesh.set("aredn", "@wan[0]", "passthrough", request.args.passthrough === "on" ? 1 : 0);
+        if (request.args.passthrough === "on") {
+            uciMesh.set("aredn", "@wan[0]", "lan_dhcp_route", 1);
+        }
     }
     if ("lan_radio" in request.args) {
         uciMesh.set("aredn", "@babel[0]", "lan_radio", request.args.lan_radio === "on" ? "1" : "0");
@@ -503,7 +506,7 @@ const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
                     {{_R("switch", { name: "passthrough", value: uciMesh.get("aredn", "@wan[0]", "passthrough") !== "0" })}}
                 </div>
             </div>
-            {{_H("Disable the WAN firewall and NAT allowing traffic from the WAN to be routed to a LAN device. Make sure <b>LAN to WAN</b> is also enabled.")}}
+            {{_H("Disable the WAN firewall and NAT allowing traffic from the WAN to be routed to a LAN device.")}}
             <div class="cols">
                 <div>
                     <div class="o">LAN radio</div>
