@@ -139,7 +139,8 @@ const cfg = {
     wireguard_network_config: "",
     dtdlink_interfaces: "\tlist network 'dtdlink'",
     vpn_interfaces: "",
-    ntp_enabled: "0"
+    ntp_enabled: "0",
+    wan_masq: "1"
 };
 
 // Track the changes so we can make better decissions about what to restart/reboot
@@ -536,6 +537,11 @@ if (cm.get("aredn", "@ntp[0]", "period") == "continually") {
     cfg.ntp_enabled = "1";
 }
 
+// WAN passthrough
+if (cm.get("aredn", "@wan[0]", "passthrough") == "1" && cm.get("aredn", "@wan[0]", "lan_dhcp_route") == "1") {
+    cfg.wan_masq = "0";
+}
+
 // Save the new configuration
 removeAll("/tmp/new_config");
 fs.mkdir("/tmp/new_config");
@@ -567,10 +573,13 @@ if (fw) {
         fw.write("\nconfig forwarding\n\toption src 'dtdlink'\n\toption dest 'lan'\n");
         fw.write("\nconfig forwarding\n\toption src 'vpn'\n\toption dest 'lan'\n");
     }
-    if (nc.get("aredn", "@wan[0]", "mesh_to_local_wan") == "1") {
+    if (nc.get("aredn", "@wan[0]", "mesh_to_local_wan") == "1" && nc.get("aredn", "@wan[0]", "passthrough") == "0") {
         fw.write("\nconfig forwarding\n\toption src 'wifi'\n\toption dest 'wan'\n");
         fw.write("\nconfig forwarding\n\toption src 'dtdlink'\n\toption dest 'wan'\n");
         fw.write("\nconfig forwarding\n\toption src 'vpn'\n\toption dest 'wan'\n");
+    }
+    if (nc.get("aredn", "@wan[0]", "passthrough") == "1" && nc.get("aredn", "@wan[0]", "lan_dhcp_route") == "1") {
+        fw.write("\nconfig forwarding\n\toption src 'wan'\n\toption dest 'lan'\n");
     }
 
     const ports = cm.get("setup", "ports", "port") || [];
@@ -1237,6 +1246,7 @@ const restarters = {
         "aredn.@wan[0].lan_to_remote_wan": [ "network-hard", "babel" ],
         "aredn.@wan[0].mesh_internet": "babel",
         "aredn.@wan[0].local_defaultroute": [ "network-hard", "babel", "wan_monitor" ],
+        "aredn.@wan[0].passthrough": [ "network-hard", "babel", "firewall", "wan_monitor" ],
         "aredn.@wan[0].monitor1": "wan_monitor",
         "aredn.@wan[0].monitor2": "wan_monitor",
         "aredn.@babel[0].protocol_buffer_size": "babel",

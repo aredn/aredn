@@ -33,31 +33,6 @@
 
 LICENSE
 
-
-### Lets export some variables to help other scripts we call later.
-
-#Are we in NAT mode
-if [ "$(/sbin/uci -c /etc/config.mesh -q get setup.globals.dmz_mode)" != "0" ]
-then
-  export MESHFW_NATLAN=0
-else
-  export MESHFW_NATLAN=1
-fi
-
-#Is this node a meshgw
-export MESHFW_MESHGW
-MESHFW_MESHGW=$(/sbin/uci -q get aredn.@wan[0].mesh_to_local_wan)
-
-# Is Wireguard 'enabled'
-if [ -x "/usr/bin/wg" ]
-then
-  export MESHFW_WG_TUNNELS_ENABLED=1
-else
-  export MESHFW_WG_TUNNELS_ENABLED=0
-fi
-
-# Lets execute each include file
-
 for file in /etc/local/mesh-firewall/*
 do
   if ( [ -x "$file" ] && [ -f "$file" ] ); then
