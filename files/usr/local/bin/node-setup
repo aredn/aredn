@@ -486,7 +486,7 @@ for (let i = 0; i < length(cnetworks); i++) {
 }
 
 // Generate the tunnel configurations
-const wg_mtu = min(int(cfg.wan_mtu || 1500) - 80, int(cm.get("wireguard", "@network[0]", "mtu") || 1420));
+const wg_mtu = min(int(cfg.wan_mtu || 1500) - 80, int(cm.get("wireguard", "@network[0]", "mtu") || 1280));
 const def_tun_cost = tonumber(cm.get("wireguard", "@network[0]", "cost") || cm.get("babel", "tunnel", "rxcost") || 300) || 300;
 cm.foreach("wireguard", "client",
     function(s) {
