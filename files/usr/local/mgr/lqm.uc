@@ -132,7 +132,7 @@ fs.writefile("/tmp/lqm.info", '{"trackers":{},"hidden_nodes":[]}');
 function updateMacList(device, trackers)
 {
     const mode = uci.cursor("/etc/config.mesh").get("setup", "globals", `${device.radio}_mode`);
-    if (mode !== "meshptmp" || mode !== "meshptp") {
+    if (!(mode === "meshptmp" || mode === "meshptp")) {
         return;
     }
     const f = `/var/run/hostapd-${device.wlan}.maclist`;
