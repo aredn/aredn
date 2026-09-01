@@ -80,10 +80,10 @@ export function get(validate)
             const etchosts = {};
             let p = fs.open("/etc/hosts");
             for (let line = p.read("line"); length(line); line = p.read("line")) {
-                const m = match(trim(line), /^([0-9\.]+)[ \t]+([^ \t]+)[^#]*(#NOPROPS|#ALIAS)?$/);
+                const m = match(trim(line), /^([0-9\.]+)[ \t]+([^ \t]+)[^#]*(#NOPROP|#ALIAS)?$/);
                 if (m && m[3] !== "#ALIAS") {
                     etchosts[m[1]] = m[2];
-                    nopropip[m[1]] = m[3] === "#NOPROPS";
+                    nopropip[m[1]] = m[3] === "#NOPROP";
                 }
             }
             p.close();
