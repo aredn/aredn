@@ -45,9 +45,7 @@ for (let i = 0; i < length(info.names); i++) {
 }
 for (let i = 0; i < length(info.hosts); i++) {
 	const host = info.hosts[i];
-	if (!match(host.host, /^xlink\d/) && !match(host.host, /^mid\d/)) {
-		data += `${host.ip}\t${host.host}\n`;
-	}
+	data += `${host.ip}\t${host.host}\n`;
 }
 fs.writefile("/etc/arednlink/hosts", data);
 fs.writefile("/etc/arednlink/services", length(info.services) == 0 ? "" : `${join("\n", info.services)}\n`);
