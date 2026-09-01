@@ -1,7 +1,7 @@
 {%
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2024 Tim Wilkinson
+ * Copyright (C) 2024-2026 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -46,11 +46,22 @@ if (request.env.REQUEST_METHOD === "PUT") {
             configuration.setSettingAsString("dmz_mode", mode);
             if (mode >= 2) {
                 const o_lan_ip = iptoarr(configuration.getSettingAsString("dmz_lan_ip"));
-                const wifi_ip = iptoarr(configuration.getSettingAsString("wifi_ip"));
-                let wifi_shift = (wifi_ip[0] << 24) + (wifi_ip[1] << 16) + (wifi_ip[2] << 8) + wifi_ip[3];
-                wifi_shift = (wifi_shift << mode) & 0x00ffffff;
-                let dmz_lan_ip = 0x0a000001 + wifi_shift;
-                dmz_lan_ip = arrtoip([ (dmz_lan_ip >> 24) & 0xff, (dmz_lan_ip >> 16) & 0xff, (dmz_lan_ip >> 8) & 0xff, dmz_lan_ip & 0xff ]);
+                let dhcp_base;
+                let dmz_lan_ip;
+                if ("dmz_lan_ip" in request.args && match(request.args.dmz_lan_ip, constants.reIP)) {
+                    dmz_lan_ip = iptoarr(request.args.dmz_lan_ip);
+                    dmz_lan_ip[3] = (dmz_lan_ip[3] & (0xff << mode)) + 1;
+                    dhcp_base = (dmz_lan_ip[3] + 1) & 0xff;
+                    dmz_lan_ip = arrtoip(dmz_lan_ip);
+                }
+                else {
+                    const wifi_ip = iptoarr(configuration.getSettingAsString("wifi_ip"));
+                    let wifi_shift = (wifi_ip[0] << 24) + (wifi_ip[1] << 16) + (wifi_ip[2] << 8) + wifi_ip[3];
+                    wifi_shift = (wifi_shift << mode) & 0x00ffffff;
+                    dmz_lan_ip = 0x0a000001 + wifi_shift;
+                    dmz_lan_ip = arrtoip([ (dmz_lan_ip >> 24) & 0xff, (dmz_lan_ip >> 16) & 0xff, (dmz_lan_ip >> 8) & 0xff, dmz_lan_ip & 0xff ]);
+                    dhcp_base = (wifi_shift + 2) & 0xff;
+                }
                 let dmz_lan_mask = 0xffffffff << mode;
                 dmz_lan_mask = arrtoip([ (dmz_lan_mask >> 24) & 0xff, (dmz_lan_mask >> 16) & 0xff, (dmz_lan_mask >> 8) & 0xff, dmz_lan_mask & 0xff ]);
                 configuration.setSettingAsString("dmz_lan_ip", dmz_lan_ip);
@@ -61,7 +72,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 const als = uciMesh.get("setup", "aliases", "alias");
                 if (als) {
                     const aliases = [];
-                    const dmz_dhcp_start = (wifi_shift + 2) & 0xff;
+                    const dmz_dhcp_start = dhcp_base;
                     const dmz_dhcp_end = dmz_dhcp_start + (2 << (mode - 1)) - 4;
                     const n_lan_ip = iptoarr(dmz_lan_ip);
                     for (let l = 0; l < length(als); l++) {
@@ -74,6 +85,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     uciMesh.set("setup", "aliases", "alias", aliases);
                     uciMesh.commit("setup");
                 }
+                print(`<input hx-put="${request.env.REQUEST_URI}" id="dmz_lan_ip" name="dmz_lan_ip" type="text" size="15" required pattern="10\\.(\\d|[1-9]\\d|1[0-8]\\d|19[01])\\.(\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])\\.(\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])" value="${dmz_lan_ip}" hx-include="select[name='dhcp_mode']" hx-swap-oob='true'>`);
             }
         }
     }
@@ -224,6 +236,7 @@ const lan_vlan = lan_iface[1] ? lan_iface[1] : "";
 const gateway_nat = dmz_mode !== 1 ? dhcp.gateway : "172.27.0.1";
 const gateway_altnet = dmz_mode === 1 ? dhcp.gateway : "";
 const wan_passthrough = uciMesh.get("aredn", "@wan[0]", "passthrough") == "1";
+const dmz_lan_ip = configuration.getSettingAsString("dmz_lan_ip");
 %}
 <div class="dialog">
     {{_R("dialog-header", "Network")}}
@@ -246,7 +259,7 @@ const wan_passthrough = uciMesh.get("aredn", "@wan[0]", "passthrough") == "1";
                     <div class="o">LAN Type</div>
                     <div class="m">Type and size of LAN subnet</div>
                 </div>
-                <div style="flex:0">
+                <div style="flex:0;white-space:nowrap">
                     <select style="direction:ltr;text-align-last:right" hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="dhcp_mode" {{_R("hideable-onselect")}}>
                         <option value="0" {{dmz_mode == 0 ? "selected" : ""}}>NAT</option>
                         <option value="1" {{dmz_mode == 1 ? "selected" : ""}}>44Net</option>
@@ -339,6 +352,18 @@ const wan_passthrough = uciMesh.get("aredn", "@wan[0]", "passthrough") == "1";
                     </div>
                 </div>
                 {% } %}
+            </div>
+            <div class="compact hideable2 hideable3 hideable4 hideable5">
+                <div class="cols">
+                    <div>
+                        <div class="o">IP A&zwnj;ddress</div>
+                        <div class="m">LAN IP a&zwnj;ddress</div>
+                    </div>
+                    <div style="flex:0">
+                        <input hx-put="{{request.env.REQUEST_URI}}" id="dmz_lan_ip" name="dmz_lan_ip" type="text" size="15" required pattern="10\.(\d|[1-9]\d|1[0-8]\d|19[01])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])" value="{{dmz_lan_ip}}" hx-include="select[name='dhcp_mode']">
+                    </div>
+                </div>
+                {{_H("The default LAN address is automatically generated. It can be overridden but may be adjusted based on the selected <b>LAN Type</b>.")}}
             </div>
         </div>
         <hr>
