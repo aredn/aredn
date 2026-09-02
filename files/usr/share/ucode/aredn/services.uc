@@ -40,7 +40,7 @@ import * as configuration from "aredn.configuration";
 import * as network from "aredn.network";
 
 // Whether to validate hosts and services before publishing
-const validation_timeout = 150 * 60; // 2.5 hours (so must fail 3 times in a row)
+const validation_timeout = 150 * 60; // 2.5 hours
 const validation_state = "/tmp/service-validation-state.json";
 
 const pubsubbase = "/etc/arednlink";
@@ -90,18 +90,29 @@ export function get(validate)
             p = fs.open("/etc/ethers");
             for (let line = p.read("line"); length(line); line = p.read("line")) {
                 const m = match(line, /[0-9a-fA-F:]+[ \t]+([0-9\.]+)/);
-                if (m && !nopropip[m[1]]) {
+                if (m) {
                     const host = etchosts[m[1]] || network.getHostnameFromIPAddress(m[1]);
                     if (host) {
                         const shost = replace(host, /\.local\.mesh$/, "");
                         if (index(shost, ".") === -1) {
-                            push(hosts, { ip: m[1], host: shost });
+                            push(hosts, { ip: m[1], host: shost, prop: !nopropip[m[1]] });
                         }
                         else {
-                            push(hosts, { ip: m[1], host: host });
+                            push(hosts, { ip: m[1], host: host, prop: !nopropip[m[1]]});
                         }
                     }
                 }
+            }
+            p.close();
+            if (fs.access("/tmp/dhcp.leases")) {
+                p = fs.open("/tmp/dhcp.leases");
+                for (let line = p.read("line"); length(line); line = p.read("line")) {
+                    const m = match(line, /[0-9]+ [0-9a-f:]+ ([0-9\.]+) ([^ ]+)/);
+                    if (m && !etchosts[m[1]]) {
+                        push(hosts, { ip: m[1], host: m[2], prop: false });
+                    }
+                }
+                p.close();
             }
         }
     }
@@ -113,11 +124,11 @@ export function get(validate)
             for (let line = f.read("line"); length(line); line = f.read("line")) {
                 let m = match(line, /^(\d+\.\d+\.\d+\.\d+)[ \t]+dtdlink\./);
                 if (m) {
-                    push(hosts, { ip: m[1], host: `dtdlink.${name}.local.mesh` });
+                    push(hosts, { ip: m[1], host: `dtdlink.${name}.local.mesh`, prop: true });
                 }
                 m = match(trim(line), /^(\d+\.\d+\.\d+\.\d+)[ \t]+localnode$/);
                 if (m) {
-                    push(hosts, { ip: m[1], host: `lan.${name}.local.mesh` });
+                    push(hosts, { ip: m[1], host: `lan.${name}.local.mesh`, prop: true });
                 }
             }
             f.close();
@@ -127,7 +138,7 @@ export function get(validate)
             cm.foreach("xlink", "interface",
                 function(section) {
                     if (section.ipaddr) {
-                        push(hosts, { ip: section.ipaddr, host: `xlink${count}.${name}.local.mesh` });
+                        push(hosts, { ip: section.ipaddr, host: `xlink${count}.${name}.local.mesh`, prop: true });
                         count++;
                     }
                 }

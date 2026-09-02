@@ -1,7 +1,6 @@
-#!/usr/bin/ucode
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2022-2025 Tim Wilkinson
+ * Copyright (C) 2026 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,23 +31,46 @@
  * version
  */
 
-import * as fs from "fs";
-import * as uci from "uci";
-import * as services from "aredn.services";
+let last_hosts = null;
+let last_services = null;
 
-const ip = uci.cursor("/etc/config.mesh").get("setup", "globals", "wifi_ip");
-const info = services.get(true);
+function main()
+{
+    const cm = uci.cursor("/etc/config.mesh");
+    const ip = cm.get("setup", "globals", "wifi_ip");
+    const info = services.get(true);
+    let update = false;
+    let hosts = "";
 
-let data = "";
-for (let i = 0; i < length(info.names); i++) {
-	data += `${ip}\t${info.names[i]}\n`;
+    for (let i = 0; i < length(info.names); i++) {
+        hosts += `${ip}\t${info.names[i]}\n`;
+    }
+    for (let i = 0; i < length(info.hosts); i++) {
+        const host = info.hosts[i];
+        if (host.prop) {
+            hosts += `${host.ip}\t${host.host}\n`;
+        }
+    }
+    // Update the hosts if they changed
+    if (hosts != last_hosts) {
+        last_hosts = hosts;
+        update = true;
+        fs.writefile("/etc/arednlink/hosts", hosts);
+    }
+    // Update the services if they changed
+    const services = length(info.services) == 0 ? "" : `${join("\n", info.services)}\n`;
+    if (services != last_services) {
+        last_services = services;
+        update = true;
+        fs.writefile("/etc/arednlink/services", services);
+    }
+    if (update) {
+        system("/usr/local/bin/arednlink-update");
+    }
+
+    return waitForTicks(300); // 5 minutes
 }
-for (let i = 0; i < length(info.hosts); i++) {
-	const host = info.hosts[i];
-	data += `${host.ip}\t${host.host}\n`;
-}
-fs.writefile("/etc/arednlink/hosts", data);
-fs.writefile("/etc/arednlink/services", length(info.services) == 0 ? "" : `${join("\n", info.services)}\n`);
 
-// Arednlink checks for changes in updated data, so we dont have to
-system("/usr/local/bin/arednlink-update");
+services.resetValidation();
+
+return waitForTicks(max(1, 120 - clock(true)[0]), main);

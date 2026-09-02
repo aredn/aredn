@@ -113,6 +113,13 @@ export function CIDRToNetmask(cidr)
     }
 };
 
+export function networkAddress(ip, mask)
+{
+    const aip = iptoarr(ip);
+    const amask = iptoarr(mask);
+    return arrtoip([ aip[0] & amask[0], aip[1] & amask[1], aip[2] & amask[2], aip[3] & amask[3] ]);
+};
+
 export function mac2ipv6ll(macaddr)
 {
     const mac = split(macaddr, ":");

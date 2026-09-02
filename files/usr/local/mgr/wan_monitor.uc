@@ -33,6 +33,7 @@
 
 const WAN_TABLE = 28;
 const WAN_IFACE = "br-wan";
+const PATT = regexp(`default via ([0-9\.]+) dev ${WAN_IFACE}`);
 
 const c = uci.cursor();
 
@@ -55,11 +56,11 @@ if (! (length(addresses) > 0 && (mesh_to_local_wan == "1" || lan_to_local_wan ==
 
 let last_gw = null;
 
-function isInternetReachable(iface, addrs)
+function isInternetReachable(addrs)
 {
     let success = false;
     for (let i = 0; !success && i < length(addrs); i++) {
-        const p = fs.popen(`/bin/ping -c 1 -W 5 -I ${iface} ${addrs[i]}`);
+        const p = fs.popen(`/bin/ping -c 1 -W 5 -I ${WAN_IFACE} ${addrs[i]}`);
         if (p) {
             for (let line = p.read("line"); length(line); line = p.read("line")) {
                 const m = match(trim(line), /^64 bytes from /);
@@ -73,10 +74,10 @@ function isInternetReachable(iface, addrs)
     return success;
 }
 
-function isInterfaceUp(iface)
+function isInterfaceUp()
 {
     let valid = false;
-    const p = fs.popen(`/sbin/ip -o -4 addr show dev ${iface}`);
+    const p = fs.popen(`/sbin/ip -o -4 addr show dev ${WAN_IFACE}`);
     if (p) {
         valid = p.read("all") != "";
         p.close();
@@ -84,13 +85,13 @@ function isInterfaceUp(iface)
     return valid;
 }
 
-function isGwFound(iface, table)
+function isGwFound()
 {
     let found = false;
-    p = fs.popen(`/sbin/ip route show table ${table} 2>/dev/null`);
+    p = fs.popen(`/sbin/ip route show table ${WAN_TABLE} 2>/dev/null`);
     if (p) {
         for (let line = p.read("line"); length(line); line = p.read("line")) {
-            const m = match(trim(line), regexp(`default via ([0-9\.]+) dev ${iface}`));
+            const m = match(trim(line), PATT);
             if (m) {
                 found = true;
                 last_gw = m[1];
@@ -103,9 +104,9 @@ function isGwFound(iface, table)
 
 function main()
 {
-    if (isInterfaceUp(WAN_IFACE)) {
-        const reachable = isInternetReachable(WAN_IFACE, addresses);
-        const found = isGwFound(WAN_IFACE, WAN_TABLE);
+    if (isInterfaceUp()) {
+        const reachable = isInternetReachable(addresses);
+        const found = isGwFound();
         if (last_gw) {
             if (reachable && !found) {
                 system(`/sbin/ip route add default via ${last_gw} dev ${WAN_IFACE} table ${WAN_TABLE} > /dev/null 2>&1`);
