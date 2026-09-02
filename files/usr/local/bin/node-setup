@@ -238,14 +238,7 @@ if (!isNatMode() || cfg.wan_proto != "disabled") {
     deleteme.lan_gw = true;
 }
 
-// lan_dhcp sense is inverted in the dhcp config file
-// and it is a checkbox so it may not be defined - this fixes that
-if (cfg.lan_dhcp == "1") {
-    cfg.lan_dhcp = 0;
-}
-else {
-    cfg.lan_dhcp = 1;
-}
+cfg.lan_dhcp_not = cfg.lan_dhcp == "1" ? "0" : "1";
 
 // handle possible remote syslog
 const remote_log = cm.get("aredn", "@remotelog[0]", "url") || "";
@@ -1345,7 +1338,7 @@ for (let file in nfiles) {
         }
         for (let p in r) {
             const p3 = split(p, ".");
-            if (p === "any" || specials[p] != oc.get(p3[0], p3[1], p3[2])) {
+            if (p === "any" || sprintf("%J", specials[p]) != sprintf("%J", oc.get(p3[0], p3[1], p3[2]))) {
                 const c = r[p];
                 switch (type(c)) {
                     case "string":
