@@ -123,13 +123,26 @@ window.meshRender = function(first)
                     }
                 }
                 const srv = serv(ip, hostname);
-                data += `<div class="node"><div class="host" data-search="${hostname.toLowerCase()}"><div class="name"><a href="http://${hostname}.local.mesh">${hostname}</a><span class="etx">${item[1]}</span></div>${srv == "" ? "" : '<div class="services">' + srv + '</div>'}</div>${lanview ? '<div class="lanhosts">' + lanview + '</div>' : ''}</div>`;
+                data += `<div class="node"><div class="host" data-search="${hostname.toLowerCase()}"><div class="name"><a href="http://${hostname}.local.mesh">${hostname}</a><span class="etx">${item[1]}</span><div class="tools">
+                <a target="_blank" title="Ping ${hostname}" href="http://localnode.local.mesh/a/tools/e/ping?target=${hostname}"><div class="icon bolt"></div></a>
+                <a target="_blank" title="Traceroute to ${hostname}" href="http://localnode.local.mesh/a/tools/e/traceroute?target=${hostname}"><div class="icon plane"></div></a>
+                <a target="_blank" title="Bandwidth test ${hostname}" href="http://localnode.local.mesh/a/tools/e/iperf3?target=${hostname}"><div class="icon twoarrow"></div></a>
+                </div></div>${srv == "" ? "" : '<div class="services">' + srv + '</div>'}</div>${lanview ? '<div class="lanhosts">' + lanview + '</div>' : ''}</div>`;
             }
         }
     }
     page.innerHTML = data + "</div>";
     if (first) {
         document.querySelector("input[type=search]").focus();
+        fetch("http://localnode.local.mesh/a/whoami", { credentials: "include" }).then(r => {
+            if (r.ok) {
+                r.json().then(j => {
+                    if (j.toolURL) {
+                        htmx.find("#meshpage").classList.add("enabletools");
+                    }
+                });
+            }
+        });
     }
     cfilter = null;
     doFilter();

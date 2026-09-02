@@ -32,8 +32,13 @@
  * version
  */
 %}
+{%
+response.headers["Access-Control-Allow-Origin"] = request.headers.origin ?? "*";
+const isSafari = match(request.env.HTTP_USER_AGENT, / safari\//i);
+%}
 {{ {
     name: configuration.getName(),
     authenticated: auth.isAdmin,
-    portableTheme: auth.isAdmin && uci.get("aredn", "@theme[0]", "portable") === "1" ? true : false
+    portableTheme: auth.isAdmin && uci.get("aredn", "@theme[0]", "portable") === "1" ? true : false,
+    toolURL: auth.isAdmin || isSafari
 } }}
