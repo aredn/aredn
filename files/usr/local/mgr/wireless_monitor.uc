@@ -243,7 +243,7 @@ return waitForTicks(max(1, 180 - clock(true)[0]), function()
     // No station when we start
     const now = clock(true)[0];
 
-    map(devices, device => {
+    for (let device in devices) {
         // Extract all the necessary wifi parameters
         const config = radios.getActiveConfiguration();
         for (let i = 0; i < length(config); i++) {
@@ -318,7 +318,7 @@ return waitForTicks(max(1, 180 - clock(true)[0]), function()
             lastZero: 0,
             lastNonZero: 0
         };
-    });
+    }
 
     return waitForTicks(0, main);
 });
