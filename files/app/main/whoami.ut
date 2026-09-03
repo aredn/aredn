@@ -32,6 +32,9 @@
  * version
  */
 %}
+{%
+response.headers["Access-Control-Allow-Origin"] = request.headers.origin ?? "*";
+%}
 {{ {
     name: configuration.getName(),
     authenticated: auth.isAdmin,

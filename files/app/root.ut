@@ -151,11 +151,11 @@ fs.writefile(lockfile, "");
 
 global._R = function(path, arg)
 {
-    const tpath = `${config.application}/partial/${path}.ut`;
-    const fn = pageCache[tpath] || loadfile(tpath, { raw_mode: false });
     let old = inner;
     let r = "";
     try {
+        const tpath = `${config.application}/partial/${path}.ut`;
+        const fn = pageCache[tpath] || loadfile(tpath, { raw_mode: false });
         inner = arg;
         r = render(fn);
     }
@@ -459,8 +459,10 @@ const rePath = /^\/([-a-z]*)(.*)$/;
 global.handle_request = function(env)
 {
     const path = match(env.PATH_INFO, rePath);
-    const page = path[1] || "status";
+    let page = path[1] || "status";
     const secured = index(path[2], "/e/") === 0;
+    const tool = path[1] === "tools" && !env.headers["hx-current-url"];
+    let dialog = null;
 
     if (path[2] == "" || secured) {
         let tpath;
@@ -481,12 +483,17 @@ global.handle_request = function(env)
                 f.close();
             }
         }
-        else if (secured) {
+        else if (secured && !tool) {
             tpath = `${config.application}/main${env.PATH_INFO}.ut`;
         }
         else if ((env.HTTP_HOST === "localnode" || env.HTTP_HOST === "localnode.local.mesh") && !env.headers["hx-boosted"]) {
-            uhttpd.send(`Status: 302 Found\r\nAccess-Control-Allow-Origin: *\r\nLocation: http://${configuration.getName()}.local.mesh${env.REQUEST_URI}\r\n\r\n`);
+            uhttpd.send(`Status: 302 Found\r\nAccess-Control-Allow-Origin: ${env.headers.origin || "*"}\r\nAccess-Control-Allow-Credentials: true\r\nLocation: http://${configuration.getName()}.local.mesh${env.REQUEST_URI}\r\n\r\n`);
             return;
+        }
+        else if (tool) {
+            tpath = `${config.application}/main/app.ut`;
+            page = "status";
+            dialog = `../main/tools/${path[2]}`;
         }
         else {
             tpath = `${config.application}/main/${page}.ut`;
@@ -495,7 +502,7 @@ global.handle_request = function(env)
             }
         }
 
-        const response = { statusCode: 200, headers: { "Content-Type": "text/html", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*" } };
+        const response = { statusCode: 200, headers: { "Content-Type": "text/html", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Credentials": true } };
         if (pageCache[tpath] || fs.access(tpath)) {
             auth.runAuthentication(env, response);
             if (config.authenable && !auth.isAdmin) {
@@ -596,6 +603,16 @@ global.handle_request = function(env)
                     parser.parse(v);
                 }
             }
+            if (env.QUERY_STRING) {
+                const v = split(env.QUERY_STRING, "&");
+                for (let i = 0; i < length(v); i++) {
+                    const kv = split(v[i], "=");
+                    const k = uhttpd.urldecode(kv[0]);
+                    if (!(k in args)) {
+                        args[k] = uhttpd.urldecode(kv[1]);
+                    }
+                }
+            }
             const fn = pageCache[tpath] || loadfile(tpath, { raw_mode: false });
             const isMobile = !!(config.forcemobile || match(env.HTTP_USER_AGENT, /iphone/i) || match(env.HTTP_USER_AGENT, /android.*mobile/i));
             let res = "";
@@ -612,7 +629,7 @@ global.handle_request = function(env)
                     config: config,
                     constants: constants,
                     versions: resourceVersions,
-                    request: { env: env, headers: env.headers, args: args, page: page, mobile: isMobile },
+                    request: { env: env, headers: env.headers, args: args, page: page, mobile: isMobile, dialog: dialog },
                     response: response,
                     uci: uciMethods,
                     uciMesh: uciMeshMethods,

@@ -69,7 +69,7 @@
     <title>{{configuration.getName()}} {{auth.isAdmin && request.page === "status" ? "admin" : request.page === "mesh-data" ? "mesh" : request.page}}</title>
 </head>
 <body class="{{auth.isAdmin ? "authenticated" : ""}} {{request.mobile ? "mobile" : ""}}" hx-indicator="body">
-    <dialog id="ctrl-modal" onclose="event.target.innerHTML = ''"></dialog>
+    <dialog id="ctrl-modal" onclose="event.target.innerHTML = ''">{{request.dialog ? _R(request.dialog) : ""}}</dialog>
     {% if (!request.mobile) { %}
     <div id="all">
         <div id="nav">
@@ -177,6 +177,9 @@
             }
             m.addEventListener("input", dialogDone);
             m.addEventListener("click", dialogDone);
+            {% if (request.dialog) { %}
+            history.replaceState(null, "", "/a/{{request.page}}");
+            {% } %}
         })();
     </script>
     {% } %}

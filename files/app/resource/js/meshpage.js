@@ -123,7 +123,11 @@ window.meshRender = function(first)
                     }
                 }
                 const srv = serv(ip, hostname);
-                data += `<div class="node"><div class="host" data-search="${hostname.toLowerCase()}"><div class="name"><a href="http://${hostname}.local.mesh">${hostname}</a><span class="etx">${item[1]}</span></div>${srv == "" ? "" : '<div class="services">' + srv + '</div>'}</div>${lanview ? '<div class="lanhosts">' + lanview + '</div>' : ''}</div>`;
+                data += `<div class="node"><div class="host" data-search="${hostname.toLowerCase()}"><div class="name"><a href="http://${hostname}.local.mesh">${hostname}</a><span class="etx">${item[1]}</span><div class="tools" hx-boost="true" hx-target="#ctrl-modal" hx-replace-url="false">
+                <a title="Ping ${hostname}" href="/a/tools/e/ping?target=${hostname}"><div class="icon bolt"></div></a>
+                <a title="Traceroute to ${hostname}" href="/a/tools/e/traceroute?target=${hostname}"><div class="icon plane"></div></a>
+                <a title="Bandwidth test ${hostname}" href="/a/tools/e/iperf3?target=${hostname}"><div class="icon twoarrow"></div></a>
+                </div></div>${srv == "" ? "" : '<div class="services">' + srv + '</div>'}</div>${lanview ? '<div class="lanhosts">' + lanview + '</div>' : ''}</div>`;
             }
         }
     }
