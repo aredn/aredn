@@ -87,13 +87,13 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn
 	cd $(OPENWRT_DIR); ./scripts/feeds install libopenldap
 	cd $(OPENWRT_DIR); ./scripts/feeds install libgnutls
-	cd $(OPENWRT_DIR); ./scripts/feeds install libnetsnmp
+	cd $(OPENWRT_DIR); ./scripts/feeds install libnetsnmp-nossl
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages dd-wrt-ath10k-firmware
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages prometheus-exporter
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages babel
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages arednlink
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages whenandwhere
-	cd $(OPENWRT_DIR); ./scripts/feeds install snmpd
+	cd $(OPENWRT_DIR); ./scripts/feeds install snmpd-nossl
 	cd $(OPENWRT_DIR); ./scripts/feeds install curl
 	cd $(OPENWRT_DIR); ./scripts/feeds install ntpclient
 	cd $(OPENWRT_DIR); ./scripts/feeds install socat
