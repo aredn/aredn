@@ -878,6 +878,7 @@ export function getEthernetPorts()
             return default5PortLayout;
         case "glinet,gl-a1300":
         case "glinet,gl-b1300":
+        case "glinet,gl-mt1300":
             return default3PortLayout;
         case "openwrt,one":
         case "cudy,tr3000-v1":
