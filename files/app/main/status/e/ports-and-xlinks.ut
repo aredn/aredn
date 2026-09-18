@@ -39,13 +39,13 @@ function loadPorts(type, def)
     if (!ports) {
         return json(sprintf("%J", def));
     }
-    const r = { vlan: null, ports: {} };
+    const r = { vlan: 0, ports: {} };
+    if (ports[0] === "none") {
+        return r;
+    }
     const pv = split(ports[0], ".");
     if (pv[1]) {
         r.vlan = int(pv[1]);
-    }
-    else {
-        r.vlan = 0;
     }
     for (let i = 0; i < length(ports); i++) {
         r.ports[split(ports[i], ".")[0]] = true;
@@ -145,15 +145,13 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 const c = nets[type];
                 const d = defnet[type];
                 if (sprintf("%J", c) == sprintf("%J", d)) {
-                    fs.writefile(`delete /tmp/${type}`, [c, d]);
                     configuration.setSettingAsList(`${type}_intf`, []);
                 }
                 else {
-                    fs.writefile(`diff /tmp/${type}`, [c, d]);
                     const vlan = c.vlan ? c.vlan : type == "lan" ? 3 : 1;
                     const tag = c.vlan ? `.${c.vlan}` : "";
                     const ports = map(keys(c.ports), port => `${port}${tag}`);
-                    configuration.setSettingAsList(`${type}_intf`, ports);
+                    configuration.setSettingAsList(`${type}_intf`, length(ports) ? ports : [ "none" ]);
                 }
             }
             savePort("wan");

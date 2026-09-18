@@ -120,11 +120,20 @@ switch (length(hardware.getEthernetPorts())) {
 if (jeq(def_wan_intf, wan_intf)) {
     wan_intf = "";
 }
+else if (length(wan_intf) === 0) {
+    wan_intf = [ "none" ];
+}
 if (jeq(def_lan_intf, lan_intf)) {
     lan_intf = "";
 }
+else if (length(lan_intf) === 0) {
+    lan_intf = [ "none" ];
+}
 if (jeq(def_dtdlink_intf, dtdlink_intf)) {
     dtdlink_intf = "";
+}
+else if (length(dtdlink_intf) === 0) {
+    dtdlink_intf = [ "none" ];
 }
 
 c.set("setup", "globals", "wan_intf", wan_intf);
