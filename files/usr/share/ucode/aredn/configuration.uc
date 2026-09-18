@@ -286,6 +286,9 @@ export function getActiveNetworkInterfaceNames(net)
     initSetup();
     const ports = scursor.get("setup", "globals", `${net}_intf`);
     if (ports) {
+        if (ports[0] === "none") {
+            return [];
+        }
         return ports;
     }
     return hardware.getBoardNetworkInterfaceName(net);
