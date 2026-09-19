@@ -33,6 +33,9 @@
 
 const BAD_COST = 65535;
 const MIN_LQ = 50;
+const TRIGGER_RESET = 2;
+
+let candidates = {};
 
 // This has too many false positives on supernodes
 if (uci.cursor().get("aredn", "@supernode[0]", "enable") === "1") {
@@ -64,14 +67,23 @@ function main()
     for (let i = 0; i < length(neighbors); i++) {
         const n = neighbors[i];
         if (n.cost === BAD_COST && n.lq >= MIN_LQ && ping(n)) {
-            reset = true;
-            break;
+            if (!candidates[n.ipv6address]) {
+                candidates[n.ipv6address] = 0;
+            }
+            candidates[n.ipv6address]++;
+            if (candidates[n.ipv6address] >= TRIGGER_RESET) {
+                reset = true;
+            }
+        }
+        else {
+            delete candidates[n.ipv6address];
         }
     }
 
     if (reset) {
         log.syslog(log.LOG_ERR, "Hard restarting babel to reset sequence number");
         system("/usr/local/bin/restart-services --force --ignore-reboot babel-hard > /dev/null 2>&1", 20000);
+        candidates = {};
         return waitForTicks(60 * 60); // 1 hour
     }
     else {
