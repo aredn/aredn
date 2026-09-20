@@ -98,7 +98,9 @@ do
       touch /tmp/mgr/$srv
     elif [ $srv = "babel-hard" ]; then
       /etc/init.d/babel stop > /dev/null 2>&1
-      rm -f /etc/state/babel-state
+      if [ -f /etc/state/babel-state ]; then
+        echo $((65535 & $(cat /etc/state/babel-state)+200)) > /etc/state/babel-state
+      fi
       /etc/init.d/babel start > /dev/null 2>&1
     elif [ $srv = "arednlink" ]; then
       /usr/local/bin/arednlink-update
