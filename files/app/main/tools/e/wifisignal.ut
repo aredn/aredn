@@ -87,25 +87,11 @@ if (request.env.REQUEST_METHOD === "PUT") {
     return;
 }
 lqm.reset();
-const trackers = lqm.getTrackers();
 const stations = fs.lsdir("/tmp/snrlog");
 for (let i = 0; i < length(stations); i++) {
     const s = stations[i];
-    let tracker = trackers[s] || trackers[replace(s, /^..:/, "fe:")];
-    if (tracker) {
-        stations[i] = { hostname: tracker.hostname, mac: s, ipv6ll: tracker.ipv6ll };
-    }
-    else {
-        const smac = split(s, ":");
-        const nmac = sprintf("%s:%s:%s:%s:%s:%02x", smac[0], smac[1], smac[2], smac[3], smac[4], 255 & (int(smac[5], 16) - 1));
-        tracker = trackers[nmac] || trackers[replace(nmac, /^..:/, "fe:")];
-        if (tracker) {
-            stations[i] = { hostname: tracker.hostname, mac: s, ipv6ll: tracker.ipv6ll };
-        }
-        else {
-            stations[i] = { hostname: null, mac: s, ipv6ll: null };
-        }
-    }
+    const tracker = lqm.getTrackerByMac(s);
+    stations[i] = { hostname: tracker?.hostname, mac: s, ipv6ll: tracker?.ipv6ll };
 }
 %}
 <div class="dialog wide">

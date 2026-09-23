@@ -68,3 +68,15 @@ export function reset()
 {
     lqm = null;
 };
+
+export function getTrackerByMac(mac, trackers)
+{
+    trackers = trackers ?? getTrackers();
+    let tracker = trackers[mac] || trackers[replace(mac, /^..:/, "fe:")];
+    if (!tracker) {
+        const smac = split(mac, ":");
+        const nmac = sprintf("%s:%s:%s:%s:%s:%02x", smac[0], smac[1], smac[2], smac[3], smac[4], 255 & (int(smac[5], 16) - 1));
+        tracker = trackers[nmac] || trackers[replace(nmac, /^..:/, "fe:")];
+    }
+    return tracker;
+};
