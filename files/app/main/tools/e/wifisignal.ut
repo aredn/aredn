@@ -35,6 +35,7 @@
 {%
 if (request.env.REQUEST_METHOD === "PUT") {
     const qmac = request.args.mac;
+    const qipv6ll = request.args.ipv6ll;
 
     const signals = {};
     const noises = [];
@@ -43,12 +44,15 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const devices = radios.getMeshRadios();
     for (let i = 0; i < length(devices); i++) {
         if (qmac === "average") {
-            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: devices[i].iface });
-            if (type(info) === "array") {
-                for (let i = 0; i < length(info); i++) {
-                    signals[info[i].mac] = info[i].sta_info.signal_avg;
+            const wlans = [ devices[i].iface, ...map(fs.glob(`/sys/class/net/${devices[i].iface}.sta*`), w => fs.basename(w)) ];
+            for (let w = 0; w < length(wlans); w++) {
+                const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
+                if (type(info) === "array") {
+                    for (let i = 0; i < length(info); i++) {
+                        signals[info[i].mac] = info[i].sta_info.signal_avg;
+                    }
+                    push(noises, hardware.getRadioNoise(devices[i].iface));
                 }
-                push(noises, hardware.getRadioNoise(devices[i].iface));
             }
         }
         else {
@@ -70,7 +74,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
 
     const response = { s: signals, n: noise };
     if (dev) {
-        const ipv6ll = network.mac2ipv6ll(qmac);
+        const ipv6ll = qipv6ll || network.mac2ipv6ll(qmac);
         const wifimac = trim(fs.readfile(`/sys/class/net/${dev.iface}/address`));
         const f = fs.popen(`/bin/uclient-fetch -T 1 http://[${ipv6ll}%${dev.main}]/a/s-snr?mac=${wifimac} -O - 2>/dev/null`);
         if (f) {
@@ -92,7 +96,21 @@ const trackers = lqm.getTrackers();
 const stations = fs.lsdir("/tmp/snrlog");
 for (let i = 0; i < length(stations); i++) {
     const s = stations[i];
-    stations[i] = { hostname: trackers[s]?.hostname, mac: s };
+    let tracker = trackers[s] || trackers[replace(s, /^..:/, "fe:")];
+    if (tracker) {
+        stations[i] = { hostname: tracker.hostname, mac: s, ipv6ll: tracker.ipv6ll };
+    }
+    else {
+        const smac = split(s, ":");
+        const nmac = sprintf("%s:%s:%s:%s:%s:%02x", smac[0], smac[1], smac[2], smac[3], smac[4], 255 & (int(smac[5], 16) - 1));
+        tracker = trackers[nmac] || trackers[replace(nmac, /^..:/, "fe:")];
+        if (tracker) {
+            stations[i] = { hostname: tracker.hostname, mac: s, ipv6ll: tracker.ipv6ll };
+        }
+        else {
+            stations[i] = { hostname: null, mac: s, ipv6ll: null };
+        }
+    }
 }
 %}
 <div class="dialog wide">
@@ -106,13 +124,13 @@ for (let i = 0; i < length(stations); i++) {
             <div style="flex:0">
                 <select id="wifi-device">
                     {% if (length(stations) !== 1) { %}
-                    <option value="average">Average</option>
+                    <option value="mac=average&ipv6ll=">Average</option>
                     {% } %}
                     {%
                         for (let i = 0; i < length(stations); i++) {
                             const s = stations[i];
                             if (s) {
-                                print(`<option value="${s.mac}">${s.hostname || s.mac}</option>`);
+                                print(`<option value="mac=${s.mac}&ipv6ll=${s.ipv6ll ?? ''}">${s.hostname || s.mac}</option>`);
                             }
                         }
                     %}
@@ -251,7 +269,7 @@ for (let i = 0; i < length(stations); i++) {
             return `${Math.min(100, 100 * (v - low) / range)}%`;
         }
         function reset() {
-            last = device.value;
+            last = device.value.match(/^mac=(.+)&/)[1];
             smax = sf;
             smin = st;
             rsmax = sf;
@@ -282,10 +300,10 @@ for (let i = 0; i < length(stations); i++) {
             const r = await fetch(`{{request.env.REQUEST_URI}}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: `mac=${device.value}`
+                body: device.value
             });
             const j = await r.json();
-            if (last !== device.value) {
+            if (last !== device.value.match(/^mac=(.+)&/)[1]) {
                 reset();
             }
             let s = j.s[last];
