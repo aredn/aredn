@@ -191,10 +191,10 @@ function deviceToType(device, mac)
     if (device == "br-dtdlink") {
         return "DtD";
     }
-    else if (substr(device, 0, 4) === "wlan") {
+    else if (substr(device, 0, 4) === "wlan" || device === "br-wifi") {
         return "RF";
     }
-    else if (device === "br-wifi" || device === "br-fast" || device === "br-lan") {
+    else if (device === "br-fast" || device === "br-lan") {
         return "RRF";
     }
     else if (substr(device, 0, 2) === "wg") {
