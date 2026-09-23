@@ -371,12 +371,7 @@ function main()
             const stations = hardware.getStations(device.wlan);
             for (let i = 0; i < length(stations); i++) {
                 const station = stations[i];
-                let track = trackers[station.mac] || trackers[replace(station.mac, /^..:/, "fe:")];
-                if (!track) {
-                    const smac = split(station.mac, ":");
-                    const nmac = sprintf("%s:%s:%s:%s:%s:%02x", smac[0], smac[1], smac[2], smac[3], smac[4], 255 & (int(smac[5], 16) - 1));
-                    track = trackers[nmac] || trackers[replace(nmac, /^..:/, "fe:")];
-                }
+                const track = lqm.getTrackerByMac(station.mac, trackers);
                 if (track) {
                     track.type = "RF";
                     track.subdevice = station.dev;
