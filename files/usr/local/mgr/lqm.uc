@@ -271,6 +271,7 @@ function main()
             }
         });
         cursor.foreach("network", "bridge-vlan", section => {
+            const name = section[".name"];
             if (substr(name, 0, 3) === "rrf") {
                 rwifi[section.vlan] = true;
             }
@@ -372,7 +373,12 @@ function main()
                 const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
                 for (let i = 0; i < length(stations); i++) {
                     const station = stations[i];
-                    const track = trackers[station.mac] || trackers[replace(station.mac, /^..:/, "fe:")];
+                    let track = trackers[station.mac] || trackers[replace(station.mac, /^..:/, "fe:")];
+                    if (!track) {
+                        const smac = split(station.mac, ":");
+                        const nmac = sprintf("%s:%s:%s:%s:%s:%02x", smac[0], smac[1], smac[2], smac[3], smac[4], 255 & (int(smac[5], 16) - 1));
+                        track = trackers[nmac] || trackers[replace(nmac, /^..:/, "fe:")];
+                    }
                     if (track) {
                         track.type = "RF";
                         track.subdevice = wlans[w];
