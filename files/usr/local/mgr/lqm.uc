@@ -367,40 +367,37 @@ function main()
             // NOTE. THE nl80211 api report bitrates x10 so we need to reduce this by 10 here.
             const chanbw = int(cursor.get("wireless", device.radio, "chanbw") || "20");
             const channelBwScale = (device.type === "halow" ? 1 : min(20, chanbw)) / 200.0;
-            const wlans = [ device.wlan, ...map(fs.glob(`/sys/class/net/${device.wlan}.sta*`), w => fs.basename(w)) ];
             const band = hardware.getDefaultChannel(device.wlan)?.band;
-            for (let w = 0; w < length(wlans); w++) {
-                const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
-                for (let i = 0; i < length(stations); i++) {
-                    const station = stations[i];
-                    let track = trackers[station.mac] || trackers[replace(station.mac, /^..:/, "fe:")];
-                    if (!track) {
-                        const smac = split(station.mac, ":");
-                        const nmac = sprintf("%s:%s:%s:%s:%s:%02x", smac[0], smac[1], smac[2], smac[3], smac[4], 255 & (int(smac[5], 16) - 1));
-                        track = trackers[nmac] || trackers[replace(nmac, /^..:/, "fe:")];
+            const stations = hardware.getStations(device.wlan);
+            for (let i = 0; i < length(stations); i++) {
+                const station = stations[i];
+                let track = trackers[station.mac] || trackers[replace(station.mac, /^..:/, "fe:")];
+                if (!track) {
+                    const smac = split(station.mac, ":");
+                    const nmac = sprintf("%s:%s:%s:%s:%s:%02x", smac[0], smac[1], smac[2], smac[3], smac[4], 255 & (int(smac[5], 16) - 1));
+                    track = trackers[nmac] || trackers[replace(nmac, /^..:/, "fe:")];
+                }
+                if (track) {
+                    track.type = "RF";
+                    track.subdevice = station.dev;
+                    track.band = band;
+                    track.signal = station.sta_info.signal;
+                    track.tx_packets = station.sta_info.tx_packets;
+                    track.tx_retries = station.sta_info.tx_retries;
+                    track.tx_fail = station.sta_info.tx_failed;
+                    if (station.sta_info.tx_bitrate) {
+                        track.tx_bitrate = station.sta_info.tx_bitrate.bitrate * channelBwScale;
                     }
-                    if (track) {
-                        track.type = "RF";
-                        track.subdevice = wlans[w];
-                        track.band = band;
-                        track.signal = station.sta_info.signal;
-                        track.tx_packets = station.sta_info.tx_packets;
-                        track.tx_retries = station.sta_info.tx_retries;
-                        track.tx_fail = station.sta_info.tx_failed;
-                        if (station.sta_info.tx_bitrate) {
-                            track.tx_bitrate = station.sta_info.tx_bitrate.bitrate * channelBwScale;
-                        }
-                        if (station.sta_info.rx_bitrate) {
-                            track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
-                        }
-                        if (track.snr !== null) {
-                            track.snr = max(0, round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg)));
-                        }
-                        else {
-                            track.snr = max(0, track.signal - noise);
-                        }
-                        track.connected_time = station.sta_info.connected_time;
+                    if (station.sta_info.rx_bitrate) {
+                        track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
                     }
+                    if (track.snr !== null) {
+                        track.snr = max(0, round(track.snr * snr_run_avg + (track.signal - noise) * (1 - snr_run_avg)));
+                    }
+                    else {
+                        track.snr = max(0, track.signal - noise);
+                    }
+                    track.connected_time = station.sta_info.connected_time;
                 }
             }
         });

@@ -44,19 +44,14 @@ if (request.env.REQUEST_METHOD === "PUT") {
     const devices = radios.getMeshRadios();
     for (let i = 0; i < length(devices); i++) {
         if (qmac === "average") {
-            const wlans = [ devices[i].iface, ...map(fs.glob(`/sys/class/net/${devices[i].iface}.sta*`), w => fs.basename(w)) ];
-            for (let w = 0; w < length(wlans); w++) {
-                const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
-                if (type(info) === "array") {
-                    for (let i = 0; i < length(info); i++) {
-                        signals[info[i].mac] = info[i].sta_info.signal_avg;
-                    }
-                    push(noises, hardware.getRadioNoise(devices[i].iface));
-                }
+            const info = hardware.getStations(devices[i].iface);
+            for (let i = 0; i < length(info); i++) {
+                signals[info[i].mac] = info[i].sta_info.signal_avg;
             }
+            push(noises, hardware.getRadioNoise(devices[i].iface));
         }
         else {
-            const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: devices[i].iface, mac: qmac });
+            const info = hardware.getStation(devices[i].iface, qmac);
             if (info && info.mac === qmac) {
                 dev = devices[i];
                 signals[info.mac] = info.sta_info.signal_avg;

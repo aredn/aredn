@@ -113,7 +113,7 @@ function monitorUnresponsiveStations(device)
     // Dont check the status of blocked stations
     map(split(uci.cursor("/etc/config.mesh").get("aredn", "@lqm[0]", "user_blocks"), ","), mac => blocks[lc(mac)] = true);
 
-    const stations = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }) ?? [];
+    const stations = hardware.getStations(device.iface);
     for (let i = 0; i < length(stations); i++) {
         if (!blocks[stations[i].mac]) {
             const ipv6ll = network.mac2ipv6ll(stations[i].mac);
@@ -141,7 +141,7 @@ function monitorUnresponsiveStations(device)
 
 function monitorStationCount(device)
 {
-    const count = length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }) ?? []);
+    const count = length(hardware.getStations(device.iface));
     const now = clock(true)[0];
     if (count == 0) {
         device.stationCount.lastZero = now;
@@ -297,12 +297,12 @@ return waitForTicks(max(1, 180 - clock(true)[0]), function()
         log.syslog(log.LOG_NOTICE, `Monitoring wireless chipset: ${device.chipset}`);
 
         // Sometimes the halow radio is there but not hearing anything. Restart it to be safe.
-        if (hardware.getRadioType(device.iface) === "halow" && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }))) {
+        if (hardware.getRadioType(device.iface) === "halow" && !length(hardware.getStations(device.iface))) {
             resetNetwork(device, "restart");
         }
 
         // Mikrotik devices sometime startup deaf, so handle that
-        if (device.chipset === "ath10k" && index(hardware.getBoardModel().id, "mikrotik") === 0 && !length(nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: device.iface }))) {
+        if (device.chipset === "ath10k" && index(hardware.getBoardModel().id, "mikrotik") === 0 && !length(hardware.getStations(device.iface))) {
             resetNetwork(device, "zero-hard");
         }
 
