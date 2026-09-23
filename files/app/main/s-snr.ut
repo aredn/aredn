@@ -40,7 +40,7 @@ let noise = -95;
 const mac = substr(request.env.QUERY_STRING || "", 4) || "00:00:00:00:00:00:";
 const devices = radios.getMeshRadios();
 for (let i = 0; i < length(devices); i++) {
-    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: devices[i].iface, mac: mac });
+    const info = hardware.getStation(devices[i].iface, mac);
     if (info) {
         signal = info.sta_info.signal_avg;
         const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: devices[i].iface });

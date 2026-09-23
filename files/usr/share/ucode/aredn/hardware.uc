@@ -652,6 +652,24 @@ export function getRadioNoise(wifiIface)
     return -95;
 };
 
+export function getStations(wifiIface)
+{
+    const stations = [];
+    const wlans = [ wifiIface, ...map(fs.glob(`/sys/class/net/${wifiIface}.sta*`), w => fs.basename(w)) ];
+    for (let w = 0; w < length(wlans); w++) {
+        const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
+        if (type(info) === "array") {
+            push(stations, ...info);
+        }
+    }
+    return stations;
+};
+
+export function getStation(wifiIface, macAddress)
+{
+    return nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: wifiIface, mac: macAddress });
+};
+
 export function getCurrentFrequency(wifiIface)
 {
     const iface = nl80211.request(nl80211.const.NL80211_CMD_GET_INTERFACE, nl80211.const.NLM_F_DUMP, { dev: wifiIface });
