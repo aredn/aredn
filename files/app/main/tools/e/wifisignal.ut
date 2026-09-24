@@ -278,9 +278,12 @@ for (let i = 0; i < length(stations); i++) {
                 clearInterval(timer);
                 return;
             }
-            const r = await fetch(`{{request.env.REQUEST_URI}}`, {
+            const r = await fetch("{{request.env.REQUEST_URI}}", {
                 method: "PUT",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "HX-Current-URL": "{{request.env.REQUEST_URI}}"
+                },
                 body: device.value
             });
             const j = await r.json();

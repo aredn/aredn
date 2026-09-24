@@ -461,7 +461,7 @@ global.handle_request = function(env)
     const path = match(env.PATH_INFO, rePath);
     let page = path[1] || "status";
     const secured = index(path[2], "/e/") === 0;
-    const tool = path[1] === "tools" && !env.headers["hx-current-url"] && path[2] !== "/e/wifisignal";
+    const tool = path[1] === "tools" && !env.headers["hx-current-url"];
     let dialog = null;
 
     if (path[2] == "" || secured) {
