@@ -672,8 +672,21 @@ export function getStation(wifiIface, macAddress)
 
 export function getCurrentFrequency(wifiIface)
 {
-    const iface = nl80211.request(nl80211.const.NL80211_CMD_GET_INTERFACE, nl80211.const.NLM_F_DUMP, { dev: wifiIface });
-    return iface?.[0]?.wiphy_freq;
+    switch (getRadioType(wifiIface)) {
+        case "none":
+            return null;
+        case "halow":
+            const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} channel -j`);
+            if (p) {
+                const all = p.read("all");
+                p.close();
+                return json(all).channel_frequency / 1000;
+            }
+            return null;
+        default:
+            const iface = nl80211.request(nl80211.const.NL80211_CMD_GET_INTERFACE, nl80211.const.NLM_F_DUMP, { dev: wifiIface });
+            return iface?.[0]?.wiphy_freq;
+    }
 };
 
 export function getMaxDistance(wifiIface)

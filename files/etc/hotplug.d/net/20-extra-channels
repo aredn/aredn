@@ -2,11 +2,15 @@
 
 . /lib/functions.sh
 
-CTRL="/var/run/wpa_supplicant"
-
 if [ "${ACTION}" = "add" -a "$(uci -q get wireless.${DEVICENAME}.network)" = "wifi" -a "$(uci -q get wireless.${DEVICENAME}.mode)" = "sta" ]; then
     radio=$(echo ${DEVICENAME} | sed s/wlan/radio/)
     channels="$(uci -q -c /etc/config.mesh get setup.globals.${radio}_channels)"
+    WPA_CLI="/usr/sbin/wpa_cli"
+    CTRL="/var/run/wpa_supplicant"
+    if [ "$(uci -q get wireless.${radio}.band)" = "s1g" ]; then
+        WPA_CLI="/usr/sbin/wpa_cli_s1g"
+        CTRL="/var/run/wpa_supplicant_s1g"
+    fi
     if [ "${channels}" != "${channels#* }" ]; then
         # Wait for the socket to become available
         count=0
@@ -18,15 +22,15 @@ if [ "${ACTION}" = "add" -a "$(uci -q get wireless.${DEVICENAME}.network)" = "wi
             # Once it is, add the ssids for the channel selection
             bandwidth="$(uci -q -c /etc/config.mesh get setup.globals.${radio}_bandwidth)"
             ssid="$(uci -q -c /etc/config.mesh get setup.globals.${radio}_ssid)"
-            wpa_cli -i "${DEVICENAME}" -p "${CTRL}" remove_network all
+            ${WPA_CLI} -i "${DEVICENAME}" -p "${CTRL}" remove_network all
             for channel in ${channels}
             do
-                id=$(wpa_cli -i "${DEVICENAME}" -p "${CTRL}" add_network | tail -1)
-                wpa_cli -i "${DEVICENAME}" -p "${CTRL}" set_network "${id}" ssid "\"${ssid}-${channel}-${bandwidth}-v3\""
-                wpa_cli -i "${DEVICENAME}" -p "${CTRL}" set_network "${id}" key_mgmt NONE
-                wpa_cli -i "${DEVICENAME}" -p "${CTRL}" enable_network "${id}"
+                id=$(${WPA_CLI} -i "${DEVICENAME}" -p "${CTRL}" add_network | tail -1)
+                ${WPA_CLI} -i "${DEVICENAME}" -p "${CTRL}" set_network "${id}" ssid "\"${ssid}-${channel}-${bandwidth}-v3\""
+                ${WPA_CLI} -i "${DEVICENAME}" -p "${CTRL}" set_network "${id}" key_mgmt NONE
+                ${WPA_CLI} -i "${DEVICENAME}" -p "${CTRL}" enable_network "${id}"
             done
-            wpa_cli -i "${DEVICENAME}" -p "${CTRL}" reassociate
+            ${WPA_CLI} -i "${DEVICENAME}" -p "${CTRL}" reassociate
         fi
     fi
 fi
