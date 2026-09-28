@@ -640,7 +640,7 @@ export function getRadioNoise(wifiIface)
         }
     }
     if (getRadioType(wifiIface) === "halow") {
-        const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} stats | grep 'Noise (dBm)'`);
+        const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} stats 2>/dev/null | grep 'Noise (dBm)'`);
         if (p) {
             const m = match(p.read("all"), /: (-\d+)/);
             p.close();
@@ -676,11 +676,15 @@ export function getCurrentFrequency(wifiIface)
         case "none":
             return null;
         case "halow":
-            const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} channel -j`);
+            const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} channel -j 2>/dev/null`);
             if (p) {
                 const all = p.read("all");
                 p.close();
-                return json(all).channel_frequency / 1000;
+                try {
+                    return json(all).channel_frequency / 1000;
+                }
+                catch (_) {
+                }
             }
             return null;
         default:
@@ -695,7 +699,7 @@ export function getMaxDistance(wifiIface)
         case "none":
             return -1;
         case "halow":
-            const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} get ack_timeout_adjust`);
+            const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} get ack_timeout_adjust 2>/dev/null`);
             if (p) {
                 const ack = p.read("all");
                 p.close();
