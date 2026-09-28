@@ -701,11 +701,14 @@ export function getMaxDistance(wifiIface)
         case "halow":
             const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} get ack_timeout_adjust 2>/dev/null`);
             if (p) {
-                const ack = p.read("all");
+                const ack = trim(p.read("all"));
                 p.close();
-                return (int(ack) - 300) / 0.0067;
+                const iack = int(ack);
+                if (ack == iack) {
+                    return (iack - 300) / 0.0067;
+                }
             }
-            return -1;
+            return 0;
         default:
             const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(getPhyDevice(wifiIface), 3)) });
             return info.wiphy_coverage_class * 450;
