@@ -46,13 +46,12 @@ done
 
 #
 # Setup cake on each physical interface so they'll respect the QoS marks on general and tunneled packets
-# We can only do this is we have sufficient memory as cake uses a fair bit
+# We can only do this is we have sufficient memory as cake uses a fair bit. Don't do it on wifi drivers
+# as they have their own queuing mechanism built-in.
 #
 for i in /sys/class/net/*/device; do
   dev=$(basename ${i%/device})
-  if [ -d /sys/class/net/${dev}/device/morse -a "$(tc qdisc show dev ${dev} | grep pfifo_fast)" == "" ]; then
-    tc qdisc replace dev ${dev} root pfifo_fast
-  elif [ "$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)" -gt 65536 -a "$(tc qdisc show dev ${dev} | grep cake)" == "" ]; then
+  if [ "${dev#wlan}" = "${dev}" -a "$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)" -gt 65536 -a "$(tc qdisc show dev ${dev} | grep cake)" == "" ]; then
     tc qdisc replace dev ${dev} root cake diffserv4 nowash ack-filter nat
   fi
 done
