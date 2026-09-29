@@ -86,6 +86,19 @@
             </div>
         </div>
     </div>
+    <script>
+        (function(){
+            function closePopups(e) {
+                const a = document.querySelectorAll(".popup-menu input[type=checkbox]:checked");
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== e.target) {
+                        a[i].checked = false;
+                    }
+                }
+            }
+            document.body.addEventListener("click", closePopups);
+        })();
+    </script>
     {% } else { %}
     <div id="m-all">
         <div id="m-title">
