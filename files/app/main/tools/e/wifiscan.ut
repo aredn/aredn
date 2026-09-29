@@ -305,6 +305,11 @@ else {
         to get a complete list of visible nodes.
     </span>
     {% } %}
+    {% if (!can_scan && !request.mobile) { %}
+    <span style="padding:10px;font-size:calc(var(--font-base-size) - 2px);color:var(--ctrl-modal-fg-help-color)">
+        Scanning in this configuration only lets you see the currently connected nodes.
+    </span>
+    {% } %}
     <div class="cols" style="padding-top:6px">
         <div>Last Scan: {{scan_time}}</div>
         {% if (count > 1) { %}
