@@ -31,10 +31,6 @@
  * version
  */
 
-const WAN_TABLE = 28;
-const WAN_IFACE = "br-wan";
-const PATT = regexp(`default via ([0-9\.]+) dev ${WAN_IFACE}`);
-
 const c = uci.cursor();
 
 const mesh_to_local_wan = c.get("aredn", "@wan[0]", "mesh_to_local_wan");
@@ -54,6 +50,10 @@ if (mon2) {
 if (! (length(addresses) > 0 && (mesh_to_local_wan == "1" || lan_to_local_wan == "1") && wan_passthrough == "0" && wan_mode != "disabled") ) {
     return exitApp();
 }
+
+const WAN_TABLE = 28;
+const WAN_IFACE = c.get("setup", "globals", "radio0_mode") == "wan" ? "wlan0" : c.get("setup", "globals", "radio1_mode") == "wan" ? "wlan1" : "br-wan";
+const PATT = regexp(`default via ([0-9\.]+) dev ${WAN_IFACE}`);
 
 let last_gw = null;
 
