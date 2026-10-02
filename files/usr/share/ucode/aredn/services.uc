@@ -71,7 +71,7 @@ export function get(validate)
             for (let i = 0; i < length(aliases); i++) {
                 const m = match(aliases[i], /([^ \t]+)[ \t]+([^ \t]+)/);
                 if (m) {
-                    push(hosts, { ip: m[1], host: `${m[2]}${index(m[2], ".") === -1 ? "" : ".local.mesh"}` });
+                    push(hosts, { ip: m[1], host: `${m[2]}${index(m[2], ".") === -1 ? "" : ".local.mesh"}`, prop: true });
                 }
             }
         }
