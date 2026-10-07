@@ -1,0 +1,15 @@
+--- /dev/null
++++ b/target/linux/generic/pending-6.12/112-ipq40xx-firmware-reboot.patch
+@@ -0,0 +1,12 @@
++--- a/drivers/firmware/qcom/qcom_scm.c
+++++ b/drivers/firmware/qcom/qcom_scm.c
++@@ -2036,7 +2036,8 @@
++ 	 * will cause the boot stages to enter download mode, unless
++ 	 * disabled below by a clean shutdown/reboot.
++ 	 */
++-	qcom_scm_set_download_mode(download_mode);
+++	if (download_mode)
+++		qcom_scm_set_download_mode(download_mode);
++ 
++ 	/*
++ 	 * Disable SDI if indicated by DT that it is enabled by default.
