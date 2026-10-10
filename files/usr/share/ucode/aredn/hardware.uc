@@ -249,115 +249,174 @@ export function getChannelFromFrequency(wifiIface, freq)
     return getChannelFromRadioFrequency(getRadioIntf(wifiIface), freq);
 };
 
+// hostapd only accepts these as the lower channel of a 5 GHz HT40 pair
+// (allowed_ht40_channel_pair(), IEEE 802.11n Annex J). VHT/HE 80 and 160 on
+// 5 GHz also need a valid HT40 pair, so this limits those widths too.
+const HT40_FIRST = {
+    "36": true, "44": true, "52": true, "60": true, "100": true, "108": true,
+    "116": true, "124": true, "132": true, "140": true, "149": true,
+    "157": true, "165": true, "173": true, "184": true, "192": true
+};
+
+// Can freq be the primary of a width MHz channel?
+//
+// Kernel rules (cfg80211_chandef_valid/usable): the primary is one of the
+// 20 MHz subchannels, and every subchannel exists, is enabled and does not
+// carry the prohibiting flag. Alignment is only enforced on 6 GHz.
+//
+// hostapd rules, applied when ht40_rules is set (5 GHz): the 40 MHz half of
+// the block that holds the primary must be an allowed HT40 pair, and the
+// primary must allow HT40 in that direction (no_ht40_plus/no_ht40_minus).
+function bondOK(fmap, freq, width, flag, ht40_rules)
+{
+    for (let start = freq - width + 10; start <= freq - 10; start += 20) {
+        if (width == 40 || ht40_rules) {
+            const pair_lo = start + int((freq - 10 - start) / 40) * 40 + 10;
+            const pflag = (freq == pair_lo) ? "no_ht40_plus" : "no_ht40_minus";
+
+            if ((fmap["" + freq][pflag]) || (ht40_rules && !HT40_FIRST[`${(pair_lo - 5000) / 5}`])) {
+                continue;
+            }
+        }
+
+        let ok = true;
+        for (let f = start + 10; f < start + width; f += 20) {
+            const c = fmap["" + f];
+            if (!c || c.disabled || (flag && c[flag])) {
+                ok = false;
+                break;
+            }
+        }
+        if (ok) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function getWiFiChannels(wifiIface)
 {
     const channels = [];
-    const info = nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, 0, { wiphy: int(substr(getPhyDevice(wifiIface), 3)) });
-    if (!info) {
-        return [];
-    }
-    let best = { band: 0, count: 0 };
-    for (let i = 0; i < length(info.wiphy_bands); i++) {
-        const f = info.wiphy_bands[i]?.freqs;
-        let count = 0;
-        for (let j = 0; j < length(f); j++) {
-            if (!f[j].disabled) {
-                count++;
-            }
-        }
-        if (count > best.count) {
-            best.band = i;
-            best.count = count;
-        }
-    }
-    const freqs = info.wiphy_bands[best.band].freqs;
-    let freq_adjust = (f) => f.freq;
+    const phy = getPhyDevice(wifiIface);
+
+    // Setup special adjustment rules for radios which reports as one thing when they're really something else.
+    const ax = isAX(phy);
+    let freq_adjust = (f) => f;
     let freq_min = 0;
     let freq_max = 0x7FFFFFFF;
     const radio = getRadioIntf(wifiIface);
     if (radio.band === "3ghz") {
-        freq_adjust = (f) => f.freq - 2000;
+        freq_adjust = (f) => f - 2000;
         freq_min = 3380;
         freq_max = 3495;
     }
     else if (radio.band === "900mhz") {
-        freq_adjust = (f) => f.freq - 1520;
+        freq_adjust = (f) => f - 1520;
         freq_min = 907;
         freq_max = 922;
     }
-    else if (isAX(getPhyDevice(wifiIface)) && freqs[0].freq < 2412) {
-        freq_min = 2412;
+    else if (ax) {
+        freq_min = 2412; // Prevent -ve channels which AX doesn't support.
     }
     const exclude = radio.exclude_channels;
-    for (let i = 0; i < length(freqs); i++) {
-        const f = freqs[i];
-        if (!f.disabled) {
-            const freq = freq_adjust(f);
-            if (freq >= freq_min && freq <= freq_max) {
-                const num = getChannelFromRadioFrequency(radio, freq);
-                if (!exclude || index(exclude, num) === -1) {
-                    push(channels, {
-                        label: num != freq ? num + " (" + freq + ")" : "" + freq,
-                        number: num,
-                        frequency: freq
-                    });
+
+    for (let w in nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, nl80211.const.NLM_F_DUMP, { split_wiphy_dump: true })) {
+        if (w.wiphy_name === phy) {
+            for (let bi, band in w.wiphy_bands) {
+                if (band?.freqs && bi != 2 && bi != 3 && bi != 4) { // Band index: 0 = 2.4 GHz, 1 = 5 GHz, 2 = 60 GHz, 3 = 6 GHz, 4 = S1G
+                    // Hardware capabilities
+                    const is5g = (bi == 1);
+                    const ap = filter(band.iftype_data ?? [], i => i.iftypes?.ap)[0];
+                    const he = ap?.he_cap_phy?.[0] ?? 0;
+                    const ht40 = !!((band.ht_capa ?? 0) & 0x2) || !!(he & 0x6);
+                    const vht80 = band.vht_capa != null || !!(he & 0x4);
+                    const vht160 = (band.vht_capa != null && ((band.vht_capa >> 2) & 3)) || !!(he & 0x8);
+
+                    const fmap = {};
+                    for (let f in band.freqs) {
+                        fmap["" + f.freq] = f;
+                    }
+
+                    for (let c in band.freqs) {
+                        const freq = freq_adjust(c.freq);
+                        if (!c.disabled && !c.no_20mhz && freq >= freq_min && freq <= freq_max) {
+                            const number = getChannelFromRadioFrequency(radio, freq);
+                            if (!exclude || index(exclude, number) === -1) {
+                                const widths = ax ? [ 20 ] : [ 5, 10, 20 ];
+                                if (ht40 && bondOK(fmap, freq, 40, null, is5g)) {
+                                    push(widths, 40);
+                                }
+                                if (bi != 0) {
+                                    if (vht80 && bondOK(fmap, freq, 80, "no_80mhz", is5g)) {
+                                        push(widths, 80);
+                                    }
+                                    if (vht160 && bondOK(fmap, freq, 160, "no_160mhz", is5g)) {
+                                        push(widths, 160);
+                                    }
+                                }
+                                push(channels, { number: number, frequency: freq, label: number != freq ? `${number} (${freq})` : `${freq}`, widths: widths });
+                            }
+                        }
+                    }
                 }
             }
         }
     }
-    sort(channels, (a, b) => a.frequency - b.frequency);
     return channels;
 }
 
 const halowChannels = [
-    { label: "1 (902.5)",  number: 1, frequency: 902.5 },
-    { label: "2 (903)",    number: 2, frequency: 903.0 },
-    { label: "3 (903.5)",  number: 3, frequency: 903.5 },
-    { label: "5 (904.5)",  number: 5, frequency: 904.5 },
-    { label: "6 (905)",    number: 6, frequency: 905.0 },
-    { label: "7 (905.5)",  number: 7, frequency: 905.5 },
-    { label: "8 (906)",    number: 8, frequency: 906.0 },
-    { label: "9 (906.5)",  number: 9, frequency: 906.5 },
-    { label: "10 (907)",   number: 10, frequency: 907.0 },
-    { label: "11 (907.5)", number: 11, frequency: 907.5 },
-    { label: "12 (908)",   number: 12, frequency: 908.0 },
-    { label: "13 (908.5)", number: 13, frequency: 908.5 },
-    { label: "14 (909)",   number: 14, frequency: 909.0 },
-    { label: "15 (909.5)", number: 15, frequency: 909.5 },
-    { label: "16 (910)",   number: 16, frequency: 910.0 },
-    { label: "17 (910.5)", number: 17, frequency: 910.5 },
-    { label: "18 (911)",   number: 18, frequency: 911.0 },
-    { label: "19 (911.5)", number: 19, frequency: 911.5 },
-    { label: "21 (912.5)", number: 21, frequency: 912.5 },
-    { label: "22 (913)",   number: 22, frequency: 913.0 },
-    { label: "23 (913.5)", number: 23, frequency: 913.5 },
-    { label: "24 (914)",   number: 24, frequency: 914.0 },
-    { label: "25 (914.5)", number: 25, frequency: 914.5 },
-    { label: "26 (915)",   number: 26, frequency: 915.0 },
-    { label: "27 (915.5)", number: 27, frequency: 915.5 },
-    { label: "28 (916)",   number: 28, frequency: 916.0 },
-    { label: "29 (916.5)", number: 29, frequency: 916.5 },
-    { label: "30 (917)",   number: 30, frequency: 917.0 },
-    { label: "31 (917.5)", number: 31, frequency: 917.5 },
-    { label: "32 (918)",   number: 32, frequency: 918.0 },
-    { label: "33 (918.5)", number: 33, frequency: 918.5 },
-    { label: "34 (919)",   number: 34, frequency: 919.0 },
-    { label: "35 (919.5)", number: 35, frequency: 919.5 },
-    { label: "37 (920.5)", number: 37, frequency: 920.5 },
-    { label: "38 (921)",   number: 38, frequency: 921.0 },
-    { label: "39 (921.5)", number: 39, frequency: 921.5 },
-    { label: "40 (922)",   number: 40, frequency: 922.0 },
-    { label: "41 (922.5)", number: 41, frequency: 922.5 },
-    { label: "42 (923)",   number: 42, frequency: 923.0 },
-    { label: "43 (923.5)", number: 43, frequency: 923.5 },
-    { label: "44 (924)",   number: 44, frequency: 924.0 },
-    { label: "45 (924.5)", number: 45, frequency: 924.5 },
-    { label: "46 (925)",   number: 46, frequency: 925.0 },
-    { label: "47 (925.5)", number: 47, frequency: 925.5 },
-    { label: "48 (926)",   number: 48, frequency: 926.0 },
-    { label: "49 (926.5)", number: 49, frequency: 926.5 },
-    { label: "50 (927)",   number: 50, frequency: 927.0 },
-    { label: "51 (927.5)", number: 51, frequency: 927.5 }
+    { label: "1 (902.5)",  number: 1,  frequency: 902.5, widths: [] },
+    { label: "2 (903)",    number: 2,  frequency: 903.0, widths: [] },
+    { label: "3 (903.5)",  number: 3,  frequency: 903.5, widths: [] },
+    { label: "4 (904)",    number: 4,  frequency: 904.0, widths: [ 4 ] },
+    { label: "5 (904.5)",  number: 5,  frequency: 904.5, widths: [ 1 ] },
+    { label: "6 (905)",    number: 6,  frequency: 905.0, widths: [ 2 ] },
+    { label: "7 (905.5)",  number: 7,  frequency: 905.5, widths: [ 1 ] },
+    { label: "8 (906)",    number: 8,  frequency: 906.0, widths: [ 4 ] },
+    { label: "9 (906.5)",  number: 9,  frequency: 906.5, widths: [ 1 ] },
+    { label: "10 (907)",   number: 10, frequency: 907.0, widths: [ 2 ] },
+    { label: "11 (907.5)", number: 11, frequency: 907.5, widths: [ 1 ] },
+    { label: "12 (908)",   number: 12, frequency: 908.0, widths: [ 8 ] },
+    { label: "13 (908.5)", number: 13, frequency: 908.5, widths: [ 1 ] },
+    { label: "14 (909)",   number: 14, frequency: 909.0, widths: [ 2 ] },
+    { label: "15 (909.5)", number: 15, frequency: 909.5, widths: [ 1 ] },
+    { label: "16 (910)",   number: 16, frequency: 910.0, widths: [ 4 ] },
+    { label: "17 (910.5)", number: 17, frequency: 910.5, widths: [ 1 ] },
+    { label: "18 (911)",   number: 18, frequency: 911.0, widths: [ 2 ] },
+    { label: "19 (911.5)", number: 19, frequency: 911.5, widths: [ 1 ] },
+    { label: "20 (912)",   number: 20, frequency: 912.0, widths: [] },
+    { label: "21 (912.5)", number: 21, frequency: 912.5, widths: [ 1 ] },
+    { label: "22 (913)",   number: 22, frequency: 913.0, widths: [ 2 ] },
+    { label: "23 (913.5)", number: 23, frequency: 913.5, widths: [ 1 ] },
+    { label: "24 (914)",   number: 24, frequency: 914.0, widths: [ 4 ] },
+    { label: "25 (914.5)", number: 25, frequency: 914.5, widths: [ 1 ] },
+    { label: "26 (915)",   number: 26, frequency: 915.0, widths: [ 2 ] },
+    { label: "27 (915.5)", number: 27, frequency: 915.5, widths: [ 1 ] },
+    { label: "28 (916)",   number: 28, frequency: 916.0, widths: [ 8 ] },
+    { label: "29 (916.5)", number: 29, frequency: 916.5, widths: [ 1 ] },
+    { label: "30 (917)",   number: 30, frequency: 917.0, widths: [ 2 ] },
+    { label: "31 (917.5)", number: 31, frequency: 917.5, widths: [ 1 ] },
+    { label: "32 (918)",   number: 32, frequency: 918.0, widths: [ 4 ] },
+    { label: "33 (918.5)", number: 33, frequency: 918.5, widths: [ 1 ] },
+    { label: "34 (919)",   number: 34, frequency: 919.0, widths: [ 2 ] },
+    { label: "35 (919.5)", number: 35, frequency: 919.5, widths: [ 1 ] },
+    { label: "36 (920)",   number: 36, frequency: 920.0, widths: [] },
+    { label: "37 (920.5)", number: 37, frequency: 920.5, widths: [ 1 ] },
+    { label: "38 (921)",   number: 38, frequency: 921.0, widths: [ 2 ] },
+    { label: "39 (921.5)", number: 39, frequency: 921.5, widths: [ 1 ] },
+    { label: "40 (922)",   number: 40, frequency: 922.0, widths: [ 4 ] },
+    { label: "41 (922.5)", number: 41, frequency: 922.5, widths: [ 1 ] },
+    { label: "42 (923)",   number: 42, frequency: 923.0, widths: [ 2 ] },
+    { label: "43 (923.5)", number: 43, frequency: 923.5, widths: [ 1 ] },
+    { label: "44 (924)",   number: 44, frequency: 924.0, widths: [ 8 ] },
+    { label: "45 (924.5)", number: 45, frequency: 924.5, widths: [ 1 ] },
+    { label: "46 (925)",   number: 46, frequency: 925.0, widths: [ 2 ] },
+    { label: "47 (925.5)", number: 47, frequency: 925.5, widths: [ 1 ] },
+    { label: "48 (926)",   number: 48, frequency: 926.0, widths: [] },
+    { label: "49 (926.5)", number: 49, frequency: 926.5, widths: [ 1 ] },
+    { label: "50 (927)",   number: 50, frequency: 927.0, widths: [] },
+    { label: "51 (927.5)", number: 51, frequency: 927.5, widths: [] }
 ];
 
 function getHaLowChannels(wifiIface)
