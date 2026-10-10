@@ -46,24 +46,6 @@ export const RADIO_WAN = "wan";
 
 let radioCache = null;
 
-const bandsAvailable = {
-    "2.4GHz": {
-        "20": [ -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]
-    },
-    "5GHz": {
-        "20": [ 32, 36, 40, 44, 60, 68, 96, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165, 169, 173, 177, 181, 182, 183 ],
-        "40": [ 36, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ],
-        "80": [ 36, 100, 108, 116, 124, 132, 140, 149, 157, 165, 173 ],
-        "160": [ 36, 100, 149 ]
-    },
-    "HaLow": {
-        "1": [ 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49 ],
-        "2": [ 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46 ],
-        "4": [ 4, 8, 16, 24, 32, 40 ],
-        "8": [ 12, 28, 44 ]
-    }
-};
-
 export function getCommonConfiguration()
 {
     if (radioCache) {
@@ -94,23 +76,16 @@ export function getCommonConfiguration()
                 managedOOB: [ -4, -3, -2, -1, 0 ]
             };
             // Calculate which channels are available at which bandwidths
-            const avail = bandsAvailable[r.def.band] ?? {};
             const channels = hardware.getRfChannels(iface);
             for (let b = 0; b < length(r.bws); b++) {
-                const bw = `${r.bws[b]}`;
-                const a = avail[bw];
-                if (a) {
-                    r.channels[bw] = [];
-                    const c = r.channels[bw];
-                    for (let j = 0; j < length(channels); j++) {
-                        const ch = channels[j];
-                        if (index(a, ch.number) !== -1) {
-                            push(c, ch);
-                        }
+                const bw = r.bws[b];
+                const c = [];
+                r.channels[`${bw}`] = c;
+                for (let j = 0; j < length(channels); j++) {
+                    const ch = channels[j];
+                    if (index(ch.widths, bw) !== -1) {
+                        push(c, ch);
                     }
-                }
-                else {
-                    r.channels[bw] = channels;
                 }
             }
             push(radio, r);
