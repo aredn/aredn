@@ -384,7 +384,7 @@ function main()
                     if (station.sta_info.tx_bitrate && station.sta_info.tx_bitrate.bitrate > 60) {
                         track.tx_bitrate = station.sta_info.tx_bitrate.bitrate * channelBwScale;
                     }
-                    if (station.sta_info.rx_bitrate) {
+                    if (station.sta_info.rx_bitrate && station.sta_info.rx_bitrate.bitrate > 60) {
                         track.rx_bitrate = station.sta_info.rx_bitrate.bitrate * channelBwScale;
                     }
                     if (track.snr !== null) {
