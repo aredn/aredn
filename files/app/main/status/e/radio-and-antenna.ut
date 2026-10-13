@@ -69,7 +69,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     chan = chanfilter[length(chanfilter) - 1] + 1;
                 }
                 configuration.setSettingAsString("radio0_channel", chan);
-                configuration.setSettingAsString("radio0_channels", []);
+                configuration.setSettingAsList("radio0_channels", []);
             }
             if ("radio0_channel" in request.args) {
                 let channel = request.args.radio0_channel;
@@ -103,7 +103,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_LAN:
             if (configuration.setSettingAsString("radio0_mode", radio0_mode)) {
                 configuration.setSettingAsString("radio0_channel", wlan[0].mode.channel || wlan[0].def.channel);
-                configuration.setSettingAsString("radio0_channels", []);
+                configuration.setSettingAsList("radio0_channels", []);
                 if (hexdec(configuration.getSettingAsString("radio0_ssid")) === null) {
                     configuration.setSettingAsString("radio0_ssid", hexenc("AREDN-LAN"));
                     configuration.setSettingAsString("radio0_encryption", "none");
@@ -112,7 +112,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             }
             if ("radio0_channel" in request.args) {
                 configuration.setSettingAsString("radio0_channel", request.args.radio0_channel);
-                configuration.setSettingAsString("radio0_channels", []);
+                configuration.setSettingAsList("radio0_channels", []);
             }
             if ("radio0_password" in request.args) {
                 configuration.setSettingAsString("radio0_key", hexenc(request.args.radio0_password));
@@ -162,7 +162,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
                     chan = chanfilter[length(chanfilter) - 1] + 1;
                 }
                 configuration.setSettingAsString("radio1_channel", chan);
-                configuration.setSettingAsString("radio1_channels", []);
+                configuration.setSettingAsList("radio1_channels", []);
             }
             if ("radio1_channel" in request.args) {
                 let channel = request.args.radio1_channel;
@@ -196,7 +196,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         case radios.RADIO_LAN:
             if (configuration.setSettingAsString("radio1_mode", radio1_mode)) {
                 configuration.setSettingAsString("radio1_channel", wlan[1].mode.channel || wlan[1].def.channel);
-                configuration.setSettingAsString("radio1_channels", []);
+                configuration.setSettingAsList("radio1_channels", []);
                 if (hexdec(configuration.getSettingAsString("radio1_ssid")) === null) {
                     configuration.setSettingAsString("radio1_ssid", hexenc("AREDN-LAN"));
                     configuration.setSettingAsString("radio1_encryption", "none");
@@ -205,7 +205,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
             }
             if ("radio1_channel" in request.args) {
                 configuration.setSettingAsString("radio1_channel", request.args.radio1_channel);
-                configuration.setSettingAsString("radio1_channels", []);
+                configuration.setSettingAsList("radio1_channels", []);
             }
             if ("radio1_password" in request.args) {
                 configuration.setSettingAsString("radio1_key", hexenc(request.args.radio1_password));
