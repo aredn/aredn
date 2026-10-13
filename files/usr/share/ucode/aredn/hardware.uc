@@ -296,7 +296,7 @@ function bondOK(fmap, freq, width, flag, ht40_rules)
 
 function getWiFiChannels(wifiIface)
 {
-    const channels = [];
+    let channels = [];
     const phy = getPhyDevice(wifiIface);
 
     // Setup special adjustment rules for radios which reports as one thing when they're really something else.
@@ -337,6 +337,7 @@ function getWiFiChannels(wifiIface)
                         fmap["" + f.freq] = f;
                     }
 
+                    const nchannels = [];
                     for (let c in band.freqs) {
                         const freq = freq_adjust(c.freq);
                         if (!c.disabled && !c.no_20mhz && freq >= freq_min && freq <= freq_max) {
@@ -354,9 +355,12 @@ function getWiFiChannels(wifiIface)
                                         push(widths, 160);
                                     }
                                 }
-                                push(channels, { number: number, frequency: freq, label: number != freq ? `${number} (${freq})` : `${freq}`, widths: widths });
+                                push(nchannels, { number: number, frequency: freq, label: number != freq ? `${number} (${freq})` : `${freq}`, widths: widths });
                             }
                         }
+                    }
+                    if (length(nchannels) > length(channels)) {
+                        channels = nchannels;
                     }
                 }
             }
