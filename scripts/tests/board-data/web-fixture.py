@@ -25,7 +25,7 @@ def run(request):
                     missingShadow=request.get('missingShadow', False))
         inputs = temp/'input.json'
         inputs.write_text(json.dumps(data))
-        process = subprocess.run([UCODE, '-L', str(ROOT/'files/usr/share/ucode'),
+        process = subprocess.run([UCODE, *(['-L', os.environ['UCODE_FS_PATH']] if os.environ.get('UCODE_FS_PATH') else []), '-L', str(ROOT/'files/usr/share/ucode'),
                                   str(ROOT/'scripts/tests/board-data/web-fixture.uc'), str(inputs)],
                                  capture_output=True, text=True, check=True)
         return json.loads(process.stdout)

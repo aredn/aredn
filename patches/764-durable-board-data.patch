@@ -1,0 +1,178 @@
+diff --git a/package/base-files/files/bin/board_detect b/package/base-files/files/bin/board_detect
+index c4910cb..f05946a 100755
+--- a/package/base-files/files/bin/board_detect
++++ b/package/base-files/files/bin/board_detect
+@@ -1,22 +1,24 @@
+ #!/bin/sh
+ 
+-REAL_CFG=$1
++REAL_CFG=${1:-/etc/board.json}
++WRITER=/usr/local/bin/aredn-board-write
+ 
+-[ -n "$REAL_CFG" ] || REAL_CFG=/etc/board.json
++"$WRITER" check "$REAL_CFG" && exit 0
++[ -d /etc/board.d ] || exit 1
+ 
+-if [ -d "/etc/board.d/" ] && [ ! -s "$REAL_CFG" ]; then
+-	# Use temp file to prevent incomplete file on power-cut, CFG is used by the sourced script to read/write the file
+-	CFG="$(dirname "$REAL_CFG")/.$(basename "$REAL_CFG").tmp"
+-	rm -f "$CFG" || exit
+-	for a in $(ls /etc/board.d/*); do
+-		[ -s "$a" ] || continue
+-		(. "$a")
+-	done
+-fi
++# Unique same-filesystem staging; no incomplete file is ever the live board.
++STAGE=$(mktemp -d "$(dirname "$REAL_CFG")/.board-detect-XXXXXX") || exit 1
++CFG="$STAGE/board.json"
++cleanup() {
++	rm -f "$CFG" "$CFG.lock"
++	rmdir "$STAGE"
++}
++trap cleanup EXIT
++trap 'exit 1' HUP INT TERM
++for a in /etc/board.d/*; do
++	[ -s "$a" ] || continue
++	(. "$a") || exit 1
++done
+ 
+-if [ -s "$CFG" ]; then
+-	mv "$CFG" "$REAL_CFG" || exit
+-else
+-	rm -f "$CFG"
+-	exit 1
+-fi
++# Lock and recheck the destination so a concurrent repair is not overwritten.
++"$WRITER" install-if-invalid "$REAL_CFG" "$CFG"
+diff --git a/package/base-files/files/lib/functions/uci-defaults.sh b/package/base-files/files/lib/functions/uci-defaults.sh
+index f77ce4a..57a7d3f 100644
+--- a/package/base-files/files/lib/functions/uci-defaults.sh
++++ b/package/base-files/files/lib/functions/uci-defaults.sh
+@@ -794,7 +794,7 @@ ucidef_set_interface_netdev_range() {
+ 
+ board_config_update() {
+ 	json_init
+-	[ -f ${CFG} ] && json_load "$(cat ${CFG})"
++	[ ! -f "$CFG" ] || json_load "$(cat "$CFG")" || exit 1
+ 
+ 	# auto-initialize model id and name if applicable
+ 	if ! json_is_a model object; then
+@@ -808,5 +808,8 @@ board_config_update() {
+ }
+ 
+ board_config_flush() {
+-	json_dump -i -o ${CFG}
++	# Many board.d scripts end with exit 0; abort here on a failed generation/write.
++	local data
++	data="$(json_dump -i)" || exit 1
++	printf '%s\n' "$data" | /usr/local/bin/aredn-board-write stdin "$CFG" || exit 1
+ }
+diff --git a/package/base-files/files/lib/preinit/82_config_generate b/package/base-files/files/lib/preinit/82_config_generate
+index e40448d..853cb79 100644
+--- a/package/base-files/files/lib/preinit/82_config_generate
++++ b/package/base-files/files/lib/preinit/82_config_generate
+@@ -5,8 +5,8 @@ do_config_generate() {
+ 		[ -f /etc/uci-defaults/30_uboot-envtools ] && (. /etc/uci-defaults/30_uboot-envtools)
+ 
+ 		echo "- generating board file -"
+-		/bin/board_detect /tmp/board.json
+-		mv /tmp/board.json /etc/board.json
++		/bin/board_detect /tmp/board.json || return 1
++		/usr/local/bin/aredn-board-write install-if-invalid /etc/board.json /tmp/board.json || return 1
+ 
+ 		/bin/config_generate > /dev/null
+ 	}
+diff --git a/package/network/config/wifi-scripts/files/etc/hotplug.d/ieee80211/10-wifi-detect b/package/network/config/wifi-scripts/files/etc/hotplug.d/ieee80211/10-wifi-detect
+index a9d5f70..a227ecf 100644
+--- a/package/network/config/wifi-scripts/files/etc/hotplug.d/ieee80211/10-wifi-detect
++++ b/package/network/config/wifi-scripts/files/etc/hotplug.d/ieee80211/10-wifi-detect
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ 
+ [ "${ACTION}" = "add" ] && [ -f /etc/board.json ] && {
+-	/sbin/wifi config
++	/sbin/wifi config || exit $?
+ 	ubus call network.wireless retry
+ }
+diff --git a/package/network/config/wifi-scripts/files/sbin/wifi b/package/network/config/wifi-scripts/files/sbin/wifi
+index 67a3ec7..9ae7ce2 100755
+--- a/package/network/config/wifi-scripts/files/sbin/wifi
++++ b/package/network/config/wifi-scripts/files/sbin/wifi
+@@ -62,7 +62,7 @@ wifi_detect_notice() {
+ }
+ 
+ wifi_config() {
+-	ucode /usr/share/hostap/wifi-detect.uc
++	ucode /usr/share/hostap/wifi-detect.uc || return $?
+ 	[ ! -f /etc/config/wireless ] && touch /etc/config/wireless
+ 	ucode /lib/wifi/mac80211.uc | uci -q batch
+ 
+diff --git a/package/network/config/wifi-scripts/files/usr/share/hostap/wifi-detect.uc b/package/network/config/wifi-scripts/files/usr/share/hostap/wifi-detect.uc
+index db862d4..db812e2 100644
+--- a/package/network/config/wifi-scripts/files/usr/share/hostap/wifi-detect.uc
++++ b/package/network/config/wifi-scripts/files/usr/share/hostap/wifi-detect.uc
+@@ -1,12 +1,23 @@
+ #!/usr/bin/env ucode
+ 'use strict';
+-import { readfile, writefile, realpath, glob, basename, unlink, open, rename } from "fs";
+-import { is_equal } from "/usr/share/hostap/common.uc";
++import { readfile, realpath, glob, basename } from "fs";
++import * as board from "aredn.board";
+ let nl = require("nl80211");
+ 
+ let board_file = "/etc/board.json";
+-let prev_board_data = json(readfile(board_file));
+-let board_data = json(readfile(board_file));
++// Serialize the complete read/modify/write cycle with recovery and detection.
++let lock = board.acquire(board_file);
++if (!lock) {
++	warn("Wi-Fi board-data update lock is unavailable\n");
++	exit(1);
++}
++let current = board.read(board_file);
++if (current.error) {
++	warn(`Wi-Fi board-data update failed: ${current.error}\n`);
++	lock.close();
++	exit(1);
++}
++let board_data = current.data;
+ 
+ function phy_idx(name) {
+ 	return +rtrim(readfile(`/sys/class/ieee80211/${name}/index`));
+@@ -85,7 +96,7 @@ function freq_range_match(ranges, freq) {
+ function wiphy_detect() {
+ 	let phys = nl.request(nl.const.NL80211_CMD_GET_WIPHY, nl.const.NLM_F_DUMP, { split_wiphy_dump: true });
+ 	if (!phys)
+-		return;
++		die("Could not obtain radio metadata");
+ 
+ 	for (let phy in phys) {
+ 		if (!phy)
+@@ -246,15 +257,16 @@ function wiphy_detect() {
+ 	}
+ }
+ 
+-cleanup();
+-wiphy_detect();
+-if (!is_equal(prev_board_data, board_data)) {
+-	let new_file = board_file + ".new";
+-	unlink(new_file);
+-	let f = open(new_file, "wx");
+-	if (!f)
+-		exit(1);
+-	f.write(sprintf("%.J\n", board_data));
+-	f.close();
+-	rename(new_file, board_file);
++try {
++	cleanup();
++	wiphy_detect();
++	let result = board.write(board_file, board_data);
++	if (result.status === "failed")
++		die(result.error);
++}
++catch (e) {
++	warn(`Wi-Fi board-data update failed: ${e.message}\n`);
++	lock.close();
++	exit(1);
+ }
++lock.close();

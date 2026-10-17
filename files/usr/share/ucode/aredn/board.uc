@@ -81,6 +81,92 @@ export function read(path)
     return error ? { error: error } : { data: data };
 };
 
+// All read-modify-write users must hold this lock until write() completes.
+export function acquire(path, lockfile)
+{
+    path = path || "/etc/board.json";
+    lockfile = lockfile || (path === "/etc/board.json" ? "/var/lock/aredn-board-data.lock" : `${path}.lock`);
+    fs.mkdir(fs.dirname(lockfile), 0755);
+    const handle = fs.open(lockfile, "we", 0600);
+    if (!handle) {
+        return null;
+    }
+    if (!handle.lock("xn")) {
+        handle.close();
+        return null;
+    }
+    return handle;
+};
+
+// Caller holds acquire(path). Never open the destination for truncation.
+export function write(path, data)
+{
+    const error = validate(data);
+    if (error) {
+        return { status: "failed", installed: false, error: error };
+    }
+    const text = sprintf("%.J\n", data);
+    const current = read(path);
+    if (!current.error && sprintf("%.J\n", current.data) === text) {
+        return { status: "unchanged", installed: false };
+    }
+    let directory;
+    let file;
+    let parent;
+    let installed = false;
+    let result;
+    try {
+        directory = fs.mkdtemp(`${fs.dirname(path)}/.board-write-XXXXXX`);
+        if (!directory) {
+            die("Could not create board-data staging directory");
+        }
+        const candidate = `${directory}/board.json`;
+        file = fs.open(candidate, "wxe", 0644);
+        if (!file) {
+            die("Could not create board-data candidate");
+        }
+        const written = file.write(text);
+        const synced = written === length(text) && file.sync();
+        const closed = file.close();
+        file = null;
+        if (written !== length(text) || !synced || !closed) {
+            die("Could not write and synchronize board-data candidate");
+        }
+        const checked = read(candidate);
+        if (checked.error || sprintf("%.J\n", checked.data) !== text) {
+            die("Board-data candidate failed readback validation");
+        }
+        if (!fs.rename(candidate, path)) {
+            die("Could not replace board metadata");
+        }
+        installed = true;
+        if (fs.rmdir(directory)) {
+            directory = null;
+        }
+        parent = fs.opendir(fs.dirname(path));
+        if (!parent) {
+            die("Board data installed but parent directory could not be opened");
+        }
+        const durable = parent.sync();
+        const closedParent = parent.close();
+        parent = null;
+        if (!durable || !closedParent) {
+            die("Board data installed but directory synchronization failed");
+        }
+        result = { status: "written", installed: true };
+    }
+    catch (e) {
+        result = { status: "failed", installed: installed, error: e.message };
+    }
+    if (file) { file.close(); }
+    if (parent) { parent.close(); }
+    if (directory) {
+        fs.unlink(`${directory}/board.json`);
+        fs.rmdir(directory);
+    }
+    return result;
+};
+
 // No network/UCI changes, service restarts, or recovery from a different device.
 // Options let isolated tests use temporary files and a synthetic detector.
 export function recover(options)
@@ -94,13 +180,9 @@ export function recover(options)
     if (!identity) {
         return { status: "failed", error: "Current board identity is unavailable" };
     }
-    const lock = fs.open(options.lockfile || "/var/lock/aredn-board-data.lock", "we", 0600);
+    const lock = acquire(path, options.lockfile);
     if (!lock) {
-        return { status: "failed", error: "Could not open board-data recovery lock" };
-    }
-    if (!lock.lock("xn")) {
-        lock.close();
-        return { status: "failed", error: "Board-data update is already in progress" };
+        return { status: "failed", error: "Could not acquire board-data update lock" };
     }
     let directory;
     let result;
@@ -139,20 +221,11 @@ export function recover(options)
             if (generated.error || generated.data.model.id !== identity) {
                 die("Generated board metadata is invalid or belongs to a different board");
             }
-            if (!fs.chmod(candidate, 0644)) {
-                die("Could not set board-data permissions");
+            const committed = options.commit ? options.commit(path, generated.data) : write(path, generated.data);
+            if (committed.status === "failed") {
+                die(committed.error);
             }
-            // ucode fs.flush() is fflush(), not fsync(). Keep both synchronization
-            // barriers until a per-file durable writer is available.
-            const sync = options.sync || (() => system([ "/bin/sync" ]) === 0);
-            if (!sync()) {
-                die("Could not synchronize generated board metadata");
-            }
-            if (!fs.rename(candidate, path)) {
-                die("Could not install generated board metadata");
-            }
-            result = sync() ? { status: "recovered" } :
-                { status: "failed", error: "Board metadata installed but synchronization failed" };
+            result = { status: "recovered" };
         }
     }
     catch (e) {
@@ -161,6 +234,7 @@ export function recover(options)
     if (directory) {
         fs.unlink(`${directory}/board.json`);
         fs.unlink(`${directory}/.board.json.tmp`);
+        fs.unlink(`${directory}/board.json.lock`);
         fs.rmdir(directory);
     }
     lock.close();

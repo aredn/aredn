@@ -31,22 +31,20 @@ fs.writefile(`${dir}/input.json`, sprintf("%J", {model:valid.model}));
 check("optional_network_and_wlan", !board.read(`${dir}/input.json`).error);
 
 let detected = 0;
-let synced = 0;
 const options = {
     path: `${dir}/board.json`, identity: valid.model.id,
     lockfile: `${dir}/board.lock`, evidence: `${dir}/invalid.json`,
-    detect: path => { detected++; return fs.writefile(path, good) === length(good); },
-    sync: () => { synced++; return true; }
+    detect: path => { detected++; return fs.writefile(path, good) === length(good); }
 };
 fs.writefile(options.path, good);
 let result = board.recover(options);
-check("healthy_is_read_only", result.status === "healthy" && detected === 0 && synced === 0 &&
+check("healthy_is_read_only", result.status === "healthy" && detected === 0 &&
     !fs.stat(options.evidence) && fs.readfile(options.path) === good);
 for (let item in [invalid[0], invalid[2]]) {
     fs.writefile(options.path, item[1]);
     result = board.recover(options);
     check(`recover_${item[0]}`, result.status === "recovered" &&
-        fs.readfile(options.path) === good && fs.readfile(options.evidence) === item[1]);
+        !board.read(options.path).error && fs.readfile(options.evidence) === item[1]);
 }
 fs.unlink(options.path);
 check("recover_missing", board.recover(options).status === "recovered");
@@ -55,7 +53,7 @@ for (let item in [
     ["detector_failure", {detect: () => false}],
     ["invalid_generated", {detect: path => { fs.writefile(path, "{}"); return true; }}],
     ["wrong_device", {identity: "different,board"}],
-    ["sync_failure", {sync: () => false}]
+    ["commit_failure", {commit: () => ({status:"failed",error:"injected commit failure"})}]
 ]) {
     fs.writefile(options.path, damaged);
     result = board.recover({...options,...item[1]});

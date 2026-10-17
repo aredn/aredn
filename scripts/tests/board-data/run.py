@@ -11,7 +11,7 @@ def check(name, condition):
     results.append({'name':name,'pass':bool(condition)})
     if not condition: raise AssertionError(name)
 with tempfile.TemporaryDirectory(prefix='aredn-board-native-') as directory:
-    p=subprocess.run([UCODE,'-L',str(ROOT/'files/usr/share/ucode'),str(HERE/'native.uc'),directory],capture_output=True,text=True)
+    p=subprocess.run([UCODE,*(['-L',os.environ['UCODE_FS_PATH']] if os.environ.get('UCODE_FS_PATH') else []),'-L',str(ROOT/'files/usr/share/ucode'),str(HERE/'native.uc'),directory],capture_output=True,text=True)
     if p.returncode: raise RuntimeError(p.stderr)
     results.extend(json.loads(p.stdout))
 check('reported_fixture_bytes_match',hashlib.sha256(b'\0'*1436).hexdigest()=='c3bf51869a4db89a6a6c3d459827243126e1b05a8235b11a29380c8eb692679d')
