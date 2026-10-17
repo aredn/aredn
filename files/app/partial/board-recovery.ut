@@ -1,0 +1,35 @@
+{%
+/* Part of AREDN. See LICENSE and AREDNLicense.txt. AI-assisted contribution.
+ * Deliberately independent of board metadata, normal templates, JS and CSS assets.
+ */
+%}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AREDN — board information unavailable</title>
+</head>
+<body>
+    <main>
+        <h1>Board information unavailable</h1>
+        <p>The normal interface cannot start safely. Configuration changes are disabled.</p>
+        {% if (admin) { %}
+        <p id="board-error">{{reason}}</p>
+        <p>Automatic recovery has not completed. Preserve the diagnostic information before restarting or upgrading.</p>
+        <p>From the node's management shell, run <code>/usr/local/bin/aredn-board-recover</code>.
+           If it reports recovery or healthy metadata, restart only the web server with
+           <code>/etc/init.d/uhttpd restart</code>.</p>
+        <p>Recovery regenerates this device's board information. It does not reset network settings.</p>
+        {% } else { %}
+        <p>Sign in with the node's administrator password to view recovery information.</p>
+        {% if (loginFailed) { %}<p role="alert">Sign-in failed.</p>{% } %}
+        <form method="post" action="/a/board-recovery">
+            <label for="password">Administrator password</label>
+            <input id="password" name="password" type="password" required autocomplete="current-password">
+            <button type="submit">Sign in</button>
+        </form>
+        {% } %}
+    </main>
+</body>
+</html>

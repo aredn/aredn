@@ -551,6 +551,7 @@ export function supportdata(supportdatafilename)
         "/proc/cpuinfo",
         "/proc/meminfo",
         "/etc/board.json",
+        "/tmp/aredn-board-data-invalid.json",
         "/etc/config",
         "/etc/config.mesh",
         "/etc/aredn_include",

@@ -34,6 +34,7 @@
 %}
 {%
 import * as config from "./config.uc";
+import * as board from "aredn.board";
 import * as fs from "fs";
 import * as math from "math";
 import * as uci from "uci";
@@ -57,6 +58,7 @@ import * as constants from "./constants.uc";
 const pageCache = {};
 const resourceVersions = {};
 const lockfile = "/tmp/ui.lock";
+const boardFailure = board.read().error;
 
 log.openlog("uhttpd.aredn", log.LOG_PID, log.LOG_USER);
 
@@ -83,7 +85,9 @@ if (config.preload) {
     cp("/main/");
     cp("/partial/");
 
-    radios.getCommonConfiguration(); // Expensive to generate, but constant
+    if (!boardFailure) {
+        radios.getCommonConfiguration(); // Expensive to generate, but constant
+    }
 }
 
 if (config.resourcehash) {
@@ -397,7 +401,7 @@ const auth = {
         }
     },
 
-    authenticate: function(password)
+    authenticate: function(password, authenticationResponse)
     {
         if (!this.isAdmin) {
             this.initKey();
@@ -407,7 +411,7 @@ const auth = {
                 const pwd = rtrim(f.read("all"));
                 f.close();
                 if (index(this.key, `root:${pwd}:`) === 0) {
-                    response.headers["Set-Cookie"] = this.getCookie();
+                    (authenticationResponse || response).headers["Set-Cookie"] = this.getCookie();
                     this.isAdmin = true;
                 }
             }
@@ -454,10 +458,61 @@ const utilMethods =
     }
 };
 
+// Keep the management endpoint usable without evaluating board-dependent pages.
+function handleBoardFailure(env)
+{
+    const response = { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } };
+    auth.isAdmin = false;
+    auth.isLAN = false;
+    // A missing password database must never make an invalid cookie compare
+    // equal to a missing key. Keep failure diagnostics private in that case.
+    auth.initKey();
+    const canAuthenticate = type(auth.key) === "string" && index(auth.key, "root:") === 0;
+    if (canAuthenticate) {
+        auth.runAuthentication(env, response);
+    }
+    let loginFailed = false;
+    if (canAuthenticate && !auth.isAdmin && env.REQUEST_METHOD === "POST" && env.PATH_INFO === "/board-recovery" &&
+        index(env.CONTENT_TYPE || "", "application/x-www-form-urlencoded") === 0 &&
+        int(env.CONTENT_LENGTH) > 0 && int(env.CONTENT_LENGTH) <= 4096) {
+        let data = "";
+        while (length(data) < int(env.CONTENT_LENGTH)) {
+            const part = uhttpd.recv(int(env.CONTENT_LENGTH) - length(data));
+            if (!part) {
+                break;
+            }
+            data += part;
+        }
+        if (length(data) === int(env.CONTENT_LENGTH)) {
+            for (let pair in split(data, "&")) {
+                const kv = split(pair, "=", 2);
+                if (kv[0] === "password") {
+                    const password = uhttpd.urldecode(replace(kv[1] || "", /\+/g, "%20"));
+                    if (type(password) === "string") {
+                        auth.authenticate(password, response);
+                    }
+                    break;
+                }
+            }
+        }
+        loginFailed = !auth.isAdmin;
+    }
+    const html = render("/app/partial/board-recovery.ut", {
+        admin: auth.isAdmin, loginFailed: loginFailed, reason: boardFailure
+    });
+    uhttpd.send("Status: 503 Service Unavailable\r\n",
+        join("", map(keys(response.headers), k => `${k}: ${response.headers[k]}\r\n`)),
+        `Content-Length: ${length(html)}\r\n\r\n`, html);
+}
+
 const rePath = /^\/([-a-z]*)(.*)$/;
 
 global.handle_request = function(env)
 {
+    if (boardFailure) {
+        handleBoardFailure(env);
+        return;
+    }
     const path = match(env.PATH_INFO, rePath);
     let page = path[1] || "status";
     const secured = index(path[2], "/e/") === 0;
