@@ -22,7 +22,9 @@ def run(request):
                    CONTENT_LENGTH='0', REMOTE_ADDR='192.0.2.2', headers={})
         env.update(request.get('env', {}))
         data = dict(board=str(board), template=str(template), env=env, body=request.get('body', ''),
-                    missingShadow=request.get('missingShadow', False))
+                    missingShadow=request.get('missingShadow', False),
+                    resourcehash=request.get('resourcehash', True),
+                    assetsUnavailable=request.get('assetsUnavailable', False))
         inputs = temp/'input.json'
         inputs.write_text(json.dumps(data))
         process = subprocess.run([UCODE, *(['-L', os.environ['UCODE_FS_PATH']] if os.environ.get('UCODE_FS_PATH') else []), '-L', str(ROOT/'files/usr/share/ucode'),

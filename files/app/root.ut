@@ -62,12 +62,14 @@ const boardFailure = board.read().error;
 
 log.openlog("uhttpd.aredn", log.LOG_PID, log.LOG_USER);
 
-fs.writefile(`${config.application}/resource/css/themes/default.css`, `${fs.readfile(`${config.application}/resource/css/themes/light.css`)}@media (prefers-color-scheme: dark) {\n${fs.readfile(`${config.application}/resource/css/themes/dark.css`)}\n}`);
-if (!fs.access(`${config.application}/resource/css/theme.css`)) {
-    fs.symlink("themes/default.css", `${config.application}/resource/css/theme.css`);
+if (!boardFailure) {
+    fs.writefile(`${config.application}/resource/css/themes/default.css`, `${fs.readfile(`${config.application}/resource/css/themes/light.css`)}@media (prefers-color-scheme: dark) {\n${fs.readfile(`${config.application}/resource/css/themes/dark.css`)}\n}`);
+    if (!fs.access(`${config.application}/resource/css/theme.css`)) {
+        fs.symlink("themes/default.css", `${config.application}/resource/css/theme.css`);
+    }
 }
 
-if (config.preload) {
+if (!boardFailure && config.preload) {
     function cp(path) {
         const dir = fs.opendir(`${config.application}${path}`);
         for (;;) {
@@ -85,12 +87,10 @@ if (config.preload) {
     cp("/main/");
     cp("/partial/");
 
-    if (!boardFailure) {
-        radios.getCommonConfiguration(); // Expensive to generate, but constant
-    }
+    radios.getCommonConfiguration(); // Expensive to generate, but constant
 }
 
-if (config.resourcehash) {
+if (!boardFailure && config.resourcehash) {
     function prepareResource(id, resource)
     {
         const path = `${config.application}/resource/${resource}`;
@@ -129,7 +129,7 @@ if (config.resourcehash) {
     fs.unlink(`${config.application}/resource/css/theme.version`);
     fs.symlink(cthemeversion, `${config.application}/resource/css/theme.version`);
 }
-else {
+else if (!boardFailure) {
     let dir = fs.lsdir(`${config.application}/resource/css`);
     for (let i = 0; i < length(dir); i++) {
         if (match(dir[i], /\.gz$/)) {
@@ -151,7 +151,9 @@ else {
     fs.unlink(`${config.application}/resource/css/theme.version`);
 }
 
-fs.writefile(lockfile, "");
+if (!boardFailure) {
+    fs.writefile(lockfile, "");
+}
 
 global._R = function(path, arg)
 {

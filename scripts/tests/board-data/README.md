@@ -7,7 +7,7 @@ AI-assisted AREDN work for https://github.com/aredn/aredn/issues/2963.
 - `aredn.board` checks JSON syntax, board identity, and the object shape of network/radio metadata. It does not manufacture hardware defaults.
 - `board-data` runs once at boot, before the normal boot service runs Wi-Fi detection. Healthy metadata is a no-op. Invalid data is preserved in `/tmp/aredn-board-data-invalid.json`; generation runs against a private candidate, with a ten-second detector timeout. Candidates must match `/tmp/sysinfo/board_name`. Installation is by same-filesystem rename after validation. A nonblocking lock prevents overlapping recovery attempts.
 - There is no last-good snapshot fallback across firmware versions: regeneration on the same device avoids restoring stale port/radio layouts. No UCI settings or running network/radio services are changed by the recovery helper.
-- The UI uses the existing administrator credentials/cookie handling for an asset-independent diagnostic page. Both anonymous and authenticated configuration requests receive HTTP 503 while metadata is invalid. Login is a bounded POST, not a password in a URL. A missing password database fails closed.
+- The UI uses the existing administrator credentials/cookie handling for an asset-independent diagnostic page. Invalid metadata bypasses normal template preload, theme generation, asset hashing/cleanup and the regular UI lock file; the standalone fallback template remains required. Both anonymous and authenticated configuration requests receive HTTP 503 while metadata is invalid. Login is a bounded POST, not a password in a URL. A missing password database fails closed.
 - `getBoard()` reports invalid metadata explicitly rather than silently returning an empty board. The web startup path detects that condition before radio preload.
 - The writer follow-up replaces the initial `/bin/sync` barriers with checked `file.sync()` and `dir.sync()` operations, supplied by the small pinned-ucode patch. `fs.flush()` alone is only `fflush()` and is not a durability barrier.
 
@@ -55,6 +55,12 @@ UCODE=/path/to/ucode UCODE_FS_PATH=/path/to/patched/modules python3 scripts/test
 The fixture reproduces the exact 1,436-zero-byte board file reported in #2963, verified by SHA-256; it contains no node-specific data. Cases include malformed/missing data, healthy no-op, wrong-device candidates, detector and synchronization failures, and competing recovery attempts.
 
 The complete `root.ut` and fallback template execute in host ucode. The harness replaces import bindings and the absolute template path, not the handler logic. File, UCI, radio, HTTP, and password-verifier dependencies are mocked. Real passwords, real radios, and real configuration are never used. In particular, the password verifier is a deterministic test double; these tests exercise authentication dispatch/cookie boundaries, not the system crypt implementation.
+
+The fixture now defaults to production `resourcehash=true`, covers missing normal
+assets with hashing both enabled and disabled, and retains a healthy-UI control.
+The initial candidate still attempted 29 normal asset operations with corrupt
+metadata and crashed when the template directory was unavailable; the corrected
+fallback performs none of those operations and returns its login page.
 
 ## Writer and fault-injection checks
 
