@@ -1,0 +1,17 @@
+#!/usr/bin/ucode
+// Part of AREDN; see LICENSE and AREDNLicense.txt. AI-assisted contribution.
+import * as fs from "fs";
+import * as log from "log";
+import * as board from "aredn.board";
+
+fs.mkdir("/var/lock", 0755);
+const result = board.recover();
+log.openlog("aredn-board-data", log.LOG_PID, log.LOG_DAEMON);
+if (result.status === "recovered") {
+    log.syslog(log.LOG_WARNING, "Regenerated invalid board metadata; original saved in /tmp/aredn-board-data-invalid.json");
+}
+else if (result.status === "failed") {
+    log.syslog(log.LOG_ERR, result.error);
+}
+print(sprintf("%J\n", result));
+exit(result.status === "failed" ? 1 : 0);
