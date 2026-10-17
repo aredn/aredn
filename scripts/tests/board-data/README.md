@@ -25,7 +25,7 @@ needed). The original source of the zero-filled file is **not** established.
 | `board_detect` | Unique private staging; valid existing file is a no-op; final lock/recheck avoids overwriting concurrent recovery |
 | `board_config_flush` / all `board.d` generators | Checked JSON producer and common writer; abort even if the caller ends with `exit 0` |
 | preinit `82_config_generate` | Checked installation replaces cross-filesystem `mv`; no configuration generation after failure |
-| `wifi-detect.uc` | Lock covers read/detect/write; invalid input/netlink failure preserves the previous file; caller/hotplug propagate failure |
+| `wifi-detect.uc` | Lock covers read/detect/write; bounded retry handles short contention before reading a fresh snapshot; invalid input/netlink failure preserves the previous file; caller/hotplug propagate failure |
 
 Board scripts receive a private `CFG` from `board_detect`, so intermediate
 updates cannot race with the live Wi-Fi/recovery transaction. The realtek
@@ -39,8 +39,12 @@ byte count and file fsync/close, parses it back, renames it, then fsyncs the par
 directory. Pre-rename failures preserve the original file. A post-rename directory
 sync failure is reported with `installed: true`: the new valid bytes are visible,
 but durability was not confirmed. No silent success or unsafe rollback is used.
-Unchanged valid data does not cause a storage write. Locks are nonblocking;
-callers report contention rather than overwriting each other. An interrupted
+Unchanged valid data does not cause a storage write, including JSON object key
+reordering; array order and changed values remain significant. Recovery/shell
+lock attempts are nonblocking. Wi-Fi event writers retry using monotonic time
+for at most 15 seconds, then report failure rather than waiting indefinitely.
+This lets short concurrent recovery/hotplug transactions complete before reading
+the fresh snapshot, instead of immediately losing a discovery event. An interrupted
 process may leave a private staging directory; it cannot expose partial live
 metadata. Actual power-loss guarantees depend on the filesystem/storage stack.
 
@@ -92,6 +96,12 @@ contents, cross-process lock contention, cleanup, unchanged-file behavior and
 consumer failure propagation. These are controlled host failures, **not** a
 physical power-cut or flash-controller simulation. The module is loaded only
 into test subprocesses.
+
+Review regressions cover semantically identical objects in a different key
+order, meaningful array reordering, a bounded lock wait, and Wi-Fi discovery
+after a brief cross-process lock conflict. The latter verifies that an update
+made by the previous lock holder survives discovery; it does not certify live
+kernel/hotplug event scheduling.
 
 ## Browser check
 

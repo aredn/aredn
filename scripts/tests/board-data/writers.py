@@ -13,6 +13,8 @@ import re
 import shlex
 import subprocess
 import tempfile
+import threading
+import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -78,6 +80,20 @@ lock.close();'''
     dest.write_text(json.dumps(GOOD))
     p = uc(update, dest, json.dumps(GOOD), fault='file-sync')
     check('unchanged_avoids_storage_write', json.loads(p.stdout)['status'] == 'unchanged')
+    original = dest.read_bytes()
+    inode = dest.stat().st_ino
+    reordered = {'wlan': {}, 'network': {},
+                 'model': {'name': GOOD['model']['name'], 'id': GOOD['model']['id']}}
+    p = uc(update, dest, json.dumps(reordered), fault='file-sync')
+    check('object_key_order_does_not_write', json.loads(p.stdout)['status'] == 'unchanged'
+          and dest.read_bytes() == original and dest.stat().st_ino == inode)
+    array_before = {**GOOD, 'network': {'lan': {'ports': ['lan1', 'lan2']}}}
+    array_after = {**GOOD, 'network': {'lan': {'ports': ['lan2', 'lan1']}}}
+    dest.write_text(json.dumps(array_before))
+    p = uc(update, dest, json.dumps(array_after))
+    check('array_order_remains_a_change', json.loads(p.stdout)['status'] == 'written'
+          and json.loads(dest.read_text()) == array_after)
+    dest.write_text(json.dumps(GOOD))
     p = uc(update, dest, '{}')
     check('invalid_update_preserves_original', json.loads(p.stdout)['status'] == 'failed'
           and json.loads(dest.read_text()) == GOOD)
@@ -86,6 +102,12 @@ lock.close();'''
         p = uc(update, dest, json.dumps(NEW))
         check('separate_process_lock_contention', p.returncode == 1 and
               json.loads(dest.read_text()) == GOOD)
+        started = time.monotonic()
+        p = uc('''import * as board from "aredn.board";
+const lock=board.acquire(ARGV[0],null,250);
+if (lock) { lock.close(); exit(2); }''', dest)
+        check('optional_lock_wait_is_bounded', p.returncode == 0 and
+              .20 <= time.monotonic() - started < 5)
     p = uc(update, dest, json.dumps(NEW), fault='exit-before-rename')
     check('process_exit_before_rename_preserves_original', p.returncode == 99 and
           json.loads(dest.read_text()) == GOOD)
@@ -190,6 +212,23 @@ const basename=fs.basename;
     p = run([*UCODE, str(wifi_file), json.dumps(radio)])
     check('wifi_adds_radio_metadata', p.returncode == 0 and
           json.loads(dest.read_text())['wlan']['phy0']['info']['bands']['2G']['default_channel'] == 1)
+    # A real second process waits out a short transaction, then reads its new data.
+    dest.write_text(json.dumps(GOOD))
+    concurrent = {**GOOD, 'concurrent_marker': 'must survive'}
+    with open(str(dest)+'.lock', 'w') as held:
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        def finish_other_writer():
+            dest.write_text(json.dumps(concurrent))
+            fcntl.flock(held, fcntl.LOCK_UN)
+        release = threading.Timer(.3, finish_other_writer)
+        release.start()
+        try:
+            p = run([*UCODE, str(wifi_file), json.dumps(radio)])
+        finally:
+            release.join()
+    current = json.loads(dest.read_text())
+    check('wifi_retries_brief_contention', p.returncode == 0 and 'phy0' in current['wlan'])
+    check('wifi_reads_fresh_snapshot_after_wait', current.get('concurrent_marker') == 'must survive')
     previous = dest.read_text()
     p = run([*UCODE, str(wifi_file), 'null'])
     check('wifi_netlink_failure_keeps_previous_metadata', p.returncode == 1 and dest.read_text() == previous)

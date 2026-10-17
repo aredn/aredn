@@ -82,7 +82,8 @@ export function read(path)
 };
 
 // All read-modify-write users must hold this lock until write() completes.
-export function acquire(path, lockfile)
+// Recovery fails immediately on contention; event-driven writers may wait briefly.
+export function acquire(path, lockfile, waitMs)
 {
     path = path || "/etc/board.json";
     lockfile = lockfile || (path === "/etc/board.json" ? "/var/lock/aredn-board-data.lock" : `${path}.lock`);
@@ -91,12 +92,43 @@ export function acquire(path, lockfile)
     if (!handle) {
         return null;
     }
-    if (!handle.lock("xn")) {
-        handle.close();
-        return null;
+    waitMs = int(waitMs || 0);
+    if (waitMs > 15000) { waitMs = 15000; }
+    const started = waitMs > 0 ? clock(true) : null;
+    while (!handle.lock("xn")) {
+        const now = started ? clock(true) : null;
+        const elapsed = now ? (now[0] - started[0]) * 1000 + int((now[1] - started[1]) / 1000000) : waitMs;
+        if (!now || elapsed >= waitMs) {
+            handle.close();
+            return null;
+        }
+        const remaining = waitMs - elapsed;
+        sleep(remaining < 100 ? remaining : 100);
     }
     return handle;
 };
+
+// JSON object key order is not a change; array order and values are significant.
+function equal(left, right)
+{
+    if (left === right) { return true; }
+    if (type(left) !== type(right)) { return false; }
+    if (type(left) === "array") {
+        if (length(left) !== length(right)) { return false; }
+        for (let i = 0; i < length(left); i++) {
+            if (!equal(left[i], right[i])) { return false; }
+        }
+        return true;
+    }
+    if (type(left) === "object") {
+        if (length(keys(left)) !== length(keys(right))) { return false; }
+        for (let key in left) {
+            if (!(key in right) || !equal(left[key], right[key])) { return false; }
+        }
+        return true;
+    }
+    return false;
+}
 
 // Caller holds acquire(path). Never open the destination for truncation.
 export function write(path, data)
@@ -107,7 +139,7 @@ export function write(path, data)
     }
     const text = sprintf("%.J\n", data);
     const current = read(path);
-    if (!current.error && sprintf("%.J\n", current.data) === text) {
+    if (!current.error && equal(current.data, data)) {
         return { status: "unchanged", installed: false };
     }
     let directory;

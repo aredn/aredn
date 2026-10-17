@@ -108,10 +108,10 @@ index 67a3ec7..9ae7ce2 100755
  	ucode /lib/wifi/mac80211.uc | uci -q batch
  
 diff --git a/package/network/config/wifi-scripts/files/usr/share/hostap/wifi-detect.uc b/package/network/config/wifi-scripts/files/usr/share/hostap/wifi-detect.uc
-index db862d4..db812e2 100644
+index db862d4..b0bcad7 100644
 --- a/package/network/config/wifi-scripts/files/usr/share/hostap/wifi-detect.uc
 +++ b/package/network/config/wifi-scripts/files/usr/share/hostap/wifi-detect.uc
-@@ -1,12 +1,23 @@
+@@ -1,12 +1,25 @@
  #!/usr/bin/env ucode
  'use strict';
 -import { readfile, writefile, realpath, glob, basename, unlink, open, rename } from "fs";
@@ -124,7 +124,9 @@ index db862d4..db812e2 100644
 -let prev_board_data = json(readfile(board_file));
 -let board_data = json(readfile(board_file));
 +// Serialize the complete read/modify/write cycle with recovery and detection.
-+let lock = board.acquire(board_file);
++// A concurrent boot/recovery or hotplug writer must not drop this discovery event.
++// Bound the wait, then read a fresh snapshot only after acquiring the lock.
++let lock = board.acquire(board_file, null, 15000);
 +if (!lock) {
 +	warn("Wi-Fi board-data update lock is unavailable\n");
 +	exit(1);
@@ -139,7 +141,7 @@ index db862d4..db812e2 100644
  
  function phy_idx(name) {
  	return +rtrim(readfile(`/sys/class/ieee80211/${name}/index`));
-@@ -85,7 +96,7 @@ function freq_range_match(ranges, freq) {
+@@ -85,7 +98,7 @@ function freq_range_match(ranges, freq) {
  function wiphy_detect() {
  	let phys = nl.request(nl.const.NL80211_CMD_GET_WIPHY, nl.const.NLM_F_DUMP, { split_wiphy_dump: true });
  	if (!phys)
@@ -148,7 +150,7 @@ index db862d4..db812e2 100644
  
  	for (let phy in phys) {
  		if (!phy)
-@@ -246,15 +257,16 @@ function wiphy_detect() {
+@@ -246,15 +259,16 @@ function wiphy_detect() {
  	}
  }
  
