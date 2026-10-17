@@ -36,6 +36,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  assert.equal(denied,503);
  assert.equal(errors.length,0);
  assert(responses.every(r=>r.calls.configuration===0&&r.calls.radio===0));
- console.log(JSON.stringify({browser:browser.version(),passed:true,checks:['anonymous_login','incorrect_password','ordinary_form_correct_password_with_space_and_plus','authenticated_cookie_reload','configuration_put_blocked','no_page_errors','no_radio_or_config_calls'],requests:responses},null,2));
+ assert(responses.every(r=>r.calls.assets===0));
+ console.log(JSON.stringify({browser:browser.version(),passed:true,checks:['anonymous_login','incorrect_password','ordinary_form_correct_password_with_space_and_plus','authenticated_cookie_reload','configuration_put_blocked','no_page_errors','no_radio_or_config_calls','no_regular_asset_initialization'],requests:responses},null,2));
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

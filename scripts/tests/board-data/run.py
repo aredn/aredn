@@ -31,6 +31,11 @@ for name,request,admin in [
     check(name+'_auth_boundary',('id="board-error"' in r['response'])==admin)
     check(name+'_no_radio_or_configuration',r['calls']['radio']==0 and r['calls']['configuration']==0)
     check(name+'_no_body_read',r['calls']['recv']==0)
+for resourcehash in [True, False]:
+    r=fixture.run({'resourcehash':resourcehash,'assetsUnavailable':True})
+    check('unavailable_assets_503_'+str(resourcehash),r['response'].startswith('Status: 503'))
+    check('fallback_does_not_initialize_assets_'+str(resourcehash),r['calls']['assets']==0)
+    check('unavailable_assets_preserve_login_'+str(resourcehash),'name="password"' in r['response'])
 for password,accepted in [('wrong',False),('correct password+',True)]:
     body=urllib.parse.urlencode({'password':password})
     r=fixture.run({'body':body,'env':{'REQUEST_METHOD':'POST','PATH_INFO':'/board-recovery','CONTENT_TYPE':'application/x-www-form-urlencoded','CONTENT_LENGTH':str(len(body))}})
@@ -39,5 +44,6 @@ for password,accepted in [('wrong',False),('correct password+',True)]:
     check('login_no_configuration_'+str(accepted),r['calls']['configuration']==0)
 r=fixture.run({'healthy':True,'env':{'PATH_INFO':'/status'}})
 check('healthy_uses_normal_dispatch',r['calls']['radio']==1 and 'Board information unavailable' not in r['response'])
+check('healthy_still_initializes_assets',r['calls']['assets']>0)
 assert all(r['pass'] for r in results)
 print(json.dumps({'passed':len(results),'total':len(results),'results':results},indent=2))
