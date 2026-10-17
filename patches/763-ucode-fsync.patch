@@ -1,0 +1,107 @@
+--- /dev/null
++++ b/package/utils/ucode/patches/003-add-fsync.patch
+@@ -0,0 +1,104 @@
++--- a/lib/fs.c
+++++ b/lib/fs.c
++@@ -280,6 +280,49 @@
++ 	return ucv_boolean_new(true);
++ }
++ 
+++/* Flush userspace buffers and synchronize file data/metadata to storage. */
+++static uc_value_t *
+++uc_fs_sync(uc_vm_t *vm, size_t nargs)
+++{
+++	FILE **fp = uc_fn_this("fs.file");
+++	int rc;
+++
+++	if (!fp || !*fp)
+++		err_return(EBADF);
+++
+++	if (fflush(*fp) == EOF)
+++		err_return(errno);
+++
+++	do {
+++		rc = fsync(fileno(*fp));
+++	} while (rc == -1 && errno == EINTR);
+++
+++	if (rc == -1)
+++		err_return(errno);
+++
+++	return ucv_boolean_new(true);
+++}
+++
+++/* Directory synchronization makes a successful rename durable. */
+++static uc_value_t *
+++uc_fs_dsync(uc_vm_t *vm, size_t nargs)
+++{
+++	DIR **dp = uc_fn_this("fs.dir");
+++	int rc;
+++
+++	if (!dp || !*dp)
+++		err_return(EBADF);
+++
+++	do {
+++		rc = fsync(dirfd(*dp));
+++	} while (rc == -1 && errno == EINTR);
+++
+++	if (rc == -1)
+++		err_return(errno);
+++
+++	return ucv_boolean_new(true);
+++}
+++
++ static uc_value_t *
++ uc_fs_fileno_common(uc_vm_t *vm, size_t nargs, const char *type)
++ {
++@@ -604,12 +647,16 @@
++ uc_fs_close(uc_vm_t *vm, size_t nargs)
++ {
++ 	FILE **fp = uc_fn_this("fs.file");
+++	int rc;
++ 
++ 	if (!fp || !*fp)
++ 		err_return(EBADF);
++ 
++-	fclose(*fp);
+++	rc = fclose(*fp);
++ 	*fp = NULL;
+++
+++	if (rc == EOF)
+++		err_return(errno);
++ 
++ 	return ucv_boolean_new(true);
++ }
++@@ -1510,12 +1557,16 @@
++ uc_fs_closedir(uc_vm_t *vm, size_t nargs)
++ {
++ 	DIR **dp = uc_fn_this("fs.dir");
+++	int rc;
++ 
++ 	if (!dp || !*dp)
++ 		err_return(EBADF);
++ 
++-	closedir(*dp);
+++	rc = closedir(*dp);
++ 	*dp = NULL;
+++
+++	if (rc == -1)
+++		err_return(errno);
++ 
++ 	return ucv_boolean_new(true);
++ }
++@@ -2996,6 +3047,7 @@
++ 	{ "tell",		uc_fs_tell },
++ 	{ "close",		uc_fs_close },
++ 	{ "flush",		uc_fs_flush },
+++	{ "sync",		uc_fs_sync },
++ 	{ "fileno",		uc_fs_fileno },
++ 	{ "error",		uc_fs_error },
++ 	{ "isatty",		uc_fs_isatty },
++@@ -3008,6 +3060,7 @@
++ 
++ static const uc_function_list_t dir_fns[] = {
++ 	{ "fileno",		uc_fs_dfileno },
+++	{ "sync",		uc_fs_dsync },
++ 	{ "read",		uc_fs_readdir },
++ 	{ "seek",		uc_fs_seekdir },
++ 	{ "tell",		uc_fs_telldir },

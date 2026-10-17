@@ -1,0 +1,50 @@
+#!/usr/bin/ucode
+// Part of AREDN; see LICENSE and AREDNLicense.txt. AI-assisted contribution.
+// Internal board generators only; this command never changes UCI configuration.
+import * as fs from "fs";
+import * as board from "aredn.board";
+
+const mode = ARGV[0];
+const destination = ARGV[1];
+if (!destination || (mode === "install-if-invalid" && !ARGV[2]) ||
+    (mode !== "check" && mode !== "stdin" && mode !== "install-if-invalid")) {
+    warn("Usage: aredn-board-write check|stdin|install-if-invalid destination [source]\n");
+    exit(1);
+}
+if (mode === "check") {
+    exit(board.read(destination).error ? 1 : 0);
+}
+const lock = board.acquire(destination);
+if (!lock) {
+    warn("Board-data update lock is unavailable\n");
+    exit(1);
+}
+// Recheck under the lock: do not overwrite a concurrently repaired/detected board.
+if (mode === "install-if-invalid" && !board.read(destination).error) {
+    lock.close();
+    exit(0);
+}
+let data;
+try {
+    if (mode === "stdin") {
+        const input = fs.open("/dev/stdin");
+        if (!input) { die("Could not read generated board data"); }
+        const text = input.read(1024 * 1024 + 1);
+        input.close();
+        if (length(text) > 1024 * 1024) { die("Generated board data is too large"); }
+        data = json(text);
+    }
+    else {
+        const source = board.read(ARGV[2]);
+        if (source.error) { die(source.error); }
+        data = source.data;
+    }
+    const result = board.write(destination, data);
+    if (result.status === "failed") { die(result.error); }
+}
+catch (e) {
+    warn(`Board-data write failed: ${e.message}\n`);
+    lock.close();
+    exit(1);
+}
+lock.close();

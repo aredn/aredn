@@ -32,6 +32,7 @@
  */
 
 import * as fs from "fs";
+import * as board from "aredn.board";
 import * as uci from "uci";
 import * as ubus from "ubus";
 import * as nl80211 from "nl80211";
@@ -47,12 +48,11 @@ const channelsCache = {};
 export function getBoard()
 {
     if (!boardJson) {
-        const f = fs.open("/etc/board.json");
-        if (!f) {
-            return {};
+        const result = board.read();
+        if (result.error) {
+            die(result.error);
         }
-        boardJson = json(f.read("all"));
-        f.close();
+        boardJson = result.data;
         // Collapse virtualized hardware into the three basic types
         if (index(lc(boardJson.model.id), "qemu-") === 0) {
             boardJson.model.id = "qemu";
@@ -469,7 +469,7 @@ export function getRfBandwidths(wifiIface)
     }
     if (fs.access(`/sys/kernel/debug/ieee80211/${phy}/ath10k`) || fs.access(`/sys/kernel/debug/ieee80211/${phy}/mt76`)) {
         const board = getBoard();
-        const bands = board.wlan[phy]?.info?.bands;
+        const bands = board.wlan?.[phy]?.info?.bands;
         if (bands) {
             const modes = (bands["2G"] || bands["5G"])?.modes;
             for (let i = 0; i < length(modes); i++) {
