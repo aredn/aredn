@@ -1331,3 +1331,21 @@
 +        compatible = "heltec,ht-h7608-v2", "mediatek,mt7628an-soc";
 +        model = "Heltec HT-H7608-V2";
 +};
+--- /dev/null
++++ b/package/kernel/mac80211/patches/subsys/400-aredn.patch
+@@ -0,0 +1,15 @@
++--- a/include/net/cfg80211.h
+++++ b/include/net/cfg80211.h
++@@ -143,7 +143,11 @@
++ 	IEEE80211_CHAN_NO_20MHZ			= BIT(11),
++ 	IEEE80211_CHAN_NO_10MHZ			= BIT(12),
++ 	IEEE80211_CHAN_NO_HE			= BIT(13),
++-	/* can use free bits here */
+++        IEEE80211_CHAN_1MHZ                     = BIT(14),
+++        IEEE80211_CHAN_2MHZ                     = BIT(15),
+++        IEEE80211_CHAN_4MHZ                     = BIT(16),
+++        IEEE80211_CHAN_8MHZ                     = BIT(17),
+++        IEEE80211_CHAN_16MHZ                    = BIT(18),
++ 	IEEE80211_CHAN_NO_UHR			= BIT(18),
++ 	IEEE80211_CHAN_NO_320MHZ		= BIT(19),
++ 	IEEE80211_CHAN_NO_EHT			= BIT(20),
