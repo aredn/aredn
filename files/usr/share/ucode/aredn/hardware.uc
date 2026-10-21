@@ -640,7 +640,12 @@ export function getChannelFrequencyRange(wifiIface, channel, bandwidth)
         for (let i = 0; i < length(rfchans); i++) {
             const c = rfchans[i];
             if (c.number == channel) {
-                return (c.frequency - bandwidth / 2.0) + " - " + (c.frequency + bandwidth / 2.0) + " MHz";
+                if (bandwidth <= 20) {
+                    return (c.frequency - bandwidth / 2.0) + " - " + (c.frequency + bandwidth / 2.0) + " MHz";
+                }
+                else {
+                    return (c.frequency - 10.0) + " - " + (c.frequency + bandwidth - 10.0) + " MHz";
+                }
             }
         }
     }
