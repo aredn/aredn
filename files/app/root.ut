@@ -52,6 +52,7 @@ import * as radios from "aredn.radios";
 import * as messages from "aredn.messages";
 import * as mesh from "aredn.mesh";
 import * as babel from "aredn.babel";
+import * as timezones from "aredn.timezones";
 import * as constants from "./constants.uc";
 
 const pageCache = {};
@@ -631,6 +632,7 @@ global.handle_request = function(env)
                 }
             }
             try {
+                configuration.reset();
                 res = render(call, fn, null, {
                     config: config,
                     constants: constants,
@@ -657,6 +659,7 @@ global.handle_request = function(env)
                     messages: messages,
                     mesh: mesh,
                     babel: babel,
+                    timezones: timezones,
                     util: utilMethods
                 });
             }

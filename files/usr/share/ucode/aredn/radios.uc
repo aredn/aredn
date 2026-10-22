@@ -34,7 +34,9 @@
 import * as fs from "fs";
 import * as hardware from "aredn.hardware";
 import * as configuration from "aredn.configuration";
+import * as timezones from "aredn.timezones";
 import * as uci from "uci";
+import * as struct from "struct";
 
 export const RADIO_OFF = "off";
 export const RADIO_MESH = "mesh";
@@ -45,6 +47,178 @@ export const RADIO_LAN = "lan";
 export const RADIO_WAN = "wan";
 
 let radioCache = null;
+
+const DFS_REGIONS = [ 'unset', 'FCC', 'ETSI', 'JP' ];
+const RULE_FLAGS = [
+    [ 0x01, "NO_OFDM" ],
+    [ 0x02, "NO_OUTDOOR" ],
+    [ 0x04, "DFS" ],
+    [ 0x08, "NO_IR" ],
+    [ 0x10, "AUTO_BW" ]
+];
+const RULE_VALID = {
+    "-4":  { "20": true },
+    "-3":  { "20": true },
+    "-2":  { "20": true },
+    "-1":  { "20": true },
+    "1":   { "20": true, "40": true },
+    "2":   { "20": true, "40": true },
+    "3":   { "20": true, "40": true },
+    "4":   { "20": true, "40": true },
+    "5":   { "20": true, "40": true },
+    "6":   { "20": true, "40": true },
+    "7":   { "20": true, "40": true },
+    "8":   { "20": true, "40": true },
+    "9":   { "20": true, "40": true },
+    "10":  { "20": true },
+    "11":  { "20": true },
+    "12":  { "20": true },
+    "13":  { "20": true },
+    "14":  { "20": true },
+    "36":  { "20": true, "40": true, "80": true, "160": true },
+    "40":  { "20": true },
+    "44":  { "20": true, "40": true },
+    "48":  { "20": true },
+    "52":  { "20": true, "40": true, "80": true },
+    "56":  { "20": true },
+    "60":  { "20": true, "40": true },
+    "64":  { "20": true },
+    "100": { "20": true, "40": true, "80": true, "160": true },
+    "104": { "20": true },
+    "108": { "20": true, "40": true },
+    "112": { "20": true },
+    "116": { "20": true, "40": true, "80": true },
+    "120": { "20": true },
+    "124": { "20": true, "40": true },
+    "128": { "20": true },
+    "132": { "20": true, "40": true, "80": true },
+    "136": { "20": true },
+    "140": { "20": true, "40": true },
+    "144": { "20": true },
+    "149": { "20": true, "40": true, "80": true, "160": true },
+    "153": { "20": true },
+    "157": { "20": true, "40": true },
+    "161": { "20": true },
+    "165": { "20": true, "40": true, "80": true },
+    "169": { "20": true },
+    "173": { "20": true, "40": true },
+    "177": { "20": true }
+};
+
+function regdbCountry(alpha2)
+{
+    const db = fs.readfile("/lib/firmware/regulatory.db");
+    if (!db) {
+        return null;
+    }
+    // Check header
+    const hdr = struct.unpack('>II', db, 0);
+    if (hdr[0] != 0x52474442 || hdr[1] != 20) {
+        return null;
+    }
+
+    // find the country entry
+    let coll_off = null;
+    for (let off = 8; off + 4 <= length(db); off += 4) {
+        const c = struct.unpack('>2sH', db, off);
+        if (!c || c[1] == 0) {
+            break;
+        }
+        if (c[0] == alpha2) {
+            coll_off = c[1] << 2;
+            break;
+        }
+    }
+    if (coll_off == null) {
+        return null;
+    }
+
+    // collection header: len, n_rules, dfsRegion; rule pointers follow at ALIGN(len, 2)
+    const coll = struct.unpack('>BBB', db, coll_off);
+    if (!coll) {
+        return null;
+    }
+
+    const ptrs = coll_off + ((coll[0] + 1) & ~1);
+    const rules = [];
+    for (let i = 0; i < coll[1]; i++) {
+        const p = struct.unpack('>H', db, ptrs + i * 2);
+        const r = p ? struct.unpack('>BBHIII', db, p[0] << 2) : null;
+        if (!r || r[0] < 16) {
+            return null;
+        }
+        const rule = {
+            startKHz: r[3],
+            endKHz: r[4],
+            maxBwKHz: r[5],
+            maxEIRP: int((r[2] + 50.0) / 100.0)
+        };
+        for (let fl in RULE_FLAGS) {
+            if (r[1] & fl[0]) {
+                rule[fl[1]] = true;
+            }
+        }
+        if (r[0] >= 18) {
+            rule.cacTimeout = struct.unpack('>H', db, (p[0] << 2) + 16)[0];
+        }
+        push(rules, rule);
+    }
+    return { alpha2: alpha2, dfsRegion: DFS_REGIONS[coll[2]] ?? `unknown(${coll[2]})`, rules: rules };
+}
+
+export function classifyChannels(channels, zonename)
+{
+    const regd = regdbCountry(timezones.lookupTimezone(zonename).code);
+    const rules = sort(regd.rules, (a, b) => a.startKHz - b.startKHz);
+
+    const out = [];
+    for (let ch in channels) {
+        const classification = {};
+        for (let w in ch.widths) {
+            if (!RULE_VALID[`${ch.number}`]?.[`${w}`]) {
+                continue;
+            }
+            const lo = 1000 * (ch.frequency - (w < 20 ? w / 2.0 : 10)); // kHz
+            const hi = 1000 * (ch.frequency + (w < 20 ? w / 2.0 : w - 10));
+
+            // walk the sorted rules, extending coverage from lo towards hi
+            const used = [];
+            let pos = lo;
+            for (let r in rules) {
+                if (r.startKHz <= pos && r.endKHz > pos) {
+                    push(used, r);
+                    pos = r.endKHz;
+                    if (pos >= hi) {
+                        break;
+                    }
+                }
+            }
+            if (pos < hi) {
+                continue;
+            }
+
+            if (length(filter(used, r => r.AUTO_BW)) !== length(used) && (length(used) > 1 || w * 1000 > used[0].maxBwKHz)) {
+                continue;
+            }
+
+            let maxEIRP = null;
+            const flags = {};
+            for (let r in used) {
+                for (let fl in RULE_FLAGS) {
+                    if (r[fl[1]]) {
+                        flags[fl[1]] = true;
+                    }
+                }
+                if (maxEIRP == null || r.maxEIRP < maxEIRP) {
+                    maxEIRP = r.maxEIRP;
+                }
+            }
+            classification[w] = { maxEIRP: maxEIRP, ...flags };
+        }
+        push(out, { ...ch, classification: classification });
+    }
+    return out;
+};
 
 export function getCommonConfiguration()
 {
@@ -59,36 +233,21 @@ export function getCommonConfiguration()
             push(radio, { disabled: true });
         }
         else {
-            const r = {
+            push(radio, {
                 iface: iface,
                 mode: null,
                 ant: null,
                 antaux: null,
                 def: hardware.getDefaultChannel(iface),
                 bws: hardware.getRfBandwidths(iface),
-                channels: {},
+                channels: classifyChannels(hardware.getRfChannels(iface)),
                 ants: hardware.getAntennas(iface),
                 antsaux: hardware.getAntennasAux(iface),
                 txpoweroffset: hardware.getTxPowerOffset(iface),
                 txmaxpower: hardware.getMaxTxPower(iface),
                 macaddress: hardware.getInterfaceMAC(iface),
-                maxdistance: 80550,
-                managedOOB: [ -4, -3, -2, -1, 0 ]
-            };
-            // Calculate which channels are available at which bandwidths
-            const channels = hardware.getRfChannels(iface);
-            for (let b = 0; b < length(r.bws); b++) {
-                const bw = r.bws[b];
-                const c = [];
-                r.channels[`${bw}`] = c;
-                for (let j = 0; j < length(channels); j++) {
-                    const ch = channels[j];
-                    if (index(ch.widths, bw) !== -1) {
-                        push(c, ch);
-                    }
-                }
-            }
-            push(radio, r);
+                maxdistance: 80550
+            });
         }
     }
     radioCache = sprintf("%J", radio);
