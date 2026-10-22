@@ -1,6 +1,6 @@
 /*
  * Part of AREDN® -- Used for creating Amateur Radio Emergency Data Networks
- * Copyright (C) 2025 Tim Wilkinson
+ * Copyright (C) 2025,2026 Tim Wilkinson
  * See Contributors file for additional contributors
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,6 +35,7 @@ const IW = "/usr/sbin/iw";
 const PING6 = "/bin/ping6";
 const IFUP = "/sbin/ifup";
 const IFDOWN = "/sbin/ifdown";
+const WIFI = "/sbin/wifi";
 
 const devices = radios.getMeshRadios();
 if (length(devices) === 0) {
@@ -85,9 +86,11 @@ function resetNetwork(device, op)
                             scan(device);
                             break;
                         case "restart":
-                            const idx = replace(device.iface, /^wlan/, "");
-                            system(`${IFDOWN} wifi${idx}; ${IFUP} wifi${idx}`);
+                        {
+                            const wifi = replace(device.iface, /^wlan/, "wifi");
+                            system(`${IFDOWN} ${wifi}; ${IFUP} ${wifi}`);
                             break;
+                        }
                         default:
                             log.syslog(log.LOG_ERR, `-- unknown`);
                             break;
@@ -95,21 +98,40 @@ function resetNetwork(device, op)
                     break;
                 case "meshsta":
                     switch (op) {
+                        case "unresponsive":
+                        {
+                            const radio = replace(device.iface, /^wlan/, "radio");
+                            system(`${WIFI} down ${radio}; ${WIFI} up ${radio}`);
+                            break;
+                        }
                         case "zero-hard":
                             scan(device);
                             break;
                         default:
+                            log.syslog(log.LOG_ERR, `-- unknown`);
                             break;
                     }
                     break;
                 default:
+                    log.syslog(log.LOG_ERR, `-- unknown`);
                     break;
             }
             break;
         case "morse":
-            if (op === "restart") {
-                const idx = replace(device.iface, /^wlan/, "");
-                system(`${IFDOWN} wifi${idx}; ${IFUP} wifi${idx}`);
+            switch (device.mode) {
+                default:
+                    switch (op) {
+                        case "restart":
+                        {
+                            const wifi = replace(device.iface, /^wlan/, "wifi");
+                            system(`${IFDOWN} ${wifi}; ${IFUP} ${wifi}`);
+                            break;
+                        }
+                        default:
+                            log.syslog(log.LOG_NOTICE, `-- ignored`);
+                            break;
+                    }
+                    break;
             }
             break;
         case "mt76":
