@@ -575,14 +575,11 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
                                     const limits = [];
                                     if (!utc) {
                                         const classification = achannels[i].classification[`${hotbw}`];
-                                        if (classification?.DFS) {
+                                        if (classification.DFS) {
                                             push(limits, "dfs");
                                         }
-                                        if (classification?.NO_OUTDOOR) {
+                                        if (classification.NO_OUTDOOR) {
                                             push(limits, "indoor");
-                                        }
-                                        if (classification?.maxEIRP) {
-                                            push(limits, `eirp ${classification.maxEIRP} dB`);
                                         }
                                     }
                                     print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].number}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
