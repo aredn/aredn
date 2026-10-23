@@ -170,12 +170,13 @@ export function classifyChannels(channels, zonename)
 {
     const regd = regdbCountry(timezones.lookupTimezone(zonename).code);
     const rules = sort(regd.rules, (a, b) => a.startKHz - b.startKHz);
+    const validate = (channels[0].frequency > 2300 && channels[0].frequency < 2600) || channels[0].frequency > 5170;
 
     const out = [];
     for (let ch in channels) {
         const classification = {};
         for (let w in ch.widths) {
-            if (!RULE_VALID[`${ch.number}`]?.[`${w}`]) {
+            if (validate && !RULE_VALID[`${ch.number}`]?.[`${w}`]) {
                 continue;
             }
             const lo = 1000 * (ch.frequency - (w < 20 ? w / 2.0 : 10)); // kHz
