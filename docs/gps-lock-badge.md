@@ -2,9 +2,29 @@
 
 This change replaces the plain `(gps)` time-source suffix with a firmware-style
 `GPS LOCK` badge when **GPS Time** is enabled. The time-zone label remains, e.g.
-`utc GPS LOCK`. Nodes with GPS Time disabled retain their existing display.
+`utc GPS LOCK · LOCAL` or `utc GPS LOCK · NETWORK`. Nodes with GPS Time disabled retain their existing display.
 An NTP time-source suffix remains visible if NTP most recently set the clock;
 receiver lock is not a claim that GPS is currently disciplining the system clock.
+
+## Local versus network GPS
+
+AREDN's existing discovery first checks local `/dev/ttyACM0` and `/dev/ttyUSB0`,
+then GPSD servers on DTD neighbors. A node without a plugged-in GPS can therefore
+receive a valid fix from another node, including one running an older firmware
+version. GPSD interoperability does not require the server to run this UI patch.
+
+The badge explicitly identifies **LOCAL** versus **NETWORK**. Its tooltip and
+accessible label contain the selected device/server endpoint. Source is derived
+from the connection chosen by AREDN, never from the TPV `device` field: a remote
+GPSD server can legitimately report its own `/dev/ttyACM0`. Source metadata is
+retained through loss of fix, connection failure, and stale-cache errors. Missing
+or legacy source metadata displays **SOURCE UNKNOWN**, never an assumed local GPS.
+
+On dev1, a live check confirmed no local receiver devices and a network 3D fix
+from HUB5's GPSD server. HUB5 runs 4.26.7.0 with a USB GPS receiver. The initial
+badge correctly reported the fix but omitted its network origin; the explicit
+source label corrects that ambiguity. This does not change receiver selection,
+clock synchronization, location settings, or HUB5's firmware.
 
 ## States
 
@@ -46,6 +66,7 @@ From the repository root on a system with AREDN's ucode modules:
 
 ```sh
 ucode -L "$PWD/files/usr/share/ucode/*.uc" tests/gps-lock.uc
+ucode -L "$PWD/files/usr/share/ucode/*.uc" tests/gps-lock-transport.uc
 ucode -L "$PWD/files/usr/share/ucode/*.uc" tests/gps-lock-manager.uc
 ucode -L "$PWD/files/usr/share/ucode/*.uc" tests/gps-lock-render.uc
 ```

@@ -27,4 +27,14 @@ check(gpslock.validate(fresh, 191).state === "error", "stale lock turns red");
 check(gpslock.validate(fresh, 99).state === "error", "future/reboot-invalid cache turns red");
 check(gpslock.validate({ state: "locked", reason: "GPS locked" }, 130).state === "error", "cache without freshness is rejected");
 check(gpslock.validate({ state: "unexpected", reason: "bad", checked_uptime: 100 }, 130).state === "error", "unknown state rejected");
+check(gpslock.source("/dev/ttyACM0").kind === "local", "attached device is local");
+const endpoint = "fe80::1234%br-dtdlink";
+check(gpslock.source(endpoint).kind === "network", "DTD GPSD endpoint is network GPS");
+check(gpslock.source(null).kind === "unknown", "missing source is unknown, not local");
+check(gpslock.validate(fresh, 130).source.kind === "unknown", "legacy cache does not imply a local receiver");
+fresh.source = { kind: "local", endpoint: endpoint };
+check(gpslock.validate(fresh, 130).source.kind === "network", "connection endpoint determines source, not an inconsistent label");
+const stale = gpslock.validate(fresh, 191);
+check(stale.state === "error" && stale.source.kind === "network" && stale.source.endpoint === endpoint,
+    "stale network fix turns red without losing provenance");
 print(`${count} GPS lock state checks passed\n`);

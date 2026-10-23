@@ -54,19 +54,29 @@ function classify(tpv)
     return { state: "locked", reason: tpv.mode === 3 ? "GPS locked (3D fix)" : "GPS locked (2D fix)" };
 };
 
-function read(gps)
+// GPSFind() returns a local device path or a remote GPSD endpoint. A remote
+// server's TPV.device path is NOT evidence of a receiver attached to this node.
+function source(gps)
+{
+    if (type(gps) !== "string" || !length(gps)) {
+        return { kind: "unknown", endpoint: null };
+    }
+    return { kind: match(gps, /^\/dev\//) ? "local" : "network", endpoint: gps };
+};
+
+function readReceiver(gps, transport)
 {
     if (!gps) {
         return { state: "error", reason: "GPS source not found" };
     }
     const host = match(gps, /^\/dev\//) ? "127.0.0.1" : gps;
-    const s = socket.connect(host, 2947, null, 500);
+    const s = transport.connect(host, 2947, null, 500);
     if (!s) {
         return { state: "error", reason: "GPS receiver connection failed" };
     }
     let result = { state: "error", reason: "GPS receiver did not provide current data" };
     try {
-        s.setopt(socket.SOL_SOCKET, socket.SO_SNDTIMEO, { tv_sec: 1, tv_usec: 0 });
+        s.setopt(transport.SOL_SOCKET, transport.SO_SNDTIMEO, { tv_sec: 1, tv_usec: 0 });
         const command = '?WATCH={"enable":true,"json":true}\n';
         if (s.send(command) !== length(command)) {
             result = { state: "error", reason: "GPS receiver request failed" };
@@ -82,9 +92,9 @@ function read(gps)
                 const elapsed = (now[0] - started[0]) * 1000 + (now[1] - started[1]) / 1000000;
                 const remaining = int(1500 - elapsed);
                 if (remaining <= 0) break;
-                const ready = socket.poll(remaining, [ s, socket.POLLIN | socket.POLLERR | socket.POLLHUP ]);
+                const ready = transport.poll(remaining, [ s, transport.POLLIN | transport.POLLERR | transport.POLLHUP ]);
                 if (!length(ready)) break;
-                const chunk = s.recv(4096, socket.MSG_DONTWAIT);
+                const chunk = s.recv(4096, transport.MSG_DONTWAIT);
                 if (!chunk) break;
                 total += length(chunk);
                 buffer += chunk;
@@ -121,6 +131,14 @@ function read(gps)
     return result;
 };
 
+function read(gps, transport)
+{
+    const result = readReceiver(gps, transport || socket);
+    // Preserve provenance even when the selected server fails or loses lock.
+    result.source = source(gps);
+    return result;
+};
+
 function write(status)
 {
     status.checked_uptime = clock(true)[0];
@@ -136,8 +154,10 @@ function validate(status, now)
         return { state: "error", reason: "Invalid GPS status" };
     }
     if (now - status.checked_uptime > 3 * POLL_SECONDS || status.checked_uptime > now) {
-        return { state: "error", reason: "GPS status is stale" };
+        return { state: "error", reason: "GPS status is stale", source: source(status.source?.endpoint) };
     }
+    // Old/missing metadata must never be presented as an attached receiver.
+    status.source = source(status.source?.endpoint);
     return status;
 };
 
@@ -156,4 +176,4 @@ function current()
 };
 
 // Dynamic task/template loading uses require(), whose script result is the API.
-return { POLL_SECONDS, classify, read, write, validate, current };
+return { POLL_SECONDS, classify, source, read, write, validate, current };
