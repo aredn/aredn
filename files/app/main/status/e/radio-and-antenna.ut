@@ -789,7 +789,7 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
     {% } %}
     {%
     for (let w = 0; w < length(wlan); w++) { %}
-        const unlicensed = {{unlicensed}};
+        const unlicensed{{w}} = {{unlicensed}};
         const radio{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_mode]");
         const chan{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_channel]");
         const lanchan{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_channel].lan");
@@ -808,7 +808,7 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
             for (let i = 0; i < channels.length; i++) {
                 if (channels[i].widths.indexOf(bandwidth) !== -1 && (radio{{w}}.value == "1" || channels[i].number > 0)) {
                     const limits = [];
-                    if (unlicensed) {
+                    if (unlicensed{{w}}) {
                         const classification = channels[i].classification[`${bandwidth}`];
                         if (classification?.DFS) {
                             limits.push("dfs");
