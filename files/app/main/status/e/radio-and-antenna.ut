@@ -571,7 +571,7 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
                             const achannels = wlan[w].channels;
                             const hotbw = ishalow ? `${bandwidth}` : "20";
                             for (let i = 0; i < length(achannels); i++) {
-                                if (achannels[i].classification[`${hotbw}`]) {
+                                if (achannels[i].number > 0 && achannels[i].classification[`${hotbw}`]) {
                                     const limits = [];
                                     if (!utc) {
                                         const classification = achannels[i].classification[`${hotbw}`];
@@ -805,30 +805,59 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
             let options = "";
             const channels = {{wlan[w].channels}};
             let nchannel = null;
-            for (let i = 0; i < channels.length; i++) {
-                if (channels[i].widths.indexOf(bandwidth) !== -1 && (radio{{w}}.value == "1" || channels[i].number > 0)) {
-                    const limits = [];
-                    if (unlicensed{{w}}) {
-                        const classification = channels[i].classification[`${bandwidth}`];
-                        if (classification?.DFS) {
-                            limits.push("dfs");
+            if (radio{{w}}.value === "2") {
+                const hotbw = ishalow{{w}} ? `${bandwidth}` : "20";
+                for (let i = 0; i < channels.length; i++) {
+                    if (channels[i].number > 0 && channels[i].classification[hotbw]) {
+                        const limits = [];
+                        if (unlicensed{{w}}) {
+                            const classification = channels[i].classification[hotbw];
+                            if (classification.DFS) {
+                                limits.push("dfs");
+                            }
+                            if (classification.NO_OUTDOOR) {
+                                limits.push("indoor");
+                            }
                         }
-                        if (classification?.NO_OUTDOOR) {
-                            limits.push("indoor");
+                        if (channels[i].number == channel) {
+                            nchannel = channel;
+                            options += `<option value="${channels[i].number}" selected>${channels[i].number}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
                         }
-                        if (classification?.maxEIRP) {
-                            limits.push(`eirp ${classification.maxEIRP} dB`);
+                        else {
+                            if (!nchannel) {
+                                nchannel = channels[i].number;
+                            }
+                            options += `<option value="${channels[i].number}">${channels[i].number}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
                         }
                     }
-                    if (channels[i].number == channel) {
-                        nchannel = channel;
-                        options += `<option value="${channels[i].number}" selected>${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
-                    }
-                    else {
-                        if (!nchannel) {
-                            nchannel = channels[i].number;
+                }
+            }
+            else {
+                for (let i = 0; i < channels.length; i++) {
+                    if (channels[i].widths.indexOf(bandwidth) !== -1) {
+                        const limits = [];
+                        if (unlicensed{{w}}) {
+                            const classification = channels[i].classification[`${bandwidth}`];
+                            if (classification?.DFS) {
+                                limits.push("dfs");
+                            }
+                            if (classification?.NO_OUTDOOR) {
+                                limits.push("indoor");
+                            }
+                            if (classification?.maxEIRP) {
+                                limits.push(`eirp ${classification.maxEIRP} dB`);
+                            }
                         }
-                        options += `<option value="${channels[i].number}">${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
+                        if (channels[i].number == channel) {
+                            nchannel = channel;
+                            options += `<option value="${channels[i].number}" selected>${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
+                        }
+                        else {
+                            if (!nchannel) {
+                                nchannel = channels[i].number;
+                            }
+                            options += `<option value="${channels[i].number}">${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
+                        }
                     }
                 }
             }
