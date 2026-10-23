@@ -42,7 +42,8 @@ theme overrides. Pending uses dark text on a yellow background.
 The old `/tmp/timesync` marker is historical and is **not** evidence of current
 lock. GPS receiver health is refreshed every 30 seconds by the existing GPS
 manager task and published atomically in RAM at `/tmp/gps-lock.json`. The status
-page already refreshes every 30 seconds. Data older than 90 seconds, invalid
+page's existing authenticated view refreshes every 30 seconds; the anonymous
+read-only view needs a page reload to show new state. Data older than 90 seconds, invalid
 data, or data with a future monotonic timestamp turns red. Startup retains the
 existing 60-second GPS discovery delay and shows pending while starting.
 
