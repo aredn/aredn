@@ -34,12 +34,27 @@
 const CONFIG0 = "/etc/config.mesh/gpsd";
 const CONFIG1 = "/etc/config/gpsd";
 const CHANGEMARGIN = 0.0001;
+// GPS lock badge support added by mathisono (2026).
+// Match the manager's task loader so a GPS-only reload also refreshes this
+// helper, without retaining a previously failed or outdated require() entry.
+const gpslock = loadfile("/usr/share/ucode/aredn/gpslock.uc", { raw_mode: true })();
 
 let gps;
+let nextSync = 0;
 
 function main()
 {
     const c = uci.cursor();
+    if (c.get("aredn", "@time[0]", "gps_enable") == "1") {
+        gpslock.write(gpslock.read(gps));
+    }
+    const now = clock(true)[0];
+    if (now < nextSync) {
+        return waitForTicks(gpslock.POLL_SECONDS);
+    }
+    // Keep the existing clock/location update interval; only health is polled
+    // more frequently. Monotonic time survives the GPS clock adjustment below.
+    nextSync = now + 600;
     const j = hardware.GPSReadLLT(gps);
 
     // Update time and date
@@ -82,7 +97,7 @@ function main()
         }
     }
 
-    return waitForTicks(600); // 10 minutes
+    return waitForTicks(gpslock.POLL_SECONDS);
 }
 
 function find()
@@ -106,8 +121,10 @@ function find()
         return main;
     }
     else {
+        gpslock.write({ state: "error", reason: "GPS source not found" });
         return waitForTicks(600); // 10 minutes
     }
 }
 
+gpslock.write({ state: "pending", reason: "Finding GPS source" });
 return waitForTicks(60, find);
