@@ -64,9 +64,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 configuration.setSettingAsString("radio0_bandwidth", wlan[0].mode.bandwidth || wlan[0].def.bandwidth);
                 configuration.setSettingAsString("radio0_ssid", "AREDN");
                 let chan = wlan[0].mode.channel || wlan[0].def.channel;
-                const chanfilter = radio0_mode === radios.RADIO_MESHPTMP || radio0_mode === radios.RADIO_MESHPTP || radio0_mode ===  radios.RADIO_MESHSTA ? wlan[0].managedOOB : null;
-                if (chanfilter && index(chanfilter, chan) !== -1) {
-                    chan = chanfilter[length(chanfilter) - 1] + 1;
+                if (radio0_mode !== radios.RADIO_MESH && chan <= 0) {
+                    chan = 1;
                 }
                 configuration.setSettingAsString("radio0_channel", chan);
                 configuration.setSettingAsList("radio0_channels", []);
@@ -157,9 +156,8 @@ if (request.env.REQUEST_METHOD === "PUT") {
                 configuration.setSettingAsString("radio1_bandwidth", wlan[1].mode.bandwidth || wlan[1].def.bandwidth);
                 configuration.setSettingAsString("radio1_ssid", "AREDN");
                 let chan = wlan[1].mode.channel || wlan[1].def.channel;
-                const chanfilter = radio1_mode === radios.RADIO_MESHPTMP || radio1_mode === radios.RADIO_MESHPTP || radio1_mode ===  radios.RADIO_MESHSTA ? wlan[1].managedOOB : null;
-                if (chanfilter && index(chanfilter, chan) !== -1) {
-                    chan = chanfilter[length(chanfilter) - 1] + 1;
+                if (radio1_mode !== radios.RADIO_MESH && chan <= 0) {
+                    chan = 1;
                 }
                 configuration.setSettingAsString("radio1_channel", chan);
                 configuration.setSettingAsList("radio1_channels", []);
@@ -259,6 +257,9 @@ if (request.env.REQUEST_METHOD === "PUT") {
     if ("radio_vlan" in request.args) {
         configuration.setSettingAsString("radio_vlan", request.args.radio_vlan);
     }
+    if ("radio_unlicensed" in request.args) {
+        configuration.setSettingAsString("radio_unlicensed", request.args.radio_unlicensed === "on" ? "1" : "0");
+    }
     uciMesh.commit("aredn");
     configuration.saveSettings();
     print(_R("changes"));
@@ -270,7 +271,11 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     return;
 }
 %}
-{% const wlan = radios.getConfiguration(); %}
+{%
+const wlan = radios.getConfiguration();
+const utc = configuration.getSettingAsString("time_zone_name", "UTC") === "UTC";
+const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
+%}
 <div class="dialog radio-and-antenna">
     {{_R("dialog-header", "Radios &amp; Antennas")}}
     <div>
@@ -366,11 +371,23 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div style="flex:0">
                         <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" style="direction:ltr" class="mesh-channel">
                         {%
-                            const chanfilter = mode === radios.RADIO_MESHPTMP || mode === radios.RADIO_MESHPTP || mode ===  radios.RADIO_MESHSTA ? wlan[w].managedOOB : null;
-                            const achannels = wlan[w].channels[bandwidth] || [];
+                            const achannels = wlan[w].channels;
                             for (let i = 0; i < length(achannels); i++) {
-                                if (!chanfilter || index(chanfilter, achannels[i].number) === -1) {
-                                    print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}</option>`);
+                                if (index(achannels[i].widths, bandwidth) !== -1) {
+                                    const limits = [];
+                                    if (unlicensed) {
+                                        const classification = achannels[i].classification[`${bandwidth}`];
+                                        if (classification?.DFS) {
+                                            push(limits, "dfs");
+                                        }
+                                        if (classification?.NO_OUTDOOR) {
+                                            push(limits, "indoor");
+                                        }
+                                        if (classification?.maxEIRP) {
+                                            push(limits, `eirp ${classification.maxEIRP} dB`);
+                                        }
+                                    }
+                                    print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
                                 }
                             }
                         %}
@@ -378,7 +395,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     </div>
                 </div>
                 <div class="cols hideable1 hideable4 hideable5">
-                    {{_H("Select the central channel/frequency for the radio.")}}
+                    {{_H("Select the channel/frequency for the radio.")}}
                 </div>
                 <div class="cols hideable6 sta-channels" hx-include="this">
                     <div>
@@ -388,14 +405,26 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div style="flex:0" class="channels">
                         <div style="white-space:nowrap">
                             {%
-                                const chanfilter = mode === radios.RADIO_MESHPTMP || mode === radios.RADIO_MESHPTP || mode ===  radios.RADIO_MESHSTA ? wlan[w].managedOOB : null;
-                                const achannels = wlan[w].channels[bandwidth] || [];
+                                const achannels = wlan[w].channels;
                             %}
                             <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" style="direction:ltr" class="mesh-channel">
                             {%
                                 for (let i = 0; i < length(achannels); i++) {
-                                    if (!chanfilter || index(chanfilter, achannels[i].number) === -1) {
-                                        print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}</option>`);
+                                    if (index(achannels[i].widths, bandwidth) !== -1) {
+                                        const limits = [];
+                                        if (unlicensed) {
+                                            const classification = achannels[i].classification[`${bandwidth}`];
+                                            if (classification?.DFS) {
+                                                push(limits, "dfs");
+                                            }
+                                            if (classification?.NO_OUTDOOR) {
+                                                push(limits, "indoor");
+                                            }
+                                            if (classification?.maxEIRP) {
+                                                push(limits, `eirp ${classification.maxEIRP} dB`);
+                                            }
+                                        }
+                                        print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
                                     }
                                 }
                             %}
@@ -411,8 +440,21 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                             <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" style="direction:ltr" class="mesh-channel">
                         {%
                                         for (let i = 0; i < length(achannels); i++) {
-                                            if (!chanfilter || index(chanfilter, achannels[i].number) === -1) {
-                                                print(`<option value="${achannels[i].number}" ${achannels[i].number == xchannel ? "selected" : ""}>${achannels[i].label}</option>`);
+                                            if (index(achannels[i].widths, bandwidth) !== -1) {
+                                                const limits = [];
+                                                if (unlicensed) {
+                                                    const classification = achannels[i].classification[`${bandwidth}`];
+                                                    if (classification?.DFS) {
+                                                        push(limits, "dfs");
+                                                    }
+                                                    if (classification?.NO_OUTDOOR) {
+                                                        push(limits, "indoor");
+                                                    }
+                                                    if (classification?.maxEIRP) {
+                                                        push(limits, `eirp ${classification.maxEIRP} dB`);
+                                                    }
+                                                }
+                                                print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
                                             }
                                         }
                         %}
@@ -526,9 +568,22 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                     <div style="flex:0">
                         <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}channel" class="lan">
                         {%
-                            const hotchans = wlan[w].channels[ishalow ? `${bandwidth}` : "20"] || [];
-                            for (let i = 0; i < length(hotchans); i++) {
-                                print(`<option value="${hotchans[i].number}" ${hotchans[i].number == channel ? "selected" : ""}>${hotchans[i].number}</option>`);
+                            const achannels = wlan[w].channels;
+                            const hotbw = ishalow ? `${bandwidth}` : "20";
+                            for (let i = 0; i < length(achannels); i++) {
+                                if (achannels[i].number > 0 && achannels[i].classification[`${hotbw}`]) {
+                                    const limits = [];
+                                    if (!utc) {
+                                        const classification = achannels[i].classification[`${hotbw}`];
+                                        if (classification.DFS) {
+                                            push(limits, "dfs");
+                                        }
+                                        if (classification.NO_OUTDOOR) {
+                                            push(limits, "indoor");
+                                        }
+                                    }
+                                    print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].number}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
+                                }
                             }
                         %}
                         </select>
@@ -687,6 +742,20 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     {%
                 first = false;
             }
+    %}
+        <hr>
+        <div class="cols">
+            <div>
+                <div class="o">Unlicensed Restrictions</div>
+                <div class="m">Show local unlicensed restrictions</div>
+            </div>
+            <div style="flex:0">
+                {{_R("switch", { name: "radio_unlicensed", value: unlicensed })}}
+            </div>
+        </div>
+        {{_H("Show local unlicensed radio restrictions based on the current timezone setting. Restrictions are not enforced and
+              correct configuration is the operator's responsibility.")}}
+    {%
         }
         else {
     %}
@@ -720,6 +789,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     {% } %}
     {%
     for (let w = 0; w < length(wlan); w++) { %}
+        const unlicensed{{w}} = {{unlicensed}};
         const radio{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_mode]");
         const chan{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_channel]");
         const lanchan{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_channel].lan");
@@ -733,20 +803,61 @@ if (request.env.REQUEST_METHOD === "DELETE") {
             const bandwidth = parseInt(e.target == lanbws{{w}} ? lanbws{{w}}.value : bws{{w}}.value);
             const channel = parseInt(e.target === chan{{w}} ? chan{{w}}.value : stachan{{w}}.value);
             let options = "";
-            const chanfilter = radio{{w}}.value == "4" || radio{{w}}.value == "5" || radio{{w}}.value == "6" ? {{wlan[w].managedOOB || []}} : null;
-            const channels = ({{wlan[w].channels || []}})[bandwidth] || [];
+            const channels = {{wlan[w].channels}};
             let nchannel = null;
-            for (let i = 0; i < channels.length; i++) {
-                if (!chanfilter || chanfilter.indexOf(channels[i].number) === -1) {
-                    if (channels[i].number == channel) {
-                        nchannel = channel;
-                        options += `<option value="${channels[i].number}" selected>${channels[i].label}</option>`;
-                    }
-                    else {
-                        if (!nchannel) {
-                            nchannel = channels[i].number;
+            if (radio{{w}}.value === "2") {
+                const hotbw = halow{{w}} ? `${bandwidth}` : "20";
+                for (let i = 0; i < channels.length; i++) {
+                    if (channels[i].number > 0 && channels[i].classification[hotbw]) {
+                        const limits = [];
+                        if (unlicensed{{w}}) {
+                            const classification = channels[i].classification[hotbw];
+                            if (classification.DFS) {
+                                limits.push("dfs");
+                            }
+                            if (classification.NO_OUTDOOR) {
+                                limits.push("indoor");
+                            }
                         }
-                        options += `<option value="${channels[i].number}">${channels[i].label}</option>`;
+                        if (channels[i].number == channel) {
+                            nchannel = channel;
+                            options += `<option value="${channels[i].number}" selected>${channels[i].number}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
+                        }
+                        else {
+                            if (!nchannel) {
+                                nchannel = channels[i].number;
+                            }
+                            options += `<option value="${channels[i].number}">${channels[i].number}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
+                        }
+                    }
+                }
+            }
+            else {
+                for (let i = 0; i < channels.length; i++) {
+                    if (channels[i].widths.indexOf(bandwidth) !== -1) {
+                        const limits = [];
+                        if (unlicensed{{w}}) {
+                            const classification = channels[i].classification[`${bandwidth}`];
+                            if (classification?.DFS) {
+                                limits.push("dfs");
+                            }
+                            if (classification?.NO_OUTDOOR) {
+                                limits.push("indoor");
+                            }
+                            if (classification?.maxEIRP) {
+                                limits.push(`eirp ${classification.maxEIRP} dB`);
+                            }
+                        }
+                        if (channels[i].number == channel) {
+                            nchannel = channel;
+                            options += `<option value="${channels[i].number}" selected>${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
+                        }
+                        else {
+                            if (!nchannel) {
+                                nchannel = channels[i].number;
+                            }
+                            options += `<option value="${channels[i].number}">${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
+                        }
                     }
                 }
             }
@@ -787,10 +898,9 @@ if (request.env.REQUEST_METHOD === "DELETE") {
                         let xchan = `<div style="white-space:nowrap;margin-bottom:4px" class="xtra-channel">
                             <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="radio{{w}}_channel" style="direction:ltr" class="mesh-channel">`;
                         const bandwidth = parseInt(bws{{w}}.value);
-                        const channels = ({{wlan[w].channels || []}})[bandwidth] || [];
-                        const chanfilter = {{wlan[w].managedOOB || []}};
+                        const channels = {{wlan[w].channels}};
                         for (let i = 0; i < channels.length; i++) {
-                            if (!chanfilter || chanfilter.indexOf(channels[i].number) === -1) {
+                            if (channels[i].widths.indexOf(bandwidth) !== -1) {
                                 xchan += `<option value="${channels[i].number}">${channels[i].label}</option>`;
                             }
                         }
