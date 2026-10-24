@@ -274,7 +274,7 @@ function bondOK(fmap, freq, width, flag, ht40_rules)
             const pair_lo = start + int((freq - 10 - start) / 40) * 40 + 10;
             const pflag = (freq == pair_lo) ? "no_ht40_plus" : "no_ht40_minus";
 
-            if ((fmap["" + freq][pflag]) || (ht40_rules && !HT40_FIRST[`${(pair_lo - 5000) / 5}`])) {
+            if ((fmap["" + freq]?.[pflag]) || (ht40_rules && !HT40_FIRST[`${(pair_lo - 5000) / 5}`])) {
                 continue;
             }
         }
