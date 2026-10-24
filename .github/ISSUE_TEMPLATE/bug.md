@@ -7,6 +7,9 @@ assignees: ''
 
 ---
 
+### Summary of the bug (This cannot be written by AI).
+Please summaries the bug. You may leave this blank the the bug is *not* AI generated.
+
 ### Describe the bug
 A clear and concise description of what the bug is.
 
