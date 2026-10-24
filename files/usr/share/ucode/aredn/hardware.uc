@@ -321,7 +321,7 @@ function getWiFiChannels(wifiIface)
     const exclude = radio.exclude_channels;
 
     for (let w in nl80211.request(nl80211.const.NL80211_CMD_GET_WIPHY, nl80211.const.NLM_F_DUMP, { split_wiphy_dump: true })) {
-        if (w.wiphy_name === phy) {
+        if (w?.wiphy_name === phy) {
             for (let bi, band in w.wiphy_bands) {
                 if (band?.freqs && bi != 2 && bi != 3 && bi != 4) { // Band index: 0 = 2.4 GHz, 1 = 5 GHz, 2 = 60 GHz, 3 = 6 GHz, 4 = S1G
                     // Hardware capabilities
