@@ -34,7 +34,7 @@ LDF 5 | RBLDF-5nD | 5 | ath79 | mikrotik | mikrotik-ldf-5nd | 64MB | stable | re
 LDF 5 ac | RBLDFG-5acD | 5 | ipq40xx | mikrotik | mikrotik-ldf-5acd | 64MB | stable | released
 RB911G-5HPnD | RB911G-5HPnD | 5 | ath79 | mikrotik | - | 64MB | untested | released
 QRT 5 | RB911G-5HPnD-QRT | 5 | ath79 | mikrotik | mikrotik-911g-5hpnd-qrt | 64MB | stable | released
-RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | untested | released
+RB912UAG-2HPnD <br> BaseBox 2 | RB912UAG-2HPnD <br> RB912UAG-2HPnD-OUT | 2 | ath79 | mikrotik | mikrotik-912uag-2hpnd | 64MB | stable | released
 RB912UAG-5HPnD <br> BaseBox 5 | RB912UAG-5HPnD <br> RB912UAG-5HPnD-OUT | 5 | ath79 | mikrotik | mikrotik-912uag-5hpnd | 64MB | stable | released
 RB922UAGS-5HPacD <br> NetMetal 5 | 922UAGS-5HPacD-NM <br> 922UAGS-5HPacD-NM-US | 5 | ath79 | mikrotik |  mikrotik_routerboard-922uags-5hpacd | 128MB | stable | released
 mANTBox 15s | RB921GS-5HPacD-15S | 5 | ath79 | mikrotik | mikrotik-921gs-5hpacd-15s | 128MB | stable | released
