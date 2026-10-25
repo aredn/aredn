@@ -1,5 +1,146 @@
 __RELEASE NOTES__
 
+# 4.26.10.0
+
+AREDN release 4.26.10.0 is now available
+
+### **Major Features**
+
+* Memory improvements
+  * Babel footprint reduced by 4 MB
+  * 2-4 MB additional memory improvement on 64M devices.
+* Support multi-mesh radios
+  * For nodes with multiple radios it’s now possible to enable the various mesh modes on them simultaneously.
+* Support multi-station radios
+  * A mesh station node can now configure multiple channels allowing it to automatically pick the best. Good for mobile nodes.
+* Improve channel availability
+  * All hardware supported channel and bandwidth combinations should now be available. These can differ on different hardware, and only those actually supported will be shown.
+* Improve tunnel configurations
+  * Tunnel configuration no longer includes IP addresses. Old tunnels will continue to work but new tunnels must be created between upgraded nodes.
+  * New tunnels now default to a smaller MTU (Maximum Transmission Unit \- 1280 bytes, the same as Tailscale) to improve compatibility with some ISPs, particularly cellular providers. Old tunnels are unaffected.
+* WAN improvements
+  * A group of nodes now share the WAN available on just one of them.
+  * WAN connectivity is monitored and only made available to others on the mesh if enabled and available.
+* Internet opt-out
+  * A node can elect not to carry traffic to or from the Internet. Mesh-bound traffic is still routed through the node.
+* Mesh Tools
+  * There’s now quick access to various tools from the mesh page.
+
+### **New Devices Supported**
+
+* Ubiquiti Bullet AC (2WA)
+* Ubiquiti NanoBeam 5AC Gen1 (WA)
+
+### **Known Issues**
+
+* AC radios no longer support channel 48, 52, 56 and 64\.
+  * Supporting too many channels on some radios causes them to crash; some were removed to resolve the issue. This affects all AC radios. Channels were selected not currently in use on the worldmap, but for \>20MHz configurations this might still cause problems.
+* Poor performance may be observed when upgrading a Mesh Station to this release if the appropriate Mesh PtMP node has not been upgraded.
+
+### **Fixes and Enhancements**
+
+* Multi spectrum radios — [PR \#2950](https://github.com/aredn/aredn/pull/2950)
+* Set HX (amateur radio) radio domain early. — [PR \#2947](https://github.com/aredn/aredn/pull/2947)
+* No AX support for channel 183 & 184 — [PR \#2948](https://github.com/aredn/aredn/pull/2948)
+* Improve monitoring of AX radios. — [PR \#2946](https://github.com/aredn/aredn/pull/2946)
+* Completely rebuild how we find the wifi channels/bandwidths the hardware supports — [PR \#2945](https://github.com/aredn/aredn/pull/2945)
+* Restore some ham 20 MHz channels which don't overlap the wifi standard — [PR \#2944](https://github.com/aredn/aredn/pull/2944)
+* Fix channel exclusions so available 20MHz+ bandwidths can be selected. — [PR \#2943](https://github.com/aredn/aredn/pull/2943)
+* Fix reboot problem on some ipq40xx based devices. — [PR \#2942](https://github.com/aredn/aredn/pull/2942), [Issue \#2803](https://github.com/aredn/aredn/issues/2803)
+* Import official memory leak fix for Babel. — [packages PR \#288](https://github.com/aredn/aredn_packages/pull/288)
+* Include local default route even for supernodes. — [packages PR \#289](https://github.com/aredn/aredn_packages/pull/289)
+* Improve scan recovery system for when radios dont connect. — [PR \#2939](https://github.com/aredn/aredn/pull/2939)
+* Make sure wan monitors correct interface when using wifi — [PR \#2938](https://github.com/aredn/aredn/pull/2938)
+* Close menu popups when you click away. — [PR \#2937](https://github.com/aredn/aredn/pull/2937)
+* Enable simple wifi scanning for PtMP/PtP modes (show connected stations only) — [PR \#2936](https://github.com/aredn/aredn/pull/2936)
+* Fix NaN (Not a Number) distance on HaLow nodes when radio fails. — [PR \#2934](https://github.com/aredn/aredn/pull/2934)
+* Better error handling when HaLow radio doesn't reset — [PR \#2933](https://github.com/aredn/aredn/pull/2933)
+* Fix HaLow multi station support. — [PR \#2932](https://github.com/aredn/aredn/pull/2932)
+* Bump the initial connection timeout to 60 seconds. — [packages PR \#287](https://github.com/aredn/aredn_packages/pull/287)
+* Fixes for network migration problems for some setups — [PR \#2931](https://github.com/aredn/aredn/pull/2931)
+* Add modules for lighttpd support — [PR \#2928](https://github.com/aredn/aredn/pull/2928)
+* Improve Babel shutdown route retraction. — [packages PR \#285](https://github.com/aredn/aredn_packages/pull/285)
+* Reintroduce faster neighbor checks. — [packages PR \#283](https://github.com/aredn/aredn_packages/pull/283)
+* Improve how routes are flushed, especially if that errors. — [packages PR \#282](https://github.com/aredn/aredn_packages/pull/282)
+* Better reset handling in Babel to avoid stuck routes. — [packages PR \#281](https://github.com/aredn/aredn_packages/pull/281)
+* Improve hard Babel restart. — [PR \#2921](https://github.com/aredn/aredn/pull/2921)
+* Require two neighbor failures before triggering Babel reset. — [PR \#2920](https://github.com/aredn/aredn/pull/2920)
+* Stop deliberate empty network configuration using defaults instead. — [PR \#2918](https://github.com/aredn/aredn/pull/2918)
+* Make the GLiNet MT1300 network configurable — [PR \#2919](https://github.com/aredn/aredn/pull/2919)
+* Disable WAN Monitor when WAN address is disabled. — [PR \#2916](https://github.com/aredn/aredn/pull/2916)
+* Limit the Wireguard per tunnel MTU by the WAN MTU not the default Wireguard MTU — [PR \#2914](https://github.com/aredn/aredn/pull/2914)
+* Simplify 44net handling in supernodes — [PR \#2913](https://github.com/aredn/aredn/pull/2913), [packages PR \#279](https://github.com/aredn/aredn_packages/pull/279)
+* Make sure we only distribute 44net address from the LAN — [packages PR \#277](https://github.com/aredn/aredn_packages/pull/277)
+* UI to set per-tunnel MTU. — [PR \#2912](https://github.com/aredn/aredn/pull/2912)
+* Allow for DtDlink not being up — [packages PR \#273](https://github.com/aredn/aredn_packages/pull/273)
+* Update radio status periodically — [PR \#2909](https://github.com/aredn/aredn/pull/2909)
+* Improve multi-station UI and sysinfo — [PR \#2908](https://github.com/aredn/aredn/pull/2908)
+* Support multi channel stations — [PR \#2907](https://github.com/aredn/aredn/pull/2907)
+* Don't monitor nodes which are blocked — [PR \#2906](https://github.com/aredn/aredn/pull/2906)
+* Show available memory rather than free. — [PR \#2905](https://github.com/aredn/aredn/pull/2905)
+* Fix OpenWRT bandwidth restrictions — [PR \#2901](https://github.com/aredn/aredn/pull/2901)
+* Keep multicasttounicast on for PtP links (faster) — [PR \#2900](https://github.com/aredn/aredn/pull/2900)
+* Disable wifi multicast to unicast and enable low ack disassociate — [PR \#2898](https://github.com/aredn/aredn/pull/2898)
+* Use a larger Babel buffer for larger memory devices — [packages PR \#269](https://github.com/aredn/aredn_packages/pull/269)
+* Disable publishing LAN subnet to Babel when LAN DHCP is disabled. — [PR \#2897](https://github.com/aredn/aredn/pull/2897)
+* Babel doesn’t include LAN route when LAN disabled — [packages PR \#268](https://github.com/aredn/aredn_packages/pull/268)
+* Need to manually restart Network after creating a new Wireguard server tunnel — [Issue \#2824](https://github.com/aredn/aredn/issues/2824)
+* Add ping, traceroute and iperf tools to hosts on the meshpage. — [PR \#2894](https://github.com/aredn/aredn/pull/2894)
+* Replace old service cron script with lan monitor — [PR \#2891](https://github.com/aredn/aredn/pull/2891)
+* Remove hostname filters we no longer need. — [PR \#2889](https://github.com/aredn/aredn/pull/2889)
+* Test with MikroTik hAP ac2 and firmware version 20260816-5a5db355 — [Issue \#2871](https://github.com/aredn/aredn/issues/2871)
+* Drop the default tunnel MTU to 1280\. — [PR \#2887](https://github.com/aredn/aredn/pull/2887)
+* UI to change the default LAN address. — [PR \#2885](https://github.com/aredn/aredn/pull/2885)
+* Require reboot when changing package base — [PR \#2886](https://github.com/aredn/aredn/pull/2886)
+* Remove unused 44net routing switch from UI. — [PR \#2883](https://github.com/aredn/aredn/pull/2883)
+* Allow WAN-to-LAN traffic — [PR \#2881](https://github.com/aredn/aredn/pull/2881)
+* Silence ping errors from log — [PR \#2879](https://github.com/aredn/aredn/pull/2879)
+* Improve in deny rules for supernodes — [packages PR \#267](https://github.com/aredn/aredn_packages/pull/267)
+* Add device to neighbor info panel. — [PR \#2878](https://github.com/aredn/aredn/pull/2878)
+* Add support for the Bullet AC. — [PR \#2877](https://github.com/aredn/aredn/pull/2877)
+* Move LAN Radio switch to Network dialog — [PR \#2875](https://github.com/aredn/aredn/pull/2875)
+* More Babel over LAN — [packages PR \#265](https://github.com/aredn/aredn_packages/pull/265)
+* Allow Babel to run over the LAN network. — [PR \#2874](https://github.com/aredn/aredn/pull/2874), [packages PR \#264](https://github.com/aredn/aredn_packages/pull/264)
+* add total ram — [PR \#2872](https://github.com/aredn/aredn/pull/2872)
+* Fix DNS display in UI. — [PR \#2866](https://github.com/aredn/aredn/pull/2866)
+* Login Problems MikroTik RouterBOARD 952Ui-5ac2nD (hAP ac lite) — [Issue \#2862](https://github.com/aredn/aredn/issues/2862)
+* Fix channel numbering on Mikrotik N devices and improve band identification — [PR \#2863](https://github.com/aredn/aredn/pull/2863)
+* Split out more Babel supernode parameters for later customization — [packages PR \#263](https://github.com/aredn/aredn_packages/pull/263)
+* Allow adjustment of WAN MTU — [PR \#2860](https://github.com/aredn/aredn/pull/2860)
+* Protect against the lan ip being misconfigured. — [PR \#2859](https://github.com/aredn/aredn/pull/2859)
+* Spectrum Router May Have Issues with AREDN-Configured Cudy TR3000 — [Issue \#2857](https://github.com/aredn/aredn/issues/2857)
+* Add advanced option to restart http server — [PR \#2855](https://github.com/aredn/aredn/pull/2855)
+* Add loadable strace app (debugging aid). — [PR \#2854](https://github.com/aredn/aredn/pull/2854)
+* Fix channel filtering being incorrectly applied to 3GHz radios. — [PR \#2849](https://github.com/aredn/aredn/pull/2849)
+* Use local wan route from table 23 in a more controlled way. — [PR \#2846](https://github.com/aredn/aredn/pull/2846)
+* Move the local WAN route to table 23 for easier management. — [packages PR \#261](https://github.com/aredn/aredn_packages/pull/261)
+* Remove the DtD default route carve-out — [packages PR \#260](https://github.com/aredn/aredn_packages/pull/260)
+* Make sure to restart Babel when we change internet routing. — [PR \#2844](https://github.com/aredn/aredn/pull/2844)
+* Allow locally connected nodes to share an internet connection — [packages PR \#259](https://github.com/aredn/aredn_packages/pull/259), [PR \#2843](https://github.com/aredn/aredn/pull/2843)
+* Allow a node to opt-out of routing internet bound traffic. — [PR \#2842](https://github.com/aredn/aredn/pull/2842), [packages PR \#258](https://github.com/aredn/aredn_packages/pull/258)
+* Improve port migration trigger — [PR \#2840](https://github.com/aredn/aredn/pull/2840)
+* Increase reboot times for Heltec devices — [PR \#2838](https://github.com/aredn/aredn/pull/2838)
+* Improve UI for when antennas information is missing. — [PR \#2836](https://github.com/aredn/aredn/pull/2836)
+* Improve commit timeout and retries — [PR \#2834](https://github.com/aredn/aredn/pull/2834)
+* Look for any left over service restarts and allow the user to execute them as pending changes — [PR \#2831](https://github.com/aredn/aredn/pull/2831)
+* Support persistent and temporary dnsmasq additions. — [PR \#2827](https://github.com/aredn/aredn/pull/2827)
+* Enable nftable support in dnsmasq — [PR \#2826](https://github.com/aredn/aredn/pull/2826)
+* Increase commit timeout — [PR \#2825](https://github.com/aredn/aredn/pull/2825)
+* Better detect PC hardware. — [PR \#2819](https://github.com/aredn/aredn/pull/2819)
+* Improve LQM stats gathering. — [PR \#2818](https://github.com/aredn/aredn/pull/2818)
+* Add Babel support for fast bridge — [packages PR \#257](https://github.com/aredn/aredn_packages/pull/257)
+* Rework new wifi networking to use single bridge. — [PR \#2816](https://github.com/aredn/aredn/pull/2816), [packages PR \#256](https://github.com/aredn/aredn_packages/pull/256)
+* Use newer OpenWRT mechanism to isolate bridges — [PR \#2814](https://github.com/aredn/aredn/pull/2814)
+* Fixup wifisignal hostname lookup. — [PR \#2813](https://github.com/aredn/aredn/pull/2813)
+* Fix hidden node detection which was including ourselves sometimes — [PR \#2812](https://github.com/aredn/aredn/pull/2812)
+* Modify modes available on HaLow secondary radios. — [PR \#2810](https://github.com/aredn/aredn/pull/2810)
+* Improve wireless monitoring of multiple radios — [PR \#2809](https://github.com/aredn/aredn/pull/2809)
+* Major network changes — [PR \#2805](https://github.com/aredn/aredn/pull/2805), [packages PR \#254](https://github.com/aredn/aredn_packages/pull/254)
+* MikroTik hAP ac3 Firmware Loading Issue — [Issue \#2792](https://github.com/aredn/aredn/issues/2792)
+
+
+The cross referenced list above was initially generated using Anthropic’s Claude (Sonnet 5.5 Medium) AI then edited and checked by humans for accuracy and readability. Some basic work PRs have been removed for clarity.
+
 # 4.26.7.0
 
 AREDN production release 4.26.7.0 is now available
