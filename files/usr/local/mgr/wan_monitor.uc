@@ -100,6 +100,19 @@ function isGwFound()
         }
         p.close();
     }
+    if (!last_gw) {
+        const mainRoute = fs.popen(`/sbin/ip route show default dev ${WAN_IFACE} 2>/dev/null`);
+        if (mainRoute) {
+            for (let line = mainRoute.read("line"); length(line); line = mainRoute.read("line")) {
+                const m = match(trim(line), PATT);
+                if (m) {
+                    last_gw = m[1];
+                    break;
+                }
+            }
+            mainRoute.close();
+        }
+    }
     return found;
 }
 
