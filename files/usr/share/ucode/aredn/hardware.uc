@@ -366,7 +366,7 @@ function getWiFiChannels(wifiIface)
             }
         }
     }
-    return channels;
+    return sort(channels, (a, b) => a.frequency - b.frequency);
 }
 
 const halowChannels = [
