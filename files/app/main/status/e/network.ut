@@ -162,7 +162,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const wan_vlan = int(request.args.wan_vlan || 0);
         const new_wan_iface = `${wan_iface}${wan_vlan === 0 ? '' : '.' + wan_vlan}`;
         const lan_iface = configuration.getSettingAsList("lan_intf", [])[0];
-        if ((wan_vlan === 0 || wan_vlan === 1 || (wan_vlan >= 5 && wan_vlan <= 4095)) && lan_iface != new_wan_iface) {
+        if ((wan_vlan === 0 || wan_vlan === 1 || (wan_vlan >= 5 && wan_vlan <= 4094)) && lan_iface != new_wan_iface) {
             configuration.setSettingAsList("wan_intf", [ new_wan_iface ]);
         }
     }
@@ -171,7 +171,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
         const lan_vlan = int(request.args.lan_vlan || 0);
         const new_lan_iface = `${lan_iface}${lan_vlan === 0 ? '' : '.' + lan_vlan}`;
         const wan_iface = configuration.getSettingAsList("wan_intf", [])[0];
-        if ((lan_vlan === 0 || (lan_vlan >= 5 && lan_vlan <= 4095)) && wan_iface != new_lan_iface) {
+        if ((lan_vlan === 0 || (lan_vlan >= 5 && lan_vlan <= 4094)) && wan_iface != new_lan_iface) {
             configuration.setSettingAsList("lan_intf", [ new_lan_iface ]);
         }
     }
@@ -437,7 +437,7 @@ const dmz_lan_ip = configuration.getSettingAsString("dmz_lan_ip");
                     <div class="m">Vlan used for Internet access</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="wan_vlan" type="text" size="8" placeholder="Untagged" pattern="([15-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" hx-validate="true" value="{{wan_vlan}}" hx-include="input[name='lan_vlan']">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="wan_vlan" type="text" size="8" placeholder="Untagged" pattern="([15-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-4])" hx-validate="true" value="{{wan_vlan}}" hx-include="input[name='lan_vlan']">
                 </div>
             </div>
             {{_H("By default, the WAN uses an untagged VLAN on multi-port devices, and VLAN 1 on single port devices. This can be changed here if your setup requires something different.
@@ -448,7 +448,7 @@ const dmz_lan_ip = configuration.getSettingAsString("dmz_lan_ip");
                     <div class="m">Vlan used for LAN access</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="lan_vlan" type="text" size="8" placeholder="Untagged" pattern="([5-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-5])" hx-validate="true" value="{{lan_vlan}}" hx-include="input[name='wan_vlan']">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="lan_vlan" type="text" size="8" placeholder="Untagged" pattern="([5-9]|[1-9][0-9]{1,2}|[1-3][0-9]{3}|40[0-8][0-9]|409[0-4])" hx-validate="true" value="{{lan_vlan}}" hx-include="input[name='wan_vlan']">
                 </div>
             </div>
             {{_H("By default, the LAN uses an untagged VLAN on multi-port devices, and Untagged on single port devices. This can be changed here if your setup requires something different.
@@ -608,7 +608,7 @@ const dmz_lan_ip = configuration.getSettingAsString("dmz_lan_ip");
                     case "255.255.224.0":
                         size = 8191;
                         break;
-                    case "255.2555.192.0":
+                    case "255.255.192.0":
                         size = 16383;
                         break;
                     case "255.255.128.0":
