@@ -334,7 +334,7 @@ function getWiFiChannels(wifiIface)
 
                     const fmap = {};
                     for (let f in band.freqs) {
-                        fmap["" + f.freq] = f;
+                        fmap["" + freq_adjust(f.freq)] = f;
                     }
 
                     const nchannels = [];
