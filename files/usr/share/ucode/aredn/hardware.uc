@@ -334,7 +334,7 @@ function getWiFiChannels(wifiIface)
 
                     const fmap = {};
                     for (let f in band.freqs) {
-                        fmap["" + freq_adjust(f.freq)] = f;
+                        fmap["" + f.freq] = f;
                     }
 
                     const nchannels = [];
@@ -344,14 +344,14 @@ function getWiFiChannels(wifiIface)
                             const number = getChannelFromRadioFrequency(radio, freq);
                             if (!exclude || index(exclude, number) === -1) {
                                 const widths = ax ? [ 20 ] : [ 5, 10, 20 ];
-                                if (ht40 && bondOK(fmap, freq, 40, null, is5g)) {
+                                if (ht40 && bondOK(fmap, c.freq, 40, null, is5g)) {
                                     push(widths, 40);
                                 }
                                 if (bi != 0) {
-                                    if (vht80 && bondOK(fmap, freq, 80, "no_80mhz", is5g)) {
+                                    if (vht80 && bondOK(fmap, c.freq, 80, "no_80mhz", is5g)) {
                                         push(widths, 80);
                                     }
-                                    if (vht160 && bondOK(fmap, freq, 160, "no_160mhz", is5g)) {
+                                    if (vht160 && bondOK(fmap, c.freq, 160, "no_160mhz", is5g)) {
                                         push(widths, 160);
                                     }
                                 }
