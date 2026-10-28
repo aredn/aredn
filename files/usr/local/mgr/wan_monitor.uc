@@ -100,6 +100,19 @@ function isGwFound()
         }
         p.close();
     }
+    if (!found && !last_gw) {
+        const fallback = fs.popen(`/sbin/ip -4 route show default dev ${WAN_IFACE} 2>/dev/null`);
+        if (fallback) {
+            for (let line = fallback.read("line"); length(line); line = fallback.read("line")) {
+                const m = match(trim(line), PATT);
+                if (m) {
+                    last_gw = m[1];
+                    break;
+                }
+            }
+            fallback.close();
+        }
+    }
     return found;
 }
 
