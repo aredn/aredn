@@ -47,14 +47,14 @@ hAP ac lite <br> hAP ac lite TC | RB952Ui-5ac2nD <br> RB952Ui-5ac2nD-TC | 2 & 5 
 Model | SKUs | Band | Target | Subtarget | Image | RAM | Stability | Status
 :------ | :----: | :----: | :------: | :---------: | :-----: | :---: | :---------: | :------
 Bullet M2 XW || 2 | ath79 | generic | ubnt_bullet-m-xw | 64MB | untested | released
-Bullet AC (2WA) | B-DB-AC | 2 & 5 | ath79 | generic | ubnt_bullet-ac | 64MB | stable | nightly (10)
+Bullet AC (2WA) | B-DB-AC | 2 & 5 | ath79 | generic | ubnt_bullet-ac | 64MB | stable | released (10)
 LiteAP 5AC | LAP-120 <br> LAP-120-US <br> LBE-5AC-16-120 <br> LBE-5AC-16-120-US | 5 | ath79 | generic | ubnt_lap-120 | 64MB | stable | released
 LiteBeam 5AC Gen2 | LBE-5AC <br> LBE-5AC-US | 5 | ath79 | generic | ubnt_litebeam-ac-gen2 | 64MB | stable | released
 LiteBeam 5AC LR | LBE-5AC-LR <br> LBE-5AC-LR-US | 5 | ath79 | generic | ubnt_litebeam-ac-lr | 64MB | stable | released
 LiteBeam M5 || 5 | ath79 | generic | ubnt_litebeam-m5-xw | 64MB | untested | released
 NanoBeam 2AC 13 (2WA) || 2 | ath79 | generic | ubnt_nanobeam-2ac-13 | 64MB | stable | released
 NanoBeam 5AC (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | stable | released
-NanoBeam 5AC Gen1 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | stable | nightly
+NanoBeam 5AC Gen1 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac | 64MB | stable | released
 NanoBeam 5AC (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-xc | 64MB | stable | released
 NanoBeam 5AC Gen 2 (WA) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2 | 128MB | stable | released
 NanoBeam 5AC Gen 2 (XC) || 5 | ath79 | generic | ubnt_nanobeam-ac-gen2-xc | 128MB | untested | released
