@@ -80,6 +80,25 @@ export function getToDos()
 {
     const cursor = uci.cursor();
     const todos = [];
+    // USB descriptors are available without receiver drivers. PL2303 bridge
+    // IDs are shared with non-GPS devices, so their message is conditional.
+    if (!fs.access("/tmp/whereandwhen")) {
+        for (let path in fs.glob("/sys/bus/usb/devices/*/idVendor") || []) {
+            const id = trim(fs.readfile(path) || "") + ":" +
+                trim(fs.readfile(replace(path, /idVendor$/, "idProduct")) || "");
+            // u-blox 6/7/8 (CDC ACM) and Prolific PL2303/PL2303GC.
+            if (match(id, /^(1546:01a[678]|067b:(2303|23a3))$/)) {
+                // Check the package database too: the legacy RAM marker may
+                // be absent after reboot even when the package is installed.
+                if (system("/usr/bin/apk info -e whereandwhen > /dev/null 2>&1") !== 0) {
+                    push(todos, match(id, /^1546:/) ?
+                        "Install the WhereAndWhen package to enable GPS time and location for the connected USB receiver" :
+                        "If the connected USB serial device is a GPS receiver, install WhereAndWhen to enable GPS time and location");
+                }
+                break;
+            }
+        }
+    }
     if (!cursor.get("aredn", "@location[0]", "lat") || !cursor.get("aredn", "@location[0]", "lon")) {
         push(todos, "Set the latitude and longitude");
     }
