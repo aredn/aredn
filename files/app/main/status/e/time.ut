@@ -36,7 +36,7 @@
 if (request.env.REQUEST_METHOD === "PUT") {
     configuration.prepareChanges();
     if ("timezone" in request.args) {
-        const nt = match(request.args.timezone, /^(.*)\t(.*)$/);
+        const nt = match(request.args.timezone, /^(.*) (.*)$/);
         if (nt) {
             configuration.setSettingAsString("time_zone_name", nt[1]);
             configuration.setSettingAsString("time_zone", nt[2]);
@@ -86,16 +86,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
     return;
 }
 const time_zone_name = configuration.getSettingAsString("time_zone_name", "UTC");
-const tz_db_names = [];
-const f = fs.open("/etc/zoneinfo");
-if (f) {
-    for (let l = f.read("line"); length(l); l = f.read("line")) {
-        l = rtrim(l);
-        const nt = split(l, "\t");
-        push(tz_db_names, { name: nt[0], value: l });
-    }
-    f.close();
-}
+const tzlist = timezones.getTimezoneList();
 const ntp_server = configuration.getSettingAsString("ntp_server", "");
 const ntp_server2 = configuration.getSettingAsString("ntp_server2", "");
 const ntp_active_server = configuration.getSettingAsString("ntp_active_server", "0");
@@ -124,8 +115,8 @@ switch (uciMesh.get("aredn", "@ntp[0]", "period")) {
             <div style="flex:0">
                 <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="timezone">
                     {%
-                        for (let i = 0; i < length(tz_db_names); i++) {
-                            print(`<option value="${tz_db_names[i].value}" ${tz_db_names[i].name == time_zone_name ? "selected" : ""}>${tz_db_names[i].name}</option>`);
+                        for (let name in tzlist) {
+                            print(`<option value="${name} ${tzlist[name].tz}" ${name == time_zone_name ? "selected" : ""}>${name}</option>`);
                         }
                     %}
                 </select>
