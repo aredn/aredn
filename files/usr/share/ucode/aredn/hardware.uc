@@ -1221,7 +1221,7 @@ export function getTimeouts(type)
         case "reboot":
             return timeouts.reboot || [ 20, 120 ];
         case "upgrade":
-            return timeouts.upgrade || [ 120, 300 ];
+            return timeouts.upgrade || [ 120, 360 ];
         default:
             return [ 20, 120 ];
     }
