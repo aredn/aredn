@@ -458,7 +458,8 @@ const rePath = /^\/([-a-z]*)(.*)$/;
 
 global.handle_request = function(env)
 {
-    const path = match(env.PATH_INFO, rePath);
+    const pathinfo = replace(env.PATH_INFO, "..", "_");
+    const path = match(pathinfo, rePath);
     let page = path[1] || "status";
     const secured = index(path[2], "/e/") === 0;
     const tool = path[1] === "tools" && !env.headers["hx-current-url"];
@@ -484,7 +485,7 @@ global.handle_request = function(env)
             }
         }
         else if (secured && !tool) {
-            tpath = `${config.application}/main${env.PATH_INFO}.ut`;
+            tpath = `${config.application}/main${pathinfo}.ut`;
         }
         else if ((env.HTTP_HOST === "localnode" || env.HTTP_HOST === "localnode.local.mesh") && !env.headers["hx-boosted"]) {
             uhttpd.send(`Status: 302 Found\r\nAccess-Control-Allow-Origin: ${env.headers.origin || "*"}\r\nAccess-Control-Allow-Credentials: true\r\nLocation: http://${configuration.getName()}.local.mesh${env.REQUEST_URI}\r\n\r\n`);
@@ -692,13 +693,13 @@ global.handle_request = function(env)
         return;
     }
 
-    const rpath = `${config.application}/resource/${env.PATH_INFO}`;
+    const rpath = `${config.application}/resource/${pathinfo}`;
     const gzrpath = `${rpath}.gz`;
 
     const localnode = env.HTTP_HOST === "localnode" || env.HTTP_HOST === "localnode.local.mesh";
-    if (localnode && config.resourcehash && index(env.PATH_INFO, "/css/theme.") === 0 && fs.access(gzrpath) && uciMethods.get("aredn", "@theme[0]", "portable") === "1") {
+    if (localnode && config.resourcehash && index(pathinfo, "/css/theme.") === 0 && fs.access(gzrpath) && uciMethods.get("aredn", "@theme[0]", "portable") === "1") {
         const themecss = `/css/theme.${fs.readlink(`${config.application}/resource/css/theme.version`)}.css`;
-        if (env.PATH_INFO !== themecss && fs.access(`${config.application}/resource${themecss}.gz`)) {
+        if (pathinfo !== themecss && fs.access(`${config.application}/resource${themecss}.gz`)) {
             uhttpd.send(`Status: 302 Found\r\nContent-Type: text/css\r\nCache-Control: no-store\r\nLocation: /a${themecss}\r\n\r\n`);
             return;
         }
