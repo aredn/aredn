@@ -35,7 +35,6 @@ import * as fs from "fs";
 import * as uci from "uci";
 import * as configuration from "aredn.configuration";
 import * as hardware from "aredn.hardware";
-import * as lqm from "aredn.lqm";
 import * as radios from "aredn.radios";
 
 function parseMessages(nodename, msgs, text)
@@ -109,7 +108,7 @@ export function getToDos()
         const reVidProxy = /^[^|]+\|1\|http\|[^|]+\|80\|a\/videoproxy\?.+$/;
         for (let i = 0; i < length(svcs); i++) {
             if (match(trim(svcs[i]), reVidProxy)) {
-                push(todos, "Install the ffmpeg package");
+                push(todos, "Install the <b>ffmpeg</b> package.");
                 break;
             }
         }
