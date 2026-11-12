@@ -114,9 +114,6 @@ export function getToDos()
             }
         }
     }
-    if (fs.access("/tmp/gps-detected") && !fs.access("/usr/local/mgr/whenandwhere.uc")) {
-        push(todos, "GPS module detected. Install the <b>whenandwhere</b> package.");
-    }
     return todos;
 };
 
