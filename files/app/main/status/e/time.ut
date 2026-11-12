@@ -175,22 +175,20 @@ switch (uciMesh.get("aredn", "@ntp[0]", "period")) {
             </div>
         </div>
         {{_H("When displaying the time select whether it is shown in 12 or 24 hour format.")}}
-        {{_R("dialog-advanced")}}
-        <div>
-        {% if (includeAdvanced) { %}
-            <div class="cols">
-                <div>
-                    <div class="o">GPS Time</div>
-                    <div class="m">Use local or network GPS to set time</div>
-                </div>
-                <div style="flex:0">
-                    {{_R("switch", { name: "gps_enable", value: uciMesh.get("aredn", "@time[0]", "gps_enable") === "1" })}}
-                </div>
+        <div class="cols">
+            <div>
+                <div class="o">GPS Time</div>
+                <div class="m">Use local or network GPS to set time</div>
             </div>
-            {{_H("Use either a local GPS devices to set the time, or search for a GPS device on another local node, and use its
-            GPS to set our time.")}}
-        {% } %}
+            <div style="flex:0">
+                {{_R("switch", { name: "gps_enable", value: uciMesh.get("aredn", "@time[0]", "gps_enable") === "1" })}}
+            </div>
         </div>
+        {{_H("Use either a local GPS devices to set the time, or search for a GPS device on another local node, and use its
+        GPS to set our time.")}}
+        {% if (!fs.access("/usr/local/mgr/whenandwhere.uc")) { %}
+        {{_H("When using a local GPS device, install the <b>whenandwhere</b> package.")}}
+        {% } %}
     </div>
     {{_R("dialog-footer")}}
     <script>
