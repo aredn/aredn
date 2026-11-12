@@ -86,9 +86,8 @@ function main()
                 cm.set("aredn", "@location[0]", "lon", j.lon);
                 cm.set("aredn", "@location[0]", "gridsquare", gridsquare);
                 cm.commit("aredn");
-
-                fs.writefile(LOCSYNC, syncid);
             }
+            fs.writefile(LOCSYNC, syncid);
         }
         else if (fs.readfile(LOCSYNC) === syncid) {
             fs.unlink(LOCSYNC);
