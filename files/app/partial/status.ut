@@ -45,10 +45,12 @@
 <div id="c2c3">
     <div id="c2">
         <div hx-get="u-messages" hx-trigger="focus from:window, every 300s [document.visibilityState === 'visible']">
-            <div id="messages">{% const args = { msgs: messages.getMessages(), todos: auth.isAdmin && messages.getToDos(), alerts: auth.isAdmin && messages.getAlerts() };
-            if (length(args.msgs) || length(args.todos) || length(args.alerts)) { %}
+        {% const args = { msgs: messages.getMessages(), todos: auth.isAdmin && messages.getToDos(), alerts: auth.isAdmin && messages.getAlerts() };
+        if (length(args.msgs) || length(args.todos) || length(args.alerts)) { %}
+            <div id="messages">
             {{_R("messages", args)}}
-            {% } %}</div>
+            </div>
+        {% } %}
         </div>
         <div id="services" hx-get="u-services" hx-trigger="every 120s [document.visibilityState === 'visible']">
             {% if (auth.isAdmin) { %}
@@ -96,10 +98,12 @@
 </div>
 {% } else { %}
 <div hx-get="u-messages" hx-trigger="every 300s [document.visibilityState === 'visible']">
-    <div id="messages">{% const args = { msgs: messages.getMessages(), todos: auth.isAdmin && messages.getToDos(), alerts: auth.isAdmin && messages.getAlerts() };
-    if (length(args.msgs) || length(args.todos) || length(args.alerts)) { %}
+{% const args = { msgs: messages.getMessages(), todos: auth.isAdmin && messages.getToDos(), alerts: auth.isAdmin && messages.getAlerts() };
+if (length(args.msgs) || length(args.todos) | length(args.alerts)) { %}
+    <div id="messages">
     {{_R("messages", args)}}
-    {% } %}</div>
+    </div>
+{% } %}
 </div>
 <div id="general"" hx-get="u-general" hx-trigger="focus from:window, visibilitychange[document.visibilityState === 'visible'] from:document">
     {{_R("general")}}
