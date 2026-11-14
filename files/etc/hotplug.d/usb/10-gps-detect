@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# VK-162/VK-172 u-blox GPS only, not generic USB serial bridges.
+case "$DEVTYPE:$PRODUCT" in
+    usb_device:1546/1a7/*)
+        case "$ACTION" in
+            add) mkdir -p "/tmp/gps-detected/${DEVPATH##*/}" ;;
+            remove) rmdir "/tmp/gps-detected/${DEVPATH##*/}" /tmp/gps-detected 2>/dev/null || : ;;
+        esac
+        ;;
+esac
