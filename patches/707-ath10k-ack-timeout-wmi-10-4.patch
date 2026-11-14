@@ -1,0 +1,131 @@
+--- /dev/null
++++ openwrt/package/kernel/ath10k-ct/patches/999-0007-ath10k-ack-timeout.patch
+@@ -0,0 +1,128 @@
++diff -urpN a/ath10k-6.18/core.c b/ath10k-6.18/core.c
++--- a/ath10k-6.18/core.c
+++++ b/ath10k-6.18/core.c
++@@ -3666,6 +3666,7 @@ int ath10k_core_start(struct ath10k *ar,
++ 
++ 	ar->ok_tx_rate_status = false;
++ 	ar->running_fw = fw;
+++	ar->fw_coverage.reg_ack_cts_timeout_conf = 0; /* new firmware boot forgets it */
++ 
++ 	if (!test_bit(ATH10K_FW_FEATURE_NON_BMI,
++ 		      ar->running_fw->fw_file.fw_features)) {
++diff -urpN a/ath10k-6.18/hw.c b/ath10k-6.18/hw.c
++--- a/ath10k-6.18/hw.c
+++++ b/ath10k-6.18/hw.c
++@@ -4,6 +4,7 @@
++  * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
++  */
++ 
+++#include <linux/module.h>
++ #include <linux/types.h>
++ #include <linux/bitops.h>
++ #include <linux/bitfield.h>
++@@ -589,6 +590,66 @@ void ath10k_hw_fill_survey_time(struct a
++ /* The stock firmware does not support setting the coverage class. Instead this
++  * function monitors and modifies the corresponding MAC registers.
++  */
+++/* Extra ACK timeout units on top of the coverage class estimate. AREDN's LQM
+++ * sets coverage from GPS distance rounded down, and field reports show the
+++ * estimate alone is too tight (0x46 collapsed a 7.4 km link, 0x47 held it).
+++ */
+++static unsigned int ack_timeout_extra = 3;
+++module_param(ack_timeout_extra, uint, 0644);
+++MODULE_PARM_DESC(ack_timeout_extra, "Extra QCA4019 ACK timeout units beyond the coverage class estimate");
+++
+++/* Wave 2 firmware takes the ACK timeout over WMI instead of through MAC
+++ * registers. Based on OpenWrt PR #4279. reg_ack_cts_timeout_conf holds the
+++ * value last sent: no wave 1 register path runs here, and reusing it keeps
+++ * struct ath10k unchanged, so ath10k_pci.ko stays compatible.
+++ */
+++static void ath10k_hw_qca99x0_set_coverage_class(struct ath10k *ar,
+++						 int radio_idx,
+++						 s16 value)
+++{
+++	u32 timeout = 0x40;
+++	int ret;
+++
+++	mutex_lock(&ar->conf_mutex);
+++
+++	/* The core's work item passes -1: reapply what is stored. */
+++	if (value < 0)
+++		value = ar->fw_coverage.coverage_class;
+++
+++	spin_lock_bh(&ar->data_lock);
+++	ar->fw_coverage.coverage_class = value;
+++	spin_unlock_bh(&ar->data_lock);
+++
+++	if (ar->state != ATH10K_STATE_ON &&
+++	    ar->state != ATH10K_STATE_RESTARTED)
+++		goto unlock;
+++
+++	/* Nothing asked for and nothing sent: keep the firmware default. */
+++	if (!value && !ar->fw_coverage.reg_ack_cts_timeout_conf)
+++		goto unlock;
+++
+++	if (value > 0)
+++		timeout += min_t(u32, (((value >> 2) + (value >> 1)) >> 1) + 1 +
+++				 ack_timeout_extra, 0xbf);
+++
+++	if (timeout == ar->fw_coverage.reg_ack_cts_timeout_conf)
+++		goto unlock;
+++
+++	/* Recorded on failure too: this runs on most WMI events, don't retry. */
+++	ar->fw_coverage.reg_ack_cts_timeout_conf = timeout;
+++
+++	ret = ath10k_wmi_pdev_set_param(ar, ar->wmi.pdev_param->tx_ack_timeout,
+++					timeout);
+++	if (ret)
+++		ath10k_warn(ar, "failed to set tx ack timeout 0x%x: %d\n",
+++			    timeout, ret);
+++	else
+++		ath10k_info(ar, "coverage class %d tx ack timeout 0x%x\n",
+++			    value, timeout);
+++unlock:
+++	mutex_unlock(&ar->conf_mutex);
+++}
+++
++ static void ath10k_hw_qca988x_set_coverage_class(struct ath10k *ar,
++ 						 int radio_idx,
++ 						 s16 value)
++@@ -1145,6 +1206,7 @@ const struct ath10k_hw_ops qca988x_ops =
++ };
++ 
++ const struct ath10k_hw_ops qca99x0_ops = {
+++	.set_coverage_class = ath10k_hw_qca99x0_set_coverage_class,
++ 	.is_rssi_enable = ath10k_htt_tx_rssi_enable,
++ };
++ 
++diff -urpN a/ath10k-6.18/wmi.c b/ath10k-6.18/wmi.c
++--- a/ath10k-6.18/wmi.c
+++++ b/ath10k-6.18/wmi.c
++@@ -1619,6 +1619,7 @@ static struct wmi_pdev_param_map wmi_10_
++ 	.arp_srcaddr = WMI_10_4_PDEV_PARAM_ARP_SRCADDR,
++ 	.arp_dstaddr = WMI_10_4_PDEV_PARAM_ARP_DSTADDR,
++ 	.enable_btcoex = WMI_10_4_PDEV_PARAM_ENABLE_BTCOEX,
+++	.tx_ack_timeout = WMI_10_4_PDEV_PARAM_TX_ACK_TIMEOUT,
++ };
++ 
++ static const u8 wmi_key_cipher_suites[] = {
++diff -urpN a/ath10k-6.18/wmi.h b/ath10k-6.18/wmi.h
++--- a/ath10k-6.18/wmi.h
+++++ b/ath10k-6.18/wmi.h
++@@ -3992,6 +3992,7 @@ struct wmi_pdev_param_map {
++ 	u32 rfkill_config;
++ 	u32 rfkill_enable;
++ 	u32 peer_stats_info_enable;
+++	u32 tx_ack_timeout;
++ };
++ 
++ #define WMI_PDEV_PARAM_UNSUPPORTED 0
++@@ -4312,6 +4313,8 @@ enum wmi_10_4_pdev_param {
++ 	WMI_10_4_PDEV_PARAM_ATF_DYNAMIC_ENABLE,
++ 	WMI_10_4_PDEV_PARAM_ATF_SSID_GROUP_POLICY,
++ 	WMI_10_4_PDEV_PARAM_ENABLE_BTCOEX,
+++	/* range 0x40-0xff */
+++	WMI_10_4_PDEV_PARAM_TX_ACK_TIMEOUT = 0x68,
++ };
++ 
++ struct wmi_pdev_set_param_cmd {

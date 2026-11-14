@@ -334,7 +334,7 @@ function getWiFiChannels(wifiIface)
 
                     const fmap = {};
                     for (let f in band.freqs) {
-                        fmap["" + f.freq] = f;
+                        fmap["" + freq_adjust(f.freq)] = f;
                     }
 
                     const nchannels = [];
@@ -640,7 +640,12 @@ export function getChannelFrequencyRange(wifiIface, channel, bandwidth)
         for (let i = 0; i < length(rfchans); i++) {
             const c = rfchans[i];
             if (c.number == channel) {
-                return (c.frequency - bandwidth / 2.0) + " - " + (c.frequency + bandwidth / 2.0) + " MHz";
+                if (bandwidth <= 20) {
+                    return (c.frequency - bandwidth / 2.0) + " - " + (c.frequency + bandwidth / 2.0) + " MHz";
+                }
+                else {
+                    return (c.frequency - 10.0) + " - " + (c.frequency + bandwidth - 10.0) + " MHz";
+                }
             }
         }
     }
@@ -694,45 +699,6 @@ export function getTxPowerOffset(wifiIface)
     return 0;
 };
 
-export function getRadioNoise(wifiIface)
-{
-    const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiIface }) || [];
-    for (let i = 0; i < length(survey); i++) {
-        if (survey[i].dev == wifiIface && survey[i].survey_info.noise) {
-            return survey[i].survey_info.noise;
-        }
-    }
-    if (getRadioType(wifiIface) === "halow") {
-        const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} stats 2>/dev/null | grep 'Noise (dBm)'`);
-        if (p) {
-            const m = match(p.read("all"), /: (-\d+)/);
-            p.close();
-            if (m) {
-                return int(m[1]);
-            }
-        }
-    }
-    return -95;
-};
-
-export function getStations(wifiIface)
-{
-    const stations = [];
-    const wlans = [ wifiIface, ...map(fs.glob(`/sys/class/net/${wifiIface}.sta*`), w => fs.basename(w)) ];
-    for (let w = 0; w < length(wlans); w++) {
-        const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
-        if (type(info) === "array") {
-            push(stations, ...info);
-        }
-    }
-    return stations;
-};
-
-export function getStation(wifiIface, macAddress)
-{
-    return nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: wifiIface, mac: macAddress });
-};
-
 export function getCurrentFrequency(wifiIface)
 {
     switch (getRadioType(wifiIface)) {
@@ -754,6 +720,54 @@ export function getCurrentFrequency(wifiIface)
             const iface = nl80211.request(nl80211.const.NL80211_CMD_GET_INTERFACE, nl80211.const.NLM_F_DUMP, { dev: wifiIface });
             return iface?.[0]?.wiphy_freq;
     }
+};
+
+export function getRadioNoise(wifiIface)
+{
+    if (getRadioType(wifiIface) === "halow") {
+        const p = fs.popen(`/sbin/morse_cli -i ${wifiIface} stats 2>/dev/null | grep 'Noise (dBm)'`);
+        if (p) {
+            const m = match(p.read("all"), /: (-\d+)/);
+            p.close();
+            if (m) {
+                return int(m[1]);
+            }
+        }
+        return -95;
+    }
+    else {
+        const freq = getCurrentFrequency(wifiIface);
+        const survey = nl80211.request(nl80211.const.NL80211_CMD_GET_SURVEY, nl80211.const.NLM_F_DUMP, { dev: wifiIface }) || [];
+        let noise = -95;
+        for (let i = 0; i < length(survey); i++) {
+            const s = survey[i];
+            if (s.dev == wifiIface && s.survey_info.noise) {
+                noise = s.survey_info.noise;
+                if (s.survey_info.frequency === freq) {
+                    break;
+                }
+            }
+        }
+        return noise;
+    }
+};
+
+export function getStations(wifiIface)
+{
+    const stations = [];
+    const wlans = [ wifiIface, ...map(fs.glob(`/sys/class/net/${wifiIface}.sta*`), w => fs.basename(w)) ];
+    for (let w = 0; w < length(wlans); w++) {
+        const info = nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, nl80211.const.NLM_F_DUMP, { dev: wlans[w] });
+        if (type(info) === "array") {
+            push(stations, ...info);
+        }
+    }
+    return stations;
+};
+
+export function getStation(wifiIface, macAddress)
+{
+    return nl80211.request(nl80211.const.NL80211_CMD_GET_STATION, 0, { dev: wifiIface, mac: macAddress });
 };
 
 export function getMaxDistance(wifiIface)
@@ -940,7 +954,7 @@ export function supportsFeature(feature, arg1, arg2)
             return (!modes || index(modes, arg2) === -1);
         }
         case "hw-watchdog":
-            return !!fs.access("/dev/watchdog") && !fs.access("/tmp/no-hw-watchdog");
+            return !!fs.access("/dev/watchdog");
         case "boot-efi":
             return !!fs.access("/sys/firmware/efi");
         case "xlink":
@@ -1216,7 +1230,7 @@ export function getTimeouts(type)
         case "reboot":
             return timeouts.reboot || [ 20, 120 ];
         case "upgrade":
-            return timeouts.upgrade || [ 120, 300 ];
+            return timeouts.upgrade || [ 120, 360 ];
         default:
             return [ 20, 120 ];
     }

@@ -35,20 +35,16 @@ const PING = "/bin/ping";
 const PIDOF = "/bin/pidof";
 const REBOOT = "/sbin/reboot";
 
-const WATCHDOG_IOCTL_BASE = ord("W");
-const WDIOC_SETTIMEOUT = 6;
-const WDIOC_GETTIMEOUT = 7;
-
-let tick = 60;
+const tick = 60;
+const grace = tick * 5;
+const heartbeat = "/tmp/watchdog-heartbeat";
 const pingTimeout = 3;
 const startupDelay = 600;
 const maxLastPing = 300;
-const minWatchdogTimeout = 15;
 
 // Set of daemons to monitor
 const defaultDaemons = "dnsmasq telnetd dropbear uhttpd babeld";
 
-let wd = null;
 let pingState = [];
 let pingIndex = 0;
 
@@ -185,8 +181,7 @@ function main()
     }
     
     if (success) {
-        wd.write("1");
-        wd.flush();
+        fs.writefile(heartbeat, "");
     }
     else {
         log.syslog(log.LOG_ERR, "failed");
@@ -198,39 +193,11 @@ function main()
 // Gracefully shutdown the watchdog
 onShutdown(() => {
     log.syslog(log.LOG_DEBUG, `disabling watchdog`);
-    if (wd) {
-        wd.write("V");
-        wd.flush();
-        wd.close();
-    }
+    ubus.connect().call("system", "watchdog", { heartbeat: "" });
 });
 
 // Dont start monitoring too soon. Let the system settle down.
 return waitForTicks(max(0, startupDelay - clock(true)[0]), function() {
-    const ub = ubus.connect();
-    ub.call("system", "watchdog", { magicclose: true });
-    ub.call("system", "watchdog", { stop: true });
-    wd = fs.open("/dev/watchdog", "w");
-    if (!wd) {
-        log.syslog(log.LOG_ERR, "Watchdog failed to start: Cannot open /dev/watchdog");
-        ub.call("system", "watchdog", { stop: false });
-        fs.writefile("/tmp/no-hw-watchdog", "");
-        return exitApp();
-    }
-
-    // We cannot reliably set the timeout so we are forced to work with whatever the default value is.
-    // If the value is too small we disable the watchdog.
-    const gettime = struct.unpack("I", wd.ioctl(fs.IOC_DIR_READ, WATCHDOG_IOCTL_BASE, WDIOC_GETTIMEOUT, 4))[0];
-    tick = min(tick, int(gettime / 2));
-    if (tick < minWatchdogTimeout) {
-        log.syslog(log.LOG_ERROR, `tick ${tick} < ${minWatchdogTimeout}, disabling watchdog`);
-        wd.write("V");
-        wd.flush();
-        wd.close();
-        fs.writefile("/tmp/no-hw-watchdog", "");
-        return exitApp();
-    }
-    log.syslog(log.LOG_DEBUG, `tick set to ${tick}`);
-
+    ubus.connect().call("system", "watchdog", { heartbeat: heartbeat, grace: grace });
     return main;
 });

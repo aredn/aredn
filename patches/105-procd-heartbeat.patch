@@ -1,0 +1,158 @@
+--- /dev/null
++++ b/package/system/procd/patches/0001-heartbeat.patch
+@@ -0,0 +1,155 @@
++--- a/system.c
+++++ b/system.c
++@@ -452,6 +452,8 @@
++ 	WDT_TIMEOUT,
++ 	WDT_MAGICCLOSE,
++ 	WDT_STOP,
+++	WDT_HEARTBEAT,
+++	WDT_GRACE,
++ 	__WDT_MAX
++ };
++ 
++@@ -460,6 +462,8 @@
++ 	[WDT_TIMEOUT] = { .name = "timeout", .type = BLOBMSG_TYPE_INT32 },
++ 	[WDT_MAGICCLOSE] = { .name = "magicclose", .type = BLOBMSG_TYPE_BOOL },
++ 	[WDT_STOP] = { .name = "stop", .type = BLOBMSG_TYPE_BOOL },
+++	[WDT_HEARTBEAT] = { .name = "heartbeat", .type = BLOBMSG_TYPE_STRING },
+++	[WDT_GRACE] = { .name = "grace", .type = BLOBMSG_TYPE_INT32 },
++ };
++ 
++ static int watchdog_set(struct ubus_context *ctx, struct ubus_object *obj,
++@@ -467,7 +471,8 @@
++ 			struct blob_attr *msg)
++ {
++ 	struct blob_attr *tb[__WDT_MAX];
++-	const char *status;
+++	const char *status, *heartbeat;
+++	int grace;
++ 
++ 	if (!msg)
++ 		return UBUS_STATUS_INVALID_ARGUMENT;
++@@ -497,6 +502,10 @@
++ 	if (tb[WDT_MAGICCLOSE])
++ 		watchdog_set_magicclose(blobmsg_get_bool(tb[WDT_MAGICCLOSE]));
++ 
+++	if (tb[WDT_HEARTBEAT])
+++		watchdog_set_heartbeat(blobmsg_get_string(tb[WDT_HEARTBEAT]),
+++				       tb[WDT_GRACE] ? (int32_t)blobmsg_get_u32(tb[WDT_GRACE]) : -1);
+++
++ 	if (tb[WDT_STOP])
++ 		watchdog_set_stopped(blobmsg_get_bool(tb[WDT_STOP]));
++ 
++@@ -512,6 +521,11 @@
++ 	blobmsg_add_u32(&b, "timeout", watchdog_timeout(0));
++ 	blobmsg_add_u32(&b, "frequency", watchdog_frequency(0));
++ 	blobmsg_add_u8(&b, "magicclose", watchdog_get_magicclose());
+++	heartbeat = watchdog_get_heartbeat(&grace);
+++	if (heartbeat) {
+++		blobmsg_add_string(&b, "heartbeat", heartbeat);
+++		blobmsg_add_u32(&b, "grace", (uint32_t)grace);
+++	}
++ 	ubus_send_reply(ctx, req, b.head);
++ 
++ 	return 0;
++--- a/watchdog.c
+++++ b/watchdog.c
++@@ -19,6 +19,9 @@
++ #include <sys/stat.h>
++ #include <fcntl.h>
++ 
+++#include <stdlib.h>
+++#include <string.h>
+++#include <time.h>
++ #include <unistd.h>
++ 
++ #include <libubox/uloop.h>
++@@ -34,6 +37,12 @@
++ static int wdt_frequency = 5;
++ static bool wdt_magicclose = false;
++ 
+++static struct {
+++	char *path;
+++	int grace;
+++	time_t last_seen;
+++} wdt_hb;
+++
++ void watchdog_ping(void)
++ {
++ 	DEBUG(4, "Ping\n");
++@@ -43,7 +52,20 @@
++ 
++ static void watchdog_timeout_cb(struct uloop_timeout *t)
++ {
++-	watchdog_ping();
+++	bool ping = true;
+++
+++	if (wdt_hb.path) {
+++		struct timespec now;
+++
+++		clock_gettime(CLOCK_MONOTONIC, &now);
+++		if (unlink(wdt_hb.path) == 0)
+++			wdt_hb.last_seen = now.tv_sec;
+++		else if (now.tv_sec - wdt_hb.last_seen >= wdt_hb.grace)
+++			ping = false;
+++	}
+++
+++	if (ping)
+++		watchdog_ping();
++ 	uloop_timeout_set(t, wdt_frequency * 1000);
++ }
++ 
++@@ -176,6 +198,27 @@
++ 	return wdt_frequency;
++ }
++ 
+++void watchdog_set_heartbeat(const char *path, int grace)
+++{
+++	struct timespec now;
+++
+++	clock_gettime(CLOCK_MONOTONIC, &now);
+++	if (wdt_hb.path)
+++		free(wdt_hb.path);
+++	wdt_hb.path = (path && *path) ? strdup(path) : NULL;
+++	if (grace >= 0)
+++		wdt_hb.grace = grace;
+++	wdt_hb.last_seen = now.tv_sec;
+++}
+++
+++const char *watchdog_get_heartbeat(int *grace)
+++{
+++	if (grace)
+++		*grace = wdt_hb.grace;
+++
+++	return wdt_hb.path;
+++}
+++
++ char* watchdog_fd(void)
++ {
++ 	static char fd_buf[12];
++--- a/watchdog.h
+++++ b/watchdog.h
++@@ -28,6 +28,8 @@
++ bool watchdog_get_stopped(void);
++ void watchdog_set_cloexec(bool val);
++ void watchdog_ping(void);
+++void watchdog_set_heartbeat(const char *path, int grace);
+++const char *watchdog_get_heartbeat(int *grace);
++ #else
++ static inline void watchdog_init(int preinit)
++ {
++@@ -74,6 +76,15 @@
++ {
++ }
++ 
+++static inline void watchdog_set_heartbeat(const char *path, int grace)
+++{
+++}
+++
+++static inline const char *watchdog_get_heartbeat(int *grace)
+++{
+++	return NULL;
+++}
+++
++ #endif
++ 
++ #endif
