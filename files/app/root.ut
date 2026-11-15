@@ -508,12 +508,9 @@ global.handle_request = function(env)
         if (pageCache[tpath] || fs.access(tpath)) {
             auth.runAuthentication(env, response);
             if (config.authenable && !auth.isAdmin) {
-                if (secured) {
-                    uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
-                    return;
-                }
-                if (!(env.REQUEST_METHOD === "GET" || env.REQUEST_METHOD === "OPTIONS") && configuration.isConfigured()) {
-                    uhttpd.send("Status: 401 Unauthorized\r\n\r\n");
+                if (secured || (!(env.REQUEST_METHOD === "GET" || env.REQUEST_METHOD === "OPTIONS") && configuration.isConfigured())) {
+                    const cookieheader = response.headers["Set-Cookie"] ? `Set-Cookie: ${response.headers["Set-Cookie"]}\r\n` : "";
+                    uhttpd.send(`Status: 401 Unauthorized\r\n${cookieheader}\r\n`);
                     return;
                 }
             }
