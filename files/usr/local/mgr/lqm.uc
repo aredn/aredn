@@ -607,6 +607,7 @@ function main()
             if (track.ip || track.canonical_ip) {
                 ip2tracker[track.ip || track.canonical_ip] = track;
             }
+            ip2tracker[track.ipv6ll] = track;
             if (track.type === "DtD" && track.canonical_ip) {
                 dtdips[track.canonical_ip] = true;
             }
