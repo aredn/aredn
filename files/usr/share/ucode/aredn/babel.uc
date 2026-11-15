@@ -70,7 +70,7 @@ export function getInterfaces()
     c.close();
     d = split(d, "\n");
     // add interface br-dtdlink up true ipv6 fe80::5c:7dff:feb0:e28d ipv4 10.156.103.63
-    const interfaces = /interface ([^ ]+) .+ ipv6 ([^ ]+) ipv4 ([^ ]+)/;
+    const interfaces = /interface ([^ ]+) .+ ipv6 ([^ ]+)( ipv4 ([^ ]+))?/;
     const r = [];
     for (let i = 0; i < length(d); i++) {
         const m = match(d[i], interfaces);
@@ -78,7 +78,7 @@ export function getInterfaces()
             push(r, {
                 interface: m[1],
                 ipv6address: m[2],
-                ipv4address: m[3]
+                ipv4address: m[4]
             });
         }
     }
