@@ -37,7 +37,7 @@ LICENSE
 include /lib/upgrade/
 
 if [ $# -eq 0 -o $# -gt 3 ]; then
-  echo "Usage: aredn_sysupgrade [--firstuse] [--force] <firmwarefile>" 1>&2
+  echo "Usage: aredn_sysupgrade [--firstuse] [--force] [--backup <backupfile>] <firmwarefile>" 1>&2
   exit 1
 fi
 
@@ -56,6 +56,20 @@ fi
 force=""
 if [ "$1" = "--force" ]; then
   force="--force"
+  shift
+fi
+
+#
+# Look for a backup file
+#
+backupfile=""
+if [ "$1" = "--backup" ]; then
+  if [ ! -f "$2" ]; then
+    echo "ERROR: Missing backup file: $2" 1>&2
+    exit 1
+  fi
+  backupfile="$2"
+  shift
   shift
 fi
 
@@ -89,9 +103,14 @@ if [ "${error}" != "" ]; then
 fi
 
 #
+# Use a backupfile is provided
+#
+if [ "${backupfile}" != "" ]; then
+  backup="-f ${backupfile}"
+#
 # Generate the backup unless first use
 #
-if [ "${backup}" != "-n" ]; then
+elif [ "${backup}" != "-n" ]; then
   # Stop babel.
   # We need to do this here so we get the state information into the backup file.
   /etc/init.d/babel stop
