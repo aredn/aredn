@@ -11,6 +11,7 @@ visible without treating them as the same thing.
 | `SYNCED · NTP` | Actual successful one-shot target, or unknown daemon peer | Matching recent native synchronization evidence |
 | `LAST SYNC · NTP` | Historical target, or source not recorded | Old evidence or only the native synchronization marker |
 | `UNSYNCED · NTP` | Peer unknown when not exposed | Native daemon callback reports an unsynchronized stratum |
+| `STATUS OLD · NTP` | Unknown daemon peer | An expired unsynchronized report, not proof of a current fault or successful synchronization |
 
 GPS lock is receiver health, not proof of PPS accuracy or continuous clock
 discipline. NTP evidence describes an observed native synchronization, not a GPS
@@ -37,17 +38,24 @@ These screenshots use native-template fixtures, not live receiver measurements.
   device or network endpoint, never a remote server's TPV device path.
 - The native clock/location synchronization body and ten-minute cadence are
   retained, including native synchronization-marker ownership and cleanup.
+  Observer failures cannot interrupt native work, and disabling health display
+  does not change native source discovery/setup or synchronization scheduling.
 - The page reads RAM caches only. It performs no GPSD/NTP connection, discovery,
   USB scan, or package query. It reuses the existing authenticated HTMX refresh
   and time-settings interaction; public read-only views require reload.
+  Both badges share one native-marker snapshot. GPS-only views do not read or
+  stat NTP metadata.
 - GPS health expires after 90 seconds. Discovery retries retain the native
   ten-minute interval; the display can therefore report stale data between retries.
+  Partial cache writes are never published; failed temporary files are removed.
 - Native successful NTP paths gain best-effort metadata annotations. Annotation
   failure does not change the native synchronization result. The observer does
   not set the clock, select a peer, or enable a daemon.
 - NTP metadata uses writer-specific temporary files and atomic rename. Marker
   mtime and monotonic timestamps reject mismatched/future records. One-shot
   evidence becomes historical after 24 hours; daemon evidence after 15 minutes.
+  Expired daemon errors become `STATUS OLD`, not a continuing current alarm.
+  Daemon records never certify a peer absent from the native callback.
 - Source text and tooltips are escaped. Explicit state words support all themes;
   long source endpoints wrap.
 
@@ -69,3 +77,8 @@ The default baseline is pinned to firmware revision
 Loopback GPSD fixtures use private ephemeral ports, and browser requests are
 intercepted. Tests exercise real repository templates, themes, and HTMX resources.
 These checks do not qualify physical receiver faults, reboots, or a firmware build.
+
+The reviewed candidate passes 126 native checks plus 10 baseline manager checks,
+7 private-loopback GPSD cases, 160 browser combinations, and 6 baseline / 6
+candidate NTP-script cases. Added regressions cover observer exceptions, partial
+cache writes, expired faults, inconsistent peers, and single-snapshot rendering.

@@ -43,25 +43,30 @@ let gps;
 let syncid;
 let nextSync = 0;
 
+function updateStatus(status)
+{
+    // A display observation must never interrupt the native GPS task.
+    try {
+        gpslock.write(status || gpslock.read(gps));
+    }
+    catch (e) {
+        fs.unlink("/tmp/gps-lock.json");
+    }
+}
+
 function main()
 {
     const c = uci.cursor();
     const timeEnabled = c.get("aredn", "@time[0]", "gps_enable") === "1";
-    const locationEnabled = c.get("aredn", "@location[0]", "gps_enable") === "1";
-    if (!timeEnabled && !locationEnabled) {
-        fs.unlink("/tmp/gps-lock.json");
-        nextSync = 0;
-        return waitForTicks(gpslock.POLL_SECONDS);
-    }
     if (timeEnabled) {
-        gpslock.write(gpslock.read(gps));
+        updateStatus();
     }
     else {
         fs.unlink("/tmp/gps-lock.json");
     }
     const now = clock(true)[0];
     if (now < nextSync) {
-        return waitForTicks(gpslock.POLL_SECONDS);
+        return waitForTicks(timeEnabled ? gpslock.POLL_SECONDS : nextSync - now);
     }
     // Health refreshes do not change native clock/location sync or its cadence.
     nextSync = now + 600;
@@ -122,11 +127,6 @@ function main()
 function find()
 {
     const c = uci.cursor();
-    if (c.get("aredn", "@time[0]", "gps_enable") !== "1" &&
-        c.get("aredn", "@location[0]", "gps_enable") !== "1") {
-        fs.unlink("/tmp/gps-lock.json");
-        return waitForTicks(60);
-    }
     gps = hardware.GPSFind();
     if (gps) {
         // Create the GPSD daemon if device is local,
@@ -151,14 +151,14 @@ function find()
     }
     else {
         if (c.get("aredn", "@time[0]", "gps_enable") === "1") {
-            gpslock.write({ state: "error", reason: "GPS source not found" });
+            updateStatus({ state: "error", reason: "GPS source not found" });
         }
         return waitForTicks(600); // 10 minutes
     }
 }
 
 if (uci.cursor().get("aredn", "@time[0]", "gps_enable") === "1") {
-    gpslock.write({ state: "pending", reason: "Finding GPS source" });
+    updateStatus({ state: "pending", reason: "Finding GPS source" });
 }
 else {
     fs.unlink("/tmp/gps-lock.json");

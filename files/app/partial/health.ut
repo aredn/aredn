@@ -59,7 +59,6 @@
         tz = `${lc(trim(tf.read("all")))}`;
         tf.close();
     }
-    const tmsource = fs.readfile("/tmp/timesync");
     // GPS lock badge support added by mathisono (2026). Never infer lock from
     // /tmp/timesync: that marker only describes the last clock-sync source.
     const gpslock = uci.get("aredn", "@time[0]", "gps_enable") === "1" ? require("aredn.gpslock").current() : null;
@@ -82,7 +81,7 @@
     {% } %}
     <div class="s">{{tz}}<span class="time-sync-status {{timeStatus.state}}" role="status" aria-label="{{gpsEscape(timeStatus.detail)}}" title="{{gpsEscape(timeStatus.detail)}}">{{timeStatus.label}}</span></div>
     <div class="time-sync-source" title="{{gpsEscape(timeStatus.detail)}}">Source: {{gpsEscape(timeStatus.source)}}</div>
-    {% if (gpslock && (gpssource?.kind === "local" || gpssource?.kind === "network") && trim(tmsource || "") === "ntp") { %}
+    {% if (gpslock && (gpssource?.kind === "local" || gpssource?.kind === "network") && timeStatus.sync === "ntp") { %}
     <div class="s"><span class="gps-lock-status {{gpslock.state}}" role="status" aria-label="{{gpsEscape(gpsdetail)}}" title="{{gpsEscape(gpsdetail)}}">GPS {{gpsstate}} · {{gpslabel}}</span></div>
     {% } %}
 </div>

@@ -12,15 +12,18 @@ let sync = "network gps";
 let cached;
 let ntp;
 let checks = 0;
+let markerReads = 0;
 function check(value, message) { if (!value) die(`FAIL: ${message}\n`); checks++; print(`PASS: ${message}\n`); }
 const files = {
-    readfile: path => path === "/tmp/timesync" ? sync : path === timestatus.STATUS && ntp ? sprintf("%J", ntp) : null,
+    readfile: path => { if (path === "/tmp/timesync") { markerReads++; return sync; }
+        return path === timestatus.STATUS && ntp ? sprintf("%J", ntp) : null; },
     stat: () => ({mtime: 123})
 };
 const scope = {
     fs: {
         readfile: path => path === "/proc/uptime" ? "90061 0" : path === "/proc/loadavg" ? "0.01 0.02 0.03 1/10 1" :
-            path === "/proc/meminfo" ? "MemAvailable: 128000 kB\nMemTotal: 256000 kB\n" : path === "/tmp/timesync" ? sync : null,
+            path === "/proc/meminfo" ? "MemAvailable: 128000 kB\nMemTotal: 256000 kB\n" :
+            path === "/tmp/timesync" ? (markerReads++, sync) : null,
         popen: command => ({ read: () => index(command, "date") >= 0 ? "UTC\n" :
             "Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/root 10000 1000 9000 10% /\n", close: () => {} })
     },
@@ -49,6 +52,12 @@ const cases = [
     {name:"ntp-unsynced", state:"error", label:"UNSYNCED · NTP", sync:"ntp", enabled:false, source:"Selected peer not exposed by NTP daemon",
         ntp:{kind:"ntp",mode:"daemon",endpoint:null,stratum:16,checked_uptime:900,sync_epoch:1794693034,marker_mtime:123},
         description:"Red — NTP daemon unsynchronized. Stratum 16 is not synchronized. BusyBox does not expose its selected peer through the native callback, so that source remains explicitly unknown."},
+    {name:"ntp-status-old", state:"pending", label:"STATUS OLD · NTP", sync:"ntp", enabled:false, source:"Selected peer not exposed by NTP daemon",
+        ntp:{kind:"ntp",mode:"daemon",endpoint:null,stratum:16,checked_uptime:0,sync_epoch:1794693034,marker_mtime:123},
+        description:"Yellow — The daemon previously reported unsynchronized, but that report is now too old to certify its current state. This is not a current red alarm or a claimed successful synchronization."},
+    {name:"ntp-peer-unknown", state:"pending", label:"LAST SYNC · NTP", sync:"ntp", enabled:false, source:"Source not recorded",
+        ntp:{kind:"ntp",mode:"daemon",endpoint:"guessed-peer.example",stratum:2,checked_uptime:900,sync_epoch:1794693034,marker_mtime:123},
+        description:"Yellow — Inconsistent daemon source metadata is not trusted. A peer that the native callback never exposed cannot be presented as the actual successful server."},
     {name:"ntp-and-gps", state:"locked", label:"SYNCED · NTP", sync:"ntp", cache:fresh, source:"aredn.pool.ntp.org",
         ntp:{kind:"ntp",mode:"oneshot",endpoint:"aredn.pool.ntp.org",checked_uptime:900,sync_epoch:1794693034,marker_mtime:123},
         description:"NTP last set the clock while a network GPS receiver is currently locked. Both facts are shown separately: GPS receiver lock does not establish which source last synchronized the system clock."},
@@ -62,10 +71,12 @@ function document(html, name, description) {
 }
 for (let test in cases) {
     enabled = test.enabled !== false; sync = test.sync; cached = test.cache; ntp = test.ntp;
+    markerReads = 0;
     const html = render(call,template,scope,scope);
     check(index(html, `time-sync-status ${test.state}`) >= 0 && index(html, test.label) >= 0,
         `${test.name}: exact health template renders the correct state/label`);
     check(index(html, "Source: " + test.source) >= 0, `${test.name}: source is explicit`);
+    check(markerReads === 1, `${test.name}: both badges share one native-marker snapshot`);
     fs.writefile(`${output}/${test.name}.html`,document(html,test.name,test.description));
     fs.writefile(`${output}/${test.name}-partial.html`,html);
 }

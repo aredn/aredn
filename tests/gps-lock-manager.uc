@@ -11,15 +11,15 @@ function check(value, message) {
     checks++;
     print(`PASS: ${message}\n`);
 }
-function fixture(endpoint, timeEnabled, locationEnabled) {
+function fixture(endpoint, timeEnabled, locationEnabled, failure) {
     const f = { now: 1000, delay: 0, reads: 0, polls: 0, finds: 0, dates: 0,
         commands: [], cache: {}, markers: {}, endpoint,
-        timeEnabled, locationEnabled, fix: { time: "2026-11-14 12:34:56", lat: 1, lon: 2 } };
+        timeEnabled, locationEnabled, failure, fix: { time: "2026-11-14 12:34:56", lat: 1, lon: 2 } };
     const scope = {
         clock: () => [ f.now, 0 ], math,
         loadfile: () => () => ({ POLL_SECONDS: 30,
-            read: () => { f.polls++; return { state: "locked" }; },
-            write: value => { f.cache = value; } }),
+            read: () => { f.polls++; if (f.failure === "read") die("synthetic observer read failure"); return { state: "locked" }; },
+            write: value => { if (f.failure === "write") die("synthetic observer write failure"); f.cache = value; return true; } }),
         hardware: {
             GPSFind: () => { f.finds++; return f.endpoint; },
             GPSReadLLT: () => { f.reads++; return f.fix; }
@@ -73,20 +73,22 @@ check(local.markers["/tmp/timesync"] === "gps", "native local GPS time marker re
 check(length(local.commands) === 3 && index(local.commands[0], "nft insert rule") === 0 &&
     local.commands[1] === "/etc/init.d/gpsd restart", "local GPS daemon setup unchanged");
 
+const disabled = fixture("/dev/ttyACM0", false, false);
+disabled.step(); disabled.step();
+check(disabled.finds === 1 && disabled.reads === 1 && disabled.polls === 0 && disabled.dates === 0 && length(disabled.commands) === 2,
+    "disabled options preserve native discovery/setup without adding health probes or clock writes");
+disabled.now += 600; disabled.step();
+check(disabled.reads === 2 && disabled.polls === 0 && disabled.dates === 0 && disabled.delay === 600,
+    "disabled options retain the native task cadence without new observations");
+
 if (candidate) {
     f.timeEnabled = false; f.locationEnabled = false;
     const previousReads = f.reads;
     const previousPolls = f.polls;
     f.now += 30; f.step();
     check(f.reads === previousReads && f.polls === previousPolls && f.cache === null,
-        "disabling both GPS options stops reads and clears the badge cache");
-    const disabled = fixture("/dev/ttyACM0", false, false);
-    disabled.step();
-    check(disabled.finds === 0 && disabled.reads === 0 && disabled.polls === 0 && !length(disabled.commands),
-        "disabled startup performs no discovery, polling, or daemon setup");
-    disabled.timeEnabled = true; disabled.step(); disabled.step();
-    check(disabled.finds === 1 && disabled.polls === 1 && disabled.dates === 1,
-        "enabling GPS after a disabled startup resumes normal work");
+        "disabling both GPS options stops health probes and clears the badge cache");
+    check(f.delay === 570, "disabled health observation does not add 30-second native-task wakeups");
     const location = fixture("fe80::1234%br-dtdlink", false, true);
     location.step(); location.step();
     check(location.reads === 1 && location.polls === 0 && location.delay === 600 && location.dates === 0,
@@ -95,5 +97,22 @@ if (candidate) {
     absent.step();
     check(absent.cache.state === "error" && absent.cache.reason === "GPS source not found" && absent.delay === 600,
         "absent source becomes an error without changing native discovery retry timing");
+    for (let failure in [ "read", "write" ]) {
+        const failed = fixture("fe80::1234%br-dtdlink", true, true, failure);
+        check(failed.delay === 60, `${failure} observer failure preserves native startup delay`);
+        failed.step(); failed.step();
+        check(failed.reads === 1 && failed.dates === 1 && failed.cache === null,
+            `${failure} observer failure cannot interrupt native synchronization or retain a false health cache`);
+        failed.now += 30; failed.step();
+        check(failed.reads === 1 && failed.dates === 1,
+            `${failure} observer failure does not cause an extra native synchronization`);
+        failed.now = 1600; failed.step();
+        check(failed.reads === 2 && failed.dates === 2,
+            `${failure} observer failure preserves the 600-second native synchronization cadence`);
+    }
+    const absentFailure = fixture(null, true, false, "write");
+    absentFailure.step();
+    check(absentFailure.finds === 1 && absentFailure.delay === 600,
+        "error-cache write failure cannot interrupt native source-discovery retry");
 }
 print(`${checks} GPS manager checks passed (isolated ${candidate ? "candidate" : "baseline"})\n`);

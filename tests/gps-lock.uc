@@ -49,11 +49,24 @@ check(gpslock.current({ readfile: () => "not-json" }, 100).state === "error", "m
 check(gpslock.current({ readfile: () => null }, 100).state === "pending", "missing startup cache is pending");
 let renamed = false;
 check(!gpslock.write({ state: "locked" }, {
-    writefile: () => null, rename: () => { renamed = true; return true; }
+    writefile: () => null, rename: () => { renamed = true; return true; }, unlink: () => {}
 }, 100) && !renamed, "failed cache write never replaces the previous cache");
 let saved;
 check(gpslock.write({ state: "pending" }, {
     writefile: (path, data) => { saved = json(data); return length(data); },
     rename: (from, to) => from === "/tmp/gps-lock.json.new" && to === "/tmp/gps-lock.json"
 }, 100) && saved.checked_uptime === 100, "cache is timestamped and published by atomic rename");
+let removed;
+renamed = false;
+check(!gpslock.write({ state: "locked" }, {
+    writefile: () => 1, rename: () => { renamed = true; return true; },
+    unlink: path => { removed = path; }
+}, 100) && !renamed && removed === "/tmp/gps-lock.json.new",
+    "partial GPS cache writes are discarded without replacing the previous cache");
+removed = null;
+check(!gpslock.write({ state: "locked" }, {
+    writefile: (path, data) => length(data), rename: () => false,
+    unlink: path => { removed = path; }
+}, 100) && removed === "/tmp/gps-lock.json.new",
+    "failed GPS cache publication cleans up the unpublished temporary file");
 print(`${count} GPS lock state/cache checks passed\n`);

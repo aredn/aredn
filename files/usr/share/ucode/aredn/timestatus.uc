@@ -21,20 +21,21 @@ function classify(sync, gps, ntp, now, markerMtime) {
     sync = trim(sync || "");
     if (sync === "ntp") {
         const valid = type(ntp) === "object" && ntp.kind === "ntp" &&
-            (ntp.mode === "oneshot" || ntp.mode === "seed" || ntp.mode === "daemon") &&
+            (ntp.mode === "oneshot" || ntp.mode === "daemon") &&
             type(ntp.checked_uptime) === "int" && ntp.checked_uptime >= 0 && ntp.checked_uptime <= now &&
             type(markerMtime) === "int" && ntp.marker_mtime === markerMtime &&
-            ((ntp.mode === "daemon" && ntp.endpoint === null) ||
+            (ntp.mode === "daemon" ? ntp.endpoint === null :
                 (type(ntp.endpoint) === "string" && length(ntp.endpoint) > 0 && length(ntp.endpoint) <= 255));
         if (!valid) return { state: "pending", label: "LAST SYNC · NTP", source: "Source not recorded",
             detail: "The native marker records a previous NTP synchronization; its server and age are not established" };
         const daemon = ntp.mode === "daemon";
         const age = now - ntp.checked_uptime;
         const source = ntp.endpoint || "Selected peer not exposed by NTP daemon";
-        if (daemon && (type(ntp.stratum) !== "int" || ntp.stratum < 1 || ntp.stratum >= 16))
-            return { state: "error", label: "UNSYNCED · NTP", source,
-                detail: "NTP daemon reported an unsynchronized stratum; the selected peer is not exposed" };
         const fresh = age <= (daemon ? 900 : 86400);
+        if (daemon && (type(ntp.stratum) !== "int" || ntp.stratum < 1 || ntp.stratum >= 16))
+            return { state: fresh ? "error" : "pending", label: fresh ? "UNSYNCED · NTP" : "STATUS OLD · NTP", source,
+                detail: "NTP daemon last reported an unsynchronized stratum; the selected peer is not exposed" +
+                    `; ${stamp(ntp.sync_epoch)}` + (fresh ? "" : "; status is old") };
         return { state: fresh ? "locked" : "pending", label: fresh ? "SYNCED · NTP" : "LAST SYNC · NTP", source,
             detail: (daemon ? `NTP daemon last reported synchronized at stratum ${ntp.stratum}` :
                 "Last successful one-shot NTP synchronization") + `; ${stamp(ntp.sync_epoch)}; source: ${source}` +
@@ -54,24 +55,31 @@ function classify(sync, gps, ntp, now, markerMtime) {
 
 function current(gps, files, now) {
     files = files || fs;
+    // One marker snapshot feeds both badges. GPS-only renders need no NTP I/O.
+    const sync = trim(files.readfile(MARKER) || "");
     let ntp;
-    try { ntp = json(files.readfile(STATUS)); } catch (e) { ntp = null; }
-    return classify(files.readfile(MARKER), gps, ntp, now === null ? clock(true)[0] : now, files.stat(MARKER)?.mtime);
+    let markerMtime;
+    if (sync === "ntp") {
+        try { ntp = json(files.readfile(STATUS)); } catch (e) { ntp = null; }
+        markerMtime = files.stat(MARKER)?.mtime;
+    }
+    const result = classify(sync, gps, ntp, now === null ? clock(true)[0] : now, markerMtime);
+    result.sync = sync;
+    return result;
 }
 
 function record(mode, endpoint, stratum, files, now, wall) {
     files = files || fs;
     now = now === null ? clock(true)[0] : now;
     wall = wall === null ? time() : wall;
-    if (mode !== "oneshot" && mode !== "seed" && mode !== "daemon") return false;
+    if (mode !== "oneshot" && mode !== "daemon") return false;
     if (mode !== "daemon" && (type(endpoint) !== "string" || !length(endpoint))) return false;
+    if (mode === "daemon" && endpoint !== null) return false;
     if (endpoint !== null && (type(endpoint) !== "string" || !length(endpoint) || length(endpoint) > 255 || match(endpoint, /[\r\n]/))) return false;
     const marker = files.stat(MARKER);
     if (!marker || trim(files.readfile(MARKER) || "") !== "ntp") return false;
-    if (mode === "seed" && (type(marker.mtime) !== "int" || marker.mtime > wall || wall - marker.mtime > now)) return false;
     const status = { kind: "ntp", mode, endpoint, stratum: mode === "daemon" ? stratum : null,
-        checked_uptime: mode === "seed" ? now - (wall - marker.mtime) : now,
-        sync_epoch: mode === "seed" ? marker.mtime : wall, marker_mtime: marker.mtime };
+        checked_uptime: now, sync_epoch: wall, marker_mtime: marker.mtime };
     // Native callbacks can overlap. Each process publishes from its own file.
     const pid = files.readlink("/proc/self");
     if (type(pid) !== "string" || !match(pid, /^\d+$/)) return false;

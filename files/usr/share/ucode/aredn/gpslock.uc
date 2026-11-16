@@ -38,8 +38,8 @@ import * as socket from "socket";
 const STATUS = "/tmp/gps-lock.json";
 const POLL_SECONDS = 30;
 
-// GPSD reports UTC. Return only a validated, shell-safe date argument; never
-// interpolate an arbitrary receiver string into the manager's date command.
+// Validate GPSD UTC syntax/calendar for the indicator only. Native clock
+// synchronization continues to use the existing hardware helper.
 function timestamp(value)
 {
     if (type(value) !== "string") return null;
@@ -160,8 +160,15 @@ function write(status, files, now)
 {
     files = files || fs;
     status.checked_uptime = now === null ? clock(true)[0] : now;
-    if (files.writefile(STATUS + ".new", sprintf("%J", status)) === null) return false;
-    return files.rename(STATUS + ".new", STATUS);
+    const pending = STATUS + ".new";
+    const data = sprintf("%J", status);
+    if (files.writefile(pending, data) !== length(data)) {
+        files.unlink(pending);
+        return false;
+    }
+    const published = files.rename(pending, STATUS);
+    if (!published) files.unlink(pending);
+    return published;
 };
 
 function validate(status, now)

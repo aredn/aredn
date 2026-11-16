@@ -21,8 +21,15 @@ value = status.classify("ntp", null, ntp, 130, 123);
 check(value.state === "locked" && index(value.source, "not exposed") >= 0, "daemon evidence never substitutes configured peers for its unknown selected peer");
 ntp.stratum = 16;
 check(status.classify("ntp", null, ntp, 130, 123).state === "error", "unsynchronized daemon stratum turns red");
+value = status.classify("ntp", null, ntp, 1001, 123);
+check(value.state === "pending" && value.label === "STATUS OLD · NTP" && index(value.detail, "unsynchronized") >= 0,
+    "expired daemon error is historical, not a current fault or a claimed successful sync");
 ntp.stratum = 2;
 check(status.classify("ntp", null, ntp, 1001, 123).state === "pending", "daemon evidence expires after its callback freshness window");
+ntp.endpoint = "guessed-peer.example";
+check(status.classify("ntp", null, ntp, 130, 123).source === "Source not recorded",
+    "daemon metadata cannot certify a peer that the native callback does not expose");
+ntp.endpoint = null;
 const gps = { state: "locked", reason: "GPS locked (3D fix)", source: { kind: "network", endpoint: "fe80::1234%br-dtdlink" } };
 value = status.classify("gps", gps, null, 130, 123);
 check(value.label === "LOCKED · GPS" && index(value.source, "NETWORK") === 0, "old gps marker can display known network provenance from selected connection");
@@ -46,10 +53,10 @@ const files = {
 check(status.record("oneshot", "aredn.pool.ntp.org", null, files, 1000, 1794693134) && renamed &&
     saved.endpoint === "aredn.pool.ntp.org" && saved.checked_uptime === 1000 && index(path, ".123.new") >= 0,
     "successful source recorder uses process-specific atomic publication");
-check(status.record("seed", "aredn.pool.ntp.org", null, files, 1000, 1794693134) && saved.checked_uptime === 900,
-    "verified-log seed preserves actual marker age rather than deployment time");
-check(!status.record("seed", "aredn.pool.ntp.org", null, files, 10, 1794693134), "seed older than this boot is rejected");
-check(!status.record("seed", "aredn.pool.ntp.org", null, files, 1000, 1794693033), "future native marker cannot seed a sync");
+check(!status.record("seed", "aredn.pool.ntp.org", null, files, 1000, 1794693134),
+    "unused manual seed mode is not part of the native observer API");
+check(!status.record("daemon", "guessed-peer.example", 2, files, 1000, 1794693134),
+    "daemon recorder rejects an invented selected peer");
 marker = "gps"; renamed = false;
 check(!status.record("oneshot", "example.org", null, files, 1000, 1794693134) && !renamed,
     "recorder never fabricates an NTP marker or replaces GPS ownership");
@@ -60,4 +67,19 @@ files.writefile = () => 1;
 check(!status.record("oneshot", "example.org", null, files, 1000, 1794693134), "short cache writes are not published");
 check(status.current(null, {readfile: path => path === status.STATUS ? "bad-json" : "ntp", stat: () => ({mtime:123})}, 130).state === "pending",
     "malformed NTP cache degrades to unknown-source historical state");
+let reads = [];
+let stats = 0;
+value = status.current(gps, {
+    readfile: path => { push(reads, path); return "network gps"; },
+    stat: () => { stats++; return {mtime:123}; }
+}, 130);
+check(value.sync === "network gps" && length(reads) === 1 && reads[0] === "/tmp/timesync" && stats === 0,
+    "GPS-only rendering reads one marker snapshot and no NTP metadata or stat");
+reads = []; stats = 0;
+value = status.current(null, {
+    readfile: path => { push(reads, path); return path === "/tmp/timesync" ? "ntp" : null; },
+    stat: () => { stats++; return {mtime:123}; }
+}, 130);
+check(value.sync === "ntp" && length(reads) === 2 && stats === 1,
+    "NTP rendering reads the marker only once and shares its identity with both badges");
 print(`${count} time status/source checks passed\n`);
