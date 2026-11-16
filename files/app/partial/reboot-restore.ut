@@ -32,6 +32,7 @@
  * version
  */
 %}
+{% const timeouts = hardware.getTimeouts("upgrade"); %}
 <title>{{configuration.getName()}} restoring</title>
 <div id="all" hx-swap-oob="true">
     <div class="reboot">
@@ -50,7 +51,6 @@
             </div>
         </div>
         <script>document.getElementById("ctrl-modal").close();</script>
-        {% const timeouts = hardware.getTimeouts("upgrade"); %}
         {{_R("reboot-mon", { delay: timeouts[0], countdown: timeouts[1], timeout: 5, locations: [ `http://${request.env.HTTP_HOST}/a/status` ] })}}
     </div>
 </div>
