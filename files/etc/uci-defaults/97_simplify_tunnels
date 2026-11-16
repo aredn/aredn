@@ -37,52 +37,9 @@ touch /etc/config.mesh/wireguard
 
 cat > /tmp/simplify_tun << '__EOF__'
 
-import * as uci from "uci";
+import * as configuration from "aredn.configuration";
 
-const c = uci.cursor("/etc/config.mesh");
-
-c.set("wireguard", "@network[0]", "begin", "");
-
-const servers = [];
-c.foreach("wireguard", "server", server => push(servers, server));
-for (let server in servers) {
-    const name = server[".name"];
-    const netip = c.get("wireguard", name, "netip");
-    const host = c.get("wireguard", name, "host");
-    const passwd = c.get("wireguard", name, "passwd");
-    c.set("wireguard", name, "clientip", "");
-    c.set("wireguard", name, "serverip", "");
-    c.set("wireguard", name, "node", "");
-    if (netip) {
-        const ipport = split(netip, ":");
-        c.set("wireguard", name, "port", ipport[1]);
-        c.set("wireguard", name, "netip", "");
-    }
-    if (host) {
-        c.set("wireguard", name, "name", host);
-        c.set("wireguard", name, "host", "");
-    }
-    if (passwd) {
-        c.set("wireguard", name, "key", passwd);
-        c.set("wireguard", name, "passwd", "");
-        c.set("wireguard", name, "mtu", "1420");
-    }
-}
-
-const clients = [];
-c.foreach("wireguard", "client", client => push(clients, client));
-for (let client in clients) {
-    const name = client[".name"];
-    const clientip = c.get("wireguard", name, "clientip");
-    if (clientip) {
-        const ipport = split(clientip, ":");
-        c.set("wireguard", name, "port", ipport[1]);
-        c.set("wireguard", name, "clientip", "");
-        c.set("wireguard", name, "mtu", "1420");
-    }
-}
-
-c.commit("wireguard");
+configuration.migrateTunnels();
 
 __EOF__
 /usr/bin/ucode /tmp/simplify_tun

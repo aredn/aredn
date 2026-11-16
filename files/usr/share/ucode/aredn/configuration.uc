@@ -525,10 +525,63 @@ export function backupTunnels(tunnelBackupFilename)
     return true;
 };
 
+// Convert tunnels from the old netip/clientip format
+export function migrateTunnels()
+{
+    const c = uci.cursor("/etc/config.mesh");
+
+    c.set("wireguard", "@network[0]", "begin", "");
+
+    const servers = [];
+    c.foreach("wireguard", "server", server => push(servers, server));
+    for (let server in servers) {
+        const name = server[".name"];
+        const netip = c.get("wireguard", name, "netip");
+        const host = c.get("wireguard", name, "host");
+        const passwd = c.get("wireguard", name, "passwd");
+        c.set("wireguard", name, "clientip", "");
+        c.set("wireguard", name, "serverip", "");
+        c.set("wireguard", name, "node", "");
+        if (netip) {
+            const ipport = split(netip, ":");
+            c.set("wireguard", name, "port", ipport[1]);
+            c.set("wireguard", name, "netip", "");
+        }
+        if (host) {
+            c.set("wireguard", name, "name", host);
+            c.set("wireguard", name, "host", "");
+        }
+        if (passwd) {
+            c.set("wireguard", name, "key", passwd);
+            c.set("wireguard", name, "passwd", "");
+            c.set("wireguard", name, "mtu", "1420");
+        }
+    }
+
+    const clients = [];
+    c.foreach("wireguard", "client", client => push(clients, client));
+    for (let client in clients) {
+        const name = client[".name"];
+        const clientip = c.get("wireguard", name, "clientip");
+        if (clientip) {
+            const ipport = split(clientip, ":");
+            c.set("wireguard", name, "port", ipport[1]);
+            c.set("wireguard", name, "clientip", "");
+            c.set("wireguard", name, "mtu", "1420");
+        }
+    }
+
+    c.commit("wireguard");
+};
+
 export function restoreTunnels(tunnelBackupFilename)
 {
     const s = system(`cd / ; /bin/tar -xzf ${tunnelBackupFilename} etc/config.mesh/wireguard > /dev/null 2>&1`);
-    return s < 0 ? false : true;
+    if (s !== 0) {
+        return false;
+    }
+    migrateTunnels();
+    return true;
 };
 
 export function supportdata(supportdatafilename)
