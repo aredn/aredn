@@ -1,0 +1,7 @@
+#!/usr/bin/ucode
+/* Record only an already-observed native NTP result. GPL-3.0-or-later. */
+const status = require("aredn.timestatus");
+const mode = ARGV[0];
+const endpoint = mode === "daemon" ? null : ARGV[1];
+const stratum = mode === "daemon" && match(ARGV[1] || "", /^\d+$/) ? int(ARGV[1]) : null;
+exit(status.record(mode, endpoint, stratum) ? 0 : 1);

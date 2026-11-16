@@ -43,6 +43,7 @@ exec 2> /dev/null
 if [ "$(pidof ntpd)" != "" ]; then
     if [ -f /var/state/ntp-stratum ] && [ $(cat /var/state/ntp-stratum) -lt 16 ]; then
         echo -n "ntp" > /tmp/timesync
+        /usr/local/bin/aredn-time-status daemon "$(cat /var/state/ntp-stratum)" >/dev/null 2>&1 || :
         exit 0
     fi
 fi
@@ -51,6 +52,7 @@ for candidate in $(uci -q get system.ntp.server)
 do
     if $(ntpd -n -q -p ${candidate}); then
         echo -n "ntp" > /tmp/timesync
+        /usr/local/bin/aredn-time-status oneshot "${candidate}" >/dev/null 2>&1 || :
         logger -p notice -t update-time "Update clock from ${candidate}"
         exit 0
     fi
@@ -62,6 +64,7 @@ for candidate in $(grep -i ntp /var/run/arednlink/services/* | sed "s/^.*:\/\/\(
 do
     if $(ntpd -n -q -p ${candidate}); then
         echo -n "ntp" > /tmp/timesync
+        /usr/local/bin/aredn-time-status oneshot "${candidate}" >/dev/null 2>&1 || :
         logger -p notice -t update-time "Update clock from ${candidate}"
         exit 0
     fi
