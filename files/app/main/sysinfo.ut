@@ -91,6 +91,7 @@ const info = strip({
 const meshrf = (function () {
     const meshrf = [];
     const config = radios.getConfiguration();
+    const active = radios.getActiveConfiguration();
     for (let i = 0; i < length(config); i++) {
         const cfg = config[i];
         if (cfg.disabled) {
@@ -128,6 +129,7 @@ const meshrf = (function () {
                     channels: mode.channels,
                     chanbw: mode.bandwidth,
                     freq: mode.channels ? (current_channel ? hardware.getChannelFrequency(config[i].iface, current_channel) : 0) : hardware.getChannelFrequency(config[i].iface, mode.channel),
+                    txpower: active[i].mode.txpower + active[i].txpoweroffset,
                     polarization: hardware.getAntennaPolarization(config[i].iface),
                     azimuth: tonumber(uci.get("aredn", "@location[0]", "azimuth")),
                     elevation: tonumber(uci.get("aredn", "@location[0]", "elevation")),
