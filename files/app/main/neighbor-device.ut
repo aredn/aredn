@@ -183,14 +183,13 @@ const band = hardware.getRadioCount() > 1 ? tracker?.band : null;
                     <div>ip address</div>
                 </div>
             </div>
-            {% if (n.model && n.firmware_version) { %}
             <div class="cols">
                 <div class="i">
-                    <div>{{n.model}}</div>
+                    <div>{{n.model || "-"}}</div>
                     <div>model</div>
                 </div>
                 <div class="i">
-                    <div>{{n.firmware_version}}</div>
+                    <div>{{n.firmware_version || "-"}}</div>
                     <div>firmware</div>
                 </div>
                 <div class="i">
@@ -198,7 +197,6 @@ const band = hardware.getRadioCount() > 1 ? tracker?.band : null;
                     <div>link address</div>
                 </div>
             </div>
-            {% } %}
             <div class="cols">
                 <div class="i">
                     <div>{{"lat" in n ? map(n, sprintf("%.4f", n.lat)) : "-"}}</div>
