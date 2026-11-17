@@ -85,7 +85,7 @@
         fs.unlink(name);
         return f2;
     };
-    function prepareUpgrade(firmwarefile)
+    function prepareUpgrade(firmwarefile, restorefile)
     {
         let error = "Failed.";
         if (firmwarefile) {
@@ -116,7 +116,8 @@
         if (!error) {
             const firstuse = fs.access("/tmp/do-not-keep-configuration") ? "--firstuse" : "";
             const force = fs.access("/tmp/force-upgrade-this-is-dangerous") ? "--force" : "";
-            return { upgrade: `/usr/local/bin/aredn_sysupgrade ${firstuse} ${force} ${firmwarefile}` };
+            const backup = restorefile ? `--backup ${restorefile}` : "";
+            return { upgrade: `/usr/local/bin/aredn_sysupgrade ${firstuse} ${force} ${backup} ${firmwarefile}` };
         }
         else {
             fs.writefile("/proc/sys/vm/min_free_kbytes", fs.readfile("/tmp/min_free_kbytes"));
@@ -187,13 +188,46 @@
         return;
     }
     else if (request.env.REQUEST_METHOD === "POST") {
+        let restorefile = null;
         if (request.args.updating) {
             fs.writefile("/tmp/min_free_kbytes", fs.readfile("/proc/sys/vm/min_free_kbytes"));
             fs.writefile("/proc/sys/vm/min_free_kbytes", "512");
             fs.writefile("/proc/sys/vm/drop_caches", "3");
+            return;
         }
-        else if (request.args.sideload) {
-            const upgrade = prepareUpgrade("/tmp/local_firmware");
+        if (request.args.restorefile) {
+            const fmd5 = fs.readfile(`${request.args.restorefile}.md5`);
+            fs.unlink(`${request.args.restorefile}.md5`);
+            const f = fs.popen(`/usr/bin/md5sum ${request.args.restorefile}`);
+            let digest;
+            if (f) {
+                digest = match(f.read("all"), /^(\S+)/);
+                f.close();
+            }
+            if (!digest || digest[1] != fmd5) {
+                print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: Restore upload md5 checksum incorrect: ${fmd5} != ${digest ? digest[1] : "missing"}</div>`);
+                print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
+                fs.unlink(request.args.restorefile);
+                return;
+            }
+            const restore = configuration.restore(request.args.restorefile);
+            if (restore.error) {
+                print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${restore.error}</div>`);
+                print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
+                fs.unlink(request.args.restorefile);
+                return;
+            }
+            if (request.args.sideload || request.args.firmwarefile) {
+                restorefile = restore.filename;
+            }
+            else {
+                response.reboot = "/sbin/reboot";
+                print(_R("reboot-restore"));
+                return;
+            }
+        }
+        if (request.args.sideload) {
+            const upgrade = prepareUpgrade("/tmp/local_firmware", restorefile);
             if (upgrade.error) {
                 print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${upgrade.error}</div>`);
             }
@@ -217,7 +251,7 @@
                 fs.unlink(request.args.firmwarefile);
             }
             else {
-                const upgrade = prepareUpgrade(request.args.firmwarefile);
+                const upgrade = prepareUpgrade(request.args.firmwarefile, restorefile);
                 if (upgrade.error) {
                     print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${upgrade.error}</div>`);
                     print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
@@ -226,33 +260,6 @@
                 else {
                     response.reboot = upgrade.upgrade;
                     print(_R("reboot-firmware"));
-                }
-            }
-        }
-        else if (request.args.restorefile) {
-            const fmd5 = fs.readfile(`${request.args.restorefile}.md5`);
-            fs.unlink(`${request.args.restorefile}.md5`);
-            const f = fs.popen(`/usr/bin/md5sum ${request.args.restorefile}`);
-            let digest;
-            if (f) {
-                digest = match(f.read("all"), /^(\S+)/);
-                f.close();
-            }
-            if (!digest || digest[1] != fmd5) {
-                print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: Restore upload md5 checksum incorrect: ${fmd5} != ${digest ? digest[1] : "missing"}</div>`);
-                print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
-                fs.unlink(request.args.restorefile);
-            }
-            else {
-                const restore = configuration.restore(request.args.restorefile);
-                if (restore.error) {
-                    print(`<div id="dialog-messages-error" hx-swap-oob="true">ERROR: ${restore.error}</div>`);
-                    print(`<div id="firmware-upload" hx-swap-oob="true"><progress value="0" max="100"></div>`);
-                    fs.unlink(request.args.restorefile);
-                }
-                else {
-                    response.reboot = "/sbin/reboot";
-                    print(_R("reboot-restore"));
                 }
             }
         }
@@ -452,7 +459,7 @@
             uhttpd.send(`event: error\r\ndata: sha256 check for firmware download failed\r\n\r\n`);
             return;
         }
-        const upgrade = prepareUpgrade("/tmp/firmwarefile");
+        const upgrade = prepareUpgrade("/tmp/firmwarefile", null);
         if (upgrade.error) {
             fs.unlink("/tmp/firmwarefile");
             uhttpd.send(`event: error\r\ndata: ${upgrade.error}\r\n\r\n`);
@@ -633,25 +640,45 @@
         dialogMessage.error("<center>Please reboot before upgrading.</center>");
         {% } %}
         const md5 = function(){for(var m=[],l=0;64>l;)m[l]=0|4294967296*Math.abs(Math.sin(++l));return function(c){var e,g,f,a,h=[];for(var b=c.length,k=[e=1732584193,g=-271733879,~e,~g],d=0;d<=b;)h[d>>2]|=(c.length==d?0x80:c[d])<<8*(d++%4);h[c=16*(b+8>>6)+14]=8*b;for(d=0;d<c;d+=16){b=k;for(a=0;64>a;)b=[f=b[3],(e=b[1]|0)+((f=b[0]+[e&(g=b[2])|~e&f,f&e|~f&g,e^g^f,g^(e|~f)][b=a>>4]+(m[a]+(h[[a,5*a+1,3*a+5,7*a][b]%16+d]|0)))<<(b=[7,12,17,22,5,9,14,20,4,11,16,23,6,10,15,21][4*b+a++%4])|f>>>32-b),e,g];for(a=4;a;)k[--a]=k[a]+b[a]}for(c="";32>a;)c+=(k[a>>3]>>4*(1^a++&7)&15).toString(16);return c}}();
+        function md5sum(filename, done) {
+            if (filename) {
+                const fr = new FileReader();
+                fr.readAsArrayBuffer(filename);
+                fr.onloadend = function() {
+                    done(md5(new Uint8Array(fr.result)));
+                };
+            }
+            else {
+                done(null);
+            }
+        }
         htmx.on("#upload-firmware", "change", e => {
-            const f = htmx.find("#fetch-and-update")
+            const f = htmx.find("#fetch-and-update");
+            const r = htmx.find("#restore-config");
             if (e.target.files[0] && !needreboot) {
                 dialogMessage.success(umsg);
-                f.innerHTML = "Fetch and Update";
+                f.innerHTML = r.files[0] ? "Fetch and Restore" : "Fetch and Update";
                 f.disabled = false;
             }
             else {
                 dialogMessage.clear();
                 f.disabled = true;
+                r.value = null;
             }
-            htmx.find("#restore-config").value = null;
+            r.disabled = false;
             htmx.find("#download-firmware").value = "-";
         });
         htmx.on("#download-firmware", "change", e => {
             const f = htmx.find("#fetch-and-update");
+            const r = htmx.find("#restore-config");
+            r.value = null;
+            r.disabled = true;
             if (e.target.value === "-" || needreboot) {
                 dialogMessage.clear();
                 f.disabled = true;
+                if (!needreboot) {
+                    r.disabled = false;
+                }
             }
             else {
                 const download = htmx.find("#download-firmware").value;
@@ -667,19 +694,17 @@
                 f.innerHTML = "Fetch and Update";
                 f.disabled = false;
             }
-            htmx.find("#restore-config").value = null;
             htmx.find("#upload-firmware").value = null;
         });
         htmx.on("#restore-config", "change", e => {
             const f = htmx.find("#fetch-and-update");
             if (e.target.files[0] && !needreboot) {
-                f.innerHTML = "Restore";
+                f.innerHTML = {{sideload || false}} ? "Update and Restore" : htmx.find("#upload-firmware").files[0] ? "Fetch and Restore" : "Restore";
                 f.disabled = false;
             }
             else {
                 f.disabled = true;
             }
-            htmx.find("#upload-firmware").value = null;
             htmx.find("#download-firmware").value = "-";
             dialogMessage.error("AREDN&reg; makes no attempt to validate the integrity of the restore file or its compatibility with this hardware.");
         });
@@ -697,12 +722,17 @@
                 swap: "none"
             });
             if ({{sideload || false}}) {
-                htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
-                    values: {
-                        sideload: 1
-                    },
-                    swap: "none"
-                }).then( _ => htmx.find("#dialog-done").disabled = false);
+                const values = { sideload: 1 };
+                md5sum(restore, chksum => {
+                    if (chksum) {
+                        values.restorefile = restore;
+                        values["restorefile.md5"] = chksum;
+                    }
+                    htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
+                        values: values,
+                        swap: "none"
+                    }).then( _ => htmx.find("#dialog-done").disabled = false);
+                });
             }
             else if (upload) {
                 const currentTarget = e.currentTarget;
@@ -717,20 +747,24 @@
                         p.setAttribute("value", Math.round(v));
                     }
                 });
-                const fr = new FileReader();
-                fr.readAsArrayBuffer(upload);
-                fr.onloadend = () => {
-                    const md5sum = md5(new Uint8Array(fr.result));
-                    htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
-                        source: currentTarget,
-                        values: {
-                            firmwarefile: upload,
-                            "firmwarefile.md5": md5sum
-                        },
-                        target: "#dialog-done",
-                        swap: "none"
-                    }).then( _ => htmx.find("#dialog-done").disabled = false);
-                };
+                md5sum(upload, chksum => {
+                    const values = {
+                        firmwarefile: upload,
+                        "firmwarefile.md5": chksum
+                    };
+                    md5sum(restore, chksum => {
+                        if (chksum) {
+                            values.restorefile = restore;
+                            values["restorefile.md5"] = chksum;
+                        }
+                        htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
+                            source: currentTarget,
+                            values: values,
+                            target: "#dialog-done",
+                            swap: "none"
+                        }).then( _ => htmx.find("#dialog-done").disabled = false);
+                    });
+                });
             }
             else if (download !== "-") {
                 const source = new EventSource(`{{request.env.REQUEST_URI}}?v=${download}`);
@@ -772,20 +806,17 @@
                         p.setAttribute("value", Math.round(v));
                     }
                 });
-                const fr = new FileReader();
-                fr.readAsArrayBuffer(restore);
-                fr.onloadend = () => {
-                    const md5sum = md5(new Uint8Array(fr.result));
+                md5sum(restore, chksum => {
                     htmx.ajax("POST", "{{request.env.REQUEST_URI}}", {
                         source: currentTarget,
                         values: {
                             restorefile: restore,
-                            "restorefile.md5": md5sum
+                            "restorefile.md5": chksum
                         },
                         target: "#dialog-done",
                         swap: "none"
                     }).then( _ => htmx.find("#dialog-done").disabled = false);
-                }
+                });
             }
         });
         htmx.on("#firmware-refresh", "click", e => {
@@ -802,6 +833,7 @@
                 selector.value = "-";
                 selector.innerHTML = e.data;
                 htmx.find("#upload-firmware").value = null;
+                htmx.find("#restore-config").value = null;
                 htmx.find("#fetch-and-update").disabled = selector.value == "-" ? true : false;
                 if (!htmx.find("#fetch-and-update").disabled) {
                     dialogMessage.success(umsg);
