@@ -176,10 +176,14 @@ function validate(status, now)
     if (type(status) !== "object" || type(status.checked_uptime) !== "int" || status.checked_uptime < 0 ||
         type(status.reason) !== "string" ||
         (status.state !== "locked" && status.state !== "pending" && status.state !== "error")) {
-        return { state: "error", reason: "Invalid GPS status" };
+        return { state: "unknown", reason: "Invalid GPS status" };
     }
-    if (now - status.checked_uptime > 3 * POLL_SECONDS || status.checked_uptime > now) {
-        return { state: "error", reason: "GPS status is stale", source: source(status.source?.endpoint) };
+    if (status.checked_uptime > now) {
+        return { state: "unknown", reason: "GPS status timestamp is in the future", source: source(status.source?.endpoint) };
+    }
+    if (now - status.checked_uptime > 3 * POLL_SECONDS) {
+        return { state: "unknown", reason: "GPS status is stale; last report: " + status.reason +
+            sprintf("; observation age: %d seconds", now - status.checked_uptime), source: source(status.source?.endpoint) };
     }
     // Old/missing metadata must never be presented as an attached receiver.
     status.source = source(status.source?.endpoint);
@@ -197,7 +201,7 @@ function current(files, now)
         return validate(json(text), now === null ? clock(true)[0] : now);
     }
     catch (e) {
-        return { state: "error", reason: "Invalid GPS status" };
+        return { state: "unknown", reason: "Invalid GPS status" };
     }
 };
 

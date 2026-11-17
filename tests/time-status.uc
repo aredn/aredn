@@ -9,20 +9,26 @@ check(value.state === "locked" && value.label === "SYNCED · NTP" && value.sourc
 check(index(value.detail, "one-shot") >= 0 && index(value.detail, "not a continuous receiver lock") >= 0,
     "one-shot synchronization is not presented as a continuous lock");
 value = status.classify("ntp", null, ntp, 86501, 123);
-check(value.state === "pending" && value.label === "LAST SYNC · NTP" && value.source === ntp.endpoint,
+check(value.state === "pending" && value.label === "STATUS UNKNOWN" && value.source === ntp.endpoint,
     "old NTP success retains its historical source without green status");
+check(index(value.note, "Last sync: NTP") >= 0 && index(value.note, "UTC") >= 0 &&
+    index(value.note, "1d ago") >= 0 && index(value.note, "Status old") >= 0,
+    "historical NTP source, timestamp and age remain available for the visible detail line");
 check(status.classify("ntp", null, ntp, 99, 123).source === "Source not recorded", "future/reboot-invalid NTP cache does not certify a source");
 check(status.classify("ntp", null, ntp, 130, 124).source === "Source not recorded", "newer native marker invalidates an older source record");
 check(status.classify("ntp", null, null, 130, 123).state === "pending", "historical marker alone is not confirmed current synchronization");
+check(index(status.classify("ntp", null, null, 130, 123).note, "Time and source not recorded") >= 0,
+    "marker-only synchronization explains missing details without inventing a timestamp");
 ntp.endpoint=null;
 check(status.classify("ntp", null, ntp, 130, 123).state === "pending", "one-shot evidence without its actual server cannot turn green");
 ntp.mode = "daemon"; ntp.endpoint = null; ntp.stratum = 2;
 value = status.classify("ntp", null, ntp, 130, 123);
 check(value.state === "locked" && index(value.source, "not exposed") >= 0, "daemon evidence never substitutes configured peers for its unknown selected peer");
 ntp.stratum = 16;
-check(status.classify("ntp", null, ntp, 130, 123).state === "error", "unsynchronized daemon stratum turns red");
+check(status.classify("ntp", null, ntp, 130, 123).label === "UNSYNCED · NTP", "fresh unsynchronized daemon stratum remains explicit");
 value = status.classify("ntp", null, ntp, 1001, 123);
-check(value.state === "pending" && value.label === "STATUS OLD · NTP" && index(value.detail, "unsynchronized") >= 0,
+check(value.state === "pending" && value.label === "STATUS UNKNOWN" && index(value.note, "unsynchronized") >= 0 &&
+    index(value.note, "Status old") >= 0 && index(value.note, "Last sync") < 0,
     "expired daemon error is historical, not a current fault or a claimed successful sync");
 ntp.stratum = 2;
 check(status.classify("ntp", null, ntp, 1001, 123).state === "pending", "daemon evidence expires after its callback freshness window");
@@ -37,9 +43,19 @@ gps.state = "pending";
 check(status.classify("network gps", gps, null, 130, 123).label === "WAITING · GPS", "GPS no-fix does not read LOCKED");
 gps.state = "error";
 check(status.classify("gps", gps, null, 130, 123).state === "error", "historical GPS marker never overrides current receiver errors");
-check(status.classify("gps", null, null, 130, 123).label === "LAST SYNC · GPS", "GPS disabled retains only historical synchronization evidence");
-check(status.classify("", null, null, 130, 123).state === "error", "no synchronization evidence is explicit");
-check(status.classify("manual", null, null, 130, 123).label === "TIME SOURCE UNKNOWN", "unrecognized native source is not relabeled NTP or GPS");
+value = status.classify("gps", null, null, 130, 123);
+check(value.label === "STATUS UNKNOWN" && index(value.note, "Last sync: GPS") >= 0,
+    "GPS disabled retains historical synchronization in the visible detail line");
+value = status.classify("", null, null, 130, 123);
+check(value.state === "pending" && value.label === "STATUS UNKNOWN" && index(value.note, "No NTP or GPS synchronization recorded") >= 0,
+    "absence of synchronization evidence is unknown with an explicit detail, not a current fault");
+value = status.classify("manual", null, null, 130, 123);
+check(value.label === "STATUS UNKNOWN" && value.source === "manual" && index(value.note, "Unrecognized time source: manual") >= 0,
+    "unrecognized native source is explained without relabeling it NTP or GPS");
+gps.state = "unknown"; gps.reason = "GPS status is stale";
+value = status.classify("gps", gps, null, 130, 123);
+check(value.state === "pending" && value.label === "STATUS UNKNOWN" && index(value.note, "stale") >= 0,
+    "unavailable GPS observation maps to unknown without erasing its diagnostic");
 
 let marker = "ntp";
 let renamed = false;

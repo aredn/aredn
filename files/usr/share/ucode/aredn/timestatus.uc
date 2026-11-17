@@ -17,6 +17,13 @@ function gpsSource(gps) {
     return kind + (source?.endpoint ? " · " + source.endpoint : "");
 }
 
+function ageText(seconds) {
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${int(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${int(seconds / 3600)}h ago`;
+    return `${int(seconds / 86400)}d ago`;
+}
+
 function classify(sync, gps, ntp, now, markerMtime) {
     sync = trim(sync || "");
     if (sync === "ntp") {
@@ -26,31 +33,43 @@ function classify(sync, gps, ntp, now, markerMtime) {
             type(markerMtime) === "int" && ntp.marker_mtime === markerMtime &&
             (ntp.mode === "daemon" ? ntp.endpoint === null :
                 (type(ntp.endpoint) === "string" && length(ntp.endpoint) > 0 && length(ntp.endpoint) <= 255));
-        if (!valid) return { state: "pending", label: "LAST SYNC · NTP", source: "Source not recorded",
-            detail: "The native marker records a previous NTP synchronization; its server and age are not established" };
+        if (!valid) return { state: "pending", label: "STATUS UNKNOWN", source: "Source not recorded",
+            note: "Last sync: NTP · Time and source not recorded",
+            detail: "Last sync: NTP; source and time not recorded; current synchronization is unknown" };
         const daemon = ntp.mode === "daemon";
         const age = now - ntp.checked_uptime;
         const source = ntp.endpoint || "Selected peer not exposed by NTP daemon";
         const fresh = age <= (daemon ? 900 : 86400);
         if (daemon && (type(ntp.stratum) !== "int" || ntp.stratum < 1 || ntp.stratum >= 16))
-            return { state: fresh ? "error" : "pending", label: fresh ? "UNSYNCED · NTP" : "STATUS OLD · NTP", source,
+            return { state: fresh ? "error" : "pending", label: fresh ? "UNSYNCED · NTP" : "STATUS UNKNOWN", source,
+                note: `Last report: NTP unsynchronized · ${stamp(ntp.sync_epoch)} · ${ageText(age)}` +
+                    (fresh ? "" : " · Status old"),
                 detail: "NTP daemon last reported an unsynchronized stratum; the selected peer is not exposed" +
-                    `; ${stamp(ntp.sync_epoch)}` + (fresh ? "" : "; status is old") };
-        return { state: fresh ? "locked" : "pending", label: fresh ? "SYNCED · NTP" : "LAST SYNC · NTP", source,
-            detail: (daemon ? `NTP daemon last reported synchronized at stratum ${ntp.stratum}` :
+                    `; last report: ${stamp(ntp.sync_epoch)}; observation age: ${age} seconds` +
+                    (fresh ? "" : "; status is old; current synchronization is unknown") };
+        return { state: fresh ? "locked" : "pending", label: fresh ? "SYNCED · NTP" : "STATUS UNKNOWN", source,
+            note: `Last sync: NTP · ${stamp(ntp.sync_epoch)} · ${ageText(age)}` + (fresh ? "" : " · Status old"),
+            detail: "Last sync: NTP; " + (daemon ? `NTP daemon last reported synchronized at stratum ${ntp.stratum}` :
                 "Last successful one-shot NTP synchronization") + `; ${stamp(ntp.sync_epoch)}; source: ${source}` +
-                (fresh ? "; this is synchronization evidence, not a continuous receiver lock" : "; status is old") };
+                `; observation age: ${age} seconds` +
+                (fresh ? "; this is synchronization evidence, not a continuous receiver lock" :
+                    "; status is old; current synchronization is unknown") };
     }
     if (sync === "gps" || sync === "network gps" || (!sync && gps)) {
-        if (!gps) return { state: "pending", label: "LAST SYNC · GPS", source: "Source not recorded",
-            detail: "Previous GPS clock synchronization; live GPS health is disabled or unavailable" };
-        const state = gps.state;
-        return { state, label: state === "locked" ? "LOCKED · GPS" : state === "pending" ? "WAITING · GPS" : "ERROR · GPS",
+        if (!gps) return { state: "pending", label: "STATUS UNKNOWN", source: "Source not recorded",
+            note: "Last sync: GPS · Time not recorded · Receiver health unavailable",
+            detail: "Last sync: GPS; time not recorded; current GPS health is disabled or unavailable" };
+        const state = gps.state === "unknown" ? "pending" : gps.state;
+        return { state, label: gps.state === "unknown" ? "STATUS UNKNOWN" : state === "locked" ? "LOCKED · GPS" :
+                state === "pending" ? "WAITING · GPS" : "ERROR · GPS",
+            note: gps.reason,
             source: gpsSource(gps), detail: gps.reason + "; source: " + gpsSource(gps) +
                 "; receiver lock does not certify PPS accuracy or continuous clock discipline" };
     }
-    return { state: sync ? "pending" : "error", label: sync ? "TIME SOURCE UNKNOWN" : "NOT SYNCHRONIZED",
-        source: sync || "Awaiting NTP or GPS", detail: "No supported current time-source evidence is available" };
+    return { state: "pending", label: "STATUS UNKNOWN", source: sync || "Source not recorded",
+        note: sync ? "Unrecognized time source: " + sync : "No NTP or GPS synchronization recorded",
+        detail: sync ? "Time source not recognized: " + sync + "; current synchronization is unknown" :
+            "No NTP or GPS synchronization is recorded; current synchronization is unknown" };
 }
 
 function current(gps, files, now) {

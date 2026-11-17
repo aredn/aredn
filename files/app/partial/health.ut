@@ -64,7 +64,9 @@
     const gpslock = uci.get("aredn", "@time[0]", "gps_enable") === "1" ? require("aredn.gpslock").current() : null;
     const gpssource = gpslock?.source;
     const gpslabel = gpssource?.kind === "local" ? "LOCAL" : gpssource?.kind === "network" ? "NETWORK" : "SOURCE UNKNOWN";
-    const gpsstate = gpslock?.state === "locked" ? "LOCK" : gpslock?.state === "pending" ? "WAIT" : "ERROR";
+    const gpsstate = gpslock?.state === "unknown" ? "UNKNOWN" : gpslock?.state === "locked" ? "LOCK" :
+        gpslock?.state === "pending" ? "WAIT" : "ERROR";
+    const gpsclass = gpslock?.state === "unknown" ? "pending" : gpslock?.state;
     const gpsdetail = gpslock ? gpslock.reason + (gpssource?.endpoint ?
         (gpssource.kind === "local" ? "; Receiver attached to this node: " : "; Receiver supplied over the network by GPSD server: ") + gpssource.endpoint :
         "; GPS source has not been identified") : "";
@@ -81,8 +83,10 @@
     {% } %}
     <div class="s">{{tz}}<span class="time-sync-status {{timeStatus.state}}" role="status" aria-label="{{gpsEscape(timeStatus.detail)}}" title="{{gpsEscape(timeStatus.detail)}}">{{timeStatus.label}}</span></div>
     <div class="time-sync-source" title="{{gpsEscape(timeStatus.detail)}}">Source: {{gpsEscape(timeStatus.source)}}</div>
+    <div class="time-sync-detail">{{gpsEscape(timeStatus.note)}}</div>
     {% if (gpslock && (gpssource?.kind === "local" || gpssource?.kind === "network") && timeStatus.sync === "ntp") { %}
-    <div class="s"><span class="gps-lock-status {{gpslock.state}}" role="status" aria-label="{{gpsEscape(gpsdetail)}}" title="{{gpsEscape(gpsdetail)}}">GPS {{gpsstate}} · {{gpslabel}}</span></div>
+    <div class="s"><span class="gps-lock-status {{gpsclass}}" role="status" aria-label="{{gpsEscape(gpsdetail)}}" title="{{gpsEscape(gpsdetail)}}">GPS {{gpsstate}} · {{gpslabel}}</span></div>
+    <div class="time-sync-detail">{{gpsEscape(gpslock.reason)}} · {{gpsEscape(gpssource.endpoint)}}</div>
     {% } %}
 </div>
 <div class="noctrl">

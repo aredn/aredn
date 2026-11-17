@@ -23,10 +23,11 @@ check(gpslock.read(null).state === "error", "absent source is an error");
 
 const fresh = { state: "locked", reason: "GPS locked (3D fix)", checked_uptime: 100 };
 check(gpslock.validate(fresh, 130).state === "locked", "fresh lock is retained");
-check(gpslock.validate(fresh, 191).state === "error", "stale lock turns red");
-check(gpslock.validate(fresh, 99).state === "error", "future/reboot-invalid cache turns red");
-check(gpslock.validate({ state: "locked", reason: "GPS locked" }, 130).state === "error", "cache without freshness is rejected");
-check(gpslock.validate({ state: "unexpected", reason: "bad", checked_uptime: 100 }, 130).state === "error", "unknown state rejected");
+check(gpslock.validate(fresh, 190).state === "locked", "GPS observation remains current through 90 seconds");
+check(gpslock.validate(fresh, 191).state === "unknown", "stale lock becomes unknown, not a receiver fault");
+check(gpslock.validate(fresh, 99).state === "unknown", "future/reboot-invalid cache is unknown");
+check(gpslock.validate({ state: "locked", reason: "GPS locked" }, 130).state === "unknown", "cache without freshness cannot establish receiver health");
+check(gpslock.validate({ state: "unexpected", reason: "bad", checked_uptime: 100 }, 130).state === "unknown", "unknown cached state is rejected");
 check(gpslock.source("/dev/ttyACM0").kind === "local", "attached device is local");
 const endpoint = "fe80::1234%br-dtdlink";
 check(gpslock.source(endpoint).kind === "network", "DTD GPSD endpoint is network GPS");
@@ -35,17 +36,23 @@ check(gpslock.validate(fresh, 130).source.kind === "unknown", "legacy cache does
 fresh.source = { kind: "local", endpoint: endpoint };
 check(gpslock.validate(fresh, 130).source.kind === "network", "connection endpoint determines source, not an inconsistent label");
 const stale = gpslock.validate(fresh, 191);
-check(stale.state === "error" && stale.source.kind === "network" && stale.source.endpoint === endpoint,
-    "stale network fix turns red without losing provenance");
+check(stale.state === "unknown" && stale.source.kind === "network" && stale.source.endpoint === endpoint &&
+    index(stale.reason, "91 seconds") >= 0 && index(stale.reason, "last report: GPS locked") >= 0,
+    "stale network fix retains provenance, observation age and historical report");
+const failed = {state:"error",reason:"GPS receiver connection failed",checked_uptime:100,source:{endpoint}};
+check(gpslock.validate(failed, 130).state === "error", "fresh connection failure remains a receiver fault");
+check(gpslock.validate(failed, 191).state === "unknown", "expired receiver failure is unknown, not a continuing fault");
+check(gpslock.validate({state:"pending",reason:"Waiting for GPS time",checked_uptime:100}, 191).state === "unknown",
+    "expired acquisition report cannot imply current receiver activity");
 check(gpslock.classify({ class: "TPV", mode: 3, time: "2026-02-30T12:00:00Z" }).state === "pending",
     "invalid calendar dates cannot turn green");
 check(gpslock.classify({ class: "TPV", mode: 3, time: "2026-11-14T12:00:00Z garbage" }).state === "pending",
     "malformed UTC timestamps cannot turn green");
 check(gpslock.classify({ class: "TPV", mode: 3, time: "2028-02-29T12:00:00.123Z" }).state === "locked",
     "valid leap-day timestamps lock");
-check(gpslock.validate({ state: "locked", reason: "GPS locked", checked_uptime: -1 }, 1).state === "error",
+check(gpslock.validate({ state: "locked", reason: "GPS locked", checked_uptime: -1 }, 1).state === "unknown",
     "negative cache timestamps are invalid");
-check(gpslock.current({ readfile: () => "not-json" }, 100).state === "error", "malformed cache turns red");
+check(gpslock.current({ readfile: () => "not-json" }, 100).state === "unknown", "malformed cache does not imply a receiver fault");
 check(gpslock.current({ readfile: () => null }, 100).state === "pending", "missing startup cache is pending");
 let renamed = false;
 check(!gpslock.write({ state: "locked" }, {

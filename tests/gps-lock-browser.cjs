@@ -5,6 +5,8 @@ const path=require('node:path');
 const assert=require('node:assert/strict');
 const output=path.resolve(process.env.GPS_OUTPUT || 'results/time-ui');
 const cases=JSON.parse(fs.readFileSync(path.join(output,'render-cases.json'),'utf8'));
+assert.deepEqual([...new Set(cases.map(test=>test.label))].sort(),
+  ['LOCKED · GPS','WAITING · GPS','ERROR · GPS','SYNCED · NTP','UNSYNCED · NTP','STATUS UNKNOWN'].sort());
 (async()=>{
   const browser=await chromium.launch({executablePath:process.env.CHROMIUM || '/usr/bin/chromium',headless:true,args:['--no-sandbox']});
   const errors=[],rows=[];
@@ -29,16 +31,25 @@ const cases=JSON.parse(fs.readFileSync(path.join(output,'render-cases.json'),'ut
         assert.ok(info.left>=0 && info.right<=width,`badge overflow ${test.name} at ${width}`);
         assert.ok(info.pageWidth<=width,`page overflow ${test.name} at ${width}`);
         assert.equal(await page.locator('.time-sync-source').textContent(),`Source: ${test.source}`);
+        const detail=page.locator('.time-sync-detail').first();
+        assert.ok(await detail.isVisible(),`detail hidden ${test.name}`);
+        for(const text of test.details) assert.ok((await detail.textContent()).includes(text),`missing visible detail ${text} in ${test.name}`);
         const expected=await page.evaluate(state=>{
           const e=document.createElement('span');
           e.style.backgroundColor=state==='pending'?'#f4c542':getComputedStyle(document.documentElement).getPropertyValue(state==='locked'?'--firmware-status-bg-color-positive':'--firmware-status-bg-color-negative');
           document.body.append(e);const c=getComputedStyle(e).backgroundColor;e.remove();return c;
         },test.state);
         assert.equal(info.background,expected);
-        if(test.name==='ntp-and-gps') assert.equal(await page.locator('.gps-lock-status').textContent(),'GPS LOCK · NETWORK');
-        else assert.equal(await page.locator('.gps-lock-status').count(),0);
+        if(test.gpsLabel) {
+          const gps=page.locator('.gps-lock-status');
+          assert.equal(await gps.textContent(),test.gpsLabel);
+          assert.ok(await gps.evaluate((e,state)=>e.classList.contains(state),test.gpsState));
+          const gpsDetail=page.locator('.time-sync-detail').nth(1);
+          assert.ok(await gpsDetail.isVisible());
+          for(const text of test.gpsDetails) assert.ok((await gpsDetail.textContent()).includes(text));
+        } else assert.equal(await page.locator('.gps-lock-status').count(),0);
         rows.push({authenticated,width,name:test.name,theme,passed:true});
-        if(authenticated && theme==='light' && (width===960 || test.name==='ntp-synced'))
+        if(authenticated && theme==='light' && (width===960 || ['ntp-synced','gps-stale','ntp-status-old','ntp-success-old'].includes(test.name)))
           await page.locator('article').screenshot({path:path.join(output,`time-${test.name}-${width}.png`)});
       }
       await page.close();
@@ -51,7 +62,7 @@ const cases=JSON.parse(fs.readFileSync(path.join(output,'render-cases.json'),'ut
       const p=new URL(route.request().url()).pathname;
       if(p==='/') return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(output,'gps-locked.html'),'utf8').replace('</head>','<script src="/htmx.js"></script></head>')});
       if(p==='/htmx.js') return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(output,'htmx.min.js'))});
-      if(p==='/u-health') {refreshes++;return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(output,refreshes===1?'gps-waiting-partial.html':'gps-error-partial.html'),'utf8')});}
+      if(p==='/u-health') {const next=['gps-waiting','gps-error','gps-stale'][refreshes++];assert.ok(next);return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(output,`${next}-partial.html`),'utf8')});}
       if(p==='/status/e/time') {edits++;return route.fulfill({contentType:'text/html',body:'<div>Time settings fixture</div>'});}
       throw new Error(`Unexpected request ${route.request().url()}`);
     });
@@ -62,8 +73,11 @@ const cases=JSON.parse(fs.readFileSync(path.join(output,'render-cases.json'),'ut
     assert.equal(edits,1);
     await page.clock.fastForward(30100);await page.locator('.time-sync-status.pending').waitFor();
     await page.clock.fastForward(30100);await page.locator('.time-sync-status.error').waitFor();
-    assert.equal(refreshes,2);assert.deepEqual(errors,[]);
+    await page.clock.fastForward(30100);await page.locator('.time-sync-status.pending').waitFor();
+    assert.equal(await page.locator('.time-sync-status').textContent(),'STATUS UNKNOWN');
+    assert.ok((await page.locator('.time-sync-detail').textContent()).includes('200 seconds'));
+    assert.equal(refreshes,3);assert.deepEqual(errors,[]);
     fs.writeFileSync(path.join(output,'browser-summary.json'),JSON.stringify({viewportThemeCases:rows.length,rows,htmxRefreshes:refreshes,timeSettingsRequests:edits,pageErrors:errors},null,2)+'\n');
-    console.log(`PASS: ${rows.length} time-area browser combinations; 2 HTMX refreshes; time-settings click preserved; zero page errors`);
+    console.log(`PASS: ${rows.length} time-area browser combinations; 3 HTMX refreshes; visible detail lines; time-settings click preserved; zero page errors`);
   } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
