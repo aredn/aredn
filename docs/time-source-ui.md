@@ -5,11 +5,11 @@ visible without treating them as the same thing.
 
 | Indicator | Source line | Evidence |
 |---|---|---|
-| `LOCKED · GPS` | Selected LOCAL/NETWORK receiver endpoint | Fresh receiver fix with valid UTC time |
-| `WAITING · GPS` | Selected endpoint, or explicitly unknown | Discovery, no satellite fix, or no valid receiver time |
-| `ERROR · GPS` | Selected endpoint where known | Fresh observation of a missing source or failed receiver connection/data |
-| `SYNCED · NTP` | Actual successful one-shot target, or unknown daemon peer | Matching recent native synchronization evidence |
-| `UNSYNCED · NTP` | Peer unknown when not exposed | Native daemon callback reports an unsynchronized stratum |
+| `LOCKED · GPS` | `Source: GPS` | Fresh receiver fix with valid UTC time |
+| `WAITING · GPS` | `Source: GPS` | Discovery, no satellite fix, or no valid receiver time |
+| `ERROR · GPS` | `Source: GPS` | Fresh observation of a missing source or failed receiver connection/data |
+| `SYNCED · NTP` | `Source: NTP · <recorded IP/hostname>`, or peer unknown | Matching recent native synchronization evidence |
+| `UNSYNCED · NTP` | `Source: NTP · Peer unknown` | Native daemon callback reports an unsynchronized stratum |
 | `STATUS UNKNOWN` | Historical source where known, otherwise explicitly unknown | Old, invalid, missing or unrecognized evidence cannot establish current status |
 
 The display uses exactly these six main labels. A **visible detail line** beneath
@@ -19,6 +19,15 @@ reason. These diagnostics do not require hovering over a tooltip. An expired
 unsynchronized NTP report is identified as a **last report**, never relabeled a
 successful synchronization. No synchronization marker means no synchronization
 is recorded, not proof that the clock is currently wrong.
+
+GPS LOCAL/NETWORK provenance and the selected receiver device/endpoint appear
+in the visible detail line. A numeric NTP command target appears directly, for
+example `Source: NTP · 192.0.2.123` or `Source: NTP · 2001:db8::123`.
+When the successful target is a hostname, the hostname is retained and the
+detail line says **IP not recorded**. The native one-shot result does not expose
+its resolved peer, and the daemon callback exposes no peer at all. The GUI
+does not perform DNS lookups or claim that a later DNS answer identifies the
+server which synchronized the clock.
 
 GPS lock is receiver health, not proof of PPS accuracy or continuous clock
 discipline. NTP evidence describes an observed native synchronization, not a GPS
@@ -92,15 +101,16 @@ Loopback GPSD fixtures use private ephemeral ports, and browser requests are
 intercepted. Tests exercise real repository templates, themes, and HTMX resources.
 These checks do not qualify physical receiver faults, reboots, or a firmware build.
 
-Regression coverage includes all six main labels, historical GPS/NTP markers,
+Regression coverage includes all six main labels, explicit GPS/NTP source types,
+recorded IPv4/IPv6 targets, honest hostname/unknown-peer fallbacks, historical GPS/NTP markers,
 missing or unrecognized synchronization sources, stale GPS success/failure,
 future and invalid receiver observations, visible detail-line content and
 escaping, and independent GPS LOCK/WAIT/ERROR/UNKNOWN badges while NTP is in use.
 The runners also retain the observer-failure, cache-publication, native-cadence,
 source-attribution and single-snapshot checks.
 
-The six-label/detail-line revision passed 192 candidate native checks plus
-10 baseline manager checks, 7 private-loopback GPSD cases, 352 browser
+The six-label/detail-line/source revision passed 207 candidate native checks plus
+10 baseline manager checks, 7 private-loopback GPSD cases, 384 browser
 authentication/theme/size/state combinations, and 6 baseline / 6 candidate
 NTP-script cases. Three HTMX refreshes verified WAITING, ERROR and UNKNOWN
 transitions with visible detail updates; the time-settings interaction remained

@@ -82,7 +82,7 @@
     <div class="t">{{tm.hour === 0 ? "12" : tm.hour > 12 ? tm.hour - 12 : tm.hour}}:{{sprintf("%02d", tm.min)}} {{tm.hour >= 12 ? "pm" : "am"}}</div>
     {% } %}
     <div class="s">{{tz}}<span class="time-sync-status {{timeStatus.state}}" role="status" aria-label="{{gpsEscape(timeStatus.detail)}}" title="{{gpsEscape(timeStatus.detail)}}">{{timeStatus.label}}</span></div>
-    <div class="time-sync-source" title="{{gpsEscape(timeStatus.detail)}}">Source: {{gpsEscape(timeStatus.source)}}</div>
+    <div class="time-sync-source" title="{{gpsEscape(timeStatus.detail)}}">Source: {{gpsEscape(timeStatus.sourceDisplay || timeStatus.source)}}</div>
     <div class="time-sync-detail">{{gpsEscape(timeStatus.note)}}</div>
     {% if (gpslock && (gpssource?.kind === "local" || gpssource?.kind === "network") && timeStatus.sync === "ntp") { %}
     <div class="s"><span class="gps-lock-status {{gpsclass}}" role="status" aria-label="{{gpsEscape(gpsdetail)}}" title="{{gpsEscape(gpsdetail)}}">GPS {{gpsstate}} · {{gpslabel}}</span></div>
