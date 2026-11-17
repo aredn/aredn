@@ -510,7 +510,9 @@ export function restore(backupFilename)
         if (!fs.writefile("/sysupgrade.tgz", data)) {
             status.error = "Failed to copy configuration file";
         }
-        status.filename = "/sysupgrade.tgz";
+        else {
+            status.filename = "/sysupgrade.tgz";
+        }
     }
     fs.unlink(backupFilename);
     return status;
