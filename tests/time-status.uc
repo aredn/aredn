@@ -8,12 +8,12 @@ check(value.state === "locked" && value.label === "SYNCED · NTP" && value.sourc
     "confirmed one-shot sync shows NTP and the actually used server");
 check(index(value.detail, "one-shot") >= 0 && index(value.detail, "not a continuous receiver lock") >= 0,
     "one-shot synchronization is not presented as a continuous lock");
-check(value.sourceDisplay === "NTP · aredn.pool.ntp.org" && index(value.note, "IP not recorded") >= 0,
-    "hostname target is shown as NTP without inventing a resolved peer IP");
+check(value.sourceDisplay === "Unknown" && index(value.note, "Target: aredn.pool.ntp.org") >= 0 && index(value.note, "IP not recorded") >= 0,
+    "hostname target remains in the visible detail line without inventing a source IP");
 for (let endpoint in ["192.0.2.123", "2001:db8::123", "fe80::123%br-dtdlink"]) {
     ntp.endpoint = endpoint;
     value = status.classify("ntp", null, ntp, 130, 123);
-    check(value.sourceDisplay === "NTP · " + endpoint && index(value.note, "IP not recorded") < 0,
+    check(value.sourceDisplay === endpoint && index(value.note, "IP not recorded") < 0,
         `successful numeric NTP target displays its recorded address: ${endpoint}`);
 }
 ntp.endpoint = "ntp.example:123";
@@ -36,8 +36,8 @@ check(status.classify("ntp", null, ntp, 130, 123).state === "pending", "one-shot
 ntp.mode = "daemon"; ntp.endpoint = null; ntp.stratum = 2;
 value = status.classify("ntp", null, ntp, 130, 123);
 check(value.state === "locked" && index(value.source, "not exposed") >= 0, "daemon evidence never substitutes configured peers for its unknown selected peer");
-check(value.sourceDisplay === "NTP · Peer unknown" && index(value.note, "IP not recorded") >= 0,
-    "daemon source identifies NTP while admitting the callback exposes no peer IP");
+check(value.sourceDisplay === "Unknown" && index(value.note, "IP not recorded") >= 0,
+    "daemon source admits the callback exposes no peer IP");
 ntp.stratum = 16;
 check(status.classify("ntp", null, ntp, 130, 123).label === "UNSYNCED · NTP", "fresh unsynchronized daemon stratum remains explicit");
 value = status.classify("ntp", null, ntp, 1001, 123);
