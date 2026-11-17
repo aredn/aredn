@@ -636,6 +636,7 @@
         const needreboot = {{needreboot}};
         const vmsg = "<center>BEWARE: Downgrading firmware <b>WILL</b> result in a broken or incomplete node configuration.</center>";
         const umsg = "<center>Don't forget to backup before you upgrade.</center>";
+        const rmsg = "<center>AREDN&reg; makes no attempt to validate the integrity of the restore file or its compatibility with this hardware.</center>";
         {% if (needreboot) { %}
         dialogMessage.error("<center>Please reboot before upgrading.</center>");
         {% } %}
@@ -656,8 +657,14 @@
             const f = htmx.find("#fetch-and-update");
             const r = htmx.find("#restore-config");
             if (e.target.files[0] && !needreboot) {
-                dialogMessage.success(umsg);
-                f.innerHTML = r.files[0] ? "Fetch and Restore" : "Fetch and Update";
+                if (r.files[0]) {
+                    dialogMessage.error(rmsg);
+                    f.innerHTML = "Fetch and Restore";
+                }
+                else {
+                    dialogMessage.success(umsg);
+                    f.innerHTML = "Fetch and Update";
+                }
                 f.disabled = false;
             }
             else {
@@ -706,7 +713,7 @@
                 f.disabled = true;
             }
             htmx.find("#download-firmware").value = "-";
-            dialogMessage.error("AREDN&reg; makes no attempt to validate the integrity of the restore file or its compatibility with this hardware.");
+            dialogMessage.error(rmsg);
         });
         htmx.on("#fetch-and-update", "click", e => {
             dialogMessage.clear();
