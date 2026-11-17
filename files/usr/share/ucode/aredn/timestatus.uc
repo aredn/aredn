@@ -24,22 +24,6 @@ function ageText(seconds) {
     return `${int(seconds / 86400)}d ago`;
 }
 
-function addressNote(endpoint) {
-    // Only a successful numeric command target establishes an address. Never
-    // resolve a hostname here: a later DNS answer is not the peer that synced.
-    if (type(endpoint) === "string" && length(split(endpoint, ":")) >= 3 &&
-        match(endpoint, /^[0-9a-fA-F:.]+(%[a-zA-Z0-9_.-]+)?$/)) return "";
-    const parts = type(endpoint) === "string" ? split(endpoint, ".") : [];
-    if (length(parts) === 4) {
-        let numeric = true;
-        for (let part in parts) {
-            if (!match(part, /^\d{1,3}$/) || int(part) > 255) numeric = false;
-        }
-        if (numeric) return "";
-    }
-    return " · IP not recorded";
-}
-
 function classify(sync, gps, ntp, now, markerMtime) {
     sync = trim(sync || "");
     if (sync === "ntp") {
@@ -51,25 +35,26 @@ function classify(sync, gps, ntp, now, markerMtime) {
                 (type(ntp.endpoint) === "string" && length(ntp.endpoint) > 0 && length(ntp.endpoint) <= 255));
         if (!valid) return { state: "pending", label: "STATUS UNKNOWN", source: "Source not recorded",
             sourceDisplay: "Unknown",
-            note: "Last sync: NTP · Time and source not recorded · IP not recorded",
+            note: "Last sync: NTP · Time and source not recorded",
             detail: "Last sync: NTP; source and time not recorded; current synchronization is unknown" };
         const daemon = ntp.mode === "daemon";
         const age = now - ntp.checked_uptime;
         const source = ntp.endpoint || "Selected peer not exposed by NTP daemon";
-        const ipNote = addressNote(ntp.endpoint);
-        const sourceDisplay = ipNote ? "Unknown" : ntp.endpoint;
-        const targetNote = ntp.endpoint && ipNote ? " · Target: " + ntp.endpoint : "";
+        // Show the actual successful target, whether IP or hostname. Do not
+        // resolve it later or substitute configured peers for an unknown one.
+        const sourceDisplay = ntp.endpoint || "Unknown";
+        const sourceNote = ntp.endpoint ? "" : " · Source not recorded";
         const fresh = age <= (daemon ? 900 : 86400);
         if (daemon && (type(ntp.stratum) !== "int" || ntp.stratum < 1 || ntp.stratum >= 16))
             return { state: fresh ? "error" : "pending", label: fresh ? "UNSYNCED · NTP" : "STATUS UNKNOWN", source, sourceDisplay,
                 note: `Last report: NTP unsynchronized · ${stamp(ntp.sync_epoch)} · ${ageText(age)}` +
-                    (fresh ? "" : " · Status old") + targetNote + ipNote,
+                    (fresh ? "" : " · Status old") + sourceNote,
                 detail: "NTP daemon last reported an unsynchronized stratum; the selected peer is not exposed" +
                     `; last report: ${stamp(ntp.sync_epoch)}; observation age: ${age} seconds` +
                     (fresh ? "" : "; status is old; current synchronization is unknown") };
         return { state: fresh ? "locked" : "pending", label: fresh ? "SYNCED · NTP" : "STATUS UNKNOWN", source, sourceDisplay,
             note: `Last sync: NTP · ${stamp(ntp.sync_epoch)} · ${ageText(age)}` +
-                (fresh ? "" : " · Status old") + targetNote + ipNote,
+                (fresh ? "" : " · Status old") + sourceNote,
             detail: "Last sync: NTP; " + (daemon ? `NTP daemon last reported synchronized at stratum ${ntp.stratum}` :
                 "Last successful one-shot NTP synchronization") + `; ${stamp(ntp.sync_epoch)}; source: ${source}` +
                 `; observation age: ${age} seconds` +

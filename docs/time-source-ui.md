@@ -8,7 +8,7 @@ visible without treating them as the same thing.
 | `LOCKED · GPS` | `Source: GPS` | Fresh receiver fix with valid UTC time |
 | `WAITING · GPS` | `Source: GPS` | Discovery, no satellite fix, or no valid receiver time |
 | `ERROR · GPS` | `Source: GPS` | Fresh observation of a missing source or failed receiver connection/data |
-| `SYNCED · NTP` | `Source: <recorded server IP>`, otherwise `Source: Unknown` | Matching recent native synchronization evidence |
+| `SYNCED · NTP` | `Source: <recorded server IP or hostname>`, otherwise `Source: Unknown` | Matching recent native synchronization evidence |
 | `UNSYNCED · NTP` | `Source: Unknown` | Native daemon callback reports an unsynchronized stratum |
 | `STATUS UNKNOWN` | Historical source where known, otherwise explicitly unknown | Old, invalid, missing or unrecognized evidence cannot establish current status |
 
@@ -21,14 +21,14 @@ successful synchronization. No synchronization marker means no synchronization
 is recorded, not proof that the clock is currently wrong.
 
 GPS LOCAL/NETWORK provenance and the selected receiver device/endpoint appear
-in the visible detail line. A numeric NTP command target appears directly, for
-example `Source: 192.0.2.123` or `Source: 2001:db8::123`, with no NTP prefix.
-When no peer IP was recorded, the source line says **Source: Unknown**. If the
-successful target was a hostname, it is retained on the visible detail line
-alongside **IP not recorded**. The native one-shot result does not expose
-its resolved peer, and the daemon callback exposes no peer at all. The GUI
-does not perform DNS lookups or claim that a later DNS answer identifies the
-server which synchronized the clock.
+in the visible detail line. The successful NTP command target appears directly,
+for example `Source: 192.0.2.123`, `Source: 2001:db8::123`, or
+`Source: aredn.pool.ntp.org`, with no NTP prefix. A recorded hostname is a valid
+alternative to an IP address and needs no missing-IP warning. Only when neither
+an IP nor hostname was recorded does the line say **Source: Unknown**. The
+native one-shot result does not expose a hostname's resolved peer, and the
+daemon callback exposes no peer at all. The GUI performs no DNS lookups or
+configured-server guesses.
 
 GPS lock is receiver health, not proof of PPS accuracy or continuous clock
 discipline. NTP evidence describes an observed native synchronization, not a GPS
