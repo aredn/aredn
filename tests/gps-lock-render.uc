@@ -27,6 +27,10 @@ const files = {
 const scope = {
     fs: {
         access: () => false,
+        open: () => {
+            let line = "UTC\tUTC0\n";
+            return { read: () => { const value = line; line = ""; return value; }, close: () => {} };
+        },
         readfile: path => path === "/proc/uptime" ? "90061 0" : path === "/proc/loadavg" ? "0.01 0.02 0.03 1/10 1" :
             path === "/proc/meminfo" ? "MemAvailable: 128000 kB\nMemTotal: 256000 kB\n" :
             path === "/tmp/timesync" ? (markerReads++, sync) : null,
@@ -42,6 +46,7 @@ const scope = {
 scope.request = { env: { REQUEST_METHOD: "GET", REQUEST_URI: "status/e/time" }, args: {}, headers: {} };
 scope.auth = { isAdmin: true };
 scope.includeHelp = false;
+scope.includeAdvanced = true;
 scope.configuration = { getSettingAsString: (name, fallback) => name === "ntp_server" ? "aredn.pool.ntp.org" : fallback };
 scope.timezones = { getTimezoneList: () => ({ UTC: { tz: "UTC0" } }) };
 scope.uciMesh = { get: (name, section, option) => option === "period" ? "hourly" : option === "gps_enable" && enabled ? "1" : "0" };
