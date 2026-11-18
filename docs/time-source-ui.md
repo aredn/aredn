@@ -11,6 +11,9 @@ Only the clock and compact status badge are shown; there are no separate
 receiver endpoint, diagnostic reason, and recorded history. The same text is
 exposed as the badge's accessible label. The hover uses one concise report;
 the longer popup explanation is not appended a second time.
+The timezone abbreviation uses the same text style as the clock. GPS receiver
+messages omit the lengthy accuracy disclaimer; receiver provenance remains
+available without repeating the report.
 
 | Badge | Evidence |
 |---|---|

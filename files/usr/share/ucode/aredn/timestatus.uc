@@ -74,8 +74,7 @@ function classify(sync, gps, ntp, now, markerMtime) {
         return { state, label: gps.state === "unknown" ? "STATUS UNKNOWN" : state === "locked" ? "LOCKED · GPS" :
                 state === "pending" ? "WAITING · GPS" : "ERROR · GPS",
             sourceDisplay: "GPS", note: gpsSource(gps) + " · " + gps.reason,
-            source: gpsSource(gps), detail: gps.reason + "; source: " + gpsSource(gps) +
-                "; receiver lock does not certify PPS accuracy or continuous clock discipline" };
+            source: gpsSource(gps), detail: gps.reason + "; source: " + gpsSource(gps) };
     }
     return { state: "pending", label: "STATUS UNKNOWN", source: sync || "Source not recorded",
         note: sync ? "Unrecognized time source: " + sync : "No NTP or GPS synchronization recorded",

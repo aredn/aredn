@@ -28,6 +28,13 @@ assert.deepEqual([...new Set(cases.map(test=>test.label))].sort(),
             role:e.getAttribute('role'),pageWidth:document.documentElement.scrollWidth};
         });
         assert.equal(info.role,'status');assert.equal(info.title,info.label);assert.ok(info.title.length>10);
+        const textStyles=await page.evaluate(()=>{
+          const properties=['fontSize','fontFamily','fontWeight','color'];
+          const clock=getComputedStyle(document.querySelector('#health .ctrl > .t'));
+          const zone=getComputedStyle(document.querySelector('#health .time-zone'));
+          return properties.map(property=>[clock[property],zone[property]]);
+        });
+        for(const [clock,zone] of textStyles) assert.equal(zone,clock,'timezone matches normal clock text');
         assert.ok(info.left>=0 && info.right<=width,`badge overflow ${test.name} at ${width}`);
         assert.ok(info.pageWidth<=width,`page overflow ${test.name} at ${width}`);
         assert.equal(await page.locator('.time-sync-source,.time-sync-detail').count(),0);
