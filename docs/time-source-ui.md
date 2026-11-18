@@ -1,90 +1,90 @@
-# GPS lock and clock-source status in the time area
+# GPS lock and clock-source status
 
-This firmware GUI/status change makes receiver health and clock-source evidence
-visible without treating them as the same thing.
+The status page keeps basic time information up front. Detailed native evidence
+is available in the **Time** popup, using the same value/caption visual pattern
+as the neighbor popup.
 
-| Indicator | Source line | Evidence |
-|---|---|---|
-| `LOCKED · GPS` | `Source: GPS` | Fresh receiver fix with valid UTC time |
-| `WAITING · GPS` | `Source: GPS` | Discovery, no satellite fix, or no valid receiver time |
-| `ERROR · GPS` | `Source: GPS` | Fresh observation of a missing source or failed receiver connection/data |
-| `SYNCED · NTP` | `Source: <recorded server IP or hostname>`, otherwise `Source: Unknown` | Matching recent native synchronization evidence |
-| `UNSYNCED · NTP` | `Source: Unknown` | Native daemon callback reports an unsynchronized stratum |
-| `STATUS UNKNOWN` | Historical source where known, otherwise explicitly unknown | Old, invalid, missing or unrecognized evidence cannot establish current status |
+## Compact status page
 
-The display uses exactly these six main labels. A **visible detail line** beneath
-the status and source retains the last synchronization source and UTC timestamp
-when recorded, observation age, expired-report explanation, or missing-evidence
-reason. These diagnostics do not require hovering over a tooltip. An expired
-unsynchronized NTP report is identified as a **last report**, never relabeled a
-successful synchronization. No synchronization marker means no synchronization
-is recorded, not proof that the clock is currently wrong.
+Only the clock and compact status badge are shown; there are no separate
+`Source:` or receiver-detail lines. Hover text retains the source, selected
+receiver endpoint, diagnostic reason, and recorded history. The same text is
+exposed as the badge's accessible label.
 
-GPS LOCAL/NETWORK provenance and the selected receiver device/endpoint appear
-in the visible detail line. The successful NTP command target appears directly,
-for example `Source: 192.0.2.123`, `Source: 2001:db8::123`, or
-`Source: aredn.pool.ntp.org`, with no NTP prefix. A recorded hostname is a valid
-alternative to an IP address and needs no missing-IP warning. Only when neither
-an IP nor hostname was recorded does the line say **Source: Unknown**. The
-native one-shot result does not expose a hostname's resolved peer, and the
-daemon callback exposes no peer at all. The GUI performs no DNS lookups or
-configured-server guesses.
+| Badge | Evidence |
+|---|---|
+| `LOCKED · GPS` | Fresh receiver fix with valid UTC time |
+| `WAITING · GPS` | Discovery, no satellite fix, or no valid receiver time |
+| `ERROR · GPS` | Fresh receiver/source/connection failure |
+| `SYNCED · NTP` | Matching recent native synchronization evidence |
+| `UNSYNCED · NTP` | Native daemon callback reports an unsynchronized stratum |
+| `STATUS UNKNOWN` | Old, invalid, missing, or unrecognized evidence |
 
-GPS lock is receiver health, not proof of PPS accuracy or continuous clock
-discipline. NTP evidence describes an observed native synchronization, not a GPS
-lock. A pool hostname is the successful command target; no resolved IP is
-invented. A configured server list is not evidence of the server actually used.
-Standard BusyBox callbacks expose stratum, not the selected peer.
+When NTP last synchronized the clock and a selected GPS receiver has health data,
+a second compact badge reports GPS LOCK/WAIT/ERROR/UNKNOWN. Its provenance and
+reason are hover-only on the status page. With no selected GPS source, working
+NTP does not generate an unrelated GPS alarm.
 
-When NTP last synchronized the clock and a selected GPS receiver also has health
-data, a separate badge reports that receiver's lock. With no selected GPS source,
-working NTP does not produce an unrelated GPS alarm.
-The separate receiver badge uses `GPS UNKNOWN` for an expired observation and
-also has a visible receiver-detail line; healthy NTP remains `SYNCED · NTP`.
+## Time popup
+
+A **Time status** section sits below the existing settings and above the footer.
+It uses three columns at desktop width and two on mobile, with values above
+small captions, matching the neighbor-details convention.
+
+- Status and recorded source: `GPS`, the successful NTP command's IP or hostname,
+  or an explicit unknown source. A hostname is a valid alternative to an IP;
+  no missing-IP warning, DNS resolution, or configured-server guess is added.
+- Last synchronization/report UTC timestamp, observation age, NTP mode and
+  daemon stratum, when validated native metadata supplies them. An unsynchronized
+  daemon observation is a **last report**, not a successful synchronization.
+- Selected GPS connection, local device or network endpoint, receiver health,
+  expired-observation history and explanatory context.
+- No clock query is forced to fill missing data. A GPS marker without a recorded
+  timestamp is not used to invent the last synchronization time.
+
+The read-only detail section refreshes independently every 30 seconds while the
+page is visible. Refresh never replaces the settings controls, changes staged
+values, or writes configuration. Existing PUT/DELETE handlers are unchanged.
 
 ## Controlled-render examples
 
 These screenshots use native-template fixtures, not live receiver measurements.
 
-![GPS locked, selected network receiver](images/time-status/gps-locked.png)
-![GPS waiting for a fix or valid time](images/time-status/gps-waiting.png)
-![NTP synchronized, successful native command target](images/time-status/ntp-synced.png)
-![Unknown current status, with historical synchronization and age in the visible detail line](images/time-status/status-unknown.png)
+![Compact GPS status; source and receiver details are hover-only](images/time-status/gps-locked.png)
+![Compact waiting status](images/time-status/gps-waiting.png)
+![Compact NTP status](images/time-status/ntp-synced.png)
+![Compact unknown status; historical details remain in hover and popup](images/time-status/status-unknown.png)
+![Time popup with the new three-column details section](images/time-status/popup-three-columns.png)
+![Two-column desktop comparison using the same native template](images/time-status/popup-two-columns.png)
+![Time popup on mobile with two-column details](images/time-status/popup-mobile.png)
 
-## Display support
+## Evidence and preservation
 
-- The existing GPS manager publishes a bounded health observation every 30 seconds
-  while GPS Time is enabled. Receiver provenance comes from its selected local
-  device or network endpoint, never a remote server's TPV device path.
-- The native clock/location synchronization body and ten-minute cadence are
-  retained, including native synchronization-marker ownership and cleanup.
-  Observer failures cannot interrupt native work, and disabling health display
-  does not change native source discovery/setup or synchronization scheduling.
-- The page reads RAM caches only. It performs no GPSD/NTP connection, discovery,
-  USB scan, or package query. It reuses the existing authenticated HTMX refresh
-  and time-settings interaction; public read-only views require reload.
-  Both badges share one native-marker snapshot. GPS-only views do not read or
-  stat NTP metadata.
-- GPS health expires after 90 seconds. Discovery retries retain the native
-  ten-minute interval; the display can therefore report stale data between retries.
-  Expired or invalid observation metadata becomes `STATUS UNKNOWN`, not a
-  receiver fault. Fresh receiver failures remain `ERROR · GPS`. The last receiver
-  report and its age remain visible when the observation has expired.
-  Partial cache writes are never published; failed temporary files are removed.
-- Native successful NTP paths gain best-effort metadata annotations. Annotation
-  failure does not change the native synchronization result. The observer does
-  not set the clock, select a peer, or enable a daemon.
-- NTP metadata uses writer-specific temporary files and atomic rename. Marker
-  mtime and monotonic timestamps reject mismatched/future records. One-shot
-  evidence becomes historical after 24 hours; daemon evidence after 15 minutes.
-  Expired daemon reports become `STATUS UNKNOWN`, not a continuing current alarm
-  or a claimed current synchronization; their history remains in the detail line.
-  Daemon records never certify a peer absent from the native callback.
-- Source text, visible details and tooltips are escaped. Explicit state words support all themes;
-  long source endpoints wrap.
+GPS lock is receiver health, not certification of PPS accuracy or continuous
+clock discipline. NTP evidence describes an observed native synchronization,
+not a receiver lock. A recorded pool hostname identifies the command target,
+not a resolved peer. Standard BusyBox callbacks expose stratum, not the peer.
 
-There is no USB-detection hook, installation prompt, package/dependency/release
-change, driver change, or replacement synchronization algorithm in this patch.
+- The page and popup read RAM caches only, without GPSD/NTP connections,
+  discovery, USB scans, or package queries. Each render uses one native-marker
+  snapshot. GPS-only views do not read/stat NTP metadata.
+- GPS health expires after 90 seconds. Expired/invalid data becomes unknown,
+  not a current receiver fault. Fresh faults remain ERROR. Historical reason
+  and observation age remain available in the popup and hover text.
+- One-shot NTP evidence becomes historical after 24 hours; daemon evidence
+  after 15 minutes. Mismatched/future records cannot establish a source or
+  synchronization. Old errors are not presented as current faults or successes.
+- Existing GPS clock/location synchronization body, source discovery, marker
+  behavior and ten-minute cadence are preserved. Observer failures cannot
+  interrupt native synchronization, including when display observation is off.
+- GPS/NTP cache writers publish atomically and never replace valid metadata with
+  partial writes. Native NTP annotations are best-effort and cannot change
+  synchronization success/failure, select a peer, or enable a daemon.
+- Source, popup values and hover text are escaped. Long endpoints wrap within
+  popup columns; explicit status words support the existing themes.
+
+There is no USB hook, installation prompt, package/dependency/release change,
+driver work, or replacement synchronization algorithm in this contribution.
 
 ## Isolated validation
 
@@ -95,24 +95,14 @@ python3 tests/gps-lock-run.py \
 python3 tests/ntp-annotations.py
 ```
 
-The default baseline is pinned to firmware revision
-`3a7fdab83897ae2f9aebd42e052fe78ecac34a66`; both runners accept
-`--baseline-ref` for explicit rebasing. Clock/config/service writes are mocked.
-Loopback GPSD fixtures use private ephemeral ports, and browser requests are
-intercepted. Tests exercise real repository templates, themes, and HTMX resources.
-These checks do not qualify physical receiver faults, reboots, or a firmware build.
+The default firmware baseline is pinned to
+`3a7fdab83897ae2f9aebd42e052fe78ecac34a66`; runners accept explicit baseline
+overrides. Clock/config/service writes are mocked, native sockets use private
+loopback fixtures, and browser requests are intercepted. The real health and
+time-popup templates, themes, controls and repository HTMX are exercised.
 
-Regression coverage includes all six main labels, the simplified source line,
-recorded IPv4/IPv6 targets, honest hostname/unknown-peer fallbacks, historical GPS/NTP markers,
-missing or unrecognized synchronization sources, stale GPS success/failure,
-future and invalid receiver observations, visible detail-line content and
-escaping, and independent GPS LOCK/WAIT/ERROR/UNKNOWN badges while NTP is in use.
-The runners also retain the observer-failure, cache-publication, native-cadence,
-source-attribution and single-snapshot checks.
-
-The six-label/detail-line/source revision passed 207 candidate native checks plus
-10 baseline manager checks, 7 private-loopback GPSD cases, 384 browser
-authentication/theme/size/state combinations, and 6 baseline / 6 candidate
-NTP-script cases. Three HTMX refreshes verified WAITING, ERROR and UNKNOWN
-transitions with visible detail updates; the time-settings interaction remained
-intact and there were no browser page errors.
+Coverage includes all six labels; recorded IPv4/IPv6/hostname/unknown sources;
+historical, future, invalid and stale evidence; escaped hover and popup values;
+independent GPS health while NTP is active; desktop/mobile two-/three-column
+renders; popup placement; and simultaneous health/popup refreshes that preserve
+staged settings. These are not a firmware build or physical-fault/reboot tests.

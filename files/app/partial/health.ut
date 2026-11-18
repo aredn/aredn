@@ -63,7 +63,6 @@
     // /tmp/timesync: that marker only describes the last clock-sync source.
     const gpslock = uci.get("aredn", "@time[0]", "gps_enable") === "1" ? require("aredn.gpslock").current() : null;
     const gpssource = gpslock?.source;
-    const gpslabel = gpssource?.kind === "local" ? "LOCAL" : gpssource?.kind === "network" ? "NETWORK" : "SOURCE UNKNOWN";
     const gpsstate = gpslock?.state === "unknown" ? "UNKNOWN" : gpslock?.state === "locked" ? "LOCK" :
         gpslock?.state === "pending" ? "WAIT" : "ERROR";
     const gpsclass = gpslock?.state === "unknown" ? "pending" : gpslock?.state;
@@ -74,6 +73,8 @@
         return replace(replace(replace(replace(replace(value, /&/g, "&amp;"), /</g, "&lt;"), />/g, "&gt;"), /"/g, "&quot;"), /'/g, "&#39;");
     }
     const timeStatus = require("aredn.timestatus").current(gpslock);
+    const timeHover = "Source: " + (timeStatus.sourceDisplay || timeStatus.source) + "; " +
+        timeStatus.note + "; " + timeStatus.detail;
 %}
 <div class="ctrl" hx-get="status/e/time" hx-target="#ctrl-modal">
     {% if (uci.get("aredn", "@time[0]", "military") === "1") { %}
@@ -81,12 +82,9 @@
     {% } else { %}
     <div class="t">{{tm.hour === 0 ? "12" : tm.hour > 12 ? tm.hour - 12 : tm.hour}}:{{sprintf("%02d", tm.min)}} {{tm.hour >= 12 ? "pm" : "am"}}</div>
     {% } %}
-    <div class="s">{{tz}}<span class="time-sync-status {{timeStatus.state}}" role="status" aria-label="{{gpsEscape(timeStatus.detail)}}" title="{{gpsEscape(timeStatus.detail)}}">{{timeStatus.label}}</span></div>
-    <div class="time-sync-source" title="{{gpsEscape(timeStatus.detail)}}">Source: {{gpsEscape(timeStatus.sourceDisplay || timeStatus.source)}}</div>
-    <div class="time-sync-detail">{{gpsEscape(timeStatus.note)}}</div>
+    <div class="s">{{tz}}<span class="time-sync-status {{timeStatus.state}}" role="status" aria-label="{{gpsEscape(timeHover)}}" title="{{gpsEscape(timeHover)}}">{{timeStatus.label}}</span></div>
     {% if (gpslock && (gpssource?.kind === "local" || gpssource?.kind === "network") && timeStatus.sync === "ntp") { %}
-    <div class="s"><span class="gps-lock-status {{gpsclass}}" role="status" aria-label="{{gpsEscape(gpsdetail)}}" title="{{gpsEscape(gpsdetail)}}">GPS {{gpsstate}} · {{gpslabel}}</span></div>
-    <div class="time-sync-detail">{{gpsEscape(gpslock.reason)}} · {{gpsEscape(gpssource.endpoint)}}</div>
+    <div class="s"><span class="gps-lock-status {{gpsclass}}" role="status" aria-label="{{gpsEscape(gpsdetail)}}" title="{{gpsEscape(gpsdetail)}}">GPS {{gpsstate}}</span></div>
     {% } %}
 </div>
 <div class="noctrl">

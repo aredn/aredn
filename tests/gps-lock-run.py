@@ -108,7 +108,7 @@ print(sprintf("%J", require("aredn.gpslock").read(getenv("GPS_TEST_SOURCE"), tra
                                    "elapsed_seconds": round(elapsed, 3), "passed": True})
     summary["loopback_transport"] = {"cases_passed": len(socket_results), "cases": socket_results}
     print(f"PASS: {len(socket_results)} real native-socket GPSD fixtures")
-    for name in ("user.css", "admin.css"):
+    for name in ("user.css", "admin.css", "mobile.css"):
         shutil.copy(ROOT / "files/app/resource/css" / name, output / name)
     shutil.copytree(ROOT / "files/app/resource/css/themes", output / "themes", dirs_exist_ok=True)
     (output / "htmx.min.js").write_bytes(gzip.decompress((ROOT / "files/app/resource/js/htmx.min.js.gz").read_bytes()))
@@ -122,7 +122,8 @@ print(sprintf("%J", require("aredn.gpslock").read(getenv("GPS_TEST_SOURCE"), tra
     run(["git", "diff", "--check"])
     paths = ["files/usr/local/mgr/gps.uc", "files/usr/share/ucode/aredn/gpslock.uc", "files/usr/share/ucode/aredn/timestatus.uc",
              "files/app/partial/health.ut", "files/app/resource/css/user.css", "files/etc/cron.daily/update-clock",
-             "files/etc/hotplug.d/ntp/20-time-status", "files/usr/local/bin/aredn-time-status"]
+             "files/etc/hotplug.d/ntp/20-time-status", "files/usr/local/bin/aredn-time-status",
+             "files/app/main/status/e/time.ut", "files/app/partial/time-status.ut", "files/app/main/u-time-status.ut", "files/app/resource/css/admin.css"]
     summary["provenance"] = {"base_commit": args.baseline_ref,
         "checkout_head": run(["git", "rev-parse", "HEAD"]).strip(),
         "source_sha256": {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in paths},

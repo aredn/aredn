@@ -10,6 +10,8 @@ check(index(value.detail, "one-shot") >= 0 && index(value.detail, "not a continu
     "one-shot synchronization is not presented as a continuous lock");
 check(value.sourceDisplay === ntp.endpoint && index(value.note, "IP not recorded") < 0,
     "successful hostname target is a valid source without a missing-IP warning");
+check(value.report.label === "last synchronization" && value.report.mode === "One-shot" && value.report.time === "2026-11-14 21:50:34 UTC",
+    "popup receives structured native synchronization metadata without parsing prose");
 for (let endpoint in ["192.0.2.123", "2001:db8::123", "fe80::123%br-dtdlink"]) {
     ntp.endpoint = endpoint;
     value = status.classify("ntp", null, ntp, 130, 123);
@@ -28,6 +30,7 @@ check(index(value.note, "Last sync: NTP") >= 0 && index(value.note, "UTC") >= 0 
     "historical NTP source, timestamp and age remain available for the visible detail line");
 check(status.classify("ntp", null, ntp, 99, 123).source === "Source not recorded", "future/reboot-invalid NTP cache does not certify a source");
 check(status.classify("ntp", null, ntp, 130, 124).source === "Source not recorded", "newer native marker invalidates an older source record");
+check(status.classify("ntp", null, ntp, 130, 124).report === null, "popup cannot expose report metadata from mismatched evidence");
 check(status.classify("ntp", null, null, 130, 123).state === "pending", "historical marker alone is not confirmed current synchronization");
 check(index(status.classify("ntp", null, null, 130, 123).note, "Time and source not recorded") >= 0,
     "marker-only synchronization explains missing details without inventing a timestamp");
@@ -40,6 +43,8 @@ check(value.sourceDisplay === "Unknown" && index(value.note, "Source not recorde
     "daemon source remains unknown when the callback exposes neither IP nor hostname");
 ntp.stratum = 16;
 check(status.classify("ntp", null, ntp, 130, 123).label === "UNSYNCED · NTP", "fresh unsynchronized daemon stratum remains explicit");
+check(status.classify("ntp", null, ntp, 130, 123).report.label === "last report",
+    "popup labels an unsynchronized report without claiming a successful synchronization");
 value = status.classify("ntp", null, ntp, 1001, 123);
 check(value.state === "pending" && value.label === "STATUS UNKNOWN" && index(value.note, "unsynchronized") >= 0 &&
     index(value.note, "Status old") >= 0 && index(value.note, "Last sync") < 0,

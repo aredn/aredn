@@ -45,14 +45,18 @@ function classify(sync, gps, ntp, now, markerMtime) {
         const sourceDisplay = ntp.endpoint || "Unknown";
         const sourceNote = ntp.endpoint ? "" : " · Source not recorded";
         const fresh = age <= (daemon ? 900 : 86400);
+        const report = { time: stamp(ntp.sync_epoch), age: ageText(age),
+            mode: daemon ? "Continual" : "One-shot", stratum: daemon ? ntp.stratum : null };
         if (daemon && (type(ntp.stratum) !== "int" || ntp.stratum < 1 || ntp.stratum >= 16))
             return { state: fresh ? "error" : "pending", label: fresh ? "UNSYNCED · NTP" : "STATUS UNKNOWN", source, sourceDisplay,
+                report: { ...report, label: "last report" },
                 note: `Last report: NTP unsynchronized · ${stamp(ntp.sync_epoch)} · ${ageText(age)}` +
                     (fresh ? "" : " · Status old") + sourceNote,
                 detail: "NTP daemon last reported an unsynchronized stratum; the selected peer is not exposed" +
                     `; last report: ${stamp(ntp.sync_epoch)}; observation age: ${age} seconds` +
                     (fresh ? "" : "; status is old; current synchronization is unknown") };
         return { state: fresh ? "locked" : "pending", label: fresh ? "SYNCED · NTP" : "STATUS UNKNOWN", source, sourceDisplay,
+            report: { ...report, label: "last synchronization" },
             note: `Last sync: NTP · ${stamp(ntp.sync_epoch)} · ${ageText(age)}` +
                 (fresh ? "" : " · Status old") + sourceNote,
             detail: "Last sync: NTP; " + (daemon ? `NTP daemon last reported synchronized at stratum ${ntp.stratum}` :
