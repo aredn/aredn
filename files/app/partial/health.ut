@@ -73,8 +73,8 @@
         return replace(replace(replace(replace(replace(value, /&/g, "&amp;"), /</g, "&lt;"), />/g, "&gt;"), /"/g, "&quot;"), /'/g, "&#39;");
     }
     const timeStatus = require("aredn.timestatus").current(gpslock);
-    const timeHover = "Source: " + (timeStatus.sourceDisplay || timeStatus.source) + "; " +
-        timeStatus.note + "; " + timeStatus.detail;
+    // The full popup explanation repeats this summary; do not append it here.
+    const timeHover = "Source: " + (timeStatus.sourceDisplay || timeStatus.source) + "; " + timeStatus.note;
 %}
 <div class="ctrl" hx-get="status/e/time" hx-target="#ctrl-modal">
     {% if (uci.get("aredn", "@time[0]", "military") === "1") { %}

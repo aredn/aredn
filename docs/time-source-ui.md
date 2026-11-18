@@ -9,7 +9,8 @@ as the neighbor popup.
 Only the clock and compact status badge are shown; there are no separate
 `Source:` or receiver-detail lines. Hover text retains the source, selected
 receiver endpoint, diagnostic reason, and recorded history. The same text is
-exposed as the badge's accessible label.
+exposed as the badge's accessible label. The hover uses one concise report;
+the longer popup explanation is not appended a second time.
 
 | Badge | Evidence |
 |---|---|

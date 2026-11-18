@@ -165,6 +165,15 @@ for (let test in cases) {
     check(index(html, 'class="time-sync-detail"') < 0 && index(html, 'class="time-sync-source"') < 0,
         `${test.name}: no visible source or diagnostic lines on the status screen`);
     check(markerReads === 1, `${test.name}: both badges share one native-marker snapshot`);
+    const hover = match(html, /class="time-sync-status[^\"]*"[^>]*title="([^\"]*)"/)[1];
+    if (test.cache?.reason) {
+        check(length(split(hover, test.cache.reason)) <= 2,
+            `${test.name}: receiver report is never duplicated in the main hover`);
+    }
+    if (test.ntp?.endpoint && test.source !== "Unknown") {
+        check(length(split(hover, test.ntp.endpoint)) === 2,
+            `${test.name}: recorded NTP source appears once in the main hover`);
+    }
     fs.writefile(`${output}/${test.name}.html`,document(html,test.name,test.description));
     fs.writefile(`${output}/${test.name}-partial.html`,html);
     markerReads = 0;
