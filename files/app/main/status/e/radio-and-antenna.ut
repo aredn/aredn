@@ -390,7 +390,7 @@ const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicen
                                     }
                                     const amateur = achannels[i].amateur[`${bandwidth}`];
                                     if (amateur?.maxEIRP) {
-                                        alimits = ` [ham ${amateur.maxEIRP} dB]`;
+                                        alimits = ` [ham ${amateur.maxEIRP} dBm]`;
                                     }
                                     print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}${alimits}</option>`);
                                 }
@@ -432,7 +432,7 @@ const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicen
                                         }
                                         const amateur = achannels[i].amateur[`${bandwidth}`];
                                         if (amateur?.maxEIRP) {
-                                            alimits = ` [ham ${amateur.maxEIRP} dB]`;
+                                            alimits = ` [ham ${amateur.maxEIRP} dBm]`;
                                         }
                                         print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}${alimits}</option>`);
                                     }
@@ -467,7 +467,7 @@ const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicen
                                                 }
                                                 const amateur = achannels[i].amateur[`${bandwidth}`];
                                                 if (amateur?.maxEIRP) {
-                                                    alimits = ` [ham ${amateur.maxEIRP} dB]`;
+                                                    alimits = ` [ham ${amateur.maxEIRP} dBm]`;
                                                 }
                                                 print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}${alimits}</option>`);
                                             }
@@ -519,7 +519,7 @@ const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicen
                 <div class="cols">
                     <div>
                         <div class="o">Transmit Power</div>
-                        <div class="m">Transmit power</div>
+                        <div class="m">Transmit power (dBm)</div>
                     </div>
                     <div style="flex:0">
                         <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}txpower">
@@ -866,7 +866,7 @@ const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicen
                         }
                         const amateur = channels[i].amateur[`${bandwidth}`];
                         if (amateur?.maxEIRP) {
-                            alimits = ` [ham ${amateur.maxEIRP} dB]`;
+                            alimits = ` [ham ${amateur.maxEIRP} dBm]`;
                         }
                         if (channels[i].number == channel) {
                             nchannel = channel;
