@@ -392,7 +392,7 @@ const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicen
                                     if (amateur?.maxEIRP) {
                                         alimits = ` [ham ${amateur.maxEIRP} dBm]`;
                                     }
-                                    print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}${alimits}</option>`);
+                                    print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${alimits}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
                                 }
                             }
                         %}
@@ -434,7 +434,7 @@ const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicen
                                         if (amateur?.maxEIRP) {
                                             alimits = ` [ham ${amateur.maxEIRP} dBm]`;
                                         }
-                                        print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}${alimits}</option>`);
+                                        print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${alimits}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
                                     }
                                 }
                             %}
@@ -469,7 +469,7 @@ const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicen
                                                 if (amateur?.maxEIRP) {
                                                     alimits = ` [ham ${amateur.maxEIRP} dBm]`;
                                                 }
-                                                print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}${alimits}</option>`);
+                                                print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${alimits}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
                                             }
                                         }
                         %}
@@ -870,13 +870,13 @@ const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicen
                         }
                         if (channels[i].number == channel) {
                             nchannel = channel;
-                            options += `<option value="${channels[i].number}" selected>${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}${alimits}</option>`;
+                            options += `<option value="${channels[i].number}" selected>${channels[i].label}${alimits}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
                         }
                         else {
                             if (!nchannel) {
                                 nchannel = channels[i].number;
                             }
-                            options += `<option value="${channels[i].number}">${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}${alimits}</option>`;
+                            options += `<option value="${channels[i].number}">${channels[i].label}${alimits}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
                         }
                     }
                 }
