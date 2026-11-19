@@ -279,9 +279,9 @@ const RULE_VALID = {
     "5920": {}                                                    // ch 184
 };
 
-function regdbCountry(alpha2)
+function regdbCountry(alpha2, dbfile, pwrkey)
 {
-    const db = fs.readfile("/lib/firmware/regulatory.db");
+    const db = fs.readfile(dbfile);
     if (!db) {
         return null;
     }
@@ -325,7 +325,7 @@ function regdbCountry(alpha2)
             startKHz: r[3],
             endKHz: r[4],
             maxBwKHz: r[5],
-            maxEIRP: int((r[2] + 50.0) / 100.0)
+            [pwrkey]: int((r[2] + 50.0) / 100.0)
         };
         for (let fl in RULE_FLAGS) {
             if (r[1] & fl[0]) {
@@ -340,57 +340,70 @@ function regdbCountry(alpha2)
     return { alpha2: alpha2, dfsRegion: DFS_REGIONS[coll[2]] ?? `unknown(${coll[2]})`, rules: rules };
 }
 
+function classifyWidth(frequency, width, rules, pwrkey)
+{
+    const lo = 1000 * (frequency - (width < 20 ? width / 2.0 : 10)); // kHz
+    const hi = 1000 * (frequency + (width < 20 ? width / 2.0 : width - 10));
+
+    // walk the sorted rules, extending coverage from lo towards hi
+    const used = [];
+    let pos = lo;
+    for (let r in rules) {
+        if (r.startKHz <= pos && r.endKHz > pos) {
+            push(used, r);
+            pos = r.endKHz;
+            if (pos >= hi) {
+                break;
+            }
+        }
+    }
+    if (pos < hi) {
+        return null;
+    }
+
+    if (length(filter(used, r => r.AUTO_BW)) !== length(used) && (length(used) > 1 || width * 1000 > used[0].maxBwKHz)) {
+        return null;
+    }
+
+    let power = null;
+    const flags = {};
+    for (let r in used) {
+        for (let fl in RULE_FLAGS) {
+            if (r[fl[1]]) {
+                flags[fl[1]] = true;
+            }
+        }
+        if (power == null || r[pwrkey] < power) {
+            power = r[pwrkey];
+        }
+    }
+    return { [pwrkey]: power, ...flags };
+}
+
 export function classifyChannels(channels, zonename)
 {
-    const regd = regdbCountry(timezones.lookupTimezone(zonename).code);
-    const rules = sort(regd.rules, (a, b) => a.startKHz - b.startKHz);
-
+    const code = timezones.lookupTimezone(zonename).code;
+    const rules = sort(regdbCountry(code, "/lib/firmware/regulatory.db", "maxEIRP")?.rules, (a, b) => a.startKHz - b.startKHz);
+    const arules = sort(regdbCountry(code, "/lib/firmware/ham-regulatory.db", "maxPEP")?.rules, (a, b) => a.startKHz - b.startKHz);
     const out = [];
     for (let ch in channels) {
-        const classification = {};
+        const unlicensed = {};
+        const amateur = {};
         for (let w in ch.widths) {
+            const a = classifyWidth(ch.frequency, w, arules, "maxPEP");
+            if (a) {
+                amateur[w] = a;
+            }
             const rvalid = RULE_VALID[`${ch.frequency}`];
             if (rvalid && !rvalid[`${w}`]) {
                 continue;
             }
-            const lo = 1000 * (ch.frequency - (w < 20 ? w / 2.0 : 10)); // kHz
-            const hi = 1000 * (ch.frequency + (w < 20 ? w / 2.0 : w - 10));
-
-            // walk the sorted rules, extending coverage from lo towards hi
-            const used = [];
-            let pos = lo;
-            for (let r in rules) {
-                if (r.startKHz <= pos && r.endKHz > pos) {
-                    push(used, r);
-                    pos = r.endKHz;
-                    if (pos >= hi) {
-                        break;
-                    }
-                }
+            const c = classifyWidth(ch.frequency, w, rules, "maxEIRP");
+            if (c) {
+                unlicensed[w] = c;
             }
-            if (pos < hi) {
-                continue;
-            }
-
-            if (length(filter(used, r => r.AUTO_BW)) !== length(used) && (length(used) > 1 || w * 1000 > used[0].maxBwKHz)) {
-                continue;
-            }
-
-            let maxEIRP = null;
-            const flags = {};
-            for (let r in used) {
-                for (let fl in RULE_FLAGS) {
-                    if (r[fl[1]]) {
-                        flags[fl[1]] = true;
-                    }
-                }
-                if (maxEIRP == null || r.maxEIRP < maxEIRP) {
-                    maxEIRP = r.maxEIRP;
-                }
-            }
-            classification[w] = { maxEIRP: maxEIRP, ...flags };
         }
-        push(out, { ...ch, classification: classification });
+        push(out, { ...ch, unlicensed: unlicensed, amateur: amateur });
     }
     return out;
 };

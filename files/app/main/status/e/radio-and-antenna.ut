@@ -274,7 +274,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
 {%
 const wlan = radios.getConfiguration();
 const utc = configuration.getSettingAsString("time_zone_name", "UTC") === "UTC";
-const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
+const includeUnlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
 %}
 <div class="dialog radio-and-antenna">
     {{_R("dialog-header", "Radios &amp; Antennas")}}
@@ -375,19 +375,24 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
                             for (let i = 0; i < length(achannels); i++) {
                                 if (index(achannels[i].widths, bandwidth) !== -1) {
                                     const limits = [];
-                                    if (unlicensed) {
-                                        const classification = achannels[i].classification[`${bandwidth}`];
-                                        if (classification?.DFS) {
+                                    let alimits = "";
+                                    if (includeUnlicensed) {
+                                        const unlicensed = achannels[i].unlicensed[`${bandwidth}`];
+                                        if (unlicensed?.DFS) {
                                             push(limits, "dfs");
                                         }
-                                        if (classification?.NO_OUTDOOR) {
+                                        if (unlicensed?.NO_OUTDOOR) {
                                             push(limits, "indoor");
                                         }
-                                        if (classification?.maxEIRP) {
-                                            push(limits, `eirp ${classification.maxEIRP} dB`);
+                                        if (unlicensed?.maxEIRP) {
+                                            push(limits, `${unlicensed.maxEIRP} dB`);
                                         }
                                     }
-                                    print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
+                                    const amateur = achannels[i].amateur[`${bandwidth}`];
+                                    if (amateur?.maxPEP) {
+                                        alimits = ` [ham ${amateur.maxPEP} dBm]`;
+                                    }
+                                    print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${alimits}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
                                 }
                             }
                         %}
@@ -395,7 +400,8 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
                     </div>
                 </div>
                 <div class="cols hideable1 hideable4 hideable5">
-                    {{_H("Select the channel/frequency for the radio.")}}
+                    {{_H("Select the channel/frequency for the radio. Ham and Unlicensed restrictions are shown when enabled and
+                          available. These are advisory and not enforced. Correct configuration is the operator's responsibility.")}}
                 </div>
                 <div class="cols hideable6 sta-channels" hx-include="this">
                     <div>
@@ -412,19 +418,24 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
                                 for (let i = 0; i < length(achannels); i++) {
                                     if (index(achannels[i].widths, bandwidth) !== -1) {
                                         const limits = [];
-                                        if (unlicensed) {
-                                            const classification = achannels[i].classification[`${bandwidth}`];
-                                            if (classification?.DFS) {
+                                        let alimits = "";
+                                        if (includeUnlicensed) {
+                                            const unlicensed = achannels[i].unlicensed[`${bandwidth}`];
+                                            if (unlicensed?.DFS) {
                                                 push(limits, "dfs");
                                             }
-                                            if (classification?.NO_OUTDOOR) {
+                                            if (unlicensed?.NO_OUTDOOR) {
                                                 push(limits, "indoor");
                                             }
-                                            if (classification?.maxEIRP) {
-                                                push(limits, `eirp ${classification.maxEIRP} dB`);
+                                            if (unlicensed?.maxEIRP) {
+                                                push(limits, `${unlicensed.maxEIRP} dB`);
                                             }
                                         }
-                                        print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
+                                        const amateur = achannels[i].amateur[`${bandwidth}`];
+                                        if (amateur?.maxPEP) {
+                                            alimits = ` [ham ${amateur.maxPEP} dBm]`;
+                                        }
+                                        print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${alimits}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
                                     }
                                 }
                             %}
@@ -442,19 +453,24 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
                                         for (let i = 0; i < length(achannels); i++) {
                                             if (index(achannels[i].widths, bandwidth) !== -1) {
                                                 const limits = [];
-                                                if (unlicensed) {
-                                                    const classification = achannels[i].classification[`${bandwidth}`];
-                                                    if (classification?.DFS) {
+                                                let alimits = "";
+                                                if (includeUnlicensed) {
+                                                    const unlicensed = achannels[i].unlicensed[`${bandwidth}`];
+                                                    if (unlicensed?.DFS) {
                                                         push(limits, "dfs");
                                                     }
-                                                    if (classification?.NO_OUTDOOR) {
+                                                    if (unlicensed?.NO_OUTDOOR) {
                                                         push(limits, "indoor");
                                                     }
-                                                    if (classification?.maxEIRP) {
-                                                        push(limits, `eirp ${classification.maxEIRP} dB`);
+                                                    if (unlicensed?.maxEIRP) {
+                                                        push(limits, `${unlicensed.maxEIRP} dB`);
                                                     }
                                                 }
-                                                print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
+                                                const amateur = achannels[i].amateur[`${bandwidth}`];
+                                                if (amateur?.maxPEP) {
+                                                    alimits = ` [ham ${amateur.maxPEP} dBm]`;
+                                                }
+                                                print(`<option value="${achannels[i].number}" ${achannels[i].number == channel ? "selected" : ""}>${achannels[i].label}${alimits}${length(limits) ? ` [${join(", ", limits)}]` : ""}</option>`);
                                             }
                                         }
                         %}
@@ -504,7 +520,7 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
                 <div class="cols">
                     <div>
                         <div class="o">Transmit Power</div>
-                        <div class="m">Transmit power</div>
+                        <div class="m">Transmit power (dBm)</div>
                     </div>
                     <div style="flex:0">
                         <select hx-put="{{request.env.REQUEST_URI}}" hx-swap="none" name="{{prefix}}txpower">
@@ -571,14 +587,14 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
                             const achannels = wlan[w].channels;
                             const hotbw = ishalow ? `${bandwidth}` : "20";
                             for (let i = 0; i < length(achannels); i++) {
-                                if (achannels[i].number > 0 && achannels[i].classification[`${hotbw}`]) {
+                                if (achannels[i].number > 0 && achannels[i].unlicensed[`${hotbw}`]) {
                                     const limits = [];
                                     if (!utc) {
-                                        const classification = achannels[i].classification[`${hotbw}`];
-                                        if (classification.DFS) {
+                                        const unlicensed = achannels[i].unlicensed[`${hotbw}`];
+                                        if (unlicensed.DFS) {
                                             push(limits, "dfs");
                                         }
-                                        if (classification.NO_OUTDOOR) {
+                                        if (unlicensed.NO_OUTDOOR) {
                                             push(limits, "indoor");
                                         }
                                     }
@@ -789,7 +805,7 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
     {% } %}
     {%
     for (let w = 0; w < length(wlan); w++) { %}
-        const unlicensed{{w}} = {{unlicensed}};
+        const includeUnlicensed{{w}} = {{includeUnlicensed}};
         const radio{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_mode]");
         const chan{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_channel]");
         const lanchan{{w}} = htmx.find("#ctrl-modal .dialog.radio-and-antenna select[name=radio{{w}}_channel].lan");
@@ -808,14 +824,14 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
             if (radio{{w}}.value === "2") {
                 const hotbw = halow{{w}} ? `${bandwidth}` : "20";
                 for (let i = 0; i < channels.length; i++) {
-                    if (channels[i].number > 0 && channels[i].classification[hotbw]) {
+                    if (channels[i].number > 0 && channels[i].unlicensed[hotbw]) {
                         const limits = [];
-                        if (unlicensed{{w}}) {
-                            const classification = channels[i].classification[hotbw];
-                            if (classification.DFS) {
+                        if (includeUnlicensed{{w}}) {
+                            const unlicensed = channels[i].unlicensed[hotbw];
+                            if (unlicensed.DFS) {
                                 limits.push("dfs");
                             }
-                            if (classification.NO_OUTDOOR) {
+                            if (unlicensed.NO_OUTDOOR) {
                                 limits.push("indoor");
                             }
                         }
@@ -836,27 +852,32 @@ const unlicensed = !utc && !!configuration.getSettingAsInt("radio_unlicensed");
                 for (let i = 0; i < channels.length; i++) {
                     if (channels[i].widths.indexOf(bandwidth) !== -1) {
                         const limits = [];
-                        if (unlicensed{{w}}) {
-                            const classification = channels[i].classification[`${bandwidth}`];
-                            if (classification?.DFS) {
+                        let alimits = "";
+                        if (includeUnlicensed{{w}}) {
+                            const unlicensed = channels[i].unlicensed[`${bandwidth}`];
+                            if (unlicensed?.DFS) {
                                 limits.push("dfs");
                             }
-                            if (classification?.NO_OUTDOOR) {
+                            if (unlicensed?.NO_OUTDOOR) {
                                 limits.push("indoor");
                             }
-                            if (classification?.maxEIRP) {
-                                limits.push(`eirp ${classification.maxEIRP} dB`);
+                            if (unlicensed?.maxEIRP) {
+                                limits.push(`${unlicensed.maxEIRP} dB`);
                             }
+                        }
+                        const amateur = channels[i].amateur[`${bandwidth}`];
+                        if (amateur?.maxPEP) {
+                            alimits = ` [ham ${amateur.maxPEP} dBm]`;
                         }
                         if (channels[i].number == channel) {
                             nchannel = channel;
-                            options += `<option value="${channels[i].number}" selected>${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
+                            options += `<option value="${channels[i].number}" selected>${channels[i].label}${alimits}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
                         }
                         else {
                             if (!nchannel) {
                                 nchannel = channels[i].number;
                             }
-                            options += `<option value="${channels[i].number}">${channels[i].label}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
+                            options += `<option value="${channels[i].number}">${channels[i].label}${alimits}${limits.length ? ` [${limits.join(", ")}]` : ""}</option>`;
                         }
                     }
                 }
