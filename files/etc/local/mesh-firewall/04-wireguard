@@ -12,18 +12,9 @@ nft insert rule inet fw4 input_wan udp dport $vtundport-$vtundportend accept com
 nft insert rule inet fw4 output_wifi udp dport $vtundport-$vtundportend reject comment \"Wireguard\"
 nft insert rule inet fw4 output_dtdlink udp dport $vtundport-$vtundportend reject comment \"Wireguard\"
 
-. /lib/functions.sh
-ports=""
-add_port() {
-    local port
-    config_get port "$1" listen_port
-    case "$port" in
-        ""|*[!0-9]*|0*|??????*) return ;;
-    esac
-    [ "$port" -le 65535 ] && ports="${ports}${ports:+, }${port}"
-}
-config_load network
-config_foreach add_port interface
-if [ -n "$ports" ]; then
-    nft insert rule inet fw4 input_wan udp dport { $ports } accept comment \"Wireguard\"
+wgport=$(uci get aredn.@tunnel[0].port 2>/dev/null)
+if [ -n "$wgport" ]; then
+    wgportend=$(($wgport+128))
+    [ $wgportend -gt 65535 ] && wgportend=65535
+    nft insert rule inet fw4 input_wan udp dport $wgport-$wgportend accept comment \"Wireguard\"
 fi
