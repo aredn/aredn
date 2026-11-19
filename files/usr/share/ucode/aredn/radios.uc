@@ -279,7 +279,7 @@ const RULE_VALID = {
     "5920": {}                                                    // ch 184
 };
 
-function regdbCountry(alpha2, dbfile)
+function regdbCountry(alpha2, dbfile, pwrkey)
 {
     const db = fs.readfile(dbfile);
     if (!db) {
@@ -325,7 +325,7 @@ function regdbCountry(alpha2, dbfile)
             startKHz: r[3],
             endKHz: r[4],
             maxBwKHz: r[5],
-            maxEIRP: int((r[2] + 50.0) / 100.0)
+            [pwrkey]: int((r[2] + 50.0) / 100.0)
         };
         for (let fl in RULE_FLAGS) {
             if (r[1] & fl[0]) {
@@ -340,7 +340,7 @@ function regdbCountry(alpha2, dbfile)
     return { alpha2: alpha2, dfsRegion: DFS_REGIONS[coll[2]] ?? `unknown(${coll[2]})`, rules: rules };
 }
 
-function classifyWidth(frequency, width, rules)
+function classifyWidth(frequency, width, rules, pwrkey)
 {
     const lo = 1000 * (frequency - (width < 20 ? width / 2.0 : 10)); // kHz
     const hi = 1000 * (frequency + (width < 20 ? width / 2.0 : width - 10));
@@ -365,7 +365,7 @@ function classifyWidth(frequency, width, rules)
         return null;
     }
 
-    let maxEIRP = null;
+    let power = null;
     const flags = {};
     for (let r in used) {
         for (let fl in RULE_FLAGS) {
@@ -373,24 +373,24 @@ function classifyWidth(frequency, width, rules)
                 flags[fl[1]] = true;
             }
         }
-        if (maxEIRP == null || r.maxEIRP < maxEIRP) {
-            maxEIRP = r.maxEIRP;
+        if (power == null || r[pwrkey] < power) {
+            power = r[pwrkey];
         }
     }
-    return { maxEIRP: maxEIRP, ...flags };
+    return { [pwrkey]: power, ...flags };
 }
 
 export function classifyChannels(channels, zonename)
 {
     const code = timezones.lookupTimezone(zonename).code;
-    const rules = sort(regdbCountry(code, "/lib/firmware/regulatory.db")?.rules, (a, b) => a.startKHz - b.startKHz);
-    const arules = sort(regdbCountry(code, "/lib/firmware/ham-regulatory.db")?.rules, (a, b) => a.startKHz - b.startKHz);
+    const rules = sort(regdbCountry(code, "/lib/firmware/regulatory.db", "maxEIRP")?.rules, (a, b) => a.startKHz - b.startKHz);
+    const arules = sort(regdbCountry(code, "/lib/firmware/ham-regulatory.db", "maxPEP")?.rules, (a, b) => a.startKHz - b.startKHz);
     const out = [];
     for (let ch in channels) {
         const unlicensed = {};
         const amateur = {};
         for (let w in ch.widths) {
-            const a = classifyWidth(ch.frequency, w, arules);
+            const a = classifyWidth(ch.frequency, w, arules, "maxPEP");
             if (a) {
                 amateur[w] = a;
             }
@@ -398,7 +398,7 @@ export function classifyChannels(channels, zonename)
             if (rvalid && !rvalid[`${w}`]) {
                 continue;
             }
-            const c = classifyWidth(ch.frequency, w, rules);
+            const c = classifyWidth(ch.frequency, w, rules, "maxEIRP");
             if (c) {
                 unlicensed[w] = c;
             }
