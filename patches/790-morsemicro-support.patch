@@ -1,51 +1,72 @@
 --- a/feeds/morse/essentials/morse-fw/Makefile
 +++ b/feeds/morse/essentials/morse-fw/Makefile
-@@ -84,6 +84,14 @@
-   PROVIDES:=morse-fw
- endef
+@@ -14,9 +14,9 @@
+ PKG_NAME:=morse-fw
+ PKG_RELEASE=3
  
-+define Package/morse-fw-aredn
-+  CATEGORY:=Morse Micro
-+  SUBMENU:=Essentials
-+  URL:=$(PKG_SOURCE_URL)
-+  TITLE:=Morse Micro WIFI HaLow standard firmware for 6108 and 8108
-+  PROVIDES:=morse-fw
-+endef
-+
- define Package/morse-fw-8108-flm/description
-   This firmware implements the functionality of the mac80211
-   module (and some wpa_supplicant functionality) on the 8108.
-@@ -132,8 +140,16 @@
- 	$(call install_file_or_override,mm8108b2-flm-rl.bin,$(1))
- endef
+-PKG_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
++PKG_VERSION:=$(word 2,$(subst -, ,$(MORSE_FEED_SOURCE_VERSION)))
  
-+define Package/morse-fw-aredn/install
-+	$(INSTALL_DIR) $(1)/lib/firmware/morse/.
-+	$(call install_file_or_override,mm6108.bin,$(1))
-+	$(call install_file_or_override,mm8108b2-rl.bin,$(1))
-+endef
-+
-+
- $(eval $(call BuildPackage,morse-fw-6108))
- $(eval $(call BuildPackage,morse-fw-6108-tlm))
- $(eval $(call BuildPackage,morse-fw-8108))
- $(eval $(call BuildPackage,morse-fw-8108-tlm))
- $(eval $(call BuildPackage,morse-fw-8108-flm))
-+$(eval $(call BuildPackage,morse-fw-aredn))
---- a/package/feeds/morse/morse-regdb/Makefile
-+++ b/package/feeds/morse/morse-regdb/Makefile
+-PKG_SOURCE_VERSION:=$(PKG_VERSION)
++PKG_SOURCE_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
+ PKG_SOURCE_URL:=https://github.com/MorseMicro/morse-firmware.git
+ PKG_MIRROR_HASH:=$(MORSE_FW_HASH)
+ PKG_SOURCE_MIRROR:=0
+
+--- a/feeds/morse/essentials/mm-board-config/Makefile
++++ b/feeds/morse/essentials/mm-board-config/Makefile
+@@ -15,10 +15,10 @@
+ PKG_RELEASE=6
+ 
+-PKG_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
++PKG_VERSION:=$(word 2,$(subst -, ,$(MORSE_FEED_SOURCE_VERSION)))
+ PKG_RELEASE=1
+ 
+-PKG_SOURCE_VERSION:=$(PKG_VERSION)
++PKG_SOURCE_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
+ PKG_SOURCE_URL:=https://github.com/MorseMicro/morse-firmware.git
+ PKG_MIRROR_HASH:=$(MORSE_BCF_HASH)
+ PKG_SOURCE_MIRROR:=0
+ PKG_SOURCE_PROTO:=git
+--- a/feeds/morse/essentials/morse-regdb/Makefile
++++ b/feeds/morse/essentials/morse-regdb/Makefile
 @@ -18,7 +18,7 @@
  PKG_RELEASE:=1
  PKG_BUILD_DEPENDS:=python3/host
  
--PKG_SOURCE_VERSION:=v2.7.0
-+PKG_SOURCE_VERSION:=2.7.0
+-PKG_SOURCE_VERSION:=v2.15.0
++PKG_SOURCE_VERSION:=2.15.0
  # This points to an internal repo, but the repo is not used unless REGENERATE is set
  # (see initial comment).
  PKG_SOURCE_URL:=ssh://git@bitbucket.org/morsemicro/morse_regdb.git
+--- a/feeds/morse/essentials/morse_driver/Config.in
++++ b/feeds/morse/essentials/morse_driver/Config.in
+@@ -1,3 +1,7 @@
++config MORSE_CHIP_MM61X
++	bool "Select mm61x module"
++	default y
++
+ config MORSE_USB
+ 		bool "USB support"
+ 		depends on USB_SUPPORT
+--- a/feeds/morse/essentials/morse_driver/Makefile
++++ b/feeds/morse/essentials/morse_driver/Makefile
+@@ -8,10 +8,10 @@
+ include ../../include/morse_version.mk
+ 
+ PKG_NAME:=morse_driver
+-PKG_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
++PKG_VERSION:=$(word 2,$(subst -, ,$(MORSE_FEED_SOURCE_VERSION)))
+ PKG_RELEASE=1
+ 
+-PKG_SOURCE_VERSION:=$(PKG_VERSION)
++PKG_SOURCE_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
+ PKG_SOURCE_URL:=https://github.com/MorseMicro/morse_driver.git
+ PKG_MIRROR_HASH:=$(MORSE_DRIVER_HASH)
+ PKG_SOURCE_MIRROR:=0
 --- /dev/null
-+++ b/feeds/morse/essentials/morse_driver/patches/100-aredn.patch
-@@ -0,0 +1,10 @@
++++ b/feeds/morse/essentials/morse_driver/patches/mm61x/100-aredn.patch
+@@ -0,0 +1,21 @@
 +--- a/mac.c
 ++++ b/mac.c
 +@@ -6607,6 +6607,7 @@
@@ -56,6 +77,74 @@
 + 	    country_codes_are_equal(request->alpha2, "00"))
 + 		req_cc = country;
 + 	else
++--- a/mac.c
+++++ b/mac.c
++@@ -662,7 +662,7 @@
++ 	return vif;
++ }
++ 
++-struct ieee80211_vif *morse_get_active_ap(struct morse *mors)
+++static struct ieee80211_vif *morse_get_active_ap(struct morse *mors)
++ {
++ 	int vif_id = 0;
++ 	struct ieee80211_vif *vif = NULL;
+--- /dev/null
++++ b/feeds/morse/essentials/morse_driver/patches/mm81x/100-aredn.patch
+@@ -0,0 +1,21 @@
++--- a/mac.c
+++++ b/mac.c
++@@ -6607,6 +6607,7 @@
++ 	 * by the module parameter
++ 	 */
++ 	if (country_codes_are_equal(request->alpha2, "ZZ") ||
+++	    country_codes_are_equal(request->alpha2, "HX") ||
++ 	    country_codes_are_equal(request->alpha2, "00"))
++ 		req_cc = country;
++ 	else
++--- a/mac.c
+++++ b/mac.c
++@@ -662,7 +662,7 @@
++ 	return vif;
++ }
++ 
++-struct ieee80211_vif *morse_get_active_ap(struct morse *mors)
+++static struct ieee80211_vif *morse_get_active_ap(struct morse *mors)
++ {
++ 	int vif_id = 0;
++ 	struct ieee80211_vif *vif = NULL;
+--- a/feeds/morse/essentials/morsecli/Makefile
++++ b/feeds/morse/essentials/morsecli/Makefile
+@@ -10,12 +10,12 @@
+ PKG_NAME:=morsecli
+ PKG_RELEASE=6
+ 
+-PKG_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
++PKG_VERSION:=$(word 2,$(subst -, ,$(MORSE_FEED_SOURCE_VERSION)))
+ 
+ PKG_LICENSE:=GPLv2
+ PKG_LICENSE_FILES:=
+ 
+-PKG_SOURCE_VERSION:=$(PKG_VERSION)
++PKG_SOURCE_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
+ PKG_SOURCE_URL:=https://github.com/MorseMicro/morse_cli.git
+ PKG_MIRROR_HASH:=$(MORSE_CLI_HASH)
+ PKG_SOURCE_MIRROR:=0
+--- a/feeds/morse/essentials/hostapd_s1g/Makefile
++++ b/feeds/morse/essentials/hostapd_s1g/Makefile
+@@ -10,11 +10,11 @@
+ PKG_NAME:=hostapd_s1g
+ PKG_RELEASE=3
+ 
+-PKG_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
++PKG_VERSION:=$(word 2,$(subst -, ,$(MORSE_FEED_SOURCE_VERSION)))
+ 
+ PKG_LICENSE:=BSD-3-Clause
+ 
+-PKG_SOURCE_VERSION:=$(PKG_VERSION)
++PKG_SOURCE_VERSION:=$(MORSE_FEED_SOURCE_VERSION)
+ PKG_SOURCE_URL:=https://github.com/MorseMicro/hostap.git
+ PKG_MIRROR_HASH:=$(MORSE_HOSTAPD_S1G_HASH)
+ PKG_SOURCE_MIRROR:=0
 --- a/feeds/morse/hardware/mt7603e-txpat-artini/Makefile
 +++ b/feeds/morse/hardware/mt7603e-txpat-artini/Makefile
 @@ -11,7 +11,7 @@
@@ -1331,21 +1420,3 @@
 +        compatible = "heltec,ht-h7608-v2", "mediatek,mt7628an-soc";
 +        model = "Heltec HT-H7608-V2";
 +};
---- /dev/null
-+++ b/package/kernel/mac80211/patches/subsys/400-aredn.patch
-@@ -0,0 +1,15 @@
-+--- a/include/net/cfg80211.h
-++++ b/include/net/cfg80211.h
-+@@ -143,7 +143,11 @@
-+ 	IEEE80211_CHAN_NO_20MHZ			= BIT(11),
-+ 	IEEE80211_CHAN_NO_10MHZ			= BIT(12),
-+ 	IEEE80211_CHAN_NO_HE			= BIT(13),
-+-	/* can use free bits here */
-++        IEEE80211_CHAN_1MHZ                     = BIT(14),
-++        IEEE80211_CHAN_2MHZ                     = BIT(15),
-++        IEEE80211_CHAN_4MHZ                     = BIT(16),
-++        IEEE80211_CHAN_8MHZ                     = BIT(17),
-++        IEEE80211_CHAN_16MHZ                    = BIT(18),
-+ 	IEEE80211_CHAN_NO_UHR			= BIT(18),
-+ 	IEEE80211_CHAN_NO_320MHZ		= BIT(19),
-+ 	IEEE80211_CHAN_NO_EHT			= BIT(20),
