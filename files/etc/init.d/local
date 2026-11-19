@@ -33,10 +33,12 @@ boot() {
   # package repositories
   local packages_default=$(uci -q get "aredn.@downloads[0].packages_default")
   if [ "${packages_default}" != "" ]; then
-    (cat /etc/apk/repositories.d/distfeeds.list | while read line; do
+    local feeds=/etc/apk/repositories.d/distfeeds.list
+    [ -s ${feeds}.orig ] || cp ${feeds} ${feeds}.orig
+    (cat ${feeds}.orig | while read line; do
       local prefixurl=$(echo $line | sed -n 's/\(http[s]\?:\/\/[^/]\+\).*/\1/p')
-      echo $line | sed "s|$prefixurl|$packages_default|"
-    done) > /etc/apk/repositories.d/distfeeds.list.new
-    mv -f /etc/apk/repositories.d/distfeeds.list.new /etc/apk/repositories.d/distfeeds.list
+      echo $line | sed "s|$prefixurl|${packages_default%/}|"
+    done) > ${feeds}.new
+    [ -s ${feeds}.new ] && mv -f ${feeds}.new ${feeds}
   fi
 }
