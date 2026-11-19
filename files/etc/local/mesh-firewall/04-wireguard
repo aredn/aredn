@@ -12,7 +12,7 @@ nft insert rule inet fw4 input_wan udp dport $vtundport-$vtundportend accept com
 nft insert rule inet fw4 output_wifi udp dport $vtundport-$vtundportend reject comment \"Wireguard\"
 nft insert rule inet fw4 output_dtdlink udp dport $vtundport-$vtundportend reject comment \"Wireguard\"
 
-wgport=$(uci get aredn.@tunnel[0].port 2>/dev/null)
+wgport=$(uci get wireguard.@network[0].port 2>/dev/null)
 if [ -n "$wgport" ]; then
     wgportend=$(($wgport+128))
     [ $wgportend -gt 65535 ] && wgportend=65535

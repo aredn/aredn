@@ -543,7 +543,7 @@ fs.mkdir("/tmp/new_config");
 const md = fs.opendir("/etc/config.mesh");
 if (md) {
     for (let bfile = md.read(); bfile; bfile = md.read()) {
-        if (bfile == "wireguard" || bfile == "xlink" || bfile == "firewall.user") {
+        if (bfile == "xlink" || bfile == "firewall.user") {
             // Don't copy these
         }
         else {
@@ -1235,7 +1235,6 @@ const restarters = {
         "aredn.@remoterf[0].enable": "remote_rf",
         "aredn.@wan[0].web_access": "firewall",
         "aredn.@wan[0].ssh_access": "firewall",
-        "aredn.@tunnel[0].port": "firewall",
         "aredn.@poe[0].passthrough": "poe",
         "aredn.@usb[0].passthrough": "pou",
         "aredn.@wan[0].lan_dhcp_route": [ "network-hard", "babel", "firewall" ],
@@ -1288,6 +1287,9 @@ const restarters = {
         "setup.globals.wan_proto": "wan_monitor"
     },
     "system": [ "log", "system", "ntp", "uhttpd" ],
+    "wireguard": {
+        "wireguard.@network[0].port": "firewall"
+    },
     "wireless": {
         "any": () => {
             if (hardware.getRadio()?.changes?.wireless === "reboot") {

@@ -584,18 +584,6 @@ export function restoreTunnels(tunnelBackupFilename)
         return false;
     }
     migrateTunnels();
-    const c = uci.cursor("/etc/config.mesh");
-    let first = null;
-    c.foreach("wireguard", "client", client => {
-        const port = int(client.port);
-        if (port && (!first || port < first)) {
-            first = port;
-        }
-    });
-    if (first) {
-        c.set("aredn", "@tunnel[0]", "port", `${first}`);
-        c.commit("aredn");
-    }
     return true;
 };
 
@@ -643,6 +631,7 @@ export function supportdata(supportdatafilename)
     ];
     const sensitive = [
         "/etc/config/network",
+        "/etc/config/wireguard",
         "/etc/config.mesh/wireguard",
         "/etc/config/wireless",
         "/etc/config.mesh/setup",
