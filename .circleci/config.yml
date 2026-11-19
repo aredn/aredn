@@ -115,11 +115,15 @@ commands:
           command: make MAINTARGET=ramips SUBTARGET=mt76x8
           no_output_timeout: 2h
       - run:
-          name: Build ramips/mt7621/morse
-          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTTARGET=morse
+          name: Build ramips/mt7621/morse6
+          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTTARGET=morse6
+          no_output_timeout: 2h
+       - run:
+          name: Build ramips/mt7621/morse8
+          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTTARGET=morse8
           no_output_timeout: 2h
       - run:
-          name: Build ramips/mt76x8/morse
+          name: Build ramips/mt76x8/morse6
           command: make MAINTARGET=ramips SUBTARGET=mt76x8 ALTTARGET=morse
           no_output_timeout: 2h
 
@@ -282,66 +286,6 @@ jobs:
       - attach_workspace:
           at: /home/aredn/project
       - compress_and_deploy_release
-
-
-  build_release:
-    resource_class: xlarge
-    docker:
-      - image: arednmesh/builder
-
-    steps:
-      - checkout
-      - update_release_config_mk
-      - run:
-          name: Build ath79/generic
-          command: make MAINTARGET=ath79 SUBTARGET=generic
-          no_output_timeout: 2h
-      - run:
-          name: Build ath79/mikrotik
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik
-          no_output_timeout: 2h
-      - run:
-          name: Build ath79/mikrotik/ath10k
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=ath10k
-          no_output_timeout: 2h
-      - run:
-          name: Build ath79/mikrotik/nand
-          command: make MAINTARGET=ath79 SUBTARGET=mikrotik ALTTARGET=nand
-          no_output_timeout: 2h
-      - run:
-          name: Build ath79/nand
-          command: make MAINTARGET=ath79 SUBTARGET=nand
-          no_output_timeout: 2h
-      - run:
-          name: Build ipq40xx/generic
-          command: make MAINTARGET=ipq40xx SUBTARGET=generic
-          no_output_timeout: 2h
-      - run:
-          name: Build ipq40xx/mikrotik
-          command: make MAINTARGET=ipq40xx SUBTARGET=mikrotik
-          no_output_timeout: 2h
-      - run:
-          name: Build x64/64
-          command: make MAINTARGET=x86 SUBTARGET=64
-          no_output_timeout: 2h
-      - run:
-          name: Build ramips/mt7621
-          command: make MAINTARGET=ramips SUBTARGET=mt7621
-          no_output_timeout: 2h
-      - run:
-          name: Build ramips/mt7621/morse
-          command: make MAINTARGET=ramips SUBTARGET=mt7621 ALTARGET=morse
-          no_output_timeout: 2h
-      - run:
-          name: Build mediatek/filogic
-          command: make MAINTARGET=mediatek SUBTARGET=filogic
-          no_output_timeout: 2h
-      - run:
-          name: Compress build files
-          command: tar -cjf ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} -C ${MY_WORKING_DIRECTORY}/${ARTIFACTS_DIR} .
-      - run:
-          name: Deploy Files
-          command: scp -P ${SSH_PORT} -o StrictHostKeyChecking=no ~/${CIRCLE_BRANCH}_${ARTIFACTS_FILE} ${SSH_USER}@${SSH_HOST2}:${TARGET_DIR}
 
   check2build:
     machine:
