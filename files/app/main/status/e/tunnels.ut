@@ -49,7 +49,7 @@ if (request.env.REQUEST_METHOD === "PUT") {
     }
     if ("tunnel_port" in request.args) {
         const port = request.args.tunnel_port;
-        if (port === "" || (match(port, /^[1-9][0-9]+$/) && int(port) >= 1024 && int(port) <= 65410)) {
+        if (port === "" || (match(port, /^[1-9][0-9]+$/) && int(port) >= 1024 && int(port) <= 65407)) {
             uciMesh.set("wireguard", "@network[0]", "port", port);
             uciMesh.commit("wireguard");
         }
@@ -123,7 +123,7 @@ if (request.env.REQUEST_METHOD === "DELETE") {
 const available = {};
 const defaultPort = uciMesh.get("aredn", "@supernode[0]", "enable") === "1" ? 6526 : 5525;
 const firstPort = int(uciMesh.get("wireguard", "@network[0]", "port"));
-const p = firstPort >= 1024 && firstPort <= 65410 ? firstPort : defaultPort;
+const p = firstPort >= 1024 && firstPort <= 65407 ? firstPort : defaultPort;
 for (let i = 0; i < 126; i++) {
     available[`${p + i}`] = 1;
 }
@@ -305,7 +305,7 @@ This value is used by default, but each tunnel may overide it.")}}
                     <div class="m">Port used by the first server tunnel</div>
                 </div>
                 <div style="flex:0">
-                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_port" type="text" size="5" {{servercount > 0 ? "readonly" : ""}} placeholder="{{defaultPort}}" pattern="(102[4-9]|10[3-9][0-9]|1[1-9][0-9]{2}|[2-9][0-9]{3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-3][0-9]{2}|654(0[0-9]|10))" hx-validate="true" value="{{uciMesh.get("wireguard", "@network[0]", "port")}}">
+                    <input hx-put="{{request.env.REQUEST_URI}}" name="tunnel_port" type="text" size="5" {{servercount > 0 ? "readonly" : ""}} placeholder="{{defaultPort}}" pattern="(102[4-9]|10[3-9][0-9]|1[1-9][0-9]{2}|[2-9][0-9]{3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-3][0-9]{2}|6540[0-7])" hx-validate="true" value="{{uciMesh.get("wireguard", "@network[0]", "port")}}">
                 </div>
             </div>
             {{_H("The UDP port for the first server tunnel. Each new server tunnel uses the next free port after it. Change this if another
