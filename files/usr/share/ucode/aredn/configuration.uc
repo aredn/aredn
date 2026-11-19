@@ -631,6 +631,7 @@ export function supportdata(supportdatafilename)
     ];
     const sensitive = [
         "/etc/config/network",
+        "/etc/config/wireguard",
         "/etc/config.mesh/wireguard",
         "/etc/config/wireless",
         "/etc/config.mesh/setup",

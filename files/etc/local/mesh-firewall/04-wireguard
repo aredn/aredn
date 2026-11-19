@@ -6,6 +6,8 @@ issupernode=$(uci get aredn.@supernode[0].enable 2>/dev/null)
 if [ "$issupernode" = "1" ]; then
     vtundport=$(($vtundport+1000))
 fi
+wgport=$(uci get wireguard.@network[0].port 2>/dev/null)
+vtundport=${wgport:-$vtundport}
 vtundportend=$(($vtundport+128))
 
 nft insert rule inet fw4 input_wan udp dport $vtundport-$vtundportend accept comment \"Wireguard\"
