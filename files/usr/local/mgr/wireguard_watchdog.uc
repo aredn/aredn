@@ -35,7 +35,7 @@ return function()
 {
     // Only run the script if we have wireguard connections
     uci.cursor().foreach("network", "interface", iface => {
-        if (index(iface[".name"], "wg") === 0) {
+        if (index(iface[".name"], "wgs") === 0) {
             system("/usr/bin/wireguard_watchdog");
             return false;
         }
