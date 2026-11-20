@@ -42,7 +42,11 @@
 %}
 <div class="ctrl" hx-get="status/e/location" hx-target="#ctrl-modal">
 {% if (mapurl) { %}
+    {% if (auth.isAdmin) { %}
     <div class="location-image"><iframe loading="lazy" src="{{mapurl}}"></iframe><div class="overlay"></div></div>
+    {% } else { %}
+    <div class="location-image"><a href="{{mapurl}}" target="_blank" onclick="event.stopPropagation()"><iframe loading="lazy" src="{{mapurl}}"></iframe><div class="overlay"></div></a></div>
+    {% } %}
     <script>
         (function(){
             fetch("{{mapurl}}").catch(_ => document.querySelector(".location-image").style.display = "none");
