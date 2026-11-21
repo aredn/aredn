@@ -35,7 +35,7 @@ const IDLE_LIMIT = 150; // seconds without a handshake before we re-resolve
 
 let active = false;
 uci.cursor().foreach("network", "interface", i => {
-    if (index(i[".name"], "wgs") !== 0 || i.disabled !== "0") {
+    if (index(i[".name"], "wgs") === 0 && i.disabled === "0") {
         active = true;
     }
 });
@@ -62,13 +62,16 @@ return function()
             return;
         }
 
-        const p = fs.popen(`/usr/bin/wg show ${iface} latest-handshakes`);
+        const p = fs.popen(`/usr/bin/wg show ${iface} latest-handshakes 2>/dev/null`);
         if (!p) {
             return;
         }
         const f = split(trim(p.read("line")), "\t");
         p.close();
 
+        if (!f) {
+            return;
+        }
         const idle = now - int(f[1]);
         if (idle < IDLE_LIMIT) {
             return;
