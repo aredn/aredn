@@ -63,24 +63,32 @@ if (fs.access(packageCatalog)) {
 	}
 
     apk_with_retry("update");
-    const catalog = json(fs.readfile(packageCatalog));
-	for (let pkg in catalog.installed) {
-		const state = catalog.installed[pkg];
-        if (state == "local") {
-			fs.unlink(`${packageStore}/${pkg}.ipk`); // Remove the old format packages
-            const file = `${packageStore}/${pkg}.apk`;
-            if (fs.access(file)) {
-                apk_with_retry(`add --allow-untrusted ${file}`);
-			}
-			else {
-				delete catalog.installed[pkg];
-			}
-		}
-        else if (state == "global") {
-            apk_with_retry(`add ${pkg}`);
-		}
+	let catalog = null;
+	try {
+    	catalog = json(fs.readfile(packageCatalog));
 	}
-	fs.writefile(packageCatalog, sprintf("%J", catalog));
+	catch (_) {
+		fs.unlink(packageCatalog);
+	}
+	if (catalog) {
+		for (let pkg in catalog.installed) {
+			const state = catalog.installed[pkg];
+			if (state == "local") {
+				fs.unlink(`${packageStore}/${pkg}.ipk`); // Remove the old format packages
+				const file = `${packageStore}/${pkg}.apk`;
+				if (fs.access(file)) {
+					apk_with_retry(`add --allow-untrusted ${file}`);
+				}
+				else {
+					delete catalog.installed[pkg];
+				}
+			}
+			else if (state == "global") {
+				apk_with_retry(`add ${pkg}`);
+			}
+		}
+		fs.writefile(packageCatalog, sprintf("%J", catalog));
+	}
 }
 
 // Don't do this again

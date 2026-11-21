@@ -76,7 +76,12 @@ function recordPackage(op, pkgname, pkgfile)
     const store = "/etc/package_store";
     const catfile = `${store}/catalog.json`;
     fs.mkdir(store);
-    const catalog = json(fs.readfile(catfile) || '{ "installed": {} }');
+    let catalog = { installed: {} };
+    try {
+        catalog = json(fs.readfile(catfile));
+    }
+    catch(_) {
+    }
     switch (op) {
         case "upload":
             fs.mkdir("/tmp/apk");

@@ -615,6 +615,7 @@ export function supportdata(supportdatafilename)
         "/etc/local",
         "/etc/mesh-release",
         "/etc/os-release",
+        "/etc/package_store/catalog.json",
         "/etc/arednlink",
         "/tmp/etc",
         "/tmp/dnsmasq.d",
