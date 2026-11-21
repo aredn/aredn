@@ -36,13 +36,40 @@ const CONFIG1 = "/etc/config/gpsd";
 const CHANGEMARGIN = 0.0001;
 const TIMESYNC = "/tmp/timesync";
 const LOCSYNC = "/tmp/locsync";
+// GPS status badge support by mathisono (2026). Reload with the native task.
+const gpslock = loadfile("/usr/share/ucode/aredn/gpslock.uc", { raw_mode: true })();
 
 let gps;
 let syncid;
+let nextSync = 0;
+
+function updateStatus(status)
+{
+    // A display observation must never interrupt the native GPS task.
+    try {
+        gpslock.write(status || gpslock.read(gps));
+    }
+    catch (e) {
+        fs.unlink("/tmp/gps-lock.json");
+    }
+}
 
 function main()
 {
     const c = uci.cursor();
+    const timeEnabled = c.get("aredn", "@time[0]", "gps_enable") === "1";
+    if (timeEnabled) {
+        updateStatus();
+    }
+    else {
+        fs.unlink("/tmp/gps-lock.json");
+    }
+    const now = clock(true)[0];
+    if (now < nextSync) {
+        return waitForTicks(timeEnabled ? gpslock.POLL_SECONDS : nextSync - now);
+    }
+    // Health refreshes do not change native clock/location sync or its cadence.
+    nextSync = now + 600;
     const j = hardware.GPSReadLLT(gps);
 
     // Update time and date
@@ -94,11 +121,12 @@ function main()
         }
     }
 
-    return waitForTicks(600); // 10 minutes
+    return waitForTicks(timeEnabled ? gpslock.POLL_SECONDS : 600);
 }
 
 function find()
 {
+    const c = uci.cursor();
     gps = hardware.GPSFind();
     if (gps) {
         // Create the GPSD daemon if device is local,
@@ -122,8 +150,17 @@ function find()
         return main;
     }
     else {
+        if (c.get("aredn", "@time[0]", "gps_enable") === "1") {
+            updateStatus({ state: "error", reason: "GPS source not found" });
+        }
         return waitForTicks(600); // 10 minutes
     }
 }
 
+if (uci.cursor().get("aredn", "@time[0]", "gps_enable") === "1") {
+    updateStatus({ state: "pending", reason: "Finding GPS source" });
+}
+else {
+    fs.unlink("/tmp/gps-lock.json");
+}
 return waitForTicks(60, find);

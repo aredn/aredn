@@ -366,6 +366,35 @@ body.authenticated .ctrl:hover
     font-size: calc(var(--font-base-size) - 2px);
 }
 
+/* GPS lock badge added by mathisono (2026); matches the firmware badge. */
+#health .gps-lock-status,
+#health .time-sync-status
+{
+    display: inline-block;
+    margin-left: 4px;
+    font-size: calc(var(--font-base-size) - 6px);
+    padding: 2px 5px;
+    border-radius: 5px;
+    white-space: nowrap;
+    vertical-align: middle;
+    color: var(--firmware-status-fg-color);
+}
+#health .gps-lock-status.locked,
+#health .time-sync-status.locked
+{
+    background-color: var(--firmware-status-bg-color-positive);
+}
+#health .gps-lock-status.pending,
+#health .time-sync-status.pending
+{
+    background-color: #f4c542;
+    color: #1a1a1a;
+}
+#health .gps-lock-status.error,
+#health .time-sync-status.error
+{
+    background-color: var(--firmware-status-bg-color-negative);
+}
 /* -- end general layout -- */
 
 /* -- start location layout -- */
