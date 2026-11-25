@@ -1,0 +1,7 @@
+#!/bin/sh
+# Observe the existing daemon callback; BusyBox does not expose its selected peer.
+case "$ACTION" in
+    step|stratum|periodic|unsync)
+        /usr/local/bin/aredn-time-status daemon "${stratum:-16}" >/dev/null 2>&1 || :
+        ;;
+esac

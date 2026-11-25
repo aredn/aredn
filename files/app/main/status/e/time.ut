@@ -189,6 +189,11 @@ switch (uciMesh.get("aredn", "@ntp[0]", "period")) {
         {% if (!fs.access("/usr/local/mgr/whenandwhere.uc")) { %}
         {{_H("When using a local GPS device, install the <b>whenandwhere</b> package.")}}
         {% } %}
+        <hr>
+        <div class="o">Time status</div>
+        <div class="time-status-details" hx-get="u-time-status" hx-trigger="every 30s [document.visibilityState === 'visible']" hx-swap="innerHTML">
+            {{_R("time-status")}}
+        </div>
     </div>
     {{_R("dialog-footer")}}
     <script>
