@@ -53,6 +53,12 @@
     const rr = uci.get("aredn", "@remoterf[0]", "enable") === "0" ? "disabled" : "active";
     const wm = (uci.get("aredn", "@wan[0]", "mesh_to_local_wan") == "1" || uci.get("aredn", "@wan[0]", "lan_dhcp_route") == "1") && uci.get("aredn", "@wan[0]", "passthrough") == "0" && (uci.get("aredn", "@wan[0]", "monitor1") || uci.get("aredn", "@wan[0]", "monitor2")) && configuration.getSettingAsString("wan_proto", "disabled") != "disabled" ? "active": "disabled";
     const lm = configuration.getSettingAsInt("lan_dhcp") == 0 ? "disabled" : "active";
+    let wgm = "inactive";
+    uci.foreach("network", "interface", i => {
+        if (index(i[".name"], "wgs") === 0 && i.disabled === "0") {
+            wgm = "active";
+        }
+    });
 %}
 <div class="ctrl" hx-get="status/e/internal-services" hx-target="#ctrl-modal">
     <div class="section-title">Internal Services</div>
@@ -85,5 +91,6 @@
         {% } %}
         <div class="service"><div class="status {{lm}}"></div>LAN Monitor</div>
         <div class="service"><div class="status {{wm}}"></div>WAN Monitor</div>
+        <div class="service"><div class="status {{wgm}}"></div>Wireguard Monitor</div>
     </div>
 </div>
