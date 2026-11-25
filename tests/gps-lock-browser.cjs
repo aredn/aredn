@@ -64,17 +64,22 @@ assert.deepEqual([...new Set(cases.map(test=>test.label))].sort(),
           await details.scrollIntoViewIfNeeded();
           assert.ok((await details.textContent()).includes(test.source));
           assert.ok((await details.textContent()).includes(test.label));
+          const columns=await details.locator('.cols').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length);
+          assert.equal(columns,2,`two-column popup ${test.name} at ${width}`);
           for(const cell of await details.locator('.i').all()) {
             const rect=await cell.boundingBox();
             assert.ok(rect.x>=0 && rect.x+rect.width<=width,`popup field clipped ${test.name} at ${width}`);
           }
           assert.equal(await page.locator('[name=ntp_server]').inputValue(),'aredn.pool.ntp.org');
-          popupRows.push({width,name:test.name,theme,passed:true});
+          popupRows.push({width,name:test.name,theme,columns,passed:true});
           if(theme==='light' && ['gps-waiting','ntp-hostname','ntp-and-gps'].includes(test.name)) {
-            await page.locator('#ctrl-modal').screenshot({path:path.join(output,`popup-${test.name}-${width}-3col.png`)});
-            const alternate=await page.addStyleTag({content:'#ctrl-modal .time-status-details .cols{grid-template-columns:repeat(2,minmax(0,1fr))}'});
             await page.locator('#ctrl-modal').screenshot({path:path.join(output,`popup-${test.name}-${width}-2col.png`)});
-            await alternate.evaluate(node=>node.remove());
+            if(width===960) {
+              // Keep the former layout as an explicitly labeled comparison.
+              const alternate=await page.addStyleTag({content:'#ctrl-modal .time-status-details .cols{grid-template-columns:repeat(3,minmax(0,1fr))}'});
+              await page.locator('#ctrl-modal').screenshot({path:path.join(output,`popup-${test.name}-${width}-3col.png`)});
+              await alternate.evaluate(node=>node.remove());
+            }
           }
           await page.evaluate(()=>{const dialog=document.querySelector('#ctrl-modal');dialog.close();dialog.innerHTML='';document.body.classList.remove('mobile');});
         }

@@ -32,8 +32,8 @@ NTP does not generate an unrelated GPS alarm.
 ## Time popup
 
 A **Time status** section sits below the existing settings and above the footer.
-It uses three columns at desktop width and two on mobile, with values above
-small captions, matching the neighbor-details convention.
+It uses two columns on desktop and mobile, with values above small captions,
+matching the neighbor-details convention and the surrounding two-column dialog.
 
 - Status and recorded source: `GPS`, the successful NTP command's IP or hostname,
   or an explicit unknown source. A hostname is a valid alternative to an IP;
@@ -58,8 +58,8 @@ These screenshots use native-template fixtures, not live receiver measurements.
 ![Compact waiting status](images/time-status/gps-waiting.png)
 ![Compact NTP status](images/time-status/ntp-synced.png)
 ![Compact unknown status; historical details remain in hover and popup](images/time-status/status-unknown.png)
-![Time popup with the new three-column details section](images/time-status/popup-three-columns.png)
-![Two-column desktop comparison using the same native template](images/time-status/popup-two-columns.png)
+![Time popup with the preferred two-column details section](images/time-status/popup-two-columns.png)
+![Former three-column desktop layout, retained for comparison](images/time-status/popup-three-columns.png)
 ![Time popup on mobile with two-column details](images/time-status/popup-mobile.png)
 
 ## Evidence and preservation
@@ -107,6 +107,7 @@ time-popup templates, themes, controls and repository HTMX are exercised.
 
 Coverage includes all six labels; recorded IPv4/IPv6/hostname/unknown sources;
 historical, future, invalid and stale evidence; escaped hover and popup values;
-independent GPS health while NTP is active; desktop/mobile two-/three-column
-renders; popup placement; and simultaneous health/popup refreshes that preserve
-staged settings. These are not a firmware build or physical-fault/reboot tests.
+independent GPS health while NTP is active; desktop/mobile two-column defaults
+and a former three-column comparison; popup placement; and simultaneous
+health/popup refreshes that preserve staged settings. These are not a firmware
+build or physical-fault/reboot tests.
